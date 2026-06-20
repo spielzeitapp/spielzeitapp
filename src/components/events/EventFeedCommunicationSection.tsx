@@ -20,6 +20,8 @@ import { Card } from '../../app/components/ui/Card';
 type Props = {
   event: EventRow;
   userId: string | null;
+  /** Kein eigenes Accordion — Inhalt für CenterCollapsibleSection. */
+  embedded?: boolean;
 };
 
 const inputClass =
@@ -38,7 +40,7 @@ function offsetKey(v: EventFeedPostOffset): string {
   return v === 'immediate' ? 'immediate' : String(v);
 }
 
-export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }) => {
+export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, embedded = false }) => {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -80,8 +82,12 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
   }, [event.id]);
 
   useEffect(() => {
-    if (expanded) void reload();
-  }, [expanded, reload]);
+    if (embedded) void reload();
+  }, [embedded, reload]);
+
+  useEffect(() => {
+    if (!embedded && expanded) void reload();
+  }, [expanded, embedded, reload]);
 
   const toggleOffset = (value: EventFeedPostOffset) => {
     setSelectedOffsets((prev) => {
@@ -222,6 +228,190 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
   };
 
   return (
+    embedded ? (
+      <div className="flex flex-col gap-3">
+        {loading ? <p className="text-[14px] text-white/70">Lade Einstellungen…</p> : null}
+
+          <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+            <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/55">Poster</p>
+            {previewSrc ? (
+              <div className="mb-3 overflow-hidden rounded-lg border border-white/10 bg-black/40">
+                <img
+                  src={previewSrc}
+                  alt="Poster-Vorschau"
+                  className="max-h-[min(42dvh,16rem)] w-full object-contain"
+                />
+              </div>
+            ) : (
+              <p className="mb-3 text-[13px] text-white/50">Noch kein Poster hochgeladen.</p>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="soft"
+                size="sm"
+                disabled={uploading || saving}
+                onClick={onPickPoster}
+                className="inline-flex items-center gap-1.5"
+              >
+                <ImagePlus className="h-4 w-4" aria-hidden />
+                {posterPath ? 'Poster ersetzen' : 'Poster hochladen'}
+              </Button>
+              {posterPath ? (
+                <Button
+                  type="button"
+                  variant="soft"
+                  size="sm"
+                  disabled={uploading || saving}
+                  onClick={() => void onDeletePoster()}
+                  className="inline-flex items-center gap-1.5 text-red-200"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                  Poster löschen
+                </Button>
+              ) : null}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(ev) => void onPosterFile(ev)}
+            />
+            {uploading ? <p className="mt-2 text-[12px] text-white/60">Poster wird hochgeladen…</p> : null}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/55">
+              Eigener Feed-Text
+            </label>
+            <textarea
+              value={captionOverride}
+              onChange={(ev) => setCaptionOverride(ev.target.value)}
+              rows={3}
+              placeholder="Optional — leer = Titel, Datum/Uhrzeit, Ort"
+              className={`${inputClass} min-h-[4.5rem] resize-y`}
+            />
+          </div>
+
+          <label className="flex cursor-pointer items-start gap-2 text-[14px] text-white/90">
+            <input
+              type="checkbox"
+              checked={preferCustomPoster}
+              onChange={(ev) => setPreferCustomPoster(ev.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border border-white/25 bg-black/30"
+            />
+            <span>Eigenes Poster bevorzugen</span>
+          </label>
+
+          <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+            <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/55">
+              Automatische Veröffentlichung
+            </p>
+
+            <div className="mb-3 flex rounded-lg border border-white/10 bg-black/30 p-0.5">
+              {(['manual_only', 'auto'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => onModeChange(mode)}
+                  className={`min-h-[36px] flex-1 rounded-md px-2 text-[13px] font-medium transition-colors ${
+                    postMode === mode
+                      ? 'bg-red-600/90 text-white shadow-sm'
+                      : 'text-white/65 hover:text-white/90'
+                  }`}
+                >
+                  {mode === 'manual_only' ? 'Manuell' : 'Automatisch'}
+                </button>
+              ))}
+            </div>
+
+            {isAutoMode ? (
+              <>
+                <label
+                  className={`mb-3 flex items-start gap-2 text-[14px] ${
+                    canEnableAuto ? 'cursor-pointer text-white/90' : 'cursor-not-allowed text-white/45'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={autoPostEnabled}
+                    disabled={!canEnableAuto}
+                    onChange={(ev) => setAutoPostEnabled(ev.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border border-white/25 bg-black/30 disabled:opacity-40"
+                  />
+                  <span>Automatisch im Feed veröffentlichen</span>
+                </label>
+
+                {!canEnableAuto ? (
+                  <p className="mb-2 text-[12px] text-amber-200/85">
+                    Für automatische Posts zuerst ein Poster hochladen.
+                  </p>
+                ) : null}
+
+                <p className="mb-2 text-[12px] text-white/55">Zeitpunkte</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {OFFSET_OPTIONS.map((opt) => {
+                    const checked = selectedOffsets.some((o) => offsetKey(o) === offsetKey(opt.value));
+                    const disabled = !canEnableAuto || !autoPostEnabled;
+                    return (
+                      <label
+                        key={offsetKey(opt.value)}
+                        className={`flex min-h-[36px] items-center gap-2 rounded-lg border px-2 py-1.5 text-[13px] ${
+                          disabled
+                            ? 'cursor-not-allowed border-white/5 text-white/35'
+                            : 'cursor-pointer border-white/10 text-white/85'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={disabled}
+                          onChange={() => toggleOffset(opt.value)}
+                          className="h-3.5 w-3.5 shrink-0 rounded border border-white/25 bg-black/30"
+                        />
+                        <span className="leading-tight">{opt.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <p className="mt-3 text-[12px] leading-snug text-white/55">
+                  Automatische Posts werden erzeugt, sobald der Feed geladen wird. Exakte Uhrzeiten folgen später mit
+                  einem Scheduler.
+                </p>
+              </>
+            ) : (
+              <p className="text-[13px] text-white/60">
+                Im manuellen Modus kannst du das Poster unten jederzeit selbst im Feed veröffentlichen.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button variant="primary" size="sm" disabled={saving || uploading} onClick={() => void onSaveSettings()}>
+              {saving ? 'Speichern…' : 'Einstellungen speichern'}
+            </Button>
+            <Button
+              variant="soft"
+              size="sm"
+              disabled={!posterPath || publishing || manualPublished}
+              onClick={() => void onPublish()}
+              className="inline-flex items-center gap-1.5"
+            >
+              <Send className="h-4 w-4" aria-hidden />
+              {publishing ? 'Veröffentliche…' : 'Jetzt im Feed posten'}
+            </Button>
+          </div>
+
+          {manualPublished ? (
+            <p className="text-[13px] text-amber-200/90">Dieses Poster wurde bereits manuell im Feed veröffentlicht.</p>
+          ) : null}
+          {statusMessage ? <p className="text-[13px] text-emerald-300/95">{statusMessage}</p> : null}
+          {error ? <p className="text-[13px] text-red-300/95">{error}</p> : null}
+      </div>
+    ) : (
     <Card className="mt-6 flex flex-col gap-2 overflow-hidden">
       <button
         type="button"
@@ -420,5 +610,6 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
         </div>
       ) : null}
     </Card>
+    )
   );
 };

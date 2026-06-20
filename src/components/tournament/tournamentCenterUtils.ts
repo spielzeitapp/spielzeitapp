@@ -110,10 +110,10 @@ export function tournamentSlotStatusTone(
   return 'planned';
 }
 
-export async function shareTournamentCenter(title: string): Promise<boolean> {
+export async function shareEventCenter(centerLabel: string, title: string): Promise<boolean> {
   if (typeof window === 'undefined') return false;
   const url = window.location.href;
-  const shareTitle = `Turniercenter — ${title}`;
+  const shareTitle = `${centerLabel} — ${title}`;
   try {
     if (typeof navigator.share === 'function') {
       await navigator.share({ title: shareTitle, url });
@@ -127,6 +127,10 @@ export async function shareTournamentCenter(title: string): Promise<boolean> {
     return false;
   }
   return false;
+}
+
+export async function shareTournamentCenter(title: string): Promise<boolean> {
+  return shareEventCenter('Turniercenter', title);
 }
 
 export function splitTeamDisplayName(name: unknown): { club: string; ageGroup: string | null } {

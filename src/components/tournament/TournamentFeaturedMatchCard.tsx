@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileDown, Plus, Radio } from 'lucide-react';
+import { FileDown, Plus, Radio, Trophy } from 'lucide-react';
 import {
   formatTournamentKickoffTime,
   isTournamentSlotPreparable,
@@ -18,6 +18,7 @@ import { dsPrimaryCtaClass, dsScheduleGlassButtonClass, dsSecondaryCtaClass, dsS
 import { isStartelfCompleteFromStartingIds } from '../../pages/MatchDetail/lineupGuards';
 import { safeOptionalText } from '../../lib/safeText';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
+import { CenterEmptyState } from '../center/CenterEmptyState';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
 
 type Props = {
@@ -105,28 +106,14 @@ export function TournamentFeaturedMatchCard({
 
   if (!featured) {
     return (
-      <section className={TC_CARD}>
-        <div className={`${TC_CARD_INNER} flex flex-col gap-2`}>
-          <p className={TC_SECTION_LABEL}>Spielplan</p>
-          <p className="text-[13px] leading-snug text-white/65">Noch keine Turnierspiele geplant.</p>
-          {canManage ? (
-            <div className="flex flex-col gap-1.5 sm:flex-row">
-              {onAddMatch ? (
-                <button type="button" className={`${compactCtaClass('primary')} w-full sm:flex-1`} onClick={onAddMatch}>
-                  <Plus className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-                  Turnierspiel hinzufügen
-                </button>
-              ) : null}
-              {onImportPlan ? (
-                <button type="button" className={`${compactCtaClass('glass')} w-full sm:flex-1`} onClick={onImportPlan}>
-                  <FileDown className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-                  {hasOfficialPlanUrl ? 'Turnierplan importieren' : 'Turnierplan verknüpfen'}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      </section>
+      <CenterEmptyState
+        icon={Trophy}
+        title="Kein Turnierspiel geplant"
+        description="Füge ein Turnierspiel hinzu oder verknüpfe den offiziellen Turnierplan."
+        actionLabel={canManage && onAddMatch ? 'Turnierspiel hinzufügen' : undefined}
+        onAction={canManage && onAddMatch ? onAddMatch : undefined}
+        actionVariant="primary"
+      />
     );
   }
 

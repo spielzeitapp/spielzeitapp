@@ -5,6 +5,7 @@ import {
   type TournamentGroupStandings,
 } from '../../lib/tournamentGroupStandings';
 import { formatTournamentGoalDifference } from '../../lib/tournamentPlan';
+import { CenterEmptyState } from '../center/CenterEmptyState';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
 
 type Props = {
@@ -25,16 +26,11 @@ export function TournamentTableTab({ standings, loading = false }: Props) {
 
   if (!standings || standings.rows.length === 0) {
     return (
-      <section className={TC_CARD}>
-        <div className={`${TC_CARD_INNER} flex flex-col items-center py-4 text-center`}>
-          <ListOrdered className="mb-2 h-8 w-8 text-white/25" strokeWidth={1.75} aria-hidden />
-          <p className="text-[15px] font-semibold text-white/85">Keine Tabelle verfügbar</p>
-          <p className="mt-1.5 max-w-[16rem] text-[13px] leading-snug text-white/45">
-            Importiere den offiziellen Turnierplan oder trage Gruppenergebnisse ein, um die
-            Gruppentabelle zu sehen.
-          </p>
-        </div>
-      </section>
+      <CenterEmptyState
+        icon={ListOrdered}
+        title="Keine Tabelle verfügbar"
+        description="Importiere den offiziellen Turnierplan oder trage Gruppenergebnisse ein."
+      />
     );
   }
 

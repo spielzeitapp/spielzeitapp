@@ -9,6 +9,7 @@ import {
 } from '../../lib/premiumPlayerCard';
 import { AppButton } from '../ui/AppButton';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
+import { CenterEmptyState } from '../center/CenterEmptyState';
 import { TournamentScorersSheet } from './TournamentScorersSheet';
 
 const TOP_SCORERS_PREVIEW = 5;
@@ -99,12 +100,12 @@ export function TournamentScorersOverviewCard({
           {loading ? (
             <p className="mt-2.5 text-[14px] text-white/55">Torschützen werden geladen…</p>
           ) : scorers.length === 0 ? (
-            <div className="mt-2.5 py-2 text-center">
-              <p className="text-[14px] font-medium text-white/70">Noch kein Tor erfasst</p>
-              <p className="mt-1 text-[12px] leading-snug text-white/45">
-                Tore aus Live-Spielen und beendeten Turnierspielen erscheinen hier automatisch.
-              </p>
-            </div>
+            <CenterEmptyState
+              embedded
+              icon={Target}
+              title="Keine Torschützen vorhanden"
+              description="Tore aus Live-Spielen und beendeten Turnierspielen erscheinen hier automatisch."
+            />
           ) : (
             <>
               <ol className="mt-2.5 flex list-none flex-col gap-1.5 p-0">

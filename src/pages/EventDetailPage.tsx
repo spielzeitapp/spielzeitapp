@@ -55,6 +55,11 @@ import { TournamentCenterHeader } from '../components/tournament/TournamentCente
 import { TournamentCompactCard } from '../components/tournament/TournamentCompactCard';
 import { TournamentQuickActionBar } from '../components/tournament/TournamentQuickActionBar';
 import { TournamentCompactAttendancePanel } from '../components/tournament/TournamentCompactAttendancePanel';
+import { CenterHeader } from '../components/center/CenterHeader';
+import { CenterQuickActionBar } from '../components/center/CenterQuickActionBar';
+import { TrainingCompactHero } from '../components/training/TrainingCompactHero';
+import { TrainingDetailSections } from '../components/training/TrainingDetailSections';
+import { shareEventCenter } from '../components/tournament/tournamentCenterUtils';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
 import { EventFeedCommunicationSection } from '../components/events/EventFeedCommunicationSection';
 import { useSession } from '../auth/useSession';
@@ -68,10 +73,8 @@ import {
   dsScheduleGlassButtonClass,
   dsSecondaryCtaClass,
   dsScheduleDetailCalendarRowClass,
-  dsSchedulePageStyle,
   dsSectionLabelClass,
   dsStatusChipClass,
-  dsTrainingDetailHeaderAtmosphereClass,
   DS_LIST_GAP,
   DS_STAT_GRID_GAP,
   type DsChipTone,
@@ -2970,6 +2973,17 @@ export const EventDetailPage: React.FC = () => {
       />
     ) : null;
 
+  const trainingTrainerAttendanceSection =
+    isTraining && canTrainerManageEvent ? (
+      <TrainingAttendancePanel
+        players={players}
+        getStatus={getTrainingAttendanceStatus}
+        onSetStatus={(playerId, status) => void handleTrainerTrainingStatus(playerId, status)}
+        loading={playersLoading || loadingEventAttendance}
+        className="-mx-1 min-w-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] sm:-mx-1.5"
+      />
+    ) : null;
+
   const handleStartNavigation = () => {
     const opened = openMapsNavigation({
       lat: audienceMapsCoords?.lat,
@@ -3038,18 +3052,18 @@ export const EventDetailPage: React.FC = () => {
   return (
     <div
       className="min-h-screen text-white"
-      style={isTraining ? dsSchedulePageStyle() : { background: '#000000' }}
+      style={{ background: '#000000' }}
     >
       <div
         className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 sm:px-4 ${
-          isTournament
+          isTournament || isTraining
             ? 'gap-2.5 py-2.5 pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))]'
             : isAudienceMatchDetail
               ? 'gap-3 py-4'
               : 'gap-5 py-5 pb-28'
         }`}
       >
-        {!isTournament ? (
+        {!isTournament && !isTraining ? (
         <div className="flex flex-col gap-3">
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
@@ -3147,7 +3161,11 @@ export const EventDetailPage: React.FC = () => {
                 trainerAttendanceSection={tournamentTrainerAttendanceSection}
                 trainerFeedSection={
                   canTrainerManageEvent ? (
-                    <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} />
+                    <EventFeedCommunicationSection
+                      event={event}
+                      userId={sessionUser?.id ?? null}
+                      embedded
+                    />
                   ) : null
                 }
                 trainerActions={
@@ -3184,6 +3202,68 @@ export const EventDetailPage: React.FC = () => {
               />
             ) : null}
           </>
+        ) : isTraining ? (
+          <>
+            <CenterHeader title="Trainingscenter" />
+            <TrainingCompactHero
+              title={eventCompactTitle}
+              startsAt={event.starts_at}
+              location={event.location}
+              coverUrl={(event as { training_cover_url?: unknown }).training_cover_url}
+            />
+            <CenterQuickActionBar
+              onAddToCalendar={() => void handleAddSingleEventToCalendar()}
+              onNavigate={handleStartNavigation}
+              showNavigation={Boolean(audienceLocation.place || audienceLocation.address)}
+              onShare={() => shareEventCenter('Trainingscenter', eventCompactTitle)}
+            />
+            {event.team_season_id ? (
+              <TrainingDetailSections
+                eventId={event.id}
+                teamSeasonId={event.team_season_id}
+                startsAtIso={event.starts_at}
+                status={event.status}
+                trainingTitle={eventCompactTitle}
+                trainingTopics={eventDetailsPrimary}
+                canManage={canTrainerManageEvent}
+                trainerAttendanceSection={trainingTrainerAttendanceSection}
+                trainerFeedSection={
+                  canTrainerManageEvent ? (
+                    <EventFeedCommunicationSection
+                      event={event}
+                      userId={sessionUser?.id ?? null}
+                      embedded
+                    />
+                  ) : null
+                }
+                trainerActions={
+                  <ScheduleEventActionsPanel
+                    className="mt-0 w-full"
+                    aria-label="Training bearbeiten"
+                    rows={[
+                      ...(canTrainerManageEvent
+                        ? [
+                            {
+                              key: 'edit',
+                              label: 'Bearbeiten',
+                              icon: <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                              onClick: () => openEditModal(event),
+                            },
+                            {
+                              key: 'delete',
+                              label: 'Löschen',
+                              icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                              danger: true,
+                              onClick: () => setDeleteConfirmOpen(true),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                }
+              />
+            ) : null}
+          </>
         ) : isEventOrOther ? (
           <div className="-mx-1 overflow-hidden rounded-[16px] border border-white/[0.1] bg-[linear-gradient(165deg,#16141a_0%,#0a0a0c_52%,#140a10_100%)] px-4 py-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.06)] sm:mx-0">
             <div className="flex min-w-0 items-center gap-3">
@@ -3208,7 +3288,6 @@ export const EventDetailPage: React.FC = () => {
           </div>
         ) : (
           <div className="-mx-3 relative flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
-            {isTraining ? <div className={dsTrainingDetailHeaderAtmosphereClass()} aria-hidden /> : null}
             <MatchCardLigaportal
               className="relative z-[1] !overflow-visible w-full max-w-full rounded-2xl"
               compactDetailGame
@@ -3348,7 +3427,8 @@ export const EventDetailPage: React.FC = () => {
 
         {!isFan &&
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
-        !(isTournament && canTrainerManageEvent) ? (
+        !(isTournament && canTrainerManageEvent) &&
+        !(isTraining && canTrainerManageEvent) ? (
           <Card
             className={
               isTraining
@@ -3723,7 +3803,7 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         )}
 
-        {canTrainerManageEvent && !isTournament ? (
+        {canTrainerManageEvent && !isTournament && !isTraining ? (
           <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} />
         ) : null}
 
