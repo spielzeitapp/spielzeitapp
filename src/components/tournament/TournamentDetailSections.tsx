@@ -38,11 +38,11 @@ import { TournamentFinalSummaryCard } from './TournamentFinalSummaryCard';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
 import { TournamentCenterTabBar } from './TournamentCenterTabBar';
+import { TournamentCompactCard } from './TournamentCompactCard';
 import { TournamentFeaturedMatchCard } from './TournamentFeaturedMatchCard';
 import { TournamentInfoCard } from './TournamentInfoCard';
 import { TournamentLastResultsCard } from './TournamentLastResultsCard';
 import { TournamentCollapsibleSection } from './TournamentCollapsibleSection';
-import { TournamentSchedulePreviewSection } from './TournamentSchedulePreviewSection';
 import { TournamentSquadLineupSection } from './TournamentSquadLineupSection';
 import { TournamentMatchSlotCard } from './TournamentMatchSlotCard';
 import { TournamentOverviewBalanceCard } from './TournamentOverviewBalanceCard';
@@ -68,14 +68,17 @@ type Props = {
   teamSeasonId: string;
   tournamentDayIso: string;
   tournamentTitle: string;
+  ourTeamName: string;
   location: string | null;
   officialTournamentUrl: string | null;
+  tournamentCoverUrl?: string | null;
   tournamentNotes?: string | null;
   canManage: boolean;
   userId?: string | null;
   trainerActions?: React.ReactNode;
   trainerAttendanceSection?: React.ReactNode;
   trainerFeedSection?: React.ReactNode;
+  quickActions?: React.ReactNode;
   onOpenMatchPreparation: (matchId: string) => void;
   onOfficialTournamentUrlUpdated: (url: string | null) => void;
   onTournamentCompleted?: () => void;
@@ -93,14 +96,17 @@ export const TournamentDetailSections: React.FC<Props> = ({
   teamSeasonId,
   tournamentDayIso,
   tournamentTitle,
+  ourTeamName,
   location,
   officialTournamentUrl,
+  tournamentCoverUrl = null,
   tournamentNotes = null,
   canManage,
   userId = null,
   trainerActions = null,
   trainerAttendanceSection = null,
   trainerFeedSection = null,
+  quickActions = null,
   onOpenMatchPreparation,
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
@@ -183,7 +189,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const existingTeamNames = useMemo(() => participants.map((p) => p.team_name), [participants]);
 
   const scrollToTeamAliases = useCallback(() => {
-    setActiveTab('overview');
+    setActiveTab('admin');
     setAliasesReloadToken((t) => t + 1);
     requestAnimationFrame(() => {
       document.getElementById('tournament-team-aliases')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -326,14 +332,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
-  const handleImportPlanFromOverview = useCallback(() => {
-    const planUrl = safeText(officialTournamentUrl);
-    setPlanWorkflowRequest({
-      action: planUrl ? 'import' : 'qr',
-      key: Date.now(),
-    });
-  }, [officialTournamentUrl]);
-
   const tournamentPhase = useMemo(
     (): TournamentCenterPhase =>
       resolveTournamentCenterPhase({
@@ -346,95 +344,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const overviewSectionOrder = useMemo((): string[] => {
     if (tournamentPhase === 'after') {
-      return [
-        'placement',
-        'balance',
-        'results',
-        'scorers',
-        'schedule',
-        'table',
-        'info',
-        ...(canManage ? ['feed', 'availability', 'squad', 'admin'] : []),
-      ];
+      return ['placement', 'table', 'scorers', 'results', 'info', 'balance'];
     }
-    if (tournamentPhase === 'day') {
-      return [
-        'live',
-        'schedule',
-        'table',
-        ...(canManage ? ['squad', 'availability', 'feed'] : []),
-        'results',
-        'balance',
-        'scorers',
-        'info',
-        ...(canManage ? ['admin'] : []),
-      ];
-    }
-    if (canManage) {
-      return ['availability', 'squad', 'feed', 'schedule', 'table', 'balance', 'results', 'scorers', 'info', 'admin'];
-    }
-    return ['schedule', 'results', 'info'];
-  }, [tournamentPhase, canManage]);
+    return ['table', 'scorers', 'results', 'info', 'balance'];
+  }, [tournamentPhase]);
 
   const renderOverviewSection = (key: string) => {
     switch (key) {
-      case 'live':
-        return (
-          <TournamentFeaturedMatchCard
-            key={key}
-            slots={slots}
-            loading={loading}
-            canManage={canManage}
-            hasOfficialPlanUrl={Boolean(safeText(officialTournamentUrl))}
-            onOpen={onOpenMatchPreparation}
-            onAddMatch={canManage ? openMatchModal : undefined}
-            onImportPlan={canManage ? handleImportPlanFromOverview : undefined}
-          />
-        );
-      case 'availability':
-        if (!canManage || !trainerAttendanceSection) return null;
-        return (
-          <TournamentCollapsibleSection
-            key={key}
-            title="Verfügbarkeit"
-            icon="👥"
-            defaultExpanded={tournamentPhase === 'before'}
-          >
-            {trainerAttendanceSection}
-          </TournamentCollapsibleSection>
-        );
-      case 'squad':
-        if (!canManage) return null;
-        return (
-          <TournamentSquadLineupSection
-            key={key}
-            slots={slots}
-            loading={loading}
-            canManage={canManage}
-          />
-        );
-      case 'feed':
-        if (!canManage || !trainerFeedSection) return null;
-        return (
-          <TournamentCollapsibleSection key={key} title="Feed & Kommunikation" icon="📢" defaultExpanded={false}>
-            {trainerFeedSection}
-          </TournamentCollapsibleSection>
-        );
-      case 'schedule':
-        return (
-          <TournamentSchedulePreviewSection
-            key={key}
-            slots={slots}
-            loading={loading}
-            canManage={canManage}
-            nextMatchId={nextMatchId}
-            hasOfficialPlanUrl={Boolean(safeText(officialTournamentUrl))}
-            onOpenMatch={onOpenMatchPreparation}
-            onShowAll={(tab) => setActiveTab(tab)}
-            onAddMatch={canManage ? openMatchModal : undefined}
-            onImportPlan={canManage ? handleImportPlanFromOverview : undefined}
-          />
-        );
       case 'table':
         return (
           <div key={key}>
@@ -485,46 +401,63 @@ export const TournamentDetailSections: React.FC<Props> = ({
         );
       case 'info':
         return <TournamentInfoCard key={key} rows={infoRows} notes={tournamentNotes} />;
-      case 'admin':
-        if (!canManage) return null;
-        return (
-          <TournamentTrainerAdminAccordion key={key}>
-            <TournamentTrainerAdminSection title="Offizieller Turnierplan">
-              <TournamentOfficialPlanCard
-                tournamentEventId={tournamentEventId}
-                teamSeasonId={teamSeasonId}
-                tournamentDayIso={tournamentDayIso}
-                location={location}
-                officialTournamentUrl={officialTournamentUrl}
-                existingTeamNames={participants.map((p) => p.team_name)}
-                existingSlots={slots}
-                canManage={canManage}
-                tournamentArchived={Boolean(completion.completedAt)}
-                embedded
-                workflowRequest={planWorkflowRequest}
-                onUrlUpdated={onOfficialTournamentUrlUpdated}
-                onImportComplete={() => void reload()}
-                onScrollToAliases={scrollToTeamAliases}
-              />
-            </TournamentTrainerAdminSection>
-            <TournamentTrainerAdminSection title="Turnier-Aliase">
+      default:
+        return null;
+    }
+  };
+
+  const renderAdminTab = () => {
+    if (!canManage) return null;
+    return (
+      <div className={`flex flex-col ${TC_STACK_GAP}`}>
+        {trainerAttendanceSection ? (
+          <TournamentCollapsibleSection title="Zu-/Absagen" icon="👥" defaultExpanded>
+            {trainerAttendanceSection}
+          </TournamentCollapsibleSection>
+        ) : null}
+        <TournamentSquadLineupSection slots={slots} loading={loading} canManage={canManage} />
+        <TournamentTrainerAdminAccordion>
+          <TournamentTrainerAdminSection title="Offizieller Turnierplan">
+            <TournamentOfficialPlanCard
+              tournamentEventId={tournamentEventId}
+              teamSeasonId={teamSeasonId}
+              tournamentDayIso={tournamentDayIso}
+              location={location}
+              officialTournamentUrl={officialTournamentUrl}
+              existingTeamNames={participants.map((p) => p.team_name)}
+              existingSlots={slots}
+              canManage={canManage}
+              tournamentArchived={Boolean(completion.completedAt)}
+              embedded
+              workflowRequest={planWorkflowRequest}
+              onUrlUpdated={onOfficialTournamentUrlUpdated}
+              onImportComplete={() => void reload()}
+              onScrollToAliases={scrollToTeamAliases}
+            />
+          </TournamentTrainerAdminSection>
+          <TournamentTrainerAdminSection title="Turnier-Aliase">
+            <div id="tournament-team-aliases">
               <TournamentTeamAliasesCard
                 teamSeasonId={teamSeasonId}
                 canManage={canManage}
                 reloadToken={aliasesReloadToken}
                 embedded
               />
-            </TournamentTrainerAdminSection>
-            {trainerActions ? (
-              <TournamentTrainerAdminSection title="Bearbeiten / Löschen">
-                {trainerActions}
-              </TournamentTrainerAdminSection>
-            ) : null}
+            </div>
+          </TournamentTrainerAdminSection>
+        </TournamentTrainerAdminAccordion>
+        {trainerFeedSection ? (
+          <TournamentCollapsibleSection title="Feed & Kommunikation" icon="📢" defaultExpanded={false}>
+            {trainerFeedSection}
+          </TournamentCollapsibleSection>
+        ) : null}
+        {trainerActions ? (
+          <TournamentTrainerAdminAccordion>
+            <TournamentTrainerAdminSection title="Bearbeiten / Löschen">{trainerActions}</TournamentTrainerAdminSection>
           </TournamentTrainerAdminAccordion>
-        );
-      default:
-        return null;
-    }
+        ) : null}
+      </div>
+    );
   };
 
   const slotSections = useMemo(() => groupTournamentSlotsBySection(slots), [slots]);
@@ -671,7 +604,26 @@ export const TournamentDetailSections: React.FC<Props> = ({
         </div>
       ) : null}
 
-      <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TournamentCompactCard
+        title={tournamentTitle}
+        startsAt={tournamentDayIso}
+        location={location}
+        coverUrl={tournamentCoverUrl}
+        participantCount={participants.length}
+      />
+
+      {quickActions}
+
+      <TournamentFeaturedMatchCard
+        slots={slots}
+        ourTeamName={ourTeamName}
+        loading={loading}
+        canManage={canManage}
+        onOpen={onOpenMatchPreparation}
+        onAddMatch={canManage ? openMatchModal : undefined}
+      />
+
+      <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage={canManage} />
 
       {listError ? (
         <p className="text-[13px] text-red-300/90" role="alert">
@@ -782,6 +734,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
           ) : null}
         </div>
       ) : null}
+
+      {activeTab === 'admin' && canManage ? renderAdminTab() : null}
 
       <Modal
         isOpen={participantModalOpen}

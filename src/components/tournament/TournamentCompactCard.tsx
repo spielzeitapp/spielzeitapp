@@ -11,9 +11,16 @@ type Props = {
   startsAt: string;
   location: unknown;
   coverUrl?: unknown;
+  participantCount?: number | null;
 };
 
-export function TournamentCompactCard({ title, startsAt, location, coverUrl }: Props) {
+export function TournamentCompactCard({
+  title,
+  startsAt,
+  location,
+  coverUrl,
+  participantCount = null,
+}: Props) {
   const heroUrl = resolveTournamentHeroBackgroundUrl(safeOptionalText(coverUrl));
   const dateLabel = formatTournamentDayDate(startsAt) || '—';
   const timeLabel = formatTimeHHmmDe(startsAt);
@@ -40,6 +47,10 @@ export function TournamentCompactCard({ title, startsAt, location, coverUrl }: P
         />
       }
       coverUrl={heroUrl}
+      imageObjectPosition="50% 36%"
+      participantCount={participantCount}
+      tall
+      vividImage
     />
   );
 }

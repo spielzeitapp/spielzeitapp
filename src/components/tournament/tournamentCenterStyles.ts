@@ -7,11 +7,23 @@ export {
   EC_META_ICON as TC_META_ICON,
 } from '../center/eventCenterStyles';
 
-export type TournamentCenterTabId = 'overview' | 'games' | 'table' | 'teams';
+export type TournamentCenterTabId = 'overview' | 'games' | 'table' | 'teams' | 'admin';
 
-export const TOURNAMENT_CENTER_TABS: { id: TournamentCenterTabId; label: string }[] = [
+const BASE_TABS: { id: TournamentCenterTabId; label: string }[] = [
   { id: 'overview', label: 'Überblick' },
   { id: 'games', label: 'Spiele' },
   { id: 'table', label: 'Tabelle' },
   { id: 'teams', label: 'Teams' },
 ];
+
+const ADMIN_TAB: { id: TournamentCenterTabId; label: string } = {
+  id: 'admin',
+  label: 'Verwaltung',
+};
+
+export function getTournamentCenterTabs(canManage: boolean): { id: TournamentCenterTabId; label: string }[] {
+  return canManage ? [...BASE_TABS, ADMIN_TAB] : BASE_TABS;
+}
+
+/** @deprecated Use getTournamentCenterTabs */
+export const TOURNAMENT_CENTER_TABS = BASE_TABS;

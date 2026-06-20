@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileDown, Plus, Radio, Trophy } from 'lucide-react';
+import { Clock, Radio, Trophy } from 'lucide-react';
 import {
   formatTournamentKickoffTime,
   isTournamentSlotPreparable,
@@ -8,64 +8,103 @@ import {
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
 import { fetchLineupForLiveMatch } from '../../lib/liveMatchService';
+import { getClubLogo, getTeamInitials } from '../../lib/teamLogos';
 import {
   isMatchPreparationAccessible,
   liveMatchPath,
   matchLineupPath,
   matchPreparationPath,
 } from '../../lib/matchPreparationAccess';
-import { dsPrimaryCtaClass, dsScheduleGlassButtonClass, dsSecondaryCtaClass, dsStatusChipClass } from '../../lib/premiumDesignSystem';
+import { dsPrimaryCtaClass, dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
 import { isStartelfCompleteFromStartingIds } from '../../pages/MatchDetail/lineupGuards';
-import { safeOptionalText } from '../../lib/safeText';
-import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
+import { safeOptionalText, safeText } from '../../lib/safeText';
 import { CenterEmptyState } from '../center/CenterEmptyState';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
 
 type Props = {
   slots: TournamentMatchSlotView[];
+  ourTeamName: string;
   loading?: boolean;
   canManage?: boolean;
-  hasOfficialPlanUrl?: boolean;
   onOpen: (matchId: string) => void;
   onAddMatch?: () => void;
-  onImportPlan?: () => void;
 };
 
-const compactCtaClass = (variant: 'primary' | 'secondary' | 'glass' = 'secondary') => {
-  const base = 'inline-flex min-h-[36px] touch-manipulation items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold';
-  if (variant === 'primary') return `${base} ${dsPrimaryCtaClass()}`;
-  if (variant === 'glass') return `${base} ${dsScheduleGlassButtonClass()}`;
-  return `${base} ${dsSecondaryCtaClass()}`;
-};
+function TeamLogoMark({ name }: { name: string }) {
+  const [failed, setFailed] = useState(false);
+  const src = getClubLogo(name);
+  if (failed) {
+    return (
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/50 text-[11px] font-bold text-white/80 sm:h-12 sm:w-12">
+        {getTeamInitials(name)}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      className="h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 function WorkflowCtaLink({
   to,
   children,
-  variant = 'secondary',
-  className = '',
+  variant = 'primary',
 }: {
   to: string;
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'glass';
-  className?: string;
+  variant?: 'primary' | 'secondary';
 }) {
+  const ctaClass = variant === 'primary' ? dsPrimaryCtaClass() : dsSecondaryCtaClass();
   return (
-    <Link to={to} className={`${compactCtaClass(variant)} w-full ${className}`}>
+    <Link
+      to={to}
+      className={`${ctaClass} inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-semibold`}
+    >
       {children}
     </Link>
   );
 }
 
+function resolveWorkflowState(
+  featured: TournamentMatchSlotView,
+  lineupReady: boolean,
+): 'live' | 'lineup_ready' | 'planned' | 'finished' {
+  const status = tournamentMatchDisplayStatus(featured);
+  if (status.kind === 'live') return 'live';
+  if (status.kind === 'result') return 'finished';
+  if (lineupReady) return 'lineup_ready';
+  return 'planned';
+}
+
+function workflowBadgeLabel(state: ReturnType<typeof resolveWorkflowState>): string {
+  if (state === 'live') return 'Live';
+  if (state === 'lineup_ready') return 'Aufstellung fertig';
+  if (state === 'finished') return 'Beendet';
+  return 'Geplant';
+}
+
 export function TournamentFeaturedMatchCard({
   slots,
+  ourTeamName,
   loading = false,
   canManage = false,
-  hasOfficialPlanUrl = false,
   onOpen,
   onAddMatch,
-  onImportPlan,
 }: Props) {
   const featured = pickFeaturedTournamentSlot(slots);
+  const nextOpenSlot = useMemo(() => {
+    if (!featured) return null;
+    const open = slots
+      .filter((s) => (s.match_status ?? '').toLowerCase() !== 'finished')
+      .sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime());
+    return open.find((s) => s.id !== featured.id) ?? open[0] ?? null;
+  }, [featured, slots]);
+
   const [lineupReady, setLineupReady] = useState(false);
   const [lineupLoading, setLineupLoading] = useState(false);
 
@@ -95,12 +134,10 @@ export function TournamentFeaturedMatchCard({
 
   if (loading) {
     return (
-      <section className={TC_CARD}>
-        <div className={TC_CARD_INNER}>
-          <p className={TC_SECTION_LABEL}>Nächstes Spiel</p>
-          <p className="mt-1.5 text-[13px] text-white/55">Lade Spiele…</p>
-        </div>
-      </section>
+      <article className="overflow-hidden rounded-[18px] border border-[rgba(255,71,71,0.18)] bg-[rgba(8,6,10,0.92)] px-3 py-3 sm:px-3.5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-300/80">Nächstes Turnierspiel</p>
+        <p className="mt-2 text-[13px] text-white/55">Lade Spiele…</p>
+      </article>
     );
   }
 
@@ -118,97 +155,137 @@ export function TournamentFeaturedMatchCard({
   }
 
   const status = tournamentMatchDisplayStatus(featured);
-  const isLive = status.kind === 'live';
-  const isPreparation = status.kind === 'preparation';
-  const hasLineup = featured.has_lineup;
+  const workflowState = resolveWorkflowState(featured, lineupReady);
+  const isLive = workflowState === 'live';
+  const isFinished = workflowState === 'finished';
   const canPrepare =
-    canManage && !isLive && isTournamentSlotPreparable(featured) && isMatchPreparationAccessible(featured.match_status);
+    canManage &&
+    !isLive &&
+    !isFinished &&
+    isTournamentSlotPreparable(featured) &&
+    isMatchPreparationAccessible(featured.match_status);
   const timeLabel = formatTournamentKickoffTime(featured.kickoff_at);
   const group = safeOptionalText(featured.group_label);
+  const phase = safeOptionalText(featured.phase);
   const pitch = safeOptionalText(featured.pitch);
   const scoreLine = status.kind === 'result' ? `${status.ourGoals}:${status.oppGoals}` : null;
   const matchId = featured.match_id;
+  const opponent = safeText(featured.opponent_name) || 'Gegner';
+  const ourTeam = safeText(ourTeamName) || 'Unser Team';
+  const phaseLabel = phase ? phase : group ? `Gruppe ${group}` : null;
 
   return (
-    <section className={`${TC_CARD} ${isLive ? 'border-[rgba(255,71,71,0.32)] shadow-[0_0_24px_rgba(255,71,71,0.1)]' : ''}`}>
-      <div className={`${TC_CARD_INNER} flex flex-col gap-2`}>
+    <article
+      className={`relative overflow-hidden rounded-[18px] border shadow-[0_12px_40px_rgba(0,0,0,0.5)] ${
+        isLive
+          ? 'border-[rgba(255,71,71,0.38)] shadow-[0_0_28px_rgba(255,71,71,0.14),0_12px_40px_rgba(0,0,0,0.5)]'
+          : 'border-[rgba(255,71,71,0.22)]'
+      }`}
+    >
+      <div className="border-b border-white/[0.06] bg-[rgba(10,8,12,0.96)] px-3 py-2 sm:px-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-300/85">
+            {isLive ? 'Live-Spiel' : 'Nächstes Turnierspiel'}
+          </p>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide ${
+              isLive
+                ? 'border-red-500/40 bg-red-950/45 text-red-200'
+                : workflowState === 'lineup_ready'
+                  ? 'border-emerald-500/30 bg-emerald-950/35 text-emerald-200'
+                  : workflowState === 'finished'
+                    ? 'border-white/15 bg-white/[0.06] text-white/55'
+                    : 'border-amber-500/28 bg-amber-950/30 text-amber-200'
+            }`}
+          >
+            {isLive ? <Radio className="h-2.5 w-2.5 animate-pulse" strokeWidth={2.5} aria-hidden /> : null}
+            {workflowBadgeLabel(workflowState)}
+          </span>
+        </div>
+      </div>
+
+      <div className="relative bg-[rgba(6,4,8,0.98)] px-3 py-3 sm:px-3.5 sm:py-3.5">
         <button
           type="button"
           onClick={() => onOpen(matchId)}
-          className="flex w-full flex-col gap-1.5 text-left touch-manipulation"
+          className="flex w-full flex-col gap-2.5 text-left touch-manipulation"
         >
-          <div className="flex items-center justify-between gap-2">
-            <p className={TC_SECTION_LABEL}>{isLive ? 'Live-Spiel' : 'Nächstes Spiel'}</p>
-            {isLive ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-950/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-200">
-                <Radio className="h-3 w-3 animate-pulse" strokeWidth={2.5} aria-hidden />
-                Live
-              </span>
-            ) : isPreparation ? (
-              <span className={dsStatusChipClass('open')}>Vorbereitung</span>
-            ) : (
-              <span className={dsStatusChipClass('neutral')}>Geplant</span>
-            )}
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+              <TeamLogoMark name={ourTeam} />
+              <p className="line-clamp-2 w-full text-center text-[10px] font-bold leading-snug text-white sm:text-[11px]">
+                {ourTeam}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-center gap-0.5 px-0.5">
+              {scoreLine ? (
+                <p className="text-[18px] font-bold tabular-nums leading-none text-white">{scoreLine}</p>
+              ) : (
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">vs</span>
+              )}
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+              <TeamLogoMark name={opponent} />
+              <p className="line-clamp-2 w-full text-center text-[10px] font-bold leading-snug text-white sm:text-[11px]">
+                {opponent}
+              </p>
+            </div>
           </div>
 
-          <div className="min-w-0">
-            {scoreLine ? (
-              <p className="text-[20px] font-bold tabular-nums leading-none text-white">
-                {scoreLine}
-                <span className="ml-2 text-[14px] font-semibold text-white/65">vs</span>
-              </p>
-            ) : null}
-            <p
-              className={`font-bold leading-snug text-white break-words ${scoreLine ? 'mt-1 text-[15px]' : 'text-[17px]'}`}
-            >
-              {featured.opponent_name}
-            </p>
-            <p className="mt-0.5 text-[12px] tabular-nums text-white/60">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/68">
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3 w-3 shrink-0 text-red-400/75" strokeWidth={2} aria-hidden />
               {timeLabel} Uhr
-              {group ? ` · Gruppe ${group}` : ''}
-              {pitch ? ` · ${pitch}` : ''}
-            </p>
+            </span>
+            {phaseLabel ? <span className="text-white/45">· {phaseLabel}</span> : null}
+            {pitch ? <span className="text-white/45">· {pitch}</span> : null}
           </div>
         </button>
 
         {canManage ? (
-          <div className="flex flex-col gap-1.5 border-t border-white/[0.06] pt-2">
+          <div className="mt-2.5 flex flex-col gap-1.5 border-t border-white/[0.06] pt-2.5">
             {isLive ? (
               <WorkflowCtaLink to={liveMatchPath(matchId)} variant="primary">
                 <Radio className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
                 Zum Live-Spiel
               </WorkflowCtaLink>
-            ) : lineupReady ? (
-              <>
-                <WorkflowCtaLink to={liveMatchPath(matchId)} variant="primary">
-                  Live starten
+            ) : isFinished ? (
+              nextOpenSlot ? (
+                <WorkflowCtaLink to={matchPreparationPath(nextOpenSlot.match_id)} variant="primary">
+                  Nächstes Spiel vorbereiten
                 </WorkflowCtaLink>
+              ) : null
+            ) : workflowState === 'lineup_ready' ? (
+              <>
                 <WorkflowCtaLink to={matchLineupPath(matchId)} variant="secondary">
                   Aufstellung öffnen
                 </WorkflowCtaLink>
-              </>
-            ) : hasLineup || isPreparation ? (
-              <>
-                <WorkflowCtaLink to={matchLineupPath(matchId)} variant="primary">
-                  Aufstellung öffnen
+                <WorkflowCtaLink to={liveMatchPath(matchId)} variant="primary">
+                  Live starten
                 </WorkflowCtaLink>
-                {canPrepare ? (
-                  <WorkflowCtaLink to={matchPreparationPath(matchId)} variant="secondary">
-                    Spiel vorbereiten
-                  </WorkflowCtaLink>
-                ) : null}
               </>
             ) : canPrepare ? (
               <WorkflowCtaLink to={matchPreparationPath(matchId)} variant="primary">
                 Spiel vorbereiten
+              </WorkflowCtaLink>
+            ) : featured.has_lineup ? (
+              <WorkflowCtaLink to={matchLineupPath(matchId)} variant="primary">
+                Aufstellung öffnen
               </WorkflowCtaLink>
             ) : null}
             {lineupLoading ? (
               <p className="text-center text-[10px] text-white/40">Prüfe Aufstellung…</p>
             ) : null}
           </div>
+        ) : isLive ? (
+          <div className="mt-2.5 border-t border-white/[0.06] pt-2.5">
+            <WorkflowCtaLink to={liveMatchPath(matchId)} variant="primary">
+              <Radio className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+              Zum Live-Spiel
+            </WorkflowCtaLink>
+          </div>
         ) : null}
       </div>
-    </section>
+    </article>
   );
 }

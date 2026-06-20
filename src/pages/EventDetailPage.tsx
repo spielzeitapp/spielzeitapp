@@ -52,7 +52,6 @@ import {
 import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
 import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
 import { TournamentCenterHeader } from '../components/tournament/TournamentCenterHeader';
-import { TournamentCompactCard } from '../components/tournament/TournamentCompactCard';
 import { TournamentQuickActionBar } from '../components/tournament/TournamentQuickActionBar';
 import { TournamentCompactAttendancePanel } from '../components/tournament/TournamentCompactAttendancePanel';
 import { CenterHeader } from '../components/center/CenterHeader';
@@ -3135,27 +3134,25 @@ export const EventDetailPage: React.FC = () => {
         {isTournament ? (
           <>
             <TournamentCenterHeader />
-            <TournamentCompactCard
-              title={tournamentTitle}
-              startsAt={event.starts_at}
-              location={event.location}
-              coverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
-            />
-            <TournamentQuickActionBar
-              shareTitle={tournamentTitle}
-              onAddToCalendar={() => void handleAddSingleEventToCalendar()}
-              onNavigate={handleStartNavigation}
-              showNavigation={Boolean(audienceLocation.place || audienceLocation.address)}
-            />
             {event.team_season_id ? (
               <TournamentDetailSections
                 tournamentEventId={event.id}
                 teamSeasonId={event.team_season_id}
                 tournamentDayIso={event.starts_at}
                 tournamentTitle={tournamentTitle}
+                ourTeamName={ourTeamName}
                 location={safeOptionalText(event.location)}
                 officialTournamentUrl={safeOptionalText(event.official_tournament_url)}
+                tournamentCoverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
                 tournamentNotes={tournamentNotesText}
+                quickActions={
+                  <TournamentQuickActionBar
+                    shareTitle={tournamentTitle}
+                    onAddToCalendar={() => void handleAddSingleEventToCalendar()}
+                    onNavigate={handleStartNavigation}
+                    showNavigation={Boolean(audienceLocation.place || audienceLocation.address)}
+                  />
+                }
                 canManage={canTrainerManageEvent}
                 userId={sessionUser?.id ?? null}
                 trainerAttendanceSection={tournamentTrainerAttendanceSection}
