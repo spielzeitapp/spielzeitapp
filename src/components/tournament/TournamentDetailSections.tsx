@@ -43,6 +43,7 @@ import { TournamentFeaturedMatchCard } from './TournamentFeaturedMatchCard';
 import { TournamentInfoCard } from './TournamentInfoCard';
 import { TournamentLastResultsCard } from './TournamentLastResultsCard';
 import { TournamentCollapsibleSection } from './TournamentCollapsibleSection';
+import { TournamentPreparationPanel } from './TournamentPreparationPanel';
 import { TournamentSquadLineupSection } from './TournamentSquadLineupSection';
 import { TournamentMatchSlotCard } from './TournamentMatchSlotCard';
 import { TournamentOverviewBalanceCard } from './TournamentOverviewBalanceCard';
@@ -57,6 +58,7 @@ import {
 import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { safeText } from '../../lib/safeText';
 import { resolveTournamentCenterPhase, type TournamentCenterPhase } from '../../lib/tournamentCenterPhase';
+import type { TournamentAttendanceSummary } from '../../lib/tournamentPreparationFlow';
 import {
   TournamentTrainerAdminAccordion,
   TournamentTrainerAdminSection,
@@ -78,6 +80,7 @@ type Props = {
   trainerActions?: React.ReactNode;
   trainerAttendanceSection?: React.ReactNode;
   trainerFeedSection?: React.ReactNode;
+  attendanceSummary?: TournamentAttendanceSummary;
   quickActions?: React.ReactNode;
   onOpenMatchPreparation: (matchId: string) => void;
   onOfficialTournamentUrlUpdated: (url: string | null) => void;
@@ -106,6 +109,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   trainerActions = null,
   trainerAttendanceSection = null,
   trainerFeedSection = null,
+  attendanceSummary = { playerCount: 0, yesCount: 0, noCount: 0, openCount: 0 },
   quickActions = null,
   onOpenMatchPreparation,
   onOfficialTournamentUrlUpdated,
@@ -332,6 +336,26 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
+  const handleImportPlanFromOverview = useCallback(() => {
+    const planUrl = safeText(officialTournamentUrl);
+    setPlanWorkflowRequest({
+      action: planUrl ? 'import' : 'qr',
+      key: Date.now(),
+    });
+  }, [officialTournamentUrl]);
+
+  const scrollToAttendance = useCallback(() => {
+    requestAnimationFrame(() => {
+      document.getElementById('tournament-attendance-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
+  const openTeamsForParticipants = useCallback(() => {
+    setActiveTab('teams');
+    setParticipantModalError(null);
+    setParticipantModalOpen(true);
+  }, []);
+
   const tournamentPhase = useMemo(
     (): TournamentCenterPhase =>
       resolveTournamentCenterPhase({
@@ -408,12 +432,26 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const renderAdminTab = () => {
     if (!canManage) return null;
+    const planUrl = safeText(officialTournamentUrl);
     return (
       <div className={`flex flex-col ${TC_STACK_GAP}`}>
+        <TournamentPreparationPanel
+          slots={slots}
+          participantCount={participants.length}
+          hasOfficialPlanUrl={Boolean(planUrl)}
+          attendance={attendanceSummary}
+          loading={loading}
+          onImportPlan={handleImportPlanFromOverview}
+          onAddMatch={openMatchModal}
+          onAddParticipants={openTeamsForParticipants}
+          onScrollToAttendance={scrollToAttendance}
+        />
         {trainerAttendanceSection ? (
-          <TournamentCollapsibleSection title="Zu-/Absagen" icon="👥" defaultExpanded>
-            {trainerAttendanceSection}
-          </TournamentCollapsibleSection>
+          <div id="tournament-attendance-section">
+            <TournamentCollapsibleSection title="Zu-/Absagen" icon="👥" defaultExpanded>
+              {trainerAttendanceSection}
+            </TournamentCollapsibleSection>
+          </div>
         ) : null}
         <TournamentSquadLineupSection slots={slots} loading={loading} canManage={canManage} />
         <TournamentTrainerAdminAccordion>

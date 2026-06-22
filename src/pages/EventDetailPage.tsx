@@ -3156,6 +3156,12 @@ export const EventDetailPage: React.FC = () => {
                 canManage={canTrainerManageEvent}
                 userId={sessionUser?.id ?? null}
                 trainerAttendanceSection={tournamentTrainerAttendanceSection}
+                attendanceSummary={{
+                  playerCount: players.length,
+                  yesCount: Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length,
+                  noCount: Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length,
+                  openCount: Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length),
+                }}
                 trainerFeedSection={
                   canTrainerManageEvent ? (
                     <EventFeedCommunicationSection
