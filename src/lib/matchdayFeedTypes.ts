@@ -71,7 +71,8 @@ export type ClassifiedFeedPost =
   | { kind: 'lineup'; post: LineupFeedPostRow }
   | { kind: 'image'; post: TeamFeedPostDbRow }
   | { kind: 'video'; post: TeamFeedPostDbRow }
-  | { kind: 'result'; post: ResultFeedPostRow };
+  | { kind: 'result'; post: ResultFeedPostRow }
+  | { kind: 'tournament_completion'; post: TeamFeedPostDbRow };
 
 export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost | null {
   const mt = (row.media_type ?? '').toLowerCase().trim();
@@ -91,6 +92,9 @@ export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost
     const rpl = parseResultFeedPayload(row.payload);
     if (!rpl) return null;
     return { kind: 'result', post: { ...row, payload: rpl } };
+  }
+  if (mt === 'tournament_completion' || pk === 'tournament_completion_manual') {
+    return { kind: 'tournament_completion', post: row };
   }
   if (mt === 'lineup' || pk === 'lineup_auto') {
     const lpl = parseLineupFeedPayload(row.payload);

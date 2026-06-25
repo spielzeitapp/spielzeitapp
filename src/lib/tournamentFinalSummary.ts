@@ -291,12 +291,16 @@ export function tournamentPlacementSourceHint(source: TournamentPlacementSource)
   return null;
 }
 
-export function canCompleteTournament(
+export function canCompleteTournament(balance: TournamentTeamBalance): boolean {
+  return balance.isCompleted && balance.played > 0;
+}
+
+export function shouldShowTournamentPremiumFinalCard(
   balance: TournamentTeamBalance,
-  summary: TournamentFinalSummary | null,
+  completion: { completedAt: string | null },
 ): boolean {
-  if (!summary?.finalPlacementLabel) return false;
-  return balance.isCompleted;
+  if (completion.completedAt) return true;
+  return balance.isCompleted && balance.played > 0;
 }
 
 export function shouldShowTournamentFinalSummaryCard(

@@ -119,7 +119,7 @@ export function computeTournamentGroupStandings(params: {
   rawMatches: TournamentPlanImportRawMatch[];
   ourTeamNames: string[];
 }): TournamentGroupStandings | null {
-  if (participants.length === 0 || params.ourTeamNames.length === 0) return null;
+  if (params.participants.length === 0 || params.ourTeamNames.length === 0) return null;
 
   let ourParticipant: TournamentParticipant | null = null;
   for (const participant of params.participants) {
@@ -240,7 +240,7 @@ export function computeLiveTournamentGroupStandingsForGroup(params: {
   ourTeamNames: string[];
   targetGroupLabel: string | null;
 }): TournamentGroupStandings | null {
-  if (participants.length === 0 || params.ourTeamNames.length === 0) return null;
+  if (params.participants.length === 0 || params.ourTeamNames.length === 0) return null;
 
   const targetGroupKey = groupLabelKey(params.targetGroupLabel);
   const groupParticipants = params.participants.filter(

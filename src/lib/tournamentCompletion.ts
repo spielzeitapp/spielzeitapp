@@ -1,5 +1,4 @@
 import { supabase } from './supabaseClient';
-import type { TournamentFinalSummary } from './tournamentFinalSummary';
 
 export type TournamentCompletionState = {
   completedAt: string | null;
@@ -59,14 +58,16 @@ export async function fetchTournamentCompletion(
 export async function completeTournamentEvent(params: {
   eventId: string;
   userId: string;
-  summary: TournamentFinalSummary;
+  placement: number | null;
+  teamsCount: number | null;
+  label: string | null;
 }): Promise<{ data: TournamentCompletionState | null; error: string | null }> {
   const payload = {
     tournament_completed_at: new Date().toISOString(),
     tournament_completed_by: params.userId,
-    tournament_final_placement: params.summary.finalPlacementRank,
-    tournament_final_teams_count: params.summary.finalPlacementTotal,
-    tournament_final_label: params.summary.finalPlacementLabel,
+    tournament_final_placement: params.placement,
+    tournament_final_teams_count: params.teamsCount,
+    tournament_final_label: params.label?.trim() || null,
   };
 
   const { data, error } = await supabase

@@ -406,7 +406,8 @@ export function TournamentFeaturedMatchCard({
             </div>
           ) : (
             <p className="text-[11px] leading-snug text-white/55">
-              Turnier kann abgeschlossen werden — Bericht erstellen oder in der Übersicht nachsehen.
+              {orchestrator.footerHint ??
+                'Turnier kann abgeschlossen werden — Bericht erstellen oder Turnier abschließen.'}
             </p>
           )}
         </button>

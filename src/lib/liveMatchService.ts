@@ -532,10 +532,12 @@ export function resolveMatchSquadForLineupPersist(params: {
   });
   const benchPlayerIds = getBenchPlayers(
     squadPlayerIds,
-    params.fieldPlayerIds,
+    [...params.fieldPlayerIds],
     params.savedBenchPlayerIds?.length
-      ? params.savedBenchPlayerIds
-      : params.dbBenchPlayerIds,
+      ? [...params.savedBenchPlayerIds]
+      : params.dbBenchPlayerIds
+        ? [...params.dbBenchPlayerIds]
+        : undefined,
   );
   return { squadPlayerIds, benchPlayerIds };
 }
@@ -557,8 +559,10 @@ export function createSafeLineupPersistPayload(
   params: CreateSafeLineupPersistPayloadParams,
 ): SafeLineupPersistPayload {
   const startingPlayerIds = Array.isArray(params.slots)
-    ? LIVE_FIELD_SLOT_ORDER.map((_, i) => String(params.slots[i] ?? '').trim())
-    : fieldSlotMapToStartingIds(params.slots);
+    ? LIVE_FIELD_SLOT_ORDER.map((_, i) =>
+        String((params.slots as readonly (string | null | undefined)[])[i] ?? '').trim(),
+      )
+    : fieldSlotMapToStartingIds(params.slots as Record<FieldSlotId, string | null>);
   const afterFieldIds = startingPlayerIds.filter((id) => id.length > 0);
 
   const preferredBench = [

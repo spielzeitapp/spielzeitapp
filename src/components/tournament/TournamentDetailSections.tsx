@@ -19,8 +19,7 @@ import {
   type TournamentMatchSlotView,
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
-import { canCompleteTournament, computeTournamentFinalSummary } from '../../lib/tournamentFinalSummary';
-import { buildTournamentReportText } from '../../lib/tournamentReportText';
+import { canCompleteTournament, computeTournamentFinalSummary, shouldShowTournamentPremiumFinalCard } from '../../lib/tournamentFinalSummary';
 import { usePlayers } from '../../hooks/usePlayers';
 import {
   completeTournamentEvent,
@@ -41,7 +40,15 @@ import {
   fetchTournamentImportRecognition,
   type TournamentPlanImportRawMatch,
 } from '../../lib/tournamentPlanImport';
-import { TournamentFinalSummaryCard } from './TournamentFinalSummaryCard';
+import {
+  buildTournamentCompletionFeedCaption,
+  buildTournamentCompletionFeedPayload,
+  buildTournamentCompletionReportText,
+  publishTournamentCompletionFeedPost,
+} from '../../lib/tournamentCompletionFeed';
+import { formatCompletionPlacementLine } from '../../lib/tournamentCompletionDisplay';
+import { TournamentCompleteModal, type TournamentCompleteFormValues } from './TournamentCompleteModal';
+import { TournamentPremiumFinalCard } from './TournamentPremiumFinalCard';
 import { TournamentReportModal } from './TournamentReportModal';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
@@ -176,6 +183,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   });
   const [completingTournament, setCompletingTournament] = useState(false);
   const [orchestratorReportOpen, setOrchestratorReportOpen] = useState(false);
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const { players, loading: playersLoading } = usePlayers(teamSeasonId);
 
   const reload = useCallback(async () => {
@@ -275,15 +283,32 @@ export const TournamentDetailSections: React.FC<Props> = ({
     };
   }, [tournamentEventId]);
 
-  const handleCompleteTournament = async () => {
-    if (!finalSummary || !userId) return;
-    if (!window.confirm('Turnier jetzt abschließen? Import bleibt möglich.')) return;
+  const handleCompleteTournament = () => {
+    if (!userId) return;
+    setCompleteModalOpen(true);
+  };
+
+  const handleConfirmCompleteTournament = async (values: TournamentCompleteFormValues) => {
+    if (!userId) return;
 
     setCompletingTournament(true);
+    const placementLine =
+      values.placementRank != null && values.teamsCount != null
+        ? formatCompletionPlacementLine({
+            completedAt: null,
+            completedBy: null,
+            finalPlacement: values.placementRank,
+            finalTeamsCount: values.teamsCount,
+            finalLabel: values.label,
+          })
+        : values.label?.trim() || 'Turnier beendet';
+
     const result = await completeTournamentEvent({
       eventId: tournamentEventId,
       userId,
-      summary: finalSummary,
+      placement: values.placementRank,
+      teamsCount: values.teamsCount,
+      label: values.label,
     });
     setCompletingTournament(false);
 
@@ -291,10 +316,46 @@ export const TournamentDetailSections: React.FC<Props> = ({
       setListError(result.error);
       return;
     }
+
     if (result.data) {
       setCompletion(result.data);
+      setCompleteModalOpen(false);
       setToastMessage('Turnier abgeschlossen.');
       onTournamentCompleted?.();
+
+      if (values.publishFeed) {
+        const payload = buildTournamentCompletionFeedPayload({
+          eventId: tournamentEventId,
+          tournamentTitle,
+          placementLine,
+          teamsCount: values.teamsCount,
+          balance: teamBalance,
+          goalScorers,
+          slots,
+          completionComment: values.comment,
+        });
+        const caption = buildTournamentCompletionFeedCaption({
+          tournamentTitle,
+          placementLine,
+          balance: teamBalance,
+          topScorer: goalScorers[0] ?? null,
+          completionComment: values.comment,
+        });
+        const feedResult = await publishTournamentCompletionFeedPost({
+          eventId: tournamentEventId,
+          teamSeasonId,
+          userId,
+          caption,
+          payload,
+        });
+        if (!feedResult.ok && feedResult.reason !== 'already_posted') {
+          setListError(
+            typeof feedResult.reason === 'string'
+              ? `Turnier abgeschlossen, Feed-Beitrag fehlgeschlagen: ${feedResult.reason}`
+              : 'Turnier abgeschlossen, Feed-Beitrag fehlgeschlagen.',
+          );
+        }
+      }
     }
   };
 
@@ -455,18 +516,33 @@ export const TournamentDetailSections: React.FC<Props> = ({
   }, [tournamentPhase, completion.completedAt, slots, reload]);
 
   const orchestratorReportText = useMemo(() => {
-    if (!finalSummary) return '';
-    return buildTournamentReportText({
+    const placementLine = completion.completedAt
+      ? formatCompletionPlacementLine(completion)
+      : finalSummary?.finalPlacementLabel
+        ? formatCompletionPlacementLine({
+            completedAt: null,
+            completedBy: null,
+            finalPlacement: finalSummary.finalPlacementRank,
+            finalTeamsCount: finalSummary.finalPlacementTotal,
+            finalLabel: finalSummary.finalPlacementLabel,
+          })
+        : 'Turnier beendet';
+
+    return buildTournamentCompletionReportText({
       tournamentTitle,
       summary: finalSummary,
       balance: teamBalance,
-      finalMatch: finalSummary.finalMatch,
+      placementLine,
       goalScorers,
     });
-  }, [tournamentTitle, finalSummary, teamBalance, goalScorers]);
+  }, [tournamentTitle, finalSummary, teamBalance, goalScorers, completion]);
 
-  const orchestratorCanCreateReport = Boolean(orchestratorReportText.trim());
-  const orchestratorCanComplete = canCompleteTournament(teamBalance, finalSummary);
+  const orchestratorCanCreateReport = Boolean(orchestratorReportText.trim()) || teamBalance.played > 0;
+  const orchestratorCanComplete =
+    canCompleteTournament(teamBalance) && !completion.completedAt && canManage;
+
+  const showPremiumFinalCard = shouldShowTournamentPremiumFinalCard(teamBalance, completion);
+  const showPremiumAboveTabs = Boolean(completion.completedAt) && showPremiumFinalCard;
 
   const showOrchestratorOverview = useCallback(() => {
     setActiveTab('overview');
@@ -476,11 +552,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
   }, []);
 
   const overviewSectionOrder = useMemo((): string[] => {
+    if (completion.completedAt) {
+      return ['table', 'scorers', 'results', 'info'];
+    }
     if (tournamentPhase === 'after') {
-      return ['placement', 'table', 'scorers', 'results', 'info', 'balance'];
+      return ['table', 'scorers', 'results', 'info', 'balance'];
     }
     return ['table', 'scorers', 'results', 'info', 'balance'];
-  }, [tournamentPhase]);
+  }, [tournamentPhase, completion.completedAt]);
 
   const renderOverviewSection = (key: string) => {
     switch (key) {
@@ -515,27 +594,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           />
         );
       case 'placement':
-        return (
-          <TournamentFinalSummaryCard
-            key={key}
-            tournamentEventId={tournamentEventId}
-            tournamentTitle={tournamentTitle}
-            balance={teamBalance}
-            summary={finalSummary}
-            completion={completion}
-            goalScorers={goalScorers}
-            goalScorersLoading={goalScorersLoading}
-            hasMatchEventGoals={hasMatchEventGoals}
-            canManage={canManage}
-            userId={userId}
-            players={players}
-            playersLoading={playersLoading}
-            loading={loading || standingsLoading}
-            onManualScorersSaved={() => void reloadGoalScorers()}
-            onCompleteTournament={() => void handleCompleteTournament()}
-            completingTournament={completingTournament}
-          />
-        );
+        return null;
       case 'info':
         return <TournamentInfoCard key={key} rows={infoRows} notes={tournamentNotes} />;
       default:
@@ -785,9 +844,23 @@ export const TournamentDetailSections: React.FC<Props> = ({
         onOpen={onOpenMatchPreparation}
         onAddMatch={canManage ? openMatchModal : undefined}
         onCreateReport={() => setOrchestratorReportOpen(true)}
-        onCompleteTournament={() => void handleCompleteTournament()}
+        onCompleteTournament={handleCompleteTournament}
         onShowOverview={showOrchestratorOverview}
       />
+
+      {showPremiumAboveTabs ? (
+        <TournamentPremiumFinalCard
+          tournamentTitle={tournamentTitle}
+          balance={teamBalance}
+          completion={completion}
+          summary={finalSummary}
+          goalScorers={goalScorers}
+          goalScorersLoading={goalScorersLoading}
+          slots={slots}
+          loading={loading}
+          canManage={canManage}
+        />
+      ) : null}
 
       <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage={canManage} />
 
@@ -1090,6 +1163,17 @@ export const TournamentDetailSections: React.FC<Props> = ({
         isOpen={orchestratorReportOpen}
         reportText={orchestratorReportText}
         onClose={() => setOrchestratorReportOpen(false)}
+      />
+
+      <TournamentCompleteModal
+        isOpen={completeModalOpen}
+        tournamentEventId={tournamentEventId}
+        summary={finalSummary}
+        participantCount={participants.length}
+        planTeamCount={planImportContext?.teamCount ?? null}
+        completing={completingTournament}
+        onClose={() => setCompleteModalOpen(false)}
+        onConfirm={(values) => void handleConfirmCompleteTournament(values)}
       />
     </div>
   );

@@ -158,6 +158,10 @@ export function getFeedPostPriority(
     return FEED_POST_PRIORITY.trainer_post;
   }
 
+  if (pk === 'tournament_completion_manual' || mt === 'tournament_completion') {
+    return FEED_POST_PRIORITY.trainer_post;
+  }
+
   if (pk === 'matchday_auto' || (mt === 'matchday' && parseMatchdayPayload(row.payload))) {
     const raw = row.payload as Record<string, unknown> | null;
     if (raw?.matchday_timing === 'today') return FEED_POST_PRIORITY.matchday_today;

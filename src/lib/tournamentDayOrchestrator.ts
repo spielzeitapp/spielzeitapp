@@ -39,6 +39,7 @@ export type TournamentOrchestratorState = {
   badgeTone: TournamentOrchestratorBadgeTone;
   ctas: TournamentOrchestratorCta[];
   showLineupReadyMark: boolean;
+  footerHint?: string | null;
 };
 
 export function sortTournamentSlotsChronologically(
@@ -183,11 +184,12 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'all_finished',
-      headerTitle: 'Letztes Spiel beendet',
+      headerTitle: 'Turnier kann abgeschlossen werden',
       badgeLabel: 'Beendet',
       badgeTone: 'finished',
       ctas,
       showLineupReadyMark: false,
+      footerHint: 'Alle Turnierspiele sind durch — Abschluss und Bericht im nächsten Schritt.',
     };
   }
 

@@ -76,7 +76,7 @@ export const TournamentFinalSummaryCard: React.FC<Props> = ({
   const sourceHint = tournamentPlacementSourceHint(summary.placementSource);
   const isArchived = Boolean(completion.completedAt);
   const showCompleteButton =
-    canManage && !isArchived && canCompleteTournament(balance, summary);
+    canManage && !isArchived && canCompleteTournament(balance);
   const showManualScorersButton = canManage && !hasMatchEventGoals;
 
   if (!placementLine) return null;
