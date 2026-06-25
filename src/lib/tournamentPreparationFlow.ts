@@ -4,7 +4,6 @@ import {
   type TournamentMatchSlotView,
 } from './tournamentPlan';
 import { isMatchPreparationAccessible } from './matchPreparationAccess';
-import type { TournamentMatchSlotView } from './tournamentPlan';
 
 function pickFeaturedSlot(slots: TournamentMatchSlotView[]): TournamentMatchSlotView | null {
   const live = slots.find((s) => (s.match_status ?? '').toLowerCase() === 'live');
@@ -37,7 +36,7 @@ export type PreparationPrimaryAction =
   | { kind: 'add_participants'; label: 'Teilnehmer hinzufügen' }
   | { kind: 'add_match'; label: 'Turnierspiel hinzufügen' }
   | { kind: 'check_attendance'; label: 'Verfügbarkeit prüfen' }
-  | { kind: 'set_squad'; label: 'Turnierkader festlegen'; matchId: string }
+  | { kind: 'set_squad'; label: 'Turnierkader festlegen' }
   | { kind: 'prepare_match'; label: 'Erstes Spiel vorbereiten'; matchId: string }
   | { kind: 'open_lineup'; label: 'Aufstellung öffnen'; matchId: string }
   | { kind: 'start_live'; label: 'Live starten'; matchId: string }
@@ -57,17 +56,18 @@ export type TournamentPreparationInput = {
   slots: TournamentMatchSlotView[];
   attendance: TournamentAttendanceSummary;
   lineupReady: boolean;
+  tournamentSquadCount: number;
 };
 
 export function computeTournamentPreparationChecks(
   input: TournamentPreparationInput,
 ): PreparationCheckItem[] {
-  const { hasOfficialPlanUrl, participantCount, slots, attendance, lineupReady } = input;
+  const { hasOfficialPlanUrl, participantCount, slots, attendance, lineupReady, tournamentSquadCount } = input;
   const featured = pickFeaturedSlot(slots);
   const matchId = featured?.match_id?.trim() ?? '';
   const hasMatches = slots.length > 0;
   const hasPlan = hasOfficialPlanUrl || hasMatches;
-  const hasSquad = Boolean(featured?.has_squad);
+  const hasSquad = tournamentSquadCount > 0;
   const hasLineup = Boolean(featured?.has_lineup);
   const displayStatus = featured ? tournamentMatchDisplayStatus(featured) : null;
   const isLive = displayStatus?.kind === 'live';
@@ -120,12 +120,10 @@ export function computeTournamentPreparationChecks(
     {
       id: 'squad',
       label: 'Turnierkader festgelegt',
-      status: !matchId ? 'optional' : hasSquad ? 'done' : 'pending',
-      hint: !matchId
-        ? 'Nach dem ersten Spiel in der Match-Vorbereitung.'
-        : hasSquad
-          ? 'Kader für das nächste Spiel nominiert.'
-          : 'Kader in der Match-Vorbereitung festlegen.',
+      status: hasSquad ? 'done' : 'pending',
+      hint: hasSquad
+        ? `${tournamentSquadCount} Spieler für das Turnier nominiert.`
+        : 'Spieler im Verwaltung-Tab für den Turnierkader markieren.',
     },
     {
       id: 'match_ready',
@@ -147,7 +145,7 @@ export function computeTournamentPreparationChecks(
 export function resolveTournamentPrimaryAction(
   input: TournamentPreparationInput,
 ): PreparationPrimaryAction {
-  const { hasOfficialPlanUrl, participantCount, slots, attendance, lineupReady } = input;
+  const { hasOfficialPlanUrl, participantCount, slots, attendance, lineupReady, tournamentSquadCount } = input;
   const featured = pickFeaturedSlot(slots);
   const matchId = featured?.match_id?.trim() ?? '';
   const displayStatus = featured ? tournamentMatchDisplayStatus(featured) : null;
@@ -178,8 +176,8 @@ export function resolveTournamentPrimaryAction(
     return { kind: 'check_attendance', label: 'Verfügbarkeit prüfen' };
   }
 
-  if (matchId && !featured?.has_squad) {
-    return { kind: 'set_squad', label: 'Turnierkader festlegen', matchId };
+  if (tournamentSquadCount === 0) {
+    return { kind: 'set_squad', label: 'Turnierkader festlegen' };
   }
 
   if (lineupReady && matchId) {

@@ -44,7 +44,7 @@ import { TournamentInfoCard } from './TournamentInfoCard';
 import { TournamentLastResultsCard } from './TournamentLastResultsCard';
 import { TournamentCollapsibleSection } from './TournamentCollapsibleSection';
 import { TournamentPreparationPanel } from './TournamentPreparationPanel';
-import { TournamentSquadLineupSection } from './TournamentSquadLineupSection';
+import { TournamentSquadPanel } from './TournamentSquadPanel';
 import { TournamentMatchSlotCard } from './TournamentMatchSlotCard';
 import { TournamentOverviewBalanceCard } from './TournamentOverviewBalanceCard';
 import { TournamentScorersOverviewCard } from './TournamentScorersOverviewCard';
@@ -350,6 +350,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
     });
   }, []);
 
+  const scrollToSquad = useCallback(() => {
+    requestAnimationFrame(() => {
+      document.getElementById('tournament-squad-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
   const openTeamsForParticipants = useCallback(() => {
     setActiveTab('teams');
     setParticipantModalError(null);
@@ -436,6 +442,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     return (
       <div className={`flex flex-col ${TC_STACK_GAP}`}>
         <TournamentPreparationPanel
+          tournamentEventId={tournamentEventId}
           slots={slots}
           participantCount={participants.length}
           hasOfficialPlanUrl={Boolean(planUrl)}
@@ -445,6 +452,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           onAddMatch={openMatchModal}
           onAddParticipants={openTeamsForParticipants}
           onScrollToAttendance={scrollToAttendance}
+          onScrollToSquad={scrollToSquad}
         />
         {trainerAttendanceSection ? (
           <div id="tournament-attendance-section">
@@ -453,7 +461,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
             </TournamentCollapsibleSection>
           </div>
         ) : null}
-        <TournamentSquadLineupSection slots={slots} loading={loading} canManage={canManage} />
+        <TournamentSquadPanel
+          tournamentEventId={tournamentEventId}
+          teamSeasonId={teamSeasonId}
+          slots={slots}
+          loading={loading}
+          canManage={canManage}
+        />
         <TournamentTrainerAdminAccordion>
           <TournamentTrainerAdminSection title="Offizieller Turnierplan">
             <TournamentOfficialPlanCard

@@ -1,9 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { isMatchSquadEditable } from '../../lib/matchPreparationAccess';
+import {
+  fetchTournamentEventIdForMatch,
+  fetchTournamentSquadPlayerIds,
+  resolveAttendanceEventIdForMatch,
+} from '../../lib/tournamentSquad';
 import { MinimumPlaytimeMatchSettings } from '../../components/live/MinimumPlaytimeMatchSettings';
 import { MatchdayFeedAutomationSettings } from '../../components/match/MatchdayFeedAutomationSettings';
 import {
@@ -77,6 +82,8 @@ export const MatchPreparationPage: React.FC = () => {
     null,
   );
   const [squadSaveBusy, setSquadSaveBusy] = useState(false);
+  const [tournamentSquadIds, setTournamentSquadIds] = useState<string[]>([]);
+  const [tournamentEventId, setTournamentEventId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +137,31 @@ export const MatchPreparationPage: React.FC = () => {
     };
   }, [matchId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!matchId) {
+      setTournamentSquadIds([]);
+      setTournamentEventId(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      const eventId = await fetchTournamentEventIdForMatch(matchId);
+      if (cancelled) return;
+      setTournamentEventId(eventId);
+      if (!eventId) {
+        setTournamentSquadIds([]);
+        return;
+      }
+      const { data } = await fetchTournamentSquadPlayerIds(eventId);
+      if (!cancelled) setTournamentSquadIds(data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [matchId]);
+
   const teamSeasonId = matchRow?.team_season_id ?? null;
   const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonId);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -148,20 +180,8 @@ export const MatchPreparationPage: React.FC = () => {
     void (async () => {
       setAttendanceLoading(true);
       setAttendanceError(null);
-      const { data: events, error: eventsErr } = await supabase
-        .from('events')
-        .select('id, starts_at')
-        .eq('match_id', matchId)
-        .order('starts_at', { ascending: false })
-        .limit(1);
+      const eventId = await resolveAttendanceEventIdForMatch(matchId);
       if (cancelled) return;
-      if (eventsErr) {
-        setAttendanceByPlayerId({});
-        setAttendanceError(eventsErr.message);
-        setAttendanceLoading(false);
-        return;
-      }
-      const eventId = events?.[0]?.id ?? null;
       if (!eventId) {
         setAttendanceByPlayerId({});
         setAttendanceLoading(false);
@@ -211,8 +231,21 @@ export const MatchPreparationPage: React.FC = () => {
     [matchRow],
   );
 
+  const tournamentSquadSet = useMemo(() => new Set(tournamentSquadIds), [tournamentSquadIds]);
+
+  const sortWithSquadPreference = useCallback(
+    (list: typeof players) =>
+      [...list].sort((a, b) => {
+        const aIn = tournamentSquadSet.has(a.id) ? 0 : 1;
+        const bIn = tournamentSquadSet.has(b.id) ? 0 : 1;
+        if (aIn !== bIn) return aIn - bIn;
+        return comparePlayerItems(a, b);
+      }),
+    [tournamentSquadSet],
+  );
+
   const grouped = useMemo(() => {
-    const sorted = [...players].sort(comparePlayerItems);
+    const sorted = sortWithSquadPreference(players);
     const available: typeof sorted = [];
     const open: typeof sorted = [];
     const absent: typeof sorted = [];
@@ -223,7 +256,7 @@ export const MatchPreparationPage: React.FC = () => {
       else absent.push(p);
     }
     return { available, open, absent };
-  }, [players, attendanceByPlayerId]);
+  }, [players, attendanceByPlayerId, sortWithSquadPreference]);
 
   const selectedPlayersForSquad = useMemo(
     () => selectedPlayers.filter((id) => getAttendance(id) !== 'no'),
@@ -252,6 +285,12 @@ export const MatchPreparationPage: React.FC = () => {
       return;
     }
 
+    if (tournamentSquadIds.length > 0) {
+      setSelectedPlayers(tournamentSquadIds.filter((id) => getAttendance(id) !== 'no'));
+      setSelectionInitialized(true);
+      return;
+    }
+
     const initial = new Set<string>();
     for (const p of players) {
       if (getAttendance(p.id) === 'yes') initial.add(p.id);
@@ -265,6 +304,7 @@ export const MatchPreparationPage: React.FC = () => {
     players,
     restoredSelectedPlayers,
     attendanceByPlayerId,
+    tournamentSquadIds,
   ]);
 
   const persistSquadSelection = async (nextSquadIds: string[]): Promise<boolean> => {
@@ -409,6 +449,11 @@ export const MatchPreparationPage: React.FC = () => {
         {!squadEditable ? (
           <p className="rounded-xl border border-amber-500/25 bg-amber-950/20 px-3 py-2 text-xs text-amber-100/90">
             Kader ist gesperrt — Änderungen nur noch über Live-Wechsel.
+          </p>
+        ) : null}
+        {tournamentEventId && tournamentSquadIds.length > 0 && restoredSelectedPlayers.length === 0 ? (
+          <p className="rounded-xl border border-purple-500/20 bg-purple-950/20 px-3 py-2 text-xs text-purple-100/90">
+            Turnierkader als Vorauswahl — du kannst die Auswahl pro Spiel anpassen.
           </p>
         ) : null}
         <div className="flex flex-wrap gap-1.5">

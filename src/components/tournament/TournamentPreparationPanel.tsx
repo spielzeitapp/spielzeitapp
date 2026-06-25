@@ -18,10 +18,12 @@ import {
   type PreparationPrimaryAction,
   type TournamentAttendanceSummary,
 } from '../../lib/tournamentPreparationFlow';
+import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
 
 type Props = {
+  tournamentEventId: string;
   slots: TournamentMatchSlotView[];
   participantCount: number;
   hasOfficialPlanUrl: boolean;
@@ -31,6 +33,7 @@ type Props = {
   onAddMatch: () => void;
   onAddParticipants: () => void;
   onScrollToAttendance: () => void;
+  onScrollToSquad: () => void;
 };
 
 function ChecklistRow({ item }: { item: PreparationCheckItem }) {
@@ -71,12 +74,14 @@ function PrimaryCta({
   onAddMatch,
   onAddParticipants,
   onScrollToAttendance,
+  onScrollToSquad,
 }: {
   action: PreparationPrimaryAction;
   onImportPlan: () => void;
   onAddMatch: () => void;
   onAddParticipants: () => void;
   onScrollToAttendance: () => void;
+  onScrollToSquad: () => void;
 }) {
   if (action.kind === 'ready') {
     return (
@@ -116,9 +121,9 @@ function PrimaryCta({
       );
     case 'set_squad':
       return (
-        <Link to={matchPreparationPath(action.matchId)} className={primaryClass}>
+        <button type="button" className={primaryClass} onClick={onScrollToSquad}>
           {action.label}
-        </Link>
+        </button>
       );
     case 'prepare_match':
       return (
@@ -152,6 +157,7 @@ function PrimaryCta({
 }
 
 export function TournamentPreparationPanel({
+  tournamentEventId,
   slots,
   participantCount,
   hasOfficialPlanUrl,
@@ -161,11 +167,28 @@ export function TournamentPreparationPanel({
   onAddMatch,
   onAddParticipants,
   onScrollToAttendance,
+  onScrollToSquad,
 }: Props) {
   const featured = pickFeaturedTournamentSlot(slots);
   const matchId = featured?.match_id?.trim() ?? '';
   const [lineupReady, setLineupReady] = useState(false);
   const [lineupLoading, setLineupLoading] = useState(false);
+  const [tournamentSquadCount, setTournamentSquadCount] = useState(0);
+  const [squadCountLoading, setSquadCountLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSquadCountLoading(true);
+    void (async () => {
+      const { data, error } = await fetchTournamentSquadPlayerIds(tournamentEventId);
+      if (cancelled) return;
+      setTournamentSquadCount(error ? 0 : data.length);
+      setSquadCountLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tournamentEventId, slots]);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,8 +220,9 @@ export function TournamentPreparationPanel({
       slots,
       attendance,
       lineupReady,
+      tournamentSquadCount,
     }),
-    [hasOfficialPlanUrl, participantCount, slots, attendance, lineupReady],
+    [hasOfficialPlanUrl, participantCount, slots, attendance, lineupReady, tournamentSquadCount],
   );
 
   const checklist = useMemo(
@@ -211,7 +235,7 @@ export function TournamentPreparationPanel({
   );
   const doneCount = countPreparationDone(checklist);
 
-  if (loading) {
+  if (loading || lineupLoading || squadCountLoading) {
     return (
       <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
@@ -252,6 +276,7 @@ export function TournamentPreparationPanel({
             onAddMatch={onAddMatch}
             onAddParticipants={onAddParticipants}
             onScrollToAttendance={onScrollToAttendance}
+            onScrollToSquad={onScrollToSquad}
           />
           {lineupLoading ? (
             <p className="mt-1.5 text-center text-[10px] text-white/40">Prüfe Aufstellung…</p>
