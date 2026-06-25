@@ -7,6 +7,24 @@ import {
   fetchMeinTurnierplanShowitPageHtml,
   type MeinTurnierplanHtmlFallbackException,
 } from './meinTurnierplanHtmlFallback';
+import {
+  extractMeinTurnierplanId,
+  extractMeinTurnierplanIdFromHtml,
+  isSupportedTournamentPlanHost,
+  labelMeinTurnierplanIdSource,
+  normalizeTournamentPlanUrl,
+  resolveMeinTurnierplanShowitUrl,
+  resolveMeinTurnierplanTournamentId,
+  type MeinTurnierplanIdSource,
+  type MeinTurnierplanUrlResolution,
+} from './meinTurnierplanUrl';
+
+export {
+  extractMeinTurnierplanId,
+  isSupportedTournamentPlanHost,
+  labelMeinTurnierplanIdSource,
+  normalizeTournamentPlanUrl,
+} from './meinTurnierplanUrl';
 
 export type { MeinTurnierplanHtmlFallbackException as TournamentPlanHtmlFallbackException };
 
@@ -183,6 +201,10 @@ export type TournamentPlanAnalyzeDiagnostics = {
   fallbackStage?: TournamentPlanAnalyzeFallbackStage;
   analyzeTimedOut?: boolean;
   analyzeLastStep?: TournamentPlanAnalyzeLastStep;
+  originalUrl?: string | null;
+  normalizedUrl?: string | null;
+  finalRedirectUrl?: string | null;
+  idDetectionSource?: MeinTurnierplanIdSource | null;
 };
 
 export function labelForTournamentPlanAnalyzeSource(
@@ -211,15 +233,6 @@ export const MEIN_TURNIERPLAN_JSON_ENDPOINT_HOSTS = [
   'https://meinturnierplan.com/json/json.php',
   'http://www.meinturnierplan.de/json/json.php',
 ] as const;
-
-const MEIN_TURNIERPLAN_HOSTS = new Set([
-  'meinturnierplan.de',
-  'www.meinturnierplan.de',
-  'meinturnierplan.com',
-  'www.meinturnierplan.com',
-  'tournamentbase.com',
-  'www.tournamentbase.com',
-]);
 
 type MeinTurnierplanParticipant = { id?: number; name?: string };
 type MeinTurnierplanGroup = { displayId?: string };
@@ -264,42 +277,20 @@ type MeinTurnierplanJson = {
   courts?: { displayId?: string }[];
 };
 
-/** URL mit fehlendem Schema ergänzen (z. B. meinturnierplan.de/showit.php?id=…). */
-export function normalizeTournamentPlanUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed) return trimmed;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `https://${trimmed}`;
-}
+/** URL mit fehlendem Schema ergänzen — re-exported from meinTurnierplanUrl.ts */
 
-export function extractMeinTurnierplanId(url: string): string | null {
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-
-  try {
-    const parsed = new URL(normalizeTournamentPlanUrl(trimmed));
-    const fromQuery = parsed.searchParams.get('id')?.trim();
-    if (fromQuery) return fromQuery;
-  } catch {
-    /* Regex-Fallback */
-  }
-
-  const match = trimmed.match(/[?&]id=([^&#]+)/i);
-  const fromRegex = match?.[1]?.trim();
-  return fromRegex || null;
-}
-
-export function isSupportedTournamentPlanHost(url: string): boolean {
-  const trimmed = url.trim();
-  if (!trimmed) return false;
-
-  try {
-    const host = new URL(normalizeTournamentPlanUrl(trimmed)).hostname.toLowerCase();
-    if (MEIN_TURNIERPLAN_HOSTS.has(host)) return true;
-    return /(^|\.)meinturnierplan\.(de|com)$/.test(host) || /(^|\.)tournamentbase\.com$/.test(host);
-  } catch {
-    return /meinturnierplan\.(de|com)/i.test(trimmed) && /showit\.php/i.test(trimmed);
-  }
+function urlResolutionDiagnostics(
+  resolution: MeinTurnierplanUrlResolution,
+): Pick<
+  TournamentPlanAnalyzeDiagnostics,
+  'originalUrl' | 'normalizedUrl' | 'finalRedirectUrl' | 'idDetectionSource'
+> {
+  return {
+    originalUrl: resolution.originalUrl,
+    normalizedUrl: resolution.normalizedUrl,
+    finalRedirectUrl: resolution.finalRedirectUrl,
+    idDetectionSource: resolution.idSource,
+  };
 }
 
 export function buildMeinTurnierplanJsonEndpoints(tournamentId: string): string[] {
@@ -869,6 +860,10 @@ export function buildTournamentPlanAnalyzeFailure(params: {
   analyzeLastStep?: TournamentPlanAnalyzeLastStep;
   htmlFallbackResponseContentType?: string | null;
   rawResponsePreview?: string | null;
+  originalUrl?: string | null;
+  normalizedUrl?: string | null;
+  finalRedirectUrl?: string | null;
+  idDetectionSource?: MeinTurnierplanIdSource | null;
 }): TournamentPlanAnalyzeFailure {
   const resolvedCode = resolveFinalImportFailureCode({
     code: params.code,
@@ -908,6 +903,10 @@ export function buildTournamentPlanAnalyzeFailure(params: {
       analyzeLastStep: params.analyzeLastStep,
       htmlFallbackResponseContentType: params.htmlFallbackResponseContentType ?? null,
       rawResponsePreview: params.rawResponsePreview ?? null,
+      originalUrl: params.originalUrl ?? null,
+      normalizedUrl: params.normalizedUrl ?? null,
+      finalRedirectUrl: params.finalRedirectUrl ?? null,
+      idDetectionSource: params.idDetectionSource ?? null,
     },
   };
 }
@@ -1081,7 +1080,10 @@ export async function analyzeMeinTurnierplanUrlForceHtmlFallback(
     return { ok: false, failure, httpStatus: 422 };
   }
 
-  const extractedId = extractMeinTurnierplanId(trimmed);
+  const urlResolution = await resolveMeinTurnierplanTournamentId(trimmed, fetchImpl);
+  const urlDiag = urlResolutionDiagnostics(urlResolution);
+  const extractedId = urlResolution.detectedId;
+
   if (!extractedId) {
     const failure = buildTournamentPlanAnalyzeFailure({
       code: 'id_not_found',
@@ -1091,13 +1093,12 @@ export async function analyzeMeinTurnierplanUrlForceHtmlFallback(
       linkRecognized: true,
       idExtracted: false,
       fallbackStage: 'html',
+      ...urlDiag,
     });
     return { ok: false, failure, httpStatus: 422 };
   }
 
-  const refererUrl = /showit\.php/i.test(trimmed)
-    ? normalizeTournamentPlanUrl(trimmed)
-    : buildMeinTurnierplanShowitUrl(extractedId);
+  const refererUrl = resolveMeinTurnierplanShowitUrl(urlResolution);
   const showitPageReachable = await checkShowitPageReachable(refererUrl, fetchImpl);
   const attemptedEndpoints = buildMeinTurnierplanJsonEndpoints(extractedId);
 
@@ -1165,8 +1166,46 @@ export async function analyzeMeinTurnierplanUrl(
     return { ok: false, failure, httpStatus: 422 };
   }
 
-  const extractedId = extractMeinTurnierplanId(trimmed);
-  const idExtracted = Boolean(extractedId);
+  const urlResolution = await resolveMeinTurnierplanTournamentId(trimmed, fetchImpl);
+  const urlDiag = urlResolutionDiagnostics(urlResolution);
+  let extractedId = urlResolution.detectedId;
+
+  if (!extractedId && !skipHtmlFallback) {
+    const showitUrl = resolveMeinTurnierplanShowitUrl(urlResolution);
+    const htmlFetch = await fetchMeinTurnierplanShowitPageHtml(showitUrl, fetchImpl);
+    if (htmlFetch.ok) {
+      const discovered = extractMeinTurnierplanIdFromHtml(htmlFetch.html);
+      if (discovered) {
+        extractedId = discovered.id;
+        urlResolution.detectedId = discovered.id;
+        urlResolution.idSource = discovered.source;
+      } else {
+        const visibleAnalysis = parseMeinTurnierplanVisibleHtml(htmlFetch.html);
+        if (visibleAnalysis) {
+          return {
+            ok: true,
+            analysis: visibleAnalysis,
+            diagnostics: {
+              linkRecognized: true,
+              idExtracted: false,
+              extractedId: null,
+              apiReachable: false,
+              provider: 'meinturnierplan',
+              attemptedEndpoints: [],
+              showitPageReachable: true,
+              htmlFallbackAttempted: true,
+              htmlFallbackSuccessful: true,
+              htmlFallbackTeamsFound: visibleAnalysis.teamCount,
+              htmlFallbackMatchesFound: visibleAnalysis.preliminaryMatchCount,
+              source: 'html_fallback',
+              fallbackStage: 'html',
+              ...urlDiag,
+            },
+          };
+        }
+      }
+    }
+  }
 
   if (!extractedId) {
     const failure = buildTournamentPlanAnalyzeFailure({
@@ -1176,13 +1215,13 @@ export async function analyzeMeinTurnierplanUrl(
       apiReachable: false,
       linkRecognized: true,
       idExtracted: false,
+      htmlFallbackAttempted: !skipHtmlFallback,
+      ...urlDiag,
     });
     return { ok: false, failure, httpStatus: 422 };
   }
 
-  const refererUrl = /showit\.php/i.test(trimmed)
-    ? normalizeTournamentPlanUrl(trimmed)
-    : buildMeinTurnierplanShowitUrl(extractedId);
+  const refererUrl = resolveMeinTurnierplanShowitUrl(urlResolution);
   const showitPageReachable = await checkShowitPageReachable(refererUrl, fetchImpl);
   const fetchResult = await fetchMeinTurnierplanJsonWithFallbacks(extractedId, fetchImpl, {
     refererUrl,
@@ -1205,6 +1244,7 @@ export async function analyzeMeinTurnierplanUrl(
           showitPageReachable,
           source: 'server_api',
           fallbackStage: 'json',
+          ...urlDiag,
         },
       };
     }
@@ -2038,6 +2078,10 @@ function serverDiagnosticsFromAnalyzeBody(
     fetchRuntime: body.diagnostics?.fetchRuntime,
     source: body.diagnostics?.source ?? 'server_api',
     fallbackStage: body.diagnostics?.fallbackStage ?? 'json',
+    originalUrl: body.diagnostics?.originalUrl ?? trimmed,
+    normalizedUrl: body.diagnostics?.normalizedUrl ?? null,
+    finalRedirectUrl: body.diagnostics?.finalRedirectUrl ?? null,
+    idDetectionSource: body.diagnostics?.idDetectionSource ?? null,
   };
 }
 

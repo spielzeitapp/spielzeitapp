@@ -24,41 +24,11 @@ const MEIN_TURNIERPLAN_HOSTS = new Set([
   'www.tournamentbase.com',
 ]);
 
-function normalizeTournamentPlanUrl(url) {
-  const trimmed = url.trim();
-  if (!trimmed) return trimmed;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `https://${trimmed}`;
-}
-
-function extractMeinTurnierplanId(url) {
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-
-  try {
-    const parsed = new URL(normalizeTournamentPlanUrl(trimmed));
-    const fromQuery = parsed.searchParams.get('id')?.trim();
-    if (fromQuery) return fromQuery;
-  } catch {
-    /* Regex-Fallback */
-  }
-
-  const match = trimmed.match(/[?&]id=([^&#]+)/i);
-  return match?.[1]?.trim() || null;
-}
-
-function isSupportedTournamentPlanHost(url) {
-  const trimmed = url.trim();
-  if (!trimmed) return false;
-
-  try {
-    const host = new URL(normalizeTournamentPlanUrl(trimmed)).hostname.toLowerCase();
-    if (MEIN_TURNIERPLAN_HOSTS.has(host)) return true;
-    return /(^|\.)meinturnierplan\.(de|com)$/.test(host) || /(^|\.)tournamentbase\.com$/.test(host);
-  } catch {
-    return /meinturnierplan\.(de|com)/i.test(trimmed) && /showit\.php/i.test(trimmed);
-  }
-}
+import {
+  isSupportedTournamentPlanHost,
+  resolveMeinTurnierplanShowitUrl,
+  resolveMeinTurnierplanTournamentId,
+} from './meinTurnierplanUrl.js';
 
 function buildMeinTurnierplanJsonEndpoints(tournamentId) {
   const id = tournamentId.trim();
@@ -396,14 +366,31 @@ export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
     return buildFailure('unsupported_host', null, []);
   }
 
-  const extractedId = extractMeinTurnierplanId(trimmed);
+  const resolution = await resolveMeinTurnierplanTournamentId(trimmed, fetchImpl);
+  const extractedId = resolution.detectedId;
+  const urlDiagnostics = {
+    originalUrl: resolution.originalUrl,
+    normalizedUrl: resolution.normalizedUrl,
+    finalRedirectUrl: resolution.finalRedirectUrl,
+    idDetectionSource: resolution.idSource,
+  };
+
   if (!extractedId) {
-    return buildFailure('id_not_found', null, []);
+    return {
+      ...buildFailure('id_not_found', null, []),
+      diagnostics: {
+        linkRecognized: true,
+        idExtracted: false,
+        extractedId: null,
+        apiReachable: false,
+        provider: 'meinturnierplan',
+        attemptedEndpoints: [],
+        ...urlDiagnostics,
+      },
+    };
   }
 
-  const refererUrl = /showit\.php/i.test(trimmed)
-    ? normalizeTournamentPlanUrl(trimmed)
-    : buildMeinTurnierplanShowitUrl(extractedId);
+  const refererUrl = resolveMeinTurnierplanShowitUrl(resolution);
 
   const fetchResult = await fetchMeinTurnierplanJsonWithFallbacks(extractedId, fetchImpl, {
     refererUrl,
@@ -433,6 +420,7 @@ export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
       attemptedEndpoints: fetchResult.attemptedEndpoints,
       source: 'server_api',
       fallbackStage: 'json',
+      ...urlDiagnostics,
     },
   };
 }

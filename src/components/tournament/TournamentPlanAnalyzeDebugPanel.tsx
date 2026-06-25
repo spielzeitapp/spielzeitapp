@@ -6,6 +6,7 @@ import {
   type TournamentPlanAnalyzeDiagnostics,
   type TournamentPlanAnalyzeFailure,
 } from '../../lib/tournamentPlanImport';
+import { labelMeinTurnierplanIdSource } from '../../lib/meinTurnierplanUrl';
 
 type Props = {
   failure: TournamentPlanAnalyzeFailure | null;
@@ -78,6 +79,21 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
 
       {d ? (
         <ul className="mt-2 space-y-0.5 text-[12px] text-white/70">
+          {d.originalUrl ? (
+            <li className="break-all font-mono text-[10px] leading-snug text-white/60">
+              Original: {d.originalUrl}
+            </li>
+          ) : null}
+          {d.normalizedUrl ? (
+            <li className="break-all font-mono text-[10px] leading-snug text-white/60">
+              Normalisiert: {d.normalizedUrl}
+            </li>
+          ) : null}
+          {d.finalRedirectUrl ? (
+            <li className="break-all font-mono text-[10px] leading-snug text-white/60">
+              Redirect: {d.finalRedirectUrl}
+            </li>
+          ) : null}
           <li>Link erkannt: {yesNo(d.linkRecognized)}</li>
           <li>
             Turnier-ID erkannt:{' '}
@@ -87,6 +103,9 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
               'nicht erkannt'
             )}
           </li>
+          {d.idDetectionSource ? (
+            <li>ID-Quelle: {labelMeinTurnierplanIdSource(d.idDetectionSource)}</li>
+          ) : null}
           <li>showit.php erreichbar: {yesNoUnknown(d.showitPageReachable)}</li>
           <li>JSON-API erreichbar: {yesNo(d.apiReachable)}</li>
           <li>Datenquelle: {labelForTournamentPlanAnalyzeSource(d.source)}</li>
