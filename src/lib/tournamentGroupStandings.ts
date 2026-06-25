@@ -1,6 +1,6 @@
 import { safeOptionalText, safeText } from './safeText';
 import { isTeamAliasMatch } from './teamSeasonAliasMatch';
-import type { TournamentParticipant } from './tournamentPlan';
+import type { TournamentMatchSlotView, TournamentParticipant } from './tournamentPlan';
 import type { TournamentPlanImportRawMatch } from './tournamentPlanImport';
 import { normalizeTeamMatchKey } from './tournamentPlanImport';
 
@@ -23,6 +23,14 @@ export type TournamentGroupStandings = {
   rows: TournamentGroupStandingRow[];
   ourRank: number | null;
   teamCount: number;
+};
+
+export type TournamentStandingsSource = 'imported' | 'live';
+
+export type TournamentStandingsBundle = {
+  source: TournamentStandingsSource | null;
+  groups: TournamentGroupStandings[];
+  primaryGroup: TournamentGroupStandings | null;
 };
 
 type MutableStanding = {
@@ -157,6 +165,29 @@ export function computeTournamentGroupStandings(params: {
     applyMatchResult(stats, homeKey, awayKey, match.homeGoals, match.awayGoals);
   }
 
+  return buildStandingsFromStats(stats, params.ourTeamNames, ourGroupLabel);
+}
+
+function isGroupStageSlot(slot: TournamentMatchSlotView): boolean {
+  const phase = safeText(slot.phase).toLowerCase();
+  if (
+    phase === 'final' ||
+    phase === 'finale' ||
+    phase === 'semifinal' ||
+    phase === 'halbfinale' ||
+    phase === 'placement' ||
+    phase.includes('platz')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function buildStandingsFromStats(
+  stats: Map<string, MutableStanding>,
+  ourTeamNames: string[],
+  groupLabel: unknown,
+): TournamentGroupStandings {
   const unsorted: Omit<TournamentGroupStandingRow, 'rank'>[] = [...stats.values()].map((row) => {
     const goalDifference = row.goalsFor - row.goalsAgainst;
     const points = row.wins * 3 + row.draws;
@@ -170,7 +201,7 @@ export function computeTournamentGroupStandings(params: {
       goalsAgainst: row.goalsAgainst,
       goalDifference,
       points,
-      isOurTeam: isTeamAliasMatch(row.teamName, params.ourTeamNames),
+      isOurTeam: isTeamAliasMatch(row.teamName, ourTeamNames),
     };
   });
 
@@ -195,9 +226,142 @@ export function computeTournamentGroupStandings(params: {
   const ourRow = rows.find((row) => row.isOurTeam) ?? null;
 
   return {
-    groupLabel: displayGroupLabel(ourGroupLabel),
+    groupLabel: displayGroupLabel(groupLabel),
     rows,
     ourRank: ourRow?.rank ?? null,
     teamCount: rows.length,
   };
+}
+
+/** Gruppentabelle aus eigenen beendeten Turnierspielen (SpielzeitApp). */
+export function computeLiveTournamentGroupStandingsForGroup(params: {
+  participants: TournamentParticipant[];
+  slots: TournamentMatchSlotView[];
+  ourTeamNames: string[];
+  targetGroupLabel: string | null;
+}): TournamentGroupStandings | null {
+  if (participants.length === 0 || params.ourTeamNames.length === 0) return null;
+
+  const targetGroupKey = groupLabelKey(params.targetGroupLabel);
+  const groupParticipants = params.participants.filter(
+    (p) => groupLabelKey(p.group_label) === targetGroupKey,
+  );
+  if (groupParticipants.length === 0) return null;
+
+  const ourParticipant = groupParticipants.find((p) =>
+    isTeamAliasMatch(p.team_name, params.ourTeamNames),
+  );
+  if (!ourParticipant) return null;
+
+  const keyToTeamName = new Map<string, string>();
+  const stats = new Map<string, MutableStanding>();
+  for (const participant of groupParticipants) {
+    const key = normalizeTeamMatchKey(participant.team_name);
+    keyToTeamName.set(key, participant.team_name);
+    stats.set(key, {
+      teamName: participant.team_name,
+      played: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+    });
+  }
+
+  const ourKey = resolveParticipantKey(ourParticipant.team_name, keyToTeamName);
+  if (!ourKey) return null;
+
+  for (const slot of params.slots) {
+    if ((slot.match_status ?? '').toLowerCase() !== 'finished') continue;
+    if (!isGroupStageSlot(slot)) continue;
+    if (groupLabelKey(slot.group_label ?? params.targetGroupLabel) !== targetGroupKey) continue;
+
+    const ourGoals = Number(slot.score_home ?? 0);
+    const oppGoals = Number(slot.score_away ?? 0);
+    const opponentKey = resolveParticipantKey(slot.opponent_name, keyToTeamName);
+    if (!opponentKey || opponentKey === ourKey) continue;
+
+    applyMatchResult(stats, ourKey, opponentKey, ourGoals, oppGoals);
+  }
+
+  return buildStandingsFromStats(stats, params.ourTeamNames, params.targetGroupLabel);
+}
+
+export function computeAllLiveTournamentGroupStandings(params: {
+  participants: TournamentParticipant[];
+  slots: TournamentMatchSlotView[];
+  ourTeamNames: string[];
+}): TournamentGroupStandings[] {
+  if (params.participants.length === 0 || params.ourTeamNames.length === 0) return [];
+
+  const groupLabels = new Map<string, string | null>();
+  for (const participant of params.participants) {
+    const key = groupLabelKey(participant.group_label);
+    if (!groupLabels.has(key)) {
+      groupLabels.set(key, safeOptionalText(participant.group_label));
+    }
+  }
+
+  const groups: TournamentGroupStandings[] = [];
+  for (const [, label] of groupLabels) {
+    const standings = computeLiveTournamentGroupStandingsForGroup({
+      participants: params.participants,
+      slots: params.slots,
+      ourTeamNames: params.ourTeamNames,
+      targetGroupLabel: label,
+    });
+    if (standings) groups.push(standings);
+  }
+
+  groups.sort((a, b) => a.groupLabel.localeCompare(b.groupLabel, 'de', { numeric: true }));
+  return groups;
+}
+
+export function pickPrimaryTournamentGroupStandings(
+  groups: TournamentGroupStandings[],
+): TournamentGroupStandings | null {
+  const ours = groups.find((g) => g.rows.some((row) => row.isOurTeam));
+  return ours ?? groups[0] ?? null;
+}
+
+export function tournamentStandingsHasPlayedMatches(
+  bundle: TournamentStandingsBundle | null,
+): boolean {
+  if (!bundle) return false;
+  return bundle.groups.some((group) => group.rows.some((row) => row.played > 0));
+}
+
+export function resolveTournamentStandingsBundle(params: {
+  imported: TournamentGroupStandings | null;
+  liveGroups: TournamentGroupStandings[];
+}): TournamentStandingsBundle {
+  if (params.imported && params.imported.rows.length > 0) {
+    return {
+      source: 'imported',
+      groups: [params.imported],
+      primaryGroup: params.imported,
+    };
+  }
+
+  if (params.liveGroups.length > 0) {
+    const primaryGroup = pickPrimaryTournamentGroupStandings(params.liveGroups);
+    return {
+      source: 'live',
+      groups: params.liveGroups,
+      primaryGroup,
+    };
+  }
+
+  return {
+    source: null,
+    groups: [],
+    primaryGroup: null,
+  };
+}
+
+export function tournamentStandingsSourceHint(source: TournamentStandingsSource | null): string | null {
+  if (source === 'live') return 'Aus SpielzeitApp-Ergebnissen berechnet';
+  if (source === 'imported') return 'Aus offiziellem Turnierplan';
+  return null;
 }

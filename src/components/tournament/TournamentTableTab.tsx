@@ -1,20 +1,23 @@
 import React from 'react';
 import { ListOrdered } from 'lucide-react';
 import {
-  formatTournamentGroupRankDisplay,
-  type TournamentGroupStandings,
+  tournamentStandingsSourceHint,
+  type TournamentStandingsBundle,
 } from '../../lib/tournamentGroupStandings';
-import { formatTournamentGoalDifference } from '../../lib/tournamentPlan';
 import { CenterEmptyState } from '../center/CenterEmptyState';
-import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
+import { TC_CARD, TC_CARD_INNER } from './tournamentCenterStyles';
+import { TournamentStandingsGroupList } from './TournamentStandingsGroupList';
 
 type Props = {
-  standings: TournamentGroupStandings | null;
+  bundle: TournamentStandingsBundle;
   loading?: boolean;
 };
 
-export function TournamentTableTab({ standings, loading = false }: Props) {
-  if (loading) {
+export function TournamentTableTab({ bundle, loading = false }: Props) {
+  const sourceHint = tournamentStandingsSourceHint(bundle.source);
+  const hasStandings = bundle.groups.length > 0;
+
+  if (loading && !hasStandings) {
     return (
       <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
@@ -24,58 +27,28 @@ export function TournamentTableTab({ standings, loading = false }: Props) {
     );
   }
 
-  if (!standings || standings.rows.length === 0) {
+  if (!hasStandings) {
     return (
       <CenterEmptyState
         icon={ListOrdered}
         title="Keine Tabelle verfügbar"
-        description="Importiere den offiziellen Turnierplan oder trage Gruppenergebnisse ein."
+        description="Sobald Gruppenergebnisse vorliegen oder der Turnierplan importiert ist, erscheint hier die Tabelle."
       />
     );
   }
 
   return (
-    <section className={TC_CARD}>
-      <div className={TC_CARD_INNER}>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className={TC_SECTION_LABEL}>Gruppe {standings.groupLabel}</p>
-          {standings.ourRank != null ? (
-            <p className="text-[12px] font-medium text-white/65">
-              {formatTournamentGroupRankDisplay(standings.ourRank, standings.teamCount)}
-            </p>
-          ) : null}
-        </div>
-        <ul className="flex flex-col gap-1.5">
-          {standings.rows.map((row) => (
-            <li
-              key={row.teamName}
-              className={`rounded-xl border px-3 py-2.5 ${
-                row.isOurTeam
-                  ? 'border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.06)]'
-                  : 'border-white/[0.06] bg-white/[0.02]'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-[14px] font-semibold text-white">
-                    {row.rank}. {row.teamName}
-                  </p>
-                  <p className="mt-0.5 text-[11px] tabular-nums text-white/50">
-                    {row.played} Sp. · {row.wins}-{row.draws}-{row.losses}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-[13px] font-bold tabular-nums text-white">{row.points} Pkt.</p>
-                  <p className="text-[11px] tabular-nums text-white/55">
-                    {row.goalsFor}:{row.goalsAgainst} (
-                    {formatTournamentGoalDifference(row.goalDifference)})
-                  </p>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+    <div className="flex flex-col gap-2">
+      {sourceHint ? (
+        <p className="px-0.5 text-[11px] leading-snug text-white/45">{sourceHint}</p>
+      ) : null}
+      {bundle.groups.map((group) => (
+        <section key={group.groupLabel} className={TC_CARD}>
+          <div className={TC_CARD_INNER}>
+            <TournamentStandingsGroupList standings={group} />
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }

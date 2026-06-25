@@ -29,7 +29,13 @@ import {
 } from '../../lib/tournamentCompletion';
 import { fetchTournamentCombinedGoalScorers } from '../../lib/tournamentManualGoalScorers';
 import type { TournamentGoalScorer } from '../../lib/tournamentGoalScorers';
-import { computeTournamentGroupStandings, type TournamentGroupStandings } from '../../lib/tournamentGroupStandings';
+import {
+  computeAllLiveTournamentGroupStandings,
+  computeTournamentGroupStandings,
+  resolveTournamentStandingsBundle,
+  type TournamentGroupStandings,
+  type TournamentStandingsBundle,
+} from '../../lib/tournamentGroupStandings';
 import {
   analyzeTournamentUrl,
   fetchTournamentImportRecognition,
@@ -50,6 +56,7 @@ import { TournamentSquadPanel } from './TournamentSquadPanel';
 import { TournamentMatchSlotCard } from './TournamentMatchSlotCard';
 import { TournamentOverviewBalanceCard } from './TournamentOverviewBalanceCard';
 import { TournamentScorersOverviewCard } from './TournamentScorersOverviewCard';
+import { TournamentGroupPreviewCard } from './TournamentGroupPreviewCard';
 import { TournamentTableTab } from './TournamentTableTab';
 import { TournamentTeamsTab } from './TournamentTeamsTab';
 import {
@@ -151,6 +158,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [matchModalError, setMatchModalError] = useState<string | null>(null);
   const [groupStandings, setGroupStandings] = useState<TournamentGroupStandings | null>(null);
   const [groupStandingsLoading, setGroupStandingsLoading] = useState(false);
+  const [recognizedTeamNames, setRecognizedTeamNames] = useState<string[]>([]);
   const [planImportContext, setPlanImportContext] = useState<{
     rawMatches: TournamentPlanImportRawMatch[];
     teamCount: number;
@@ -337,6 +345,57 @@ export const TournamentDetailSections: React.FC<Props> = ({
     };
   }, [officialTournamentUrl, teamSeasonId, participants]);
 
+  useEffect(() => {
+    if (!teamSeasonId) {
+      setRecognizedTeamNames([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchTournamentImportRecognition(teamSeasonId).then((recognition) => {
+      if (!cancelled && recognition.knownNames.length > 0) {
+        setRecognizedTeamNames(recognition.knownNames);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
+
+  const ourTeamNames = useMemo(() => {
+    const fromPlan = planImportContext?.ourTeamNames ?? [];
+    if (fromPlan.length > 0) return fromPlan;
+    if (recognizedTeamNames.length > 0) return recognizedTeamNames;
+    return ourTeamName ? [ourTeamName] : [];
+  }, [planImportContext, recognizedTeamNames, ourTeamName]);
+
+  const liveGroupStandings = useMemo(
+    () =>
+      computeAllLiveTournamentGroupStandings({
+        participants,
+        slots,
+        ourTeamNames,
+      }),
+    [participants, slots, ourTeamNames],
+  );
+
+  const standingsBundle = useMemo(
+    (): TournamentStandingsBundle =>
+      resolveTournamentStandingsBundle({
+        imported: groupStandings,
+        liveGroups: liveGroupStandings,
+      }),
+    [groupStandings, liveGroupStandings],
+  );
+
+  const standingsLoading = groupStandingsLoading && standingsBundle.source !== 'live';
+
+  const showFullStandingsTable = useCallback(() => {
+    setActiveTab('table');
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }, []);
+
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
   const handleImportPlanFromOverview = useCallback(() => {
@@ -428,7 +487,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
       case 'table':
         return (
           <div key={key}>
-            <TournamentTableTab standings={groupStandings} loading={groupStandingsLoading} />
+            <TournamentGroupPreviewCard
+              bundle={standingsBundle}
+              loading={standingsLoading}
+              onShowFullTable={showFullStandingsTable}
+            />
           </div>
         );
       case 'balance':
@@ -467,7 +530,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             userId={userId}
             players={players}
             playersLoading={playersLoading}
-            loading={loading || groupStandingsLoading}
+            loading={loading || standingsLoading}
             onManualScorersSaved={() => void reloadGoalScorers()}
             onCompleteTournament={() => void handleCompleteTournament()}
             completingTournament={completingTournament}
@@ -788,7 +851,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       ) : null}
 
       {activeTab === 'table' ? (
-        <TournamentTableTab standings={groupStandings} loading={groupStandingsLoading} />
+        <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} />
       ) : null}
 
       {activeTab === 'teams' ? (
