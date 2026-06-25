@@ -31,10 +31,21 @@ export function pickFeaturedTournamentSlot(
 ): TournamentMatchSlotView | null {
   const live = slots.find((s) => (s.match_status ?? '').toLowerCase() === 'live');
   if (live) return live;
-  const open = slots
-    .filter((s) => (s.match_status ?? '').toLowerCase() !== 'finished')
-    .sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime());
+  const open = sortTournamentSlotsChronologically(slots).filter(
+    (s) => (s.match_status ?? '').toLowerCase() !== 'finished',
+  );
   return open[0] ?? null;
+}
+
+function sortTournamentSlotsChronologically(
+  slots: TournamentMatchSlotView[],
+): TournamentMatchSlotView[] {
+  return [...slots].sort((a, b) => {
+    const ta = new Date(a.kickoff_at).getTime();
+    const tb = new Date(b.kickoff_at).getTime();
+    if (ta !== tb) return ta - tb;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
 }
 
 export function pickLastFinishedTournamentSlots(

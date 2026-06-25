@@ -19,7 +19,8 @@ import {
   type TournamentMatchSlotView,
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
-import { computeTournamentFinalSummary } from '../../lib/tournamentFinalSummary';
+import { canCompleteTournament, computeTournamentFinalSummary } from '../../lib/tournamentFinalSummary';
+import { buildTournamentReportText } from '../../lib/tournamentReportText';
 import { usePlayers } from '../../hooks/usePlayers';
 import {
   completeTournamentEvent,
@@ -35,6 +36,7 @@ import {
   type TournamentPlanImportRawMatch,
 } from '../../lib/tournamentPlanImport';
 import { TournamentFinalSummaryCard } from './TournamentFinalSummaryCard';
+import { TournamentReportModal } from './TournamentReportModal';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
 import { TournamentCenterTabBar } from './TournamentCenterTabBar';
@@ -165,6 +167,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     finalLabel: null,
   });
   const [completingTournament, setCompletingTournament] = useState(false);
+  const [orchestratorReportOpen, setOrchestratorReportOpen] = useState(false);
   const { players, loading: playersLoading } = usePlayers(teamSeasonId);
 
   const reload = useCallback(async () => {
@@ -371,6 +374,47 @@ export const TournamentDetailSections: React.FC<Props> = ({
       }),
     [tournamentDayIso, slots, completion],
   );
+
+  useEffect(() => {
+    if (tournamentPhase !== 'day' || completion.completedAt) return undefined;
+
+    const hasLive = slots.some((s) => (s.match_status ?? '').toLowerCase() === 'live');
+    const intervalMs = hasLive ? 8_000 : 20_000;
+    const interval = window.setInterval(() => void reload(), intervalMs);
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === 'visible') void reload();
+    };
+    window.addEventListener('focus', refreshOnVisible);
+    document.addEventListener('visibilitychange', refreshOnVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshOnVisible);
+      document.removeEventListener('visibilitychange', refreshOnVisible);
+    };
+  }, [tournamentPhase, completion.completedAt, slots, reload]);
+
+  const orchestratorReportText = useMemo(() => {
+    if (!finalSummary) return '';
+    return buildTournamentReportText({
+      tournamentTitle,
+      summary: finalSummary,
+      balance: teamBalance,
+      finalMatch: finalSummary.finalMatch,
+      goalScorers,
+    });
+  }, [tournamentTitle, finalSummary, teamBalance, goalScorers]);
+
+  const orchestratorCanCreateReport = Boolean(orchestratorReportText.trim());
+  const orchestratorCanComplete = canCompleteTournament(teamBalance, finalSummary);
+
+  const showOrchestratorOverview = useCallback(() => {
+    setActiveTab('overview');
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }, []);
 
   const overviewSectionOrder = useMemo((): string[] => {
     if (tournamentPhase === 'after') {
@@ -671,8 +715,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
         ourTeamName={ourTeamName}
         loading={loading}
         canManage={canManage}
+        tournamentArchived={Boolean(completion.completedAt)}
+        canCreateReport={orchestratorCanCreateReport}
+        canCompleteTournament={orchestratorCanComplete}
+        completingTournament={completingTournament}
         onOpen={onOpenMatchPreparation}
         onAddMatch={canManage ? openMatchModal : undefined}
+        onCreateReport={() => setOrchestratorReportOpen(true)}
+        onCompleteTournament={() => void handleCompleteTournament()}
+        onShowOverview={showOrchestratorOverview}
       />
 
       <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage={canManage} />
@@ -971,6 +1022,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
           </label>
         </div>
       </Modal>
+
+      <TournamentReportModal
+        isOpen={orchestratorReportOpen}
+        reportText={orchestratorReportText}
+        onClose={() => setOrchestratorReportOpen(false)}
+      />
     </div>
   );
 };
