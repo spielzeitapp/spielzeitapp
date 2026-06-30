@@ -14,7 +14,7 @@ export function TournamentCenterTabBar({ activeTab, onTabChange, canManage = fal
   return (
     <nav
       className="sticky top-0 z-[5] -mx-0.5 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-[rgba(6,4,8,0.94)] p-1 backdrop-blur-sm"
-      aria-label="Turniercenter Bereiche"
+      aria-label="Turniercenter — Nachsehen"
     >
       <div className={`grid ${gridCols} gap-0.5`}>
         {tabs.map((tab) => {

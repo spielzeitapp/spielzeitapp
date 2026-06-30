@@ -10,10 +10,10 @@ export {
 export type TournamentCenterTabId = 'overview' | 'games' | 'table' | 'teams' | 'admin';
 
 const BASE_TABS: { id: TournamentCenterTabId; label: string }[] = [
-  { id: 'overview', label: 'Überblick' },
-  { id: 'games', label: 'Spiele' },
+  { id: 'overview', label: 'Status' },
+  { id: 'games', label: 'Spielplan' },
   { id: 'table', label: 'Tabelle' },
-  { id: 'teams', label: 'Teams' },
+  { id: 'teams', label: 'Teilnehmer' },
 ];
 
 const ADMIN_TAB: { id: TournamentCenterTabId; label: string } = {

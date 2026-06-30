@@ -55,6 +55,7 @@ import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
 import { TournamentCenterTabBar } from './TournamentCenterTabBar';
 import { TournamentCompactCard } from './TournamentCompactCard';
 import { TournamentFeaturedMatchCard } from './TournamentFeaturedMatchCard';
+import { TournamentAssistantCard } from './TournamentAssistantCard';
 import { TournamentInfoCard } from './TournamentInfoCard';
 import { TournamentLastResultsCard } from './TournamentLastResultsCard';
 import { TournamentCollapsibleSection } from './TournamentCollapsibleSection';
@@ -468,12 +469,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
   }, [officialTournamentUrl]);
 
   const scrollToAttendance = useCallback(() => {
+    setActiveTab('admin');
     requestAnimationFrame(() => {
       document.getElementById('tournament-attendance-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, []);
 
   const scrollToSquad = useCallback(() => {
+    setActiveTab('admin');
     requestAnimationFrame(() => {
       document.getElementById('tournament-squad-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -847,6 +850,28 @@ export const TournamentDetailSections: React.FC<Props> = ({
         onCompleteTournament={handleCompleteTournament}
         onShowOverview={showOrchestratorOverview}
       />
+
+      {canManage ? (
+        <TournamentAssistantCard
+          tournamentEventId={tournamentEventId}
+          slots={slots}
+          attendance={attendanceSummary}
+          hasOfficialPlanUrl={Boolean(safeText(officialTournamentUrl))}
+          loading={loading}
+          tournamentArchived={Boolean(completion.completedAt)}
+          canCompleteTournament={orchestratorCanComplete}
+          canCreateReport={orchestratorCanCreateReport}
+          completingTournament={completingTournament}
+          onOpenAttendance={scrollToAttendance}
+          onOpenSquad={scrollToSquad}
+          onImportPlan={handleImportPlanFromOverview}
+          onAddMatch={openMatchModal}
+          onCreateReport={() => setOrchestratorReportOpen(true)}
+          onCompleteTournament={handleCompleteTournament}
+          onViewStatus={showOrchestratorOverview}
+          onLineupCopied={() => void reload()}
+        />
+      ) : null}
 
       {showPremiumAboveTabs ? (
         <TournamentPremiumFinalCard

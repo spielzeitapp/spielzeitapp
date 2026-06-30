@@ -128,11 +128,11 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'archived',
-      headerTitle: slot ? 'Turnier abgeschlossen' : 'Turnier',
+      headerTitle: 'Turnier abgeschlossen',
       badgeLabel: 'Archiviert',
       badgeTone: 'neutral',
       ctas: slot
-        ? [{ kind: 'show_overview', label: 'Turniercenter Übersicht', variant: 'secondary' }]
+        ? [{ kind: 'show_overview', label: 'Status ansehen', variant: 'secondary' }]
         : [],
       showLineupReadyMark: false,
     };
@@ -173,23 +173,22 @@ export function resolveTournamentOrchestrator(params: {
   if (focus.kind === 'last_finished') {
     const ctas: TournamentOrchestratorCta[] = [];
     if (params.canManage) {
-      if (params.canCreateReport) {
-        ctas.push({ kind: 'create_report', label: 'Turnierbericht erstellen', variant: 'secondary' });
-      }
       if (params.canCompleteTournament) {
         ctas.push({ kind: 'complete_tournament', label: 'Turnier abschließen', variant: 'primary' });
       }
-      ctas.push({ kind: 'show_overview', label: 'Turniercenter Übersicht', variant: 'secondary' });
+      if (params.canCreateReport) {
+        ctas.push({ kind: 'create_report', label: 'Turnierbericht erstellen', variant: 'secondary' });
+      }
     }
     return {
       focus,
       phase: 'all_finished',
-      headerTitle: 'Turnier kann abgeschlossen werden',
+      headerTitle: 'Turnier abschließen',
       badgeLabel: 'Beendet',
       badgeTone: 'finished',
       ctas,
       showLineupReadyMark: false,
-      footerHint: 'Alle Turnierspiele sind durch — Abschluss und Bericht im nächsten Schritt.',
+      footerHint: 'Alle Turnierspiele sind durch — Abschluss im Turnier-Assistenten.',
     };
   }
 
@@ -210,7 +209,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'lineup_ready',
-      headerTitle: 'Nächstes Turnierspiel',
+      headerTitle: 'Live starten',
       badgeLabel: 'Aufstellung fertig',
       badgeTone: 'ready',
       ctas: [
@@ -225,7 +224,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'prepare',
-      headerTitle: 'Nächstes Turnierspiel',
+      headerTitle: prepareLabel(focus.priorFinishedCount),
       badgeLabel: slot.has_lineup || slot.has_squad ? 'Vorbereitung' : 'Geplant',
       badgeTone: slot.has_lineup || slot.has_squad ? 'open' : 'neutral',
       ctas: [
