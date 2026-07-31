@@ -175,9 +175,8 @@ export function resolveTournamentOrchestrator(params: {
     if (params.canManage) {
       if (params.canCompleteTournament) {
         ctas.push({ kind: 'complete_tournament', label: 'Turnier abschließen', variant: 'primary' });
-      }
-      if (params.canCreateReport) {
-        ctas.push({ kind: 'create_report', label: 'Turnierbericht erstellen', variant: 'secondary' });
+      } else if (params.canCreateReport) {
+        ctas.push({ kind: 'create_report', label: 'Turnierbericht erstellen', variant: 'primary' });
       }
     }
     return {
@@ -212,10 +211,8 @@ export function resolveTournamentOrchestrator(params: {
       headerTitle: 'Live starten',
       badgeLabel: 'Aufstellung fertig',
       badgeTone: 'ready',
-      ctas: [
-        { kind: 'open_lineup', matchId, label: 'Aufstellung öffnen', variant: 'secondary' },
-        { kind: 'start_live', matchId, label: 'Live starten', variant: 'primary' },
-      ],
+      // Eine klare Entscheidung — Aufstellung öffnen läuft über den Assistenten / Spielplan.
+      ctas: [{ kind: 'start_live', matchId, label: 'Live starten', variant: 'primary' }],
       showLineupReadyMark: true,
     };
   }

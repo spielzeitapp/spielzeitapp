@@ -49,17 +49,12 @@ type Props = {
 };
 
 function StepProgress({ step }: { step: TournamentAssistantStep }) {
-  const done = step.priorStepsDone;
   return (
-    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-purple-200/80">
-      {done > 0 ? (
-        <span className="inline-flex items-center gap-1">
-          <Check className="h-3 w-3 text-emerald-300" strokeWidth={3} aria-hidden />
-          Schritt {step.stepNumber} von {step.totalSteps}
-        </span>
-      ) : (
-        <>Schritt {step.stepNumber} von {step.totalSteps}</>
-      )}
+    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-purple-200/80">
+      <span className="inline-flex items-center gap-1">
+        <Check className="h-3 w-3 text-emerald-300" strokeWidth={3} aria-hidden />
+        Schritt {step.stepNumber} von {step.totalSteps}
+      </span>
     </p>
   );
 }
@@ -276,82 +271,126 @@ export function TournamentAssistantCard({
     onLineupCopied?.();
   };
 
-  const renderAction = (action: TournamentAssistantAction) => {
+  const renderSingleAction = (
+    action: TournamentAssistantAction,
+    label: string,
+    opts?: { primary?: boolean; disabled?: boolean },
+  ) => {
+    const primary = opts?.primary !== false;
+    const disabled = opts?.disabled;
     switch (action.kind) {
       case 'open_attendance':
-        return <PrimaryButton label={step.primaryLabel} onClick={onOpenAttendance} />;
+        return primary ? (
+          <PrimaryButton label={label} onClick={onOpenAttendance} disabled={disabled} />
+        ) : (
+          <GlassButton label={label} onClick={onOpenAttendance} disabled={disabled} />
+        );
       case 'open_squad':
-        return <PrimaryButton label={step.primaryLabel} onClick={onOpenSquad} />;
+        return primary ? (
+          <PrimaryButton label={label} onClick={onOpenSquad} disabled={disabled} />
+        ) : (
+          <GlassButton label={label} onClick={onOpenSquad} disabled={disabled} />
+        );
       case 'import_plan':
-        return <PrimaryButton label={step.primaryLabel} onClick={onImportPlan} />;
+        return primary ? (
+          <PrimaryButton label={label} onClick={onImportPlan} disabled={disabled} />
+        ) : (
+          <GlassButton label={label} onClick={onImportPlan} disabled={disabled} />
+        );
       case 'add_match':
-        return <PrimaryButton label={step.primaryLabel} onClick={onAddMatch} />;
+        return primary ? (
+          <PrimaryButton label={label} onClick={onAddMatch} disabled={disabled} />
+        ) : (
+          <GlassButton label={label} onClick={onAddMatch} disabled={disabled} />
+        );
       case 'prepare_match':
         return action.matchId ? (
-          <PrimaryButton label={step.primaryLabel} to={matchPreparationPath(action.matchId)} />
+          primary ? (
+            <PrimaryButton label={label} to={matchPreparationPath(action.matchId)} />
+          ) : (
+            <Link
+              to={matchPreparationPath(action.matchId)}
+              className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
+            >
+              {label}
+            </Link>
+          )
         ) : null;
       case 'open_lineup':
         return action.matchId ? (
-          <PrimaryButton label={step.primaryLabel} to={matchLineupPath(action.matchId)} />
+          <PrimaryButton label={label} to={matchLineupPath(action.matchId)} />
         ) : null;
       case 'start_live':
       case 'go_live':
         return action.matchId ? (
-          <PrimaryButton label={step.primaryLabel} to={liveMatchPath(action.matchId)} />
+          <PrimaryButton label={label} to={liveMatchPath(action.matchId)} />
         ) : null;
       case 'create_report':
-        return <PrimaryButton label={step.primaryLabel} onClick={onCreateReport} />;
+        return <PrimaryButton label={label} onClick={onCreateReport} disabled={disabled} />;
       case 'complete_tournament':
         return (
           <PrimaryButton
-            label={completingTournament ? 'Wird abgeschlossen…' : step.primaryLabel}
+            label={completingTournament ? 'Wird abgeschlossen…' : label}
             onClick={onCompleteTournament}
-            disabled={completingTournament}
+            disabled={disabled || completingTournament}
           />
         );
       case 'view_status':
-        return <PrimaryButton label={step.primaryLabel} onClick={onViewStatus} />;
-      case 'lineup_copy':
-        return (
-          <div className="flex flex-col gap-1.5">
-            {showReplaceConfirm || copyContext?.targetHasExistingLineup ? (
-              <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
-                Bestehende Aufstellung wird ersetzt — Tore und Spielereignisse bleiben unberührt.
-              </p>
-            ) : null}
-            <PrimaryButton
-              label={copyBusy ? 'Wird übernommen…' : 'Komplette Aufstellung übernehmen'}
-              onClick={() => void runCopy('full', showReplaceConfirm)}
-              disabled={copyBusy}
-            />
-            <GlassButton
-              label="Startelf übernehmen"
-              onClick={() => void runCopy('starters', showReplaceConfirm)}
-              disabled={copyBusy}
-            />
-            <GlassButton
-              label="Bank übernehmen"
-              onClick={() => void runCopy('bench', showReplaceConfirm)}
-              disabled={copyBusy}
-            />
-            <SecondaryButton
-              label="Nur Turnierkader übernehmen"
-              onClick={() => void runCopy('squad_only', showReplaceConfirm)}
-              disabled={copyBusy}
-            />
-            {action.matchId ? (
-              <Link
-                to={matchPreparationPath(action.matchId)}
-                className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
-              >
-                Manuell vorbereiten
-              </Link>
-            ) : null}
-          </div>
-        );
+        return <PrimaryButton label={label} onClick={onViewStatus} disabled={disabled} />;
       default:
         return null;
     }
+  };
+
+  const renderAction = (action: TournamentAssistantAction) => {
+    if (action.kind === 'lineup_copy') {
+      return (
+        <div className="flex flex-col gap-1.5">
+          {showReplaceConfirm || copyContext?.targetHasExistingLineup ? (
+            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
+              Bestehende Aufstellung wird ersetzt — Tore und Spielereignisse bleiben unberührt.
+            </p>
+          ) : null}
+          <PrimaryButton
+            label={copyBusy ? 'Wird übernommen…' : 'Komplette Aufstellung übernehmen'}
+            onClick={() => void runCopy('full', showReplaceConfirm)}
+            disabled={copyBusy}
+          />
+          <GlassButton
+            label="Startelf übernehmen"
+            onClick={() => void runCopy('starters', showReplaceConfirm)}
+            disabled={copyBusy}
+          />
+          <GlassButton
+            label="Bank übernehmen"
+            onClick={() => void runCopy('bench', showReplaceConfirm)}
+            disabled={copyBusy}
+          />
+          <SecondaryButton
+            label="Nur Turnierkader übernehmen"
+            onClick={() => void runCopy('squad_only', showReplaceConfirm)}
+            disabled={copyBusy}
+          />
+          {action.matchId ? (
+            <Link
+              to={matchPreparationPath(action.matchId)}
+              className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
+            >
+              Manuell vorbereiten
+            </Link>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-1.5">
+        {renderSingleAction(action, step.primaryLabel)}
+        {step.secondaryAction && step.secondaryLabel
+          ? renderSingleAction(step.secondaryAction, step.secondaryLabel, { primary: false })
+          : null}
+      </div>
+    );
   };
 
   if (loading || lineupLoading || squadLoading) {

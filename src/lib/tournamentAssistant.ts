@@ -39,6 +39,9 @@ export type TournamentAssistantStep = {
   detailLines: string[];
   primaryLabel: string;
   action: TournamentAssistantAction;
+  /** Optional zweite Aktion (z. B. Plan: Import oder Spiele anlegen). */
+  secondaryAction?: TournamentAssistantAction;
+  secondaryLabel?: string;
   priorStepsDone: number;
 };
 
@@ -69,6 +72,11 @@ function matchPrepSubDetail(slot: TournamentMatchSlotView, lineupReady: boolean)
   return ['Aufstellung festlegen', 'Bank wählen', 'Positionen zuweisen'];
 }
 
+/**
+ * Nächster sinnvoller Assistenten-Schritt (Laienmodus).
+ * Reihenfolge: Verfügbarkeit → Kader → Plan → Spiel vorbereiten → Live → nächstes Spiel → Abschluss.
+ * Prep-Schritte 1–3 nur vor dem ersten beendeten Spiel; Live und Abschluss haben Vorrang.
+ */
 export function resolveTournamentAssistantStep(input: TournamentAssistantInput): TournamentAssistantStep {
   const {
     slots,
@@ -110,7 +118,11 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       title: 'Turnier abschließen',
       description: 'Alle Spiele sind durch — jetzt Abschluss und Bericht.',
       detailLines: lines,
-      primaryLabel: canCompleteTournament ? 'Turnier abschließen' : canCreateReport ? 'Turnierbericht erstellen' : 'Status ansehen',
+      primaryLabel: canCompleteTournament
+        ? 'Turnier abschließen'
+        : canCreateReport
+          ? 'Turnierbericht erstellen'
+          : 'Status ansehen',
       action: canCompleteTournament
         ? { kind: 'complete_tournament' }
         : canCreateReport
@@ -132,6 +144,51 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       action: { kind: 'go_live', matchId: focus.slot.match_id },
       priorStepsDone: stepNumber - 1,
     };
+  }
+
+  // Vor dem ersten beendeten Spiel: Prep-Pipeline strikt führen (Laienmodus).
+  if (priorFinished === 0) {
+    if (!availabilityDone(attendance)) {
+      return {
+        stepNumber: 1,
+        totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
+        title: 'Verfügbarkeit prüfen',
+        description: 'Zusagen und Absagen der Spieler für den Turniertag erfassen.',
+        detailLines: [`${attendance.openCount} Spieler ohne Rückmeldung`],
+        primaryLabel: 'Jetzt öffnen',
+        action: { kind: 'open_attendance' },
+        priorStepsDone: 0,
+      };
+    }
+
+    if (tournamentSquadCount === 0) {
+      return {
+        stepNumber: 2,
+        totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
+        title: 'Turnierkader festlegen',
+        description: 'Spieler für das Turnier auswählen und Turnierkader speichern.',
+        detailLines: ['Nominierte Spieler stehen in allen Turnierspielen zur Verfügung.'],
+        primaryLabel: 'Jetzt öffnen',
+        action: { kind: 'open_squad' },
+        priorStepsDone: 1,
+      };
+    }
+
+    if (!planDone(hasOfficialPlanUrl, slots) || slots.length === 0) {
+      const preferImport = !hasOfficialPlanUrl;
+      return {
+        stepNumber: 3,
+        totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
+        title: 'Turnierplan vorbereiten',
+        description: 'Turnierplan importieren oder Turnierspiele manuell anlegen.',
+        detailLines: ['Offiziellen Plan verknüpfen oder Spiele einzeln hinzufügen'],
+        primaryLabel: preferImport ? 'Turnierplan importieren' : 'Turnierspiele anlegen',
+        action: preferImport ? { kind: 'import_plan' } : { kind: 'add_match' },
+        secondaryLabel: preferImport ? 'Turnierspiele anlegen' : 'Turnierplan importieren',
+        secondaryAction: preferImport ? { kind: 'add_match' } : { kind: 'import_plan' },
+        priorStepsDone: 2,
+      };
+    }
   }
 
   if (nextSlot?.match_id) {
@@ -206,6 +263,7 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
     }
   }
 
+  // Fallback: Prep-Pipeline auch nach erstem Spiel, falls noch offen (selten).
   if (!availabilityDone(attendance)) {
     return {
       stepNumber: 1,
@@ -232,28 +290,18 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
     };
   }
 
-  if (!planDone(hasOfficialPlanUrl, slots)) {
+  if (!planDone(hasOfficialPlanUrl, slots) || slots.length === 0) {
+    const preferImport = !hasOfficialPlanUrl;
     return {
       stepNumber: 3,
       totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
       title: 'Turnierplan vorbereiten',
       description: 'Turnierplan importieren oder Turnierspiele manuell anlegen.',
       detailLines: ['Offiziellen Plan verknüpfen oder Spiele einzeln hinzufügen'],
-      primaryLabel: hasOfficialPlanUrl ? 'Turnierspiele anlegen' : 'Turnierplan importieren',
-      action: hasOfficialPlanUrl ? { kind: 'add_match' } : { kind: 'import_plan' },
-      priorStepsDone: 2,
-    };
-  }
-
-  if (slots.length === 0) {
-    return {
-      stepNumber: 3,
-      totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-      title: 'Turnierplan vorbereiten',
-      description: 'Noch keine Turnierspiele — Plan importieren oder Spiele anlegen.',
-      detailLines: [],
-      primaryLabel: 'Turnierspiel hinzufügen',
-      action: { kind: 'add_match' },
+      primaryLabel: preferImport ? 'Turnierplan importieren' : 'Turnierspiele anlegen',
+      action: preferImport ? { kind: 'import_plan' } : { kind: 'add_match' },
+      secondaryLabel: preferImport ? 'Turnierspiele anlegen' : 'Turnierplan importieren',
+      secondaryAction: preferImport ? { kind: 'add_match' } : { kind: 'import_plan' },
       priorStepsDone: 2,
     };
   }
