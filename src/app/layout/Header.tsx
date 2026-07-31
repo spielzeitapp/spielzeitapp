@@ -6,20 +6,31 @@ import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
+import { isStagingApp } from '../../lib/appEnvironment';
 
 const APP_HEADER_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
 
 /** App-Wortmarke (PNG); object-cover zeigt Logo + Schriftzug ohne Unterzeile. */
 function AppHeaderBrand() {
   return (
-    <img
-      src={spielzeitappHeader}
-      alt={APP_HEADER_ALT}
-      className="h-11 w-[10.25rem] max-w-[min(50vw,10.25rem)] shrink-0 object-cover object-[50%_32%] sm:h-12 sm:w-[12rem] sm:max-w-[12rem]"
-      width={192}
-      height={48}
-      decoding="async"
-    />
+    <span className="inline-flex items-center gap-1.5">
+      <img
+        src={spielzeitappHeader}
+        alt={APP_HEADER_ALT}
+        className="h-11 w-[10.25rem] max-w-[min(50vw,10.25rem)] shrink-0 object-cover object-[50%_32%] sm:h-12 sm:w-[12rem] sm:max-w-[12rem]"
+        width={192}
+        height={48}
+        decoding="async"
+      />
+      {isStagingApp() ? (
+        <span
+          className="shrink-0 rounded border border-amber-400/45 bg-amber-950/55 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-100"
+          title="Testumgebung — nicht die Live-App"
+        >
+          TEST
+        </span>
+      ) : null}
+    </span>
   );
 }
 

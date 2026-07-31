@@ -1,6 +1,9 @@
 /**
  * Supabase Auth redirects — immer aktueller Host (Live, Staging, Vercel-Preview).
  * URLs müssen in Supabase unter Authentication → Redirect URLs erlaubt sein.
+ *
+ * Staging: VITE_APP_BASE_URL=https://test.spielzeitapp.at (oder staging.…),
+ * niemals app.spielzeitapp.at. Browser-Origin hat Vorrang vor Env.
  */
 export function getAuthRedirectOrigin(): string {
   if (typeof window !== 'undefined' && window.location?.origin) {
