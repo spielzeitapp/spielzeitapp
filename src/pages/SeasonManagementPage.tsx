@@ -179,9 +179,10 @@ export const SeasonManagementPage: React.FC = () => {
       });
       setBusy(false);
       if (!res.ok) {
-        setActionError(mapPrepareDraftError(res.code, res.message));
-        return;
-      }
+      console.error('[SeasonManagement] prepare failed', res);
+      setActionError(mapPrepareDraftError(res.code, res.message));
+      return;
+    }
       if (res.transferError) {
         setActionError(`Entwurf erstellt, aber Übernahme teilweise fehlgeschlagen: ${res.transferError}`);
       } else {
@@ -231,7 +232,7 @@ export const SeasonManagementPage: React.FC = () => {
         </span>
       </Link>
 
-      <SectionTitle subtitle="Saison abschließen oder aus bestehender Mannschaft fortsetzen">
+      <SectionTitle subtitle="Erstelle deine Mannschaft für die neue Saison.">
         Saisonverwaltung
       </SectionTitle>
 
@@ -293,8 +294,8 @@ export const SeasonManagementPage: React.FC = () => {
           ) : (
             <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3 pt-1">
               <p className="text-sm text-white/55">
-                Zwei getrennte Wege: Nur vorbereiten (Quelle bleibt aktiv) oder abschließen und neu starten
-                (nur mit Bestätigung).
+                Es wird eine neue Saison vorbereitet. Deine aktuelle Saison bleibt unverändert. Spiele,
+                Trainings und Ergebnisse werden nicht übernommen.
               </p>
 
               <PremiumButton

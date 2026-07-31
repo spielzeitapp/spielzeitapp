@@ -304,6 +304,7 @@ export async function prepareNextSeasonDraft(
 
   const seasonResolved = await resolveOrCreateSeasonId(nextSeasonName);
   if ('error' in seasonResolved) {
+    console.error('[seasonPreparation] seasons resolve/create failed', seasonResolved.error);
     return {
       ok: false,
       code: 'season_resolve_failed',
@@ -353,6 +354,13 @@ export async function prepareNextSeasonDraft(
     .single();
 
   if (insertErr || !draftRow?.id) {
+    console.error('[seasonPreparation] team_seasons.insert failed', {
+      message: insertErr?.message,
+      code: insertErr?.code,
+      details: insertErr?.details,
+      hint: insertErr?.hint,
+      payload: insertPayload,
+    });
     return {
       ok: false,
       code: 'insert_failed',
@@ -360,9 +368,45 @@ export async function prepareNextSeasonDraft(
     };
   }
 
+  const draftId = String(draftRow.id);
+
+  // Damit der Trainer den Entwurf in der Session sieht: eigene Staff-Membership anlegen.
+  // Andere Staff-Mitglieder optional über Transfer; player_guardians/users bleiben unberührt.
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const uid = user?.id?.trim() ?? '';
+    if (uid) {
+      const { data: srcMem } = await supabase
+        .from('memberships')
+        .select('role')
+        .eq('team_season_id', current.id)
+        .eq('user_id', uid)
+        .maybeSingle();
+      const roleRaw = String((srcMem as { role?: string } | null)?.role ?? 'trainer')
+        .trim()
+        .toLowerCase();
+      const role =
+        roleRaw === 'co_trainer' || roleRaw === 'head_coach' || roleRaw === 'trainer'
+          ? roleRaw
+          : 'trainer';
+      const { error: memErr } = await supabase.from('memberships').insert({
+        user_id: uid,
+        team_season_id: draftId,
+        role,
+      });
+      if (memErr && !/duplicate|unique|already exists/i.test(memErr.message ?? '')) {
+        console.warn('[seasonPreparation] draft membership insert', memErr.message);
+      }
+    }
+  } catch (err) {
+    console.warn('[seasonPreparation] draft membership ensure failed', err);
+  }
+
   return {
     ok: true,
-    draftTeamSeasonId: String(draftRow.id),
+    draftTeamSeasonId: draftId,
     seasonId: seasonResolved.seasonId,
     displayName,
     nextAgeGroup,

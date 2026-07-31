@@ -88,7 +88,7 @@ export function mapPrepareDraftError(code: string, message: string): string {
     return 'Datenbank-Migration fehlt noch (team_seasons Lifecycle-Felder). Bitte Migration 20260612120000 anwenden.';
   }
   if (/permission|policy|row-level security|42501|forbidden|not authorized/i.test(message)) {
-    return 'Keine Berechtigung (RLS). Saison-Entwürfe dürfen nur Trainer oder Admin anlegen.';
+    return 'Du hast derzeit keine Berechtigung, für diese Mannschaft eine neue Saison anzulegen. Bitte überprüfe deine Trainerberechtigung.';
   }
   return message || 'Saison-Entwurf konnte nicht erstellt werden.';
 }
