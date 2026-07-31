@@ -20,8 +20,12 @@ export type CurrentSeasonLabelSource = {
 const STATUS_LABELS: Record<TeamSeasonLifecycleStatus, string> = {
   active: 'Aktiv',
   draft: 'Entwurf',
-  archived: 'Archiviert',
+  archived: 'Abgeschlossen',
 };
+
+/** Soft-Lock-Hinweis für abgeschlossene Saisons (UI). */
+export const SEASON_SOFT_LOCK_MESSAGE =
+  'Diese Saison ist abgeschlossen. Öffne die aktuelle Saison, um neue Termine oder Änderungen anzulegen.';
 
 /** head_coach / co_trainer aus DB werden via normalizeRole() auf trainer gemappt. */
 const PREPARE_NEXT_SEASON_ROLES: RoleKey[] = ['admin', 'trainer'];

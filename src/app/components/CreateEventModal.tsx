@@ -10,6 +10,7 @@ import {
 } from '../../lib/viennaTime';
 import { combineLocationParts, formatFullLocation } from '../../lib/eventLocation';
 import { eventKindFromFormType, normalizeEventTypeField } from '../../lib/eventTypeUtils';
+import { assertTeamSeasonWritable } from '../../lib/seasonTransition';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -134,6 +135,12 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     e.preventDefault();
     if (!teamSeasonId) {
       setError('Keine Mannschaftssaison ausgewählt.');
+      return;
+    }
+
+    const writable = await assertTeamSeasonWritable(teamSeasonId);
+    if (!writable.ok) {
+      setError(writable.message);
       return;
     }
     const startsAtRaw = (form.starts_at ?? '').trim();

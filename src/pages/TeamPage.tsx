@@ -16,6 +16,7 @@ import { Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
+import { assertTeamSeasonWritable } from "../lib/seasonTransition";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
@@ -442,6 +443,15 @@ export const TeamPage: React.FC = () => {
     setFormError(null);
     setSaving(true);
     const jersey = parsedJerseyNumber;
+
+    if (teamSeasonId) {
+      const writable = await assertTeamSeasonWritable(teamSeasonId);
+      if (!writable.ok) {
+        setFormError(writable.message);
+        setSaving(false);
+        return;
+      }
+    }
 
     if (mode === "create") {
       if (teamSeasonId == null) {

@@ -240,9 +240,11 @@ async function resolveOrCreateSeasonId(
 
 /**
  * Legt eine neue team_season als Entwurf an (keine Spieler/Events/Matches/Memberships/Feed).
+ * Optional: seasonNameOverride / ageGroupOverride für den Assistenten.
  */
 export async function prepareNextSeasonDraft(
   currentTeamSeason: string | TeamSeasonRowForPrep,
+  overrides?: { seasonName?: string | null; ageGroup?: string | null },
 ): Promise<PrepareNextSeasonDraftResult> {
   let current: TeamSeasonRowForPrep;
 
@@ -277,15 +279,20 @@ export async function prepareNextSeasonDraft(
 
   const labelSource = teamSeasonRowToLabelSource(current);
   const ageInfo = resolveAgeGroupForDraft(current);
-  const nextAgeGroup =
-    ageInfo.next ?? computeNextAgeGroupFromSource(labelSource);
+  const overrideAge = overrides?.ageGroup?.trim() || null;
+  const nextAgeGroup = overrideAge || ageInfo.next || computeNextAgeGroupFromSource(labelSource);
   const seasonRaw = current.seasonName?.trim() ?? '';
-  const nextSeasonName = seasonRaw ? computeNextSeasonName(seasonRaw) : '';
+  const overrideSeason = overrides?.seasonName?.trim() || null;
+  const nextSeasonName =
+    overrideSeason || (seasonRaw ? computeNextSeasonName(seasonRaw) : '');
   const displayName = buildDraftSeasonDisplayName({
     ...labelSource,
-    ageGroup: ageInfo.current ?? labelSource.ageGroup,
+    ageGroup: overrideAge || ageInfo.current || labelSource.ageGroup,
     seasonName: seasonRaw || labelSource.seasonName,
-  });
+  }).replace(
+    /Saison .+$/,
+    `Saison ${nextSeasonName || '—'}`,
+  );
 
   if (!nextSeasonName) {
     return {
@@ -331,8 +338,12 @@ export async function prepareNextSeasonDraft(
     display_name: displayName,
   };
 
+  // age_group nur setzen, wenn Spalte existiert (keine Migration in diesem Step).
   if (nextAgeGroup) {
-    insertPayload.age_group = nextAgeGroup;
+    const { error: probeErr } = await supabase.from('team_seasons').select('age_group').limit(1);
+    if (!probeErr) {
+      insertPayload.age_group = nextAgeGroup;
+    }
   }
 
   const { data: draftRow, error: insertErr } = await supabase
