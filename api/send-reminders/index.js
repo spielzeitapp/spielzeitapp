@@ -7,6 +7,7 @@
  */
 const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');
+const { assertStagingSafeToRunOutbound } = require('../../lib/stagingGuards');
 
 /** Idempotente Batches; mehrfaches Aufrufen möglich (Claim + messages-Dedupe). */
 const JOB_BATCH_LIMIT = 50;
@@ -633,6 +634,19 @@ module.exports = async (req, res) => {
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ ok: false, error: 'Method not allowed' });
+    }
+
+    const stagingGate = assertStagingSafeToRunOutbound();
+    if (stagingGate.blocked) {
+      console.warn('[send-reminders] blocked', stagingGate.reason);
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+        reason: stagingGate.reason,
+        processed: 0,
+        sent: 0,
+        failed: 0,
+      });
     }
 
     const body = parseBody(req);

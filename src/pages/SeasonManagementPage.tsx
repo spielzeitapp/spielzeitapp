@@ -1,21 +1,26 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { CalendarRange, ChevronLeft } from 'lucide-react';
+import { CalendarRange, CheckCircle2, ChevronLeft, Lock } from 'lucide-react';
 import { useSession } from '../auth/useSession';
-import { canPrepareNextSeason, getSeasonStatusLabel } from '../lib/seasonLifecycle';
+import {
+  SeasonTransitionWizard,
+  type SeasonTransitionMode,
+} from '../components/season/SeasonTransitionWizard';
+import { canPrepareNextSeason, getSeasonStatusLabel, SEASON_SOFT_LOCK_MESSAGE } from '../lib/seasonLifecycle';
 import {
   fetchSeasonManagementSnapshot,
   mapPrepareDraftError,
   type SeasonCardModel,
   type SeasonManagementSnapshot,
 } from '../lib/seasonManagementData';
-import { prepareNextSeasonDraft } from '../lib/seasonPreparation';
+import {
+  archiveTeamSeason,
+  completeSeasonTransition,
+  prepareSeasonDraftWithOptions,
+} from '../lib/seasonTransition';
 import { dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
-
-const CONFIRM_MESSAGE =
-  'Es wird nur ein Entwurf erstellt. Aktuelle Saison, Spieler, Termine und Spiele bleiben unverändert.\n\nFortfahren?';
 
 function canAccessSeasonManagement(effectiveRole: string, backendRole: string): boolean {
   if ((backendRole ?? '').trim().toLowerCase() === 'admin') return true;
@@ -40,7 +45,7 @@ function SeasonCard({
   variant,
 }: {
   model: SeasonCardModel;
-  variant: 'active' | 'draft';
+  variant: 'active' | 'draft' | 'archived';
 }) {
   return (
     <PremiumCard
@@ -50,6 +55,7 @@ function SeasonCard({
         'space-y-3',
         variant === 'active' && 'border-emerald-900/35',
         variant === 'draft' && 'border-amber-900/30',
+        variant === 'archived' && 'border-white/10',
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -85,7 +91,7 @@ function SeasonCard({
 }
 
 export const SeasonManagementPage: React.FC = () => {
-  const { effectiveRole, backendRole, selectedTeamSeasonId } = useSession();
+  const { effectiveRole, backendRole, selectedTeamSeasonId, setSelectedTeamSeasonId } = useSession();
   const allowed = canAccessSeasonManagement(effectiveRole, backendRole);
 
   const [snapshot, setSnapshot] = useState<SeasonManagementSnapshot | null>(null);
@@ -93,7 +99,8 @@ export const SeasonManagementPage: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [preparing, setPreparing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [wizardMode, setWizardMode] = useState<SeasonTransitionMode | null>(null);
 
   const reload = useCallback(async () => {
     if (!selectedTeamSeasonId) {
@@ -119,24 +126,93 @@ export const SeasonManagementPage: React.FC = () => {
   }
 
   const hasDraft = snapshot?.hasDraftForActive ?? Boolean(snapshot?.draft);
-  const activeId = snapshot?.active?.id ?? selectedTeamSeasonId;
+  const activeId = snapshot?.active?.id ?? null;
+  const sourceCard = snapshot?.active ?? null;
+  const selectedIsArchived = snapshot?.active == null && Boolean(selectedTeamSeasonId);
 
-  const onPrepareDraft = async () => {
-    if (!activeId || hasDraft) return;
+  const onArchiveOnly = async () => {
+    if (!activeId) return;
     setActionError(null);
     setSuccessMsg(null);
-    if (!window.confirm(CONFIRM_MESSAGE)) return;
-
-    setPreparing(true);
-    const res = await prepareNextSeasonDraft(activeId);
-    setPreparing(false);
-
+    if (
+      !window.confirm(
+        'Saison wirklich abschließen?\n\nHistorie bleibt lesbar. Neue Termine und Änderungen sind in dieser Saison nicht mehr möglich.',
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    const res = await archiveTeamSeason(activeId);
+    setBusy(false);
     if (!res.ok) {
+      setActionError(res.message);
+      return;
+    }
+    setSuccessMsg('Saison wurde abgeschlossen.');
+    setWizardMode(null);
+    await reload();
+  };
+
+  const onWizardConfirm = async (result: {
+    seasonName: string;
+    ageGroup: string;
+    options: import('../lib/seasonTransition').SeasonTransferOptions;
+    confirmArchiveSource: boolean;
+  }) => {
+    if (!activeId || !wizardMode) return;
+    setActionError(null);
+    setSuccessMsg(null);
+    setBusy(true);
+
+    if (wizardMode === 'prepare') {
+      const res = await prepareSeasonDraftWithOptions({
+        sourceTeamSeasonId: activeId,
+        seasonName: result.seasonName,
+        ageGroup: result.ageGroup,
+        options: {
+          copyStaff: result.options.copyStaff,
+          copyTeamPhoto: result.options.copyTeamPhoto,
+          copyNotificationSettings: result.options.copyNotificationSettings,
+          copyAliases: result.options.copyAliases,
+          transferPlayers: false,
+        },
+      });
+      setBusy(false);
+      if (!res.ok) {
+      console.error('[SeasonManagement] prepare failed', res);
       setActionError(mapPrepareDraftError(res.code, res.message));
       return;
     }
+      if (res.transferError) {
+        setActionError(`Entwurf erstellt, aber Übernahme teilweise fehlgeschlagen: ${res.transferError}`);
+      } else {
+        setSuccessMsg(
+          'Neue Saison als Entwurf vorbereitet. Die aktuelle Saison bleibt aktiv — Spieler wurden nicht verschoben.',
+        );
+      }
+      setWizardMode(null);
+      await reload();
+      return;
+    }
 
-    setSuccessMsg('Neue Saison wurde als Entwurf vorbereitet.');
+    const res = await completeSeasonTransition({
+      sourceTeamSeasonId: activeId,
+      seasonName: result.seasonName,
+      ageGroup: result.ageGroup,
+      options: result.options,
+      confirmArchiveSource: result.confirmArchiveSource,
+      existingDraftTeamSeasonId: hasDraft ? snapshot?.draft?.id : null,
+    });
+    setBusy(false);
+
+    if (!res.ok) {
+      setActionError(res.message);
+      return;
+    }
+
+    setSelectedTeamSeasonId(res.newTeamSeasonId);
+    setSuccessMsg('Saison abgeschlossen und neue Saison erstellt. Du bist jetzt in der neuen Saison.');
+    setWizardMode(null);
     await reload();
   };
 
@@ -156,11 +232,11 @@ export const SeasonManagementPage: React.FC = () => {
         </span>
       </Link>
 
-      <SectionTitle subtitle="Entwurf anlegen — ohne Daten zu kopieren">Saisonverwaltung</SectionTitle>
+      <SectionTitle subtitle="Erstelle deine Mannschaft für die neue Saison.">
+        Saisonverwaltung
+      </SectionTitle>
 
-      {loading ? (
-        <p className="text-sm text-white/55">Lade Saisons…</p>
-      ) : null}
+      {loading ? <p className="text-sm text-white/55">Lade Saisons…</p> : null}
 
       {loadError ? (
         <PremiumCard variant="subtle" showAmbientGlow={false} className="border-red-500/30">
@@ -176,13 +252,16 @@ export const SeasonManagementPage: React.FC = () => {
             <SeasonCard model={snapshot.active} variant="active" />
           ) : (
             <PremiumCard variant="subtle" showAmbientGlow={false}>
-              <p className="text-sm text-white/60">Keine aktive Saison für dieses Team gefunden.</p>
+              <p className="flex items-start gap-2 text-sm text-white/70">
+                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-white/45" aria-hidden />
+                {selectedIsArchived
+                  ? SEASON_SOFT_LOCK_MESSAGE
+                  : 'Keine aktive Saison für dieses Team gefunden.'}
+              </p>
             </PremiumCard>
           )}
 
-          {snapshot.draft ? (
-            <SeasonCard model={snapshot.draft} variant="draft" />
-          ) : null}
+          {snapshot.draft ? <SeasonCard model={snapshot.draft} variant="draft" /> : null}
 
           {successMsg ? (
             <p
@@ -202,31 +281,67 @@ export const SeasonManagementPage: React.FC = () => {
             </p>
           ) : null}
 
-          <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3 pt-1">
-            {hasDraft ? (
-              <p className="text-sm text-amber-200/90">
-                Entwurf bereits vorhanden
-                {snapshot.draft ? ` (${getSeasonStatusLabel('draft')})` : ''}.
-              </p>
-            ) : (
+          {wizardMode && sourceCard ? (
+            <SeasonTransitionWizard
+              mode={wizardMode}
+              sourceSeasonName={sourceCard.seasonName}
+              sourceAgeGroup={sourceCard.ageGroup}
+              sourceTeamName={sourceCard.teamName}
+              busy={busy}
+              onCancel={() => setWizardMode(null)}
+              onConfirm={(r) => void onWizardConfirm(r)}
+            />
+          ) : (
+            <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3 pt-1">
               <p className="text-sm text-white/55">
-                Legt nur eine neue <span className="text-white/75">team_season</span>-Zeile als Entwurf an.
-                Spieler, Termine und Spiele werden nicht übernommen.
+                Es wird eine neue Saison vorbereitet. Deine aktuelle Saison bleibt unverändert. Spiele,
+                Trainings und Ergebnisse werden nicht übernommen.
               </p>
-            )}
 
-            <PremiumButton
-              type="button"
-              variant="primary"
-              fullWidth
-              disabled={!snapshot.active || hasDraft || preparing}
-              onClick={() => void onPrepareDraft()}
-              className="gap-2"
-            >
-              <CalendarRange className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-              {preparing ? 'Wird vorbereitet…' : 'Neue Saison vorbereiten'}
-            </PremiumButton>
-          </PremiumCard>
+              <PremiumButton
+                type="button"
+                variant="default"
+                fullWidth
+                disabled={!snapshot.active || hasDraft || busy}
+                onClick={() => setWizardMode('prepare')}
+                className="gap-2"
+              >
+                <CalendarRange className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                {hasDraft ? 'Entwurf bereits vorhanden' : 'Neue Saison vorbereiten'}
+              </PremiumButton>
+
+              <PremiumButton
+                type="button"
+                variant="interactive"
+                fullWidth
+                disabled={!snapshot.active || busy}
+                onClick={() => setWizardMode('close_and_create')}
+                className="gap-2"
+              >
+                <CheckCircle2 className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                Saison abschließen und neue Saison erstellen
+              </PremiumButton>
+
+              <PremiumButton
+                type="button"
+                variant="subtle"
+                fullWidth
+                disabled={!snapshot.active || busy}
+                onClick={() => void onArchiveOnly()}
+                className="gap-2 text-white/70"
+              >
+                <Lock className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                Nur Saison abschließen
+              </PremiumButton>
+
+              {hasDraft ? (
+                <p className="text-[12px] text-amber-200/85">
+                  Entwurf ({getSeasonStatusLabel('draft')}) vorhanden. „Abschließen und neue Saison“ kann
+                  den Entwurf übernehmen.
+                </p>
+              ) : null}
+            </PremiumCard>
+          )}
         </div>
       ) : null}
 

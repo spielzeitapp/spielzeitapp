@@ -126,6 +126,22 @@ export async function handleNotificationDispatch(request: Request): Promise<Resp
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
   }
 
+  const deployEnv = (readEnv('APP_ENV') || readEnv('VITE_APP_ENV') || '').toLowerCase();
+  if (
+    readEnv('STAGING_DISABLE_OUTBOUND') === 'true' ||
+    deployEnv === 'staging' ||
+    deployEnv === 'test'
+  ) {
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        skipped: true,
+        reason: 'Staging outbound disabled',
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
   if (!verifyCronAuth(request)) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }

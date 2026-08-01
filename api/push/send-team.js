@@ -158,6 +158,23 @@ export default async function handler(req, res) {
       return res.status(405).json({ ok: false, error: "Method not allowed" });
     }
 
+    const deployEnv = String(process.env.APP_ENV || process.env.VITE_APP_ENV || "")
+      .trim()
+      .toLowerCase();
+    if (
+      process.env.STAGING_DISABLE_OUTBOUND === "true" ||
+      deployEnv === "staging" ||
+      deployEnv === "test"
+    ) {
+      console.warn("[push/send-team] blocked in staging");
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+        reason: "Staging outbound disabled",
+        sent: 0,
+      });
+    }
+
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return res.status(500).json({
         ok: false,
