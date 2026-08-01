@@ -17,6 +17,10 @@ import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
 import { assertTeamSeasonWritable } from "../lib/seasonTransition";
+import {
+  createRosterPlayer,
+  updateRosterPlayerSeasonFields,
+} from "../lib/rosterService";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
@@ -459,47 +463,29 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
-      const { data: insertedRows, error: insertError } = await supabase
-        .from("players")
-        .insert({
-          team_season_id: teamSeasonId,
-          first_name: first_name.trim(),
-          last_name: last_name.trim(),
-          jersey_number: form.jersey_number ? Number(form.jersey_number) : null,
-          position: form.position?.trim() || null,
-          is_active: true,
-          status: "active",
-        })
-        .select("id");
-      if (insertError) {
+      const { playerId: newPlayerId, error: createError } = await createRosterPlayer({
+        teamSeasonId,
+        firstName: first_name.trim(),
+        lastName: last_name.trim(),
+        jerseyNumber: form.jersey_number ? Number(form.jersey_number) : null,
+        position: form.position?.trim() || null,
+        birthdateIso: form.birthdate ? toISODate(form.birthdate) : null,
+      });
+      if (createError) {
         setFormError(
-          isJerseyDuplicateError(insertError as { code?: string; message?: string })
+          isJerseyDuplicateError({ message: createError })
             ? `Nummer ${jersey ?? ""} ist bereits vergeben. Bitte eine andere Nummer wählen.`
-            : insertError.message
+            : createError,
         );
         setSaving(false);
+        if (newPlayerId) await refetchPlayers();
         return;
       }
-      const newPlayerId = (insertedRows as { id: string }[] | null)?.[0]?.id;
       if (!newPlayerId) {
         setFormError("Spieler angelegt, aber Spieler-ID fehlt – Geburtsdatum bitte später bearbeiten.");
         setSaving(false);
         await refetchPlayers();
         closeForm();
-        return;
-      }
-      const { error: profileError } = await supabase.from("player_profiles").upsert(
-        {
-          player_id: newPlayerId,
-          birthdate: form.birthdate ? toISODate(form.birthdate) : null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "player_id" }
-      );
-      if (profileError) {
-        setFormError(profileError.message);
-        setSaving(false);
-        await refetchPlayers();
         return;
       }
       setSaving(false);
@@ -612,15 +598,17 @@ export const TeamPage: React.FC = () => {
           cutout_url: savedHeroCutoutUrl,
         });
       }
-      const { error: updateError } = await supabase
-        .from("players")
-        .update({
-          first_name: first_name.trim(),
-          last_name: last_name.trim(),
-          jersey_number: form.jersey_number ? Number(form.jersey_number) : null,
+      const { error: updateError } = await (async () => {
+        const res = await updateRosterPlayerSeasonFields({
+          playerId: editingPlayer.id,
+          teamSeasonId,
+          firstName: first_name.trim(),
+          lastName: last_name.trim(),
+          jerseyNumber: form.jersey_number ? Number(form.jersey_number) : null,
           position: form.position?.trim() || null,
-        })
-        .eq("id", editingPlayer.id);
+        });
+        return { error: res.ok ? null : { message: res.error ?? "Speichern fehlgeschlagen." } };
+      })();
       if (updateError) {
         setFormError(
           isJerseyDuplicateError(updateError as { code?: string; message?: string })
@@ -660,14 +648,20 @@ export const TeamPage: React.FC = () => {
 
   const handleSetPlayerStatus = async (playerId: string, nextStatus: "active" | "paused") => {
     if (!window.confirm(nextStatus === "paused" ? "Spieler pausieren?" : "Spieler wieder aktivieren?")) return;
+    if (!teamSeasonId) {
+      setFormError("Keine Mannschaftssaison ausgewählt.");
+      return;
+    }
     setDeletingId(playerId);
-    const { error } = await supabase
-      .from("players")
-      .update({ is_active: nextStatus === "active", status: nextStatus })
-      .eq("id", playerId);
+    const { ok, error } = await updateRosterPlayerSeasonFields({
+      playerId,
+      teamSeasonId,
+      status: nextStatus,
+      isActive: nextStatus === "active",
+    });
     setDeletingId(null);
-    if (error) {
-      setFormError(error.message);
+    if (!ok) {
+      setFormError(error ?? "Status konnte nicht geändert werden.");
       return;
     }
     if (editingId === playerId) {
@@ -751,6 +745,7 @@ export const TeamPage: React.FC = () => {
       <PlayerProfileModal
         player={selectedProfilePlayer}
         role={role}
+        teamSeasonId={teamSeasonId}
         teamSeasonLabel={teamLabel}
         teamName={heroTeamName}
         photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
