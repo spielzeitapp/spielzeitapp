@@ -1,143 +1,145 @@
-# Staging- / Testumgebung SpielzeitApp
+# Staging- / Live-Deployment SpielzeitApp
 
-Feste Trennung von Production und Staging. Keine Preview-URLs als Dauerlösung.
+Zwei aktive Wege — keine Feature-Branch-Previews als Dauer-Testumgebung.
 
-## Branch-Struktur
+## Zielbild
 
-| Branch | Zweck |
-|--------|--------|
-| `main` | Production — nur freigegebene Änderungen |
-| `develop` | Staging / Dauer-Tests unter fixer Domain |
-| `cursor/*` / Feature-Branches | Entwicklung → nach Build nach `develop` |
+| | LIVE | STAGING |
+|--|------|---------|
+| **Domain** | https://spielzeitapp.at | https://app.spielzeitapp.at |
+| **Branch** | `main` | `develop` |
+| **Supabase** | Live `shxugattqatahckhspwk` (spielzeitapp-nsg) | Staging `acbaecjzoabafbsjrzvr` |
+| **Nutzer** | echte Nutzer | nur Tests |
+| **Badge** | keines | **TEST** (`VITE_APP_ENV=staging`) |
 
-**Workflow**
+Feature-Branches (`cursor/*`, …): push erlaubt, **kein** Vercel-Deploy → Merge nach `develop` → Test → Freigabe → `main`.
 
-1. Feature-Branch anlegen  
+## Branch-Workflow
+
+1. Feature-Branch  
 2. `npm run typecheck` + `npm run build`  
-3. Commit + Push Feature-Branch  
-4. Merge/Push nach `develop`  
-5. Test unter fixer Staging-Domain  
-6. Freigabe → Merge nach `main` → Production-Deploy  
+3. Commit + Push Feature-Branch (kein Deploy)  
+4. Merge nach `develop` → Staging-Deploy auf `app.spielzeitapp.at`  
+5. Freigabe → Merge nach `main` → Live auf `spielzeitapp.at`  
 
 `main` nicht mit ungetesteten Features befüllen.
 
-## Vercel-Projekte
+## Vercel-Projekte (Inventar)
 
-| Projekt | Domain | Git-Branch (Soll) | Supabase |
-|---------|--------|-------------------|----------|
-| `spielzeitapp-intern` / Production | `app.spielzeitapp.at` | `main` | Live `shxugattqatahckhspwk` (spielzeitapp-nsg) |
-| `spielzeitapp-staging` | `test.spielzeitapp.at` (oder `staging.…`) | `develop` | Staging `acbaecjzoabafbsjrzvr` |
-| `spielzeitapp` (Marketing) | `spielzeitapp.at` | nach Bedarf | — |
+| Projekt | ID (kurz) | Aktuelle Prod-URL | Soll-Rolle |
+|---------|-----------|-------------------|------------|
+| **spielzeitapp** | `prj_bOBl…` | https://spielzeitapp.at | **LIVE** — Branch `main`, Live-Supabase |
+| **spielzeitapp-intern** | `prj_DYYQ…` | https://app.spielzeitapp.at | **STAGING** — Branch `develop`, Staging-Supabase |
+| spielzeitapp-staging | `prj_B0eu…` | *.vercel.app | **Altlast** — Git-Deploys deaktivieren |
+| spielzeitapp_clean | `prj_oFNf…` | *.vercel.app | **Altlast** — Git-Deploys deaktivieren |
 
-**Bevorzugt:** eigenes Projekt `spielzeitapp-staging` (existiert bereits: `prj_B0euEsAU4bghYDkZnHmQz6y5JhcB`).
+Nur Wege A + B aktiv halten. Altprojekte nicht löschen, aber keine neuen Deploys.
 
-### Manuell in Vercel (Staging-Projekt)
+### Feature-Branch-Deploys stoppen (Repo)
 
-1. Project **spielzeitapp-staging** → Settings → Git  
-   - Repository: `spielzeitapp/spielzeitapp`  
-   - Production Branch: **`develop`** (nicht `main`)  
-2. Settings → Domains  
-   - Domain hinzufügen: **`test.spielzeitapp.at`** (bevorzugt) oder `staging.spielzeitapp.at`  
-3. DNS beim Domain-Provider (spielzeitapp.at):  
-   - CNAME `test` → `cname.vercel-dns.com` (oder den von Vercel angezeigten Target)  
-4. Settings → Environment Variables → **nur Production** dieses Staging-Projekts (siehe unten)  
-5. Im **Production-Projekt** (`spielzeitapp-intern` / App):  
-   - `VITE_SUPABASE_URL` / Anon-Key **nicht** für Preview auf Live teilen, wenn Previews weiter existieren  
-   - Empfohlen: Preview-Deployments deaktivieren **oder** Preview-Envs explizit auf Staging-Supabase setzen  
-   - **Niemals** Preview/Staging auf `shxugattqatahckhspwk` (Live) lassen  
+[`vercel.json`](../vercel.json) → `ignoreCommand`: `node scripts/vercel-ignore-build.mjs`
 
-### Manuell: Environment Variables Staging (`spielzeitapp-staging`)
+Pro Projekt Env **`VERCEL_DEPLOY_BRANCH`**:
 
-Werte aus Supabase Dashboard → Project **spielzeitapp-staging** (`acbaecjzoabafbsjrzvr`) → Settings → API.
+| Projekt | `VERCEL_DEPLOY_BRANCH` |
+|---------|------------------------|
+| LIVE (`spielzeitapp`) | `main` |
+| STAGING (`spielzeitapp-intern`) | `develop` |
+
+Ohne Treffer wird der Build übersprungen (exit 0).
+
+---
+
+## Manuelle Schritte Vercel (Pflicht)
+
+### A) LIVE — Projekt `spielzeitapp`
+
+1. Settings → Git → Production Branch = **`main`**  
+2. Domains: **`spielzeitapp.at`** (und www falls genutzt) bleiben hier  
+3. Environment Variables (Production):
 
 | Variable | Wert |
 |----------|------|
+| `VERCEL_DEPLOY_BRANCH` | `main` |
+| `VITE_APP_ENV` | `production` |
+| `VITE_SUPABASE_URL` | `https://shxugattqatahckhspwk.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Live anon key |
+| `SUPABASE_URL` | Live-URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Live service_role |
+| `VITE_APP_BASE_URL` / `APP_BASE_URL` | `https://spielzeitapp.at` |
+| VAPID / Cron | Live-Werte |
+
+4. Preview-Deployments: deaktivieren **oder** Preview-Envs nicht auf Live-Keys setzen  
+5. Ignored Build Step: Repo-`ignoreCommand` nutzen; optional Dashboard-Override entfernen falls Konflikt  
+
+### B) STAGING — Projekt `spielzeitapp-intern` (Domain app.spielzeitapp.at)
+
+1. Settings → Git → Production Branch = **`develop`** (nicht main)  
+2. Domains: **`app.spielzeitapp.at`** bleibt an diesem Projekt  
+3. Environment Variables (Production dieses Projekts) **nur Staging**:
+
+| Variable | Wert |
+|----------|------|
+| `VERCEL_DEPLOY_BRANCH` | `develop` |
 | `VITE_APP_ENV` | `staging` |
 | `APP_ENV` | `staging` |
 | `STAGING_DISABLE_OUTBOUND` | `true` |
-| `VITE_APP_BASE_URL` | `https://test.spielzeitapp.at` |
-| `APP_BASE_URL` | `https://test.spielzeitapp.at` |
 | `VITE_SUPABASE_URL` | `https://acbaecjzoabafbsjrzvr.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | Staging anon/publishable key |
-| `SUPABASE_URL` | gleich Staging-URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Staging service_role (nur Server) |
-| `VITE_VAPID_PUBLIC_KEY` / `VAPID_*` | eigene Staging-Keys **oder** leer lassen (Push ohnehin blockiert) |
-| `CRON_SECRET` | Staging-Wert oder Cron in Staging-Projekt entfernen |
+| `VITE_SUPABASE_ANON_KEY` | Staging anon key |
+| `SUPABASE_URL` | Staging-URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Staging service_role |
+| `VITE_APP_BASE_URL` / `APP_BASE_URL` | `https://app.spielzeitapp.at` |
+| VAPID / Cron | leer oder Staging-only; Cron idealerweise entfernen |
 
-Production-Variablen auf Live-Projekt **unverändert** lassen (`VITE_APP_ENV=production` oder unset + Live-URL).
+4. **Wichtig:** `app.spielzeitapp.at` darf **nicht** auf `shxugattqatahckhspwk` (Live/nsg) zeigen  
 
-### Manuell: Environment Variables Production (App)
+### C) Altlasten `spielzeitapp-staging` / `spielzeitapp_clean`
 
-| Variable | Wert |
-|----------|------|
-| `VITE_APP_ENV` | `production` (optional, Default bei Prod-Build) |
-| `VITE_SUPABASE_URL` | `https://shxugattqatahckhspwk.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | Live anon key |
-| `VITE_APP_BASE_URL` | `https://app.spielzeitapp.at` |
-| `APP_BASE_URL` | `https://app.spielzeitapp.at` |
-| Server-Keys | Live service_role, Live VAPID, Cron nur hier |
+1. Settings → Git → **Disconnect** Repository **oder**  
+2. Settings → Git → Deploy Hooks/Auto Deploy aus; Ignored Build Step: `exit 0` (immer skip)  
+3. Domains: keine Production-Domains zuweisen  
 
-## Auth-Redirects
+---
 
-Client nutzt `window.location.origin` ([`src/lib/authRedirect.ts`](../src/lib/authRedirect.ts)) — Staging bleibt auf der Test-Domain, solange man dort eingeloggt ist.
+## Manuelle Schritte Supabase Auth
 
-### Manuell: Supabase Auth (Staging-Projekt)
+### Staging (`acbaecjzoabafbsjrzvr`)
 
-Dashboard → **spielzeitapp-staging** → Authentication → URL Configuration:
+Authentication → URL Configuration:
 
-- **Site URL:** `https://test.spielzeitapp.at`  
-- **Redirect URLs** (zusätzlich):  
-  - `https://test.spielzeitapp.at/**`  
-  - `https://staging.spielzeitapp.at/**` (falls genutzt)  
-  - `http://localhost:5173/**` (lokal)
+- **Site URL:** `https://app.spielzeitapp.at`  
+- **Redirect URLs:** `https://app.spielzeitapp.at/**` (+ lokal `http://localhost:5173/**` falls nötig)
 
-### Manuell: Supabase Auth (Live) — unverändert
+### Live (`shxugattqatahckhspwk`)
 
-- Site URL: `https://app.spielzeitapp.at`  
-- Redirects für Production beibehalten  
+- Site URL / Redirects für **`https://spielzeitapp.at`** unverändert lassen  
+- Keine Staging-Domain als Live-Site-URL  
 
-Keine Staging-Domain als Production-Site-URL eintragen.
+Client: [`src/lib/authRedirect.ts`](../src/lib/authRedirect.ts) nutzt `window.location.origin` — kein Hardcode Staging→Live.
 
-## Sichtbare Kennzeichnung
+---
 
-Bei `VITE_APP_ENV=staging` erscheint im Header ein kleines **TEST**-Badge ([`Header.tsx`](../src/app/layout/Header.tsx)).
+## Staging-Sicherheit (Code)
 
-## Sicherheits-Guards (Code)
-
-- Staging-Build wirft, wenn `VITE_SUPABASE_URL` auf Live (`shxugattqatahckhspwk`) zeigt.  
-- `/api/send-reminders`, `/api/push/send-team`, Notification-Dispatch: bei `APP_ENV`/`VITE_APP_ENV=staging` oder `STAGING_DISABLE_OUTBOUND=true` → kein Outbound-Push.  
-- Cronjobs im Staging-Vercel-Projekt entfernen oder Secret weglassen.
+- `STAGING_DISABLE_OUTBOUND` / `APP_ENV=staging` → Reminder, Team-Push, Notification-Dispatch = `skipped`  
+- Staging-Build wirft, wenn `VITE_SUPABASE_URL` auf Live-Host zeigt  
+- Header-Badge **TEST** nur bei `VITE_APP_ENV=staging`  
 
 ## Migrationen
 
-| Regel | |
-|-------|--|
-| Zuerst | immer auf **spielzeitapp-staging** anwenden |
-| Danach | nach Test freigeben → separat auf Live (`spielzeitapp-nsg`) |
-| Nie | automatisch Live ohne Freigabe |
+Zuerst Staging, nach Freigabe separat Live. Nie automatisch Live ohne Freigabe.
 
-### Stand (Dokumentation, Stand 2026-07-31)
+| Change | Staging | Live |
+|--------|---------|------|
+| Draft-Insert-RLS `20260731140000_…` | anwenden/prüfen | auf nsg bereits angewendet (2026-07-31) |
 
-| Migration / Change | Staging `acbaecjzoabafbsjrzvr` | Live `shxugattqatahckhspwk` |
-|--------------------|-------------------------------|-----------------------------|
-| Lifecycle `team_seasons` (20260612…) | prüfen im Staging-SQL-Editor | vorhanden (App nutzt Spalten) |
-| Draft-Insert-RLS `20260731140000_team_seasons_draft_insert_rls.sql` | laut Team auf Staging ausgeführt | **auch auf Live/nsg angewendet** (Fix Preview→nsg, 2026-07-31) |
+---
 
-Weitere Migrationen: Dateien unter `supabase/migrations/` — vor Live-Apply Diff im SQL-Editor gegen `pg_policies` / Funktionen prüfen.
+## Abnahme-Checkliste
 
-Apply-Beispiel (CLI, linked = aktuell Live):
-
-```bash
-# Staging: Projekt kurz linken oder SQL im Staging-Dashboard paste
-npx supabase link --project-ref acbaecjzoabafbsjrzvr
-npx supabase db query --linked -f supabase/migrations/<file>.sql
-```
-
-## Checkliste nach Setup
-
-- [ ] `develop` deployed auf `spielzeitapp-staging`  
-- [ ] `test.spielzeitapp.at` erreichbar, Header zeigt **TEST**  
-- [ ] Network-Tab: Requests nur an `acbaecjzoabafbsjrzvr.supabase.co`  
-- [ ] Login bleibt auf Test-Domain  
-- [ ] Reminder/Push in Staging liefern `skipped` / keine Live-Nutzer  
-- [ ] `app.spielzeitapp.at` unverändert auf Live-Supabase  
+- [ ] Push `cursor/*` → kein Vercel-Deploy  
+- [ ] Push/Merge `develop` → genau Staging-Deploy → `app.spielzeitapp.at`  
+- [ ] `app.spielzeitapp.at`: TEST-Badge; Network nur `acbaecjzoabafbsjrzvr.supabase.co`  
+- [ ] Login/Logout/Callback bleiben auf `app.spielzeitapp.at`  
+- [ ] Push/Reminder Staging blockiert  
+- [ ] `spielzeitapp.at` + `main` → Live-Supabase `shxugattqatahckhspwk`  
