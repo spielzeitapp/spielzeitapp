@@ -9,7 +9,33 @@ import { safeText } from './safeText';
 const OUR_TEAM_DISPLAY_NAME = 'SPG Rohrbach';
 const SPG_ROHRBACH_SLUG = 'spg-rohrbach';
 const NSG_GOELSENTAL_SLUG = 'nsg-goelsental';
+/** Staging/Live Team-ID SPG Rohrbach (saisonübergreifend gleiche team_id). */
+export const SPG_ROHRBACH_TEAM_ID = '1ebe3d18-78ff-4986-a0b2-31cc1b7af938';
 export const PLACEHOLDER_LOGO = '/logos/placeholder-shield-a.png';
+
+export type GetClubLogoOptions = {
+  /** DB-Feld opponent_slug – wird bevorzugt. */
+  slug?: string | null;
+  /** DB-Feld opponent_logo_url – nur wenn public/Storage-URL. */
+  logoUrl?: string | null;
+  /** Unser Heim-/Auswärtsteam (nicht Gegner) → immer SPG-Rohrbach-Asset. */
+  ourTeam?: boolean;
+  /** Stabile teams.id — saisonübergreifend. */
+  teamId?: string | null;
+};
+
+/**
+ * Match-/Spielbericht-Teamname (ohne Altersklasse, ohne Saison).
+ * TeamSeason-Labels (Switcher/Verwaltung) nutzen weiterhin resolveTeamSeasonLabelParts.
+ */
+export function getOurTeamDisplayName(): string {
+  return OUR_TEAM_DISPLAY_NAME;
+}
+
+/** Stabiles Vereinslogo — unabhängig von U11/U12 oder Saison-Label. */
+export function getOurTeamLogoUrl(): string {
+  return getLogoUrl(`${SPG_ROHRBACH_SLUG}.png`);
+}
 
 /** Normalisiert Anzeigenamen für Lookup (lowercase, Umlaute, Sonderzeichen raus). */
 function normalizeForLookup(name: string): string {
@@ -35,6 +61,14 @@ function logoLookupKey(name: string): string {
     .replace(/\s+u\s*\d{1,2}\s*$/g, '')
     .replace(/\s+\d{4}\s*\d{2,4}\s*$/g, '')
     .trim();
+}
+
+function isOurTeamIdentity(nameOrSlug: string, options?: GetClubLogoOptions): boolean {
+  if (options?.ourTeam) return true;
+  const tid = String(options?.teamId ?? '').trim();
+  if (tid && tid === SPG_ROHRBACH_TEAM_ID) return true;
+  const key = logoLookupKey(nameOrSlug);
+  return key === 'spg rohrbach';
 }
 
 function isNsgHeimteamKey(key: string): boolean {
@@ -110,13 +144,6 @@ function resolveMappedLogoFile(name: string): string | null {
   return null;
 }
 
-export type GetClubLogoOptions = {
-  /** DB-Feld opponent_slug – wird bevorzugt. */
-  slug?: string | null;
-  /** DB-Feld opponent_logo_url – nur wenn public/Storage-URL. */
-  logoUrl?: string | null;
-};
-
 export function isPlaceholderLogoUrl(url: string): boolean {
   return url.includes('placeholder-shield');
 }
@@ -124,6 +151,7 @@ export function isPlaceholderLogoUrl(url: string): boolean {
 /** True wenn logo_url gesetzt oder bekannter Alias — sonst Initialen statt Placeholder. */
 export function hasKnownClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): boolean {
   if (options?.logoUrl && isAllowedLogoUrl(options.logoUrl)) return true;
+  if (isOurTeamIdentity(nameOrSlug, options)) return true;
   const name = String(nameOrSlug || '').trim();
   if (!name) return false;
   return resolveMappedLogoFile(name) != null;
@@ -173,6 +201,11 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
     return getLogoUrl(slug);
   }
 
+  // Unser Verein: nie über Saison-/U-Label-String raten.
+  if (isOurTeamIdentity(name, options)) {
+    return getOurTeamLogoUrl();
+  }
+
   if (!name) return PLACEHOLDER_LOGO;
 
   const mapped = resolveMappedLogoFile(name);
@@ -191,10 +224,6 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
 /** @deprecated Nutze getClubLogo. Liefert Logo-URL (immer mit Fallback). */
 export function getTeamLogo(teamName: string): string {
   return getClubLogo(teamName);
-}
-
-export function getOurTeamDisplayName(): string {
-  return OUR_TEAM_DISPLAY_NAME;
 }
 
 /** Initialen für Platzhalter (falls Bild fehlt). */

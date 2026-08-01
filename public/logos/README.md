@@ -2,14 +2,16 @@
 
 Logos werden unter `/logos/<dateiname>` ausgeliefert (relative Pfade, keine Domain im Code).
 
-- **Unser Team:** `spg-rohrbach.png`
-- **Gegner:** `skn_stpoelten_a.png`, `alpenvorland_usg.png`
-- **Fallback:** `placeholder.png`
+## Source of Truth – unser Team (SPG Rohrbach)
 
-Kopie aus dem API-Projekt:
+- **Match-/Spielbericht-Logo:** `spg-rohrbach.png` (Slug `spg-rohrbach`)
+- Code: `getOurTeamLogoUrl()` / `getClubLogo(..., { ourTeam: true })`
+- **Hinweis:** `spg-rohrbach.png` ist byte-identisch mit `nsg-goelsental.png` (NSG-Gölsental-Wappen der Nachwuchs-SPG). Das ist das vorgesehene Vereinslogo für Match-Darstellung.
+- Altbestand (nicht Mapping-Ziel): `spg-rohrbach-TRANSPARENT.png`, `spg-rohrbach-WEISS - Kopie.png` (USC Kaschütz Rohrbach)
 
-```bash
-cp -r ../spielzeitapp_api/logos/* ./
-```
+## Gegner / Fallback
+
+- Gegner: u. a. `usg-alpenvorland.png`, `skn-stpoelten-a.png`, …
+- Fallback: `placeholder-shield-a.png`
 
 Mapping siehe `src/lib/teamLogos.ts`.

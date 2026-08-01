@@ -157,7 +157,6 @@ export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
   const {
     teamLabel,
-    teamLine,
     teamLabelWithStatus,
     teamSeasonId,
     readTeamSeasonId,
@@ -246,10 +245,7 @@ export const SchedulePage: React.FC = () => {
   const canShowRsvpUi = (uiRole === 'parent' || uiRole === 'player') && !isViewOnlyPlayer;
   const canManage = forcePublicView || isHistoryReadOnly ? false : canManageMatches(normalizedUiRole);
   const showMeetupForRole = forcePublicView ? true : canSeeMeetup(normalizedUiRole); // Öffentlich: Treffpunkt für alle
-  const ourTeamName =
-    (teamLine ?? '').trim() ||
-    publicLabel ||
-    getOurTeamDisplayName();
+  const ourTeamName = getOurTeamDisplayName();
 
   const [kindFilter, setKindFilter] = useState<KindFilterId>(() =>
     normalizedUiRole === 'fan' ? 'match' : 'all',

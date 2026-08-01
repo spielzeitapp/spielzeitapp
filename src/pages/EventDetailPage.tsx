@@ -28,7 +28,7 @@ import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { assertTeamSeasonWritable, getTeamSeasonWritableState } from '../lib/seasonTransition';
 import { safeOptionalText, safeText } from '../lib/safeText';
-import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName, getOurTeamLogoUrl } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
@@ -228,12 +228,12 @@ const EVENT_TYPE_CHIPS: Array<{
   { value: 'other', label: 'Sonstiges', keywords: [], icon: CalendarPlus },
 ];
 
-/** Spielbericht-Header: Saison-Suffix entfernen, Altersklasse (U11/U12) behalten. */
+/** Gegner-Name im Spielbericht: Saison-Suffix entfernen, Altersklasse behalten falls im Gegnernamen. */
 function compactTeamNameForMatchHeader(name: string | null | undefined): string {
   let s = (name ?? '').trim();
   if (!s) return 'Team';
-  s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim(); // (2025/26)
-  s = s.replace(/\s*·\s*\d{4}\s*\/\s*\d{2,4}\s*$/g, '').trim(); // · 2025/26
+  s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim();
+  s = s.replace(/\s*·\s*\d{4}\s*\/\s*\d{2,4}\s*$/g, '').trim();
   s = s.replace(/\s+\d{4}\s*\/\s*\d{2,4}\s*$/g, '').trim();
   return s || (name ?? '').trim() || 'Team';
 }
@@ -461,7 +461,7 @@ export const EventDetailPage: React.FC = () => {
   const [subline, setSubline] = useState('');
   const [feedSectionExpanded, setFeedSectionExpanded] = useState(false);
 
-  const { teamLine, role: roleFromHook } = useActiveTeamSeason();
+  const { role: roleFromHook } = useActiveTeamSeason();
   const { user: sessionUser, isViewOnlyPlayer } = useSession();
   const effectiveRole = normalizeRole(roleFromHook);
   const canShowSelfRsvp =
@@ -472,8 +472,8 @@ export const EventDetailPage: React.FC = () => {
   const [seasonWritable, setSeasonWritable] = useState(true);
   /** Trainer/Chef/Co/Admin: Spielplan & Spielbericht (Membership-Rolle ist bereits normalisiert). */
   const canTrainerManageEvent = canManageMatches(effectiveRole) && seasonWritable;
-  /** Match-/Karten-Name ohne Saison-Suffix („U11 SPG Rohrbach“, nicht „… · 2025/26“). */
-  const ourTeamName = (teamLine ?? '').trim() || getOurTeamDisplayName();
+  /** Match-/Karten-Teamname: immer Club-Identität, nie U11/U12/Saison. */
+  const ourTeamName = getOurTeamDisplayName();
 
   const teamSeasonId = event?.team_season_id ?? null;
   useEffect(() => {
@@ -1328,7 +1328,7 @@ export const EventDetailPage: React.FC = () => {
       return (parsed.place ?? '').trim() || (matchRowLite?.location ?? event.location ?? '').trim() || null;
     })();
     const homeAway = event.is_home === true ? 'Heim' : event.is_home === false ? 'Auswärts' : null;
-    const compactOurTeamName = compactTeamNameForMatchHeader(ourTeamName);
+    const compactOurTeamName = ourTeamName;
     const compactOpponentName = compactTeamNameForMatchHeader(opponentName);
     /** Links im Spielbericht = Stadion-Heim → DB type goal; rechts = Stadion-Auswärts → goal_away (unabhängig von event.is_home). */
     const homeTeamName = event.is_home === false ? compactOpponentName : compactOurTeamName;
@@ -1338,10 +1338,10 @@ export const EventDetailPage: React.FC = () => {
     const homeLogoSrc =
       event.is_home === false
         ? getClubLogo(opponentName, { logoUrl: opponentLogo.trim() || undefined })
-        : getClubLogo(ourTeamName);
+        : getOurTeamLogoUrl();
     const awayLogoSrc =
       event.is_home === false
-        ? getClubLogo(ourTeamName)
+        ? getOurTeamLogoUrl()
         : getClubLogo(opponentName, { logoUrl: opponentLogo.trim() || undefined });
     const scoreStr = `${scoreHome}:${scoreAway}`;
 
