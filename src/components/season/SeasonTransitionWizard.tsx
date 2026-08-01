@@ -127,6 +127,15 @@ export function SeasonTransitionWizard({
   const selectAllPlayers = () => setSelectedIds(new Set(candidates.map((p) => p.id)));
   const selectNoPlayers = () => setSelectedIds(new Set());
 
+  const activeCandidates = useMemo(
+    () => candidates.filter((p) => p.roster_status === 'active'),
+    [candidates],
+  );
+  const pausedCandidates = useMemo(
+    () => candidates.filter((p) => p.roster_status === 'paused'),
+    [candidates],
+  );
+
   const canNext =
     step === 1
       ? seasonName.trim().length > 0
@@ -249,7 +258,15 @@ export function SeasonTransitionWizard({
           })}
 
           {playerTransferEnabled && options.transferPlayers ? (
-            <div className="space-y-2 rounded-xl border border-white/10 bg-black/25 px-3 py-3">
+            <div className="space-y-3 rounded-xl border border-white/10 bg-black/25 px-3 py-3">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-white/85">Aus Vorsaison übernehmen</p>
+                <p className="text-[11px] leading-snug text-white/45">
+                  Pausierte Spieler werden ebenfalls übernommen und behalten zunächst ihren bisherigen
+                  Status.
+                </p>
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-white/85">
                   Spieler auswählen ({selectedIds.size}/{candidates.length})
@@ -276,28 +293,113 @@ export function SeasonTransitionWizard({
                   {candidatesError}
                 </p>
               ) : null}
-              <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
-                {candidates.map((p) => (
-                  <li key={p.id}>
-                    <label className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm text-white/85 hover:bg-white/[0.04]">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(p.id)}
-                        onChange={() => togglePlayer(p.id)}
-                      />
-                      <span className="min-w-0 flex-1 truncate">
-                        {p.jersey_number != null ? (
-                          <span className="mr-1.5 tabular-nums text-white/45">#{p.jersey_number}</span>
-                        ) : null}
-                        {p.display_name}
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-              {candidates.length === 0 && !candidatesError ? (
-                <p className="text-[12px] text-white/45">Kein aktiver Kader in der Quell-Saison.</p>
+
+              {activeCandidates.length > 0 ? (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                    Aktiv ({activeCandidates.length})
+                  </p>
+                  <ul className="max-h-40 space-y-1 overflow-y-auto pr-1">
+                    {activeCandidates.map((p) => (
+                      <li key={p.id}>
+                        <label className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm text-white/85 hover:bg-white/[0.04]">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(p.id)}
+                            onChange={() => togglePlayer(p.id)}
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {p.jersey_number != null ? (
+                              <span className="mr-1.5 tabular-nums text-white/45">
+                                #{p.jersey_number}
+                              </span>
+                            ) : null}
+                            {p.display_name}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
+
+              {pausedCandidates.length > 0 ? (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                    Pausiert ({pausedCandidates.length})
+                  </p>
+                  <ul className="max-h-32 space-y-1 overflow-y-auto pr-1">
+                    {pausedCandidates.map((p) => (
+                      <li key={p.id}>
+                        <label className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm text-white/70 hover:bg-white/[0.04]">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(p.id)}
+                            onChange={() => togglePlayer(p.id)}
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {p.jersey_number != null ? (
+                              <span className="mr-1.5 tabular-nums text-white/40">
+                                #{p.jersey_number}
+                              </span>
+                            ) : null}
+                            {p.display_name}
+                          </span>
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+                            Pausiert
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {candidates.length === 0 && !candidatesError ? (
+                <p className="text-[12px] text-white/45">Kein Kader in der Quell-Saison.</p>
+              ) : null}
+
+              <div className="space-y-1.5 border-t border-white/10 pt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                  Alternative
+                </p>
+                <button
+                  type="button"
+                  disabled
+                  title="Demnächst verfügbar"
+                  className="flex w-full cursor-not-allowed items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-sm text-white/45 opacity-70"
+                >
+                  <span className="min-w-0 flex-1 font-semibold">Spieler vom ÖFB importieren</span>
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-amber-200/80">
+                    Demnächst
+                  </span>
+                </button>
+                <p className="text-[11px] leading-snug text-white/40">
+                  Keine oder unvollständige Vorsaison? Kader später direkt vom ÖFB übernehmen.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {!options.transferPlayers && playerTransferEnabled ? (
+            <div className="space-y-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                Alternative
+              </p>
+              <button
+                type="button"
+                disabled
+                title="Demnächst verfügbar"
+                className="flex w-full cursor-not-allowed items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-sm text-white/45 opacity-70"
+              >
+                <span className="min-w-0 flex-1 font-semibold">Spieler vom ÖFB importieren</span>
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-amber-200/80">
+                  Demnächst
+                </span>
+              </button>
+              <p className="text-[11px] leading-snug text-white/40">
+                Keine oder unvollständige Vorsaison? Kader später direkt vom ÖFB übernehmen.
+              </p>
             </div>
           ) : null}
 

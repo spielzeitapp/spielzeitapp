@@ -70,9 +70,23 @@ export type TransferCandidatePlayer = {
   display_name: string;
   jersey_number: number | null;
   position: string | null;
+  /** Saisonstatus der Quell-Membership (active | paused). */
+  roster_status: 'active' | 'paused';
 };
 
-/** Kader der Quelle für Assistenten-Auswahl (Join bevorzugt). */
+function normalizeTransferRosterStatus(
+  status: unknown,
+  isActive: unknown,
+): 'active' | 'paused' | 'archived' {
+  const s = String(status ?? '').trim().toLowerCase();
+  if (s === 'archived') return 'archived';
+  if (s === 'paused') return 'paused';
+  if (s === 'active') return 'active';
+  if (isActive === false) return 'paused';
+  return 'active';
+}
+
+/** Kader der Quelle für Assistenten-Auswahl: active + paused (ohne archived). */
 export async function listTransferCandidatePlayers(
   sourceTeamSeasonId: string,
 ): Promise<{ data: TransferCandidatePlayer[]; error: string | null; source: 'join' | 'legacy' | 'none' }> {
@@ -91,47 +105,65 @@ export async function listTransferCandidatePlayers(
 
     if (!error) {
       const rows = ((data ?? []) as Array<Record<string, unknown>>)
-        .filter((row) => {
-          const status = String(row.status ?? 'active').toLowerCase();
-          return status !== 'archived' && row.is_active !== false;
-        })
         .map((row) => {
+          const roster_status = normalizeTransferRosterStatus(row.status, row.is_active);
+          if (roster_status === 'archived') return null;
           const pRaw = row.players;
           const p = (Array.isArray(pRaw) ? pRaw[0] : pRaw) as Record<string, unknown> | null | undefined;
           const first = p?.first_name != null ? String(p.first_name).trim() : '';
           const last = p?.last_name != null ? String(p.last_name).trim() : '';
           const display_name = [first, last].filter(Boolean).join(' ') || 'Spieler';
+          const id = String(row.player_id ?? p?.id ?? '').trim();
+          if (!id) return null;
           return {
-            id: String(row.player_id ?? p?.id ?? ''),
+            id,
             display_name,
             jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
             position: row.position != null ? String(row.position) : null,
+            roster_status: roster_status as 'active' | 'paused',
           };
         })
-        .filter((r) => r.id);
+        .filter((r): r is TransferCandidatePlayer => r != null);
+
+      rows.sort((a, b) => {
+        if (a.roster_status !== b.roster_status) {
+          return a.roster_status === 'active' ? -1 : 1;
+        }
+        const ja = a.jersey_number;
+        const jb = b.jersey_number;
+        if (ja != null && jb != null && ja !== jb) return ja - jb;
+        if (ja != null && jb == null) return -1;
+        if (ja == null && jb != null) return 1;
+        return a.display_name.localeCompare(b.display_name, 'de');
+      });
+
       return { data: rows, error: null, source: 'join' };
     }
   }
 
-  // Fallback nur wenn Join fehlt (sollte auf Staging nicht vorkommen)
+  // Fallback nur wenn Join fehlt
   const { data, error } = await supabase
     .from('players')
     .select('id, first_name, last_name, jersey_number, position, status, is_active')
     .eq('team_season_id', sid)
-    .or('status.eq.active,and(status.is.null,is_active.eq.true)')
     .order('jersey_number', { ascending: true, nullsFirst: false });
 
   if (error) return { data: [], error: error.message, source: 'legacy' };
-  const rows = ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
-    const first = row.first_name != null ? String(row.first_name).trim() : '';
-    const last = row.last_name != null ? String(row.last_name).trim() : '';
-    return {
-      id: String(row.id),
-      display_name: [first, last].filter(Boolean).join(' ') || 'Spieler',
-      jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
-      position: row.position != null ? String(row.position) : null,
-    };
-  });
+  const rows = ((data ?? []) as Array<Record<string, unknown>>)
+    .map((row) => {
+      const roster_status = normalizeTransferRosterStatus(row.status, row.is_active);
+      if (roster_status === 'archived') return null;
+      const first = row.first_name != null ? String(row.first_name).trim() : '';
+      const last = row.last_name != null ? String(row.last_name).trim() : '';
+      return {
+        id: String(row.id),
+        display_name: [first, last].filter(Boolean).join(' ') || 'Spieler',
+        jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
+        position: row.position != null ? String(row.position) : null,
+        roster_status: roster_status as 'active' | 'paused',
+      };
+    })
+    .filter((r): r is TransferCandidatePlayer => r != null);
   return { data: rows, error: null, source: 'legacy' };
 }
 
@@ -342,9 +374,10 @@ async function transferPlayersToSeason(
     if (!playerId) continue;
 
     const statusRaw = String(row.status ?? 'active').toLowerCase();
-    const status = statusRaw === 'paused' || statusRaw === 'archived' ? statusRaw : 'active';
-    // Start in neuer Saison: archived → active; paused bleibt pausiert
-    const startStatus = status === 'archived' ? 'active' : status;
+    // archived Quell-Zeilen nicht in neue Saison übernehmen
+    if (statusRaw === 'archived') continue;
+    // paused bleibt paused; sonst active
+    const startStatus = statusRaw === 'paused' ? 'paused' : 'active';
     const startActive = startStatus === 'active';
 
     const { error: upsertErr } = await supabase.from('team_season_players').upsert(
