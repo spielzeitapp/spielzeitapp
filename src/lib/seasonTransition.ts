@@ -40,7 +40,8 @@ export type SeasonTransferOptions = {
 };
 
 export const DEFAULT_SEASON_TRANSFER_OPTIONS: SeasonTransferOptions = {
-  transferPlayers: true,
+  // Default aus: Transfer leert den Kader der Quell-Saison (players.team_season_id).
+  transferPlayers: false,
   copyStaff: true,
   copyTeamPhoto: true,
   copyNotificationSettings: true,
@@ -124,7 +125,7 @@ export type ArchiveTeamSeasonResult =
 /** Saison abschließen (Soft-Lock). Keine Löschung historischer Daten. */
 export async function archiveTeamSeason(teamSeasonId: string): Promise<ArchiveTeamSeasonResult> {
   const id = teamSeasonId.trim();
-  if (!id) return { ok: false, message: 'team_season_id fehlt' };
+  if (!id) return { ok: false, message: 'Saison fehlt. Bitte Seite neu laden.' };
 
   const { data: current, error: loadErr } = await supabase
     .from('team_seasons')
@@ -151,7 +152,7 @@ export async function archiveTeamSeason(teamSeasonId: string): Promise<ArchiveTe
 
 export async function activateTeamSeason(teamSeasonId: string): Promise<{ ok: true } | { ok: false; message: string }> {
   const id = teamSeasonId.trim();
-  if (!id) return { ok: false, message: 'team_season_id fehlt' };
+  if (!id) return { ok: false, message: 'Saison fehlt. Bitte Seite neu laden.' };
 
   const { error } = await supabase
     .from('team_seasons')
@@ -502,7 +503,7 @@ export function canRunSeasonTransition(role: string | null | undefined): boolean
 export function describeTransferForConfirm(options: SeasonTransferOptions, archiveSource: boolean): string {
   const parts: string[] = [];
   if (options.transferPlayers) {
-    parts.push('Spieler (gleiche IDs, Zuordnung zur neuen Saison)');
+    parts.push('Spieler (erscheinen danach im Kader der neuen Saison)');
   }
   if (options.copyStaff) parts.push('Trainer & Betreuer');
   if (options.copyTeamPhoto) parts.push('Mannschaftsfoto');

@@ -13,6 +13,7 @@ function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
     id: string | number;
     team_id?: number;
     season_id?: number;
+    status?: string | null;
     teams?: TeamSeasonTeam | TeamSeasonTeam[] | null;
     seasons?: TeamSeasonSeason | TeamSeasonSeason[] | null;
   };
@@ -23,6 +24,7 @@ function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
       id: typeof row.id === 'string' ? row.id : String(row.id),
       team_id: row.team_id,
       season_id: row.season_id,
+      status: row.status ?? null,
       team: teams,
       season: seasons,
       teams,
@@ -408,6 +410,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   id,
   team_id,
   season_id,
+  status,
   teams:teams ( id, name, age_group ),
   seasons:seasons ( id, name )
 `)

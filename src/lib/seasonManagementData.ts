@@ -76,21 +76,25 @@ function isMigrationError(message: string): boolean {
 
 export function mapPrepareDraftError(code: string, message: string): string {
   if (code === 'draft_exists') {
-    return 'Entwurf bereits vorhanden. Es kann pro aktiver Saison nur ein Entwurf existieren.';
+    return 'Entwurf bereits vorhanden. Pro aktiver Saison kann nur ein Entwurf angelegt werden.';
   }
   if (code === 'duplicate_team_season') {
-    return message || 'Team-Saison für diese Saison existiert bereits.';
+    return 'Für diese Saison existiert bereits eine Mannschaft. Bitte einen anderen Saisonnamen wählen.';
   }
   if (code === 'not_found') {
-    return 'Aktuelle Saison wurde nicht gefunden.';
+    return 'Die aktuelle Saison wurde nicht gefunden. Bitte Seite neu laden.';
   }
   if (isMigrationError(message)) {
-    return 'Datenbank-Migration fehlt noch (team_seasons Lifecycle-Felder). Bitte Migration 20260612120000 anwenden.';
+    return 'Die Saisonverwaltung ist auf diesem System noch nicht vollständig freigeschaltet. Bitte den Administrator kontaktieren.';
   }
   if (/permission|policy|row-level security|42501|forbidden|not authorized/i.test(message)) {
-    return 'Du hast derzeit keine Berechtigung, für diese Mannschaft eine neue Saison anzulegen. Bitte überprüfe deine Trainerberechtigung.';
+    return 'Du hast derzeit keine Berechtigung, für diese Mannschaft eine neue Saison anzulegen. Bitte prüfe deine Trainerberechtigung.';
   }
-  return message || 'Saison-Entwurf konnte nicht erstellt werden.';
+  // Technische DB-/RLS-Texte nicht an Trainer weiterreichen
+  if (/column|relation|schema|policy|rls|violates|constraint|null value/i.test(message)) {
+    return 'Die neue Saison konnte nicht angelegt werden. Bitte später erneut versuchen oder den Administrator kontaktieren.';
+  }
+  return message || 'Die neue Saison konnte nicht vorbereitet werden.';
 }
 
 /**
@@ -101,7 +105,7 @@ export async function fetchSeasonManagementSnapshot(
 ): Promise<{ data: SeasonManagementSnapshot | null; error: string | null }> {
   const anchorId = anchorTeamSeasonId?.trim();
   if (!anchorId) {
-    return { data: null, error: 'Keine Team-Saison gewählt.' };
+    return { data: null, error: 'Keine Mannschaft gewählt.' };
   }
 
   const { data: anchor, error: anchorErr } = await supabase
@@ -112,12 +116,12 @@ export async function fetchSeasonManagementSnapshot(
 
   if (anchorErr) {
     const msg = isMigrationError(anchorErr.message)
-      ? 'Datenbank-Migration fehlt noch (team_seasons.status).'
+      ? 'Die Saisonverwaltung ist auf diesem System noch nicht vollständig freigeschaltet.'
       : anchorErr.message;
     return { data: null, error: msg };
   }
   if (!anchor?.team_id) {
-    return { data: null, error: 'Team-Saison nicht gefunden.' };
+    return { data: null, error: 'Mannschaft nicht gefunden. Bitte Seite neu laden.' };
   }
 
   const teamId = String(anchor.team_id);
@@ -140,7 +144,7 @@ export async function fetchSeasonManagementSnapshot(
 
   if (listErr) {
     const msg = isMigrationError(listErr.message)
-      ? 'Datenbank-Migration fehlt noch (team_seasons Lifecycle-Felder).'
+      ? 'Die Saisonverwaltung ist auf diesem System noch nicht vollständig freigeschaltet.'
       : listErr.message;
     return { data: null, error: msg };
   }

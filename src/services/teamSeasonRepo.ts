@@ -7,6 +7,8 @@ export type TeamSeasonListItem = {
   id: number;
   team_id?: number;
   season_id?: number;
+  /** Lifecycle: active | draft | archived (optional bis Migration). */
+  status?: string | null;
   team: TeamSeasonTeam;
   season: TeamSeasonSeason;
   /** Same as team, for UI label ts.teams?.name */

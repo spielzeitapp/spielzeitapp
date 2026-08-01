@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { CalendarRange, CheckCircle2, ChevronLeft, Lock } from 'lucide-react';
+import { CalendarRange, CheckCircle2, ChevronLeft, Lock, Upload } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import {
   SeasonTransitionWizard,
@@ -99,13 +99,14 @@ export const SeasonManagementPage: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showOefbHint, setShowOefbHint] = useState(false);
   const [busy, setBusy] = useState(false);
   const [wizardMode, setWizardMode] = useState<SeasonTransitionMode | null>(null);
 
   const reload = useCallback(async () => {
     if (!selectedTeamSeasonId) {
       setSnapshot(null);
-      setLoadError('Keine Team-Saison gewählt.');
+      setLoadError('Keine Mannschaft gewählt. Bitte oben eine Saison auswählen.');
       setLoading(false);
       return;
     }
@@ -134,6 +135,7 @@ export const SeasonManagementPage: React.FC = () => {
     if (!activeId) return;
     setActionError(null);
     setSuccessMsg(null);
+    setShowOefbHint(false);
     if (
       !window.confirm(
         'Saison wirklich abschließen?\n\nHistorie bleibt lesbar. Neue Termine und Änderungen sind in dieser Saison nicht mehr möglich.',
@@ -162,6 +164,7 @@ export const SeasonManagementPage: React.FC = () => {
     if (!activeId || !wizardMode) return;
     setActionError(null);
     setSuccessMsg(null);
+    setShowOefbHint(false);
     setBusy(true);
 
     if (wizardMode === 'prepare') {
@@ -179,10 +182,10 @@ export const SeasonManagementPage: React.FC = () => {
       });
       setBusy(false);
       if (!res.ok) {
-      console.error('[SeasonManagement] prepare failed', res);
-      setActionError(mapPrepareDraftError(res.code, res.message));
-      return;
-    }
+        console.error('[SeasonManagement] prepare failed', res);
+        setActionError(mapPrepareDraftError(res.code, res.message));
+        return;
+      }
       if (res.transferError) {
         setActionError(`Entwurf erstellt, aber Übernahme teilweise fehlgeschlagen: ${res.transferError}`);
       } else {
@@ -212,6 +215,7 @@ export const SeasonManagementPage: React.FC = () => {
 
     setSelectedTeamSeasonId(res.newTeamSeasonId);
     setSuccessMsg('Saison abgeschlossen und neue Saison erstellt. Du bist jetzt in der neuen Saison.');
+    setShowOefbHint(true);
     setWizardMode(null);
     await reload();
   };
@@ -264,12 +268,33 @@ export const SeasonManagementPage: React.FC = () => {
           {snapshot.draft ? <SeasonCard model={snapshot.draft} variant="draft" /> : null}
 
           {successMsg ? (
-            <p
-              className="rounded-lg border border-emerald-500/35 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-100"
-              role="status"
-            >
-              {successMsg}
-            </p>
+            <div className="space-y-2" role="status">
+              <p className="rounded-lg border border-emerald-500/35 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-100">
+                {successMsg}
+              </p>
+              {showOefbHint ? (
+                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3">
+                  <p className="text-sm text-white/70">Nächster Schritt</p>
+                  <PremiumButton
+                    type="button"
+                    variant="subtle"
+                    fullWidth
+                    disabled
+                    className="cursor-not-allowed gap-2 opacity-60"
+                    title="Demnächst verfügbar"
+                  >
+                    <Upload className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                    ÖFB-Spielplan importieren
+                    <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-amber-200/90">
+                      Demnächst
+                    </span>
+                  </PremiumButton>
+                  <p className="text-[11px] text-white/40">
+                    Der Import kommt in einem späteren Schritt. Bis dahin kannst du Termine manuell anlegen.
+                  </p>
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           {actionError ? (
@@ -331,13 +356,13 @@ export const SeasonManagementPage: React.FC = () => {
                 className="gap-2 text-white/70"
               >
                 <Lock className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                Nur Saison abschließen
+                Saison abschließen
               </PremiumButton>
 
               {hasDraft ? (
                 <p className="text-[12px] text-amber-200/85">
-                  Entwurf ({getSeasonStatusLabel('draft')}) vorhanden. „Abschließen und neue Saison“ kann
-                  den Entwurf übernehmen.
+                  Entwurf ({getSeasonStatusLabel('draft')}) vorhanden. „Saison abschließen und neue Saison
+                  erstellen“ kann den Entwurf übernehmen.
                 </p>
               ) : null}
             </PremiumCard>
@@ -346,7 +371,9 @@ export const SeasonManagementPage: React.FC = () => {
       ) : null}
 
       {!loading && !loadError && !snapshot?.active && !snapshot?.draft ? (
-        <p className="text-sm text-white/50">Wähle unter Mehr eine Team-Saison, um die Verwaltung zu nutzen.</p>
+        <p className="text-sm text-white/50">
+          Wähle oben eine Mannschaft, um die Saisonverwaltung zu nutzen.
+        </p>
       ) : null}
     </PageShell>
   );

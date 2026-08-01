@@ -127,7 +127,7 @@ function bumpTeamLabel(teamName: string, nextAge: string | null): string {
   const parsed = parseClubDisplayName(trimmed);
   const clubLabel = [parsed.line1, parsed.line2].filter(Boolean).join(' ').trim();
   if (parsed.ageGroup && clubLabel) {
-    return [nextAge ?? bumpAgeGroupToken(parsed.ageGroup), clubLabel].filter(Boolean).join(' ');
+    return [nextAge ?? computeNextAgeGroup(parsed.ageGroup), clubLabel].filter(Boolean).join(' ');
   }
   if (/^U\d{1,2}\b/i.test(trimmed) && nextAge) {
     return trimmed.replace(/^U\d{1,2}\b/i, nextAge);

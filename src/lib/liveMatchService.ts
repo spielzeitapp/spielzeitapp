@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { debugAssertMatchEventDbType } from './matchEventScores';
 import type { FieldSlotId } from '../types/match';
+import { assertTeamSeasonWritable } from './seasonTransition';
 import {
   clampEffectiveMatchSeconds,
   computeLiveMatchSecondsFromClockState,
@@ -776,6 +777,10 @@ export async function upsertMatchForSetup(params: {
   locationNote: string;
 }): Promise<{ matchId: string | null; error: string | null }> {
   const { matchId, teamSeasonId, opponent, matchDate, matchTime, locationNote } = params;
+
+  // Soft-Lock: abgeschlossene Saison — keine neuen/geänderten Prep-Spiele
+  const writable = await assertTeamSeasonWritable(teamSeasonId);
+  if (!writable.ok) return { matchId: null, error: writable.message };
 
   let matchDateIso: string | null = null;
   if (matchDate && matchTime) {

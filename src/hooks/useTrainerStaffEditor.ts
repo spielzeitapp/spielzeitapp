@@ -9,6 +9,7 @@ import {
   saveTeamStaffMember,
   type TeamStaffMember,
 } from "./useTeamStaff";
+import { assertTeamSeasonWritable } from "../lib/seasonTransition";
 
 export const emptyTrainerForm: TrainerStaffFormState = {
   email: "",
@@ -152,6 +153,11 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
       setTrainerSaving(true);
       setTrainerFormError(null);
       try {
+        const writable = await assertTeamSeasonWritable(teamSeasonId);
+        if (!writable.ok) {
+          setTrainerFormError(writable.message);
+          return;
+        }
         let userId = editingTrainer?.user_id ?? null;
         if (trainerFormMode === "create") {
           const { userId: foundId, error: findError } = await findAccountUserIdByEmail(trainerForm.email);
