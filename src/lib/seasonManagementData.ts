@@ -76,7 +76,7 @@ function isMigrationError(message: string): boolean {
 
 export function mapPrepareDraftError(code: string, message: string): string {
   if (code === 'draft_exists') {
-    return 'Entwurf bereits vorhanden. Pro aktiver Saison kann nur ein Entwurf angelegt werden.';
+    return 'Neue Saison ist bereits in Vorbereitung. Bitte den Wechsel abschließen oder die Vorbereitung prüfen.';
   }
   if (code === 'duplicate_team_season') {
     return 'Für diese Saison existiert bereits eine Mannschaft. Bitte einen anderen Saisonnamen wählen.';

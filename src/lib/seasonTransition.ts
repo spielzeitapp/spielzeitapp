@@ -563,13 +563,16 @@ export type PrepareSeasonWithOptionsInput = {
   sourceTeamSeasonId: string;
   seasonName?: string | null;
   ageGroup?: string | null;
-  /** Nur Settings/Staff/Foto/Aliase — keine Spieler-Umänderung im Prepare-Flow. */
-  options: Omit<SeasonTransferOptions, 'transferPlayers'> & { transferPlayers?: false };
+  /**
+   * Prepare: Quell-Saison bleibt aktiv.
+   * Spielerübernahme nur via team_season_players (Join); Compat wird nicht überschrieben (Draft-Regel).
+   */
+  options: SeasonTransferOptions;
 };
 
 /**
  * Flow A: Neue Saison vorbereiten.
- * Quell-Saison bleibt aktiv. Spieler werden nicht umgehängt.
+ * Quell-Saison bleibt aktiv. Spieler werden nicht verschoben — nur Join-Memberships in den Draft.
  */
 export async function prepareSeasonDraftWithOptions(
   input: PrepareSeasonWithOptionsInput,
@@ -582,7 +585,8 @@ export async function prepareSeasonDraftWithOptions(
 
   const transfer = await applySeasonTransfer(input.sourceTeamSeasonId, prepared.draftTeamSeasonId, {
     ...input.options,
-    transferPlayers: false,
+    // Explizit: Prepare erzwingt kein Archivieren; Transfer ist Join-only
+    transferPlayers: input.options.transferPlayers === true,
   });
 
   if (!transfer.ok) {
@@ -614,8 +618,8 @@ export type CompleteSeasonTransitionResult =
   | { ok: false; message: string };
 
 /**
- * Flow B: Saison abschließen und neue Saison erstellen.
- * Archivierung der Quelle nur wenn confirmArchiveSource === true.
+ * Flow B: Vorhandenen Draft aktivieren + Quell-Saison abschließen
+ * (oder Draft neu anlegen, wenn none). Interne Logik — UI-Shortcut „close_and_create“ entfernt.
  */
 export async function completeSeasonTransition(
   input: CompleteSeasonTransitionInput,
@@ -697,7 +701,7 @@ export function describeTransferForConfirm(options: SeasonTransferOptions, archi
   if (archiveSource) {
     return `Alte Saison wird abgeschlossen. Übernommen: ${take}. Der alte Kader und die Historie bleiben in der abgeschlossenen Saison sichtbar.`;
   }
-  return `Entwurf wird angelegt (Quell-Saison bleibt aktiv). Übernommen: ${take}. Spieler bleiben in der aktiven Saison, bis du abschließt.`;
+  return `Neue Saison wird vorbereitet (aktuelle Saison bleibt aktiv). Übernommen: ${take}. Den Wechsel schließt du später bewusst ab.`;
 }
 
 export type { TeamSeasonRowForPrep };

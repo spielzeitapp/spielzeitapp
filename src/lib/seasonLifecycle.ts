@@ -19,7 +19,7 @@ export type CurrentSeasonLabelSource = {
 
 const STATUS_LABELS: Record<TeamSeasonLifecycleStatus, string> = {
   active: 'Aktiv',
-  draft: 'Entwurf',
+  draft: 'In Vorbereitung',
   archived: 'Abgeschlossen',
 };
 
