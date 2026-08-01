@@ -1,9 +1,6 @@
 import { useMemo } from 'react';
-import {
-  useSession,
-  getTeamNameFromMembership,
-  getSeasonLabelFromMembership,
-} from '../auth/useSession';
+import { useSession } from '../auth/useSession';
+import { formatTeamSeasonDisplayLabel, resolveTeamSeasonLabelParts } from '../lib/seasonLifecycle';
 
 /**
  * Liest aktive Team-Saison und Rolle **nur** aus SessionProvider (kein zweiter Membership-Fetch).
@@ -21,28 +18,50 @@ export function useActiveTeamSeason() {
 
   const teamSeasonId = selectedTeamSeasonId;
 
+  const labelParts = useMemo(() => {
+    if (!selectedTeamSeason) return null;
+    return resolveTeamSeasonLabelParts({
+      displayName: selectedTeamSeason.display_name,
+      ageGroup: selectedTeamSeason.age_group,
+      teamName: selectedTeamSeason.team?.name,
+      seasonName: selectedTeamSeason.season?.name,
+      status: selectedTeamSeason.status,
+    });
+  }, [selectedTeamSeason]);
+
   const teamLabel = useMemo(() => {
-    const ts = selectedTeamSeason;
-    if (ts) {
-      const teamName = (ts.team?.name ?? '').trim() || 'Team';
-      const seasonName = (ts.season?.name ?? '').trim();
-      return seasonName !== '' ? `${teamName} (${seasonName})` : teamName;
-    }
-    const t = getTeamNameFromMembership(selectedMembership)?.trim();
-    const s = getSeasonLabelFromMembership(selectedMembership)?.trim();
-    if (t && s && s !== '—') return `${t} (${s})`;
-    if (t) return t;
+    if (labelParts) return labelParts.full;
     return null;
-  }, [selectedTeamSeason, selectedMembership]);
+  }, [labelParts]);
+
+  const teamLine = labelParts?.teamLine ?? null;
+  const seasonLine = labelParts?.seasonLine ?? null;
 
   const roleRaw = (effectiveRole ?? '').toString().trim().toLowerCase();
   const role = roleRaw !== '' ? roleRaw : null;
 
   return {
-    teamLabel,
     teamSeasonId,
+    teamLabel,
+    teamLine,
+    seasonLine,
+    selectedTeamSeason,
+    selectedMembership,
     role,
     loading,
     error: membershipError,
+    /** Volles Label inkl. Archiv-Markierung (für Picker-ähnliche Anzeigen). */
+    teamLabelWithStatus: selectedTeamSeason
+      ? formatTeamSeasonDisplayLabel(
+          {
+            displayName: selectedTeamSeason.display_name,
+            ageGroup: selectedTeamSeason.age_group,
+            teamName: selectedTeamSeason.team?.name,
+            seasonName: selectedTeamSeason.season?.name,
+            status: selectedTeamSeason.status,
+          },
+          { markArchived: true },
+        )
+      : null,
   };
 }

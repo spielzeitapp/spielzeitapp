@@ -153,7 +153,7 @@ function ScheduleHeroToolbarAction({
 
 export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
-  const { teamLabel, teamSeasonId, role: roleFromHook, loading: tsLoading, error: tsError } =
+  const { teamLabel, teamLabelWithStatus, teamSeasonId, role: roleFromHook, loading: tsLoading, error: tsError } =
     useActiveTeamSeason();
   const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
     usePublicTeamSeason();
@@ -198,13 +198,9 @@ export const SchedulePage: React.FC = () => {
   const loading = tsLoading || (!teamSeasonId && publicLoading);
 
   const teamSeasonSubtitle = (() => {
-    if (selectedMembership) {
-      const teamName = getTeamNameFromMembership(selectedMembership)?.trim();
-      const season = getSeasonLabelFromMembership(selectedMembership)?.trim();
-      if (teamName && (season && season !== '—')) return `${teamName} (${season})`;
-      if (teamName) return teamName;
-    }
-    return publicLabel ?? teamLabel ?? 'Spielplan';
+    if (teamLabelWithStatus?.trim()) return teamLabelWithStatus.trim();
+    if (teamLabel?.trim()) return teamLabel.trim();
+    return publicLabel ?? 'Spielplan';
   })();
 
   /** Öffentliche Team-ICS-URL (Slug aus Teamname, sonst Team-UUID). */

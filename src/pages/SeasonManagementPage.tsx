@@ -95,7 +95,7 @@ const FINALIZE_CONFIRM =
   'Saisonwechsel jetzt abschließen?\n\nDie aktuelle Saison wird abgeschlossen. Die vorbereitete Saison wird aktiv — du arbeitest danach in der neuen Saison weiter.\n\nHistorie der alten Saison bleibt lesbar.';
 
 export const SeasonManagementPage: React.FC = () => {
-  const { effectiveRole, backendRole, selectedTeamSeasonId, setSelectedTeamSeasonId } = useSession();
+  const { effectiveRole, backendRole, selectedTeamSeasonId, reloadSessionTeamSeasons } = useSession();
   const allowed = canAccessSeasonManagement(effectiveRole, backendRole);
 
   const [snapshot, setSnapshot] = useState<SeasonManagementSnapshot | null>(null);
@@ -107,8 +107,9 @@ export const SeasonManagementPage: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [showPrepareWizard, setShowPrepareWizard] = useState(false);
 
-  const reload = useCallback(async () => {
-    if (!selectedTeamSeasonId) {
+  const reload = useCallback(async (teamSeasonIdOverride?: string | null) => {
+    const id = teamSeasonIdOverride ?? selectedTeamSeasonId;
+    if (!id) {
       setSnapshot(null);
       setLoadError('Keine Mannschaft gewählt. Bitte oben eine Saison auswählen.');
       setLoading(false);
@@ -116,7 +117,7 @@ export const SeasonManagementPage: React.FC = () => {
     }
     setLoading(true);
     setLoadError(null);
-    const { data, error } = await fetchSeasonManagementSnapshot(selectedTeamSeasonId);
+    const { data, error } = await fetchSeasonManagementSnapshot(id);
     setSnapshot(data);
     setLoadError(error);
     setLoading(false);
@@ -180,11 +181,11 @@ export const SeasonManagementPage: React.FC = () => {
       return;
     }
 
-    setSelectedTeamSeasonId(res.newTeamSeasonId);
+    await reloadSessionTeamSeasons(res.newTeamSeasonId);
     setSuccessMsg('Saisonwechsel abgeschlossen. Du bist jetzt in der neuen Saison.');
     setShowOefbHint(true);
     setShowPrepareWizard(false);
-    await reload();
+    await reload(res.newTeamSeasonId);
   };
 
   const onPrepareConfirm = async (result: {
