@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSession } from '../../auth/useSession';
 import type { SessionTeamSeasonItem } from '../../auth/useSession';
+import { getSeasonStatusLabel, isSeasonArchived } from '../../lib/seasonLifecycle';
 
 /** selectedTeamId z. B. "u11" => "U11" für Fallback-Altersklasse. */
 function fallbackAgeGroupFromTeamId(selectedTeamId: string): string {
@@ -39,7 +40,11 @@ function formatTeamSeasonLabel(
     ? nameNorm
     : [ageNorm, nameNorm].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   const displayBase = base || 'Team';
-  return season ? `${displayBase} (${season})` : displayBase;
+  const withSeason = season ? `${displayBase} (${season})` : displayBase;
+  if (isSeasonArchived(ts.status)) {
+    return `${withSeason} · ${getSeasonStatusLabel('archived')}`;
+  }
+  return withSeason;
 }
 
 export const TeamSwitcher: React.FC = () => {

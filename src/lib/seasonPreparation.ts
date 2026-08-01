@@ -189,7 +189,7 @@ async function loadTeamSeasonForPrep(
     return { error: error.message };
   }
   if (!data) {
-    return { error: 'team_season nicht gefunden' };
+    return { error: 'Saison nicht gefunden' };
   }
 
   return { row: normalizeTeamSeasonForPrep(data as TeamSeasonDbRow) };
@@ -251,7 +251,7 @@ export async function prepareNextSeasonDraft(
   if (typeof currentTeamSeason === 'string') {
     const id = currentTeamSeason.trim();
     if (!id) {
-      return { ok: false, code: 'invalid_input', message: 'team_season_id fehlt' };
+      return { ok: false, code: 'invalid_input', message: 'Saison fehlt. Bitte Seite neu laden.' };
     }
     const loaded = await loadTeamSeasonForPrep(id);
     if ('error' in loaded) {
@@ -265,7 +265,7 @@ export async function prepareNextSeasonDraft(
   } else {
     current = currentTeamSeason;
     if (!current.id?.trim() || !current.team_id?.trim() || !current.season_id?.trim()) {
-      return { ok: false, code: 'invalid_input', message: 'team_season-Daten unvollständig' };
+      return { ok: false, code: 'invalid_input', message: 'Saisondaten unvollständig. Bitte Seite neu laden.' };
     }
   }
 
@@ -364,7 +364,7 @@ export async function prepareNextSeasonDraft(
     return {
       ok: false,
       code: 'insert_failed',
-      message: insertErr?.message ?? 'team_season Entwurf konnte nicht angelegt werden',
+      message: insertErr?.message ?? 'Entwurf konnte nicht angelegt werden',
     };
   }
 

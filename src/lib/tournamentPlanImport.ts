@@ -2540,6 +2540,18 @@ export async function importTournamentPlanFromAnalysis(params: {
   updatedResults: number;
   error: string | null;
 }> {
+  const { assertTeamSeasonWritable } = await import('./seasonTransition');
+  const writable = await assertTeamSeasonWritable(params.teamSeasonId);
+  if (!writable.ok) {
+    return {
+      importedTeams: 0,
+      importedMatches: 0,
+      skippedMatches: 0,
+      updatedResults: 0,
+      error: writable.message,
+    };
+  }
+
   const {
     addTournamentParticipant,
     applyTournamentMatchResultIfEmpty,

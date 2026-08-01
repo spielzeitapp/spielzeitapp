@@ -57,8 +57,9 @@ export function SeasonTransitionWizard({
   const [ageGroup, setAgeGroup] = useState(defaultAge);
   const [options, setOptions] = useState<SeasonTransferOptions>({
     ...DEFAULT_SEASON_TRANSFER_OPTIONS,
-    // Prepare-Flow: Spieler nicht umhängen (Quelle bleibt aktiv).
-    transferPlayers: mode === 'close_and_create',
+    // Spieler-Transfer leert den Kader der Quell-Saison (players.team_season_id).
+    // Prepare: nie. Close+Create: opt-in mit Warnung — Default aus.
+    transferPlayers: false,
   });
   const [confirmArchive, setConfirmArchive] = useState(false);
 
@@ -143,8 +144,8 @@ export function SeasonTransitionWizard({
           <p className="text-sm text-white/70">Aus der bestehenden Mannschaft übernehmen</p>
           {(
             [
-              ['transferPlayers', 'Spieler (gleiche IDs, neue Saison-Zuordnung)'],
-              ['copyStaff', 'Trainer & Betreuer'],
+              ['transferPlayers', 'Spieler übernehmen'],
+              ['copyStaff', 'Trainer & Betreuer übernehmen'],
               ['copyTeamPhoto', 'Mannschaftsfoto'],
               ['copyNotificationSettings', 'Erinnerungseinstellungen'],
               ['copyAliases', 'Team-Aliase'],
@@ -168,9 +169,16 @@ export function SeasonTransitionWizard({
                 />
                 <span>
                   {label}
-                  {disabled ? (
+                  {key === 'transferPlayers' && mode === 'prepare' ? (
                     <span className="mt-0.5 block text-[11px] text-amber-200/80">
-                      Beim reinen Vorbereiten bleiben Spieler in der aktiven Saison.
+                      Beim Vorbereiten bleiben die Spieler in der aktuellen Saison.
+                    </span>
+                  ) : null}
+                  {key === 'transferPlayers' && mode === 'close_and_create' ? (
+                    <span className="mt-0.5 block text-[11px] text-amber-200/80">
+                      Hinweis: Die Spieler erscheinen danach im Kader der neuen Saison. In der
+                      abgeschlossenen Saison ist die Spielerliste dann leer — Spiele und Statistiken
+                      bleiben trotzdem sichtbar. Empfohlen: vorerst auslassen.
                     </span>
                   ) : null}
                 </span>
@@ -178,7 +186,7 @@ export function SeasonTransitionWizard({
             );
           })}
           <p className="text-[11px] text-white/40">
-            Nicht übernommen: Spiele, Trainings, Turniere, Ergebnisse, Live-Daten, Saison-Statistiken.
+            Nicht übernommen: Spiele, Trainings, Turniere, Ergebnisse und Live-Daten.
           </p>
         </div>
       ) : null}
@@ -229,23 +237,23 @@ export function SeasonTransitionWizard({
                     variant="default"
                     fullWidth
                     disabled={!canNext || busy}
-                    onClick={() =>
-                      onConfirm({
-                        seasonName: seasonName.trim(),
-                        ageGroup: ageGroup.trim(),
-                        options: {
-                          ...options,
-                          transferPlayers: mode === 'close_and_create' ? options.transferPlayers : false,
-                        },
-                        confirmArchiveSource: archiveSource && confirmArchive,
-                      })
-                    }
-                  >
+            onClick={() =>
+              onConfirm({
+                seasonName: seasonName.trim(),
+                ageGroup: ageGroup.trim(),
+                options: {
+                  ...options,
+                  transferPlayers: mode === 'close_and_create' ? options.transferPlayers : false,
+                },
+                confirmArchiveSource: archiveSource && confirmArchive,
+              })
+            }
+          >
             {busy
               ? 'Wird ausgeführt…'
               : mode === 'prepare'
-                ? 'Entwurf erstellen'
-                : 'Abschließen und neue Saison erstellen'}
+                ? 'Neue Saison vorbereiten'
+                : 'Saison abschließen und neue erstellen'}
           </PremiumButton>
         )}
       </div>
