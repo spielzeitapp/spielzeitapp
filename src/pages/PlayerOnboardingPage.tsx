@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { listRoster } from '../lib/rosterService';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
 
@@ -147,12 +148,7 @@ export const PlayerOnboardingPage: React.FC = () => {
 
       console.log('[PLAYER PLAYER LOAD START]', { teamSeasonId });
 
-      const { data, error } = await supabase
-        .from('players')
-        .select('id, first_name, last_name, jersey_number, team_season_id')
-        .eq('team_season_id', teamSeasonId)
-        .or('status.eq.active,and(status.is.null,is_active.eq.true)')
-        .order('last_name', { ascending: true });
+      const { data, error } = await listRoster(teamSeasonId, 'active');
 
       if (!alive) return;
 
@@ -161,17 +157,18 @@ export const PlayerOnboardingPage: React.FC = () => {
       if (error) {
         console.log('[PLAYER ONBOARDING PLAYER LOAD ERROR]', error);
         setPlayers([]);
-        setPlayersError(error.message ?? 'Spieler konnten nicht geladen werden.');
+        setPlayersError(error ?? 'Spieler konnten nicht geladen werden.');
         setPlayersLoading(false);
         return;
       }
 
-      const rows = (data ?? []) as {
-        id: string;
-        first_name: string | null;
-        last_name: string | null;
-        jersey_number: number | null;
-      }[];
+      const rows = data.map((r) => ({
+        id: r.id,
+        first_name: r.first_name,
+        last_name: r.last_name,
+        jersey_number: r.jersey_number,
+        display_name: r.display_name,
+      }));
 
       console.log('[PLAYER PLAYER LOAD RESULT]', {
         rowCount: rows.length,
