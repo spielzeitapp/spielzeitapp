@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PlayerItem } from './usePlayers';
 import type { ChallengeResultRow, ChallengeSessionRow, JugglingChallengePlayerRow } from '../lib/challengeTypes';
 import { supabase } from '../lib/supabaseClient';
+import { assertTeamSeasonWritable } from '../lib/seasonTransition';
 
 const JUGGLING_TYPE = 'juggling';
 const DEFAULT_TITLE = 'Gaberl-Challenge';
@@ -85,6 +86,13 @@ export function useJugglingChallenge(
       let activeSession = sessionRows?.[0] ? mapSessionRow(sessionRows[0] as Record<string, unknown>) : null;
 
       if (!activeSession) {
+        const writable = await assertTeamSeasonWritable(sid);
+        if (!writable.ok) {
+          setSession(null);
+          setResultsByPlayerId(new Map());
+          setLoading(false);
+          return;
+        }
         const { data: authData } = await supabase.auth.getSession();
         const uid = authData.session?.user?.id ?? null;
         const { data: created, error: createErr } = await supabase
@@ -160,6 +168,11 @@ export function useJugglingChallenge(
       setSavingPlayerId(pid);
       setError(null);
       try {
+        const writable = await assertTeamSeasonWritable(session.team_season_id);
+        if (!writable.ok) {
+          setError(writable.message);
+          return { ok: false as const, error: writable.message };
+        }
         const { data: authData } = await supabase.auth.getSession();
         const uid = authData.session?.user?.id ?? null;
 

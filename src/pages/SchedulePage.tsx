@@ -25,6 +25,7 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { isMatchReviewPending } from '../lib/matchPreparationAccess';
 import { formatTeamSeasonDisplayLabel } from '../lib/seasonLifecycle';
+import { assertTeamSeasonWritable } from '../lib/seasonTransition';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
@@ -242,7 +243,7 @@ export const SchedulePage: React.FC = () => {
   const normalizedUiRole = normalizeRole(uiRoleRaw);
   const uiRole = normalizedUiRole === 'fan' ? null : normalizedUiRole;
   const canShowRsvpUi = (uiRole === 'parent' || uiRole === 'player') && !isViewOnlyPlayer;
-  const canManage = forcePublicView ? false : canManageMatches(normalizedUiRole);
+  const canManage = forcePublicView || isHistoryReadOnly ? false : canManageMatches(normalizedUiRole);
   const showMeetupForRole = forcePublicView ? true : canSeeMeetup(normalizedUiRole); // Öffentlich: Treffpunkt für alle
   const ourTeamName = teamLabel ?? publicLabel ?? getOurTeamDisplayName();
 
@@ -478,6 +479,11 @@ export const SchedulePage: React.FC = () => {
     ev.preventDefault();
     console.debug('[EditModal] submit');
     if (!editEvent) return;
+    const writable = await assertTeamSeasonWritable(editEvent.team_season_id);
+    if (!writable.ok) {
+      setEditError(writable.message);
+      return;
+    }
     const opponent = (editOpponent ?? '').trim();
     if (!(editDateTime ?? '').trim()) {
       setEditError('Beginn ist Pflicht.');
@@ -647,6 +653,15 @@ export const SchedulePage: React.FC = () => {
   };
 
   const handleDelete = async (event: EventRow) => {
+    if (isHistoryReadOnly) {
+      alert(softLockMessage ?? 'Archiv: nur Lesen');
+      return;
+    }
+    const writable = await assertTeamSeasonWritable(event.team_season_id);
+    if (!writable.ok) {
+      alert(writable.message);
+      return;
+    }
     if (!window.confirm('Termin wirklich löschen?')) return;
     if (event.series_id) {
       const delAll = window.confirm(

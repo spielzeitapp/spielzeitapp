@@ -266,6 +266,27 @@ export async function archiveTeamSeason(teamSeasonId: string): Promise<ArchiveTe
 
   const { error: updErr } = await supabase.from('team_seasons').update(patch).eq('id', id);
   if (updErr) return { ok: false, message: updErr.message };
+
+  // Pending Reminder-Jobs der archivierten Saison stoppen (keine neuen Pushes).
+  const { data: seasonEvents } = await supabase.from('events').select('id').eq('team_season_id', id);
+  const eventIds = (seasonEvents ?? [])
+    .map((r) => String((r as { id?: string }).id ?? '').trim())
+    .filter(Boolean);
+  if (eventIds.length > 0) {
+    const { error: jobErr } = await supabase
+      .from('notification_jobs')
+      .update({
+        status: 'failed',
+        last_error: 'season_archived',
+        updated_at: new Date().toISOString(),
+      })
+      .in('event_id', eventIds)
+      .eq('status', 'pending');
+    if (jobErr) {
+      console.warn('[archiveTeamSeason] notification_jobs cancel', jobErr.message);
+    }
+  }
+
   return { ok: true, teamSeasonId: id };
 }
 

@@ -187,16 +187,16 @@ type RankingTab = 'end' | 'improvement' | 'development';
 
 export const JugglingChallengePage: React.FC = () => {
   const [rankingTab, setRankingTab] = useState<RankingTab>('end');
-  const { teamSeasonId, role, loading: tsLoading } = useActiveTeamSeason();
+  const { activeTeamSeasonId, isHistoryReadOnly, role, loading: tsLoading } = useActiveTeamSeason();
   const roleNormalized = normalizeRole(role);
-  const allowed = canManageMatches(roleNormalized);
-  const { players, loading: playersLoading } = usePlayers(allowed ? teamSeasonId : null, {
+  const allowed = canManageMatches(roleNormalized) && !isHistoryReadOnly;
+  const { players, loading: playersLoading } = usePlayers(allowed ? activeTeamSeasonId : null, {
     mode: 'active',
   });
 
   const { session, rows, loading, savingPlayerId, error, savePlayerValues } = useJugglingChallenge(
     players,
-    teamSeasonId,
+    activeTeamSeasonId,
     allowed && !tsLoading,
   );
 

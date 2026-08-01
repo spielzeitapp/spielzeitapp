@@ -26,6 +26,7 @@ import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
+import { assertTeamSeasonWritable, getTeamSeasonWritableState } from '../lib/seasonTransition';
 import { safeOptionalText, safeText } from '../lib/safeText';
 import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
@@ -466,11 +467,31 @@ export const EventDetailPage: React.FC = () => {
     (effectiveRole === 'player' || effectiveRole === 'parent') && !isViewOnlyPlayer;
   const showMeetup = canSeeMeetup(effectiveRole);
   const isFan = effectiveRole === 'fan';
+  /** Soft-Lock: Archiv-Saison → keine Trainer-Writes (Edit/Delete/Kader/Live-Prep). */
+  const [seasonWritable, setSeasonWritable] = useState(true);
   /** Trainer/Chef/Co/Admin: Spielplan & Spielbericht (Membership-Rolle ist bereits normalisiert). */
-  const canTrainerManageEvent = canManageMatches(effectiveRole);
+  const canTrainerManageEvent = canManageMatches(effectiveRole) && seasonWritable;
   const ourTeamName = teamLabel ?? getOurTeamDisplayName();
 
   const teamSeasonId = event?.team_season_id ?? null;
+  useEffect(() => {
+    if (!teamSeasonId) {
+      setSeasonWritable(true);
+      return;
+    }
+    let cancelled = false;
+    void getTeamSeasonWritableState(teamSeasonId).then((state) => {
+      if (cancelled) return;
+      if ('error' in state) {
+        setSeasonWritable(false);
+        return;
+      }
+      setSeasonWritable(state.writable);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
   const { players, loading: playersLoading } = usePlayers(teamSeasonId);
   const { myAttendancePlayerIds } = useAvailabilityPermissions({
     role: effectiveRole,
@@ -1148,6 +1169,11 @@ export const EventDetailPage: React.FC = () => {
   const handleEditSubmit = useCallback(async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!editEvent) return;
+    const writable = await assertTeamSeasonWritable(editEvent.team_season_id);
+    if (!writable.ok) {
+      setEditError(writable.message);
+      return;
+    }
     const startsAt = parseViennaDateTimeLocalToUtcIso((editDateTime ?? '').trim());
     if (!startsAt) {
       setEditError('Ungültiges Datumsformat.');
@@ -1235,6 +1261,11 @@ export const EventDetailPage: React.FC = () => {
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
+    const writable = await assertTeamSeasonWritable(event.team_season_id);
+    if (!writable.ok) {
+      alert(writable.message);
+      return;
+    }
     setDeletingEvent(true);
     const { error: delErr } = await deleteEventAndRelatedData(event.id, event.match_id ?? null);
     setDeletingEvent(false);

@@ -4,6 +4,7 @@ import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEvents } from '../../hooks/useEvents';
 import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
+import { resolveTeamSeasonLabelParts } from '../../lib/seasonLifecycle';
 import {
   buildDemoHomeMatchEvents,
   pickHomeMatchCard,
@@ -44,10 +45,23 @@ export const HomePage: React.FC = () => {
   } = useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
-  const { teamLabel, teamLine, seasonLine } = useActiveTeamSeason();
-  const teamName = teamLine ?? 'Team';
-  const seasonLabel = seasonLine && seasonLine !== '—' ? seasonLine : '—';
-  const teamSeasonLine = teamLabel ?? `${teamName} · ${seasonLabel}`;
+  /** Home zeigt immer die aktive Work-Season (nicht Archiv-View). */
+  const { activeTeamSeason } = useActiveTeamSeason();
+  const homeLabelParts = useMemo(() => {
+    if (!activeTeamSeason) return null;
+    return resolveTeamSeasonLabelParts({
+      displayName: activeTeamSeason.display_name,
+      ageGroup: activeTeamSeason.age_group,
+      teamName: activeTeamSeason.team?.name,
+      seasonName: activeTeamSeason.season?.name,
+      status: activeTeamSeason.status,
+    });
+  }, [activeTeamSeason]);
+  const teamName = homeLabelParts?.teamLine ?? 'Team';
+  const seasonLabel = homeLabelParts?.seasonLine && homeLabelParts.seasonLine !== '—'
+    ? homeLabelParts.seasonLine
+    : '—';
+  const teamSeasonLine = homeLabelParts?.full ?? `${teamName} · ${seasonLabel}`;
   const teamId = String(selectedTeamSeason?.team?.id ?? selectedTeamSeason?.team_id ?? '');
 
   const [now, setNow] = useState(() => new Date());

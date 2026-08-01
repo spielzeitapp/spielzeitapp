@@ -8,6 +8,23 @@ import {
 } from '../../../lib/notificationDispatchHandler';
 import type { NotificationJobPayload, NotificationJobRow, ReminderJobKind } from './types';
 import { buildReminderUxCopy, reminderAppDeepLink } from './reminderUxCopy';
+import { isSeasonArchived } from '../seasonLifecycle';
+
+async function isEventTeamSeasonArchived(
+  admin: SupabaseClient,
+  teamSeasonId: string | null | undefined,
+): Promise<boolean> {
+  const id = String(teamSeasonId ?? '').trim();
+  if (!id) return false;
+  const { data, error } = await admin
+    .from('team_seasons')
+    .select('status, archived_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error || !data) return false;
+  const row = data as { status?: string | null; archived_at?: string | null };
+  return isSeasonArchived(row.status, row.archived_at);
+}
 
 function notificationTypeFromJobKind(kind: ReminderJobKind): NotificationJobPayload['notificationType'] {
   if (kind === 'match') return 'game_reminder';
@@ -102,6 +119,10 @@ async function processMatchdayNotificationJob(
     return { ok: true };
   }
   if (st !== 'upcoming' && st !== 'live') {
+    await completeJob(admin, job.id);
+    return { ok: true };
+  }
+  if (await isEventTeamSeasonArchived(admin, ev.team_season_id)) {
     await completeJob(admin, job.id);
     return { ok: true };
   }
@@ -248,6 +269,15 @@ export async function processNotificationJob(
       jobId: job.id,
       eventId: job.event_id,
       status: ev.status,
+    });
+    await completeJob(admin, job.id);
+    return { ok: true };
+  }
+  if (await isEventTeamSeasonArchived(admin, ev.team_season_id)) {
+    console.log('[reminderPipeline] processNotificationJob skip: season archived', {
+      jobId: job.id,
+      eventId: job.event_id,
+      teamSeasonId: ev.team_season_id,
     });
     await completeJob(admin, job.id);
     return { ok: true };

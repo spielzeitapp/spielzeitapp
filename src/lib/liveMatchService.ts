@@ -716,6 +716,9 @@ export async function saveMatchEvent(payload: InsertMatchEventPayload): Promise<
       console.error('[match_events] saveMatchEvent: goal_home darf nicht in die DB', payload);
     }
   }
+  const writable = await assertMatchTeamSeasonWritable(payload.match_id);
+  if (!writable.ok) return { id: null, error: writable.message };
+
   const { data, error } = await supabase.from('match_events').insert(payload).select('id').single();
   if (error) {
     console.error('[liveMatchService] saveMatchEvent', error);
@@ -727,6 +730,17 @@ export async function saveMatchEvent(payload: InsertMatchEventPayload): Promise<
 
 export async function deleteMatchEventById(eventId: string): Promise<{ error: string | null }> {
   if (!eventId?.trim()) return { error: 'Keine Ereignis-ID.' };
+  const { data: evRow, error: loadErr } = await supabase
+    .from('match_events')
+    .select('match_id')
+    .eq('id', eventId.trim())
+    .maybeSingle();
+  if (loadErr) return { error: loadErr.message };
+  const matchId = (evRow as { match_id?: string } | null)?.match_id;
+  if (matchId) {
+    const writable = await assertMatchTeamSeasonWritable(matchId);
+    if (!writable.ok) return { error: writable.message };
+  }
   const { error } = await supabase.from('match_events').delete().eq('id', eventId.trim());
   if (error) {
     console.error('[liveMatchService] deleteMatchEventById', error);
@@ -739,6 +753,11 @@ export async function saveMatchEvents(
   payloads: InsertMatchEventPayload[],
 ): Promise<{ ids: string[]; error: string | null }> {
   if (payloads.length === 0) return { ids: [], error: null };
+  const firstMatchId = String(payloads[0]?.match_id ?? '').trim();
+  if (firstMatchId) {
+    const writable = await assertMatchTeamSeasonWritable(firstMatchId);
+    if (!writable.ok) return { ids: [], error: writable.message };
+  }
   if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
     for (const p of payloads) {
       if (String(p.type ?? '').trim().toLowerCase() === 'goal_home') {
@@ -755,10 +774,30 @@ export async function saveMatchEvents(
   return { ids, error: null };
 }
 
+/** Soft-Lock: Match-Writes nur wenn die zugehörige Team-Saison schreibbar ist. */
+async function assertMatchTeamSeasonWritable(
+  matchId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const id = String(matchId ?? '').trim();
+  if (!id) return { ok: false, message: 'Match fehlt.' };
+  const { data, error } = await supabase
+    .from('matches')
+    .select('team_season_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  const teamSeasonId = (data as { team_season_id?: string | null } | null)?.team_season_id ?? null;
+  if (!teamSeasonId) return { ok: false, message: 'Match ohne Team-Saison.' };
+  return assertTeamSeasonWritable(teamSeasonId);
+}
+
 export async function updateMatchRow(
   matchId: string,
   patch: Record<string, unknown>,
 ): Promise<{ error: string | null }> {
+  const writable = await assertMatchTeamSeasonWritable(matchId);
+  if (!writable.ok) return { error: writable.message };
+
   const { error } = await supabase.from('matches').update(patch).eq('id', matchId);
   if (error) {
     console.error('[liveMatchService] updateMatchRow', error);
@@ -823,6 +862,9 @@ export async function saveMatchSquadOnly(
   matchId: string,
   squadPlayerIds: string[],
 ): Promise<{ error: string | null }> {
+  const writable = await assertMatchTeamSeasonWritable(matchId);
+  if (!writable.ok) return { error: writable.message };
+
   const uniqueSquad = [...new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean))];
 
   const { data: lineupRows, error: lineupErr } = await supabase
@@ -853,6 +895,9 @@ export async function replaceMatchLineupAndBench(
   squadPlayerIds: string[],
   options?: ReplaceLineupBenchOptions,
 ): Promise<{ error: string | null }> {
+  const writable = await assertMatchTeamSeasonWritable(matchId);
+  if (!writable.ok) return { error: writable.message };
+
   const normalizeId = (raw: string | null | undefined): string | null => {
     const v = String(raw ?? '').trim();
     return v.length > 0 ? v : null;
@@ -1632,6 +1677,9 @@ export async function ensureKickoffLineupSnapshot(matchId: string): Promise<{ er
   }
   if (count != null && count > 0) return { error: null };
 
+  const writable = await assertMatchTeamSeasonWritable(mid);
+  if (!writable.ok) return { error: writable.message };
+
   const { data: lineupRows, error: lineupErr } = await supabase
     .from('match_lineup')
     .select('player_id, slot')
@@ -1672,6 +1720,9 @@ export async function ensureKickoffLineupSnapshot(matchId: string): Promise<{ er
 
 /** Nach Aufstellung: Match auf „live“ setzen + Anpfiff-Event (Sekunde 0). */
 export async function persistLiveMatchBegin(matchId: string): Promise<{ error: string | null }> {
+  const writable = await assertMatchTeamSeasonWritable(matchId);
+  if (!writable.ok) return { error: writable.message };
+
   const { error: snapErr } = await ensureKickoffLineupSnapshot(matchId);
   if (snapErr) {
     console.error('[liveMatchService] persistLiveMatchBegin kickoff snapshot', snapErr);

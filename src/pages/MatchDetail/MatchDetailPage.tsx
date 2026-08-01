@@ -15,7 +15,7 @@ import { Card, CardTitle } from '../../app/components/ui/Card';
 import { Button } from '../../app/components/ui/Button';
 import { isStartelfCompleteForLive } from './lineupGuards';
 import { VIENNA_TZ } from '../../lib/viennaTime';
-import { fetchLineupForLiveMatch, fetchMatchEvents, LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
+import { fetchLineupForLiveMatch, fetchMatchEvents, LIVE_FIELD_SLOT_ORDER, updateMatchRow } from '../../lib/liveMatchService';
 import { getBenchPlayers, getCurrentOnFieldPlayers, sortMatchEventsChronologically, type MatchEngineEvent } from '../../lib/matchEngine';
 import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 
@@ -336,10 +336,10 @@ export const MatchDetailPage: React.FC = () => {
         : prev,
     );
 
-    const { error: updateError } = await supabase.from('matches').update({ status: nextStatus }).eq('id', matchId);
+    const { error: updateError } = await updateMatchRow(matchId, { status: nextStatus });
 
     if (updateError) {
-      setStatusError('Status speichern fehlgeschlagen.');
+      setStatusError(updateError);
     }
 
     setStatusSaving(false);
@@ -369,7 +369,9 @@ export const MatchDetailPage: React.FC = () => {
           ? { live_elapsed_seconds: currentElapsedSeconds ?? 0, live_is_running: false }
           : { live_is_running: false, ...(typeof currentElapsedSeconds === 'number' ? { live_elapsed_seconds: currentElapsedSeconds } : {}) };
 
-    supabase.from('matches').update(payload).eq('id', matchId).then(() => {});
+    void updateMatchRow(matchId, payload).then(({ error }) => {
+      if (error) setStatusError(error);
+    });
   };
 
   const handleAddEvent = (event: MatchEvent) => {
