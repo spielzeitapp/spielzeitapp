@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../../lib/supabaseClient";
 import { lockAppMainScroll } from "../../lib/bodyScrollLock";
 import { APP_BOTTOM_SCROLL_PAD } from "../../lib/appScrollPadding";
 import { Activity, CalendarDays, ChevronDown, Trophy, User } from "lucide-react";
@@ -9,6 +8,7 @@ import { ProfileHeroCard } from "./profile/ProfileHeroCard";
 import { ProfileStatTile } from "./ProfileStatTile";
 import { PLAYER_STAT_TILES } from "./profile/profileStatIcons";
 import type { PlayerItem } from "../../hooks/usePlayers";
+import { updatePlayerMasterFlags } from "../../lib/rosterService";
 import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
@@ -44,6 +44,8 @@ const PROFILE_SETTINGS_PANEL =
 export type PlayerProfileModalProps = {
   player: PlayerItem;
   role: string | null;
+  /** Aktuelle Team-Saison (für saisonbezogene LAZ-Updates im Join). */
+  teamSeasonId?: string | null;
   teamSeasonLabel: string | null;
   teamName?: string | null;
   photoUrl: string | null;
@@ -470,6 +472,7 @@ function ProfileSaveSnackbar({ visible }: { visible: boolean }) {
 export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   player,
   role,
+  teamSeasonId = null,
   teamSeasonLabel,
   teamName,
   photoUrl,
@@ -600,11 +603,16 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     setLazSaving(true);
     setLazError(null);
     setIsLazPlayer(next);
-    const { error } = await supabase.from("players").update({ is_laz_player: next }).eq("id", player.id);
+    const seasonId = teamSeasonId ?? player.team_season_id;
+    const { ok, error } = await updatePlayerMasterFlags({
+      playerId: player.id,
+      teamSeasonId: seasonId,
+      is_laz_player: next,
+    });
     setLazSaving(false);
-    if (error) {
+    if (!ok) {
       setIsLazPlayer(previous);
-      setLazError(error.message ?? "Speichern fehlgeschlagen.");
+      setLazError(error ?? "Speichern fehlgeschlagen.");
       return;
     }
     setSaveToastVisible(true);
@@ -623,13 +631,17 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     setInjuredError(null);
     setIsInjuredPlayer(next);
     const patch = next
-      ? { is_injured: true, injured_since: nowIso, injured_until: null }
-      : { is_injured: false, injured_since: null, injured_until: nowIso };
-    const { error } = await supabase.from("players").update(patch).eq("id", player.id);
+      ? { is_injured: true as const, injured_since: nowIso, injured_until: null as string | null }
+      : { is_injured: false as const, injured_since: null as string | null, injured_until: nowIso };
+    const { ok, error } = await updatePlayerMasterFlags({
+      playerId: player.id,
+      teamSeasonId: teamSeasonId ?? player.team_season_id,
+      ...patch,
+    });
     setInjuredSaving(false);
-    if (error) {
+    if (!ok) {
       setIsInjuredPlayer(previous.is_injured);
-      setInjuredError(error.message ?? "Speichern fehlgeschlagen.");
+      setInjuredError(error ?? "Speichern fehlgeschlagen.");
       return;
     }
     setSaveToastVisible(true);
