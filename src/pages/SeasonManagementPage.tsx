@@ -309,6 +309,7 @@ export const SeasonManagementPage: React.FC = () => {
           {wizardMode && sourceCard ? (
             <SeasonTransitionWizard
               mode={wizardMode}
+              sourceTeamSeasonId={sourceCard.id}
               sourceSeasonName={sourceCard.seasonName}
               sourceAgeGroup={sourceCard.ageGroup}
               sourceTeamName={sourceCard.teamName}

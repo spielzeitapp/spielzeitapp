@@ -1,11 +1,8 @@
 /**
  * Feature-Flag für saisonfähiges Kadermodell (team_season_players).
- * Default false — Legacy-Read über players.team_season_id.
- * true — Dual-Read über team_season_players + players-Stamm (STEP 4).
- *
- * Aktivierung:
- * - VITE_ROSTER_JOIN_V1=true (Client / Staging-Env)
- * - oder localStorage spz_roster_join_v1=1 (Dev-Override)
+ * Default true (STEP 5) — Join-Read über team_season_players + players-Stamm.
+ * Multi-Season-Kader (z. B. Soft-Lock U11 + aktive U12) braucht Join.
+ * Abschalten: VITE_ROSTER_JOIN_V1=false oder localStorage spz_roster_join_v1=0
  */
 export const ROSTER_JOIN_V1_STORAGE_KEY = 'spz_roster_join_v1';
 
@@ -26,6 +23,6 @@ export function isRosterJoinV1Enabled(): boolean {
     }
   }
 
-  // STEP 3 Default: aus
-  return false;
+  // STEP 5: Join default an (Soft-Lock + neue Saison gleichzeitig sichtbar)
+  return true;
 }

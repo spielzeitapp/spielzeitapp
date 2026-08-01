@@ -1,13 +1,9 @@
 /**
- * Saisonabschluss + Saisonwechsel (ohne Migration, ohne Player-Duplikate).
+ * Saisonabschluss + Saisonwechsel.
  *
- * Datenmodell (Supabase-App):
- * - Stammdatensatz: public.players (inkl. team_season_id)
- * - Kaderzuordnung: players.team_season_id (kein separates team_season_players in der App)
- * - player_guardians / player_users hängen an player_id → nicht kopieren/remappen
- *
- * Spätere Schema-Erweiterung: Join-Tabelle team_season_players, damit alte Saisons
- * ihren Kader behalten können, während Spieler in der neuen Saison stehen.
+ * Kader-Transfer (STEP 5): INSERT/UPSERT in team_season_players (gleiche player_id).
+ * players.team_season_id nur Compatibility (aktive Season priorisieren; Draft überschreibt nicht).
+ * Keine Player-Duplikate. Stats bleiben an alten Events/Matches.
  */
 import { supabase } from './supabaseClient';
 import {
@@ -23,12 +19,22 @@ import {
   type PrepareNextSeasonDraftResult,
   type TeamSeasonRowForPrep,
 } from './seasonPreparation';
+import { syncPlayersTeamSeasonIdCompat } from './rosterService';
 
 export { SEASON_SOFT_LOCK_MESSAGE };
 
 export type SeasonTransferOptions = {
-  /** players.team_season_id auf die neue Saison umhängen (gleiche player_id). */
+  /**
+   * Spieler in neue Saison übernehmen via team_season_players (gleiche player_id).
+   * Quell-Kader bleibt erhalten.
+   */
   transferPlayers: boolean;
+  /**
+   * Optional: nur diese player_ids übernehmen.
+   * null/undefined = alle aktiven Kaderspieler der Quelle.
+   * [] = niemanden.
+   */
+  selectedPlayerIds?: string[] | null;
   /** Staff-memberships (trainer / co_trainer / head_coach) neu anlegen. */
   copyStaff: boolean;
   /** team_photos.photo_url auf neue Saison. */
@@ -40,13 +46,94 @@ export type SeasonTransferOptions = {
 };
 
 export const DEFAULT_SEASON_TRANSFER_OPTIONS: SeasonTransferOptions = {
-  // Default aus: Transfer leert den Kader der Quell-Saison (players.team_season_id).
-  transferPlayers: false,
+  // STEP 5: Default an — Transfer nur über Join (kein Verschieben).
+  transferPlayers: true,
+  selectedPlayerIds: null,
   copyStaff: true,
   copyTeamPhoto: true,
   copyNotificationSettings: true,
   copyAliases: true,
 };
+
+let teamSeasonPlayersAvailable: boolean | null = null;
+
+/** Ob team_season_players für Transfer nutzbar ist. */
+export async function isTeamSeasonPlayersAvailable(): Promise<boolean> {
+  if (teamSeasonPlayersAvailable != null) return teamSeasonPlayersAvailable;
+  const { error } = await supabase.from('team_season_players').select('id').limit(1);
+  teamSeasonPlayersAvailable = !error;
+  return teamSeasonPlayersAvailable;
+}
+
+export type TransferCandidatePlayer = {
+  id: string;
+  display_name: string;
+  jersey_number: number | null;
+  position: string | null;
+};
+
+/** Kader der Quelle für Assistenten-Auswahl (Join bevorzugt). */
+export async function listTransferCandidatePlayers(
+  sourceTeamSeasonId: string,
+): Promise<{ data: TransferCandidatePlayer[]; error: string | null; source: 'join' | 'legacy' | 'none' }> {
+  const sid = sourceTeamSeasonId?.trim();
+  if (!sid) return { data: [], error: 'Quell-Saison fehlt.', source: 'none' };
+
+  if (await isTeamSeasonPlayersAvailable()) {
+    const { data, error } = await supabase
+      .from('team_season_players')
+      .select(
+        'player_id, jersey_number, position, status, is_active, players:players ( id, first_name, last_name )',
+      )
+      .eq('team_season_id', sid)
+      .is('left_at', null)
+      .order('jersey_number', { ascending: true, nullsFirst: false });
+
+    if (!error) {
+      const rows = ((data ?? []) as Array<Record<string, unknown>>)
+        .filter((row) => {
+          const status = String(row.status ?? 'active').toLowerCase();
+          return status !== 'archived' && row.is_active !== false;
+        })
+        .map((row) => {
+          const pRaw = row.players;
+          const p = (Array.isArray(pRaw) ? pRaw[0] : pRaw) as Record<string, unknown> | null | undefined;
+          const first = p?.first_name != null ? String(p.first_name).trim() : '';
+          const last = p?.last_name != null ? String(p.last_name).trim() : '';
+          const display_name = [first, last].filter(Boolean).join(' ') || 'Spieler';
+          return {
+            id: String(row.player_id ?? p?.id ?? ''),
+            display_name,
+            jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
+            position: row.position != null ? String(row.position) : null,
+          };
+        })
+        .filter((r) => r.id);
+      return { data: rows, error: null, source: 'join' };
+    }
+  }
+
+  // Fallback nur wenn Join fehlt (sollte auf Staging nicht vorkommen)
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, first_name, last_name, jersey_number, position, status, is_active')
+    .eq('team_season_id', sid)
+    .or('status.eq.active,and(status.is.null,is_active.eq.true)')
+    .order('jersey_number', { ascending: true, nullsFirst: false });
+
+  if (error) return { data: [], error: error.message, source: 'legacy' };
+  const rows = ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
+    const first = row.first_name != null ? String(row.first_name).trim() : '';
+    const last = row.last_name != null ? String(row.last_name).trim() : '';
+    return {
+      id: String(row.id),
+      display_name: [first, last].filter(Boolean).join(' ') || 'Spieler',
+      jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
+      position: row.position != null ? String(row.position) : null,
+    };
+  });
+  return { data: rows, error: null, source: 'legacy' };
+}
 
 type TeamSeasonLifecycleRow = {
   id: string;
@@ -207,26 +294,91 @@ async function copyStaffMemberships(sourceId: string, targetId: string): Promise
 }
 
 /**
- * Spieler-Stammdatensätze behalten dieselbe id.
- * Nur die saisonbezogene Zuordnung players.team_season_id wird umgehängt.
- * Zusätzlich: parent/player-Memberships der Quelle auf die Ziel-Saison spiegeln
- * (Zugang), ohne player_guardians / player_users anzufassen.
+ * Spieler in Ziel-Saison übernehmen:
+ * - INSERT/UPSERT team_season_players (gleiche player_id, Quell-Kader bleibt)
+ * - parent/player-Memberships spiegeln (Zugang)
+ * - players.team_season_id NICHT als Transfer-Mechanismus (Compat separat nach Activate)
  */
-async function transferPlayersToSeason(sourceId: string, targetId: string): Promise<string | null> {
-  const { error: moveErr } = await supabase
-    .from('players')
-    .update({ team_season_id: targetId })
-    .eq('team_season_id', sourceId);
+async function transferPlayersToSeason(
+  sourceId: string,
+  targetId: string,
+  selectedPlayerIds?: string[] | null,
+): Promise<{ error: string | null; transferredPlayerIds: string[] }> {
+  if (!(await isTeamSeasonPlayersAvailable())) {
+    return {
+      error:
+        'Spielerübernahme ist noch nicht freigeschaltet (Kaderzuordnung fehlt). Bitte Administrator kontaktieren.',
+      transferredPlayerIds: [],
+    };
+  }
 
-  if (moveErr) return moveErr.message;
+  let query = supabase
+    .from('team_season_players')
+    .select('player_id, jersey_number, position, is_laz_player, status, is_active')
+    .eq('team_season_id', sourceId)
+    .is('left_at', null);
 
+  if (Array.isArray(selectedPlayerIds)) {
+    if (selectedPlayerIds.length === 0) return { error: null, transferredPlayerIds: [] };
+    query = query.in('player_id', selectedPlayerIds);
+  }
+
+  const { data: sourceRows, error: loadErr } = await query;
+  if (loadErr) return { error: loadErr.message, transferredPlayerIds: [] };
+
+  const rows = (sourceRows ?? []) as Array<{
+    player_id: string;
+    jersey_number: number | null;
+    position: string | null;
+    is_laz_player: boolean | null;
+    status: string | null;
+    is_active: boolean | null;
+  }>;
+
+  const transferredPlayerIds: string[] = [];
+
+  for (const row of rows) {
+    const playerId = String(row.player_id ?? '').trim();
+    if (!playerId) continue;
+
+    const statusRaw = String(row.status ?? 'active').toLowerCase();
+    const status = statusRaw === 'paused' || statusRaw === 'archived' ? statusRaw : 'active';
+    // Start in neuer Saison: archived → active; paused bleibt pausiert
+    const startStatus = status === 'archived' ? 'active' : status;
+    const startActive = startStatus === 'active';
+
+    const { error: upsertErr } = await supabase.from('team_season_players').upsert(
+      {
+        player_id: playerId,
+        team_season_id: targetId,
+        jersey_number: row.jersey_number,
+        position: row.position != null ? String(row.position).trim() || null : null,
+        is_laz_player: row.is_laz_player === true,
+        status: startStatus,
+        is_active: startActive,
+        left_at: null,
+        joined_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'player_id,team_season_id' },
+    );
+    if (upsertErr) return { error: upsertErr.message, transferredPlayerIds };
+
+    transferredPlayerIds.push(playerId);
+  }
+
+  // Zugang: parent/player-Memberships der Quelle auf Ziel spiegeln (keine Guardians kopieren)
   const { data: accessMemberships, error: memErr } = await supabase
     .from('memberships')
     .select('user_id, role')
     .eq('team_season_id', sourceId)
     .in('role', ['parent', 'player']);
 
-  if (memErr) return memErr.message;
+  if (memErr) return { error: memErr.message, transferredPlayerIds };
+
+  const transferredSet = new Set(transferredPlayerIds);
+  // Wenn Teilauswahl: nur Memberships spiegeln, wenn User mit übernommenen Spielern verknüpft ist — MVP: alle parent/player der Quelle spiegeln (wie bisher)
+  void transferredSet;
 
   for (const m of accessMemberships ?? []) {
     const userId = String(m.user_id ?? '').trim();
@@ -235,7 +387,7 @@ async function transferPlayersToSeason(sourceId: string, targetId: string): Prom
 
     const { data: existing } = await supabase
       .from('memberships')
-      .select('user_id, role')
+      .select('user_id')
       .eq('team_season_id', targetId)
       .eq('user_id', userId)
       .maybeSingle();
@@ -247,9 +399,23 @@ async function transferPlayersToSeason(sourceId: string, targetId: string): Prom
       team_season_id: targetId,
       role,
     });
-    if (insErr) return insErr.message;
+    if (insErr && !/duplicate|unique/i.test(insErr.message)) {
+      return { error: insErr.message, transferredPlayerIds };
+    }
   }
 
+  return { error: null, transferredPlayerIds };
+}
+
+/** Nach Activate: Compat-Spalte auf neue aktive Season setzen (Draft-Regel in syncPlayersTeamSeasonIdCompat). */
+async function syncCompatAfterPlayerTransfer(
+  targetId: string,
+  playerIds: string[],
+): Promise<string | null> {
+  for (const playerId of playerIds) {
+    const res = await syncPlayersTeamSeasonIdCompat(playerId, targetId);
+    if (!res.ok) return res.message ?? 'Compatibility-Update fehlgeschlagen.';
+  }
   return null;
 }
 
@@ -353,11 +519,16 @@ export async function applySeasonTransfer(
   sourceTeamSeasonId: string,
   targetTeamSeasonId: string,
   options: SeasonTransferOptions,
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; transferredPlayerIds: string[] }
+  | { ok: false; message: string; transferredPlayerIds?: string[] }
+> {
   const sourceId = sourceTeamSeasonId.trim();
   const targetId = targetTeamSeasonId.trim();
   if (!sourceId || !targetId) return { ok: false, message: 'Saison-IDs fehlen.' };
   if (sourceId === targetId) return { ok: false, message: 'Quelle und Ziel sind identisch.' };
+
+  let transferredPlayerIds: string[] = [];
 
   if (options.copyStaff) {
     const err = await copyStaffMemberships(sourceId, targetId);
@@ -365,26 +536,27 @@ export async function applySeasonTransfer(
   }
 
   if (options.transferPlayers) {
-    const err = await transferPlayersToSeason(sourceId, targetId);
-    if (err) return { ok: false, message: err };
+    const res = await transferPlayersToSeason(sourceId, targetId, options.selectedPlayerIds);
+    if (res.error) return { ok: false, message: res.error, transferredPlayerIds: res.transferredPlayerIds };
+    transferredPlayerIds = res.transferredPlayerIds;
   }
 
   if (options.copyTeamPhoto) {
     const err = await copyTeamPhoto(sourceId, targetId);
-    if (err) return { ok: false, message: err };
+    if (err) return { ok: false, message: err, transferredPlayerIds };
   }
 
   if (options.copyNotificationSettings) {
     const err = await copyNotificationSettings(sourceId, targetId);
-    if (err) return { ok: false, message: err };
+    if (err) return { ok: false, message: err, transferredPlayerIds };
   }
 
   if (options.copyAliases) {
     const err = await copyAliases(sourceId, targetId);
-    if (err) return { ok: false, message: err };
+    if (err) return { ok: false, message: err, transferredPlayerIds };
   }
 
-  return { ok: true };
+  return { ok: true, transferredPlayerIds };
 }
 
 export type PrepareSeasonWithOptionsInput = {
@@ -484,6 +656,11 @@ export async function completeSeasonTransition(
   const activated = await activateTeamSeason(targetId);
   if (!activated.ok) return { ok: false, message: activated.message };
 
+  if (transfer.transferredPlayerIds.length > 0) {
+    const compatErr = await syncCompatAfterPlayerTransfer(targetId, transfer.transferredPlayerIds);
+    if (compatErr) return { ok: false, message: compatErr };
+  }
+
   const archived = await archiveTeamSeason(sourceId);
   if (!archived.ok) return { ok: false, message: archived.message };
 
@@ -503,7 +680,14 @@ export function canRunSeasonTransition(role: string | null | undefined): boolean
 export function describeTransferForConfirm(options: SeasonTransferOptions, archiveSource: boolean): string {
   const parts: string[] = [];
   if (options.transferPlayers) {
-    parts.push('Spieler (erscheinen danach im Kader der neuen Saison)');
+    const n = Array.isArray(options.selectedPlayerIds)
+      ? options.selectedPlayerIds.length
+      : null;
+    parts.push(
+      n == null
+        ? 'Spieler (gleiche Profile, neuer Kader in der neuen Saison)'
+        : `${n} Spieler (gleiche Profile, neuer Kader in der neuen Saison)`,
+    );
   }
   if (options.copyStaff) parts.push('Trainer & Betreuer');
   if (options.copyTeamPhoto) parts.push('Mannschaftsfoto');
@@ -511,9 +695,9 @@ export function describeTransferForConfirm(options: SeasonTransferOptions, archi
   if (options.copyAliases) parts.push('Team-Aliase');
   const take = parts.length ? parts.join(', ') : 'nur leere Saison-Struktur';
   if (archiveSource) {
-    return `Alte Saison wird abgeschlossen. Übernommen: ${take}. Spiele, Trainings und Ergebnisse bleiben in der alten Saison.`;
+    return `Alte Saison wird abgeschlossen. Übernommen: ${take}. Der alte Kader und die Historie bleiben in der abgeschlossenen Saison sichtbar.`;
   }
-  return `Entwurf wird angelegt (Quell-Saison bleibt aktiv). Übernommen: ${take}. Spieler bleiben in der aktiven Saison, bis du explizit abschließt.`;
+  return `Entwurf wird angelegt (Quell-Saison bleibt aktiv). Übernommen: ${take}. Spieler bleiben in der aktiven Saison, bis du abschließt.`;
 }
 
 export type { TeamSeasonRowForPrep };

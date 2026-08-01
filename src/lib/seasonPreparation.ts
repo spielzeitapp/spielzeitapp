@@ -11,6 +11,9 @@ import {
 /**
  * STEP 2 — Saison-Entwurf (nur team_seasons-Zeile, keine Kopie von Kader/Terminen/Feed).
  *
+ * Spielerübernahme beim Abschluss: siehe seasonTransition (team_season_players Upsert).
+ * Prepare-Flow: keine Spieler-Umänderung (transferPlayers=false).
+ *
  * ## team_seasons (Supabase)
  * - Kern: id, team_id, season_id (+ Lifecycle aus STEP 1)
  * - Optional: display_name, age_group, prepared_from_team_season_id, status, archived_at
@@ -21,11 +24,6 @@ import {
  * 2. `teams.age_group` — Fallback, wenn Spalte auf team_seasons leer (heute in useSession/TeamSwitcher)
  * 3. Parsing aus team.name / display_name (U11 im Vereinsnamen)
  * Für spätere Saisonkopie: `prepared_from_team_season_id` + `age_group` auf dem Draft.
- *
- * TODO(season-transition): Spieler übernehmen (players.team_season_id)
- * TODO(season-transition): Mitgliedschaften übernehmen (memberships.team_season_id)
- * TODO(season-transition): Meisterschaftskalender übernehmen (events.team_season_id)
- * TODO(season-transition): Gegner übernehmen (events.opponent / Stammdaten)
  */
 
 export type TeamSeasonRowForPrep = {
