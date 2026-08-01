@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  getPlayerProfileStatsBundle,
+  getPlayerStats,
   type PlayerLastMatchRow,
   type PlayerSeasonStats,
 } from '../lib/stats/playerStatsService';
@@ -17,7 +17,13 @@ const EMPTY_STATS: PlayerSeasonStats = {
   redCards: 0,
 };
 
-export function usePlayerStats(playerId: string | null | undefined, teamSeasonId: string | null | undefined) {
+export type PlayerStatsMode = 'season' | 'career';
+
+export function usePlayerStats(
+  playerId: string | null | undefined,
+  teamSeasonId: string | null | undefined,
+  mode: PlayerStatsMode = 'season',
+) {
   const [stats, setStats] = useState<PlayerSeasonStats>(EMPTY_STATS);
   const [lastMatches, setLastMatches] = useState<PlayerLastMatchRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,8 +31,14 @@ export function usePlayerStats(playerId: string | null | undefined, teamSeasonId
 
   useEffect(() => {
     const pid = playerId?.trim();
-    const tid = teamSeasonId?.trim();
-    if (!pid || !tid) {
+    if (!pid) {
+      setStats(EMPTY_STATS);
+      setLastMatches([]);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+    if (mode === 'season' && !teamSeasonId?.trim()) {
       setStats(EMPTY_STATS);
       setLastMatches([]);
       setError(null);
@@ -37,7 +49,11 @@ export function usePlayerStats(playerId: string | null | undefined, teamSeasonId
     setIsLoading(true);
     setError(null);
     void (async () => {
-      const { stats: nextStats, lastMatches: lm, error: err } = await getPlayerProfileStatsBundle(pid, tid);
+      const { stats: nextStats, lastMatches: lm, error: err } = await getPlayerStats({
+        playerId: pid,
+        mode,
+        teamSeasonId,
+      });
       if (cancelled) return;
       setIsLoading(false);
       if (err) {
@@ -53,7 +69,7 @@ export function usePlayerStats(playerId: string | null | undefined, teamSeasonId
     return () => {
       cancelled = true;
     };
-  }, [playerId, teamSeasonId]);
+  }, [playerId, teamSeasonId, mode]);
 
   return useMemo(
     () => ({

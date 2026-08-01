@@ -136,9 +136,19 @@ interface SessionContextValue {
   selectedTeamId: string;
   setSelectedTeamId: (teamId: string) => void;
   teamSeasons: SessionTeamSeasonItem[];
+  /** Aktive Arbeitssaison (Schreiben). */
   selectedTeamSeasonId: string | null;
   selectedTeamSeason: SessionTeamSeasonItem | null;
   setSelectedTeamSeasonId: (id: string | null) => void;
+  /**
+   * Angezeigte/gelesene Saison (History Read Mode).
+   * Archiv darf view setzen, ohne selected (active) zu ändern.
+   */
+  viewTeamSeasonId: string | null;
+  viewTeamSeason: SessionTeamSeasonItem | null;
+  setViewTeamSeasonId: (id: string | null) => void;
+  /** Alias: aktive Write-Saison. */
+  activeTeamSeasonId: string | null;
   canAccess: (feature: FeatureKey) => boolean;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -182,6 +192,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [selectedTeamId, setSelectedTeamIdState] = useState<string>(defaultTeamId);
   const [teamSeasons, setTeamSeasons] = useState<SessionTeamSeasonItem[]>([]);
   const [selectedTeamSeasonId, setSelectedTeamSeasonIdState] = useState<string | null>(null);
+  const [viewTeamSeasonId, setViewTeamSeasonIdState] = useState<string | null>(null);
   const [membershipLoading, setMembershipLoading] = useState(false);
   const [memberships, setMemberships] = useState<MembershipWithJoin[]>([]);
   const [membershipError, setMembershipError] = useState<string | null>(null);
@@ -193,6 +204,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const selectedTeamSeason = useMemo(
     () => teamSeasons.find((ts) => ts.id === selectedTeamSeasonId) ?? null,
     [teamSeasons, selectedTeamSeasonId],
+  );
+
+  const viewTeamSeason = useMemo(
+    () => teamSeasons.find((ts) => ts.id === viewTeamSeasonId) ?? null,
+    [teamSeasons, viewTeamSeasonId],
   );
 
   const loading = authLoading || (!!authUser && membershipLoading);
@@ -344,6 +360,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setMembershipError(null);
         setTeamSeasons([]);
         setSelectedTeamSeasonIdState(null);
+        setViewTeamSeasonIdState(null);
         setMemberships([]);
         setHasPendingPlayerRequest(false);
         setPlayerAccessMode(null);
@@ -459,6 +476,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           preferredId: preferredTeamSeasonId ?? null,
         });
         setSelectedTeamSeasonIdState(selectedId);
+        setViewTeamSeasonIdState(selectedId);
         try {
           if (selectedId) {
             window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);
@@ -522,6 +540,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setMembershipError(null);
       setTeamSeasons([]);
       setSelectedTeamSeasonIdState(null);
+      setViewTeamSeasonIdState(null);
       setMemberships([]);
       setHasPendingPlayerRequest(false);
       setPlayerAccessMode(null);
@@ -560,16 +579,24 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const setSelectedTeamSeasonId = (id: string | null) => {
-    setSelectedTeamSeasonIdState(id === '' || id == null ? null : id);
+    const next = id === '' || id == null ? null : id;
+    setSelectedTeamSeasonIdState(next);
+    // Active-Wechsel setzt View auf dieselbe Saison (History-Picker kann danach Archiv wählen).
+    setViewTeamSeasonIdState(next);
     try {
-      if (id != null && id !== '') {
-        window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, id);
+      if (next != null) {
+        window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, next);
       } else {
         window.localStorage.removeItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID);
       }
     } catch {
       // ignore
     }
+  };
+
+  /** Nur Lesen/Anzeige — ändert die aktive Arbeitssaison nicht. */
+  const setViewTeamSeasonId = (id: string | null) => {
+    setViewTeamSeasonIdState(id === '' || id == null ? null : id);
   };
 
   const user: User | null = useMemo(() => {
@@ -593,6 +620,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     selectedTeamSeasonId,
     selectedTeamSeason,
     setSelectedTeamSeasonId,
+    viewTeamSeasonId,
+    viewTeamSeason,
+    setViewTeamSeasonId,
+    activeTeamSeasonId: selectedTeamSeasonId,
     canAccess: (feature) => canAccessFeature(user, feature),
     loading,
     signOut,

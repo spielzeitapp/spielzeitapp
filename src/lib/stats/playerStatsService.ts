@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { fetchValidSeasonMatchIds } from '../seasonMatchStats';
+import { formatTeamSeasonDisplayLabel } from '../seasonLifecycle';
 import {
   computePlayerPlaytimeFromEvents,
   FIELD_SLOT_ORDER,
@@ -543,4 +544,165 @@ export async function getPlayerProfileStatsBundle(
 
   const { stats, lastMatches } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback);
   return { stats, lastMatches, error: null };
+}
+
+const EMPTY_PLAYER_STATS: PlayerSeasonStats = {
+  games: 0,
+  goals: 0,
+  assists: 0,
+  minutes: 0,
+  goalsPerGame: 0,
+  averageMinutesPerGame: 0,
+  goalsPer90: 0,
+  yellowCards: 0,
+  redCards: 0,
+};
+
+/** Alle team_season_ids, in denen der Spieler im Kader steht (stabile player_id). */
+export async function listPlayerTeamSeasonIds(
+  playerId: string,
+): Promise<{ data: string[]; error: string | null }> {
+  const pid = playerId?.trim();
+  if (!pid) return { data: [], error: null };
+  const { data, error } = await supabase
+    .from('team_season_players')
+    .select('team_season_id')
+    .eq('player_id', pid);
+  if (error) return { data: [], error: error.message };
+  const ids = [
+    ...new Set(
+      (data ?? [])
+        .map((r) => String((r as { team_season_id?: string }).team_season_id ?? '').trim())
+        .filter(Boolean),
+    ),
+  ];
+  return { data: ids, error: null };
+}
+
+export type PlayerSeasonOption = {
+  teamSeasonId: string;
+  label: string;
+  status: string | null;
+  seasonName: string | null;
+  ageGroup: string | null;
+};
+
+/** Saison-Chips fürs Profil (Display-Label + Status). */
+export async function listPlayerSeasonOptions(
+  playerId: string,
+): Promise<{ data: PlayerSeasonOption[]; error: string | null }> {
+  const { data: ids, error } = await listPlayerTeamSeasonIds(playerId);
+  if (error) return { data: [], error };
+  if (ids.length === 0) return { data: [], error: null };
+
+  const { data: rows, error: tsErr } = await supabase
+    .from('team_seasons')
+    .select('id, status, display_name, age_group, seasons:seasons ( name )')
+    .in('id', ids);
+  if (tsErr) return { data: [], error: tsErr.message };
+
+  const options: PlayerSeasonOption[] = [];
+  for (const raw of rows ?? []) {
+    const row = raw as {
+      id: string;
+      status?: string | null;
+      display_name?: string | null;
+      age_group?: string | null;
+      seasons?: { name?: string } | { name?: string }[] | null;
+    };
+    const seasonJoin = Array.isArray(row.seasons) ? row.seasons[0] : row.seasons;
+    const seasonName = seasonJoin?.name?.trim() || null;
+    options.push({
+      teamSeasonId: String(row.id),
+      status: row.status ?? null,
+      seasonName,
+      ageGroup: row.age_group?.trim() || null,
+      label: formatTeamSeasonDisplayLabel(
+        {
+          displayName: row.display_name,
+          ageGroup: row.age_group,
+          seasonName,
+          status: row.status,
+        },
+        { markArchived: true },
+      ),
+    });
+  }
+
+  options.sort((a, b) => {
+    const an = a.seasonName ?? '';
+    const bn = b.seasonName ?? '';
+    return bn.localeCompare(an, 'de');
+  });
+  return { data: options, error: null };
+}
+
+async function aggregateMatchesForPlayer(
+  playerId: string,
+  matches: MatchRow[],
+): Promise<{ stats: PlayerSeasonStats; lastMatches: PlayerLastMatchRow[]; error: string | null }> {
+  if (matches.length === 0) {
+    return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: null };
+  }
+  const matchIds = matches.map((m) => m.id);
+  const [events, snapshots, lineupFallback] = await Promise.all([
+    fetchEventsForMatches(matchIds),
+    fetchKickoffSnapshots(matchIds),
+    fetchLineupFallbackPlayerSets(matchIds),
+  ]);
+  const { stats, lastMatches } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback);
+  return { stats, lastMatches, error: null };
+}
+
+/** Karriere: gültige finished Matches über alle Kader-Saisons derselben player_id. */
+export async function getPlayerCareerStatsBundle(
+  playerId: string,
+): Promise<{
+  stats: PlayerSeasonStats;
+  lastMatches: PlayerLastMatchRow[];
+  error: string | null;
+}> {
+  const { data: seasonIds, error: listErr } = await listPlayerTeamSeasonIds(playerId);
+  if (listErr) return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: listErr };
+  if (seasonIds.length === 0) {
+    return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: null };
+  }
+
+  const byId = new Map<string, MatchRow>();
+  for (const sid of seasonIds) {
+    const { data, error } = await fetchFinishedMatches(sid);
+    if (error) return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error };
+    for (const m of data) byId.set(m.id, m);
+  }
+
+  const matches = [...byId.values()].sort((a, b) => {
+    const da = a.match_date ?? '';
+    const db = b.match_date ?? '';
+    return db.localeCompare(da);
+  });
+
+  return aggregateMatchesForPlayer(playerId, matches);
+}
+
+/**
+ * Einheitlicher Stats-Einstieg für Profil.
+ * mode=season → teamSeasonId Pflicht; mode=career → Aggregation über player_id.
+ */
+export async function getPlayerStats(input: {
+  playerId: string;
+  mode: 'season' | 'career';
+  teamSeasonId?: string | null;
+}): Promise<{
+  stats: PlayerSeasonStats;
+  lastMatches: PlayerLastMatchRow[];
+  error: string | null;
+}> {
+  const pid = input.playerId?.trim();
+  if (!pid) return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: null };
+  if (input.mode === 'career') {
+    return getPlayerCareerStatsBundle(pid);
+  }
+  const tid = input.teamSeasonId?.trim();
+  if (!tid) return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: null };
+  return getPlayerProfileStatsBundle(pid, tid);
 }

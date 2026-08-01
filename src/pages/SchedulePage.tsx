@@ -24,6 +24,7 @@ import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions'
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { isMatchReviewPending } from '../lib/matchPreparationAccess';
+import { formatTeamSeasonDisplayLabel } from '../lib/seasonLifecycle';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
@@ -153,8 +154,20 @@ function ScheduleHeroToolbarAction({
 
 export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
-  const { teamLabel, teamLabelWithStatus, teamSeasonId, role: roleFromHook, loading: tsLoading, error: tsError } =
-    useActiveTeamSeason();
+  const {
+    teamLabel,
+    teamLabelWithStatus,
+    teamSeasonId,
+    readTeamSeasonId,
+    activeTeamSeasonId,
+    teamSeasons,
+    setViewTeamSeasonId,
+    isHistoryReadOnly,
+    softLockMessage,
+    role: roleFromHook,
+    loading: tsLoading,
+    error: tsError,
+  } = useActiveTeamSeason();
   const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
     usePublicTeamSeason();
   const { selectedMembership, user, selectedTeamSeason, isViewOnlyPlayer } = useSession();
@@ -914,21 +927,60 @@ export const SchedulePage: React.FC = () => {
                   {canManage ? (
                     <button
                       type="button"
-                      onClick={() => setCreateModalOpen(true)}
-                      disabled={!teamSeasonId}
+                      onClick={() => {
+                        if (isHistoryReadOnly) {
+                          window.alert(softLockMessage ?? 'Archivierte Saison: nur Lesen.');
+                          return;
+                        }
+                        setCreateModalOpen(true);
+                      }}
+                      disabled={!activeTeamSeasonId || isHistoryReadOnly}
                       className={`${dsSchedulePlusButtonClass()} h-8 w-8 shrink-0 text-[16px] leading-none`}
                       aria-label="Termin anlegen"
-                      title="Termin anlegen"
+                      title={isHistoryReadOnly ? softLockMessage ?? 'Archiv: nur Lesen' : 'Termin anlegen'}
                     >
                       +
                     </button>
                   ) : null}
                 </div>
-                <div
-                  className={`mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1 text-xs sm:text-sm ${dsSublineClass()}`}
-                  role="note"
-                >
-                  <span className="truncate">{teamSeasonSubtitle}</span>
+                <div className="mt-1.5 flex max-w-full flex-col gap-1.5">
+                  {teamSeasons.length > 1 ? (
+                    <label className="block min-w-0">
+                      <span className="sr-only">Saison anzeigen</span>
+                      <select
+                        value={readTeamSeasonId ?? ''}
+                        onChange={(e) => setViewTeamSeasonId(e.target.value || null)}
+                        className="w-full max-w-full truncate rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1.5 text-xs text-white/90 sm:text-sm"
+                        aria-label="Saison für Termine wählen"
+                      >
+                        {teamSeasons.map((ts) => (
+                          <option key={ts.id} value={ts.id}>
+                            {formatTeamSeasonDisplayLabel(
+                              {
+                                displayName: ts.display_name,
+                                ageGroup: ts.age_group,
+                                teamName: ts.team?.name,
+                                seasonName: ts.season?.name,
+                                status: ts.status,
+                              },
+                              { markArchived: true },
+                            )}
+                            {ts.id === activeTeamSeasonId ? ' — Aktuell' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    <div
+                      className={`inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1 text-xs sm:text-sm ${dsSublineClass()}`}
+                      role="note"
+                    >
+                      <span className="truncate">{teamSeasonSubtitle}</span>
+                    </div>
+                  )}
+                  {isHistoryReadOnly ? (
+                    <p className="text-[11px] text-amber-200/90">{softLockMessage}</p>
+                  ) : null}
                 </div>
               </div>
               <div className="flex shrink-0 flex-row items-center justify-end gap-1.5">
@@ -1379,7 +1431,7 @@ export const SchedulePage: React.FC = () => {
       <CreateEventModal
             isOpen={createModalOpen}
             onClose={() => setCreateModalOpen(false)}
-            teamSeasonId={teamSeasonId}
+            teamSeasonId={activeTeamSeasonId}
             onSuccess={refetch}
             eventType="match"
           />

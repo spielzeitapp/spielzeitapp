@@ -5,7 +5,7 @@ import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
-import { canPrepareNextSeason, formatTeamSeasonDisplayLabel } from '../lib/seasonLifecycle';
+import { canPrepareNextSeason, formatTeamSeasonDisplayLabel, isSeasonArchived, isSeasonActive, isSeasonDraft } from '../lib/seasonLifecycle';
 import { canViewParentLinks, normalizeRole } from '../lib/roles';
 import { dsGlassToggleTrack, dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
@@ -33,6 +33,8 @@ export const MoreHubPage: React.FC = () => {
     selectedTeamSeason,
     selectedTeamSeasonId,
     setSelectedTeamSeasonId,
+    viewTeamSeasonId,
+    setViewTeamSeasonId,
     teamSeasons,
     effectiveRole,
     backendRole,
@@ -332,13 +334,30 @@ export const MoreHubPage: React.FC = () => {
             Team / Saison
           </SectionTitle>
           <label className="mt-2 block text-[12px] text-white/60" htmlFor="mehr-team-switch">
-            Aktive Auswahl
+            Anzeige / Historie (Archiv ändert die aktive Saison nicht)
           </label>
           <select
             id="mehr-team-switch"
             className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
-            value={selectedTeamSeason?.id ?? ''}
-            onChange={(e) => setSelectedTeamSeasonId(e.target.value)}
+            value={viewTeamSeasonId ?? selectedTeamSeasonId ?? ''}
+            onChange={(e) => {
+              const id = e.target.value || null;
+              if (!id) {
+                setViewTeamSeasonId(null);
+                return;
+              }
+              const ts = (teamSeasons ?? []).find((row) => row.id === id);
+              if (!ts) return;
+              if (isSeasonArchived(ts.status)) {
+                setViewTeamSeasonId(id);
+                return;
+              }
+              if (isSeasonActive(ts.status) || isSeasonDraft(ts.status)) {
+                setSelectedTeamSeasonId(id);
+                return;
+              }
+              setViewTeamSeasonId(id);
+            }}
           >
             {(teamSeasons ?? []).map((ts) => (
               <option key={ts.id} value={ts.id}>
@@ -352,6 +371,7 @@ export const MoreHubPage: React.FC = () => {
                   },
                   { markArchived: true },
                 )}
+                {ts.id === selectedTeamSeasonId ? ' — Aktuell' : ''}
               </option>
             ))}
           </select>
