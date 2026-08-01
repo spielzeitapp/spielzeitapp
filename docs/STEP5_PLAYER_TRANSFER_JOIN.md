@@ -103,10 +103,21 @@ Nach erfolgreichem Abschluss zeigt die Saisonverwaltung weiter „ÖFB-Spielplan
 
 Kein ÖFB-Parser, kein Statistik-Saisonfilter-UI, kein Trainingsmodul, keine Live-Migration, `players.team_season_id` bleibt, keine LiveMatch-/Turnier-Engine-Änderungen, **kein main/Live**.
 
+## Bugfix: Join-first Read (historischer Kader)
+
+**Ursache:** `listRoster` konnte über Flag/localStorage auf Legacy (`players.team_season_id`) fallen.
+Nach Transfer zeigt Compat auf U12 → Soft-Lock-U11 UI = 0 trotz 15 Join-Zeilen.
+
+**Neue Regel:**
+1. Join-Read versuchen (außer Hard-Disable `VITE_ROSTER_JOIN_V1=false`)
+2. Erfolg → Join (auch Count 0)
+3. Nur bei technischem Fehlen der Join-Struktur → Legacy
+4. `localStorage` darf Join **nicht** abschalten
+
 ## Offene Risiken
 
 1. Staging-Smoke war SQL-äquivalent zum Upsert; UI-Wizard auf Staging nach Deploy noch einmal manuell klicken.
-2. Ohne Join-Flag (wenn explizit `false`) wäre Soft-Lock-U11-Kader nach Compat-Update unsichtbar — daher Default **true**.
+2. Hard-Disable via Env zeigt Soft-Lock-Kader weiterhin leer (bewusstes Notfall-Rollback).
 3. Parent/Player-Membership-Spiegelung im App-Transfer ist MVP (alle parent/player der Quelle); Teilauswahl filtert Memberships noch nicht fein.
 4. Live (`main`) hat dieses Modell noch nicht — kein Merge ohne eigenen Go-Live-Plan.
 

@@ -28,7 +28,7 @@ type UsePlayersOptions = {
 };
 
 /**
- * Kader-Hook. Liest über zentralen Roster-Service (Dual-Read via ROSTER_JOIN_V1).
+ * Kader-Hook. Liest über zentralen Roster-Service (Join-first / Legacy nur technischer Fallback).
  */
 export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOptions) {
   const mode: UsePlayersMode = options?.mode ?? "active";
