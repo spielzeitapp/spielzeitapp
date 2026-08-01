@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY: string;
   /** production | staging | development — steuert TEST-Badge und Config-Guards */
   readonly VITE_APP_ENV?: string;
+  /** STEP 3+: team_season_players Dual-Read (Default false) */
+  readonly VITE_ROSTER_JOIN_V1?: string;
   /** Optional: Fallback für Auth-Redirects ohne window (selten); Browser-Origin hat Vorrang */
   readonly VITE_APP_BASE_URL?: string;
   /** Öffentlicher VAPID-Key (Client); muss mit Server-Env VAPID_PUBLIC_KEY übereinstimmen */

@@ -32,3 +32,5 @@ team_season_players (team_season_id, player_id, …)
 Dann: Stamm bleibt stabil, Kader pro Saison unabhängig, alte Saison behält Roster.
 
 Keine Migration in diesem Step.
+
+Ausführlicher Plan (STEP 2.5): `docs/SEASON_ROSTER_MODEL.md`.
