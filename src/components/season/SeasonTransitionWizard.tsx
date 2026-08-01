@@ -77,13 +77,12 @@ export function SeasonTransitionWizard({
       if (!alive) return;
       setJoinAvailable(available);
 
-      const canTransferPlayers = mode === 'close_and_create' && available;
+      // Prepare und finaler Close: Join-Transfer erlaubt (Default an)
+      const canTransferPlayers = available;
       setOptions((prev) => ({
         ...prev,
         transferPlayers: canTransferPlayers,
       }));
-
-      if (mode !== 'close_and_create') return;
 
       const { data, error } = await listTransferCandidatePlayers(sourceTeamSeasonId);
       if (!alive) return;
@@ -104,7 +103,7 @@ export function SeasonTransitionWizard({
 
   const totalSteps = mode === 'close_and_create' ? 4 : 3;
   const archiveSource = mode === 'close_and_create';
-  const playerTransferEnabled = mode === 'close_and_create' && joinAvailable === true;
+  const playerTransferEnabled = joinAvailable === true;
 
   const toggle = (key: keyof SeasonTransferOptions) => {
     if (key === 'transferPlayers') {
@@ -144,7 +143,7 @@ export function SeasonTransitionWizard({
           Schritt {step} von {totalSteps}
         </p>
         <h3 className="mt-1 text-[15px] font-bold text-white">
-          {mode === 'prepare' ? 'Neue Saison vorbereiten' : 'Saison abschließen und neue erstellen'}
+          {mode === 'prepare' ? 'Neue Saison vorbereiten' : 'Saisonwechsel abschließen'}
         </h3>
       </div>
 
@@ -208,9 +207,7 @@ export function SeasonTransitionWizard({
               ['copyAliases', 'Team-Aliase'],
             ] as const
           ).map(([key, label]) => {
-            const disabled =
-              (mode === 'prepare' && key === 'transferPlayers') ||
-              (key === 'transferPlayers' && !playerTransferEnabled);
+            const disabled = key === 'transferPlayers' && !playerTransferEnabled;
             return (
               <label
                 key={key}
@@ -228,18 +225,19 @@ export function SeasonTransitionWizard({
                 />
                 <span>
                   {label}
-                  {key === 'transferPlayers' && mode === 'prepare' ? (
-                    <span className="mt-0.5 block text-[11px] text-amber-200/80">
-                      Beim Vorbereiten bleiben die Spieler in der aktuellen Saison.
+                  {key === 'transferPlayers' && mode === 'prepare' && playerTransferEnabled ? (
+                    <span className="mt-0.5 block text-[11px] text-white/45">
+                      Spieler behalten ihr Profil. Die aktuelle Saison bleibt aktiv — der Kader wird nur
+                      für die neue Saison vorbereitet.
                     </span>
                   ) : null}
-                  {key === 'transferPlayers' && mode === 'close_and_create' && joinAvailable === false ? (
+                  {key === 'transferPlayers' && joinAvailable === false ? (
                     <span className="mt-0.5 block text-[11px] text-amber-200/80">
                       Spielerübernahme ist hier noch nicht freigeschaltet. Bitte Administrator
                       kontaktieren.
                     </span>
                   ) : null}
-                  {key === 'transferPlayers' && playerTransferEnabled ? (
+                  {key === 'transferPlayers' && mode === 'close_and_create' && playerTransferEnabled ? (
                     <span className="mt-0.5 block text-[11px] text-white/45">
                       Spieler behalten ihr Profil. Der alte Kader bleibt in der abgeschlossenen Saison
                       sichtbar. Keine Stats werden kopiert.
@@ -369,11 +367,8 @@ export function SeasonTransitionWizard({
                 ageGroup: ageGroup.trim(),
                 options: {
                   ...options,
-                  transferPlayers: mode === 'close_and_create' ? options.transferPlayers : false,
-                  selectedPlayerIds:
-                    mode === 'close_and_create' && options.transferPlayers
-                      ? [...selectedIds]
-                      : [],
+                  transferPlayers: options.transferPlayers,
+                  selectedPlayerIds: options.transferPlayers ? [...selectedIds] : [],
                 },
                 confirmArchiveSource: archiveSource && confirmArchive,
               })
@@ -383,7 +378,7 @@ export function SeasonTransitionWizard({
               ? 'Wird ausgeführt…'
               : mode === 'prepare'
                 ? 'Neue Saison vorbereiten'
-                : 'Saison abschließen und neue erstellen'}
+                : 'Saisonwechsel abschließen'}
           </PremiumButton>
         )}
       </div>
