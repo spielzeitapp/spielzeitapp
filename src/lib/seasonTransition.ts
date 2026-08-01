@@ -623,6 +623,12 @@ export async function prepareSeasonDraftWithOptions(
   });
 
   if (!transfer.ok) {
+    console.error('[seasonTransition] prepare transfer failed', {
+      operation: 'applySeasonTransfer',
+      message: transfer.message,
+      sourceTeamSeasonId: input.sourceTeamSeasonId,
+      targetTeamSeasonId: prepared.draftTeamSeasonId,
+    });
     return { ...prepared, transferError: transfer.message };
   }
 

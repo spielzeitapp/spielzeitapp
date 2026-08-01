@@ -209,6 +209,13 @@ async function resolveOrCreateSeasonId(
     .maybeSingle();
 
   if (findErr) {
+    console.error('[seasonPreparation] seasons.select failed', {
+      operation: 'seasons.select',
+      table: 'seasons',
+      code: findErr.code,
+      message: findErr.message,
+      seasonName: name,
+    });
     return { error: findErr.message };
   }
   if (existing?.id) {
@@ -222,9 +229,31 @@ async function resolveOrCreateSeasonId(
     .single();
 
   if (insErr) {
-    const { data: retry } = await supabase.from('seasons').select('id').eq('name', name).maybeSingle();
+    console.error('[seasonPreparation] seasons.insert failed', {
+      operation: 'seasons.insert',
+      table: 'seasons',
+      code: insErr.code,
+      message: insErr.message,
+      seasonName: name,
+    });
+    // Race / RLS-RETURNING: erneut lesen
+    const { data: retry, error: retryErr } = await supabase
+      .from('seasons')
+      .select('id')
+      .eq('name', name)
+      .limit(1)
+      .maybeSingle();
     if (retry?.id) {
       return { seasonId: String(retry.id), created: false };
+    }
+    if (retryErr) {
+      console.error('[seasonPreparation] seasons.select retry failed', {
+        operation: 'seasons.select_retry',
+        table: 'seasons',
+        code: retryErr.code,
+        message: retryErr.message,
+        seasonName: name,
+      });
     }
     return { error: insErr.message };
   }
@@ -353,11 +382,16 @@ export async function prepareNextSeasonDraft(
 
   if (insertErr || !draftRow?.id) {
     console.error('[seasonPreparation] team_seasons.insert failed', {
-      message: insertErr?.message,
+      operation: 'team_seasons.insert',
+      table: 'team_seasons',
       code: insertErr?.code,
+      message: insertErr?.message,
       details: insertErr?.details,
       hint: insertErr?.hint,
-      payload: insertPayload,
+      sourceTeamSeasonId: current.id,
+      teamId: current.team_id,
+      seasonId: seasonResolved.seasonId,
+      status: 'draft',
     });
     return {
       ok: false,
@@ -395,7 +429,16 @@ export async function prepareNextSeasonDraft(
         role,
       });
       if (memErr && !/duplicate|unique|already exists/i.test(memErr.message ?? '')) {
-        console.warn('[seasonPreparation] draft membership insert', memErr.message);
+        console.error('[seasonPreparation] memberships.insert failed', {
+          operation: 'memberships.insert',
+          table: 'memberships',
+          code: memErr.code,
+          message: memErr.message,
+          sourceTeamSeasonId: current.id,
+          targetTeamSeasonId: draftId,
+          teamId: current.team_id,
+          role,
+        });
       }
     }
   } catch (err) {
