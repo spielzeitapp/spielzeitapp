@@ -217,8 +217,9 @@ function formatFutureEventCandidateLabel(row: {
 
 /**
  * Zukünftige Termine einer Saison (Kandidaten für Übernahme in die neue Saison).
- * Kriterium: starts_at >= asOf (Default: jetzt), Status nicht canceled.
- * Vergangene Events/Matches bleiben bewusst draußen.
+ * Kriterium: starts_at >= asOf (Default: jetzt).
+ * Alle Arten (training / match|game / tournament / event / other), sofern nicht
+ * canceled|finished|deleted. Vergangene Termine und beendete Matches bleiben draußen.
  */
 export async function listFutureEventsForSeasonTransfer(
   sourceTeamSeasonId: string,
@@ -247,7 +248,14 @@ export async function listFutureEventsForSeasonTransfer(
     const st = String((row as { status?: string }).status ?? '')
       .trim()
       .toLowerCase();
-    return st !== 'canceled' && st !== 'cancelled' && st !== 'deleted';
+    // Nur noch bevorstehende Termine: keine abgebrochenen/beendeten Matches/Events.
+    return (
+      st !== 'canceled' &&
+      st !== 'cancelled' &&
+      st !== 'deleted' &&
+      st !== 'finished' &&
+      st !== 'archived'
+    );
   }) as Array<{
     id: string;
     type?: string | null;

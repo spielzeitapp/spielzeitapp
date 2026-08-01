@@ -115,6 +115,11 @@ export const SeasonManagementPage: React.FC = () => {
   const [carrySelected, setCarrySelected] = useState<Set<string>>(new Set());
   const [carryLoading, setCarryLoading] = useState(false);
   const [carryError, setCarryError] = useState<string | null>(null);
+  /** Auswahl aus Prepare-Wizard: Carry-over Intent für Finalize. */
+  const [pendingFutureEventCarry, setPendingFutureEventCarry] = useState<{
+    enabled: boolean;
+    eventIds: string[];
+  } | null>(null);
 
   const reload = useCallback(async (teamSeasonIdOverride?: string | null) => {
     const id = teamSeasonIdOverride ?? selectedTeamSeasonId;
@@ -218,6 +223,10 @@ export const SeasonManagementPage: React.FC = () => {
     if (!window.confirm(FINALIZE_CONFIRM)) return;
 
     setBusy(true);
+    const carryEnabled = pendingFutureEventCarry?.enabled !== false;
+    const carryIds = pendingFutureEventCarry
+      ? pendingFutureEventCarry.eventIds
+      : null; // null = alle Kandidaten (Fallback ohne Prepare-Auswahl)
     const res = await completeSeasonTransition({
       sourceTeamSeasonId: activeId,
       existingDraftTeamSeasonId: draftId,
@@ -226,8 +235,8 @@ export const SeasonManagementPage: React.FC = () => {
         // Join-Upsert ist idempotent — sichert Kader/Staff nochmals ab
         transferPlayers: true,
         selectedPlayerIds: null,
-        transferFutureEvents: true,
-        selectedEventIds: null,
+        transferFutureEvents: carryEnabled,
+        selectedEventIds: carryEnabled ? carryIds : [],
       },
       confirmArchiveSource: true,
     });
@@ -238,6 +247,7 @@ export const SeasonManagementPage: React.FC = () => {
       return;
     }
 
+    setPendingFutureEventCarry(null);
     await reloadSessionTeamSeasons(res.newTeamSeasonId);
     setSuccessMsg('Saisonwechsel abgeschlossen. Du bist jetzt in der neuen Saison.');
     setShowOefbHint(true);
@@ -278,6 +288,12 @@ export const SeasonManagementPage: React.FC = () => {
         'Neue Saison vorbereitet. Die aktuelle Saison bleibt aktiv — du kannst den Wechsel später abschließen.',
       );
     }
+    setPendingFutureEventCarry({
+      enabled: result.options.transferFutureEvents === true,
+      eventIds: Array.isArray(result.options.selectedEventIds)
+        ? result.options.selectedEventIds.map((id) => String(id).trim()).filter(Boolean)
+        : [],
+    });
     setShowPrepareWizard(false);
     await reload();
   };
