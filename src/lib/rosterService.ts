@@ -207,49 +207,50 @@ async function listRosterJoin(
 
   if (error) return { data: [], error: error.message };
 
-  const base: RosterPlayer[] = ((data ?? []) as Array<Record<string, unknown>>)
-    .map((row) => {
-      const pRaw = row.players;
-      const p = (Array.isArray(pRaw) ? pRaw[0] : pRaw) as Record<string, unknown> | null | undefined;
-      if (!p?.id && !row.player_id) return null;
-      const first = p?.first_name != null ? String(p.first_name) : null;
-      const last = p?.last_name != null ? String(p.last_name) : null;
-      const status = normalizeStatus(
-        row.status != null ? String(row.status) : null,
-        row.is_active as boolean | null | undefined,
-      );
-      return {
-        id: String(p?.id ?? row.player_id),
-        team_season_id: String(row.team_season_id),
-        first_name: first,
-        last_name: last,
-        jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
-        position: row.position != null ? String(row.position).trim() || null : null,
-        birthdate: null,
-        avatar_url: null,
-        cutout_url: p?.cutout_url != null ? String(p.cutout_url).trim() || null : null,
-        is_active: row.is_active !== false,
-        status,
-        is_laz_player: row.is_laz_player === true,
-        is_injured: p?.is_injured === true,
-        injured_since: p?.injured_since != null ? String(p.injured_since) : null,
-        injured_until: p?.injured_until != null ? String(p.injured_until) : null,
-        display_name: displayName(first, last),
-      } satisfies RosterPlayer;
-    })
-    .filter((x): x is RosterPlayer => x != null)
-    .sort((a, b) => {
-      const ja = a.jersey_number;
-      const jb = b.jersey_number;
-      if (ja != null && jb != null && ja !== jb) return ja - jb;
-      if (ja != null && jb == null) return -1;
-      if (ja == null && jb != null) return 1;
-      const ln = (a.last_name ?? '').localeCompare(b.last_name ?? '', 'de');
-      if (ln !== 0) return ln;
-      return (a.first_name ?? '').localeCompare(b.first_name ?? '', 'de');
+  const mapped: RosterPlayer[] = [];
+  for (const raw of (data ?? []) as unknown[]) {
+    const row = raw as Record<string, unknown>;
+    const pRaw = row.players;
+    const p = (Array.isArray(pRaw) ? pRaw[0] : pRaw) as Record<string, unknown> | null | undefined;
+    if (!p?.id && !row.player_id) continue;
+    const first = p?.first_name != null ? String(p.first_name) : null;
+    const last = p?.last_name != null ? String(p.last_name) : null;
+    const status = normalizeStatus(
+      row.status != null ? String(row.status) : null,
+      row.is_active as boolean | null | undefined,
+    );
+    mapped.push({
+      id: String(p?.id ?? row.player_id),
+      team_season_id: String(row.team_season_id),
+      first_name: first,
+      last_name: last,
+      jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
+      position: row.position != null ? String(row.position).trim() || null : null,
+      birthdate: null,
+      avatar_url: null,
+      cutout_url: p?.cutout_url != null ? String(p.cutout_url).trim() || null : null,
+      is_active: row.is_active !== false,
+      status,
+      is_laz_player: row.is_laz_player === true,
+      is_injured: p?.is_injured === true,
+      injured_since: p?.injured_since != null ? String(p.injured_since) : null,
+      injured_until: p?.injured_until != null ? String(p.injured_until) : null,
+      display_name: displayName(first, last),
     });
+  }
 
-  return enrichAvatarsAndBirthdates(base);
+  mapped.sort((a, b) => {
+    const ja = a.jersey_number;
+    const jb = b.jersey_number;
+    if (ja != null && jb != null && ja !== jb) return ja - jb;
+    if (ja != null && jb == null) return -1;
+    if (ja == null && jb != null) return 1;
+    const ln = (a.last_name ?? '').localeCompare(b.last_name ?? '', 'de');
+    if (ln !== 0) return ln;
+    return (a.first_name ?? '').localeCompare(b.first_name ?? '', 'de');
+  });
+
+  return enrichAvatarsAndBirthdates(mapped);
 }
 
 /**

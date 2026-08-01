@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   computeNextAgeGroup,
   computeNextSeasonName,
@@ -7,7 +7,10 @@ import {
 import {
   DEFAULT_SEASON_TRANSFER_OPTIONS,
   describeTransferForConfirm,
+  isTeamSeasonPlayersAvailable,
+  listTransferCandidatePlayers,
   type SeasonTransferOptions,
+  type TransferCandidatePlayer,
 } from '../../lib/seasonTransition';
 import { PremiumButton, PremiumCard } from '../../ui';
 import { cn } from '../../ui/lib/cn';
@@ -16,6 +19,7 @@ export type SeasonTransitionMode = 'prepare' | 'close_and_create';
 
 type Props = {
   mode: SeasonTransitionMode;
+  sourceTeamSeasonId: string;
   sourceSeasonName: string | null;
   sourceAgeGroup: string | null;
   sourceTeamName: string | null;
@@ -33,6 +37,7 @@ const AGE_PRESETS = ['U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16'
 
 export function SeasonTransitionWizard({
   mode,
+  sourceTeamSeasonId,
   sourceSeasonName,
   sourceAgeGroup,
   sourceTeamName,
@@ -55,21 +60,73 @@ export function SeasonTransitionWizard({
   const [step, setStep] = useState(1);
   const [seasonName, setSeasonName] = useState(defaultSeason);
   const [ageGroup, setAgeGroup] = useState(defaultAge);
+  const [joinAvailable, setJoinAvailable] = useState<boolean | null>(null);
+  const [candidates, setCandidates] = useState<TransferCandidatePlayer[]>([]);
+  const [candidatesError, setCandidatesError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [options, setOptions] = useState<SeasonTransferOptions>({
     ...DEFAULT_SEASON_TRANSFER_OPTIONS,
-    // Spieler-Transfer leert den Kader der Quell-Saison (players.team_season_id).
-    // Prepare: nie. Close+Create: opt-in mit Warnung — Default aus.
     transferPlayers: false,
   });
   const [confirmArchive, setConfirmArchive] = useState(false);
 
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const available = await isTeamSeasonPlayersAvailable();
+      if (!alive) return;
+      setJoinAvailable(available);
+
+      const canTransferPlayers = mode === 'close_and_create' && available;
+      setOptions((prev) => ({
+        ...prev,
+        transferPlayers: canTransferPlayers,
+      }));
+
+      if (mode !== 'close_and_create') return;
+
+      const { data, error } = await listTransferCandidatePlayers(sourceTeamSeasonId);
+      if (!alive) return;
+      if (error) {
+        setCandidatesError(error);
+        setCandidates([]);
+        setSelectedIds(new Set());
+        return;
+      }
+      setCandidatesError(null);
+      setCandidates(data);
+      setSelectedIds(new Set(data.map((p) => p.id)));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [mode, sourceTeamSeasonId]);
+
   const totalSteps = mode === 'close_and_create' ? 4 : 3;
   const archiveSource = mode === 'close_and_create';
+  const playerTransferEnabled = mode === 'close_and_create' && joinAvailable === true;
 
   const toggle = (key: keyof SeasonTransferOptions) => {
-    if (mode === 'prepare' && key === 'transferPlayers') return;
+    if (key === 'transferPlayers') {
+      if (!playerTransferEnabled) return;
+      setOptions((prev) => ({ ...prev, transferPlayers: !prev.transferPlayers }));
+      return;
+    }
+    if (key === 'selectedPlayerIds') return;
     setOptions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  const togglePlayer = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllPlayers = () => setSelectedIds(new Set(candidates.map((p) => p.id)));
+  const selectNoPlayers = () => setSelectedIds(new Set());
 
   const canNext =
     step === 1
@@ -140,7 +197,7 @@ export function SeasonTransitionWizard({
       ) : null}
 
       {step === 3 ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-sm text-white/70">Aus der bestehenden Mannschaft übernehmen</p>
           {(
             [
@@ -151,7 +208,9 @@ export function SeasonTransitionWizard({
               ['copyAliases', 'Team-Aliase'],
             ] as const
           ).map(([key, label]) => {
-            const disabled = mode === 'prepare' && key === 'transferPlayers';
+            const disabled =
+              (mode === 'prepare' && key === 'transferPlayers') ||
+              (key === 'transferPlayers' && !playerTransferEnabled);
             return (
               <label
                 key={key}
@@ -174,17 +233,76 @@ export function SeasonTransitionWizard({
                       Beim Vorbereiten bleiben die Spieler in der aktuellen Saison.
                     </span>
                   ) : null}
-                  {key === 'transferPlayers' && mode === 'close_and_create' ? (
+                  {key === 'transferPlayers' && mode === 'close_and_create' && joinAvailable === false ? (
                     <span className="mt-0.5 block text-[11px] text-amber-200/80">
-                      Hinweis: Die Spieler erscheinen danach im Kader der neuen Saison. In der
-                      abgeschlossenen Saison ist die Spielerliste dann leer — Spiele und Statistiken
-                      bleiben trotzdem sichtbar. Empfohlen: vorerst auslassen.
+                      Spielerübernahme ist hier noch nicht freigeschaltet. Bitte Administrator
+                      kontaktieren.
+                    </span>
+                  ) : null}
+                  {key === 'transferPlayers' && playerTransferEnabled ? (
+                    <span className="mt-0.5 block text-[11px] text-white/45">
+                      Spieler behalten ihr Profil. Der alte Kader bleibt in der abgeschlossenen Saison
+                      sichtbar. Keine Stats werden kopiert.
                     </span>
                   ) : null}
                 </span>
               </label>
             );
           })}
+
+          {playerTransferEnabled && options.transferPlayers ? (
+            <div className="space-y-2 rounded-xl border border-white/10 bg-black/25 px-3 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-white/85">
+                  Spieler auswählen ({selectedIds.size}/{candidates.length})
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="text-[11px] font-semibold text-emerald-200/90 underline-offset-2 hover:underline"
+                    onClick={selectAllPlayers}
+                  >
+                    Alle
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[11px] font-semibold text-white/55 underline-offset-2 hover:underline"
+                    onClick={selectNoPlayers}
+                  >
+                    Keine
+                  </button>
+                </div>
+              </div>
+              {candidatesError ? (
+                <p className="text-[12px] text-red-300" role="alert">
+                  {candidatesError}
+                </p>
+              ) : null}
+              <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
+                {candidates.map((p) => (
+                  <li key={p.id}>
+                    <label className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm text-white/85 hover:bg-white/[0.04]">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(p.id)}
+                        onChange={() => togglePlayer(p.id)}
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        {p.jersey_number != null ? (
+                          <span className="mr-1.5 tabular-nums text-white/45">#{p.jersey_number}</span>
+                        ) : null}
+                        {p.display_name}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              {candidates.length === 0 && !candidatesError ? (
+                <p className="text-[12px] text-white/45">Kein aktiver Kader in der Quell-Saison.</p>
+              ) : null}
+            </div>
+          ) : null}
+
           <p className="text-[11px] text-white/40">
             Nicht übernommen: Spiele, Trainings, Turniere, Ergebnisse und Live-Daten.
           </p>
@@ -193,7 +311,15 @@ export function SeasonTransitionWizard({
 
       {step === 4 && mode === 'close_and_create' ? (
         <div className="space-y-3">
-          <p className="text-sm leading-snug text-white/75">{describeTransferForConfirm(options, true)}</p>
+          <p className="text-sm leading-snug text-white/75">
+            {describeTransferForConfirm(
+              {
+                ...options,
+                selectedPlayerIds: options.transferPlayers ? [...selectedIds] : [],
+              },
+              true,
+            )}
+          </p>
           <label className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-950/25 px-3 py-2.5 text-sm text-amber-50">
             <input
               type="checkbox"
@@ -209,34 +335,34 @@ export function SeasonTransitionWizard({
       ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-                <PremiumButton
-                  type="button"
-                  variant="interactive"
-                  fullWidth
-                  disabled={busy}
-                  onClick={() => {
-                    if (step <= 1) onCancel();
-                    else setStep((s) => s - 1);
-                  }}
-                >
-                  {step <= 1 ? 'Abbrechen' : 'Zurück'}
-                </PremiumButton>
-                {step < totalSteps ? (
-                  <PremiumButton
-                    type="button"
-                    variant="default"
-                    fullWidth
-                    disabled={!canNext || busy}
-                    onClick={() => setStep((s) => s + 1)}
-                  >
-                    Weiter
-                  </PremiumButton>
-                ) : (
-                  <PremiumButton
-                    type="button"
-                    variant="default"
-                    fullWidth
-                    disabled={!canNext || busy}
+        <PremiumButton
+          type="button"
+          variant="interactive"
+          fullWidth
+          disabled={busy}
+          onClick={() => {
+            if (step <= 1) onCancel();
+            else setStep((s) => s - 1);
+          }}
+        >
+          {step <= 1 ? 'Abbrechen' : 'Zurück'}
+        </PremiumButton>
+        {step < totalSteps ? (
+          <PremiumButton
+            type="button"
+            variant="default"
+            fullWidth
+            disabled={!canNext || busy}
+            onClick={() => setStep((s) => s + 1)}
+          >
+            Weiter
+          </PremiumButton>
+        ) : (
+          <PremiumButton
+            type="button"
+            variant="default"
+            fullWidth
+            disabled={!canNext || busy}
             onClick={() =>
               onConfirm({
                 seasonName: seasonName.trim(),
@@ -244,6 +370,10 @@ export function SeasonTransitionWizard({
                 options: {
                   ...options,
                   transferPlayers: mode === 'close_and_create' ? options.transferPlayers : false,
+                  selectedPlayerIds:
+                    mode === 'close_and_create' && options.transferPlayers
+                      ? [...selectedIds]
+                      : [],
                 },
                 confirmArchiveSource: archiveSource && confirmArchive,
               })
