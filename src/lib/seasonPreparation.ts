@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 import {
-  buildDraftSeasonDisplayName,
+  buildPreparedSeasonDisplayName,
   computeNextAgeGroup,
   computeNextAgeGroupFromSource,
   computeNextSeasonName,
@@ -312,14 +312,13 @@ export async function prepareNextSeasonDraft(
   const overrideSeason = overrides?.seasonName?.trim() || null;
   const nextSeasonName =
     overrideSeason || (seasonRaw ? computeNextSeasonName(seasonRaw) : '');
-  const displayName = buildDraftSeasonDisplayName({
-    ...labelSource,
-    ageGroup: overrideAge || ageInfo.current || labelSource.ageGroup,
-    seasonName: seasonRaw || labelSource.seasonName,
-  }).replace(
-    /Saison .+$/,
-    `Saison ${nextSeasonName || '—'}`,
-  );
+  // Ziel-Altersklasse/Saison sind Source of Truth (Wizard-Override oder Default) —
+  // Display-Name darf sie nicht nochmals hochzählen (sonst U12-Auswahl → „U13 …“).
+  const displayName = buildPreparedSeasonDisplayName({
+    teamName: labelSource.teamName,
+    targetAgeGroup: nextAgeGroup,
+    targetSeasonName: nextSeasonName || '—',
+  });
 
   if (!nextSeasonName) {
     return {
