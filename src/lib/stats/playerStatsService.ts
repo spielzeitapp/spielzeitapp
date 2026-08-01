@@ -1,6 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { fetchValidSeasonMatchIds } from '../seasonMatchStats';
-import { formatTeamSeasonDisplayLabel } from '../seasonLifecycle';
+import { formatTeamSeasonDisplayLabel, resolveCurrentAgeGroup } from '../seasonLifecycle';
 import {
   computePlayerPlaytimeFromEvents,
   FIELD_SLOT_ORDER,
@@ -597,7 +597,7 @@ export async function listPlayerSeasonOptions(
 
   const { data: rows, error: tsErr } = await supabase
     .from('team_seasons')
-    .select('id, status, display_name, age_group, seasons:seasons ( name )')
+    .select('id, status, display_name, age_group, seasons:seasons ( name ), teams:teams ( name, age_group )')
     .in('id', ids);
   if (tsErr) return { data: [], error: tsErr.message };
 
@@ -609,18 +609,31 @@ export async function listPlayerSeasonOptions(
       display_name?: string | null;
       age_group?: string | null;
       seasons?: { name?: string } | { name?: string }[] | null;
+      teams?: { name?: string; age_group?: string | null } | { name?: string; age_group?: string | null }[] | null;
     };
     const seasonJoin = Array.isArray(row.seasons) ? row.seasons[0] : row.seasons;
+    const teamJoin = Array.isArray(row.teams) ? row.teams[0] : row.teams;
     const seasonName = seasonJoin?.name?.trim() || null;
+    // Altersklasse nur aus DIESER team_season (+ deren Team-Join), nie aus der aktiven Session.
+    // Archivierte U11: age_group/display_name oft NULL → Parse aus teams.name der Zeile.
+    const ageGroup =
+      resolveCurrentAgeGroup({
+        ageGroup: row.age_group,
+        displayName: row.display_name,
+        teamName: teamJoin?.name,
+      }) ||
+      resolveCurrentAgeGroup({ ageGroup: teamJoin?.age_group }) ||
+      null;
     options.push({
       teamSeasonId: String(row.id),
       status: row.status ?? null,
       seasonName,
-      ageGroup: row.age_group?.trim() || null,
+      ageGroup,
       label: formatTeamSeasonDisplayLabel(
         {
           displayName: row.display_name,
-          ageGroup: row.age_group,
+          ageGroup,
+          teamName: teamJoin?.name,
           seasonName,
           status: row.status,
         },
