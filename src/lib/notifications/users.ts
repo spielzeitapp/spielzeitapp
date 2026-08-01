@@ -3,19 +3,35 @@ import { dedupeRecipientUserIds } from './pending';
 
 /**
  * Spieler-IDs dieses Users, die im Kader dieser team_season sind (Guardian + player_users).
+ * Kader: team_season_players (Fallback: players.team_season_id).
  */
 export async function fetchPlayerIdsForUserInTeamSeason(
   admin: SupabaseClient,
   userId: string,
   teamSeasonId: string,
 ): Promise<string[]> {
-  const { data: players, error: pErr } = await admin
-    .from('players')
-    .select('id')
+  let rosterIds = new Set<string>();
+
+  const { data: joinRows, error: joinErr } = await admin
+    .from('team_season_players')
+    .select('player_id')
     .eq('team_season_id', teamSeasonId)
-    .eq('is_active', true);
-  if (pErr) throw pErr;
-  const rosterIds = new Set((players ?? []).map((p: { id: string }) => p.id));
+    .is('left_at', null);
+
+  if (!joinErr && joinRows && joinRows.length > 0) {
+    rosterIds = new Set(
+      (joinRows as Array<{ player_id: string }>).map((r) => r.player_id).filter(Boolean),
+    );
+  } else {
+    // Compat / Tabelle fehlt / leer
+    const { data: players, error: pErr } = await admin
+      .from('players')
+      .select('id')
+      .eq('team_season_id', teamSeasonId)
+      .eq('is_active', true);
+    if (pErr) throw pErr;
+    rosterIds = new Set((players ?? []).map((p: { id: string }) => p.id));
+  }
 
   const { data: g, error: gErr } = await admin
     .from('player_guardians')
