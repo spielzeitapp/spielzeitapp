@@ -1,7 +1,12 @@
 import React from 'react';
 import { useSession } from '../../auth/useSession';
 import type { SessionTeamSeasonItem } from '../../auth/useSession';
-import { formatTeamSeasonDisplayLabel } from '../../lib/seasonLifecycle';
+import {
+  formatTeamSeasonDisplayLabel,
+  isSeasonActive,
+  isSeasonArchived,
+  isSeasonDraft,
+} from '../../lib/seasonLifecycle';
 
 function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
   return formatTeamSeasonDisplayLabel(
@@ -16,11 +21,17 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
   );
 }
 
+/**
+ * Wechselt die aktive Arbeitssaison (Write).
+ * Archiv-Auswahl setzt nur die View-Saison — active bleibt unverändert.
+ */
 export const TeamSwitcher: React.FC = () => {
   const {
     teamSeasons,
     selectedTeamSeasonId,
     setSelectedTeamSeasonId,
+    viewTeamSeasonId,
+    setViewTeamSeasonId,
   } = useSession();
 
   if (teamSeasons.length === 0) {
@@ -31,12 +42,32 @@ export const TeamSwitcher: React.FC = () => {
     );
   }
 
-  const value = selectedTeamSeasonId ?? '';
+  // Anzeige: View-Saison (kann Archiv sein), ohne active zu überschreiben.
+  const value = viewTeamSeasonId ?? selectedTeamSeasonId ?? '';
+
+  const onChange = (raw: string) => {
+    const id = raw || null;
+    if (!id) {
+      setViewTeamSeasonId(null);
+      return;
+    }
+    const ts = teamSeasons.find((row) => row.id === id);
+    if (!ts) return;
+    if (isSeasonArchived(ts.status)) {
+      setViewTeamSeasonId(id);
+      return;
+    }
+    if (isSeasonActive(ts.status) || isSeasonDraft(ts.status)) {
+      setSelectedTeamSeasonId(id);
+      return;
+    }
+    setViewTeamSeasonId(id);
+  };
 
   return (
     <select
       value={value}
-      onChange={(e) => setSelectedTeamSeasonId(e.target.value || null)}
+      onChange={(e) => onChange(e.target.value)}
       className="inline-flex max-w-full min-w-0 appearance-none items-center gap-1 rounded-full border border-[var(--border)] bg-slate-900/60 px-3 py-1 text-xs font-medium text-[var(--text)] shadow-sm truncate text-left"
       aria-label="Team/Saison wählen"
     >

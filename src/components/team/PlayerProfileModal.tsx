@@ -9,10 +9,14 @@ import { ProfileStatTile } from "./ProfileStatTile";
 import { PLAYER_STAT_TILES } from "./profile/profileStatIcons";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { updatePlayerMasterFlags } from "../../lib/rosterService";
-import { usePlayerStats } from "../../hooks/usePlayerStats";
+import { usePlayerStats, type PlayerStatsMode } from "../../hooks/usePlayerStats";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
+import {
+  listPlayerSeasonOptions,
+  type PlayerSeasonOption,
+} from "../../lib/stats/playerStatsService";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
 import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
 import {
@@ -491,26 +495,62 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const [lazError, setLazError] = useState<string | null>(null);
   const [injuredError, setInjuredError] = useState<string | null>(null);
   const [saveToastVisible, setSaveToastVisible] = useState(false);
+  const [seasonOptions, setSeasonOptions] = useState<PlayerSeasonOption[]>([]);
+  /** null = career/gesamt; sonst team_season_id */
+  const [statsFilterId, setStatsFilterId] = useState<string | null>(teamSeasonId ?? player.team_season_id ?? null);
+  const [statsMode, setStatsMode] = useState<PlayerStatsMode>("season");
+
   const { canViewForPlayer } = useTrainingParticipationAccess(role);
   const canViewTrainingParticipation = canViewForPlayer(player.id);
   const visibleTabs = useMemo(
     () => TAB_CONFIG.filter((t) => t.id !== "training" || canViewTrainingParticipation),
     [canViewTrainingParticipation],
   );
+
+  useEffect(() => {
+    const defaultId = (teamSeasonId ?? player.team_season_id ?? "").trim() || null;
+    setStatsFilterId(defaultId);
+    setStatsMode("season");
+  }, [player.id, teamSeasonId, player.team_season_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data } = await listPlayerSeasonOptions(player.id);
+      if (cancelled) return;
+      setSeasonOptions(data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [player.id]);
+
+  const careerSeasonIds = useMemo(
+    () => seasonOptions.map((o) => o.teamSeasonId),
+    [seasonOptions],
+  );
+
+  const statsSeasonId = statsMode === "season" ? statsFilterId : null;
   const { data: stats, lastMatches, isLoading: statsLoading, error: statsError } = usePlayerStats(
     player.id,
-    player.team_season_id,
+    statsSeasonId,
+    statsMode,
   );
   const {
     stats: trainingStats,
     loading: trainingStatsLoading,
     error: trainingStatsError,
-  } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
+  } = usePlayerTrainingStats(player.id, statsSeasonId, canViewTrainingParticipation, {
+    mode: statsMode,
+    careerSeasonIds,
+  });
 
+  const rankingSeasonId =
+    statsMode === "season" ? statsFilterId ?? teamSeasonId ?? player.team_season_id : teamSeasonId ?? player.team_season_id;
   const { sessionsCount, teamParticipationPct, qualified, loading: teamRankingLoading } = useTeamTrainingRanking(
     squadPlayers,
-    player.team_season_id,
-    canViewTrainingParticipation,
+    rankingSeasonId,
+    canViewTrainingParticipation && statsMode === "season",
   );
   const squadParticipationPct = teamParticipationPct;
   const pastTeamTrainings = sessionsCount > 0 ? sessionsCount : trainingStats.sessionsCounted;
@@ -521,9 +561,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   }, [qualified, player.id]);
 
   const seasonStatSub = useMemo(() => {
+    if (statsMode === "career") return "Gesamt / Karriere";
+    const opt = seasonOptions.find((o) => o.teamSeasonId === statsFilterId);
+    if (opt?.seasonName) return `Saison ${opt.seasonName}`;
     const season = splitTeamSeasonLabel(teamSeasonLabel ?? "").season.trim();
     return season ? `Saison ${season}` : "Saison";
-  }, [teamSeasonLabel]);
+  }, [statsMode, seasonOptions, statsFilterId, teamSeasonLabel]);
 
   const profilePositionBadge = useMemo(() => getProfilePositionBadge(player.position), [player.position]);
   const showGoalkeeperPlaceholder = isGoalkeeperProfilePosition(player.position);
@@ -765,6 +808,50 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             </div>
           </div>
 
+          <div className="-mx-1 mb-3 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max min-w-full gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setStatsMode("career");
+                  setStatsFilterId(null);
+                }}
+                className={[
+                  "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-colors",
+                  statsMode === "career"
+                    ? "border-red-500/50 bg-red-600/30 text-white"
+                    : "border-white/15 bg-black/40 text-white/70 hover:text-white",
+                ].join(" ")}
+              >
+                Gesamt
+              </button>
+              {seasonOptions.map((opt) => {
+                const active = statsMode === "season" && statsFilterId === opt.teamSeasonId;
+                const short =
+                  [opt.seasonName, opt.ageGroup].filter(Boolean).join(" · ") ||
+                  opt.label.replace(/\s*·\s*Archiv$/i, "");
+                return (
+                  <button
+                    key={opt.teamSeasonId}
+                    type="button"
+                    onClick={() => {
+                      setStatsMode("season");
+                      setStatsFilterId(opt.teamSeasonId);
+                    }}
+                    className={[
+                      "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-colors",
+                      active
+                        ? "border-red-500/50 bg-red-600/30 text-white"
+                        : "border-white/15 bg-black/40 text-white/70 hover:text-white",
+                    ].join(" ")}
+                  >
+                    {short}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {profileTab === "overview" ? (
             <>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
@@ -816,12 +903,16 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
               ) : null}
               {!statsLoading && !statsError && stats.games === 0 ? (
-                <p className="mt-2 text-center text-[12px] text-white/60">Noch keine Ligadaten in dieser Saison</p>
+                <p className="mt-2 text-center text-[12px] text-white/60">
+                  {statsMode === "career"
+                    ? "Noch keine gültigen Spieldaten in der Karriere"
+                    : "Noch keine Ligadaten in dieser Saison"}
+                </p>
               ) : null}
 
               <div className="mt-4">
                 <h4 className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
-                  Saisonstatistik
+                  {statsMode === "career" ? "Gesamtstatistik" : "Saisonstatistik"}
                 </h4>
                 <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                   <ProfileStatTile
@@ -864,7 +955,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           {profileTab === "matches" ? (
             <div>
               <h4 className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
-                Letzte Spiele
+                {statsMode === "career" ? "Letzte Spiele (Gesamt)" : "Letzte Spiele"}
               </h4>
               {statsLoading ? (
                 <div className="space-y-2.5">

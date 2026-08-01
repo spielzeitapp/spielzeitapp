@@ -130,3 +130,36 @@ export async function loadTeamPlayersTrainingStats(
 
   return { events, statsByPlayerId };
 }
+
+/** Trainingsquote über mehrere Saisonen: Rohdaten addieren, %-Werte neu berechnen. */
+export async function loadPlayerTrainingStatsAcrossSeasons(
+  playerId: string,
+  teamSeasonIds: string[],
+): Promise<TrainingAttendanceStats> {
+  const pid = playerId.trim();
+  const ids = [...new Set(teamSeasonIds.map((id) => id.trim()).filter(Boolean))];
+  if (!pid || ids.length === 0) return { ...EMPTY_TRAINING_STATS };
+
+  const eventById = new Map<string, PastTrainingEvent>();
+  for (const sid of ids) {
+    const events = await fetchPastTrainingEvents(sid);
+    for (const ev of events) eventById.set(ev.id, ev);
+  }
+  const events = [...eventById.values()].sort((a, b) => b.starts_at.localeCompare(a.starts_at));
+  if (events.length === 0) return { ...EMPTY_TRAINING_STATS };
+
+  const eventIds = events.map((e) => e.id);
+  const { data: attRows, error } = await supabase
+    .from('event_attendance')
+    .select('event_id, status')
+    .eq('player_id', pid)
+    .in('event_id', eventIds);
+  if (error) throw error;
+
+  const statusByEvent = new Map<string, string>();
+  for (const r of attRows ?? []) {
+    const row = r as { event_id: string; status: string };
+    statusByEvent.set(String(row.event_id).toLowerCase(), row.status);
+  }
+  return computeTrainingStatsForPlayer(events, statusByEvent);
+}

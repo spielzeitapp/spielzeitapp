@@ -141,6 +141,10 @@ export const TeamPage: React.FC = () => {
     teamLine,
     seasonLine,
     teamSeasonId,
+    readTeamSeasonId,
+    activeTeamSeasonId,
+    isHistoryReadOnly,
+    softLockMessage,
     role,
     loading: tsLoading,
     error: tsError,
@@ -150,12 +154,12 @@ export const TeamPage: React.FC = () => {
     loading: plLoading,
     error: plError,
     refetch: refetchPlayers,
-  } = usePlayers(teamSeasonId, {
-    mode: canManageRoster(normalizeRole(role)) ? "all" : "active",
+  } = usePlayers(readTeamSeasonId ?? teamSeasonId, {
+    mode: canManageRoster(normalizeRole(role)) || isHistoryReadOnly ? "all" : "active",
   });
 
   const roleNormalized = normalizeRole(role);
-  const canManagePlayers = canManageRoster(roleNormalized);
+  const canManagePlayers = canManageRoster(roleNormalized) && !isHistoryReadOnly;
   const canViewTrainingKaiser = canManageMatches(roleNormalized);
   const tabsReady = !sessionLoading && !tsLoading;
 
@@ -456,7 +460,12 @@ export const TeamPage: React.FC = () => {
     const jersey = parsedJerseyNumber;
 
     if (teamSeasonId) {
-      const writable = await assertTeamSeasonWritable(teamSeasonId);
+      if (isHistoryReadOnly) {
+        setFormError(softLockMessage ?? "Archivierte Saison: nur Lesen.");
+        setSaving(false);
+        return;
+      }
+      const writable = await assertTeamSeasonWritable(activeTeamSeasonId ?? teamSeasonId);
       if (!writable.ok) {
         setFormError(writable.message);
         setSaving(false);
@@ -465,13 +474,13 @@ export const TeamPage: React.FC = () => {
     }
 
     if (mode === "create") {
-      if (teamSeasonId == null) {
+      if (activeTeamSeasonId == null) {
         setFormError("Keine Mannschaftssaison ausgewählt.");
         setSaving(false);
         return;
       }
       const { playerId: newPlayerId, error: createError } = await createRosterPlayer({
-        teamSeasonId,
+        teamSeasonId: activeTeamSeasonId,
         firstName: first_name.trim(),
         lastName: last_name.trim(),
         jerseyNumber: form.jersey_number ? Number(form.jersey_number) : null,
@@ -873,9 +882,15 @@ export const TeamPage: React.FC = () => {
                 type="button"
                 variant="secondary"
                 size="sm"
-                disabled={teamPhotoUploading || !teamSeasonId}
-                onClick={() => teamPhotoInputRef.current?.click()}
-                title="Mannschaftsfoto"
+                disabled={teamPhotoUploading || !activeTeamSeasonId || isHistoryReadOnly}
+                onClick={() => {
+                  if (isHistoryReadOnly) {
+                    window.alert(softLockMessage ?? "Archivierte Saison: nur Lesen.");
+                    return;
+                  }
+                  teamPhotoInputRef.current?.click();
+                }}
+                title={isHistoryReadOnly ? softLockMessage ?? "Archiv: nur Lesen" : "Mannschaftsfoto"}
                 className="h-9 gap-1 px-2.5 backdrop-blur-sm hover:border-red-400/40 hover:bg-black/60 sm:h-8"
               >
                 <Camera className="h-4 w-4 shrink-0 text-red-300/95" aria-hidden />
@@ -887,8 +902,16 @@ export const TeamPage: React.FC = () => {
             <p className="text-lg font-bold leading-tight text-white sm:text-xl">
               {tsLoading ? "Lade Team…" : heroTeamName}
             </p>
-            <p className="mt-1 text-[14px] text-white/70">{heroSeason}</p>
+            <p className="mt-1 text-[14px] text-white/70">
+              {heroSeason}
+              {isHistoryReadOnly ? " · Archiv" : ""}
+            </p>
           </div>
+          {isHistoryReadOnly ? (
+            <p className="mt-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-[12px] text-amber-100/95">
+              {softLockMessage ?? "Archivierte Saison — nur Lesen. Aktive Saison bleibt unverändert."}
+            </p>
+          ) : null}
           <div className="mt-4 flex flex-wrap gap-2 text-[14px] text-white/70">
             <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
               {tsLoading || plLoading ? "…" : `${activeCount} Spieler`}
