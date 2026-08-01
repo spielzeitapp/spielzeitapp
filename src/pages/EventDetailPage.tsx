@@ -228,12 +228,13 @@ const EVENT_TYPE_CHIPS: Array<{
   { value: 'other', label: 'Sonstiges', keywords: [], icon: CalendarPlus },
 ];
 
+/** Spielbericht-Header: Saison-Suffix entfernen, Altersklasse (U11/U12) behalten. */
 function compactTeamNameForMatchHeader(name: string | null | undefined): string {
   let s = (name ?? '').trim();
   if (!s) return 'Team';
-  s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim(); // remove season suffix
-  s = s.replace(/^U\s*\d{1,2}\s+/i, '').trim(); // remove leading age-group
-  s = s.replace(/^U\d{1,2}\s+/i, '').trim();
+  s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim(); // (2025/26)
+  s = s.replace(/\s*·\s*\d{4}\s*\/\s*\d{2,4}\s*$/g, '').trim(); // · 2025/26
+  s = s.replace(/\s+\d{4}\s*\/\s*\d{2,4}\s*$/g, '').trim();
   return s || (name ?? '').trim() || 'Team';
 }
 
@@ -460,7 +461,7 @@ export const EventDetailPage: React.FC = () => {
   const [subline, setSubline] = useState('');
   const [feedSectionExpanded, setFeedSectionExpanded] = useState(false);
 
-  const { teamLabel, role: roleFromHook } = useActiveTeamSeason();
+  const { teamLine, role: roleFromHook } = useActiveTeamSeason();
   const { user: sessionUser, isViewOnlyPlayer } = useSession();
   const effectiveRole = normalizeRole(roleFromHook);
   const canShowSelfRsvp =
@@ -471,7 +472,8 @@ export const EventDetailPage: React.FC = () => {
   const [seasonWritable, setSeasonWritable] = useState(true);
   /** Trainer/Chef/Co/Admin: Spielplan & Spielbericht (Membership-Rolle ist bereits normalisiert). */
   const canTrainerManageEvent = canManageMatches(effectiveRole) && seasonWritable;
-  const ourTeamName = teamLabel ?? getOurTeamDisplayName();
+  /** Match-/Karten-Name ohne Saison-Suffix („U11 SPG Rohrbach“, nicht „… · 2025/26“). */
+  const ourTeamName = (teamLine ?? '').trim() || getOurTeamDisplayName();
 
   const teamSeasonId = event?.team_season_id ?? null;
   useEffect(() => {
@@ -2031,7 +2033,16 @@ export const EventDetailPage: React.FC = () => {
                 <div className="relative z-10 px-3 py-1.5 sm:px-4 sm:py-2">
                   <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-2">
                     <div className="flex min-w-0 flex-col items-center text-center">
-                      <img src={homeLogoSrc} alt="" className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11" />
+                      <img
+                        src={homeLogoSrc}
+                        alt=""
+                        className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
+                          img.src = '/logos/placeholder-shield-a.png';
+                        }}
+                      />
                       <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                         {homeSplit.prefix || ' '}
                       </p>
@@ -2066,7 +2077,16 @@ export const EventDetailPage: React.FC = () => {
                     </div>
 
                     <div className="flex min-w-0 flex-col items-center text-center">
-                      <img src={awayLogoSrc} alt="" className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11" />
+                      <img
+                        src={awayLogoSrc}
+                        alt=""
+                        className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
+                          img.src = '/logos/placeholder-shield-a.png';
+                        }}
+                      />
                       <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                         {awaySplit.prefix || ' '}
                       </p>

@@ -240,7 +240,14 @@ export function resolveTeamSeasonLabelParts(input: TeamSeasonLabelInput): TeamSe
     };
   }
 
-  const age = (input.ageGroup ?? '').trim() || null;
+  const age =
+    (input.ageGroup ?? '').trim() ||
+    resolveCurrentAgeGroup({
+      ageGroup: input.ageGroup,
+      teamName: input.teamName,
+      displayName: input.displayName,
+    }) ||
+    null;
   const club = clubNameWithoutAgeGroup(input.teamName);
   const rawTeam = (input.teamName ?? '').trim();
   const teamLine = age

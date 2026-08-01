@@ -16,18 +16,24 @@ function normalizeForLookup(name: string): string {
   return name
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, ' ')
     .replace(/[ä]/g, 'ae')
     .replace(/[ö]/g, 'oe')
     .replace(/[ü]/g, 'ue')
     .replace(/[ß]/g, 'ss')
-    .replace(/[^a-z0-9 ]/g, '');
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-/** Altersgruppe (z. B. U12) für Logo-Lookup abtrennen. */
+/**
+ * Club-Key für Logo-Lookup: Altersklasse + Saisonjahr abtrennen.
+ * „U11 SPG Rohrbach · 2025/26“ → „spg rohrbach“
+ */
 function logoLookupKey(name: string): string {
   return normalizeForLookup(name)
+    .replace(/^\s*u\s*\d{1,2}\s+/g, '')
     .replace(/\s+u\s*\d{1,2}\s*$/g, '')
+    .replace(/\s+\d{4}\s*\d{2,4}\s*$/g, '')
     .trim();
 }
 
