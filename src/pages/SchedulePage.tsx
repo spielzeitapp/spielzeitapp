@@ -26,6 +26,7 @@ import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { isMatchReviewPending } from '../lib/matchPreparationAccess';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
+import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { downloadEventIcs } from '../lib/ics';
 import { buildTeamIcsFeedUrl, teamCalendarSlugFromTeamName } from '../lib/calendarFeed';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
@@ -651,64 +652,21 @@ export const SchedulePage: React.FC = () => {
           alert(seriesReadError.message);
           return;
         }
-        const matchIds = [
-          ...new Set(
-            ((seriesEvents ?? []) as { id: string; match_id: string | null }[])
-              .map((row) => row.match_id)
-              .filter((id): id is string => typeof id === 'string' && id.length > 0),
-          ),
-        ];
-
-        const { error } = await supabase.from('events').delete().eq('series_id', event.series_id);
-        if (error) {
-          alert(error.message);
-          return;
-        }
-        for (const matchId of matchIds) {
-          const { data: refs, error: refsErr } = await supabase
-            .from('events')
-            .select('id')
-            .eq('match_id', matchId)
-            .limit(1);
-          if (refsErr) {
-            alert(refsErr.message);
+        for (const row of (seriesEvents ?? []) as { id: string; match_id: string | null }[]) {
+          const { error } = await deleteEventAndRelatedData(row.id, row.match_id ?? null);
+          if (error) {
+            alert(error);
             return;
-          }
-          if ((refs ?? []).length === 0) {
-            const { error: delMatchErr } = await supabase.from('matches').delete().eq('id', matchId);
-            if (delMatchErr) {
-              alert(delMatchErr.message);
-              return;
-            }
           }
         }
         await refetch();
         return;
       }
     }
-    const matchIds = event.match_id ? [event.match_id] : [];
-    const { error } = await supabase.from('events').delete().eq('id', event.id);
+    const { error } = await deleteEventAndRelatedData(event.id, event.match_id ?? null);
     if (error) {
-      alert(error.message);
+      alert(error);
       return;
-    }
-    for (const matchId of matchIds) {
-      const { data: refs, error: refsErr } = await supabase
-        .from('events')
-        .select('id')
-        .eq('match_id', matchId)
-        .limit(1);
-      if (refsErr) {
-        alert(refsErr.message);
-        return;
-      }
-      if ((refs ?? []).length === 0) {
-        const { error: delMatchErr } = await supabase.from('matches').delete().eq('id', matchId);
-        if (delMatchErr) {
-          alert(delMatchErr.message);
-          return;
-        }
-      }
     }
     await refetch();
   };

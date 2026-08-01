@@ -32,7 +32,16 @@ export async function deleteEventAndRelatedData(eventId: string, matchId: string
     await tryDelete('match_lineup', () => supabase.from('match_lineup').delete().eq('match_id', mid));
     await tryDelete('match_bench', () => supabase.from('match_bench').delete().eq('match_id', mid));
     await tryDelete('match_lineup_slots', () => supabase.from('match_lineup_slots').delete().eq('match_id', mid));
+    await tryDelete('match_lineup_snapshots', () =>
+      supabase.from('match_lineup_snapshots').delete().eq('match_id', mid),
+    );
     await tryDelete('match_rsvps', () => supabase.from('match_rsvps').delete().eq('match_id', mid));
+    await tryDelete('match_attendance', () => supabase.from('match_attendance').delete().eq('match_id', mid));
+    await tryDelete('motm_votes', () => supabase.from('motm_votes').delete().eq('match_id', mid));
+    await tryDelete('motm_match_leaderboard', () =>
+      supabase.from('motm_match_leaderboard').delete().eq('match_id', mid),
+    );
+    await tryDelete('availability', () => supabase.from('availability').delete().eq('match_id', mid));
 
     const { error: delMatchErr } = await supabase.from('matches').delete().eq('id', mid);
     if (delMatchErr && !ignorableSchemaError(delMatchErr)) {

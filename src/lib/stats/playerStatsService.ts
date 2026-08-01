@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { fetchValidSeasonMatchIds } from '../seasonMatchStats';
 import {
   computePlayerPlaytimeFromEvents,
   FIELD_SLOT_ORDER,
@@ -310,11 +311,18 @@ function resolveMatchDurationMinutes(match: MatchRow, finalSec: number): number 
 async function fetchFinishedMatches(teamSeasonId: string): Promise<{ data: MatchRow[]; error: string | null }> {
   const tid = teamSeasonId?.trim();
   if (!tid) return { data: [], error: null };
+
+  // Nur Matches, die noch an ein aktives Kalender-/Turnier-Event gebunden sind
+  // (verhindert Orphans nach Event-Löschung ohne Match-Cascade).
+  const validIds = await fetchValidSeasonMatchIds(tid);
+  if (validIds.size === 0) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('matches')
     .select('id, opponent, match_date, status, score_home, score_away, live_elapsed_seconds, planned_match_minutes')
     .eq('team_season_id', tid)
     .eq('status', 'finished')
+    .in('id', [...validIds])
     .order('match_date', { ascending: false });
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as MatchRow[], error: null };
