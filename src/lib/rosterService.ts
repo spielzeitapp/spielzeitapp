@@ -1,16 +1,21 @@
 /**
- * Zentraler Kader-Service (STEP 4 Dual-Read / Dual-Write).
+ * Zentraler Kader-Service (STEP 4 Dual-Read / Dual-Write, STEP 5 Join-first Read).
  *
- * Source of Truth für Kaderzugehörigkeit: team_season_players (wenn Join aktiv / bei Writes).
- * Compatibility: players.team_season_id bleibt befüllt für alte Queries/RPCs.
+ * Source of Truth für Kaderzugehörigkeit: team_season_players (Join-first).
+ * Compatibility: players.team_season_id — nur Fallback, wenn Join technisch fehlt/Hard-Disable.
  *
- * Regel players.team_season_id bei Multi-Season:
+ * listRoster-Reihenfolge:
+ * A) Join-Read versuchen (außer Hard-Disable via VITE_ROSTER_JOIN_V1=false)
+ * B) bei Erfolg Join verwenden (auch Count 0 — leerer Kader ist valide)
+ * C) nur bei technischem Join-Fehler → Legacy players.team_season_id
+ *
+ * Regel players.team_season_id bei Multi-Season (Writes/Compat):
  * - aktive Season hat Vorrang
  * - Draft überschreibt eine bestehende aktive Zuordnung NICHT
  * - sonst: Ziel-Season setzen, wenn leer oder gleich der Ziel-Season
  */
 import { supabase } from './supabaseClient';
-import { isRosterJoinV1Enabled } from './featureFlags';
+import { isRosterJoinV1HardDisabled, isRosterJoinV1Enabled } from './featureFlags';
 
 export type RosterStatus = 'active' | 'paused' | 'archived';
 
@@ -75,8 +80,21 @@ function normalizeBirthdate(raw: string | null | undefined): string | null {
   return String(raw).trim().slice(0, 10) || null;
 }
 
+/** Ob Join-Read bevorzugt wird (Hard-Disable = false). */
 export function shouldUseRosterJoin(): boolean {
   return isRosterJoinV1Enabled();
+}
+
+function isJoinTechnicallyUnavailable(message: string | null | undefined): boolean {
+  const m = String(message ?? '').toLowerCase();
+  if (!m) return false;
+  return (
+    /does not exist/.test(m) ||
+    /schema cache/.test(m) ||
+    /could not find the table/.test(m) ||
+    /relation .* does not exist/.test(m) ||
+    (/team_season_players/.test(m) && /not find|unknown|missing/.test(m))
+  );
 }
 
 async function enrichAvatarsAndBirthdates(
@@ -255,6 +273,7 @@ async function listRosterJoin(
 
 /**
  * Zentraler Kader-Reader. UI soll nur diese Funktion / usePlayers nutzen.
+ * Join-first: historische Soft-Lock-Kader bleiben sichtbar, auch wenn Compat auf die neue Season zeigt.
  */
 export async function listRoster(
   teamSeasonId: string,
@@ -263,12 +282,25 @@ export async function listRoster(
   const sid = teamSeasonId?.trim();
   if (!sid) return { data: [], error: 'Keine Mannschaft gewählt.', source: 'legacy' };
 
-  if (shouldUseRosterJoin()) {
-    const res = await listRosterJoin(sid, mode);
-    return { ...res, source: 'join' };
+  // Notfall-Rollback nur über Build-Env — nicht via Browser-localStorage
+  if (isRosterJoinV1HardDisabled()) {
+    const res = await listRosterLegacy(sid, mode);
+    return { ...res, source: 'legacy' };
   }
-  const res = await listRosterLegacy(sid, mode);
-  return { ...res, source: 'legacy' };
+
+  // A/B: Join versuchen; Erfolg (auch Count 0) ist maßgeblich
+  const joinRes = await listRosterJoin(sid, mode);
+  if (!joinRes.error) {
+    return { ...joinRes, source: 'join' };
+  }
+
+  // C: nur wenn Join-Struktur technisch fehlt → Legacy Compatibility
+  if (isJoinTechnicallyUnavailable(joinRes.error)) {
+    const legacyRes = await listRosterLegacy(sid, mode);
+    return { ...legacyRes, source: 'legacy' };
+  }
+
+  return { ...joinRes, source: 'join' };
 }
 
 /**
