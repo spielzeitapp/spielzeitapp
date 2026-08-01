@@ -112,13 +112,43 @@ export function computeNextAgeGroupFromSource(source: CurrentSeasonLabelSource):
   return current ? computeNextAgeGroup(current) : null;
 }
 
-/** Anzeige für draft.display_name, z. B. „U12 Saison 2026/27“. */
+/**
+ * Display-Name für einen vorbereiteten Draft.
+ * targetAgeGroup / targetSeasonName sind die finalen Werte (Wizard-Auswahl oder
+ * bereits berechneter Default) — werden NICHT nochmals hochgezählt.
+ * Beispiel: „U12 SPG Rohrbach · 2026/27“
+ */
+export function buildPreparedSeasonDisplayName(opts: {
+  teamName?: string | null;
+  targetAgeGroup?: string | null;
+  targetSeasonName: string;
+}): string {
+  const age = opts.targetAgeGroup?.trim() || null;
+  const season = opts.targetSeasonName.trim();
+  const base =
+    opts.teamName?.trim() ||
+    '';
+  if (base) {
+    const teamLabel = age ? bumpTeamLabel(base, age) : base;
+    return season ? `${teamLabel} · ${season}` : teamLabel;
+  }
+  if (age) return season ? `${age} · ${season}` : age;
+  return season ? `Saison ${season}` : 'Saison';
+}
+
+/**
+ * Legacy-Helfer: leitet Ziel-Altersklasse/Saison aus der Quell-Saison ab
+ * (Default-Vorschlag). Für Wizard-Overrides buildPreparedSeasonDisplayName nutzen.
+ */
 export function buildDraftSeasonDisplayName(source: CurrentSeasonLabelSource): string {
   const nextAge = computeNextAgeGroupFromSource(source);
   const seasonRaw = source.seasonName?.trim() ?? '';
   const nextSeason = seasonRaw ? computeNextSeasonName(seasonRaw) : '—';
-  const ageLabel = nextAge ?? 'Team';
-  return `${ageLabel} Saison ${nextSeason}`;
+  return buildPreparedSeasonDisplayName({
+    teamName: source.teamName,
+    targetAgeGroup: nextAge,
+    targetSeasonName: nextSeason,
+  });
 }
 
 function bumpTeamLabel(teamName: string, nextAge: string | null): string {
