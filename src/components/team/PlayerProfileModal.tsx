@@ -828,8 +828,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               {seasonOptions.map((opt) => {
                 const active = statsMode === "season" && statsFilterId === opt.teamSeasonId;
                 const short =
-                  [opt.seasonName, opt.ageGroup].filter(Boolean).join(" · ") ||
-                  opt.label.replace(/\s*·\s*Archiv$/i, "");
+                  opt.seasonName && opt.ageGroup
+                    ? `${opt.seasonName} · ${opt.ageGroup}`
+                    : opt.seasonName ||
+                      opt.ageGroup ||
+                      opt.label.replace(/\s*·\s*Archiv$/i, "");
                 return (
                   <button
                     key={opt.teamSeasonId}
