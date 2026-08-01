@@ -5,7 +5,7 @@ import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
-import { canPrepareNextSeason, formatTeamSeasonDisplayLabel, isSeasonArchived, isSeasonActive, isSeasonDraft } from '../lib/seasonLifecycle';
+import { canPrepareNextSeason, formatTeamSeasonCompactSwitcherLabel, isSeasonArchived, isSeasonActive, isSeasonDraft } from '../lib/seasonLifecycle';
 import { canViewParentLinks, normalizeRole } from '../lib/roles';
 import { dsGlassToggleTrack, dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
@@ -361,7 +361,7 @@ export const MoreHubPage: React.FC = () => {
           >
             {(teamSeasons ?? []).map((ts) => (
               <option key={ts.id} value={ts.id}>
-                {formatTeamSeasonDisplayLabel(
+                {formatTeamSeasonCompactSwitcherLabel(
                   {
                     displayName: ts.display_name,
                     ageGroup: ts.age_group,
@@ -369,9 +369,11 @@ export const MoreHubPage: React.FC = () => {
                     seasonName: ts.season?.name,
                     status: ts.status,
                   },
-                  { markArchived: true },
+                  {
+                    markArchived: true,
+                    markCurrent: ts.id === selectedTeamSeasonId,
+                  },
                 )}
-                {ts.id === selectedTeamSeasonId ? ' — Aktuell' : ''}
               </option>
             ))}
           </select>

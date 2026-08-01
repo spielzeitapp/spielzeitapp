@@ -269,6 +269,35 @@ export function formatTeamSeasonDisplayLabel(
 }
 
 /**
+ * Kompaktes Switcher-Label für schmale Mobile-Selects.
+ * Clubname entfällt (im Screen ohnehin klar) — Altersklasse + Saison + Status bleiben lesbar.
+ * Beispiel: „U11 · 2025/26 · Archiv“ / „U12 · 2026/27 · Aktuell“
+ */
+export function formatTeamSeasonCompactSwitcherLabel(
+  input: TeamSeasonLabelInput,
+  opts?: { markArchived?: boolean; markCurrent?: boolean },
+): string {
+  const age =
+    (input.ageGroup ?? '').trim() ||
+    resolveCurrentAgeGroup({
+      ageGroup: input.ageGroup,
+      teamName: input.teamName,
+      displayName: input.displayName,
+    }) ||
+    '';
+  const { seasonLine, full } = resolveTeamSeasonLabelParts(input);
+  const season = (seasonLine || '').trim();
+  const core = [age, season].filter(Boolean).join(' · ') || full;
+  if (opts?.markArchived && isSeasonArchived(input.status)) {
+    return `${core} · Archiv`;
+  }
+  if (opts?.markCurrent && isSeasonActive(input.status)) {
+    return `${core} · Aktuell`;
+  }
+  return core;
+}
+
+/**
  * Auswahl nach Reload / Login:
  * 1) gespeicherte/explizite ID, wenn gültig und active
  * 2) erste active team_season (Trainer-/Eltern-Membership bevorzugt)

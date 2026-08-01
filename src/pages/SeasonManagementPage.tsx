@@ -14,8 +14,12 @@ import {
   archiveTeamSeason,
   completeSeasonTransition,
   DEFAULT_SEASON_TRANSFER_OPTIONS,
+  listFutureEventsForSeasonTransfer,
   prepareSeasonDraftWithOptions,
+  reassignEventsToTeamSeason,
+  type FutureEventTransferCandidate,
 } from '../lib/seasonTransition';
+import { supabase } from '../lib/supabaseClient';
 import { dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
@@ -106,6 +110,11 @@ export const SeasonManagementPage: React.FC = () => {
   const [showOefbHint, setShowOefbHint] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showPrepareWizard, setShowPrepareWizard] = useState(false);
+  const [carrySourceId, setCarrySourceId] = useState<string | null>(null);
+  const [carryCandidates, setCarryCandidates] = useState<FutureEventTransferCandidate[]>([]);
+  const [carrySelected, setCarrySelected] = useState<Set<string>>(new Set());
+  const [carryLoading, setCarryLoading] = useState(false);
+  const [carryError, setCarryError] = useState<string | null>(null);
 
   const reload = useCallback(async (teamSeasonIdOverride?: string | null) => {
     const id = teamSeasonIdOverride ?? selectedTeamSeasonId;
@@ -123,9 +132,55 @@ export const SeasonManagementPage: React.FC = () => {
     setLoading(false);
   }, [selectedTeamSeasonId]);
 
+  const reloadCarryOver = useCallback(async (teamId: string | null | undefined, activeId: string | null) => {
+    if (!teamId || !activeId) {
+      setCarrySourceId(null);
+      setCarryCandidates([]);
+      setCarrySelected(new Set());
+      setCarryError(null);
+      return;
+    }
+    setCarryLoading(true);
+    setCarryError(null);
+    const { data: archived, error: archErr } = await supabase
+      .from('team_seasons')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('status', 'archived');
+    if (archErr) {
+      setCarryLoading(false);
+      setCarryError(archErr.message);
+      return;
+    }
+    let foundSource: string | null = null;
+    let foundEvents: FutureEventTransferCandidate[] = [];
+    for (const row of archived ?? []) {
+      const sid = String((row as { id?: string }).id ?? '').trim();
+      if (!sid || sid === activeId) continue;
+      const listed = await listFutureEventsForSeasonTransfer(sid);
+      if (listed.error) {
+        setCarryError(listed.error);
+        break;
+      }
+      if (listed.data.length > 0) {
+        foundSource = sid;
+        foundEvents = listed.data;
+        break;
+      }
+    }
+    setCarrySourceId(foundSource);
+    setCarryCandidates(foundEvents);
+    setCarrySelected(new Set(foundEvents.map((e) => e.id)));
+    setCarryLoading(false);
+  }, []);
+
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    void reloadCarryOver(snapshot?.teamId, snapshot?.active?.id ?? null);
+  }, [snapshot?.teamId, snapshot?.active?.id, reloadCarryOver]);
 
   if (!allowed) {
     return <Navigate to="/app/mehr" replace />;
@@ -171,6 +226,8 @@ export const SeasonManagementPage: React.FC = () => {
         // Join-Upsert ist idempotent — sichert Kader/Staff nochmals ab
         transferPlayers: true,
         selectedPlayerIds: null,
+        transferFutureEvents: true,
+        selectedEventIds: null,
       },
       confirmArchiveSource: true,
     });
@@ -223,6 +280,36 @@ export const SeasonManagementPage: React.FC = () => {
     }
     setShowPrepareWizard(false);
     await reload();
+  };
+
+  const onCarryFutureEvents = async () => {
+    const targetId = snapshot?.active?.id;
+    if (!carrySourceId || !targetId || carrySelected.size === 0) return;
+    setActionError(null);
+    setSuccessMsg(null);
+    if (
+      !window.confirm(
+        `${carrySelected.size} zukünftige Termine in die aktuelle Saison übernehmen?\n\nEvent-IDs und RSVPs bleiben erhalten. Es wird keine Push-Nachricht nur wegen der Übernahme gesendet.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    const res = await reassignEventsToTeamSeason({
+      sourceTeamSeasonId: carrySourceId,
+      targetTeamSeasonId: targetId,
+      eventIds: [...carrySelected],
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setActionError(res.message);
+      return;
+    }
+    setSuccessMsg(
+      `${res.movedEventIds.length} Termine übernommen (gleiche Event-ID, RSVP unverändert).`,
+    );
+    await reloadCarryOver(snapshot?.teamId, targetId);
+    await reload(targetId);
   };
 
   return (
@@ -310,6 +397,65 @@ export const SeasonManagementPage: React.FC = () => {
             >
               {actionError}
             </p>
+          ) : null}
+
+          {snapshot.active && (carryLoading || carryCandidates.length > 0 || carryError) ? (
+            <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3">
+              <div>
+                <h3 className="text-[14px] font-bold text-white">Zukünftige Termine aus Archiv</h3>
+                <p className="mt-1 text-[12px] leading-snug text-white/50">
+                  Termine, die noch vor dem Saisonwechsel angelegt wurden und in der abgeschlossenen
+                  Saison liegen. Übernahme behält Event-ID und RSVP.
+                </p>
+              </div>
+              {carryLoading ? (
+                <p className="text-sm text-white/55">Prüfe Archiv…</p>
+              ) : null}
+              {carryError ? (
+                <p className="text-sm text-red-300" role="alert">
+                  {carryError}
+                </p>
+              ) : null}
+              {carryCandidates.length > 0 ? (
+                <>
+                  <ul className="max-h-48 space-y-1 overflow-y-auto">
+                    {carryCandidates.map((ev) => (
+                      <li key={ev.id}>
+                        <label className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm text-white/85 hover:bg-white/[0.04]">
+                          <input
+                            type="checkbox"
+                            checked={carrySelected.has(ev.id)}
+                            onChange={() => {
+                              setCarrySelected((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(ev.id)) next.delete(ev.id);
+                                else next.add(ev.id);
+                                return next;
+                              });
+                            }}
+                          />
+                          <span className="min-w-0 flex-1 truncate">{ev.label}</span>
+                          {ev.rsvp_count > 0 ? (
+                            <span className="shrink-0 text-[10px] text-white/40">
+                              {ev.rsvp_count} RSVP
+                            </span>
+                          ) : null}
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                  <PremiumButton
+                    type="button"
+                    variant="default"
+                    fullWidth
+                    disabled={busy || carrySelected.size === 0}
+                    onClick={() => void onCarryFutureEvents()}
+                  >
+                    {carrySelected.size} Termine in aktuelle Saison übernehmen
+                  </PremiumButton>
+                </>
+              ) : null}
+            </PremiumCard>
           ) : null}
 
           {showPrepareWizard && sourceCard ? (

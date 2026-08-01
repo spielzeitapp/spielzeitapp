@@ -8,6 +8,7 @@ import {
   DEFAULT_SEASON_TRANSFER_OPTIONS,
   describeTransferForConfirm,
   isTeamSeasonPlayersAvailable,
+  listFutureEventsForSeasonTransfer,
   listTransferCandidatePlayers,
   type SeasonTransferOptions,
   type TransferCandidatePlayer,
@@ -67,8 +68,14 @@ export function SeasonTransitionWizard({
   const [options, setOptions] = useState<SeasonTransferOptions>({
     ...DEFAULT_SEASON_TRANSFER_OPTIONS,
     transferPlayers: false,
+    transferFutureEvents: mode === 'close_and_create',
   });
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [futureEvents, setFutureEvents] = useState<
+    import('../../lib/seasonTransition').FutureEventTransferCandidate[]
+  >([]);
+  const [futureEventsError, setFutureEventsError] = useState<string | null>(null);
+  const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let alive = true;
@@ -82,6 +89,7 @@ export function SeasonTransitionWizard({
       setOptions((prev) => ({
         ...prev,
         transferPlayers: canTransferPlayers,
+        transferFutureEvents: mode === 'close_and_create' ? prev.transferFutureEvents !== false : false,
       }));
 
       const { data, error } = await listTransferCandidatePlayers(sourceTeamSeasonId);
@@ -90,11 +98,23 @@ export function SeasonTransitionWizard({
         setCandidatesError(error);
         setCandidates([]);
         setSelectedIds(new Set());
+      } else {
+        setCandidatesError(null);
+        setCandidates(data);
+        setSelectedIds(new Set(data.map((p) => p.id)));
+      }
+
+      const future = await listFutureEventsForSeasonTransfer(sourceTeamSeasonId);
+      if (!alive) return;
+      if (future.error) {
+        setFutureEventsError(future.error);
+        setFutureEvents([]);
+        setSelectedEventIds(new Set());
         return;
       }
-      setCandidatesError(null);
-      setCandidates(data);
-      setSelectedIds(new Set(data.map((p) => p.id)));
+      setFutureEventsError(null);
+      setFutureEvents(future.data);
+      setSelectedEventIds(new Set(future.data.map((e) => e.id)));
     })();
     return () => {
       alive = false;
@@ -111,7 +131,11 @@ export function SeasonTransitionWizard({
       setOptions((prev) => ({ ...prev, transferPlayers: !prev.transferPlayers }));
       return;
     }
-    if (key === 'selectedPlayerIds') return;
+    if (key === 'selectedPlayerIds' || key === 'selectedEventIds') return;
+    if (key === 'transferFutureEvents') {
+      setOptions((prev) => ({ ...prev, transferFutureEvents: !prev.transferFutureEvents }));
+      return;
+    }
     setOptions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -124,8 +148,19 @@ export function SeasonTransitionWizard({
     });
   };
 
+  const toggleEvent = (id: string) => {
+    setSelectedEventIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const selectAllPlayers = () => setSelectedIds(new Set(candidates.map((p) => p.id)));
   const selectNoPlayers = () => setSelectedIds(new Set());
+  const selectAllEvents = () => setSelectedEventIds(new Set(futureEvents.map((e) => e.id)));
+  const selectNoEvents = () => setSelectedEventIds(new Set());
 
   const activeCandidates = useMemo(
     () => candidates.filter((p) => p.roster_status === 'active'),
@@ -381,6 +416,76 @@ export function SeasonTransitionWizard({
             </div>
           ) : null}
 
+          {futureEvents.length > 0 || futureEventsError ? (
+            <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+              <label className="flex items-start gap-2 text-sm text-white/85">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={options.transferFutureEvents === true}
+                  disabled={mode === 'prepare'}
+                  onChange={() => toggle('transferFutureEvents')}
+                />
+                <span>
+                  {futureEvents.length} zukünftige Termine in neue Saison übernehmen
+                  <span className="mt-0.5 block text-[11px] text-white/45">
+                    Gleiche Event-ID — RSVP/Zu-/Absagen bleiben. Vergangene Termine bleiben im Archiv.
+                    {mode === 'prepare'
+                      ? ' Übernahme erfolgt beim späteren Abschluss des Saisonwechsels.'
+                      : ' Keine Push-Nachricht nur wegen der Übernahme.'}
+                  </span>
+                </span>
+              </label>
+              {futureEventsError ? (
+                <p className="text-[12px] text-red-300" role="alert">
+                  {futureEventsError}
+                </p>
+              ) : null}
+              {(mode === 'close_and_create' ? options.transferFutureEvents : true) ? (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold text-emerald-200/90 underline-offset-2 hover:underline"
+                      onClick={selectAllEvents}
+                      disabled={mode === 'prepare'}
+                    >
+                      Alle
+                    </button>
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold text-white/55 underline-offset-2 hover:underline"
+                      onClick={selectNoEvents}
+                      disabled={mode === 'prepare'}
+                    >
+                      Keine
+                    </button>
+                  </div>
+                  <ul className="max-h-36 space-y-1 overflow-y-auto pr-1">
+                    {futureEvents.map((ev) => (
+                      <li key={ev.id}>
+                        <label className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm text-white/80 hover:bg-white/[0.04]">
+                          <input
+                            type="checkbox"
+                            checked={selectedEventIds.has(ev.id)}
+                            disabled={mode === 'prepare'}
+                            onChange={() => toggleEvent(ev.id)}
+                          />
+                          <span className="min-w-0 flex-1 truncate">{ev.label}</span>
+                          {ev.rsvp_count > 0 ? (
+                            <span className="shrink-0 text-[10px] text-white/40">
+                              {ev.rsvp_count} RSVP
+                            </span>
+                          ) : null}
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {!options.transferPlayers && playerTransferEnabled ? (
             <div className="space-y-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
@@ -471,6 +576,12 @@ export function SeasonTransitionWizard({
                   ...options,
                   transferPlayers: options.transferPlayers,
                   selectedPlayerIds: options.transferPlayers ? [...selectedIds] : [],
+                  transferFutureEvents:
+                    mode === 'close_and_create' ? options.transferFutureEvents === true : false,
+                  selectedEventIds:
+                    mode === 'close_and_create' && options.transferFutureEvents
+                      ? [...selectedEventIds]
+                      : [],
                 },
                 confirmArchiveSource: archiveSource && confirmArchive,
               })

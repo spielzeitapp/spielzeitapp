@@ -24,7 +24,7 @@ import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions'
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { isMatchReviewPending } from '../lib/matchPreparationAccess';
-import { formatTeamSeasonDisplayLabel } from '../lib/seasonLifecycle';
+import { formatTeamSeasonCompactSwitcherLabel } from '../lib/seasonLifecycle';
 import { assertTeamSeasonWritable } from '../lib/seasonTransition';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
@@ -965,12 +965,12 @@ export const SchedulePage: React.FC = () => {
                       <select
                         value={readTeamSeasonId ?? ''}
                         onChange={(e) => setViewTeamSeasonId(e.target.value || null)}
-                        className="w-full max-w-full truncate rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1.5 text-xs text-white/90 sm:text-sm"
+                        className="w-full max-w-full rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1.5 text-xs text-white/90 sm:text-sm"
                         aria-label="Saison für Termine wählen"
                       >
                         {teamSeasons.map((ts) => (
                           <option key={ts.id} value={ts.id}>
-                            {formatTeamSeasonDisplayLabel(
+                            {formatTeamSeasonCompactSwitcherLabel(
                               {
                                 displayName: ts.display_name,
                                 ageGroup: ts.age_group,
@@ -978,9 +978,11 @@ export const SchedulePage: React.FC = () => {
                                 seasonName: ts.season?.name,
                                 status: ts.status,
                               },
-                              { markArchived: true },
+                              {
+                                markArchived: true,
+                                markCurrent: ts.id === activeTeamSeasonId,
+                              },
                             )}
-                            {ts.id === activeTeamSeasonId ? ' — Aktuell' : ''}
                           </option>
                         ))}
                       </select>

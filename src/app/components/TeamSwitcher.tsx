@@ -2,14 +2,14 @@ import React from 'react';
 import { useSession } from '../../auth/useSession';
 import type { SessionTeamSeasonItem } from '../../auth/useSession';
 import {
-  formatTeamSeasonDisplayLabel,
+  formatTeamSeasonCompactSwitcherLabel,
   isSeasonActive,
   isSeasonArchived,
   isSeasonDraft,
 } from '../../lib/seasonLifecycle';
 
 function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
-  return formatTeamSeasonDisplayLabel(
+  return formatTeamSeasonCompactSwitcherLabel(
     {
       displayName: ts.display_name,
       ageGroup: ts.age_group,
@@ -17,7 +17,10 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
       seasonName: ts.season?.name,
       status: ts.status,
     },
-    { markArchived: true },
+    {
+      markArchived: true,
+      markCurrent: isSeasonActive(ts.status),
+    },
   );
 }
 
@@ -68,7 +71,7 @@ export const TeamSwitcher: React.FC = () => {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="inline-flex max-w-full min-w-0 appearance-none items-center gap-1 rounded-full border border-[var(--border)] bg-slate-900/60 px-3 py-1 text-xs font-medium text-[var(--text)] shadow-sm truncate text-left"
+      className="inline-flex max-w-[min(100%,12.5rem)] min-w-0 appearance-none items-center gap-1 rounded-full border border-[var(--border)] bg-slate-900/60 px-3 py-1 text-xs font-medium text-[var(--text)] shadow-sm text-left sm:max-w-xs"
       aria-label="Team/Saison wählen"
     >
       <option value="">Team wählen</option>

@@ -43,6 +43,17 @@ export type SeasonTransferOptions = {
   copyNotificationSettings: boolean;
   /** team_season_aliases. */
   copyAliases: boolean;
+  /**
+   * Zukünftige Termine der Quelle auf die Ziel-Saison umhängen (gleiche event.id).
+   * Nur sinnvoll beim Abschließen / nachträglicher Korrektur — nicht beim Draft-Prepare.
+   */
+  transferFutureEvents?: boolean;
+  /**
+   * Optional: nur diese event_ids umhängen.
+   * null/undefined = alle Kandidaten aus listFutureEventsForSeasonTransfer.
+   * [] = keine.
+   */
+  selectedEventIds?: string[] | null;
 };
 
 export const DEFAULT_SEASON_TRANSFER_OPTIONS: SeasonTransferOptions = {
@@ -53,6 +64,20 @@ export const DEFAULT_SEASON_TRANSFER_OPTIONS: SeasonTransferOptions = {
   copyTeamPhoto: true,
   copyNotificationSettings: true,
   copyAliases: true,
+  transferFutureEvents: true,
+  selectedEventIds: null,
+};
+
+export type FutureEventTransferCandidate = {
+  id: string;
+  type: string | null;
+  kind: string | null;
+  opponent: string | null;
+  starts_at: string;
+  status: string | null;
+  match_id: string | null;
+  rsvp_count: number;
+  label: string;
 };
 
 let teamSeasonPlayersAvailable: boolean | null = null;
@@ -165,6 +190,202 @@ export async function listTransferCandidatePlayers(
     })
     .filter((r): r is TransferCandidatePlayer => r != null);
   return { data: rows, error: null, source: 'legacy' };
+}
+
+function formatFutureEventCandidateLabel(row: {
+  type?: string | null;
+  kind?: string | null;
+  opponent?: string | null;
+  starts_at: string;
+}): string {
+  const when = new Date(row.starts_at);
+  const dateLabel = Number.isNaN(when.getTime())
+    ? row.starts_at
+    : when.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const kind = String(row.kind ?? row.type ?? 'termin').trim().toLowerCase();
+  const kindLabel =
+    kind === 'training'
+      ? 'Training'
+      : kind === 'tournament' || kind === 'turnier'
+        ? 'Turnier'
+        : kind === 'match' || kind === 'game'
+          ? 'Spiel'
+          : 'Termin';
+  const opponent = (row.opponent ?? '').trim();
+  return opponent ? `${dateLabel} ${kindLabel} vs. ${opponent}` : `${dateLabel} ${kindLabel}`;
+}
+
+/**
+ * Zukünftige Termine einer Saison (Kandidaten für Übernahme in die neue Saison).
+ * Kriterium: starts_at >= asOf (Default: jetzt), Status nicht canceled.
+ * Vergangene Events/Matches bleiben bewusst draußen.
+ */
+export async function listFutureEventsForSeasonTransfer(
+  sourceTeamSeasonId: string,
+  opts?: { asOf?: string | Date | null },
+): Promise<{ data: FutureEventTransferCandidate[]; error: string | null }> {
+  const sid = sourceTeamSeasonId?.trim();
+  if (!sid) return { data: [], error: 'Quell-Saison fehlt.' };
+
+  const asOfIso =
+    opts?.asOf instanceof Date
+      ? opts.asOf.toISOString()
+      : typeof opts?.asOf === 'string' && opts.asOf.trim()
+        ? opts.asOf.trim()
+        : new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, type, kind, opponent, starts_at, status, match_id')
+    .eq('team_season_id', sid)
+    .gte('starts_at', asOfIso)
+    .order('starts_at', { ascending: true });
+
+  if (error) return { data: [], error: error.message };
+
+  const rows = (data ?? []).filter((row) => {
+    const st = String((row as { status?: string }).status ?? '')
+      .trim()
+      .toLowerCase();
+    return st !== 'canceled' && st !== 'cancelled' && st !== 'deleted';
+  }) as Array<{
+    id: string;
+    type?: string | null;
+    kind?: string | null;
+    opponent?: string | null;
+    starts_at: string;
+    status?: string | null;
+    match_id?: string | null;
+  }>;
+
+  const ids = rows.map((r) => String(r.id));
+  const rsvpByEvent = new Map<string, number>();
+  if (ids.length > 0) {
+    const { data: attendance } = await supabase
+      .from('event_attendance')
+      .select('event_id')
+      .in('event_id', ids);
+    for (const a of attendance ?? []) {
+      const eid = String((a as { event_id?: string }).event_id ?? '');
+      if (!eid) continue;
+      rsvpByEvent.set(eid, (rsvpByEvent.get(eid) ?? 0) + 1);
+    }
+  }
+
+  return {
+    data: rows.map((r) => {
+      const id = String(r.id);
+      return {
+        id,
+        type: r.type ?? null,
+        kind: r.kind ?? null,
+        opponent: r.opponent ?? null,
+        starts_at: r.starts_at,
+        status: r.status ?? null,
+        match_id: r.match_id ?? null,
+        rsvp_count: rsvpByEvent.get(id) ?? 0,
+        label: formatFutureEventCandidateLabel(r),
+      };
+    }),
+    error: null,
+  };
+}
+
+export type ReassignEventsResult =
+  | { ok: true; movedEventIds: string[]; movedMatchIds: string[] }
+  | { ok: false; message: string; movedEventIds?: string[] };
+
+/**
+ * Hängt bestehende Events auf die Ziel-Saison um (UPDATE team_season_id).
+ * Behält event.id, RSVP (event_attendance), Turnier-Tabellen und Jobs.
+ * Erzeugt keine neuen notification_jobs / Pushes.
+ */
+export async function reassignEventsToTeamSeason(input: {
+  sourceTeamSeasonId: string;
+  targetTeamSeasonId: string;
+  eventIds: string[];
+}): Promise<ReassignEventsResult> {
+  const sourceId = input.sourceTeamSeasonId.trim();
+  const targetId = input.targetTeamSeasonId.trim();
+  const eventIds = [...new Set(input.eventIds.map((id) => String(id).trim()).filter(Boolean))];
+
+  if (!sourceId || !targetId) return { ok: false, message: 'Saison-IDs fehlen.' };
+  if (sourceId === targetId) return { ok: false, message: 'Quelle und Ziel sind identisch.' };
+  if (eventIds.length === 0) return { ok: true, movedEventIds: [], movedMatchIds: [] };
+
+  const { data: targetRow, error: targetErr } = await supabase
+    .from('team_seasons')
+    .select('id, status')
+    .eq('id', targetId)
+    .maybeSingle();
+  if (targetErr) return { ok: false, message: targetErr.message };
+  if (!targetRow) return { ok: false, message: 'Ziel-Saison nicht gefunden.' };
+  if (isSeasonArchived((targetRow as { status?: string }).status)) {
+    return { ok: false, message: 'Ziel-Saison ist archiviert — Übernahme nicht möglich.' };
+  }
+
+  const { data: existing, error: loadErr } = await supabase
+    .from('events')
+    .select('id, team_season_id, match_id')
+    .in('id', eventIds)
+    .eq('team_season_id', sourceId);
+
+  if (loadErr) return { ok: false, message: loadErr.message };
+
+  const movable = (existing ?? []) as Array<{
+    id: string;
+    team_season_id: string;
+    match_id?: string | null;
+  }>;
+  if (movable.length === 0) {
+    return { ok: false, message: 'Keine passenden Events in der Quell-Saison gefunden.' };
+  }
+
+  const movableIds = movable.map((e) => String(e.id));
+  const matchIds = [
+    ...new Set(
+      movable
+        .map((e) => (e.match_id != null ? String(e.match_id).trim() : ''))
+        .filter(Boolean),
+    ),
+  ];
+
+  const { error: updErr } = await supabase
+    .from('events')
+    .update({ team_season_id: targetId })
+    .in('id', movableIds)
+    .eq('team_season_id', sourceId);
+
+  if (updErr) return { ok: false, message: updErr.message, movedEventIds: [] };
+
+  if (matchIds.length > 0) {
+    const { error: matchErr } = await supabase
+      .from('matches')
+      .update({ team_season_id: targetId })
+      .in('id', matchIds)
+      .eq('team_season_id', sourceId);
+    if (matchErr) {
+      console.warn('[reassignEventsToTeamSeason] matches update', matchErr.message);
+      return {
+        ok: false,
+        message: `Events umgehängt, aber Match-Zuordnung fehlgeschlagen: ${matchErr.message}`,
+        movedEventIds: movableIds,
+      };
+    }
+  }
+
+  // Feed-Posts an Event hängen — team_season_id mitziehen (falls vorhanden).
+  const { error: feedErr } = await supabase
+    .from('team_feed_posts')
+    .update({ team_season_id: targetId })
+    .in('event_id', movableIds)
+    .eq('team_season_id', sourceId);
+  if (feedErr) {
+    // Nicht blockierend: Spalte/Policy kann fehlen; Event-ID bleibt Source of Truth für RSVP.
+    console.warn('[reassignEventsToTeamSeason] team_feed_posts', feedErr.message);
+  }
+
+  return { ok: true, movedEventIds: movableIds, movedMatchIds: matchIds };
 }
 
 type TeamSeasonLifecycleRow = {
@@ -610,6 +831,24 @@ export async function applySeasonTransfer(
     if (err) return { ok: false, message: err, transferredPlayerIds };
   }
 
+  if (options.transferFutureEvents) {
+    const listed = await listFutureEventsForSeasonTransfer(sourceId);
+    if (listed.error) return { ok: false, message: listed.error, transferredPlayerIds };
+    let ids = listed.data.map((e) => e.id);
+    if (Array.isArray(options.selectedEventIds)) {
+      const allow = new Set(options.selectedEventIds.map((id) => String(id).trim()).filter(Boolean));
+      ids = ids.filter((id) => allow.has(id));
+    }
+    if (ids.length > 0) {
+      const moved = await reassignEventsToTeamSeason({
+        sourceTeamSeasonId: sourceId,
+        targetTeamSeasonId: targetId,
+        eventIds: ids,
+      });
+      if (!moved.ok) return { ok: false, message: moved.message, transferredPlayerIds };
+    }
+  }
+
   return { ok: true, transferredPlayerIds };
 }
 
@@ -641,6 +880,8 @@ export async function prepareSeasonDraftWithOptions(
     ...input.options,
     // Explizit: Prepare erzwingt kein Archivieren; Transfer ist Join-only
     transferPlayers: input.options.transferPlayers === true,
+    // Termine bleiben in der aktiven Quelle, bis der Wechsel abgeschlossen wird.
+    transferFutureEvents: false,
   });
 
   if (!transfer.ok) {
@@ -714,7 +955,11 @@ export async function completeSeasonTransition(
       .eq('id', targetId);
   }
 
-  const transfer = await applySeasonTransfer(sourceId, targetId, input.options);
+  const transfer = await applySeasonTransfer(sourceId, targetId, {
+    ...input.options,
+    // Events erst nach Activate umhängen — Ziel ist dann die Work-Season.
+    transferFutureEvents: false,
+  });
   if (!transfer.ok) return { ok: false, message: transfer.message };
 
   const activated = await activateTeamSeason(targetId);
@@ -723,6 +968,26 @@ export async function completeSeasonTransition(
   if (transfer.transferredPlayerIds.length > 0) {
     const compatErr = await syncCompatAfterPlayerTransfer(targetId, transfer.transferredPlayerIds);
     if (compatErr) return { ok: false, message: compatErr };
+  }
+
+  if (input.options.transferFutureEvents !== false) {
+    const listed = await listFutureEventsForSeasonTransfer(sourceId);
+    if (listed.error) return { ok: false, message: listed.error };
+    let ids = listed.data.map((e) => e.id);
+    if (Array.isArray(input.options.selectedEventIds)) {
+      const allow = new Set(
+        input.options.selectedEventIds.map((id) => String(id).trim()).filter(Boolean),
+      );
+      ids = ids.filter((id) => allow.has(id));
+    }
+    if (ids.length > 0) {
+      const moved = await reassignEventsToTeamSeason({
+        sourceTeamSeasonId: sourceId,
+        targetTeamSeasonId: targetId,
+        eventIds: ids,
+      });
+      if (!moved.ok) return { ok: false, message: moved.message };
+    }
   }
 
   const archived = await archiveTeamSeason(sourceId);
@@ -757,6 +1022,14 @@ export function describeTransferForConfirm(options: SeasonTransferOptions, archi
   if (options.copyTeamPhoto) parts.push('Mannschaftsfoto');
   if (options.copyNotificationSettings) parts.push('Erinnerungseinstellungen');
   if (options.copyAliases) parts.push('Team-Aliase');
+  if (options.transferFutureEvents) {
+    const n = Array.isArray(options.selectedEventIds) ? options.selectedEventIds.length : null;
+    parts.push(
+      n == null
+        ? 'zukünftige Termine (gleiche Event-ID, RSVP bleibt)'
+        : `${n} zukünftige Termine (gleiche Event-ID, RSVP bleibt)`,
+    );
+  }
   const take = parts.length ? parts.join(', ') : 'nur leere Saison-Struktur';
   if (archiveSource) {
     return `Alte Saison wird abgeschlossen. Übernommen: ${take}. Der alte Kader und die Historie bleiben in der abgeschlossenen Saison sichtbar.`;
