@@ -184,3 +184,131 @@ export function buildNextSeasonDraftName(source: CurrentSeasonLabelSource): stri
 
   return nextSeason ? `${teamLabel} (${nextSeason})` : teamLabel;
 }
+
+/** Eingabe für saisonbezogene UI-Labels (nicht teams.name allein). */
+export type TeamSeasonLabelInput = {
+  displayName?: string | null;
+  /** team_seasons.age_group (Saison-Snapshot). */
+  ageGroup?: string | null;
+  /** teams.name — Stammdatensatz, darf alte Altersklasse enthalten. */
+  teamName?: string | null;
+  seasonName?: string | null;
+  status?: string | null;
+};
+
+export type TeamSeasonLabelParts = {
+  /** z. B. „U12 SPG Rohrbach · 2026/27“ */
+  full: string;
+  /** z. B. „U12 SPG Rohrbach“ */
+  teamLine: string;
+  /** z. B. „2026/27“ */
+  seasonLine: string;
+};
+
+/** Club-/Teamname ohne führende Altersklasse (Stammdaten-Bereinigung). */
+export function clubNameWithoutAgeGroup(teamName: string | null | undefined): string {
+  const trimmed = (teamName ?? '').trim();
+  if (!trimmed) return '';
+  const parsed = parseClubDisplayName(trimmed);
+  const club = [parsed.line1, parsed.line2].filter(Boolean).join(' ').trim();
+  return club || trimmed;
+}
+
+/**
+ * Einheitliches Saison-Label.
+ * 1) team_seasons.display_name
+ * 2) team_seasons.age_group + bereinigter Clubname + season.name
+ */
+export function resolveTeamSeasonLabelParts(input: TeamSeasonLabelInput): TeamSeasonLabelParts {
+  const season = (input.seasonName ?? '').trim();
+  const display = (input.displayName ?? '').trim();
+  if (display) {
+    const bits = display.split(/\s*·\s*/).map((b) => b.trim()).filter(Boolean);
+    if (bits.length >= 2) {
+      const seasonLine = bits[bits.length - 1] ?? season;
+      const teamLine = bits.slice(0, -1).join(' · ').trim();
+      return {
+        full: display,
+        teamLine: teamLine || display,
+        seasonLine: seasonLine || season || '—',
+      };
+    }
+    return {
+      full: season ? `${display} · ${season}` : display,
+      teamLine: display,
+      seasonLine: season || '—',
+    };
+  }
+
+  const age = (input.ageGroup ?? '').trim() || null;
+  const club = clubNameWithoutAgeGroup(input.teamName);
+  const rawTeam = (input.teamName ?? '').trim();
+  const teamLine = age
+    ? [age, club || rawTeam].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
+    : rawTeam || 'Team';
+  const full = season ? `${teamLine} · ${season}` : teamLine;
+  return { full, teamLine, seasonLine: season || '—' };
+}
+
+export function formatTeamSeasonDisplayLabel(
+  input: TeamSeasonLabelInput,
+  opts?: { markArchived?: boolean },
+): string {
+  const { full } = resolveTeamSeasonLabelParts(input);
+  if (opts?.markArchived && isSeasonArchived(input.status)) {
+    return `${full} · Archiv`;
+  }
+  return full;
+}
+
+/**
+ * Auswahl nach Reload / Login:
+ * 1) gespeicherte/explizite ID, wenn gültig und active
+ * 2) erste active team_season (Trainer-/Eltern-Membership bevorzugt)
+ * 3) Fallback (draft vor archived) — archived nie vor active
+ */
+export function pickPreferredActiveTeamSeasonId(opts: {
+  teamSeasons: Array<{ id: string; status?: string | null }>;
+  memberships: Array<{ team_season_id: string; role: string }>;
+  storedId?: string | null;
+  preferredId?: string | null;
+}): string | null {
+  const { teamSeasons, memberships, storedId, preferredId } = opts;
+  if (teamSeasons.length === 0) return null;
+
+  const byId = new Map(teamSeasons.map((ts) => [ts.id, ts]));
+  const isUsableActive = (id: string | null | undefined): boolean => {
+    if (!id) return false;
+    const ts = byId.get(id);
+    if (!ts) return false;
+    return isSeasonActive(ts.status) && !isSeasonArchived(ts.status) && !isSeasonDraft(ts.status);
+  };
+
+  const candidates = [preferredId, storedId];
+  for (const id of candidates) {
+    if (isUsableActive(id)) return id as string;
+  }
+
+  const activeIds = teamSeasons
+    .filter((ts) => isUsableActive(ts.id))
+    .map((ts) => ts.id);
+  if (activeIds.length > 0) {
+    const activeSet = new Set(activeIds);
+    const byRole = (role: string) =>
+      memberships.find((m) => normalizeRole(m.role) === role && activeSet.has(m.team_season_id));
+    const trainer = byRole('trainer');
+    if (trainer) return trainer.team_season_id;
+    const parent = byRole('parent');
+    if (parent) return parent.team_season_id;
+    const anyMem = memberships.find((m) => activeSet.has(m.team_season_id));
+    if (anyMem) return anyMem.team_season_id;
+    return activeIds[0];
+  }
+
+  const draft = teamSeasons.find((ts) => isSeasonDraft(ts.status));
+  if (draft) return draft.id;
+
+  const anyMem = memberships.find((m) => byId.has(m.team_season_id));
+  if (anyMem) return anyMem.team_season_id;
+  return teamSeasons[0]?.id ?? null;
+}

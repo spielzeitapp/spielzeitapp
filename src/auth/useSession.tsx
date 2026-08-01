@@ -4,9 +4,14 @@ import { canAccess as canAccessFeature } from './rbac';
 import type { TeamSeasonListItem, TeamSeasonTeam, TeamSeasonSeason } from '../services/teamSeasonRepo';
 import { useAuth } from './AuthProvider';
 import { supabase } from '../lib/supabaseClient';
+import { pickPreferredActiveTeamSeasonId } from '../lib/seasonLifecycle';
 
 /** team_seasons.id und memberships.team_season_id als string (UUID), nie Number. */
-export type SessionTeamSeasonItem = Omit<TeamSeasonListItem, 'id'> & { id: string };
+export type SessionTeamSeasonItem = Omit<TeamSeasonListItem, 'id'> & {
+  id: string;
+  display_name?: string | null;
+  age_group?: string | null;
+};
 
 function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
   const row = raw as {
@@ -14,6 +19,8 @@ function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
     team_id?: number;
     season_id?: number;
     status?: string | null;
+    display_name?: string | null;
+    age_group?: string | null;
     teams?: TeamSeasonTeam | TeamSeasonTeam[] | null;
     seasons?: TeamSeasonSeason | TeamSeasonSeason[] | null;
   };
@@ -25,6 +32,8 @@ function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
       team_id: row.team_id,
       season_id: row.season_id,
       status: row.status ?? null,
+      display_name: row.display_name ?? null,
+      age_group: row.age_group ?? null,
       team: teams,
       season: seasons,
       teams,
@@ -152,6 +161,11 @@ interface SessionContextValue {
   playerAccessMode: 'full' | 'view_only' | null;
   /** QR-U11-Spieler: nur Lesen, kein Zu-/Absage. */
   isViewOnlyPlayer: boolean;
+  /**
+   * Memberships + team_seasons neu laden (z. B. nach Saisonwechsel).
+   * preferredTeamSeasonId: neue Active-Saison, falls gültig und active.
+   */
+  reloadSessionTeamSeasons: (preferredTeamSeasonId?: string | null) => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
@@ -323,24 +337,23 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [authUser]);
 
   // A) Memberships first, then team_seasons by membership ids. selectedTeamSeasonId always string | null.
-  useEffect(() => {
-    if (!authUser) {
-      setMembershipLoading(false);
+  const reloadSessionTeamSeasons = useCallback(
+    async (preferredTeamSeasonId?: string | null) => {
+      if (!authUser) {
+        setMembershipLoading(false);
+        setMembershipError(null);
+        setTeamSeasons([]);
+        setSelectedTeamSeasonIdState(null);
+        setMemberships([]);
+        setHasPendingPlayerRequest(false);
+        setPlayerAccessMode(null);
+        return;
+      }
+
+      setMembershipLoading(true);
       setMembershipError(null);
-      setTeamSeasons([]);
-      setSelectedTeamSeasonIdState(null);
-      setMemberships([]);
-      setHasPendingPlayerRequest(false);
-      setPlayerAccessMode(null);
-      return;
-    }
+      console.info('[startup] memberships fetch start');
 
-    let cancelled = false;
-    setMembershipLoading(true);
-    setMembershipError(null);
-    console.info('[startup] memberships fetch start');
-
-    const run = async () => {
       try {
         const [dbRole, membershipsRes] = await Promise.all([
           fetchUserRole(authUser.id),
@@ -359,8 +372,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             .eq('user_id', authUser.id)
             .order('id', { ascending: true }),
         ]);
-
-        if (cancelled) return;
 
         const roleToSet = dbRole ?? null;
         setRoleFromUserRoles(roleToSet);
@@ -411,13 +422,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   team_id,
   season_id,
   status,
+  display_name,
+  age_group,
   teams:teams ( id, name, age_group ),
   seasons:seasons ( id, name )
 `)
           .in('id', teamSeasonIds)
           .order('id', { ascending: true });
-
-        if (cancelled) return;
 
         if (tsError) {
           console.error('[useSession] team_seasons error:', tsError.message);
@@ -434,89 +445,91 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         setTeamSeasons(normalized);
 
-        if (normalized.length > 0) {
-          const validIds = new Set(normalized.map((ts) => ts.id));
-          const pickPreferredTeamSeasonId = (): string => {
-            const t = list.find(
-              (m) => normalizeRole(m.role) === 'trainer' && validIds.has(m.team_season_id),
-            );
-            if (t) return t.team_season_id;
-            const p = list.find(
-              (m) => normalizeRole(m.role) === 'parent' && validIds.has(m.team_season_id),
-            );
-            if (p) return p.team_season_id;
-            const any = list.find((m) => validIds.has(m.team_season_id));
-            if (any) return any.team_season_id;
-            return normalized[0].id;
-          };
-          const selectedId = pickPreferredTeamSeasonId();
-          setSelectedTeamSeasonIdState(selectedId);
-          try {
-            window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);
-          } catch {
-            // ignore
-          }
-        } else {
-          setSelectedTeamSeasonIdState(null);
+        let storedId: string | null = null;
+        try {
+          storedId = window.localStorage.getItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID);
+        } catch {
+          storedId = null;
         }
 
-        // Pending Spieler-Anfragen (nach team_seasons, vor Loading-Ende)
+        const selectedId = pickPreferredActiveTeamSeasonId({
+          teamSeasons: normalized,
+          memberships: list,
+          storedId,
+          preferredId: preferredTeamSeasonId ?? null,
+        });
+        setSelectedTeamSeasonIdState(selectedId);
         try {
-          if (!cancelled) {
-            const { data: jrData, error: jrError } = await supabase
-              .from('join_requests')
-              .select('id')
-              .eq('user_id', authUser.id)
-              .eq('requested_role', 'player')
-              .eq('status', 'pending')
-              .limit(1);
-            if (jrError) {
-              console.warn('[useSession] join_requests(player,pending) error:', jrError.message);
-              setHasPendingPlayerRequest(false);
-            } else {
-              setHasPendingPlayerRequest((jrData ?? []).length > 0);
-            }
+          if (selectedId) {
+            window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);
+          } else {
+            window.localStorage.removeItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID);
+          }
+        } catch {
+          // ignore
+        }
+
+        try {
+          const { data: jrData, error: jrError } = await supabase
+            .from('join_requests')
+            .select('id')
+            .eq('user_id', authUser.id)
+            .eq('requested_role', 'player')
+            .eq('status', 'pending')
+            .limit(1);
+          if (jrError) {
+            console.warn('[useSession] join_requests(player,pending) error:', jrError.message);
+            setHasPendingPlayerRequest(false);
+          } else {
+            setHasPendingPlayerRequest((jrData ?? []).length > 0);
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
           console.warn('[useSession] join_requests(player,pending) exception:', msg);
-          if (!cancelled) setHasPendingPlayerRequest(false);
+          setHasPendingPlayerRequest(false);
         }
 
         try {
-          if (!cancelled) {
-            const { data: puData, error: puError } = await supabase
-              .from('player_users')
-              .select('access_mode')
-              .eq('user_id', authUser.id);
-            if (puError) {
-              console.warn('[useSession] player_users access_mode error:', puError.message);
-              setPlayerAccessMode(null);
-            } else if (!puData?.length) {
-              setPlayerAccessMode(null);
-            } else {
-              const viewOnly = (puData as { access_mode?: string | null }[]).some(
-                (r) => r.access_mode === 'view_only',
-              );
-              setPlayerAccessMode(viewOnly ? 'view_only' : 'full');
-            }
+          const { data: puData, error: puError } = await supabase
+            .from('player_users')
+            .select('access_mode')
+            .eq('user_id', authUser.id);
+          if (puError) {
+            console.warn('[useSession] player_users access_mode error:', puError.message);
+            setPlayerAccessMode(null);
+          } else if (!puData?.length) {
+            setPlayerAccessMode(null);
+          } else {
+            const viewOnly = (puData as { access_mode?: string | null }[]).some(
+              (r) => r.access_mode === 'view_only',
+            );
+            setPlayerAccessMode(viewOnly ? 'view_only' : 'full');
           }
         } catch {
-          if (!cancelled) setPlayerAccessMode(null);
+          setPlayerAccessMode(null);
         }
       } finally {
-        if (!cancelled) {
-          console.info('[startup] memberships fetch end');
-          setMembershipLoading(false);
-        }
+        console.info('[startup] memberships fetch end');
+        setMembershipLoading(false);
       }
-    };
+    },
+    [authUser?.id],
+  );
 
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [authUser?.id]);
+  useEffect(() => {
+    if (!authUser?.id) {
+      setMembershipLoading(false);
+      setMembershipError(null);
+      setTeamSeasons([]);
+      setSelectedTeamSeasonIdState(null);
+      setMemberships([]);
+      setHasPendingPlayerRequest(false);
+      setPlayerAccessMode(null);
+      return;
+    }
+
+    void reloadSessionTeamSeasons();
+  }, [authUser?.id, reloadSessionTeamSeasons]);
 
   /** Falls Membership-Fetch hängt: nach 3s Loading beenden (Shell bleibt nutzbar). */
   useEffect(() => {
@@ -595,6 +608,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     hasPendingPlayerRequest,
     playerAccessMode,
     isViewOnlyPlayer: playerAccessMode === 'view_only',
+    reloadSessionTeamSeasons,
   };
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEvents } from '../../hooks/useEvents';
+import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
 import {
   buildDemoHomeMatchEvents,
   pickHomeMatchCard,
@@ -43,9 +44,10 @@ export const HomePage: React.FC = () => {
   } = useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
-  const teamName = selectedTeamSeason?.team?.name ?? 'Team';
-  const seasonLabel = (selectedTeamSeason?.season?.name ?? '').trim() || '—';
-  const teamSeasonLine = `${teamName} · ${seasonLabel}`;
+  const { teamLabel, teamLine, seasonLine } = useActiveTeamSeason();
+  const teamName = teamLine ?? 'Team';
+  const seasonLabel = seasonLine && seasonLine !== '—' ? seasonLine : '—';
+  const teamSeasonLine = teamLabel ?? `${teamName} · ${seasonLabel}`;
   const teamId = String(selectedTeamSeason?.team?.id ?? selectedTeamSeason?.team_id ?? '');
 
   const [now, setNow] = useState(() => new Date());

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from "../auth/useSession";
+import { useSession } from "../auth/useSession";
 import { AppButton } from "../components/ui/AppButton";
 import {
   GlassCard,
@@ -138,6 +138,8 @@ export const TeamPage: React.FC = () => {
   const { selectedTeamSeason, selectedMembership, loading: sessionLoading } = useSession();
   const {
     teamLabel,
+    teamLine,
+    seasonLine,
     teamSeasonId,
     role,
     loading: tsLoading,
@@ -206,25 +208,30 @@ export const TeamPage: React.FC = () => {
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const heroTeamName = useMemo(() => {
+    if (teamLine?.trim()) return teamLine.trim();
     const fromTs = selectedTeamSeason?.team?.name?.trim();
     if (fromTs) return fromTs;
-    const fromMem = getTeamNameFromMembership(selectedMembership)?.trim();
-    if (fromMem) return fromMem;
     const label = (teamLabel ?? "").trim();
-    const paren = label.indexOf("(");
-    if (paren > 0) return label.slice(0, paren).trim();
-    return label || "Team";
-  }, [selectedTeamSeason, selectedMembership, teamLabel]);
+    if (label) {
+      const bits = label.split(/\s*·\s*/);
+      if (bits.length >= 2) return bits.slice(0, -1).join(" · ").trim();
+      const paren = label.indexOf("(");
+      if (paren > 0) return label.slice(0, paren).trim();
+      return label;
+    }
+    return "Team";
+  }, [teamLine, selectedTeamSeason, teamLabel]);
 
   const heroSeason = useMemo(() => {
+    if (seasonLine?.trim() && seasonLine.trim() !== "—") return seasonLine.trim();
     const fromTs = selectedTeamSeason?.season?.name?.trim();
     if (fromTs) return fromTs;
-    const fromMem = getSeasonLabelFromMembership(selectedMembership)?.trim();
-    if (fromMem && fromMem !== "—") return fromMem;
     const label = (teamLabel ?? "").trim();
+    const mid = label.split(/\s*·\s*/);
+    if (mid.length >= 2) return mid[mid.length - 1]?.trim() || "—";
     const m = /\(([^)]+)\)/.exec(label);
     return m?.[1]?.trim() ?? "—";
-  }, [selectedTeamSeason, selectedMembership, teamLabel]);
+  }, [seasonLine, selectedTeamSeason, teamLabel]);
 
   const trainerCount = useMemo(() => staffRows.length, [staffRows]);
   const teamPhotoUrl = useMemo(() => readTeamPhotoUrl(teamPhoto), [teamPhoto]);
