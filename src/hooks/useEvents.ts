@@ -46,6 +46,8 @@ export type EventRow = {
   opponent_logo_url?: string | null;
   /** Optional: Migration 20260615120000 */
   official_tournament_url?: string | null;
+  /** Optional: Migration 20260802180000 — open = Meisterschafts-Arbeitsliste */
+  fixture_status?: 'open' | 'agreed' | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -72,6 +74,7 @@ type EventDbRow = {
   training_absence_deadline_disabled?: boolean | null;
   opponent_logo_url?: string | null;
   official_tournament_url?: string | null;
+  fixture_status?: string | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -79,11 +82,15 @@ type EventDbRow = {
 
 /** Aktueller events-Select inkl. Serien + optionaler Spalten (Fallback bei alter DB). */
 const EVENTS_SELECT =
-  "id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, official_tournament_url, created_by, created_at, updated_at";
+  "id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, official_tournament_url, fixture_status, created_by, created_at, updated_at";
 
-/** Ohne address / series_id / training_absence_deadline_disabled / venue_id (match_type bleibt drin). */
+/** Ohne address / series_id / training_absence_deadline_disabled / venue_id / fixture_status */
 const EVENTS_SELECT_LEGACY =
   "id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at";
+
+function isOpenChampionshipFixture(r: { fixture_status?: string | null }): boolean {
+  return String(r.fixture_status ?? '').trim().toLowerCase() === 'open';
+}
 
 export function useEvents(teamSeasonId: string | null) {
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -107,7 +114,7 @@ export function useEvents(teamSeasonId: string | null) {
 
     if (
       res.error &&
-      /training_absence_deadline_disabled|series_id|address|match_type|official_tournament_url|venue_id|column/i.test(String(res.error.message ?? ""))
+      /training_absence_deadline_disabled|series_id|address|match_type|official_tournament_url|venue_id|fixture_status|column/i.test(String(res.error.message ?? ""))
     ) {
       res = (await supabase
         .from("events")
@@ -122,7 +129,9 @@ export function useEvents(teamSeasonId: string | null) {
       setError(err.message);
       setEvents([]);
     } else {
-      const mapped: EventRow[] = (data ?? []).map((r: EventDbRow) => ({
+      const mapped: EventRow[] = (data ?? [])
+        .filter((r: EventDbRow) => !isOpenChampionshipFixture(r))
+        .map((r: EventDbRow) => ({
         id: r.id,
         team_season_id: r.team_season_id,
         kind: normalizeEventKind(r.kind),
@@ -146,6 +155,9 @@ export function useEvents(teamSeasonId: string | null) {
         training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? null,
         opponent_logo_url: r.opponent_logo_url ?? null,
         official_tournament_url: r.official_tournament_url ?? null,
+        fixture_status: (r.fixture_status === 'open' || r.fixture_status === 'agreed'
+          ? r.fixture_status
+          : null) as EventRow['fixture_status'],
         created_by: r.created_by ?? null,
         created_at: r.created_at ?? null,
         updated_at: r.updated_at ?? null,

@@ -361,7 +361,24 @@ export const SeasonManagementPage: React.FC = () => {
       {!loading && !loadError && snapshot ? (
         <div className="space-y-3">
           {snapshot.active ? (
-            <SeasonCard model={snapshot.active} variant="active" />
+            <>
+              <SeasonCard model={snapshot.active} variant="active" />
+              <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3">
+                <div>
+                  <h2 className="text-[15px] font-bold tracking-tight text-white">Meisterschaft</h2>
+                  <p className="mt-1 text-sm text-white/55">
+                    ÖFB-Spielplan importieren und Termine mit Gegnern vereinbaren.
+                  </p>
+                </div>
+                <Link to="/app/mehr/championship" className="block">
+                  <PremiumButton type="button" variant="primary" fullWidth className="gap-2">
+                    <CalendarRange className="h-4 w-4 shrink-0" aria-hidden />
+                    Meisterschaft verwalten
+                    <ArrowRightCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden />
+                  </PremiumButton>
+                </Link>
+              </PremiumCard>
+            </>
           ) : (
             <PremiumCard variant="subtle" showAmbientGlow={false}>
               <p className="flex items-start gap-2 text-sm text-white/70">

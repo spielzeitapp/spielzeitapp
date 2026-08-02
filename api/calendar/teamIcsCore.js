@@ -527,20 +527,45 @@ async function teamIcsHandler(req, res) {
       activeOnly: activeSeasons.length > 0,
       nowIso,
     });
+    let events = [];
     const { data: eventsRaw, error: evError } = await admin
       .from('events')
       .select(
-        'id, team_season_id, kind, type, opponent, location, venue_id, is_home, starts_at, meeting_at, notes, status, created_at, updated_at',
+        'id, team_season_id, kind, type, opponent, location, venue_id, is_home, starts_at, meeting_at, notes, status, fixture_status, created_at, updated_at',
       )
       .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
       .gte('starts_at', nowIso)
       .order('starts_at', { ascending: true });
     if (evError) {
-      console.error('[ics-feed] DB events error', evError);
-      res.status(500).send(evError.message);
-      return;
+      if (/fixture_status|column/i.test(String(evError.message ?? ''))) {
+        const legacy = await admin
+          .from('events')
+          .select(
+            'id, team_season_id, kind, type, opponent, location, venue_id, is_home, starts_at, meeting_at, notes, status, created_at, updated_at',
+          )
+          .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
+          .gte('starts_at', nowIso)
+          .order('starts_at', { ascending: true });
+        if (legacy.error) {
+          console.error('[ics-feed] DB events error', legacy.error);
+          res.status(500).send(legacy.error.message);
+          return;
+        }
+        events = (legacy.data ?? []).filter(
+          (e) => String(e.status ?? '').toLowerCase() !== 'canceled',
+        );
+      } else {
+        console.error('[ics-feed] DB events error', evError);
+        res.status(500).send(evError.message);
+        return;
+      }
+    } else {
+      events = (eventsRaw ?? []).filter(
+        (e) =>
+          String(e.status ?? '').toLowerCase() !== 'canceled' &&
+          String(e.fixture_status ?? '').toLowerCase() !== 'open',
+      );
     }
-    const events = (eventsRaw ?? []).filter((e) => String(e.status ?? '').toLowerCase() !== 'canceled');
     console.log('[ics-feed] events lookup end', { count: events.length });
 
     const venueIds = [

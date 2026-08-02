@@ -37,6 +37,7 @@ import { TrainerRemindersPage } from '../pages/TrainerRemindersPage';
 import { TrainerPreviewPage } from '../pages/TrainerPreviewPage';
 import { PlayerMatchdayPosterPreviewPage } from '../pages/dev/PlayerMatchdayPosterPreviewPage';
 import { SeasonManagementPage } from '../pages/SeasonManagementPage';
+import { ChampionshipManagementPage } from '../pages/ChampionshipManagementPage';
 import { ParentAccessPage } from '../pages/ParentAccessPage';
 import { JugglingChallengePage } from '../pages/JugglingChallengePage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
@@ -220,6 +221,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="trainer/erinnerungen" element={<TrainerRemindersPage />} />
           <Route path="trainer/preview" element={<TrainerPreviewPage />} />
           <Route path="seasons" element={<SeasonManagementPage />} />
+          <Route path="championship" element={<ChampionshipManagementPage />} />
           <Route path="parent-access" element={<ParentAccessPage />} />
           {/* Legacy: /app/mehr/notifications -> /app/nachrichten */}
           <Route path="notifications" element={<Navigate to="/app/nachrichten" replace />} />
