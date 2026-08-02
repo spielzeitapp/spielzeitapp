@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
-import { buildTeamIcsFeedUrl, teamCalendarSlugFromTeamName } from '../lib/calendarFeed';
+import { buildTeamIcsFeedUrl, teamCalendarStableSlugFromTeamName } from '../lib/calendarFeed';
 import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
 import {
   notesTitleAndDescription,
@@ -339,7 +339,7 @@ export const CalendarPage: React.FC = () => {
   const feedUrl = useMemo(() => {
     if (!selectedTeamIdForFeed) return null;
     const segment = selectedTeamNameForFeed
-      ? teamCalendarSlugFromTeamName(selectedTeamNameForFeed)
+      ? teamCalendarStableSlugFromTeamName(selectedTeamNameForFeed)
       : selectedTeamIdForFeed;
     return buildTeamIcsFeedUrl(window.location.origin, segment);
   }, [selectedTeamIdForFeed, selectedTeamNameForFeed]);

@@ -17,7 +17,10 @@ function escapeIcsText(input) {
     .replace(/;/g, '\\;');
 }
 
-/** Gleiche Regeln wie `teamCalendarSlugFromTeamName` in src/lib/calendarFeed.ts */
+/** Gleiche Regeln wie `src/lib/calendarFeed.ts` */
+const AGE_GROUP_NAME_PREFIX = /^\s*U\d{1,2}[a-z]?\s+/i;
+const AGE_GROUP_SLUG_PREFIX = /^u\d{1,2}[a-z]?-/i;
+
 function teamCalendarSlugFromTeamName(name) {
   return String(name ?? '')
     .toLowerCase()
@@ -31,8 +34,73 @@ function teamCalendarSlugFromTeamName(name) {
     .replace(/^-+|-+$/g, '') || 'team';
 }
 
+function teamCalendarClubNameFromTeamName(name) {
+  const stripped = String(name ?? '').replace(AGE_GROUP_NAME_PREFIX, '').trim();
+  return stripped || String(name ?? '').trim() || 'Team';
+}
+
+function teamCalendarStableSlugFromTeamName(name) {
+  return teamCalendarSlugFromTeamName(teamCalendarClubNameFromTeamName(name));
+}
+
+function teamCalendarSlugWithoutAgePrefix(slug) {
+  return String(slug ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(AGE_GROUP_SLUG_PREFIX, '')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Slug → Team: exakter Legacy-Slug, stabiler Team-Slug, oder Legacy uNN-… → stabil.
+ * So bleibt /u11-spg-rohrbach.ics nach U12-Wechsel gültig.
+ */
+function resolveTeamIdFromSlug(allTeams, slugWanted) {
+  const slug = String(slugWanted ?? '').trim().toLowerCase();
+  if (!slug) return null;
+  const stableWanted = teamCalendarSlugWithoutAgePrefix(slug) || slug;
+
+  const scored = [];
+  for (const t of allTeams ?? []) {
+    const full = teamCalendarSlugFromTeamName(t.name);
+    const stable = teamCalendarStableSlugFromTeamName(t.name);
+    let score = 0;
+    if (full === slug) score = 3;
+    else if (stable === slug) score = 2;
+    else if (stable === stableWanted) score = 1;
+    if (score > 0) scored.push({ id: t.id, score, name: t.name });
+  }
+  if (scored.length === 0) return null;
+  scored.sort((a, b) => b.score - a.score);
+  if (scored.length > 1 && scored[0].score === scored[1].score) {
+    console.warn('[ics-feed] ambiguous calendar slug; using first match', {
+      slug,
+      ids: scored.filter((s) => s.score === scored[0].score).map((m) => m.id),
+    });
+  }
+  return scored[0].id;
+}
+
 function isUuidLike(s) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(s).trim());
+}
+
+/** Live darf nie Staging-Links in DESCRIPTION/URL schreiben. */
+function resolveAppBaseUrl(req) {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+  if (host === 'spielzeitapp.at' || host === 'www.spielzeitapp.at') {
+    return 'https://spielzeitapp.at';
+  }
+  if (host === 'app.spielzeitapp.at') {
+    return 'https://app.spielzeitapp.at';
+  }
+  const fromEnv = getEnv('APP_BASE_URL');
+  if (fromEnv) return String(fromEnv).replace(/\/+$/, '');
+  const proto = req.headers['x-forwarded-proto'] ?? 'https';
+  return host ? `${proto}://${host}` : 'https://spielzeitapp.at';
 }
 
 function foldIcsLine(line) {
@@ -93,9 +161,12 @@ function parseEndTimeFromNotes(notes) {
 
 function effectiveType(ev) {
   const raw = (ev.type ?? '').trim().toLowerCase();
-  if (raw === 'game' || raw === 'training' || raw === 'event' || raw === 'other') return raw;
-  if ((ev.kind ?? '').trim().toLowerCase() === 'training') return 'training';
-  if ((ev.kind ?? '').trim().toLowerCase() === 'event') return 'event';
+  const kind = (ev.kind ?? '').trim().toLowerCase();
+  if (raw === 'tournament' || kind === 'tournament') return 'tournament';
+  if (raw === 'game' || raw === 'match' || raw === 'training' || raw === 'event' || raw === 'other') return raw;
+  if (kind === 'training') return 'training';
+  if (kind === 'event') return 'event';
+  if (kind === 'game' || kind === 'match') return 'game';
   return 'game';
 }
 
@@ -187,7 +258,8 @@ function resolveEndDate(ev, startDate) {
 function buildSummary(ev, teamName) {
   const t = effectiveType(ev);
   const notes = notesTitleAndDescription(ev.notes);
-  if (t === 'game') return `${teamName} Spiel: ${teamName} vs ${ev.opponent ?? 'Gegner'}`;
+  if (t === 'tournament') return notes.title ?? `${teamName} Turnier`;
+  if (t === 'game' || t === 'match') return `${teamName} Spiel: ${teamName} vs ${ev.opponent ?? 'Gegner'}`;
   if (t === 'training') return `${teamName} Training`;
   return notes.title ?? 'Event';
 }
@@ -284,18 +356,11 @@ async function teamIcsHandler(req, res) {
         res.status(500).send(teamsListError.message ?? 'teams query failed');
         return;
       }
-      const matches = (allTeams ?? []).filter((t) => teamCalendarSlugFromTeamName(t.name) === slugWanted);
-      if (matches.length === 0) {
+      resolvedTeamId = resolveTeamIdFromSlug(allTeams, slugWanted);
+      if (!resolvedTeamId) {
         res.status(404).send('Team not found');
         return;
       }
-      if (matches.length > 1) {
-        console.warn('[ics-feed] ambiguous calendar slug; using first match', {
-          slug: slugWanted,
-          ids: matches.map((m) => m.id),
-        });
-      }
-      resolvedTeamId = matches[0].id;
     }
 
     console.log('[ics-feed] team lookup start', { resolvedTeamId });
@@ -314,12 +379,13 @@ async function teamIcsHandler(req, res) {
       return;
     }
     console.log('[ics-feed] team lookup end', { hasRow: !!teamData });
-    const teamName = teamData?.name ?? 'Team';
+    // Dauerhafter Kalendername ohne Altersklasse (U11/U12 …).
+    const teamName = teamCalendarClubNameFromTeamName(teamData?.name ?? 'Team');
 
     console.log('[ics-feed] team seasons lookup start', { resolvedTeamId });
     const { data: teamSeasons, error: tsError } = await admin
       .from('team_seasons')
-      .select('id, team_id')
+      .select('id, team_id, status')
       .eq('team_id', resolvedTeamId);
     if (tsError) {
       console.error('[ics-feed] DB team_seasons error', tsError);
@@ -328,11 +394,17 @@ async function teamIcsHandler(req, res) {
     }
     console.log('[ics-feed] team seasons lookup end', { count: (teamSeasons ?? []).length });
 
-    const teamSeasonIds = (teamSeasons ?? []).map((t) => t.id);
+    // Team-stabil: aktive Saison bevorzugen (nach U11→U12 liefert der Feed U12).
+    // Fallback: alle Saisons, falls keine active (Übergänge / Legacy-Daten).
+    const seasons = teamSeasons ?? [];
+    const activeSeasons = seasons.filter((t) => String(t.status ?? '').toLowerCase() === 'active');
+    const seasonsForFeed = activeSeasons.length > 0 ? activeSeasons : seasons;
+    const teamSeasonIds = seasonsForFeed.map((t) => t.id);
 
     const nowIso = new Date().toISOString();
     console.log('[ics-feed] events lookup start', {
       teamSeasonCount: teamSeasonIds.length,
+      activeOnly: activeSeasons.length > 0,
       nowIso,
     });
     const { data: eventsRaw, error: evError } = await admin
@@ -351,8 +423,7 @@ async function teamIcsHandler(req, res) {
     const events = (eventsRaw ?? []).filter((e) => String(e.status ?? '').toLowerCase() !== 'canceled');
     console.log('[ics-feed] events lookup end', { count: events.length });
 
-    const appBaseUrl =
-      getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
+    const appBaseUrl = resolveAppBaseUrl(req);
     console.log('[ics-feed] ICS build start');
     const uniqueEvents = Array.from(new Map((events ?? []).map((e) => [e.id, e])).values());
     const vevents = uniqueEvents.flatMap((ev) => {
