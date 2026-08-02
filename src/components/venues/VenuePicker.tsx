@@ -315,27 +315,11 @@ export function VenuePicker({
         return;
       }
       setSaving(true);
-      const latRaw = draft.latitude.trim();
-      const lngRaw = draft.longitude.trim();
-      const lat = latRaw === '' ? null : Number(latRaw);
-      const lng = lngRaw === '' ? null : Number(lngRaw);
-      if (latRaw !== '' && !Number.isFinite(lat)) {
-        setSaving(false);
-        setFormError('Ungültiger Breitengrad.');
-        return;
-      }
-      if (lngRaw !== '' && !Number.isFinite(lng)) {
-        setSaving(false);
-        setFormError('Ungültiger Längengrad.');
-        return;
-      }
       const res = await updateVenue(editingVenueId, {
         name,
         address: draft.address,
         postalCode: draft.postalCode,
         city: draft.city,
-        latitude: lat,
-        longitude: lng,
         isHome: draft.isHome,
       });
       setSaving(false);
@@ -606,24 +590,6 @@ export function VenuePicker({
               placeholder="Ort"
               value={draft.city}
               onChange={(e) => setDraft((d) => ({ ...d, city: e.target.value }))}
-              disabled={saving}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              className={inputClass}
-              placeholder="Latitude (optional)"
-              inputMode="decimal"
-              value={draft.latitude}
-              onChange={(e) => setDraft((d) => ({ ...d, latitude: e.target.value }))}
-              disabled={saving}
-            />
-            <input
-              className={inputClass}
-              placeholder="Longitude (optional)"
-              inputMode="decimal"
-              value={draft.longitude}
-              onChange={(e) => setDraft((d) => ({ ...d, longitude: e.target.value }))}
               disabled={saving}
             />
           </div>
