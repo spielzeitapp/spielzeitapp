@@ -29,6 +29,8 @@ export type EventRow = {
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
+  /** Optional: Migration 20260802140000 */
+  venue_id?: string | null;
   /** Optional: ältere DB ohne Spalte */
   address?: string | null;
   starts_at: string;
@@ -58,6 +60,7 @@ type EventDbRow = {
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
+  venue_id?: string | null;
   address?: string | null;
   starts_at: string;
   meeting_at: string | null;
@@ -76,9 +79,9 @@ type EventDbRow = {
 
 /** Aktueller events-Select inkl. Serien + optionaler Spalten (Fallback bei alter DB). */
 const EVENTS_SELECT =
-  "id, team_season_id, kind, type, match_type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, official_tournament_url, created_by, created_at, updated_at";
+  "id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, official_tournament_url, created_by, created_at, updated_at";
 
-/** Ohne address / series_id / training_absence_deadline_disabled (match_type bleibt drin). */
+/** Ohne address / series_id / training_absence_deadline_disabled / venue_id (match_type bleibt drin). */
 const EVENTS_SELECT_LEGACY =
   "id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at";
 
@@ -104,7 +107,7 @@ export function useEvents(teamSeasonId: string | null) {
 
     if (
       res.error &&
-      /training_absence_deadline_disabled|series_id|address|match_type|official_tournament_url|column/i.test(String(res.error.message ?? ""))
+      /training_absence_deadline_disabled|series_id|address|match_type|official_tournament_url|venue_id|column/i.test(String(res.error.message ?? ""))
     ) {
       res = (await supabase
         .from("events")
@@ -131,6 +134,7 @@ export function useEvents(teamSeasonId: string | null) {
         opponent: r.opponent ?? null,
         is_home: r.is_home ?? null,
         location: r.location ?? null,
+        venue_id: r.venue_id ?? null,
         address: r.address ?? null,
         starts_at: r.starts_at,
         meeting_at: r.meeting_at ?? null,

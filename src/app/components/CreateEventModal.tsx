@@ -11,6 +11,8 @@ import {
 import { combineLocationParts, formatFullLocation } from '../../lib/eventLocation';
 import { eventKindFromFormType, normalizeEventTypeField } from '../../lib/eventTypeUtils';
 import { assertTeamSeasonWritable } from '../../lib/seasonTransition';
+import { locationTextFromVenue, type VenueRow } from '../../lib/venues';
+import { VenuePicker } from '../../components/venues/VenuePicker';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -30,6 +32,7 @@ function sanitizeEventsInsertRow(row: Record<string, unknown>): Record<string, u
     'notes',
     'meeting_at',
     'created_by',
+    'venue_id',
   ]);
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(row)) {
@@ -107,6 +110,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   eventType = 'match',
 }) => {
   const [form, setForm] = useState<CreateEventFormValues>(defaultForm);
+  const [selectedVenue, setSelectedVenue] = useState<VenueRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [eventTypeLocal, setEventTypeLocal] = useState<
@@ -123,6 +127,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   const resetForm = () => {
     setForm(defaultForm);
+    setSelectedVenue(null);
     setError(null);
   };
 
@@ -177,7 +182,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
       const startDate = new Date(firstStartUtcIso);
 
-      const locationVal = combineLocationParts(form.location, form.location_address);
+      const locationVal = selectedVenue
+        ? locationTextFromVenue(selectedVenue)
+        : combineLocationParts(form.location, form.location_address);
 
       const eventKind = eventKindFromFormType(eventTypeLocal);
       const eventType = normalizeEventTypeField(eventKind, eventKind);
@@ -254,6 +261,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
           location: locationVal,
+          venue_id: selectedVenue?.id ?? null,
           starts_at: d.toISOString(),
           meeting_at: meetupIsoForStart(d),
           status: 'upcoming',
@@ -505,32 +513,18 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             </div>
           </>
         )}
-        <div>
-          <label htmlFor="create-event-location" className={labelClass}>
-            Platzname / Ort (optional)
-          </label>
-          <input
-            id="create-event-location"
-            type="text"
-            value={form.location}
-            onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-            className={inputClass}
-            placeholder="z. B. Sportplatz Rohrbach"
-          />
-        </div>
-        <div>
-          <label htmlFor="create-event-location-address" className={labelClass}>
-            Adresse / PLZ / Ort (optional)
-          </label>
-          <input
-            id="create-event-location-address"
-            type="text"
-            value={form.location_address}
-            onChange={(e) => setForm((f) => ({ ...f, location_address: e.target.value }))}
-            className={inputClass}
-            placeholder="z. B. Sportplatzstraße 1, 3163 Rohrbach"
-          />
-        </div>
+        <VenuePicker
+          teamSeasonId={teamSeasonId}
+          venueId={selectedVenue?.id ?? null}
+          onVenueChange={(v) => setSelectedVenue(v)}
+          locationName={form.location}
+          locationAddress={form.location_address}
+          onLocationNameChange={(v) => setForm((f) => ({ ...f, location: v }))}
+          onLocationAddressChange={(v) => setForm((f) => ({ ...f, location_address: v }))}
+          labelClass={labelClass}
+          inputClass={inputClass}
+          disabled={creating}
+        />
         <div>
           <label htmlFor="create-event-starts_at" className={labelClass}>
             Beginn *

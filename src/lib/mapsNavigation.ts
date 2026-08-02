@@ -29,6 +29,16 @@ function isValidCoord(lat: number, lng: number): boolean {
   return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 }
 
+/** Nur mit Koordinaten oder erkennbarer Adresse — kein Navi nur aus Platzname. */
+export function looksLikeFullAddress(place: unknown): boolean {
+  const t = safeText(place);
+  if (!t) return false;
+  if (/\d{4,5}/.test(t)) return true;
+  if (/\b(straße|str\.|gasse|weg|allee|platz|ring)\b/i.test(t) && /\d/.test(t)) return true;
+  if (t.includes(',') && /\d/.test(t)) return true;
+  return false;
+}
+
 export function buildMapsNavigationUrl(opts: {
   lat?: number | null;
   lng?: number | null;
@@ -50,7 +60,7 @@ export function buildMapsNavigationUrl(opts: {
   const query =
     formatFullLocation(opts.place, opts.address) ||
     safeText(opts.locationRaw).replace(/\n/g, ', ');
-  if (!query) return null;
+  if (!query || !looksLikeFullAddress(query)) return null;
 
   const encoded = encodeURIComponent(query);
   const isApple =

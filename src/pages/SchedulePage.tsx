@@ -57,6 +57,12 @@ import { formatDateTimeDeVienna } from '../lib/notifications/format';
 import { attendanceLazModalButtonClass } from '../lib/attendanceColors';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
+import { VenuePicker } from '../components/venues/VenuePicker';
+import {
+  getVenueById,
+  locationTextFromVenue,
+  type VenueRow,
+} from '../lib/venues';
 import { trainingScheduleCardCounts } from '../lib/trainingAttendance';
 import { buildPlayerAvailabilityMap } from '../lib/playerAvailability';
 import {
@@ -267,6 +273,7 @@ export const SchedulePage: React.FC = () => {
   const [editDateTime, setEditDateTime] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editLocationAddress, setEditLocationAddress] = useState('');
+  const [editVenue, setEditVenue] = useState<VenueRow | null>(null);
   const [editMeetupAt, setEditMeetupAt] = useState('');
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
   const [editSeriesScope, setEditSeriesScope] = useState<SeriesEditScope>('single');
@@ -316,11 +323,27 @@ export const SchedulePage: React.FC = () => {
     const parsedLocation = splitCombinedLocation(e.location ?? '');
     setEditLocation(parsedLocation.place);
     setEditLocationAddress(parsedLocation.address);
+    setEditVenue(null);
     setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meeting_at ?? ''));
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
     setEditSeriesScope('single');
     setEditError(null);
     setEditModalOpen(true);
+    if (e.venue_id) {
+      void getVenueById(e.venue_id).then((v) => {
+        setEditVenue(v.data);
+        if (v.data) {
+          setEditLocation(v.data.name);
+          const addr = [
+            v.data.address,
+            [v.data.postal_code, v.data.city].filter(Boolean).join(' '),
+          ]
+            .filter(Boolean)
+            .join(', ');
+          setEditLocationAddress(addr);
+        }
+      });
+    }
   };
 
   /**
@@ -470,6 +493,7 @@ export const SchedulePage: React.FC = () => {
     setEditDateTime('');
     setEditLocation('');
     setEditLocationAddress('');
+    setEditVenue(null);
     setEditMeetupAt('');
     setEditSeriesScope('single');
     setEditError(null);
@@ -497,7 +521,9 @@ export const SchedulePage: React.FC = () => {
       setSavingEdit(false);
       return;
     }
-    const locationVal = combineLocationParts(editLocation, editLocationAddress);
+    const locationVal = editVenue
+      ? locationTextFromVenue(editVenue)
+      : combineLocationParts(editLocation, editLocationAddress);
     let meetingAt: string | null = null;
     const meetupRaw = (editMeetupAt ?? '').trim();
     if (meetupRaw) {
@@ -513,6 +539,7 @@ export const SchedulePage: React.FC = () => {
       starts_at: startsAt,
       meeting_at: meetingAt,
       location: locationVal,
+      venue_id: editVenue?.id ?? null,
     };
     if (eff === 'game') {
       fullPayload.opponent = opponent || null;
@@ -529,6 +556,7 @@ export const SchedulePage: React.FC = () => {
 
     const sharedPayload: Record<string, unknown> = {
       location: locationVal,
+      venue_id: editVenue?.id ?? null,
     };
     if (eff === 'game') {
       sharedPayload.opponent = opponent || null;
@@ -1650,32 +1678,18 @@ export const SchedulePage: React.FC = () => {
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)] disabled:opacity-50"
             />
           </div>
-          <div>
-            <label htmlFor="edit-location" className="block text-sm font-medium text-[var(--text-main)] mb-1">
-              Platzname / Ort (optional)
-            </label>
-            <input
-              id="edit-location"
-              type="text"
-              value={editLocation}
-              onChange={(e) => setEditLocation(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
-              placeholder="z. B. Sportplatz Rohrbach"
-            />
-          </div>
-          <div>
-            <label htmlFor="edit-location-address" className="block text-sm font-medium text-[var(--text-main)] mb-1">
-              Adresse / PLZ / Ort (optional)
-            </label>
-            <input
-              id="edit-location-address"
-              type="text"
-              value={editLocationAddress}
-              onChange={(e) => setEditLocationAddress(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
-              placeholder="z. B. Sportplatzstraße 1, 3163 Rohrbach"
-            />
-          </div>
+          <VenuePicker
+            teamSeasonId={editEvent?.team_season_id ?? null}
+            venueId={editVenue?.id ?? null}
+            onVenueChange={(v) => setEditVenue(v)}
+            locationName={editLocation}
+            locationAddress={editLocationAddress}
+            onLocationNameChange={setEditLocation}
+            onLocationAddressChange={setEditLocationAddress}
+            labelClass="block text-sm font-medium text-[var(--text-main)] mb-1"
+            inputClass="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+            disabled={savingEdit}
+          />
           <div>
             <label htmlFor="edit-meetup_at" className="block text-sm font-medium text-[var(--text-main)] mb-1">
               Treffpunkt (optional)

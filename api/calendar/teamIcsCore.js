@@ -308,20 +308,6 @@ function looksLikeFullAddress(place) {
   return false;
 }
 
-function buildMapsNavigationUrl(ev) {
-  const coords =
-    parseCoordsFromText(ev.location) || parseCoordsFromText(ev.notes);
-  if (coords) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
-  }
-  const place = String(ev.location ?? '')
-    .trim()
-    .replace(/\r\n/g, ', ')
-    .replace(/\n/g, ', ');
-  if (!place || !looksLikeFullAddress(place)) return null;
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place)}`;
-}
-
 function buildSummary(ev, teamLabel) {
   const t = effectiveType(ev);
   const notes = notesTitleAndDescription(ev.notes);
@@ -337,7 +323,49 @@ function buildSummary(ev, teamLabel) {
   return notes.title ? `${teamLabel} – ${notes.title}` : teamLabel;
 }
 
-function buildLocation(ev) {
+function buildMapsNavigationUrl(ev, venue) {
+  const lat = venue?.latitude != null ? Number(venue.latitude) : null;
+  const lng = venue?.longitude != null ? Number(venue.longitude) : null;
+  if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+    if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    }
+  }
+  const coords =
+    parseCoordsFromText(ev.location) || parseCoordsFromText(ev.notes);
+  if (coords) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+  }
+  let place = '';
+  if (venue) {
+    const street = String(venue.address ?? '').trim();
+    const cityLine = [String(venue.postal_code ?? '').trim(), String(venue.city ?? '').trim()]
+      .filter(Boolean)
+      .join(' ');
+    place = [street, cityLine].filter(Boolean).join(', ');
+  }
+  if (!place) {
+    place = String(ev.location ?? '')
+      .trim()
+      .replace(/\r\n/g, ', ')
+      .replace(/\n/g, ', ');
+  }
+  if (!place || !looksLikeFullAddress(place)) return null;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place)}`;
+}
+
+function buildLocation(ev, venue) {
+  if (venue) {
+    const name = String(venue.name ?? '').trim();
+    const street = String(venue.address ?? '').trim();
+    const cityLine = [String(venue.postal_code ?? '').trim(), String(venue.city ?? '').trim()]
+      .filter(Boolean)
+      .join(' ');
+    const addr = [street, cityLine].filter(Boolean).join(', ');
+    if (name && addr) return `${name}, ${addr}`;
+    if (name) return name;
+    if (addr) return addr;
+  }
   const place = String(ev.location ?? '')
     .trim()
     .replace(/\r\n/g, ', ')
@@ -359,7 +387,7 @@ function formatViennaTime(isoString) {
   }).format(d);
 }
 
-function buildDescription(ev, appBaseUrl) {
+function buildDescription(ev, appBaseUrl, venue) {
   const notes = notesTitleAndDescription(ev.notes);
   const meetup = ev.meeting_at ? formatViennaTime(ev.meeting_at) : null;
   const startsAtTime = ev.starts_at ? formatViennaTime(ev.starts_at) : null;
@@ -371,7 +399,7 @@ function buildDescription(ev, appBaseUrl) {
   if ((t === 'game' || t === 'match') && ev.is_home === true) lines.push('Heimspiel');
   if ((t === 'game' || t === 'match') && ev.is_home === false) lines.push('Auswärtsspiel');
   if ((t === 'game' || t === 'match') && ev.opponent) lines.push(`Gegner: ${ev.opponent}`);
-  const mapsUrl = buildMapsNavigationUrl(ev);
+  const mapsUrl = buildMapsNavigationUrl(ev, venue);
   if (mapsUrl) lines.push(`Navigation: ${mapsUrl}`);
   if (notes.description) lines.push(`Hinweise: ${notes.description}`);
   lines.push(`SpielzeitApp öffnen: ${eventUrl}`);
@@ -502,7 +530,7 @@ async function teamIcsHandler(req, res) {
     const { data: eventsRaw, error: evError } = await admin
       .from('events')
       .select(
-        'id, team_season_id, kind, type, opponent, location, is_home, starts_at, meeting_at, notes, status, created_at, updated_at',
+        'id, team_season_id, kind, type, opponent, location, venue_id, is_home, starts_at, meeting_at, notes, status, created_at, updated_at',
       )
       .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
       .gte('starts_at', nowIso)
@@ -514,6 +542,28 @@ async function teamIcsHandler(req, res) {
     }
     const events = (eventsRaw ?? []).filter((e) => String(e.status ?? '').toLowerCase() !== 'canceled');
     console.log('[ics-feed] events lookup end', { count: events.length });
+
+    const venueIds = [
+      ...new Set(
+        events
+          .map((e) => String(e.venue_id ?? '').trim())
+          .filter(Boolean),
+      ),
+    ];
+    const venueById = new Map();
+    if (venueIds.length > 0) {
+      const { data: venueRows, error: venueErr } = await admin
+        .from('venues')
+        .select('id, name, address, postal_code, city, latitude, longitude')
+        .in('id', venueIds);
+      if (venueErr) {
+        console.warn('[ics-feed] venues lookup', venueErr.message);
+      } else {
+        for (const v of venueRows ?? []) {
+          venueById.set(String(v.id), v);
+        }
+      }
+    }
 
     const appBaseUrl = resolveAppBaseUrl(req);
     console.log('[ics-feed] ICS build start');
@@ -528,9 +578,10 @@ async function teamIcsHandler(req, res) {
       const ageForEvent =
         ageBySeasonId.get(String(ev.team_season_id ?? '')) || fallbackAge;
       const teamLabel = buildTeamLabel(clubName, ageForEvent);
+      const venue = venueById.get(String(ev.venue_id ?? '').trim()) ?? null;
       const summary = buildSummary(ev, teamLabel);
-      const description = buildDescription(ev, appBaseUrl);
-      const location = buildLocation(ev);
+      const description = buildDescription(ev, appBaseUrl, venue);
+      const location = buildLocation(ev, venue);
       const stableStamp = pickStableStamp(ev);
       const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
 

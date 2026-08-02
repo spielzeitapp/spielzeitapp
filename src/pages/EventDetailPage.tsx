@@ -117,7 +117,18 @@ import {
 } from '../components/schedule/scheduleEventViewUtils';
 import { normalizeEventKind, normalizeEventTypeField } from '../lib/eventTypeUtils';
 import { formatMeetupTimeOnlyDe } from '../components/match/matchCardLabels';
-import { openMapsNavigation, resolveEventMapsCoords } from '../lib/mapsNavigation';
+import {
+  buildMapsNavigationUrl,
+  openMapsNavigation,
+  resolveEventMapsCoords,
+} from '../lib/mapsNavigation';
+import {
+  getVenueById,
+  locationTextFromVenue,
+  venueMapsOpts,
+  type VenueRow,
+} from '../lib/venues';
+import { VenuePicker } from '../components/venues/VenuePicker';
 import {
   meetupUtcIsoOnViennaEventDay,
   parseViennaDateTimeLocalToUtcIso,
@@ -134,6 +145,7 @@ type EventDbRow = {
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
+  venue_id?: string | null;
   starts_at: string;
   meeting_at: string | null;
   status: string | null;
@@ -148,7 +160,8 @@ type EventDbRow = {
 };
 
 const EVENTS_SELECT =
-  'id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, created_by, created_at, updated_at';
+  'id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, created_by, created_at, updated_at';
+
 
 function getDomainEventLabel(event: EventRow): string {
   const t = safeText(event.type).toLowerCase();
@@ -296,6 +309,7 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
     opponent: r.opponent ?? null,
     is_home: r.is_home ?? null,
     location: r.location ?? null,
+    venue_id: r.venue_id ?? null,
     starts_at: r.starts_at,
     meeting_at: r.meeting_at ?? null,
     status: normalizeEventStatus(r.status),
@@ -371,6 +385,8 @@ export const EventDetailPage: React.FC = () => {
   const [editEndTime, setEditEndTime] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editLocationAddress, setEditLocationAddress] = useState('');
+  const [editVenue, setEditVenue] = useState<VenueRow | null>(null);
+  const [linkedVenue, setLinkedVenue] = useState<VenueRow | null>(null);
   const [editMeetupAt, setEditMeetupAt] = useState('');
   const [editDetails, setEditDetails] = useState('');
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
@@ -513,17 +529,34 @@ export const EventDetailPage: React.FC = () => {
     if (!eventId) return;
     setLoading(true);
     setError(null);
-    const { data, error: err } = await supabase
+    let select = EVENTS_SELECT;
+    let { data, error: err } = await supabase
       .from('events')
-      .select(EVENTS_SELECT)
+      .select(select)
       .eq('id', eventId)
       .maybeSingle();
+
+    if (err && /venue_id|column/i.test(String(err.message ?? ''))) {
+      select =
+        'id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, created_by, created_at, updated_at';
+      const retry = await supabase.from('events').select(select).eq('id', eventId).maybeSingle();
+      data = retry.data;
+      err = retry.error;
+    }
 
     if (err) {
       setError(err.message);
       setEvent(null);
+      setLinkedVenue(null);
     } else {
-      setEvent(data ? mapRowToEventRow(data as EventDbRow) : null);
+      const mapped = data ? mapRowToEventRow(data as EventDbRow) : null;
+      setEvent(mapped);
+      if (mapped?.venue_id) {
+        const v = await getVenueById(mapped.venue_id);
+        setLinkedVenue(v.data);
+      } else {
+        setLinkedVenue(null);
+      }
     }
     setLoading(false);
   }, [eventId]);
@@ -1135,7 +1168,7 @@ export const EventDetailPage: React.FC = () => {
     [eventId, canTrainerManageEvent, loadEventAttendance],
   );
 
-  const openEditModal = useCallback((e: EventRow) => {
+  const openEditModal = useCallback(async (e: EventRow) => {
     const parsedLocation = splitCombinedLocation(e.location ?? '');
     const noteFields = parseEditableNotes(e.notes);
     setEditEvent(e);
@@ -1151,6 +1184,22 @@ export const EventDetailPage: React.FC = () => {
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
     setEditError(null);
     setEditModalOpen(true);
+    if (e.venue_id) {
+      const v = await getVenueById(e.venue_id);
+      setEditVenue(v.data);
+      if (v.data) {
+        setEditLocation(v.data.name);
+        const addr = [
+          v.data.address,
+          [v.data.postal_code, v.data.city].filter(Boolean).join(' '),
+        ]
+          .filter(Boolean)
+          .join(', ');
+        setEditLocationAddress(addr);
+      }
+    } else {
+      setEditVenue(null);
+    }
   }, []);
 
   const closeEditModal = useCallback(() => {
@@ -1163,6 +1212,7 @@ export const EventDetailPage: React.FC = () => {
     setEditEndTime('');
     setEditLocation('');
     setEditLocationAddress('');
+    setEditVenue(null);
     setEditMeetupAt('');
     setEditDetails('');
     setEditError(null);
@@ -1183,7 +1233,9 @@ export const EventDetailPage: React.FC = () => {
     }
     setSavingEdit(true);
     setEditError(null);
-    const locationVal = combineLocationParts(editLocation, editLocationAddress);
+    const locationVal = editVenue
+      ? locationTextFromVenue(editVenue)
+      : combineLocationParts(editLocation, editLocationAddress);
     const meetupRaw = (editMeetupAt ?? '').trim();
     const meetingAt = meetupRaw ? meetupUtcIsoOnViennaEventDay(startsAt, meetupRaw) : null;
 
@@ -1191,6 +1243,7 @@ export const EventDetailPage: React.FC = () => {
       starts_at: startsAt,
       meeting_at: meetingAt,
       location: locationVal,
+      venue_id: editVenue?.id ?? null,
       opponent: (editOpponent ?? '').trim() || null,
     };
     if (editEvent.kind === 'event') {
@@ -1251,6 +1304,12 @@ export const EventDetailPage: React.FC = () => {
       error = retry.error;
     }
 
+    if (error && /venue_id|column/i.test(String(error.message ?? ''))) {
+      const { venue_id: _ignoredVenue, ...withoutVenue } = payload;
+      const retryVenue = await supabase.from('events').update(withoutVenue).eq('id', editEvent.id);
+      error = retryVenue.error;
+    }
+
     if (error) {
       setEditError(error.message ?? 'Speichern fehlgeschlagen.');
       setSavingEdit(false);
@@ -1259,7 +1318,7 @@ export const EventDetailPage: React.FC = () => {
     setSavingEdit(false);
     closeEditModal();
     await loadEvent();
-  }, [editDetails, editEndTime, editEvent, editSheetEventType, editDateTime, editLocation, editLocationAddress, editMeetupAt, editOpponent, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent]);
+  }, [editDetails, editEndTime, editEvent, editSheetEventType, editDateTime, editLocation, editLocationAddress, editVenue, editMeetupAt, editOpponent, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
@@ -3002,9 +3061,33 @@ export const EventDetailPage: React.FC = () => {
   const tournamentEndLabel = eventTrainingEndDisplay(event.notes);
   const tournamentMeetupLabel = event.meeting_at ? formatMeetupTimeOnlyDe(event.meeting_at) : null;
   const tournamentNotesText = extractAudienceTrainerNotes(event.notes);
-  const audienceLocation = splitCombinedLocation(event.location);
-  const audienceMapsCoords = resolveEventMapsCoords(event.location, event.notes);
+  const audienceLocation = linkedVenue
+    ? {
+        place: linkedVenue.name,
+        address: [
+          linkedVenue.address,
+          [linkedVenue.postal_code, linkedVenue.city].filter(Boolean).join(' '),
+        ]
+          .filter(Boolean)
+          .join(', '),
+      }
+    : splitCombinedLocation(event.location);
+  const audienceMapsCoords = linkedVenue
+    ? linkedVenue.latitude != null && linkedVenue.longitude != null
+      ? { lat: Number(linkedVenue.latitude), lng: Number(linkedVenue.longitude) }
+      : null
+    : resolveEventMapsCoords(event.location, event.notes);
   const audienceTrainerNotes = extractAudienceTrainerNotes(event.notes);
+  const audienceNavOpts = linkedVenue
+    ? venueMapsOpts(linkedVenue)
+    : {
+        lat: audienceMapsCoords?.lat,
+        lng: audienceMapsCoords?.lng,
+        place: audienceLocation.place,
+        address: audienceLocation.address,
+        locationRaw: event.location,
+      };
+  const canStartNavigation = Boolean(buildMapsNavigationUrl(audienceNavOpts));
 
   const tournamentTrainerAttendanceSection =
     isTournament && canTrainerManageEvent ? (
@@ -3035,15 +3118,9 @@ export const EventDetailPage: React.FC = () => {
     ) : null;
 
   const handleStartNavigation = () => {
-    const opened = openMapsNavigation({
-      lat: audienceMapsCoords?.lat,
-      lng: audienceMapsCoords?.lng,
-      place: audienceLocation.place,
-      address: audienceLocation.address,
-      locationRaw: event.location,
-    });
+    const opened = openMapsNavigation(audienceNavOpts);
     if (!opened) {
-      alert('Kein Spielort hinterlegt.');
+      alert('Kein navigierbarer Spielort hinterlegt.');
     }
   };
   const eventStartTimeLabel = event.starts_at
@@ -3129,15 +3206,17 @@ export const EventDetailPage: React.FC = () => {
                 <span className="min-w-0 flex-1 text-left text-[15px] font-semibold">Zum Kalender hinzufügen</span>
                 <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
               </button>
-              <button
-                type="button"
-                className={`inline-flex min-h-[52px] w-full items-center gap-3 ${dsScheduleDetailCalendarRowClass()}`}
-                onClick={handleStartNavigation}
-              >
-                <Navigation className="h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                <span className="min-w-0 flex-1 text-left text-[15px] font-semibold">Navigation starten</span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
-              </button>
+              {canStartNavigation ? (
+                <button
+                  type="button"
+                  className={`inline-flex min-h-[52px] w-full items-center gap-3 ${dsScheduleDetailCalendarRowClass()}`}
+                  onClick={handleStartNavigation}
+                >
+                  <Navigation className="h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                  <span className="min-w-0 flex-1 text-left text-[15px] font-semibold">Navigation starten</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
+                </button>
+              ) : null}
             </div>
           ) : (
             <ScheduleEventActionsPanel
@@ -3149,7 +3228,7 @@ export const EventDetailPage: React.FC = () => {
                   icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
                   onClick: () => void handleAddSingleEventToCalendar(),
                 },
-                ...(audienceLocation.place || audienceLocation.address
+                ...(canStartNavigation
                   ? [
                       {
                         key: 'navigate',
@@ -3201,7 +3280,7 @@ export const EventDetailPage: React.FC = () => {
                     shareTitle={tournamentTitle}
                     onAddToCalendar={() => void handleAddSingleEventToCalendar()}
                     onNavigate={handleStartNavigation}
-                    showNavigation={Boolean(audienceLocation.place || audienceLocation.address)}
+                    showNavigation={canStartNavigation}
                   />
                 }
                 canManage={canTrainerManageEvent}
@@ -3268,7 +3347,7 @@ export const EventDetailPage: React.FC = () => {
             <CenterQuickActionBar
               onAddToCalendar={() => void handleAddSingleEventToCalendar()}
               onNavigate={handleStartNavigation}
-              showNavigation={Boolean(audienceLocation.place || audienceLocation.address)}
+              showNavigation={canStartNavigation}
               onShare={() => shareEventCenter('Trainingscenter', eventCompactTitle)}
             />
             {event.team_season_id ? (
@@ -4093,33 +4172,18 @@ export const EventDetailPage: React.FC = () => {
 
             <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Ort</p>
-              <div className="space-y-3">
-                <div>
-                  <label htmlFor="event-detail-edit-location" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                    Platzname / Ort
-                  </label>
-                  <input
-                    id="event-detail-edit-location"
-                    type="text"
-                    value={editLocation}
-                    onChange={(e) => setEditLocation(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
-                    placeholder="z. B. Sportplatz Rohrbach"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="event-detail-edit-location-address" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                    Adresse / PLZ / Ort
-                  </label>
-                  <input
-                    id="event-detail-edit-location-address"
-                    type="text"
-                    value={editLocationAddress}
-                    onChange={(e) => setEditLocationAddress(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
-                  />
-                </div>
-              </div>
+              <VenuePicker
+                teamSeasonId={editEvent?.team_season_id ?? null}
+                venueId={editVenue?.id ?? null}
+                onVenueChange={(v) => setEditVenue(v)}
+                locationName={editLocation}
+                locationAddress={editLocationAddress}
+                onLocationNameChange={setEditLocation}
+                onLocationAddressChange={setEditLocationAddress}
+                labelClass="mb-1 block text-sm font-medium text-[var(--text-main)]"
+                inputClass="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                disabled={savingEdit}
+              />
             </section>
 
             <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
