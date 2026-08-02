@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
+import { isParentVisibleFixtureStatus } from '../lib/championshipVisibility';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { buildTeamIcsFeedUrl, resolveTeamCalendarFeedSegment, teamCalendarDisplayTitle } from '../lib/calendarFeed';
@@ -176,10 +177,9 @@ export const CalendarPage: React.FC = () => {
         } else if (first.error) {
           loadError = first.error.message;
         } else {
-          data = (first.data ?? []).filter((r: { fixture_status?: string | null }) => {
-            const s = String(r.fixture_status ?? '').trim().toLowerCase();
-            return s !== 'open' && s !== 'agreed';
-          });
+          data = (first.data ?? []).filter((r: { fixture_status?: string | null }) =>
+            isParentVisibleFixtureStatus(r.fixture_status),
+          );
         }
 
         if (loadError) {

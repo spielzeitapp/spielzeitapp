@@ -55,6 +55,32 @@ function formatOefbDate(iso: string | null | undefined): string {
   }).format(d);
 }
 
+/** ÖFB-Vorgabe: 23:00/00:00 Wien oft date-only Artefakt → Datum + „Uhrzeit noch offen“. */
+function formatOefbVorgabe(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const parts = new Intl.DateTimeFormat('de-AT', {
+    timeZone: 'Europe/Vienna',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? '';
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '';
+  const dateOnly = new Intl.DateTimeFormat('de-AT', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Europe/Vienna',
+  }).format(d);
+  if ((hour === '23' || hour === '00') && minute === '00') {
+    return `${dateOnly} · Uhrzeit noch offen`;
+  }
+  return formatOefbDate(iso);
+}
+
 function statusMeta(status: ChampionshipFixture['fixture_status']): {
   label: string;
   className: string;
@@ -395,7 +421,7 @@ export const ChampionshipManagementPage: React.FC = () => {
               </div>
               <p className="text-sm text-white/70">
                 <span className="text-white/40">ÖFB: </span>
-                {formatOefbDate(f.source_starts_at ?? f.starts_at)}
+                {formatOefbVorgabe(f.source_starts_at ?? f.starts_at)}
               </p>
               <p className="text-sm text-white/70">
                 <span className="text-white/40">Vereinbart: </span>
@@ -456,7 +482,7 @@ export const ChampionshipManagementPage: React.FC = () => {
               </div>
             </div>
             <p className="mt-3 text-xs text-white/50">
-              ÖFB-Vorgabe: {formatOefbDate(editFixture.source_starts_at ?? editFixture.starts_at)}
+              ÖFB-Vorgabe: {formatOefbVorgabe(editFixture.source_starts_at ?? editFixture.starts_at)}
             </p>
 
             <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">

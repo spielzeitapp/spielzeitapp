@@ -1,4 +1,5 @@
 import type { EventRow } from '../../hooks/useEvents';
+import { isEventPubliclyVisible } from '../../lib/championshipVisibility';
 import { isAutoMatchdayFeedEnabledForEvent } from '../../lib/autoMatchdayFeedEnabled';
 import {
   getDateTimePartsInTimeZone,
@@ -52,6 +53,7 @@ function isSameCalendarDayVienna(a: Date, b: Date): boolean {
 }
 
 export function isUpcomingRelevant(e: EventRow, now: Date): boolean {
+  if (!isEventPubliclyVisible(e)) return false;
   const st = e.status ?? 'upcoming';
   if (st === 'finished' || st === 'canceled') return false;
   if (st === 'live') return true;
@@ -217,6 +219,7 @@ export function pickHomeMatchCard(
 ): HomeMatchCardPick | null {
   const matches = events
     .filter((e) => {
+      if (!isEventPubliclyVisible(e)) return false;
       if (e.kind !== 'match') return false;
       const st = e.status ?? 'upcoming';
       if (st === 'finished' || st === 'canceled') return false;

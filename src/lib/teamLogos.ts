@@ -110,11 +110,8 @@ const LOGO_MAP: Record<string, string> = {
   'spg weinburg a': 'spg-weinburg-a',
   'spg weinburg': 'spg-weinburg',
   weinburg: 'spg-weinburg',
-  // UHG / SPG Bischofstetten
-  'spg bischofstetten': 'uhg-hofstetten',
-  'uhg hofstetten': 'uhg-hofstetten',
-  'uhg bischofstetten': 'uhg-hofstetten',
-  bischofstetten: 'uhg-hofstetten',
+  // SPG Bischofstetten: kein verifiziertes Asset → Placeholder (nicht UHG/Rohrbach raten)
+  // Loosdorf: kein verifiziertes Asset → Placeholder
   // TSV Hartberg
   'tsv hartberg': 'tsv-hartberg',
   hartberg: 'tsv-hartberg',
@@ -227,11 +224,7 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
     return getLogoUrl(`${mapped}.png`);
   }
 
-  const slug = nameToSlug(name);
-  if (slug) {
-    return getLogoUrl(`${slug}.png`);
-  }
-
+  // Keine geratenen Slug-URLs (/logos/spg-bischofstetten.png) → 404 / falsche Assoziation.
   return PLACEHOLDER_LOGO;
 }
 

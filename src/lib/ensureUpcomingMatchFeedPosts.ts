@@ -1,3 +1,4 @@
+import { isInternalChampionshipFixture } from './championshipVisibility';
 import { supabase } from './supabaseClient';
 import { getClubLogo } from './teamLogos';
 import { formatFullLocation, splitCombinedLocation } from './eventLocation';
@@ -230,10 +231,7 @@ export async function ensureUpcomingMatchFeedPosts(
   const rows = (feedRes.data ?? []) as EventRowLite[];
 
   for (const ev of rows) {
-    {
-      const fs = String(ev.fixture_status ?? '').trim().toLowerCase();
-      if (fs === 'open' || fs === 'agreed') continue;
-    }
+    if (isInternalChampionshipFixture(ev.fixture_status)) continue;
     if (!isMatchEvent(ev)) continue;
     const st = (ev.status ?? 'upcoming').toLowerCase();
     if (st !== 'upcoming') continue;

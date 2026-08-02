@@ -562,8 +562,9 @@ async function teamIcsHandler(req, res) {
     } else {
       events = (eventsRaw ?? []).filter((e) => {
         const status = String(e.status ?? '').toLowerCase();
+        if (status === 'canceled') return false;
         const fixture = String(e.fixture_status ?? '').toLowerCase();
-        return status !== 'canceled' && fixture !== 'open' && fixture !== 'agreed';
+        return fixture !== 'open' && fixture !== 'agreed';
       });
     }
     console.log('[ics-feed] events lookup end', { count: events.length });

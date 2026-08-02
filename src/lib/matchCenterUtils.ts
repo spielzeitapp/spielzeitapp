@@ -1,4 +1,5 @@
 import type { EventRow } from '../hooks/useEvents';
+import { isEventPubliclyVisible } from './championshipVisibility';
 import { safeText } from './safeText';
 
 export type MatchCenterCountdown = {
@@ -29,6 +30,7 @@ export function pickNextUpcomingMatch(events: EventRow[], now: Date): EventRow |
   const nowMs = now.getTime();
   const matches = events
     .filter((e) => {
+      if (!isEventPubliclyVisible(e)) return false;
       if (e.kind !== 'match') return false;
       if (isCanceledOrFinished(e)) return false;
       if ((e.status ?? 'upcoming') === 'live') return false;

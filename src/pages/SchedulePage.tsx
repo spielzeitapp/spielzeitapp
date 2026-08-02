@@ -17,6 +17,7 @@ import { TrainerStatsMini } from '../components/schedule/TrainerStatsMini';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePublicTeamSeason } from '../hooks/usePublicTeamSeason';
 import { useEvents, type EventRow } from '../hooks/useEvents';
+import { isEventPubliclyVisible } from '../lib/championshipVisibility';
 import { useEventsAttendance, type AttendanceStatus } from '../hooks/useEventsAttendance';
 import { usePlayers } from '../hooks/usePlayers';
 import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
@@ -732,6 +733,7 @@ export const SchedulePage: React.FC = () => {
       canceled: 3,
     };
     const base = events.filter((e) => {
+      if (!isEventPubliclyVisible(e)) return false;
       // Fans sehen nur Spiele (kind === 'match')
       if (normalizedUiRole === 'fan') return e.kind === 'match';
       // Termine: Typ-Filter (Alle/Spiele/Trainings/Events)

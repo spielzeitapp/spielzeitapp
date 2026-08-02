@@ -82,8 +82,13 @@ export function getTeamLogoSrc(teamName: string): string {
   if (n.includes('skn')) return getLogoUrl('skn-stpoelten-a');
   if (n.includes('alpenvorland')) return getLogoUrl('usg-alpenvorland');
   if (n.includes('wilhelmsburg')) return getLogoUrl('ask-wilhelmsburg');
-  if (n.includes('weinburg')) return getLogoUrl('spg-weinburg');
-  if (n.includes('bischofstetten') || n.includes('hofstetten')) return getLogoUrl('uhg-hofstetten');
+  if (n.includes('weinburg')) {
+    if (n.includes('weinburg-a') || n.endsWith('weinburg-a') || n.includes('weinburg a')) {
+      return getLogoUrl('spg-weinburg-a');
+    }
+    return getLogoUrl('spg-weinburg');
+  }
+  // Bischofstetten/Loosdorf: kein verifiziertes Mapping → Placeholder
   return PLACEHOLDER_LOGO;
 }
 

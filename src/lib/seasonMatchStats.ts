@@ -353,13 +353,17 @@ async function fetchEventMetaByMatchId(
 
   const { data: matchEvents, error: matchEvErr } = await supabase
     .from('events')
-    .select('id, match_id, location, is_home, status')
+    .select('id, match_id, location, is_home, status, fixture_status')
     .eq('team_season_id', sid)
     .eq('kind', 'match')
     .not('match_id', 'is', null);
 
   if (!matchEvErr) {
     for (const row of matchEvents ?? []) {
+      const fs = String((row as { fixture_status?: string | null }).fixture_status ?? '')
+        .trim()
+        .toLowerCase();
+      if (fs === 'open' || fs === 'agreed') continue;
       const mid = (row as { match_id?: string | null }).match_id;
       if (!mid || !validMatchIds.has(String(mid))) continue;
       if (isInactiveEventStatus((row as { status?: string | null }).status)) continue;

@@ -1,3 +1,4 @@
+import { isInternalChampionshipFixture } from './championshipVisibility';
 import { supabase } from './supabaseClient';
 import { loadAutoMatchdayFeedEnabledByMatchId } from './autoMatchdayFeedEnabled';
 import { formatFullLocation, splitCombinedLocation } from './eventLocation';
@@ -361,8 +362,7 @@ export async function ensureMatchdayFeedPostsForSeason(
   const tomorrowCandidates: EventRowLite[] = [];
 
   for (const ev of (mdRes.data ?? []) as EventRowLite[]) {
-    const fs = String(ev.fixture_status ?? '').trim().toLowerCase();
-    if (fs === 'open' || fs === 'agreed') continue;
+    if (isInternalChampionshipFixture(ev.fixture_status)) continue;
     if (!isMatchEvent(ev)) continue;
     if ((ev.status ?? 'upcoming').toLowerCase() !== 'upcoming') continue;
     if (!ev.starts_at) continue;
