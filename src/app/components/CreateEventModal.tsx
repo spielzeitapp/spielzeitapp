@@ -521,6 +521,11 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           locationAddress={form.location_address}
           onLocationNameChange={(v) => setForm((f) => ({ ...f, location: v }))}
           onLocationAddressChange={(v) => setForm((f) => ({ ...f, location_address: v }))}
+          matchContext={
+            eventTypeLocal === 'game'
+              ? { isHome: form.is_home, opponentName: form.opponent }
+              : null
+          }
           labelClass={labelClass}
           inputClass={inputClass}
           disabled={creating}

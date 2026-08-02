@@ -4180,6 +4180,14 @@ export const EventDetailPage: React.FC = () => {
                 locationAddress={editLocationAddress}
                 onLocationNameChange={setEditLocation}
                 onLocationAddressChange={setEditLocationAddress}
+                matchContext={
+                  editEvent?.kind === 'match'
+                    ? {
+                        isHome: editEvent.is_home,
+                        opponentName: editOpponent || editEvent.opponent || '',
+                      }
+                    : null
+                }
                 labelClass="mb-1 block text-sm font-medium text-[var(--text-main)]"
                 inputClass="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
                 disabled={savingEdit}

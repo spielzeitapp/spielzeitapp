@@ -1686,6 +1686,14 @@ export const SchedulePage: React.FC = () => {
             locationAddress={editLocationAddress}
             onLocationNameChange={setEditLocation}
             onLocationAddressChange={setEditLocationAddress}
+            matchContext={
+              editEvent && getEffectiveEventType(editEvent) === 'game'
+                ? {
+                    isHome: editEvent.is_home,
+                    opponentName: editOpponent || editEvent.opponent || '',
+                  }
+                : null
+            }
             labelClass="block text-sm font-medium text-[var(--text-main)] mb-1"
             inputClass="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
             disabled={savingEdit}

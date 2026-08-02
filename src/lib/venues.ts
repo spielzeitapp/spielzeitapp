@@ -138,3 +138,34 @@ export async function createVenue(
 export function locationTextFromVenue(v: VenueRow): string {
   return formatVenueLocationText(v);
 }
+
+export async function updateVenue(
+  venueId: string,
+  patch: {
+    name?: string;
+    address?: string | null;
+    postalCode?: string | null;
+    city?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    isHome?: boolean;
+  },
+): Promise<{ data: VenueRow | null; error: string | null }> {
+  const payload: Record<string, unknown> = {};
+  if (patch.name !== undefined) payload.name = String(patch.name).trim();
+  if (patch.address !== undefined) payload.address = nullIfEmpty(patch.address);
+  if (patch.postalCode !== undefined) payload.postal_code = nullIfEmpty(patch.postalCode);
+  if (patch.city !== undefined) payload.city = nullIfEmpty(patch.city);
+  if (patch.latitude !== undefined) payload.latitude = patch.latitude;
+  if (patch.longitude !== undefined) payload.longitude = patch.longitude;
+  if (patch.isHome !== undefined) payload.is_home = patch.isHome === true;
+
+  const { data, error } = await supabase
+    .from('venues')
+    .update(payload)
+    .eq('id', venueId)
+    .select(VENUE_SELECT)
+    .maybeSingle();
+  if (error) return { data: null, error: error.message };
+  return { data: (data as VenueRow | null) ?? null, error: null };
+}
