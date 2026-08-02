@@ -80,7 +80,10 @@ export function getTeamLogoSrc(teamName: string): string {
   if (!n) return PLACEHOLDER_LOGO;
   if (n.includes('spg') && n.includes('rohrbach')) return getLogoUrl('spg-rohrbach');
   if (n.includes('skn')) return getLogoUrl('skn-stpoelten-a');
-  if (n.includes('alpenvorland')) return getLogoUrl('alpenvorland-usg');
+  if (n.includes('alpenvorland')) return getLogoUrl('usg-alpenvorland');
+  if (n.includes('wilhelmsburg')) return getLogoUrl('ask-wilhelmsburg');
+  if (n.includes('weinburg')) return getLogoUrl('spg-weinburg');
+  if (n.includes('bischofstetten') || n.includes('hofstetten')) return getLogoUrl('uhg-hofstetten');
   return PLACEHOLDER_LOGO;
 }
 

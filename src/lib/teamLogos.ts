@@ -99,7 +99,22 @@ const LOGO_MAP: Record<string, string> = {
   vienna: 'first-vienna',
   // ASK Wilhelmsburg
   'ask wilhelmsburg': 'ask-wilhelmsburg',
+  'wilhelmsburg ask': 'ask-wilhelmsburg',
   wilhelmsburg: 'ask-wilhelmsburg',
+  // USG / SPG Alpenvorland
+  'usg alpenvorland': 'usg-alpenvorland',
+  'spg alpenvorland': 'usg-alpenvorland',
+  'alpenvorland usg': 'usg-alpenvorland',
+  alpenvorland: 'usg-alpenvorland',
+  // SPG Weinburg
+  'spg weinburg a': 'spg-weinburg-a',
+  'spg weinburg': 'spg-weinburg',
+  weinburg: 'spg-weinburg',
+  // UHG / SPG Bischofstetten
+  'spg bischofstetten': 'uhg-hofstetten',
+  'uhg hofstetten': 'uhg-hofstetten',
+  'uhg bischofstetten': 'uhg-hofstetten',
+  bischofstetten: 'uhg-hofstetten',
   // TSV Hartberg
   'tsv hartberg': 'tsv-hartberg',
   hartberg: 'tsv-hartberg',
@@ -112,10 +127,9 @@ const LOGO_MAP: Record<string, string> = {
   'wr neustadt': 'fortuna-wr-neustadt',
   'sc wr neustadt': 'fortuna-wr-neustadt',
   // Bestehende Gegner
-  'skn st poelten': 'skn_stpoelten_a',
-  'skn st.poelten': 'skn_stpoelten_a',
-  'skn st. poelten': 'skn_stpoelten_a',
-  'alpenvorland usg': 'alpenvorland_usg',
+  'skn st poelten': 'skn-stpoelten-a',
+  'skn st.poelten': 'skn-stpoelten-a',
+  'skn st. poelten': 'skn-stpoelten-a',
 };
 
 /** Längere Aliase zuerst — verhindert zu frühe Kurz-Treffer bei Teilstrings. */

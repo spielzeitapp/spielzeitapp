@@ -47,7 +47,7 @@ export type EventRow = {
   /** Optional: Migration 20260615120000 */
   official_tournament_url?: string | null;
   /** Optional: Migration 20260802180000 — open = Meisterschafts-Arbeitsliste */
-  fixture_status?: 'open' | 'agreed' | null;
+  fixture_status?: 'open' | 'agreed' | 'published' | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -88,8 +88,9 @@ const EVENTS_SELECT =
 const EVENTS_SELECT_LEGACY =
   "id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at";
 
-function isOpenChampionshipFixture(r: { fixture_status?: string | null }): boolean {
-  return String(r.fixture_status ?? '').trim().toLowerCase() === 'open';
+function isInternalChampionshipFixtureRow(r: { fixture_status?: string | null }): boolean {
+  const s = String(r.fixture_status ?? '').trim().toLowerCase();
+  return s === 'open' || s === 'agreed';
 }
 
 export function useEvents(teamSeasonId: string | null) {
@@ -130,7 +131,7 @@ export function useEvents(teamSeasonId: string | null) {
       setEvents([]);
     } else {
       const mapped: EventRow[] = (data ?? [])
-        .filter((r: EventDbRow) => !isOpenChampionshipFixture(r))
+        .filter((r: EventDbRow) => !isInternalChampionshipFixtureRow(r))
         .map((r: EventDbRow) => ({
         id: r.id,
         team_season_id: r.team_season_id,
@@ -155,7 +156,9 @@ export function useEvents(teamSeasonId: string | null) {
         training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? null,
         opponent_logo_url: r.opponent_logo_url ?? null,
         official_tournament_url: r.official_tournament_url ?? null,
-        fixture_status: (r.fixture_status === 'open' || r.fixture_status === 'agreed'
+        fixture_status: (r.fixture_status === 'open' ||
+        r.fixture_status === 'agreed' ||
+        r.fixture_status === 'published'
           ? r.fixture_status
           : null) as EventRow['fixture_status'],
         created_by: r.created_by ?? null,

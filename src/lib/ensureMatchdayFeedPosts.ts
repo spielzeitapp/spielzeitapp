@@ -37,6 +37,7 @@ type EventRowLite = {
   match_type: string | null;
   match_id: string | null;
   opponent_logo_url: string | null;
+  fixture_status?: string | null;
 };
 
 type TeamSeasonJoinRow = {
@@ -333,23 +334,35 @@ export async function ensureMatchdayFeedPostsForSeason(
     return result;
   }
 
-  const { data, error } = await supabase
+  let mdRes = await supabase
     .from('events')
     .select(
-      'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id',
+      'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id, fixture_status',
     )
     .eq('team_season_id', sid)
     .not('status', 'in', '(canceled,finished)');
 
-  if (error) {
-    result.errors.push(error.message);
+  if (mdRes.error && /fixture_status|column/i.test(String(mdRes.error.message ?? ''))) {
+    mdRes = await supabase
+      .from('events')
+      .select(
+        'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id',
+      )
+      .eq('team_season_id', sid)
+      .not('status', 'in', '(canceled,finished)');
+  }
+
+  if (mdRes.error) {
+    result.errors.push(mdRes.error.message);
     return result;
   }
 
   const todayCandidates: EventRowLite[] = [];
   const tomorrowCandidates: EventRowLite[] = [];
 
-  for (const ev of (data ?? []) as EventRowLite[]) {
+  for (const ev of (mdRes.data ?? []) as EventRowLite[]) {
+    const fs = String(ev.fixture_status ?? '').trim().toLowerCase();
+    if (fs === 'open' || fs === 'agreed') continue;
     if (!isMatchEvent(ev)) continue;
     if ((ev.status ?? 'upcoming').toLowerCase() !== 'upcoming') continue;
     if (!ev.starts_at) continue;

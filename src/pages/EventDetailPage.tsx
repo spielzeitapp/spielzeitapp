@@ -154,13 +154,14 @@ type EventDbRow = {
   match_id: string | null;
   /** Optional: offizieller externer Turnierplan (Migration 20260615120000) */
   official_tournament_url?: string | null;
+  fixture_status?: string | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
 
 const EVENTS_SELECT =
-  'id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, created_by, created_at, updated_at';
+  'id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, fixture_status, created_by, created_at, updated_at';
 
 
 function getDomainEventLabel(event: EventRow): string {
@@ -318,6 +319,11 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
     match_id: r.match_id ?? null,
     official_tournament_url: r.official_tournament_url ?? null,
     training_absence_deadline_disabled: null,
+    fixture_status: (r.fixture_status === 'open' ||
+    r.fixture_status === 'agreed' ||
+    r.fixture_status === 'published'
+      ? r.fixture_status
+      : null) as EventRow['fixture_status'],
     created_by: r.created_by ?? null,
     created_at: r.created_at ?? null,
     updated_at: r.updated_at ?? null,
@@ -841,6 +847,12 @@ export const EventDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (!event || event.kind !== 'match' || !canTrainerManageEvent || event.match_id) {
+      setMatchLinkBusy(false);
+      setMatchLinkError(null);
+      return;
+    }
+    const fs = String(event.fixture_status ?? '').trim().toLowerCase();
+    if (fs === 'open' || fs === 'agreed') {
       setMatchLinkBusy(false);
       setMatchLinkError(null);
       return;
@@ -1372,6 +1384,23 @@ export const EventDetailPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  {
+    const fs = String(event.fixture_status ?? '').trim().toLowerCase();
+    const isInternalChamp = fs === 'open' || fs === 'agreed';
+    if (isInternalChamp && !canTrainerManageEvent) {
+      return (
+        <div className="min-h-screen bg-black text-white">
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
+            <p>Dieser Meisterschaftstermin ist noch nicht veröffentlicht.</p>
+            <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
+              ← Zurück zum Spielplan
+            </Link>
+          </div>
+        </div>
+      );
+    }
   }
 
   if (isFinishedMatchEvent) {

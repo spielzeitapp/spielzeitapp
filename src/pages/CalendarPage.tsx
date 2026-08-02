@@ -176,10 +176,10 @@ export const CalendarPage: React.FC = () => {
         } else if (first.error) {
           loadError = first.error.message;
         } else {
-          data = (first.data ?? []).filter(
-            (r: { fixture_status?: string | null }) =>
-              String(r.fixture_status ?? '').trim().toLowerCase() !== 'open',
-          );
+          data = (first.data ?? []).filter((r: { fixture_status?: string | null }) => {
+            const s = String(r.fixture_status ?? '').trim().toLowerCase();
+            return s !== 'open' && s !== 'agreed';
+          });
         }
 
         if (loadError) {

@@ -230,7 +230,10 @@ export async function ensureUpcomingMatchFeedPosts(
   const rows = (feedRes.data ?? []) as EventRowLite[];
 
   for (const ev of rows) {
-    if (String(ev.fixture_status ?? '').trim().toLowerCase() === 'open') continue;
+    {
+      const fs = String(ev.fixture_status ?? '').trim().toLowerCase();
+      if (fs === 'open' || fs === 'agreed') continue;
+    }
     if (!isMatchEvent(ev)) continue;
     const st = (ev.status ?? 'upcoming').toLowerCase();
     if (st !== 'upcoming') continue;

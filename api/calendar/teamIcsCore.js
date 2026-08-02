@@ -560,11 +560,11 @@ async function teamIcsHandler(req, res) {
         return;
       }
     } else {
-      events = (eventsRaw ?? []).filter(
-        (e) =>
-          String(e.status ?? '').toLowerCase() !== 'canceled' &&
-          String(e.fixture_status ?? '').toLowerCase() !== 'open',
-      );
+      events = (eventsRaw ?? []).filter((e) => {
+        const status = String(e.status ?? '').toLowerCase();
+        const fixture = String(e.fixture_status ?? '').toLowerCase();
+        return status !== 'canceled' && fixture !== 'open' && fixture !== 'agreed';
+      });
     }
     console.log('[ics-feed] events lookup end', { count: events.length });
 

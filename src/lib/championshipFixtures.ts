@@ -1,7 +1,14 @@
 import { supabase } from './supabaseClient';
+import {
+  getClubLogo,
+  isPlaceholderLogoUrl,
+  PLACEHOLDER_LOGO,
+} from './teamLogos';
+import { normalizeOpponentKey } from './teamVenues';
 import { locationTextFromVenue, type VenueRow } from './venues';
+import type { FixtureStatus } from './championshipVisibility';
 
-export type FixtureStatus = 'open' | 'agreed';
+export type { FixtureStatus } from './championshipVisibility';
 
 export type ChampionshipFixture = {
   id: string;
@@ -20,6 +27,7 @@ export type ChampionshipFixture = {
   source_starts_at: string | null;
   fixture_status: FixtureStatus | null;
   opponent_logo_url: string | null;
+  notes: string | null;
 };
 
 export type OefbImportedFixture = {
@@ -35,10 +43,10 @@ export type OefbImportedFixture = {
 };
 
 const FIXTURE_SELECT =
-  'id, team_season_id, opponent, is_home, starts_at, meeting_at, location, venue_id, match_type, competition, external_source, external_id, external_url, source_starts_at, fixture_status, opponent_logo_url';
+  'id, team_season_id, opponent, is_home, starts_at, meeting_at, location, venue_id, match_type, competition, external_source, external_id, external_url, source_starts_at, fixture_status, opponent_logo_url, notes';
 
 const FIXTURE_SELECT_NO_LOGO =
-  'id, team_season_id, opponent, is_home, starts_at, meeting_at, location, venue_id, match_type, competition, external_source, external_id, external_url, source_starts_at, fixture_status';
+  'id, team_season_id, opponent, is_home, starts_at, meeting_at, location, venue_id, match_type, competition, external_source, external_id, external_url, source_starts_at, fixture_status, notes';
 
 function isMissingColumnError(message: string): boolean {
   return /fixture_status|external_source|external_id|source_starts_at|competition|column|schema cache/i.test(
@@ -47,7 +55,32 @@ function isMissingColumnError(message: string): boolean {
 }
 
 function isMissingLogoColumnError(message: string): boolean {
-  return /opponent_logo_url/i.test(message);
+  return /opponent_logo_url|opponent_slug/i.test(message);
+}
+
+function migrationHint(): string {
+  return 'Meisterschafts-Felder fehlen. Bitte Migrationen 20260802180000 / 20260802190000 auf Staging ausführen.';
+}
+
+/** Lokales Asset bevorzugen; sonst ÖFB-URL; sonst null (UI zeigt Platzhalter). */
+export function resolveOpponentLogoForStorage(
+  opponent: string,
+  oefbLogoUrl?: string | null,
+): string | null {
+  const local = getClubLogo(opponent);
+  if (local && !isPlaceholderLogoUrl(local) && local.includes('/logos/')) {
+    return local.startsWith('/') ? local : `/${local.replace(/^\/+/, '')}`;
+  }
+  const oefb = String(oefbLogoUrl ?? '').trim();
+  if (oefb.startsWith('https://') || oefb.startsWith('http://')) return oefb;
+  return null;
+}
+
+export function displayOpponentLogoUrl(
+  opponent: string | null | undefined,
+  storedUrl?: string | null,
+): string {
+  return getClubLogo(String(opponent ?? ''), { logoUrl: storedUrl ?? undefined }) || PLACEHOLDER_LOGO;
 }
 
 async function selectChampionshipRows(
@@ -79,11 +112,7 @@ async function selectChampionshipRows(
 
   if (res.error) {
     if (isMissingColumnError(res.error.message)) {
-      return {
-        data: [],
-        error:
-          'Meisterschafts-Felder fehlen in der Datenbank. Bitte Migration 20260802180000_events_championship_fixture_fields.sql ausführen.',
-      };
+      return { data: [], error: migrationHint() };
     }
     return { data: [], error: res.error.message };
   }
@@ -121,31 +150,36 @@ export async function fetchOefbScheduleFixtures(opts: {
   return { fixtures: json.fixtures ?? [], error: null };
 }
 
+function isProtectedManualStatus(status: string | null | undefined): boolean {
+  const s = String(status ?? '').trim().toLowerCase();
+  return s === 'agreed' || s === 'published';
+}
+
 /**
  * Upsert ÖFB-Ligaspiele.
- * Reimport: bei fixture_status=agreed keine Überschreibung von starts_at/meeting_at/venue_id.
+ * Reimport: bei agreed/published keine Überschreibung von starts_at/meeting_at/venue_id/fixture_status.
  */
 export async function importOefbChampionshipFixtures(opts: {
   teamSeasonId: string;
   fixtures: OefbImportedFixture[];
   createdBy: string | null;
-}): Promise<{ inserted: number; updated: number; skippedAgreed: number; error: string | null }> {
+}): Promise<{ inserted: number; updated: number; skippedProtected: number; error: string | null }> {
   let inserted = 0;
   let updated = 0;
-  let skippedAgreed = 0;
+  let skippedProtected = 0;
 
   for (const f of opts.fixtures) {
     if (!f.external_id || !f.opponent || !f.starts_at) continue;
+    const logo = resolveOpponentLogoForStorage(f.opponent, f.opponent_logo_url);
 
     const found = await selectChampionshipRows(opts.teamSeasonId, f.external_id);
     if (found.error) {
-      return { inserted, updated, skippedAgreed, error: found.error };
+      return { inserted, updated, skippedProtected, error: found.error };
     }
     const existing = found.data[0] ?? null;
 
     if (existing) {
-      const row = existing;
-      const isAgreed = row.fixture_status === 'agreed';
+      const protectedRow = isProtectedManualStatus(existing.fixture_status);
       const patch: Record<string, unknown> = {
         opponent: f.opponent,
         is_home: f.is_home,
@@ -156,19 +190,19 @@ export async function importOefbChampionshipFixtures(opts: {
         kind: 'match',
         type: 'game',
       };
-      if (f.opponent_logo_url) patch.opponent_logo_url = f.opponent_logo_url;
-      if (!isAgreed) {
+      if (logo && !existing.opponent_logo_url) patch.opponent_logo_url = logo;
+      if (!protectedRow) {
         patch.starts_at = f.starts_at;
-        if (f.location && !row.venue_id) patch.location = f.location;
+        if (f.location && !existing.venue_id) patch.location = f.location;
       } else {
-        skippedAgreed += 1;
+        skippedProtected += 1;
       }
-      let { error: updErr } = await supabase.from('events').update(patch).eq('id', row.id);
+      let { error: updErr } = await supabase.from('events').update(patch).eq('id', existing.id);
       if (updErr && isMissingLogoColumnError(updErr.message) && 'opponent_logo_url' in patch) {
         delete patch.opponent_logo_url;
-        ({ error: updErr } = await supabase.from('events').update(patch).eq('id', row.id));
+        ({ error: updErr } = await supabase.from('events').update(patch).eq('id', existing.id));
       }
-      if (updErr) return { inserted, updated, skippedAgreed, error: updErr.message };
+      if (updErr) return { inserted, updated, skippedProtected, error: updErr.message };
       updated += 1;
       continue;
     }
@@ -192,7 +226,7 @@ export async function importOefbChampionshipFixtures(opts: {
       competition: f.competition,
       source_starts_at: f.starts_at,
       fixture_status: 'open',
-      opponent_logo_url: f.opponent_logo_url,
+      opponent_logo_url: logo,
     };
 
     let { error: insErr } = await supabase.from('events').insert(insertPayload);
@@ -202,20 +236,14 @@ export async function importOefbChampionshipFixtures(opts: {
     }
     if (insErr) {
       if (isMissingColumnError(insErr.message)) {
-        return {
-          inserted,
-          updated,
-          skippedAgreed,
-          error:
-            'Meisterschafts-Felder fehlen. Bitte Migration 20260802180000_events_championship_fixture_fields.sql ausführen.',
-        };
+        return { inserted, updated, skippedProtected, error: migrationHint() };
       }
-      return { inserted, updated, skippedAgreed, error: insErr.message };
+      return { inserted, updated, skippedProtected, error: insErr.message };
     }
     inserted += 1;
   }
 
-  return { inserted, updated, skippedAgreed, error: null };
+  return { inserted, updated, skippedProtected, error: null };
 }
 
 export async function updateChampionshipFixture(
@@ -228,6 +256,8 @@ export async function updateChampionshipFixture(
     venue?: VenueRow | null;
     locationText?: string | null;
     fixtureStatus?: FixtureStatus;
+    notes?: string | null;
+    opponentLogoUrl?: string | null;
   },
 ): Promise<{ error: string | null }> {
   const payload: Record<string, unknown> = {};
@@ -236,6 +266,8 @@ export async function updateChampionshipFixture(
   if (patch.isHome !== undefined) payload.is_home = patch.isHome;
   if (patch.opponent !== undefined) payload.opponent = patch.opponent.trim() || null;
   if (patch.fixtureStatus !== undefined) payload.fixture_status = patch.fixtureStatus;
+  if (patch.notes !== undefined) payload.notes = patch.notes;
+  if (patch.opponentLogoUrl !== undefined) payload.opponent_logo_url = patch.opponentLogoUrl;
   if (patch.venue) {
     payload.venue_id = patch.venue.id;
     payload.location = locationTextFromVenue(patch.venue);
@@ -244,17 +276,100 @@ export async function updateChampionshipFixture(
     payload.location = patch.locationText;
   }
 
-  const { error } = await supabase.from('events').update(payload).eq('id', eventId);
+  let { error } = await supabase.from('events').update(payload).eq('id', eventId);
+  if (error && isMissingLogoColumnError(error.message) && 'opponent_logo_url' in payload) {
+    delete payload.opponent_logo_url;
+    ({ error } = await supabase.from('events').update(payload).eq('id', eventId));
+  }
   if (error) return { error: error.message };
   return { error: null };
 }
 
+/** Gleiches Event bleibt; Status → published. */
+export async function publishChampionshipFixture(
+  eventId: string,
+): Promise<{ error: string | null }> {
+  const { data, error: findErr } = await supabase
+    .from('events')
+    .select('id, fixture_status')
+    .eq('id', eventId)
+    .maybeSingle();
+  if (findErr) return { error: findErr.message };
+  if (!data) return { error: 'Spiel nicht gefunden.' };
+  const status = String((data as { fixture_status?: string }).fixture_status ?? '');
+  if (status === 'published') return { error: null };
+  if (status !== 'agreed') {
+    return { error: 'Nur vereinbarte Spiele können veröffentlicht werden.' };
+  }
+  const { error } = await supabase
+    .from('events')
+    .update({ fixture_status: 'published' })
+    .eq('id', eventId);
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+/** Alle agreed der Saison → published. open/published unverändert. */
+export async function publishAllAgreedChampionshipFixtures(
+  teamSeasonId: string,
+): Promise<{ published: number; error: string | null }> {
+  const { data, error } = await supabase
+    .from('events')
+    .update({ fixture_status: 'published' })
+    .eq('team_season_id', teamSeasonId)
+    .eq('external_source', 'oefb')
+    .eq('fixture_status', 'agreed')
+    .select('id');
+  if (error) return { published: 0, error: error.message };
+  return { published: (data ?? []).length, error: null };
+}
+
+/** Logo für alle Meisterschaftsspiele desselben Gegners in der Saison setzen. */
+export async function setOpponentLogoForSeason(opts: {
+  teamSeasonId: string;
+  opponentName: string;
+  logoUrl: string | null;
+}): Promise<{ updated: number; error: string | null }> {
+  const key = normalizeOpponentKey(opts.opponentName);
+  if (!key) return { updated: 0, error: 'Gegner fehlt.' };
+
+  const listed = await listChampionshipFixtures(opts.teamSeasonId);
+  if (listed.error) return { updated: 0, error: listed.error };
+
+  const ids = listed.data
+    .filter((f) => normalizeOpponentKey(f.opponent) === key)
+    .map((f) => f.id);
+  if (ids.length === 0) return { updated: 0, error: null };
+
+  let { error } = await supabase
+    .from('events')
+    .update({ opponent_logo_url: opts.logoUrl })
+    .in('id', ids);
+  if (error && isMissingLogoColumnError(error.message)) {
+    return {
+      updated: 0,
+      error:
+        'Spalte opponent_logo_url fehlt. Bitte Migration 20260802190001_events_opponent_logo_ensure.sql ausführen.',
+    };
+  }
+  if (error) return { updated: 0, error: error.message };
+  return { updated: ids.length, error: null };
+}
+
 export function championshipCounts(fixtures: ChampionshipFixture[]): {
   total: number;
-  agreed: number;
   open: number;
+  agreed: number;
+  published: number;
 } {
-  const total = fixtures.length;
-  const agreed = fixtures.filter((f) => f.fixture_status === 'agreed').length;
-  return { total, agreed, open: Math.max(0, total - agreed) };
+  let open = 0;
+  let agreed = 0;
+  let published = 0;
+  for (const f of fixtures) {
+    const s = f.fixture_status;
+    if (s === 'published') published += 1;
+    else if (s === 'agreed') agreed += 1;
+    else open += 1;
+  }
+  return { total: fixtures.length, open, agreed, published };
 }
