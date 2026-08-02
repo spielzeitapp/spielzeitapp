@@ -166,6 +166,12 @@ export async function updateVenue(
     .eq('id', venueId)
     .select(VENUE_SELECT)
     .maybeSingle();
-  if (error) return { data: null, error: error.message };
-  return { data: (data as VenueRow | null) ?? null, error: null };
+  if (error) {
+    if (/idx_venues_club_name_unique|duplicate/i.test(error.message)) {
+      return { data: null, error: 'Dieser Spielortname ist bereits vergeben.' };
+    }
+    return { data: null, error: error.message };
+  }
+  if (!data) return { data: null, error: 'Spielort konnte nicht aktualisiert werden.' };
+  return { data: data as VenueRow, error: null };
 }

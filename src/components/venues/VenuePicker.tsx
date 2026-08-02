@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createVenue,
   formatVenueAddressLine,
+  getVenueById,
   listVenuesForClub,
   resolveClubIdForTeamSeason,
   updateVenue,
@@ -39,8 +40,30 @@ type Props = {
   disabled?: boolean;
 };
 
+type FormMode = 'closed' | 'create' | 'edit';
+
+type VenueFormDraft = {
+  name: string;
+  address: string;
+  postalCode: string;
+  city: string;
+  isHome: boolean;
+  isDefault: boolean;
+};
+
 function addressLine(v: VenueRow): string {
   return formatVenueAddressLine(v);
+}
+
+function draftFromVenue(v: VenueRow, isDefault = false): VenueFormDraft {
+  return {
+    name: v.name ?? '',
+    address: v.address ?? '',
+    postalCode: v.postal_code ?? '',
+    city: v.city ?? '',
+    isHome: v.is_home === true,
+    isDefault,
+  };
 }
 
 export function VenuePicker({
@@ -60,26 +83,23 @@ export function VenuePicker({
   const [teamId, setTeamId] = useState<string | null>(null);
   const [preferred, setPreferred] = useState<VenueCandidate[]>([]);
   const [catalog, setCatalog] = useState<VenueRow[]>([]);
+  const [resolvedSelected, setResolvedSelected] = useState<VenueRow | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
-  const [showEditAddress, setShowEditAddress] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [formMode, setFormMode] = useState<FormMode>('closed');
+  /** Nur im Edit-Modus gesetzt — Source of Truth für UPDATE. */
+  const [editingVenueId, setEditingVenueId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [rememberOpponent, setRememberOpponent] = useState(true);
   const [rememberHome, setRememberHome] = useState(true);
   const autoSelectedForKey = useRef<string>('');
-  const [draft, setDraft] = useState({
+  const [draft, setDraft] = useState<VenueFormDraft>({
     name: '',
     address: '',
     postalCode: '',
     city: '',
     isHome: false,
     isDefault: false,
-  });
-  const [editDraft, setEditDraft] = useState({
-    address: '',
-    postalCode: '',
-    city: '',
   });
 
   const isMatchHome = matchContext?.isHome === true;
@@ -100,13 +120,48 @@ export function VenuePicker({
         source: 'catalog',
       });
     }
+    if (resolvedSelected && !byId.has(resolvedSelected.id)) {
+      byId.set(resolvedSelected.id, {
+        ...resolvedSelected,
+        link_id: null,
+        is_default: false,
+        source: 'catalog',
+      });
+    }
     return Array.from(byId.values());
-  }, [preferred, catalog]);
+  }, [preferred, catalog, resolvedSelected]);
 
-  const selectedVenue = useMemo(
-    () => allSelectable.find((v) => v.id === venueId) ?? null,
-    [allSelectable, venueId],
-  );
+  const selectedVenue = useMemo(() => {
+    if (!venueId) return null;
+    return allSelectable.find((v) => v.id === venueId) ?? resolvedSelected;
+  }, [allSelectable, venueId, resolvedSelected]);
+
+  const closeForm = () => {
+    setFormMode('closed');
+    setEditingVenueId(null);
+    setFormError(null);
+  };
+
+  const openCreateForm = () => {
+    setFormMode('create');
+    setEditingVenueId(null);
+    setFormError(null);
+    setDraft({
+      name: locationName.trim() || '',
+      address: locationAddress.trim() || '',
+      postalCode: '',
+      city: '',
+      isHome: isMatchHome,
+      isDefault: preferred.length === 0,
+    });
+  };
+
+  const openEditForm = (venue: VenueRow) => {
+    setFormMode('edit');
+    setEditingVenueId(venue.id);
+    setFormError(null);
+    setDraft(draftFromVenue(venue, preferred.some((p) => p.id === venue.id && p.is_default)));
+  };
 
   const reload = async (opts?: { skipAutoSelect?: boolean }) => {
     if (!teamSeasonId) {
@@ -171,9 +226,32 @@ export function VenuePicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on context change
   }, [teamSeasonId, isMatchHome, isMatchAway, opponentName]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!venueId) {
+      setResolvedSelected(null);
+      return;
+    }
+    const fromLists =
+      preferred.find((v) => v.id === venueId) ?? catalog.find((v) => v.id === venueId) ?? null;
+    if (fromLists) {
+      setResolvedSelected(fromLists);
+      return;
+    }
+    void (async () => {
+      const res = await getVenueById(venueId);
+      if (cancelled) return;
+      setResolvedSelected(res.data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [venueId, preferred, catalog]);
+
   const selectValue = venueId ?? (locationName.trim() ? '__custom__' : '');
 
   const handleSelect = (value: string) => {
+    closeForm();
     if (!value) {
       onVenueChange(null);
       return;
@@ -183,16 +261,7 @@ export function VenuePicker({
       return;
     }
     if (value === '__new__') {
-      setShowCreate(true);
-      setDraft({
-        name: locationName.trim() || '',
-        address: locationAddress.trim() || '',
-        postalCode: '',
-        city: '',
-        isHome: isMatchHome,
-        isDefault: preferred.length === 0,
-      });
-      setCreateError(null);
+      openCreateForm();
       return;
     }
     const found = allSelectable.find((v) => v.id === value) ?? null;
@@ -203,17 +272,57 @@ export function VenuePicker({
     }
   };
 
-  const handleCreate = async () => {
+  const applyVenueToParent = (venue: VenueRow) => {
+    onVenueChange(venue);
+    onLocationNameChange(venue.name);
+    onLocationAddressChange(addressLine(venue));
+    setResolvedSelected(venue);
+  };
+
+  const handleSave = async () => {
+    setFormError(null);
+    const name = draft.name.trim();
+    if (!name) {
+      setFormError('Name ist Pflicht.');
+      return;
+    }
+
+    // EDIT: immer UPDATE auf bestehende ID — nie INSERT.
+    if (formMode === 'edit') {
+      if (!editingVenueId) {
+        setFormError('Kein Spielort zum Bearbeiten gewählt.');
+        return;
+      }
+      setSaving(true);
+      const res = await updateVenue(editingVenueId, {
+        name,
+        address: draft.address,
+        postalCode: draft.postalCode,
+        city: draft.city,
+        isHome: draft.isHome,
+      });
+      setSaving(false);
+      if (res.error || !res.data) {
+        setFormError(res.error ?? 'Speichern fehlgeschlagen.');
+        return;
+      }
+      applyVenueToParent(res.data);
+      closeForm();
+      await reload({ skipAutoSelect: true });
+      return;
+    }
+
+    // CREATE: nur INSERT.
+    if (formMode !== 'create') return;
     if (!clubId) {
-      setCreateError('Club nicht gefunden.');
+      setFormError('Club nicht gefunden.');
       return;
     }
     setSaving(true);
-    setCreateError(null);
     const res = await createVenue({
       clubId,
       teamId: isMatchHome ? teamId : null,
-      name: draft.name,
+      name,
       address: draft.address,
       postalCode: draft.postalCode,
       city: draft.city,
@@ -221,7 +330,7 @@ export function VenuePicker({
     });
     if (res.error || !res.data) {
       setSaving(false);
-      setCreateError(res.error ?? 'Speichern fehlgeschlagen.');
+      setFormError(res.error ?? 'Speichern fehlgeschlagen.');
       return;
     }
 
@@ -242,10 +351,8 @@ export function VenuePicker({
       });
     }
 
-    onVenueChange(res.data);
-    onLocationNameChange(res.data.name);
-    onLocationAddressChange(addressLine(res.data));
-    setShowCreate(false);
+    applyVenueToParent(res.data);
+    closeForm();
     setSaving(false);
     await reload({ skipAutoSelect: true });
   };
@@ -269,27 +376,6 @@ export function VenuePicker({
       });
     }
     setSaving(false);
-    await reload({ skipAutoSelect: true });
-  };
-
-  const handleSaveAddress = async () => {
-    if (!selectedVenue) return;
-    setSaving(true);
-    setCreateError(null);
-    const res = await updateVenue(selectedVenue.id, {
-      address: editDraft.address,
-      postalCode: editDraft.postalCode,
-      city: editDraft.city,
-    });
-    setSaving(false);
-    if (res.error || !res.data) {
-      setCreateError(res.error ?? 'Adresse speichern fehlgeschlagen.');
-      return;
-    }
-    onVenueChange(res.data);
-    onLocationNameChange(res.data.name);
-    onLocationAddressChange(addressLine(res.data));
-    setShowEditAddress(false);
     await reload({ skipAutoSelect: true });
   };
 
@@ -338,7 +424,7 @@ export function VenuePicker({
         <select
           id="venue-picker-select"
           className={inputClass}
-          disabled={disabled || loading || !teamSeasonId}
+          disabled={disabled || loading || !teamSeasonId || formMode !== 'closed'}
           value={selectValue}
           onChange={(e) => handleSelect(e.target.value)}
         >
@@ -370,9 +456,11 @@ export function VenuePicker({
         </select>
       </div>
 
-      {emptyAwayHint ? <p className="text-xs text-amber-200/90">{emptyAwayHint}</p> : null}
+      {emptyAwayHint && formMode === 'closed' ? (
+        <p className="text-xs text-amber-200/90">{emptyAwayHint}</p>
+      ) : null}
 
-      {!venueId ? (
+      {formMode === 'closed' && !venueId ? (
         <>
           <div>
             <label htmlFor="venue-fallback-name" className={labelClass}>
@@ -403,7 +491,9 @@ export function VenuePicker({
             />
           </div>
         </>
-      ) : selectedVenue ? (
+      ) : null}
+
+      {formMode === 'closed' && venueId && selectedVenue ? (
         <div className="space-y-1.5">
           {venueHasAddress(selectedVenue) ? (
             <p className="text-xs text-white/55">{addressLine(selectedVenue)}</p>
@@ -414,15 +504,7 @@ export function VenuePicker({
             <button
               type="button"
               className="text-white/70 underline-offset-2 hover:underline"
-              onClick={() => {
-                setEditDraft({
-                  address: selectedVenue.address ?? '',
-                  postalCode: selectedVenue.postal_code ?? '',
-                  city: selectedVenue.city ?? '',
-                });
-                setShowEditAddress(true);
-                setCreateError(null);
-              }}
+              onClick={() => openEditForm(selectedVenue)}
               disabled={disabled || saving}
             >
               {venueHasAddress(selectedVenue) ? 'Adresse bearbeiten' : 'Adresse ergänzen'}
@@ -441,64 +523,20 @@ export function VenuePicker({
             ) : null}
           </div>
         </div>
-      ) : (
+      ) : null}
+
+      {formMode === 'closed' && venueId && !selectedVenue ? (
         <p className="text-xs text-white/55">
           Adresse und Navigation kommen aus dem gespeicherten Spielort.
           {locationAddress ? ` ${locationAddress}` : ''}
         </p>
-      )}
-
-      {showEditAddress && selectedVenue ? (
-        <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <p className="text-sm font-medium text-white/85">Adresse ergänzen</p>
-          <input
-            className={inputClass}
-            placeholder="Adresse"
-            value={editDraft.address}
-            onChange={(e) => setEditDraft((d) => ({ ...d, address: e.target.value }))}
-            disabled={saving}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              className={inputClass}
-              placeholder="PLZ"
-              value={editDraft.postalCode}
-              onChange={(e) => setEditDraft((d) => ({ ...d, postalCode: e.target.value }))}
-              disabled={saving}
-            />
-            <input
-              className={inputClass}
-              placeholder="Ort"
-              value={editDraft.city}
-              onChange={(e) => setEditDraft((d) => ({ ...d, city: e.target.value }))}
-              disabled={saving}
-            />
-          </div>
-          {createError ? <p className="text-sm text-red-300">{createError}</p> : null}
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="text-sm text-white/60 underline-offset-2 hover:underline"
-              onClick={() => setShowEditAddress(false)}
-              disabled={saving}
-            >
-              Abbrechen
-            </button>
-            <button
-              type="button"
-              className="rounded-lg bg-red-600/80 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-              onClick={() => void handleSaveAddress()}
-              disabled={saving}
-            >
-              {saving ? 'Speichern…' : 'Speichern'}
-            </button>
-          </div>
-        </div>
       ) : null}
 
-      {showCreate ? (
+      {formMode === 'edit' || formMode === 'create' ? (
         <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <p className="text-sm font-medium text-white/85">Neuen Spielort anlegen</p>
+          <p className="text-sm font-medium text-white/85">
+            {formMode === 'edit' ? 'Spielort bearbeiten' : 'Neuen Spielort anlegen'}
+          </p>
           <input
             className={inputClass}
             placeholder="Name *"
@@ -529,7 +567,16 @@ export function VenuePicker({
               disabled={saving}
             />
           </div>
-          {isMatchHome ? (
+          <label className="flex items-center gap-2 text-sm text-white/75">
+            <input
+              type="checkbox"
+              checked={draft.isHome}
+              onChange={(e) => setDraft((d) => ({ ...d, isHome: e.target.checked }))}
+              disabled={saving}
+            />
+            Heimspielort
+          </label>
+          {formMode === 'create' && isMatchHome ? (
             <label className="flex items-center gap-2 text-sm text-white/75">
               <input
                 type="checkbox"
@@ -540,7 +587,7 @@ export function VenuePicker({
               Als Heimspielort merken
             </label>
           ) : null}
-          {isMatchAway && opponentName ? (
+          {formMode === 'create' && isMatchAway && opponentName ? (
             <label className="flex items-center gap-2 text-sm text-white/75">
               <input
                 type="checkbox"
@@ -551,21 +598,23 @@ export function VenuePicker({
               Für {opponentName} merken
             </label>
           ) : null}
-          <label className="flex items-center gap-2 text-sm text-white/75">
-            <input
-              type="checkbox"
-              checked={draft.isDefault}
-              onChange={(e) => setDraft((d) => ({ ...d, isDefault: e.target.checked }))}
-              disabled={saving}
-            />
-            Standard-Spielort
-          </label>
-          {createError ? <p className="text-sm text-red-300">{createError}</p> : null}
+          {formMode === 'create' ? (
+            <label className="flex items-center gap-2 text-sm text-white/75">
+              <input
+                type="checkbox"
+                checked={draft.isDefault}
+                onChange={(e) => setDraft((d) => ({ ...d, isDefault: e.target.checked }))}
+                disabled={saving}
+              />
+              Standard-Spielort
+            </label>
+          ) : null}
+          {formError ? <p className="text-sm text-red-300">{formError}</p> : null}
           <div className="flex justify-end gap-2">
             <button
               type="button"
               className="text-sm text-white/60 underline-offset-2 hover:underline"
-              onClick={() => setShowCreate(false)}
+              onClick={closeForm}
               disabled={saving}
             >
               Abbrechen
@@ -573,7 +622,7 @@ export function VenuePicker({
             <button
               type="button"
               className="rounded-lg bg-red-600/80 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-              onClick={() => void handleCreate()}
+              onClick={() => void handleSave()}
               disabled={saving || !draft.name.trim()}
             >
               {saving ? 'Speichern…' : 'Speichern'}
