@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
-import { buildTeamIcsFeedUrl, teamCalendarStableSlugFromTeamName } from '../lib/calendarFeed';
+import { buildTeamIcsFeedUrl, resolveTeamCalendarFeedSegment, teamCalendarDisplayTitle } from '../lib/calendarFeed';
 import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
 import {
   notesTitleAndDescription,
@@ -336,13 +336,49 @@ export const CalendarPage: React.FC = () => {
     return null;
   }, [selectedTeamSeasonId, accessibleTeamSeasons, selectedMembership]);
 
+  const [teamCalendarSlug, setTeamCalendarSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedTeamIdForFeed) {
+      setTeamCalendarSlug(null);
+      return;
+    }
+    void (async () => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('calendar_slug')
+        .eq('id', selectedTeamIdForFeed)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        // Spalte evtl. noch nicht migriert — Legacy-Fallback über Name.
+        setTeamCalendarSlug(null);
+        return;
+      }
+      const slug = String((data as { calendar_slug?: string } | null)?.calendar_slug ?? '').trim();
+      setTeamCalendarSlug(slug || null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTeamIdForFeed]);
+
   const feedUrl = useMemo(() => {
     if (!selectedTeamIdForFeed) return null;
-    const segment = selectedTeamNameForFeed
-      ? teamCalendarStableSlugFromTeamName(selectedTeamNameForFeed)
-      : selectedTeamIdForFeed;
+    const segment = resolveTeamCalendarFeedSegment({
+      calendarSlug: teamCalendarSlug,
+      teamName: selectedTeamNameForFeed,
+      teamId: selectedTeamIdForFeed,
+    });
+    if (!segment) return null;
     return buildTeamIcsFeedUrl(window.location.origin, segment);
-  }, [selectedTeamIdForFeed, selectedTeamNameForFeed]);
+  }, [selectedTeamIdForFeed, selectedTeamNameForFeed, teamCalendarSlug]);
+
+  const feedDisplayTitle = useMemo(
+    () => teamCalendarDisplayTitle(selectedTeamNameForFeed),
+    [selectedTeamNameForFeed],
+  );
 
   const handleSubscribeCalendar = async () => {
     if (!feedUrl) return;
@@ -530,6 +566,7 @@ export const CalendarPage: React.FC = () => {
           }
         >
           <div className="space-y-3">
+            <p className="text-sm font-medium text-white/90">{feedDisplayTitle}</p>
             <p className="text-sm text-white/80">
               Diese URL in Apple Kalender, Google Kalender, Outlook oder FamilyWall als Abo-Link einfügen:
             </p>
@@ -537,7 +574,8 @@ export const CalendarPage: React.FC = () => {
               {feedUrl ?? 'Kein Team ausgewählt'}
             </div>
             <p className="text-xs text-white/60">
-              Tipp: Apple/Google/FamilyWall haben oft eine verzögerte Aktualisierung (kein Echtzeit-Update).
+              Dieser Kalender bleibt auch nach einem Saisonwechsel gültig. Apple/Google/FamilyWall
+              aktualisieren oft verzögert (kein Echtzeit-Update).
             </p>
           </div>
         </Modal>

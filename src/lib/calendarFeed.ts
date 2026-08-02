@@ -23,21 +23,21 @@ export function teamCalendarSlugFromTeamName(name: string): string {
     .replace(/^-+|-+$/g, '') || 'team';
 }
 
-/** Teamname ohne führende Altersklasse — für Kalendername & stabile URL. */
+/** Teamname ohne führende Altersklasse — für Kalenderanzeige. */
 export function teamCalendarClubNameFromTeamName(name: string): string {
   const stripped = String(name ?? '').replace(AGE_GROUP_NAME_PREFIX, '').trim();
   return stripped || String(name ?? '').trim() || 'Team';
 }
 
 /**
- * Saisonübergreifender Team-Slug (ohne Altersklasse).
- * „U11 SPG Rohrbach“ / „U12 SPG Rohrbach“ → spg-rohrbach
+ * Abgeleiteter Legacy-Slug ohne Altersklasse (nur Fallback, wenn kein calendar_slug).
+ * „U11 SPG Rohrbach“ → spg-rohrbach
  */
 export function teamCalendarStableSlugFromTeamName(name: string): string {
   return teamCalendarSlugFromTeamName(teamCalendarClubNameFromTeamName(name));
 }
 
-/** Legacy-Slug ohne führendes uNN- → stabiler Team-Slug. */
+/** Legacy-Slug ohne führendes uNN-. */
 export function teamCalendarSlugWithoutAgePrefix(slug: string): string {
   return String(slug ?? '')
     .trim()
@@ -46,7 +46,30 @@ export function teamCalendarSlugWithoutAgePrefix(slug: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/** Kalender-Feed-URL (stabiler Team-Slug bevorzugt; UUID weiterhin vom Server akzeptiert). */
+/**
+ * Kanonischer Feed-Segment: teams.calendar_slug, sonst Legacy aus Name, sonst Team-UUID.
+ */
+export function resolveTeamCalendarFeedSegment(input: {
+  calendarSlug?: string | null;
+  teamName?: string | null;
+  teamId?: string | null;
+}): string | null {
+  const fromDb = String(input.calendarSlug ?? '')
+    .trim()
+    .toLowerCase();
+  if (fromDb) return fromDb;
+  const name = String(input.teamName ?? '').trim();
+  if (name) return teamCalendarStableSlugFromTeamName(name);
+  const id = String(input.teamId ?? '').trim();
+  return id || null;
+}
+
+/** Anzeigename fürs Abo (ohne technische Slug-Anzeige). */
+export function teamCalendarDisplayTitle(teamName: string | null | undefined): string {
+  return `${teamCalendarClubNameFromTeamName(teamName ?? 'Team')} Termine`;
+}
+
+/** Kalender-Feed-URL (calendar_slug / Legacy-Slug / UUID). */
 export function buildTeamIcsFeedUrl(baseUrl: string, teamSlugOrUuid: string): string {
   const trimmedBase = baseUrl.replace(/\/+$/, '');
   const seg = String(teamSlugOrUuid).trim();

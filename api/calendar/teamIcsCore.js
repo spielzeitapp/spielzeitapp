@@ -52,8 +52,9 @@ function teamCalendarSlugWithoutAgePrefix(slug) {
 }
 
 /**
- * Slug → Team: exakter Legacy-Slug, stabiler Team-Slug, oder Legacy uNN-… → stabil.
- * So bleibt /u11-spg-rohrbach.ics nach U12-Wechsel gültig.
+ * Slug → Team:
+ * 1) teams.calendar_slug (kanonisch, dauerhaft)
+ * 2) Legacy aus teams.name (u11-spg-rohrbach / spg-rohrbach aus Name)
  */
 function resolveTeamIdFromSlug(allTeams, slugWanted) {
   const slug = String(slugWanted ?? '').trim().toLowerCase();
@@ -62,10 +63,14 @@ function resolveTeamIdFromSlug(allTeams, slugWanted) {
 
   const scored = [];
   for (const t of allTeams ?? []) {
+    const cal = String(t.calendar_slug ?? '')
+      .trim()
+      .toLowerCase();
     const full = teamCalendarSlugFromTeamName(t.name);
     const stable = teamCalendarStableSlugFromTeamName(t.name);
     let score = 0;
-    if (full === slug) score = 3;
+    if (cal && cal === slug) score = 10;
+    else if (full === slug) score = 3;
     else if (stable === slug) score = 2;
     else if (stable === stableWanted) score = 1;
     if (score > 0) scored.push({ id: t.id, score, name: t.name });
@@ -350,7 +355,9 @@ async function teamIcsHandler(req, res) {
       resolvedTeamId = pathKey;
     } else {
       const slugWanted = pathKey.toLowerCase();
-      const { data: allTeams, error: teamsListError } = await admin.from('teams').select('id, name');
+      const { data: allTeams, error: teamsListError } = await admin
+        .from('teams')
+        .select('id, name, calendar_slug');
       if (teamsListError) {
         console.error('[ics-feed] DB teams list error', teamsListError);
         res.status(500).send(teamsListError.message ?? 'teams query failed');
