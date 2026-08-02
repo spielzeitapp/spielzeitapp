@@ -260,17 +260,88 @@ function resolveEndDate(ev, startDate) {
   return new Date(startDate.getTime() + addMin * 60 * 1000);
 }
 
-function buildSummary(ev, teamName) {
+function buildTeamLabel(clubName, ageGroup) {
+  const club = String(clubName ?? '').trim() || 'Team';
+  const ag = String(ageGroup ?? '')
+    .trim()
+    .toUpperCase();
+  if (ag && /^U\d{1,2}[A-Z]?$/.test(ag)) return `${ag} ${club}`;
+  return club;
+}
+
+function ageGroupFromTeamName(name) {
+  const m = String(name ?? '')
+    .trim()
+    .match(/^(U\d{1,2}[a-z]?)\b/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
+function parseCoordsFromText(value) {
+  const s = String(value ?? '').trim();
+  if (!s) return null;
+  const geo = s.match(/geo:\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/i);
+  if (geo) {
+    const lat = Number(geo[1]);
+    const lng = Number(geo[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      return { lat, lng };
+    }
+  }
+  const pair = s.match(/(-?\d{1,2}(?:\.\d{4,})?)\s*[,;]\s*(-?\d{1,3}(?:\.\d{4,})?)/);
+  if (pair) {
+    const lat = Number(pair[1]);
+    const lng = Number(pair[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      return { lat, lng };
+    }
+  }
+  return null;
+}
+
+/** Gleiche Priorität wie mapsNavigation.ts — für ICS immer Google Maps (klickbar). */
+function looksLikeFullAddress(place) {
+  const t = String(place ?? '').trim();
+  if (!t) return false;
+  if (/\d{4,5}/.test(t)) return true;
+  if (/\b(straße|str\.|gasse|weg|allee|platz|ring)\b/i.test(t) && /\d/.test(t)) return true;
+  if (t.includes(',') && /\d/.test(t)) return true;
+  return false;
+}
+
+function buildMapsNavigationUrl(ev) {
+  const coords =
+    parseCoordsFromText(ev.location) || parseCoordsFromText(ev.notes);
+  if (coords) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+  }
+  const place = String(ev.location ?? '')
+    .trim()
+    .replace(/\r\n/g, ', ')
+    .replace(/\n/g, ', ');
+  if (!place || !looksLikeFullAddress(place)) return null;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place)}`;
+}
+
+function buildSummary(ev, teamLabel) {
   const t = effectiveType(ev);
   const notes = notesTitleAndDescription(ev.notes);
-  if (t === 'tournament') return notes.title ?? `${teamName} Turnier`;
-  if (t === 'game' || t === 'match') return `${teamName} Spiel: ${teamName} vs ${ev.opponent ?? 'Gegner'}`;
-  if (t === 'training') return `${teamName} Training`;
-  return notes.title ?? 'Event';
+  const opponent = String(ev.opponent ?? '').trim() || 'Gegner';
+  if (t === 'tournament') {
+    const title = notes.title ?? 'Turnier';
+    return `${teamLabel} – ${title}`;
+  }
+  if (t === 'game' || t === 'match') {
+    return `${teamLabel} – ${opponent}`;
+  }
+  if (t === 'training') return `${teamLabel} Training`;
+  return notes.title ? `${teamLabel} – ${notes.title}` : teamLabel;
 }
 
 function buildLocation(ev) {
-  const place = (ev.location ?? '').trim();
+  const place = String(ev.location ?? '')
+    .trim()
+    .replace(/\r\n/g, ', ')
+    .replace(/\n/g, ', ');
   if (place) return place;
   const notes = notesTitleAndDescription(ev.notes);
   return notes.description ?? null;
@@ -293,12 +364,17 @@ function buildDescription(ev, appBaseUrl) {
   const meetup = ev.meeting_at ? formatViennaTime(ev.meeting_at) : null;
   const startsAtTime = ev.starts_at ? formatViennaTime(ev.starts_at) : null;
   const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
+  const t = effectiveType(ev);
   const lines = [];
   if (meetup) lines.push(`Treffpunkt: ${meetup}`);
   if (meetup && startsAtTime) lines.push(`Beginn: ${startsAtTime}`);
-  if (effectiveType(ev) === 'game' && ev.opponent) lines.push(`Gegner: ${ev.opponent}`);
+  if ((t === 'game' || t === 'match') && ev.is_home === true) lines.push('Heimspiel');
+  if ((t === 'game' || t === 'match') && ev.is_home === false) lines.push('Auswärtsspiel');
+  if ((t === 'game' || t === 'match') && ev.opponent) lines.push(`Gegner: ${ev.opponent}`);
+  const mapsUrl = buildMapsNavigationUrl(ev);
+  if (mapsUrl) lines.push(`Navigation: ${mapsUrl}`);
   if (notes.description) lines.push(`Hinweise: ${notes.description}`);
-  lines.push(`Link zur SpielzeitApp: ${eventUrl}`);
+  lines.push(`SpielzeitApp öffnen: ${eventUrl}`);
   return lines.join('\n');
 }
 
@@ -387,12 +463,12 @@ async function teamIcsHandler(req, res) {
     }
     console.log('[ics-feed] team lookup end', { hasRow: !!teamData });
     // Dauerhafter Kalendername ohne Altersklasse (U11/U12 …).
-    const teamName = teamCalendarClubNameFromTeamName(teamData?.name ?? 'Team');
+    const clubName = teamCalendarClubNameFromTeamName(teamData?.name ?? 'Team');
 
     console.log('[ics-feed] team seasons lookup start', { resolvedTeamId });
     const { data: teamSeasons, error: tsError } = await admin
       .from('team_seasons')
-      .select('id, team_id, status')
+      .select('id, team_id, status, age_group')
       .eq('team_id', resolvedTeamId);
     if (tsError) {
       console.error('[ics-feed] DB team_seasons error', tsError);
@@ -407,6 +483,15 @@ async function teamIcsHandler(req, res) {
     const activeSeasons = seasons.filter((t) => String(t.status ?? '').toLowerCase() === 'active');
     const seasonsForFeed = activeSeasons.length > 0 ? activeSeasons : seasons;
     const teamSeasonIds = seasonsForFeed.map((t) => t.id);
+    const ageBySeasonId = new Map();
+    for (const s of seasons) {
+      const ag = String(s.age_group ?? '').trim();
+      if (ag) ageBySeasonId.set(String(s.id), ag.toUpperCase());
+    }
+    const fallbackAge =
+      (activeSeasons[0] && String(activeSeasons[0].age_group ?? '').trim().toUpperCase()) ||
+      ageGroupFromTeamName(teamData?.name) ||
+      null;
 
     const nowIso = new Date().toISOString();
     console.log('[ics-feed] events lookup start', {
@@ -417,7 +502,7 @@ async function teamIcsHandler(req, res) {
     const { data: eventsRaw, error: evError } = await admin
       .from('events')
       .select(
-        'id, team_season_id, kind, type, opponent, location, starts_at, meeting_at, notes, status, created_at, updated_at',
+        'id, team_season_id, kind, type, opponent, location, is_home, starts_at, meeting_at, notes, status, created_at, updated_at',
       )
       .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
       .gte('starts_at', nowIso)
@@ -440,7 +525,10 @@ async function teamIcsHandler(req, res) {
       const dtStartDate =
         meetingStart && !isNaN(meetingStart.getTime()) ? meetingStart : kickoffStart;
       const end = resolveEndDate(ev, kickoffStart);
-      const summary = buildSummary(ev, teamName);
+      const ageForEvent =
+        ageBySeasonId.get(String(ev.team_season_id ?? '')) || fallbackAge;
+      const teamLabel = buildTeamLabel(clubName, ageForEvent);
+      const summary = buildSummary(ev, teamLabel);
       const description = buildDescription(ev, appBaseUrl);
       const location = buildLocation(ev);
       const stableStamp = pickStableStamp(ev);
@@ -467,7 +555,7 @@ async function teamIcsHandler(req, res) {
       'PRODID:-//SpielzeitApp//iCal//DE',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
+      `X-WR-CALNAME:${escapeIcsText(`${clubName} Termine`)}`,
       'X-WR-TIMEZONE:UTC',
       ...vevents,
       'END:VCALENDAR',
@@ -480,7 +568,7 @@ async function teamIcsHandler(req, res) {
         'PRODID:-//SpielzeitApp//iCal//DE',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
-        `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
+        `X-WR-CALNAME:${escapeIcsText(`${clubName} Termine`)}`,
         'END:VCALENDAR',
       ]);
     }
