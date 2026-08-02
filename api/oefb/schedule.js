@@ -3,12 +3,20 @@
  * Lädt ÖFB-Vereinsseite und extrahiert SPIELPLAN_MANNSCHAFT aus appPreloads.
  */
 function extractPreloadSpiele(html) {
-  const marker = "SG.container.appPreloads";
-  const idx = html.indexOf(marker);
-  if (idx < 0) return { error: 'Kein ÖFB-Spielplan-Preload gefunden.', spiele: [] };
+  // ÖFB setzt viele appPreloads[…]-Blöcke; nur der mit SPIELPLAN_MANNSCHAFT zählt.
+  const typeMarker = '"type":"SPIELPLAN_MANNSCHAFT"';
+  const typeIdx = html.indexOf(typeMarker);
+  if (typeIdx < 0) {
+    return { error: 'Kein ÖFB-Spielplan-Preload (SPIELPLAN_MANNSCHAFT) gefunden.', spiele: [] };
+  }
 
-  const eq = html.indexOf('=', idx);
-  const start = html.indexOf('[', eq);
+  let start = -1;
+  for (let i = typeIdx; i >= 1; i--) {
+    if (html[i] === '[' && html[i - 1] === '=') {
+      start = i;
+      break;
+    }
+  }
   if (start < 0) return { error: 'ÖFB-Preload-Format unbekannt.', spiele: [] };
 
   let depth = 0;
