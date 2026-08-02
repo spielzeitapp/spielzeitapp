@@ -128,16 +128,26 @@ export const CalendarPage: React.FC = () => {
             ? accessibleTeamSeasons.map((ts) => ts.id)
             : [selectedTeamSeasonId];
 
-        // Events über `type`-Spalte laden
+        // Events über `type`-Spalte laden (OPEN-Meisterschaftsfixtures ausblenden)
         let data: any[] | null = null;
         let loadError: string | null = null;
         let first = await supabase
           .from('events')
-          .select('id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at')
+          .select('id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, fixture_status')
           .in('team_season_id', teamSeasonIds)
           .gte('starts_at', start.toISOString())
           .lte('starts_at', end.toISOString())
           .order('starts_at', { ascending: true });
+
+        if (first.error && /fixture_status|column/i.test(String(first.error.message ?? ''))) {
+          first = await supabase
+            .from('events')
+            .select('id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at')
+            .in('team_season_id', teamSeasonIds)
+            .gte('starts_at', start.toISOString())
+            .lte('starts_at', end.toISOString())
+            .order('starts_at', { ascending: true });
+        }
 
         if (first.error && String(first.error.message ?? '').toLowerCase().includes('meeting_at')) {
           first = await supabase
@@ -166,7 +176,10 @@ export const CalendarPage: React.FC = () => {
         } else if (first.error) {
           loadError = first.error.message;
         } else {
-          data = first.data ?? [];
+          data = (first.data ?? []).filter(
+            (r: { fixture_status?: string | null }) =>
+              String(r.fixture_status ?? '').trim().toLowerCase() !== 'open',
+          );
         }
 
         if (loadError) {

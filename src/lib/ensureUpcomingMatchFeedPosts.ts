@@ -30,6 +30,7 @@ type EventRowLite = {
   match_type: string | null;
   match_id: string | null;
   opponent_logo_url: string | null;
+  fixture_status?: string | null;
 };
 
 function nmLog(phase: string, data: Record<string, unknown>): void {
@@ -201,23 +202,35 @@ export async function ensureUpcomingMatchFeedPosts(
     return result;
   }
 
-  const { data, error } = await supabase
+  let feedRes = await supabase
     .from('events')
     .select(
-      'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id',
+      'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id, fixture_status',
     )
     .eq('team_season_id', sid)
     .not('status', 'in', '(canceled,finished)')
     .order('starts_at', { ascending: true });
 
-  if (error) {
-    result.errors.push(error.message);
+  if (feedRes.error && /fixture_status|column/i.test(String(feedRes.error.message ?? ''))) {
+    feedRes = await supabase
+      .from('events')
+      .select(
+        'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id',
+      )
+      .eq('team_season_id', sid)
+      .not('status', 'in', '(canceled,finished)')
+      .order('starts_at', { ascending: true });
+  }
+
+  if (feedRes.error) {
+    result.errors.push(feedRes.error.message);
     return result;
   }
 
-  const rows = (data ?? []) as EventRowLite[];
+  const rows = (feedRes.data ?? []) as EventRowLite[];
 
   for (const ev of rows) {
+    if (String(ev.fixture_status ?? '').trim().toLowerCase() === 'open') continue;
     if (!isMatchEvent(ev)) continue;
     const st = (ev.status ?? 'upcoming').toLowerCase();
     if (st !== 'upcoming') continue;

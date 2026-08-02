@@ -37,34 +37,68 @@ export type OefbImportedFixture = {
 const FIXTURE_SELECT =
   'id, team_season_id, opponent, is_home, starts_at, meeting_at, location, venue_id, match_type, competition, external_source, external_id, external_url, source_starts_at, fixture_status, opponent_logo_url';
 
+const FIXTURE_SELECT_NO_LOGO =
+  'id, team_season_id, opponent, is_home, starts_at, meeting_at, location, venue_id, match_type, competition, external_source, external_id, external_url, source_starts_at, fixture_status';
+
 function isMissingColumnError(message: string): boolean {
   return /fixture_status|external_source|external_id|source_starts_at|competition|column|schema cache/i.test(
     message,
   );
 }
 
-export async function listChampionshipFixtures(
+function isMissingLogoColumnError(message: string): boolean {
+  return /opponent_logo_url/i.test(message);
+}
+
+async function selectChampionshipRows(
   teamSeasonId: string,
+  externalId?: string,
 ): Promise<{ data: ChampionshipFixture[]; error: string | null }> {
-  const { data, error } = await supabase
+  let q = supabase
     .from('events')
     .select(FIXTURE_SELECT)
     .eq('team_season_id', teamSeasonId)
     .eq('external_source', 'oefb')
-    .eq('match_type', 'league')
-    .order('starts_at', { ascending: true });
+    .eq('match_type', 'league');
+  if (externalId) q = q.eq('external_id', externalId);
+  else q = q.order('starts_at', { ascending: true });
 
-  if (error) {
-    if (isMissingColumnError(error.message)) {
+  let res = externalId ? await q.maybeSingle() : await q;
+
+  if (res.error && isMissingLogoColumnError(res.error.message)) {
+    let q2 = supabase
+      .from('events')
+      .select(FIXTURE_SELECT_NO_LOGO)
+      .eq('team_season_id', teamSeasonId)
+      .eq('external_source', 'oefb')
+      .eq('match_type', 'league');
+    if (externalId) q2 = q2.eq('external_id', externalId);
+    else q2 = q2.order('starts_at', { ascending: true });
+    res = externalId ? await q2.maybeSingle() : await q2;
+  }
+
+  if (res.error) {
+    if (isMissingColumnError(res.error.message)) {
       return {
         data: [],
         error:
           'Meisterschafts-Felder fehlen in der Datenbank. Bitte Migration 20260802180000_events_championship_fixture_fields.sql ausführen.',
       };
     }
-    return { data: [], error: error.message };
+    return { data: [], error: res.error.message };
   }
-  return { data: (data ?? []) as ChampionshipFixture[], error: null };
+
+  if (externalId) {
+    const row = res.data as ChampionshipFixture | null;
+    return { data: row ? [row] : [], error: null };
+  }
+  return { data: (res.data ?? []) as ChampionshipFixture[], error: null };
+}
+
+export async function listChampionshipFixtures(
+  teamSeasonId: string,
+): Promise<{ data: ChampionshipFixture[]; error: string | null }> {
+  return selectChampionshipRows(teamSeasonId);
 }
 
 export async function fetchOefbScheduleFixtures(opts: {
@@ -103,29 +137,14 @@ export async function importOefbChampionshipFixtures(opts: {
   for (const f of opts.fixtures) {
     if (!f.external_id || !f.opponent || !f.starts_at) continue;
 
-    const { data: existing, error: findErr } = await supabase
-      .from('events')
-      .select(FIXTURE_SELECT)
-      .eq('team_season_id', opts.teamSeasonId)
-      .eq('external_source', 'oefb')
-      .eq('external_id', f.external_id)
-      .maybeSingle();
-
-    if (findErr) {
-      if (isMissingColumnError(findErr.message)) {
-        return {
-          inserted,
-          updated,
-          skippedAgreed,
-          error:
-            'Meisterschafts-Felder fehlen. Bitte Migration 20260802180000_events_championship_fixture_fields.sql ausführen.',
-        };
-      }
-      return { inserted, updated, skippedAgreed, error: findErr.message };
+    const found = await selectChampionshipRows(opts.teamSeasonId, f.external_id);
+    if (found.error) {
+      return { inserted, updated, skippedAgreed, error: found.error };
     }
+    const existing = found.data[0] ?? null;
 
     if (existing) {
-      const row = existing as ChampionshipFixture;
+      const row = existing;
       const isAgreed = row.fixture_status === 'agreed';
       const patch: Record<string, unknown> = {
         opponent: f.opponent,
@@ -144,13 +163,17 @@ export async function importOefbChampionshipFixtures(opts: {
       } else {
         skippedAgreed += 1;
       }
-      const { error: updErr } = await supabase.from('events').update(patch).eq('id', row.id);
+      let { error: updErr } = await supabase.from('events').update(patch).eq('id', row.id);
+      if (updErr && isMissingLogoColumnError(updErr.message) && 'opponent_logo_url' in patch) {
+        delete patch.opponent_logo_url;
+        ({ error: updErr } = await supabase.from('events').update(patch).eq('id', row.id));
+      }
       if (updErr) return { inserted, updated, skippedAgreed, error: updErr.message };
       updated += 1;
       continue;
     }
 
-    const insertPayload = {
+    const insertPayload: Record<string, unknown> = {
       team_season_id: opts.teamSeasonId,
       kind: 'match',
       type: 'game',
@@ -172,7 +195,11 @@ export async function importOefbChampionshipFixtures(opts: {
       opponent_logo_url: f.opponent_logo_url,
     };
 
-    const { error: insErr } = await supabase.from('events').insert(insertPayload);
+    let { error: insErr } = await supabase.from('events').insert(insertPayload);
+    if (insErr && isMissingLogoColumnError(insErr.message)) {
+      delete insertPayload.opponent_logo_url;
+      ({ error: insErr } = await supabase.from('events').insert(insertPayload));
+    }
     if (insErr) {
       if (isMissingColumnError(insErr.message)) {
         return {
