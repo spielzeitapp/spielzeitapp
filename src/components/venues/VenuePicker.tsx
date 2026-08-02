@@ -47,6 +47,8 @@ type VenueFormDraft = {
   address: string;
   postalCode: string;
   city: string;
+  latitude: string;
+  longitude: string;
   isHome: boolean;
   isDefault: boolean;
 };
@@ -61,6 +63,8 @@ function draftFromVenue(v: VenueRow, isDefault = false): VenueFormDraft {
     address: v.address ?? '',
     postalCode: v.postal_code ?? '',
     city: v.city ?? '',
+    latitude: v.latitude != null ? String(v.latitude) : '',
+    longitude: v.longitude != null ? String(v.longitude) : '',
     isHome: v.is_home === true,
     isDefault,
   };
@@ -98,6 +102,8 @@ export function VenuePicker({
     address: '',
     postalCode: '',
     city: '',
+    latitude: '',
+    longitude: '',
     isHome: false,
     isDefault: false,
   });
@@ -151,6 +157,8 @@ export function VenuePicker({
       address: locationAddress.trim() || '',
       postalCode: '',
       city: '',
+      latitude: '',
+      longitude: '',
       isHome: isMatchHome,
       isDefault: preferred.length === 0,
     });
@@ -265,11 +273,24 @@ export function VenuePicker({
       return;
     }
     const found = allSelectable.find((v) => v.id === value) ?? null;
-    onVenueChange(found);
     if (found) {
+      onVenueChange(found);
       onLocationNameChange(found.name);
       onLocationAddressChange(addressLine(found));
+      setResolvedSelected(found);
+      return;
     }
+    void (async () => {
+      const res = await getVenueById(value);
+      if (res.data) {
+        onVenueChange(res.data);
+        onLocationNameChange(res.data.name);
+        onLocationAddressChange(addressLine(res.data));
+        setResolvedSelected(res.data);
+      } else {
+        onVenueChange(null);
+      }
+    })();
   };
 
   const applyVenueToParent = (venue: VenueRow) => {
@@ -294,11 +315,27 @@ export function VenuePicker({
         return;
       }
       setSaving(true);
+      const latRaw = draft.latitude.trim();
+      const lngRaw = draft.longitude.trim();
+      const lat = latRaw === '' ? null : Number(latRaw);
+      const lng = lngRaw === '' ? null : Number(lngRaw);
+      if (latRaw !== '' && !Number.isFinite(lat)) {
+        setSaving(false);
+        setFormError('Ungültiger Breitengrad.');
+        return;
+      }
+      if (lngRaw !== '' && !Number.isFinite(lng)) {
+        setSaving(false);
+        setFormError('Ungültiger Längengrad.');
+        return;
+      }
       const res = await updateVenue(editingVenueId, {
         name,
         address: draft.address,
         postalCode: draft.postalCode,
         city: draft.city,
+        latitude: lat,
+        longitude: lng,
         isHome: draft.isHome,
       });
       setSaving(false);
@@ -493,43 +530,48 @@ export function VenuePicker({
         </>
       ) : null}
 
-      {formMode === 'closed' && venueId && selectedVenue ? (
-        <div className="space-y-1.5">
-          {venueHasAddress(selectedVenue) ? (
-            <p className="text-xs text-white/55">{addressLine(selectedVenue)}</p>
+      {formMode === 'closed' && venueId ? (
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+          {selectedVenue ? (
+            <>
+              <p className="text-[15px] font-medium text-white/90">{selectedVenue.name}</p>
+              {venueHasAddress(selectedVenue) ? (
+                <p className="mt-0.5 text-[13px] text-white/55">{addressLine(selectedVenue)}</p>
+              ) : (
+                <p className="mt-0.5 text-[13px] text-amber-200/90">Adresse noch nicht vollständig</p>
+              )}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="inline-flex min-h-[44px] items-center rounded-lg border border-white/15 bg-white/[0.06] px-3 text-[14px] font-medium text-white/90 active:bg-white/[0.1]"
+                  onClick={() => openEditForm(selectedVenue)}
+                  disabled={disabled || saving}
+                >
+                  Spielort bearbeiten
+                </button>
+                {!linkedAlready && (isMatchAway || isMatchHome) ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] items-center px-2 text-[13px] text-white/65 underline-offset-2 hover:underline"
+                    onClick={() => void handleRememberLink()}
+                    disabled={disabled || saving}
+                  >
+                    {isMatchAway && opponentName
+                      ? `Für ${opponentName} merken`
+                      : 'Als Heimspielort merken'}
+                  </button>
+                ) : null}
+              </div>
+            </>
           ) : (
-            <p className="text-xs text-amber-200/90">⚠ Adresse fehlt</p>
+            <>
+              <p className="text-[15px] font-medium text-white/90">
+                {locationName.trim() || 'Spielort'}
+              </p>
+              <p className="mt-0.5 text-[13px] text-white/45">Spielort wird geladen…</p>
+            </>
           )}
-          <div className="flex flex-wrap gap-3 text-xs">
-            <button
-              type="button"
-              className="text-white/70 underline-offset-2 hover:underline"
-              onClick={() => openEditForm(selectedVenue)}
-              disabled={disabled || saving}
-            >
-              {venueHasAddress(selectedVenue) ? 'Adresse bearbeiten' : 'Adresse ergänzen'}
-            </button>
-            {!linkedAlready && (isMatchAway || isMatchHome) ? (
-              <button
-                type="button"
-                className="text-white/70 underline-offset-2 hover:underline"
-                onClick={() => void handleRememberLink()}
-                disabled={disabled || saving}
-              >
-                {isMatchAway && opponentName
-                  ? `Für ${opponentName} merken`
-                  : 'Als Heimspielort merken'}
-              </button>
-            ) : null}
-          </div>
         </div>
-      ) : null}
-
-      {formMode === 'closed' && venueId && !selectedVenue ? (
-        <p className="text-xs text-white/55">
-          Adresse und Navigation kommen aus dem gespeicherten Spielort.
-          {locationAddress ? ` ${locationAddress}` : ''}
-        </p>
       ) : null}
 
       {formMode === 'edit' || formMode === 'create' ? (
@@ -567,6 +609,24 @@ export function VenuePicker({
               disabled={saving}
             />
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              className={inputClass}
+              placeholder="Latitude (optional)"
+              inputMode="decimal"
+              value={draft.latitude}
+              onChange={(e) => setDraft((d) => ({ ...d, latitude: e.target.value }))}
+              disabled={saving}
+            />
+            <input
+              className={inputClass}
+              placeholder="Longitude (optional)"
+              inputMode="decimal"
+              value={draft.longitude}
+              onChange={(e) => setDraft((d) => ({ ...d, longitude: e.target.value }))}
+              disabled={saving}
+            />
+          </div>
           <label className="flex items-center gap-2 text-sm text-white/75">
             <input
               type="checkbox"
@@ -574,7 +634,7 @@ export function VenuePicker({
               onChange={(e) => setDraft((d) => ({ ...d, isHome: e.target.checked }))}
               disabled={saving}
             />
-            Heimspielort
+            Heimspielort / Standard
           </label>
           {formMode === 'create' && isMatchHome ? (
             <label className="flex items-center gap-2 text-sm text-white/75">
