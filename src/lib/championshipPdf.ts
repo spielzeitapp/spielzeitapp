@@ -48,12 +48,26 @@ function venueLabel(f: ChampionshipFixture): string {
   return `${parts[0]}\n${parts.slice(1).join(', ')}`;
 }
 
-function seasonSubtitle(ageGroup?: string | null, seasonName?: string | null): string {
-  const age = String(ageGroup ?? '').trim();
+function seasonLine(seasonName?: string | null): string {
   const seasonRaw = String(seasonName ?? '').trim();
-  const season =
-    seasonRaw && !/^saison\b/i.test(seasonRaw) ? `Saison ${seasonRaw}` : seasonRaw;
-  return [age, season].filter(Boolean).join(' · ');
+  if (!seasonRaw) return '';
+  return /^saison\b/i.test(seasonRaw) ? seasonRaw : `Saison ${seasonRaw}`;
+}
+
+/** Haupttitel: „U12 – MEISTERSCHAFTSSPIELPLAN“ (Altersklasse gleichwertig). */
+function championshipHeaderTitle(ageGroup?: string | null): string {
+  const age = String(ageGroup ?? '').trim();
+  return age ? `${age} – MEISTERSCHAFTSSPIELPLAN` : 'MEISTERSCHAFTSSPIELPLAN';
+}
+
+/** Unterzeile: „Saison 2026/27 · SPG Rohrbach“. */
+function championshipHeaderSubtitle(
+  seasonName: string | null | undefined,
+  teamName: string,
+): string {
+  const season = seasonLine(seasonName);
+  const team = teamName.trim() || 'Mannschaft';
+  return [season, team].filter(Boolean).join(' · ');
 }
 
 /** Heim links, Gast rechts (Textform, z. B. Feed). */
@@ -342,20 +356,18 @@ export async function downloadChampionshipSchedulePdf(opts: {
     safeAddImage(doc, ourLogoData, margin, y, headerLogo, headerLogo);
 
     const textX = margin + headerLogo + 4;
+    const title = championshipHeaderTitle(opts.ageGroup);
+    const subtitle = championshipHeaderSubtitle(opts.seasonName, ourTeamName);
+
     doc.setTextColor(20, 20, 20);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('MEISTERSCHAFTSSPIELPLAN', textX, y + 5);
+    doc.setFontSize(14);
+    doc.text(title, textX, y + 6.5);
 
-    const sub = seasonSubtitle(opts.ageGroup, opts.seasonName);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    if (sub) {
-      doc.text(sub, textX, y + 10.5);
-    }
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(ourTeamName, textX, y + (sub ? 15.5 : 11));
+    doc.setTextColor(40, 40, 40);
+    doc.text(subtitle, textX, y + 13);
 
     const brandH = 10;
     const brandW = 42;
