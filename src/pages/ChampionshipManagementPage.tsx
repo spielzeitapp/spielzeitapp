@@ -489,6 +489,12 @@ export const ChampionshipManagementPage: React.FC = () => {
   const onDownloadPdf = () => {
     void (async () => {
       setBusy(true);
+      const opponentLogoUrls: Record<string, string> = {};
+      for (const f of fixtures) {
+        const name = (f.opponent || '').trim();
+        if (!name || opponentLogoUrls[name]) continue;
+        opponentLogoUrls[name] = logoFor(f);
+      }
       const res = await downloadChampionshipSchedulePdf({
         fixtures,
         mode: pdfMode,
@@ -496,6 +502,7 @@ export const ChampionshipManagementPage: React.FC = () => {
         ageGroup: ageGroupLabel || null,
         seasonName: seasonNameLabel || null,
         teamLogoUrl: getOurTeamLogoUrl(),
+        opponentLogoUrls,
       });
       setBusy(false);
       if (res.error) {

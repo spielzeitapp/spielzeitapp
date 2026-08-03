@@ -111,7 +111,9 @@ const LOGO_MAP: Record<string, string> = {
   'spg weinburg': 'spg-weinburg',
   weinburg: 'spg-weinburg',
   // SPG Bischofstetten: kein verifiziertes Asset → Placeholder (nicht UHG/Rohrbach raten)
-  // Loosdorf: kein verifiziertes Asset → Placeholder
+  // ASK Loosdorf
+  'ask loosdorf': 'loosdorf',
+  loosdorf: 'loosdorf',
   // TSV Hartberg
   'tsv hartberg': 'tsv-hartberg',
   hartberg: 'tsv-hartberg',

@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import brandLogoMark from '../assets/branding/spielzeitapp-logo-mark.png';
+import brandLogoHeader from '../assets/branding/spielzeitapp-header.png';
 import type { ChampionshipFixture } from './championshipFixtures';
 import { PLACEHOLDER_LOGO } from './teamLogos';
 import { isViennaPlaceholderKickoff, utcIsoToViennaTimeHHmm } from './viennaTime';
@@ -37,7 +37,7 @@ function meetupLabel(f: ChampionshipFixture): string {
   return utcIsoToViennaTimeHHmm(f.meeting_at) || '–';
 }
 
-/** Heim immer links, Auswärts rechts — ohne separate H/A-Spalte. */
+/** Heim links, Gast rechts. */
 export function formatChampionshipEncounter(
   f: ChampionshipFixture,
   ourTeamName: string,
@@ -108,10 +108,26 @@ function imageFormatFromDataUrl(dataUrl: string): 'PNG' | 'JPEG' | 'WEBP' {
   return 'PNG';
 }
 
+function safeAddImage(
+  doc: jsPDF,
+  dataUrl: string | null | undefined,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  if (!dataUrl) return;
+  try {
+    doc.addImage(dataUrl, imageFormatFromDataUrl(dataUrl), x, y, w, h);
+  } catch {
+    /* ignore broken image */
+  }
+}
+
 /**
- * A4 Querformat, weißer Druck-Hintergrund.
- * Spalten: Datum · Begegnung · Uhrzeit · Treffpunkt · Spielort
- * Keine Status-Spalte.
+ * A4 Querformat.
+ * Spalten: Datum | Treffpunkt | Anpfiff | Begegnung | Spielort
+ * Begegnung: [Heimlogo] Heim – Gast [Gastlogo]
  */
 export async function downloadChampionshipSchedulePdf(opts: {
   fixtures: ChampionshipFixture[];
@@ -121,6 +137,8 @@ export async function downloadChampionshipSchedulePdf(opts: {
   seasonName?: string | null;
   teamLogoUrl?: string | null;
   brandLogoUrl?: string | null;
+  /** Gegnername → Logo-URL (Catalog/Event/public) */
+  opponentLogoUrls?: Record<string, string>;
 }): Promise<{ error: string | null; filename: string }> {
   const rows =
     opts.mode === 'published'
@@ -136,86 +154,62 @@ export async function downloadChampionshipSchedulePdf(opts: {
     mode: opts.mode,
   });
 
-  const teamLogo =
+  const ourLogoData =
     (await loadImageDataUrl(opts.teamLogoUrl || PLACEHOLDER_LOGO)) ||
     (await loadImageDataUrl(PLACEHOLDER_LOGO));
-  const brandLogo = await loadImageDataUrl(opts.brandLogoUrl || brandLogoMark);
+  const brandLogoData = await loadImageDataUrl(opts.brandLogoUrl || brandLogoHeader);
+  const placeholderData = await loadImageDataUrl(PLACEHOLDER_LOGO);
+
+  const oppLogoCache = new Map<string, string | null>();
+  for (const f of rows) {
+    const name = (f.opponent || '').trim();
+    if (!name || oppLogoCache.has(name)) continue;
+    const url = opts.opponentLogoUrls?.[name] || PLACEHOLDER_LOGO;
+    oppLogoCache.set(name, (await loadImageDataUrl(url)) || placeholderData);
+  }
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 12;
-  let y = 10;
+  let y = 9;
 
-  // Header: Teamlogo + Texte links, Brand rechts
-  const logoSize = 16;
-  if (teamLogo) {
-    try {
-      doc.addImage(teamLogo, imageFormatFromDataUrl(teamLogo), margin, y, logoSize, logoSize);
-    } catch {
-      /* ignore broken logo */
-    }
-  }
+  const headerLogo = 14;
+  safeAddImage(doc, ourLogoData, margin, y, headerLogo, headerLogo);
 
-  const textX = margin + logoSize + 4;
+  const titleParts = [
+    'Meisterschaftsspielplan',
+    (opts.ageGroup || '').trim(),
+    (opts.seasonName || '').trim(),
+  ].filter(Boolean);
+  const title = titleParts.join(' ');
+
   doc.setTextColor(20, 20, 20);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text(opts.teamName || 'Mannschaft', textX, y + 5);
+  doc.setFontSize(15);
+  doc.text(title, margin + headerLogo + 4, y + 6);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  const ageLine = (opts.ageGroup || '').trim();
-  const seasonLine = (opts.seasonName || '').trim()
-    ? `Saison ${(opts.seasonName || '').trim()}`
-    : '';
-  const subLines = [ageLine, seasonLine].filter(Boolean);
-  doc.text(subLines.join('  ·  ') || 'Meisterschaft', textX, y + 10);
+  doc.text(opts.teamName || 'Mannschaft', margin + headerLogo + 4, y + 11.5);
 
-  if (brandLogo) {
-    try {
-      const bw = 10;
-      doc.addImage(
-        brandLogo,
-        imageFormatFromDataUrl(brandLogo),
-        pageW - margin - bw,
-        y + 2,
-        bw,
-        bw,
-      );
-    } catch {
-      /* ignore */
-    }
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    doc.text('SpielzeitApp', pageW - margin, y + 8, { align: 'right' });
-  }
+  // App-Header-Branding (Wortmarke), Querformat rechts oben
+  const brandH = 10;
+  const brandW = 42;
+  safeAddImage(doc, brandLogoData, pageW - margin - brandW, y + 2, brandW, brandH);
 
-  y += logoSize + 6;
-  doc.setTextColor(20, 20, 20);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('MEISTERSCHAFTSSPIELPLAN', margin, y);
-  y += 5;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(90, 90, 90);
-  doc.text(
-    opts.mode === 'published' ? 'Veröffentlichte Spiele' : 'Gesamter Planungsstand',
-    margin,
-    y,
-  );
-  y += 4;
+  y += headerLogo + 5;
 
-  const head = [['Datum', 'Begegnung', 'Uhrzeit', 'Treffpunkt', 'Spielort']];
+  const head = [['Datum', 'Treffpunkt', 'Anpfiff', 'Begegnung', 'Spielort']];
   const body = rows.map((f) => [
     formatDateDe(f.starts_at),
-    formatChampionshipEncounter(f, opts.teamName),
-    kickoffLabel(f),
     meetupLabel(f),
+    kickoffLabel(f),
+    formatChampionshipEncounter(f, opts.teamName),
     f.location?.trim() || '–',
   ]);
+
+  const logoMm = 5.5;
+  const encounterColIndex = 3;
 
   const drawFooter = (pageNumber: number, pageCount: number) => {
     doc.setFont('helvetica', 'normal');
@@ -223,9 +217,7 @@ export async function downloadChampionshipSchedulePdf(opts: {
     doc.setTextColor(110, 110, 110);
     const footerY = pageH - 6;
     doc.text(`Stand: ${formatStandDate()}`, margin, footerY);
-    doc.text('Erstellt mit SpielzeitApp · spielzeitapp.at', pageW / 2, footerY, {
-      align: 'center',
-    });
+    doc.text('Erstellt mit SpielzeitApp', pageW / 2, footerY, { align: 'center' });
     doc.text(`${pageNumber} / ${pageCount}`, pageW - margin, footerY, { align: 'right' });
   };
 
@@ -242,32 +234,51 @@ export async function downloadChampionshipSchedulePdf(opts: {
       theme: 'grid',
       styles: {
         font: 'helvetica',
-        fontSize: 9,
-        cellPadding: { top: 2.2, right: 2, bottom: 2.2, left: 2 },
+        fontSize: 8.5,
+        cellPadding: { top: 2.4, right: 2, bottom: 2.4, left: 2 },
         textColor: [25, 25, 25],
-        lineColor: [160, 160, 160],
+        lineColor: [170, 170, 170],
         lineWidth: 0.15,
         overflow: 'linebreak',
         valign: 'middle',
       },
       headStyles: {
-        fillColor: [235, 235, 235],
+        fillColor: [236, 236, 236],
         textColor: [20, 20, 20],
         fontStyle: 'bold',
-        fontSize: 9,
+        fontSize: 8.5,
       },
       alternateRowStyles: { fillColor: [248, 248, 248] },
       columnStyles: {
-        0: { cellWidth: 28 },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 22, halign: 'center' },
-        3: { cellWidth: 24, halign: 'center' },
-        4: { cellWidth: 55 },
+        0: { cellWidth: 26 },
+        1: { cellWidth: 22, halign: 'center' },
+        2: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 'auto', cellPadding: { top: 2.4, right: 2, bottom: 2.4, left: 9 } },
+        4: { cellWidth: 48 },
       },
       margin: { left: margin, right: margin, bottom: 12 },
+      didDrawCell: (data) => {
+        if (data.section !== 'body' || data.column.index !== encounterColIndex) return;
+        const f = rows[data.row.index];
+        if (!f) return;
+        const oppName = (f.opponent || '').trim();
+        const oppLogo = oppLogoCache.get(oppName) || placeholderData;
+        // Links = Heim, Rechts = Gast
+        const leftLogo = f.is_home ? ourLogoData : oppLogo;
+        const rightLogo = f.is_home ? oppLogo : ourLogoData;
+        const cy = data.cell.y + (data.cell.height - logoMm) / 2;
+        safeAddImage(doc, leftLogo, data.cell.x + 1.2, cy, logoMm, logoMm);
+        safeAddImage(
+          doc,
+          rightLogo,
+          data.cell.x + data.cell.width - logoMm - 1.2,
+          cy,
+          logoMm,
+          logoMm,
+        );
+      },
       didDrawPage: (data) => {
-        const pageCount = doc.getNumberOfPages();
-        drawFooter(data.pageNumber, pageCount);
+        drawFooter(data.pageNumber, doc.getNumberOfPages());
       },
     });
   }
