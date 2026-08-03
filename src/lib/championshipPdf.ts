@@ -54,12 +54,6 @@ function seasonLine(seasonName?: string | null): string {
   return /^saison\b/i.test(seasonRaw) ? seasonRaw : `Saison ${seasonRaw}`;
 }
 
-/** Haupttitel: „U12 – MEISTERSCHAFTSSPIELPLAN“ (Altersklasse gleichwertig). */
-function championshipHeaderTitle(ageGroup?: string | null): string {
-  const age = String(ageGroup ?? '').trim();
-  return age ? `${age} – MEISTERSCHAFTSSPIELPLAN` : 'MEISTERSCHAFTSSPIELPLAN';
-}
-
 /** Unterzeile: „Saison 2026/27 · SPG Rohrbach“. */
 function championshipHeaderSubtitle(
   seasonName: string | null | undefined,
@@ -68,6 +62,30 @@ function championshipHeaderSubtitle(
   const season = seasonLine(seasonName);
   const team = teamName.trim() || 'Mannschaft';
   return [season, team].filter(Boolean).join(' · ');
+}
+
+/** Eine Hauptzeile: U12 (rot, groß) + „ – MEISTERSCHAFTSSPIELPLAN“ (schwarz). */
+function drawChampionshipHeaderTitle(
+  doc: jsPDF,
+  x: number,
+  baselineY: number,
+  ageGroup?: string | null,
+): void {
+  const age = String(ageGroup ?? '').trim();
+  doc.setFont('helvetica', 'bold');
+  if (age) {
+    doc.setFontSize(19);
+    doc.setTextColor(220, 38, 38);
+    doc.text(age, x, baselineY);
+    const ageW = doc.getTextWidth(age);
+    doc.setFontSize(17);
+    doc.setTextColor(20, 20, 20);
+    doc.text(' – MEISTERSCHAFTSSPIELPLAN', x + ageW, baselineY);
+    return;
+  }
+  doc.setFontSize(17);
+  doc.setTextColor(20, 20, 20);
+  doc.text('MEISTERSCHAFTSSPIELPLAN', x, baselineY);
 }
 
 /** Heim links, Gast rechts (Textform, z. B. Feed). */
@@ -356,18 +374,14 @@ export async function downloadChampionshipSchedulePdf(opts: {
     safeAddImage(doc, ourLogoData, margin, y, headerLogo, headerLogo);
 
     const textX = margin + headerLogo + 4;
-    const title = championshipHeaderTitle(opts.ageGroup);
     const subtitle = championshipHeaderSubtitle(opts.seasonName, ourTeamName);
 
-    doc.setTextColor(20, 20, 20);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(title, textX, y + 6.5);
+    drawChampionshipHeaderTitle(doc, textX, y + 7, opts.ageGroup);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(40, 40, 40);
-    doc.text(subtitle, textX, y + 13);
+    doc.setFontSize(10.5);
+    doc.setTextColor(45, 45, 45);
+    doc.text(subtitle, textX, y + 13.5);
 
     const brandH = 10;
     const brandW = 42;

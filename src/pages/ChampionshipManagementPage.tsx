@@ -236,7 +236,11 @@ export const ChampionshipManagementPage: React.FC = () => {
       if (cancelled) return;
       const activeId = snap.active?.id ?? selectedTeamSeasonId;
       setTeamSeasonId(activeId);
-      const age = snap.active?.ageGroup ? `${snap.active.ageGroup}` : '';
+      const age =
+        (snap.active?.ageGroup ? `${snap.active.ageGroup}`.trim() : '') ||
+        (String(snap.active?.displayName ?? '').match(/\bU\s?\d{1,2}\b/i)?.[0] ?? '')
+          .replace(/\s+/g, '')
+          .toUpperCase();
       const season = snap.active?.seasonName ? `${snap.active.seasonName}` : '';
       setAgeGroupLabel(age);
       setSeasonNameLabel(season);
