@@ -177,6 +177,8 @@ export const ChampionshipManagementPage: React.FC = () => {
   const [catalogLogoMap, setCatalogLogoMap] = useState<Map<string, string>>(new Map());
   const [pdfOpen, setPdfOpen] = useState(false);
   const [pdfMode, setPdfMode] = useState<ChampionshipPdfMode>('published');
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -545,48 +547,73 @@ export const ChampionshipManagementPage: React.FC = () => {
 
   const onDownloadPdf = () => {
     void (async () => {
-      if (!teamSeasonId) return;
+      if (!teamSeasonId) {
+        setPdfError('PDF konnte nicht erstellt werden.');
+        setError('Keine aktive Saison für den PDF-Export.');
+        return;
+      }
+      setPdfBusy(true);
       setBusy(true);
+      setPdfError(null);
       setError(null);
-      // Immer frisch aus der DB — kein gecachtes/statisches PDF
-      const listed = await listChampionshipFixtures(teamSeasonId);
-      if (listed.error) {
-        setBusy(false);
-        setError(listed.error);
-        return;
-      }
-      const fresh = listed.data;
-      let logoMap = catalogLogoMap;
-      if (clubId) {
-        logoMap = await fetchOpponentCatalogLogoMap(clubId);
-        setCatalogLogoMap(logoMap);
-      }
-      const opponentLogoUrls: Record<string, string> = {};
-      for (const f of fresh) {
-        const name = (f.opponent || '').trim();
-        if (!name || opponentLogoUrls[name]) continue;
-        opponentLogoUrls[name] = resolveDisplayOpponentLogo({
-          opponent: f.opponent,
-          eventLogoUrl: f.opponent_logo_url,
-          catalogLogoUrl: logoMap.get(normalizeOpponentKey(f.opponent)),
+      try {
+        // Immer frisch aus der DB — kein gecachtes/statisches PDF
+        const listed = await listChampionshipFixtures(teamSeasonId);
+        if (listed.error) {
+          console.error('[championshipPdf] fixtures reload failed', listed.error);
+          setPdfError('PDF konnte nicht erstellt werden.');
+          setError(listed.error);
+          return;
+        }
+        const fresh = listed.data ?? [];
+        let logoMap = catalogLogoMap;
+        if (clubId) {
+          try {
+            logoMap = await fetchOpponentCatalogLogoMap(
+              clubId,
+              fresh.map((f) => f.opponent ?? ''),
+            );
+            setCatalogLogoMap(logoMap);
+          } catch (logoErr) {
+            console.error('[championshipPdf] catalog logos failed', logoErr);
+            // Logos optional — mit bestehender Map / Placeholder weiter
+          }
+        }
+        const opponentLogoUrls: Record<string, string> = {};
+        for (const f of fresh) {
+          const name = (f.opponent || '').trim();
+          if (!name || opponentLogoUrls[name]) continue;
+          opponentLogoUrls[name] = resolveDisplayOpponentLogo({
+            opponent: f.opponent,
+            eventLogoUrl: f.opponent_logo_url,
+            catalogLogoUrl: logoMap.get(normalizeOpponentKey(f.opponent)),
+          });
+        }
+        const res = await downloadChampionshipSchedulePdf({
+          fixtures: fresh,
+          mode: pdfMode,
+          teamName: ourTeamName || 'Mannschaft',
+          ageGroup: ageGroupLabel || null,
+          seasonName: seasonNameLabel || null,
+          teamLogoUrl: getOurTeamLogoUrl(),
+          opponentLogoUrls,
         });
+        if (res.error) {
+          console.error('[championshipPdf] export failed', res.error);
+          setPdfError('PDF konnte nicht erstellt werden.');
+          setError(res.error);
+          return;
+        }
+        setFixtures(fresh);
+        setPdfOpen(false);
+      } catch (err) {
+        console.error('[championshipPdf] unexpected export error', err);
+        setPdfError('PDF konnte nicht erstellt werden.');
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setPdfBusy(false);
+        setBusy(false);
       }
-      const res = await downloadChampionshipSchedulePdf({
-        fixtures: fresh,
-        mode: pdfMode,
-        teamName: ourTeamName,
-        ageGroup: ageGroupLabel || null,
-        seasonName: seasonNameLabel || null,
-        teamLogoUrl: getOurTeamLogoUrl(),
-        opponentLogoUrls,
-      });
-      setBusy(false);
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      setFixtures(fresh);
-      setPdfOpen(false);
     })();
   };
 
@@ -668,7 +695,10 @@ export const ChampionshipManagementPage: React.FC = () => {
             variant="secondary"
             fullWidth
             className="gap-2"
-            onClick={() => setPdfOpen(true)}
+            onClick={() => {
+              setPdfError(null);
+              setPdfOpen(true);
+            }}
           >
             <FileText className="h-4 w-4" aria-hidden />
             Spielplan PDF
@@ -1172,15 +1202,33 @@ export const ChampionshipManagementPage: React.FC = () => {
       <Modal
         isOpen={pdfOpen}
         title="Spielplan exportieren"
-        onClose={() => setPdfOpen(false)}
+        onClose={() => {
+          if (pdfBusy) return;
+          setPdfOpen(false);
+          setPdfError(null);
+        }}
         footer={
           <div className="flex w-full min-w-0 justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setPdfOpen(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={pdfBusy}
+              onClick={() => {
+                setPdfOpen(false);
+                setPdfError(null);
+              }}
+            >
               Abbrechen
             </Button>
-            <Button type="button" variant="primary" className="gap-2" onClick={onDownloadPdf}>
+            <Button
+              type="button"
+              variant="primary"
+              className="gap-2"
+              disabled={pdfBusy}
+              onClick={onDownloadPdf}
+            >
               <FileText className="h-4 w-4" aria-hidden />
-              PDF herunterladen
+              {pdfBusy ? 'PDF wird erstellt …' : 'PDF herunterladen'}
             </Button>
           </div>
         }
@@ -1191,6 +1239,7 @@ export const ChampionshipManagementPage: React.FC = () => {
               type="radio"
               name="champ-pdf-mode"
               checked={pdfMode === 'published'}
+              disabled={pdfBusy}
               onChange={() => setPdfMode('published')}
             />
             Veröffentlichte Spiele
@@ -1200,10 +1249,16 @@ export const ChampionshipManagementPage: React.FC = () => {
               type="radio"
               name="champ-pdf-mode"
               checked={pdfMode === 'all'}
+              disabled={pdfBusy}
               onChange={() => setPdfMode('all')}
             />
             Gesamter Planungsstand
           </label>
+          {pdfError ? (
+            <p className="rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-100">
+              {pdfError}
+            </p>
+          ) : null}
         </div>
       </Modal>
     </PageShell>

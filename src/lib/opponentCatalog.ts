@@ -128,12 +128,13 @@ export async function setOpponentCatalogLogo(opts: {
 /** Batch: opponent_key → logo_url */
 export async function fetchOpponentCatalogLogoMap(
   clubId: string,
-  opponentNames: string[],
+  opponentNames: string[] = [],
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   if (!clubId) return map;
+  const names = Array.isArray(opponentNames) ? opponentNames : [];
   const keys = [
-    ...new Set(opponentNames.map((n) => normalizeOpponentKey(n)).filter(Boolean)),
+    ...new Set(names.map((n) => normalizeOpponentKey(n)).filter(Boolean)),
   ];
   if (keys.length === 0) return map;
 
