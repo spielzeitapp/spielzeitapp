@@ -461,7 +461,6 @@ export function VenuePicker({
               {preferred.map((v) => (
                 <option key={`p-${v.id}`} value={v.id}>
                   {v.name}
-                  {v.is_default ? ' (Standard)' : v.is_home ? ' (Heim)' : ''}
                 </option>
               ))}
             </optgroup>
@@ -473,7 +472,6 @@ export function VenuePicker({
                 .map((v) => (
                   <option key={`c-${v.id}`} value={v.id}>
                     {v.name}
-                    {v.is_home ? ' (Heim)' : ''}
                   </option>
                 ))}
             </optgroup>

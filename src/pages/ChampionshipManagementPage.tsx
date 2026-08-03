@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, Upload } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { VenuePicker } from '../components/venues/VenuePicker';
+import { TimeInput24h } from '../components/ui/TimeInput24h';
 import { canPrepareNextSeason } from '../lib/seasonLifecycle';
 import {
   championshipCounts,
@@ -594,7 +595,7 @@ export const ChampionshipManagementPage: React.FC = () => {
 
       {editFixture && editOefb && editStatusMeta ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center sm:p-4">
-          <div className="flex max-h-[96vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-white/12 bg-[#0e1118] shadow-xl sm:rounded-2xl">
+          <div className="flex max-h-[96vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-white/12 bg-[#0e1118] shadow-xl sm:rounded-2xl" lang="de-AT">
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 pt-4 sm:px-4">
               {/* Match header */}
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
@@ -652,12 +653,11 @@ export const ChampionshipManagementPage: React.FC = () => {
                   <label className={cn(labelClass, 'mt-3')} htmlFor="champ-edit-kickoff">
                     Beginn
                   </label>
-                  <input
+                  <TimeInput24h
                     id="champ-edit-kickoff"
-                    type="time"
                     className={inputClass}
                     value={editKickoff}
-                    onChange={(e) => setEditKickoff(e.target.value)}
+                    onChange={setEditKickoff}
                     disabled={busy}
                     placeholder="--:--"
                   />
@@ -667,13 +667,13 @@ export const ChampionshipManagementPage: React.FC = () => {
                   <label className={cn(labelClass, 'mt-3')} htmlFor="champ-edit-meetup">
                     Treffpunkt
                   </label>
-                  <input
+                  <TimeInput24h
                     id="champ-edit-meetup"
-                    type="time"
                     className={inputClass}
                     value={editMeetup}
-                    onChange={(e) => setEditMeetup(e.target.value)}
+                    onChange={setEditMeetup}
                     disabled={busy}
+                    placeholder="--:--"
                   />
                 </div>
 
