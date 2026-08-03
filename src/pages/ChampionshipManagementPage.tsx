@@ -660,6 +660,7 @@ export const ChampionshipManagementPage: React.FC = () => {
                     onChange={setEditKickoff}
                     disabled={busy}
                     placeholder="--:--"
+                    label="Beginn"
                   />
                   {!editKickoff ? (
                     <p className="mt-1 text-[12px] text-white/40">Uhrzeit noch offen — bewusst setzen</p>
@@ -674,6 +675,7 @@ export const ChampionshipManagementPage: React.FC = () => {
                     onChange={setEditMeetup}
                     disabled={busy}
                     placeholder="--:--"
+                    label="Treffpunkt"
                   />
                 </div>
 
