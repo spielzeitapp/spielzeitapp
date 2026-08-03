@@ -15,6 +15,10 @@ import {
   linkVenueToTeam,
   resolveOpponentVenueCandidates,
   resolveTeamHomeVenueCandidates,
+  setPreferredOpponentVenue,
+  setPreferredTeamVenue,
+  unlinkVenueFromOpponent,
+  unlinkVenueFromTeam,
   venueHasAddress,
   type VenueCandidate,
 } from '../../lib/teamVenues';
@@ -158,6 +162,8 @@ export function VenuePicker({
     setFormMode('create');
     setEditingVenueId(null);
     setFormError(null);
+    setRememberHome(true);
+    setRememberOpponent(true);
     setDraft({
       name: locationName.trim() || '',
       address: locationAddress.trim() || '',
@@ -387,20 +393,78 @@ export function VenuePicker({
   const handleRememberLink = async () => {
     if (!clubId || !selectedVenue) return;
     setSaving(true);
+    setFormError(null);
     if (isMatchAway && opponentName) {
-      await linkVenueToOpponent({
+      const r = await linkVenueToOpponent({
         clubId,
         opponentName,
         venueId: selectedVenue.id,
         isDefault: preferred.length === 0,
       });
+      if (r.error) setFormError(r.error);
     } else if (isMatchHome && teamId) {
-      await linkVenueToTeam({
+      const r = await linkVenueToTeam({
         clubId,
         teamId,
         venueId: selectedVenue.id,
         isDefault: preferred.length === 0,
       });
+      if (r.error) setFormError(r.error);
+    }
+    setSaving(false);
+    await reload({ skipAutoSelect: true });
+  };
+
+  const handleUnlink = async () => {
+    if (!clubId || !selectedVenue) return;
+    setSaving(true);
+    setFormError(null);
+    if (isMatchAway && opponentName) {
+      const r = await unlinkVenueFromOpponent({
+        clubId,
+        opponentName,
+        venueId: selectedVenue.id,
+      });
+      if (r.error) {
+        setSaving(false);
+        setFormError(r.error);
+        return;
+      }
+      onVenueChange(null);
+    } else if (isMatchHome && teamId) {
+      const r = await unlinkVenueFromTeam({
+        clubId,
+        teamId,
+        venueId: selectedVenue.id,
+      });
+      if (r.error) {
+        setSaving(false);
+        setFormError(r.error);
+        return;
+      }
+    }
+    setSaving(false);
+    await reload({ skipAutoSelect: true });
+  };
+
+  const handleSetPreferred = async () => {
+    if (!clubId || !selectedVenue) return;
+    setSaving(true);
+    setFormError(null);
+    if (isMatchAway && opponentName) {
+      const r = await setPreferredOpponentVenue({
+        clubId,
+        opponentName,
+        venueId: selectedVenue.id,
+      });
+      if (r.error) setFormError(r.error);
+    } else if (isMatchHome && teamId) {
+      const r = await setPreferredTeamVenue({
+        clubId,
+        teamId,
+        venueId: selectedVenue.id,
+      });
+      if (r.error) setFormError(r.error);
     }
     setSaving(false);
     await reload({ skipAutoSelect: true });
@@ -556,9 +620,33 @@ export function VenuePicker({
                     disabled={disabled || saving}
                   >
                     {isMatchAway && opponentName
-                      ? `Für ${opponentName} merken`
-                      : 'Als Heimspielort merken'}
+                      ? `Für ${opponentName} speichern`
+                      : 'Für unser Team speichern'}
                   </button>
+                ) : null}
+                {linkedAlready && (isMatchAway || isMatchHome) ? (
+                  <>
+                    {!preferred.some((p) => p.id === selectedVenue.id && p.is_default) ? (
+                      <button
+                        type="button"
+                        className="inline-flex min-h-[44px] items-center px-2 text-[13px] text-white/65 underline-offset-2 hover:underline"
+                        onClick={() => void handleSetPreferred()}
+                        disabled={disabled || saving}
+                      >
+                        Als bevorzugten Spielort markieren
+                      </button>
+                    ) : (
+                      <span className="text-[12px] text-white/45">Bevorzugter Spielort</span>
+                    )}
+                    <button
+                      type="button"
+                      className="inline-flex min-h-[44px] items-center px-2 text-[13px] text-amber-200/90 underline-offset-2 hover:underline"
+                      onClick={() => void handleUnlink()}
+                      disabled={disabled || saving}
+                    >
+                      Zuordnung entfernen
+                    </button>
+                  </>
                 ) : null}
               </div>
             </>
@@ -608,48 +696,63 @@ export function VenuePicker({
               disabled={saving}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-white/75">
-            <input
-              type="checkbox"
-              checked={draft.isHome}
-              onChange={(e) => setDraft((d) => ({ ...d, isHome: e.target.checked }))}
-              disabled={saving}
-            />
-            Heimspielort / Standard
-          </label>
-          {formMode === 'create' && isMatchHome ? (
-            <label className="flex items-center gap-2 text-sm text-white/75">
-              <input
-                type="checkbox"
-                checked={rememberHome}
-                onChange={(e) => setRememberHome(e.target.checked)}
-                disabled={saving}
-              />
-              Als Heimspielort merken
-            </label>
-          ) : null}
-          {formMode === 'create' && isMatchAway && opponentName ? (
-            <label className="flex items-center gap-2 text-sm text-white/75">
-              <input
-                type="checkbox"
-                checked={rememberOpponent}
-                onChange={(e) => setRememberOpponent(e.target.checked)}
-                disabled={saving}
-              />
-              Für {opponentName} merken
-            </label>
-          ) : null}
           {formMode === 'create' ? (
+            <>
+              <label className="flex items-center gap-2 text-sm text-white/75">
+                <input
+                  type="checkbox"
+                  checked={
+                    isMatchAway
+                      ? rememberOpponent
+                      : isMatchHome
+                        ? rememberHome
+                        : draft.isHome
+                  }
+                  onChange={(e) => {
+                    const on = e.target.checked;
+                    if (isMatchAway) {
+                      setRememberOpponent(on);
+                      setDraft((d) => ({ ...d, isDefault: on ? d.isDefault : false }));
+                    } else if (isMatchHome) {
+                      setRememberHome(on);
+                      setDraft((d) => ({ ...d, isHome: on, isDefault: on ? d.isDefault : false }));
+                    } else {
+                      setDraft((d) => ({ ...d, isHome: on }));
+                    }
+                  }}
+                  disabled={saving}
+                />
+                {isMatchAway && opponentName
+                  ? `Für ${opponentName} speichern`
+                  : isMatchHome
+                    ? 'Für unser Team speichern'
+                    : 'Heimspielort'}
+              </label>
+              {(isMatchAway ? rememberOpponent : isMatchHome ? rememberHome : draft.isHome) ? (
+                <label className="flex items-center gap-2 text-sm text-white/75">
+                  <input
+                    type="checkbox"
+                    checked={draft.isDefault}
+                    onChange={(e) => setDraft((d) => ({ ...d, isDefault: e.target.checked }))}
+                    disabled={saving}
+                  />
+                  {isMatchAway
+                    ? 'Als bevorzugten Spielort verwenden'
+                    : 'Als bevorzugten Heimspielort verwenden'}
+                </label>
+              ) : null}
+            </>
+          ) : (
             <label className="flex items-center gap-2 text-sm text-white/75">
               <input
                 type="checkbox"
-                checked={draft.isDefault}
-                onChange={(e) => setDraft((d) => ({ ...d, isDefault: e.target.checked }))}
+                checked={draft.isHome}
+                onChange={(e) => setDraft((d) => ({ ...d, isHome: e.target.checked }))}
                 disabled={saving}
               />
-              Standard-Spielort
+              Heimspielort
             </label>
-          ) : null}
+          )}
           {formError ? <p className="text-sm text-red-300">{formError}</p> : null}
           <div className="flex justify-end gap-2">
             <button

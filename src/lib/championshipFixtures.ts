@@ -1,5 +1,10 @@
 import { supabase } from './supabaseClient';
 import {
+  ensureOpponentCatalogEntry,
+  resolveClubIdFromTeamSeason,
+  setOpponentCatalogLogo,
+} from './opponentCatalog';
+import {
   getClubLogo,
   isPlaceholderLogoUrl,
   PLACEHOLDER_LOGO,
@@ -167,10 +172,20 @@ export async function importOefbChampionshipFixtures(opts: {
   let inserted = 0;
   let updated = 0;
   let skippedProtected = 0;
+  const clubId = await resolveClubIdFromTeamSeason(opts.teamSeasonId);
 
   for (const f of opts.fixtures) {
     if (!f.external_id || !f.opponent || !f.starts_at) continue;
     const logo = resolveOpponentLogoForStorage(f.opponent, f.opponent_logo_url);
+    if (clubId) {
+      await ensureOpponentCatalogEntry({
+        clubId,
+        displayName: f.opponent,
+        logoUrl: logo,
+        externalSource: 'oefb',
+        externalId: f.external_id,
+      });
+    }
 
     const found = await selectChampionshipRows(opts.teamSeasonId, f.external_id);
     if (found.error) {
@@ -324,7 +339,7 @@ export async function publishAllAgreedChampionshipFixtures(
   return { published: (data ?? []).length, error: null };
 }
 
-/** Logo für alle Meisterschaftsspiele desselben Gegners in der Saison setzen. */
+/** Logo für Catalog + alle Meisterschaftsspiele desselben Gegners in der Saison. */
 export async function setOpponentLogoForSeason(opts: {
   teamSeasonId: string;
   opponentName: string;
@@ -332,6 +347,20 @@ export async function setOpponentLogoForSeason(opts: {
 }): Promise<{ updated: number; error: string | null }> {
   const key = normalizeOpponentKey(opts.opponentName);
   if (!key) return { updated: 0, error: 'Gegner fehlt.' };
+
+  const clubId = await resolveClubIdFromTeamSeason(opts.teamSeasonId);
+  if (clubId) {
+    const catalog = await setOpponentCatalogLogo({
+      clubId,
+      displayName: opts.opponentName,
+      logoUrl: opts.logoUrl,
+    });
+    if (catalog.error && /Migration 20260803120000/i.test(catalog.error)) {
+      // Catalog optional bis Migration — Event-Update trotzdem versuchen
+    } else if (catalog.error) {
+      return { updated: 0, error: catalog.error };
+    }
+  }
 
   const listed = await listChampionshipFixtures(opts.teamSeasonId);
   if (listed.error) return { updated: 0, error: listed.error };

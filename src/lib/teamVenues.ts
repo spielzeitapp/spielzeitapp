@@ -278,3 +278,83 @@ export async function isVenueLinkedToTeam(opts: {
   if (error) return false;
   return Boolean(data);
 }
+
+/** Nur Zuordnung entfernen — Venue bleibt erhalten. */
+export async function unlinkVenueFromOpponent(opts: {
+  clubId: string;
+  opponentName: string;
+  venueId: string;
+}): Promise<{ error: string | null }> {
+  const key = normalizeOpponentKey(opts.opponentName);
+  if (!key || !opts.venueId) return { error: 'Gegner oder Spielort fehlt.' };
+  const { error } = await supabase
+    .from('team_venues')
+    .delete()
+    .eq('club_id', opts.clubId)
+    .eq('opponent_key', key)
+    .eq('venue_id', opts.venueId);
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+export async function unlinkVenueFromTeam(opts: {
+  clubId: string;
+  teamId: string;
+  venueId: string;
+}): Promise<{ error: string | null }> {
+  if (!opts.teamId || !opts.venueId) return { error: 'Team oder Spielort fehlt.' };
+  const { error } = await supabase
+    .from('team_venues')
+    .delete()
+    .eq('club_id', opts.clubId)
+    .eq('team_id', opts.teamId)
+    .eq('venue_id', opts.venueId);
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+/** Genau einen bevorzugten Spielort setzen (andere Defaults dieses Subjekts aus). */
+export async function setPreferredOpponentVenue(opts: {
+  clubId: string;
+  opponentName: string;
+  venueId: string;
+}): Promise<{ error: string | null }> {
+  const key = normalizeOpponentKey(opts.opponentName);
+  if (!key || !opts.venueId) return { error: 'Gegner oder Spielort fehlt.' };
+  await supabase
+    .from('team_venues')
+    .update({ is_default: false })
+    .eq('club_id', opts.clubId)
+    .eq('opponent_key', key)
+    .eq('is_default', true);
+  const { error } = await supabase
+    .from('team_venues')
+    .update({ is_default: true })
+    .eq('club_id', opts.clubId)
+    .eq('opponent_key', key)
+    .eq('venue_id', opts.venueId);
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+export async function setPreferredTeamVenue(opts: {
+  clubId: string;
+  teamId: string;
+  venueId: string;
+}): Promise<{ error: string | null }> {
+  if (!opts.teamId || !opts.venueId) return { error: 'Team oder Spielort fehlt.' };
+  await supabase
+    .from('team_venues')
+    .update({ is_default: false })
+    .eq('club_id', opts.clubId)
+    .eq('team_id', opts.teamId)
+    .eq('is_default', true);
+  const { error } = await supabase
+    .from('team_venues')
+    .update({ is_default: true })
+    .eq('club_id', opts.clubId)
+    .eq('team_id', opts.teamId)
+    .eq('venue_id', opts.venueId);
+  if (error) return { error: error.message };
+  return { error: null };
+}

@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, Upload } from 'lucide-react';
+import { ChevronDown, ChevronLeft, FileText, Upload } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { VenuePicker } from '../components/venues/VenuePicker';
 import {
@@ -22,6 +22,14 @@ import {
   updateChampionshipFixture,
   type ChampionshipFixture,
 } from '../lib/championshipFixtures';
+import {
+  fetchOpponentCatalogLogoMap,
+  resolveClubIdFromTeamSeason,
+  resolveDisplayOpponentLogo,
+  uploadOpponentLogoFile,
+} from '../lib/opponentCatalog';
+import { downloadChampionshipSchedulePdf, type ChampionshipPdfMode } from '../lib/championshipPdf';
+import { normalizeOpponentKey } from '../lib/teamVenues';
 import { getOurTeamDisplayName, getOurTeamLogoUrl, PLACEHOLDER_LOGO } from '../lib/teamLogos';
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
 import { supabase } from '../lib/supabaseClient';
@@ -91,11 +99,6 @@ function formatOefbVorgabe(iso: string | null | undefined): { dateLine: string; 
   return { dateLine: formatViennaDateOnly(iso), timeLine: utcIsoToViennaTimeHHmm(iso) || '—' };
 }
 
-function formatOefbVorgabeInline(iso: string | null | undefined): string {
-  const v = formatOefbVorgabe(iso);
-  return `${v.dateLine} · ${v.timeLine}`;
-}
-
 function statusMeta(status: ChampionshipFixture['fixture_status']): {
   label: string;
   hint: string;
@@ -161,6 +164,13 @@ export const ChampionshipManagementPage: React.FC = () => {
   const [confirmPublishId, setConfirmPublishId] = useState<string | null>(null);
   const [confirmBulkPublish, setConfirmBulkPublish] = useState(false);
   const [publishVenueWarn, setPublishVenueWarn] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'open' | 'agreed' | 'published'>('all');
+  const [clubId, setClubId] = useState<string | null>(null);
+  const [catalogLogoMap, setCatalogLogoMap] = useState<Map<string, string>>(new Map());
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [pdfMode, setPdfMode] = useState<ChampionshipPdfMode>('published');
+  const [importOpen, setImportOpen] = useState(false);
+  const logoFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const counts = useMemo(() => championshipCounts(fixtures), [fixtures]);
   const ourTeamName = useMemo(() => getOurTeamDisplayName(), []);
@@ -176,7 +186,33 @@ export const ChampionshipManagementPage: React.FC = () => {
       return;
     }
     setFixtures(res.data);
+    const resolvedClubId = await resolveClubIdFromTeamSeason(tsId);
+    setClubId(resolvedClubId);
+    if (resolvedClubId) {
+      const map = await fetchOpponentCatalogLogoMap(
+        resolvedClubId,
+        res.data.map((f) => f.opponent ?? ''),
+      );
+      setCatalogLogoMap(map);
+    } else {
+      setCatalogLogoMap(new Map());
+    }
   }, []);
+
+  const logoFor = useCallback(
+    (f: ChampionshipFixture): string =>
+      resolveDisplayOpponentLogo({
+        opponent: f.opponent,
+        eventLogoUrl: f.opponent_logo_url,
+        catalogLogoUrl: catalogLogoMap.get(normalizeOpponentKey(f.opponent)),
+      }),
+    [catalogLogoMap],
+  );
+
+  const filteredFixtures = useMemo(() => {
+    if (filter === 'all') return fixtures;
+    return fixtures.filter((f) => f.fixture_status === filter);
+  }, [fixtures, filter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -418,6 +454,44 @@ export const ChampionshipManagementPage: React.FC = () => {
     if (url && url !== PLACEHOLDER_LOGO) setEditLogoUrl(url);
   };
 
+  const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = '';
+    if (!file || !editFixture || !clubId) return;
+    setBusy(true);
+    setEditError(null);
+    const up = await uploadOpponentLogoFile({
+      clubId,
+      opponentName: editFixture.opponent ?? '',
+      file,
+    });
+    setBusy(false);
+    if (up.error) {
+      setEditError(up.error);
+      return;
+    }
+    if (up.publicUrl) {
+      setEditLogoUrl(up.publicUrl);
+      if (teamSeasonId) {
+        await setOpponentLogoForSeason({
+          teamSeasonId,
+          opponentName: editFixture.opponent ?? '',
+          logoUrl: up.publicUrl,
+        });
+      }
+    }
+  };
+
+  const onDownloadPdf = () => {
+    downloadChampionshipSchedulePdf({
+      fixtures,
+      mode: pdfMode,
+      teamName: ourTeamName,
+      seasonLabel,
+    });
+    setPdfOpen(false);
+  };
+
   const editStatusMeta = editFixture ? statusMeta(editFixture.fixture_status) : null;
   const editOefb = editFixture
     ? formatOefbVorgabe(editFixture.source_starts_at ?? editFixture.starts_at)
@@ -430,7 +504,11 @@ export const ChampionshipManagementPage: React.FC = () => {
   const editHeaderLogo = editFixture
     ? editFixture.is_home
       ? getOurTeamLogoUrl()
-      : displayOpponentLogoUrl(editFixture.opponent, editLogoUrl || editFixture.opponent_logo_url)
+      : resolveDisplayOpponentLogo({
+          opponent: editFixture.opponent,
+          eventLogoUrl: editFixture.opponent_logo_url,
+          catalogLogoUrl: editLogoUrl || catalogLogoMap.get(normalizeOpponentKey(editFixture.opponent)),
+        })
     : PLACEHOLDER_LOGO;
   const saveCtaLabel =
     editFixture?.fixture_status === 'published'
@@ -459,46 +537,100 @@ export const ChampionshipManagementPage: React.FC = () => {
 
       <SectionTitle subtitle={seasonLabel}>Meisterschaft</SectionTitle>
 
-      <PremiumCard variant="subtle" showAmbientGlow={false} className="min-w-0 space-y-2 overflow-hidden">
-        <p className="text-sm text-white/80">
-          <span className="font-semibold text-white">{counts.total}</span> Spiele ·{' '}
-          <span className="text-amber-200">{counts.open} offen</span> ·{' '}
-          <span className="text-emerald-200">{counts.agreed} vereinbart</span> ·{' '}
-          <span className="text-sky-200">{counts.published} veröffentlicht</span>
-        </p>
-        <label className="block text-xs font-medium text-white/55">ÖFB-Spielplan URL</label>
-        <input
-          className={cn(inputClass, 'break-all text-[14px]')}
-          value={importUrl}
-          onChange={(e) => setImportUrl(e.target.value)}
-          disabled={busy}
-        />
-        <PremiumButton
-          type="button"
-          variant="primary"
-          fullWidth
-          disabled={busy || !teamSeasonId}
-          className="gap-2"
-          onClick={() => void onImport()}
-        >
-          <Upload className="h-4 w-4" aria-hidden />
-          {busy ? 'Importiere…' : 'ÖFB-Spielplan importieren'}
-        </PremiumButton>
-        {counts.agreed > 0 ? (
+      <PremiumCard variant="subtle" showAmbientGlow={false} className="min-w-0 space-y-3 overflow-hidden">
+        <div className="min-w-0 space-y-1.5">
+          <p className="text-sm text-white/80">
+            <span className="font-semibold text-white">{counts.total}</span> Spiele
+          </p>
+          <p className="text-xs text-white/55">
+            {counts.agreed + counts.published} von {counts.total} Terminen fertig
+          </p>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-emerald-400/70 transition-[width]"
+              style={{
+                width: `${
+                  counts.total > 0
+                    ? Math.round(((counts.agreed + counts.published) / counts.total) * 100)
+                    : 0
+                }%`,
+              }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            <span className="text-amber-200">{counts.open} Offen</span>
+            <span className="text-emerald-200">{counts.agreed} Vereinbart</span>
+            <span className="text-sky-200">{counts.published} Veröffentlicht</span>
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-2">
           <Button
             type="button"
             variant="secondary"
             fullWidth
-            disabled={busy}
-            onClick={() => setConfirmBulkPublish(true)}
+            className="gap-2"
+            onClick={() => setPdfOpen(true)}
           >
-            Alle vereinbarten Spiele veröffentlichen ({counts.agreed})
+            <FileText className="h-4 w-4" aria-hidden />
+            Spielplan PDF
           </Button>
-        ) : null}
-        <p className="text-xs text-[var(--text-sub)]">
-          Offen und vereinbart bleiben intern. Erst „veröffentlichen“ macht Termine für Eltern
-          sichtbar. Kein automatischer Push/Feed-Spam.
-        </p>
+          {counts.agreed > 0 ? (
+            <Button
+              type="button"
+              variant="primary"
+              fullWidth
+              disabled={busy}
+              onClick={() => setConfirmBulkPublish(true)}
+            >
+              Alle vereinbarten Spiele veröffentlichen ({counts.agreed})
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="min-w-0 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)]">
+          <button
+            type="button"
+            className="flex min-h-[40px] w-full min-w-0 items-center justify-between gap-2 px-3 py-2 text-left"
+            onClick={() => setImportOpen((v) => !v)}
+            aria-expanded={importOpen}
+          >
+            <span className={cn(sectionLabelClass, 'mb-0')}>ÖFB-Spielplan importieren</span>
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 shrink-0 text-white/45 transition-transform',
+                importOpen && 'rotate-180',
+              )}
+              aria-hidden
+            />
+          </button>
+          {importOpen ? (
+            <div className="min-w-0 space-y-2 border-t border-white/8 px-3 pb-3 pt-2">
+              <label className="block text-xs font-medium text-white/55">ÖFB-Spielplan URL</label>
+              <input
+                className={cn(inputClass, 'break-all text-[14px]')}
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                disabled={busy}
+              />
+              <PremiumButton
+                type="button"
+                variant="primary"
+                fullWidth
+                disabled={busy || !teamSeasonId}
+                className="gap-2"
+                onClick={() => void onImport()}
+              >
+                <Upload className="h-4 w-4" aria-hidden />
+                {busy ? 'Importiere…' : 'ÖFB-Spielplan importieren'}
+              </PremiumButton>
+              <p className="text-xs text-[var(--text-sub)]">
+                Offen und vereinbart bleiben intern. Erst „veröffentlichen“ macht Termine für
+                Eltern sichtbar. Kein automatischer Push/Feed-Spam.
+              </p>
+            </div>
+          ) : null}
+        </div>
       </PremiumCard>
 
       {error ? (
@@ -514,10 +646,35 @@ export const ChampionshipManagementPage: React.FC = () => {
 
       {loading ? <p className="text-sm text-white/55">Lade Spiele…</p> : null}
 
+      <div className="flex min-w-0 flex-wrap gap-2">
+        {(
+          [
+            { key: 'all', label: 'Alle' },
+            { key: 'open', label: 'Offen' },
+            { key: 'agreed', label: 'Vereinbart' },
+            { key: 'published', label: 'Veröffentlicht' },
+          ] as const
+        ).map((chip) => (
+          <button
+            key={chip.key}
+            type="button"
+            onClick={() => setFilter(chip.key)}
+            className={cn(
+              'rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+              filter === chip.key
+                ? 'border-white/40 bg-white/15 text-white'
+                : 'border-white/10 bg-white/5 text-white/55',
+            )}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
+
       <div className="min-w-0 space-y-2 overflow-x-hidden">
-        {fixtures.map((f) => {
+        {filteredFixtures.map((f) => {
           const meta = statusMeta(f.fixture_status);
-          const logo = displayOpponentLogoUrl(f.opponent, f.opponent_logo_url);
+          const logo = logoFor(f);
           return (
             <PremiumCard
               key={f.id}
@@ -553,21 +710,29 @@ export const ChampionshipManagementPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <p className="min-w-0 break-words text-sm text-white/70">
-                <span className="text-white/40">ÖFB: </span>
-                {formatOefbVorgabeInline(f.source_starts_at ?? f.starts_at)}
-              </p>
-              <p className="min-w-0 break-words text-sm text-white/70">
-                <span className="text-white/40">Vereinbart: </span>
-                {f.fixture_status === 'open' || isViennaPlaceholderKickoff(f.starts_at)
-                  ? f.fixture_status === 'open'
-                    ? 'noch offen'
-                    : `${formatViennaDateOnly(f.starts_at)} · Uhrzeit noch offen`
-                  : formatOefbDate(f.starts_at)}
-              </p>
-              {f.location ? (
-                <p className="min-w-0 break-words text-xs text-white/45">{f.location}</p>
-              ) : null}
+
+              {f.fixture_status === 'open' ? (
+                <>
+                  <p className="min-w-0 break-words text-sm text-white/70">
+                    <span className="text-white/40">ÖFB: </span>
+                    {formatViennaDateOnly(f.source_starts_at ?? f.starts_at)}
+                  </p>
+                  <p className="text-sm text-white/70">Uhrzeit noch offen</p>
+                  <p className="text-sm text-white/70">
+                    <span className="text-white/40">Vereinbart: </span>noch offen
+                  </p>
+                  {f.location ? (
+                    <p className="min-w-0 break-words text-xs text-white/45">{f.location}</p>
+                  ) : null}
+                </>
+              ) : (
+                <p className="min-w-0 break-words text-sm text-white/70">
+                  {formatOefbDate(f.starts_at)}
+                  {f.meeting_at ? ` · Treffpunkt ${utcIsoToViennaTimeHHmm(f.meeting_at)}` : ''}
+                  {f.location ? ` · ${f.location}` : ''}
+                </p>
+              )}
+
               <div className="flex min-w-0 flex-col gap-2 pt-0.5">
                 <Button type="button" variant="secondary" fullWidth onClick={() => openEdit(f)}>
                   Bearbeiten
@@ -594,7 +759,7 @@ export const ChampionshipManagementPage: React.FC = () => {
                       setConfirmPublishId(f.id);
                     }}
                   >
-                    Als Termin veröffentlichen
+                    Veröffentlichen
                   </Button>
                 ) : null}
               </div>
@@ -603,6 +768,9 @@ export const ChampionshipManagementPage: React.FC = () => {
         })}
         {!loading && fixtures.length === 0 ? (
           <p className="text-sm text-white/55">Noch keine Meisterschaftsspiele importiert.</p>
+        ) : null}
+        {!loading && fixtures.length > 0 && filteredFixtures.length === 0 ? (
+          <p className="text-sm text-white/55">Keine Spiele in diesem Filter.</p>
         ) : null}
       </div>
 
@@ -748,10 +916,12 @@ export const ChampionshipManagementPage: React.FC = () => {
                   </p>
                   <div className="flex min-w-0 items-center gap-3">
                     <img
-                      src={displayOpponentLogoUrl(
-                        editFixture.opponent,
-                        editLogoUrl || editFixture.opponent_logo_url,
-                      )}
+                      src={resolveDisplayOpponentLogo({
+                        opponent: editFixture.opponent,
+                        eventLogoUrl: editFixture.opponent_logo_url,
+                        catalogLogoUrl:
+                          editLogoUrl || catalogLogoMap.get(normalizeOpponentKey(editFixture.opponent)),
+                      })}
                       alt=""
                       className="h-12 w-12 shrink-0 rounded-lg bg-white/5 object-contain"
                       onError={(e) => {
@@ -759,14 +929,32 @@ export const ChampionshipManagementPage: React.FC = () => {
                       }}
                     />
                     <div className="min-w-0 flex-1 space-y-2">
-                      <button
-                        type="button"
-                        className="text-sm font-medium text-sky-200 underline-offset-2 hover:underline"
-                        onClick={applyKnownLogo}
-                        disabled={busy}
-                      >
-                        Bekanntes Logo übernehmen
-                      </button>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <button
+                          type="button"
+                          className="text-sm font-medium text-sky-200 underline-offset-2 hover:underline"
+                          onClick={applyKnownLogo}
+                          disabled={busy}
+                        >
+                          Bekanntes Logo übernehmen
+                        </button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={busy || !clubId}
+                          onClick={() => logoFileInputRef.current?.click()}
+                        >
+                          Logo ändern
+                        </Button>
+                        <input
+                          ref={logoFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => void onLogoFileChange(e)}
+                        />
+                      </div>
                       <input
                         className={cn(inputClass, 'text-sm')}
                         placeholder="Logo-URL eintragen/ändern"
@@ -873,6 +1061,44 @@ export const ChampionshipManagementPage: React.FC = () => {
         <p className="text-sm text-[var(--text-sub)]">
           {counts.agreed} vereinbarte Spiele werden für Spieler und Eltern sichtbar.
         </p>
+      </Modal>
+
+      <Modal
+        isOpen={pdfOpen}
+        title="Spielplan exportieren"
+        onClose={() => setPdfOpen(false)}
+        footer={
+          <div className="flex w-full min-w-0 justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => setPdfOpen(false)}>
+              Abbrechen
+            </Button>
+            <Button type="button" variant="primary" className="gap-2" onClick={onDownloadPdf}>
+              <FileText className="h-4 w-4" aria-hidden />
+              PDF herunterladen
+            </Button>
+          </div>
+        }
+      >
+        <div className="min-w-0 space-y-2">
+          <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]">
+            <input
+              type="radio"
+              name="champ-pdf-mode"
+              checked={pdfMode === 'published'}
+              onChange={() => setPdfMode('published')}
+            />
+            Veröffentlichte Spiele
+          </label>
+          <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]">
+            <input
+              type="radio"
+              name="champ-pdf-mode"
+              checked={pdfMode === 'all'}
+              onChange={() => setPdfMode('all')}
+            />
+            Gesamter Planungsstand
+          </label>
+        </div>
       </Modal>
     </PageShell>
   );
