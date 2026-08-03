@@ -136,7 +136,7 @@ function absoluteAssetUrl(pathOrUrl: string): string {
 }
 
 /** Data-URL laden; Fehler/Timeout → null (PDF läuft weiter). */
-async function loadImageDataUrl(pathOrUrl: string): Promise<string | null> {
+export async function loadImageDataUrl(pathOrUrl: string): Promise<string | null> {
   const url = absoluteAssetUrl(pathOrUrl);
   if (!url) return null;
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -264,7 +264,7 @@ function truncateName(doc: jsPDF, name: string, maxWidth: number): string {
  * ÖFB-Layout in der Begegnungszelle:
  * Heimname (rechts) | Heimlogo | – | Gastlogo | Gastname (links)
  */
-function drawOefbEncounterCell(opts: {
+export function drawOefbEncounterCell(opts: {
   doc: jsPDF;
   cellX: number;
   cellY: number;

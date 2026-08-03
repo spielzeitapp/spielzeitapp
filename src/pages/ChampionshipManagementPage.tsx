@@ -35,6 +35,8 @@ import {
   maybePublishChampionshipScheduleFeed,
   type ChampionshipMaterialSnapshot,
 } from '../lib/championshipScheduleFeed';
+import { loadSeasonPlanRows } from '../lib/seasonPlanData';
+import { downloadSeasonPlanPdf } from '../lib/seasonPlanPdf';
 import { normalizeOpponentKey } from '../lib/teamVenues';
 import { getOurTeamDisplayName, getOurTeamLogoUrl, PLACEHOLDER_LOGO } from '../lib/teamLogos';
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
@@ -180,6 +182,9 @@ export const ChampionshipManagementPage: React.FC = () => {
   const [pdfMode, setPdfMode] = useState<ChampionshipPdfMode>('published');
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [seasonPlanOpen, setSeasonPlanOpen] = useState(false);
+  const [seasonPlanBusy, setSeasonPlanBusy] = useState(false);
+  const [seasonPlanError, setSeasonPlanError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -649,6 +654,99 @@ export const ChampionshipManagementPage: React.FC = () => {
     })();
   };
 
+  const onDownloadSeasonPlanPdf = () => {
+    void (async () => {
+      if (!teamSeasonId) {
+        setSeasonPlanError('PDF konnte nicht erstellt werden.');
+        setError('Keine aktive Saison für den PDF-Export.');
+        return;
+      }
+      setSeasonPlanBusy(true);
+      setBusy(true);
+      setSeasonPlanError(null);
+      setError(null);
+      try {
+        const meta = await fetchChampionshipPdfSeasonMeta(teamSeasonId);
+        const ageGroup = meta.ageGroup || ageGroupLabel || null;
+        const seasonName = meta.seasonName || seasonNameLabel || null;
+        if (meta.ageGroup) setAgeGroupLabel(meta.ageGroup);
+        if (meta.seasonName) setSeasonNameLabel(meta.seasonName);
+
+        const loaded = await loadSeasonPlanRows({
+          teamSeasonId,
+          ourTeamName: ourTeamName || 'Mannschaft',
+          includeTrainings: false,
+        });
+        if (loaded.error) {
+          console.error('[seasonPlanPdf] load failed', loaded.error);
+          setSeasonPlanError('PDF konnte nicht erstellt werden.');
+          setError(loaded.error);
+          return;
+        }
+
+        let logoMap = catalogLogoMap;
+        const resolvedClubId = clubId || (await resolveClubIdFromTeamSeason(teamSeasonId));
+        if (resolvedClubId) {
+          try {
+            logoMap = await fetchOpponentCatalogLogoMap(
+              resolvedClubId,
+              loaded.rows.map((r) => r.opponent ?? ''),
+            );
+            setCatalogLogoMap(logoMap);
+            if (!clubId) setClubId(resolvedClubId);
+          } catch (logoErr) {
+            console.error('[seasonPlanPdf] catalog logos failed', logoErr);
+          }
+        }
+
+        const opponentLogoUrls: Record<string, string> = {};
+        for (const r of loaded.rows) {
+          if (r.kind === 'tournament') continue;
+          const name = (r.opponent || '').trim();
+          if (!name || opponentLogoUrls[name]) continue;
+          opponentLogoUrls[name] = resolveDisplayOpponentLogo({
+            opponent: r.opponent,
+            eventLogoUrl: r.opponent_logo_url,
+            catalogLogoUrl: logoMap.get(normalizeOpponentKey(r.opponent)),
+          });
+        }
+
+        if (import.meta.env.DEV) {
+          console.debug('[SeasonPlanPDF]', {
+            generator: 'downloadSeasonPlanPdf@seasonPlanPdf.ts',
+            ageGroup,
+            seasonName,
+            teamName: ourTeamName,
+            rowCount: loaded.rows.length,
+          });
+        }
+
+        const res = await downloadSeasonPlanPdf({
+          rows: loaded.rows,
+          teamName: ourTeamName || 'Mannschaft',
+          ageGroup,
+          seasonName,
+          teamLogoUrl: getOurTeamLogoUrl(),
+          opponentLogoUrls,
+        });
+        if (res.error) {
+          console.error('[seasonPlanPdf] export failed', res.error);
+          setSeasonPlanError('PDF konnte nicht erstellt werden.');
+          setError(res.error);
+          return;
+        }
+        setSeasonPlanOpen(false);
+      } catch (err) {
+        console.error('[seasonPlanPdf] unexpected export error', err);
+        setSeasonPlanError('PDF konnte nicht erstellt werden.');
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setSeasonPlanBusy(false);
+        setBusy(false);
+      }
+    })();
+  };
+
   const editStatusMeta = editFixture ? statusMeta(editFixture.fixture_status) : null;
   const editOefb = editFixture
     ? formatOefbVorgabe(editFixture.source_starts_at ?? editFixture.starts_at)
@@ -722,18 +820,32 @@ export const ChampionshipManagementPage: React.FC = () => {
         </div>
 
         <div className="flex min-w-0 flex-col gap-2">
+          <p className={cn(sectionLabelClass, 'mb-0')}>Dokumente</p>
           <Button
             type="button"
             variant="secondary"
             fullWidth
-            className="gap-2"
+            className="min-h-[44px] gap-2"
             onClick={() => {
               setPdfError(null);
               setPdfOpen(true);
             }}
           >
-            <FileText className="h-4 w-4" aria-hidden />
-            Spielplan PDF
+            <FileText className="h-4 w-4 shrink-0" aria-hidden />
+            Meisterschaftsspielplan PDF
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            fullWidth
+            className="min-h-[44px] gap-2"
+            onClick={() => {
+              setSeasonPlanError(null);
+              setSeasonPlanOpen(true);
+            }}
+          >
+            <FileText className="h-4 w-4 shrink-0" aria-hidden />
+            Saisonplan PDF
           </Button>
           {counts.agreed > 0 ? (
             <Button
@@ -1233,7 +1345,7 @@ export const ChampionshipManagementPage: React.FC = () => {
 
       <Modal
         isOpen={pdfOpen}
-        title="Spielplan exportieren"
+        title="Meisterschaftsspielplan exportieren"
         onClose={() => {
           if (pdfBusy) return;
           setPdfOpen(false);
@@ -1255,7 +1367,7 @@ export const ChampionshipManagementPage: React.FC = () => {
             <Button
               type="button"
               variant="primary"
-              className="gap-2"
+              className="min-h-[44px] gap-2"
               disabled={pdfBusy}
               onClick={onDownloadPdf}
             >
@@ -1266,7 +1378,7 @@ export const ChampionshipManagementPage: React.FC = () => {
         }
       >
         <div className="min-w-0 space-y-2">
-          <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]">
+          <label className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]">
             <input
               type="radio"
               name="champ-pdf-mode"
@@ -1276,7 +1388,7 @@ export const ChampionshipManagementPage: React.FC = () => {
             />
             Veröffentlichte Spiele
           </label>
-          <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]">
+          <label className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]">
             <input
               type="radio"
               name="champ-pdf-mode"
@@ -1289,6 +1401,75 @@ export const ChampionshipManagementPage: React.FC = () => {
           {pdfError ? (
             <p className="rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-100">
               {pdfError}
+            </p>
+          ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={seasonPlanOpen}
+        title="Saisonplan exportieren"
+        onClose={() => {
+          if (seasonPlanBusy) return;
+          setSeasonPlanOpen(false);
+          setSeasonPlanError(null);
+        }}
+        footer={
+          <div className="flex w-full min-w-0 justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={seasonPlanBusy}
+              onClick={() => {
+                setSeasonPlanOpen(false);
+                setSeasonPlanError(null);
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              className="min-h-[44px] gap-2"
+              disabled={seasonPlanBusy}
+              onClick={onDownloadSeasonPlanPdf}
+            >
+              <FileText className="h-4 w-4" aria-hidden />
+              {seasonPlanBusy ? 'PDF wird erstellt …' : 'PDF herunterladen'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="min-w-0 space-y-3">
+          <p className="text-sm text-[var(--text-sub)]">
+            Enthalten:
+          </p>
+          <ul className="space-y-1.5 text-sm text-[var(--text-main)]">
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400" aria-hidden>
+                ✓
+              </span>
+              Meisterschaftsspiele (veröffentlicht)
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400" aria-hidden>
+                ✓
+              </span>
+              Vorbereitungsspiele
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400" aria-hidden>
+                ✓
+              </span>
+              Turniere
+            </li>
+          </ul>
+          <p className="text-xs text-[var(--text-sub)]">
+            Trainings und interne Meisterschaftstermine (offen/vereinbart) sind nicht enthalten.
+          </p>
+          {seasonPlanError ? (
+            <p className="rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-100">
+              {seasonPlanError}
             </p>
           ) : null}
         </div>

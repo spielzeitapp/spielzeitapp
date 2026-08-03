@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ArrowRightCircle, CalendarRange, ChevronLeft, Lock, Upload } from 'lucide-react';
+import { ArrowRightCircle, CalendarRange, ChevronLeft, FileText, Lock, Upload } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { SeasonTransitionWizard } from '../components/season/SeasonTransitionWizard';
 import { canPrepareNextSeason, SEASON_SOFT_LOCK_MESSAGE } from '../lib/seasonLifecycle';
@@ -374,6 +374,38 @@ export const SeasonManagementPage: React.FC = () => {
                   <PremiumButton type="button" variant="primary" fullWidth className="gap-2">
                     <CalendarRange className="h-4 w-4 shrink-0" aria-hidden />
                     Meisterschaft verwalten
+                    <ArrowRightCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden />
+                  </PremiumButton>
+                </Link>
+              </PremiumCard>
+              <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3">
+                <div>
+                  <h2 className="text-[15px] font-bold tracking-tight text-white">Dokumente</h2>
+                  <p className="mt-1 text-sm text-white/55">
+                    Meisterschaftsspielplan und Saisonplan als PDF exportieren.
+                  </p>
+                </div>
+                <Link to="/app/mehr/championship" className="block">
+                  <PremiumButton
+                    type="button"
+                    variant="subtle"
+                    fullWidth
+                    className="min-h-[44px] gap-2"
+                  >
+                    <FileText className="h-4 w-4 shrink-0" aria-hidden />
+                    Meisterschaftsspielplan PDF
+                    <ArrowRightCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden />
+                  </PremiumButton>
+                </Link>
+                <Link to="/app/mehr/championship" className="block">
+                  <PremiumButton
+                    type="button"
+                    variant="subtle"
+                    fullWidth
+                    className="min-h-[44px] gap-2"
+                  >
+                    <FileText className="h-4 w-4 shrink-0" aria-hidden />
+                    Saisonplan PDF
                     <ArrowRightCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden />
                   </PremiumButton>
                 </Link>
