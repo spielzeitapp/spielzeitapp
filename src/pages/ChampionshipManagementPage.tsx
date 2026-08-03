@@ -145,6 +145,8 @@ export const ChampionshipManagementPage: React.FC = () => {
 
   const [teamSeasonId, setTeamSeasonId] = useState<string | null>(null);
   const [seasonLabel, setSeasonLabel] = useState('Meisterschaft');
+  const [ageGroupLabel, setAgeGroupLabel] = useState('');
+  const [seasonNameLabel, setSeasonNameLabel] = useState('');
   const [fixtures, setFixtures] = useState<ChampionshipFixture[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -228,6 +230,8 @@ export const ChampionshipManagementPage: React.FC = () => {
       setTeamSeasonId(activeId);
       const age = snap.active?.ageGroup ? `${snap.active.ageGroup}` : '';
       const season = snap.active?.seasonName ? `${snap.active.seasonName}` : '';
+      setAgeGroupLabel(age);
+      setSeasonNameLabel(season);
       setSeasonLabel([age, season].filter(Boolean).join(' · ') || 'Aktive Saison');
       await reload(activeId);
     })();
@@ -483,13 +487,23 @@ export const ChampionshipManagementPage: React.FC = () => {
   };
 
   const onDownloadPdf = () => {
-    downloadChampionshipSchedulePdf({
-      fixtures,
-      mode: pdfMode,
-      teamName: ourTeamName,
-      seasonLabel,
-    });
-    setPdfOpen(false);
+    void (async () => {
+      setBusy(true);
+      const res = await downloadChampionshipSchedulePdf({
+        fixtures,
+        mode: pdfMode,
+        teamName: ourTeamName,
+        ageGroup: ageGroupLabel || null,
+        seasonName: seasonNameLabel || null,
+        teamLogoUrl: getOurTeamLogoUrl(),
+      });
+      setBusy(false);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setPdfOpen(false);
+    })();
   };
 
   const editStatusMeta = editFixture ? statusMeta(editFixture.fixture_status) : null;
@@ -930,6 +944,15 @@ export const ChampionshipManagementPage: React.FC = () => {
                     />
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={busy || !clubId}
+                          onClick={() => logoFileInputRef.current?.click()}
+                        >
+                          Bild hochladen
+                        </Button>
                         <button
                           type="button"
                           className="text-sm font-medium text-sky-200 underline-offset-2 hover:underline"
@@ -938,30 +961,29 @@ export const ChampionshipManagementPage: React.FC = () => {
                         >
                           Bekanntes Logo übernehmen
                         </button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          disabled={busy || !clubId}
-                          onClick={() => logoFileInputRef.current?.click()}
-                        >
-                          Logo ändern
-                        </Button>
                         <input
                           ref={logoFileInputRef}
                           type="file"
-                          accept="image/*"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
                           className="hidden"
                           onChange={(e) => void onLogoFileChange(e)}
                         />
                       </div>
+                      <label className="block text-xs text-[var(--text-sub)]">
+                        Oder Logo-URL verwenden
+                      </label>
                       <input
                         className={cn(inputClass, 'text-sm')}
-                        placeholder="Logo-URL eintragen/ändern"
+                        placeholder="https://… oder /logos/…"
                         value={editLogoUrl}
                         onChange={(e) => setEditLogoUrl(e.target.value)}
                         disabled={busy}
                       />
+                      {!clubId ? (
+                        <p className="text-xs text-amber-200/90">
+                          Logo-Upload benötigt Migration opponent_catalog / opponent-logos.
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </div>

@@ -190,7 +190,7 @@ export async function uploadOpponentLogoFile(opts: {
         : opts.file.type === 'image/gif'
           ? 'gif'
           : 'jpg';
-  const path = `${opts.clubId}/${key.replace(/[^a-z0-9_-]+/gi, '_')}.${ext}`;
+  const path = `${opts.clubId}/${key.replace(/[^a-z0-9_-]+/gi, '_')}/logo.${ext}`;
   const up = await uploadStorageObject('opponent-logos', path, opts.file, {
     upsert: true,
     contentType: opts.file.type || `image/${ext}`,
