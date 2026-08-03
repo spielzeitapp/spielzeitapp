@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ChevronLeft, Upload } from 'lucide-react';
+import { ChevronDown, ChevronLeft, Upload } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { VenuePicker } from '../components/venues/VenuePicker';
 import { canPrepareNextSeason } from '../lib/seasonLifecycle';
@@ -16,13 +16,14 @@ import {
   updateChampionshipFixture,
   type ChampionshipFixture,
 } from '../lib/championshipFixtures';
-import { getOurTeamDisplayName, PLACEHOLDER_LOGO } from '../lib/teamLogos';
+import { getOurTeamDisplayName, getOurTeamLogoUrl, PLACEHOLDER_LOGO } from '../lib/teamLogos';
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
 import { supabase } from '../lib/supabaseClient';
 import {
+  isViennaPlaceholderKickoff,
   meetupUtcIsoOnViennaEventDay,
   parseViennaDateTimeLocalToUtcIso,
-  utcIsoToViennaDateTimeLocal,
+  utcIsoToViennaDateInput,
   utcIsoToViennaTimeHHmm,
 } from '../lib/viennaTime';
 import type { VenueRow } from '../lib/venues';
@@ -32,6 +33,10 @@ import { dsPanelRowClass } from '../lib/premiumDesignSystem';
 
 const DEFAULT_OEFB_URL =
   'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Spiele';
+
+const inputClass =
+  'min-h-[44px] w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white focus:border-red-500/45 focus:outline-none';
+const labelClass = 'mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-white/50';
 
 function canAccess(effectiveRole: string, backendRole: string): boolean {
   if ((backendRole ?? '').trim().toLowerCase() === 'admin') return true;
@@ -55,56 +60,71 @@ function formatOefbDate(iso: string | null | undefined): string {
   }).format(d);
 }
 
-/** ÖFB-Vorgabe: 23:00/00:00 Wien oft date-only Artefakt → Datum + „Uhrzeit noch offen“. */
-function formatOefbVorgabe(iso: string | null | undefined): string {
+function formatViennaDateOnly(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  const parts = new Intl.DateTimeFormat('de-AT', {
-    timeZone: 'Europe/Vienna',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(d);
-  const hour = parts.find((p) => p.type === 'hour')?.value ?? '';
-  const minute = parts.find((p) => p.type === 'minute')?.value ?? '';
-  const dateOnly = new Intl.DateTimeFormat('de-AT', {
+  return new Intl.DateTimeFormat('de-AT', {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     timeZone: 'Europe/Vienna',
   }).format(d);
-  if ((hour === '23' || hour === '00') && minute === '00') {
-    return `${dateOnly} · Uhrzeit noch offen`;
+}
+
+/** ÖFB-Vorgabe: 23:00/00:00 Wien oft date-only Artefakt → Datum + „Uhrzeit noch offen“. */
+function formatOefbVorgabe(iso: string | null | undefined): { dateLine: string; timeLine: string } {
+  if (!iso) return { dateLine: '—', timeLine: 'Uhrzeit noch offen' };
+  if (isViennaPlaceholderKickoff(iso)) {
+    return { dateLine: formatViennaDateOnly(iso), timeLine: 'Uhrzeit noch offen' };
   }
-  return formatOefbDate(iso);
+  return { dateLine: formatViennaDateOnly(iso), timeLine: utcIsoToViennaTimeHHmm(iso) || '—' };
+}
+
+function formatOefbVorgabeInline(iso: string | null | undefined): string {
+  const v = formatOefbVorgabe(iso);
+  return `${v.dateLine} · ${v.timeLine}`;
 }
 
 function statusMeta(status: ChampionshipFixture['fixture_status']): {
   label: string;
+  hint: string;
   className: string;
   border: string;
 } {
   if (status === 'published') {
     return {
       label: 'Veröffentlicht',
+      hint: 'Termin ist für Eltern sichtbar',
       className: 'border-sky-500/40 bg-sky-950/50 text-sky-100',
       border: 'border-sky-800/40',
     };
   }
   if (status === 'agreed') {
     return {
-      label: 'Termin vereinbart',
+      label: 'Vereinbart',
+      hint: 'Termin intern gespeichert – für Eltern noch nicht sichtbar',
       className: 'border-emerald-500/40 bg-emerald-950/50 text-emerald-100',
       border: 'border-emerald-800/40',
     };
   }
   return {
-    label: 'Termin offen',
+    label: 'Offen',
+    hint: 'Termin noch nicht vollständig vereinbart',
     className: 'border-amber-500/40 bg-amber-950/45 text-amber-100',
     border: 'border-amber-800/35',
   };
+}
+
+function kickoffFromFixture(f: ChampionshipFixture): string {
+  if (!f.starts_at || isViennaPlaceholderKickoff(f.starts_at)) return '';
+  return utcIsoToViennaTimeHHmm(f.starts_at);
+}
+
+function dateFromFixture(f: ChampionshipFixture): string {
+  const iso = f.starts_at || f.source_starts_at;
+  return iso ? utcIsoToViennaDateInput(iso) : '';
 }
 
 export const ChampionshipManagementPage: React.FC = () => {
@@ -120,18 +140,21 @@ export const ChampionshipManagementPage: React.FC = () => {
   const [info, setInfo] = useState<string | null>(null);
   const [importUrl, setImportUrl] = useState(DEFAULT_OEFB_URL);
   const [editFixture, setEditFixture] = useState<ChampionshipFixture | null>(null);
-  const [editStartsLocal, setEditStartsLocal] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editKickoff, setEditKickoff] = useState('');
   const [editMeetup, setEditMeetup] = useState('');
-  const [editAgreed, setEditAgreed] = useState(false);
   const [editVenue, setEditVenue] = useState<VenueRow | null>(null);
   const [editLocationName, setEditLocationName] = useState('');
   const [editLocationAddress, setEditLocationAddress] = useState('');
   const [editLogoUrl, setEditLogoUrl] = useState('');
+  const [editLogoOpen, setEditLogoOpen] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [confirmPublishId, setConfirmPublishId] = useState<string | null>(null);
   const [confirmBulkPublish, setConfirmBulkPublish] = useState(false);
+  const [publishVenueWarn, setPublishVenueWarn] = useState(false);
 
   const counts = useMemo(() => championshipCounts(fixtures), [fixtures]);
+  const ourTeamName = useMemo(() => getOurTeamDisplayName(), []);
 
   const reload = useCallback(async (tsId: string) => {
     setLoading(true);
@@ -213,38 +236,80 @@ export const ChampionshipManagementPage: React.FC = () => {
 
   const openEdit = (f: ChampionshipFixture) => {
     setEditFixture(f);
-    setEditStartsLocal(utcIsoToViennaDateTimeLocal(f.starts_at));
-    setEditMeetup(utcIsoToViennaTimeHHmm(f.meeting_at ?? ''));
-    setEditAgreed(f.fixture_status === 'agreed' || f.fixture_status === 'published');
+    setEditDate(dateFromFixture(f));
+    setEditKickoff(kickoffFromFixture(f));
+    setEditMeetup(f.meeting_at ? utcIsoToViennaTimeHHmm(f.meeting_at) : '');
     setEditVenue(null);
     setEditLocationName((f.location ?? '').split(',')[0]?.trim() || '');
     setEditLocationAddress('');
     setEditLogoUrl(f.opponent_logo_url ?? '');
+    setEditLogoOpen(false);
+    setEditError(null);
+  };
+
+  const closeEdit = () => {
+    setEditFixture(null);
     setEditError(null);
   };
 
   const saveEdit = async () => {
     if (!editFixture || !teamSeasonId) return;
-    if (editFixture.fixture_status === 'published') {
-      setEditError('Veröffentlichte Spiele hier nicht zurücksetzen — Termin in Termine öffnen.');
+    const dateYmd = editDate.trim();
+    const kickoff = editKickoff.trim();
+    if (!dateYmd) {
+      setEditError('Bitte ein Datum setzen.');
       return;
     }
-    const startsAt = parseViennaDateTimeLocalToUtcIso(editStartsLocal.trim());
-    if (!startsAt) {
-      setEditError('Ungültiges Datum/Uhrzeit.');
+
+    const isPublished = editFixture.fixture_status === 'published';
+    if (isPublished && !kickoff) {
+      setEditError('Für veröffentlichte Spiele ist eine Beginnzeit nötig.');
       return;
     }
+
+    let startsAt: string | null = null;
+    let nextStatus: ChampionshipFixture['fixture_status'] = editFixture.fixture_status;
+
+    if (kickoff) {
+      startsAt = parseViennaDateTimeLocalToUtcIso(`${dateYmd}T${kickoff}`);
+      if (!startsAt) {
+        setEditError('Ungültiges Datum/Beginn.');
+        return;
+      }
+      if (isPublished) {
+        nextStatus = 'published';
+      } else {
+        nextStatus = 'agreed';
+      }
+    } else {
+      // Nur Datum: Tag speichern, Placeholder-Zeit 12:00 (nicht ÖFB 23:00), Status open
+      startsAt = parseViennaDateTimeLocalToUtcIso(`${dateYmd}T12:00`);
+      if (!startsAt) {
+        setEditError('Ungültiges Datum.');
+        return;
+      }
+      nextStatus = 'open';
+    }
+
     const meetupRaw = editMeetup.trim();
     const meetingAt = meetupRaw ? meetupUtcIsoOnViennaEventDay(startsAt, meetupRaw) : null;
+
     setBusy(true);
     setEditError(null);
 
-    const nextStatus = editAgreed ? 'agreed' : 'open';
     const res = await updateChampionshipFixture(editFixture.id, {
       startsAt,
       meetingAt,
       fixtureStatus: nextStatus,
-      ...(editVenue ? { venue: editVenue } : {}),
+      ...(editVenue
+        ? { venue: editVenue }
+        : editLocationName.trim() || editLocationAddress.trim()
+          ? {
+              locationText: [editLocationName.trim(), editLocationAddress.trim()]
+                .filter(Boolean)
+                .join(', '),
+            }
+          : {}),
     });
     if (res.error) {
       setBusy(false);
@@ -268,21 +333,58 @@ export const ChampionshipManagementPage: React.FC = () => {
 
     setBusy(false);
     setEditFixture(null);
+    setInfo(isPublished ? 'Änderungen gespeichert' : 'Vereinbarung gespeichert');
     await reload(teamSeasonId);
+  };
+
+  const requestPublishFromEdit = () => {
+    if (!editFixture) return;
+    if (!editDate.trim() || !editKickoff.trim()) {
+      setEditError('Zum Veröffentlichen Datum und Beginn setzen und speichern.');
+      return;
+    }
+    if (!(editFixture.opponent ?? '').trim()) {
+      setEditError('Gegner fehlt.');
+      return;
+    }
+    const hasVenue =
+      Boolean(editVenue?.id) ||
+      Boolean(editFixture.venue_id) ||
+      Boolean(editLocationName.trim()) ||
+      Boolean((editFixture.location ?? '').trim());
+    setPublishVenueWarn(!hasVenue);
+    setConfirmPublishId(editFixture.id);
   };
 
   const onPublishOne = async (id: string) => {
     if (!teamSeasonId) return;
+    // Speichern vor Publish, falls Edit-Maske offen und agreed-fähig
+    if (editFixture?.id === id && editKickoff.trim() && editDate.trim()) {
+      const startsAt = parseViennaDateTimeLocalToUtcIso(`${editDate.trim()}T${editKickoff.trim()}`);
+      if (startsAt) {
+        const meetupRaw = editMeetup.trim();
+        const meetingAt = meetupRaw ? meetupUtcIsoOnViennaEventDay(startsAt, meetupRaw) : null;
+        await updateChampionshipFixture(id, {
+          startsAt,
+          meetingAt,
+          fixtureStatus: 'agreed',
+          ...(editVenue ? { venue: editVenue } : {}),
+        });
+      }
+    }
     setBusy(true);
     setError(null);
     const res = await publishChampionshipFixture(id);
     setBusy(false);
     setConfirmPublishId(null);
+    setPublishVenueWarn(false);
     if (res.error) {
       setError(res.error);
+      setEditError(res.error);
       return;
     }
     setInfo('Termin veröffentlicht — jetzt für Spieler und Eltern sichtbar.');
+    setEditFixture(null);
     await reload(teamSeasonId);
   };
 
@@ -306,6 +408,29 @@ export const ChampionshipManagementPage: React.FC = () => {
     const url = displayOpponentLogoUrl(editFixture.opponent, null);
     if (url && url !== PLACEHOLDER_LOGO) setEditLogoUrl(url);
   };
+
+  const editStatusMeta = editFixture ? statusMeta(editFixture.fixture_status) : null;
+  const editOefb = editFixture
+    ? formatOefbVorgabe(editFixture.source_starts_at ?? editFixture.starts_at)
+    : null;
+  const editHeaderTitle = editFixture
+    ? editFixture.is_home
+      ? ourTeamName || 'Heim'
+      : editFixture.opponent || 'Gegner'
+    : '';
+  const editHeaderLogo = editFixture
+    ? editFixture.is_home
+      ? getOurTeamLogoUrl()
+      : displayOpponentLogoUrl(editFixture.opponent, editLogoUrl || editFixture.opponent_logo_url)
+    : PLACEHOLDER_LOGO;
+  const saveCtaLabel =
+    editFixture?.fixture_status === 'published'
+      ? 'Änderungen speichern'
+      : 'Vereinbarung speichern';
+  const canShowPublishInEdit =
+    editFixture &&
+    (editFixture.fixture_status === 'agreed' ||
+      (editFixture.fixture_status === 'open' && Boolean(editDate.trim() && editKickoff.trim())));
 
   return (
     <PageShell
@@ -362,8 +487,8 @@ export const ChampionshipManagementPage: React.FC = () => {
           </PremiumButton>
         ) : null}
         <p className="text-[11px] text-white/45">
-          open/agreed bleiben intern. Erst „veröffentlichen“ macht Termine für Eltern sichtbar. Kein
-          automatischer Push/Feed-Spam.
+          Offen und vereinbart bleiben intern. Erst „veröffentlichen“ macht Termine für Eltern
+          sichtbar. Kein automatischer Push/Feed-Spam.
         </p>
       </PremiumCard>
 
@@ -421,33 +546,39 @@ export const ChampionshipManagementPage: React.FC = () => {
               </div>
               <p className="text-sm text-white/70">
                 <span className="text-white/40">ÖFB: </span>
-                {formatOefbVorgabe(f.source_starts_at ?? f.starts_at)}
+                {formatOefbVorgabeInline(f.source_starts_at ?? f.starts_at)}
               </p>
               <p className="text-sm text-white/70">
                 <span className="text-white/40">Vereinbart: </span>
-                {f.fixture_status === 'open' ? 'noch offen' : formatOefbDate(f.starts_at)}
+                {f.fixture_status === 'open' || isViennaPlaceholderKickoff(f.starts_at)
+                  ? f.fixture_status === 'open'
+                    ? 'noch offen'
+                    : `${formatViennaDateOnly(f.starts_at)} · Uhrzeit noch offen`
+                  : formatOefbDate(f.starts_at)}
               </p>
               {f.location ? <p className="text-xs text-white/45">{f.location}</p> : null}
               <div className="flex flex-col gap-2">
-                {f.fixture_status !== 'published' ? (
-                  <PremiumButton type="button" variant="subtle" fullWidth onClick={() => openEdit(f)}>
-                    Bearbeiten
-                  </PremiumButton>
-                ) : (
+                <PremiumButton type="button" variant="subtle" fullWidth onClick={() => openEdit(f)}>
+                  Bearbeiten
+                </PremiumButton>
+                {f.fixture_status === 'published' ? (
                   <Link
                     to={`/app/events/${f.id}`}
-                    className="inline-flex w-full items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-white/90"
+                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-white/90"
                   >
                     Termin öffnen
                   </Link>
-                )}
+                ) : null}
                 {f.fixture_status === 'agreed' ? (
                   <PremiumButton
                     type="button"
                     variant="primary"
                     fullWidth
                     disabled={busy}
-                    onClick={() => setConfirmPublishId(f.id)}
+                    onClick={() => {
+                      setPublishVenueWarn(!f.venue_id && !(f.location ?? '').trim());
+                      setConfirmPublishId(f.id);
+                    }}
                   >
                     Als Termin veröffentlichen
                   </PremiumButton>
@@ -461,136 +592,247 @@ export const ChampionshipManagementPage: React.FC = () => {
         ) : null}
       </div>
 
-      {editFixture ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-3 sm:items-center">
-          <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/12 bg-[#12151c] p-4 shadow-xl">
-            <h3 className="text-lg font-bold text-white">Spiel bearbeiten</h3>
-            <div className="mt-2 flex items-center gap-3">
-              <img
-                src={displayOpponentLogoUrl(editFixture.opponent, editLogoUrl || editFixture.opponent_logo_url)}
-                alt=""
-                className="h-12 w-12 rounded-lg bg-white/5 object-contain"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_LOGO;
-                }}
-              />
-              <div>
-                <p className="text-sm text-white/70">{editFixture.opponent}</p>
-                <p className="text-xs uppercase tracking-wide text-white/45">
-                  {editFixture.is_home ? 'Heim' : 'Auswärts'}
-                </p>
+      {editFixture && editOefb && editStatusMeta ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center sm:p-4">
+          <div className="flex max-h-[96vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-white/12 bg-[#0e1118] shadow-xl sm:rounded-2xl">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 pt-4 sm:px-4">
+              {/* Match header */}
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={editHeaderLogo}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-full bg-white/5 object-contain ring-1 ring-white/10"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_LOGO;
+                    }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[17px] font-bold text-white">{editHeaderTitle}</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-red-400">
+                      {editFixture.is_home ? 'Heim' : 'Auswärts'}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider',
+                      editStatusMeta.className,
+                    )}
+                  >
+                    {editStatusMeta.label}
+                  </span>
+                </div>
+                <div className="mt-3 border-t border-white/8 pt-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                    ÖFB-Vorgabe
+                  </p>
+                  <p className="text-[14px] font-semibold text-white/85">{editOefb.dateLine}</p>
+                  <p className="text-[13px] text-white/55">{editOefb.timeLine}</p>
+                  <p className="mt-1.5 text-[12px] text-white/40">{editStatusMeta.hint}</p>
+                </div>
               </div>
+
+              {/* Termin + Spielort */}
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/55">
+                    Termin vereinbaren
+                  </p>
+                  <label className={cn(labelClass, 'mt-3')} htmlFor="champ-edit-date">
+                    Datum
+                  </label>
+                  <input
+                    id="champ-edit-date"
+                    type="date"
+                    className={inputClass}
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    disabled={busy}
+                  />
+                  <label className={cn(labelClass, 'mt-3')} htmlFor="champ-edit-kickoff">
+                    Beginn
+                  </label>
+                  <input
+                    id="champ-edit-kickoff"
+                    type="time"
+                    className={inputClass}
+                    value={editKickoff}
+                    onChange={(e) => setEditKickoff(e.target.value)}
+                    disabled={busy}
+                    placeholder="--:--"
+                  />
+                  {!editKickoff ? (
+                    <p className="mt-1 text-[12px] text-white/40">Uhrzeit noch offen — bewusst setzen</p>
+                  ) : null}
+                  <label className={cn(labelClass, 'mt-3')} htmlFor="champ-edit-meetup">
+                    Treffpunkt
+                  </label>
+                  <input
+                    id="champ-edit-meetup"
+                    type="time"
+                    className={inputClass}
+                    value={editMeetup}
+                    onChange={(e) => setEditMeetup(e.target.value)}
+                    disabled={busy}
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="mb-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/55">
+                    Spielort
+                  </p>
+                  <VenuePicker
+                    teamSeasonId={editFixture.team_season_id}
+                    venueId={editVenue?.id ?? editFixture.venue_id}
+                    onVenueChange={(v) => setEditVenue(v)}
+                    locationName={editLocationName}
+                    locationAddress={editLocationAddress}
+                    onLocationNameChange={setEditLocationName}
+                    onLocationAddressChange={setEditLocationAddress}
+                    matchContext={{
+                      isHome: editFixture.is_home,
+                      opponentName: editFixture.opponent ?? '',
+                    }}
+                    compactEmptyState
+                    disabled={busy}
+                    labelClass={labelClass}
+                    inputClass={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* Gegner & Logo accordion */}
+              <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03]">
+                <button
+                  type="button"
+                  className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2 text-left"
+                  onClick={() => setEditLogoOpen((v) => !v)}
+                  aria-expanded={editLogoOpen}
+                >
+                  <span className="text-[11px] font-black uppercase tracking-[0.14em] text-white/55">
+                    Gegner &amp; Logo
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 text-white/45 transition-transform',
+                      editLogoOpen && 'rotate-180',
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {editLogoOpen ? (
+                  <div className="space-y-2 border-t border-white/8 px-3 pb-3 pt-2">
+                    <p className="text-[14px] font-semibold text-white/85">
+                      {editFixture.opponent || '—'}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={displayOpponentLogoUrl(
+                          editFixture.opponent,
+                          editLogoUrl || editFixture.opponent_logo_url,
+                        )}
+                        alt=""
+                        className="h-14 w-14 rounded-xl bg-white/5 object-contain"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_LOGO;
+                        }}
+                      />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <button
+                          type="button"
+                          className="inline-flex min-h-[40px] items-center text-[13px] font-semibold text-sky-200 underline-offset-2 hover:underline"
+                          onClick={applyKnownLogo}
+                          disabled={busy}
+                        >
+                          Bekanntes Logo übernehmen
+                        </button>
+                        <input
+                          className={cn(inputClass, 'text-[13px]')}
+                          placeholder="Logo-URL eintragen/ändern"
+                          value={editLogoUrl}
+                          onChange={(e) => setEditLogoUrl(e.target.value)}
+                          disabled={busy}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {canShowPublishInEdit && editFixture.fixture_status !== 'published' ? (
+                <div className="mt-3 rounded-2xl border border-red-500/35 bg-red-950/30 p-3">
+                  <p className="text-[12px] text-white/65">
+                    Speichern veröffentlicht nicht. Zum Sichtbarmachen für Eltern:
+                  </p>
+                  <PremiumButton
+                    type="button"
+                    variant="primary"
+                    fullWidth
+                    className="mt-2"
+                    disabled={busy}
+                    onClick={requestPublishFromEdit}
+                  >
+                    Als Termin veröffentlichen
+                  </PremiumButton>
+                </div>
+              ) : null}
+
+              {editError ? (
+                <p className="mt-3 text-sm text-red-300" role="alert">
+                  {editError}
+                </p>
+              ) : null}
             </div>
-            <p className="mt-3 text-xs text-white/50">
-              ÖFB-Vorgabe: {formatOefbVorgabe(editFixture.source_starts_at ?? editFixture.starts_at)}
-            </p>
 
-            <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">
-              Vereinbarter Termin
-            </p>
-            <label className="mt-2 block text-xs text-white/55">Datum / Beginn</label>
-            <input
-              type="datetime-local"
-              className="mt-1 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-white"
-              value={editStartsLocal}
-              onChange={(e) => setEditStartsLocal(e.target.value)}
-              disabled={busy}
-            />
-            <label className="mt-3 block text-xs text-white/55">Treffpunkt</label>
-            <input
-              type="time"
-              className="mt-1 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-white"
-              value={editMeetup}
-              onChange={(e) => setEditMeetup(e.target.value)}
-              disabled={busy}
-            />
-
-            <div className="mt-4">
-              <VenuePicker
-                teamSeasonId={editFixture.team_season_id}
-                venueId={editVenue?.id ?? editFixture.venue_id}
-                onVenueChange={(v) => setEditVenue(v)}
-                locationName={editLocationName}
-                locationAddress={editLocationAddress}
-                onLocationNameChange={setEditLocationName}
-                onLocationAddressChange={setEditLocationAddress}
-                matchContext={{
-                  isHome: editFixture.is_home,
-                  opponentName: editFixture.opponent ?? '',
-                }}
-                disabled={busy}
-              />
-            </div>
-
-            <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">
-              Gegnerlogo
-            </p>
-            <input
-              className="mt-1 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[13px] text-white"
-              placeholder="/logos/… oder https://…"
-              value={editLogoUrl}
-              onChange={(e) => setEditLogoUrl(e.target.value)}
-              disabled={busy}
-            />
-            <button
-              type="button"
-              className="mt-2 text-xs font-semibold text-sky-200 underline"
-              onClick={applyKnownLogo}
-            >
-              Bekanntes lokales Logo übernehmen
-            </button>
-
-            <label className="mt-4 flex items-center gap-2 text-sm text-white/80">
-              <input
-                type="checkbox"
-                checked={editAgreed}
-                onChange={(e) => setEditAgreed(e.target.checked)}
-                disabled={busy}
-              />
-              Termin mit Gegner vereinbart
-            </label>
-            <p className="mt-1 text-[11px] text-white/40">
-              Speichern setzt nur open/agreed — noch nicht für Eltern sichtbar.
-            </p>
-
-            {editError ? <p className="mt-2 text-sm text-red-300">{editError}</p> : null}
-
-            <div className="mt-4 flex gap-2">
-              <PremiumButton
-                type="button"
-                variant="subtle"
-                className="flex-1"
-                disabled={busy}
-                onClick={() => setEditFixture(null)}
-              >
-                Abbrechen
-              </PremiumButton>
-              <PremiumButton
-                type="button"
-                variant="primary"
-                className="flex-1"
-                disabled={busy}
-                onClick={() => void saveEdit()}
-              >
-                Änderungen speichern
-              </PremiumButton>
+            {/* Sticky action footer */}
+            <div className="shrink-0 border-t border-white/10 bg-[#0e1118]/pb-[max(0.75rem,env(safe-area-inset-bottom))] px-3 pt-3 sm:px-4">
+              <div className="flex gap-2">
+                <PremiumButton
+                  type="button"
+                  variant="subtle"
+                  className="min-h-[48px] flex-1"
+                  disabled={busy}
+                  onClick={closeEdit}
+                >
+                  Abbrechen
+                </PremiumButton>
+                <PremiumButton
+                  type="button"
+                  variant="primary"
+                  className="min-h-[48px] flex-[1.4]"
+                  disabled={busy}
+                  onClick={() => void saveEdit()}
+                >
+                  {saveCtaLabel}
+                </PremiumButton>
+              </div>
             </div>
           </div>
         </div>
       ) : null}
 
       {confirmPublishId ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm space-y-3 rounded-2xl border border-white/12 bg-[#12151c] p-4">
-            <p className="text-sm text-white/85">
-              Dieser Termin wird jetzt für Spieler und Eltern sichtbar.
+            <p className="text-sm font-semibold text-white">Spiel wirklich veröffentlichen?</p>
+            <p className="text-sm text-white/75">
+              Der Termin wird anschließend für Spieler und Eltern in Home, Termine und Kalender
+              sichtbar.
             </p>
+            {publishVenueWarn ? (
+              <p className="rounded-lg border border-amber-500/35 bg-amber-950/40 px-3 py-2 text-[13px] text-amber-100">
+                Noch kein Spielort hinterlegt. Du kannst bewusst fortfahren.
+              </p>
+            ) : null}
             <div className="flex gap-2">
               <PremiumButton
                 type="button"
                 variant="subtle"
                 className="flex-1"
-                onClick={() => setConfirmPublishId(null)}
+                onClick={() => {
+                  setConfirmPublishId(null);
+                  setPublishVenueWarn(false);
+                }}
               >
                 Abbrechen
               </PremiumButton>
@@ -609,7 +851,7 @@ export const ChampionshipManagementPage: React.FC = () => {
       ) : null}
 
       {confirmBulkPublish ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm space-y-3 rounded-2xl border border-white/12 bg-[#12151c] p-4">
             <p className="text-sm text-white/85">
               {counts.agreed} vereinbarte Spiele werden für Spieler und Eltern sichtbar.

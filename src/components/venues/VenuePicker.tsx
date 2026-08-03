@@ -38,6 +38,11 @@ type Props = {
   labelClass?: string;
   inputClass?: string;
   disabled?: boolean;
+  /**
+   * Meisterschafts-Editor: kein Freitext-Block im Leerzustand;
+   * CTA „+ Spielort hinzufügen“ öffnet erst das Create-Form.
+   */
+  compactEmptyState?: boolean;
 };
 
 type FormMode = 'closed' | 'create' | 'edit';
@@ -82,6 +87,7 @@ export function VenuePicker({
   labelClass = 'mb-1 block text-sm font-medium text-white/80',
   inputClass = 'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white focus:border-red-500/45 focus:outline-none',
   disabled = false,
+  compactEmptyState = false,
 }: Props) {
   const [clubId, setClubId] = useState<string | null>(null);
   const [teamId, setTeamId] = useState<string | null>(null);
@@ -481,7 +487,18 @@ export function VenuePicker({
         <p className="text-xs text-amber-200/90">{emptyAwayHint}</p>
       ) : null}
 
-      {formMode === 'closed' && !venueId ? (
+      {formMode === 'closed' && !venueId && compactEmptyState ? (
+        <button
+          type="button"
+          className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-dashed border-white/20 bg-white/[0.03] px-3 text-[14px] font-semibold text-white/85 active:bg-white/[0.08]"
+          onClick={openCreateForm}
+          disabled={disabled || loading || !teamSeasonId}
+        >
+          + Spielort hinzufügen
+        </button>
+      ) : null}
+
+      {formMode === 'closed' && !venueId && !compactEmptyState ? (
         <>
           <div>
             <label htmlFor="venue-fallback-name" className={labelClass}>

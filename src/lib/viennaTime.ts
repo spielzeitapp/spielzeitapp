@@ -185,6 +185,25 @@ export function utcIsoToViennaDateTimeLocal(iso: string): string {
   return `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}T${pad2(parts.hour)}:${pad2(parts.minute)}`;
 }
 
+/** UTC-ISO → `YYYY-MM-DD` (Vienna) für Date-Inputs. */
+export function utcIsoToViennaDateInput(iso: string): string {
+  if (!iso || !String(iso).trim()) return '';
+  const parts = getDateTimePartsInTimeZone(new Date(iso), VIENNA_TZ);
+  if (!parts) return '';
+  return `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}`;
+}
+
+/**
+ * ÖFB date-only Artefakt: Vienna 23:00 oder 00:00 ist keine vereinbarte Anstoßzeit.
+ * Echte Uhrzeiten (z. B. 10:30) bleiben unberührt.
+ */
+export function isViennaPlaceholderKickoff(iso: string | null | undefined): boolean {
+  if (!iso || !String(iso).trim()) return true;
+  const parts = getDateTimePartsInTimeZone(new Date(iso), VIENNA_TZ);
+  if (!parts) return true;
+  return (parts.hour === 23 || parts.hour === 0) && parts.minute === 0;
+}
+
 /** UTC-ISO → `HH:mm` (Vienna) für Treffpunkt-Zeitfeld. */
 export function utcIsoToViennaTimeHHmm(iso: string): string {
   if (!iso || !String(iso).trim()) return '';
