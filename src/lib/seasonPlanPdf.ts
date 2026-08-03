@@ -7,6 +7,7 @@ import autoTable from 'jspdf-autotable';
 import brandLogoHeader from '../assets/branding/spielzeitapp-header.png';
 import {
   drawOefbEncounterCell,
+  drawVenueHierarchyCell,
   loadImageDataUrl,
   triggerPdfBlobDownload,
 } from './championshipPdf';
@@ -294,11 +295,12 @@ export async function downloadSeasonPlanPdf(
     y += headerLogo + 6;
 
     const usable = pageW - margin * 2;
-    const colDatum = Math.round(usable * 0.11);
-    const colMeetup = Math.round(usable * 0.09);
+    // Termin (Begegnung) breiter, Spielort etwas schmaler
+    const colDatum = Math.round(usable * 0.1);
+    const colMeetup = Math.round(usable * 0.085);
     const colKick = Math.round(usable * 0.08);
-    const colTyp = Math.round(usable * 0.14);
-    const colVenue = Math.round(usable * 0.22);
+    const colTyp = Math.round(usable * 0.12);
+    const colVenue = Math.round(usable * 0.19);
     const colTermin = usable - colDatum - colMeetup - colKick - colTyp - colVenue;
 
     const head = [['Datum', 'Treffpunkt', 'Beginn', 'Typ', 'Termin', 'Spielort']];
@@ -308,10 +310,11 @@ export async function downloadSeasonPlanPdf(
       kickoffLabel(r),
       seasonPlanKindLabelDe(r.kind),
       r.kind === 'tournament' ? r.title : '',
-      venueLabel(r),
+      '',
     ]);
 
     const terminColIndex = 4;
+    const venueColIndex = 5;
 
     const drawFooter = (pageNumber: number, pageCount: number) => {
       doc.setFont('helvetica', 'normal');
@@ -355,25 +358,51 @@ export async function downloadSeasonPlanPdf(
         },
         alternateRowStyles: { fillColor: [248, 248, 248] },
         columnStyles: {
-          0: { cellWidth: colDatum, halign: 'center', fontSize: 10 },
-          1: { cellWidth: colMeetup, halign: 'center', fontSize: 10 },
-          2: { cellWidth: colKick, halign: 'center', fontSize: 10 },
+          0: { cellWidth: colDatum, halign: 'center', fontSize: 10.5, fontStyle: 'bold' },
+          1: { cellWidth: colMeetup, halign: 'center', fontSize: 10, fontStyle: 'normal' },
+          2: { cellWidth: colKick, halign: 'center', fontSize: 10, fontStyle: 'normal' },
           3: { cellWidth: colTyp, halign: 'center', fontSize: 8.5, fontStyle: 'bold' },
-          4: { cellWidth: colTermin, cellPadding: 1.5 },
-          5: { cellWidth: colVenue, fontSize: 9.5 },
+          4: { cellWidth: colTermin, cellPadding: 1.8 },
+          5: { cellWidth: colVenue, cellPadding: 1.5 },
         },
         margin: { left: margin, right: margin, bottom: 12 },
+        didParseCell: (data) => {
+          if (data.section !== 'body') return;
+          if (data.column.index === 1 || data.column.index === 2) {
+            const raw = String(data.cell.raw ?? '')
+              .trim()
+              .toLowerCase();
+            if (raw === 'offen') {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fontSize = 10;
+            }
+          }
+        },
         didDrawCell: (data) => {
-          if (data.section !== 'body' || data.column.index !== terminColIndex) return;
+          if (data.section !== 'body') return;
+          if (data.column.index === venueColIndex) {
+            const row = rows[data.row.index];
+            if (!row) return;
+            drawVenueHierarchyCell({
+              doc,
+              cellX: data.cell.x,
+              cellY: data.cell.y,
+              cellW: data.cell.width,
+              cellH: data.cell.height,
+              location: row.location,
+            });
+            return;
+          }
+          if (data.column.index !== terminColIndex) return;
           const row = rows[data.row.index];
           if (!row) return;
 
           if (row.kind === 'tournament') {
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10.5);
+            doc.setFontSize(11);
             doc.setTextColor(25, 25, 25);
             const pad = 2;
-            const textY = data.cell.y + data.cell.height / 2 + 2.4;
+            const textY = data.cell.y + data.cell.height / 2 + 2.5;
             const maxW = data.cell.width - pad * 2;
             let label = row.title.trim() || 'Turnier';
             while (label.length > 3 && doc.getTextWidth(label) > maxW) {

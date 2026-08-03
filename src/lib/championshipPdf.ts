@@ -53,6 +53,73 @@ function venueLabel(f: ChampionshipFixture): string {
   return `${parts[0]}\n${parts.slice(1).join(', ')}`;
 }
 
+/** Name (Zeile 1) + Adresse (Zeile 2) für hierarchische Spielort-Darstellung. */
+export function splitVenueDisplayLines(
+  location: string | null | undefined,
+): { name: string; address: string | null } {
+  const loc = String(location ?? '').trim();
+  if (!loc) return { name: 'Noch offen', address: null };
+  const parts = loc.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length <= 1) return { name: loc, address: null };
+  return { name: parts[0], address: parts.slice(1).join(', ') };
+}
+
+/** Spielort: erste Zeile semibold/bold, Adresse normal — max. 2 Zeilen. */
+export function drawVenueHierarchyCell(opts: {
+  doc: jsPDF;
+  cellX: number;
+  cellY: number;
+  cellW: number;
+  cellH: number;
+  location: string | null | undefined;
+}): void {
+  const { doc, cellX, cellY, cellW, cellH, location } = opts;
+  const { name, address } = splitVenueDisplayLines(location);
+  const padX = 2;
+  const maxW = Math.max(8, cellW - padX * 2);
+  const lineH = 3.5;
+
+  if (address) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(25, 25, 25);
+    let nameLine = name;
+    while (nameLine.length > 3 && doc.getTextWidth(nameLine) > maxW) {
+      nameLine = `${nameLine.slice(0, -2)}…`;
+    }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    let addrLine = address;
+    while (addrLine.length > 3 && doc.getTextWidth(addrLine) > maxW) {
+      addrLine = `${addrLine.slice(0, -2)}…`;
+    }
+    const blockH = lineH * 2;
+    const startY = cellY + (cellH - blockH) / 2 + 2.5;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text(nameLine, cellX + padX, startY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(55, 55, 55);
+    doc.text(addrLine, cellX + padX, startY + lineH);
+    return;
+  }
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(25, 25, 25);
+  const lines = doc.splitTextToSize(name, maxW) as string[];
+  const shown = lines.slice(0, 2);
+  if (lines.length > 2 && shown[1]) {
+    shown[1] = truncateName(doc, shown[1].replace(/…$/, ''), maxW);
+  }
+  const blockH = shown.length * lineH;
+  const startY = cellY + (cellH - blockH) / 2 + 2.5;
+  shown.forEach((line, i) => {
+    doc.text(line, cellX + padX, startY + i * lineH);
+  });
+}
+
 function seasonLine(seasonName?: string | null): string {
   const seasonRaw = String(seasonName ?? '').trim();
   if (!seasonRaw) return '';
@@ -296,13 +363,13 @@ export function drawOefbEncounterCell(opts: {
 }): void {
   const { doc, cellX, cellY, cellW, cellH, homeName, awayName, homeLogo, awayLogo } = opts;
   const logoMm = 9.2;
-  const gap = 1.5;
+  const gap = 1.8;
   const dash = '–';
-  const padX = 1.8;
+  const padX = 2;
   const cy = cellY + (cellH - logoMm) / 2;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10.5);
+  doc.setFontSize(11);
   doc.setTextColor(25, 25, 25);
 
   const centerX = cellX + cellW / 2;
@@ -311,15 +378,15 @@ export function drawOefbEncounterCell(opts: {
   const awayLogoX = centerX + dashW / 2 + gap;
   const dashX = centerX;
 
-  const nameMax = Math.max(16, homeLogoX - (cellX + padX) - gap);
+  const nameMax = Math.max(18, homeLogoX - (cellX + padX) - gap);
   const homeLines = fitClubNameLines(doc, homeName, nameMax, 2);
   const awayLines = fitClubNameLines(doc, awayName, nameMax, 2);
-  const lineH = 3.6;
+  const lineH = 3.8;
   const homeBlockH = homeLines.length * lineH;
   const awayBlockH = awayLines.length * lineH;
-  const homeStartY = cellY + (cellH - homeBlockH) / 2 + 2.6;
-  const awayStartY = cellY + (cellH - awayBlockH) / 2 + 2.6;
-  const dashY = cellY + cellH / 2 + 2.4;
+  const homeStartY = cellY + (cellH - homeBlockH) / 2 + 2.7;
+  const awayStartY = cellY + (cellH - awayBlockH) / 2 + 2.7;
+  const dashY = cellY + cellH / 2 + 2.5;
 
   homeLines.forEach((line, i) => {
     doc.text(line, homeLogoX - gap, homeStartY + i * lineH, { align: 'right' });
@@ -330,6 +397,7 @@ export function drawOefbEncounterCell(opts: {
   doc.text(dash, dashX, dashY, { align: 'center' });
   safeAddImage(doc, awayLogo, awayLogoX, cy, logoMm, logoMm);
   doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
   awayLines.forEach((line, i) => {
     doc.text(line, awayLogoX + logoMm + gap, awayStartY + i * lineH, { align: 'left' });
   });
@@ -424,23 +492,25 @@ export async function downloadChampionshipSchedulePdf(opts: {
     y += headerLogo + 6;
 
     const usable = pageW - margin * 2;
-    const colDatum = Math.round(usable * 0.13);
-    const colMeetup = Math.round(usable * 0.11);
-    const colKick = Math.round(usable * 0.1);
-    const colVenue = Math.round(usable * 0.26);
+    // Begegnung breiter, Spielort etwas schmaler — mehr Luft bei Vereinsnamen
+    const colDatum = Math.round(usable * 0.12);
+    const colMeetup = Math.round(usable * 0.1);
+    const colKick = Math.round(usable * 0.09);
+    const colVenue = Math.round(usable * 0.22);
     const colEncounter = usable - colDatum - colMeetup - colKick - colVenue;
 
     const head = [['Datum', 'Treffpunkt', 'Anpfiff', 'Begegnung', 'Spielort']];
-    // Begegnungstext leer — ÖFB-Layout wird in didDrawCell gezeichnet (keine Rand-Logos)
+    // Begegnung + Spielort leer — Custom-Draw in didDrawCell
     const body = rows.map((f) => [
       formatDateDe(f.starts_at),
       meetupLabel(f),
       kickoffLabel(f),
       '',
-      venueLabel(f),
+      '',
     ]);
 
     const encounterColIndex = 3;
+    const venueColIndex = 4;
 
     const drawFooter = (pageNumber: number, pageCount: number) => {
       doc.setFont('helvetica', 'normal');
@@ -472,7 +542,7 @@ export async function downloadChampionshipSchedulePdf(opts: {
           lineWidth: 0.15,
           overflow: 'linebreak',
           valign: 'middle',
-          minCellHeight: 14,
+          minCellHeight: 14.2,
         },
         headStyles: {
           fillColor: [236, 236, 236],
@@ -482,16 +552,41 @@ export async function downloadChampionshipSchedulePdf(opts: {
         },
         alternateRowStyles: { fillColor: [248, 248, 248] },
         columnStyles: {
-          0: { cellWidth: colDatum, halign: 'center', fontSize: 10 },
-          1: { cellWidth: colMeetup, halign: 'center', fontSize: 10 },
-          2: { cellWidth: colKick, halign: 'center', fontSize: 10 },
-          3: { cellWidth: colEncounter, cellPadding: 1.5 },
-          4: { cellWidth: colVenue, fontSize: 9.5 },
+          0: { cellWidth: colDatum, halign: 'center', fontSize: 10.5, fontStyle: 'bold' },
+          1: { cellWidth: colMeetup, halign: 'center', fontSize: 10, fontStyle: 'normal' },
+          2: { cellWidth: colKick, halign: 'center', fontSize: 10, fontStyle: 'normal' },
+          3: { cellWidth: colEncounter, cellPadding: 1.8 },
+          4: { cellWidth: colVenue, cellPadding: 1.5 },
         },
         margin: { left: margin, right: margin, bottom: 12 },
+        didParseCell: (data) => {
+          if (data.section !== 'body') return;
+          if (data.column.index === 1 || data.column.index === 2) {
+            const raw = String(data.cell.raw ?? '')
+              .trim()
+              .toLowerCase();
+            if (raw === 'offen') {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fontSize = 10;
+            }
+          }
+        },
         didDrawCell: (data) => {
-          // Nur Begegnungs-Spalte — keine Logos in Datum/Treffpunkt/Anpfiff/Spielort
-          if (data.section !== 'body' || data.column.index !== encounterColIndex) return;
+          if (data.section !== 'body') return;
+          if (data.column.index === venueColIndex) {
+            const f = rows[data.row.index];
+            if (!f) return;
+            drawVenueHierarchyCell({
+              doc,
+              cellX: data.cell.x,
+              cellY: data.cell.y,
+              cellW: data.cell.width,
+              cellH: data.cell.height,
+              location: f.location,
+            });
+            return;
+          }
+          if (data.column.index !== encounterColIndex) return;
           const f = rows[data.row.index];
           if (!f) return;
           const oppName = (f.opponent || 'Gegner').trim() || 'Gegner';
