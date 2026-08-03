@@ -78,7 +78,7 @@ function normalize(teamName: string): string {
 export function getTeamLogoSrc(teamName: string): string {
   const n = normalize(teamName);
   if (!n) return PLACEHOLDER_LOGO;
-  if (n.includes('spg') && n.includes('rohrbach')) return getLogoUrl('spg-rohrbach');
+  if (n.includes('spg') && n.includes('rohrbach')) return getLogoUrl('nsg-goelsental');
   if (n.includes('skn')) return getLogoUrl('skn-stpoelten-a');
   if (n.includes('alpenvorland')) return getLogoUrl('usg-alpenvorland');
   if (n.includes('wilhelmsburg')) return getLogoUrl('ask-wilhelmsburg');
@@ -88,7 +88,9 @@ export function getTeamLogoSrc(teamName: string): string {
     }
     return getLogoUrl('spg-weinburg');
   }
-  // Bischofstetten/Loosdorf: kein verifiziertes Mapping → Placeholder
+  // Bischofstetten
+  if (n.includes('bischofstetten')) return getLogoUrl('bischofstetten');
+  if (n.includes('loosdorf')) return getLogoUrl('loosdorf');
   return PLACEHOLDER_LOGO;
 }
 

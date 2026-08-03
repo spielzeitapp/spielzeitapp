@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import brandLogoHeader from '../assets/branding/spielzeitapp-header.png';
 import type { ChampionshipFixture } from './championshipFixtures';
-import { PLACEHOLDER_LOGO } from './teamLogos';
+import { getOurTeamLogoUrl, PLACEHOLDER_LOGO } from './teamLogos';
 import { isViennaPlaceholderKickoff, utcIsoToViennaTimeHHmm } from './viennaTime';
 
 export type ChampionshipPdfMode = 'published' | 'all';
@@ -39,12 +39,24 @@ function meetupLabel(f: ChampionshipFixture): string {
   return utcIsoToViennaTimeHHmm(f.meeting_at) || '–';
 }
 
+/** Spielort nur Text; ggf. Name + Adresse zweizeilig. */
 function venueLabel(f: ChampionshipFixture): string {
   const loc = f.location?.trim();
-  return loc || 'Noch offen';
+  if (!loc) return 'Noch offen';
+  const parts = loc.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length <= 1) return loc;
+  return `${parts[0]}\n${parts.slice(1).join(', ')}`;
 }
 
-/** Heim links, Gast rechts. */
+function seasonSubtitle(ageGroup?: string | null, seasonName?: string | null): string {
+  const age = String(ageGroup ?? '').trim();
+  const seasonRaw = String(seasonName ?? '').trim();
+  const season =
+    seasonRaw && !/^saison\b/i.test(seasonRaw) ? `Saison ${seasonRaw}` : seasonRaw;
+  return [age, season].filter(Boolean).join(' · ');
+}
+
+/** Heim links, Gast rechts (Textform, z. B. Feed). */
 export function formatChampionshipEncounter(
   f: ChampionshipFixture,
   ourTeamName: string,
@@ -115,7 +127,6 @@ async function loadImageDataUrl(pathOrUrl: string): Promise<string | null> {
       reader.readAsDataURL(blob);
     });
     if (!dataUrl) return null;
-    // jsPDF: WEBP unzuverlässig → nach PNG konvertieren (bei CORS-Taint → weglassen)
     if (dataUrl.startsWith('data:image/webp')) {
       return (await webpDataUrlToPng(dataUrl)) || null;
     }
@@ -190,10 +201,8 @@ export function triggerPdfBlobDownload(blob: Blob, filename: string): void {
     if (supportsDownload) {
       a.click();
     } else {
-      // iOS/PWA: öffnen statt „Download“-Attribut
       const opened = window.open(url, '_blank', 'noopener,noreferrer');
       if (!opened) {
-        // Popup blockiert → gleicher Tab
         window.location.assign(url);
       }
     }
@@ -209,11 +218,64 @@ export function triggerPdfBlobDownload(blob: Blob, filename: string): void {
   }
 }
 
+function truncateName(doc: jsPDF, name: string, maxWidth: number): string {
+  const raw = name.trim() || '—';
+  if (doc.getTextWidth(raw) <= maxWidth) return raw;
+  let s = raw;
+  while (s.length > 3 && doc.getTextWidth(`${s}…`) > maxWidth) {
+    s = s.slice(0, -1);
+  }
+  return `${s}…`;
+}
+
+/**
+ * ÖFB-Layout in der Begegnungszelle:
+ * Heimname (rechts) | Heimlogo | – | Gastlogo | Gastname (links)
+ */
+function drawOefbEncounterCell(opts: {
+  doc: jsPDF;
+  cellX: number;
+  cellY: number;
+  cellW: number;
+  cellH: number;
+  homeName: string;
+  awayName: string;
+  homeLogo: string | null | undefined;
+  awayLogo: string | null | undefined;
+}): void {
+  const { doc, cellX, cellY, cellW, cellH, homeName, awayName, homeLogo, awayLogo } = opts;
+  const logoMm = 8;
+  const gap = 1.6;
+  const dash = '–';
+  const padX = 2;
+  const cy = cellY + (cellH - logoMm) / 2;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(25, 25, 25);
+
+  const centerX = cellX + cellW / 2;
+  const dashW = doc.getTextWidth(dash);
+  const homeLogoX = centerX - gap - logoMm - dashW / 2;
+  const awayLogoX = centerX + dashW / 2 + gap;
+  const dashX = centerX;
+
+  const nameMax = Math.max(18, homeLogoX - (cellX + padX) - gap);
+  const homeLabel = truncateName(doc, homeName, nameMax);
+  const awayLabel = truncateName(doc, awayName, nameMax);
+
+  const textY = cellY + cellH / 2 + 2.2;
+  doc.text(homeLabel, homeLogoX - gap, textY, { align: 'right' });
+  safeAddImage(doc, homeLogo, homeLogoX, cy, logoMm, logoMm);
+  doc.text(dash, dashX, textY, { align: 'center' });
+  safeAddImage(doc, awayLogo, awayLogoX, cy, logoMm, logoMm);
+  doc.text(awayLabel, awayLogoX + logoMm + gap, textY, { align: 'left' });
+}
+
 /**
  * A4 Querformat.
  * Spalten: Datum | Treffpunkt | Anpfiff | Begegnung | Spielort
- * Begegnung: [Heimlogo] Heim – Gast [Gastlogo]
- * Fehlende Logos/Venues brechen den Export nicht ab.
+ * Begegnung ÖFB: Heimname Heimlogo – Gastlogo Gastname
  */
 export async function downloadChampionshipSchedulePdf(opts: {
   fixtures: ChampionshipFixture[];
@@ -248,8 +310,12 @@ export async function downloadChampionshipSchedulePdf(opts: {
 
     rows.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 
+    const ourTeamName = (opts.teamName || 'Mannschaft').trim() || 'Mannschaft';
+    // Immer gemeinsamer Own-Team-Resolver (NSG Gölsental) — nicht opponent_catalog
+    const ourLogoUrl = opts.teamLogoUrl?.trim() || getOurTeamLogoUrl();
     const ourLogoData =
-      (await loadImageDataUrl(opts.teamLogoUrl || PLACEHOLDER_LOGO)) ||
+      (await loadImageDataUrl(ourLogoUrl)) ||
+      (await loadImageDataUrl(getOurTeamLogoUrl())) ||
       (await loadImageDataUrl(PLACEHOLDER_LOGO));
     const brandLogoData = await loadImageDataUrl(opts.brandLogoUrl || brandLogoHeader);
     const placeholderData = await loadImageDataUrl(PLACEHOLDER_LOGO);
@@ -269,43 +335,51 @@ export async function downloadChampionshipSchedulePdf(opts: {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
-    const margin = 12;
-    let y = 9;
+    const margin = 10;
+    let y = 8;
 
-    const headerLogo = 14;
+    const headerLogo = 16;
     safeAddImage(doc, ourLogoData, margin, y, headerLogo, headerLogo);
 
-    const titleParts = [
-      'Meisterschaftsspielplan',
-      (opts.ageGroup || '').trim(),
-      (opts.seasonName || '').trim(),
-    ].filter(Boolean);
-    const title = titleParts.join(' ');
-
+    const textX = margin + headerLogo + 4;
     doc.setTextColor(20, 20, 20);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
-    doc.text(title, margin + headerLogo + 4, y + 6);
+    doc.setFontSize(13);
+    doc.text('MEISTERSCHAFTSSPIELPLAN', textX, y + 5);
+
+    const sub = seasonSubtitle(opts.ageGroup, opts.seasonName);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    if (sub) {
+      doc.text(sub, textX, y + 10.5);
+    }
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text((opts.teamName || 'Mannschaft').trim() || 'Mannschaft', margin + headerLogo + 4, y + 11.5);
+    doc.text(ourTeamName, textX, y + (sub ? 15.5 : 11));
 
     const brandH = 10;
     const brandW = 42;
     safeAddImage(doc, brandLogoData, pageW - margin - brandW, y + 2, brandW, brandH);
 
-    y += headerLogo + 5;
+    y += headerLogo + 6;
+
+    const usable = pageW - margin * 2;
+    const colDatum = Math.round(usable * 0.13);
+    const colMeetup = Math.round(usable * 0.11);
+    const colKick = Math.round(usable * 0.1);
+    const colVenue = Math.round(usable * 0.26);
+    const colEncounter = usable - colDatum - colMeetup - colKick - colVenue;
 
     const head = [['Datum', 'Treffpunkt', 'Anpfiff', 'Begegnung', 'Spielort']];
+    // Begegnungstext leer — ÖFB-Layout wird in didDrawCell gezeichnet (keine Rand-Logos)
     const body = rows.map((f) => [
       formatDateDe(f.starts_at),
       meetupLabel(f),
       kickoffLabel(f),
-      formatChampionshipEncounter(f, opts.teamName || 'Mannschaft'),
+      '',
       venueLabel(f),
     ]);
 
-    const logoMm = 5.5;
     const encounterColIndex = 3;
 
     const drawFooter = (pageNumber: number, pageCount: number) => {
@@ -331,47 +405,53 @@ export async function downloadChampionshipSchedulePdf(opts: {
         theme: 'grid',
         styles: {
           font: 'helvetica',
-          fontSize: 8.5,
-          cellPadding: 2.4,
+          fontSize: 8,
+          cellPadding: 2.2,
           textColor: [25, 25, 25],
           lineColor: [170, 170, 170],
           lineWidth: 0.15,
           overflow: 'linebreak',
           valign: 'middle',
+          minCellHeight: 12,
         },
         headStyles: {
           fillColor: [236, 236, 236],
           textColor: [20, 20, 20],
           fontStyle: 'bold',
-          fontSize: 8.5,
+          fontSize: 8,
         },
         alternateRowStyles: { fillColor: [248, 248, 248] },
         columnStyles: {
-          0: { cellWidth: 26 },
-          1: { cellWidth: 22, halign: 'center' },
-          2: { cellWidth: 20, halign: 'center' },
-          3: { cellWidth: 'auto', cellPadding: 2.4 },
-          4: { cellWidth: 48 },
+          0: { cellWidth: colDatum, halign: 'center' },
+          1: { cellWidth: colMeetup, halign: 'center' },
+          2: { cellWidth: colKick, halign: 'center' },
+          3: { cellWidth: colEncounter, cellPadding: 1.5 },
+          4: { cellWidth: colVenue, fontSize: 7.5 },
         },
         margin: { left: margin, right: margin, bottom: 12 },
         didDrawCell: (data) => {
+          // Nur Begegnungs-Spalte — keine Logos in Datum/Treffpunkt/Anpfiff/Spielort
           if (data.section !== 'body' || data.column.index !== encounterColIndex) return;
           const f = rows[data.row.index];
           if (!f) return;
-          const oppName = (f.opponent || '').trim();
+          const oppName = (f.opponent || 'Gegner').trim() || 'Gegner';
           const oppLogo = oppLogoCache.get(oppName) || placeholderData;
-          const leftLogo = f.is_home ? ourLogoData : oppLogo;
-          const rightLogo = f.is_home ? oppLogo : ourLogoData;
-          const cy = data.cell.y + (data.cell.height - logoMm) / 2;
-          safeAddImage(doc, leftLogo, data.cell.x + 1.2, cy, logoMm, logoMm);
-          safeAddImage(
+          const isHome = f.is_home === true;
+          const homeName = isHome ? ourTeamName : oppName;
+          const awayName = isHome ? oppName : ourTeamName;
+          const homeLogo = isHome ? ourLogoData : oppLogo;
+          const awayLogo = isHome ? oppLogo : ourLogoData;
+          drawOefbEncounterCell({
             doc,
-            rightLogo,
-            data.cell.x + data.cell.width - logoMm - 1.2,
-            cy,
-            logoMm,
-            logoMm,
-          );
+            cellX: data.cell.x,
+            cellY: data.cell.y,
+            cellW: data.cell.width,
+            cellH: data.cell.height,
+            homeName,
+            awayName,
+            homeLogo,
+            awayLogo,
+          });
         },
         didDrawPage: (data) => {
           drawFooter(data.pageNumber, doc.getNumberOfPages());

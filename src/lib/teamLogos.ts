@@ -7,7 +7,6 @@ import { getLogoUrl } from '../utils/logoResolver';
 import { safeText } from './safeText';
 
 const OUR_TEAM_DISPLAY_NAME = 'SPG Rohrbach';
-const SPG_ROHRBACH_SLUG = 'spg-rohrbach';
 const NSG_GOELSENTAL_SLUG = 'nsg-goelsental';
 /** Staging/Live Team-ID SPG Rohrbach (saisonübergreifend gleiche team_id). */
 export const SPG_ROHRBACH_TEAM_ID = '1ebe3d18-78ff-4986-a0b2-31cc1b7af938';
@@ -32,9 +31,9 @@ export function getOurTeamDisplayName(): string {
   return OUR_TEAM_DISPLAY_NAME;
 }
 
-/** Stabiles Vereinslogo — unabhängig von U11/U12 oder Saison-Label. */
+/** Stabiles Vereinslogo (NSG Gölsental) — Match-/PDF-/Termin-Darstellung. */
 export function getOurTeamLogoUrl(): string {
-  return getLogoUrl(`${SPG_ROHRBACH_SLUG}.png`);
+  return getLogoUrl(`${NSG_GOELSENTAL_SLUG}.png`);
 }
 
 /** Normalisiert Anzeigenamen für Lookup (lowercase, Umlaute, Sonderzeichen raus). */
@@ -80,12 +79,11 @@ function isNsgHeimteamKey(key: string): boolean {
  * Nur lokale Assets — keine externen URLs.
  */
 const LOGO_MAP: Record<string, string> = {
-  // NSG Heimteams (gemeinsames Vereinslogo)
+  // NSG Heimteams + SPG Rohrbach (gemeinsames NSG-Gölsental-Wappen)
   'nsg rohrbach': NSG_GOELSENTAL_SLUG,
   'nsg hainfeld': NSG_GOELSENTAL_SLUG,
   'nsg goelsental': NSG_GOELSENTAL_SLUG,
-  // SPG (eigenes Logo, unverändert)
-  'spg rohrbach': SPG_ROHRBACH_SLUG,
+  'spg rohrbach': NSG_GOELSENTAL_SLUG,
   // FK Austria Wien
   'fk austria wien': 'fk-austria-wien',
   'austria wien': 'fk-austria-wien',
@@ -110,7 +108,9 @@ const LOGO_MAP: Record<string, string> = {
   'spg weinburg a': 'spg-weinburg-a',
   'spg weinburg': 'spg-weinburg',
   weinburg: 'spg-weinburg',
-  // SPG Bischofstetten: kein verifiziertes Asset → Placeholder (nicht UHG/Rohrbach raten)
+  // SPG Bischofstetten
+  'spg bischofstetten': 'bischofstetten',
+  bischofstetten: 'bischofstetten',
   // ASK Loosdorf
   'ask loosdorf': 'loosdorf',
   loosdorf: 'loosdorf',

@@ -5,7 +5,7 @@
 import { getLogoUrl } from '../utils/logoResolver';
 
 export const CLUB_LOGOS: Record<string, string> = {
-  spg_rohrbach: getLogoUrl('spg-rohrbach'),
+  spg_rohrbach: getLogoUrl('nsg-goelsental'),
   pottenbrunn: getLogoUrl('pottenbrunn'),
   alpenvorland_usg: getLogoUrl('alpenvorland-usg'),
   skn_stpoelten_a: getLogoUrl('skn-stpoelten-a'),

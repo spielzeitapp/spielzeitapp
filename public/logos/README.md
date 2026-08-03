@@ -4,10 +4,10 @@ Logos werden unter `/logos/<dateiname>` ausgeliefert (relative Pfade, keine Doma
 
 ## Source of Truth – unser Team (SPG Rohrbach)
 
-- **Match-/Spielbericht-Logo:** `spg-rohrbach.png` (Slug `spg-rohrbach`)
+- **Match-/Spielbericht-/PDF-Logo:** `nsg-goelsental.png` (Slug `nsg-goelsental`)
 - Code: `getOurTeamLogoUrl()` / `getClubLogo(..., { ourTeam: true })`
-- **Hinweis:** `spg-rohrbach.png` ist byte-identisch mit `nsg-goelsental.png` (NSG-Gölsental-Wappen der Nachwuchs-SPG). Das ist das vorgesehene Vereinslogo für Match-Darstellung.
-- Altbestand (nicht Mapping-Ziel): `spg-rohrbach-TRANSPARENT.png`, `spg-rohrbach-WEISS - Kopie.png` (USC Kaschütz Rohrbach)
+- Anzeigename bleibt „SPG Rohrbach“; Wappen = NSG Gölsental (schwarz/rot/rund).
+- Altbestand (nicht Mapping-Ziel): `spg-rohrbach.png` (historisch, ggf. identisch), `spg-rohrbach-TRANSPARENT.png`, `spg-rohrbach-WEISS - Kopie.png`
 
 ## Gegner / Fallback
 
