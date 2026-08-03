@@ -3,7 +3,12 @@ import { Link, Navigate } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, Upload } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { VenuePicker } from '../components/venues/VenuePicker';
-import { TimeInput24h } from '../components/ui/TimeInput24h';
+import {
+  EventDateField,
+  EventTimeField,
+  EVENT_FORM_INPUT_CLASS,
+  EVENT_FORM_LABEL_CLASS,
+} from '../components/events';
 import { canPrepareNextSeason } from '../lib/seasonLifecycle';
 import {
   championshipCounts,
@@ -35,9 +40,8 @@ import { dsPanelRowClass } from '../lib/premiumDesignSystem';
 const DEFAULT_OEFB_URL =
   'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Spiele';
 
-const inputClass =
-  'min-h-[44px] w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white focus:border-red-500/45 focus:outline-none';
-const labelClass = 'mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-white/50';
+const inputClass = EVENT_FORM_INPUT_CLASS;
+const labelClass = EVENT_FORM_LABEL_CLASS;
 
 function canAccess(effectiveRole: string, backendRole: string): boolean {
   if ((backendRole ?? '').trim().toLowerCase() === 'admin') return true;
@@ -642,20 +646,18 @@ export const ChampionshipManagementPage: React.FC = () => {
                   <label className={cn(labelClass, 'mt-3')} htmlFor="champ-edit-date">
                     Datum
                   </label>
-                  <input
+                  <EventDateField
                     id="champ-edit-date"
-                    type="date"
-                    className={inputClass}
                     value={editDate}
-                    onChange={(e) => setEditDate(e.target.value)}
+                    onChange={setEditDate}
                     disabled={busy}
+                    aria-label="Datum"
                   />
                   <label className={cn(labelClass, 'mt-3')} htmlFor="champ-edit-kickoff">
                     Beginn
                   </label>
-                  <TimeInput24h
+                  <EventTimeField
                     id="champ-edit-kickoff"
-                    className={inputClass}
                     value={editKickoff}
                     onChange={setEditKickoff}
                     disabled={busy}
@@ -668,9 +670,8 @@ export const ChampionshipManagementPage: React.FC = () => {
                   <label className={cn(labelClass, 'mt-3')} htmlFor="champ-edit-meetup">
                     Treffpunkt
                   </label>
-                  <TimeInput24h
+                  <EventTimeField
                     id="champ-edit-meetup"
-                    className={inputClass}
                     value={editMeetup}
                     onChange={setEditMeetup}
                     disabled={busy}
@@ -695,7 +696,6 @@ export const ChampionshipManagementPage: React.FC = () => {
                       isHome: editFixture.is_home,
                       opponentName: editFixture.opponent ?? '',
                     }}
-                    compactEmptyState
                     disabled={busy}
                     labelClass={labelClass}
                     inputClass={inputClass}

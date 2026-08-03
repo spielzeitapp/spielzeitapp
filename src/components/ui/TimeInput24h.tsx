@@ -17,7 +17,7 @@ type Props = {
 const HHMM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES_5 = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
 function parseHHmm(value: string): { hour: string; minute: string } | null {
   const m = HHMM_RE.exec(value.trim());
@@ -32,24 +32,18 @@ function formatHHmm(hour: string, minute: string): string {
 /** Default-Vorschlag im Picker (nicht speichern, bis Übernehmen). */
 function suggestedDraft(): { hour: string; minute: string } {
   const now = new Date();
-  const hour = String(now.getHours()).padStart(2, '0');
-  const snapped = Math.round(now.getMinutes() / 5) * 5;
-  const minute = String(snapped === 60 ? 55 : snapped).padStart(2, '0');
-  return { hour, minute };
-}
-
-function minuteOptionsFor(currentMinute: string): string[] {
-  if (MINUTES_5.includes(currentMinute)) return MINUTES_5;
-  // Bestehende Nicht-5-Min-Werte weiter anzeigbar/übernehmbar
-  return [...MINUTES_5, currentMinute].sort((a, b) => Number(a) - Number(b));
+  return {
+    hour: String(now.getHours()).padStart(2, '0'),
+    minute: String(now.getMinutes()).padStart(2, '0'),
+  };
 }
 
 const selectClass =
-  'min-h-[48px] w-full rounded-xl border border-white/12 bg-white/[0.06] px-3 text-[17px] font-semibold text-white focus:border-red-500/45 focus:outline-none';
+  'min-h-[48px] w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 text-[17px] font-semibold text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-red-500/40';
 
 /**
- * Einheitlicher 24h-Timepicker (HH:mm).
- * Kein natives AM/PM, kein Pflicht-Tippen — Stunde/Minute per Select + Übernehmen.
+ * Einheitlicher 24h-Timepicker (HH:mm) für Termin- und Meisterschaftsformulare.
+ * Kein natives AM/PM — Stunde 00–23 / Minute 00–59 + Übernehmen.
  */
 export function TimeInput24h({
   id,
@@ -109,8 +103,6 @@ export function TimeInput24h({
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const minuteOpts = minuteOptionsFor(draftMinute);
-
   return (
     <>
       <button
@@ -120,17 +112,15 @@ export function TimeInput24h({
         disabled={disabled}
         onClick={openPicker}
         className={cn(
-          'flex min-h-[44px] w-full items-center justify-between gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-left text-[15px] text-white focus:border-red-500/45 focus:outline-none disabled:opacity-50',
+          'flex min-h-[44px] w-full items-center justify-between gap-2 text-left tabular-nums disabled:opacity-50',
           className,
         )}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={`${label} auswählen${hasValue ? `, aktuell ${value}` : ', noch offen'}`}
       >
-        <span className={cn('font-semibold tabular-nums', !hasValue && 'text-white/40')}>
-          {display}
-        </span>
-        <Clock className="h-5 w-5 shrink-0 text-white/50" aria-hidden />
+        <span className={cn('font-medium', !hasValue && 'opacity-45')}>{display}</span>
+        <Clock className="h-5 w-5 shrink-0 opacity-50" aria-hidden />
       </button>
 
       {open ? (
@@ -145,16 +135,19 @@ export function TimeInput24h({
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="w-full max-w-sm rounded-t-2xl border border-white/12 bg-[#12151c] p-4 shadow-xl sm:rounded-2xl"
+            className="w-full max-w-sm rounded-t-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-elevated,#12151c)] p-4 shadow-xl sm:rounded-2xl"
           >
-            <h3 id={titleId} className="text-[15px] font-bold text-white">
+            <h3 id={titleId} className="text-[15px] font-bold text-[var(--text-main)]">
               {label} wählen
             </h3>
-            <p className="mt-1 text-[12px] text-white/45">24-Stunden-Format · HH:mm</p>
+            <p className="mt-1 text-[12px] text-[var(--text-sub)]">24-Stunden-Format · HH:mm</p>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor={`${triggerId}-hour`} className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-white/50">
+                <label
+                  htmlFor={`${triggerId}-hour`}
+                  className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-sub)]"
+                >
                   Stunde
                 </label>
                 <select
@@ -173,7 +166,10 @@ export function TimeInput24h({
                 </select>
               </div>
               <div>
-                <label htmlFor={`${triggerId}-minute`} className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-white/50">
+                <label
+                  htmlFor={`${triggerId}-minute`}
+                  className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-sub)]"
+                >
                   Minute
                 </label>
                 <select
@@ -183,7 +179,7 @@ export function TimeInput24h({
                   onChange={(e) => setDraftMinute(e.target.value)}
                   aria-label="Minute"
                 >
-                  {minuteOpts.map((m) => (
+                  {MINUTES.map((m) => (
                     <option key={m} value={m}>
                       {m}
                     </option>
@@ -192,21 +188,21 @@ export function TimeInput24h({
               </div>
             </div>
 
-            <p className="mt-3 text-center text-[22px] font-bold tabular-nums tracking-wide text-white">
+            <p className="mt-3 text-center text-[22px] font-bold tabular-nums tracking-wide text-[var(--text-main)]">
               {formatHHmm(draftHour, draftMinute)}
             </p>
 
             <div className="mt-4 flex gap-2 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
               <button
                 type="button"
-                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] px-3 text-[15px] font-semibold text-white/90 active:bg-white/[0.1]"
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 text-[15px] font-semibold text-[var(--text-main)]"
                 onClick={closePicker}
               >
                 Abbrechen
               </button>
               <button
                 type="button"
-                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-red-500/40 bg-red-600 px-3 text-[15px] font-semibold text-white active:bg-red-500"
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-lg border border-red-500/40 bg-red-600 px-3 text-[15px] font-semibold text-white"
                 onClick={applyPicker}
               >
                 Übernehmen

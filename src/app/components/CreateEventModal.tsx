@@ -13,6 +13,12 @@ import { eventKindFromFormType, normalizeEventTypeField } from '../../lib/eventT
 import { assertTeamSeasonWritable } from '../../lib/seasonTransition';
 import { locationTextFromVenue, type VenueRow } from '../../lib/venues';
 import { VenuePicker } from '../../components/venues/VenuePicker';
+import {
+  EventDateField,
+  EventTimeField,
+  EVENT_FORM_INPUT_CLASS,
+  EVENT_FORM_LABEL_CLASS,
+} from '../../components/events';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -64,7 +70,10 @@ export type CreateEventFormValues = {
   is_home: boolean;
   location: string;
   location_address: string;
-  starts_at: string;
+  /** Kalendertag Europe/Vienna `YYYY-MM-DD` */
+  start_date: string;
+  /** Anpfiff/Beginn `HH:mm` */
+  start_time: string;
   meetup_time: string;
   participation_mode: 'opt_in' | 'opt_out';
   match_type: string;
@@ -82,7 +91,8 @@ const defaultForm: CreateEventFormValues = {
   is_home: true,
   location: '',
   location_address: '',
-  starts_at: '',
+  start_date: '',
+  start_time: '',
   meetup_time: '',
   participation_mode: 'opt_in',
   match_type: 'friendly',
@@ -148,12 +158,14 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       setError(writable.message);
       return;
     }
-    const startsAtRaw = (form.starts_at ?? '').trim();
+    const startDate = (form.start_date ?? '').trim();
+    const startTime = (form.start_time ?? '').trim();
+    const startsAtRaw = startDate && startTime ? `${startDate}T${startTime}` : '';
     const opponentVal = (form.opponent ?? '').trim();
     const titleVal = (form.title ?? '').trim();
 
-    if (!startsAtRaw) {
-      setError('Beginn ist Pflicht.');
+    if (!startDate || !startTime) {
+      setError('Datum und Beginn sind Pflicht.');
       return;
     }
     if (eventTypeLocal === 'game' && !opponentVal) {
@@ -321,9 +333,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     }
   };
 
-  const inputClass =
-    'w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]';
-  const labelClass = 'block text-sm font-medium text-[var(--text-main)] mb-1';
+  const inputClass = EVENT_FORM_INPUT_CLASS;
+  const labelClass = EVENT_FORM_LABEL_CLASS;
 
   return (
     <Modal
@@ -445,12 +456,12 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               <label htmlFor="create-event-end_time" className={labelClass}>
                 Ende (optional)
               </label>
-              <input
+              <EventTimeField
                 id="create-event-end_time"
-                type="time"
                 value={form.end_time}
-                onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
-                className={inputClass}
+                onChange={(v) => setForm((f) => ({ ...f, end_time: v }))}
+                disabled={creating}
+                label="Ende"
               />
             </div>
             <div>
@@ -531,28 +542,40 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           disabled={creating}
         />
         <div>
-          <label htmlFor="create-event-starts_at" className={labelClass}>
+          <label htmlFor="create-event-start_date" className={labelClass}>
+            Datum *
+          </label>
+          <EventDateField
+            id="create-event-start_date"
+            required
+            value={form.start_date}
+            onChange={(v) => setForm((f) => ({ ...f, start_date: v }))}
+            disabled={creating}
+            aria-label="Datum"
+          />
+        </div>
+        <div>
+          <label htmlFor="create-event-start_time" className={labelClass}>
             Beginn *
           </label>
-          <input
-            id="create-event-starts_at"
-            type="datetime-local"
-            required
-            value={form.starts_at}
-            onChange={(e) => setForm((f) => ({ ...f, starts_at: e.target.value }))}
-            className={inputClass}
+          <EventTimeField
+            id="create-event-start_time"
+            value={form.start_time}
+            onChange={(v) => setForm((f) => ({ ...f, start_time: v }))}
+            disabled={creating}
+            label="Beginn"
           />
         </div>
         <div>
           <label htmlFor="create-event-meetup_time" className={labelClass}>
             Treffpunkt (optional)
           </label>
-          <input
+          <EventTimeField
             id="create-event-meetup_time"
-            type="time"
             value={form.meetup_time}
-            onChange={(e) => setForm((f) => ({ ...f, meetup_time: e.target.value }))}
-            className={inputClass}
+            onChange={(v) => setForm((f) => ({ ...f, meetup_time: v }))}
+            disabled={creating}
+            label="Treffpunkt"
           />
         </div>
         {(eventTypeLocal === 'training' ||
@@ -582,12 +605,12 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 <label htmlFor="create-event-until" className={labelClass}>
                   Wiederholen bis *
                 </label>
-                <input
+                <EventDateField
                   id="create-event-until"
-                  type="date"
                   value={form.until_date}
-                  onChange={(e) => setForm((f) => ({ ...f, until_date: e.target.value }))}
-                  className={inputClass}
+                  onChange={(v) => setForm((f) => ({ ...f, until_date: v }))}
+                  disabled={creating}
+                  aria-label="Wiederholen bis"
                 />
                 <p className="mt-1 text-xs text-[var(--text-sub)]">
                   Es werden alle Termine im Zeitraum als eigenständige Einträge angelegt.
