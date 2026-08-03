@@ -402,3 +402,39 @@ export function championshipCounts(fixtures: ChampionshipFixture[]): {
   }
   return { total: fixtures.length, open, agreed, published };
 }
+
+/**
+ * Lädt Altersklasse + Saisonname für den PDF-Header der gewählten team_season.
+ * Kein Hardcode — age_group / seasons.name / display_name-Fallback.
+ */
+export async function fetchChampionshipPdfSeasonMeta(
+  teamSeasonId: string,
+): Promise<{ ageGroup: string | null; seasonName: string | null; error: string | null }> {
+  const id = teamSeasonId?.trim();
+  if (!id) return { ageGroup: null, seasonName: null, error: 'Keine Saison gewählt.' };
+
+  const { data, error } = await supabase
+    .from('team_seasons')
+    .select('age_group, display_name, seasons ( name )')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) return { ageGroup: null, seasonName: null, error: error.message };
+  if (!data) return { ageGroup: null, seasonName: null, error: 'Saison nicht gefunden.' };
+
+  const seasonJoin = data.seasons as { name?: string | null } | { name?: string | null }[] | null;
+  const seasonRow = Array.isArray(seasonJoin) ? seasonJoin[0] : seasonJoin;
+  const seasonName = seasonRow?.name?.trim() || null;
+  const ageFromCol = String((data as { age_group?: string | null }).age_group ?? '').trim() || null;
+  const ageFromDisplay =
+    String((data as { display_name?: string | null }).display_name ?? '')
+      .match(/\bU\s?\d{1,2}\b/i)?.[0]
+      ?.replace(/\s+/g, '')
+      .toUpperCase() || null;
+
+  return {
+    ageGroup: ageFromCol || ageFromDisplay,
+    seasonName,
+    error: null,
+  };
+}

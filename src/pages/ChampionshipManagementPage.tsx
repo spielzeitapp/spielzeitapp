@@ -13,6 +13,7 @@ import { canPrepareNextSeason } from '../lib/seasonLifecycle';
 import {
   championshipCounts,
   displayOpponentLogoUrl,
+  fetchChampionshipPdfSeasonMeta,
   fetchOefbScheduleFixtures,
   importOefbChampionshipFixtures,
   listChampionshipFixtures,
@@ -232,16 +233,29 @@ export const ChampionshipManagementPage: React.FC = () => {
         setLoading(false);
         return;
       }
-      const snap = await fetchSeasonManagementSnapshot(selectedTeamSeasonId);
+      const { data: snap, error: snapError } = await fetchSeasonManagementSnapshot(
+        selectedTeamSeasonId,
+      );
       if (cancelled) return;
-      const activeId = snap.active?.id ?? selectedTeamSeasonId;
+      if (snapError) {
+        setError(snapError);
+        setLoading(false);
+        return;
+      }
+      const selectedCard =
+        snap?.active?.id === selectedTeamSeasonId
+          ? snap.active
+          : snap?.draft?.id === selectedTeamSeasonId
+            ? snap.draft
+            : snap?.active ?? snap?.draft ?? null;
+      const activeId = selectedCard?.id ?? snap?.active?.id ?? selectedTeamSeasonId;
       setTeamSeasonId(activeId);
       const age =
-        (snap.active?.ageGroup ? `${snap.active.ageGroup}`.trim() : '') ||
-        (String(snap.active?.displayName ?? '').match(/\bU\s?\d{1,2}\b/i)?.[0] ?? '')
+        (selectedCard?.ageGroup ? `${selectedCard.ageGroup}`.trim() : '') ||
+        (String(selectedCard?.displayName ?? '').match(/\bU\s?\d{1,2}\b/i)?.[0] ?? '')
           .replace(/\s+/g, '')
           .toUpperCase();
-      const season = snap.active?.seasonName ? `${snap.active.seasonName}` : '';
+      const season = selectedCard?.seasonName ? `${selectedCard.seasonName}` : '';
       setAgeGroupLabel(age);
       setSeasonNameLabel(season);
       setSeasonLabel([age, season].filter(Boolean).join(' · ') || 'Aktive Saison');
@@ -570,6 +584,20 @@ export const ChampionshipManagementPage: React.FC = () => {
           return;
         }
         const fresh = listed.data ?? [];
+        // Meta frisch aus der team_season laden (nicht nur State — Fix leerer Header)
+        const meta = await fetchChampionshipPdfSeasonMeta(teamSeasonId);
+        const ageGroup = meta.ageGroup || ageGroupLabel || null;
+        const seasonName = meta.seasonName || seasonNameLabel || null;
+        if (meta.ageGroup) setAgeGroupLabel(meta.ageGroup);
+        if (meta.seasonName) setSeasonNameLabel(meta.seasonName);
+        if (import.meta.env.DEV) {
+          console.debug('[ChampionshipPDF]', {
+            generator: 'downloadChampionshipSchedulePdf@championshipPdf.ts',
+            ageGroup,
+            seasonName,
+            teamName: ourTeamName,
+          });
+        }
         let logoMap = catalogLogoMap;
         if (clubId) {
           try {
@@ -597,8 +625,8 @@ export const ChampionshipManagementPage: React.FC = () => {
           fixtures: fresh,
           mode: pdfMode,
           teamName: ourTeamName || 'Mannschaft',
-          ageGroup: ageGroupLabel || null,
-          seasonName: seasonNameLabel || null,
+          ageGroup,
+          seasonName,
           teamLogoUrl: getOurTeamLogoUrl(),
           opponentLogoUrls,
         });
