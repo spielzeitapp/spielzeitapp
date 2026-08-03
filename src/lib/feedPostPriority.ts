@@ -14,6 +14,8 @@ export const FEED_POST_PRIORITY = {
   matchday_tomorrow: 80,
   next_match: 70,
   trainer_post: 50,
+  championship_schedule: 55,
+  championship_match_changed: 60,
   video_post: 50,
   image_post: 50,
   default: 45,
@@ -160,6 +162,14 @@ export function getFeedPostPriority(
 
   if (pk === 'tournament_completion_manual' || mt === 'tournament_completion') {
     return FEED_POST_PRIORITY.trainer_post;
+  }
+
+  if (pk === 'championship_match_changed' || mt === 'championship_match_changed') {
+    return FEED_POST_PRIORITY.championship_match_changed;
+  }
+
+  if (pk === 'championship_schedule_published' || mt === 'championship_schedule') {
+    return FEED_POST_PRIORITY.championship_schedule;
   }
 
   if (pk === 'matchday_auto' || (mt === 'matchday' && parseMatchdayPayload(row.payload))) {

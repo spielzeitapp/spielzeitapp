@@ -72,7 +72,9 @@ export type ClassifiedFeedPost =
   | { kind: 'image'; post: TeamFeedPostDbRow }
   | { kind: 'video'; post: TeamFeedPostDbRow }
   | { kind: 'result'; post: ResultFeedPostRow }
-  | { kind: 'tournament_completion'; post: TeamFeedPostDbRow };
+  | { kind: 'tournament_completion'; post: TeamFeedPostDbRow }
+  | { kind: 'championship_schedule'; post: TeamFeedPostDbRow }
+  | { kind: 'championship_match_changed'; post: TeamFeedPostDbRow };
 
 export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost | null {
   const mt = (row.media_type ?? '').toLowerCase().trim();
@@ -82,6 +84,12 @@ export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost
   }
   if (mt === 'image' && row.media_url) {
     return { kind: 'image', post: row };
+  }
+  if (mt === 'championship_schedule' || pk === 'championship_schedule_published') {
+    return { kind: 'championship_schedule', post: row };
+  }
+  if (mt === 'championship_match_changed' || pk === 'championship_match_changed') {
+    return { kind: 'championship_match_changed', post: row };
   }
   if (mt === 'live' || pk === 'live_auto') {
     const lpl = parseLiveFeedPayload(row.payload);

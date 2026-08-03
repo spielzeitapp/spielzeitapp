@@ -29,6 +29,7 @@ import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { assertTeamSeasonWritable, getTeamSeasonWritableState } from '../lib/seasonTransition';
 import { safeOptionalText, safeText } from '../lib/safeText';
 import { getClubLogo, getOurTeamDisplayName, getOurTeamLogoUrl } from '../lib/teamLogos';
+import { maybePublishChampionshipMatchChangedFeed } from '../lib/championshipScheduleFeed';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
@@ -1327,6 +1328,33 @@ export const EventDetailPage: React.FC = () => {
       setSavingEdit(false);
       return;
     }
+
+    const wasPublishedChampionship =
+      String(editEvent.fixture_status ?? '').toLowerCase() === 'published';
+    if (wasPublishedChampionship) {
+      await maybePublishChampionshipMatchChangedFeed({
+        teamSeasonId: editEvent.team_season_id,
+        eventId: editEvent.id,
+        before: {
+          starts_at: editEvent.starts_at,
+          meeting_at: editEvent.meeting_at,
+          venue_id: editEvent.venue_id ?? null,
+          location: editEvent.location,
+          opponent: editEvent.opponent,
+          is_home: editEvent.is_home,
+        },
+        after: {
+          starts_at: startsAt,
+          meeting_at: meetingAt,
+          venue_id: editVenue?.id ?? null,
+          location: locationVal,
+          opponent: (editOpponent ?? '').trim() || editEvent.opponent,
+          is_home: editEvent.is_home,
+        },
+        ourTeamName: getOurTeamDisplayName(),
+      });
+    }
+
     setSavingEdit(false);
     closeEditModal();
     await loadEvent();

@@ -9,6 +9,10 @@ import { NextMatchFeedPostCard } from './NextMatchFeedPostCard';
 import { LiveFeedPostCard } from './LiveFeedPostCard';
 import { LineupFeedPostCard } from './LineupFeedPostCard';
 import { TournamentCompletionFeedPostCard } from './TournamentCompletionFeedPostCard';
+import {
+  ChampionshipMatchChangedFeedPostCard,
+  ChampionshipScheduleFeedPostCard,
+} from './ChampionshipScheduleFeedPostCard';
 
 type Props = {
   item: ClassifiedFeedPost;
@@ -90,6 +94,26 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
   if (item.kind === 'tournament_completion') {
     return (
       <TournamentCompletionFeedPostCard
+        post={item.post}
+        teamLabel={teamLabel}
+        staffCanDelete={staffCanDelete}
+        onFeedPostDeleted={onFeedPostDeleted}
+      />
+    );
+  }
+  if (item.kind === 'championship_schedule') {
+    return (
+      <ChampionshipScheduleFeedPostCard
+        post={item.post}
+        teamLabel={teamLabel}
+        staffCanDelete={staffCanDelete}
+        onFeedPostDeleted={onFeedPostDeleted}
+      />
+    );
+  }
+  if (item.kind === 'championship_match_changed') {
+    return (
+      <ChampionshipMatchChangedFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
         staffCanDelete={staffCanDelete}

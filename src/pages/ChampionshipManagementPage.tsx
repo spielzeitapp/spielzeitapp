@@ -29,6 +29,11 @@ import {
   uploadOpponentLogoFile,
 } from '../lib/opponentCatalog';
 import { downloadChampionshipSchedulePdf, type ChampionshipPdfMode } from '../lib/championshipPdf';
+import {
+  maybePublishChampionshipMatchChangedFeed,
+  maybePublishChampionshipScheduleFeed,
+  type ChampionshipMaterialSnapshot,
+} from '../lib/championshipScheduleFeed';
 import { normalizeOpponentKey } from '../lib/teamVenues';
 import { getOurTeamDisplayName, getOurTeamLogoUrl, PLACEHOLDER_LOGO } from '../lib/teamLogos';
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
@@ -41,6 +46,7 @@ import {
   utcIsoToViennaTimeHHmm,
 } from '../lib/viennaTime';
 import type { VenueRow } from '../lib/venues';
+import { locationTextFromVenue } from '../lib/venues';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
@@ -343,6 +349,31 @@ export const ChampionshipManagementPage: React.FC = () => {
     const meetupRaw = editMeetup.trim();
     const meetingAt = meetupRaw ? meetupUtcIsoOnViennaEventDay(startsAt, meetupRaw) : null;
 
+    const beforeSnap: ChampionshipMaterialSnapshot = {
+      starts_at: editFixture.starts_at,
+      meeting_at: editFixture.meeting_at,
+      venue_id: editFixture.venue_id,
+      location: editFixture.location,
+      opponent: editFixture.opponent,
+      is_home: editFixture.is_home,
+    };
+    const afterSnap: ChampionshipMaterialSnapshot = {
+      starts_at: startsAt,
+      meeting_at: meetingAt,
+      venue_id: editVenue
+        ? editVenue.id
+        : editLocationName.trim() || editLocationAddress.trim()
+          ? null
+          : editFixture.venue_id,
+      location: editVenue
+        ? locationTextFromVenue(editVenue)
+        : editLocationName.trim() || editLocationAddress.trim()
+          ? [editLocationName.trim(), editLocationAddress.trim()].filter(Boolean).join(', ')
+          : editFixture.location,
+      opponent: editFixture.opponent,
+      is_home: editFixture.is_home,
+    };
+
     setBusy(true);
     setEditError(null);
 
@@ -364,6 +395,16 @@ export const ChampionshipManagementPage: React.FC = () => {
       setBusy(false);
       setEditError(res.error);
       return;
+    }
+
+    if (isPublished) {
+      await maybePublishChampionshipMatchChangedFeed({
+        teamSeasonId,
+        eventId: editFixture.id,
+        before: beforeSnap,
+        after: afterSnap,
+        ourTeamName,
+      });
     }
 
     const logoTrim = editLogoUrl.trim();
@@ -424,6 +465,13 @@ export const ChampionshipManagementPage: React.FC = () => {
     setBusy(true);
     setError(null);
     const res = await publishChampionshipFixture(id);
+    if (!res.error) {
+      await maybePublishChampionshipScheduleFeed({
+        teamSeasonId,
+        ageGroup: ageGroupLabel || null,
+        seasonName: seasonNameLabel || null,
+      });
+    }
     setBusy(false);
     setConfirmPublishId(null);
     setPublishVenueWarn(false);
@@ -442,13 +490,22 @@ export const ChampionshipManagementPage: React.FC = () => {
     setBusy(true);
     setError(null);
     const res = await publishAllAgreedChampionshipFixtures(teamSeasonId);
+    let feedNote = '';
+    if (!res.error && res.published > 0) {
+      const feed = await maybePublishChampionshipScheduleFeed({
+        teamSeasonId,
+        ageGroup: ageGroupLabel || null,
+        seasonName: seasonNameLabel || null,
+      });
+      if (feed.posted) feedNote = ' Ein Feed-Hinweis wurde erstellt.';
+    }
     setBusy(false);
     setConfirmBulkPublish(false);
     if (res.error) {
       setError(res.error);
       return;
     }
-    setInfo(`${res.published} vereinbarte Spiele veröffentlicht. Kein automatischer Feed-Spam.`);
+    setInfo(`${res.published} vereinbarte Spiele veröffentlicht.${feedNote}`);
     await reload(teamSeasonId);
   };
 
@@ -488,15 +545,34 @@ export const ChampionshipManagementPage: React.FC = () => {
 
   const onDownloadPdf = () => {
     void (async () => {
+      if (!teamSeasonId) return;
       setBusy(true);
+      setError(null);
+      // Immer frisch aus der DB — kein gecachtes/statisches PDF
+      const listed = await listChampionshipFixtures(teamSeasonId);
+      if (listed.error) {
+        setBusy(false);
+        setError(listed.error);
+        return;
+      }
+      const fresh = listed.data;
+      let logoMap = catalogLogoMap;
+      if (clubId) {
+        logoMap = await fetchOpponentCatalogLogoMap(clubId);
+        setCatalogLogoMap(logoMap);
+      }
       const opponentLogoUrls: Record<string, string> = {};
-      for (const f of fixtures) {
+      for (const f of fresh) {
         const name = (f.opponent || '').trim();
         if (!name || opponentLogoUrls[name]) continue;
-        opponentLogoUrls[name] = logoFor(f);
+        opponentLogoUrls[name] = resolveDisplayOpponentLogo({
+          opponent: f.opponent,
+          eventLogoUrl: f.opponent_logo_url,
+          catalogLogoUrl: logoMap.get(normalizeOpponentKey(f.opponent)),
+        });
       }
       const res = await downloadChampionshipSchedulePdf({
-        fixtures,
+        fixtures: fresh,
         mode: pdfMode,
         teamName: ourTeamName,
         ageGroup: ageGroupLabel || null,
@@ -509,6 +585,7 @@ export const ChampionshipManagementPage: React.FC = () => {
         setError(res.error);
         return;
       }
+      setFixtures(fresh);
       setPdfOpen(false);
     })();
   };
@@ -647,7 +724,7 @@ export const ChampionshipManagementPage: React.FC = () => {
               </PremiumButton>
               <p className="text-xs text-[var(--text-sub)]">
                 Offen und vereinbart bleiben intern. Erst „veröffentlichen“ macht Termine für
-                Eltern sichtbar. Kein automatischer Push/Feed-Spam.
+                Eltern sichtbar. Bei Erstveröffentlichung erscheint höchstens ein Feed-Hinweis.
               </p>
             </div>
           ) : null}
