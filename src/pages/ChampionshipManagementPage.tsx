@@ -661,7 +661,6 @@ export const ChampionshipManagementPage: React.FC = () => {
                     value={editKickoff}
                     onChange={setEditKickoff}
                     disabled={busy}
-                    placeholder="--:--"
                     label="Beginn"
                   />
                   {!editKickoff ? (
@@ -675,7 +674,6 @@ export const ChampionshipManagementPage: React.FC = () => {
                     value={editMeetup}
                     onChange={setEditMeetup}
                     disabled={busy}
-                    placeholder="--:--"
                     label="Treffpunkt"
                   />
                 </div>

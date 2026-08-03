@@ -1,5 +1,4 @@
 import React from 'react';
-import { TimeInput24h } from '../ui/TimeInput24h';
 import { cn } from '../../ui/lib/cn';
 import { EVENT_FORM_INPUT_CLASS } from './eventFormStyles';
 
@@ -9,13 +8,14 @@ type Props = {
   onChange: (hhmm: string) => void;
   className?: string;
   disabled?: boolean;
-  /** z. B. „Beginn“ / „Treffpunkt“ */
+  required?: boolean;
+  /** z. B. „Beginn“ / „Treffpunkt“ — aria-label */
   label?: string;
-  placeholder?: string;
 };
 
 /**
- * 24h-Zeit wie „Neuer Termin“ / Meisterschaft: gemeinsamer TimeInput24h (HH:mm, kein AM/PM).
+ * Uhrzeit wie „Neuer Termin“ / Meisterschaft: natives `type="time"` (iOS-Wheel).
+ * Wert intern immer `HH:mm`. Kein eigener Picker-Dialog.
  */
 export function EventTimeField({
   id,
@@ -23,18 +23,21 @@ export function EventTimeField({
   onChange,
   className,
   disabled,
+  required,
   label = 'Uhrzeit',
-  placeholder = '--:--',
 }: Props) {
   return (
-    <TimeInput24h
+    <input
       id={id}
-      value={value}
-      onChange={onChange}
+      type="time"
+      lang="de-AT"
+      step={60}
+      required={required}
       disabled={disabled}
-      label={label}
-      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
       className={cn(EVENT_FORM_INPUT_CLASS, className)}
+      aria-label={label}
     />
   );
 }
