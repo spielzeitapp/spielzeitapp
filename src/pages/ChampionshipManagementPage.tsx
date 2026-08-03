@@ -593,6 +593,7 @@ export const ChampionshipManagementPage: React.FC = () => {
         const meta = await fetchChampionshipPdfSeasonMeta(teamSeasonId);
         const ageGroup = meta.ageGroup || ageGroupLabel || null;
         const seasonName = meta.seasonName || seasonNameLabel || null;
+        const seasonPhase = meta.seasonPhase;
         if (meta.ageGroup) setAgeGroupLabel(meta.ageGroup);
         if (meta.seasonName) setSeasonNameLabel(meta.seasonName);
         if (import.meta.env.DEV) {
@@ -600,6 +601,7 @@ export const ChampionshipManagementPage: React.FC = () => {
             generator: 'downloadChampionshipSchedulePdf@championshipPdf.ts',
             ageGroup,
             seasonName,
+            seasonPhase,
             teamName: ourTeamName,
           });
         }
@@ -632,6 +634,7 @@ export const ChampionshipManagementPage: React.FC = () => {
           teamName: ourTeamName || 'Mannschaft',
           ageGroup,
           seasonName,
+          seasonPhase,
           teamLogoUrl: getOurTeamLogoUrl(),
           opponentLogoUrls,
         });
@@ -669,6 +672,7 @@ export const ChampionshipManagementPage: React.FC = () => {
         const meta = await fetchChampionshipPdfSeasonMeta(teamSeasonId);
         const ageGroup = meta.ageGroup || ageGroupLabel || null;
         const seasonName = meta.seasonName || seasonNameLabel || null;
+        const seasonPhase = meta.seasonPhase;
         if (meta.ageGroup) setAgeGroupLabel(meta.ageGroup);
         if (meta.seasonName) setSeasonNameLabel(meta.seasonName);
 
@@ -716,6 +720,7 @@ export const ChampionshipManagementPage: React.FC = () => {
             generator: 'downloadSeasonPlanPdf@seasonPlanPdf.ts',
             ageGroup,
             seasonName,
+            seasonPhase,
             teamName: ourTeamName,
             rowCount: loaded.rows.length,
           });
@@ -726,6 +731,7 @@ export const ChampionshipManagementPage: React.FC = () => {
           teamName: ourTeamName || 'Mannschaft',
           ageGroup,
           seasonName,
+          seasonPhase,
           teamLogoUrl: getOurTeamLogoUrl(),
           opponentLogoUrls,
         });

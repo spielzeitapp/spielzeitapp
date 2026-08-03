@@ -7,9 +7,12 @@ import { canPrepareNextSeason, SEASON_SOFT_LOCK_MESSAGE } from '../lib/seasonLif
 import {
   fetchSeasonManagementSnapshot,
   mapPrepareDraftError,
+  updateTeamSeasonPhase,
   type SeasonCardModel,
   type SeasonManagementSnapshot,
 } from '../lib/seasonManagementData';
+import type { SeasonPhase } from '../lib/seasonPhase';
+import { parseSeasonYears } from '../lib/seasonPhase';
 import {
   archiveTeamSeason,
   completeSeasonTransition,
@@ -75,6 +78,22 @@ function SeasonCard({
       {model.ageGroup ? (
         <p className="text-sm text-white/65">
           Altersklasse: <span className="font-semibold text-white/90">{model.ageGroup}</span>
+        </p>
+      ) : null}
+
+      {model.seasonPhaseLabel ? (
+        <p className="text-sm text-white/65">
+          Saisonphase:{' '}
+          <span className="font-semibold text-white/90">
+            {model.seasonPhaseLabel}
+            {(() => {
+              const years = parseSeasonYears(model.seasonName);
+              if (!years) return '';
+              if (model.seasonPhase === 'autumn') return ` ${years.start}`;
+              if (model.seasonPhase === 'spring') return ` ${years.end}`;
+              return '';
+            })()}
+          </span>
         </p>
       ) : null}
 
@@ -255,6 +274,29 @@ export const SeasonManagementPage: React.FC = () => {
     await reload(res.newTeamSeasonId);
   };
 
+  const onSetSeasonPhase = async (phase: SeasonPhase | null) => {
+    const id = snapshot?.active?.id;
+    if (!id) return;
+    if (snapshot.active?.seasonPhase === phase) return;
+    setActionError(null);
+    setSuccessMsg(null);
+    setBusy(true);
+    const res = await updateTeamSeasonPhase(id, phase);
+    setBusy(false);
+    if (res.error) {
+      setActionError(res.error);
+      return;
+    }
+    setSuccessMsg(
+      phase === 'autumn'
+        ? 'Saisonphase: Herbst'
+        : phase === 'spring'
+          ? 'Saisonphase: Frühjahr'
+          : 'Saisonphase entfernt',
+    );
+    await reload(id);
+  };
+
   const onPrepareConfirm = async (result: {
     seasonName: string;
     ageGroup: string;
@@ -377,6 +419,70 @@ export const SeasonManagementPage: React.FC = () => {
                     <ArrowRightCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden />
                   </PremiumButton>
                 </Link>
+              </PremiumCard>
+              <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3">
+                <div>
+                  <h2 className="text-[15px] font-bold tracking-tight text-white">Saisonphase</h2>
+                  <p className="mt-1 text-sm text-white/55">
+                    Kennzeichnet den Plan als Herbst oder Frühjahr — ohne eine zweite Saison
+                    anzulegen.
+                  </p>
+                </div>
+                <div className="flex min-w-0 flex-col gap-2">
+                  {(
+                    [
+                      { value: 'autumn' as const, label: 'Herbst' },
+                      { value: 'spring' as const, label: 'Frühjahr' },
+                    ] as const
+                  ).map((opt) => {
+                    const selected = snapshot.active?.seasonPhase === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        disabled={busy}
+                        className={cn(
+                          'flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors',
+                          selected
+                            ? 'border-emerald-500/45 bg-emerald-950/40 text-emerald-50'
+                            : 'border-white/12 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]',
+                          busy && 'opacity-60',
+                        )}
+                        onClick={() => void onSetSeasonPhase(opt.value)}
+                      >
+                        <span
+                          className={cn(
+                            'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                            selected ? 'border-emerald-300 bg-emerald-400' : 'border-white/35',
+                          )}
+                          aria-hidden
+                        >
+                          {selected ? (
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-950" />
+                          ) : null}
+                        </span>
+                        <span className="font-medium">
+                          {opt.label}
+                          {(() => {
+                            const years = parseSeasonYears(snapshot.active?.seasonName);
+                            if (!years) return '';
+                            return opt.value === 'autumn' ? ` ${years.start}` : ` ${years.end}`;
+                          })()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {snapshot.active?.seasonPhase ? (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="min-h-[44px] text-left text-xs text-white/50 underline-offset-2 hover:text-white/75 hover:underline disabled:opacity-60"
+                      onClick={() => void onSetSeasonPhase(null)}
+                    >
+                      Phase entfernen
+                    </button>
+                  ) : null}
+                </div>
               </PremiumCard>
               <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3">
                 <div>

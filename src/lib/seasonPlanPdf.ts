@@ -10,6 +10,11 @@ import {
   loadImageDataUrl,
   triggerPdfBlobDownload,
 } from './championshipPdf';
+import {
+  seasonPhaseFilenameSlug,
+  seasonPhaseHeaderSuffix,
+  type SeasonPhase,
+} from './seasonPhase';
 import { getOurTeamLogoUrl, PLACEHOLDER_LOGO } from './teamLogos';
 import { isViennaPlaceholderKickoff, utcIsoToViennaTimeHHmm } from './viennaTime';
 
@@ -40,6 +45,7 @@ export type SeasonPlanPdfOptions = {
   teamName: string;
   ageGroup?: string | null;
   seasonName?: string | null;
+  seasonPhase?: SeasonPhase | null;
   teamLogoUrl?: string | null;
   brandLogoUrl?: string | null;
   /** Default false — Trainings nur bei bewusster Auswahl. */
@@ -110,14 +116,16 @@ function headerSubtitle(seasonName: string | null | undefined, teamName: string)
   return [season, team].filter(Boolean).join(' · ');
 }
 
-/** Eine Hauptzeile: U12 (rot, groß) + „ – SAISONPLAN“ (schwarz). */
+/** Eine Hauptzeile: U12 (rot) + „ – SAISONPLAN[ HERBST 2026]“ (schwarz). */
 function drawSeasonPlanHeaderTitle(
   doc: jsPDF,
   x: number,
   baselineY: number,
   ageGroup?: string | null,
+  phaseSuffix = '',
 ): void {
   const age = String(ageGroup ?? '').trim();
+  const titleRest = ` – SAISONPLAN${phaseSuffix}`;
   doc.setFont('helvetica', 'bold');
   if (age) {
     doc.setFontSize(19);
@@ -126,12 +134,12 @@ function drawSeasonPlanHeaderTitle(
     const ageW = doc.getTextWidth(age);
     doc.setFontSize(17);
     doc.setTextColor(20, 20, 20);
-    doc.text(' – SAISONPLAN', x + ageW, baselineY);
+    doc.text(titleRest, x + ageW, baselineY);
     return;
   }
   doc.setFontSize(17);
   doc.setTextColor(20, 20, 20);
-  doc.text('SAISONPLAN', x, baselineY);
+  doc.text(`SAISONPLAN${phaseSuffix}`, x, baselineY);
 }
 
 function slugify(s: string): string {
@@ -148,12 +156,14 @@ export function buildSeasonPlanPdfFilename(opts: {
   teamName: string;
   ageGroup?: string | null;
   seasonName?: string | null;
+  seasonPhase?: SeasonPhase | null;
 }): string {
   const parts = [
     'saisonplan',
     slugify(opts.teamName),
     opts.ageGroup ? slugify(opts.ageGroup) : '',
     opts.seasonName ? slugify(opts.seasonName) : '',
+    seasonPhaseFilenameSlug(opts.seasonPhase),
   ].filter(Boolean);
   return `${parts.join('-')}.pdf`;
 }
@@ -223,6 +233,7 @@ export async function downloadSeasonPlanPdf(
     teamName: opts.teamName || 'mannschaft',
     ageGroup: opts.ageGroup,
     seasonName: opts.seasonName,
+    seasonPhase: opts.seasonPhase,
   });
 
   try {
@@ -268,10 +279,11 @@ export async function downloadSeasonPlanPdf(
     safeAddImage(doc, ourLogoData, margin, y, headerLogo, headerLogo);
 
     const textX = margin + headerLogo + 4;
-    drawSeasonPlanHeaderTitle(doc, textX, y + 7, opts.ageGroup);
+    const phaseSuffix = seasonPhaseHeaderSuffix(opts.seasonPhase ?? null, opts.seasonName);
+    drawSeasonPlanHeaderTitle(doc, textX, y + 7, opts.ageGroup, phaseSuffix);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10.5);
+    doc.setFontSize(11);
     doc.setTextColor(45, 45, 45);
     doc.text(headerSubtitle(opts.seasonName, ourTeamName), textX, y + 13.5);
 
@@ -326,29 +338,29 @@ export async function downloadSeasonPlanPdf(
         theme: 'grid',
         styles: {
           font: 'helvetica',
-          fontSize: 7.5,
-          cellPadding: 2,
+          fontSize: 10,
+          cellPadding: 2.4,
           textColor: [25, 25, 25],
           lineColor: [170, 170, 170],
           lineWidth: 0.15,
           overflow: 'linebreak',
           valign: 'middle',
-          minCellHeight: 12,
+          minCellHeight: 14.5,
         },
         headStyles: {
           fillColor: [236, 236, 236],
           textColor: [20, 20, 20],
           fontStyle: 'bold',
-          fontSize: 7.5,
+          fontSize: 9.5,
         },
         alternateRowStyles: { fillColor: [248, 248, 248] },
         columnStyles: {
-          0: { cellWidth: colDatum, halign: 'center' },
-          1: { cellWidth: colMeetup, halign: 'center' },
-          2: { cellWidth: colKick, halign: 'center' },
-          3: { cellWidth: colTyp, halign: 'center', fontSize: 6.5, fontStyle: 'bold' },
+          0: { cellWidth: colDatum, halign: 'center', fontSize: 10 },
+          1: { cellWidth: colMeetup, halign: 'center', fontSize: 10 },
+          2: { cellWidth: colKick, halign: 'center', fontSize: 10 },
+          3: { cellWidth: colTyp, halign: 'center', fontSize: 8.5, fontStyle: 'bold' },
           4: { cellWidth: colTermin, cellPadding: 1.5 },
-          5: { cellWidth: colVenue, fontSize: 7 },
+          5: { cellWidth: colVenue, fontSize: 9.5 },
         },
         margin: { left: margin, right: margin, bottom: 12 },
         didDrawCell: (data) => {
@@ -358,10 +370,10 @@ export async function downloadSeasonPlanPdf(
 
           if (row.kind === 'tournament') {
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(8);
+            doc.setFontSize(10.5);
             doc.setTextColor(25, 25, 25);
             const pad = 2;
-            const textY = data.cell.y + data.cell.height / 2 + 2.2;
+            const textY = data.cell.y + data.cell.height / 2 + 2.4;
             const maxW = data.cell.width - pad * 2;
             let label = row.title.trim() || 'Turnier';
             while (label.length > 3 && doc.getTextWidth(label) > maxW) {

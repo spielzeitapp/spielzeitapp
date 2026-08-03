@@ -5,6 +5,11 @@ import {
   type TeamSeasonLifecycleStatus,
 } from './seasonLifecycle';
 import { hasDraftSeasonForSource } from './seasonPreparation';
+import {
+  normalizeSeasonPhase,
+  seasonPhaseLabelDe,
+  type SeasonPhase,
+} from './seasonPhase';
 
 export type SeasonCardModel = {
   id: string;
@@ -13,6 +18,8 @@ export type SeasonCardModel = {
   statusLabel: string;
   ageGroup: string | null;
   seasonName: string | null;
+  seasonPhase: SeasonPhase | null;
+  seasonPhaseLabel: string | null;
   teamName: string | null;
   preparedFromLabel: string | null;
 };
@@ -30,6 +37,7 @@ type TeamSeasonRow = {
   status?: string | null;
   display_name?: string | null;
   age_group?: string | null;
+  season_phase?: string | null;
   prepared_from_team_season_id?: string | null;
   teams?: { name?: string | null } | { name?: string | null }[] | null;
   seasons?: { name?: string | null } | { name?: string | null }[] | null;
@@ -50,6 +58,7 @@ function rowToCard(row: TeamSeasonRow, preparedFromLabel: string | null): Season
     (teamName && seasonName ? `${teamName} · ${seasonName}` : teamName || seasonName || 'Saison');
 
   const status = normalizeTeamSeasonStatus(row.status);
+  const seasonPhase = normalizeSeasonPhase(row.season_phase);
 
   return {
     id: row.id,
@@ -58,6 +67,8 @@ function rowToCard(row: TeamSeasonRow, preparedFromLabel: string | null): Season
     statusLabel: getSeasonStatusLabel(row.status),
     ageGroup: row.age_group?.trim() || null,
     seasonName,
+    seasonPhase,
+    seasonPhaseLabel: seasonPhaseLabelDe(seasonPhase),
     teamName,
     preparedFromLabel,
   };
@@ -70,7 +81,8 @@ function isMigrationError(message: string): boolean {
     (m.includes('status') ||
       m.includes('display_name') ||
       m.includes('age_group') ||
-      m.includes('prepared_from'))
+      m.includes('prepared_from') ||
+      m.includes('season_phase'))
   );
 }
 
@@ -135,6 +147,7 @@ export async function fetchSeasonManagementSnapshot(
       status,
       display_name,
       age_group,
+      season_phase,
       prepared_from_team_season_id,
       teams ( name ),
       seasons ( name )
@@ -142,14 +155,38 @@ export async function fetchSeasonManagementSnapshot(
     )
     .eq('team_id', teamId);
 
-  if (listErr) {
+  let all: TeamSeasonRow[] = [];
+  if (listErr && /season_phase|column|schema cache/i.test(listErr.message)) {
+    const fallback = await supabase
+      .from('team_seasons')
+      .select(
+        `
+      id,
+      team_id,
+      status,
+      display_name,
+      age_group,
+      prepared_from_team_season_id,
+      teams ( name ),
+      seasons ( name )
+    `,
+      )
+      .eq('team_id', teamId);
+    if (fallback.error) {
+      const msg = isMigrationError(fallback.error.message)
+        ? 'Die Saisonverwaltung ist auf diesem System noch nicht vollständig freigeschaltet.'
+        : fallback.error.message;
+      return { data: null, error: msg };
+    }
+    all = (fallback.data ?? []) as TeamSeasonRow[];
+  } else if (listErr) {
     const msg = isMigrationError(listErr.message)
       ? 'Die Saisonverwaltung ist auf diesem System noch nicht vollständig freigeschaltet.'
       : listErr.message;
     return { data: null, error: msg };
+  } else {
+    all = (rows ?? []) as TeamSeasonRow[];
   }
-
-  const all = (rows ?? []) as TeamSeasonRow[];
   const byId = new Map(all.map((r) => [r.id, r]));
 
   const activeCandidates = all.filter((r) => normalizeTeamSeasonStatus(r.status) === 'active');
@@ -190,4 +227,29 @@ export async function fetchSeasonManagementSnapshot(
     },
     error: null,
   };
+}
+
+/** Setzt Saisonphase (Herbst/Frühjahr) — ohne Monatsraten. */
+export async function updateTeamSeasonPhase(
+  teamSeasonId: string,
+  phase: SeasonPhase | null,
+): Promise<{ error: string | null }> {
+  const id = teamSeasonId?.trim();
+  if (!id) return { error: 'Keine Saison gewählt.' };
+
+  const { error } = await supabase
+    .from('team_seasons')
+    .update({ season_phase: phase })
+    .eq('id', id);
+
+  if (error) {
+    if (/season_phase|column|schema cache/i.test(error.message)) {
+      return {
+        error:
+          'Saisonphase ist auf diesem System noch nicht freigeschaltet. Bitte Migration 20260803180000_team_season_phase.sql ausführen.',
+      };
+    }
+    return { error: error.message };
+  }
+  return { error: null };
 }

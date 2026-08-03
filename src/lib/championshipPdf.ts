@@ -2,6 +2,11 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import brandLogoHeader from '../assets/branding/spielzeitapp-header.png';
 import type { ChampionshipFixture } from './championshipFixtures';
+import {
+  seasonPhaseFilenameSlug,
+  seasonPhaseHeaderSuffix,
+  type SeasonPhase,
+} from './seasonPhase';
 import { getOurTeamLogoUrl, PLACEHOLDER_LOGO } from './teamLogos';
 import { isViennaPlaceholderKickoff, utcIsoToViennaTimeHHmm } from './viennaTime';
 
@@ -64,14 +69,16 @@ function championshipHeaderSubtitle(
   return [season, team].filter(Boolean).join(' · ');
 }
 
-/** Eine Hauptzeile: U12 (rot, groß) + „ – MEISTERSCHAFTSSPIELPLAN“ (schwarz). */
+/** Eine Hauptzeile: U12 (rot) + „ – MEISTERSCHAFTSSPIELPLAN[ HERBST 2026]“ (schwarz). */
 function drawChampionshipHeaderTitle(
   doc: jsPDF,
   x: number,
   baselineY: number,
   ageGroup?: string | null,
+  phaseSuffix = '',
 ): void {
   const age = String(ageGroup ?? '').trim();
+  const titleRest = ` – MEISTERSCHAFTSSPIELPLAN${phaseSuffix}`;
   doc.setFont('helvetica', 'bold');
   if (age) {
     doc.setFontSize(19);
@@ -80,12 +87,12 @@ function drawChampionshipHeaderTitle(
     const ageW = doc.getTextWidth(age);
     doc.setFontSize(17);
     doc.setTextColor(20, 20, 20);
-    doc.text(' – MEISTERSCHAFTSSPIELPLAN', x + ageW, baselineY);
+    doc.text(titleRest, x + ageW, baselineY);
     return;
   }
   doc.setFontSize(17);
   doc.setTextColor(20, 20, 20);
-  doc.text('MEISTERSCHAFTSSPIELPLAN', x, baselineY);
+  doc.text(`MEISTERSCHAFTSSPIELPLAN${phaseSuffix}`, x, baselineY);
 }
 
 /** Heim links, Gast rechts (Textform, z. B. Feed). */
@@ -113,6 +120,7 @@ export function buildChampionshipPdfFilename(opts: {
   teamName: string;
   ageGroup?: string | null;
   seasonName?: string | null;
+  seasonPhase?: SeasonPhase | null;
   mode: ChampionshipPdfMode;
 }): string {
   const parts = [
@@ -120,6 +128,7 @@ export function buildChampionshipPdfFilename(opts: {
     slugify(opts.teamName),
     opts.ageGroup ? slugify(opts.ageGroup) : '',
     opts.seasonName ? slugify(opts.seasonName) : '',
+    seasonPhaseFilenameSlug(opts.seasonPhase),
   ].filter(Boolean);
   const base = parts.join('-');
   return opts.mode === 'published' ? `${base}.pdf` : `${base}-arbeitsstand.pdf`;
@@ -260,6 +269,16 @@ function truncateName(doc: jsPDF, name: string, maxWidth: number): string {
   return `${s}…`;
 }
 
+/** Vereinsname max. 2 Zeilen; letzte Zeile ggf. gekürzt. */
+function fitClubNameLines(doc: jsPDF, name: string, maxWidth: number, maxLines = 2): string[] {
+  const raw = name.trim() || '—';
+  const split = doc.splitTextToSize(raw, maxWidth) as string[];
+  if (split.length <= maxLines) return split.length ? split : [raw];
+  const kept = split.slice(0, maxLines);
+  kept[maxLines - 1] = truncateName(doc, kept[maxLines - 1].replace(/…$/, ''), maxWidth);
+  return kept;
+}
+
 /**
  * ÖFB-Layout in der Begegnungszelle:
  * Heimname (rechts) | Heimlogo | – | Gastlogo | Gastname (links)
@@ -276,14 +295,14 @@ export function drawOefbEncounterCell(opts: {
   awayLogo: string | null | undefined;
 }): void {
   const { doc, cellX, cellY, cellW, cellH, homeName, awayName, homeLogo, awayLogo } = opts;
-  const logoMm = 8;
-  const gap = 1.6;
+  const logoMm = 9.2;
+  const gap = 1.5;
   const dash = '–';
-  const padX = 2;
+  const padX = 1.8;
   const cy = cellY + (cellH - logoMm) / 2;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
   doc.setTextColor(25, 25, 25);
 
   const centerX = cellX + cellW / 2;
@@ -292,16 +311,28 @@ export function drawOefbEncounterCell(opts: {
   const awayLogoX = centerX + dashW / 2 + gap;
   const dashX = centerX;
 
-  const nameMax = Math.max(18, homeLogoX - (cellX + padX) - gap);
-  const homeLabel = truncateName(doc, homeName, nameMax);
-  const awayLabel = truncateName(doc, awayName, nameMax);
+  const nameMax = Math.max(16, homeLogoX - (cellX + padX) - gap);
+  const homeLines = fitClubNameLines(doc, homeName, nameMax, 2);
+  const awayLines = fitClubNameLines(doc, awayName, nameMax, 2);
+  const lineH = 3.6;
+  const homeBlockH = homeLines.length * lineH;
+  const awayBlockH = awayLines.length * lineH;
+  const homeStartY = cellY + (cellH - homeBlockH) / 2 + 2.6;
+  const awayStartY = cellY + (cellH - awayBlockH) / 2 + 2.6;
+  const dashY = cellY + cellH / 2 + 2.4;
 
-  const textY = cellY + cellH / 2 + 2.2;
-  doc.text(homeLabel, homeLogoX - gap, textY, { align: 'right' });
+  homeLines.forEach((line, i) => {
+    doc.text(line, homeLogoX - gap, homeStartY + i * lineH, { align: 'right' });
+  });
   safeAddImage(doc, homeLogo, homeLogoX, cy, logoMm, logoMm);
-  doc.text(dash, dashX, textY, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10.5);
+  doc.text(dash, dashX, dashY, { align: 'center' });
   safeAddImage(doc, awayLogo, awayLogoX, cy, logoMm, logoMm);
-  doc.text(awayLabel, awayLogoX + logoMm + gap, textY, { align: 'left' });
+  doc.setFont('helvetica', 'bold');
+  awayLines.forEach((line, i) => {
+    doc.text(line, awayLogoX + logoMm + gap, awayStartY + i * lineH, { align: 'left' });
+  });
 }
 
 /**
@@ -315,6 +346,7 @@ export async function downloadChampionshipSchedulePdf(opts: {
   teamName: string;
   ageGroup?: string | null;
   seasonName?: string | null;
+  seasonPhase?: SeasonPhase | null;
   teamLogoUrl?: string | null;
   brandLogoUrl?: string | null;
   /** Gegnername → Logo-URL (Catalog/Event/public) */
@@ -324,6 +356,7 @@ export async function downloadChampionshipSchedulePdf(opts: {
     teamName: opts.teamName || 'mannschaft',
     ageGroup: opts.ageGroup,
     seasonName: opts.seasonName,
+    seasonPhase: opts.seasonPhase,
     mode: opts.mode,
   });
 
@@ -375,11 +408,12 @@ export async function downloadChampionshipSchedulePdf(opts: {
 
     const textX = margin + headerLogo + 4;
     const subtitle = championshipHeaderSubtitle(opts.seasonName, ourTeamName);
+    const phaseSuffix = seasonPhaseHeaderSuffix(opts.seasonPhase ?? null, opts.seasonName);
 
-    drawChampionshipHeaderTitle(doc, textX, y + 7, opts.ageGroup);
+    drawChampionshipHeaderTitle(doc, textX, y + 7, opts.ageGroup, phaseSuffix);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10.5);
+    doc.setFontSize(11);
     doc.setTextColor(45, 45, 45);
     doc.text(subtitle, textX, y + 13.5);
 
@@ -431,28 +465,28 @@ export async function downloadChampionshipSchedulePdf(opts: {
         theme: 'grid',
         styles: {
           font: 'helvetica',
-          fontSize: 8,
-          cellPadding: 2.2,
+          fontSize: 10,
+          cellPadding: 2.4,
           textColor: [25, 25, 25],
           lineColor: [170, 170, 170],
           lineWidth: 0.15,
           overflow: 'linebreak',
           valign: 'middle',
-          minCellHeight: 12,
+          minCellHeight: 14,
         },
         headStyles: {
           fillColor: [236, 236, 236],
           textColor: [20, 20, 20],
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 9.5,
         },
         alternateRowStyles: { fillColor: [248, 248, 248] },
         columnStyles: {
-          0: { cellWidth: colDatum, halign: 'center' },
-          1: { cellWidth: colMeetup, halign: 'center' },
-          2: { cellWidth: colKick, halign: 'center' },
+          0: { cellWidth: colDatum, halign: 'center', fontSize: 10 },
+          1: { cellWidth: colMeetup, halign: 'center', fontSize: 10 },
+          2: { cellWidth: colKick, halign: 'center', fontSize: 10 },
           3: { cellWidth: colEncounter, cellPadding: 1.5 },
-          4: { cellWidth: colVenue, fontSize: 7.5 },
+          4: { cellWidth: colVenue, fontSize: 9.5 },
         },
         margin: { left: margin, right: margin, bottom: 12 },
         didDrawCell: (data) => {
