@@ -443,7 +443,7 @@ export function VenuePicker({
       : null;
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 max-w-full space-y-3 overflow-x-hidden">
       <div>
         <label htmlFor="venue-picker-select" className={labelClass}>
           Spielort

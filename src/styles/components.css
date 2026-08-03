@@ -577,7 +577,7 @@
 
 /* Scroll-Container = Sheet, damit sticky Header/Footer im gleichen Scroll-Kontext liegen */
 .modalSheet {
-  width: 100%;
+  width: calc(100% - 24px);
   max-width: 560px;
   max-height: 100%;
   margin: 0 12px;
@@ -593,6 +593,8 @@
   display: block;
   position: relative;
   z-index: 1000;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 /* Mobile: Sheet endet über BottomNav, Safe Area berücksichtigt */
