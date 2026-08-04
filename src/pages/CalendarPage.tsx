@@ -6,6 +6,11 @@ import { isParentVisibleFixtureStatus } from '../lib/championshipVisibility';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { buildTeamIcsFeedUrl, resolveTeamCalendarFeedSegment, teamCalendarDisplayTitle } from '../lib/calendarFeed';
+import {
+  formatTeamSeasonCompactSwitcherLabel,
+  isSeasonActive,
+  resolveTeamSeasonLabelParts,
+} from '../lib/seasonLifecycle';
 import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
 import {
   notesTitleAndDescription,
@@ -18,6 +23,35 @@ import { CalendarListView } from './calendar/CalendarListView';
 import { CalendarWeekView } from './calendar/CalendarWeekView';
 import { CalendarMonthView } from './calendar/CalendarMonthView';
 
+/** Saisonlabel für Kalender-Events/Dropdown — nie raw teams.name allein. */
+function teamSeasonLabelFromSessionRow(ts: {
+  display_name?: string | null;
+  age_group?: string | null;
+  status?: string | null;
+  team?: { name?: string | null } | null;
+  teams?: { name?: string | null } | Array<{ name?: string | null }> | null;
+  season?: { name?: string | null } | null;
+  seasons?: { name?: string | null } | Array<{ name?: string | null }> | null;
+} | null | undefined): { teamLine: string; compact: string } | null {
+  if (!ts) return null;
+  const teamObj = ts.team ?? (Array.isArray(ts.teams) ? ts.teams[0] : ts.teams);
+  const seasonObj = ts.season ?? (Array.isArray(ts.seasons) ? ts.seasons[0] : ts.seasons);
+  const input = {
+    displayName: ts.display_name,
+    ageGroup: ts.age_group,
+    teamName: teamObj?.name ?? null,
+    seasonName: seasonObj?.name ?? null,
+    status: ts.status,
+  };
+  const parts = resolveTeamSeasonLabelParts(input);
+  return {
+    teamLine: parts.teamLine,
+    compact: formatTeamSeasonCompactSwitcherLabel(input, {
+      markArchived: true,
+      markCurrent: isSeasonActive(ts.status),
+    }),
+  };
+}
 function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -225,8 +259,9 @@ export const CalendarPage: React.FC = () => {
               title = (r.notes as string | null)?.split(' · ')[0] || 'Termin';
             }
 
-            const ts = accessibleTeamSeasons.find((ts: any) => ts.id === r.team_season_id);
-            const teamName = ts?.teams?.name ?? null;
+            const ts = accessibleTeamSeasons.find((row) => row.id === r.team_season_id);
+            const labels = teamSeasonLabelFromSessionRow(ts);
+            const teamName = labels?.teamLine ?? null;
 
             const { description } = notesTitleAndDescription(notes);
             const place = (r.location as string | null) ?? null;
@@ -501,11 +536,14 @@ export const CalendarPage: React.FC = () => {
                   {canSeeAllTeams && (
                     <option value="all">Alle Teams</option>
                   )}
-                  {accessibleTeamSeasons.map((ts: any) => (
-                    <option key={ts.id} value={ts.id}>
-                      {ts.teams?.name ?? 'Team'} {ts.seasons?.name ? `(${ts.seasons.name})` : ''}
-                    </option>
-                  ))}
+                  {accessibleTeamSeasons.map((ts) => {
+                    const labels = teamSeasonLabelFromSessionRow(ts);
+                    return (
+                      <option key={ts.id} value={ts.id}>
+                        {labels?.compact ?? labels?.teamLine ?? 'Team'}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             ) : null}
