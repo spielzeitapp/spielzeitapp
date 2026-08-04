@@ -77,8 +77,11 @@ import { PremiumEmptyState } from '../ui';
 import { getEffectiveEventType } from '../lib/eventTypeUtils';
 import { eventNotesTitle, mergeTitleIntoNotes } from '../components/schedule/scheduleEventViewUtils';
 
+/** 'all' = keine Terminart gewählt (alle Typen). */
 type KindFilterId = 'all' | 'match' | 'training' | 'event' | 'tournament';
-type TimeFilterId = 'upcoming' | 'past';
+/** Zeitraum: 'all' = vergangen + kommend. */
+type TimeFilterId = 'all' | 'upcoming' | 'past';
+type TimeBucketId = 'upcoming' | 'past';
 
 function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
   const s = e.status ?? 'upcoming';
@@ -87,7 +90,7 @@ function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
   return 'upcoming';
 }
 
-function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
+function getTimeBucket(e: EventRow, now: Date): TimeBucketId {
   const status = e.status ?? 'upcoming';
   if (status === 'finished' || status === 'canceled') return 'past';
   if (status === 'live') return 'upcoming';
@@ -758,13 +761,15 @@ export const SchedulePage: React.FC = () => {
       return (a.starts_at ?? '').localeCompare(b.starts_at ?? '');
     });
 
-    // Fan: nur Spiele, Kommend = bevorstehend + live, Vergangen = beendet.
+    // Fan: nur Spiele; Zeitraum Alle = alle Spiele.
     if (normalizedUiRole === 'fan') {
+      if (timeFilter === 'all') return sorted;
       if (timeFilter === 'upcoming') {
         return sorted.filter((e) => getEventTab(e) !== 'finished');
       }
       return sorted.filter((e) => getEventTab(e) === 'finished');
     }
+    if (timeFilter === 'all') return sorted;
     return sorted.filter((e) => getTimeBucket(e, now) === timeFilter);
   }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById]);
 
@@ -945,7 +950,7 @@ export const SchedulePage: React.FC = () => {
     >
       <div className="schedule-page__scroll min-w-0 overflow-x-hidden">
         <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
-          <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-1 sm:mt-2 sm:space-y-4 sm:pt-2">
+          <div className="mx-auto mt-1 max-w-3xl space-y-2 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-1 sm:mt-2 sm:space-y-4 sm:pt-2">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
@@ -962,8 +967,8 @@ export const SchedulePage: React.FC = () => {
               ← Start
             </Link>
           )}
-          <div className="space-y-2">
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className={dsPageTitleClass()}>
@@ -1068,15 +1073,14 @@ export const SchedulePage: React.FC = () => {
           </div>
 
           <div
-            className="schedule-page__filters flex w-full min-w-0 flex-col gap-2 overflow-x-hidden"
+            className="schedule-page__filters flex w-full min-w-0 flex-col gap-1 overflow-x-hidden"
             aria-label="Termine Filter"
           >
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               {normalizedUiRole !== 'fan' ? (
-                <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS}>
+                <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS} role="group" aria-label="Terminart">
                   <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
                     {([
-                      { id: 'all', label: 'Alle' },
                       { id: 'match', label: 'Spiele' },
                       { id: 'training', label: 'Training' },
                       { id: 'event', label: 'Events' },
@@ -1085,7 +1089,10 @@ export const SchedulePage: React.FC = () => {
                       <button
                         key={f.id}
                         type="button"
-                        onClick={() => setKindFilter(f.id)}
+                        onClick={() =>
+                          setKindFilter((prev) => (prev === f.id ? 'all' : f.id))
+                        }
+                        aria-pressed={kindFilter === f.id}
                         className={dsScheduleKindFilterTabClass(kindFilter === f.id)}
                       >
                         {f.label}
@@ -1095,19 +1102,29 @@ export const SchedulePage: React.FC = () => {
                 </div>
               ) : null}
 
-              <div className="flex justify-center">
-                <div className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-1">
+              <div className="w-full min-w-0" role="group" aria-label="Zeitraum">
+                <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
+                  <button
+                    type="button"
+                    onClick={() => setTimeFilter('all')}
+                    aria-pressed={timeFilter === 'all'}
+                    className={dsScheduleFilterTabClass(timeFilter === 'all')}
+                  >
+                    Alle
+                  </button>
                   <button
                     type="button"
                     onClick={() => setTimeFilter('upcoming')}
-                    className={`min-h-[32px] min-w-[88px] ${dsScheduleFilterTabClass(timeFilter === 'upcoming')}`}
+                    aria-pressed={timeFilter === 'upcoming'}
+                    className={dsScheduleFilterTabClass(timeFilter === 'upcoming')}
                   >
                     Kommende
                   </button>
                   <button
                     type="button"
                     onClick={() => setTimeFilter('past')}
-                    className={`min-h-[32px] min-w-[88px] ${dsScheduleFilterTabClass(timeFilter === 'past')}`}
+                    aria-pressed={timeFilter === 'past'}
+                    className={dsScheduleFilterTabClass(timeFilter === 'past')}
                   >
                     Vergangene
                   </button>
@@ -1144,10 +1161,14 @@ export const SchedulePage: React.FC = () => {
                       : normalizedUiRole === 'fan'
                         ? timeFilter === 'upcoming'
                           ? 'Keine kommenden Spiele.'
-                          : 'Keine vergangenen Spiele.'
+                          : timeFilter === 'past'
+                            ? 'Keine vergangenen Spiele.'
+                            : 'Keine Spiele für diesen Filter.'
                         : timeFilter === 'upcoming'
                           ? 'Keine kommenden Termine für diesen Filter.'
-                          : 'Keine vergangenen Termine für diesen Filter.'}
+                          : timeFilter === 'past'
+                            ? 'Keine vergangenen Termine für diesen Filter.'
+                            : 'Keine Termine für diesen Filter.'}
                   </p>
                 )
               ) : (

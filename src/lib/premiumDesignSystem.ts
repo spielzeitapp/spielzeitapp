@@ -578,34 +578,32 @@ export function dsSegmentTabClass(active: boolean): string {
   ].join(' ');
 }
 
-/** Termine-Filter (Alle / Spiele / Training / Kommende). */
+/** Termine Zeitraum-Filter (Alle / Kommende / Vergangene). */
 export function dsScheduleFilterTabClass(active: boolean): string {
   return [
-    'min-h-[36px] flex-1 rounded-[14px] px-2.5 text-[12px] font-semibold tracking-[0.01em] transition-all duration-150',
+    'min-h-[44px] flex-1 basis-0 rounded-[14px] px-1.5 text-[11px] font-semibold tracking-[0.01em] transition-all duration-150 sm:min-h-[36px] sm:px-2.5 sm:text-[12px]',
     active
       ? `border border-[rgba(122,29,42,0.32)] ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
       : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
   ].join(' ');
 }
 
-/** Termine Kind-Filter: Mobile horizontal scrollbar, ab sm wie dsScheduleFilterTabClass. */
+/** Termine Terminart-Filter: 4 gleichmäßige Pills, kein Abschneiden auf iPhone. */
 export function dsScheduleKindFilterTabClass(active: boolean): string {
   return [
-    'min-h-[36px] shrink-0 flex-none whitespace-nowrap rounded-[14px] px-3 text-[12px] font-semibold tracking-[0.01em] transition-all duration-150',
-    'sm:flex-1 sm:shrink sm:px-2.5',
+    'min-h-[44px] min-w-0 flex-1 basis-0 truncate rounded-[14px] px-1 text-[11px] font-semibold tracking-[0.01em] transition-all duration-150',
+    'sm:min-h-[36px] sm:px-2.5 sm:text-[12px]',
     active
       ? `border border-[rgba(122,29,42,0.32)] ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
       : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
   ].join(' ');
 }
 
-/** Scroll-Container für Kind-Filter (nur Mobile). */
-export const DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS =
-  'w-full min-w-0 overflow-x-auto [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:overflow-x-visible';
+/** Container für Terminart-Filter (volle Breite, kein horizontales Scrollen). */
+export const DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS = 'w-full min-w-0';
 
 export const DS_SCHEDULE_KIND_FILTER_TRACK_CLASS =
-  'flex min-h-[40px] min-w-max flex-nowrap items-center gap-1 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-1 backdrop-blur-sm sm:min-w-0 sm:w-full';
-
+  'flex w-full min-w-0 items-stretch gap-0.5 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-0.5 backdrop-blur-sm sm:gap-1 sm:p-1';
 /** Live Hub: Übersicht / Aufstellung / Liveticker / Statistik. */
 export function dsLiveHubNavBtnClass(): string {
   return [
