@@ -7,8 +7,10 @@ import {
 import { hasDraftSeasonForSource } from './seasonPreparation';
 import {
   normalizeSeasonPhase,
+  resolveSeasonPhase,
   seasonPhaseLabelDe,
   type SeasonPhase,
+  type SeasonPhaseSource,
 } from './seasonPhase';
 
 export type SeasonCardModel = {
@@ -20,6 +22,8 @@ export type SeasonCardModel = {
   seasonName: string | null;
   seasonPhase: SeasonPhase | null;
   seasonPhaseLabel: string | null;
+  seasonPhaseSource: SeasonPhaseSource;
+  seasonPhaseOverrideLabel: string | null;
   teamName: string | null;
   preparedFromLabel: string | null;
 };
@@ -59,6 +63,7 @@ function rowToCard(row: TeamSeasonRow, preparedFromLabel: string | null): Season
 
   const status = normalizeTeamSeasonStatus(row.status);
   const seasonPhase = normalizeSeasonPhase(row.season_phase);
+  const resolvedSeasonPhase = resolveSeasonPhase({ seasonName, storedPhase: seasonPhase });
 
   return {
     id: row.id,
@@ -68,7 +73,9 @@ function rowToCard(row: TeamSeasonRow, preparedFromLabel: string | null): Season
     ageGroup: row.age_group?.trim() || null,
     seasonName,
     seasonPhase,
-    seasonPhaseLabel: seasonPhaseLabelDe(seasonPhase),
+    seasonPhaseLabel: resolvedSeasonPhase.label,
+    seasonPhaseSource: resolvedSeasonPhase.source,
+    seasonPhaseOverrideLabel: seasonPhaseLabelDe(seasonPhase),
     teamName,
     preparedFromLabel,
   };
@@ -229,7 +236,7 @@ export async function fetchSeasonManagementSnapshot(
   };
 }
 
-/** Setzt Saisonphase (Herbst/Frühjahr) — ohne Monatsraten. */
+/** Setzt Saisonphase: null = Automatik, sonst manueller Override. */
 export async function updateTeamSeasonPhase(
   teamSeasonId: string,
   phase: SeasonPhase | null,

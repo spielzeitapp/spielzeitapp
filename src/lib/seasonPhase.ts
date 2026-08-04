@@ -1,10 +1,21 @@
 /**
- * Saisonphase (Herbst / Frühjahr) für PDF-Header & Dateinamen.
+ * Saisonphase für UI, PDF-Header und Dateinamen.
  * Persistenz: team_seasons.season_phase ('autumn' | 'spring' | 'full' | null).
- * Kein Monatsraten — nur gesetzte Phase verwenden.
+ * `null` bedeutet jetzt: automatisch erkennen.
  */
 
+import { getDateTimePartsInTimeZone, VIENNA_TZ } from './viennaTime';
+
 export type SeasonPhase = 'autumn' | 'spring' | 'full';
+export type SeasonPhaseSource = 'manual' | 'auto';
+export type SeasonPhaseSlug = 'herbst' | 'fruehjahr' | null;
+
+export type ResolvedSeasonPhase = {
+  phase: SeasonPhase | null;
+  source: SeasonPhaseSource;
+  label: string | null;
+  slug: SeasonPhaseSlug;
+};
 
 export function normalizeSeasonPhase(raw: string | null | undefined): SeasonPhase | null {
   const s = String(raw ?? '')
@@ -37,37 +48,96 @@ export function parseSeasonYears(
 }
 
 /**
- * PDF-Haupttitel-Suffix inkl. führendem Leerzeichen, z. B. „ HERBST 2026“.
- * Ohne Phase / bei full → leer (kein erfundenes Halbjahr).
+ * Zentraler Resolver:
+ * - manuelle Werte haben Vorrang
+ * - `null` = automatische Erkennung anhand Saisonjahr + Vienna-Datum
+ * - außerhalb der Saison wird nichts geraten
  */
-export function seasonPhaseHeaderSuffix(
-  phase: SeasonPhase | null | undefined,
-  seasonName: string | null | undefined,
-): string {
-  const p = phase ?? null;
-  if (!p || p === 'full') return '';
-  const years = parseSeasonYears(seasonName);
-  if (p === 'autumn') {
-    return years?.start ? ` HERBST ${years.start}` : ' HERBST';
+export function resolveSeasonPhase(opts: {
+  seasonName: string | null | undefined;
+  storedPhase: SeasonPhase | string | null | undefined;
+  now?: Date;
+}): ResolvedSeasonPhase {
+  const phase = normalizeSeasonPhase(opts.storedPhase);
+  const years = parseSeasonYears(opts.seasonName);
+
+  if (phase === 'full') {
+    return { phase: 'full', source: 'manual', label: null, slug: null };
   }
-  if (p === 'spring') {
-    return years?.end ? ` FRÜHJAHR ${years.end}` : ' FRÜHJAHR';
+  if (phase === 'autumn') {
+    return {
+      phase: 'autumn',
+      source: 'manual',
+      label: years?.start ? `Herbst ${years.start}` : 'Herbst',
+      slug: 'herbst',
+    };
   }
-  return '';
+  if (phase === 'spring') {
+    return {
+      phase: 'spring',
+      source: 'manual',
+      label: years?.end ? `Frühjahr ${years.end}` : 'Frühjahr',
+      slug: 'fruehjahr',
+    };
+  }
+
+  if (!years) {
+    return { phase: null, source: 'auto', label: null, slug: null };
+  }
+
+  const now = opts.now instanceof Date ? opts.now : new Date();
+  const parts = getDateTimePartsInTimeZone(now, VIENNA_TZ);
+  if (!parts) {
+    return { phase: null, source: 'auto', label: null, slug: null };
+  }
+
+  if (parts.year === years.start && parts.month >= 8 && parts.month <= 12) {
+    return {
+      phase: 'autumn',
+      source: 'auto',
+      label: `Herbst ${years.start}`,
+      slug: 'herbst',
+    };
+  }
+
+  if (parts.year === years.end && parts.month >= 1 && parts.month <= 7) {
+    return {
+      phase: 'spring',
+      source: 'auto',
+      label: `Frühjahr ${years.end}`,
+      slug: 'fruehjahr',
+    };
+  }
+
+  return { phase: null, source: 'auto', label: null, slug: null };
+}
+
+/**
+ * PDF-Haupttitel-Suffix inkl. führendem Leerzeichen, z. B. „ HERBST 2026“.
+ * Ohne Phase / bei full / außerhalb der Saison → leer.
+ */
+export function seasonPhaseHeaderSuffix(opts: {
+  seasonName: string | null | undefined;
+  storedPhase: SeasonPhase | string | null | undefined;
+  now?: Date;
+}): string {
+  const resolved = resolveSeasonPhase(opts);
+  return resolved.label ? ` ${resolved.label.toUpperCase()}` : '';
 }
 
 /** Dateiname-Slug: herbst | fruehjahr | '' */
-export function seasonPhaseFilenameSlug(phase: SeasonPhase | null | undefined): string {
-  const p = phase ?? null;
-  if (p === 'autumn') return 'herbst';
-  if (p === 'spring') return 'fruehjahr';
-  return '';
+export function seasonPhaseFilenameSlug(opts: {
+  seasonName: string | null | undefined;
+  storedPhase: SeasonPhase | string | null | undefined;
+  now?: Date;
+}): string {
+  return resolveSeasonPhase(opts).slug ?? '';
 }
 
 export function seasonPhaseLabelDe(phase: SeasonPhase | null | undefined): string | null {
   const p = phase ?? null;
   if (p === 'autumn') return 'Herbst';
   if (p === 'spring') return 'Frühjahr';
-  if (p === 'full') return 'Gesamt';
+  if (p === 'full') return 'Ganze Saison';
   return null;
 }

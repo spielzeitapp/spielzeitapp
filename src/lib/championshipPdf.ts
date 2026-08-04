@@ -219,7 +219,10 @@ export function buildChampionshipPdfFilename(opts: {
     slugify(opts.teamName),
     opts.ageGroup ? slugify(opts.ageGroup) : '',
     opts.seasonName ? slugify(opts.seasonName) : '',
-    seasonPhaseFilenameSlug(opts.seasonPhase),
+    seasonPhaseFilenameSlug({
+      seasonName: opts.seasonName,
+      storedPhase: opts.seasonPhase,
+    }),
   ].filter(Boolean);
   const base = parts.join('-');
   return opts.mode === 'published' ? `${base}.pdf` : `${base}-arbeitsstand.pdf`;
@@ -504,7 +507,10 @@ export async function downloadChampionshipSchedulePdf(opts: {
 
     const textX = margin + headerLogo + 4;
     const subtitle = championshipHeaderSubtitle(opts.seasonName, ourTeamName);
-    const phaseSuffix = seasonPhaseHeaderSuffix(opts.seasonPhase ?? null, opts.seasonName);
+    const phaseSuffix = seasonPhaseHeaderSuffix({
+      seasonName: opts.seasonName,
+      storedPhase: opts.seasonPhase ?? null,
+    });
 
     drawChampionshipHeaderTitle(doc, textX, y + 7, opts.ageGroup, phaseSuffix);
 

@@ -154,7 +154,10 @@ export function buildSeasonPlanPdfFilename(opts: {
     slugify(opts.teamName),
     opts.ageGroup ? slugify(opts.ageGroup) : '',
     opts.seasonName ? slugify(opts.seasonName) : '',
-    seasonPhaseFilenameSlug(opts.seasonPhase),
+    seasonPhaseFilenameSlug({
+      seasonName: opts.seasonName,
+      storedPhase: opts.seasonPhase,
+    }),
   ].filter(Boolean);
   return `${parts.join('-')}.pdf`;
 }
@@ -270,7 +273,10 @@ export async function downloadSeasonPlanPdf(
     safeAddImage(doc, ourLogoData, margin, y, headerLogo, headerLogo);
 
     const textX = margin + headerLogo + 4;
-    const phaseSuffix = seasonPhaseHeaderSuffix(opts.seasonPhase ?? null, opts.seasonName);
+    const phaseSuffix = seasonPhaseHeaderSuffix({
+      seasonName: opts.seasonName,
+      storedPhase: opts.seasonPhase ?? null,
+    });
     drawSeasonPlanHeaderTitle(doc, textX, y + 7, opts.ageGroup, phaseSuffix);
 
     doc.setFont('helvetica', 'normal');
