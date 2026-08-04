@@ -127,6 +127,7 @@ export function eventToSeasonPlanRow(
       is_home: null,
       opponent: null,
       opponent_logo_url: null,
+      venue_id: ev.venue_id ?? null,
     };
   }
 
@@ -140,6 +141,7 @@ export function eventToSeasonPlanRow(
     is_home: ev.is_home,
     opponent: ev.opponent,
     opponent_logo_url: ev.opponent_logo_url,
+    venue_id: ev.venue_id ?? null,
   };
 }
 

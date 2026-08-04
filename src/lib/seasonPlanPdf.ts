@@ -41,6 +41,8 @@ export type SeasonPlanRow = {
   is_home?: boolean | null;
   opponent?: string | null;
   opponent_logo_url?: string | null;
+  /** Primärer Spielort-Filter (events.venue_id). */
+  venue_id?: string | null;
 };
 
 export type SeasonPlanPdfOptions = {
@@ -55,6 +57,12 @@ export type SeasonPlanPdfOptions = {
   rows: SeasonPlanRow[];
   /** Gegnername → Logo-URL (Catalog/Event/public) */
   opponentLogoUrls?: Record<string, string>;
+  /** PDF-Titelvariante: SAISONPLAN / HEIMSPIELPLAN / AUSWÄRTSSPIELPLAN */
+  titleKind?: 'saison' | 'heim' | 'auswaerts';
+  /** Zusätzliche Subline z. B. „Spielort: Sportplatz Rohrbach“ */
+  venueSubtitle?: string | null;
+  /** Optionaler Venue-Slug für den Dateinamen */
+  venueFilenameSlug?: string | null;
 };
 
 /** Filter-Hinweise für Aggregation aus events. */
@@ -107,16 +115,17 @@ function headerSubtitle(seasonName: string | null | undefined, teamName: string)
   return [season, team].filter(Boolean).join(' · ');
 }
 
-/** Eine Hauptzeile: U12 (rot) + „ – SAISONPLAN[ HERBST 2026]“ (schwarz). */
+/** Eine Hauptzeile: U12 (rot) + „ – SAISONPLAN|HEIMSPIELPLAN|…[ HERBST 2026]“ (schwarz). */
 function drawSeasonPlanHeaderTitle(
   doc: jsPDF,
   x: number,
   baselineY: number,
   ageGroup?: string | null,
   phaseSuffix = '',
+  planLabel = 'SAISONPLAN',
 ): void {
   const age = String(ageGroup ?? '').trim();
-  const titleRest = ` – SAISONPLAN${phaseSuffix}`;
+  const titleRest = ` – ${planLabel}${phaseSuffix}`;
   doc.setFont('helvetica', 'bold');
   if (age) {
     doc.setFontSize(19);
@@ -130,7 +139,7 @@ function drawSeasonPlanHeaderTitle(
   }
   doc.setFontSize(17);
   doc.setTextColor(20, 20, 20);
-  doc.text(`SAISONPLAN${phaseSuffix}`, x, baselineY);
+  doc.text(`${planLabel}${phaseSuffix}`, x, baselineY);
 }
 
 function slugify(s: string): string {
@@ -148,9 +157,17 @@ export function buildSeasonPlanPdfFilename(opts: {
   ageGroup?: string | null;
   seasonName?: string | null;
   seasonPhase?: SeasonPhase | null;
+  titleKind?: 'saison' | 'heim' | 'auswaerts';
+  venueFilenameSlug?: string | null;
 }): string {
+  const prefix =
+    opts.titleKind === 'heim'
+      ? 'heimspielplan'
+      : opts.titleKind === 'auswaerts'
+        ? 'auswaertsspielplan'
+        : 'saisonplan';
   const parts = [
-    'saisonplan',
+    prefix,
     slugify(opts.teamName),
     opts.ageGroup ? slugify(opts.ageGroup) : '',
     opts.seasonName ? slugify(opts.seasonName) : '',
@@ -158,6 +175,7 @@ export function buildSeasonPlanPdfFilename(opts: {
       seasonName: opts.seasonName,
       storedPhase: opts.seasonPhase,
     }),
+    opts.venueFilenameSlug ? slugify(opts.venueFilenameSlug) : '',
   ].filter(Boolean);
   return `${parts.join('-')}.pdf`;
 }
@@ -193,6 +211,7 @@ export function championshipFixturesToSeasonPlanRows(
     is_home: boolean | null;
     opponent: string | null;
     opponent_logo_url?: string | null;
+    venue_id?: string | null;
   }>,
   ourTeamName: string,
 ): SeasonPlanRow[] {
@@ -212,6 +231,7 @@ export function championshipFixturesToSeasonPlanRows(
         is_home: f.is_home,
         opponent: f.opponent,
         opponent_logo_url: f.opponent_logo_url ?? null,
+        venue_id: f.venue_id ?? null,
       };
     });
 }
@@ -223,11 +243,20 @@ export function championshipFixturesToSeasonPlanRows(
 export async function downloadSeasonPlanPdf(
   opts: SeasonPlanPdfOptions,
 ): Promise<{ error: string | null; filename: string }> {
+  const titleKind = opts.titleKind ?? 'saison';
+  const planLabel =
+    titleKind === 'heim'
+      ? 'HEIMSPIELPLAN'
+      : titleKind === 'auswaerts'
+        ? 'AUSWÄRTSSPIELPLAN'
+        : 'SAISONPLAN';
   const filename = buildSeasonPlanPdfFilename({
     teamName: opts.teamName || 'mannschaft',
     ageGroup: opts.ageGroup,
     seasonName: opts.seasonName,
     seasonPhase: opts.seasonPhase,
+    titleKind,
+    venueFilenameSlug: opts.venueFilenameSlug,
   });
 
   try {
@@ -277,12 +306,20 @@ export async function downloadSeasonPlanPdf(
       seasonName: opts.seasonName,
       storedPhase: opts.seasonPhase ?? null,
     });
-    drawSeasonPlanHeaderTitle(doc, textX, y + 7, opts.ageGroup, phaseSuffix);
+    drawSeasonPlanHeaderTitle(doc, textX, y + 7, opts.ageGroup, phaseSuffix, planLabel);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
     doc.setTextColor(45, 45, 45);
     doc.text(headerSubtitle(opts.seasonName, ourTeamName), textX, y + 13.5);
+
+    const venueSub = String(opts.venueSubtitle ?? '').trim();
+    if (venueSub) {
+      doc.setFontSize(10);
+      doc.setTextColor(70, 70, 70);
+      doc.text(venueSub, textX, y + 18.5);
+      y += 4;
+    }
 
     const brandH = 10;
     const brandW = 42;
