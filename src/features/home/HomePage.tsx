@@ -11,6 +11,7 @@ import {
 } from './homeFeedBuilder';
 import { useTeamFeedPosts } from '../../hooks/useTeamFeedPosts';
 import { HomeFeedPostRenderer } from '../../components/feed/HomeFeedPostRenderer';
+import type { ClassifiedFeedPost } from '../../lib/matchdayFeedTypes';
 import type { EventRow } from '../../hooks/useEvents';
 import { HomeFeedComposer } from './HomeFeedComposer';
 import { HomeUpcomingMatchCompact } from './HomeUpcomingMatchCompact';
@@ -18,7 +19,10 @@ import { HomeUpcomingTournamentCompact } from './HomeUpcomingTournamentCompact';
 import { HomeSpieltagHintCard } from './HomeSpieltagHintCard';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { isHomeHeroDuplicateFeedPost } from '../../lib/feedPostPriority';
-import { formatFeedSeasonDividerLabel } from '../../lib/feedSeasonLabel';
+import {
+  buildFeedSeasonDisplayMeta,
+  type FeedSeasonDisplayMeta,
+} from '../../lib/feedSeasonLabel';
 import {
   isMatchdayFeedPostHiddenByAutomation,
   loadAutoMatchdayFeedDisabledMatchIds,
@@ -35,6 +39,28 @@ import {
 import { cn } from '../../ui/lib/cn';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
+
+function filterVisibleFeedPosts(
+  posts: ClassifiedFeedPost[],
+  opts: {
+    autoMatchdaySettingsReady: boolean;
+    disabledMatchdayMatchIds: Set<string>;
+    spieltagHintPick: { event: EventRow; status: string } | null;
+  },
+): ClassifiedFeedPost[] {
+  const withoutDisabledMatchday = opts.autoMatchdaySettingsReady
+    ? posts.filter((item) => !isMatchdayFeedPostHiddenByAutomation(item, opts.disabledMatchdayMatchIds))
+    : posts.filter((item) => item.kind !== 'matchday');
+  if (!opts.spieltagHintPick) return withoutDisabledMatchday;
+  return withoutDisabledMatchday.filter(
+    (item) =>
+      !isHomeHeroDuplicateFeedPost(
+        item,
+        opts.spieltagHintPick!.event.id,
+        opts.spieltagHintPick!.event.match_id,
+      ),
+  );
+}
 
 export const HomePage: React.FC = () => {
   const {
@@ -67,14 +93,14 @@ export const HomePage: React.FC = () => {
   const teamSeasonLine = homeLabelParts?.full ?? `${teamName} · ${seasonLabel}`;
   const teamId = String(selectedTeamSeason?.team?.id ?? selectedTeamSeason?.team_id ?? '');
 
-  const seasonBadgeById = useMemo(() => {
-    const map = new Map<string, string>();
+  const seasonMetaById = useMemo(() => {
+    const map = new Map<string, FeedSeasonDisplayMeta>();
     for (const ts of teamSeasons) {
       if (!ts.id) continue;
       if (teamId && String(ts.team?.id ?? ts.team_id ?? '') !== teamId) continue;
       map.set(
         ts.id,
-        formatFeedSeasonDividerLabel({
+        buildFeedSeasonDisplayMeta(ts.id, {
           displayName: ts.display_name,
           ageGroup: ts.age_group,
           teamName: ts.team?.name,
@@ -165,13 +191,14 @@ export const HomePage: React.FC = () => {
       : null;
 
   const {
-    posts: teamFeedPosts,
+    activePosts,
+    historicPosts,
     loading: teamFeedLoading,
     ensuring: teamFeedEnsuring,
     loadingMore: teamFeedLoadingMore,
-    hasMore: teamFeedHasMore,
+    hasMoreHistoric,
     refetch: refetchFeed,
-    loadMore: loadMoreFeed,
+    loadMoreHistoric,
   } = useTeamFeedPosts(teamSeasonId, teamId || null);
   const staffCanDeleteFeed = canStaffManageTeamFeed(backendRole, membershipRole);
 
@@ -201,25 +228,31 @@ export const HomePage: React.FC = () => {
         }),
     );
 
-  const visibleFeedPosts = useMemo(() => {
-    const withoutDisabledMatchday = autoMatchdaySettingsReady
-      ? teamFeedPosts.filter(
-          (item) => !isMatchdayFeedPostHiddenByAutomation(item, disabledMatchdayMatchIds),
-        )
-      : teamFeedPosts.filter((item) => item.kind !== 'matchday');
-    if (!spieltagHintPick) return withoutDisabledMatchday;
-    return withoutDisabledMatchday.filter(
-      (item) =>
-        !isHomeHeroDuplicateFeedPost(
-          item,
-          spieltagHintPick.event.id,
-          spieltagHintPick.event.match_id,
-        ),
-    );
-  }, [teamFeedPosts, spieltagHintPick, disabledMatchdayMatchIds, autoMatchdaySettingsReady]);
+  const visibleActivePosts = useMemo(
+    () =>
+      filterVisibleFeedPosts(activePosts, {
+        autoMatchdaySettingsReady,
+        disabledMatchdayMatchIds,
+        spieltagHintPick,
+      }),
+    [activePosts, spieltagHintPick, disabledMatchdayMatchIds, autoMatchdaySettingsReady],
+  );
+
+  const visibleHistoricPosts = useMemo(
+    () =>
+      filterVisibleFeedPosts(historicPosts, {
+        autoMatchdaySettingsReady,
+        disabledMatchdayMatchIds,
+        spieltagHintPick: null,
+      }),
+    [historicPosts, disabledMatchdayMatchIds, autoMatchdaySettingsReady],
+  );
 
   const showNoUpcomingMatchEmpty =
-    matchSectionReady && !sportingPick && visibleFeedPosts.length === 0;
+    matchSectionReady && !sportingPick && visibleActivePosts.length === 0;
+
+  const activeSeasonMeta = teamSeasonId ? seasonMetaById.get(teamSeasonId) : undefined;
+  const activeTeamLabel = activeSeasonMeta?.teamLabel || teamName;
 
   return (
     <PageShell
@@ -278,13 +311,13 @@ export const HomePage: React.FC = () => {
               />
             ) : null}
 
-            <section className="min-w-0 space-y-3 pt-2 sm:pt-1" aria-label="Team-Feed">
+            <section className="min-w-0 space-y-3 pt-2 sm:pt-1" aria-label="Aktueller Team-Feed">
               <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
                 Im Feed
               </SectionTitle>
               {feedBusy ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
-              ) : visibleFeedPosts.length === 0 ? (
+              ) : visibleActivePosts.length === 0 ? (
                 <PremiumEmptyState
                   variant="subtle"
                   title="Noch keine Beiträge"
@@ -292,49 +325,17 @@ export const HomePage: React.FC = () => {
                 />
               ) : (
                 <div className="min-w-0 space-y-4">
-                  {visibleFeedPosts.map((item, index) => {
-                    const seasonId = item.post.team_season_id;
-                    const seasonBadge = seasonBadgeById.get(seasonId) ?? null;
-                    const prevSeasonId =
-                      index > 0 ? visibleFeedPosts[index - 1]?.post.team_season_id : null;
-                    const showSeasonDivider =
-                      Boolean(seasonBadge) && Boolean(seasonId) && seasonId !== prevSeasonId && index > 0;
-                    return (
-                      <React.Fragment key={item.post.id}>
-                        {showSeasonDivider ? (
-                          <div
-                            className="flex items-center gap-2 pt-1"
-                            role="separator"
-                            aria-label={`Saison ${seasonBadge}`}
-                          >
-                            <div className="h-px flex-1 bg-white/10" />
-                            <p className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-white/45">
-                              {seasonBadge}
-                            </p>
-                            <div className="h-px flex-1 bg-white/10" />
-                          </div>
-                        ) : null}
-                        <HomeFeedPostRenderer
-                          item={item}
-                          eventById={eventById}
-                          teamLabel={teamName}
-                          seasonLabel={seasonBadge}
-                          staffCanDelete={staffCanDeleteFeed}
-                          onFeedPostDeleted={() => void refetchFeed()}
-                        />
-                      </React.Fragment>
-                    );
-                  })}
-                  {teamFeedHasMore ? (
-                    <button
-                      type="button"
-                      onClick={() => void loadMoreFeed()}
-                      disabled={teamFeedLoadingMore}
-                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[13px] font-semibold text-white/80 transition hover:bg-white/[0.07] disabled:opacity-50"
-                    >
-                      {teamFeedLoadingMore ? 'Laden…' : 'Mehr laden'}
-                    </button>
-                  ) : null}
+                  {visibleActivePosts.map((item) => (
+                    <HomeFeedPostRenderer
+                      key={item.post.id}
+                      item={item}
+                      eventById={eventById}
+                      teamLabel={activeTeamLabel}
+                      seasonLabel={null}
+                      staffCanDelete={staffCanDeleteFeed}
+                      onFeedPostDeleted={() => void refetchFeed()}
+                    />
+                  ))}
                 </div>
               )}
             </section>
@@ -355,7 +356,7 @@ export const HomePage: React.FC = () => {
                 </SectionTitle>
                 <HomeUpcomingMatchCompact
                   pick={matchPick}
-                  teamName={teamName}
+                  teamName={activeTeamLabel}
                   reviewPending={reviewPendingForEvent(matchPick.event)}
                 />
               </section>
@@ -374,6 +375,63 @@ export const HomePage: React.FC = () => {
                   Zu den Terminen
                 </Link>
               </PremiumEmptyState>
+            ) : null}
+
+            {!feedBusy && visibleHistoricPosts.length > 0 ? (
+              <section className="min-w-0 space-y-3 pt-3" aria-label="Saison-Chronik">
+                <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
+                  Chronik
+                </SectionTitle>
+                <div className="min-w-0 space-y-4">
+                  {visibleHistoricPosts.map((item, index) => {
+                    const seasonId = (item.post.team_season_id ?? '').trim();
+                    const meta = seasonId ? seasonMetaById.get(seasonId) : undefined;
+                    const seasonBadge = meta?.seasonBadge ?? null;
+                    const historicTeamLabel = meta?.teamLabel || 'Team';
+                    const prevSeasonId =
+                      index > 0
+                        ? (visibleHistoricPosts[index - 1]?.post.team_season_id ?? '').trim()
+                        : '';
+                    const showSeasonDivider =
+                      Boolean(seasonBadge) && Boolean(seasonId) && seasonId !== prevSeasonId;
+                    return (
+                      <React.Fragment key={item.post.id}>
+                        {showSeasonDivider ? (
+                          <div
+                            className="flex items-center gap-2 pt-1"
+                            role="separator"
+                            aria-label={`Saison ${seasonBadge}`}
+                          >
+                            <div className="h-px flex-1 bg-white/10" />
+                            <p className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-white/45">
+                              {seasonBadge}
+                            </p>
+                            <div className="h-px flex-1 bg-white/10" />
+                          </div>
+                        ) : null}
+                        <HomeFeedPostRenderer
+                          item={item}
+                          eventById={eventById}
+                          teamLabel={historicTeamLabel}
+                          seasonLabel={seasonBadge}
+                          staffCanDelete={staffCanDeleteFeed}
+                          onFeedPostDeleted={() => void refetchFeed()}
+                        />
+                      </React.Fragment>
+                    );
+                  })}
+                  {hasMoreHistoric ? (
+                    <button
+                      type="button"
+                      onClick={() => void loadMoreHistoric()}
+                      disabled={teamFeedLoadingMore}
+                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[13px] font-semibold text-white/80 transition hover:bg-white/[0.07] disabled:opacity-50"
+                    >
+                      {teamFeedLoadingMore ? 'Laden…' : 'Ältere Beiträge laden'}
+                    </button>
+                  ) : null}
+                </div>
+              </section>
             ) : null}
 
             <GlassCard variant="subtle" showAmbientGlow={false} className="px-4 py-3">

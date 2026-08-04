@@ -18,8 +18,10 @@ import { supabase } from '../lib/supabaseClient';
 const FEED_SELECT =
   'id, team_season_id, team_id, event_id, post_kind, caption, payload, created_at, updated_at, created_by, media_type, media_url, thumbnail_url, duration_seconds';
 
-/** Erste Seite / „Mehr laden“ – pagination-fähig. */
-export const TEAM_FEED_PAGE_SIZE = 30;
+/** Aktive Saison: vollständiger aktueller Feed (kein History-Limit). */
+export const ACTIVE_FEED_LIMIT = 48;
+/** Chronik: erste Seite älterer Saisons. */
+export const HISTORY_FEED_PAGE_SIZE = 15;
 
 function sortChronological(items: ClassifiedFeedPost[]): ClassifiedFeedPost[] {
   return [...items].sort((a, b) => {
@@ -28,6 +30,20 @@ function sortChronological(items: ClassifiedFeedPost[]): ClassifiedFeedPost[] {
     if (tb !== ta) return tb - ta;
     return String(b.post.id).localeCompare(String(a.post.id));
   });
+}
+
+function mapVisiblePosts(
+  rows: TeamFeedPostDbRow[],
+  eventStatusById: Map<string, string>,
+  now: Date,
+): { posts: ClassifiedFeedPost[]; parseDropped: number } {
+  const mapped: ClassifiedFeedPost[] = [];
+  for (const r of rows) {
+    if (!isFeedPostVisibleInHomeFeed(r, eventStatusById, now)) continue;
+    const c = classifyTeamFeedPost(r);
+    if (c) mapped.push(c);
+  }
+  return { posts: sortChronological(mapped), parseDropped: rows.length - mapped.length };
 }
 
 async function fetchEventStatusMapForSeasons(teamSeasonIds: string[]): Promise<Map<string, string>> {
@@ -41,22 +57,46 @@ async function fetchEventStatusMapForSeasons(teamSeasonIds: string[]): Promise<M
   return buildEventStatusMap((data ?? []) as { id: string; status: string | null }[]);
 }
 
-async function resolveTeamSeasonIdsForTeam(teamId: string, preferredSeasonId: string | null): Promise<string[]> {
-  const { data, error } = await supabase.from('team_seasons').select('id').eq('team_id', teamId);
+/** Aktive Saison robust: primär team_season_id, Fallback team_id+season falls team_id drift. */
+async function fetchActiveSeasonPosts(opts: {
+  teamSeasonId: string;
+  teamId: string | null;
+}): Promise<{ posts: ClassifiedFeedPost[]; dbRowCount: number; parseDropped: number }> {
+  const { data, error } = await supabase
+    .from('team_feed_posts')
+    .select(FEED_SELECT)
+    .eq('team_season_id', opts.teamSeasonId)
+    .order('created_at', { ascending: false })
+    .limit(ACTIVE_FEED_LIMIT);
+
   if (error) {
-    console.warn('[useTeamFeedPosts] team_seasons for team', error.message);
-    return preferredSeasonId ? [preferredSeasonId] : [];
+    console.warn('[useTeamFeedPosts] active season', error.message ?? error);
+    throw new Error(error.message ?? 'Aktueller Feed konnte nicht geladen werden.');
   }
-  const ids = (data ?? [])
-    .map((r) => String((r as { id?: string }).id ?? '').trim())
-    .filter(Boolean);
-  if (ids.length > 0) return ids;
-  return preferredSeasonId ? [preferredSeasonId] : [];
+
+  let rows = (data ?? []) as TeamFeedPostDbRow[];
+
+  // Falls aktive Posts team_id NULL / drift haben, trotzdem by season laden (oben).
+  // Zusätzlich: Posts mit korrekter team_id aber ggf. anderer season-id? nicht nötig.
+  if (rows.length === 0 && opts.teamId) {
+    const { data: byTeam, error: byTeamErr } = await supabase
+      .from('team_feed_posts')
+      .select(FEED_SELECT)
+      .eq('team_id', opts.teamId)
+      .eq('team_season_id', opts.teamSeasonId)
+      .order('created_at', { ascending: false })
+      .limit(ACTIVE_FEED_LIMIT);
+    if (!byTeamErr && byTeam) rows = byTeam as TeamFeedPostDbRow[];
+  }
+
+  const eventStatusById = await fetchEventStatusMapForSeasons([opts.teamSeasonId]);
+  const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date());
+  return { posts, dbRowCount: rows.length, parseDropped };
 }
 
-async function fetchPostsPage(opts: {
+async function fetchHistoricPostsPage(opts: {
   teamId: string;
-  teamSeasonIds: string[];
+  activeTeamSeasonId: string;
   offset: number;
   limit: number;
 }): Promise<{
@@ -65,38 +105,34 @@ async function fetchPostsPage(opts: {
   parseDropped: number;
   hasMore: boolean;
 }> {
-  const { data, error: err } = await supabase
+  const { data, error } = await supabase
     .from('team_feed_posts')
     .select(FEED_SELECT)
     .eq('team_id', opts.teamId)
+    .neq('team_season_id', opts.activeTeamSeasonId)
     .order('created_at', { ascending: false })
     .range(opts.offset, opts.offset + opts.limit - 1);
 
-  if (err) {
-    console.warn('[useTeamFeedPosts]', err.message ?? err);
-    throw new Error(err.message ?? 'Feed konnte nicht geladen werden.');
+  if (error) {
+    console.warn('[useTeamFeedPosts] history', error.message ?? error);
+    throw new Error(error.message ?? 'Chronik konnte nicht geladen werden.');
   }
 
-  const rows = (data ?? []) as TeamFeedPostDbRow[];
-  const seasonIdsFromRows = rows.map((r) => r.team_season_id).filter(Boolean);
-  const eventStatusById = await fetchEventStatusMapForSeasons([
-    ...opts.teamSeasonIds,
-    ...seasonIdsFromRows,
-  ]);
-  const now = new Date();
+  const rows = ((data ?? []) as TeamFeedPostDbRow[]).filter((r) => {
+    const sid = (r.team_season_id ?? '').trim();
+    // Ohne team_season_id nicht blind historisch einordnen
+    return Boolean(sid) && sid !== opts.activeTeamSeasonId;
+  });
 
-  const mapped: ClassifiedFeedPost[] = [];
-  for (const r of rows) {
-    if (!isFeedPostVisibleInHomeFeed(r, eventStatusById, now)) continue;
-    const c = classifyTeamFeedPost(r);
-    if (c) mapped.push(c);
-  }
+  const seasonIds = rows.map((r) => r.team_season_id).filter(Boolean);
+  const eventStatusById = await fetchEventStatusMapForSeasons(seasonIds);
+  const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date());
 
   return {
-    posts: sortChronological(mapped),
-    dbRowCount: rows.length,
-    parseDropped: rows.length - mapped.length,
-    hasMore: rows.length >= opts.limit,
+    posts,
+    dbRowCount: (data ?? []).length,
+    parseDropped,
+    hasMore: (data ?? []).length >= opts.limit,
   };
 }
 
@@ -139,28 +175,30 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
 }
 
 /**
- * Team-Chronik: alle Feed-Posts des Teams (über Saisons), neueste zuerst.
- * Auto-Ensures laufen nur für die aktive Work-Season.
+ * Home-Feed: aktive Saison + separate Team-Chronik (ältere Saisons).
+ * Ensures nur für die aktive Work-Season.
  */
 export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | null = null) {
-  const [posts, setPosts] = useState<ClassifiedFeedPost[]>([]);
+  const [activePosts, setActivePosts] = useState<ClassifiedFeedPost[]>([]);
+  const [historicPosts, setHistoricPosts] = useState<ClassifiedFeedPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [ensuring, setEnsuring] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  /** Roh-Offset in team_feed_posts (nicht gefilterte Kartenanzahl). */
-  const [nextOffset, setNextOffset] = useState(0);
+  const [hasMoreHistoric, setHasMoreHistoric] = useState(false);
+  const [historicOffset, setHistoricOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
-    if (!teamSeasonId || !teamId) {
-      setPosts([]);
-      setHasMore(false);
-      setNextOffset(0);
+  const loadAll = useCallback(async () => {
+    if (!teamSeasonId) {
+      setActivePosts([]);
+      setHistoricPosts([]);
+      setHasMoreHistoric(false);
+      setHistoricOffset(0);
       setError(null);
       setEnsuring(false);
       return;
     }
+
     setLoading(true);
     setEnsuring(true);
     setError(null);
@@ -168,26 +206,45 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
       await logMatchdayFeedSeasonContext(teamSeasonId);
       await runFeedEnsures(teamSeasonId);
       setEnsuring(false);
-      const seasonIds = await resolveTeamSeasonIdsForTeam(teamId, teamSeasonId);
-      const { posts: mapped, dbRowCount, parseDropped, hasMore: more } = await fetchPostsPage({
+
+      const active = await fetchActiveSeasonPosts({
+        teamSeasonId,
         teamId,
-        teamSeasonIds: seasonIds,
-        offset: 0,
-        limit: TEAM_FEED_PAGE_SIZE,
       });
-      console.info('[matchday] (5) team_feed_posts nach SELECT (team chronicle):', {
-        teamId,
-        dbZeilen_roh: dbRowCount,
-        klassifizierte_karten: mapped.length,
-        verworfen: parseDropped,
+      console.info('[matchday] (5a) active season feed:', {
+        teamSeasonId,
+        dbZeilen_roh: active.dbRowCount,
+        karten: active.posts.length,
+        verworfen: active.parseDropped,
       });
-      setPosts(mapped);
-      setNextOffset(dbRowCount);
-      setHasMore(more);
+      setActivePosts(active.posts);
+
+      if (teamId) {
+        const hist = await fetchHistoricPostsPage({
+          teamId,
+          activeTeamSeasonId: teamSeasonId,
+          offset: 0,
+          limit: HISTORY_FEED_PAGE_SIZE,
+        });
+        console.info('[matchday] (5b) historic feed:', {
+          teamId,
+          dbZeilen_roh: hist.dbRowCount,
+          karten: hist.posts.length,
+          verworfen: hist.parseDropped,
+        });
+        setHistoricPosts(hist.posts);
+        setHistoricOffset(hist.dbRowCount);
+        setHasMoreHistoric(hist.hasMore);
+      } else {
+        setHistoricPosts([]);
+        setHistoricOffset(0);
+        setHasMoreHistoric(false);
+      }
     } catch (e) {
-      setPosts([]);
-      setHasMore(false);
-      setNextOffset(0);
+      setActivePosts([]);
+      setHistoricPosts([]);
+      setHasMoreHistoric(false);
+      setHistoricOffset(0);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setEnsuring(false);
@@ -195,46 +252,47 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
     }
   }, [teamSeasonId, teamId]);
 
-  const loadMore = useCallback(async () => {
-    if (!teamSeasonId || !teamId || loadingMore || !hasMore) return;
+  const loadMoreHistoric = useCallback(async () => {
+    if (!teamSeasonId || !teamId || loadingMore || !hasMoreHistoric) return;
     setLoadingMore(true);
     try {
-      const seasonIds = await resolveTeamSeasonIdsForTeam(teamId, teamSeasonId);
-      const { posts: mapped, dbRowCount, hasMore: more } = await fetchPostsPage({
+      const hist = await fetchHistoricPostsPage({
         teamId,
-        teamSeasonIds: seasonIds,
-        offset: nextOffset,
-        limit: TEAM_FEED_PAGE_SIZE,
+        activeTeamSeasonId: teamSeasonId,
+        offset: historicOffset,
+        limit: HISTORY_FEED_PAGE_SIZE,
       });
-      setPosts((prev) => {
+      setHistoricPosts((prev) => {
         const seen = new Set(prev.map((p) => p.post.id));
         const merged = [...prev];
-        for (const item of mapped) {
+        for (const item of hist.posts) {
           if (!seen.has(item.post.id)) merged.push(item);
         }
         return sortChronological(merged);
       });
-      setNextOffset((prev) => prev + dbRowCount);
-      setHasMore(more);
+      setHistoricOffset((prev) => prev + hist.dbRowCount);
+      setHasMoreHistoric(hist.hasMore);
     } catch (e) {
-      console.warn('[useTeamFeedPosts] loadMore', e);
+      console.warn('[useTeamFeedPosts] loadMoreHistoric', e);
     } finally {
       setLoadingMore(false);
     }
-  }, [teamSeasonId, teamId, loadingMore, hasMore, nextOffset]);
+  }, [teamSeasonId, teamId, loadingMore, hasMoreHistoric, historicOffset]);
 
   useEffect(() => {
     lineupFeedDevLog('[LINEUP FEED] USE EFFECT FIRED', { teamSeasonId, teamId });
-    if (!teamSeasonId || !teamId) {
-      setPosts([]);
-      setHasMore(false);
-      setNextOffset(0);
-      setError(null);
-      setEnsuring(false);
-      return;
-    }
     let cancelled = false;
     (async () => {
+      if (!teamSeasonId) {
+        setActivePosts([]);
+        setHistoricPosts([]);
+        setHasMoreHistoric(false);
+        setHistoricOffset(0);
+        setError(null);
+        setEnsuring(false);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setEnsuring(true);
       setError(null);
@@ -244,28 +302,33 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
         await runFeedEnsures(teamSeasonId);
         if (cancelled) return;
         setEnsuring(false);
-        const seasonIds = await resolveTeamSeasonIdsForTeam(teamId, teamSeasonId);
-        const { posts: mapped, dbRowCount, parseDropped, hasMore: more } = await fetchPostsPage({
-          teamId,
-          teamSeasonIds: seasonIds,
-          offset: 0,
-          limit: TEAM_FEED_PAGE_SIZE,
-        });
+
+        const active = await fetchActiveSeasonPosts({ teamSeasonId, teamId });
         if (cancelled) return;
-        console.info('[matchday] (5) team_feed_posts nach SELECT (team chronicle):', {
-          teamId,
-          dbZeilen_roh: dbRowCount,
-          klassifizierte_karten: mapped.length,
-          verworfen: parseDropped,
-        });
-        setPosts(mapped);
-        setNextOffset(dbRowCount);
-        setHasMore(more);
+        setActivePosts(active.posts);
+
+        if (teamId) {
+          const hist = await fetchHistoricPostsPage({
+            teamId,
+            activeTeamSeasonId: teamSeasonId,
+            offset: 0,
+            limit: HISTORY_FEED_PAGE_SIZE,
+          });
+          if (cancelled) return;
+          setHistoricPosts(hist.posts);
+          setHistoricOffset(hist.dbRowCount);
+          setHasMoreHistoric(hist.hasMore);
+        } else {
+          setHistoricPosts([]);
+          setHistoricOffset(0);
+          setHasMoreHistoric(false);
+        }
       } catch (e) {
         if (!cancelled) {
-          setPosts([]);
-          setHasMore(false);
-          setNextOffset(0);
+          setActivePosts([]);
+          setHistoricPosts([]);
+          setHasMoreHistoric(false);
+          setHistoricOffset(0);
           setError(e instanceof Error ? e.message : String(e));
         }
       } finally {
@@ -280,5 +343,21 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
     };
   }, [teamSeasonId, teamId]);
 
-  return { posts, loading, ensuring, loadingMore, hasMore, error, refetch, loadMore };
+  /** Rückwärtskompatibel: alle geladenen Posts (active + historic). */
+  const posts = [...activePosts, ...historicPosts];
+
+  return {
+    posts,
+    activePosts,
+    historicPosts,
+    loading,
+    ensuring,
+    loadingMore,
+    hasMore: hasMoreHistoric,
+    hasMoreHistoric,
+    error,
+    refetch: loadAll,
+    loadMore: loadMoreHistoric,
+    loadMoreHistoric,
+  };
 }
