@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Trophy } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Trophy, Users } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
@@ -17,6 +17,7 @@ import {
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
+import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
@@ -89,6 +90,8 @@ export function MatchCenterTournamentCard({
   );
   const infoDate = formatTournamentInfoDate(event.starts_at);
   const kickoff = formatTimeHHmmDe(event.starts_at);
+  const meetupRaw = event.meeting_at ? formatMeetupTimeOnlyDe(event.meeting_at) : '';
+  const meetupCore = meetupRaw.replace(/\s*Uhr$/i, '').trim();
   const parsedLocation = splitCombinedLocation(event.location);
   const place = formatFullLocation(parsedLocation.place, parsedLocation.address || (event.address ?? ''));
 
@@ -147,7 +150,10 @@ export function MatchCenterTournamentCard({
               </h2>
               <div className="flex flex-col gap-0.5">
                 <HeroMetaLine icon={CalendarDays}>{infoDate}</HeroMetaLine>
-                <HeroMetaLine icon={Clock}>{kickoff} Uhr</HeroMetaLine>
+                <HeroMetaLine icon={Users}>
+                  Treffpunkt {meetupCore ? `${meetupCore} Uhr` : '–'}
+                </HeroMetaLine>
+                <HeroMetaLine icon={Clock}>{kickoff ? `Beginn ${kickoff} Uhr` : 'Beginn –'}</HeroMetaLine>
                 {place ? <HeroMetaLine icon={MapPin}>{place}</HeroMetaLine> : null}
               </div>
             </div>

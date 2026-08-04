@@ -302,6 +302,10 @@ export function CompactEventCard({
                 >
                   Turnier
                 </span>
+                <p className="mt-1 text-[13px] leading-snug text-white/72">
+                  Treffpunkt {meetupLabel ?? '–'}
+                  {` · Beginn ${scheduleMetaTimeDisplay(timeStr)}`}
+                </p>
               </div>
             ) : (
               <p
@@ -466,10 +470,9 @@ export function CompactEventCard({
             Turnier
           </span>
           <p className="mt-1 text-[13px] leading-snug text-white/72">
-            {meetupLabel ? `Treffpunkt ${meetupLabel}` : 'Treffpunkt —'}
-            {tournamentEndLabel
-              ? ` · Ende ${scheduleMetaTimeDisplay(tournamentEndLabel)}`
-              : ` · Beginn ${scheduleMetaTimeDisplay(timeStr)}`}
+            {`Treffpunkt ${meetupLabel ?? '–'}`}
+            {` · Beginn ${scheduleMetaTimeDisplay(timeStr)}`}
+            {tournamentEndLabel ? ` · Ende ${scheduleMetaTimeDisplay(tournamentEndLabel)}` : ''}
           </p>
           <p className="mt-0.5 line-clamp-2 text-[14px] leading-snug text-white/65">
             {venueOnly ?? 'Ort —'}

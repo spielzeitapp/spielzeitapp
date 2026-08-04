@@ -3329,6 +3329,7 @@ export const EventDetailPage: React.FC = () => {
                 tournamentTitle={tournamentTitle}
                 ourTeamName={ourTeamName}
                 location={safeOptionalText(event.location)}
+                meetingAt={safeOptionalText(event.meeting_at)}
                 officialTournamentUrl={safeOptionalText(event.official_tournament_url)}
                 tournamentCoverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
                 tournamentNotes={tournamentNotesText}

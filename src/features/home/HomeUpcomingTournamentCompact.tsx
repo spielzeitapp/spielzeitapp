@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Clock, MapPin, Trophy } from 'lucide-react';
+import { ChevronRight, Clock, MapPin, Trophy, Users } from 'lucide-react';
 import type { HomeSportingCardPick } from './homeFeedBuilder';
 import { HOME_NEXT_TOURNAMENT_ORG_LABEL } from './homeFeedBuilder';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { eventNotesTitle } from '../../components/schedule/scheduleEventViewUtils';
+import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { PremiumCard } from '../../ui';
 
@@ -45,6 +46,13 @@ export const HomeUpcomingTournamentCompact: React.FC<Props> = ({ pick }) => {
     }).format(d);
   }, [event.starts_at]);
 
+  const meetupLine = useMemo(() => {
+    if (!event.meeting_at) return null;
+    const raw = formatMeetupTimeOnlyDe(event.meeting_at);
+    const core = raw.replace(/\s*Uhr$/i, '').trim();
+    return core || null;
+  }, [event.meeting_at]);
+
   const parsedLocation = splitCombinedLocation(event.location);
   const placeShort = (
     formatFullLocation(parsedLocation.place, parsedLocation.address || (event.address ?? '').trim()) ||
@@ -77,6 +85,12 @@ export const HomeUpcomingTournamentCompact: React.FC<Props> = ({ pick }) => {
               {dateLine}
               {timeLine ? ` · Beginn ${timeLine}` : ''}
             </span>
+            {meetupLine ? (
+              <span className="inline-flex items-center gap-1">
+                <Users className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
+                Treffpunkt {meetupLine}
+              </span>
+            ) : null}
             {placeShort ? (
               <span className="inline-flex min-w-0 items-center gap-1">
                 <MapPin className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />

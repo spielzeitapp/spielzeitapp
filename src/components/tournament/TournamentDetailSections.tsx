@@ -73,6 +73,8 @@ import {
   groupTournamentSlotsBySection,
 } from './tournamentCenterUtils';
 import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
+import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
+import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { safeText } from '../../lib/safeText';
 import { resolveTournamentCenterPhase, type TournamentCenterPhase } from '../../lib/tournamentCenterPhase';
 import type { TournamentAttendanceSummary } from '../../lib/tournamentPreparationFlow';
@@ -89,6 +91,8 @@ type Props = {
   tournamentTitle: string;
   ourTeamName: string;
   location: string | null;
+  /** Source of Truth: `events.meeting_at` */
+  meetingAt?: string | null;
   officialTournamentUrl: string | null;
   tournamentCoverUrl?: string | null;
   tournamentNotes?: string | null;
@@ -118,6 +122,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   tournamentTitle,
   ourTeamName,
   location,
+  meetingAt = null,
   officialTournamentUrl,
   tournamentCoverUrl = null,
   tournamentNotes = null,
@@ -685,15 +690,18 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const infoRows = useMemo(() => {
     const beginn = formatTimeHHmmDe(tournamentDayIso);
+    const meetupRaw = meetingAt ? formatMeetupTimeOnlyDe(meetingAt) : '';
+    const meetupCore = meetupRaw.replace(/\s*Uhr$/i, '').trim();
     const planUrl = safeText(officialTournamentUrl);
     return [
       { label: 'Datum', value: formatTournamentDayDate(tournamentDayIso) },
+      { label: 'Treffpunkt', value: meetupCore ? `${meetupCore} Uhr` : '–' },
       { label: 'Beginn', value: beginn ? `${beginn} Uhr` : '' },
       { label: 'Ort', value: formatTournamentLocationDisplay(location) },
       { label: 'Teams', value: participants.length > 0 ? String(participants.length) : '' },
       { label: 'Turnierplan', value: planUrl ? 'Hinterlegt' : 'Nicht hinterlegt' },
     ].filter((row) => row.value.length > 0);
-  }, [participants.length, tournamentDayIso, location, officialTournamentUrl]);
+  }, [participants.length, tournamentDayIso, meetingAt, location, officialTournamentUrl]);
 
   const openParticipantModal = () => {
     setParticipantModalError(null);
@@ -829,6 +837,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         title={tournamentTitle}
         startsAt={tournamentDayIso}
         location={location}
+        meetingAt={meetingAt}
         coverUrl={tournamentCoverUrl}
         participantCount={participants.length}
       />

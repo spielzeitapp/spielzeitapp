@@ -443,6 +443,115 @@ export function ScheduleHeroEventCard({
     </>
   );
 
+  const meetupTimeCore = meetupTimeOnly
+    ? scheduleMetaTimeDisplay(meetupTimeOnly).replace(/\s*Uhr$/i, '').trim()
+    : '';
+  /** Turnier/Event: nie erfundene Uhrzeit — fehlend = „–“. */
+  const meetupDisplayCore = showMeetup && meetupTimeCore ? meetupTimeCore : '–';
+  const beginnTimeCore = scheduleMetaTimeDisplay(timeStr).replace(/\s*Uhr$/i, '').trim() || '–';
+
+  const eventMetaChevron =
+    isClickable && onNavigate ? (
+      <button
+        type="button"
+        className="flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] bg-gradient-to-b from-teal-500/90 to-emerald-700/95 text-white shadow-[0_0_16px_rgba(16,185,129,0.28)] transition-colors hover:brightness-110"
+        aria-label={et === 'tournament' ? 'Turnier öffnen' : 'Termin öffnen'}
+        onClick={(e) => {
+          e.stopPropagation();
+          openDetail();
+        }}
+      >
+        <ChevronRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+      </button>
+    ) : (
+      <div className="h-[56px] border-l border-white/[0.05]" aria-hidden />
+    );
+
+  /** Turnier: Treffpunkt → Beginn → Ort; Details über Chevron. */
+  const tournamentBody = (
+    <>
+      <HeroHybridBackdrop training />
+      <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
+        <div className="flex w-full min-w-0 items-center">
+          <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+            <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">{wd}</span>
+            <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
+            <span className="text-[13px] font-medium leading-tight text-white/70">{mon}</span>
+            {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
+          </div>
+
+          <div className="relative mx-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-purple-400/30 bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(168,85,247,0.28)_0%,rgba(48,18,68,0.5)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(168,85,247,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <Trophy className="h-5 w-5 text-amber-300/95" strokeWidth={2.1} aria-hidden />
+          </div>
+
+          <div className="min-w-0 flex-1 overflow-hidden text-left">
+            <p
+              className={`line-clamp-2 font-bold leading-[1.12] tracking-[0.01em] text-white break-words ${eventTitleSizeClass}`}
+              title={eventTitle}
+            >
+              {eventTitle}
+            </p>
+          </div>
+
+          {topRight ? (
+            <div className="pointer-events-auto flex w-[44px] shrink-0 flex-col items-center justify-center gap-2 self-center">
+              {topRight}
+            </div>
+          ) : (
+            <div className="w-[44px] shrink-0" aria-hidden />
+          )}
+        </div>
+
+        <div className="mt-2.5 border-t border-white/[0.04] bg-[rgba(0,0,0,0.22)]" onClick={(e) => e.stopPropagation()}>
+          <div className="grid grid-cols-[1fr_1fr_1fr_42px] items-center">
+            <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center px-0.5 py-1.5 text-center sm:px-1">
+              <span className="flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]">
+                <Users strokeWidth={2} aria-hidden />
+              </span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">
+                Treffpunkt
+              </span>
+              <div className="mt-0.5 flex w-full flex-col items-center leading-none">
+                {meetupDisplayCore === '–' ? (
+                  <span className="text-[16px] font-bold text-white/70">–</span>
+                ) : (
+                  <>
+                    <span className="max-w-full text-[16px] font-bold tabular-nums text-white">{meetupDisplayCore}</span>
+                    <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center border-l border-white/[0.05] px-0.5 py-1.5 text-center sm:px-1">
+              <span className="flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]">
+                <Clock strokeWidth={2} aria-hidden />
+              </span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Beginn</span>
+              <div className="mt-0.5 flex w-full flex-col items-center leading-none">
+                <span className="max-w-full text-[16px] font-bold tabular-nums text-white">{beginnTimeCore}</span>
+                {beginnTimeCore !== '–' ? (
+                  <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center border-l border-white/[0.05] px-0.5 py-1.5 text-center sm:px-1">
+              <span className="flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]">
+                <MapPin strokeWidth={2} aria-hidden />
+              </span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Ort</span>
+              <div className="mt-0.5 flex w-full items-center justify-center px-0.5">
+                <span className="max-w-full line-clamp-2 break-words text-center text-[11px] font-semibold leading-tight text-white">
+                  {eventTileOrtName}
+                </span>
+              </div>
+            </div>
+            {eventMetaChevron}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   const eventBody = (
     <>
       <HeroHybridBackdrop training />
@@ -496,8 +605,10 @@ export function ScheduleHeroEventCard({
               </span>
               <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Beginn</span>
               <div className="mt-0.5 flex w-full flex-col items-center leading-none">
-                <span className="max-w-full text-[16px] font-bold tabular-nums text-white">{scheduleMetaTimeDisplay(timeStr).replace(/\s*Uhr$/i, '')}</span>
-                <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
+                <span className="max-w-full text-[16px] font-bold tabular-nums text-white">{beginnTimeCore}</span>
+                {beginnTimeCore !== '–' ? (
+                  <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
+                ) : null}
               </div>
             </div>
             <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center border-l border-white/[0.05] px-0.5 py-1.5 text-center sm:px-1">
@@ -509,28 +620,15 @@ export function ScheduleHeroEventCard({
                 <span className="max-w-full truncate whitespace-nowrap text-[11px] font-semibold text-white/78">Infos</span>
               </div>
             </div>
-            {isClickable && onNavigate ? (
-              <button
-                type="button"
-                className="flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] bg-gradient-to-b from-teal-500/90 to-emerald-700/95 text-white shadow-[0_0_16px_rgba(16,185,129,0.28)] transition-colors hover:brightness-110"
-                aria-label={et === 'tournament' ? 'Turnier öffnen' : 'Termin öffnen'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openDetail();
-                }}
-              >
-                <ChevronRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
-              </button>
-            ) : (
-              <div className="h-[56px] border-l border-white/[0.05]" aria-hidden />
-            )}
+            {eventMetaChevron}
           </div>
         </div>
       </div>
     </>
   );
 
-  const body = et === 'game' ? gameBody : et === 'training' ? trainingBody : eventBody;
+  const body =
+    et === 'game' ? gameBody : et === 'training' ? trainingBody : et === 'tournament' ? tournamentBody : eventBody;
 
   const shell = (
     <div

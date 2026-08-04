@@ -9,6 +9,8 @@ type Props = {
   title: string;
   startsAt: string;
   metaLine: string;
+  /** Mehrzeilige Meta (z. B. Datum / Treffpunkt / Beginn / Ort). */
+  metaMultiline?: boolean;
   badgeLabel: string;
   badgeIcon: React.ReactNode;
   coverUrl: string;
@@ -22,6 +24,7 @@ export function CenterCompactHero({
   title,
   startsAt,
   metaLine,
+  metaMultiline = false,
   badgeLabel,
   badgeIcon,
   coverUrl,
@@ -102,7 +105,13 @@ export function CenterCompactHero({
             >
               {title}
             </h2>
-            <p className="mt-0.5 truncate text-[9px] font-medium leading-snug text-white/78 drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-[10px]">
+            <p
+              className={
+                metaMultiline
+                  ? 'mt-0.5 whitespace-pre-line text-[9px] font-medium leading-snug text-white/78 drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-[10px]'
+                  : 'mt-0.5 truncate text-[9px] font-medium leading-snug text-white/78 drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-[10px]'
+              }
+            >
               {metaLine || (timeLabel ? `${timeLabel} Uhr` : '—')}
             </p>
           </div>

@@ -394,8 +394,8 @@ function buildDescription(ev, appBaseUrl, venue) {
   const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
   const t = effectiveType(ev);
   const lines = [];
-  if (meetup) lines.push(`Treffpunkt: ${meetup}`);
-  if (meetup && startsAtTime) lines.push(`Beginn: ${startsAtTime}`);
+  if (meetup) lines.push(`Treffpunkt: ${meetup} Uhr`);
+  if (meetup && startsAtTime) lines.push(`Beginn: ${startsAtTime} Uhr`);
   if ((t === 'game' || t === 'match') && ev.is_home === true) lines.push('Heimspiel');
   if ((t === 'game' || t === 'match') && ev.is_home === false) lines.push('Auswärtsspiel');
   if ((t === 'game' || t === 'match') && ev.opponent) lines.push(`Gegner: ${ev.opponent}`);
