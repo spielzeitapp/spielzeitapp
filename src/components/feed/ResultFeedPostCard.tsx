@@ -35,6 +35,7 @@ import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 type Props = {
   post: ResultFeedPostRow;
   teamLabel: string;
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -113,6 +114,7 @@ function resultPresentation(state: ResultVisualState) {
 export const ResultFeedPostCard: React.FC<Props> = ({
   post,
   teamLabel,
+  seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
@@ -200,6 +202,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       <div data-feed-comment-slot="reserved" hidden aria-hidden />
       <FeedPostHeader
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
         actions={

@@ -18,6 +18,8 @@ type Props = {
   item: ClassifiedFeedPost;
   eventById: Map<string, EventRow>;
   teamLabel: string;
+  /** Saison-Badge der Post-Saison, z. B. „U11 · 2025/26“. */
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -26,6 +28,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
   item,
   eventById,
   teamLabel,
+  seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
@@ -34,6 +37,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
       <LiveFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -44,6 +48,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
       <NextMatchFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -55,6 +60,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         post={item.post}
         liveEvent={item.post.event_id ? eventById.get(item.post.event_id) ?? null : null}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -66,6 +72,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         post={item.post}
         liveEvent={item.post.event_id ? eventById.get(item.post.event_id) ?? null : null}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -76,6 +83,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
       <VideoFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -86,6 +94,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
       <ResultFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -96,6 +105,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
       <TournamentCompletionFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -106,6 +116,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
       <ChampionshipScheduleFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -116,6 +127,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
       <ChampionshipMatchChangedFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
       />
@@ -125,6 +137,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
     <ImageFeedPostCard
       post={item.post}
       teamLabel={teamLabel}
+      seasonLabel={seasonLabel}
       staffCanDelete={staffCanDelete}
       onFeedPostDeleted={onFeedPostDeleted}
     />

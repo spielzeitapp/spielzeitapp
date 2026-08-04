@@ -200,6 +200,20 @@ export async function hasChampionshipScheduleFeedPost(
   return Boolean(data?.id);
 }
 
+async function isFeedDedupeSuppressed(dedupeKey: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('team_feed_dedupe_suppressions')
+    .select('dedupe_key')
+    .eq('dedupe_key', dedupeKey)
+    .maybeSingle();
+  if (error) {
+    // Ohne Migration/SELECT-Recht: lieber nicht blockieren als false-positive.
+    console.warn('[championshipScheduleFeed] suppressions lookup', error.message);
+    return false;
+  }
+  return Boolean(data?.dedupe_key);
+}
+
 async function countPublishedChampionshipFixtures(teamSeasonId: string): Promise<number> {
   const { count, error } = await supabase
     .from('events')
@@ -223,6 +237,11 @@ export async function maybePublishChampionshipScheduleFeed(opts: {
 }): Promise<{ posted: boolean; reason: string }> {
   const already = await hasChampionshipScheduleFeedPost(opts.teamSeasonId);
   if (already) return { posted: false, reason: 'already_announced' };
+
+  const suppressed = await isFeedDedupeSuppressed(
+    championshipSchedulePublishedDedupeKey(opts.teamSeasonId),
+  );
+  if (suppressed) return { posted: false, reason: 'suppressed' };
 
   const publishedCount = await countPublishedChampionshipFixtures(opts.teamSeasonId);
   if (publishedCount < 2) {
@@ -283,6 +302,10 @@ export async function maybePublishChampionshipMatchChangedFeed(opts: {
 
   const fingerprint = materialFingerprint(opts.after);
   const dedupeKey = championshipMatchChangedDedupeKey(opts.eventId, fingerprint);
+
+  if (await isFeedDedupeSuppressed(dedupeKey)) {
+    return { posted: false, reason: 'suppressed' };
+  }
 
   const { data: existing } = await supabase
     .from('team_feed_posts')

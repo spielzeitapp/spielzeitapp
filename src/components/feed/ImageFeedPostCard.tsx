@@ -20,6 +20,7 @@ import { FeedPostArticleShell } from './FeedPostArticleShell';
 type Props = {
   post: TeamFeedPostDbRow;
   teamLabel: string;
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -28,7 +29,7 @@ function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
 }
 
-export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDelete, onFeedPostDeleted }) => {
+export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabel, staffCanDelete, onFeedPostDeleted }) => {
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
   const resolvedSrc = useFeedMediaSrc(post.media_url);
@@ -84,6 +85,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
     >
       <FeedPostHeader
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
         actions={

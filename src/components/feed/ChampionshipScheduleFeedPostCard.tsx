@@ -21,6 +21,7 @@ import { utcIsoToViennaTimeHHmm } from '../../lib/viennaTime';
 type Props = {
   post: TeamFeedPostDbRow;
   teamLabel: string;
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -28,6 +29,7 @@ type Props = {
 export function ChampionshipScheduleFeedPostCard({
   post,
   teamLabel,
+  seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }: Props) {
@@ -35,11 +37,12 @@ export function ChampionshipScheduleFeedPostCard({
   const sub = [payload?.age_group, payload?.season_name].filter(Boolean).join(' · ');
   const deepLink = CHAMPIONSHIP_SCHEDULE_DEEP_LINK;
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
+  const seasonBadge = seasonLabel?.trim() || sub || null;
 
   return (
     <article className="overflow-hidden rounded-[18px] border border-emerald-500/25 bg-[linear-gradient(165deg,rgba(6,60,40,0.35)_0%,rgba(10,8,12,0.96)_48%)] shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
       <div className={FEED_POST_HEADER_CLASS}>
-        <FeedCardHeaderBrand teamLabel={teamLabel} />
+        <FeedCardHeaderBrand teamLabel={teamLabel} seasonLabel={seasonBadge} />
         {staffCanDelete ? (
           <FeedPostDeleteButton
             input={toFeedPostDeleteInput(post)}
@@ -77,6 +80,7 @@ export function ChampionshipScheduleFeedPostCard({
 export function ChampionshipMatchChangedFeedPostCard({
   post,
   teamLabel,
+  seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }: Props) {
@@ -88,7 +92,7 @@ export function ChampionshipMatchChangedFeedPostCard({
   return (
     <article className="overflow-hidden rounded-[18px] border border-amber-500/30 bg-[linear-gradient(165deg,rgba(88,62,12,0.28)_0%,rgba(10,8,12,0.96)_45%)] shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
       <div className={FEED_POST_HEADER_CLASS}>
-        <FeedCardHeaderBrand teamLabel={teamLabel} />
+        <FeedCardHeaderBrand teamLabel={teamLabel} seasonLabel={seasonLabel} />
         {staffCanDelete ? (
           <FeedPostDeleteButton
             input={toFeedPostDeleteInput(post)}

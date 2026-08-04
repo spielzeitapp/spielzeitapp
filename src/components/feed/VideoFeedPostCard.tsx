@@ -20,6 +20,7 @@ import { FeedPostArticleShell } from './FeedPostArticleShell';
 type Props = {
   post: TeamFeedPostDbRow;
   teamLabel: string;
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -41,7 +42,7 @@ function seekNearStart(video: HTMLVideoElement) {
   }
 }
 
-export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDelete, onFeedPostDeleted }) => {
+export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabel, staffCanDelete, onFeedPostDeleted }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoShellRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -221,6 +222,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
     >
       <FeedPostHeader
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         actions={
           staffCanDelete && onFeedPostDeleted ? (

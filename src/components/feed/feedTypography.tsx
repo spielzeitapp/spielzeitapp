@@ -296,11 +296,13 @@ export function FeedCaption({ text }: { text: string }) {
 
 export function FeedPostHeader({
   teamLabel,
+  seasonLabel,
   whenLabel,
   headerClassName = '',
   actions,
 }: {
   teamLabel: string;
+  seasonLabel?: string | null;
   whenLabel: string;
   headerClassName?: string;
   actions?: React.ReactNode;
@@ -308,7 +310,7 @@ export function FeedPostHeader({
   return (
     <header className={`${FEED_POST_HEADER_CLASS} ${headerClassName}`.trim()}>
       <div className="min-w-0 flex-1">
-        <FeedCardHeaderBrand teamLabel={teamLabel} />
+        <FeedCardHeaderBrand teamLabel={teamLabel} seasonLabel={seasonLabel} />
         <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}

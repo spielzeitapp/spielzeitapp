@@ -18,6 +18,7 @@ import { HomeUpcomingTournamentCompact } from './HomeUpcomingTournamentCompact';
 import { HomeSpieltagHintCard } from './HomeSpieltagHintCard';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { isHomeHeroDuplicateFeedPost } from '../../lib/feedPostPriority';
+import { formatFeedSeasonDividerLabel } from '../../lib/feedSeasonLabel';
 import {
   isMatchdayFeedPostHiddenByAutomation,
   loadAutoMatchdayFeedDisabledMatchIds,
@@ -40,6 +41,7 @@ export const HomePage: React.FC = () => {
     selectedTeamSeasonId: teamSeasonId,
     loading: sessionLoading,
     selectedTeamSeason,
+    teamSeasons,
     backendRole,
     membershipRole,
     effectiveRole,
@@ -64,6 +66,25 @@ export const HomePage: React.FC = () => {
     : '—';
   const teamSeasonLine = homeLabelParts?.full ?? `${teamName} · ${seasonLabel}`;
   const teamId = String(selectedTeamSeason?.team?.id ?? selectedTeamSeason?.team_id ?? '');
+
+  const seasonBadgeById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const ts of teamSeasons) {
+      if (!ts.id) continue;
+      if (teamId && String(ts.team?.id ?? ts.team_id ?? '') !== teamId) continue;
+      map.set(
+        ts.id,
+        formatFeedSeasonDividerLabel({
+          displayName: ts.display_name,
+          ageGroup: ts.age_group,
+          teamName: ts.team?.name,
+          seasonName: ts.season?.name,
+          status: ts.status,
+        }),
+      );
+    }
+    return map;
+  }, [teamSeasons, teamId]);
 
   const [now, setNow] = useState(() => new Date());
   const [disabledMatchdayMatchIds, setDisabledMatchdayMatchIds] = useState<Set<string>>(() => new Set());
@@ -147,8 +168,11 @@ export const HomePage: React.FC = () => {
     posts: teamFeedPosts,
     loading: teamFeedLoading,
     ensuring: teamFeedEnsuring,
+    loadingMore: teamFeedLoadingMore,
+    hasMore: teamFeedHasMore,
     refetch: refetchFeed,
-  } = useTeamFeedPosts(teamSeasonId);
+    loadMore: loadMoreFeed,
+  } = useTeamFeedPosts(teamSeasonId, teamId || null);
   const staffCanDeleteFeed = canStaffManageTeamFeed(backendRole, membershipRole);
 
   const eventById = useMemo(() => {
@@ -268,16 +292,49 @@ export const HomePage: React.FC = () => {
                 />
               ) : (
                 <div className="min-w-0 space-y-4">
-                  {visibleFeedPosts.map((item) => (
-                    <HomeFeedPostRenderer
-                      key={item.post.id}
-                      item={item}
-                      eventById={eventById}
-                      teamLabel={teamName}
-                      staffCanDelete={staffCanDeleteFeed}
-                      onFeedPostDeleted={() => void refetchFeed()}
-                    />
-                  ))}
+                  {visibleFeedPosts.map((item, index) => {
+                    const seasonId = item.post.team_season_id;
+                    const seasonBadge = seasonBadgeById.get(seasonId) ?? null;
+                    const prevSeasonId =
+                      index > 0 ? visibleFeedPosts[index - 1]?.post.team_season_id : null;
+                    const showSeasonDivider =
+                      Boolean(seasonBadge) && Boolean(seasonId) && seasonId !== prevSeasonId && index > 0;
+                    return (
+                      <React.Fragment key={item.post.id}>
+                        {showSeasonDivider ? (
+                          <div
+                            className="flex items-center gap-2 pt-1"
+                            role="separator"
+                            aria-label={`Saison ${seasonBadge}`}
+                          >
+                            <div className="h-px flex-1 bg-white/10" />
+                            <p className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-white/45">
+                              {seasonBadge}
+                            </p>
+                            <div className="h-px flex-1 bg-white/10" />
+                          </div>
+                        ) : null}
+                        <HomeFeedPostRenderer
+                          item={item}
+                          eventById={eventById}
+                          teamLabel={teamName}
+                          seasonLabel={seasonBadge}
+                          staffCanDelete={staffCanDeleteFeed}
+                          onFeedPostDeleted={() => void refetchFeed()}
+                        />
+                      </React.Fragment>
+                    );
+                  })}
+                  {teamFeedHasMore ? (
+                    <button
+                      type="button"
+                      onClick={() => void loadMoreFeed()}
+                      disabled={teamFeedLoadingMore}
+                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[13px] font-semibold text-white/80 transition hover:bg-white/[0.07] disabled:opacity-50"
+                    >
+                      {teamFeedLoadingMore ? 'Laden…' : 'Mehr laden'}
+                    </button>
+                  ) : null}
                 </div>
               )}
             </section>

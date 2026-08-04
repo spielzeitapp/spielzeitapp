@@ -28,6 +28,7 @@ import { FeedPostArticleShell } from './FeedPostArticleShell';
 type Props = {
   post: LiveFeedPostRow;
   teamLabel: string;
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -49,6 +50,7 @@ function formatKickoffTime(iso: string | null): string {
 export const LiveFeedPostCard: React.FC<Props> = ({
   post,
   teamLabel,
+  seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
@@ -102,6 +104,7 @@ export const LiveFeedPostCard: React.FC<Props> = ({
     >
       <FeedPostHeader
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
         actions={

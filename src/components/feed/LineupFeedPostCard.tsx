@@ -42,6 +42,7 @@ type Props = {
   post: LineupFeedPostRow;
   liveEvent?: EventRow | null;
   teamLabel: string;
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -68,6 +69,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
   post,
   liveEvent,
   teamLabel,
+  seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
@@ -164,6 +166,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     >
       <FeedPostHeader
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
         actions={

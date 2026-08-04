@@ -36,6 +36,7 @@ type Props = {
   /** Aktueller Termin aus dem Kalender — für LIVE / ENDSTAND / Logos live halten. */
   liveEvent?: EventRow | null;
   teamLabel: string;
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -57,6 +58,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   post,
   liveEvent,
   teamLabel,
+  seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
@@ -283,6 +285,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     >
       <FeedPostHeader
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
         actions={

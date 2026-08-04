@@ -30,6 +30,7 @@ import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 type Props = {
   post: NextMatchFeedPostRow;
   teamLabel: string;
+  seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
@@ -88,6 +89,7 @@ function LogoBlock({ src, alt }: { src: string; alt: string }) {
 export const NextMatchFeedPostCard: React.FC<Props> = ({
   post,
   teamLabel,
+  seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
@@ -161,6 +163,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
     >
       <FeedPostHeader
         teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
         actions={
