@@ -7,13 +7,14 @@ import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
 import { resolveTeamSeasonLabelParts } from '../../lib/seasonLifecycle';
 import {
   buildDemoHomeMatchEvents,
-  pickHomeMatchCard,
+  pickHomeSportingCard,
 } from './homeFeedBuilder';
 import { useTeamFeedPosts } from '../../hooks/useTeamFeedPosts';
 import { HomeFeedPostRenderer } from '../../components/feed/HomeFeedPostRenderer';
 import type { EventRow } from '../../hooks/useEvents';
 import { HomeFeedComposer } from './HomeFeedComposer';
 import { HomeUpcomingMatchCompact } from './HomeUpcomingMatchCompact';
+import { HomeUpcomingTournamentCompact } from './HomeUpcomingTournamentCompact';
 import { HomeSpieltagHintCard } from './HomeSpieltagHintCard';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { isHomeHeroDuplicateFeedPost } from '../../lib/feedPostPriority';
@@ -131,12 +132,16 @@ export const HomePage: React.FC = () => {
   const autoMatchdaySettingsReady =
     FEED_DEMO || (!evLoading && (!hasMatchEventsToCheck || !disabledMatchdayLoading));
 
-  const matchPickResolved = useMemo(() => {
+  const sportingPickResolved = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
-    return pickHomeMatchCard(source, now, disabledMatchdayMatchIds);
+    return pickHomeSportingCard(source, now, disabledMatchdayMatchIds);
   }, [events, now, disabledMatchdayMatchIds]);
 
-  const matchPick = autoMatchdaySettingsReady ? matchPickResolved : null;
+  const sportingPick = autoMatchdaySettingsReady ? sportingPickResolved : null;
+  const matchPick =
+    sportingPick?.sportingKind === 'match'
+      ? { event: sportingPick.event, status: sportingPick.status }
+      : null;
 
   const {
     posts: teamFeedPosts,
@@ -161,6 +166,7 @@ export const HomePage: React.FC = () => {
   const spieltagHintPick =
     matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
   const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
+  const showTournamentCompact = Boolean(sportingPick?.sportingKind === 'tournament');
 
   const reviewPendingForEvent = (event: EventRow | undefined) =>
     Boolean(
@@ -189,7 +195,7 @@ export const HomePage: React.FC = () => {
   }, [teamFeedPosts, spieltagHintPick, disabledMatchdayMatchIds, autoMatchdaySettingsReady]);
 
   const showNoUpcomingMatchEmpty =
-    matchSectionReady && !matchPick && visibleFeedPosts.length === 0;
+    matchSectionReady && !sportingPick && visibleFeedPosts.length === 0;
 
   return (
     <PageShell
@@ -278,6 +284,13 @@ export const HomePage: React.FC = () => {
 
             {!matchSectionReady ? (
               <p className="text-sm text-white/50">Spielplan wird geladen…</p>
+            ) : showTournamentCompact && sportingPick ? (
+              <section className="space-y-2" aria-label="Nächstes Turnier">
+                <SectionTitle variant="subtle" as="p" className="!text-[11px] uppercase sm:!text-xs">
+                  Nächstes Turnier
+                </SectionTitle>
+                <HomeUpcomingTournamentCompact pick={sportingPick} />
+              </section>
             ) : showNextMatchCompact && matchPick ? (
               <section className="space-y-2" aria-label="Nächstes Spiel">
                 <SectionTitle variant="subtle" as="p" className="!text-[11px] uppercase sm:!text-xs">

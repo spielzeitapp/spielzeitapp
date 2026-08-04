@@ -17,10 +17,8 @@ import {
   type MatchCenterParticipant,
   type TournamentParticipantRow,
 } from '../../lib/matchCenterTournamentVisuals';
-import {
-  pickNextUpcomingMatch,
-  pickNextUpcomingTournament,
-} from '../../lib/matchCenterUtils';
+import { pickNextSportingEvent } from '../../lib/matchCenterUtils';
+import { resolveTeamSeasonLabelParts } from '../../lib/seasonLifecycle';
 import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from './LivePremiumShell';
 import { PremiumEmptyState } from '../../ui';
 import { MatchCenterNextMatchCard } from './MatchCenterNextMatchCard';
@@ -36,7 +34,18 @@ type Props = {
 export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Props) {
   const { selectedTeamSeasonId: teamSeasonId, selectedTeamSeason } = useSession();
   const { events, loading: eventsLoading } = useEvents(teamSeasonId);
-  const teamName = (selectedTeamSeason?.team?.name ?? 'Unser Team').trim() || 'Unser Team';
+  const teamName = useMemo(() => {
+    if (!selectedTeamSeason) return 'Unser Team';
+    return (
+      resolveTeamSeasonLabelParts({
+        displayName: selectedTeamSeason.display_name,
+        ageGroup: selectedTeamSeason.age_group,
+        teamName: selectedTeamSeason.team?.name,
+        seasonName: selectedTeamSeason.season?.name,
+        status: selectedTeamSeason.status,
+      }).teamLine || 'Unser Team'
+    );
+  }, [selectedTeamSeason]);
 
   const [now, setNow] = useState(() => new Date());
   const [participants, setParticipants] = useState<MatchCenterParticipant[]>([]);
@@ -55,17 +64,12 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     return () => window.clearInterval(id);
   }, []);
 
-  const nextMatch = useMemo(
-    () => (eventsLoading ? null : pickNextUpcomingMatch(events, now)),
-    [events, eventsLoading, now],
+  const nextSporting = useMemo(
+    () => (eventsLoading || activeLiveContext ? null : pickNextSportingEvent(events, now)),
+    [events, eventsLoading, activeLiveContext, now],
   );
-  const nextTournament = useMemo(
-    () =>
-      eventsLoading || nextMatch || activeLiveContext
-        ? null
-        : pickNextUpcomingTournament(events, now),
-    [events, eventsLoading, nextMatch, activeLiveContext, now],
-  );
+  const nextMatch = nextSporting?.kind === 'match' ? nextSporting : null;
+  const nextTournament = nextSporting?.kind === 'tournament' ? nextSporting : null;
 
   useEffect(() => {
     if (!teamSeasonId || eventsLoading) {
@@ -171,19 +175,10 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     );
   }
 
-  if (nextMatch) {
-    return (
-      <LivePremiumShell matchCenter>
-        <LivePageHeader title="Match Center" subtitle="Nächstes Spiel — Countdown bis Anpfiff" />
-        <MatchCenterNextMatchCard event={nextMatch} ourTeamName={teamName} now={now} />
-      </LivePremiumShell>
-    );
-  }
-
   if (nextTournament) {
     return (
       <LivePremiumShell matchCenter>
-        <LivePageHeader title="Match Center" />
+        <LivePageHeader title="Match Center" subtitle="Nächstes Turnier" />
         <MatchCenterTournamentCard
           event={nextTournament}
           ourTeamName={teamName}
@@ -195,6 +190,15 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
           tournamentCompleted={tournamentCompleted}
           loadingExtras={tournamentExtrasLoading}
         />
+      </LivePremiumShell>
+    );
+  }
+
+  if (nextMatch) {
+    return (
+      <LivePremiumShell matchCenter>
+        <LivePageHeader title="Match Center" subtitle="Nächstes Spiel — Countdown bis Anpfiff" />
+        <MatchCenterNextMatchCard event={nextMatch} ourTeamName={teamName} now={now} />
       </LivePremiumShell>
     );
   }

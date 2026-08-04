@@ -185,10 +185,14 @@ export function eventKindLabel(kind: EventRow['kind']): string {
   return 'Spiel';
 }
 
-/** Home Match-Card: nur `kind === match`, Priorität heute → morgen → nächstes Spiel. */
+/** Home Match-/Turnier-Card: sportliche Events, Priorität heute → morgen → nächstes. */
 export type HomeMatchCardPick = {
   event: EventRow;
   status: 'today' | 'tomorrow' | 'next';
+};
+
+export type HomeSportingCardPick = HomeMatchCardPick & {
+  sportingKind: 'match' | 'tournament';
 };
 
 /** Statuszeilen für die Home Feed Hero Card (SPIELTAG statt MATCHDAY). */
@@ -204,6 +208,12 @@ export const HOME_NEXT_MATCH_ORG_LABEL: Record<'tomorrow' | 'next', string> = {
   next: 'Nächstes Spiel',
 };
 
+export const HOME_NEXT_TOURNAMENT_ORG_LABEL: Record<'today' | 'tomorrow' | 'next', string> = {
+  today: 'Heute Turnier',
+  tomorrow: 'Turnier morgen',
+  next: 'Nächstes Turnier',
+};
+
 /** Kleine Zeile + große Hero-Zeile aus Status-Label (z. B. Home / MatchdayHeroCard). */
 export function splitStatusForHero(statusLabel: string): { lead: string; emphasis: string } {
   const parts = statusLabel.trim().split(/\s+/).filter(Boolean);
@@ -212,31 +222,63 @@ export function splitStatusForHero(statusLabel: string): { lead: string; emphasi
   return { lead: parts.slice(0, -1).join(' '), emphasis: parts[parts.length - 1] ?? '' };
 }
 
+function isSportingHomeCandidate(
+  e: EventRow,
+  disabledMatchIds: ReadonlySet<string>,
+): boolean {
+  if (!isEventPubliclyVisible(e)) return false;
+  const st = e.status ?? 'upcoming';
+  if (st === 'finished' || st === 'canceled') return false;
+  if (!e.starts_at) return false;
+  if (e.kind === 'tournament') return true;
+  if (e.kind !== 'match') return false;
+  return isAutoMatchdayFeedEnabledForEvent(e, disabledMatchIds);
+}
+
+/**
+ * Home: chronologisch nächstes sportliches Event (Match oder Turnier).
+ * Trainings zählen nicht. Zeitlich, nicht nach Eventtyp priorisiert.
+ */
+export function pickHomeSportingCard(
+  events: EventRow[],
+  now: Date,
+  disabledMatchIds: ReadonlySet<string> = new Set(),
+): HomeSportingCardPick | null {
+  const sporting = events
+    .filter((e) => isSportingHomeCandidate(e, disabledMatchIds))
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+
+  if (sporting.length === 0) return null;
+
+  const toPick = (e: EventRow, status: HomeMatchCardPick['status']): HomeSportingCardPick => ({
+    event: e,
+    status,
+    sportingKind: e.kind === 'tournament' ? 'tournament' : 'match',
+  });
+
+  const today = sporting.find((e) => isSameViennaCalendarDay(new Date(e.starts_at), now));
+  if (today) return toPick(today, 'today');
+
+  const tomorrow = sporting.find((e) => isNextViennaCalendarDay(new Date(e.starts_at), now));
+  if (tomorrow) return toPick(tomorrow, 'tomorrow');
+
+  const nowMs = now.getTime();
+  const upcoming = sporting.find((e) => new Date(e.starts_at).getTime() >= nowMs) ?? sporting[0];
+  return upcoming ? toPick(upcoming, 'next') : null;
+}
+
+/** @deprecated Alias — nur Matches; Prefer pickHomeSportingCard. */
 export function pickHomeMatchCard(
   events: EventRow[],
   now: Date,
   disabledMatchIds: ReadonlySet<string> = new Set(),
 ): HomeMatchCardPick | null {
-  const matches = events
-    .filter((e) => {
-      if (!isEventPubliclyVisible(e)) return false;
-      if (e.kind !== 'match') return false;
-      const st = e.status ?? 'upcoming';
-      if (st === 'finished' || st === 'canceled') return false;
-      if (!isAutoMatchdayFeedEnabledForEvent(e, disabledMatchIds)) return false;
-      return true;
-    })
-    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-
-  if (matches.length === 0) return null;
-
-  const today = matches.find((e) => isSameViennaCalendarDay(new Date(e.starts_at), now));
-  if (today) return { event: today, status: 'today' };
-
-  const tomorrow = matches.find((e) => isNextViennaCalendarDay(new Date(e.starts_at), now));
-  if (tomorrow) return { event: tomorrow, status: 'tomorrow' };
-
-  return { event: matches[0], status: 'next' };
+  const pick = pickHomeSportingCard(
+    events.filter((e) => e.kind === 'match'),
+    now,
+    disabledMatchIds,
+  );
+  return pick ? { event: pick.event, status: pick.status } : null;
 }
 
 /** Demo: nur Match-Events für Home (VITE_HOME_FEED_DEMO). */

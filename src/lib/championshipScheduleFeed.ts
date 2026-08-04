@@ -13,7 +13,7 @@ export const CHAMPIONSHIP_SCHEDULE_MEDIA_TYPE = 'championship_schedule';
 export const CHAMPIONSHIP_MATCH_CHANGED_POST_KIND = 'championship_match_changed';
 export const CHAMPIONSHIP_MATCH_CHANGED_MEDIA_TYPE = 'championship_match_changed';
 
-export const CHAMPIONSHIP_SCHEDULE_DEEP_LINK = '/app/mehr/championship';
+export const CHAMPIONSHIP_SCHEDULE_DEEP_LINK = '/app/spielplan';
 
 export type ChampionshipMaterialSnapshot = {
   starts_at: string;

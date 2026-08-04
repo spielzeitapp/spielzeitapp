@@ -25,18 +25,20 @@ function isCanceledOrFinished(e: EventRow): boolean {
   return st === 'finished' || st === 'canceled';
 }
 
+function isUpcomingSportingCandidate(e: EventRow, nowMs: number): boolean {
+  if (!isEventPubliclyVisible(e)) return false;
+  if (isCanceledOrFinished(e)) return false;
+  if ((e.status ?? 'upcoming') === 'live') return false;
+  if (!e.starts_at) return false;
+  if (new Date(e.starts_at).getTime() < nowMs) return false;
+  return e.kind === 'match' || e.kind === 'tournament';
+}
+
 /** Nächstes kommendes Ligaspiel (kind match), start_time in der Zukunft. */
 export function pickNextUpcomingMatch(events: EventRow[], now: Date): EventRow | null {
   const nowMs = now.getTime();
   const matches = events
-    .filter((e) => {
-      if (!isEventPubliclyVisible(e)) return false;
-      if (e.kind !== 'match') return false;
-      if (isCanceledOrFinished(e)) return false;
-      if ((e.status ?? 'upcoming') === 'live') return false;
-      if (!e.starts_at) return false;
-      return new Date(e.starts_at).getTime() >= nowMs;
-    })
+    .filter((e) => e.kind === 'match' && isUpcomingSportingCandidate(e, nowMs))
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   return matches[0] ?? null;
 }
@@ -45,15 +47,21 @@ export function pickNextUpcomingMatch(events: EventRow[], now: Date): EventRow |
 export function pickNextUpcomingTournament(events: EventRow[], now: Date): EventRow | null {
   const nowMs = now.getTime();
   const tournaments = events
-    .filter((e) => {
-      if (e.kind !== 'tournament') return false;
-      if (isCanceledOrFinished(e)) return false;
-      if ((e.status ?? 'upcoming') === 'live') return false;
-      if (!e.starts_at) return false;
-      return new Date(e.starts_at).getTime() >= nowMs;
-    })
+    .filter((e) => e.kind === 'tournament' && isUpcomingSportingCandidate(e, nowMs))
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   return tournaments[0] ?? null;
+}
+
+/**
+ * Chronologisch nächstes sportliches Event (Turnier / Meisterschaft / Vorbereitung).
+ * Trainings und sonstige Termine zählen nicht. Zeitlich, nicht nach Eventtyp.
+ */
+export function pickNextSportingEvent(events: EventRow[], now: Date): EventRow | null {
+  const nowMs = now.getTime();
+  const upcoming = events
+    .filter((e) => isUpcomingSportingCandidate(e, nowMs))
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  return upcoming[0] ?? null;
 }
 
 export function computeMatchCenterCountdown(

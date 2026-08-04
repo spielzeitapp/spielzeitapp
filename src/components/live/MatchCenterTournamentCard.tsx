@@ -218,7 +218,7 @@ export function MatchCenterTournamentCard({
           to={`/app/events/${event.id}`}
           className={`${dsPrimaryCtaClass()} mt-1.5 mb-[max(0.75rem,env(safe-area-inset-bottom,0px))] inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
         >
-          Zum Turniercenter
+          Turnier öffnen
         </Link>
       </div>
     </article>

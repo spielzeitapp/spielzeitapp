@@ -38,6 +38,7 @@ import { TrainerPreviewPage } from '../pages/TrainerPreviewPage';
 import { PlayerMatchdayPosterPreviewPage } from '../pages/dev/PlayerMatchdayPosterPreviewPage';
 import { SeasonManagementPage } from '../pages/SeasonManagementPage';
 import { ChampionshipManagementPage } from '../pages/ChampionshipManagementPage';
+import { TeamSchedulePage } from '../pages/TeamSchedulePage';
 import { ParentAccessPage } from '../pages/ParentAccessPage';
 import { JugglingChallengePage } from '../pages/JugglingChallengePage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
@@ -214,6 +215,7 @@ function InternalRoutes(): React.ReactElement {
         />
         <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
         <Route path="table" element={<TablePage />} />
+        <Route path="spielplan" element={<TeamSchedulePage />} />
         <Route path="mehr" element={<MoreLayout />}>
           <Route index element={<MorePage />} />
           <Route path="trainer/team-push" element={<TrainerTeamPushPage />} />

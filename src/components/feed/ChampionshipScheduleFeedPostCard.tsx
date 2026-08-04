@@ -33,7 +33,7 @@ export function ChampionshipScheduleFeedPostCard({
 }: Props) {
   const payload = parseChampionshipSchedulePayload(post.payload);
   const sub = [payload?.age_group, payload?.season_name].filter(Boolean).join(' · ');
-  const deepLink = payload?.deep_link || CHAMPIONSHIP_SCHEDULE_DEEP_LINK;
+  const deepLink = CHAMPIONSHIP_SCHEDULE_DEEP_LINK;
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
 
   return (
