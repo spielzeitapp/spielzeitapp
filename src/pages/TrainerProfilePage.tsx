@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ProfileCompactHeader } from "../components/team/profile/ProfileCompactHeader";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
-import { useSession, getSeasonLabelFromMembership, getTeamNameFromMembership } from "../auth/useSession";
+import { useSession } from "../auth/useSession";
 import { canManageRoster, normalizeRole } from "../lib/roles";
 import {
   fetchTeamStaffMember,
@@ -20,6 +20,7 @@ import { ProfileHeroCard } from "../components/team/profile/ProfileHeroCard";
 import { AppButton } from "../components/ui/AppButton";
 import { premiumPlayerInitials } from "../lib/premiumPlayerCard";
 import { APP_BOTTOM_SCROLL_PAD } from "../lib/appScrollPadding";
+import { labelPartsFromTeamSeasonLike } from "../lib/profileTeamSeasonDisplay";
 
 function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string } {
   const first = (member.first_name ?? "").trim().toUpperCase();
@@ -36,8 +37,8 @@ function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string 
 export const TrainerProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { selectedTeamSeason, selectedMembership } = useSession();
-  const { teamSeasonId, teamLabel, role, loading: tsLoading } = useActiveTeamSeason();
+  const { selectedTeamSeason } = useSession();
+  const { teamSeasonId, teamLine, seasonLine, role, loading: tsLoading } = useActiveTeamSeason();
   const canManage = canManageRoster(normalizeRole(role));
 
   const { players } = usePlayers(teamSeasonId, {
@@ -125,24 +126,24 @@ export const TrainerProfilePage: React.FC = () => {
     onAfterSave: reloadMember,
   });
 
-  const teamName = useMemo(() => {
-    const fromTs = selectedTeamSeason?.team?.name?.trim();
-    if (fromTs) return fromTs;
-    return getTeamNameFromMembership(selectedMembership)?.trim() || teamLabel || "Team";
-  }, [selectedTeamSeason, selectedMembership, teamLabel]);
+  const labelParts = useMemo(() => {
+    const fromActive = labelPartsFromTeamSeasonLike(selectedTeamSeason);
+    if (fromActive) return fromActive;
+    if (teamLine) {
+      return {
+        teamLine,
+        seasonLine: seasonLine && seasonLine !== "—" ? seasonLine : "—",
+        full: seasonLine && seasonLine !== "—" ? `${teamLine} · ${seasonLine}` : teamLine,
+      };
+    }
+    return null;
+  }, [selectedTeamSeason, teamLine, seasonLine]);
 
-  const seasonName = useMemo(() => {
-    const fromTs = selectedTeamSeason?.season?.name?.trim();
-    if (fromTs) return fromTs;
-    const fromMem = getSeasonLabelFromMembership(selectedMembership)?.trim();
-    if (fromMem && fromMem !== "—") return fromMem;
-    return "—";
-  }, [selectedTeamSeason, selectedMembership]);
-
-  const teamSeasonLabel = useMemo(() => {
-    if (seasonName && seasonName !== "—") return `${teamName} · ${seasonName}`;
-    return teamName;
-  }, [teamName, seasonName]);
+  const teamName = labelParts?.teamLine?.trim() || "Team";
+  const seasonName = labelParts?.seasonLine?.trim() || "—";
+  const teamSeasonLabel =
+    labelParts?.full?.trim() ||
+    (seasonName && seasonName !== "—" ? `${teamName} · ${seasonName}` : teamName);
 
   const avatarUrl = (member?.avatar_url ?? "").trim();
   const { line1: firstNameLine, line2: lastNameLine } = member ? nameHeroLines(member) : { line1: "TRAINER", line2: "" };

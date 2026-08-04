@@ -2,8 +2,6 @@ import React, { Component, ErrorInfo, ReactNode, useEffect, useMemo, useState } 
 import { Link, useNavigate } from 'react-router-dom';
 import {
   useSession,
-  getTeamNameFromMembership,
-  getSeasonLabelFromMembership,
   normalizeRole,
 } from '../auth/useSession';
 import { useAuth } from '../auth/AuthProvider';
@@ -13,10 +11,18 @@ import { Card, CardTitle } from '../app/components/ui/Card';
 import { PushNotificationsButton } from '../components/PushNotificationsButton';
 import { PlayerAccessQrPanel } from '../components/player/PlayerAccessQrPanel';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
+import { isSeasonActive } from '../lib/seasonLifecycle';
+import {
+  labelPartsFromTeamSeasonLike,
+  resolveProfileHeaderTeamSeason,
+} from '../lib/profileTeamSeasonDisplay';
 
 type LinkedChild = {
   id: string;
   name: string;
+  teamSeasonId: string | null;
+  teamLine: string | null;
+  seasonLine: string | null;
 };
 
 /** Profil-Lade-Timeout: danach Fallback-Karte statt stiller Blockade */
@@ -28,14 +34,6 @@ const PUSH_MOUNT_DELAY_MS = 400;
 /** Optional: Push-Bereich komplett überspringen (z. B. VITE_DISABLE_PROFILE_PUSH=true) */
 const DISABLE_PROFILE_PUSH =
   typeof import.meta !== 'undefined' && String(import.meta.env?.VITE_DISABLE_PROFILE_PUSH ?? '') === 'true';
-
-/** Sichere Team-Namen-Extraktion (Supabase kann team als Objekt oder Array liefern). */
-function getTeamName(ts: { team?: { name?: string } | Array<{ name?: string }> } | null | undefined): string {
-  if (!ts?.team) return '–';
-  const t = ts.team;
-  const name = Array.isArray(t) ? t[0]?.name : (t as { name?: string })?.name;
-  return name ?? '–';
-}
 
 type SectionBoundaryProps = { children: ReactNode; label: string; fallback?: ReactNode };
 
@@ -74,6 +72,7 @@ export const ProfilePage: React.FC = () => {
     backendRole,
     effectiveRole,
     selectedTeamSeason,
+    selectedTeamSeasonId,
     selectedMembership,
     signOut,
     hasPendingPlayerRequest,
@@ -83,6 +82,7 @@ export const ProfilePage: React.FC = () => {
 
   const [linkedChildren, setLinkedChildren] = useState<LinkedChild[]>([]);
   const [childrenLoading, setChildrenLoading] = useState(false);
+  const [childrenReady, setChildrenReady] = useState(false);
   const [childrenError, setChildrenError] = useState<string | null>(null);
 
   const { profile, loading: profileLoading, error: profileError } = useProfile(authUser?.id);
@@ -102,15 +102,25 @@ export const ProfilePage: React.FC = () => {
       effectiveRole === 'head_coach' ||
       effectiveRole === 'admin');
 
-  const selectedTeamName = useMemo(() => {
-    const fromTs = getTeamName(selectedTeamSeason);
-    if (fromTs && fromTs !== '–') return fromTs;
-    const t = getTeamNameFromMembership(selectedMembership)?.trim();
-    const s = getSeasonLabelFromMembership(selectedMembership)?.trim();
-    if (t && s && s !== '—') return `${t} (${s})`;
-    if (t) return t;
-    return '–';
-  }, [selectedTeamSeason, selectedMembership]);
+  const profileTeamSeason = useMemo(
+    () =>
+      resolveProfileHeaderTeamSeason({
+        role: effectiveRole,
+        selectedTeamSeason,
+        selectedTeamSeasonId,
+        childrenLoaded: childrenReady,
+        children: linkedChildren,
+      }),
+    [
+      effectiveRole,
+      selectedTeamSeason,
+      selectedTeamSeasonId,
+      childrenReady,
+      linkedChildren,
+    ],
+  );
+  const selectedTeamName = profileTeamSeason.teamLine;
+  const selectedSeasonName = profileTeamSeason.seasonLine;
 
   const profileBackendRoleLabel = useMemo(() => {
     const mr = selectedMembership?.role;
@@ -185,6 +195,7 @@ export const ProfilePage: React.FC = () => {
       setLinkedChildren([]);
       setChildrenError(null);
       setChildrenLoading(false);
+      setChildrenReady(true);
       return;
     }
 
@@ -193,6 +204,7 @@ export const ProfilePage: React.FC = () => {
 
     async function loadChildren() {
       setChildrenLoading(true);
+      setChildrenReady(false);
       setChildrenError(null);
 
       try {
@@ -236,14 +248,111 @@ export const ProfilePage: React.FC = () => {
           return;
         }
 
-        const children = (playerRows ?? []).map(
+        const childrenBase = (playerRows ?? []).map(
           (row: { id?: string; first_name?: string; last_name?: string }) => {
             const first = (row.first_name ?? '').toString().trim();
             const last = (row.last_name ?? '').toString().trim();
             const label = `${first} ${last}`.trim() || 'Spieler';
-            return { id: String(row.id ?? ''), name: label };
+            return {
+              id: String(row.id ?? ''),
+              name: label,
+              teamSeasonId: null as string | null,
+              teamLine: null as string | null,
+              seasonLine: null as string | null,
+            };
           },
         ).filter((c) => c.id.length > 0);
+
+        if (childrenBase.length === 0) {
+          if (!cancelled) setLinkedChildren([]);
+          return;
+        }
+
+        const { data: tspRows, error: tspError } = await supabase
+          .from('team_season_players')
+          .select(
+            `
+            player_id,
+            status,
+            team_seasons:team_seasons (
+              id,
+              status,
+              display_name,
+              age_group,
+              teams:teams ( id, name ),
+              seasons:seasons ( id, name )
+            )
+          `,
+          )
+          .in(
+            'player_id',
+            childrenBase.map((c) => c.id),
+          )
+          .eq('status', 'active');
+
+        console.log('[PROFILE CHILDREN TEAM_SEASON_PLAYERS]', { data: tspRows, error: tspError });
+
+        if (cancelled) return;
+
+        if (tspError) {
+          // Kinder ohne Saison-Labels anzeigen — Header fällt auf Session/Resolver zurück.
+          if (!cancelled) setLinkedChildren(childrenBase);
+          return;
+        }
+
+        type TspRow = {
+          player_id?: string;
+          team_seasons?: {
+            id?: string;
+            status?: string | null;
+            display_name?: string | null;
+            age_group?: string | null;
+            teams?: { name?: string } | { name?: string }[] | null;
+            seasons?: { name?: string } | { name?: string }[] | null;
+          } | Array<{
+            id?: string;
+            status?: string | null;
+            display_name?: string | null;
+            age_group?: string | null;
+            teams?: { name?: string } | { name?: string }[] | null;
+            seasons?: { name?: string } | { name?: string }[] | null;
+          }> | null;
+        };
+
+        const activeByPlayer = new Map<string, LinkedChild>();
+        for (const row of (tspRows ?? []) as TspRow[]) {
+          const playerId = String(row.player_id ?? '');
+          if (!playerId || activeByPlayer.has(playerId)) continue;
+          const rawTs = Array.isArray(row.team_seasons) ? row.team_seasons[0] : row.team_seasons;
+          if (!rawTs || !isSeasonActive(rawTs.status)) continue;
+          const parts = labelPartsFromTeamSeasonLike({
+            id: rawTs.id,
+            status: rawTs.status,
+            display_name: rawTs.display_name,
+            age_group: rawTs.age_group,
+            team: rawTs.teams,
+            season: rawTs.seasons,
+          });
+          if (!parts) continue;
+          activeByPlayer.set(playerId, {
+            id: playerId,
+            name: '',
+            teamSeasonId: rawTs.id ? String(rawTs.id) : null,
+            teamLine: parts.teamLine,
+            seasonLine: parts.seasonLine,
+          });
+        }
+
+        const children = childrenBase.map((c) => {
+          const active = activeByPlayer.get(c.id);
+          if (!active) return c;
+          return {
+            ...c,
+            teamSeasonId: active.teamSeasonId,
+            teamLine: active.teamLine,
+            seasonLine: active.seasonLine,
+          };
+        });
 
         if (!cancelled) setLinkedChildren(children);
       } catch (e: unknown) {
@@ -253,13 +362,19 @@ export const ProfilePage: React.FC = () => {
           setChildrenError(e instanceof Error ? e.message : 'Kind-Verknüpfungen konnten nicht geladen werden.');
         }
       } finally {
-        setChildrenLoading(false);
+        if (!cancelled) {
+          setChildrenLoading(false);
+          setChildrenReady(true);
+        }
       }
     }
 
     void loadChildren().catch((e) => {
       console.error('[PROFILE CHILDREN] unhandled', e);
-      setChildrenLoading(false);
+      if (!cancelled) {
+        setChildrenLoading(false);
+        setChildrenReady(true);
+      }
     });
 
     return () => {
@@ -343,6 +458,9 @@ export const ProfilePage: React.FC = () => {
           <p className="mt-2 text-sm text-[var(--text-sub)]">
             Team: <span className="font-medium text-[var(--text-main)]">{selectedTeamName}</span>
           </p>
+          <p className="mt-1 text-sm text-[var(--text-sub)]">
+            Saison: <span className="font-medium text-[var(--text-main)]">{selectedSeasonName}</span>
+          </p>
 
           {showLinkedChildrenSection && (
             <ProfileSectionErrorBoundary label="Verknüpfte Kinder">
@@ -359,6 +477,18 @@ export const ProfilePage: React.FC = () => {
                     {linkedChildren.map((child) => (
                       <li key={child.id} className="text-xs text-[var(--text-main)]">
                         <span className="font-medium">{child.name}</span>
+                        {child.teamLine ? (
+                          <span className="mt-0.5 block text-[var(--text-sub)]">
+                            {child.teamLine}
+                            {child.seasonLine && child.seasonLine !== '—'
+                              ? ` · ${child.seasonLine}`
+                              : ''}
+                          </span>
+                        ) : (
+                          <span className="mt-0.5 block text-[var(--text-sub)]">
+                            Keine aktive Saisonmitgliedschaft
+                          </span>
+                        )}
                         {isPlayerQrAccessEnabled() ? (
                           <PlayerAccessQrPanel playerId={child.id} playerName={child.name} />
                         ) : null}
