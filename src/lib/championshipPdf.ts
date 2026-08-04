@@ -8,7 +8,7 @@ import {
   type SeasonPhase,
 } from './seasonPhase';
 import { getOurTeamLogoUrl, PLACEHOLDER_LOGO } from './teamLogos';
-import { isViennaPlaceholderKickoff, utcIsoToViennaTimeHHmm } from './viennaTime';
+import { isChampionshipKickoffTimeOpen, utcIsoToViennaTimeHHmm } from './viennaTime';
 
 export type ChampionshipPdfMode = 'published' | 'all';
 
@@ -59,7 +59,7 @@ function formatStandDate(): string {
 }
 
 function kickoffLabel(f: ChampionshipFixture): string {
-  if (!f.starts_at || isViennaPlaceholderKickoff(f.starts_at)) return 'offen';
+  if (!f.starts_at || isChampionshipKickoffTimeOpen(f.starts_at, f.fixture_status)) return 'offen';
   return utcIsoToViennaTimeHHmm(f.starts_at) || 'offen';
 }
 

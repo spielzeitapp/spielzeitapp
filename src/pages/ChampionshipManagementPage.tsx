@@ -42,11 +42,13 @@ import { getOurTeamDisplayName, getOurTeamLogoUrl, PLACEHOLDER_LOGO } from '../l
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
 import { supabase } from '../lib/supabaseClient';
 import {
+  isChampionshipKickoffTimeOpen,
   isViennaPlaceholderKickoff,
   meetupUtcIsoOnViennaEventDay,
   parseViennaDateTimeLocalToUtcIso,
   utcIsoToViennaDateInput,
   utcIsoToViennaTimeHHmm,
+  viennaOpenKickoffUtcIsoFromDateYmd,
 } from '../lib/viennaTime';
 import type { VenueRow } from '../lib/venues';
 import { locationTextFromVenue } from '../lib/venues';
@@ -139,7 +141,7 @@ function statusMeta(status: ChampionshipFixture['fixture_status']): {
 }
 
 function kickoffFromFixture(f: ChampionshipFixture): string {
-  if (!f.starts_at || isViennaPlaceholderKickoff(f.starts_at)) return '';
+  if (!f.starts_at || isChampionshipKickoffTimeOpen(f.starts_at, f.fixture_status)) return '';
   return utcIsoToViennaTimeHHmm(f.starts_at);
 }
 
@@ -362,8 +364,9 @@ export const ChampionshipManagementPage: React.FC = () => {
         nextStatus = 'agreed';
       }
     } else {
-      // Nur Datum: Tag speichern, Placeholder-Zeit 12:00 (nicht ÖFB 23:00), Status open
-      startsAt = parseViennaDateTimeLocalToUtcIso(`${dateYmd}T12:00`);
+      // Nur Datum: Tag + bestehender Open-Kickoff-Sentinel (Vienna 23:00), Status open.
+      // Nie 12:00 — echte Mittagsspiele müssen unterscheidbar bleiben.
+      startsAt = viennaOpenKickoffUtcIsoFromDateYmd(dateYmd);
       if (!startsAt) {
         setEditError('Ungültiges Datum.');
         return;
@@ -1005,7 +1008,9 @@ export const ChampionshipManagementPage: React.FC = () => {
                 </>
               ) : (
                 <p className="min-w-0 break-words text-sm text-white/70">
-                  {formatOefbDate(f.starts_at)}
+                  {isChampionshipKickoffTimeOpen(f.starts_at, f.fixture_status)
+                    ? `${formatViennaDateOnly(f.starts_at)} · offen`
+                    : formatOefbDate(f.starts_at)}
                   {f.meeting_at ? ` · Treffpunkt ${utcIsoToViennaTimeHHmm(f.meeting_at)}` : ''}
                   {f.location ? ` · ${f.location}` : ''}
                 </p>

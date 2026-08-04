@@ -194,14 +194,43 @@ export function utcIsoToViennaDateInput(iso: string): string {
 }
 
 /**
- * ÖFB date-only Artefakt: Vienna 23:00 oder 00:00 ist keine vereinbarte Anstoßzeit.
- * Echte Uhrzeiten (z. B. 10:30) bleiben unberührt.
+ * Persistente Kennzeichnung „Datum bekannt, Anpfiffzeit offen“ in `starts_at`:
+ * Vienna 23:00 oder 00:00 (ÖFB date-only Artefakt und manuelle offene Vereinbarung).
+ * Niemals 12:00 als Sentinel — echte Mittagsspiele müssen unterscheidbar bleiben.
+ */
+export const VIENNA_OPEN_KICKOFF_HHMM = '23:00';
+
+/** Datum (YYYY-MM-DD) → UTC-ISO mit Vienna-Open-Kickoff-Sentinel (23:00). */
+export function viennaOpenKickoffUtcIsoFromDateYmd(ymd: string): string | null {
+  return parseViennaDateTimeLocalToUtcIso(`${ymd.trim()}T${VIENNA_OPEN_KICKOFF_HHMM}`);
+}
+
+/**
+ * ÖFB date-only Artefakt / offene Anpfiffzeit: Vienna 23:00 oder 00:00.
+ * Echte Uhrzeiten (z. B. 10:30, 12:00) bleiben unberührt.
  */
 export function isViennaPlaceholderKickoff(iso: string | null | undefined): boolean {
   if (!iso || !String(iso).trim()) return true;
   const parts = getDateTimePartsInTimeZone(new Date(iso), VIENNA_TZ);
   if (!parts) return true;
   return (parts.hour === 23 || parts.hour === 0) && parts.minute === 0;
+}
+
+/**
+ * Meisterschaft: Anpfiffzeit bewusst offen.
+ * Nutzt den bestehenden 23:00/00:00-Sentinel; zusätzlich Legacy-Bug
+ * (leerer Beginn fälschlich als Vienna 12:00 bei fixture_status=open).
+ */
+export function isChampionshipKickoffTimeOpen(
+  startsAt: string | null | undefined,
+  fixtureStatus?: string | null,
+): boolean {
+  if (isViennaPlaceholderKickoff(startsAt)) return true;
+  if (!startsAt || !String(startsAt).trim()) return true;
+  if (String(fixtureStatus ?? '').trim().toLowerCase() !== 'open') return false;
+  const parts = getDateTimePartsInTimeZone(new Date(startsAt), VIENNA_TZ);
+  if (!parts) return true;
+  return parts.hour === 12 && parts.minute === 0;
 }
 
 /** UTC-ISO → `HH:mm` (Vienna) für Treffpunkt-Zeitfeld. */
