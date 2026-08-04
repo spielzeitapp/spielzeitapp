@@ -8,6 +8,7 @@ import brandLogoHeader from '../assets/branding/spielzeitapp-header.png';
 import {
   drawOefbEncounterCell,
   drawVenueHierarchyCell,
+  formatPdfDateWithWeekday,
   loadImageDataUrl,
   triggerPdfBlobDownload,
 } from './championshipPdf';
@@ -64,17 +65,6 @@ export function seasonPlanIncludeDefaults() {
     tournaments: true,
     trainings: false,
   } as const;
-}
-
-function formatDateDe(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('de-AT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'Europe/Vienna',
-  }).format(d);
 }
 
 function formatStandDate(): string {
@@ -295,21 +285,22 @@ export async function downloadSeasonPlanPdf(
     y += headerLogo + 6;
 
     const usable = pageW - margin * 2;
-    // Termin (Begegnung) breiter, Spielort etwas schmaler
-    const colDatum = Math.round(usable * 0.1);
-    const colMeetup = Math.round(usable * 0.075);
-    const colKick = Math.round(usable * 0.07);
+    // Datum für „So. 06.09.2026“; Treffpunkt/Beginn minimal schmaler; Termin bleibt breit
+    const colDatum = Math.round(usable * 0.125);
+    const colMeetup = Math.round(usable * 0.065);
+    const colKick = Math.round(usable * 0.06);
     const colTyp = Math.round(usable * 0.12);
     const colVenue = Math.round(usable * 0.18);
     const colTermin = usable - colDatum - colMeetup - colKick - colTyp - colVenue;
 
     const head = [['Datum', 'Treffpunkt', 'Beginn', 'Typ', 'Termin', 'Spielort']];
+    // Termin + Spielort leer — Custom-Draw in didDrawCell (sonst Turnier-Doppeltext)
     const body = rows.map((r) => [
-      formatDateDe(r.starts_at),
+      formatPdfDateWithWeekday(r.starts_at),
       meetupLabel(r),
       kickoffLabel(r),
       seasonPlanKindLabelDe(r.kind),
-      r.kind === 'tournament' ? r.title : '',
+      '',
       '',
     ]);
 
@@ -399,17 +390,28 @@ export async function downloadSeasonPlanPdf(
           if (!row) return;
 
           if (row.kind === 'tournament') {
+            // Nur hier zeichnen — Body-Zelle ist absichtlich leer (kein autoTable-Doppeltext).
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(11);
             doc.setTextColor(25, 25, 25);
             const pad = 2;
-            const textY = data.cell.y + data.cell.height / 2 + 2.5;
-            const maxW = data.cell.width - pad * 2;
-            let label = row.title.trim() || 'Turnier';
-            while (label.length > 3 && doc.getTextWidth(label) > maxW) {
-              label = `${label.slice(0, -2)}…`;
+            const maxW = Math.max(8, data.cell.width - pad * 2);
+            const lineH = 3.8;
+            const label = row.title.trim() || 'Turnier';
+            const split = doc.splitTextToSize(label, maxW) as string[];
+            const lines = split.slice(0, 2);
+            if (split.length > 2 && lines[1]) {
+              let last = lines[1].replace(/…$/, '');
+              while (last.length > 3 && doc.getTextWidth(`${last}…`) > maxW) {
+                last = last.slice(0, -1);
+              }
+              lines[1] = `${last}…`;
             }
-            doc.text(label, data.cell.x + pad, textY);
+            const blockH = lines.length * lineH;
+            const startY = data.cell.y + (data.cell.height - blockH) / 2 + 2.7;
+            lines.forEach((line, i) => {
+              doc.text(line, data.cell.x + pad, startY + i * lineH);
+            });
             return;
           }
 

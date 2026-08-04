@@ -14,15 +14,39 @@ export type ChampionshipPdfMode = 'published' | 'all';
 
 const IMAGE_FETCH_TIMEOUT_MS = 4000;
 
-function formatDateDe(iso: string): string {
+/** de-AT Kurzwochentage mit Punkt — berechnet aus Europe/Vienna, nicht hardcodiert pro Spiel. */
+const PDF_WEEKDAY_ABBR: Record<string, string> = {
+  mo: 'Mo.',
+  di: 'Di.',
+  mi: 'Mi.',
+  do: 'Do.',
+  fr: 'Fr.',
+  sa: 'Sa.',
+  so: 'So.',
+};
+
+/**
+ * PDF-Datumsspalte: „So. 06.09.2026“ (Europe/Vienna, kein UTC-Tageswechsel).
+ */
+export function formatPdfDateWithWeekday(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('de-AT', {
+  const parts = new Intl.DateTimeFormat('de-AT', {
+    timeZone: 'Europe/Vienna',
+    weekday: 'short',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-    timeZone: 'Europe/Vienna',
-  }).format(d);
+  }).formatToParts(d);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  const wdKey = get('weekday').replace(/\.$/, '').trim().toLowerCase();
+  const wd = PDF_WEEKDAY_ABBR[wdKey] ?? `${get('weekday').replace(/\.$/, '').trim()}.`;
+  const day = get('day');
+  const month = get('month');
+  const year = get('year');
+  if (!day || !month || !year) return '—';
+  return `${wd} ${day}.${month}.${year}`;
 }
 
 function formatStandDate(): string {
@@ -496,17 +520,17 @@ export async function downloadChampionshipSchedulePdf(opts: {
     y += headerLogo + 6;
 
     const usable = pageW - margin * 2;
-    // Treffpunkt/Anpfiff kompakter → Begegnung breiter
-    const colDatum = Math.round(usable * 0.12);
-    const colMeetup = Math.round(usable * 0.085);
-    const colKick = Math.round(usable * 0.08);
+    // Datum etwas breiter für „So. 06.09.2026“; Treffpunkt/Anpfiff minimal schmaler
+    const colDatum = Math.round(usable * 0.145);
+    const colMeetup = Math.round(usable * 0.075);
+    const colKick = Math.round(usable * 0.07);
     const colVenue = Math.round(usable * 0.2);
     const colEncounter = usable - colDatum - colMeetup - colKick - colVenue;
 
     const head = [['Datum', 'Treffpunkt', 'Anpfiff', 'Begegnung', 'Spielort']];
     // Begegnung + Spielort leer — Custom-Draw in didDrawCell
     const body = rows.map((f) => [
-      formatDateDe(f.starts_at),
+      formatPdfDateWithWeekday(f.starts_at),
       meetupLabel(f),
       kickoffLabel(f),
       '',
