@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { CalendarDays, CalendarPlus, Pencil, Radio, Trash2 } from 'lucide-react';
+import { CalendarDays, CalendarPlus, ClipboardList, Pencil, Radio, Trash2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
@@ -963,7 +963,7 @@ export const SchedulePage: React.FC = () => {
             </Link>
           )}
           <div className="space-y-2">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className={dsPageTitleClass()}>
@@ -1030,11 +1030,22 @@ export const SchedulePage: React.FC = () => {
                   ) : null}
                 </div>
               </div>
-              <div className="flex shrink-0 flex-row items-center justify-end gap-1.5">
+              <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:justify-end">
+                {!forcePublicView && normalizedUiRole !== 'fan' ? (
+                  <Link
+                    to="/app/spielplan"
+                    className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] shrink-0 items-center gap-1.5 px-3 text-[12px] no-underline sm:h-10`}
+                    title="Spielplan"
+                    aria-label="Spielplan öffnen"
+                  >
+                    <ClipboardList className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                    <span>Spielplan</span>
+                  </Link>
+                ) : null}
                 {canShowCalendarActions ? (
                   <button
                     type="button"
-                    className={`${dsScheduleGlassButtonClass()} h-10 shrink-0 gap-1.5 px-3 text-[12px]`}
+                    className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] shrink-0 items-center gap-1.5 px-3 text-[12px] sm:h-10`}
                     title="Kalender abonnieren"
                     onClick={() => setCalendarSheetOpen(true)}
                   >
@@ -1046,7 +1057,7 @@ export const SchedulePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/app/termine/calendar')}
-                  className={`${dsScheduleGlassButtonClass()} h-10 w-10 shrink-0`}
+                  className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] w-11 shrink-0 items-center justify-center sm:h-10 sm:w-10`}
                   aria-label="Kalenderansicht"
                   title="Kalenderansicht"
                 >
