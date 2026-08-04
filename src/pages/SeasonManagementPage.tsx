@@ -427,15 +427,18 @@ export const SeasonManagementPage: React.FC = () => {
                 </div>
                 {(() => {
                   const years = parseSeasonYears(snapshot.active?.seasonName);
-                  const resolved = resolveSeasonPhase({
+                  // Hinweis immer gegen Automatik berechnen — nicht gegen manuellen Override.
+                  const autoResolved = resolveSeasonPhase({
                     seasonName: snapshot.active?.seasonName,
-                    storedPhase: snapshot.active?.seasonPhase,
+                    storedPhase: null,
                   });
                   const options: Array<{ value: SeasonPhase | null; label: string; hint?: string | null }> = [
                     {
                       value: null,
                       label: 'Automatisch',
-                      hint: resolved.label ? `Aktuell erkannt: ${resolved.label}` : 'Aktuell erkannt: —',
+                      hint: autoResolved.label
+                        ? `Aktuell erkannt: ${autoResolved.label}`
+                        : 'Aktuell erkannt: —',
                     },
                     {
                       value: 'autumn',
