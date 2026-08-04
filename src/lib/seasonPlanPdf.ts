@@ -297,10 +297,10 @@ export async function downloadSeasonPlanPdf(
     const usable = pageW - margin * 2;
     // Termin (Begegnung) breiter, Spielort etwas schmaler
     const colDatum = Math.round(usable * 0.1);
-    const colMeetup = Math.round(usable * 0.085);
-    const colKick = Math.round(usable * 0.08);
+    const colMeetup = Math.round(usable * 0.075);
+    const colKick = Math.round(usable * 0.07);
     const colTyp = Math.round(usable * 0.12);
-    const colVenue = Math.round(usable * 0.19);
+    const colVenue = Math.round(usable * 0.18);
     const colTermin = usable - colDatum - colMeetup - colKick - colTyp - colVenue;
 
     const head = [['Datum', 'Treffpunkt', 'Beginn', 'Typ', 'Termin', 'Spielort']];
@@ -321,7 +321,7 @@ export async function downloadSeasonPlanPdf(
       doc.setFontSize(7);
       doc.setTextColor(110, 110, 110);
       const footerY = pageH - 6;
-      doc.text(`Stand: ${formatStandDate()}`, margin, footerY);
+      doc.text(`Stand: ${formatStandDate()} · Änderungen vorbehalten`, margin, footerY);
       doc.text('Erstellt mit SpielzeitApp', pageW / 2, footerY, { align: 'center' });
       doc.text(`Seite ${pageNumber} von ${pageCount}`, pageW - margin, footerY, {
         align: 'right',
@@ -375,6 +375,7 @@ export async function downloadSeasonPlanPdf(
             if (raw === 'offen') {
               data.cell.styles.fontStyle = 'bold';
               data.cell.styles.fontSize = 10;
+              data.cell.styles.textColor = [180, 45, 45];
             }
           }
         },

@@ -363,7 +363,10 @@ export function drawOefbEncounterCell(opts: {
 }): void {
   const { doc, cellX, cellY, cellW, cellH, homeName, awayName, homeLogo, awayLogo } = opts;
   const logoMm = 9.2;
-  const gap = 1.8;
+  /** Abstand Name ↔ Logo */
+  const nameGap = 1.8;
+  /** Abstand Logo ↔ Gedankenstrich (etwas mehr Luft) */
+  const dashGap = 2.6;
   const dash = '–';
   const padX = 2;
   const cy = cellY + (cellH - logoMm) / 2;
@@ -374,11 +377,11 @@ export function drawOefbEncounterCell(opts: {
 
   const centerX = cellX + cellW / 2;
   const dashW = doc.getTextWidth(dash);
-  const homeLogoX = centerX - gap - logoMm - dashW / 2;
-  const awayLogoX = centerX + dashW / 2 + gap;
+  const homeLogoX = centerX - dashGap - logoMm - dashW / 2;
+  const awayLogoX = centerX + dashW / 2 + dashGap;
   const dashX = centerX;
 
-  const nameMax = Math.max(18, homeLogoX - (cellX + padX) - gap);
+  const nameMax = Math.max(18, homeLogoX - (cellX + padX) - nameGap);
   const homeLines = fitClubNameLines(doc, homeName, nameMax, 2);
   const awayLines = fitClubNameLines(doc, awayName, nameMax, 2);
   const lineH = 3.8;
@@ -389,17 +392,18 @@ export function drawOefbEncounterCell(opts: {
   const dashY = cellY + cellH / 2 + 2.5;
 
   homeLines.forEach((line, i) => {
-    doc.text(line, homeLogoX - gap, homeStartY + i * lineH, { align: 'right' });
+    doc.text(line, homeLogoX - nameGap, homeStartY + i * lineH, { align: 'right' });
   });
   safeAddImage(doc, homeLogo, homeLogoX, cy, logoMm, logoMm);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10.5);
+  doc.setTextColor(25, 25, 25);
   doc.text(dash, dashX, dashY, { align: 'center' });
   safeAddImage(doc, awayLogo, awayLogoX, cy, logoMm, logoMm);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   awayLines.forEach((line, i) => {
-    doc.text(line, awayLogoX + logoMm + gap, awayStartY + i * lineH, { align: 'left' });
+    doc.text(line, awayLogoX + logoMm + nameGap, awayStartY + i * lineH, { align: 'left' });
   });
 }
 
@@ -492,11 +496,11 @@ export async function downloadChampionshipSchedulePdf(opts: {
     y += headerLogo + 6;
 
     const usable = pageW - margin * 2;
-    // Begegnung breiter, Spielort etwas schmaler — mehr Luft bei Vereinsnamen
+    // Treffpunkt/Anpfiff kompakter → Begegnung breiter
     const colDatum = Math.round(usable * 0.12);
-    const colMeetup = Math.round(usable * 0.1);
-    const colKick = Math.round(usable * 0.09);
-    const colVenue = Math.round(usable * 0.22);
+    const colMeetup = Math.round(usable * 0.085);
+    const colKick = Math.round(usable * 0.08);
+    const colVenue = Math.round(usable * 0.2);
     const colEncounter = usable - colDatum - colMeetup - colKick - colVenue;
 
     const head = [['Datum', 'Treffpunkt', 'Anpfiff', 'Begegnung', 'Spielort']];
@@ -517,9 +521,11 @@ export async function downloadChampionshipSchedulePdf(opts: {
       doc.setFontSize(7);
       doc.setTextColor(110, 110, 110);
       const footerY = pageH - 6;
-      doc.text(`Stand: ${formatStandDate()}`, margin, footerY);
+      doc.text(`Stand: ${formatStandDate()} · Änderungen vorbehalten`, margin, footerY);
       doc.text('Erstellt mit SpielzeitApp', pageW / 2, footerY, { align: 'center' });
-      doc.text(`${pageNumber} / ${pageCount}`, pageW - margin, footerY, { align: 'right' });
+      doc.text(`Seite ${pageNumber} von ${pageCount}`, pageW - margin, footerY, {
+        align: 'right',
+      });
     };
 
     if (body.length === 0) {
@@ -568,6 +574,8 @@ export async function downloadChampionshipSchedulePdf(opts: {
             if (raw === 'offen') {
               data.cell.styles.fontStyle = 'bold';
               data.cell.styles.fontSize = 10;
+              // dezentes Spielzeit-Rot — S/W weiterhin lesbar
+              data.cell.styles.textColor = [180, 45, 45];
             }
           }
         },
