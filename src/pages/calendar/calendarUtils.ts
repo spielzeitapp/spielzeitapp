@@ -163,6 +163,40 @@ export function formatMonthNavLabel(date: Date): string {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
+/** Monatsheader für Tagesleiste: „AUGUST 2026“. */
+export function formatMonthHeaderUpper(date: Date): string {
+  const raw = date.toLocaleDateString('de-AT', { month: 'long', year: 'numeric' });
+  return raw.toUpperCase();
+}
+
+/** Alle Kalendertage eines Monats (1..letzter Tag). */
+export function getDaysInMonth(monthAnchor: Date): Date[] {
+  const year = monthAnchor.getFullYear();
+  const month = monthAnchor.getMonth();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return Array.from({ length: lastDay }, (_, i) => new Date(year, month, i + 1));
+}
+
+/** Kurz-Wochentag für Tagesleiste: MO, DI, … */
+export function formatDayStripWeekday(date: Date): string {
+  const wd = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    weekday: 'short',
+  }).format(date);
+  return wd.slice(0, 2).toUpperCase();
+}
+
+/** Tageszahl für Tagesleiste. */
+export function formatDayStripDay(date: Date): string {
+  const parts = getDateTimePartsInTimeZone(date, VIENNA_TZ);
+  return parts ? String(parts.day) : '';
+}
+
+export function formatSelectedDayCountLabel(count: number): string | null {
+  if (count <= 0) return null;
+  return count === 1 ? '1 Termin' : `${count} Termine`;
+}
+
 export function formatNextMatchWeekdayDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';

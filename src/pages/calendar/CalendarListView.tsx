@@ -1,45 +1,56 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CalendarEvent } from './calendarTypes';
-import { formatEventDateLongVienna } from '../../lib/notifications/format';
 import {
-  formatMeetingPoint,
-  formatTimeRange,
-  formatTrainingTimeRange,
+  formatDaySheetHeader,
+  formatMonthHeaderUpper,
+  formatSelectedDayCountLabel,
+  getDaysInMonth,
   toViennaDayKey,
 } from './calendarUtils';
+import { CalendarDayStrip } from './CalendarDayStrip';
+import { CalendarCompactEventCard } from './CalendarCompactEventCard';
 
 type Props = {
-  events: CalendarEvent[];
-  getEventColorClass: (type: CalendarEvent['type']) => string;
+  eventsByDay: Map<string, CalendarEvent[]>;
+  currentMonth: Date;
+  selectedDate: Date;
+  onSelectDate: (date: Date) => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  onGoToday: () => void;
   todayKey: string;
+  showTeamName?: boolean;
   onEventClick?: (eventId: string) => void;
 };
 
 export const CalendarListView: React.FC<Props> = ({
-  events,
-  getEventColorClass,
+  eventsByDay,
+  currentMonth,
+  selectedDate,
+  onSelectDate,
+  onPrevMonth,
+  onNextMonth,
+  onGoToday,
   todayKey,
+  showTeamName = false,
   onEventClick,
 }) => {
   const navigate = useNavigate();
+  const monthDays = useMemo(() => getDaysInMonth(currentMonth), [currentMonth]);
+  const monthLabel = useMemo(() => formatMonthHeaderUpper(currentMonth), [currentMonth]);
 
-  const groups = useMemo(() => {
-    const map = new Map<string, CalendarEvent[]>();
-    for (const ev of events) {
-      const key = toViennaDayKey(ev.starts_at);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(ev);
-    }
+  const selectedKey = toViennaDayKey(selectedDate);
+  const dayEvents = useMemo(() => {
+    const list = eventsByDay.get(selectedKey) ?? [];
+    return [...list].sort(
+      (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
+    );
+  }, [eventsByDay, selectedKey]);
 
-    for (const [, list] of map) {
-      list.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-    }
-
-    return Array.from(map.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([key, list]) => ({ key, list }));
-  }, [events]);
+  const dayHeader = formatDaySheetHeader(selectedDate);
+  const countLabel = formatSelectedDayCountLabel(dayEvents.length);
+  const isTodaySelected = selectedKey === todayKey;
 
   const handleClick = (id: string) => {
     if (onEventClick) onEventClick(id);
@@ -47,74 +58,66 @@ export const CalendarListView: React.FC<Props> = ({
   };
 
   return (
-    <div className="mt-2">
-      <div className="space-y-4">
-        {groups.length === 0 ? (
-          <p className="text-sm text-white/60">Keine Termine für diesen Monat.</p>
+    <div className="space-y-3 overflow-x-hidden">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          <button
+            type="button"
+            onClick={onPrevMonth}
+            aria-label="Vorheriger Monat"
+            className="inline-flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-md text-sm text-white/70 transition hover:bg-white/10 hover:text-white"
+          >
+            ←
+          </button>
+          <span className="min-w-0 flex-1 truncate text-center text-xs font-bold tracking-widest text-white/85">
+            {monthLabel}
+          </span>
+          <button
+            type="button"
+            onClick={onNextMonth}
+            aria-label="Nächster Monat"
+            className="inline-flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-md text-sm text-white/70 transition hover:bg-white/10 hover:text-white"
+          >
+            →
+          </button>
+        </div>
+        {!isTodaySelected ? (
+          <button
+            type="button"
+            onClick={onGoToday}
+            className="shrink-0 rounded-full border border-red-500/30 bg-red-600/15 px-2.5 py-1 text-[11px] font-semibold text-red-200 transition hover:bg-red-600/25"
+          >
+            Heute
+          </button>
         ) : null}
+      </div>
 
-        {groups.map(({ key, list }) => {
-          const heading = list[0]
-            ? formatEventDateLongVienna(list[0].starts_at)
-            : '';
-          const isToday = key === todayKey;
+      <CalendarDayStrip
+        days={monthDays}
+        selectedDate={selectedDate}
+        eventsByDay={eventsByDay}
+        onSelectDate={onSelectDate}
+      />
 
-          return (
-            <div key={key} className={isToday ? 'rounded-xl border border-yellow-400/30 p-2' : undefined}>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-white/90">{heading}</h2>
-                {isToday ? <span className="text-xs text-yellow-300">Heute</span> : null}
-              </div>
+      <div className="flex items-baseline justify-between gap-2 border-b border-white/8 pb-2">
+        <h2 className="min-w-0 text-sm font-semibold text-white/90">{dayHeader}</h2>
+        {countLabel ? <span className="shrink-0 text-xs text-white/50">{countLabel}</span> : null}
+      </div>
 
-              <div className="space-y-2">
-                {list.map((ev) => {
-                  const meetingPointLine = formatMeetingPoint(ev.meeting_at);
-                  return (
-                    <button
-                      key={ev.id}
-                      type="button"
-                      onClick={() => handleClick(ev.id)}
-                      className={`w-full text-left rounded-xl px-3 py-2 border border-white/10 bg-black/25 ${getEventColorClass(
-                        ev.type,
-                      )}`}
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="truncate text-xs font-semibold">{ev.title}</span>
-                        </div>
-                        <div className="text-[11px] font-semibold tabular-nums truncate">
-                          {ev.type === 'training'
-                            ? formatTrainingTimeRange(ev.starts_at, ev.end_at)
-                            : formatTimeRange(ev.starts_at, ev.end_at)}
-                        </div>
-                        {ev.location ? (
-                          <div className="text-[11px] text-white/80 truncate">{ev.location}</div>
-                        ) : ev.description ? (
-                          <div className="text-[11px] text-white/80 truncate">{ev.description}</div>
-                        ) : null}
-                        {meetingPointLine ? (
-                          <div className="text-[10px] text-yellow-200/90 truncate">
-                            {meetingPointLine}
-                          </div>
-                        ) : null}
-                        {!meetingPointLine && ev.description ? (
-                          <div className="text-[10px] text-white/70 truncate">
-                            {ev.description}
-                          </div>
-                        ) : null}
-                        {ev.team_name ? (
-                          <div className="pt-0.5 text-[10px] text-white/70 truncate">{ev.team_name}</div>
-                        ) : null}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+      <div className="space-y-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+        {dayEvents.length === 0 ? (
+          <p className="py-8 text-center text-sm text-white/55">Keine Termine an diesem Tag.</p>
+        ) : (
+          dayEvents.map((ev) => (
+            <CalendarCompactEventCard
+              key={ev.id}
+              ev={ev}
+              showTeamName={showTeamName}
+              onClick={handleClick}
+            />
+          ))
+        )}
       </div>
     </div>
   );
 };
-

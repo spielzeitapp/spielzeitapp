@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { isParentVisibleFixtureStatus } from '../lib/championshipVisibility';
+import { formatFeedVenueShort } from '../lib/eventLocation';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { buildTeamIcsFeedUrl, resolveTeamCalendarFeedSegment, teamCalendarDisplayTitle } from '../lib/calendarFeed';
@@ -105,6 +106,28 @@ export const CalendarPage: React.FC = () => {
     return 'list';
   });
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+
+  const goToToday = useCallback(() => {
+    const now = new Date();
+    setCurrentMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+    setSelectedDate(now);
+    setWeekAnchor(now);
+  }, []);
+
+  const shiftMonth = useCallback((delta: number) => {
+    setCurrentMonth((prev) => {
+      const next = new Date(prev.getFullYear(), prev.getMonth() + delta, 1);
+      const now = new Date();
+      const todayInMonth =
+        now.getFullYear() === next.getFullYear() && now.getMonth() === next.getMonth();
+      setSelectedDate(todayInMonth ? now : new Date(next.getFullYear(), next.getMonth(), 1));
+      if (view === 'week') {
+        setWeekAnchor(todayInMonth ? now : new Date(next.getFullYear(), next.getMonth(), 1));
+      }
+      return next;
+    });
+  }, [view]);
 
   useEffect(() => {
     try {
@@ -168,7 +191,9 @@ export const CalendarPage: React.FC = () => {
         let loadError: string | null = null;
         let first = await supabase
           .from('events')
-          .select('id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, fixture_status')
+          .select(
+            'id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, fixture_status, is_home, match_type',
+          )
           .in('team_season_id', teamSeasonIds)
           .gte('starts_at', start.toISOString())
           .lte('starts_at', end.toISOString())
@@ -177,7 +202,9 @@ export const CalendarPage: React.FC = () => {
         if (first.error && /fixture_status|column/i.test(String(first.error.message ?? ''))) {
           first = await supabase
             .from('events')
-            .select('id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at')
+            .select(
+              'id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, is_home, match_type',
+            )
             .in('team_season_id', teamSeasonIds)
             .gte('starts_at', start.toISOString())
             .lte('starts_at', end.toISOString())
@@ -266,6 +293,7 @@ export const CalendarPage: React.FC = () => {
             const { description } = notesTitleAndDescription(notes);
             const place = (r.location as string | null) ?? null;
             const locationDisplay = place;
+            const venueShort = formatFeedVenueShort(place);
 
             return {
               id: r.id,
@@ -279,11 +307,14 @@ export const CalendarPage: React.FC = () => {
               }),
               meeting_at: meetupAt,
               location: locationDisplay,
+              venue_short: venueShort,
               opponent,
               notes,
               description: description ?? null,
               title,
               team_name: teamName,
+              is_home: (r.is_home as boolean | null | undefined) ?? null,
+              match_type: (r.match_type as string | null | undefined) ?? null,
             };
           });
           setEvents(mapped);
@@ -445,7 +476,7 @@ export const CalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="page relative min-h-[60vh] px-4 pt-4">
+    <div className="page relative min-h-[60vh] overflow-x-hidden px-4 pt-4 pb-[var(--app-bottomnav-pad)]">
       <div className="mx-auto max-w-5xl space-y-3">
         <div className="space-y-2">
           <button
@@ -476,7 +507,7 @@ export const CalendarPage: React.FC = () => {
               </button>
             ))}
           </div>
-          {view !== 'month' ? (
+          {view !== 'month' && view !== 'list' ? (
             <div className="flex items-center justify-center gap-1.5 sm:justify-start">
               <Button
                 variant="ghost"
@@ -489,7 +520,7 @@ export const CalendarPage: React.FC = () => {
                     setWeekAnchor(next);
                     setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
                   } else {
-                    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+                    shiftMonth(-1);
                   }
                 }}
               >
@@ -507,7 +538,7 @@ export const CalendarPage: React.FC = () => {
                     setWeekAnchor(next);
                     setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
                   } else {
-                    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+                    shiftMonth(1);
                   }
                 }}
               >
@@ -559,10 +590,20 @@ export const CalendarPage: React.FC = () => {
           </p>
         )}
 
-        <div className="mt-2 rounded-2xl border border-white/10 bg-black/30 p-3">
+        <div className="mt-2 overflow-x-hidden rounded-2xl border border-white/10 bg-black/30 p-3">
 
           {view === 'list' ? (
-            <CalendarListView events={events} getEventColorClass={getEventColorClass} todayKey={todayKey} />
+            <CalendarListView
+              eventsByDay={eventsByDay}
+              currentMonth={currentMonth}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              onPrevMonth={() => shiftMonth(-1)}
+              onNextMonth={() => shiftMonth(1)}
+              onGoToday={goToToday}
+              todayKey={todayKey}
+              showTeamName={selectedTeamSeasonId === 'all' && accessibleTeamSeasons.length > 1}
+            />
           ) : view === 'week' ? (
             <CalendarWeekView
               weekAnchor={weekAnchor}

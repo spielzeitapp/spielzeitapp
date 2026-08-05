@@ -8,11 +8,14 @@ export type CalendarEvent = {
   end_at?: string | null;
   meeting_at?: string | null;
   location: string | null;
+  venue_short?: string | null;
   opponent?: string | null;
   notes?: string | null;
   description?: string | null;
   title: string;
   team_name: string | null;
+  is_home?: boolean | null;
+  match_type?: string | null;
 };
 
 export type DayEvents = CalendarEvent[];
