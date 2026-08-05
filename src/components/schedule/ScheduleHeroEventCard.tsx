@@ -437,6 +437,7 @@ export function ScheduleHeroEventCard({
           items={trainingMetaItems}
           showChevron={Boolean(isClickable && onNavigate)}
           onChevronClick={isClickable && onNavigate ? openDetail : undefined}
+          ctaVariant="training"
         />
 
       </div>

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
+import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { isParentVisibleFixtureStatus } from '../lib/championshipVisibility';
 import { formatFeedVenueShort } from '../lib/eventLocation';
 import { Button } from '../app/components/ui/Button';
@@ -84,12 +85,19 @@ function getMonthGrid(date: Date): Date[] {
 
 export const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
-  const { effectiveRole, teamSeasons, loading, selectedMembership } = useSession();
+  const { effectiveRole, loading, selectedMembership } = useSession();
+  const {
+    readTeamSeasonId,
+    setViewTeamSeasonId,
+    teamSeasons,
+    activeTeamSeasonId,
+  } = useActiveTeamSeason();
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [selectedTeamSeasonId, setSelectedTeamSeasonId] = useState<string | 'all'>('all');
+  /** Nur Trainer: optional „Alle Teams“. Sonst immer Session-Saison. */
+  const [allTeamsMode, setAllTeamsMode] = useState(false);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,21 +190,43 @@ export const CalendarPage: React.FC = () => {
     }
   }, [isFan, loading, navigate]);
 
-  const accessibleTeamSeasons = useMemo(() => {
-    if (!teamSeasons) return [];
-    if (canSeeAllTeams) return teamSeasons;
-    return teamSeasons;
-  }, [teamSeasons, canSeeAllTeams]);
+  const accessibleTeamSeasons = useMemo(() => teamSeasons ?? [], [teamSeasons]);
 
-  useEffect(() => {
-    if (accessibleTeamSeasons.length === 0) return;
-    if (selectedTeamSeasonId !== 'all') return;
-    if (canSeeAllTeams) {
-      setSelectedTeamSeasonId('all');
-      return;
+  /** Session-Saison ist Source of Truth; „Alle Teams“ nur als expliziter Trainer-Override. */
+  const selectedTeamSeasonId: string | 'all' = useMemo(() => {
+    if (allTeamsMode && canSeeAllTeams) return 'all';
+    if (readTeamSeasonId && accessibleTeamSeasons.some((ts) => ts.id === readTeamSeasonId)) {
+      return readTeamSeasonId;
     }
-    setSelectedTeamSeasonId(accessibleTeamSeasons[0]?.id ?? 'all');
-  }, [accessibleTeamSeasons, selectedTeamSeasonId, canSeeAllTeams]);
+    if (activeTeamSeasonId && accessibleTeamSeasons.some((ts) => ts.id === activeTeamSeasonId)) {
+      return activeTeamSeasonId;
+    }
+    const active = accessibleTeamSeasons.find((ts) => isSeasonActive(ts.status));
+    return active?.id ?? accessibleTeamSeasons[0]?.id ?? 'all';
+  }, [
+    allTeamsMode,
+    canSeeAllTeams,
+    readTeamSeasonId,
+    activeTeamSeasonId,
+    accessibleTeamSeasons,
+  ]);
+
+  /** Session-Wechsel (Termine → Kalender) beendet Alle-Teams-Override. */
+  useEffect(() => {
+    setAllTeamsMode(false);
+  }, [readTeamSeasonId]);
+
+  const handleTeamSeasonFilterChange = useCallback(
+    (value: string) => {
+      if (value === 'all' && canSeeAllTeams) {
+        setAllTeamsMode(true);
+        return;
+      }
+      setAllTeamsMode(false);
+      setViewTeamSeasonId(value || null);
+    },
+    [canSeeAllTeams, setViewTeamSeasonId],
+  );
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -555,7 +585,7 @@ export const CalendarPage: React.FC = () => {
                 <select
                   id="calendar-team-filter"
                   value={selectedTeamSeasonId}
-                  onChange={(e) => setSelectedTeamSeasonId(e.target.value as any)}
+                  onChange={(e) => handleTeamSeasonFilterChange(e.target.value)}
                   className="min-w-0 flex-1 rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white"
                 >
                   {canSeeAllTeams && (

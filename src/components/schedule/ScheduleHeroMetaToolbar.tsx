@@ -9,14 +9,34 @@ export type ScheduleHeroMetaItem = {
   hidden?: boolean;
 };
 
+export type ScheduleHeroCtaVariant = 'training' | 'game' | 'tournament' | 'event' | 'neutral';
+
 type Props = {
   items: ScheduleHeroMetaItem[];
   onChevronClick?: () => void;
   showChevron?: boolean;
   className?: string;
+  /** Visueller CTA-Streifen rechts — analog CalendarCompactEventCard. */
+  ctaVariant?: ScheduleHeroCtaVariant;
 };
 
 const labelClass = 'mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none';
+
+function ctaStripClass(variant: ScheduleHeroCtaVariant): string {
+  if (variant === 'training') {
+    return 'bg-gradient-to-b from-teal-500/90 to-emerald-700/95 shadow-[0_0_14px_rgba(16,185,129,0.28)] text-white';
+  }
+  if (variant === 'game') {
+    return 'bg-gradient-to-b from-red-500/95 to-red-700/95 shadow-[0_0_14px_rgba(220,38,38,0.28)] text-white';
+  }
+  if (variant === 'tournament') {
+    return 'bg-gradient-to-b from-purple-500/90 to-purple-800/95 shadow-[0_0_14px_rgba(168,85,247,0.24)] text-white';
+  }
+  if (variant === 'event') {
+    return 'bg-gradient-to-b from-blue-500/85 to-blue-800/95 shadow-[0_0_14px_rgba(59,130,246,0.22)] text-white';
+  }
+  return 'text-white/80 opacity-[0.82] hover:bg-white/[0.03] hover:opacity-95';
+}
 
 function splitMetaValue(value: string): { primary: string; showUhr: boolean } {
   const v = value.trim();
@@ -61,6 +81,7 @@ export function ScheduleHeroMetaToolbar({
   onChevronClick,
   showChevron = true,
   className = '',
+  ctaVariant = 'neutral',
 }: Props) {
   const blocks: ScheduleHeroMetaItem[] = [
     items[0] ?? { icon: null, label: 'Beginn', value: 'Offen' },
@@ -73,24 +94,27 @@ export function ScheduleHeroMetaToolbar({
       className={`mt-2.5 border-t border-white/[0.04] bg-[rgba(0,0,0,0.22)] ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="grid grid-cols-[1fr_1fr_1fr_42px] items-center">
+      <div className="grid grid-cols-[1fr_1fr_1fr_44px] items-center">
         <MetaBlock item={blocks[0]!} withBorder={false} />
         <MetaBlock item={blocks[1]!} withBorder />
         <MetaBlock item={blocks[2]!} withBorder />
         {showChevron && onChevronClick ? (
           <button
             type="button"
-            className="flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] text-white/80 opacity-[0.82] transition-colors hover:bg-white/[0.03] hover:opacity-95 active:bg-white/[0.04]"
+            className={[
+              'flex h-[56px] w-11 shrink-0 items-center justify-center border-l border-white/[0.05] transition-colors active:brightness-110',
+              ctaStripClass(ctaVariant),
+            ].join(' ')}
             aria-label="Termin öffnen"
             onClick={(e) => {
               e.stopPropagation();
               onChevronClick();
             }}
           >
-            <ChevronRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            <ChevronRight className="h-6 w-6 text-white" strokeWidth={2.5} aria-hidden />
           </button>
         ) : (
-          <div className="h-[56px] border-l border-white/[0.05]" aria-hidden />
+          <div className="h-[56px] w-11 border-l border-white/[0.05]" aria-hidden />
         )}
       </div>
     </div>
