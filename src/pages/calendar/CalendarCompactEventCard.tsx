@@ -69,19 +69,12 @@ function homeAwayLabel(isHome: boolean | null | undefined): string | null {
   return null;
 }
 
-function ClubLogo({
-  src,
-  size = 'md',
-}: {
-  src: string;
-  size?: 'sm' | 'md';
-}) {
+function ClubLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
-  const box = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
   if (failed) {
     return (
       <span
-        className={`flex ${box} shrink-0 items-center justify-center rounded-lg border border-white/12 bg-black/40 text-sm`}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-black/40 text-sm"
         aria-hidden
       >
         ⚽
@@ -92,13 +85,14 @@ function ClubLogo({
     <img
       src={src}
       alt=""
-      className={`${box} shrink-0 object-contain`}
+      className="h-9 w-9 shrink-0 object-contain"
       onError={() => setFailed(true)}
       draggable={false}
     />
   );
 }
 
+/** Begegnung: Logos links ausgerichtet, „–“ unter dem Text (nicht isoliert links). */
 function GameMatchup({
   opponent,
   isHome,
@@ -119,19 +113,26 @@ function GameMatchup({
   const secondaryLogo = isHome === false ? ourLogo : oppLogo;
 
   return (
-    <div className="mt-0.5 flex min-w-0 flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-0">
       <div className="flex min-w-0 items-center gap-2">
-        <ClubLogo src={primaryLogo} size="md" />
+        <div className="flex w-9 shrink-0 items-center justify-center">
+          <ClubLogo src={primaryLogo} />
+        </div>
         <span className="min-w-0 truncate text-[14px] font-semibold leading-tight text-white">
           {primaryName}
         </span>
       </div>
-      <div className="flex min-w-0 items-center gap-2 pl-1">
-        <span className="w-3 shrink-0 text-center text-[11px] font-semibold text-white/35" aria-hidden>
+      <div className="flex min-w-0 items-center gap-2 leading-none">
+        <div className="w-9 shrink-0" aria-hidden />
+        <span className="text-[11px] font-medium text-white/40" aria-hidden>
           –
         </span>
-        <ClubLogo src={secondaryLogo} size="sm" />
-        <span className="min-w-0 truncate text-[12px] font-medium leading-tight text-white/72">
+      </div>
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex w-9 shrink-0 items-center justify-center">
+          <ClubLogo src={secondaryLogo} />
+        </div>
+        <span className="min-w-0 truncate text-[13px] font-medium leading-tight text-white/78">
           {secondaryName}
         </span>
       </div>
@@ -203,9 +204,11 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
     >
       {leftSlot}
 
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-2.5 pl-2 pr-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-2 pl-2 pr-1.5">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-white/55">{typeBadge}</span>
+          <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-white/38">
+            {typeBadge}
+          </span>
           {homeAway ? (
             <span
               className={[
@@ -247,7 +250,7 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
 
       <span
         className={[
-          'flex w-[48px] shrink-0 items-center justify-center self-stretch text-white',
+          'flex w-12 shrink-0 items-center justify-center self-stretch text-white',
           ctaStripClass(ev.type),
         ].join(' ')}
         aria-hidden

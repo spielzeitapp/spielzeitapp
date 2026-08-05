@@ -628,11 +628,11 @@ export const CalendarPage: React.FC = () => {
         </div>
 
         {feedUrl && (
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-0.5">
             <Button
-              variant="soft"
+              variant="ghost"
               size="sm"
-              className="rounded-lg px-3 py-1.5 text-xs"
+              className="h-11 min-h-[44px] rounded-md px-2.5 text-[11px] font-medium text-white/55 hover:text-white/80"
               onClick={handleSubscribeCalendar}
             >
               Kalender abonnieren
