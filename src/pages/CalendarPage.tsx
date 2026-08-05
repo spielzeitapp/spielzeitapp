@@ -509,7 +509,7 @@ export const CalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="page relative min-h-[60vh] overflow-x-hidden px-4 pt-4 pb-[var(--app-bottomnav-pad)]">
+    <div className="page relative min-h-[60vh] overflow-x-hidden px-3 pt-4 pb-[var(--app-bottomnav-pad)] sm:px-4">
       <div className="mx-auto max-w-5xl space-y-3">
         <div className="space-y-2">
           <button
@@ -584,7 +584,7 @@ export const CalendarPage: React.FC = () => {
           </p>
         )}
 
-        <div className="mt-2 overflow-x-hidden rounded-2xl border border-white/10 bg-black/30 p-3">
+        <div className="mt-2 overflow-x-hidden rounded-2xl border border-white/10 bg-black/30 px-1.5 py-2.5 sm:p-3">
 
           {view === 'list' ? (
             <CalendarListView

@@ -250,7 +250,7 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
 
       <span
         className={[
-          'flex w-12 shrink-0 items-center justify-center self-stretch text-white',
+          'flex w-11 shrink-0 items-center justify-center self-stretch text-white',
           ctaStripClass(ev.type),
         ].join(' ')}
         aria-hidden
