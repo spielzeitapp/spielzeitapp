@@ -224,7 +224,7 @@ export const CalendarPage: React.FC = () => {
         let first = await supabase
           .from('events')
           .select(
-            'id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, fixture_status, is_home, match_type',
+            'id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, fixture_status, is_home, match_type, opponent_logo_url',
           )
           .in('team_season_id', teamSeasonIds)
           .gte('starts_at', start.toISOString())
@@ -235,7 +235,19 @@ export const CalendarPage: React.FC = () => {
           first = await supabase
             .from('events')
             .select(
-              'id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, is_home, match_type',
+              'id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, is_home, match_type, opponent_logo_url',
+            )
+            .in('team_season_id', teamSeasonIds)
+            .gte('starts_at', start.toISOString())
+            .lte('starts_at', end.toISOString())
+            .order('starts_at', { ascending: true });
+        }
+
+        if (first.error && /opponent_logo_url/i.test(String(first.error.message ?? ''))) {
+          first = await supabase
+            .from('events')
+            .select(
+              'id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at, fixture_status, is_home, match_type',
             )
             .in('team_season_id', teamSeasonIds)
             .gte('starts_at', start.toISOString())
@@ -347,6 +359,7 @@ export const CalendarPage: React.FC = () => {
               team_name: teamName,
               is_home: (r.is_home as boolean | null | undefined) ?? null,
               match_type: (r.match_type as string | null | undefined) ?? null,
+              opponent_logo_url: (r.opponent_logo_url as string | null | undefined) ?? null,
             };
           });
           setEvents(mapped);

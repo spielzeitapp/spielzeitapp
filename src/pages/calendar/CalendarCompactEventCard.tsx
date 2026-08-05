@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CalendarDays, ChevronRight, Trophy } from 'lucide-react';
 import type { CalendarEvent } from './calendarTypes';
 import {
@@ -9,6 +9,7 @@ import {
   notesTitleAndDescription,
 } from './calendarUtils';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
+import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 
 type Props = {
   ev: CalendarEvent;
@@ -24,12 +25,20 @@ function accentBorderClass(type: CalendarEvent['type']): string {
   return 'border-l-white/30';
 }
 
-function typeIconClass(type: CalendarEvent['type']): string {
-  if (type === 'game') return 'text-red-300';
-  if (type === 'training') return 'text-emerald-300';
-  if (type === 'tournament') return 'text-purple-300';
-  if (type === 'event') return 'text-blue-300';
-  return 'text-white/70';
+function ctaStripClass(type: CalendarEvent['type']): string {
+  if (type === 'game') {
+    return 'bg-gradient-to-b from-red-500/95 to-red-700/95 shadow-[0_0_14px_rgba(220,38,38,0.28)]';
+  }
+  if (type === 'training') {
+    return 'bg-gradient-to-b from-teal-500/90 to-emerald-700/95 shadow-[0_0_14px_rgba(16,185,129,0.28)]';
+  }
+  if (type === 'tournament') {
+    return 'bg-gradient-to-b from-purple-500/90 to-purple-800/95 shadow-[0_0_14px_rgba(168,85,247,0.24)]';
+  }
+  if (type === 'event') {
+    return 'bg-gradient-to-b from-blue-500/85 to-blue-800/95 shadow-[0_0_14px_rgba(59,130,246,0.22)]';
+  }
+  return 'bg-gradient-to-b from-white/20 to-white/10';
 }
 
 function trainingHeadline(teamName: string | null, notesTitle: string | null): string {
@@ -60,6 +69,76 @@ function homeAwayLabel(isHome: boolean | null | undefined): string | null {
   return null;
 }
 
+function ClubLogo({
+  src,
+  size = 'md',
+}: {
+  src: string;
+  size?: 'sm' | 'md';
+}) {
+  const [failed, setFailed] = useState(false);
+  const box = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
+  if (failed) {
+    return (
+      <span
+        className={`flex ${box} shrink-0 items-center justify-center rounded-lg border border-white/12 bg-black/40 text-sm`}
+        aria-hidden
+      >
+        ⚽
+      </span>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      className={`${box} shrink-0 object-contain`}
+      onError={() => setFailed(true)}
+      draggable={false}
+    />
+  );
+}
+
+function GameMatchup({
+  opponent,
+  isHome,
+  opponentLogoUrl,
+}: {
+  opponent: string;
+  isHome: boolean | null | undefined;
+  opponentLogoUrl?: string | null;
+}) {
+  const ourName = getOurTeamDisplayName();
+  const oppName = opponent.trim() || 'Gegner';
+  const oppLogo = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
+  const ourLogo = getClubLogo(ourName, { ourTeam: true });
+
+  const primaryName = isHome === false ? oppName : ourName;
+  const secondaryName = isHome === false ? ourName : oppName;
+  const primaryLogo = isHome === false ? oppLogo : ourLogo;
+  const secondaryLogo = isHome === false ? ourLogo : oppLogo;
+
+  return (
+    <div className="mt-0.5 flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 items-center gap-2">
+        <ClubLogo src={primaryLogo} size="md" />
+        <span className="min-w-0 truncate text-[14px] font-semibold leading-tight text-white">
+          {primaryName}
+        </span>
+      </div>
+      <div className="flex min-w-0 items-center gap-2 pl-1">
+        <span className="w-3 shrink-0 text-center text-[11px] font-semibold text-white/35" aria-hidden>
+          –
+        </span>
+        <ClubLogo src={secondaryLogo} size="sm" />
+        <span className="min-w-0 truncate text-[12px] font-medium leading-tight text-white/72">
+          {secondaryName}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = false, onClick }) => {
   const typeLabel = getEventTypeLabel(ev.type);
   const { title: notesTitle } = notesTitleAndDescription(ev.notes);
@@ -69,6 +148,7 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
 
   let headline = ev.title;
   const metaLines: string[] = [];
+  let typeBadge = typeLabel;
 
   if (ev.type === 'training') {
     headline = trainingHeadline(ev.team_name, notesTitle);
@@ -77,7 +157,7 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
   } else if (ev.type === 'game') {
     headline = (ev.opponent ?? ev.title ?? 'Spiel').trim() || 'Spiel';
     const matchLabel = shortMatchTypeLabel(ev.match_type);
-    if (matchLabel) metaLines.push(matchLabel);
+    if (matchLabel) typeBadge = matchLabel;
     if (meetingLine) metaLines.push(meetingLine);
     const kickoff = formatTime(ev.starts_at);
     if (kickoff) metaLines.push(`Anpfiff ${kickoff}`);
@@ -93,17 +173,23 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
 
   const homeAway = ev.type === 'game' ? homeAwayLabel(ev.is_home) : null;
 
-  const icon =
+  const leftSlot =
     ev.type === 'training' ? (
-      <TrainingPlayerIcon variant="compact" />
+      <div className="flex w-[52px] shrink-0 items-center justify-center self-center pl-1.5">
+        <TrainingPlayerIcon variant="list" className="!ml-0 !mr-0 !w-[48px]" />
+      </div>
     ) : ev.type === 'tournament' ? (
-      <Trophy className={`h-5 w-5 shrink-0 ${typeIconClass(ev.type)}`} strokeWidth={2} aria-hidden />
-    ) : ev.type === 'game' ? (
-      <span className={`text-base leading-none ${typeIconClass(ev.type)}`} aria-hidden>
-        ⚽
-      </span>
-    ) : (
-      <CalendarDays className={`h-5 w-5 shrink-0 ${typeIconClass(ev.type)}`} aria-hidden />
+      <div className="flex w-11 shrink-0 items-center justify-center self-center pl-2">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-950/45">
+          <Trophy className="h-5 w-5 text-amber-300/95" strokeWidth={2} aria-hidden />
+        </span>
+      </div>
+    ) : ev.type === 'game' ? null : (
+      <div className="flex w-11 shrink-0 items-center justify-center self-center pl-2">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/25 bg-blue-950/40">
+          <CalendarDays className="h-5 w-5 text-blue-200/90" aria-hidden />
+        </span>
+      </div>
     );
 
   return (
@@ -111,14 +197,15 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
       type="button"
       onClick={() => onClick(ev.id)}
       className={[
-        'flex w-full min-h-[44px] items-stretch gap-3 rounded-xl border border-white/10 border-l-[3px] bg-black/40 px-3 py-2.5 text-left transition active:bg-white/[0.04]',
+        'flex w-full min-h-[44px] items-stretch overflow-hidden rounded-xl border border-white/10 border-l-[3px] bg-black/40 text-left transition active:bg-white/[0.04]',
         accentBorderClass(ev.type),
       ].join(' ')}
     >
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      {leftSlot}
+
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-2.5 pl-2 pr-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="shrink-0">{icon}</span>
-          <span className="text-[11px] font-bold uppercase tracking-wide text-white/55">{typeLabel}</span>
+          <span className="text-[11px] font-bold uppercase tracking-wide text-white/55">{typeBadge}</span>
           {homeAway ? (
             <span
               className={[
@@ -133,7 +220,15 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
           ) : null}
         </div>
 
-        <p className="min-w-0 truncate text-[15px] font-semibold leading-tight text-white">{headline}</p>
+        {ev.type === 'game' ? (
+          <GameMatchup
+            opponent={headline}
+            isHome={ev.is_home}
+            opponentLogoUrl={ev.opponent_logo_url}
+          />
+        ) : (
+          <p className="min-w-0 truncate text-[15px] font-semibold leading-tight text-white">{headline}</p>
+        )}
 
         {metaLines.map((line) => (
           <p key={line} className="min-w-0 truncate text-[12px] leading-snug text-white/68">
@@ -150,8 +245,14 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
         ) : null}
       </div>
 
-      <span className="flex shrink-0 items-center self-center text-white/25" aria-hidden>
-        <ChevronRight className="h-5 w-5" strokeWidth={2} />
+      <span
+        className={[
+          'flex w-[48px] shrink-0 items-center justify-center self-stretch text-white',
+          ctaStripClass(ev.type),
+        ].join(' ')}
+        aria-hidden
+      >
+        <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
       </span>
     </button>
   );

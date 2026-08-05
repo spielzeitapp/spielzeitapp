@@ -16,6 +16,7 @@ export type CalendarEvent = {
   team_name: string | null;
   is_home?: boolean | null;
   match_type?: string | null;
+  opponent_logo_url?: string | null;
 };
 
 export type DayEvents = CalendarEvent[];
