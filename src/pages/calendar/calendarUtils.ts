@@ -197,6 +197,55 @@ export function formatSelectedDayCountLabel(count: number): string | null {
   return count === 1 ? '1 Termin' : `${count} Termine`;
 }
 
+/** Wochenbereich: „10.–16. August 2026“. */
+export function formatWeekRangeLabel(weekStart: Date, weekEnd: Date): string {
+  const startParts = getDateTimePartsInTimeZone(weekStart, VIENNA_TZ);
+  const endParts = getDateTimePartsInTimeZone(weekEnd, VIENNA_TZ);
+  if (!startParts || !endParts) return '';
+
+  const sameMonth = startParts.month === endParts.month && startParts.year === endParts.year;
+  const monthYear = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    month: 'long',
+    year: 'numeric',
+  }).format(weekEnd);
+
+  if (sameMonth) {
+    return `${startParts.day}.–${endParts.day}. ${monthYear}`;
+  }
+
+  const startMonth = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    day: 'numeric',
+    month: 'short',
+  }).format(weekStart);
+  const endMonth = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(weekEnd);
+  return `${startMonth} – ${endMonth}`;
+}
+
+/** Bis zu 3 eindeutige Marker-Farben für Monatsgrid. */
+export function getDayEventMarkerDots(events: CalendarEvent[]): string[] {
+  const dots: string[] = [];
+  const seen = new Set<string>();
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
+  );
+  for (const ev of sorted) {
+    const category = inferMonthEventChipCategory(ev);
+    const dotClass = getMonthEventDotClass(category);
+    if (seen.has(dotClass)) continue;
+    seen.add(dotClass);
+    dots.push(dotClass);
+    if (dots.length >= 3) break;
+  }
+  return dots;
+}
+
 export function formatNextMatchWeekdayDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';

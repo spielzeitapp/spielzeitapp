@@ -18,7 +18,6 @@ import {
   resolveEndAtFromNotes,
   toViennaDayKey,
   addDays,
-  startOfWeekMonday,
 } from './calendar/calendarUtils';
 import { CalendarListView } from './calendar/CalendarListView';
 import { CalendarWeekView } from './calendar/CalendarWeekView';
@@ -114,6 +113,39 @@ export const CalendarPage: React.FC = () => {
     setSelectedDate(now);
     setWeekAnchor(now);
   }, []);
+
+  const shiftWeek = useCallback((delta: number) => {
+    setSelectedDate((prev) => {
+      const next = addDays(prev, delta * 7);
+      setWeekAnchor(next);
+      setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+      return next;
+    });
+  }, []);
+
+  const handleSelectDate = useCallback((date: Date) => {
+    setSelectedDate(date);
+    const monthAnchor = new Date(date.getFullYear(), date.getMonth(), 1);
+    setCurrentMonth((prev) => {
+      if (prev.getFullYear() === monthAnchor.getFullYear() && prev.getMonth() === monthAnchor.getMonth()) {
+        return prev;
+      }
+      return monthAnchor;
+    });
+    setWeekAnchor(date);
+  }, []);
+
+  const handleViewChange = useCallback(
+    (nextView: CalendarView) => {
+      if (nextView === 'week') {
+        setWeekAnchor(selectedDate);
+      } else if (nextView === 'month') {
+        setCurrentMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+      }
+      setView(nextView);
+    },
+    [selectedDate],
+  );
 
   const shiftMonth = useCallback((delta: number) => {
     setCurrentMonth((prev) => {
@@ -343,20 +375,8 @@ export const CalendarPage: React.FC = () => {
     return map;
   }, [events]);
 
-  const monthLabel = currentMonth.toLocaleDateString('de-AT', {
-    month: 'long',
-    year: 'numeric',
-  });
-
   const todayKey = toViennaDayKey(new Date());
-  const weekStart = startOfWeekMonday(weekAnchor);
-  const weekEnd = addDays(weekStart, 6);
-  const weekLabel = `${weekStart.toLocaleDateString('de-AT', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'long',
-  })} – ${weekEnd.toLocaleDateString('de-AT', { day: 'numeric', month: 'long' })}`;
-  const headerLabel = view === 'week' ? weekLabel : monthLabel;
+  const showTeamName = selectedTeamSeasonId === 'all' && accessibleTeamSeasons.length > 1;
 
   const getEventColorClass = (type: CalendarEvent['type']) => {
     if (type === 'game') return 'bg-red-600/80 text-white';
@@ -496,7 +516,7 @@ export const CalendarPage: React.FC = () => {
               <button
                 key={key}
                 type="button"
-                onClick={() => setView(key)}
+                onClick={() => handleViewChange(key)}
                 className={`flex-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition ${
                   view === key
                     ? 'bg-red-500/15 text-white border border-red-500/30'
@@ -507,45 +527,6 @@ export const CalendarPage: React.FC = () => {
               </button>
             ))}
           </div>
-          {view !== 'month' && view !== 'list' ? (
-            <div className="flex items-center justify-center gap-1.5 sm:justify-start">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 min-w-[2rem] rounded-md px-2 text-xs"
-                onClick={() => {
-                  if (view === 'week') {
-                    const next = new Date(weekAnchor);
-                    next.setDate(next.getDate() - 7);
-                    setWeekAnchor(next);
-                    setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-                  } else {
-                    shiftMonth(-1);
-                  }
-                }}
-              >
-                ←
-              </Button>
-              <span className="min-w-[10rem] text-center text-xs text-white/75">{headerLabel}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 min-w-[2rem] rounded-md px-2 text-xs"
-                onClick={() => {
-                  if (view === 'week') {
-                    const next = new Date(weekAnchor);
-                    next.setDate(next.getDate() + 7);
-                    setWeekAnchor(next);
-                    setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-                  } else {
-                    shiftMonth(1);
-                  }
-                }}
-              >
-                →
-              </Button>
-            </div>
-          ) : null}
         </div>
 
         {!loading && !isFan && (accessibleTeamSeasons.length > 1 || loadingEvents) ? (
@@ -597,34 +578,38 @@ export const CalendarPage: React.FC = () => {
               eventsByDay={eventsByDay}
               currentMonth={currentMonth}
               selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
+              onSelectDate={handleSelectDate}
               onPrevMonth={() => shiftMonth(-1)}
               onNextMonth={() => shiftMonth(1)}
               onGoToday={goToToday}
               todayKey={todayKey}
-              showTeamName={selectedTeamSeasonId === 'all' && accessibleTeamSeasons.length > 1}
+              showTeamName={showTeamName}
             />
           ) : view === 'week' ? (
             <CalendarWeekView
               weekAnchor={weekAnchor}
-              events={events}
-              getEventColorClass={getEventColorClass}
+              eventsByDay={eventsByDay}
+              selectedDate={selectedDate}
+              onSelectDate={handleSelectDate}
+              onPrevWeek={() => shiftWeek(-1)}
+              onNextWeek={() => shiftWeek(1)}
+              onGoToday={goToToday}
               todayKey={todayKey}
+              showTeamName={showTeamName}
+              getEventColorClass={getEventColorClass}
             />
           ) : (
             <CalendarMonthView
               days={days}
               currentMonth={currentMonth}
-              events={events}
               eventsByDay={eventsByDay}
-              getEventColorClass={getEventColorClass}
+              selectedDate={selectedDate}
+              onSelectDate={handleSelectDate}
+              onPrevMonth={() => shiftMonth(-1)}
+              onNextMonth={() => shiftMonth(1)}
+              onGoToday={goToToday}
               todayKey={todayKey}
-              onPrevMonth={() =>
-                setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
-              }
-              onNextMonth={() =>
-                setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
-              }
+              showTeamName={showTeamName}
             />
           )}
         </div>

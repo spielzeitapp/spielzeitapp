@@ -12,6 +12,8 @@ type Props = {
   selectedDate: Date;
   eventsByDay: Map<string, CalendarEvent[]>;
   onSelectDate: (date: Date) => void;
+  /** scroll = Monatsleiste, fixed-7 = Wochenleiste (7 gleich breite Tage) */
+  layout?: 'scroll' | 'fixed-7';
 };
 
 export const CalendarDayStrip: React.FC<Props> = ({
@@ -19,6 +21,7 @@ export const CalendarDayStrip: React.FC<Props> = ({
   selectedDate,
   eventsByDay,
   onSelectDate,
+  layout = 'scroll',
 }) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const selectedRef = useRef<HTMLButtonElement | null>(null);
@@ -36,7 +39,11 @@ export const CalendarDayStrip: React.FC<Props> = ({
   return (
     <div
       ref={scrollRef}
-      className="-mx-1 flex gap-1 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className={[
+        layout === 'fixed-7'
+          ? 'grid grid-cols-7 gap-0.5'
+          : '-mx-1 flex gap-1 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+      ].join(' ')}
     >
       {days.map((day) => {
         const key = toViennaDayKey(day);
@@ -54,7 +61,8 @@ export const CalendarDayStrip: React.FC<Props> = ({
             aria-pressed={isSelected}
             aria-label={`${weekday} ${dayNum}`}
             className={[
-              'flex min-h-[44px] min-w-[44px] shrink-0 flex-col items-center justify-center rounded-full px-2.5 py-1.5 transition',
+              'flex min-h-[44px] flex-col items-center justify-center rounded-full py-1.5 transition',
+              layout === 'fixed-7' ? 'min-w-0 px-0.5' : 'min-w-[44px] shrink-0 px-2.5',
               isSelected
                 ? 'bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.35)]'
                 : 'text-white/75 hover:bg-white/8',
