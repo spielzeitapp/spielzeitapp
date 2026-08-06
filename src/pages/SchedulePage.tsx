@@ -76,11 +76,19 @@ import { isStartelfCompleteFromStartingIds } from '../pages/MatchDetail/lineupGu
 import { PremiumEmptyState } from '../ui';
 import { getEffectiveEventType } from '../lib/eventTypeUtils';
 import { eventNotesTitle, mergeTitleIntoNotes } from '../components/schedule/scheduleEventViewUtils';
+import { useDemoMode } from '../demo/DemoContext';
+import { useInternalBasePath, internalPath } from '../demo/demoPaths';
+import {
+  readScheduleFilters,
+  writeScheduleFilters,
+  type ScheduleKindFilterId,
+  type ScheduleTimeFilterId,
+} from '../lib/scheduleFilterState';
 
 /** 'all' = keine Terminart gewählt (alle Typen). */
-type KindFilterId = 'all' | 'match' | 'training' | 'event' | 'tournament';
+type KindFilterId = ScheduleKindFilterId;
 /** Zeitraum: 'all' = vergangen + kommend. */
-type TimeFilterId = 'all' | 'upcoming' | 'past';
+type TimeFilterId = ScheduleTimeFilterId;
 type TimeBucketId = 'upcoming' | 'past';
 
 function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
@@ -165,6 +173,9 @@ function ScheduleHeroToolbarAction({
 
 export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
   const {
     teamLabel,
     teamLabelWithStatus,
@@ -183,11 +194,27 @@ export const SchedulePage: React.FC = () => {
     usePublicTeamSeason();
   const { selectedMembership, user, selectedTeamSeason, isViewOnlyPlayer } = useSession();
   const userId = user?.id ?? null;
-  const effectiveTeamSeasonId = teamSeasonId ?? publicTeamId;
-  const { events: rawEvents, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
+  const effectiveTeamSeasonId = isDemo
+    ? demo!.data.teamSeasonId
+    : (teamSeasonId ?? publicTeamId);
+  const { events: rawEventsLive, loading: eLoadingLive, error: eErrorLive, refetch: refetchLive } =
+    useEvents(isDemo ? null : effectiveTeamSeasonId);
+  const rawEvents = isDemo ? demo!.data.events : rawEventsLive;
+  const eLoading = isDemo ? false : eLoadingLive;
+  const eError = isDemo ? null : eErrorLive;
+  const refetch = isDemo ? (() => {}) : refetchLive;
 
   const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
   useEffect(() => {
+    if (isDemo) {
+      const next: Record<string, string> = {};
+      for (const e of rawEvents) {
+        if (e.match_id && e.status === 'live') next[e.match_id] = 'live';
+        if (e.match_id && e.status === 'finished') next[e.match_id] = 'finished';
+      }
+      setMatchStatusById(next);
+      return;
+    }
     const matchIds = Array.from(
       new Set(
         rawEvents
@@ -208,7 +235,7 @@ export const SchedulePage: React.FC = () => {
       setMatchStatusById(next);
     })();
     return () => { cancelled = true; };
-  }, [rawEvents]);
+  }, [rawEvents, isDemo]);
 
   const events: EventRow[] = useMemo(() =>
     rawEvents.map((e) => {
@@ -219,9 +246,10 @@ export const SchedulePage: React.FC = () => {
     }),
   [rawEvents, matchStatusById]);
 
-  const loading = tsLoading || (!teamSeasonId && publicLoading);
+  const loading = isDemo ? false : tsLoading || (!teamSeasonId && publicLoading);
 
   const teamSeasonSubtitle = (() => {
+    if (isDemo) return `${demo!.data.teamName} · ${demo!.data.seasonLabel}`;
     if (teamLabelWithStatus?.trim()) return teamLabelWithStatus.trim();
     if (teamLabel?.trim()) return teamLabel.trim();
     return publicLabel ?? 'Spielplan';
@@ -229,6 +257,7 @@ export const SchedulePage: React.FC = () => {
 
   /** Öffentliche Team-ICS-URL (Slug aus Teamname, sonst Team-UUID). */
   const teamCalendarSegment = useMemo(() => {
+    if (isDemo) return null;
     const nameFromSeason = selectedTeamSeason?.team?.name?.trim();
     const nameFromMembership = getTeamNameFromMembership(selectedMembership)?.trim();
     let fromPublic = publicLabel?.replace(/\s*\([^)]*\)\s*$/, '').trim() || null;
@@ -237,7 +266,7 @@ export const SchedulePage: React.FC = () => {
     const name = nameFromSeason || nameFromMembership || fromPublic || fromTeamLabel;
     if (name) return teamCalendarSlugFromTeamName(name);
     return selectedTeamSeason?.team?.id ?? null;
-  }, [selectedTeamSeason, selectedMembership, publicLabel, teamLabel]);
+  }, [selectedTeamSeason, selectedMembership, publicLabel, teamLabel, isDemo]);
 
   const teamIcsFeedUrl = useMemo(() => {
     if (!teamCalendarSegment) return null;
@@ -245,22 +274,41 @@ export const SchedulePage: React.FC = () => {
   }, [teamCalendarSegment]);
 
   // Public Mode: /schedule und /live = nur Anzeige, KEINE Navigation zu Event-Detail
+  // /demo/* = interne App-Oberfläche (wie /app), nicht öffentlich.
   const { pathname } = useLocation();
   const forcePublicView =
-    pathname === '/schedule' || pathname === '/live' || !pathname.startsWith('/app');
-  const backendRole = normalizeRole(roleFromHook);
+    pathname === '/schedule' ||
+    pathname === '/live' ||
+    !(pathname.startsWith('/app') || pathname.startsWith('/demo'));
+  const backendRole = isDemo ? 'trainer' : normalizeRole(roleFromHook);
   const uiRoleRaw = forcePublicView ? null : (backendRole ?? null);
   const normalizedUiRole = normalizeRole(uiRoleRaw);
   const uiRole = normalizedUiRole === 'fan' ? null : normalizedUiRole;
-  const canShowRsvpUi = (uiRole === 'parent' || uiRole === 'player') && !isViewOnlyPlayer;
+  /** Demo: Trainer-Übersicht + eigene Rückmeldung (verknüpfter Demo-Spieler). */
+  const canShowRsvpUi =
+    isDemo || ((uiRole === 'parent' || uiRole === 'player') && !isViewOnlyPlayer);
   const canManage = forcePublicView || isHistoryReadOnly ? false : canManageMatches(normalizedUiRole);
+  /** Admin-Writes in der Demo gesperrt — Anzeige wie Trainer bleibt. */
+  const canMutateSchedule = canManage && !isDemo;
   const showMeetupForRole = forcePublicView ? true : canSeeMeetup(normalizedUiRole); // Öffentlich: Treffpunkt für alle
-  const ourTeamName = getOurTeamDisplayName();
+  const ourTeamName = isDemo ? demo!.data.teamName : getOurTeamDisplayName();
 
   const [kindFilter, setKindFilter] = useState<KindFilterId>(() =>
-    normalizedUiRole === 'fan' ? 'match' : 'all',
+    readScheduleFilters({
+      kindFilter: normalizedUiRole === 'fan' ? 'match' : 'all',
+      timeFilter: 'upcoming',
+    }).kindFilter,
   );
-  const [timeFilter, setTimeFilter] = useState<TimeFilterId>('upcoming');
+  const [timeFilter, setTimeFilter] = useState<TimeFilterId>(() =>
+    readScheduleFilters({
+      kindFilter: 'all',
+      timeFilter: 'upcoming',
+    }).timeFilter,
+  );
+
+  useEffect(() => {
+    writeScheduleFilters({ kindFilter, timeFilter });
+  }, [kindFilter, timeFilter]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [calendarSheetOpen, setCalendarSheetOpen] = useState(false);
   const [calendarGuideKind, setCalendarGuideKind] = useState<'google' | 'familywall' | null>(null);
@@ -314,8 +362,8 @@ export const SchedulePage: React.FC = () => {
   // Parent-Onboarding Redirect läuft zentral im InternalLayout (nach Login).
 
   const openEditModal = (e: EventRow) => {
-    if (!canManage) {
-      setToastMessage('Keine Berechtigung zum Bearbeiten.');
+    if (!canMutateSchedule) {
+      setToastMessage(isDemo ? 'In der Demo nicht verfügbar.' : 'Keine Berechtigung zum Bearbeiten.');
       return;
     }
     setEditEvent(e);
@@ -357,13 +405,13 @@ export const SchedulePage: React.FC = () => {
   const setAttendance = async (eventId: string, status: AttendanceStatus, _reason?: string) => {
     console.log('[ATTENDANCE FLOW] setAttendance invoked', {
       caller: 'SchedulePage.setAttendance',
-      table: 'event_attendance',
+      table: isDemo ? 'demo-local' : 'event_attendance',
       eventId,
       status,
       uiRole,
     });
     let playerId = myAttendancePlayerIds[0] ?? null;
-    if (!playerId && userId) {
+    if (!isDemo && !playerId && userId) {
       const byGuardian = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
       if (!byGuardian.error && byGuardian.data?.length) playerId = byGuardian.data[0].player_id;
       if (!playerId) {
@@ -374,6 +422,27 @@ export const SchedulePage: React.FC = () => {
 
     if (!eventId || !playerId) {
       setToastMessage(!playerId ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
+      setAttendanceModalEvent(null);
+      setTrainingCancelReason('');
+      return;
+    }
+
+    if (isDemo && demo) {
+      const myPidKey = playerId.toLowerCase();
+      const fromDemo =
+        attendanceByEventId[eventId]?.availabilityByPlayerId[myPidKey] ?? null;
+      const currentLocal = attendanceStatusByEventId[eventId] ?? fromDemo ?? null;
+      if (currentLocal === status) {
+        demo.setDemoAttendance(eventId, playerId, null);
+        setAttendanceStatusByEventId((prev) => {
+          const next = { ...prev };
+          delete next[eventId];
+          return next;
+        });
+      } else {
+        demo.setDemoAttendance(eventId, playerId, status);
+        setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: status }));
+      }
       setAttendanceModalEvent(null);
       setTrainingCancelReason('');
       return;
@@ -667,7 +736,7 @@ export const SchedulePage: React.FC = () => {
               recipient_group: 'all',
               title: 'Termin aktualisiert',
               body: `Ein Termin wurde aktualisiert: ${changedTxt} geändert.`,
-              url: '/app/nachrichten',
+              url: isDemo ? '/demo/mehr' : '/app/nachrichten',
               message_type: 'event_updated',
               related_event_id: editEvent.id,
             }),
@@ -685,6 +754,10 @@ export const SchedulePage: React.FC = () => {
   };
 
   const handleDelete = async (event: EventRow) => {
+    if (isDemo) {
+      setToastMessage('In der Demo nicht verfügbar.');
+      return;
+    }
     if (isHistoryReadOnly) {
       alert(softLockMessage ?? 'Archiv: nur Lesen');
       return;
@@ -787,7 +860,7 @@ export const SchedulePage: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
     const mid = heroEvent?.match_id?.trim() ?? '';
-    if (!mid || !heroEvent || getEffectiveEventType(heroEvent) !== 'game') {
+    if (isDemo || !mid || !heroEvent || getEffectiveEventType(heroEvent) !== 'game') {
       setHeroLineupReady(false);
       return () => {
         cancelled = true;
@@ -810,6 +883,29 @@ export const SchedulePage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    if (isDemo) {
+      // Demo: Ergebnis aus Fixtures (kein matches-Fetch)
+      const next: Record<
+        string,
+        { scoreHome: number; scoreAway: number; periodBracket: string | null; liveIsRunning: boolean }
+      > = {};
+      if (demo?.live) {
+        next[demo.data.events.find((e) => e.id === 'ev-game-next')?.match_id ?? ''] = {
+          scoreHome: demo.live.scoreHome,
+          scoreAway: demo.live.scoreAway,
+          periodBracket: null,
+          liveIsRunning: demo.live.status === 'live',
+        };
+      }
+      // Past result 3:1 from feed fixtures
+      const pastMid = demo?.data.events.find((e) => e.id === 'ev-game-past')?.match_id;
+      if (pastMid) {
+        next[pastMid] = { scoreHome: 3, scoreAway: 1, periodBracket: null, liveIsRunning: false };
+      }
+      delete next[''];
+      setMatchScoreById(next);
+      return;
+    }
     const matchIds = Array.from(
       new Set(
         displayEvents
@@ -863,16 +959,18 @@ export const SchedulePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [displayEvents]);
+  }, [displayEvents, isDemo, demo]);
 
   const displayEventIds = useMemo(() => displayEvents.map((e) => e.id), [displayEvents]);
   const { byEventId: attendanceByEventId, loading: attendanceLoading, refresh: refreshAttendance } = useEventsAttendance(displayEventIds);
-  const { players } = usePlayers(effectiveTeamSeasonId);
-  const { myAttendancePlayerIds } = useAvailabilityPermissions({
+  const { players: livePlayers } = usePlayers(isDemo ? null : effectiveTeamSeasonId);
+  const players = isDemo ? demo!.players : livePlayers;
+  const { myAttendancePlayerIds: liveAttendancePlayerIds } = useAvailabilityPermissions({
     role: normalizedUiRole,
-    teamSeasonId,
+    teamSeasonId: isDemo ? null : teamSeasonId,
     viewOnlyPlayer: isViewOnlyPlayer,
   });
+  const myAttendancePlayerIds = isDemo ? [demo!.selfPlayerId] : liveAttendancePlayerIds;
 
   /**
    * Training „Wieder dabei“: status = yes in event_attendance speichern (UPSERT).
@@ -881,7 +979,7 @@ export const SchedulePage: React.FC = () => {
   const reinstateTrainingParticipation = useCallback(
     async (eventId: string): Promise<boolean> => {
       let playerId = myAttendancePlayerIds[0] ?? null;
-      if (!playerId && userId) {
+      if (!isDemo && !playerId && userId) {
         const byGuardian = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
         if (!byGuardian.error && byGuardian.data?.length) playerId = byGuardian.data[0].player_id;
         if (!playerId) {
@@ -893,6 +991,12 @@ export const SchedulePage: React.FC = () => {
       if (!eventId || !playerId) {
         setToastMessage(!playerId ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
         return false;
+      }
+
+      if (isDemo && demo) {
+        demo.setDemoAttendance(eventId, playerId, 'yes');
+        setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: 'yes' }));
+        return true;
       }
 
       const result = await upsertEventAttendanceMinimal(supabase, {
@@ -911,13 +1015,16 @@ export const SchedulePage: React.FC = () => {
       await refreshAttendance();
       return true;
     },
-    [myAttendancePlayerIds, userId, refreshAttendance],
+    [myAttendancePlayerIds, userId, refreshAttendance, isDemo, demo],
   );
 
   const rosterPlayerIds = useMemo(() => players.map((p) => p.id), [players]);
   const playerAvailabilityById = useMemo(() => buildPlayerAvailabilityMap(players), [players]);
   const myLinkedPlayerId = myAttendancePlayerIds[0] ?? null;
-  const { isLazPlayer: myLinkedPlayerIsLaz } = useLinkedPlayerIsLaz(myLinkedPlayerId);
+  const { isLazPlayer: myLinkedPlayerIsLazLive } = useLinkedPlayerIsLaz(isDemo ? null : myLinkedPlayerId);
+  const myLinkedPlayerIsLaz = isDemo
+    ? Boolean(players.find((p) => p.id === myLinkedPlayerId)?.is_laz_player)
+    : myLinkedPlayerIsLazLive;
 
   /** Eltern/Spieler: „Weitere Termine“ etwas breiter (näher an BottomNav-Padding), ohne Hero/Filter anzufassen. */
   const widenParentFurtherList = (uiRole === 'parent' || uiRole === 'player') && !forcePublicView;
@@ -974,7 +1081,7 @@ export const SchedulePage: React.FC = () => {
                   <h1 className={dsPageTitleClass()}>
                     {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
                   </h1>
-                  {canManage ? (
+                  {canMutateSchedule ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -1036,7 +1143,7 @@ export const SchedulePage: React.FC = () => {
                 </div>
               </div>
               <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:justify-end">
-                {!forcePublicView && normalizedUiRole !== 'fan' ? (
+                {!forcePublicView && normalizedUiRole !== 'fan' && !isDemo ? (
                   <Link
                     to="/app/spielplan"
                     className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] shrink-0 items-center gap-1.5 px-3 text-[12px] no-underline sm:h-10`}
@@ -1061,7 +1168,7 @@ export const SchedulePage: React.FC = () => {
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => navigate('/app/termine/calendar')}
+                  onClick={() => navigate(internalPath(basePath, '/termine/calendar'))}
                   className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] w-11 shrink-0 items-center justify-center sm:h-10 sm:w-10`}
                   aria-label="Kalenderansicht"
                   title="Kalenderansicht"
@@ -1235,7 +1342,7 @@ export const SchedulePage: React.FC = () => {
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    navigate(`/app/events/${ev.id}`);
+                                    navigate(`${basePath}/events/${ev.id}`);
                                   }}
                                   aria-label="Teilnehmerübersicht öffnen"
                                 >
@@ -1271,10 +1378,10 @@ export const SchedulePage: React.FC = () => {
                             ? undefined
                             : (id: string) => {
                                 if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
-                                  navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`);
+                                  navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`);
                                   return;
                                 }
-                                navigate(`/app/events/${id}`);
+                                navigate(`${basePath}/events/${id}`);
                               };
                         const heroCardFooter = undefined;
                         const heroGoLive =
@@ -1282,7 +1389,7 @@ export const SchedulePage: React.FC = () => {
                           ev.match_id &&
                           !forcePublicView &&
                           (heroIsLive || matchReviewPending || (Boolean(heroShowsTrainerStats) && heroLineupReady))
-                            ? () => navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id!)}`)
+                            ? () => navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id!)}`)
                             : undefined;
                         const opponentLogo = ev.opponent_logo_url ?? null;
                         if (et === 'game') {
@@ -1338,7 +1445,7 @@ export const SchedulePage: React.FC = () => {
                                   onOpenAttendance={
                                     heroShowsTrainerStats
                                       ? // Trainer: Teilnehmerübersicht (wer dabei/offen/abgesagt) im Termin-Detail
-                                        () => navigate(`/app/events/${ev.id}`)
+                                        () => navigate(`${basePath}/events/${ev.id}`)
                                       : heroShowsParentPill
                                         ? () => setAttendanceModalEvent(ev)
                                         : undefined
@@ -1428,7 +1535,7 @@ export const SchedulePage: React.FC = () => {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            navigate(`/app/events/${ev.id}`);
+                            navigate(`${basePath}/events/${ev.id}`);
                           }}
                         >
                           <TrainerStatsMini
@@ -1475,7 +1582,7 @@ export const SchedulePage: React.FC = () => {
                             scoreAway={matchScoreRow?.scoreAway ?? null}
                             periodBracketLine={matchScoreRow?.periodBracket ?? null}
                             forcePublicView={forcePublicView}
-                            onNavigate={(id) => navigate(`/app/events/${id}`)}
+                            onNavigate={(id) => navigate(`${basePath}/events/${id}`)}
                           />
                         );
                       }
@@ -1491,8 +1598,8 @@ export const SchedulePage: React.FC = () => {
                           forcePublicView={forcePublicView}
                           onNavigate={(id) =>
                             (isFinishedMatch || matchReviewPending) && ev.match_id
-                              ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
-                              : navigate(`/app/events/${id}`)
+                              ? navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`)
+                              : navigate(`${basePath}/events/${id}`)
                           }
                           reviewPending={matchReviewPending}
                         />

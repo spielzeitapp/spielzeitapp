@@ -8,6 +8,7 @@ import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../match/matchCardLabels';
 import { MatchCardGameCore } from '../match/MatchCardGameCore';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type MatchdayCardProps = {
   event: EventRow;
@@ -21,6 +22,7 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
   event,
   statusLabel = 'HEUTE IST MATCHDAY',
 }) => {
+  const basePath = useInternalBasePath();
   const ourClubName = getOurTeamDisplayName();
   const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
   const isHome = event.is_home;
@@ -161,7 +163,7 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
           </div>
 
           <Link
-            to={`/app/events/${event.id}`}
+            to={`${basePath}/events/${event.id}`}
             className="group relative flex min-h-[56px] w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-5 text-base font-bold text-white transition-all duration-200 active:brightness-95 sm:min-h-[58px] sm:rounded-3xl sm:text-[1.05rem]"
             style={{
               background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 48%, #991b1b 100%)',

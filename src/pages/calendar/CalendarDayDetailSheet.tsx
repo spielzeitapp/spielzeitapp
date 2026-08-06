@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lockBodyScroll } from '../../lib/bodyScrollLock';
+import { useInternalBasePath } from '../../demo/demoPaths';
 import type { CalendarEvent } from './calendarTypes';
 import {
   formatDaySheetHeader,
@@ -20,6 +21,7 @@ type Props = {
 
 function DayEventCard({ ev }: { ev: CalendarEvent }) {
   const navigate = useNavigate();
+  const basePath = useInternalBasePath();
   const category = inferMonthEventChipCategory(ev);
   const cancelled = category === 'cancelled';
   const label = getDaySheetCategoryLabel(category, ev);
@@ -79,7 +81,7 @@ function DayEventCard({ ev }: { ev: CalendarEvent }) {
       {!cancelled ? (
         <button
           type="button"
-          onClick={() => navigate(`/app/events/${ev.id}`)}
+          onClick={() => navigate(`${basePath}/events/${ev.id}`)}
           className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-red-500/30 bg-red-600/85 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-600"
         >
           {actionLabel}

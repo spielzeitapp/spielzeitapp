@@ -13,6 +13,9 @@ import {
   isSeasonActive,
   resolveTeamSeasonLabelParts,
 } from '../lib/seasonLifecycle';
+import { useDemoMode } from '../demo/DemoContext';
+import { useInternalBasePath } from '../demo/demoPaths';
+import type { EventRow } from '../hooks/useEvents';
 import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
 import {
   notesTitleAndDescription,
@@ -23,6 +26,75 @@ import {
 import { CalendarListView } from './calendar/CalendarListView';
 import { CalendarWeekView } from './calendar/CalendarWeekView';
 import { CalendarMonthView } from './calendar/CalendarMonthView';
+
+function mapEventRowToCalendarEvent(
+  r: EventRow,
+  teamName: string | null,
+): CalendarEvent {
+  const rawType = (r.type ?? '').trim().toLowerCase();
+  const kind = (r.kind ?? '').trim().toLowerCase();
+  let t: CalendarEvent['type'];
+  if (
+    rawType === 'game' ||
+    rawType === 'training' ||
+    rawType === 'event' ||
+    rawType === 'other' ||
+    rawType === 'tournament'
+  ) {
+    t = rawType;
+  } else if (kind === 'match') {
+    t = 'game';
+  } else if (kind === 'training') {
+    t = 'training';
+  } else if (kind === 'tournament') {
+    t = 'tournament';
+  } else if (kind === 'event') {
+    t = 'event';
+  } else {
+    t = 'other';
+  }
+
+  const startsAt = r.starts_at;
+  const notes: string | null = r.notes ?? null;
+  const meetupAt: string | null = r.meeting_at ?? null;
+  const opponent: string | null = r.opponent ?? null;
+  let title = '';
+  if (t === 'game') {
+    title = r.opponent || 'Spiel';
+  } else if (t === 'training') {
+    title = 'Training';
+  } else if (t === 'tournament' || kind === 'tournament') {
+    title = notes?.split(' · ')[0]?.trim() || 'Turnier';
+  } else {
+    title = notes?.split(' · ')[0] || 'Termin';
+  }
+
+  const { description } = notesTitleAndDescription(notes);
+  const place = r.location ?? null;
+
+  return {
+    id: r.id,
+    team_season_id: r.team_season_id,
+    type: t,
+    starts_at: startsAt,
+    end_at: resolveEndAtFromNotes({
+      startsAtIso: startsAt,
+      eventType: t,
+      notes,
+    }),
+    meeting_at: meetupAt,
+    location: place,
+    venue_short: formatFeedVenueShort(place),
+    opponent,
+    notes,
+    description: description ?? null,
+    title,
+    team_name: teamName,
+    is_home: r.is_home ?? null,
+    match_type: r.match_type ?? null,
+    opponent_logo_url: null,
+  };
+}
 
 /** Saisonlabel für Kalender-Events/Dropdown — nie raw teams.name allein. */
 function teamSeasonLabelFromSessionRow(ts: {
@@ -85,6 +157,9 @@ function getMonthGrid(date: Date): Date[] {
 
 export const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
   const { effectiveRole, loading, selectedMembership } = useSession();
   const {
     readTeamSeasonId,
@@ -177,18 +252,20 @@ export const CalendarPage: React.FC = () => {
     }
   }, [view]);
 
-  const isFan = effectiveRole === 'fan';
+  const isFan = !isDemo && effectiveRole === 'fan';
   const canSeeAllTeams =
-    effectiveRole === 'trainer' ||
-    effectiveRole === 'admin' ||
-    effectiveRole === 'head_coach' ||
-    effectiveRole === 'co_trainer';
+    !isDemo &&
+    (effectiveRole === 'trainer' ||
+      effectiveRole === 'admin' ||
+      effectiveRole === 'head_coach' ||
+      effectiveRole === 'co_trainer');
 
   useEffect(() => {
+    if (isDemo) return;
     if (isFan && !loading) {
-      navigate('/app/termine', { replace: true });
+      navigate(`${basePath}/termine`, { replace: true });
     }
-  }, [isFan, loading, navigate]);
+  }, [isDemo, isFan, loading, navigate, basePath]);
 
   const accessibleTeamSeasons = useMemo(() => teamSeasons ?? [], [teamSeasons]);
 
@@ -230,6 +307,14 @@ export const CalendarPage: React.FC = () => {
 
   useEffect(() => {
     const loadEvents = async () => {
+      if (isDemo && demo) {
+        setLoadingEvents(false);
+        setError(null);
+        const teamName = demo.data.teamName;
+        setEvents(demo.data.events.map((ev) => mapEventRowToCalendarEvent(ev, teamName)));
+        return;
+      }
+
       if (accessibleTeamSeasons.length === 0) {
         setEvents([]);
         return;
@@ -404,7 +489,7 @@ export const CalendarPage: React.FC = () => {
     if (!isFan) {
       loadEvents();
     }
-  }, [currentMonth, accessibleTeamSeasons, selectedTeamSeasonId, isFan]);
+  }, [currentMonth, accessibleTeamSeasons, selectedTeamSeasonId, isFan, isDemo, demo]);
 
   const days = useMemo(() => getMonthGrid(currentMonth), [currentMonth]);
 
@@ -482,7 +567,7 @@ export const CalendarPage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    if (!selectedTeamIdForFeed) {
+    if (isDemo || !selectedTeamIdForFeed) {
       setTeamCalendarSlug(null);
       return;
     }
@@ -504,7 +589,7 @@ export const CalendarPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedTeamIdForFeed]);
+  }, [selectedTeamIdForFeed, isDemo]);
 
   const feedUrl = useMemo(() => {
     if (!selectedTeamIdForFeed) return null;
@@ -544,7 +629,7 @@ export const CalendarPage: React.FC = () => {
         <div className="space-y-2">
           <button
             type="button"
-            onClick={() => navigate('/app/termine')}
+            onClick={() => navigate(`${basePath}/termine`)}
             className="-ml-0.5 text-sm text-white/75 hover:text-white"
           >
             ← Termine
@@ -572,7 +657,7 @@ export const CalendarPage: React.FC = () => {
           </div>
         </div>
 
-        {!loading && !isFan && (accessibleTeamSeasons.length > 1 || loadingEvents) ? (
+        {!isDemo && !loading && !isFan && (accessibleTeamSeasons.length > 1 || loadingEvents) ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
             {accessibleTeamSeasons.length > 1 ? (
               <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -657,7 +742,7 @@ export const CalendarPage: React.FC = () => {
           )}
         </div>
 
-        {feedUrl && (
+        {!isDemo && feedUrl && (
           <div className="flex justify-end pt-0.5">
             <Button
               variant="ghost"

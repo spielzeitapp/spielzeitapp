@@ -67,7 +67,7 @@ function toEventRow(
   };
 }
 
-/** Events für Home-Hero / Compact-Cards (produktive EventRow-Form). */
+/** Events für Home / Termine / Kalender / EventDetail (produktive EventRow-Form). */
 export function buildDemoEvents(): EventRow[] {
   return demoFixtures.events.map((ev) => {
     const kind =
@@ -78,23 +78,37 @@ export function buildDemoEvents(): EventRow[] {
           : ev.kind === 'tournament'
             ? ('tournament' as const)
             : ('event' as const);
-    const isPast = new Date(ev.starts_at).getTime() < Date.now() - 2 * 24 * 60 * 60 * 1000;
+    const startsMs = new Date(ev.startsAt).getTime();
+    const isPast = startsMs < Date.now() - 2 * 60 * 60 * 1000;
+    const canceled = ev.id === 'ev-train-canceled' || /\babgesagt\b/i.test(ev.title);
+    let status: EventRow['status'] = 'upcoming';
+    if (canceled) status = 'canceled';
+    else if (kind === 'match' && ev.id === 'ev-game-next') status = 'live';
+    else if (kind === 'match' && isPast) status = 'finished';
+    else if (isPast && kind !== 'match') status = 'finished';
+
+    const titleNote =
+      ev.kind === 'event' || ev.kind === 'info' || ev.kind === 'tournament'
+        ? [ev.title, ev.notes].filter(Boolean).join('\n')
+        : ev.notes ?? null;
+
     return toEventRow({
       id: ev.id,
       kind,
-      starts_at: ev.starts_at,
+      starts_at: ev.startsAt,
       meeting_at: ev.meetingAt ?? null,
       location: ev.location,
       opponent: ev.opponent ?? null,
       is_home: ev.isHome ?? null,
-      notes: ev.notes ?? null,
-      status: isPast && kind === 'match' ? 'finished' : 'upcoming',
+      notes: titleNote,
+      status,
       match_id:
         ev.id === 'ev-game-next'
           ? DEMO_MATCH_ID_LIVE
           : ev.id === 'ev-game-past'
             ? DEMO_MATCH_ID_PAST
             : null,
+      fixture_status: kind === 'match' ? 'published' : null,
     });
   });
 }
@@ -152,7 +166,7 @@ export function buildDemoFeedPosts(): {
           location: 'Sportplatz Rohrbach',
           match_id: null,
           event_id: 'ev-train-next',
-          deep_link: '/demo/training',
+          deep_link: '/demo/events/ev-train-next',
         },
       },
     },
@@ -168,6 +182,8 @@ export function buildDemoFeedPosts(): {
         payload: {
           title: 'Terminänderung',
           detail: 'Training 15 Min. später',
+          event_id: 'ev-train-past',
+          deep_link: '/demo/events/ev-train-past',
         },
       }),
     },
@@ -208,7 +224,7 @@ export function buildDemoFeedPosts(): {
           location: 'Sportplatz Rohrbach',
           match_id: DEMO_MATCH_ID_PAST,
           event_id: 'ev-game-past',
-          deep_link: '/demo/match',
+          deep_link: '/demo/events/ev-game-past',
         },
       },
     },
@@ -256,7 +272,7 @@ export function buildDemoFeedPosts(): {
               };
             }),
           starts_at: '2026-08-23T10:00:00+02:00',
-          deep_link: '/demo/match',
+          deep_link: '/demo/events/ev-game-past',
           our_team_name: our,
           opponent_name: stVeit,
           is_home: true,
@@ -326,7 +342,7 @@ export function buildDemoFeedPosts(): {
           result_state: 'win',
           our_team_name: our,
           is_home: true,
-          deep_link: '/demo/match',
+          deep_link: '/demo/events/ev-game-past',
         },
       },
     },
@@ -342,7 +358,8 @@ export function buildDemoFeedPosts(): {
         payload: {
           tournament_name: demoFixtures.tournament.name,
           location: demoFixtures.tournament.location,
-          deep_link: '/demo/turnier',
+          deep_link: '/demo/events/ev-tournament',
+          event_id: 'ev-tournament',
         },
       }),
     },

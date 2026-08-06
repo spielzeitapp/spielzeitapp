@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { useDemoMode } from "../demo/DemoContext";
 
 export type AttendanceStatus = "yes" | "no" | "sick" | "injured" | "external_training";
 
@@ -16,14 +17,23 @@ export type EventAttendanceData = {
 
 /**
  * Lädt Zu-/Absagen für mehrere Events aus public.event_attendance (event_id = events.id).
- * Eine Quelle für Trainer-Counts und Detail-Listen.
+ * Im Demo-Modus: lokale DemoDataSource, kein Supabase.
  */
 export function useEventsAttendance(eventIds: string[]) {
+  const demo = useDemoMode();
   const [rows, setRows] = useState<Array<{ event_id: string; player_id: string; status: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const eventIdsKey = eventIds.join(",");
+
   const load = useCallback(async () => {
+    if (demo) {
+      setRows([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     if (eventIds.length === 0) {
       setRows([]);
       setLoading(false);
@@ -54,13 +64,16 @@ export function useEventsAttendance(eventIds: string[]) {
       setRows(list);
     }
     setLoading(false);
-  }, [eventIds.join(",")]);
+  }, [demo, eventIdsKey]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const byEventId = useMemo(() => {
+    if (demo) {
+      return demo.getAttendanceByEventIds(eventIds);
+    }
     const out: Record<string, EventAttendanceData> = {};
     const eventIdToKey: Record<string, string> = {};
     for (const id of eventIds) {
@@ -99,12 +112,12 @@ export function useEventsAttendance(eventIds: string[]) {
       }
     }
     return out;
-  }, [rows, eventIds.join(",")]);
+  }, [demo, demo?.attendanceRows, rows, eventIdsKey]);
 
   return {
     byEventId,
     refresh: load,
-    loading,
-    error,
+    loading: demo ? false : loading,
+    error: demo ? null : error,
   };
 }

@@ -67,6 +67,8 @@ import { useSession } from '../auth/useSession';
 import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
 import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
 import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
+import { useDemoMode } from '../demo/DemoContext';
+import { useInternalBasePath } from '../demo/demoPaths';
 import {
   dsPrimaryCtaClass,
   dsRsvpChoiceClass,
@@ -377,6 +379,9 @@ function sortPlayersByRsvpBuckets(players: PlayerItem[], getStatus: (playerId: s
 export const EventDetailPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
   const [event, setEvent] = useState<EventRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -486,20 +491,25 @@ export const EventDetailPage: React.FC = () => {
 
   const { role: roleFromHook } = useActiveTeamSeason();
   const { user: sessionUser, isViewOnlyPlayer } = useSession();
-  const effectiveRole = normalizeRole(roleFromHook);
-  const canShowSelfRsvp =
-    (effectiveRole === 'player' || effectiveRole === 'parent') && !isViewOnlyPlayer;
+  const effectiveRole = isDemo ? 'trainer' : normalizeRole(roleFromHook);
+  const canShowSelfRsvp = isDemo
+    ? true
+    : (effectiveRole === 'player' || effectiveRole === 'parent') && !isViewOnlyPlayer;
   const showMeetup = canSeeMeetup(effectiveRole);
-  const isFan = effectiveRole === 'fan';
+  const isFan = !isDemo && effectiveRole === 'fan';
   /** Soft-Lock: Archiv-Saison → keine Trainer-Writes (Edit/Delete/Kader/Live-Prep). */
   const [seasonWritable, setSeasonWritable] = useState(true);
   /** Trainer/Chef/Co/Admin: Spielplan & Spielbericht (Membership-Rolle ist bereits normalisiert). */
-  const canTrainerManageEvent = canManageMatches(effectiveRole) && seasonWritable;
+  const canTrainerManageEvent = isDemo || (canManageMatches(effectiveRole) && seasonWritable);
   /** Match-/Karten-Teamname: immer Club-Identität, nie U11/U12/Saison. */
-  const ourTeamName = getOurTeamDisplayName();
+  const ourTeamName = isDemo && demo ? demo.data.teamName : getOurTeamDisplayName();
 
   const teamSeasonId = event?.team_season_id ?? null;
   useEffect(() => {
+    if (isDemo) {
+      setSeasonWritable(true);
+      return;
+    }
     if (!teamSeasonId) {
       setSeasonWritable(true);
       return;
@@ -516,15 +526,21 @@ export const EventDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [teamSeasonId]);
-  const { players, loading: playersLoading } = usePlayers(teamSeasonId);
-  const { myAttendancePlayerIds } = useAvailabilityPermissions({
+  }, [teamSeasonId, isDemo]);
+  const { players: livePlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId);
+  const players = isDemo && demo ? demo.players : livePlayers;
+  const playersLoading = isDemo ? false : playersLoadingLive;
+  const { myAttendancePlayerIds: liveAttendancePlayerIds } = useAvailabilityPermissions({
     role: effectiveRole,
-    teamSeasonId,
+    teamSeasonId: isDemo ? null : teamSeasonId,
     viewOnlyPlayer: isViewOnlyPlayer,
   });
+  const myAttendancePlayerIds = isDemo && demo ? [demo.selfPlayerId] : liveAttendancePlayerIds;
   const playerId = myAttendancePlayerIds[0] ?? null;
-  const { isLazPlayer: linkedPlayerIsLaz } = useLinkedPlayerIsLaz(playerId);
+  const { isLazPlayer: linkedPlayerIsLazLive } = useLinkedPlayerIsLaz(isDemo ? null : playerId);
+  const linkedPlayerIsLaz = isDemo
+    ? Boolean(players.find((p) => p.id === playerId)?.is_laz_player)
+    : linkedPlayerIsLazLive;
 
   const isTraining = event?.kind === 'training';
   const trainingCancelCutoffPassed =
@@ -536,6 +552,21 @@ export const EventDetailPage: React.FC = () => {
     if (!eventId) return;
     setLoading(true);
     setError(null);
+
+    if (isDemo) {
+      const found = demo?.data.events.find((e) => e.id === eventId) ?? null;
+      if (!found) {
+        setError('Termin nicht gefunden.');
+        setEvent(null);
+        setLinkedVenue(null);
+      } else {
+        setEvent(found);
+        setLinkedVenue(null);
+      }
+      setLoading(false);
+      return;
+    }
+
     let select = EVENTS_SELECT;
     let { data, error: err } = await supabase
       .from('events')
@@ -566,7 +597,7 @@ export const EventDetailPage: React.FC = () => {
       }
     }
     setLoading(false);
-  }, [eventId]);
+  }, [eventId, isDemo, demo?.data.events]);
 
   const handleAddSingleEventToCalendar = useCallback(async () => {
     if (!event) return;
@@ -596,6 +627,22 @@ export const EventDetailPage: React.FC = () => {
   }, [event]);
 
   useEffect(() => {
+    if (isDemo) {
+      if (isFinishedMatchEvent && event?.match_id) {
+        setMatchRowLite({
+          id: event.match_id,
+          status: 'finished',
+          score_home: 3,
+          score_away: 1,
+          location: event.location,
+          period_scores: null,
+        });
+        setMatchEvents([]);
+        setMatchError(null);
+        setMatchLoading(false);
+      }
+      return;
+    }
     if (!isFinishedMatchEvent || !event?.match_id) return;
     let cancelled = false;
     setMatchLoading(true);
@@ -647,7 +694,7 @@ export const EventDetailPage: React.FC = () => {
   }, [event?.match_id, isFinishedMatchEvent]);
 
   useEffect(() => {
-    if (!event?.match_id || event.kind !== 'match' || !canTrainerManageEvent) {
+    if (isDemo || !event?.match_id || event.kind !== 'match' || !canTrainerManageEvent) {
       setMatchMinPlaytime(null);
       return;
     }
@@ -671,7 +718,7 @@ export const EventDetailPage: React.FC = () => {
   }, [event?.match_id, event?.kind, canTrainerManageEvent]);
 
   useEffect(() => {
-    if (!isFinishedMatchEvent || !event?.match_id) return;
+    if (isDemo || !isFinishedMatchEvent || !event?.match_id) return;
     let cancelled = false;
     setLineupLoading(true);
     setLineupError(null);
@@ -801,7 +848,7 @@ export const EventDetailPage: React.FC = () => {
 
   /** Endstand in DB an Tore (nur type goal / goal_away) angleichen — repariert alte falsche score_home/score_away. Läuft nicht bei manuellen Abschnitten. */
   useEffect(() => {
-    if (!isFinishedMatchEvent || !event?.match_id || matchLoading) return;
+    if (isDemo || !isFinishedMatchEvent || !event?.match_id || matchLoading) return;
     if (parsePeriodScores(matchRowLite?.period_scores)) return;
     const t = countStadiumGoalsFromMatchEventRows(matchEvents);
     const row = matchRowLite;
@@ -824,6 +871,10 @@ export const EventDetailPage: React.FC = () => {
 
   const loadFeedFromEvent = useCallback(async () => {
     if (!eventId) return;
+    if (isDemo) {
+      setFeedLoading(false);
+      return;
+    }
     setFeedLoading(true);
     const { data, error } = await supabase.from('events').select('*').eq('id', eventId).single();
     setFeedLoading(false);
@@ -839,7 +890,7 @@ export const EventDetailPage: React.FC = () => {
     setOpponentLogo(d.opponent_logo_url != null ? String(d.opponent_logo_url) : '');
     setTitle(d.feed_title != null ? String(d.feed_title) : '');
     setSubline(d.feed_subline != null ? String(d.feed_subline) : '');
-  }, [eventId]);
+  }, [eventId, isDemo]);
 
   useEffect(() => {
     if (!eventId || event?.kind !== 'match') return;
@@ -847,6 +898,11 @@ export const EventDetailPage: React.FC = () => {
   }, [eventId, event?.kind, loadFeedFromEvent]);
 
   useEffect(() => {
+    if (isDemo) {
+      setMatchLinkBusy(false);
+      setMatchLinkError(null);
+      return;
+    }
     if (!event || event.kind !== 'match' || !canTrainerManageEvent || event.match_id) {
       setMatchLinkBusy(false);
       setMatchLinkError(null);
@@ -920,12 +976,25 @@ export const EventDetailPage: React.FC = () => {
     event?.opponent,
     event?.location,
     canTrainerManageEvent,
+    isDemo,
   ]);
 
   useEffect(() => {
     const loadRsvp = async () => {
       if (!eventId || !playerId) {
         setRsvpStatus(null);
+        setLoadingRsvp(false);
+        return;
+      }
+      if (isDemo && demo) {
+        const byPlayer =
+          demo.getAttendanceByEventIds([eventId])[eventId]?.availabilityByPlayerId ?? {};
+        const st = byPlayer[playerId.toLowerCase()] ?? byPlayer[playerId] ?? null;
+        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'external_training') {
+          setRsvpStatus(st);
+        } else {
+          setRsvpStatus(null);
+        }
         setLoadingRsvp(false);
         return;
       }
@@ -950,10 +1019,14 @@ export const EventDetailPage: React.FC = () => {
       setLoadingRsvp(false);
     };
     loadRsvp();
-  }, [eventId, playerId]);
+  }, [eventId, playerId, isDemo, demo]);
 
   const saveFeedSettings = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || event?.kind !== 'match') return;
+    if (isDemo) {
+      alert('In der Demo nicht verfügbar');
+      return;
+    }
     setFeedSaving(true);
     const { error } = await supabase
       .from('events')
@@ -983,6 +1056,7 @@ export const EventDetailPage: React.FC = () => {
     title,
     subline,
     loadFeedFromEvent,
+    isDemo,
   ]);
 
   const loadEventAttendance = useCallback(async () => {
@@ -993,6 +1067,20 @@ export const EventDetailPage: React.FC = () => {
       return;
     }
     setLoadingEventAttendance(true);
+    if (isDemo && demo) {
+      const byPlayer =
+        demo.getAttendanceByEventIds([eventId])[eventId]?.availabilityByPlayerId ?? {};
+      const normalized: Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'external_training'> = {};
+      for (const [pid, st] of Object.entries(byPlayer)) {
+        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'external_training') {
+          normalized[pid.toLowerCase()] = st;
+        }
+      }
+      setEventAttendanceByPlayerId(normalized);
+      setEventAttendanceReasonByPlayerId({});
+      setLoadingEventAttendance(false);
+      return;
+    }
     const { data, error: err } = await supabase
       .from('event_attendance')
       .select('player_id, status')
@@ -1013,7 +1101,7 @@ export const EventDetailPage: React.FC = () => {
         setEventAttendanceReasonByPlayerId({});
       }
     setLoadingEventAttendance(false);
-  }, [eventId, canTrainerManageEvent]);
+  }, [eventId, canTrainerManageEvent, isDemo, demo]);
 
   useEffect(() => {
     loadEventAttendance();
@@ -1023,13 +1111,32 @@ export const EventDetailPage: React.FC = () => {
     async (status: 'yes' | 'no' | 'sick' | 'external_training', _reason?: string) => {
       console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
         caller: 'EventDetailPage.handleRsvp',
-        table: 'event_attendance',
+        table: isDemo ? 'demo-local' : 'event_attendance',
         eventId,
         status,
         effectiveRole,
       });
       let resolvedPlayerId = playerId ?? null;
       if (!eventId) return;
+
+      if (isDemo && demo) {
+        if (!resolvedPlayerId) resolvedPlayerId = demo.selfPlayerId;
+        if (status === 'external_training' && event?.kind === 'training') {
+          const p = players.find((x) => x.id === resolvedPlayerId);
+          if (!p?.is_laz_player) return;
+        }
+        demo.setDemoAttendance(eventId, resolvedPlayerId, status);
+        setRsvpStatus(status);
+        setEventAttendanceByPlayerId((prev) => ({
+          ...prev,
+          [(resolvedPlayerId ?? '').toLowerCase()]: status,
+        }));
+        setAttendanceModalOpen(false);
+        setCancelReason('');
+        await loadEventAttendance();
+        return;
+      }
+
       if (!resolvedPlayerId) {
         const { data: userRes } = await supabase.auth.getUser();
         const uid = userRes?.user?.id;
@@ -1073,7 +1180,7 @@ export const EventDetailPage: React.FC = () => {
       setCancelReason('');
       await loadEventAttendance();
     },
-    [eventId, playerId, effectiveRole, loadEventAttendance, event?.kind]
+    [eventId, playerId, effectiveRole, loadEventAttendance, event?.kind, isDemo, demo, players]
   );
 
   /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. */
@@ -1081,12 +1188,23 @@ export const EventDetailPage: React.FC = () => {
     async (targetPlayerId: string, status: 'yes' | 'no') => {
       console.log('[ATTENDANCE FLOW] handleTrainerRsvp invoked', {
         caller: 'EventDetailPage.handleTrainerRsvp',
-        table: 'event_attendance',
+        table: isDemo ? 'demo-local' : 'event_attendance',
         eventId,
         targetPlayerId,
         status,
       });
       if (!eventId || !canTrainerManageEvent) return;
+
+      if (isDemo && demo) {
+        demo.setDemoAttendance(eventId, targetPlayerId, status);
+        setEventAttendanceByPlayerId((prev) => ({
+          ...prev,
+          [(targetPlayerId ?? '').toLowerCase()]: status,
+        }));
+        await loadEventAttendance();
+        return;
+      }
+
       const payload = {
         event_id: eventId,
         player_id: targetPlayerId,
@@ -1103,7 +1221,7 @@ export const EventDetailPage: React.FC = () => {
       setEventAttendanceByPlayerId((prev) => ({ ...prev, [(targetPlayerId ?? '').toLowerCase()]: status }));
       await loadEventAttendance();
     },
-    [eventId, event?.kind, canTrainerManageEvent, loadEventAttendance]
+    [eventId, event?.kind, canTrainerManageEvent, loadEventAttendance, isDemo, demo]
   );
 
   const getMatchRsvpDisplay = useCallback(
@@ -1155,6 +1273,22 @@ export const EventDetailPage: React.FC = () => {
       if (!eventId || !canTrainerManageEvent) return;
       const pidKey = (targetPlayerId ?? '').toLowerCase();
       const dbStatus = trainingAttendanceToDb(next);
+
+      if (isDemo && demo) {
+        demo.setDemoAttendance(eventId, targetPlayerId, dbStatus);
+        if (dbStatus === null) {
+          setEventAttendanceByPlayerId((prev) => {
+            const n = { ...prev };
+            delete n[pidKey];
+            return n;
+          });
+        } else {
+          setEventAttendanceByPlayerId((prev) => ({ ...prev, [pidKey]: dbStatus }));
+        }
+        await loadEventAttendance();
+        return;
+      }
+
       if (dbStatus === null) {
         const del = await supabase
           .from('event_attendance')
@@ -1178,10 +1312,14 @@ export const EventDetailPage: React.FC = () => {
       }
       await loadEventAttendance();
     },
-    [eventId, canTrainerManageEvent, loadEventAttendance],
+    [eventId, canTrainerManageEvent, loadEventAttendance, isDemo, demo],
   );
 
   const openEditModal = useCallback(async (e: EventRow) => {
+    if (isDemo) {
+      alert('In der Demo nicht verfügbar');
+      return;
+    }
     const parsedLocation = splitCombinedLocation(e.location ?? '');
     const noteFields = parseEditableNotes(e.notes);
     setEditEvent(e);
@@ -1213,7 +1351,7 @@ export const EventDetailPage: React.FC = () => {
     } else {
       setEditVenue(null);
     }
-  }, []);
+  }, [isDemo]);
 
   const closeEditModal = useCallback(() => {
     setEditModalOpen(false);
@@ -1234,6 +1372,11 @@ export const EventDetailPage: React.FC = () => {
   const handleEditSubmit = useCallback(async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!editEvent) return;
+    if (isDemo) {
+      setEditError('In der Demo nicht verfügbar');
+      alert('In der Demo nicht verfügbar');
+      return;
+    }
     const writable = await assertTeamSeasonWritable(editEvent.team_season_id);
     if (!writable.ok) {
       setEditError(writable.message);
@@ -1358,10 +1501,14 @@ export const EventDetailPage: React.FC = () => {
     setSavingEdit(false);
     closeEditModal();
     await loadEvent();
-  }, [editDetails, editEndTime, editEvent, editSheetEventType, editDateTime, editLocation, editLocationAddress, editVenue, editMeetupAt, editOpponent, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent]);
+  }, [editDetails, editEndTime, editEvent, editSheetEventType, editDateTime, editLocation, editLocationAddress, editVenue, editMeetupAt, editOpponent, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent, isDemo]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
+    if (isDemo) {
+      alert('In der Demo nicht verfügbar');
+      return;
+    }
     const writable = await assertTeamSeasonWritable(event.team_season_id);
     if (!writable.ok) {
       alert(writable.message);
@@ -1375,15 +1522,15 @@ export const EventDetailPage: React.FC = () => {
       return;
     }
     setDeleteConfirmOpen(false);
-    navigate('/app/termine');
-  }, [eventId, event, canTrainerManageEvent, navigate]);
+    navigate(`${basePath}/termine`);
+  }, [eventId, event, canTrainerManageEvent, navigate, isDemo, basePath]);
 
   if (!eventId) {
     return (
       <div className="min-h-screen bg-black text-white">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
           <p>Keine Event-ID angegeben.</p>
-          <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
+          <Link to={`${basePath}/termine`} className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
         </div>
@@ -1406,7 +1553,7 @@ export const EventDetailPage: React.FC = () => {
       <div className="min-h-screen bg-black text-white">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
           <p>{error ?? 'Termin nicht gefunden.'}</p>
-          <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
+          <Link to={`${basePath}/termine`} className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
         </div>
@@ -1422,7 +1569,7 @@ export const EventDetailPage: React.FC = () => {
         <div className="min-h-screen bg-black text-white">
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
             <p>Dieser Meisterschaftstermin ist noch nicht veröffentlicht.</p>
-            <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
+            <Link to={`${basePath}/termine`} className="text-[14px] text-white/90 hover:text-white">
               ← Zurück zum Spielplan
             </Link>
           </div>
@@ -2116,7 +2263,7 @@ export const EventDetailPage: React.FC = () => {
       <div className="min-h-screen text-white [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_55%,rgba(10,0,0,0.99)_100%)]">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
           <div className="flex flex-col gap-2">
-            <Link to="/app/termine" className="text-[14px] text-white/80 hover:text-white">
+            <Link to={`${basePath}/termine`} className="text-[14px] text-white/80 hover:text-white">
               ← Zurück zum Spielplan
             </Link>
           </div>
@@ -3249,7 +3396,7 @@ export const EventDetailPage: React.FC = () => {
       >
         {!isTournament && !isTraining ? (
         <div className="flex flex-col gap-3">
-          <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
+          <Link to={`${basePath}/termine`} className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
           {isAudienceMatchDetail ? (
@@ -3384,9 +3531,14 @@ export const EventDetailPage: React.FC = () => {
                     ]}
                   />
                 }
-                onOpenMatchPreparation={(matchId) =>
-                  navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)
-                }
+                onOpenMatchPreparation={(matchId) => {
+                  if (isDemo) {
+                    alert('In der Demo nicht verfügbar');
+                    navigate('/demo/match');
+                    return;
+                  }
+                  navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`);
+                }}
                 onOfficialTournamentUrlUpdated={(url) =>
                   setEvent((prev) => (prev ? { ...prev, official_tournament_url: url } : prev))
                 }
@@ -3589,7 +3741,9 @@ export const EventDetailPage: React.FC = () => {
             <button
               type="button"
               className={`flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`}
-              onClick={() => navigate(`/app/live?matchId=${encodeURIComponent(event.match_id!)}`)}
+              onClick={() =>
+                navigate(`${basePath}/live?matchId=${encodeURIComponent(event.match_id!)}`)
+              }
             >
               <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />
               Livespiel öffnen
@@ -3610,7 +3764,7 @@ export const EventDetailPage: React.FC = () => {
             matchId={event.match_id}
             onOpenLive={
               event.status === 'live' && event.match_id
-                ? () => navigate(`/app/live?matchId=${encodeURIComponent(event.match_id!)}`)
+                ? () => navigate(`${basePath}/live?matchId=${encodeURIComponent(event.match_id!)}`)
                 : undefined
             }
           />
@@ -3646,7 +3800,16 @@ export const EventDetailPage: React.FC = () => {
                     <button
                       type="button"
                       className={`mb-1 w-full ${dsPrimaryCtaClass()}`}
-                      onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
+                      onClick={() => {
+                        if (isDemo) {
+                          alert('In der Demo nicht verfügbar');
+                          navigate('/demo/match');
+                          return;
+                        }
+                        navigate(
+                          `/app/match-preparation?matchId=${encodeURIComponent(event.match_id!)}`,
+                        );
+                      }}
                     >
                       Match vorbereiten
                     </button>
@@ -3886,19 +4049,32 @@ export const EventDetailPage: React.FC = () => {
               Aufstellung, Spielstand und Ereignisse findest du im zentralen Livespiel unter „Live“.
             </p>
             <Link
-              to={`/app/live?matchId=${encodeURIComponent(event.match_id)}`}
+              to={`${basePath}/live?matchId=${encodeURIComponent(event.match_id)}`}
               className={`flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`}
             >
               Zum Livespiel
               <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
             </Link>
             {canTrainerManageEvent ? (
-              <Link
-                to={`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`}
-                className={`flex w-full min-h-[44px] items-center justify-center ${dsSecondaryCtaClass()}`}
-              >
-                Vorbereitung bearbeiten
-              </Link>
+              isDemo ? (
+                <button
+                  type="button"
+                  className={`flex w-full min-h-[44px] items-center justify-center ${dsSecondaryCtaClass()}`}
+                  onClick={() => {
+                    alert('In der Demo nicht verfügbar');
+                    navigate('/demo/match');
+                  }}
+                >
+                  Vorbereitung bearbeiten
+                </button>
+              ) : (
+                <Link
+                  to={`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`}
+                  className={`flex w-full min-h-[44px] items-center justify-center ${dsSecondaryCtaClass()}`}
+                >
+                  Vorbereitung bearbeiten
+                </Link>
+              )
             ) : null}
           </Card>
         ) : null}

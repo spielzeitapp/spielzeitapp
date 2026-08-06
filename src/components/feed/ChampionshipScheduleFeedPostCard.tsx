@@ -17,6 +17,7 @@ import {
 } from './feedTypography';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { utcIsoToViennaTimeHHmm } from '../../lib/viennaTime';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -33,9 +34,10 @@ export function ChampionshipScheduleFeedPostCard({
   staffCanDelete,
   onFeedPostDeleted,
 }: Props) {
+  const basePath = useInternalBasePath();
   const payload = parseChampionshipSchedulePayload(post.payload);
   const sub = [payload?.age_group, payload?.season_name].filter(Boolean).join(' · ');
-  const deepLink = CHAMPIONSHIP_SCHEDULE_DEEP_LINK;
+  const deepLink = basePath === '/demo' ? `${basePath}/termine` : CHAMPIONSHIP_SCHEDULE_DEEP_LINK;
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
   const seasonBadge = seasonLabel?.trim() || sub || null;
 
@@ -84,8 +86,11 @@ export function ChampionshipMatchChangedFeedPostCard({
   staffCanDelete,
   onFeedPostDeleted,
 }: Props) {
+  const basePath = useInternalBasePath();
   const payload = parseChampionshipMatchChangedPayload(post.payload);
-  const deepLink = payload?.deep_link || (payload?.event_id ? `/app/events/${payload.event_id}` : '/app/termine');
+  const deepLink =
+    payload?.deep_link ||
+    (payload?.event_id ? `${basePath}/events/${payload.event_id}` : `${basePath}/termine`);
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
   const meetup = payload?.meeting_at ? utcIsoToViennaTimeHHmm(payload.meeting_at) : null;
 

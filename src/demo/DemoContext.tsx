@@ -7,6 +7,15 @@ import {
   DEMO_TEAM_ID,
   DEMO_TEAM_SEASON_ID,
 } from './demoDataSource';
+import {
+  attendanceRowsToByEventId,
+  buildDemoPlayers,
+  buildInitialDemoAttendance,
+  DEMO_SELF_PLAYER_ID,
+  type DemoAttendanceRow,
+} from './demoAttendance';
+import type { AttendanceStatus, EventAttendanceData } from '../hooks/useEventsAttendance';
+import type { PlayerItem } from '../hooks/usePlayers';
 import type { DemoFixtures, DemoLiveEvent, DemoLiveState } from './demoTypes';
 
 export type DemoModeContextValue = {
@@ -14,6 +23,13 @@ export type DemoModeContextValue = {
   basePath: '/demo';
   fixtures: DemoFixtures;
   data: DemoDataSource;
+  players: PlayerItem[];
+  selfPlayerId: string;
+  attendanceRows: DemoAttendanceRow[];
+  getAttendanceByEventIds: (eventIds: string[]) => Record<string, EventAttendanceData>;
+  /** status null = Eintrag entfernen (offen). */
+  setDemoAttendance: (eventId: string, playerId: string, status: AttendanceStatus | null) => void;
+  resetDemoAttendance: () => void;
   live: DemoLiveState;
   bumpMinute: () => void;
   addGoalHome: () => void;
@@ -46,6 +62,30 @@ function buildDataSource(): DemoDataSource {
 export function DemoProvider({ children }: { children: React.ReactNode }): React.ReactElement {
   const [live, setLive] = useState<DemoLiveState>(() => createInitialLiveState());
   const data = useMemo(() => buildDataSource(), []);
+  const players = useMemo(() => buildDemoPlayers(), []);
+  const [attendanceRows, setAttendanceRows] = useState<DemoAttendanceRow[]>(() =>
+    buildInitialDemoAttendance(demoFixtures.events),
+  );
+
+  const getAttendanceByEventIds = useCallback(
+    (eventIds: string[]) => attendanceRowsToByEventId(attendanceRows, eventIds),
+    [attendanceRows],
+  );
+
+  const setDemoAttendance = useCallback(
+    (eventId: string, playerId: string, status: AttendanceStatus | null) => {
+      setAttendanceRows((prev) => {
+        const without = prev.filter((r) => !(r.event_id === eventId && r.player_id === playerId));
+        if (status == null) return without;
+        return [...without, { event_id: eventId, player_id: playerId, status }];
+      });
+    },
+    [],
+  );
+
+  const resetDemoAttendance = useCallback(() => {
+    setAttendanceRows(buildInitialDemoAttendance(demoFixtures.events));
+  }, []);
 
   const bumpMinute = useCallback(() => {
     setLive((prev) => {
@@ -151,6 +191,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       basePath: '/demo',
       fixtures: demoFixtures,
       data,
+      players,
+      selfPlayerId: DEMO_SELF_PLAYER_ID,
+      attendanceRows,
+      getAttendanceByEventIds,
+      setDemoAttendance,
+      resetDemoAttendance,
       live,
       bumpMinute,
       addGoalHome,
@@ -159,7 +205,21 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       finishMatch,
       resetLive,
     }),
-    [data, live, bumpMinute, addGoalHome, addGoalAway, addSubOrInfo, finishMatch, resetLive],
+    [
+      data,
+      players,
+      attendanceRows,
+      getAttendanceByEventIds,
+      setDemoAttendance,
+      resetDemoAttendance,
+      live,
+      bumpMinute,
+      addGoalHome,
+      addGoalAway,
+      addSubOrInfo,
+      finishMatch,
+      resetLive,
+    ],
   );
 
   return <DemoModeContext.Provider value={value}>{children}</DemoModeContext.Provider>;

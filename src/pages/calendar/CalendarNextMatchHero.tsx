@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { CalendarEvent } from './calendarTypes';
 import { formatMeetingPoint, formatNextMatchWeekdayDate, formatTime } from './calendarUtils';
 import { getClubLogo } from '../../lib/teamLogos';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   match: CalendarEvent;
@@ -25,6 +26,7 @@ function TeamLogo({ name }: { name: string }) {
 
 export const CalendarNextMatchHero: React.FC<Props> = ({ match }) => {
   const navigate = useNavigate();
+  const basePath = useInternalBasePath();
   const homeTeam = (match.team_name ?? '').trim() || 'Unser Team';
   const awayTeam = (match.opponent ?? match.title ?? '').trim() || 'Gegner';
   const dateLine = formatNextMatchWeekdayDate(match.starts_at);
@@ -63,7 +65,7 @@ export const CalendarNextMatchHero: React.FC<Props> = ({ match }) => {
 
       <button
         type="button"
-        onClick={() => navigate(`/app/events/${match.id}`)}
+        onClick={() => navigate(`${basePath}/events/${match.id}`)}
         className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-red-500/35 bg-red-600/90 px-3 py-2 text-xs font-semibold text-white shadow-[0_0_16px_rgba(220,38,38,0.2)] transition hover:bg-red-600"
       >
         Zum Spiel

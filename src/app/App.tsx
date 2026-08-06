@@ -52,7 +52,6 @@ import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { DemoLayout } from '../demo/DemoLayout';
-import { DemoSchedulePage } from '../demo/pages/DemoSchedulePage';
 import { DemoTeamPage } from '../demo/pages/DemoTeamPage';
 import { DemoTrainingPage } from '../demo/pages/DemoTrainingPage';
 import { DemoMatchPage } from '../demo/pages/DemoMatchPage';
@@ -185,7 +184,11 @@ function InternalRoutes(): React.ReactElement {
         <Route path="intro/welcome" element={<WelcomeScreen />} />
         <Route element={<InternalLayout />}>
           <Route path="home" element={<AppHomePage />} />
-          <Route path="termine" element={<DemoSchedulePage />} />
+          <Route path="termine" element={<TermineLayout />}>
+            <Route index element={<SchedulePage />} />
+            <Route path="calendar" element={<CalendarPage />} />
+          </Route>
+          <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="team" element={<DemoTeamPage />} />
           <Route path="training" element={<DemoTrainingPage />} />
           <Route path="match" element={<DemoMatchPage />} />
@@ -303,7 +306,11 @@ function PublicRoutes(): React.ReactElement {
         <Route path="intro/welcome" element={<WelcomeScreen />} />
         <Route element={<InternalLayout />}>
           <Route path="home" element={<AppHomePage />} />
-          <Route path="termine" element={<DemoSchedulePage />} />
+          <Route path="termine" element={<TermineLayout />}>
+            <Route index element={<SchedulePage />} />
+            <Route path="calendar" element={<CalendarPage />} />
+          </Route>
+          <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="team" element={<DemoTeamPage />} />
           <Route path="training" element={<DemoTrainingPage />} />
           <Route path="match" element={<DemoMatchPage />} />
