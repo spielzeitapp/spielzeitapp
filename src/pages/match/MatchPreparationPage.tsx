@@ -126,6 +126,7 @@ export const MatchPreparationPage: React.FC = () => {
       });
       setRestoredSelectedPlayers(prep.squadPlayerIds);
       setSelectedPlayers(prep.squadPlayerIds);
+      setSelectionInitialized(true);
       const onField = new Set<string>();
       for (const pid of Object.values(prep.slots)) {
         if (pid) onField.add(pid);
@@ -241,8 +242,9 @@ export const MatchPreparationPage: React.FC = () => {
       const byPlayer: Record<string, 'yes' | 'no'> = {};
       for (const [pid, raw] of Object.entries(bucket?.availabilityByPlayerId ?? {})) {
         const ui = dbStatusToTrainingAttendance(raw);
-        if (ui === 'present') byPlayer[pid] = 'yes';
-        else if (ui === 'absent' || ui === 'sick' || ui === 'injured' || ui === 'external') byPlayer[pid] = 'no';
+        const key = pid.toLowerCase();
+        if (ui === 'present') byPlayer[key] = 'yes';
+        else if (ui === 'absent' || ui === 'sick' || ui === 'injured' || ui === 'external') byPlayer[key] = 'no';
       }
       setAttendanceByPlayerId(byPlayer);
       setAttendanceLoading(false);
@@ -351,7 +353,7 @@ export const MatchPreparationPage: React.FC = () => {
 
   useEffect(() => {
     if (selectionInitialized) return;
-    if (playersLoading || attendanceLoading) return;
+    if (matchLoading || playersLoading || attendanceLoading) return;
     if (players.length === 0) return;
 
     if (restoredSelectedPlayers.length > 0) {
@@ -366,6 +368,17 @@ export const MatchPreparationPage: React.FC = () => {
       return;
     }
 
+    // Demo: Seed-Kader aus Prep behalten, falls Match schon geladen.
+    if (isDemo && demo && matchId) {
+      const prep = demo.getDemoMatchPrep(matchId);
+      if (prep && prep.squadPlayerIds.length > 0) {
+        setSelectedPlayers(prep.squadPlayerIds.filter((id) => getAttendance(id) !== 'no'));
+        setRestoredSelectedPlayers(prep.squadPlayerIds);
+        setSelectionInitialized(true);
+        return;
+      }
+    }
+
     const initial = new Set<string>();
     for (const p of players) {
       if (getAttendance(p.id) === 'yes') initial.add(p.id);
@@ -374,12 +387,16 @@ export const MatchPreparationPage: React.FC = () => {
     setSelectionInitialized(true);
   }, [
     selectionInitialized,
+    matchLoading,
     playersLoading,
     attendanceLoading,
     players,
     restoredSelectedPlayers,
     attendanceByPlayerId,
     tournamentSquadIds,
+    isDemo,
+    demo,
+    matchId,
   ]);
 
   const persistSquadSelection = async (nextSquadIds: string[]): Promise<boolean> => {
