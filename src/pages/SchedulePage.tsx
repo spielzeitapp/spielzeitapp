@@ -78,6 +78,7 @@ import { getEffectiveEventType } from '../lib/eventTypeUtils';
 import { eventNotesTitle, mergeTitleIntoNotes } from '../components/schedule/scheduleEventViewUtils';
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath, internalPath } from '../demo/demoPaths';
+import { getDemoMatchCatalog, getDemoMatchScore } from '../demo/demoMatchState';
 import {
   readScheduleFilters,
   writeScheduleFilters,
@@ -884,23 +885,32 @@ export const SchedulePage: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
     if (isDemo) {
-      // Demo: Ergebnis aus Fixtures (kein matches-Fetch)
+      // Demo: Ergebnis aus zentralem Match-Katalog (kein matches-Fetch)
       const next: Record<
         string,
         { scoreHome: number; scoreAway: number; periodBracket: string | null; liveIsRunning: boolean }
       > = {};
-      if (demo?.live) {
-        next[demo.data.events.find((e) => e.id === 'ev-game-next')?.match_id ?? ''] = {
-          scoreHome: demo.live.scoreHome,
-          scoreAway: demo.live.scoreAway,
-          periodBracket: null,
-          liveIsRunning: demo.live.status === 'live',
-        };
+      for (const m of getDemoMatchCatalog()) {
+        const score = getDemoMatchScore(m.id);
+        if (score) {
+          next[m.id] = {
+            scoreHome: score.scoreHome,
+            scoreAway: score.scoreAway,
+            periodBracket: null,
+            liveIsRunning: false,
+          };
+        }
       }
-      // Past result 3:1 from feed fixtures
-      const pastMid = demo?.data.events.find((e) => e.id === 'ev-game-past')?.match_id;
-      if (pastMid) {
-        next[pastMid] = { scoreHome: 3, scoreAway: 1, periodBracket: null, liveIsRunning: false };
+      if (demo?.live?.status === 'live') {
+        const upcomingMid = demo.data.events.find((e) => e.id === 'ev-game-next')?.match_id;
+        if (upcomingMid) {
+          next[upcomingMid] = {
+            scoreHome: demo.live.scoreHome,
+            scoreAway: demo.live.scoreAway,
+            periodBracket: null,
+            liveIsRunning: true,
+          };
+        }
       }
       delete next[''];
       setMatchScoreById(next);

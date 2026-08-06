@@ -69,6 +69,7 @@ import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
 import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath } from '../demo/demoPaths';
+import { getDemoMatchLite } from '../demo/demoMatchState';
 import {
   dsPrimaryCtaClass,
   dsRsvpChoiceClass,
@@ -629,11 +630,12 @@ export const EventDetailPage: React.FC = () => {
   useEffect(() => {
     if (isDemo) {
       if (isFinishedMatchEvent && event?.match_id) {
+        const lite = getDemoMatchLite(event.match_id);
         setMatchRowLite({
           id: event.match_id,
-          status: 'finished',
-          score_home: 3,
-          score_away: 1,
+          status: lite?.status ?? 'finished',
+          score_home: lite?.score_home ?? null,
+          score_away: lite?.score_away ?? null,
           location: event.location,
           period_scores: null,
         });
@@ -691,7 +693,7 @@ export const EventDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [event?.match_id, isFinishedMatchEvent]);
+  }, [event?.match_id, isFinishedMatchEvent, isDemo, event?.location]);
 
   useEffect(() => {
     if (isDemo || !event?.match_id || event.kind !== 'match' || !canTrainerManageEvent) {
@@ -1581,9 +1583,19 @@ export const EventDetailPage: React.FC = () => {
   if (isFinishedMatchEvent) {
     const opponentName = (event.opponent ?? 'Gegner').trim() || 'Gegner';
     const eventGoalTotals = countStadiumGoalsFromMatchEventRows(matchEvents);
+    const hasAnyGoalEvent = matchEvents.some((r) => {
+      const g = normalizeMatchEventGoalType(r.type);
+      return g === 'goal' || g === 'goal_away';
+    });
+    const rowHasScore =
+      matchRowLite?.score_home != null && matchRowLite?.score_away != null;
     const displayedScore = hasManualPeriodScores
       ? sumPeriodScoresTriplet(parsedDbPeriodScores!)
-      : eventGoalTotals;
+      : hasAnyGoalEvent
+        ? eventGoalTotals
+        : rowHasScore
+          ? { home: Number(matchRowLite!.score_home), away: Number(matchRowLite!.score_away) }
+          : eventGoalTotals;
     const scoreHome = displayedScore.home;
     const scoreAway = displayedScore.away;
     const venue = (() => {

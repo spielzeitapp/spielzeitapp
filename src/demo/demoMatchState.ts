@@ -147,6 +147,16 @@ export function getDemoMatchLite(matchId: string | null | undefined): DemoMatchL
   return getDemoMatchCatalog().find((m) => m.id === id) ?? null;
 }
 
+/** Endstand Heim:Auswärts aus zentralem Demo-Matchkatalog (null wenn unbekannt/offen). */
+export function getDemoMatchScore(
+  matchId: string | null | undefined,
+): { scoreHome: number; scoreAway: number } | null {
+  const lite = getDemoMatchLite(matchId);
+  if (!lite) return null;
+  if (lite.score_home == null || lite.score_away == null) return null;
+  return { scoreHome: lite.score_home, scoreAway: lite.score_away };
+}
+
 export function getDemoMatchIdForEvent(eventId: string | null | undefined): string | null {
   const eid = (eventId ?? '').trim();
   if (!eid) return null;
