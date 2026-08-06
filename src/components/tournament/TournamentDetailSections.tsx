@@ -74,7 +74,6 @@ import {
 } from './tournamentCenterUtils';
 import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
-import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { safeText } from '../../lib/safeText';
 import { resolveTournamentCenterPhase, type TournamentCenterPhase } from '../../lib/tournamentCenterPhase';
 import type { TournamentAttendanceSummary } from '../../lib/tournamentPreparationFlow';

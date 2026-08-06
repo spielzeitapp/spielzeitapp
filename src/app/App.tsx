@@ -52,7 +52,6 @@ import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { DemoLayout } from '../demo/DemoLayout';
-import { DemoHomePage } from '../demo/pages/DemoHomePage';
 import { DemoSchedulePage } from '../demo/pages/DemoSchedulePage';
 import { DemoTeamPage } from '../demo/pages/DemoTeamPage';
 import { DemoTrainingPage } from '../demo/pages/DemoTrainingPage';
@@ -178,18 +177,22 @@ function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
       <Route path="app.html" element={<Navigate to="/app" replace />} />
-      {/* Öffentliche Trainer-Demo – kein Login, keine echten Daten */}
+      {/* Öffentliche Trainer-Demo – gemeinsamer Einstieg + produktives Layout, kein Login */}
       <Route path="demo" element={<DemoLayout />}>
-        <Route index element={<Navigate to="home" replace />} />
-        <Route path="home" element={<DemoHomePage />} />
-        <Route path="termine" element={<DemoSchedulePage />} />
-        <Route path="team" element={<DemoTeamPage />} />
-        <Route path="training" element={<DemoTrainingPage />} />
-        <Route path="match" element={<DemoMatchPage />} />
-        <Route path="event" element={<DemoEventPage />} />
-        <Route path="turnier" element={<DemoTournamentPage />} />
-        <Route path="live" element={<DemoLivePage />} />
-        <Route path="mehr" element={<DemoMorePage />} />
+        <Route index element={<Navigate to="intro/splash" replace />} />
+        <Route path="intro/splash" element={<SplashScreen />} />
+        <Route path="intro/welcome" element={<WelcomeScreen />} />
+        <Route element={<InternalLayout />}>
+          <Route path="home" element={<AppHomePage />} />
+          <Route path="termine" element={<DemoSchedulePage />} />
+          <Route path="team" element={<DemoTeamPage />} />
+          <Route path="training" element={<DemoTrainingPage />} />
+          <Route path="match" element={<DemoMatchPage />} />
+          <Route path="event" element={<DemoEventPage />} />
+          <Route path="turnier" element={<DemoTournamentPage />} />
+          <Route path="live" element={<DemoLivePage />} />
+          <Route path="mehr" element={<DemoMorePage />} />
+        </Route>
       </Route>
       {/* Kurz-URLs → interne App */}
       <Route path="/home" element={<Navigate to="/app/termine" replace />} />
@@ -292,16 +295,20 @@ function PublicRoutes(): React.ReactElement {
     <Routes>
       <Route path="app.html" element={<Navigate to="/" replace />} />
       <Route path="demo" element={<DemoLayout />}>
-        <Route index element={<Navigate to="home" replace />} />
-        <Route path="home" element={<DemoHomePage />} />
-        <Route path="termine" element={<DemoSchedulePage />} />
-        <Route path="team" element={<DemoTeamPage />} />
-        <Route path="training" element={<DemoTrainingPage />} />
-        <Route path="match" element={<DemoMatchPage />} />
-        <Route path="event" element={<DemoEventPage />} />
-        <Route path="turnier" element={<DemoTournamentPage />} />
-        <Route path="live" element={<DemoLivePage />} />
-        <Route path="mehr" element={<DemoMorePage />} />
+        <Route index element={<Navigate to="intro/splash" replace />} />
+        <Route path="intro/splash" element={<SplashScreen />} />
+        <Route path="intro/welcome" element={<WelcomeScreen />} />
+        <Route element={<InternalLayout />}>
+          <Route path="home" element={<AppHomePage />} />
+          <Route path="termine" element={<DemoSchedulePage />} />
+          <Route path="team" element={<DemoTeamPage />} />
+          <Route path="training" element={<DemoTrainingPage />} />
+          <Route path="match" element={<DemoMatchPage />} />
+          <Route path="event" element={<DemoEventPage />} />
+          <Route path="turnier" element={<DemoTournamentPage />} />
+          <Route path="live" element={<DemoLivePage />} />
+          <Route path="mehr" element={<DemoMorePage />} />
+        </Route>
       </Route>
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />

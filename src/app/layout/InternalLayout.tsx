@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { TabletSidebar } from '../components/TabletSidebar';
 import { PushOnboardingPrompt } from '../../components/PushOnboardingPrompt';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/roles';
+import { useDemoMode } from '../../demo/DemoContext';
 
 const ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
@@ -48,23 +49,32 @@ export const InternalLayout: React.FC = () => {
   const isTouchLayout = useIsTouchLayout();
   const navigate = useNavigate();
   const location = useLocation();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo) || location.pathname.startsWith('/demo');
   const { user } = useAuth();
   const { memberships, loading: sessionLoading, backendRole, previewRole } = useSession();
-  const isLiveRoute = location.pathname.startsWith('/app/live');
+  const isLiveRoute =
+    location.pathname.startsWith('/app/live') || location.pathname.startsWith('/demo/live');
   const pathClean = location.pathname.replace(/\/+$/, '') || '/';
   /** Wie Home/Termine: kein doppeltes Horizontal-Padding zur Shell — Seite steuert px-3/sm:px-4, ab md wie üblich Shell-Padding. */
   const isWideMobileShellRoute =
     pathClean === '/app/home' ||
+    pathClean === '/demo/home' ||
     pathClean === '/app/team' ||
+    pathClean === '/demo/team' ||
     pathClean.startsWith('/app/team/') ||
+    pathClean.startsWith('/demo/team/') ||
     pathClean === '/app/mehr' ||
-    pathClean.startsWith('/app/mehr/');
+    pathClean === '/demo/mehr' ||
+    pathClean.startsWith('/app/mehr/') ||
+    pathClean.startsWith('/demo/mehr/');
 
-  useSyncPendingProfile(user ?? null);
-  useSyncProfileFromUserMetadata(user ?? null);
+  useSyncPendingProfile(isDemo ? null : user ?? null);
+  useSyncProfileFromUserMetadata(isDemo ? null : user ?? null);
 
-  /** Onboarding-Gate: neue Nutzer zur Rollenwahl / Eltern-Onboarding; Staff nicht blockieren. */
+  /** Onboarding-Gate: neue Nutzer zur Rollenwahl / Eltern-Onboarding; Staff nicht blockieren. In der Demo aus. */
   useEffect(() => {
+    if (isDemo) return;
     let alive = true;
 
     async function gate() {
@@ -141,6 +151,7 @@ export const InternalLayout: React.FC = () => {
       alive = false;
     };
   }, [
+    isDemo,
     location.pathname,
     user,
     sessionLoading,
@@ -183,8 +194,8 @@ export const InternalLayout: React.FC = () => {
       </div>
 
       <div className="lg:hidden">{isTouchLayout ? <BottomNav /> : null}</div>
-      <div className="lg:hidden">{isTouchLayout ? <AppFab /> : null}</div>
-      <PushOnboardingPrompt />
+      <div className="lg:hidden">{isTouchLayout && !isDemo ? <AppFab /> : null}</div>
+      {isDemo ? null : <PushOnboardingPrompt />}
     </AppBackground>
   );
 };

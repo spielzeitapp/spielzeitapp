@@ -1,19 +1,20 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createInitialLiveState, demoFixtures } from './demoFixtures';
 import {
-  DEMO_STORAGE_KEYS,
-  createInitialLiveState,
-  demoFixtures,
-} from './demoFixtures';
+  buildDemoEvents,
+  buildDemoFeedPosts,
+  type DemoDataSource,
+  DEMO_TEAM_ID,
+  DEMO_TEAM_SEASON_ID,
+} from './demoDataSource';
 import type { DemoFixtures, DemoLiveEvent, DemoLiveState } from './demoTypes';
 
-type DemoContextValue = {
+export type DemoModeContextValue = {
+  isDemo: true;
+  basePath: '/demo';
   fixtures: DemoFixtures;
+  data: DemoDataSource;
   live: DemoLiveState;
-  welcomeOpen: boolean;
-  tourStep: number | null;
-  dismissWelcome: (startTour?: boolean) => void;
-  skipTour: () => void;
-  nextTourStep: () => void;
   bumpMinute: () => void;
   addGoalHome: () => void;
   addGoalAway: () => void;
@@ -22,57 +23,27 @@ type DemoContextValue = {
   resetLive: () => void;
 };
 
-const DemoContext = createContext<DemoContextValue | null>(null);
-
-function readFlag(key: string): boolean {
-  try {
-    return localStorage.getItem(key) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function writeFlag(key: string, value: boolean): void {
-  try {
-    if (value) localStorage.setItem(key, '1');
-    else localStorage.removeItem(key);
-  } catch {
-    /* ignore */
-  }
-}
+const DemoModeContext = createContext<DemoModeContextValue | null>(null);
 
 function nextEventId(events: DemoLiveEvent[]): string {
   return `le-local-${events.length + 1}-${Date.now()}`;
 }
 
+function buildDataSource(): DemoDataSource {
+  return {
+    teamName: demoFixtures.teamName,
+    seasonLabel: demoFixtures.seasonLabel,
+    teamSeasonId: DEMO_TEAM_SEASON_ID,
+    teamId: DEMO_TEAM_ID,
+    events: buildDemoEvents(),
+    feedPosts: buildDemoFeedPosts(),
+  };
+}
+
+/** Öffentlicher Demo-Provider — nur lokale Fixtures, keine Supabase-Writes. */
 export function DemoProvider({ children }: { children: React.ReactNode }): React.ReactElement {
   const [live, setLive] = useState<DemoLiveState>(() => createInitialLiveState());
-  const [welcomeOpen, setWelcomeOpen] = useState(() => !readFlag(DEMO_STORAGE_KEYS.welcomeDismissed));
-  const [tourStep, setTourStep] = useState<number | null>(null);
-
-  const dismissWelcome = useCallback((startTour = false) => {
-    writeFlag(DEMO_STORAGE_KEYS.welcomeDismissed, true);
-    setWelcomeOpen(false);
-    if (startTour && !readFlag(DEMO_STORAGE_KEYS.tourDone)) {
-      setTourStep(0);
-    }
-  }, []);
-
-  const skipTour = useCallback(() => {
-    writeFlag(DEMO_STORAGE_KEYS.tourDone, true);
-    setTourStep(null);
-  }, []);
-
-  const nextTourStep = useCallback(() => {
-    setTourStep((prev) => {
-      if (prev == null) return null;
-      if (prev >= 4) {
-        writeFlag(DEMO_STORAGE_KEYS.tourDone, true);
-        return null;
-      }
-      return prev + 1;
-    });
-  }, []);
+  const data = useMemo(() => buildDataSource(), []);
 
   const bumpMinute = useCallback(() => {
     setLive((prev) => {
@@ -83,12 +54,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
         minute,
         events: [
           ...prev.events,
-          {
-            id: nextEventId(prev.events),
-            minute,
-            text: `Spielminute ${minute}'`,
-            type: 'info',
-          },
+          { id: nextEventId(prev.events), minute, text: `Spielminute ${minute}'`, type: 'info' },
         ],
       };
     });
@@ -97,7 +63,6 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   const addGoalHome = useCallback(() => {
     setLive((prev) => {
       if (prev.status === 'finished') return prev;
-      const minute = prev.minute;
       const scoreHome = prev.scoreHome + 1;
       return {
         ...prev,
@@ -106,8 +71,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
           ...prev.events,
           {
             id: nextEventId(prev.events),
-            minute,
-            text: `TOR Rohrbach – Stand ${scoreHome}:${prev.scoreAway} (${minute}')`,
+            minute: prev.minute,
+            text: `TOR Rohrbach – Stand ${scoreHome}:${prev.scoreAway} (${prev.minute}')`,
             type: 'goal_home',
           },
         ],
@@ -118,7 +83,6 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   const addGoalAway = useCallback(() => {
     setLive((prev) => {
       if (prev.status === 'finished') return prev;
-      const minute = prev.minute;
       const scoreAway = prev.scoreAway + 1;
       return {
         ...prev,
@@ -127,8 +91,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
           ...prev.events,
           {
             id: nextEventId(prev.events),
-            minute,
-            text: `TOR Loosdorf – Stand ${prev.scoreHome}:${scoreAway} (${minute}')`,
+            minute: prev.minute,
+            text: `TOR Loosdorf – Stand ${prev.scoreHome}:${scoreAway} (${prev.minute}')`,
             type: 'goal_away',
           },
         ],
@@ -139,15 +103,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   const addSubOrInfo = useCallback(() => {
     setLive((prev) => {
       if (prev.status === 'finished') return prev;
-      const minute = prev.minute;
       return {
         ...prev,
         events: [
           ...prev.events,
           {
             id: nextEventId(prev.events),
-            minute,
-            text: `Wechsel / Ereignis – Demo (${minute}')`,
+            minute: prev.minute,
+            text: `Wechsel / Ereignis – Demo (${prev.minute}')`,
             type: 'sub',
           },
         ],
@@ -158,15 +121,16 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   const finishMatch = useCallback(() => {
     setLive((prev) => {
       if (prev.status === 'finished') return prev;
+      const minute = Math.max(prev.minute, 70);
       return {
         ...prev,
         status: 'finished',
-        minute: Math.max(prev.minute, 70),
+        minute,
         events: [
           ...prev.events,
           {
             id: nextEventId(prev.events),
-            minute: Math.max(prev.minute, 70),
+            minute,
             text: `Abpfiff – Endstand ${prev.scoreHome}:${prev.scoreAway}`,
             type: 'fulltime',
           },
@@ -179,15 +143,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
     setLive(createInitialLiveState());
   }, []);
 
-  const value = useMemo<DemoContextValue>(
+  const value = useMemo<DemoModeContextValue>(
     () => ({
+      isDemo: true,
+      basePath: '/demo',
       fixtures: demoFixtures,
+      data,
       live,
-      welcomeOpen,
-      tourStep,
-      dismissWelcome,
-      skipTour,
-      nextTourStep,
       bumpMinute,
       addGoalHome,
       addGoalAway,
@@ -195,27 +157,26 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       finishMatch,
       resetLive,
     }),
-    [
-      live,
-      welcomeOpen,
-      tourStep,
-      dismissWelcome,
-      skipTour,
-      nextTourStep,
-      bumpMinute,
-      addGoalHome,
-      addGoalAway,
-      addSubOrInfo,
-      finishMatch,
-      resetLive,
-    ],
+    [data, live, bumpMinute, addGoalHome, addGoalAway, addSubOrInfo, finishMatch, resetLive],
   );
 
-  return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
+  return <DemoModeContext.Provider value={value}>{children}</DemoModeContext.Provider>;
 }
 
-export function useDemo(): DemoContextValue {
-  const ctx = useContext(DemoContext);
+/** Optional — null außerhalb der Demo. */
+export function useDemoMode(): DemoModeContextValue | null {
+  return useContext(DemoModeContext);
+}
+
+/** Strict — nur innerhalb DemoProvider. */
+export function useDemo(): DemoModeContextValue {
+  const ctx = useContext(DemoModeContext);
   if (!ctx) throw new Error('useDemo must be used within DemoProvider');
   return ctx;
+}
+
+/** Pfad beginnt mit /demo (auch ohne Provider, z. B. Splash). */
+export function useIsDemoPath(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.pathname.startsWith('/demo');
 }

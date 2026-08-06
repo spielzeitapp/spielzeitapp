@@ -5,6 +5,7 @@ import { useSession } from '../../auth/useSession';
 import { normalizeRole } from '../../lib/roles';
 import { useAppHasLiveMatch, useAppLiveMatchState } from '../../hooks/useAppHasLiveMatch';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { useDemoMode } from '../../demo/DemoContext';
 
 /** Akzent wie Zielbild / Welcome (#FF2D2D, weich nutzbar). */
 const ACCENT = '#FF2D2D';
@@ -26,6 +27,14 @@ const appTabs = [
   { to: '/app/team', end: true as const, label: 'Team', iconFile: 'team.svg', live: false as const },
   { to: '/app/live', end: false as const, label: 'Live', iconFile: 'live.svg', live: true as const },
   { to: '/app/mehr', end: false as const, label: 'Mehr', iconFile: 'more.svg', live: false as const },
+] as const;
+
+const demoTabs = [
+  { to: '/demo/home', end: true as const, label: 'Home', iconFile: 'home-ball.png', live: false as const },
+  { to: '/demo/termine', end: false as const, label: 'Termine', iconFile: 'pitch.svg', live: false as const },
+  { to: '/demo/team', end: true as const, label: 'Team', iconFile: 'team.svg', live: false as const },
+  { to: '/demo/live', end: false as const, label: 'Live', iconFile: 'live.svg', live: true as const },
+  { to: '/demo/mehr', end: false as const, label: 'Mehr', iconFile: 'more.svg', live: false as const },
 ] as const;
 
 const publicTabs = [
@@ -134,20 +143,32 @@ export const BottomNav: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { effectiveRole } = useSession();
+  const demo = useDemoMode();
   const unreadCount = useUnreadCount(user?.id);
   const termineNavLabel = normalizeRole(effectiveRole) === 'fan' ? 'Spielplan' : 'Termine';
+  const isDemo = Boolean(demo) || pathname.startsWith('/demo');
   const appTabsResolved =
     termineNavLabel === 'Termine'
       ? appTabs
       : appTabs.map((t) => (t.to === '/app/termine' ? { ...t, label: termineNavLabel } : t));
-  const tabs = pathname.startsWith('/app') ? appTabsResolved : publicTabs;
-  const mehrBadge = unreadCount;
-  const isApp = pathname.startsWith('/app');
+  const tabs = isDemo
+    ? demoTabs
+    : pathname.startsWith('/app')
+      ? appTabsResolved
+      : publicTabs;
+  const mehrBadge = isDemo ? undefined : unreadCount;
+  const isApp = pathname.startsWith('/app') || isDemo;
   /** Echtes laufendes Spiel: eine Zeile mit status === 'live' (beendet → kein Eintrag, Indikatoren aus). */
   const hasLiveMatch = useAppHasLiveMatch();
   const { liveMatchId } = useAppLiveMatchState();
+  const demoLiveActive = demo?.live.status === 'live';
+  const liveActiveForNav = isDemo ? Boolean(demoLiveActive) : hasLiveMatch;
 
   const handleLiveTabReclick = () => {
+    if (isDemo) {
+      navigate('/demo/live');
+      return;
+    }
     window.dispatchEvent(new CustomEvent(LIVE_NAV_RESET_EVENT));
     const fromUrl = searchParams.get('matchId')?.trim() || '';
     const matchId = liveMatchId || fromUrl;
@@ -201,8 +222,8 @@ export const BottomNav: React.FC = () => {
               label={t.label}
               iconFile={t.iconFile}
               isLiveTab={t.live}
-              liveMatchActive={t.live ? hasLiveMatch : false}
-              badgeCount={t.to === '/app/mehr' ? mehrBadge : undefined}
+              liveMatchActive={t.live ? liveActiveForNav : false}
+              badgeCount={t.to === '/app/mehr' || t.to === '/demo/mehr' ? mehrBadge : undefined}
               onReclick={t.live ? handleLiveTabReclick : undefined}
             />
           ))}

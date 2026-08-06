@@ -7,6 +7,8 @@ import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 import { isStagingApp } from '../../lib/appEnvironment';
+import { useDemoMode } from '../../demo/DemoContext';
+import { DemoBadge } from '../../demo/components/DemoBadge';
 
 const APP_HEADER_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
 
@@ -63,6 +65,8 @@ const APP_LOGIN_REDIRECT = '/login';
 export const Header: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo) || pathname.startsWith('/demo');
   const {
     membershipError,
     effectiveRole,
@@ -73,11 +77,14 @@ export const Header: React.FC = () => {
   const publicView = isPublicRoute(pathname);
   const isRoleChoice = pathname === '/app/role-choice';
   const roleLabel =
-    !isRoleChoice && effectiveRole
+    !isDemo && !isRoleChoice && effectiveRole
       ? (ROLE_LABEL_DE[effectiveRole] ?? effectiveRole)
-      : null;
+      : isDemo
+        ? 'Trainer'
+        : null;
 
   const isStaff =
+    !isDemo &&
     !!backendRole &&
     ['admin', 'head_coach', 'trainer', 'co_trainer'].includes(backendRole.toLowerCase());
 
@@ -89,7 +96,7 @@ export const Header: React.FC = () => {
   const [pendingRequestsCount, setPendingRequestsCount] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isStaff) {
+    if (!isStaff || isDemo) {
       setPendingRequestsCount(null);
       return;
     }
@@ -120,7 +127,7 @@ export const Header: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [isStaff]);
+  }, [isStaff, isDemo]);
 
   return (
     <header className="app-header fixed left-0 top-0 w-full border-b border-transparent bg-[rgba(6,6,8,0.88)] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65),inset_0_-1px_0_rgba(255,30,30,0.05)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[rgba(6,6,8,0.72)]">
@@ -131,10 +138,21 @@ export const Header: React.FC = () => {
       <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-0.5 md:px-8 md:py-1">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
-          {pathname.startsWith('/app') ? (
-            <Link to="/app/home" className="flex min-w-0 flex-col items-start gap-0.5">
-              <AppHeaderBrand />
-              {membershipError ? (
+          {pathname.startsWith('/app') || isDemo ? (
+            <Link
+              to={isDemo ? '/demo/home' : '/app/home'}
+              className="flex min-w-0 flex-col items-start gap-0.5"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <AppHeaderBrand />
+                <DemoBadge />
+              </span>
+              {isDemo ? (
+                <span className="max-w-[min(55vw,14rem)] truncate text-[10px] text-white/55 sm:max-w-[16rem]">
+                  {demo?.data.teamName ?? 'Demo'} · {demo?.data.seasonLabel ?? ''}
+                </span>
+              ) : null}
+              {!isDemo && membershipError ? (
                 <span className="max-w-[min(50vw,10.25rem)] truncate text-[9px] text-amber-400/95 sm:max-w-[12rem]" role="alert">
                   {membershipError}
                 </span>
@@ -158,7 +176,7 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Rechts: Staff-Navigation (Anfragen), Profil + Login (kein Logout im Header) + kompakte Rollen-Badge */}
-        {!publicView && (
+        {!publicView && !isDemo && (
           <div className="flex shrink-0 flex-col items-end justify-center gap-0.5">
             <div className="flex items-center gap-1.5 sm:gap-2">
               {isStaff && (

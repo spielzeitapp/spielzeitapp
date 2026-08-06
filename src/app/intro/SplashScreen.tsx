@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import spielzeitappSplash from '../../assets/branding/spielzeitapp-splash.png';
 
 const APP_SPLASH_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
@@ -10,16 +10,19 @@ const SPLASH_MS = 1000;
 /**
  * Marken-Splash: schwarzer Hintergrund, zentriertes Splash-Bild.
  * Keine Buttons, keine zusätzlichen Texte.
+ * Demo und App teilen dieselbe Komponente — Zielpfad hängt vom aktuellen Prefixe ab.
  */
 export const SplashScreen: React.FC = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isDemo = pathname.startsWith('/demo');
 
   useEffect(() => {
     const t = window.setTimeout(() => {
-      navigate('/app/intro/welcome', { replace: true });
+      navigate(isDemo ? '/demo/intro/welcome' : '/app/intro/welcome', { replace: true });
     }, SPLASH_MS);
     return () => window.clearTimeout(t);
-  }, [navigate]);
+  }, [navigate, isDemo]);
 
   return (
     <div

@@ -127,6 +127,15 @@ export const LoginPage: React.FC = () => {
 
         <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
           <Link
+            to="/demo"
+            className="rounded-xl border border-[#FF2D2D]/35 bg-[#FF2D2D]/10 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-[#FF2D2D]/18"
+          >
+            Demo ansehen
+          </Link>
+          <p className="text-center text-[11px] text-white/45">
+            U12-Demoteam ohne Login — gleiche App-Oberfläche
+          </p>
+          <Link
             to="/forgot-password"
             className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
           >

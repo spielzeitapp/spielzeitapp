@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Smartphone, Trophy } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronRight, PlayCircle, Smartphone, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
 import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg-neu.jpg';
@@ -11,6 +11,9 @@ const ROUTE_APP_HOME = '/app/home';
 
 /** Liveticker: gleiche Route wie BottomNav „Live“ (`LiveMatchScreen`). */
 const ROUTE_LIVE_TICKER = '/app/live';
+
+/** Öffentliche Trainer-Demo — kein Login, gemeinsame App-Oberfläche. */
+const ROUTE_DEMO_HOME = '/demo/home';
 
 function appIconBase(): string {
   const b = import.meta.env.BASE_URL || '/';
@@ -50,6 +53,8 @@ function PremiumIntroButton({
 
 export const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isDemoEntry = pathname.startsWith('/demo');
   const iconBase = appIconBase();
   const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: true });
   const [welcomeEntered, setWelcomeEntered] = useState(false);
@@ -67,13 +72,25 @@ export const WelcomeScreen: React.FC = () => {
   }, []);
 
   const goHome = () => {
+    if (isDemoEntry) {
+      navigate('/login', { replace: true });
+      return;
+    }
     markIntroFlowCompleted();
     navigate(ROUTE_APP_HOME, { replace: true });
   };
 
   const goLive = () => {
+    if (isDemoEntry) {
+      navigate(ROUTE_DEMO_HOME.replace('/home', '/live'), { replace: true });
+      return;
+    }
     markIntroFlowCompleted();
     navigate(ROUTE_LIVE_TICKER, { replace: true });
+  };
+
+  const goDemo = () => {
+    navigate(ROUTE_DEMO_HOME, { replace: true });
   };
 
   return (
@@ -298,9 +315,30 @@ export const WelcomeScreen: React.FC = () => {
               />
             </span>
             <span className="relative z-10 min-w-0 flex-1">
-              <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">Zur App</span>
+              <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+                {isDemoEntry ? 'Zur Anmeldung' : 'Zur App'}
+              </span>
               <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                Alle Teams. Alle Funktionen.
+                {isDemoEntry ? 'Mit Login in dein echtes Team.' : 'Alle Teams. Alle Funktionen.'}
+              </span>
+            </span>
+            <ChevronRight
+              className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
+              strokeWidth={2.6}
+              aria-hidden
+            />
+          </PremiumIntroButton>
+
+          <PremiumIntroButton onClick={goDemo}>
+            <span className="welcome-intro-icon-shell relative z-10">
+              <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
+            </span>
+            <span className="relative z-10 min-w-0 flex-1">
+              <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+                Demo ansehen
+              </span>
+              <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                U12-Demoteam ohne Login ausprobieren.
               </span>
             </span>
             <ChevronRight
