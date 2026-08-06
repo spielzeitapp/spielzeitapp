@@ -17,6 +17,9 @@ import {
   listPlayerSeasonOptions,
   type PlayerSeasonOption,
 } from "../../lib/stats/playerStatsService";
+import { useDemoMode } from "../../demo/DemoContext";
+import { DEMO_TEAM_SEASON_ID } from "../../demo/demoDataSource";
+import { isDemoPlayerId } from "../../demo/demoPlayers";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
 import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
 import {
@@ -487,6 +490,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   initialTab = "overview",
   squadPlayers = [],
 }) => {
+  const demo = useDemoMode();
   const [profileTab, setProfileTab] = useState<ProfileTab>(initialTab);
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
   const [isInjuredPlayer, setIsInjuredPlayer] = useState(player.is_injured);
@@ -516,6 +520,21 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      if (demo || isDemoPlayerId(player.id)) {
+        const sid = (teamSeasonId ?? player.team_season_id ?? DEMO_TEAM_SEASON_ID).trim();
+        if (!cancelled) {
+          setSeasonOptions([
+            {
+              teamSeasonId: sid,
+              label: (teamSeasonLabel ?? "2026/27").trim() || "2026/27",
+              status: "active",
+              seasonName: "2026/27",
+              ageGroup: "U12",
+            },
+          ]);
+        }
+        return;
+      }
       const { data } = await listPlayerSeasonOptions(player.id);
       if (cancelled) return;
       setSeasonOptions(data);
@@ -523,7 +542,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [player.id]);
+  }, [player.id, demo, teamSeasonId, player.team_season_id, teamSeasonLabel]);
 
   const careerSeasonIds = useMemo(
     () => seasonOptions.map((o) => o.teamSeasonId),

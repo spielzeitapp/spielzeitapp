@@ -39,6 +39,8 @@ import { SeasonMatchSummaryCard } from "../components/team/SeasonMatchSummaryCar
 import { SeasonMatchCard } from "../components/team/SeasonMatchCard";
 import { useSeasonMatchBoard } from "../hooks/useSeasonMatchBoard";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
+import { useDemoMode } from "../demo/DemoContext";
+import { useInternalBasePath } from "../demo/demoPaths";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -134,34 +136,55 @@ function readTeamPhotoUrl(row: TeamPhotoRow | null): string | null {
 export const TeamPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
   const { selectedTeamSeason, selectedMembership, loading: sessionLoading } = useSession();
   const {
-    teamLabel,
-    teamLine,
-    seasonLine,
-    teamSeasonId,
-    readTeamSeasonId,
-    activeTeamSeasonId,
+    teamLabel: sessionTeamLabel,
+    teamLine: sessionTeamLine,
+    seasonLine: sessionSeasonLine,
+    teamSeasonId: sessionTeamSeasonId,
+    readTeamSeasonId: sessionReadTeamSeasonId,
+    activeTeamSeasonId: sessionActiveTeamSeasonId,
     isHistoryReadOnly,
     softLockMessage,
-    role,
-    loading: tsLoading,
-    error: tsError,
+    role: sessionRole,
+    loading: tsLoadingRaw,
+    error: tsErrorRaw,
   } = useActiveTeamSeason();
+
+  const teamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionTeamSeasonId;
+  const readTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionReadTeamSeasonId;
+  const activeTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionActiveTeamSeasonId;
+  const role = isDemo ? "trainer" : sessionRole;
+  const tsLoading = isDemo ? false : tsLoadingRaw;
+  const tsError = isDemo ? null : tsErrorRaw;
+  const teamLabel = isDemo
+    ? `${demo!.data.teamName} · ${demo!.data.seasonLabel}`
+    : sessionTeamLabel;
+  const teamLine = isDemo ? demo!.data.teamName : sessionTeamLine;
+  const seasonLine = isDemo ? demo!.data.seasonLabel : sessionSeasonLine;
+
   const {
-    players,
-    loading: plLoading,
-    error: plError,
-    refetch: refetchPlayers,
-  } = usePlayers(readTeamSeasonId ?? teamSeasonId, {
+    players: livePlayers,
+    loading: plLoadingLive,
+    error: plErrorLive,
+    refetch: refetchPlayersLive,
+  } = usePlayers(isDemo ? null : (readTeamSeasonId ?? teamSeasonId), {
     mode: canManageRoster(normalizeRole(role)) || isHistoryReadOnly ? "all" : "active",
   });
+  const players = isDemo ? demo!.players : livePlayers;
+  const plLoading = isDemo ? false : plLoadingLive;
+  const plError = isDemo ? null : plErrorLive;
+  const refetchPlayers = isDemo ? (async () => {}) : refetchPlayersLive;
 
   const roleNormalized = normalizeRole(role);
-  const canManagePlayers = canManageRoster(roleNormalized) && !isHistoryReadOnly;
-  const canViewTrainingKaiser = canManageMatches(roleNormalized);
-  const tabsReady = !sessionLoading && !tsLoading;
+  /** Demo: Kader ansehen wie Trainer, aber keine Roster-Writes. */
+  const canManagePlayers = !isDemo && canManageRoster(roleNormalized) && !isHistoryReadOnly;
+  const canViewTrainingKaiser = isDemo || canManageMatches(roleNormalized);
+  const tabsReady = isDemo || (!sessionLoading && !tsLoading);
 
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
@@ -184,16 +207,21 @@ export const TeamPage: React.FC = () => {
   const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
   const [profileInitialTab, setProfileInitialTab] = useState<ProfileTab>("overview");
   const {
-    staff: staffRows,
-    loading: staffLoading,
-    error: staffFetchError,
+    staff: staffRowsLive,
+    loading: staffLoadingLive,
+    error: staffFetchErrorLive,
     staffRpcMissing,
-    refetch: refetchStaff,
-  } = useTeamStaff(teamSeasonId);
+    refetch: refetchStaffLive,
+  } = useTeamStaff(isDemo ? null : teamSeasonId);
+  const staffRows = isDemo ? [] : staffRowsLive;
+  const staffLoading = isDemo ? false : staffLoadingLive;
+  const staffFetchError = isDemo ? null : staffFetchErrorLive;
+  const refetchStaff = isDemo ? (async () => ({ error: null })) : refetchStaffLive;
 
   const trainerEditor = useTrainerStaffEditor({
-    teamSeasonId,
+    teamSeasonId: isDemo ? null : teamSeasonId,
     onAfterSave: async () => {
+      if (isDemo) return;
       const { error: fetchErr } = await refetchStaff();
       if (!fetchErr) showSavedToast("Trainer gespeichert");
     },
@@ -205,13 +233,14 @@ export const TeamPage: React.FC = () => {
     all: allSeasonMatches,
     loading: seasonMatchesLoading,
     error: seasonMatchesError,
-  } = useSeasonMatchBoard(teamSeasonId, 10);
+  } = useSeasonMatchBoard(isDemo ? null : teamSeasonId, 10);
   const [teamPhoto, setTeamPhoto] = useState<TeamPhotoRow | null>(null);
   const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
   const [teamPhotoError, setTeamPhotoError] = useState<string | null>(null);
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const heroTeamName = useMemo(() => {
+    if (isDemo) return demo!.data.teamName;
     if (teamLine?.trim()) return teamLine.trim();
     const fromTs = selectedTeamSeason?.team?.name?.trim();
     if (fromTs) return fromTs;
@@ -224,9 +253,10 @@ export const TeamPage: React.FC = () => {
       return label;
     }
     return "Team";
-  }, [teamLine, selectedTeamSeason, teamLabel]);
+  }, [teamLine, selectedTeamSeason, teamLabel, isDemo, demo]);
 
   const heroSeason = useMemo(() => {
+    if (isDemo) return demo!.data.seasonLabel;
     if (seasonLine?.trim() && seasonLine.trim() !== "—") return seasonLine.trim();
     const fromTs = selectedTeamSeason?.season?.name?.trim();
     if (fromTs) return fromTs;
@@ -235,7 +265,7 @@ export const TeamPage: React.FC = () => {
     if (mid.length >= 2) return mid[mid.length - 1]?.trim() || "—";
     const m = /\(([^)]+)\)/.exec(label);
     return m?.[1]?.trim() ?? "—";
-  }, [seasonLine, selectedTeamSeason, teamLabel]);
+  }, [seasonLine, selectedTeamSeason, teamLabel, isDemo, demo]);
 
   const trainerCount = useMemo(() => staffRows.length, [staffRows]);
   const teamPhotoUrl = useMemo(() => readTeamPhotoUrl(teamPhoto), [teamPhoto]);
@@ -246,7 +276,7 @@ export const TeamPage: React.FC = () => {
   const heroShowsPlaceholder = !teamPhotoUrl || teamPhotoUrl.length === 0;
 
   useEffect(() => {
-    if (!teamSeasonId) {
+    if (isDemo || !teamSeasonId) {
       setTeamPhoto(null);
       setTeamPhotoError(null);
       return;
@@ -268,10 +298,43 @@ export const TeamPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [teamSeasonId]);
+  }, [teamSeasonId, isDemo]);
+
+  /** Deep-Link / Reload: ?player=p08 oder /demo/players/:id → Profil öffnen. */
+  useEffect(() => {
+    const pid = (searchParams.get("player") ?? "").trim();
+    if (!pid) {
+      setSelectedProfilePlayer(null);
+      return;
+    }
+    if (plLoading || players.length === 0) return;
+    const match = players.find((p) => p.id === pid);
+    if (!match) return;
+    setSelectedProfilePlayer((prev) => (prev?.id === match.id ? prev : match));
+    setProfileInitialTab("overview");
+  }, [searchParams, players, plLoading]);
+
+  const openPlayerProfile = (p: PlayerItem, tab: ProfileTab = "overview") => {
+    setSelectedProfilePlayer(p);
+    setProfileInitialTab(tab);
+    const next = new URLSearchParams(searchParams);
+    next.set("player", p.id);
+    next.delete("tab");
+    setSearchParams(next, { replace: false });
+  };
+
+  const closePlayerProfile = () => {
+    setSelectedProfilePlayer(null);
+    setProfileInitialTab("overview");
+    if (searchParams.has("player")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("player");
+      setSearchParams(next, { replace: true });
+    }
+  };
 
   const handleTeamPhotoPick = async (file: File) => {
-    if (!teamSeasonId) return;
+    if (isDemo || !teamSeasonId) return;
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.type)) {
       setTeamPhotoError("Bitte nur JPG, PNG oder WebP hochladen.");
@@ -370,16 +433,6 @@ export const TeamPage: React.FC = () => {
     clearImageLocalPreviews();
     setFormError(null);
     setShowForm(true);
-  };
-
-  const openPlayerProfile = (p: PlayerItem) => {
-    setSelectedProfilePlayer(p);
-    setProfileInitialTab("overview");
-  };
-
-  const closePlayerProfile = () => {
-    setSelectedProfilePlayer(null);
-    setProfileInitialTab("overview");
   };
 
   const handleEditFromProfile = () => {
@@ -752,7 +805,7 @@ export const TeamPage: React.FC = () => {
   );
 
   if (searchParams.get("tab") === "parents") {
-    return <Navigate to="/app/mehr/parent-access" replace />;
+    return <Navigate to={isDemo ? `${basePath}/team` : "/app/mehr/parent-access"} replace />;
   }
 
   return (
@@ -1126,7 +1179,9 @@ export const TeamPage: React.FC = () => {
                   <li key={`${row.user_id}-${row.role}`} className="w-full">
                     <TrainerStaffCard
                       member={row}
-                      onClick={() => navigate(`/app/team/trainer/${encodeURIComponent(row.user_id)}`)}
+                      onClick={() =>
+                        navigate(`${basePath}/team/trainer/${encodeURIComponent(row.user_id)}`)
+                      }
                     />
                   </li>
                 ))}
@@ -1146,8 +1201,7 @@ export const TeamPage: React.FC = () => {
             players={players}
             teamSeasonId={teamSeasonId}
             onPlayerClick={(player) => {
-              setProfileInitialTab("training");
-              setSelectedProfilePlayer(player);
+              openPlayerProfile(player, "training");
             }}
           />
         ) : teamSeasonId != null ? (

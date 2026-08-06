@@ -5,9 +5,12 @@ import {
   loadPlayerTrainingStats,
   loadPlayerTrainingStatsAcrossSeasons,
 } from '../lib/trainingStatsLoader';
+import { useDemoMode } from '../demo/DemoContext';
+import { getDemoTrainingParticipationPct, isDemoPlayerId } from '../demo/demoPlayers';
 
 /**
  * Trainingsbeteiligung: eine Saison oder Career (mehrere team_season_ids).
+ * Demo: Werte aus Fixture-trainingPct, kein Supabase.
  */
 export function usePlayerTrainingStats(
   playerId: string | null,
@@ -15,6 +18,7 @@ export function usePlayerTrainingStats(
   enabled = true,
   options?: { mode?: 'season' | 'career'; careerSeasonIds?: string[] },
 ) {
+  const demo = useDemoMode();
   const mode = options?.mode ?? 'season';
   const careerSeasonIds = options?.careerSeasonIds;
   const [stats, setStats] = useState<TrainingAttendanceStats>(EMPTY_TRAINING_STATS);
@@ -36,6 +40,29 @@ export function usePlayerTrainingStats(
       setError(null);
       return;
     }
+
+    if (demo || isDemoPlayerId(pid)) {
+      const pct = getDemoTrainingParticipationPct(pid);
+      const sessions = 20;
+      const present = Math.round((pct / 100) * sessions);
+      const absent = Math.max(0, sessions - present);
+      setStats({
+        teamRatePct: pct,
+        activityRatePct: pct,
+        present,
+        absent,
+        sick: 0,
+        injured: 0,
+        external: 0,
+        open: 0,
+        legacyUnknown: 0,
+        sessionsCounted: sessions,
+      });
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -56,7 +83,7 @@ export function usePlayerTrainingStats(
     } finally {
       setLoading(false);
     }
-  }, [playerId, teamSeasonId, enabled, mode, careerKey]);
+  }, [playerId, teamSeasonId, enabled, mode, careerKey, demo]);
 
   useEffect(() => {
     void load();

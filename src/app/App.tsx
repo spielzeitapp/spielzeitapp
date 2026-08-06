@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { InternalLayout } from './layout/InternalLayout.tsx';
 import { IntroAppOutlet } from './intro/IntroAppOutlet';
@@ -52,14 +52,18 @@ import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { DemoLayout } from '../demo/DemoLayout';
-import { DemoTeamPage } from '../demo/pages/DemoTeamPage';
 import { DemoTrainingPage } from '../demo/pages/DemoTrainingPage';
 import { DemoMatchPage } from '../demo/pages/DemoMatchPage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DemoLivePage } from '../demo/pages/DemoLivePage';
-import { MoreLayout } from '../pages/MoreLayout';
-import { MorePage } from '../pages/MorePage';
+
+/** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
+function DemoPlayerProfileRedirect(): React.ReactElement {
+  const { playerId } = useParams<{ playerId: string }>();
+  const q = playerId ? `?player=${encodeURIComponent(playerId)}` : '';
+  return <Navigate to={`/demo/team${q}`} replace />;
+}
 
 /** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
 function AppErrorFallback({
@@ -189,7 +193,8 @@ function InternalRoutes(): React.ReactElement {
             <Route path="calendar" element={<CalendarPage />} />
           </Route>
           <Route path="events/:eventId" element={<EventDetailPage />} />
-          <Route path="team" element={<DemoTeamPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="training" element={<DemoTrainingPage />} />
           <Route path="match" element={<DemoMatchPage />} />
           <Route path="event" element={<DemoEventPage />} />
@@ -311,7 +316,8 @@ function PublicRoutes(): React.ReactElement {
             <Route path="calendar" element={<CalendarPage />} />
           </Route>
           <Route path="events/:eventId" element={<EventDetailPage />} />
-          <Route path="team" element={<DemoTeamPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="training" element={<DemoTrainingPage />} />
           <Route path="match" element={<DemoMatchPage />} />
           <Route path="event" element={<DemoEventPage />} />

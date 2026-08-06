@@ -3,7 +3,10 @@ import type { PlayerItem } from './usePlayers';
 import { buildTrainingRanking, type TrainingRankingResult } from '../lib/trainingRanking';
 import { fetchTeamTrainingParticipationPct } from '../lib/teamTrainingParticipation';
 import { loadSquadTrainingParticipation } from '../lib/teamTrainingParticipationStats';
-import { loadTeamPlayersTrainingStats } from '../lib/trainingStatsLoader';
+import { EMPTY_TRAINING_STATS, loadTeamPlayersTrainingStats } from '../lib/trainingStatsLoader';
+import { useDemoMode } from '../demo/DemoContext';
+import { getDemoTrainingParticipationPct, isDemoPlayerId } from '../demo/demoPlayers';
+import type { TrainingAttendanceStats } from '../lib/trainingAttendance';
 
 const EMPTY_RESULT: TrainingRankingResult = {
   qualified: [],
@@ -15,11 +18,26 @@ const EMPTY_RESULT: TrainingRankingResult = {
   sessionParticipations: [],
 };
 
+function demoStatsFromPct(pct: number): TrainingAttendanceStats {
+  const sessions = 20;
+  const present = Math.round((pct / 100) * sessions);
+  const absent = Math.max(0, sessions - present);
+  return {
+    ...EMPTY_TRAINING_STATS,
+    teamRatePct: pct,
+    activityRatePct: pct,
+    present,
+    absent,
+    sessionsCounted: sessions,
+  };
+}
+
 export function useTeamTrainingRanking(
   players: PlayerItem[],
   teamSeasonId: string | null,
   enabled = true,
 ) {
+  const demo = useDemoMode();
   const [result, setResult] = useState<TrainingRankingResult>(EMPTY_RESULT);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,10 +62,34 @@ export function useTeamTrainingRanking(
       return;
     }
 
+    const useDemoData =
+      Boolean(demo) || activePlayers.some((p) => isDemoPlayerId(p.id));
+
     setLoading(true);
     setError(null);
     try {
-      if (activePlayers.length === 0) {
+    if (useDemoData) {
+      const sessionsCount = 20;
+      const statsByPlayerId = new Map(
+        activePlayers.map((p) => [p.id, demoStatsFromPct(getDemoTrainingParticipationPct(p.id))]),
+      );
+      const ranking = buildTrainingRanking(activePlayers, statsByPlayerId, sessionsCount);
+      const avg =
+        activePlayers.length === 0
+          ? null
+          : Math.round(
+              activePlayers.reduce((sum, p) => sum + getDemoTrainingParticipationPct(p.id), 0) /
+                activePlayers.length,
+            );
+      setResult({
+        ...ranking,
+        teamParticipationPct: avg,
+        sessionParticipations: [],
+      });
+      return;
+    }
+
+    if (activePlayers.length === 0) {
         const participationRpc = await fetchTeamTrainingParticipationPct(sid);
         setResult({
           ...EMPTY_RESULT,
@@ -81,7 +123,7 @@ export function useTeamTrainingRanking(
     } finally {
       setLoading(false);
     }
-  }, [activePlayers, teamSeasonId, enabled]);
+  }, [activePlayers, teamSeasonId, enabled, demo]);
 
   useEffect(() => {
     void load();

@@ -1,45 +1,24 @@
 /**
- * Demo-Kader und Anfangs-Rückmeldungen (lokal, kein Supabase).
+ * Demo-Anfangs-Rückmeldungen (lokal, kein Supabase).
+ * Spielerbasis: demoPlayers.ts (DEMO.2C).
  */
 
 import type { AttendanceStatus, EventAttendanceData } from '../hooks/useEventsAttendance';
-import type { PlayerItem } from '../hooks/usePlayers';
-import { DEMO_TEAM_SEASON_ID } from './demoDataSource';
 import { demoFixtures } from './demoFixtures';
 import type { DemoEvent } from './demoTypes';
+import {
+  buildDemoPlayers,
+  DEMO_LAZ_PLAYER_ID,
+  DEMO_SELF_PLAYER_ID,
+} from './demoPlayers';
 
-/** Verknüpfter „Demo-Nutzer“-Spieler für eigene Rückmeldung (Eltern-/Spieler-UI). */
-export const DEMO_SELF_PLAYER_ID = 'p08';
-
-/** LAZ-fähig für Demo-Status „LAZ“. */
-export const DEMO_LAZ_PLAYER_ID = 'p05';
+export { buildDemoPlayers, DEMO_LAZ_PLAYER_ID, DEMO_SELF_PLAYER_ID } from './demoPlayers';
 
 export type DemoAttendanceRow = {
   event_id: string;
   player_id: string;
   status: AttendanceStatus;
 };
-
-export function buildDemoPlayers(): PlayerItem[] {
-  return demoFixtures.players.map((p) => ({
-    id: p.id,
-    team_season_id: DEMO_TEAM_SEASON_ID,
-    first_name: p.firstName,
-    last_name: p.lastInitial,
-    jersey_number: p.jersey,
-    position: p.position,
-    birthdate: null,
-    avatar_url: null,
-    cutout_url: null,
-    is_active: true,
-    status: 'active' as const,
-    is_laz_player: p.id === DEMO_LAZ_PLAYER_ID || p.id === DEMO_SELF_PLAYER_ID,
-    is_injured: !p.available,
-    injured_since: null,
-    injured_until: null,
-    display_name: `${p.firstName} ${p.lastInitial}`,
-  }));
-}
 
 /**
  * Verteilt Fixture-RSVP-Zähler auf Spieler-IDs.

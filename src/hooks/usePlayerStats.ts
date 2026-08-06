@@ -4,6 +4,12 @@ import {
   type PlayerLastMatchRow,
   type PlayerSeasonStats,
 } from '../lib/stats/playerStatsService';
+import { useDemoMode } from '../demo/DemoContext';
+import {
+  getDemoPlayerLastMatches,
+  getDemoPlayerSeasonStats,
+  isDemoPlayerId,
+} from '../demo/demoPlayers';
 
 const EMPTY_STATS: PlayerSeasonStats = {
   games: 0,
@@ -24,6 +30,7 @@ export function usePlayerStats(
   teamSeasonId: string | null | undefined,
   mode: PlayerStatsMode = 'season',
 ) {
+  const demo = useDemoMode();
   const [stats, setStats] = useState<PlayerSeasonStats>(EMPTY_STATS);
   const [lastMatches, setLastMatches] = useState<PlayerLastMatchRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +45,15 @@ export function usePlayerStats(
       setIsLoading(false);
       return;
     }
+
+    if (demo || isDemoPlayerId(pid)) {
+      setStats(getDemoPlayerSeasonStats(pid));
+      setLastMatches(getDemoPlayerLastMatches(pid));
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     if (mode === 'season' && !teamSeasonId?.trim()) {
       setStats(EMPTY_STATS);
       setLastMatches([]);
@@ -69,7 +85,7 @@ export function usePlayerStats(
     return () => {
       cancelled = true;
     };
-  }, [playerId, teamSeasonId, mode]);
+  }, [playerId, teamSeasonId, mode, demo]);
 
   return useMemo(
     () => ({

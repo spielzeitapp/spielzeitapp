@@ -62,6 +62,7 @@ export const InternalLayout: React.FC = () => {
     pathClean === '/demo/home' ||
     pathClean === '/app/team' ||
     pathClean === '/demo/team' ||
+    pathClean.startsWith('/demo/players') ||
     pathClean.startsWith('/app/team/') ||
     pathClean.startsWith('/demo/team/') ||
     pathClean === '/app/mehr' ||
