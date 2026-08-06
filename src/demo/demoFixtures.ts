@@ -1,0 +1,396 @@
+import type { DemoFixtures, DemoLiveState } from './demoTypes';
+
+const TEAM = 'NSG Rohrbach U12 – Demo';
+const SEASON = '2026/27';
+
+export const DEMO_STORAGE_KEYS = {
+  welcomeDismissed: 'spielzeit.demo.welcomeDismissed',
+  tourDone: 'spielzeit.demo.tourDone',
+} as const;
+
+export function createInitialLiveState(): DemoLiveState {
+  return {
+    homeName: TEAM,
+    awayName: 'SV Loosdorf U12',
+    minute: 48,
+    scoreHome: 2,
+    scoreAway: 1,
+    status: 'live',
+    events: [
+      { id: 'le1', minute: 1, text: 'Anpfiff – NSG Rohrbach U12 vs. SV Loosdorf U12', type: 'kickoff' },
+      { id: 'le2', minute: 12, text: 'TOR Rohrbach – Lukas M. (12\')', type: 'goal_home' },
+      { id: 'le3', minute: 28, text: 'TOR Loosdorf – Ausgleich (28\')', type: 'goal_away' },
+      { id: 'le4', minute: 35, text: 'Wechsel Rohrbach – Noah K. für Tim P.', type: 'sub' },
+      { id: 'le5', minute: 40, text: 'Halbzeit – Stand 1:1', type: 'halftime' },
+      { id: 'le6', minute: 44, text: 'TOR Rohrbach – Jonas W. (44\')', type: 'goal_home' },
+    ],
+  };
+}
+
+export const demoFixtures: DemoFixtures = {
+  teamName: TEAM,
+  seasonLabel: SEASON,
+  clubColors: ['#0a0a0a', '#b91c1c', '#ffffff'],
+  players: [
+    { id: 'p01', firstName: 'Leon', lastInitial: 'H.', position: 'TW', jersey: 1, available: true, trainingPct: 92, appearances: 8, goals: 0 },
+    { id: 'p02', firstName: 'Max', lastInitial: 'S.', position: 'AV', jersey: 2, available: true, trainingPct: 88, appearances: 7, goals: 0 },
+    { id: 'p03', firstName: 'Felix', lastInitial: 'B.', position: 'IV', jersey: 4, available: true, trainingPct: 95, appearances: 8, goals: 1 },
+    { id: 'p04', firstName: 'Paul', lastInitial: 'R.', position: 'IV', jersey: 5, available: true, trainingPct: 80, appearances: 6, goals: 0 },
+    { id: 'p05', firstName: 'David', lastInitial: 'K.', position: 'AV', jersey: 3, available: false, trainingPct: 70, appearances: 5, goals: 0 },
+    { id: 'p06', firstName: 'Jonas', lastInitial: 'W.', position: 'ZM', jersey: 6, available: true, trainingPct: 90, appearances: 8, goals: 3 },
+    { id: 'p07', firstName: 'Lukas', lastInitial: 'M.', position: 'ZM', jersey: 8, available: true, trainingPct: 85, appearances: 7, goals: 4 },
+    { id: 'p08', firstName: 'Noah', lastInitial: 'K.', position: 'OM', jersey: 10, available: true, trainingPct: 93, appearances: 8, goals: 5 },
+    { id: 'p09', firstName: 'Tim', lastInitial: 'P.', position: 'OM', jersey: 7, available: true, trainingPct: 78, appearances: 6, goals: 2 },
+    { id: 'p10', firstName: 'Elias', lastInitial: 'F.', position: 'ST', jersey: 9, available: true, trainingPct: 87, appearances: 7, goals: 6 },
+    { id: 'p11', firstName: 'Ben', lastInitial: 'L.', position: 'ST', jersey: 11, available: true, trainingPct: 82, appearances: 6, goals: 3 },
+    { id: 'p12', firstName: 'Samuel', lastInitial: 'T.', position: 'AV', jersey: 12, available: true, trainingPct: 75, appearances: 4, goals: 0 },
+    { id: 'p13', firstName: 'Julian', lastInitial: 'G.', position: 'ZM', jersey: 14, available: true, trainingPct: 88, appearances: 5, goals: 1 },
+    { id: 'p14', firstName: 'Emil', lastInitial: 'N.', position: 'ST', jersey: 15, available: true, trainingPct: 72, appearances: 3, goals: 1 },
+    { id: 'p15', firstName: 'Theo', lastInitial: 'V.', position: 'TW', jersey: 16, available: true, trainingPct: 65, appearances: 2, goals: 0 },
+  ],
+  events: [
+    {
+      id: 'ev-train-past',
+      kind: 'training',
+      title: 'Training',
+      startsAt: '2026-08-20T17:00:00+02:00',
+      endsAt: '2026-08-20T18:20:00+02:00',
+      location: 'Sportplatz Rohrbach',
+      rsvpYes: 13,
+      rsvpNo: 1,
+      rsvpOpen: 1,
+      linkedTrainingId: 'tr-main',
+    },
+    {
+      id: 'ev-game-past',
+      kind: 'game',
+      title: 'Meisterschaft',
+      startsAt: '2026-08-23T10:00:00+02:00',
+      location: 'Sportplatz Rohrbach',
+      opponent: 'SC St. Veit U12',
+      isHome: true,
+      rsvpYes: 14,
+      rsvpNo: 1,
+      rsvpOpen: 0,
+    },
+    {
+      id: 'ev-train-next',
+      kind: 'training',
+      title: 'Training',
+      startsAt: '2026-08-27T17:00:00+02:00',
+      endsAt: '2026-08-27T18:20:00+02:00',
+      location: 'Sportplatz Rohrbach',
+      rsvpYes: 11,
+      rsvpNo: 2,
+      rsvpOpen: 2,
+      linkedTrainingId: 'tr-main',
+      notes: 'Trainer: Markus Demo',
+    },
+    {
+      id: 'ev-game-next',
+      kind: 'game',
+      title: 'Meisterschaft',
+      startsAt: '2026-08-30T10:30:00+02:00',
+      meetingAt: '2026-08-30T09:45:00+02:00',
+      location: 'Sportplatz Rohrbach',
+      opponent: 'SV Loosdorf U12',
+      isHome: true,
+      rsvpYes: 12,
+      rsvpNo: 2,
+      rsvpOpen: 1,
+    },
+    {
+      id: 'ev-tournament',
+      kind: 'tournament',
+      title: 'U12-Sommerturnier St. Veit',
+      startsAt: '2026-09-06T09:00:00+02:00',
+      endsAt: '2026-09-06T16:00:00+02:00',
+      location: 'Sportanlage St. Veit',
+      rsvpYes: 13,
+      rsvpNo: 1,
+      rsvpOpen: 1,
+    },
+    {
+      id: 'ev-teamabend',
+      kind: 'event',
+      title: 'U12-Teamabend und Saisonbesprechung',
+      startsAt: '2026-09-12T18:00:00+02:00',
+      endsAt: '2026-09-12T20:00:00+02:00',
+      location: 'Vereinsheim Rohrbach',
+      rsvpYes: 10,
+      rsvpNo: 2,
+      rsvpOpen: 3,
+      notes: 'Ansprechpartner: Trainer Markus · Bitte Getränke mitbringen',
+    },
+    {
+      id: 'ev-info',
+      kind: 'info',
+      title: 'Elterninformation – Saisonstart',
+      startsAt: '2026-08-15T19:00:00+02:00',
+      location: 'Vereinsheim Rohrbach',
+      rsvpYes: 18,
+      rsvpNo: 0,
+      rsvpOpen: 2,
+    },
+    {
+      id: 'ev-game-away',
+      kind: 'game',
+      title: 'Meisterschaft',
+      startsAt: '2026-09-20T10:00:00+02:00',
+      location: 'Sportplatz Nachwuchs',
+      opponent: 'SKN Nachwuchs U12',
+      isHome: false,
+      rsvpYes: 9,
+      rsvpNo: 1,
+      rsvpOpen: 5,
+    },
+  ],
+  feed: [
+    {
+      id: 'f1',
+      kind: 'season_start',
+      title: 'Saisonstart 2026/27',
+      body: 'Willkommen in der neuen Saison! NSG Rohrbach U12 – Demo ist bereit. Trainingszeiten und Termine sind hinterlegt.',
+      createdAt: '2026-08-10T08:00:00+02:00',
+    },
+    {
+      id: 'f2',
+      kind: 'training',
+      title: 'Neues Training vorbereitet',
+      body: '„U12 – 1 gegen 1 und schnelles Umschalten“ (80 Min.) steht für Mi, 27.08. bereit.',
+      createdAt: '2026-08-18T12:00:00+02:00',
+    },
+    {
+      id: 'f3',
+      kind: 'schedule_change',
+      title: 'Terminänderung',
+      body: 'Training am 20.08. beginnt 15 Min. später (17:00 statt 16:45).',
+      createdAt: '2026-08-19T09:30:00+02:00',
+    },
+    {
+      id: 'f4',
+      kind: 'squad',
+      title: 'Kader für Meisterschaftsspiel',
+      body: 'Kader vs. SC St. Veit U12 (Sa, 23.08.) ist freigegeben – 14 Zusagen.',
+      createdAt: '2026-08-21T18:00:00+02:00',
+    },
+    {
+      id: 'f5',
+      kind: 'lineup',
+      title: 'Aufstellung fertig',
+      body: 'Startelf und Bank für das Heimspiel gegen St. Veit sind gesetzt (Formation 2-3-1).',
+      createdAt: '2026-08-22T20:00:00+02:00',
+    },
+    {
+      id: 'f6',
+      kind: 'result',
+      title: 'Endergebnis',
+      body: 'NSG Rohrbach U12 – SC St. Veit U12 3:1. Tore: Elias F., Noah K., Jonas W.',
+      createdAt: '2026-08-23T11:45:00+02:00',
+    },
+    {
+      id: 'f7',
+      kind: 'tournament_result',
+      title: 'Turnierergebnis',
+      body: 'U12-Sommerturnier St. Veit: Gruppe B – Platz 2 nach dem Vormittag, Finale am Nachmittag.',
+      createdAt: '2026-08-24T16:00:00+02:00',
+    },
+    {
+      id: 'f8',
+      kind: 'challenge',
+      title: 'Challenge-Auszeichnung',
+      body: 'Team-Challenge „Trainingsquote 85 %+“ erreicht – starke Woche!',
+      createdAt: '2026-08-25T10:00:00+02:00',
+    },
+    {
+      id: 'f9',
+      kind: 'photo',
+      title: 'Mannschaftsfoto (Demo)',
+      body: 'Platzhalter-Grafik für das Teamfoto – in der echten App erscheint hier euer Upload.',
+      createdAt: '2026-08-25T14:00:00+02:00',
+    },
+    {
+      id: 'f10',
+      kind: 'next_training',
+      title: 'Nächstes Training',
+      body: 'Mi, 27.08. · 17:00 · Sportplatz Rohrbach – Einheit „1 gegen 1 und schnelles Umschalten“.',
+      createdAt: '2026-08-26T08:00:00+02:00',
+    },
+  ],
+  training: {
+    id: 'tr-main',
+    title: 'U12 – 1 gegen 1 und schnelles Umschalten',
+    durationMin: 80,
+    status: 'geplant',
+    eventId: 'ev-train-next',
+    note: 'Fokus: 1v1-Zweikämpfe und sofortiges Umschalten nach Ballverlust. Kurze Coaching-Impulse, viel Spielzeit.',
+    present: 11,
+    absent: 2,
+    parts: [
+      {
+        id: 'tp1',
+        phase: 'AW',
+        title: 'Aufwärmen mit Ball',
+        minutes: 15,
+        organization: '4 Stationen im Viereck, Gruppen zu 3–4',
+        goal: 'Aktivierung, Ballgefühl, kurze Pässe',
+        material: '8 Bälle, 12 Hütchen, Leibchen',
+        coaching: ['Körperhaltung tief', 'Blick vom Ball lösen', 'Tempo steigern'],
+      },
+      {
+        id: 'tp2',
+        phase: 'HT1',
+        title: '1 gegen 1 – Dribbling',
+        minutes: 20,
+        organization: '2 Felder 15×10 m, Warteschlangen',
+        goal: '1v1 gewinnen und abschließen',
+        material: '4 Mini-Tore, Hütchen, Bälle',
+        coaching: ['Antritt nach Ballannahme', 'Finten mit Timing', 'Abschluss mit zweitem Kontakt'],
+      },
+      {
+        id: 'tp3',
+        phase: 'HT2',
+        title: 'Schnelles Umschalten 4v4+2',
+        minutes: 25,
+        organization: 'Feld 30×20 m, 2 Neutrale',
+        goal: 'Nach Ballgewinn sofort nach vorne spielen',
+        material: 'Leibchen, 2 Großtore / Mini-Tore',
+        coaching: ['Erste Aktion nach vorne', 'Breite nutzen', 'Gegenpressing 3 Sekunden'],
+      },
+      {
+        id: 'tp4',
+        phase: 'AK',
+        title: 'Abschlussspiel 6v6',
+        minutes: 20,
+        organization: 'Halbplatz, freie Aufstellung',
+        goal: 'Trainingsinhalte im Spiel umsetzen',
+        material: '2 Tore, Leibchen, Bälle',
+        coaching: ['Umschalten belohnen', 'Fairplay', 'Kurze Pausen'],
+      },
+    ],
+  },
+  formation: '2-3-1',
+  lineup: [
+    { playerId: 'p01', role: 'start', positionLabel: 'TW' },
+    { playerId: 'p02', role: 'start', positionLabel: 'AV' },
+    { playerId: 'p03', role: 'start', positionLabel: 'IV' },
+    { playerId: 'p06', role: 'start', positionLabel: 'ZM' },
+    { playerId: 'p07', role: 'start', positionLabel: 'ZM' },
+    { playerId: 'p08', role: 'start', positionLabel: 'OM' },
+    { playerId: 'p10', role: 'start', positionLabel: 'ST' },
+    { playerId: 'p04', role: 'bench', positionLabel: 'IV' },
+    { playerId: 'p09', role: 'bench', positionLabel: 'OM' },
+    { playerId: 'p11', role: 'bench', positionLabel: 'ST' },
+    { playerId: 'p12', role: 'bench', positionLabel: 'AV' },
+    { playerId: 'p13', role: 'bench', positionLabel: 'ZM' },
+  ],
+  eventDetail: {
+    id: 'ev-teamabend',
+    kind: 'event',
+    title: 'U12-Teamabend und Saisonbesprechung',
+    startsAt: '2026-09-12T18:00:00+02:00',
+    endsAt: '2026-09-12T20:00:00+02:00',
+    location: 'Vereinsheim Rohrbach',
+    rsvpYes: 10,
+    rsvpNo: 2,
+    rsvpOpen: 3,
+    notes:
+      'Ansprechpartner: Trainer Markus Demo\nMitbringen: Getränke / Snacks für den gemeinsamen Abend\nThema: Saisonziele, Termine und Elternorganisation',
+  },
+  tournament: {
+    name: 'U12-Sommerturnier St. Veit',
+    location: 'Sportanlage St. Veit',
+    squadPlayerIds: ['p01', 'p02', 'p03', 'p04', 'p06', 'p07', 'p08', 'p09', 'p10', 'p11', 'p12', 'p13'],
+    teams: [
+      { id: 'tt1', name: TEAM, played: 3, won: 2, draw: 1, lost: 0, gf: 7, ga: 3, points: 7 },
+      { id: 'tt2', name: 'SC St. Veit U12', played: 3, won: 2, draw: 0, lost: 1, gf: 5, ga: 4, points: 6 },
+      { id: 'tt3', name: 'SV Loosdorf U12', played: 3, won: 1, draw: 1, lost: 1, gf: 4, ga: 4, points: 4 },
+      { id: 'tt4', name: 'SKN Nachwuchs U12', played: 3, won: 0, draw: 0, lost: 3, gf: 2, ga: 7, points: 0 },
+    ],
+    matches: [
+      {
+        id: 'tm1',
+        home: TEAM,
+        away: 'SKN Nachwuchs U12',
+        kickoff: '2026-09-06T09:00:00+02:00',
+        scoreHome: 3,
+        scoreAway: 1,
+      },
+      {
+        id: 'tm2',
+        home: 'SC St. Veit U12',
+        away: 'SV Loosdorf U12',
+        kickoff: '2026-09-06T09:00:00+02:00',
+        scoreHome: 2,
+        scoreAway: 1,
+      },
+      {
+        id: 'tm3',
+        home: TEAM,
+        away: 'SV Loosdorf U12',
+        kickoff: '2026-09-06T10:15:00+02:00',
+        scoreHome: 2,
+        scoreAway: 2,
+      },
+      {
+        id: 'tm4',
+        home: 'SC St. Veit U12',
+        away: 'SKN Nachwuchs U12',
+        kickoff: '2026-09-06T10:15:00+02:00',
+        scoreHome: 3,
+        scoreAway: 1,
+      },
+      {
+        id: 'tm5',
+        home: TEAM,
+        away: 'SC St. Veit U12',
+        kickoff: '2026-09-06T11:30:00+02:00',
+        scoreHome: 2,
+        scoreAway: 0,
+      },
+      {
+        id: 'tm6',
+        home: 'SV Loosdorf U12',
+        away: 'SKN Nachwuchs U12',
+        kickoff: '2026-09-06T11:30:00+02:00',
+        scoreHome: 1,
+        scoreAway: 0,
+      },
+      {
+        id: 'tm7',
+        home: TEAM,
+        away: 'SC St. Veit U12',
+        kickoff: '2026-09-06T14:00:00+02:00',
+        scoreHome: null,
+        scoreAway: null,
+      },
+    ],
+  },
+  liveInitial: createInitialLiveState(),
+};
+
+export function playerLabel(p: { firstName: string; lastInitial: string; jersey?: number }): string {
+  const base = `${p.firstName} ${p.lastInitial}`;
+  return p.jersey != null ? `#${p.jersey} ${base}` : base;
+}
+
+export function formatDemoDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('de-AT', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+export function formatDemoTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}

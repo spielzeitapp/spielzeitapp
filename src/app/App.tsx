@@ -51,6 +51,16 @@ import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
+import { DemoLayout } from '../demo/DemoLayout';
+import { DemoHomePage } from '../demo/pages/DemoHomePage';
+import { DemoSchedulePage } from '../demo/pages/DemoSchedulePage';
+import { DemoTeamPage } from '../demo/pages/DemoTeamPage';
+import { DemoTrainingPage } from '../demo/pages/DemoTrainingPage';
+import { DemoMatchPage } from '../demo/pages/DemoMatchPage';
+import { DemoEventPage } from '../demo/pages/DemoEventPage';
+import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
+import { DemoLivePage } from '../demo/pages/DemoLivePage';
+import { DemoMorePage } from '../demo/pages/DemoMorePage';
 
 /** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
 function AppErrorFallback({
@@ -168,6 +178,19 @@ function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
       <Route path="app.html" element={<Navigate to="/app" replace />} />
+      {/* Öffentliche Trainer-Demo – kein Login, keine echten Daten */}
+      <Route path="demo" element={<DemoLayout />}>
+        <Route index element={<Navigate to="home" replace />} />
+        <Route path="home" element={<DemoHomePage />} />
+        <Route path="termine" element={<DemoSchedulePage />} />
+        <Route path="team" element={<DemoTeamPage />} />
+        <Route path="training" element={<DemoTrainingPage />} />
+        <Route path="match" element={<DemoMatchPage />} />
+        <Route path="event" element={<DemoEventPage />} />
+        <Route path="turnier" element={<DemoTournamentPage />} />
+        <Route path="live" element={<DemoLivePage />} />
+        <Route path="mehr" element={<DemoMorePage />} />
+      </Route>
       {/* Kurz-URLs → interne App */}
       <Route path="/home" element={<Navigate to="/app/termine" replace />} />
       <Route path="/team" element={<Navigate to="/app/team" replace />} />
@@ -268,6 +291,18 @@ function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
       <Route path="app.html" element={<Navigate to="/" replace />} />
+      <Route path="demo" element={<DemoLayout />}>
+        <Route index element={<Navigate to="home" replace />} />
+        <Route path="home" element={<DemoHomePage />} />
+        <Route path="termine" element={<DemoSchedulePage />} />
+        <Route path="team" element={<DemoTeamPage />} />
+        <Route path="training" element={<DemoTrainingPage />} />
+        <Route path="match" element={<DemoMatchPage />} />
+        <Route path="event" element={<DemoEventPage />} />
+        <Route path="turnier" element={<DemoTournamentPage />} />
+        <Route path="live" element={<DemoLivePage />} />
+        <Route path="mehr" element={<DemoMorePage />} />
+      </Route>
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="schedule" element={<SchedulePage />} />
