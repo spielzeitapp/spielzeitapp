@@ -359,13 +359,6 @@ export const MoreHubPage: React.FC = () => {
         </HubRowLink>
       </nav>
 
-      {isDemo ? (
-        <p className="text-[11px] leading-relaxed text-white/45">
-          Demo: Menüstruktur wie in der App. Schreibende Trainer-Tools und Nachrichten sind lokal
-          gesperrt bzw. führen in vorbereitete Demo-Bereiche.
-        </p>
-      ) : null}
-
       <PremiumCard variant="subtle" showAmbientGlow={false}>
         <div className="flex items-center justify-between gap-3 text-[16px] font-semibold text-white">
           <span className="flex items-center gap-3">

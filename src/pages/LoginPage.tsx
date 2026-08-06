@@ -128,7 +128,7 @@ export const LoginPage: React.FC = () => {
         <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
           <Link
             to="/demo"
-            className="rounded-xl border border-[#FF2D2D]/35 bg-[#FF2D2D]/10 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-[#FF2D2D]/18"
+            className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-white/10"
           >
             Demo ansehen
           </Link>

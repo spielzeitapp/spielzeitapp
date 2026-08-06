@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChevronRight, PlayCircle, Smartphone, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
@@ -53,12 +53,9 @@ function PremiumIntroButton({
 
 export const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const isDemoEntry = pathname.startsWith('/demo');
   const iconBase = appIconBase();
-  const liveFromDb = useAppHasLiveMatch({ fetchOutsideApp: true });
-  /** Im Demo-Einstieg keinen echten Live-DB-Pulse verwenden. */
-  const hasLiveMatch = isDemoEntry ? false : liveFromDb;
+  /** Gemeinsamer Einstieg: gleiche Live-Anzeige wie Produktion (nur Lesen). */
+  const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: true });
   const [welcomeEntered, setWelcomeEntered] = useState(false);
 
   useEffect(() => {
@@ -73,24 +70,18 @@ export const WelcomeScreen: React.FC = () => {
     };
   }, []);
 
+  /** „Zur App“ — immer produktiver Home-Einstieg (Login/Auth unverändert). */
   const goHome = () => {
-    if (isDemoEntry) {
-      navigate(ROUTE_DEMO_HOME, { replace: true });
-      return;
-    }
     markIntroFlowCompleted();
     navigate(ROUTE_APP_HOME, { replace: true });
   };
 
   const goLive = () => {
-    if (isDemoEntry) {
-      navigate('/demo/live', { replace: true });
-      return;
-    }
     markIntroFlowCompleted();
     navigate(ROUTE_LIVE_TICKER, { replace: true });
   };
 
+  /** Einzige Demo-Ergänzung: gleiche CTA-Optik, Ziel /demo/home. */
   const goDemo = () => {
     navigate(ROUTE_DEMO_HOME, { replace: true });
   };
@@ -321,9 +312,7 @@ export const WelcomeScreen: React.FC = () => {
                 Zur App
               </span>
               <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                {isDemoEntry
-                  ? 'Vorbereitetes U12-Demoteam öffnen.'
-                  : 'Alle Teams. Alle Funktionen.'}
+                Alle Teams. Alle Funktionen.
               </span>
             </span>
             <ChevronRight
@@ -333,26 +322,24 @@ export const WelcomeScreen: React.FC = () => {
             />
           </PremiumIntroButton>
 
-          {!isDemoEntry ? (
-            <PremiumIntroButton onClick={goDemo}>
-              <span className="welcome-intro-icon-shell relative z-10">
-                <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
+          <PremiumIntroButton onClick={goDemo}>
+            <span className="welcome-intro-icon-shell relative z-10">
+              <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
+            </span>
+            <span className="relative z-10 min-w-0 flex-1">
+              <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+                Demo ansehen
               </span>
-              <span className="relative z-10 min-w-0 flex-1">
-                <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                  Demo ansehen
-                </span>
-                <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                  U12-Demoteam ohne Login ausprobieren.
-                </span>
+              <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                U12-Demoteam ohne Login ausprobieren.
               </span>
-              <ChevronRight
-                className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
-                strokeWidth={2.6}
-                aria-hidden
-              />
-            </PremiumIntroButton>
-          ) : null}
+            </span>
+            <ChevronRight
+              className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
+              strokeWidth={2.6}
+              aria-hidden
+            />
+          </PremiumIntroButton>
 
           <PremiumIntroButton pulseGlow={hasLiveMatch} liveActive={hasLiveMatch} onClick={goLive}>
             <span className="relative z-10 flex shrink-0 items-center gap-2.5">
