@@ -1,11 +1,7 @@
-/**
- * Zentrale Demo-Datenquelle für produktive Komponenten (STEP DEMO.2A).
- * Keine Supabase-IDs echter Teams — nur lokale Fixtures.
- */
-
 import type { EventRow } from '../hooks/useEvents';
 import type { ClassifiedFeedPost, TeamFeedPostDbRow } from '../lib/matchdayFeedTypes';
 import { demoFixtures } from './demoFixtures';
+import { demoMinutesFromNowIso, demoOffsetIso } from './demoTime';
 
 export const DEMO_TEAM_SEASON_ID = '00000000-demo-4000-8000-teamseasonu12';
 export const DEMO_TEAM_ID = '00000000-demo-4000-8000-teamrohrbach';
@@ -14,6 +10,23 @@ export const DEMO_MATCH_ID_PAST = '00000000-demo-4000-8000-matchstveit';
 
 const TEAM = demoFixtures.teamName;
 const SEASON = demoFixtures.seasonLabel;
+
+/** Relative Ankerzeiten — konsistent zu Feed und Terminen. */
+export const DEMO_EVENT_TIMES = {
+  'ev-info': () => ({ starts: demoOffsetIso(-22, 19, 0) }),
+  'ev-train-canceled': () => ({ starts: demoOffsetIso(-14, 17, 0), ends: demoOffsetIso(-14, 18, 20) }),
+  'ev-train-past': () => ({ starts: demoOffsetIso(-7, 17, 0), ends: demoOffsetIso(-7, 18, 20) }),
+  'ev-game-past': () => ({ starts: demoOffsetIso(-4, 10, 0), meeting: demoOffsetIso(-4, 9, 15) }),
+  'ev-train-next': () => ({ starts: demoOffsetIso(2, 17, 0), ends: demoOffsetIso(2, 18, 20) }),
+  'ev-train-follow': () => ({ starts: demoOffsetIso(9, 17, 0), ends: demoOffsetIso(9, 18, 20) }),
+  'ev-game-next': () => ({
+    starts: demoMinutesFromNowIso(-48),
+    meeting: demoMinutesFromNowIso(-93),
+  }),
+  'ev-tournament': () => ({ starts: demoOffsetIso(14, 9, 0), ends: demoOffsetIso(14, 16, 0) }),
+  'ev-teamabend': () => ({ starts: demoOffsetIso(20, 18, 0), ends: demoOffsetIso(20, 20, 0) }),
+  'ev-game-away': () => ({ starts: demoOffsetIso(28, 10, 0) }),
+} as const;
 
 function basePost(
   partial: Pick<TeamFeedPostDbRow, 'id' | 'post_kind' | 'caption' | 'created_at' | 'media_type'> & {
@@ -78,14 +91,21 @@ export function buildDemoEvents(): EventRow[] {
           : ev.kind === 'tournament'
             ? ('tournament' as const)
             : ('event' as const);
-    const startsMs = new Date(ev.startsAt).getTime();
-    const isPast = startsMs < Date.now() - 2 * 60 * 60 * 1000;
+    const timesFn = DEMO_EVENT_TIMES[ev.id as keyof typeof DEMO_EVENT_TIMES];
+    const times = timesFn
+      ? timesFn()
+      : { starts: ev.startsAt, meeting: ev.meetingAt ?? undefined, ends: ev.endsAt ?? undefined };
+    const startsAt = times.starts;
+    const meetingAt =
+      typeof (times as { meeting?: string }).meeting === 'string'
+        ? (times as { meeting: string }).meeting
+        : ev.meetingAt ?? null;
     const canceled = ev.id === 'ev-train-canceled' || /\babgesagt\b/i.test(ev.title);
     let status: EventRow['status'] = 'upcoming';
     if (canceled) status = 'canceled';
     else if (kind === 'match' && ev.id === 'ev-game-next') status = 'live';
-    else if (kind === 'match' && isPast) status = 'finished';
-    else if (isPast && kind !== 'match') status = 'finished';
+    else if (kind === 'match' && ev.id === 'ev-game-past') status = 'finished';
+    else if (ev.id === 'ev-train-past' || ev.id === 'ev-info') status = 'finished';
 
     const titleNote =
       ev.kind === 'event' || ev.kind === 'info' || ev.kind === 'tournament'
@@ -95,8 +115,8 @@ export function buildDemoEvents(): EventRow[] {
     return toEventRow({
       id: ev.id,
       kind,
-      starts_at: ev.startsAt,
-      meeting_at: ev.meetingAt ?? null,
+      starts_at: startsAt,
+      meeting_at: meetingAt,
       location: ev.location,
       opponent: ev.opponent ?? null,
       is_home: ev.isHome ?? null,
@@ -125,6 +145,12 @@ export function buildDemoFeedPosts(): {
   const our = TEAM;
   const loosdorf = 'SV Loosdorf U12';
   const stVeit = 'SC St. Veit U12';
+  const tInfo = DEMO_EVENT_TIMES['ev-info']();
+  const tTrainPast = DEMO_EVENT_TIMES['ev-train-past']();
+  const tTrainNext = DEMO_EVENT_TIMES['ev-train-next']();
+  const tGamePast = DEMO_EVENT_TIMES['ev-game-past']();
+  const tGameNext = DEMO_EVENT_TIMES['ev-game-next']();
+  const tTournament = DEMO_EVENT_TIMES['ev-tournament']();
 
   const all: ClassifiedFeedPost[] = [
     {
@@ -134,7 +160,7 @@ export function buildDemoFeedPosts(): {
         post_kind: 'championship_schedule_published',
         media_type: 'championship_schedule',
         caption: `Saisonstart ${SEASON} · ${our}. Termine und Training sind vorbereitet.`,
-        created_at: '2026-08-10T08:00:00+02:00',
+        created_at: demoOffsetIso(-25, 8, 0),
         payload: {
           season_label: SEASON,
           team_name: our,
@@ -150,7 +176,7 @@ export function buildDemoFeedPosts(): {
           post_kind: 'next_match_auto',
           media_type: 'next_match',
           caption: 'Nächstes Training · 1 gegen 1 und schnelles Umschalten',
-          created_at: '2026-08-26T08:00:00+02:00',
+          created_at: demoOffsetIso(1, 8, 0),
           event_id: 'ev-train-next',
           payload: {},
         }),
@@ -161,7 +187,7 @@ export function buildDemoFeedPosts(): {
           is_home: true,
           opponent_logo_url: null,
           match_type: null,
-          kickoff_iso: '2026-08-27T17:00:00+02:00',
+          kickoff_iso: tTrainNext.starts,
           meeting_iso: null,
           location: 'Sportplatz Rohrbach',
           match_id: null,
@@ -176,8 +202,8 @@ export function buildDemoFeedPosts(): {
         id: 'df-schedule-change',
         post_kind: 'championship_match_changed',
         media_type: 'championship_match_changed',
-        caption: 'Terminänderung: Training am 20.08. beginnt um 17:00 (statt 16:45).',
-        created_at: '2026-08-19T09:30:00+02:00',
+        caption: 'Terminänderung: Training beginnt um 17:00 (statt 16:45).',
+        created_at: demoOffsetIso(-8, 9, 30),
         event_id: 'ev-train-past',
         payload: {
           title: 'Terminänderung',
@@ -194,7 +220,7 @@ export function buildDemoFeedPosts(): {
         post_kind: 'manual_image',
         media_type: 'image',
         caption: 'Elterninformation – Saisonstart im Vereinsheim Rohrbach. Bitte Zusagen prüfen.',
-        created_at: '2026-08-15T19:30:00+02:00',
+        created_at: tInfo.starts,
         event_id: 'ev-info',
         // Neutrale Platzhalter-Grafik (kein Kinderfoto)
         media_url: '/icons/pitch.svg',
@@ -210,7 +236,7 @@ export function buildDemoFeedPosts(): {
         event_id: 'ev-game-past',
         post_kind: 'matchday_auto',
         caption: `Kader freigegeben · vs. ${stVeit}`,
-        created_at: '2026-08-21T18:00:00+02:00',
+        created_at: demoOffsetIso(-5, 18, 0),
         media_type: 'matchday',
         payload: {
           display_home_name: our,
@@ -219,8 +245,8 @@ export function buildDemoFeedPosts(): {
           is_home: true,
           opponent_logo_url: null,
           match_type: 'championship',
-          kickoff_iso: '2026-08-23T10:00:00+02:00',
-          meeting_iso: '2026-08-23T09:15:00+02:00',
+          kickoff_iso: tGamePast.starts,
+          meeting_iso: tGamePast.meeting ?? null,
           location: 'Sportplatz Rohrbach',
           match_id: DEMO_MATCH_ID_PAST,
           event_id: 'ev-game-past',
@@ -236,7 +262,7 @@ export function buildDemoFeedPosts(): {
           post_kind: 'lineup_auto',
           media_type: 'lineup',
           caption: 'Aufstellung fertig · Formation 2-3-1',
-          created_at: '2026-08-22T20:00:00+02:00',
+          created_at: demoOffsetIso(-5, 20, 0),
           event_id: 'ev-game-past',
           payload: {},
         }),
@@ -271,7 +297,7 @@ export function buildDemoFeedPosts(): {
                 jersey_number: p.jersey,
               };
             }),
-          starts_at: '2026-08-23T10:00:00+02:00',
+          starts_at: tGamePast.starts,
           deep_link: '/demo/events/ev-game-past',
           our_team_name: our,
           opponent_name: stVeit,
@@ -287,7 +313,7 @@ export function buildDemoFeedPosts(): {
           post_kind: 'live_auto',
           media_type: 'live',
           caption: `LIVE · ${our} – ${loosdorf}`,
-          created_at: '2026-08-30T10:45:00+02:00',
+          created_at: demoMinutesFromNowIso(-45),
           event_id: 'ev-game-next',
           payload: {},
         }),
@@ -299,7 +325,7 @@ export function buildDemoFeedPosts(): {
           away_team_name: loosdorf,
           home_logo_url: '',
           away_logo_url: '',
-          starts_at: '2026-08-30T10:30:00+02:00',
+          starts_at: tGameNext.starts,
           location: 'Sportplatz Rohrbach',
           match_type: 'championship',
           status: 'live',
@@ -315,7 +341,7 @@ export function buildDemoFeedPosts(): {
           post_kind: 'result_auto',
           media_type: 'result',
           caption: `Endergebnis ${our} – ${stVeit} 3:1`,
-          created_at: '2026-08-23T11:45:00+02:00',
+          created_at: demoOffsetIso(-4, 11, 45),
           event_id: 'ev-game-past',
           payload: {},
         }),
@@ -330,7 +356,7 @@ export function buildDemoFeedPosts(): {
           home_score: 3,
           away_score: 1,
           match_type: 'championship',
-          starts_at: '2026-08-23T10:00:00+02:00',
+          starts_at: tGamePast.starts,
           meeting_at: null,
           location: 'Sportplatz Rohrbach',
           scorers: [
@@ -353,7 +379,7 @@ export function buildDemoFeedPosts(): {
         post_kind: 'tournament_completion_manual',
         media_type: 'tournament_completion',
         caption: 'U12-Sommerturnier St. Veit · Gruppe Platz 2, Finale am Nachmittag.',
-        created_at: '2026-08-24T16:00:00+02:00',
+        created_at: demoOffsetIso(-3, 16, 0),
         event_id: 'ev-tournament',
         payload: {
           tournament_name: demoFixtures.tournament.name,
@@ -370,7 +396,7 @@ export function buildDemoFeedPosts(): {
         post_kind: 'manual_image',
         media_type: 'image',
         caption: 'Mannschaftsmoment (Demo-Platzhalter) · starke Woche, Challenge 85 %+ erreicht.',
-        created_at: '2026-08-25T14:00:00+02:00',
+        created_at: demoOffsetIso(-2, 14, 0),
         media_url: '/icons/team.svg',
         payload: {},
       }),
