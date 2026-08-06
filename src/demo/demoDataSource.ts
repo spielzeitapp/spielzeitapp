@@ -102,13 +102,17 @@ export function buildDemoEvents(): EventRow[] {
 /**
  * Feed-Posts in produktiver ClassifiedFeedPost-Form.
  * Chronik der Demo-Saison — deep_links zeigen auf /demo/*, nie auf echte Team-IDs.
+ * active = aktuelle Posts; historic = ältere Chronik (wie produktiver Feed).
  */
-export function buildDemoFeedPosts(): ClassifiedFeedPost[] {
+export function buildDemoFeedPosts(): {
+  active: ClassifiedFeedPost[];
+  historic: ClassifiedFeedPost[];
+} {
   const our = TEAM;
   const loosdorf = 'SV Loosdorf U12';
   const stVeit = 'SC St. Veit U12';
 
-  const posts: ClassifiedFeedPost[] = [
+  const all: ClassifiedFeedPost[] = [
     {
       kind: 'championship_schedule',
       post: basePost({
@@ -356,9 +360,14 @@ export function buildDemoFeedPosts(): ClassifiedFeedPost[] {
     },
   ];
 
-  return posts.sort(
+  const sorted = all.sort(
     (a, b) => new Date(b.post.created_at).getTime() - new Date(a.post.created_at).getTime(),
   );
+  /** Neuere Posts im aktiven Feed; ältere in der Chronik (wie produktive Trennung). */
+  return {
+    active: sorted.slice(0, 6),
+    historic: sorted.slice(6),
+  };
 }
 
 export type DemoDataSource = {
@@ -368,4 +377,5 @@ export type DemoDataSource = {
   teamId: string;
   events: EventRow[];
   feedPosts: ClassifiedFeedPost[];
+  historicFeedPosts: ClassifiedFeedPost[];
 };

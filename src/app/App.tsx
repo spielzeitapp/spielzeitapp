@@ -59,7 +59,8 @@ import { DemoMatchPage } from '../demo/pages/DemoMatchPage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DemoLivePage } from '../demo/pages/DemoLivePage';
-import { DemoMorePage } from '../demo/pages/DemoMorePage';
+import { MoreLayout } from '../pages/MoreLayout';
+import { MorePage } from '../pages/MorePage';
 
 /** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
 function AppErrorFallback({
@@ -191,7 +192,9 @@ function InternalRoutes(): React.ReactElement {
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
           <Route path="live" element={<DemoLivePage />} />
-          <Route path="mehr" element={<DemoMorePage />} />
+          <Route path="mehr" element={<MoreLayout />}>
+            <Route index element={<MorePage />} />
+          </Route>
         </Route>
       </Route>
       {/* Kurz-URLs → interne App */}
@@ -307,7 +310,9 @@ function PublicRoutes(): React.ReactElement {
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
           <Route path="live" element={<DemoLivePage />} />
-          <Route path="mehr" element={<DemoMorePage />} />
+          <Route path="mehr" element={<MoreLayout />}>
+            <Route index element={<MorePage />} />
+          </Route>
         </Route>
       </Route>
       <Route element={<AppLayout />}>

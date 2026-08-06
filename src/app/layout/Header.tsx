@@ -136,22 +136,15 @@ export const Header: React.FC = () => {
         aria-hidden
       />
       <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-0.5 md:px-8 md:py-1">
-        {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
+        {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home bzw. /demo/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
           {pathname.startsWith('/app') || isDemo ? (
             <Link
               to={isDemo ? '/demo/home' : '/app/home'}
-              className="flex min-w-0 flex-col items-start gap-0.5"
+              className="inline-flex min-w-0 items-center gap-1.5"
             >
-              <span className="inline-flex items-center gap-1.5">
-                <AppHeaderBrand />
-                <DemoBadge />
-              </span>
-              {isDemo ? (
-                <span className="max-w-[min(55vw,14rem)] truncate text-[10px] text-white/55 sm:max-w-[16rem]">
-                  {demo?.data.teamName ?? 'Demo'} · {demo?.data.seasonLabel ?? ''}
-                </span>
-              ) : null}
+              <AppHeaderBrand />
+              {isDemo ? <DemoBadge /> : null}
               {!isDemo && membershipError ? (
                 <span className="max-w-[min(50vw,10.25rem)] truncate text-[9px] text-amber-400/95 sm:max-w-[12rem]" role="alert">
                   {membershipError}
@@ -175,58 +168,87 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Rechts: Staff-Navigation (Anfragen), Profil + Login (kein Logout im Header) + kompakte Rollen-Badge */}
-        {!publicView && !isDemo && (
+        {/* Rechts: Staff / Demo-Trainer-Chrome (gleiche Höhe wie App) */}
+        {!publicView && (
           <div className="flex shrink-0 flex-col items-end justify-center gap-0.5">
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {isStaff && (
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/join-requests')}
-                  className="hidden rounded-full border border-white/14 bg-white/[0.06] px-2.5 py-1.5 text-[11px] font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:bg-white/[0.1] sm:inline-flex"
-                >
-                  Anfragen
-                  {typeof pendingRequestsCount === 'number' && pendingRequestsCount > 0 && (
-                    <span className="ml-1 rounded-full bg-red-600/85 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
-                      {pendingRequestsCount}
-                    </span>
-                  )}
-                </button>
-              )}
-              {!authLoading && !user && (
-                <button
-                  type="button"
-                  onClick={() => navigate(APP_LOGIN_REDIRECT)}
-                  className="rounded-full border border-white/14 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:bg-white/[0.1]"
-                >
-                  Login
-                </button>
-              )}
-              {authLoading || !user ? null : pathname.startsWith('/app') ? (
-                <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
-                  <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
-                </Link>
-              ) : null}
-              {authLoading || !user ? null : (
-                <div className="flex flex-col items-end gap-0.5">
+              {isDemo ? (
+                <>
                   <Link
-                    to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
+                    to="/demo/mehr"
                     className={dsGlassIconButtonClass()}
-                    aria-label="Profil"
+                    aria-label="Nachrichten (Demo)"
+                    title="In der Demo: Mehr-Menü"
                   >
-                    <svg viewBox="0 0 24 24" className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" stroke="currentColor" strokeWidth="1.85" fill="none" aria-hidden>
-                      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
                   </Link>
-                  {isStaff && staffBackendBadge ? (
-                    <span className={dsTrainerPillClass()} title={staffBackendBadge}>
-                      {staffBackendBadge}
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span
+                      className={dsGlassIconButtonClass()}
+                      aria-label="Profil (Demo)"
+                      title="Profil in der Demo deaktiviert"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" stroke="currentColor" strokeWidth="1.85" fill="none" aria-hidden>
+                        <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </span>
+                    <span className={dsTrainerPillClass()} title="Trainer">
+                      Trainer
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {isStaff && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/join-requests')}
+                      className="hidden rounded-full border border-white/14 bg-white/[0.06] px-2.5 py-1.5 text-[11px] font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:bg-white/[0.1] sm:inline-flex"
+                    >
+                      Anfragen
+                      {typeof pendingRequestsCount === 'number' && pendingRequestsCount > 0 && (
+                        <span className="ml-1 rounded-full bg-red-600/85 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
+                          {pendingRequestsCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
+                  {!authLoading && !user && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(APP_LOGIN_REDIRECT)}
+                      className="rounded-full border border-white/14 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:bg-white/[0.1]"
+                    >
+                      Login
+                    </button>
+                  )}
+                  {authLoading || !user ? null : pathname.startsWith('/app') ? (
+                    <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
+                      <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
+                    </Link>
                   ) : null}
-                </div>
+                  {authLoading || !user ? null : (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Link
+                        to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
+                        className={dsGlassIconButtonClass()}
+                        aria-label="Profil"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" stroke="currentColor" strokeWidth="1.85" fill="none" aria-hidden>
+                          <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </Link>
+                      {isStaff && staffBackendBadge ? (
+                        <span className={dsTrainerPillClass()} title={staffBackendBadge}>
+                          {staffBackendBadge}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                </>
               )}
             </div>
-            {!sessionLoading && !authLoading && !isStaff && roleLabel ? (
+            {!isDemo && !sessionLoading && !authLoading && !isStaff && roleLabel ? (
               <span className={dsTrainerPillClass()}>
                 {roleLabel}
               </span>

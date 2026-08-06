@@ -221,7 +221,7 @@ export const HomePage: React.FC = () => {
   } = useTeamFeedPosts(isDemoMode ? null : sessionTeamSeasonId, isDemoMode ? null : teamId || null);
 
   const activePosts = isDemoMode ? demo!.data.feedPosts : liveActivePosts;
-  const historicPosts = isDemoMode ? [] : liveHistoricPosts;
+  const historicPosts = isDemoMode ? demo!.data.historicFeedPosts : liveHistoricPosts;
   const teamFeedLoading = isDemoMode ? false : teamFeedLoadingRaw;
   const teamFeedEnsuring = isDemoMode ? false : teamFeedEnsuringRaw;
   const hasMoreHistoric = isDemoMode ? false : hasMoreHistoricLive;
@@ -318,14 +318,15 @@ export const HomePage: React.FC = () => {
           <p className={cn(dsSublineClass(), 'text-[12px] sm:text-[13px]')}>{teamSeasonLine}</p>
 
           <div className="min-w-0 space-y-3">
-            {teamSeasonId && teamId && !isDemoMode ? (
+            {teamSeasonId && teamId ? (
               <HomeFeedComposer
-                backendRole={backendRole}
-                membershipRole={membershipRole}
+                backendRole={isDemoMode ? 'trainer' : backendRole}
+                membershipRole={isDemoMode ? 'trainer' : membershipRole}
                 teamSeasonId={teamSeasonId}
                 teamId={teamId}
-                userId={session?.user?.id ?? null}
+                userId={isDemoMode ? 'demo-trainer' : session?.user?.id ?? null}
                 onPosted={() => void refetchFeed()}
+                demoMode={isDemoMode}
               />
             ) : null}
 

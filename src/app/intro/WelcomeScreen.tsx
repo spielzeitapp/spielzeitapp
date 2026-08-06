@@ -56,7 +56,9 @@ export const WelcomeScreen: React.FC = () => {
   const { pathname } = useLocation();
   const isDemoEntry = pathname.startsWith('/demo');
   const iconBase = appIconBase();
-  const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: true });
+  const liveFromDb = useAppHasLiveMatch({ fetchOutsideApp: true });
+  /** Im Demo-Einstieg keinen echten Live-DB-Pulse verwenden. */
+  const hasLiveMatch = isDemoEntry ? false : liveFromDb;
   const [welcomeEntered, setWelcomeEntered] = useState(false);
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export const WelcomeScreen: React.FC = () => {
 
   const goHome = () => {
     if (isDemoEntry) {
-      navigate('/login', { replace: true });
+      navigate(ROUTE_DEMO_HOME, { replace: true });
       return;
     }
     markIntroFlowCompleted();
@@ -82,7 +84,7 @@ export const WelcomeScreen: React.FC = () => {
 
   const goLive = () => {
     if (isDemoEntry) {
-      navigate(ROUTE_DEMO_HOME.replace('/home', '/live'), { replace: true });
+      navigate('/demo/live', { replace: true });
       return;
     }
     markIntroFlowCompleted();
@@ -316,10 +318,12 @@ export const WelcomeScreen: React.FC = () => {
             </span>
             <span className="relative z-10 min-w-0 flex-1">
               <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                {isDemoEntry ? 'Zur Anmeldung' : 'Zur App'}
+                Zur App
               </span>
               <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                {isDemoEntry ? 'Mit Login in dein echtes Team.' : 'Alle Teams. Alle Funktionen.'}
+                {isDemoEntry
+                  ? 'Vorbereitetes U12-Demoteam öffnen.'
+                  : 'Alle Teams. Alle Funktionen.'}
               </span>
             </span>
             <ChevronRight
@@ -329,24 +333,26 @@ export const WelcomeScreen: React.FC = () => {
             />
           </PremiumIntroButton>
 
-          <PremiumIntroButton onClick={goDemo}>
-            <span className="welcome-intro-icon-shell relative z-10">
-              <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
-            </span>
-            <span className="relative z-10 min-w-0 flex-1">
-              <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                Demo ansehen
+          {!isDemoEntry ? (
+            <PremiumIntroButton onClick={goDemo}>
+              <span className="welcome-intro-icon-shell relative z-10">
+                <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
               </span>
-              <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                U12-Demoteam ohne Login ausprobieren.
+              <span className="relative z-10 min-w-0 flex-1">
+                <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+                  Demo ansehen
+                </span>
+                <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                  U12-Demoteam ohne Login ausprobieren.
+                </span>
               </span>
-            </span>
-            <ChevronRight
-              className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
-              strokeWidth={2.6}
-              aria-hidden
-            />
-          </PremiumIntroButton>
+              <ChevronRight
+                className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
+                strokeWidth={2.6}
+                aria-hidden
+              />
+            </PremiumIntroButton>
+          ) : null}
 
           <PremiumIntroButton pulseGlow={hasLiveMatch} liveActive={hasLiveMatch} onClick={goLive}>
             <span className="relative z-10 flex shrink-0 items-center gap-2.5">

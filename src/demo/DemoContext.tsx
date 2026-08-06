@@ -30,13 +30,15 @@ function nextEventId(events: DemoLiveEvent[]): string {
 }
 
 function buildDataSource(): DemoDataSource {
+  const feed = buildDemoFeedPosts();
   return {
     teamName: demoFixtures.teamName,
     seasonLabel: demoFixtures.seasonLabel,
     teamSeasonId: DEMO_TEAM_SEASON_ID,
     teamId: DEMO_TEAM_ID,
     events: buildDemoEvents(),
-    feedPosts: buildDemoFeedPosts(),
+    feedPosts: feed.active,
+    historicFeedPosts: feed.historic,
   };
 }
 

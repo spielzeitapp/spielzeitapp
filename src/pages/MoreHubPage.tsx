@@ -10,6 +10,7 @@ import { canViewParentLinks, normalizeRole } from '../lib/roles';
 import { dsGlassToggleTrack, dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
+import { useDemoMode } from '../demo/DemoContext';
 
 const subRowClass = `${dsPanelRowClass()} pl-10`;
 
@@ -24,11 +25,67 @@ function showMehrHubDebugButtons(backendRole: string, effectiveRole: string): bo
   const er = (effectiveRole ?? '').trim().toLowerCase();
   if (br === 'admin') return true;
   if (er === 'trainer') return true;
-  // Erweiterbar: z. B. import.meta.env.DEV && import.meta.env.VITE_SHOW_DEBUG_HUB_BUTTONS === 'true'
   return false;
 }
 
+/** App-Pfad → Demo-Pfad oder null (dann UI-disabled, kein echter App-Zugriff). */
+function demoHrefFor(appPath: string): string | null {
+  const map: Record<string, string> = {
+    '/app/nachrichten': '/demo/mehr',
+    '/app/profile': '/demo/mehr',
+    '/app/mehr/seasons': '/demo/team',
+    '/app/mehr/parent-access': '/demo/team',
+    '/app/mehr/trainer/team-push': '/demo/live',
+    '/app/mehr/trainer/vorlagen': '/demo/training',
+    '/app/mehr/trainer/erinnerungen': '/demo/termine',
+    '/app/mehr/trainer/preview': '/demo/home',
+  };
+  return map[appPath] ?? null;
+}
+
+function HubRowLink({
+  to,
+  className,
+  isDemo,
+  children,
+}: {
+  to: string;
+  className: string;
+  isDemo: boolean;
+  children: React.ReactNode;
+}): React.ReactElement {
+  if (!isDemo) {
+    return (
+      <Link to={to} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  const demoTo = demoHrefFor(to);
+  if (demoTo) {
+    return (
+      <Link to={demoTo} className={className} title="Demo-Bereich">
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={`${className} opacity-70`}
+      title="In der Demo nicht verfügbar"
+      onClick={() => {
+        window.alert('Dieser Bereich ist in der Trainer-Demo noch nicht freigeschaltet.');
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 export const MoreHubPage: React.FC = () => {
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
   const {
     selectedTeamSeason,
     selectedTeamSeasonId,
@@ -36,11 +93,14 @@ export const MoreHubPage: React.FC = () => {
     viewTeamSeasonId,
     setViewTeamSeasonId,
     teamSeasons,
-    effectiveRole,
-    backendRole,
+    effectiveRole: sessionEffectiveRole,
+    backendRole: sessionBackendRole,
     user,
   } = useSession();
+  const effectiveRole = isDemo ? 'trainer' : sessionEffectiveRole;
+  const backendRole = isDemo ? 'trainer' : sessionBackendRole;
   const canSwitchTeam =
+    !isDemo &&
     (teamSeasons?.length ?? 0) > 1 &&
     (effectiveRole === 'trainer' || effectiveRole === 'head_coach' || effectiveRole === 'co_trainer');
 
@@ -50,10 +110,12 @@ export const MoreHubPage: React.FC = () => {
     canPrepareNextSeason(effectiveRole) ||
     canPrepareNextSeason(backendRole) ||
     isTrainerToolsRole(effectiveRole);
-  const showPreviewLink = backendRole === 'admin' || backendRole === 'head_coach';
+  const showPreviewLink = !isDemo && (backendRole === 'admin' || backendRole === 'head_coach');
   const showParentAccessLink = canViewParentLinks(normalizeRole(effectiveRole));
-  const showDebugHubButtons = showMehrHubDebugButtons(backendRole, effectiveRole);
-  const unreadCount = useUnreadCount(user?.id);
+  /** Push-/Reminder-Debug in der Demo immer aus — keine echten Writes/Pushes. */
+  const showDebugHubButtons = !isDemo && showMehrHubDebugButtons(backendRole, effectiveRole);
+  const unreadCountRaw = useUnreadCount(user?.id);
+  const unreadCount = isDemo ? 0 : unreadCountRaw;
 
   const [teamAdminOpen, setTeamAdminOpen] = useState(false);
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
@@ -173,7 +235,7 @@ export const MoreHubPage: React.FC = () => {
       <SectionTitle subtitle="Einstellungen und weitere Bereiche">Mehr</SectionTitle>
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
-        <Link to="/app/nachrichten" className={dsPanelRowClass()}>
+        <HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
           <span className="flex items-center gap-3">
             <Bell className="h-5 w-5 text-red-400" aria-hidden />
             <span>Nachrichten</span>
@@ -184,7 +246,7 @@ export const MoreHubPage: React.FC = () => {
             )}
           </span>
           <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-        </Link>
+        </HubRowLink>
 
         {showSeasonManagement && (
           <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
@@ -208,15 +270,15 @@ export const MoreHubPage: React.FC = () => {
             </button>
             {teamAdminOpen && (
               <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
-                <Link to="/app/mehr/seasons" className={subRowClass}>
+                <HubRowLink to="/app/mehr/seasons" className={subRowClass} isDemo={isDemo}>
                   <span className="flex items-center gap-2">
                     <CalendarRange className="h-4 w-4 text-red-400/90" aria-hidden />
                     Saisonverwaltung
                   </span>
                   <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                </Link>
+                </HubRowLink>
                 {showParentAccessLink ? (
-                  <Link to="/app/mehr/parent-access" className={subRowClass}>
+                  <HubRowLink to="/app/mehr/parent-access" className={subRowClass} isDemo={isDemo}>
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4 shrink-0 text-red-400/90" aria-hidden />
@@ -227,7 +289,7 @@ export const MoreHubPage: React.FC = () => {
                       </span>
                     </span>
                     <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
-                  </Link>
+                  </HubRowLink>
                 ) : null}
               </PremiumCard>
             )}
@@ -258,29 +320,29 @@ export const MoreHubPage: React.FC = () => {
             {trainerToolsOpen && (
               <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
                 <div className="flex flex-col gap-1.5">
-                  <Link to="/app/mehr/trainer/team-push" className={subRowClass}>
+                  <HubRowLink to="/app/mehr/trainer/team-push" className={subRowClass} isDemo={isDemo}>
                     <span>Team-Push</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                  </Link>
-                  <Link to="/app/mehr/trainer/vorlagen" className={subRowClass}>
+                  </HubRowLink>
+                  <HubRowLink to="/app/mehr/trainer/vorlagen" className={subRowClass} isDemo={isDemo}>
                     <span>Vorlagen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                  </Link>
+                  </HubRowLink>
                   {showDebugHubButtons && (
                     <button type="button" onClick={runParentsPushDebug} className={subRowClass}>
                       <span>Direkt-Push Debug</span>
                       <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                     </button>
                   )}
-                  <Link to="/app/mehr/trainer/erinnerungen" className={subRowClass}>
+                  <HubRowLink to="/app/mehr/trainer/erinnerungen" className={subRowClass} isDemo={isDemo}>
                     <span>Erinnerungen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                  </Link>
+                  </HubRowLink>
                   {showPreviewLink && (
-                    <Link to="/app/mehr/trainer/preview" className={subRowClass}>
+                    <HubRowLink to="/app/mehr/trainer/preview" className={subRowClass} isDemo={isDemo}>
                       <span>Ansicht testen als</span>
                       <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                    </Link>
+                    </HubRowLink>
                   )}
                 </div>
               </PremiumCard>
@@ -288,14 +350,21 @@ export const MoreHubPage: React.FC = () => {
           </div>
         )}
 
-        <Link to="/app/profile" className={dsPanelRowClass()}>
+        <HubRowLink to="/app/profile" className={dsPanelRowClass()} isDemo={isDemo}>
           <span className="flex items-center gap-3">
             <Settings className="h-5 w-5 text-red-400" aria-hidden />
             <span>Einstellungen</span>
           </span>
           <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-        </Link>
+        </HubRowLink>
       </nav>
+
+      {isDemo ? (
+        <p className="text-[11px] leading-relaxed text-white/45">
+          Demo: Menüstruktur wie in der App. Schreibende Trainer-Tools und Nachrichten sind lokal
+          gesperrt bzw. führen in vorbereitete Demo-Bereiche.
+        </p>
+      ) : null}
 
       <PremiumCard variant="subtle" showAmbientGlow={false}>
         <div className="flex items-center justify-between gap-3 text-[16px] font-semibold text-white">
