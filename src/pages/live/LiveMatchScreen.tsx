@@ -125,6 +125,13 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
+import { useDemoMode } from '../../demo/DemoContext';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { getDemoMatchLite } from '../../demo/demoMatchState';
+import {
+  isDemoLiveCalendarFinalized,
+  markDemoLiveCalendarFinalized,
+} from '../../demo/demoLiveRuntime';
 
 const HOME_FALLBACK = 'Unser Team';
 
@@ -897,6 +904,10 @@ export const LiveMatchScreen: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const matchIdParam = searchParams.get('matchId');
+  /** DEMO.2F: gleicher Screen unter /demo, aber gegen die lokale Runtime statt Supabase. */
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
 
   const [effectiveMatchId, setEffectiveMatchId] = useState<string | null>(null);
   const [matchRow, setMatchRow] = useState<LiveMatchRow | null>(null);
@@ -923,7 +934,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const { selectedTeamSeason, canAccess, backendRole } = useSession();
   const canControlLiveMatch =
-    canAccess('match_admin') || String(backendRole ?? '').trim().toLowerCase() === 'admin';
+    isDemo || canAccess('match_admin') || String(backendRole ?? '').trim().toLowerCase() === 'admin';
 
   useEffect(() => {
     let cancelled = false;
@@ -1013,7 +1024,14 @@ export const LiveMatchScreen: React.FC = () => {
   }, [matchIdParam]);
 
   const teamSeasonForRoster = matchRow?.team_season_id ?? null;
-  const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonForRoster);
+  const {
+    players: dbPlayers,
+    loading: dbPlayersLoading,
+    error: dbPlayersError,
+  } = usePlayers(isDemo ? null : teamSeasonForRoster);
+  const players = isDemo && demo ? demo.players : dbPlayers;
+  const playersLoading = isDemo ? false : dbPlayersLoading;
+  const playersError = isDemo ? null : dbPlayersError;
   const safePlayers = Array.isArray(players) ? players : [];
 
   const roster = useMemo(() => sortRosterByNumber(safePlayers.map(playerItemToRoster)), [safePlayers]);
@@ -1233,7 +1251,8 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!effectiveMatchId) return;
+    // Demo: lokale Runtime, kein Realtime-Kanal.
+    if (!effectiveMatchId || isDemo) return;
     const channel = supabase
       .channel(`live-match-screen-${effectiveMatchId}`)
       .on(
@@ -1295,9 +1314,13 @@ export const LiveMatchScreen: React.FC = () => {
       }
       void supabase.removeChannel(channel);
     };
-  }, [effectiveMatchId, queueLiveMatchRealtimeUpdate]);
+  }, [effectiveMatchId, isDemo, queueLiveMatchRealtimeUpdate]);
 
-  const homeNameRaw = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
+  /** Demo hat keine Session-Team-Saison — Teamname kommt aus den Demo-Fixtures. */
+  const ownTeamName = isDemo
+    ? demo?.data.teamName ?? HOME_FALLBACK
+    : selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
+  const homeNameRaw = ownTeamName;
   const headerOpponent = opponentLabel;
   const sides = useMemo(
     () =>
@@ -1540,6 +1563,10 @@ export const LiveMatchScreen: React.FC = () => {
       setCalendarFinalized(false);
       return;
     }
+    if (isDemo) {
+      setCalendarFinalized(isDemoLiveCalendarFinalized(effectiveMatchId));
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -1558,10 +1585,11 @@ export const LiveMatchScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [effectiveMatchId, matchRow?.status]);
+  }, [effectiveMatchId, isDemo, matchRow?.status]);
 
   useEffect(() => {
-    if (!effectiveMatchId || !matchIsFinished || !canControlLiveMatch) {
+    // Demo: keine Turnier-Navigation (kein Turnier-Match im Demo-Katalog).
+    if (!effectiveMatchId || !matchIsFinished || !canControlLiveMatch || isDemo) {
       setTournamentNavContext(null);
       return;
     }
@@ -1574,7 +1602,7 @@ export const LiveMatchScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [effectiveMatchId, matchIsFinished, canControlLiveMatch]);
+  }, [effectiveMatchId, matchIsFinished, canControlLiveMatch, isDemo]);
 
   useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
 
@@ -2825,6 +2853,14 @@ export const LiveMatchScreen: React.FC = () => {
   /** Nachgelagert: verknüpften Kalender-Termin abschließen (events.status). */
   const finalizeCalendarForMatch = async () => {
     if (!effectiveMatchId || calendarFinalized) return;
+    if (isDemo) {
+      markDemoLiveCalendarFinalized(effectiveMatchId);
+      setCalendarFinalized(true);
+      setSpielAbschlussOpen(false);
+      const eventId = getDemoMatchLite(effectiveMatchId)?.event_id ?? null;
+      navigate(eventId ? `${basePath}/events/${encodeURIComponent(eventId)}` : `${basePath}/termine`);
+      return;
+    }
     const { error } = await supabase
       .from('events')
       .update({ status: 'finished', updated_at: new Date().toISOString() })
@@ -3748,8 +3784,8 @@ export const LiveMatchScreen: React.FC = () => {
   }
 
   const ownLogoName =
-    selectedTeamSeason?.team?.name?.trim() && selectedTeamSeason.team.name.trim() !== HOME_FALLBACK
-      ? selectedTeamSeason.team.name.trim()
+    ownTeamName.trim() && ownTeamName.trim() !== HOME_FALLBACK
+      ? ownTeamName.trim()
       : getOurTeamDisplayName();
   const homeLogoSrc = getClubLogo(sides.isOwnTeamHome ? ownLogoName : headerOpponent);
   const awayLogoSrc = getClubLogo(sides.isOwnTeamHome ? headerOpponent : ownLogoName);
@@ -3997,8 +4033,8 @@ export const LiveMatchScreen: React.FC = () => {
     ? (kickoffProfilePlayer.avatar_url ?? '').trim() || null
     : null;
   const kickoffTeamSeasonLabel =
-    selectedTeamSeason?.team?.name?.trim() && selectedTeamSeason.team.name.trim() !== HOME_FALLBACK
-      ? selectedTeamSeason.team.name.trim()
+    ownTeamName.trim() && ownTeamName.trim() !== HOME_FALLBACK
+      ? ownTeamName.trim()
       : getOurTeamDisplayName();
 
   return (
@@ -4014,7 +4050,7 @@ export const LiveMatchScreen: React.FC = () => {
           onClose={() => setKickoffProfilePlayer(null)}
           onEdit={() => {
             setKickoffProfilePlayer(null);
-            navigate('/app/team');
+            navigate(`${basePath}/team`);
           }}
         />
       ) : null}
@@ -4354,7 +4390,7 @@ export const LiveMatchScreen: React.FC = () => {
                 >
                   {!matchIsFinished && effectiveMatchId ? (
                     <Link
-                      to={`/app/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
+                      to={`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
                       className={`flex min-h-[44px] w-full items-center justify-center px-3 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
                     >
                       Vorbereitung bearbeiten

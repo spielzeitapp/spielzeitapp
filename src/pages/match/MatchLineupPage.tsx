@@ -509,6 +509,8 @@ export const MatchLineupPage: React.FC = () => {
       return;
     }
     if (isDemo) {
+      // Lokale Live-Session aus der gespeicherten Aufstellung aufbauen (Status bleibt „scheduled“ bis Anpfiff).
+      demo?.startDemoLiveMatch(matchId, { slots, squadPlayerIds: squadIds, formationId });
       navigate(`${basePath}/live?matchId=${encodeURIComponent(matchId)}`);
       return;
     }

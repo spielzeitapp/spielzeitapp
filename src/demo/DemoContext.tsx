@@ -1,12 +1,19 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { createInitialLiveState, demoFixtures } from './demoFixtures';
 import {
   buildDemoEvents,
   buildDemoFeedPosts,
   type DemoDataSource,
+  DEMO_MATCH_ID_LIVE,
   DEMO_TEAM_ID,
   DEMO_TEAM_SEASON_ID,
 } from './demoDataSource';
+import {
+  bootDemoLiveRuntime,
+  getDemoLiveRuntimeSnapshot,
+  resetDemoLiveRuntime,
+  subscribeDemoLiveRuntime,
+} from './demoLiveRuntime';
 import {
   attendanceRowsToByEventId,
   buildDemoPlayers,
@@ -51,6 +58,27 @@ export type DemoModeContextValue = {
   setDemoMatchFormation: (matchId: string, formationId: U11FormationId) => void;
   setDemoMatchPublishedLocal: (matchId: string, published: boolean) => void;
   resetDemoMatchPrep: (matchId?: string) => void;
+  /**
+   * DEMO.2F — lokale Live-Runtime (produktiver LiveMatchScreen unter /demo).
+   * Zählt bei jeder Runtime-Änderung hoch; Status/ID des Live-Spiels für Nav & Spielplan.
+   */
+  liveRuntimeVersion: number;
+  liveRuntimeStatus: string | null;
+  liveRuntimeMatchId: string | null;
+  /**
+   * Aufstellung als Live-Session übernehmen (Status bleibt `scheduled` bis zum Anpfiff).
+   * `prep` überschreibt den Context-State, damit die gerade gespeicherte Aufstellung
+   * nicht erst über den nächsten Render greift.
+   */
+  startDemoLiveMatch: (
+    matchId: string,
+    prep?: {
+      slots: Record<FieldSlotId, string | null>;
+      squadPlayerIds: string[];
+      formationId: U11FormationId;
+    },
+  ) => void;
+  /** @deprecated DEMO.2F: Legacy-Mock-Ticker (DemoLivePage), nicht mehr geroutet. */
   live: DemoLiveState;
   bumpMinute: () => void;
   addGoalHome: () => void;
@@ -183,6 +211,74 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
     setMatchPrepById((prev) => ({ ...prev, [matchId]: initial[matchId] ?? prev[matchId] }));
   }, []);
 
+  const [liveRuntimeVersion, setLiveRuntimeVersion] = useState(0);
+  useEffect(() => subscribeDemoLiveRuntime(() => setLiveRuntimeVersion((v) => v + 1)), []);
+
+  /** Session beim Verlassen der Demo verwerfen — sonst sieht /app eine „laufende“ Partie. */
+  useEffect(() => () => resetDemoLiveRuntime(), []);
+
+  const bootLiveRuntime = useCallback(
+    (
+      matchId: string,
+      options?: {
+        force?: boolean;
+        prep?: {
+          slots: Record<FieldSlotId, string | null>;
+          squadPlayerIds: string[];
+          formationId: U11FormationId;
+        };
+      },
+    ) => {
+      const lite = getDemoMatchLite(matchId);
+      const prep =
+        options?.prep ?? matchPrepById[matchId] ?? buildInitialDemoMatchStates()[matchId];
+      if (!lite || !prep) return;
+      const ev = data.events.find((e) => e.id === lite.event_id);
+      bootDemoLiveRuntime(
+        {
+          matchId: lite.id,
+          teamSeasonId: lite.team_season_id,
+          opponent: lite.opponent,
+          isHome: lite.is_home,
+          matchDate: ev?.starts_at ?? null,
+          location: ev?.location ?? null,
+          formationId: prep.formationId,
+          minimumPlaytimeEnabled: lite.minimum_playtime_enabled,
+          minimumPlaytimeMinutes: lite.minimum_playtime_minutes,
+          plannedMatchMinutes: lite.planned_match_minutes,
+          slots: prep.slots,
+          squadPlayerIds: prep.squadPlayerIds,
+        },
+        options,
+      );
+    },
+    [data.events, matchPrepById],
+  );
+
+  /** Nur matchloosdorf bekommt den LIVE-Flow; solange nicht angepfiffen, folgt die Session der Vorbereitung. */
+  useEffect(() => {
+    bootLiveRuntime(DEMO_MATCH_ID_LIVE);
+  }, [bootLiveRuntime]);
+
+  const startDemoLiveMatch = useCallback(
+    (
+      matchId: string,
+      prep?: {
+        slots: Record<FieldSlotId, string | null>;
+        squadPlayerIds: string[];
+        formationId: U11FormationId;
+      },
+    ) => {
+      bootLiveRuntime(matchId, { prep });
+    },
+    [bootLiveRuntime],
+  );
+
+  const liveRuntime = useMemo(() => {
+    void liveRuntimeVersion;
+    return getDemoLiveRuntimeSnapshot();
+  }, [liveRuntimeVersion]);
+
   const bumpMinute = useCallback(() => {
     setLive((prev) => {
       if (prev.status === 'finished') return prev;
@@ -279,7 +375,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
 
   const resetLive = useCallback(() => {
     setLive(createInitialLiveState());
-  }, []);
+    bootLiveRuntime(DEMO_MATCH_ID_LIVE, { force: true });
+  }, [bootLiveRuntime]);
 
   const value = useMemo<DemoModeContextValue>(
     () => ({
@@ -300,6 +397,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       setDemoMatchFormation,
       setDemoMatchPublishedLocal,
       resetDemoMatchPrep,
+      liveRuntimeVersion,
+      liveRuntimeStatus: liveRuntime?.status ?? null,
+      liveRuntimeMatchId: liveRuntime?.matchId ?? null,
+      startDemoLiveMatch,
       live,
       bumpMinute,
       addGoalHome,
@@ -322,6 +423,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       setDemoMatchFormation,
       setDemoMatchPublishedLocal,
       resetDemoMatchPrep,
+      liveRuntimeVersion,
+      liveRuntime,
+      startDemoLiveMatch,
       live,
       bumpMinute,
       addGoalHome,

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { isDemoMatchId } from '../demo/demoLiveRuntime';
 import { fetchMatchById } from './liveMatchService';
 import { getMatchSides } from './matchSides';
 import { getClubLogo } from './teamLogos';
@@ -74,6 +75,8 @@ function matchIsLive(status: string | null | undefined, liveIsRunning: boolean |
 export async function ensureLiveFeedPostForMatch(matchId: string): Promise<EnsureLiveFeedPostResult> {
   const mid = matchId?.trim();
   if (!mid) return { ok: false, error: 'Keine Match-ID.' };
+  // Demo: kein Feed, kein Push, keine Supabase-Writes.
+  if (isDemoMatchId(mid)) return { ok: true, created: false, reason: 'demo' };
 
   const dedupe_key = dedupeKeyForLiveMatch(mid);
 

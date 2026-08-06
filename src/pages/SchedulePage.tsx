@@ -79,6 +79,7 @@ import { eventNotesTitle, mergeTitleIntoNotes } from '../components/schedule/sch
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath, internalPath } from '../demo/demoPaths';
 import { getDemoMatchCatalog, getDemoMatchScore } from '../demo/demoMatchState';
+import { getDemoLiveRuntimeSnapshot } from '../demo/demoLiveRuntime';
 import {
   readScheduleFilters,
   writeScheduleFilters,
@@ -213,6 +214,11 @@ export const SchedulePage: React.FC = () => {
         if (e.match_id && e.status === 'live') next[e.match_id] = 'live';
         if (e.match_id && e.status === 'finished') next[e.match_id] = 'finished';
       }
+      // DEMO.2F: lokale Live-Session überschreibt den statischen Termin-Status
+      const runtime = getDemoLiveRuntimeSnapshot();
+      if (runtime && (runtime.status === 'live' || runtime.status === 'finished')) {
+        next[runtime.matchId] = runtime.status;
+      }
       setMatchStatusById(next);
       return;
     }
@@ -236,7 +242,7 @@ export const SchedulePage: React.FC = () => {
       setMatchStatusById(next);
     })();
     return () => { cancelled = true; };
-  }, [rawEvents, isDemo]);
+  }, [rawEvents, isDemo, demo?.liveRuntimeVersion]);
 
   const events: EventRow[] = useMemo(() =>
     rawEvents.map((e) => {
@@ -901,16 +907,15 @@ export const SchedulePage: React.FC = () => {
           };
         }
       }
-      if (demo?.live?.status === 'live') {
-        const upcomingMid = demo.data.events.find((e) => e.id === 'ev-game-next')?.match_id;
-        if (upcomingMid) {
-          next[upcomingMid] = {
-            scoreHome: demo.live.scoreHome,
-            scoreAway: demo.live.scoreAway,
-            periodBracket: null,
-            liveIsRunning: true,
-          };
-        }
+      // DEMO.2F: laufende lokale Live-Session gewinnt (Endstand kommt über getDemoMatchScore)
+      const runtime = getDemoLiveRuntimeSnapshot();
+      if (runtime && runtime.status === 'live') {
+        next[runtime.matchId] = {
+          scoreHome: runtime.scoreHome,
+          scoreAway: runtime.scoreAway,
+          periodBracket: null,
+          liveIsRunning: runtime.liveIsRunning,
+        };
       }
       delete next[''];
       setMatchScoreById(next);

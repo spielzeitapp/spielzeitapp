@@ -16,6 +16,7 @@ import {
   DEMO_MATCH_ID_PAST,
   DEMO_TEAM_SEASON_ID,
 } from './demoDataSource';
+import { getDemoLiveRuntimeScore, getDemoLiveRuntimeSnapshot } from './demoLiveRuntime';
 
 export const DEMO_MATCH_ID_AWAY = '00000000-demo-4000-8000-matchsknaway';
 
@@ -141,16 +142,40 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
   ];
 }
 
+/**
+ * Match aus dem Katalog; für das Live-Demospiel überschreibt eine angepfiffene
+ * lokale Session (DEMO.2F) Status und Stand. Vergangene Spiele bleiben unberührt.
+ */
 export function getDemoMatchLite(matchId: string | null | undefined): DemoMatchLite | null {
   const id = (matchId ?? '').trim();
   if (!id) return null;
-  return getDemoMatchCatalog().find((m) => m.id === id) ?? null;
+  const base = getDemoMatchCatalog().find((m) => m.id === id) ?? null;
+  if (!base) return null;
+  const runtime = getDemoLiveRuntimeSnapshot();
+  if (!runtime || runtime.matchId !== base.id) return base;
+  if (runtime.status !== 'live' && runtime.status !== 'finished') return base;
+  return {
+    ...base,
+    status: runtime.status,
+    score_home: runtime.scoreHome,
+    score_away: runtime.scoreAway,
+  };
 }
 
-/** Endstand Heim:Auswärts aus zentralem Demo-Matchkatalog (null wenn unbekannt/offen). */
+/** Effektiver Status (Runtime > Katalog) — z. B. für Kalender-/Event-Ansichten. */
+export function getDemoMatchStatus(matchId: string | null | undefined): string | null {
+  return getDemoMatchLite(matchId)?.status ?? null;
+}
+
+/**
+ * Endstand Heim:Auswärts. Läuft/lief eine lokale Live-Session für dieses Match (DEMO.2F),
+ * gewinnt deren Stand gegenüber dem Katalog-Seed; sonst Katalog (null wenn offen).
+ */
 export function getDemoMatchScore(
   matchId: string | null | undefined,
 ): { scoreHome: number; scoreAway: number } | null {
+  const runtimeScore = getDemoLiveRuntimeScore(matchId);
+  if (runtimeScore) return runtimeScore;
   const lite = getDemoMatchLite(matchId);
   if (!lite) return null;
   if (lite.score_home == null || lite.score_away == null) return null;
@@ -187,7 +212,7 @@ export function cloneDemoMatchState(state: DemoMatchPrepState): DemoMatchPrepSta
 export function buildDemoSeasonMatchBoard(
   eventsById: Map<string, { starts_at?: string | null; location?: string | null }>,
 ): SeasonMatchBoard {
-  const catalog = getDemoMatchCatalog();
+  const catalog = getDemoMatchCatalog().map((m) => getDemoMatchLite(m.id) ?? m);
   const all: SeasonMatchCardData[] = catalog.map((m) => {
     const ev = eventsById.get(m.event_id);
     const finished = m.status === 'finished';

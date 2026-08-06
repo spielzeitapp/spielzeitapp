@@ -161,11 +161,13 @@ export const BottomNav: React.FC = () => {
   /** Echtes laufendes Spiel: eine Zeile mit status === 'live' (beendet → kein Eintrag, Indikatoren aus). */
   const hasLiveMatch = useAppHasLiveMatch();
   const { liveMatchId } = useAppLiveMatchState();
-  const demoLiveActive = demo?.live.status === 'live';
+  /** Demo: Puls nur wenn die lokale Live-Runtime tatsächlich läuft (DEMO.2F). */
+  const demoLiveActive = demo?.liveRuntimeStatus === 'live';
   const liveActiveForNav = isDemo ? Boolean(demoLiveActive) : hasLiveMatch;
 
   const handleLiveTabReclick = () => {
     if (isDemo) {
+      window.dispatchEvent(new CustomEvent(LIVE_NAV_RESET_EVENT));
       navigate('/demo/live');
       return;
     }

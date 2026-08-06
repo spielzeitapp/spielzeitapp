@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { isTournamentLiveMatchForTeam } from '../lib/matchCenterTournamentLive';
@@ -9,6 +9,9 @@ import { LiveMatchScreen } from './live/LiveMatchScreen';
 import { PremiumCard, PremiumEmptyState } from '../ui';
 import { cn } from '../ui/lib/cn';
 import { dsPrimaryCtaClass } from '../lib/premiumDesignSystem';
+import { useDemoMode } from '../demo/DemoContext';
+import { useInternalBasePath } from '../demo/demoPaths';
+import { DEMO_MATCH_ID_LIVE } from '../demo/demoMatchState';
 
 type LiveMatchRow = {
   id: string;
@@ -26,6 +29,9 @@ export const LivePage: React.FC = () => {
   const { effectiveRole, selectedTeamSeasonId: teamSeasonId } = useSession();
   const { id: idFromRoute } = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
   const matchIdParam =
     searchParams.get('matchId')?.trim() || idFromRoute?.trim() || null;
 
@@ -36,7 +42,7 @@ export const LivePage: React.FC = () => {
   const [tournamentCheckDone, setTournamentCheckDone] = useState(false);
 
   useEffect(() => {
-    if (matchIdParam) {
+    if (matchIdParam || isDemo) {
       setLoading(false);
       setLiveMatches(null);
       setError(null);
@@ -100,10 +106,48 @@ export const LivePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchIdParam, teamSeasonId]);
+  }, [matchIdParam, teamSeasonId, isDemo]);
 
   if (matchIdParam) {
     return <LiveMatchScreen />;
+  }
+
+  if (isDemo) {
+    const demoLiveMatchId = demo?.liveRuntimeMatchId ?? null;
+    const demoRuntimeStarted =
+      demo?.liveRuntimeStatus === 'live' || demo?.liveRuntimeStatus === 'finished';
+    if (demoRuntimeStarted && demoLiveMatchId) {
+      return (
+        <Navigate
+          to={`${basePath}/live?matchId=${encodeURIComponent(demoLiveMatchId)}`}
+          replace
+        />
+      );
+    }
+    return (
+      <LivePremiumShell matchCenter>
+        <LivePageHeader
+          title="Match Center"
+          subtitle="Noch kein Anpfiff — Aufstellung vorbereiten und LIVE starten."
+        />
+        <PremiumEmptyState
+          variant="subtle"
+          title="Aktuell kein Livespiel."
+          description="Stelle das Demo-Spiel gegen SV Loosdorf U12 auf und starte den Liveticker."
+          className="py-8"
+        >
+          <Link
+            to={`${basePath}/match-preparation?matchId=${encodeURIComponent(DEMO_MATCH_ID_LIVE)}`}
+            className={cn(
+              dsPrimaryCtaClass(),
+              'inline-flex min-h-[48px] touch-manipulation items-center justify-center px-5 py-3',
+            )}
+          >
+            Spiel vorbereiten
+          </Link>
+        </PremiumEmptyState>
+      </LivePremiumShell>
+    );
   }
 
   if (loading || !tournamentCheckDone) {
@@ -154,7 +198,7 @@ export const LivePage: React.FC = () => {
               {m.match_date ? new Date(m.match_date).toLocaleString('de-AT') : '—'}
             </p>
             <Link
-              to={`/app/live?matchId=${encodeURIComponent(m.id)}`}
+              to={`${basePath}/live?matchId=${encodeURIComponent(m.id)}`}
               className={cn(
                 dsPrimaryCtaClass(),
                 'mt-3 inline-flex min-h-[48px] touch-manipulation items-center justify-center px-5 py-3',

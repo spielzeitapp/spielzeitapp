@@ -54,7 +54,6 @@ import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { DemoLayout } from '../demo/DemoLayout';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
-import { DemoLivePage } from '../demo/pages/DemoLivePage';
 import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
 
 /** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
@@ -215,7 +214,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="match-lineup" element={<MatchLineupPage />} />
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
-          <Route path="live" element={<DemoLivePage />} />
+          <Route path="live" element={<LivePage />} />
           <Route path="mehr" element={<MoreLayout />}>
             <Route index element={<MorePage />} />
           </Route>
@@ -340,7 +339,7 @@ function PublicRoutes(): React.ReactElement {
           <Route path="match-lineup" element={<MatchLineupPage />} />
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
-          <Route path="live" element={<DemoLivePage />} />
+          <Route path="live" element={<LivePage />} />
           <Route path="mehr" element={<MoreLayout />}>
             <Route index element={<MorePage />} />
           </Route>

@@ -3,6 +3,22 @@ import { debugAssertMatchEventDbType } from './matchEventScores';
 import type { FieldSlotId } from '../types/match';
 import { assertTeamSeasonWritable } from './seasonTransition';
 import {
+  appendDemoLiveEvent,
+  deleteDemoLiveEvent,
+  ensureDemoKickoffLineupSnapshot,
+  getDemoFirstLiveMatchRow,
+  getDemoKickoffLineupPlayerIds,
+  getDemoLiveBenchPlayerIds,
+  getDemoLiveEventIsHome,
+  getDemoLiveEventRows,
+  getDemoLiveLineup,
+  getDemoLiveMatchRow,
+  isDemoMatchEventId,
+  isDemoMatchId,
+  patchDemoLiveMatchRow,
+  setDemoLiveLineup,
+} from '../demo/demoLiveRuntime';
+import {
   clampEffectiveMatchSeconds,
   computeLiveMatchSecondsFromClockState,
   getBenchPlayers,
@@ -342,6 +358,8 @@ export function engineEventToInsertPayload(
 export async function fetchEventIsHomeByMatchId(
   matchId: string,
 ): Promise<{ isHome: boolean | null; error: string | null }> {
+  if (isDemoMatchId(matchId)) return { isHome: getDemoLiveEventIsHome(matchId), error: null };
+
   const { data, error } = await supabase
     .from('events')
     .select('is_home')
@@ -355,6 +373,8 @@ export async function fetchEventIsHomeByMatchId(
 }
 
 export async function fetchMatchById(matchId: string): Promise<{ data: LiveMatchRow | null; error: string | null }> {
+  if (isDemoMatchId(matchId)) return { data: getDemoLiveMatchRow(matchId), error: null };
+
   const { data, error } = await supabase
     .from('matches')
     .select(
@@ -369,6 +389,10 @@ export async function fetchMatchById(matchId: string): Promise<{ data: LiveMatch
 
 /** Erstes laufendes Spiel (Status wie im Rest der App: `live`). */
 export async function fetchFirstLiveMatch(): Promise<{ data: LiveMatchRow | null; error: string | null }> {
+  // Nur in der Demo gesetzt (Runtime wird ausschließlich aus /demo gebootet).
+  const demoLive = getDemoFirstLiveMatchRow();
+  if (demoLive) return { data: demoLive, error: null };
+
   const { data, error } = await supabase
     .from('matches')
     .select(
@@ -384,6 +408,15 @@ export async function fetchFirstLiveMatch(): Promise<{ data: LiveMatchRow | null
 }
 
 export async function fetchMatchEvents(matchId: string): Promise<{ data: MatchEngineEvent[]; error: string | null }> {
+  if (isDemoMatchId(matchId)) {
+    const events: MatchEngineEvent[] = [];
+    for (const row of getDemoLiveEventRows(matchId)) {
+      const ev = matchEventDbRowToEngine(row);
+      if (ev) events.push(ev);
+    }
+    return { data: events, error: null };
+  }
+
   const { data, error } = await supabase
     .from('match_events')
     .select('id, match_id, type, minute, period, player_id, created_at, payload')
@@ -437,6 +470,8 @@ export function sanitizeLineupToMatchSquad(
 }
 
 export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: LineupLoadResult; error: string | null }> {
+  if (isDemoMatchId(matchId)) return { data: getDemoLiveLineup(matchId), error: null };
+
   const [lineupRes, benchRes] = await Promise.all([
     supabase.from('match_lineup').select('player_id, slot').eq('match_id', matchId),
     supabase.from('match_bench').select('player_id').eq('match_id', matchId),
@@ -496,6 +531,7 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
 export async function fetchMatchBenchPlayerIds(matchId: string): Promise<string[]> {
   const mid = matchId?.trim();
   if (!mid) return [];
+  if (isDemoMatchId(mid)) return getDemoLiveBenchPlayerIds(mid);
   const { data, error } = await supabase.from('match_bench').select('player_id').eq('match_id', mid);
   if (error) return [];
   return (data ?? [])
@@ -666,6 +702,7 @@ export async function persistLiveLineupAndBenchSafe(params: {
 export async function fetchKickoffLineupPlayerIds(matchId: string): Promise<string[] | null> {
   const mid = matchId?.trim();
   if (!mid) return null;
+  if (isDemoMatchId(mid)) return getDemoKickoffLineupPlayerIds(mid);
 
   const { data, error } = await supabase
     .from('match_lineup_snapshots')
@@ -710,6 +747,10 @@ export async function fetchKickoffLineupPlayerIds(matchId: string): Promise<stri
 }
 
 export async function saveMatchEvent(payload: InsertMatchEventPayload): Promise<{ id: string | null; error: string | null }> {
+  if (isDemoMatchId(payload.match_id)) {
+    const { id } = appendDemoLiveEvent(payload);
+    return { id, error: id ? null : 'Demo-Live-Session nicht gestartet.' };
+  }
   if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
     const t = String(payload.type ?? '').trim().toLowerCase();
     if (t === 'goal_home') {
@@ -730,6 +771,10 @@ export async function saveMatchEvent(payload: InsertMatchEventPayload): Promise<
 
 export async function deleteMatchEventById(eventId: string): Promise<{ error: string | null }> {
   if (!eventId?.trim()) return { error: 'Keine Ereignis-ID.' };
+  if (isDemoMatchEventId(eventId)) {
+    deleteDemoLiveEvent(eventId);
+    return { error: null };
+  }
   const { data: evRow, error: loadErr } = await supabase
     .from('match_events')
     .select('match_id')
@@ -754,6 +799,14 @@ export async function saveMatchEvents(
 ): Promise<{ ids: string[]; error: string | null }> {
   if (payloads.length === 0) return { ids: [], error: null };
   const firstMatchId = String(payloads[0]?.match_id ?? '').trim();
+  if (isDemoMatchId(firstMatchId)) {
+    const ids: string[] = [];
+    for (const p of payloads) {
+      const { id } = appendDemoLiveEvent(p);
+      if (id) ids.push(id);
+    }
+    return { ids, error: null };
+  }
   if (firstMatchId) {
     const writable = await assertMatchTeamSeasonWritable(firstMatchId);
     if (!writable.ok) return { ids: [], error: writable.message };
@@ -780,6 +833,7 @@ async function assertMatchTeamSeasonWritable(
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const id = String(matchId ?? '').trim();
   if (!id) return { ok: false, message: 'Match fehlt.' };
+  if (isDemoMatchId(id)) return { ok: true };
   const { data, error } = await supabase
     .from('matches')
     .select('team_season_id')
@@ -795,6 +849,11 @@ export async function updateMatchRow(
   matchId: string,
   patch: Record<string, unknown>,
 ): Promise<{ error: string | null }> {
+  if (isDemoMatchId(matchId)) {
+    const ok = patchDemoLiveMatchRow(matchId, patch);
+    return { error: ok ? null : 'Demo-Live-Session nicht gestartet.' };
+  }
+
   const writable = await assertMatchTeamSeasonWritable(matchId);
   if (!writable.ok) return { error: writable.message };
 
@@ -862,10 +921,20 @@ export async function saveMatchSquadOnly(
   matchId: string,
   squadPlayerIds: string[],
 ): Promise<{ error: string | null }> {
+  const uniqueSquad = [...new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean))];
+
+  if (isDemoMatchId(matchId)) {
+    const squadSet = new Set(uniqueSquad);
+    const current = getDemoLiveLineup(matchId).startingPlayerIds;
+    const starters = LIVE_FIELD_SLOT_ORDER.map((_, i) => {
+      const pid = String(current[i] ?? '').trim();
+      return pid && squadSet.has(pid) ? pid : '';
+    });
+    return replaceMatchLineupAndBench(matchId, starters, uniqueSquad);
+  }
+
   const writable = await assertMatchTeamSeasonWritable(matchId);
   if (!writable.ok) return { error: writable.message };
-
-  const uniqueSquad = [...new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean))];
 
   const { data: lineupRows, error: lineupErr } = await supabase
     .from('match_lineup')
@@ -895,6 +964,11 @@ export async function replaceMatchLineupAndBench(
   squadPlayerIds: string[],
   options?: ReplaceLineupBenchOptions,
 ): Promise<{ error: string | null }> {
+  if (isDemoMatchId(matchId)) {
+    const ok = setDemoLiveLineup(matchId, startingPlayerIds, squadPlayerIds, options?.benchPlayerIds);
+    return { error: ok ? null : 'Demo-Live-Session nicht gestartet.' };
+  }
+
   const writable = await assertMatchTeamSeasonWritable(matchId);
   if (!writable.ok) return { error: writable.message };
 
@@ -1563,6 +1637,8 @@ export async function syncFinalLineupBenchFromEventReplay(params: {
 export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promise<LiveLineupRepairResult> {
   const mid = matchId?.trim();
   if (!mid) return { inconsistent: false, repaired: false, error: null };
+  // Demo: Runtime ist immer konsistent (keine Roh-DB-Zeilen).
+  if (isDemoMatchId(mid)) return { inconsistent: false, repaired: false, error: null };
   if (lineupPersistInProgress.current) {
     return { inconsistent: false, repaired: false, error: null };
   }
@@ -1664,6 +1740,10 @@ const KICKOFF_LINEUP_SNAPSHOT_TYPE = 'kickoff';
 export async function ensureKickoffLineupSnapshot(matchId: string): Promise<{ error: string | null }> {
   const mid = matchId?.trim();
   if (!mid) return { error: 'Keine Match-ID.' };
+  if (isDemoMatchId(mid)) {
+    const ok = ensureDemoKickoffLineupSnapshot(mid);
+    return { error: ok ? null : 'Demo-Live-Session nicht gestartet.' };
+  }
 
   const { count, error: countErr } = await supabase
     .from('match_lineup_snapshots')

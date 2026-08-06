@@ -69,7 +69,8 @@ import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
 import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath } from '../demo/demoPaths';
-import { getDemoMatchLite } from '../demo/demoMatchState';
+import { getDemoMatchLite, getDemoMatchStatus } from '../demo/demoMatchState';
+import { getDemoLiveEventRows } from '../demo/demoLiveRuntime';
 import {
   dsPrimaryCtaClass,
   dsRsvpChoiceClass,
@@ -624,8 +625,11 @@ export const EventDetailPage: React.FC = () => {
   const isFinishedMatchEvent = useMemo(() => {
     if (!event) return false;
     const t = safeText(event.type).toLowerCase();
-    return t === 'game' && event.status === 'finished' && Boolean(event.match_id);
-  }, [event]);
+    if (t !== 'game' || !event.match_id) return false;
+    // Demo: beendete lokale Live-Session zählt wie ein abgeschlossener Termin (DEMO.2F).
+    if (isDemo && getDemoMatchStatus(event.match_id) === 'finished') return true;
+    return event.status === 'finished';
+  }, [event, isDemo, demo?.liveRuntimeVersion]);
 
   useEffect(() => {
     if (isDemo) {
@@ -639,7 +643,8 @@ export const EventDetailPage: React.FC = () => {
           location: event.location,
           period_scores: null,
         });
-        setMatchEvents([]);
+        // DEMO.2F: Ticker-Ereignisse der lokalen Live-Session (leer für Katalog-Spiele)
+        setMatchEvents(getDemoLiveEventRows(event.match_id));
         setMatchError(null);
         setMatchLoading(false);
       }
