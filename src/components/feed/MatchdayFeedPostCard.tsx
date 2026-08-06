@@ -30,6 +30,7 @@ import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -140,6 +141,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const basePath = useInternalBasePath();
 
   const gameHref = useMemo(
     () =>
@@ -147,9 +149,10 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
         matchId: p.match_id ?? liveEvent?.match_id,
         eventId: p.event_id,
         status: eventStatus,
-        canManage: viewerIsStaff,
+        canManage: viewerIsStaff || basePath === '/demo',
+        basePath,
       }),
-    [p.match_id, p.event_id, liveEvent?.match_id, eventStatus, viewerIsStaff],
+    [p.match_id, p.event_id, liveEvent?.match_id, eventStatus, viewerIsStaff, basePath],
   );
 
   const onShare = useCallback(async () => {

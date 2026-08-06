@@ -3532,12 +3532,7 @@ export const EventDetailPage: React.FC = () => {
                   />
                 }
                 onOpenMatchPreparation={(matchId) => {
-                  if (isDemo) {
-                    alert('In der Demo nicht verfügbar');
-                    navigate('/demo/match');
-                    return;
-                  }
-                  navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`);
+                  navigate(`${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}`);
                 }}
                 onOfficialTournamentUrlUpdated={(url) =>
                   setEvent((prev) => (prev ? { ...prev, official_tournament_url: url } : prev))
@@ -3801,19 +3796,14 @@ export const EventDetailPage: React.FC = () => {
                       type="button"
                       className={`mb-1 w-full ${dsPrimaryCtaClass()}`}
                       onClick={() => {
-                        if (isDemo) {
-                          alert('In der Demo nicht verfügbar');
-                          navigate('/demo/match');
-                          return;
-                        }
                         navigate(
-                          `/app/match-preparation?matchId=${encodeURIComponent(event.match_id!)}`,
+                          `${basePath}/match-preparation?matchId=${encodeURIComponent(event.match_id!)}`,
                         );
                       }}
                     >
                       Match vorbereiten
                     </button>
-                    {matchMinPlaytime ? (
+                    {matchMinPlaytime && !isDemo ? (
                       <MinimumPlaytimeMatchSettings
                         matchId={event.match_id}
                         plannedMinutes={matchMinPlaytime.plannedMinutes}
@@ -4056,25 +4046,12 @@ export const EventDetailPage: React.FC = () => {
               <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
             </Link>
             {canTrainerManageEvent ? (
-              isDemo ? (
-                <button
-                  type="button"
-                  className={`flex w-full min-h-[44px] items-center justify-center ${dsSecondaryCtaClass()}`}
-                  onClick={() => {
-                    alert('In der Demo nicht verfügbar');
-                    navigate('/demo/match');
-                  }}
-                >
-                  Vorbereitung bearbeiten
-                </button>
-              ) : (
-                <Link
-                  to={`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`}
-                  className={`flex w-full min-h-[44px] items-center justify-center ${dsSecondaryCtaClass()}`}
-                >
-                  Vorbereitung bearbeiten
-                </Link>
-              )
+              <Link
+                to={`${basePath}/match-preparation?matchId=${encodeURIComponent(event.match_id)}`}
+                className={`flex w-full min-h-[44px] items-center justify-center ${dsSecondaryCtaClass()}`}
+              >
+                Vorbereitung bearbeiten
+              </Link>
             ) : null}
           </Card>
         ) : null}

@@ -104,8 +104,9 @@ export function buildDemoEvents(): EventRow[] {
     const canceled = ev.id === 'ev-train-canceled' || /\babgesagt\b/i.test(ev.title);
     let status: EventRow['status'] = 'upcoming';
     if (canceled) status = 'canceled';
-    else if (kind === 'match' && ev.id === 'ev-game-next') status = 'live';
+    else if (kind === 'match' && ev.id === 'ev-game-next') status = 'upcoming';
     else if (kind === 'match' && ev.id === 'ev-game-past') status = 'finished';
+    else if (kind === 'match' && ev.id === 'ev-game-away') status = 'upcoming';
     else if (ev.id === 'ev-train-past' || ev.id === 'ev-info') status = 'finished';
     else if (ev.id.startsWith('ev-train-h')) status = 'finished';
 
@@ -129,7 +130,9 @@ export function buildDemoEvents(): EventRow[] {
           ? DEMO_MATCH_ID_LIVE
           : ev.id === 'ev-game-past'
             ? DEMO_MATCH_ID_PAST
-            : null,
+            : ev.id === 'ev-game-away'
+              ? '00000000-demo-4000-8000-matchsknaway'
+              : null,
       fixture_status: kind === 'match' ? 'published' : null,
     });
   });

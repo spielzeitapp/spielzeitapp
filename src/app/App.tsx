@@ -52,10 +52,10 @@ import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { DemoLayout } from '../demo/DemoLayout';
-import { DemoMatchPage } from '../demo/pages/DemoMatchPage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DemoLivePage } from '../demo/pages/DemoLivePage';
+import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
 
 /** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
 function DemoPlayerProfileRedirect(): React.ReactElement {
@@ -67,6 +67,16 @@ function DemoPlayerProfileRedirect(): React.ReactElement {
 /** /demo/training → produktive Trainingszentrale (Team-Tab) */
 function DemoTrainingRedirect(): React.ReactElement {
   return <Navigate to="/demo/team?tab=training" replace />;
+}
+
+/** /demo/match → produktives Match-Center (Heimspiel-Vorbereitung) */
+function DemoMatchRedirect(): React.ReactElement {
+  return (
+    <Navigate
+      to={`/demo/match-preparation?matchId=${encodeURIComponent(DEMO_MATCH_ID_LIVE)}`}
+      replace
+    />
+  );
 }
 
 /** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
@@ -200,7 +210,9 @@ function InternalRoutes(): React.ReactElement {
           <Route path="team" element={<TeamPage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="training" element={<DemoTrainingRedirect />} />
-          <Route path="match" element={<DemoMatchPage />} />
+          <Route path="match" element={<DemoMatchRedirect />} />
+          <Route path="match-preparation" element={<MatchPreparationPage />} />
+          <Route path="match-lineup" element={<MatchLineupPage />} />
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
           <Route path="live" element={<DemoLivePage />} />
@@ -323,7 +335,9 @@ function PublicRoutes(): React.ReactElement {
           <Route path="team" element={<TeamPage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="training" element={<DemoTrainingRedirect />} />
-          <Route path="match" element={<DemoMatchPage />} />
+          <Route path="match" element={<DemoMatchRedirect />} />
+          <Route path="match-preparation" element={<MatchPreparationPage />} />
+          <Route path="match-lineup" element={<MatchLineupPage />} />
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
           <Route path="live" element={<DemoLivePage />} />

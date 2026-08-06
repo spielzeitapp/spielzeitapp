@@ -17,6 +17,15 @@ import {
 import type { AttendanceStatus, EventAttendanceData } from '../hooks/useEventsAttendance';
 import type { PlayerItem } from '../hooks/usePlayers';
 import type { DemoFixtures, DemoLiveEvent, DemoLiveState } from './demoTypes';
+import type { FieldSlotId } from '../types/match';
+import type { U11FormationId } from '../lib/matchFormations';
+import {
+  buildInitialDemoMatchStates,
+  cloneDemoMatchState,
+  getDemoMatchLite,
+  type DemoMatchLite,
+  type DemoMatchPrepState,
+} from './demoMatchState';
 
 export type DemoModeContextValue = {
   isDemo: true;
@@ -30,6 +39,18 @@ export type DemoModeContextValue = {
   /** status null = Eintrag entfernen (offen). */
   setDemoAttendance: (eventId: string, playerId: string, status: AttendanceStatus | null) => void;
   resetDemoAttendance: () => void;
+  getDemoMatch: (matchId: string) => DemoMatchLite | null;
+  getDemoMatchPrep: (matchId: string) => DemoMatchPrepState | null;
+  setDemoMatchSquad: (matchId: string, squadPlayerIds: string[]) => void;
+  setDemoMatchLineup: (
+    matchId: string,
+    slots: Record<FieldSlotId, string | null>,
+    squadPlayerIds: string[],
+    formationId: U11FormationId,
+  ) => void;
+  setDemoMatchFormation: (matchId: string, formationId: U11FormationId) => void;
+  setDemoMatchPublishedLocal: (matchId: string, published: boolean) => void;
+  resetDemoMatchPrep: (matchId?: string) => void;
   live: DemoLiveState;
   bumpMinute: () => void;
   addGoalHome: () => void;
@@ -66,6 +87,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   const [attendanceRows, setAttendanceRows] = useState<DemoAttendanceRow[]>(() =>
     buildInitialDemoAttendance(demoFixtures.events),
   );
+  const [matchPrepById, setMatchPrepById] = useState<Record<string, DemoMatchPrepState>>(() =>
+    buildInitialDemoMatchStates(),
+  );
 
   const getAttendanceByEventIds = useCallback(
     (eventIds: string[]) => attendanceRowsToByEventId(attendanceRows, eventIds),
@@ -85,6 +109,78 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
 
   const resetDemoAttendance = useCallback(() => {
     setAttendanceRows(buildInitialDemoAttendance(demoFixtures.events));
+  }, []);
+
+  const getDemoMatch = useCallback((matchId: string) => getDemoMatchLite(matchId), []);
+
+  const getDemoMatchPrep = useCallback(
+    (matchId: string) => {
+      const st = matchPrepById[matchId];
+      return st ? cloneDemoMatchState(st) : null;
+    },
+    [matchPrepById],
+  );
+
+  const setDemoMatchSquad = useCallback((matchId: string, squadPlayerIds: string[]) => {
+    setMatchPrepById((prev) => {
+      const cur = prev[matchId] ?? buildInitialDemoMatchStates()[matchId];
+      if (!cur) return prev;
+      const allowed = new Set(squadPlayerIds);
+      const slots = { ...cur.slots };
+      for (const key of Object.keys(slots) as FieldSlotId[]) {
+        const pid = slots[key];
+        if (pid && !allowed.has(pid)) slots[key] = null;
+      }
+      return {
+        ...prev,
+        [matchId]: { ...cur, squadPlayerIds: [...squadPlayerIds], slots },
+      };
+    });
+  }, []);
+
+  const setDemoMatchLineup = useCallback(
+    (
+      matchId: string,
+      slots: Record<FieldSlotId, string | null>,
+      squadPlayerIds: string[],
+      formationId: U11FormationId,
+    ) => {
+      setMatchPrepById((prev) => ({
+        ...prev,
+        [matchId]: {
+          squadPlayerIds: [...squadPlayerIds],
+          slots: { ...slots },
+          formationId,
+          publishedLocal: prev[matchId]?.publishedLocal ?? false,
+        },
+      }));
+    },
+    [],
+  );
+
+  const setDemoMatchFormation = useCallback((matchId: string, formationId: U11FormationId) => {
+    setMatchPrepById((prev) => {
+      const cur = prev[matchId];
+      if (!cur) return prev;
+      return { ...prev, [matchId]: { ...cur, formationId } };
+    });
+  }, []);
+
+  const setDemoMatchPublishedLocal = useCallback((matchId: string, published: boolean) => {
+    setMatchPrepById((prev) => {
+      const cur = prev[matchId];
+      if (!cur) return prev;
+      return { ...prev, [matchId]: { ...cur, publishedLocal: published } };
+    });
+  }, []);
+
+  const resetDemoMatchPrep = useCallback((matchId?: string) => {
+    const initial = buildInitialDemoMatchStates();
+    if (!matchId) {
+      setMatchPrepById(initial);
+      return;
+    }
+    setMatchPrepById((prev) => ({ ...prev, [matchId]: initial[matchId] ?? prev[matchId] }));
   }, []);
 
   const bumpMinute = useCallback(() => {
@@ -197,6 +293,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       getAttendanceByEventIds,
       setDemoAttendance,
       resetDemoAttendance,
+      getDemoMatch,
+      getDemoMatchPrep,
+      setDemoMatchSquad,
+      setDemoMatchLineup,
+      setDemoMatchFormation,
+      setDemoMatchPublishedLocal,
+      resetDemoMatchPrep,
       live,
       bumpMinute,
       addGoalHome,
@@ -212,6 +315,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       getAttendanceByEventIds,
       setDemoAttendance,
       resetDemoAttendance,
+      getDemoMatch,
+      getDemoMatchPrep,
+      setDemoMatchSquad,
+      setDemoMatchLineup,
+      setDemoMatchFormation,
+      setDemoMatchPublishedLocal,
+      resetDemoMatchPrep,
       live,
       bumpMinute,
       addGoalHome,

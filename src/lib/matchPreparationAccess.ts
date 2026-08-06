@@ -1,16 +1,19 @@
 /** Route zur Match-Vorbereitung (Kader, Aufstellung, Feed-Automatisierung). */
-export function matchPreparationPath(matchId: string): string {
-  return `/app/match-preparation?matchId=${encodeURIComponent(matchId.trim())}`;
+export function matchPreparationPath(
+  matchId: string,
+  base: '/app' | '/demo' = '/app',
+): string {
+  return `${base}/match-preparation?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 
 /** Route zur Aufstellungsseite eines Spiels. */
-export function matchLineupPath(matchId: string): string {
-  return `/app/match-lineup?matchId=${encodeURIComponent(matchId.trim())}`;
+export function matchLineupPath(matchId: string, base: '/app' | '/demo' = '/app'): string {
+  return `${base}/match-lineup?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 
 /** Route zum Livespiel. */
-export function liveMatchPath(matchId: string): string {
-  return `/app/live?matchId=${encodeURIComponent(matchId.trim())}`;
+export function liveMatchPath(matchId: string, base: '/app' | '/demo' = '/app'): string {
+  return `${base}/live?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 
 /** Kader vor Anpfiff bearbeitbar; danach nur noch Live-Wechsel. */

@@ -441,9 +441,12 @@ function compareMatchDateDesc(a: SeasonMatchCardData, b: SeasonMatchCardData): n
 }
 
 /** Zielroute für Saison-Spielkarten — immer Event-Detail wenn möglich. */
-export function seasonMatchCardHref(eventId: string | null | undefined): string | null {
+export function seasonMatchCardHref(
+  eventId: string | null | undefined,
+  base: '/app' | '/demo' = '/app',
+): string | null {
   const id = (eventId ?? '').trim();
-  return id ? `/app/events/${encodeURIComponent(id)}` : null;
+  return id ? `${base}/events/${encodeURIComponent(id)}` : null;
 }
 
 type BoardMatchRow = VisibleSeasonMatch & {

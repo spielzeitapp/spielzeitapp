@@ -31,6 +31,7 @@ import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -158,6 +159,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const basePath = useInternalBasePath();
 
   const gameHref = useMemo(
     () =>
@@ -165,9 +167,10 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         matchId: p.match_id,
         eventId: p.event_id,
         status: 'finished',
-        canManage: viewerIsStaff,
+        canManage: viewerIsStaff || basePath === '/demo',
+        basePath,
       }),
-    [p.match_id, p.event_id, viewerIsStaff],
+    [p.match_id, p.event_id, viewerIsStaff, basePath],
   );
 
   const onShare = useCallback(async () => {

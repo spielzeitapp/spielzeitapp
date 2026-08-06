@@ -41,6 +41,7 @@ import { useSeasonMatchBoard } from "../hooks/useSeasonMatchBoard";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
 import { useDemoMode } from "../demo/DemoContext";
 import { useInternalBasePath } from "../demo/demoPaths";
+import { buildDemoSeasonMatchBoard } from "../demo/demoMatchState";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -227,13 +228,28 @@ export const TeamPage: React.FC = () => {
     },
   });
   const {
-    summary: seasonMatchSummary,
-    upcoming: upcomingMatches,
-    recent: recentSeasonMatches,
-    all: allSeasonMatches,
-    loading: seasonMatchesLoading,
-    error: seasonMatchesError,
+    summary: seasonMatchSummaryLive,
+    upcoming: upcomingMatchesLive,
+    recent: recentSeasonMatchesLive,
+    all: allSeasonMatchesLive,
+    loading: seasonMatchesLoadingLive,
+    error: seasonMatchesErrorLive,
   } = useSeasonMatchBoard(isDemo ? null : teamSeasonId, 10);
+
+  const demoSeasonBoard = useMemo(() => {
+    if (!isDemo || !demo) return null;
+    const map = new Map(
+      demo.data.events.map((e) => [e.id, { starts_at: e.starts_at, location: e.location }]),
+    );
+    return buildDemoSeasonMatchBoard(map);
+  }, [isDemo, demo]);
+
+  const seasonMatchSummary = demoSeasonBoard?.summary ?? seasonMatchSummaryLive;
+  const upcomingMatches = demoSeasonBoard?.upcoming ?? upcomingMatchesLive;
+  const recentSeasonMatches = demoSeasonBoard?.recent ?? recentSeasonMatchesLive;
+  const allSeasonMatches = demoSeasonBoard?.all ?? allSeasonMatchesLive;
+  const seasonMatchesLoading = isDemo ? false : seasonMatchesLoadingLive;
+  const seasonMatchesError = isDemo ? null : seasonMatchesErrorLive;
   const [teamPhoto, setTeamPhoto] = useState<TeamPhotoRow | null>(null);
   const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
   const [teamPhotoError, setTeamPhotoError] = useState<string | null>(null);

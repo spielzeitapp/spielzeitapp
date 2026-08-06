@@ -9,6 +9,7 @@ import { MatchdayPosterCard } from '../../components/feed/MatchdayPosterCard';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -71,15 +72,17 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const basePath = useInternalBasePath();
 
   const announcementTiming = status === 'today' || status === 'tomorrow' ? status : null;
   const gameHref = reviewPending && event.match_id
-    ? `/app/live?matchId=${encodeURIComponent(event.match_id)}`
+    ? `${basePath}/live?matchId=${encodeURIComponent(event.match_id)}`
     : resolveMatchGameHref({
         matchId: event.match_id,
         eventId: event.id,
         status: event.status ?? 'upcoming',
-        canManage: viewerIsStaff,
+        canManage: viewerIsStaff || basePath === '/demo',
+        basePath,
       });
 
   return (

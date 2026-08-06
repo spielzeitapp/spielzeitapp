@@ -36,6 +36,10 @@ import {
   DS_SECTION_GAP,
   type DsChipTone,
 } from '../../lib/premiumDesignSystem';
+import { useDemoMode } from '../../demo/DemoContext';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { getDemoTrainingParticipationPct } from '../../demo/demoPlayers';
+import { dbStatusToTrainingAttendance } from '../../lib/trainingAttendance';
 
 type MatchRowLite = {
   id: string;
@@ -68,6 +72,9 @@ export const MatchPreparationPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const matchId = searchParams.get('matchId')?.trim() || null;
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
   const [matchRow, setMatchRow] = useState<MatchRowLite | null>(null);
   const [matchLoading, setMatchLoading] = useState(true);
   const [matchError, setMatchError] = useState<string | null>(null);
@@ -94,6 +101,43 @@ export const MatchPreparationPage: React.FC = () => {
         cancelled = true;
       };
     }
+
+    if (isDemo && demo) {
+      const lite = demo.getDemoMatch(matchId);
+      const prep = demo.getDemoMatchPrep(matchId);
+      if (!lite || !prep) {
+        setMatchRow(null);
+        setMatchError('Spiel nicht gefunden.');
+        setMatchLoading(false);
+        return () => {
+          cancelled = true;
+        };
+      }
+      setMatchRow({
+        id: lite.id,
+        team_season_id: lite.team_season_id,
+        opponent: lite.opponent,
+        status: lite.status,
+        live_started_at: lite.live_started_at,
+        minimum_playtime_enabled: lite.minimum_playtime_enabled,
+        minimum_playtime_minutes: lite.minimum_playtime_minutes,
+        planned_match_minutes: lite.planned_match_minutes,
+        auto_matchday_feed_enabled: lite.auto_matchday_feed_enabled,
+      });
+      setRestoredSelectedPlayers(prep.squadPlayerIds);
+      setSelectedPlayers(prep.squadPlayerIds);
+      const onField = new Set<string>();
+      for (const pid of Object.values(prep.slots)) {
+        if (pid) onField.add(pid);
+      }
+      setLineupPlayerIds(onField);
+      setMatchLoading(false);
+      setMatchError(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void (async () => {
       setMatchLoading(true);
       setMatchError(null);
@@ -135,11 +179,11 @@ export const MatchPreparationPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId]);
+  }, [matchId, isDemo, demo]);
 
   useEffect(() => {
     let cancelled = false;
-    if (!matchId) {
+    if (isDemo || !matchId) {
       setTournamentSquadIds([]);
       setTournamentEventId(null);
       return () => {
@@ -160,10 +204,15 @@ export const MatchPreparationPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId]);
+  }, [matchId, isDemo]);
 
   const teamSeasonId = matchRow?.team_season_id ?? null;
-  const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonId);
+  const { players: livePlayers, loading: playersLoadingLive, error: playersErrorLive } = usePlayers(
+    isDemo ? null : teamSeasonId,
+  );
+  const players = isDemo && demo ? demo.players : livePlayers;
+  const playersLoading = isDemo ? false : playersLoadingLive;
+  const playersError = isDemo ? null : playersErrorLive;
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState<string | null>(null);
 
@@ -177,6 +226,32 @@ export const MatchPreparationPage: React.FC = () => {
         cancelled = true;
       };
     }
+
+    if (isDemo && demo) {
+      const lite = demo.getDemoMatch(matchId);
+      const eventId = lite?.event_id;
+      if (!eventId) {
+        setAttendanceByPlayerId({});
+        setAttendanceLoading(false);
+        return () => {
+          cancelled = true;
+        };
+      }
+      const bucket = demo.getAttendanceByEventIds([eventId])[eventId];
+      const byPlayer: Record<string, 'yes' | 'no'> = {};
+      for (const [pid, raw] of Object.entries(bucket?.availabilityByPlayerId ?? {})) {
+        const ui = dbStatusToTrainingAttendance(raw);
+        if (ui === 'present') byPlayer[pid] = 'yes';
+        else if (ui === 'absent' || ui === 'sick' || ui === 'injured' || ui === 'external') byPlayer[pid] = 'no';
+      }
+      setAttendanceByPlayerId(byPlayer);
+      setAttendanceLoading(false);
+      setAttendanceError(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void (async () => {
       setAttendanceLoading(true);
       setAttendanceError(null);
@@ -210,7 +285,7 @@ export const MatchPreparationPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId]);
+  }, [matchId, isDemo, demo, demo?.attendanceRows]);
 
   const getAttendance = (playerId: string): 'yes' | 'no' | null => {
     const key = playerId.toLowerCase();
@@ -311,6 +386,19 @@ export const MatchPreparationPage: React.FC = () => {
     if (!matchId) return false;
     setPersistError(null);
     setSquadSaveBusy(true);
+    if (isDemo && demo) {
+      demo.setDemoMatchSquad(matchId, nextSquadIds);
+      setSquadSaveBusy(false);
+      setRestoredSelectedPlayers(nextSquadIds);
+      setLineupPlayerIds((prev) => {
+        const next = new Set<string>();
+        for (const id of prev) {
+          if (nextSquadIds.includes(id)) next.add(id);
+        }
+        return next;
+      });
+      return true;
+    }
     const { error } = await saveMatchSquadOnly(matchId, nextSquadIds);
     setSquadSaveBusy(false);
     if (error) {
@@ -376,6 +464,7 @@ export const MatchPreparationPage: React.FC = () => {
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
           const disabled = !squadEditable || status === 'absent';
+          const trainPct = isDemo ? getDemoTrainingParticipationPct(p.id) : null;
           return (
             <div key={p.id} className={disabled ? 'opacity-70' : ''}>
               <MatchPlayerRow
@@ -385,6 +474,7 @@ export const MatchPreparationPage: React.FC = () => {
                 rightLabel={
                   status === 'absent' ? 'Abwesend' : selected ? '✓ IM KADER' : 'NICHT IM KADER'
                 }
+                metricHint={trainPct != null ? `Training ${trainPct} %` : null}
                 onClick={disabled ? undefined : () => togglePlayer(p.id, status)}
               />
             </div>
@@ -402,7 +492,7 @@ export const MatchPreparationPage: React.FC = () => {
     return (
       <div className="min-h-[100dvh] p-4 text-white">
         <p className="text-sm text-red-400">{matchError ?? 'Ungültiger Aufruf.'}</p>
-        <Link to="/app/termine" className="mt-3 inline-block text-sm font-semibold text-red-300 underline">
+        <Link to={`${basePath}/termine`} className="mt-3 inline-block text-sm font-semibold text-red-300 underline">
           Zurück zu Termine
         </Link>
       </div>
@@ -416,7 +506,7 @@ export const MatchPreparationPage: React.FC = () => {
     const ok = await persistSquadSelection(selectedPlayersForSquad);
     setPersisting(false);
     if (!ok) return;
-    navigate(`/app/match-lineup?matchId=${encodeURIComponent(matchId)}`, {
+    navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(matchId)}`, {
       state: { selectedPlayers: selectedPlayersForSquad },
     });
   };
@@ -475,7 +565,7 @@ export const MatchPreparationPage: React.FC = () => {
         {renderSection('Offen', grouped.open, 'open')}
         {renderSection('Abgesagt', grouped.absent, 'absent')}
 
-        {matchId && matchRow ? (
+        {matchId && matchRow && !isDemo ? (
           <MinimumPlaytimeMatchSettings
             matchId={matchId}
             plannedMinutes={matchRow.planned_match_minutes ?? DEFAULT_PLANNED_MATCH_MINUTES}
@@ -496,7 +586,7 @@ export const MatchPreparationPage: React.FC = () => {
           />
         ) : null}
 
-        {matchId && matchRow ? (
+        {matchId && matchRow && !isDemo ? (
           <MatchdayFeedAutomationSettings
             matchId={matchId}
             enabled={matchRow.auto_matchday_feed_enabled === true}

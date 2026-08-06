@@ -37,6 +37,7 @@ import {
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   post: LineupFeedPostRow;
@@ -120,6 +121,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const basePath = useInternalBasePath();
 
   const gameHref = useMemo(
     () =>
@@ -127,9 +129,10 @@ export const LineupFeedPostCard: React.FC<Props> = ({
         matchId: p.match_id ?? liveEvent?.match_id,
         eventId: p.event_id,
         status: liveEvent?.status ?? 'upcoming',
-        canManage: viewerIsStaff,
+        canManage: viewerIsStaff || basePath === '/demo',
+        basePath,
       }),
-    [p.match_id, p.event_id, liveEvent?.match_id, liveEvent?.status, viewerIsStaff],
+    [p.match_id, p.event_id, liveEvent?.match_id, liveEvent?.status, viewerIsStaff, basePath],
   );
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
