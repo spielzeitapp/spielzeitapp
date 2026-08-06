@@ -115,9 +115,33 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   const [attendanceRows, setAttendanceRows] = useState<DemoAttendanceRow[]>(() =>
     buildInitialDemoAttendance(demoFixtures.events),
   );
-  const [matchPrepById, setMatchPrepById] = useState<Record<string, DemoMatchPrepState>>(() =>
-    buildInitialDemoMatchStates(),
-  );
+  const [matchPrepById, setMatchPrepById] = useState<Record<string, DemoMatchPrepState>>(() => {
+    const initial = buildInitialDemoMatchStates();
+    // Synchron vor dem ersten Child-Render booten — sonst findet LiveMatchScreen
+    // nach Reload/Direktlink die Session noch nicht (useEffect wäre zu spät).
+    const prep = initial[DEMO_MATCH_ID_LIVE];
+    const lite = getDemoMatchLite(DEMO_MATCH_ID_LIVE);
+    if (prep && lite) {
+      bootDemoLiveRuntime(
+        {
+          matchId: lite.id,
+          teamSeasonId: lite.team_season_id,
+          opponent: lite.opponent,
+          isHome: lite.is_home,
+          matchDate: null,
+          location: null,
+          formationId: prep.formationId,
+          minimumPlaytimeEnabled: lite.minimum_playtime_enabled,
+          minimumPlaytimeMinutes: lite.minimum_playtime_minutes,
+          plannedMatchMinutes: lite.planned_match_minutes,
+          slots: prep.slots,
+          squadPlayerIds: prep.squadPlayerIds,
+        },
+        { force: true },
+      );
+    }
+    return initial;
+  });
 
   const getAttendanceByEventIds = useCallback(
     (eventIds: string[]) => attendanceRowsToByEventId(attendanceRows, eventIds),

@@ -888,7 +888,7 @@ export const MatchLineupPage: React.FC = () => {
           </p>
         ) : isDemo ? (
           <p className="mx-auto mt-1 max-w-xl text-center text-[11px] text-white/45">
-            Lokal speichern · LIVE folgt im nächsten Demo-Schritt
+            Lokal speichern · LIVE ohne Push oder Feed
           </p>
         ) : null}
       </div>

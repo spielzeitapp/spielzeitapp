@@ -1021,7 +1021,9 @@ export const LiveMatchScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchIdParam]);
+    // Demo: Session wird im DemoProvider synchron gebootet; Match-ID der Runtime
+    // als Abhängigkeit, falls der erste Fetch vor dem Boot lief.
+  }, [matchIdParam, isDemo ? demo?.liveRuntimeMatchId ?? null : null]);
 
   const teamSeasonForRoster = matchRow?.team_season_id ?? null;
   const {
