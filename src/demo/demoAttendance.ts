@@ -1,6 +1,7 @@
 /**
  * Demo-Anfangs-Rückmeldungen (lokal, kein Supabase).
  * Spielerbasis: demoPlayers.ts (DEMO.2C).
+ * History-Attendance: demoTrainingStats.ts (DEMO.2D).
  */
 
 import type { AttendanceStatus, EventAttendanceData } from '../hooks/useEventsAttendance';
@@ -11,6 +12,10 @@ import {
   DEMO_LAZ_PLAYER_ID,
   DEMO_SELF_PLAYER_ID,
 } from './demoPlayers';
+import {
+  buildDemoTrainingHistoryAttendance,
+  demoTrainingHistoryEventIds,
+} from './demoTrainingStats';
 
 export { buildDemoPlayers, DEMO_LAZ_PLAYER_ID, DEMO_SELF_PLAYER_ID } from './demoPlayers';
 
@@ -21,7 +26,7 @@ export type DemoAttendanceRow = {
 };
 
 /**
- * Verteilt Fixture-RSVP-Zähler auf Spieler-IDs.
+ * Verteilt Fixture-RSVP-Zähler auf Spieler-IDs + History für Trainingsquote.
  * Status-Mix: yes / no / sick / injured / external_training / offen (keine Zeile).
  */
 export function buildInitialDemoAttendance(events: DemoEvent[]): DemoAttendanceRow[] {
@@ -43,7 +48,6 @@ export function buildInitialDemoAttendance(events: DemoEvent[]): DemoAttendanceR
 
     take(yes, 'yes');
 
-    // Absagen aufteilen: no / sick / injured / LAZ (wenn Spieler übrig)
     let remainingNo = noBlock;
     if (remainingNo > 0 && i < ids.length) {
       take(1, 'no');
@@ -67,18 +71,20 @@ export function buildInitialDemoAttendance(events: DemoEvent[]): DemoAttendanceR
       remainingNo -= 1;
     }
 
-    // Offene: keine Zeilen (i wird weitergezählt ohne Push)
     i += open;
     void i;
   }
 
-  // Demo-Nutzer (p08) hat auf dem nächsten Training eine sichtbare Ausgangs-Zusage
   const selfTrain = rows.find((r) => r.event_id === 'ev-train-next' && r.player_id === DEMO_SELF_PLAYER_ID);
   if (!selfTrain) {
     rows.push({ event_id: 'ev-train-next', player_id: DEMO_SELF_PLAYER_ID, status: 'yes' });
   }
 
-  return rows;
+  const historyRows = buildDemoTrainingHistoryAttendance(
+    players.map((p) => p.id),
+    demoTrainingHistoryEventIds(),
+  );
+  return [...rows, ...historyRows];
 }
 
 export function attendanceRowsToByEventId(

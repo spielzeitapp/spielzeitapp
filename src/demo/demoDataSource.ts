@@ -2,6 +2,7 @@ import type { EventRow } from '../hooks/useEvents';
 import type { ClassifiedFeedPost, TeamFeedPostDbRow } from '../lib/matchdayFeedTypes';
 import { demoFixtures } from './demoFixtures';
 import { demoMinutesFromNowIso, demoOffsetIso } from './demoTime';
+import { buildDemoTrainingHistoryEventRows } from './demoTrainingStats';
 
 export const DEMO_TEAM_SEASON_ID = '00000000-demo-4000-8000-teamseasonu12';
 export const DEMO_TEAM_ID = '00000000-demo-4000-8000-teamrohrbach';
@@ -82,7 +83,7 @@ function toEventRow(
 
 /** Events für Home / Termine / Kalender / EventDetail (produktive EventRow-Form). */
 export function buildDemoEvents(): EventRow[] {
-  return demoFixtures.events.map((ev) => {
+  const fromFixtures = demoFixtures.events.map((ev) => {
     const kind =
       ev.kind === 'game'
         ? ('match' as const)
@@ -106,6 +107,7 @@ export function buildDemoEvents(): EventRow[] {
     else if (kind === 'match' && ev.id === 'ev-game-next') status = 'live';
     else if (kind === 'match' && ev.id === 'ev-game-past') status = 'finished';
     else if (ev.id === 'ev-train-past' || ev.id === 'ev-info') status = 'finished';
+    else if (ev.id.startsWith('ev-train-h')) status = 'finished';
 
     const titleNote =
       ev.kind === 'event' || ev.kind === 'info' || ev.kind === 'tournament'
@@ -131,6 +133,9 @@ export function buildDemoEvents(): EventRow[] {
       fixture_status: kind === 'match' ? 'published' : null,
     });
   });
+
+  // Historische Trainings für Quote/Ranking (DEMO.2D)
+  return [...fromFixtures, ...buildDemoTrainingHistoryEventRows()];
 }
 
 /**

@@ -3,10 +3,15 @@ import type { PlayerItem } from './usePlayers';
 import { buildTrainingRanking, type TrainingRankingResult } from '../lib/trainingRanking';
 import { fetchTeamTrainingParticipationPct } from '../lib/teamTrainingParticipation';
 import { loadSquadTrainingParticipation } from '../lib/teamTrainingParticipationStats';
-import { EMPTY_TRAINING_STATS, loadTeamPlayersTrainingStats } from '../lib/trainingStatsLoader';
+import { loadTeamPlayersTrainingStats } from '../lib/trainingStatsLoader';
 import { useDemoMode } from '../demo/DemoContext';
-import { getDemoTrainingParticipationPct, isDemoPlayerId } from '../demo/demoPlayers';
-import type { TrainingAttendanceStats } from '../lib/trainingAttendance';
+import { isDemoPlayerId } from '../demo/demoPlayers';
+import {
+  buildDemoSessionParticipations,
+  buildDemoStatsByPlayerId,
+  computeDemoSquadParticipationPct,
+  getDemoPastTrainingEvents,
+} from '../demo/demoTrainingStats';
 
 const EMPTY_RESULT: TrainingRankingResult = {
   qualified: [],
@@ -17,20 +22,6 @@ const EMPTY_RESULT: TrainingRankingResult = {
   teamParticipationPct: null,
   sessionParticipations: [],
 };
-
-function demoStatsFromPct(pct: number): TrainingAttendanceStats {
-  const sessions = 20;
-  const present = Math.round((pct / 100) * sessions);
-  const absent = Math.max(0, sessions - present);
-  return {
-    ...EMPTY_TRAINING_STATS,
-    teamRatePct: pct,
-    activityRatePct: pct,
-    present,
-    absent,
-    sessionsCounted: sessions,
-  };
-}
 
 export function useTeamTrainingRanking(
   players: PlayerItem[],
@@ -47,6 +38,10 @@ export function useTeamTrainingRanking(
     [players],
   );
 
+  const demoAttendanceKey = demo
+    ? demo.attendanceRows.map((r) => `${r.event_id}:${r.player_id}:${r.status}`).join('|')
+    : '';
+
   const load = useCallback(async () => {
     if (!enabled) {
       setResult(EMPTY_RESULT);
@@ -62,34 +57,34 @@ export function useTeamTrainingRanking(
       return;
     }
 
-    const useDemoData =
-      Boolean(demo) || activePlayers.some((p) => isDemoPlayerId(p.id));
+    const useDemoData = Boolean(demo) || activePlayers.some((p) => isDemoPlayerId(p.id));
 
     setLoading(true);
     setError(null);
     try {
-    if (useDemoData) {
-      const sessionsCount = 20;
-      const statsByPlayerId = new Map(
-        activePlayers.map((p) => [p.id, demoStatsFromPct(getDemoTrainingParticipationPct(p.id))]),
-      );
-      const ranking = buildTrainingRanking(activePlayers, statsByPlayerId, sessionsCount);
-      const avg =
-        activePlayers.length === 0
-          ? null
-          : Math.round(
-              activePlayers.reduce((sum, p) => sum + getDemoTrainingParticipationPct(p.id), 0) /
-                activePlayers.length,
-            );
-      setResult({
-        ...ranking,
-        teamParticipationPct: avg,
-        sessionParticipations: [],
-      });
-      return;
-    }
+      if (useDemoData && demo) {
+        const pastEvents = getDemoPastTrainingEvents(demo.data.events);
+        const playerIds = activePlayers.map((p) => p.id);
+        const statsByPlayerId = buildDemoStatsByPlayerId(
+          playerIds,
+          pastEvents,
+          demo.attendanceRows,
+        );
+        const sessionParticipations = buildDemoSessionParticipations(
+          pastEvents,
+          playerIds,
+          demo.attendanceRows,
+        );
+        const ranking = buildTrainingRanking(activePlayers, statsByPlayerId, pastEvents.length);
+        setResult({
+          ...ranking,
+          teamParticipationPct: computeDemoSquadParticipationPct(sessionParticipations),
+          sessionParticipations,
+        });
+        return;
+      }
 
-    if (activePlayers.length === 0) {
+      if (activePlayers.length === 0) {
         const participationRpc = await fetchTeamTrainingParticipationPct(sid);
         setResult({
           ...EMPTY_RESULT,
@@ -123,7 +118,7 @@ export function useTeamTrainingRanking(
     } finally {
       setLoading(false);
     }
-  }, [activePlayers, teamSeasonId, enabled, demo]);
+  }, [activePlayers, teamSeasonId, enabled, demo, demoAttendanceKey]);
 
   useEffect(() => {
     void load();

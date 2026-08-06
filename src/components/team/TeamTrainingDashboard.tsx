@@ -13,6 +13,8 @@ import { ProfileHighlightTile } from './ProfileHighlightTile';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
 import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../lib/trainingSummaryDisplay';
 import { GlassCard, PremiumCard, PremiumEmptyState, PremiumTab, PremiumTabTrack, SectionTitle } from '../../ui';
+import { useDemoMode } from '../../demo/DemoContext';
+import { countDemoUpcomingTrainings } from '../../demo/demoTrainingStats';
 
 type TrainingSubTab = 'overview' | 'kaiser' | 'challenge';
 
@@ -27,18 +29,23 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
   teamSeasonId,
   onPlayerClick,
 }) => {
+  const demo = useDemoMode();
   const [subTab, setSubTab] = useState<TrainingSubTab>('overview');
   const [upcomingTrainings, setUpcomingTrainings] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    if (demo) {
+      setUpcomingTrainings(countDemoUpcomingTrainings(demo.data.events));
+      return;
+    }
     void countUpcomingTeamTrainings(teamSeasonId).then((count) => {
       if (!cancelled) setUpcomingTrainings(count);
     });
     return () => {
       cancelled = true;
     };
-  }, [teamSeasonId]);
+  }, [teamSeasonId, demo]);
 
   const {
     ranking,

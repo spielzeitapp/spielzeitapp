@@ -36,7 +36,7 @@ function demoHrefFor(appPath: string): string | null {
     '/app/mehr/seasons': '/demo/team',
     '/app/mehr/parent-access': '/demo/team',
     '/app/mehr/trainer/team-push': '/demo/live',
-    '/app/mehr/trainer/vorlagen': '/demo/training',
+    '/app/mehr/trainer/vorlagen': '/demo/team?tab=training',
     '/app/mehr/trainer/erinnerungen': '/demo/termine',
     '/app/mehr/trainer/preview': '/demo/home',
   };

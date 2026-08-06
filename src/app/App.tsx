@@ -52,7 +52,6 @@ import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { DemoLayout } from '../demo/DemoLayout';
-import { DemoTrainingPage } from '../demo/pages/DemoTrainingPage';
 import { DemoMatchPage } from '../demo/pages/DemoMatchPage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
@@ -63,6 +62,11 @@ function DemoPlayerProfileRedirect(): React.ReactElement {
   const { playerId } = useParams<{ playerId: string }>();
   const q = playerId ? `?player=${encodeURIComponent(playerId)}` : '';
   return <Navigate to={`/demo/team${q}`} replace />;
+}
+
+/** /demo/training → produktive Trainingszentrale (Team-Tab) */
+function DemoTrainingRedirect(): React.ReactElement {
+  return <Navigate to="/demo/team?tab=training" replace />;
 }
 
 /** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
@@ -195,7 +199,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
-          <Route path="training" element={<DemoTrainingPage />} />
+          <Route path="training" element={<DemoTrainingRedirect />} />
           <Route path="match" element={<DemoMatchPage />} />
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
@@ -318,7 +322,7 @@ function PublicRoutes(): React.ReactElement {
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
-          <Route path="training" element={<DemoTrainingPage />} />
+          <Route path="training" element={<DemoTrainingRedirect />} />
           <Route path="match" element={<DemoMatchPage />} />
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />

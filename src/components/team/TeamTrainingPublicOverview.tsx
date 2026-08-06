@@ -8,6 +8,8 @@ import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons
 import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../lib/trainingSummaryDisplay';
 import { PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
 import { Gem } from 'lucide-react';
+import { useDemoMode } from '../../demo/DemoContext';
+import { countDemoUpcomingTrainings } from '../../demo/demoTrainingStats';
 
 type Props = {
   players: PlayerItem[];
@@ -15,6 +17,7 @@ type Props = {
 };
 
 export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeasonId }) => {
+  const demo = useDemoMode();
   const { ratedTrainingsCount, participationLabel, ranking, rankingLoading, rankingError } = useTeamTrainingSummary(
     players,
     teamSeasonId,
@@ -24,13 +27,17 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
 
   useEffect(() => {
     let cancelled = false;
+    if (demo) {
+      setUpcomingTrainings(countDemoUpcomingTrainings(demo.data.events));
+      return;
+    }
     void countUpcomingTeamTrainings(teamSeasonId).then((count) => {
       if (!cancelled) setUpcomingTrainings(count);
     });
     return () => {
       cancelled = true;
     };
-  }, [teamSeasonId]);
+  }, [teamSeasonId, demo]);
 
   const busy = rankingLoading;
   const ratedLabel =

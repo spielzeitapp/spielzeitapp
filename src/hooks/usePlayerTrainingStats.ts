@@ -6,11 +6,15 @@ import {
   loadPlayerTrainingStatsAcrossSeasons,
 } from '../lib/trainingStatsLoader';
 import { useDemoMode } from '../demo/DemoContext';
-import { getDemoTrainingParticipationPct, isDemoPlayerId } from '../demo/demoPlayers';
+import { isDemoPlayerId } from '../demo/demoPlayers';
+import {
+  getDemoPastTrainingEvents,
+  getDemoPlayerTrainingStatsFromAttendance,
+} from '../demo/demoTrainingStats';
 
 /**
  * Trainingsbeteiligung: eine Saison oder Career (mehrere team_season_ids).
- * Demo: Werte aus Fixture-trainingPct, kein Supabase.
+ * Demo: aus lokaler Attendance + vergangenen Demo-Trainings (produktive Formel).
  */
 export function usePlayerTrainingStats(
   playerId: string | null,
@@ -26,6 +30,9 @@ export function usePlayerTrainingStats(
   const [error, setError] = useState<string | null>(null);
 
   const careerKey = (careerSeasonIds ?? []).slice().sort().join(',');
+  const demoAttendanceKey = demo
+    ? demo.attendanceRows.map((r) => `${r.event_id}:${r.player_id}:${r.status}`).join('|')
+    : '';
 
   const load = useCallback(async () => {
     if (!enabled) {
@@ -42,22 +49,12 @@ export function usePlayerTrainingStats(
     }
 
     if (demo || isDemoPlayerId(pid)) {
-      const pct = getDemoTrainingParticipationPct(pid);
-      const sessions = 20;
-      const present = Math.round((pct / 100) * sessions);
-      const absent = Math.max(0, sessions - present);
-      setStats({
-        teamRatePct: pct,
-        activityRatePct: pct,
-        present,
-        absent,
-        sick: 0,
-        injured: 0,
-        external: 0,
-        open: 0,
-        legacyUnknown: 0,
-        sessionsCounted: sessions,
-      });
+      if (demo) {
+        const past = getDemoPastTrainingEvents(demo.data.events);
+        setStats(getDemoPlayerTrainingStatsFromAttendance(pid, past, demo.attendanceRows));
+      } else {
+        setStats(EMPTY_TRAINING_STATS);
+      }
       setError(null);
       setLoading(false);
       return;
@@ -78,12 +75,12 @@ export function usePlayerTrainingStats(
         }
       }
     } catch (e) {
-      setStats(EMPTY_TRAINING_STATS);
       setError(e instanceof Error ? e.message : String(e));
+      setStats(EMPTY_TRAINING_STATS);
     } finally {
       setLoading(false);
     }
-  }, [playerId, teamSeasonId, enabled, mode, careerKey, demo]);
+  }, [enabled, playerId, teamSeasonId, mode, careerKey, demo, demoAttendanceKey]);
 
   useEffect(() => {
     void load();

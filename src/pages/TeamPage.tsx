@@ -319,7 +319,8 @@ export const TeamPage: React.FC = () => {
     setProfileInitialTab(tab);
     const next = new URLSearchParams(searchParams);
     next.set("player", p.id);
-    next.delete("tab");
+    // Team-Tab (z. B. training) beibehalten — nur parents-Tab entfernen
+    if (next.get("tab") === "parents") next.delete("tab");
     setSearchParams(next, { replace: false });
   };
 
@@ -754,6 +755,11 @@ export const TeamPage: React.FC = () => {
   const handleTeamTabChange = (tabId: TeamTabId) => {
     clearPlayerDetailState();
     setActiveTab(tabId);
+    const next = new URLSearchParams(searchParams);
+    next.delete("player");
+    if (tabId === "squad") next.delete("tab");
+    else next.set("tab", tabId);
+    setSearchParams(next, { replace: true });
   };
 
   useEffect(() => {
