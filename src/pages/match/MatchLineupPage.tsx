@@ -16,9 +16,11 @@ import {
 } from '../../lib/liveMatchService';
 import {
   isU11FormationId,
+  isFairPlayFormationId,
   labelForSlotInFormation,
   readStoredU11Formation,
   U11_FORMATION_CHOICES,
+  FAIRPLAY_FORMATION_CHOICES,
   U11_FORMATION_DB_FALLBACK,
   writeStoredU11Formation,
   type U11FormationId,
@@ -332,6 +334,9 @@ export const MatchLineupPage: React.FC = () => {
   }, [selectedBankPlayerId, squadIds]);
 
   useEffect(() => {
+    // Leerer Kader vor dem Lineup-Load darf befüllte Slots nicht ausleeren
+    // (sonst Race: setSlots(seed) + setSquadIds im selben Tick, Clear sieht noch []).
+    if (lineupLoading || squadIds.length === 0) return;
     const squadSet = new Set(squadIds);
     setSlots((prev) => {
       let changed = false;
@@ -345,7 +350,7 @@ export const MatchLineupPage: React.FC = () => {
       }
       return changed ? next : prev;
     });
-  }, [squadIds]);
+  }, [squadIds, lineupLoading]);
 
   useEffect(() => {
     return () => {
@@ -391,6 +396,11 @@ export const MatchLineupPage: React.FC = () => {
   );
 
   const hasSquad = squadIds.length > 0;
+
+  const formationChoices = useMemo(
+    () => (isFairPlayFormationId(formationId) ? [...FAIRPLAY_FORMATION_CHOICES] : [...U11_FORMATION_CHOICES]),
+    [formationId],
+  );
 
   const onTapBankPlayer = (playerId: string) => {
     if (!lineupEditable) return;
@@ -615,7 +625,7 @@ export const MatchLineupPage: React.FC = () => {
 
         <div className="-mx-1 mb-2 shrink-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:mx-0">
           <div className="flex min-h-9 flex-nowrap items-center gap-1.5 px-0.5 pb-0.5">
-            {U11_FORMATION_CHOICES.map((id) => {
+            {formationChoices.map((id) => {
               const active = formationId === id;
               return (
                 <button
