@@ -96,6 +96,8 @@ export type DemoModeContextValue = {
   addSubOrInfo: () => void;
   finishMatch: () => void;
   resetLive: () => void;
+  /** DEMO.2H — kompletter lokaler Reset (Attendance, Prep, LIVE, Turnier). */
+  resetAllDemo: () => void;
 };
 
 const DemoModeContext = createContext<DemoModeContextValue | null>(null);
@@ -461,6 +463,40 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
     bootLiveRuntime(DEMO_MATCH_ID_LIVE, { force: true });
   }, [bootLiveRuntime]);
 
+  const resetAllDemo = useCallback(() => {
+    resetDemoAttendance();
+    resetDemoTournamentState();
+    resetDemoLiveRuntime();
+    const initial = buildInitialDemoMatchStates();
+    const tournamentPrep = buildDemoTournamentDefaultPrep(DEMO_TOURNAMENT_FINAL_MATCH_ID);
+    if (tournamentPrep) {
+      initial[DEMO_TOURNAMENT_FINAL_MATCH_ID] = tournamentPrep;
+    }
+    setMatchPrepById(initial);
+    setLive(createInitialLiveState());
+    const prep = initial[DEMO_MATCH_ID_LIVE];
+    const lite = getDemoMatchLite(DEMO_MATCH_ID_LIVE);
+    if (prep && lite) {
+      bootDemoLiveRuntime(
+        {
+          matchId: lite.id,
+          teamSeasonId: lite.team_season_id,
+          opponent: lite.opponent,
+          isHome: lite.is_home,
+          matchDate: null,
+          location: null,
+          formationId: prep.formationId,
+          minimumPlaytimeEnabled: lite.minimum_playtime_enabled,
+          minimumPlaytimeMinutes: lite.minimum_playtime_minutes,
+          plannedMatchMinutes: lite.planned_match_minutes,
+          slots: prep.slots,
+          squadPlayerIds: prep.squadPlayerIds,
+        },
+        { force: true },
+      );
+    }
+  }, [resetDemoAttendance]);
+
   const value = useMemo<DemoModeContextValue>(
     () => ({
       isDemo: true,
@@ -491,6 +527,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       addSubOrInfo,
       finishMatch,
       resetLive,
+      resetAllDemo,
     }),
     [
       data,
@@ -516,6 +553,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       addSubOrInfo,
       finishMatch,
       resetLive,
+      resetAllDemo,
     ],
   );
 

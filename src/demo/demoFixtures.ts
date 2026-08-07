@@ -6,6 +6,8 @@ const SEASON = '2026/27';
 export const DEMO_STORAGE_KEYS = {
   welcomeDismissed: 'spielzeit.demo.welcomeDismissed',
   tourDone: 'spielzeit.demo.tourDone',
+  /** sessionStorage: aktiver Rundgang (phase + stepIndex) */
+  tourSession: 'spielzeit.demo.tourSession',
 } as const;
 
 export function createInitialLiveState(): DemoLiveState {

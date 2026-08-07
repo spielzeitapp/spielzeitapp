@@ -15,6 +15,7 @@ import { TabletSidebar } from '../components/TabletSidebar';
 import { PushOnboardingPrompt } from '../../components/PushOnboardingPrompt';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/roles';
 import { useDemoMode } from '../../demo/DemoContext';
+import { DemoTourOverlay } from '../../demo/components/DemoTourOverlay';
 
 const ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
@@ -196,6 +197,7 @@ export const InternalLayout: React.FC = () => {
 
       <div className="lg:hidden">{isTouchLayout ? <BottomNav /> : null}</div>
       <div className="lg:hidden">{isTouchLayout && !isDemo ? <AppFab /> : null}</div>
+      {isDemo ? <DemoTourOverlay /> : null}
       {isDemo ? null : <PushOnboardingPrompt />}
     </AppBackground>
   );

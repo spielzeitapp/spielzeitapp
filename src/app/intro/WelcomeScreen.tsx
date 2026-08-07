@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronRight, PlayCircle, Smartphone, Trophy } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronRight, Compass, PlayCircle, Smartphone, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
+import { startDemoTour } from '../../demo/demoTourState';
+import { DEMO_TOUR_STATIONS } from '../../demo/demoTourConfig';
 import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg-neu.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
@@ -14,6 +16,7 @@ const ROUTE_LIVE_TICKER = '/app/live';
 
 /** Öffentliche Trainer-Demo — kein Login, gemeinsame App-Oberfläche. */
 const ROUTE_DEMO_HOME = '/demo/home';
+const ROUTE_DEMO_WELCOME = '/demo/intro/welcome';
 
 function appIconBase(): string {
   const b = import.meta.env.BASE_URL || '/';
@@ -53,9 +56,12 @@ function PremiumIntroButton({
 
 export const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDemoWelcome =
+    location.pathname.startsWith('/demo') || location.pathname === ROUTE_DEMO_WELCOME;
   const iconBase = appIconBase();
   /** Gemeinsamer Einstieg: gleiche Live-Anzeige wie Produktion (nur Lesen). */
-  const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: true });
+  const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: !isDemoWelcome });
   const [welcomeEntered, setWelcomeEntered] = useState(false);
 
   useEffect(() => {
@@ -81,9 +87,15 @@ export const WelcomeScreen: React.FC = () => {
     navigate(ROUTE_LIVE_TICKER, { replace: true });
   };
 
-  /** Einzige Demo-Ergänzung: gleiche CTA-Optik, Ziel /demo/home. */
-  const goDemo = () => {
+  /** Demo frei erkunden — ohne Rundgang. */
+  const goDemoExplore = () => {
     navigate(ROUTE_DEMO_HOME, { replace: true });
+  };
+
+  /** Geführte Demo — Tour starten, dann Home. */
+  const goDemoGuided = () => {
+    startDemoTour();
+    navigate(DEMO_TOUR_STATIONS[0]?.path ?? ROUTE_DEMO_HOME, { replace: true });
   };
 
   return (
@@ -295,87 +307,143 @@ export const WelcomeScreen: React.FC = () => {
             welcomeEntered ? 'translate-y-0 opacity-100' : 'translate-y-[10px] opacity-0',
           ].join(' ')}
         >
-          <PremiumIntroButton onClick={goHome}>
-            <span className="welcome-intro-icon-shell relative z-10">
-              <img
-                src={spielzeitappIcon}
-                className="h-10 w-10 object-contain sm:h-11 sm:w-11"
-                alt=""
-                width={44}
-                height={44}
-                decoding="async"
-                draggable={false}
-              />
-            </span>
-            <span className="relative z-10 min-w-0 flex-1">
-              <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                Zur App
-              </span>
-              <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                Alle Teams. Alle Funktionen.
-              </span>
-            </span>
-            <ChevronRight
-              className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
-              strokeWidth={2.6}
-              aria-hidden
-            />
-          </PremiumIntroButton>
+          {isDemoWelcome ? (
+            <>
+              <div className="mb-1 px-0.5">
+                <p className="text-[18px] font-bold leading-tight text-white sm:text-[20px]">
+                  SpielzeitApp ausprobieren
+                </p>
+                <p className="mt-1 text-[12px] font-medium leading-snug text-white/65 sm:text-[13px]">
+                  Erlebe die wichtigsten Trainerfunktionen mit einem fertigen Demo-Team – ohne Anmeldung
+                  und ohne echte Daten.
+                </p>
+              </div>
 
-          <PremiumIntroButton onClick={goDemo}>
-            <span className="welcome-intro-icon-shell relative z-10">
-              <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
-            </span>
-            <span className="relative z-10 min-w-0 flex-1">
-              <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                Demo ansehen
-              </span>
-              <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                U12-Demoteam ohne Login ausprobieren.
-              </span>
-            </span>
-            <ChevronRight
-              className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
-              strokeWidth={2.6}
-              aria-hidden
-            />
-          </PremiumIntroButton>
-
-          <PremiumIntroButton pulseGlow={hasLiveMatch} liveActive={hasLiveMatch} onClick={goLive}>
-            <span className="relative z-10 flex shrink-0 items-center gap-2.5">
-              <span className="welcome-intro-icon-shell">
-                <img
-                  src={`${iconBase}icons/live.svg`}
-                  className="h-8 w-8 shrink-0 opacity-95 sm:h-9 sm:w-9"
-                  alt=""
-                  width={36}
-                  height={36}
-                  decoding="async"
-                  draggable={false}
+              <PremiumIntroButton onClick={goDemoGuided}>
+                <span className="welcome-intro-icon-shell relative z-10">
+                  <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
+                </span>
+                <span className="relative z-10 min-w-0 flex-1">
+                  <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+                    Geführte Demo starten
+                  </span>
+                  <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                    In 7 kurzen Stationen durch die App.
+                  </span>
+                </span>
+                <ChevronRight
+                  className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
+                  strokeWidth={2.6}
+                  aria-hidden
                 />
-              </span>
-              {hasLiveMatch ? (
-                <span className="welcome-live-badge welcome-live-badge--anim">
-                  <span className="text-[11px] leading-none text-red-100 sm:text-xs">●</span> Live
+              </PremiumIntroButton>
+
+              <PremiumIntroButton onClick={goDemoExplore}>
+                <span className="welcome-intro-icon-shell relative z-10">
+                  <Compass className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
                 </span>
-              ) : (
-                <span className="flex items-center gap-1 rounded border border-red-500/40 bg-red-950/70 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_12px_rgba(220,38,38,0.25)]">
-                  <span className="text-[10px] leading-none text-red-300">●</span> Live
+                <span className="relative z-10 min-w-0 flex-1">
+                  <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+                    Demo frei erkunden
+                  </span>
+                  <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                    Ohne Führung durch die echte Demo navigieren.
+                  </span>
                 </span>
-              )}
-            </span>
-            <span className="relative z-10 min-w-0 flex-1">
-              <span className="block text-[16px] font-bold leading-tight text-white/95 sm:text-[17px]">Liveticker</span>
-              <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                Live dabei. Kein Tor verpassen.
-              </span>
-            </span>
-            <ChevronRight
-              className="relative z-10 h-5 w-5 shrink-0 text-white/45 transition group-hover:text-white/80"
-              strokeWidth={2.6}
-              aria-hidden
-            />
-          </PremiumIntroButton>
+                <ChevronRight
+                  className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
+                  strokeWidth={2.6}
+                  aria-hidden
+                />
+              </PremiumIntroButton>
+            </>
+          ) : (
+            <>
+              <PremiumIntroButton onClick={goHome}>
+                <span className="welcome-intro-icon-shell relative z-10">
+                  <img
+                    src={spielzeitappIcon}
+                    className="h-10 w-10 object-contain sm:h-11 sm:w-11"
+                    alt=""
+                    width={44}
+                    height={44}
+                    decoding="async"
+                    draggable={false}
+                  />
+                </span>
+                <span className="relative z-10 min-w-0 flex-1">
+                  <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+                    Zur App
+                  </span>
+                  <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                    Alle Teams. Alle Funktionen.
+                  </span>
+                </span>
+                <ChevronRight
+                  className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
+                  strokeWidth={2.6}
+                  aria-hidden
+                />
+              </PremiumIntroButton>
+
+              <PremiumIntroButton onClick={goDemoExplore}>
+                <span className="welcome-intro-icon-shell relative z-10">
+                  <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
+                </span>
+                <span className="relative z-10 min-w-0 flex-1">
+                  <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+                    Demo ansehen
+                  </span>
+                  <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                    U12-Demoteam ohne Login ausprobieren.
+                  </span>
+                </span>
+                <ChevronRight
+                  className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
+                  strokeWidth={2.6}
+                  aria-hidden
+                />
+              </PremiumIntroButton>
+
+              <PremiumIntroButton pulseGlow={hasLiveMatch} liveActive={hasLiveMatch} onClick={goLive}>
+                <span className="relative z-10 flex shrink-0 items-center gap-2.5">
+                  <span className="welcome-intro-icon-shell">
+                    <img
+                      src={`${iconBase}icons/live.svg`}
+                      className="h-8 w-8 shrink-0 opacity-95 sm:h-9 sm:w-9"
+                      alt=""
+                      width={36}
+                      height={36}
+                      decoding="async"
+                      draggable={false}
+                    />
+                  </span>
+                  {hasLiveMatch ? (
+                    <span className="welcome-live-badge welcome-live-badge--anim">
+                      <span className="text-[11px] leading-none text-red-100 sm:text-xs">●</span> Live
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 rounded border border-red-500/40 bg-red-950/70 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_12px_rgba(220,38,38,0.25)]">
+                      <span className="text-[10px] leading-none text-red-300">●</span> Live
+                    </span>
+                  )}
+                </span>
+                <span className="relative z-10 min-w-0 flex-1">
+                  <span className="block text-[16px] font-bold leading-tight text-white/95 sm:text-[17px]">
+                    Liveticker
+                  </span>
+                  <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                    Live dabei. Kein Tor verpassen.
+                  </span>
+                </span>
+                <ChevronRight
+                  className="relative z-10 h-5 w-5 shrink-0 text-white/45 transition group-hover:text-white/80"
+                  strokeWidth={2.6}
+                  aria-hidden
+                />
+              </PremiumIntroButton>
+            </>
+          )}
         </div>
 
         <footer className="relative mt-2.5 flex shrink-0 flex-col items-center gap-1 px-1 pb-0 max-[667px]:mt-2 max-[667px]:gap-0.5">
@@ -384,13 +452,24 @@ export const WelcomeScreen: React.FC = () => {
             <Trophy className="h-3.5 w-3.5 shrink-0 text-red-500/80 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
             <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/14 to-white/5" />
           </div>
-          <div className="flex max-w-[320px] items-start gap-1.5 text-left text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
-            <Smartphone className="mt-px h-3.5 w-3.5 shrink-0 text-zinc-300 sm:mt-0.5 sm:h-4 sm:w-4" strokeWidth={2.15} aria-hidden />
-            <p>
-              <span className="font-semibold text-red-500">Tipp:</span> Zum Home-Bildschirm hinzufügen für den vollen
-              App-Modus.
+          {isDemoWelcome ? (
+            <p className="max-w-[320px] text-center text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
+              Alle Daten sind fiktiv. Änderungen bleiben nur lokal. Ein Reload setzt die Demo zurück — es
+              werden keine Nachrichten oder Benachrichtigungen verschickt.
             </p>
-          </div>
+          ) : (
+            <div className="flex max-w-[320px] items-start gap-1.5 text-left text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
+              <Smartphone
+                className="mt-px h-3.5 w-3.5 shrink-0 text-zinc-300 sm:mt-0.5 sm:h-4 sm:w-4"
+                strokeWidth={2.15}
+                aria-hidden
+              />
+              <p>
+                <span className="font-semibold text-red-500">Tipp:</span> Zum Home-Bildschirm hinzufügen für
+                den vollen App-Modus.
+              </p>
+            </div>
+          )}
         </footer>
       </div>
     </div>
