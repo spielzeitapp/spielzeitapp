@@ -56,8 +56,8 @@ export const DEMO_TOUR_STATIONS: readonly DemoTourStation[] = [
   },
   {
     id: 'live',
-    title: 'Das Spiel live begleiten',
-    body: 'Das Meisterschaftsspiel gegen SV Loosdorf läuft bereits. Teste Tore, Wechsel, Pause und Spielzeiten selbst.',
+    title: 'Das Spiel läuft bereits',
+    body: 'Das Demo-Spiel steht 2:1. Teste jetzt selbst Pause, Tore, Gegentore, Wechsel und Spielzeiten.',
     path: `/demo/live?matchId=${encodeURIComponent(DEMO_MATCH_ID_LIVE)}`,
   },
   {

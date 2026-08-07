@@ -9,6 +9,7 @@
 
 import {
   FIELD_SLOT_ORDER,
+  applySubstitutionToSlots,
   fieldSlotMapToStartingIds,
   getBenchPlayers,
   startingLineupToSlotMap,
@@ -78,13 +79,29 @@ export type BootDemoLiveRuntimeParams = {
   squadPlayerIds: readonly string[];
 };
 
+/** Einzelnes Seed-Ereignis (minute = Spielsekunden seit Anpfiff). */
+export type DemoLiveSeedEvent = {
+  type: 'goal' | 'goal_away' | 'substitution';
+  /** Spielsekunden (produktives `match_events.minute`). */
+  minute: number;
+  /** Torschütze (goal) bzw. Auswechselspieler (substitution). */
+  playerId?: string | null;
+  /** Einwechselspieler (nur substitution). */
+  playerInId?: string | null;
+};
+
 /** Optionen für sofort laufendes Demo-LIVE (Meisterschaft). */
 export type BootDemoLiveAsLiveOptions = {
   /** Bereits verstrichene Spielsekunden; Uhr läuft ab jetzt weiter. */
   elapsedSeconds?: number;
   scoreHome?: number;
   scoreAway?: number;
-  /** Torschütze für Seed-Tor (wenn scoreHome >= 1). */
+  /**
+   * Deterministische Ausgangs-Ereignisse (ohne start — start wird immer ergänzt).
+   * Wenn gesetzt, ersetzt das den Legacy-Einzelfall `goalScorerPlayerId`.
+   */
+  seedEvents?: readonly DemoLiveSeedEvent[];
+  /** Legacy: einzelnes Heimtor, falls `seedEvents` fehlt. */
   goalScorerPlayerId?: string | null;
 };
 
@@ -194,6 +211,24 @@ function activeSessionFor(matchId: string | null | undefined): DemoLiveSession |
 }
 
 /**
+ * Standard-Seed: Meisterschafts-LIVE gegen SV Loosdorf.
+ * Formation 1-3-3-1 (Prep), Uhr ~18:30, Stand 2:1, vier Ereignisse.
+ * Wechsel: p06 (Jonas W.) raus → p09 (Tim P.) rein @ 14′.
+ * Tore: p08 Noah K. @ 4′, p10 Elias F. @ 17′.
+ */
+export const DEMO_CHAMPIONSHIP_LIVE_SEED: BootDemoLiveAsLiveOptions = {
+  elapsedSeconds: 18 * 60 + 30,
+  scoreHome: 2,
+  scoreAway: 1,
+  seedEvents: [
+    { type: 'goal', minute: 4 * 60, playerId: 'p08' },
+    { type: 'goal_away', minute: 9 * 60 },
+    { type: 'substitution', minute: 14 * 60, playerId: 'p06', playerInId: 'p09' },
+    { type: 'goal', minute: 17 * 60, playerId: 'p10' },
+  ],
+};
+
+/**
  * Session aus der lokalen Vorbereitung aufbauen.
  * Standard: `scheduled` / 0:0. Mit `asLive`: sofort laufendes LIVE (bedienbar).
  */
@@ -215,56 +250,85 @@ export function bootDemoLiveRuntime(
     return;
   }
 
-  const slots = normalizeSlots(params.slots);
-  const onFieldIds = fieldSlotMapToStartingIds(slots).filter((pid) => pid.length > 0);
-  const squadPlayerIds = uniqueIds([...params.squadPlayerIds, ...onFieldIds]);
+  const kickoffSlots = normalizeSlots(params.slots);
+  const kickoffOnFieldIds = fieldSlotMapToStartingIds(kickoffSlots).filter((pid) => pid.length > 0);
+  const squadPlayerIds = uniqueIds([...params.squadPlayerIds, ...kickoffOnFieldIds]);
 
   const asLiveOpt =
     options?.asLive === true
-      ? ({} as BootDemoLiveAsLiveOptions)
+      ? DEMO_CHAMPIONSHIP_LIVE_SEED
       : options?.asLive && typeof options.asLive === 'object'
         ? options.asLive
         : null;
 
-  const elapsed = Math.max(0, Math.trunc(asLiveOpt?.elapsedSeconds ?? (asLiveOpt ? 12 * 60 : 0)));
-  const scoreHome = Math.max(0, Math.trunc(asLiveOpt?.scoreHome ?? (asLiveOpt ? 1 : 0)));
+  const elapsed = Math.max(0, Math.trunc(asLiveOpt?.elapsedSeconds ?? 0));
+  const scoreHome = Math.max(0, Math.trunc(asLiveOpt?.scoreHome ?? 0));
   const scoreAway = Math.max(0, Math.trunc(asLiveOpt?.scoreAway ?? 0));
-  const nowIso = new Date().toISOString();
-  const kickoffIds = asLiveOpt ? fieldSlotMapToStartingIds(slots) : null;
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const kickoffIds = asLiveOpt ? fieldSlotMapToStartingIds(kickoffSlots) : null;
 
   const seedEvents: DemoLiveEventRow[] = [];
   eventCounter = 0;
+  let currentSlots = kickoffSlots;
+
   if (asLiveOpt) {
-    eventCounter += 1;
-    seedEvents.push({
-      id: `${DEMO_EVENT_ID_PREFIX}${eventCounter}`,
-      match_id: id,
-      type: 'start',
-      minute: 0,
-      period: 1,
-      player_id: null,
-      created_at: nowIso,
-    });
-    if (scoreHome > 0) {
-      const scorer =
-        normId(asLiveOpt.goalScorerPlayerId) ||
-        (onFieldIds.includes('p08') ? 'p08' : '') ||
-        onFieldIds[0] ||
-        null;
-      const goalAtSec = Math.min(elapsed, Math.max(60, elapsed - 120));
+    const pushEvent = (
+      type: string,
+      minute: number,
+      playerId: string | null,
+      payload?: Record<string, unknown> | null,
+    ) => {
       eventCounter += 1;
       seedEvents.push({
         id: `${DEMO_EVENT_ID_PREFIX}${eventCounter}`,
         match_id: id,
-        type: 'goal',
-        minute: goalAtSec,
+        type,
+        minute,
         period: 1,
-        player_id: scorer,
-        created_at: nowIso,
-        payload: { team: 'home' },
+        player_id: playerId,
+        // Monoton steigend: stabile Sortierung bei gleicher Spielsekunde
+        created_at: new Date(nowMs + eventCounter).toISOString(),
+        payload: payload ?? null,
       });
+    };
+
+    pushEvent('start', 0, null);
+
+    const declared =
+      asLiveOpt.seedEvents && asLiveOpt.seedEvents.length > 0
+        ? asLiveOpt.seedEvents
+        : scoreHome > 0
+          ? ([
+              {
+                type: 'goal' as const,
+                minute: Math.min(elapsed, Math.max(60, elapsed - 120)),
+                playerId:
+                  normId(asLiveOpt.goalScorerPlayerId) ||
+                  (kickoffOnFieldIds.includes('p08') ? 'p08' : '') ||
+                  kickoffOnFieldIds[0] ||
+                  null,
+              },
+            ] satisfies DemoLiveSeedEvent[])
+          : [];
+
+    for (const ev of declared) {
+      const minute = Math.max(0, Math.trunc(ev.minute));
+      if (ev.type === 'goal') {
+        pushEvent('goal', minute, normId(ev.playerId) || null);
+      } else if (ev.type === 'goal_away') {
+        pushEvent('goal_away', minute, normId(ev.playerId) || null);
+      } else if (ev.type === 'substitution') {
+        const outId = normId(ev.playerId);
+        const inId = normId(ev.playerInId);
+        if (!outId || !inId) continue;
+        pushEvent('substitution', minute, outId, { player_in_id: inId });
+        currentSlots = applySubstitutionToSlots(currentSlots, outId, inId).slots;
+      }
     }
   }
+
+  const onFieldIds = fieldSlotMapToStartingIds(currentSlots).filter((pid) => pid.length > 0);
 
   session = {
     match: {
@@ -289,7 +353,7 @@ export function bootDemoLiveRuntime(
     },
     eventIsHome: params.isHome ?? null,
     events: seedEvents,
-    slots,
+    slots: currentSlots,
     squadPlayerIds,
     benchPlayerIds: getBenchPlayers(squadPlayerIds, onFieldIds),
     kickoffStartingPlayerIds: kickoffIds,
@@ -297,14 +361,6 @@ export function bootDemoLiveRuntime(
   };
   notify();
 }
-
-/** Standard-Seed für das Meisterschafts-LIVE in der öffentlichen Demo. */
-export const DEMO_CHAMPIONSHIP_LIVE_SEED: BootDemoLiveAsLiveOptions = {
-  elapsedSeconds: 12 * 60,
-  scoreHome: 1,
-  scoreAway: 0,
-  goalScorerPlayerId: 'p08',
-};
 
 export function resetDemoLiveRuntime(): void {
   session = null;
