@@ -28,6 +28,8 @@ export type DemoPlayer = {
   trainingPct: number;
   appearances: number;
   goals: number;
+  /** Immer true für Demo-Personen (KI-generiert). */
+  aiGenerated: true;
 };
 
 export type DemoEvent = {

@@ -50,19 +50,19 @@ function emptySlots(): Record<FieldSlotId, string | null> {
   return { GK: null, LB: null, RB: null, CM: null, LW: null, RW: null, ST: null, FP: null };
 }
 
-/** Initiale 1-3-3-1 Aufstellung (8er FairPlay) – IDs aus demoPlayers. */
+/** Initiale 1-3-3-1 Aufstellung (8er FairPlay) – IDs aus demoPlayers p01–p12. */
 function seedFairPlayLineup(): Pick<DemoMatchPrepState, 'squadPlayerIds' | 'slots' | 'formationId'> {
   const slots = emptySlots();
   slots.GK = 'p01';
   slots.LB = 'p02';
   slots.CM = 'p03';
-  slots.RB = 'p04';
+  slots.RB = 'p04'; // Mia R. (Startformation)
   slots.LW = 'p06';
   slots.ST = 'p10';
   slots.RW = 'p08';
-  slots.FP = 'p07';
+  slots.FP = 'p07'; // Lena M. (Startformation)
   const starters = ['p01', 'p02', 'p03', 'p04', 'p06', 'p07', 'p08', 'p10'];
-  const bench = ['p09', 'p11', 'p12', 'p13'];
+  const bench = ['p05', 'p09', 'p11', 'p12'];
   return {
     formationId: '1-3-3-1',
     slots,
@@ -72,16 +72,16 @@ function seedFairPlayLineup(): Pick<DemoMatchPrepState, 'squadPlayerIds' | 'slot
 
 function seedAwayLineup(): Pick<DemoMatchPrepState, 'squadPlayerIds' | 'slots' | 'formationId'> {
   const slots = emptySlots();
-  slots.GK = 'p15';
+  slots.GK = 'p01';
   slots.LB = 'p12';
   slots.CM = 'p04';
   slots.RB = 'p02';
   slots.LW = 'p09';
   slots.ST = 'p11';
   slots.RW = 'p08';
-  slots.FP = 'p13';
-  const starters = ['p15', 'p12', 'p04', 'p02', 'p09', 'p11', 'p08', 'p13'];
-  const bench = ['p01', 'p06', 'p07', 'p10'];
+  slots.FP = 'p07';
+  const starters = ['p01', 'p12', 'p04', 'p02', 'p09', 'p11', 'p08', 'p07'];
+  const bench = ['p03', 'p05', 'p06', 'p10'];
   return {
     formationId: DEFAULT_FAIRPLAY_FORMATION,
     slots,

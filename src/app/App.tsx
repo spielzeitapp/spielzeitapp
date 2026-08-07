@@ -207,6 +207,7 @@ function InternalRoutes(): React.ReactElement {
           </Route>
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="team" element={<TeamPage />} />
+          <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="training" element={<DemoTrainingRedirect />} />
           <Route path="match" element={<DemoMatchRedirect />} />

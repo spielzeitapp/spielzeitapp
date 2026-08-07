@@ -21,6 +21,10 @@ import { AppButton } from "../components/ui/AppButton";
 import { premiumPlayerInitials } from "../lib/premiumPlayerCard";
 import { APP_BOTTOM_SCROLL_PAD } from "../lib/appScrollPadding";
 import { labelPartsFromTeamSeasonLike } from "../lib/profileTeamSeasonDisplay";
+import { useDemoMode } from "../demo/DemoContext";
+import { useInternalBasePath } from "../demo/demoPaths";
+import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
+import { getDemoStaffMember } from "../demo/demoStaff";
 
 function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string } {
   const first = (member.first_name ?? "").trim().toUpperCase();
@@ -37,13 +41,28 @@ function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string 
 export const TrainerProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
   const { selectedTeamSeason } = useSession();
-  const { teamSeasonId, teamLine, seasonLine, role, loading: tsLoading } = useActiveTeamSeason();
-  const canManage = canManageRoster(normalizeRole(role));
+  const {
+    teamSeasonId: sessionTeamSeasonId,
+    teamLine: sessionTeamLine,
+    seasonLine: sessionSeasonLine,
+    role: sessionRole,
+    loading: tsLoadingRaw,
+  } = useActiveTeamSeason();
+  const teamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionTeamSeasonId;
+  const teamLine = isDemo ? demo!.data.teamName : sessionTeamLine;
+  const seasonLine = isDemo ? demo!.data.seasonLabel : sessionSeasonLine;
+  const role = isDemo ? "trainer" : sessionRole;
+  const tsLoading = isDemo ? false : tsLoadingRaw;
+  const canManage = !isDemo && canManageRoster(normalizeRole(role));
 
-  const { players } = usePlayers(teamSeasonId, {
+  const { players: livePlayers } = usePlayers(isDemo ? null : teamSeasonId, {
     mode: canManage ? "all" : "active",
   });
+  const players = isDemo && demo ? demo.players : livePlayers;
 
   const [member, setMember] = useState<TeamStaffMember | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,22 +75,25 @@ export const TrainerProfilePage: React.FC = () => {
     finishedMatches: coachMatches,
     achievements,
     trainings,
-    loading: boardLoading,
-    error: boardError,
-  } = useSeasonMatchBoard(teamSeasonId);
+    loading: boardLoadingLive,
+    error: boardErrorLive,
+  } = useSeasonMatchBoard(isDemo ? null : teamSeasonId);
+
+  const boardLoading = isDemo ? false : boardLoadingLive;
+  const boardError = isDemo ? null : boardErrorLive;
 
   const stats = useMemo(
     () => ({
-      trainings,
-      matches: seasonSummary.played,
-      wins: seasonSummary.wins,
-      draws: seasonSummary.draws,
-      losses: seasonSummary.losses,
-      goalsFor: seasonSummary.goalsFor,
-      goalsAgainst: seasonSummary.goalsAgainst,
-      pointsPerGame: seasonSummary.pointsPerGame,
+      trainings: isDemo ? 14 : trainings,
+      matches: isDemo ? 8 : seasonSummary.played,
+      wins: isDemo ? 5 : seasonSummary.wins,
+      draws: isDemo ? 2 : seasonSummary.draws,
+      losses: isDemo ? 1 : seasonSummary.losses,
+      goalsFor: isDemo ? 18 : seasonSummary.goalsFor,
+      goalsAgainst: isDemo ? 9 : seasonSummary.goalsAgainst,
+      pointsPerGame: isDemo ? 2.1 : seasonSummary.pointsPerGame,
     }),
-    [seasonSummary, trainings],
+    [seasonSummary, trainings, isDemo],
   );
 
   const statsLoading = boardLoading;
@@ -82,6 +104,13 @@ export const TrainerProfilePage: React.FC = () => {
   const reloadMember = useCallback(async () => {
     const uid = userId?.trim();
     if (!uid || !teamSeasonId) return;
+    if (isDemo && demo) {
+      const found = demo.staff.find((s) => s.user_id === uid) ?? null;
+      setRpcMissing(false);
+      setMember(found);
+      setNotFound(!found);
+      return;
+    }
     const { member: found, error, rpcMissing: rpcGap } = await fetchTeamStaffMember(teamSeasonId, uid);
     setRpcMissing(rpcGap);
     if (error || !found) {
@@ -91,13 +120,21 @@ export const TrainerProfilePage: React.FC = () => {
       setMember(found);
       setNotFound(false);
     }
-  }, [userId, teamSeasonId]);
+  }, [userId, teamSeasonId, isDemo, demo]);
 
   useEffect(() => {
     const uid = userId?.trim();
     if (!uid || !teamSeasonId) {
       setMember(null);
       setNotFound(!uid);
+      setLoading(false);
+      return;
+    }
+    if (isDemo && demo) {
+      const found = demo.staff.find((s) => s.user_id === uid) ?? null;
+      setRpcMissing(false);
+      setMember(found);
+      setNotFound(!found);
       setLoading(false);
       return;
     }
@@ -119,14 +156,21 @@ export const TrainerProfilePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [userId, teamSeasonId]);
+  }, [userId, teamSeasonId, isDemo, demo]);
 
   const trainerEditor = useTrainerStaffEditor({
-    teamSeasonId,
+    teamSeasonId: isDemo ? null : teamSeasonId,
     onAfterSave: reloadMember,
   });
 
   const labelParts = useMemo(() => {
+    if (isDemo) {
+      return {
+        teamLine: demo!.data.teamName,
+        seasonLine: demo!.data.seasonLabel,
+        full: `${demo!.data.teamName} · ${demo!.data.seasonLabel}`,
+      };
+    }
     const fromActive = labelPartsFromTeamSeasonLike(selectedTeamSeason);
     if (fromActive) return fromActive;
     if (teamLine) {
@@ -137,7 +181,7 @@ export const TrainerProfilePage: React.FC = () => {
       };
     }
     return null;
-  }, [selectedTeamSeason, teamLine, seasonLine]);
+  }, [selectedTeamSeason, teamLine, seasonLine, isDemo, demo]);
 
   const teamName = labelParts?.teamLine?.trim() || "Team";
   const seasonName = labelParts?.seasonLine?.trim() || "—";
@@ -149,8 +193,9 @@ export const TrainerProfilePage: React.FC = () => {
   const { line1: firstNameLine, line2: lastNameLine } = member ? nameHeroLines(member) : { line1: "TRAINER", line2: "" };
   const initials = member ? premiumPlayerInitials(staffDisplayName(member)) : "TR";
   const roleWatermark = "TR";
+  const demoAi = isDemo && Boolean(getDemoStaffMember(userId));
 
-  const goBack = () => navigate("/app/team", { state: { tab: "trainers" } });
+  const goBack = () => navigate(`${basePath}/team`, { state: { tab: "trainers" } });
 
   return (
     <div
@@ -158,6 +203,8 @@ export const TrainerProfilePage: React.FC = () => {
       style={{ paddingBottom: `calc(${APP_BOTTOM_SCROLL_PAD})` }}
     >
       <ProfileCompactHeader title="Trainerprofil" onBack={goBack} backLabel="Zurück zum Team" />
+
+      {demoAi ? <DemoAiDisclosure className="mt-3" /> : null}
 
       {rpcMissing ? (
         <p className="mx-3 mt-3 rounded-lg border border-amber-500/35 bg-amber-950/35 px-3 py-2 text-[13px] text-amber-100/95">

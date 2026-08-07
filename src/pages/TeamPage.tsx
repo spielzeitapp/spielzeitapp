@@ -42,6 +42,7 @@ import type { ProfileTab } from "../components/team/PlayerProfileModal";
 import { useDemoMode } from "../demo/DemoContext";
 import { useInternalBasePath } from "../demo/demoPaths";
 import { buildDemoSeasonMatchBoard } from "../demo/demoMatchState";
+import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -214,7 +215,7 @@ export const TeamPage: React.FC = () => {
     staffRpcMissing,
     refetch: refetchStaffLive,
   } = useTeamStaff(isDemo ? null : teamSeasonId);
-  const staffRows = isDemo ? [] : staffRowsLive;
+  const staffRows = isDemo ? demo!.staff : staffRowsLive;
   const staffLoading = isDemo ? false : staffLoadingLive;
   const staffFetchError = isDemo ? null : staffFetchErrorLive;
   const refetchStaff = isDemo ? (async () => ({ error: null })) : refetchStaffLive;
@@ -1043,6 +1044,8 @@ export const TeamPage: React.FC = () => {
         )}
       </GlassCard>
 
+      {isDemo ? <DemoAiDisclosure className="mt-3" /> : null}
+
       {activeTab === "squad" ? (
       <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
         <div className="flex items-center justify-between gap-2">
@@ -1165,7 +1168,7 @@ export const TeamPage: React.FC = () => {
             <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
               Trainer
             </SectionTitle>
-            {teamSeasonId != null && canManagePlayers && !staffLoading ? (
+            {teamSeasonId != null && canManagePlayers && !isDemo && !staffLoading ? (
               <PremiumButton
                 type="button"
                 variant="interactive"

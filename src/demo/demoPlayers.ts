@@ -1,6 +1,6 @@
 /**
- * Zentrale Demo-Spielerquelle (DEMO.2C+).
- * IDs p01–p15 bleiben stabil; p08 = Selbstspieler für DEMO.2B-RSVP.
+ * Zentrale Demo-Spielerquelle (DEMO.2C+ / 2I-FIX).
+ * Aktiver Kader: p01–p12. p08 = Selbstspieler. Assets p13–p15 bleiben ungenutzt liegen.
  */
 
 import type { PlayerItem } from '../hooks/usePlayers';
@@ -15,21 +15,44 @@ export const DEMO_SELF_PLAYER_ID = 'p08';
 /** LAZ-fähig (zusätzlich zu p08). */
 export const DEMO_LAZ_PLAYER_ID = 'p05';
 
+/** Aktive Demo-Spieler-IDs (12er-Kader). */
+export const DEMO_ACTIVE_PLAYER_IDS = [
+  'p01',
+  'p02',
+  'p03',
+  'p04',
+  'p05',
+  'p06',
+  'p07',
+  'p08',
+  'p09',
+  'p10',
+  'p11',
+  'p12',
+] as const;
+
+export type DemoActivePlayerId = (typeof DEMO_ACTIVE_PLAYER_IDS)[number];
+
 /** Öffentlicher Asset-Pfad für KI-Porträts (nur Demo). */
 export const DEMO_PLAYER_AVATAR_DIR = '/avatars/demo';
 
 /**
- * Zentrale Avatar-Zuordnung über stabile Spieler-ID (p01–p15).
+ * Zentrale Avatar-Zuordnung über stabile Spieler-ID (aktiver Kader p01–p12).
  * Dateien: `public/avatars/demo/demo-player-pXX.webp`
  */
 export function getDemoPlayerAvatarUrl(playerId: string | null | undefined): string | null {
   const id = String(playerId ?? '').trim();
-  if (!/^p(0[1-9]|1[0-5])$/.test(id)) return null;
+  if (!/^p(0[1-9]|1[0-2])$/.test(id)) return null;
   return `${DEMO_PLAYER_AVATAR_DIR}/demo-player-${id}.webp`;
 }
 
 export function isDemoPlayerId(playerId: string | null | undefined): boolean {
   return Boolean(playerId && /^p\d{2}$/.test(playerId.trim()));
+}
+
+export function isDemoActivePlayerId(playerId: string | null | undefined): boolean {
+  const id = String(playerId ?? '').trim();
+  return (DEMO_ACTIVE_PLAYER_IDS as readonly string[]).includes(id);
 }
 
 export function getDemoFixturePlayer(playerId: string): DemoPlayer | undefined {
@@ -104,3 +127,7 @@ export function getDemoPlayerLastMatches(playerId: string): PlayerLastMatchRow[]
 export function getDemoTrainingParticipationPct(playerId: string): number {
   return getDemoFixturePlayer(playerId)?.trainingPct ?? 0;
 }
+
+/** Sichtbarer Demo-Hinweistext (Teamseite + Hilfe). */
+export const DEMO_AI_DISCLOSURE_TEXT =
+  'Alle dargestellten Spieler, Trainer, Namen und Porträtfotos sind vollständig fiktive, KI-generierte Demo-Inhalte. Es werden keine realen Kinder, Trainer oder Vereinsmitglieder dargestellt.';

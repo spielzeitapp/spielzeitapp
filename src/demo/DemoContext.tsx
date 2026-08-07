@@ -34,9 +34,11 @@ import {
 } from './demoAttendance';
 import type { AttendanceStatus, EventAttendanceData } from '../hooks/useEventsAttendance';
 import type { PlayerItem } from '../hooks/usePlayers';
+import type { TeamStaffMember } from '../hooks/useTeamStaff';
 import type { DemoFixtures, DemoLiveEvent, DemoLiveState } from './demoTypes';
 import type { FieldSlotId } from '../types/match';
 import type { U11FormationId } from '../lib/matchFormations';
+import { buildDemoStaff } from './demoStaff';
 import {
   buildInitialDemoMatchStates,
   cloneDemoMatchState,
@@ -51,6 +53,8 @@ export type DemoModeContextValue = {
   fixtures: DemoFixtures;
   data: DemoDataSource;
   players: PlayerItem[];
+  /** Fiktives Trainerteam (Markus + Sara). */
+  staff: TeamStaffMember[];
   selfPlayerId: string;
   attendanceRows: DemoAttendanceRow[];
   getAttendanceByEventIds: (eventIds: string[]) => Record<string, EventAttendanceData>;
@@ -125,6 +129,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   const [live, setLive] = useState<DemoLiveState>(() => createInitialLiveState());
   const data = useMemo(() => buildDataSource(), []);
   const players = useMemo(() => buildDemoPlayers(), []);
+  const staff = useMemo(() => buildDemoStaff(), []);
   const [attendanceRows, setAttendanceRows] = useState<DemoAttendanceRow[]>(() =>
     buildInitialDemoAttendance(demoFixtures.events),
   );
@@ -506,6 +511,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       fixtures: demoFixtures,
       data,
       players,
+      staff,
       selfPlayerId: DEMO_SELF_PLAYER_ID,
       attendanceRows,
       getAttendanceByEventIds,
@@ -534,6 +540,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
     [
       data,
       players,
+      staff,
       attendanceRows,
       getAttendanceByEventIds,
       setDemoAttendance,

@@ -73,6 +73,7 @@ function mapStaffRow(row: {
         phone?: string | null;
         email?: string | null;
         avatar_url?: string | null;
+        cutout_url?: string | null;
       }
     | {
         first_name?: string | null;
@@ -80,6 +81,7 @@ function mapStaffRow(row: {
         phone?: string | null;
         email?: string | null;
         avatar_url?: string | null;
+        cutout_url?: string | null;
       }[]
     | null;
 }): TeamStaffMember | null {
@@ -141,13 +143,14 @@ async function fetchStaffViaTables(teamSeasonId: string): Promise<{
       phone: string | null;
       email: string | null;
       avatar_url: string | null;
+      cutout_url: string | null;
     }
   >();
 
   if (userIds.length > 0) {
     const { data: profiles, error: profErr } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, phone, email, avatar_url")
+      .select("id, first_name, last_name, phone, email, avatar_url, cutout_url")
       .in("id", userIds);
     if (profErr) {
       console.error("[useTeamStaff] profiles query failed", profErr);
@@ -159,7 +162,7 @@ async function fetchStaffViaTables(teamSeasonId: string): Promise<{
           phone: p.phone ?? null,
           email: p.email ?? null,
           avatar_url: p.avatar_url ?? null,
-          cutout_url: p.cutout_url ?? null,
+          cutout_url: (p as { cutout_url?: string | null }).cutout_url ?? null,
         });
       }
     }

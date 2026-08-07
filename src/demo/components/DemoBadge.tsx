@@ -104,7 +104,9 @@ export function DemoBadge(): React.ReactElement {
             Nur lokal · Reload setzt Daten sowieso auf den Seed zurück.
           </p>
           <p className="px-2.5 pb-1.5 pt-0.5 text-[10px] leading-snug text-white/35">
-            Spieler und Fotos sind vollständig fiktive Demo-Daten und KI-generiert.
+            Alle dargestellten Spieler, Trainer, Namen und Porträtfotos sind vollständig fiktive,
+            KI-generierte Demo-Inhalte. Es werden keine realen Kinder, Trainer oder Vereinsmitglieder
+            dargestellt.
           </p>
         </div>
       ) : null}
