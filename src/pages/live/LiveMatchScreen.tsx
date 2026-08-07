@@ -128,6 +128,7 @@ import { TournamentNextMatchWorkflowCta } from '../../components/tournament/Tour
 import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { getDemoMatchLite } from '../../demo/demoMatchState';
+import { getDemoTournamentEventIdForMatch } from '../../demo/demoTournamentState';
 import {
   isDemoLiveCalendarFinalized,
   markDemoLiveCalendarFinalized,
@@ -2859,7 +2860,10 @@ export const LiveMatchScreen: React.FC = () => {
       markDemoLiveCalendarFinalized(effectiveMatchId);
       setCalendarFinalized(true);
       setSpielAbschlussOpen(false);
-      const eventId = getDemoMatchLite(effectiveMatchId)?.event_id ?? null;
+      const eventId =
+        getDemoMatchLite(effectiveMatchId)?.event_id ??
+        getDemoTournamentEventIdForMatch(effectiveMatchId) ??
+        null;
       navigate(eventId ? `${basePath}/events/${encodeURIComponent(eventId)}` : `${basePath}/termine`);
       return;
     }

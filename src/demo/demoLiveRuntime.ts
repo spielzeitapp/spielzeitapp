@@ -200,6 +200,15 @@ export function bootDemoLiveRuntime(
     (session.match.status === 'live' || session.match.status === 'finished');
   if (alreadyStarted && !options?.force) return;
 
+  // Meisterschafts-Auto-Boot darf keine andere (z. B. Turnier-)Session überschreiben.
+  if (
+    session != null &&
+    session.match.id !== id &&
+    !options?.force
+  ) {
+    return;
+  }
+
   const slots = normalizeSlots(params.slots);
   const onFieldIds = fieldSlotMapToStartingIds(slots).filter((pid) => pid.length > 0);
   const squadPlayerIds = uniqueIds([...params.squadPlayerIds, ...onFieldIds]);

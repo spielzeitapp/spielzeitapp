@@ -108,6 +108,20 @@ export const LivePage: React.FC = () => {
     };
   }, [matchIdParam, teamSeasonId, isDemo]);
 
+  /** Demo: LIVE-Route mit Match-ID → Session aus Prep booten (Turnier + Meisterschaft). */
+  useEffect(() => {
+    if (!isDemo || !demo || !matchIdParam) return;
+    if (demo.liveRuntimeMatchId === matchIdParam) return;
+    if (
+      demo.liveRuntimeMatchId &&
+      (demo.liveRuntimeStatus === 'live' || demo.liveRuntimeStatus === 'finished') &&
+      demo.liveRuntimeMatchId !== matchIdParam
+    ) {
+      return;
+    }
+    demo.startDemoLiveMatch(matchIdParam);
+  }, [isDemo, demo, matchIdParam]);
+
   if (matchIdParam) {
     return <LiveMatchScreen />;
   }

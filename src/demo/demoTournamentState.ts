@@ -1,8 +1,16 @@
 /**
- * DEMO.2G-A — lokaler In-Memory-State für das produktive Turniercenter.
+ * DEMO.2G — lokaler In-Memory-State für das produktive Turniercenter (+ LIVE-Writeback).
  * Event-ID bleibt `ev-tournament` (Termine/Feed). Kein LocalStorage, Reload = Seed.
  */
 
+import type { FieldSlotId } from '../types/match';
+import type { U11FormationId } from '../lib/matchFormations';
+import {
+  buildInitialDemoMatchStates,
+  DEMO_MATCH_ID_LIVE,
+  type DemoMatchLite,
+  type DemoMatchPrepState,
+} from './demoMatchState';
 import type {
   TournamentMatchSlotView,
   TournamentParticipant,
@@ -49,6 +57,26 @@ export function isDemoTournamentMatchId(matchId: string | null | undefined): boo
 
 function slotMatchId(n: number): string {
   return `${DEMO_TOURNAMENT_MATCH_PREFIX}tmslot${String(n).padStart(4, '0')}`;
+}
+
+/** Finale (eigenes upcoming Spiel) — DEMO.2G-B LIVE-Ziel. */
+export const DEMO_TOURNAMENT_FINAL_MATCH_ID = slotMatchId(3);
+
+/** Abgeschlossene Gruppenspiele aus DEMO.2G-A (2:2 / 2:0) — nicht durch LIVE überschreiben. */
+const DEMO_TOURNAMENT_SEED_FINISHED_MATCH_IDS = new Set([slotMatchId(1), slotMatchId(2)]);
+
+export function isDemoTournamentSeedFinishedMatchId(matchId: string | null | undefined): boolean {
+  return DEMO_TOURNAMENT_SEED_FINISHED_MATCH_IDS.has(String(matchId ?? '').trim());
+}
+
+/** LIVE nur für eigene upcoming/live/preparation-Slots (nicht Fremd-/Seed-finished). */
+export function isDemoTournamentLiveAllowed(matchId: string | null | undefined): boolean {
+  const mid = String(matchId ?? '').trim();
+  if (!isDemoTournamentMatchId(mid) || isDemoTournamentSeedFinishedMatchId(mid)) return false;
+  const slot = getDemoTournamentSlotByMatchId(mid);
+  if (!slot) return false;
+  const st = String(slot.match_status ?? '').toLowerCase();
+  return st === 'upcoming' || st === 'scheduled' || st === 'live' || st === 'preparation';
 }
 
 function participantId(n: number): string {
@@ -361,7 +389,13 @@ export function getDemoTournamentEventIdForMatch(matchId: string | null | undefi
   return slot ? DEMO_TOURNAMENT_EVENT_ID : null;
 }
 
-/** Minimal-Matchzeile für Prep-Reads (kein LIVE). */
+function mapTournamentSlotStatusToMatchStatus(raw: string | null | undefined): string {
+  const st = String(raw ?? '').trim().toLowerCase();
+  if (st === 'upcoming') return 'scheduled';
+  return String(raw ?? 'scheduled');
+}
+
+/** Minimal-Matchzeile für Prep-Reads / Fallback ohne aktive LIVE-Session. */
 export function getDemoTournamentMatchLite(matchId: string | null | undefined): {
   id: string;
   team_season_id: string;
@@ -390,7 +424,7 @@ export function getDemoTournamentMatchLite(matchId: string | null | undefined): 
     opponent: slot.opponent_name,
     match_date: slot.kickoff_at,
     location: demoFixtures.tournament.location,
-    status: slot.match_status,
+    status: mapTournamentSlotStatusToMatchStatus(slot.match_status),
     score_home: slot.score_home,
     score_away: slot.score_away,
     live_started_at: null,
@@ -404,6 +438,104 @@ export function getDemoTournamentMatchLite(matchId: string | null | undefined): 
     planned_match_minutes: slot.planned_minutes,
     auto_matchday_feed_enabled: false,
   };
+}
+
+/** DemoMatchLite-Form für Prep/Lineup unter /demo (score_home = wir). */
+export function getDemoTournamentAsDemoMatchLite(matchId: string | null | undefined): DemoMatchLite | null {
+  const lite = getDemoTournamentMatchLite(matchId);
+  if (!lite) return null;
+  return {
+    id: lite.id,
+    team_season_id: lite.team_season_id,
+    opponent: lite.opponent ?? '',
+    status: lite.status ?? 'scheduled',
+    live_started_at: lite.live_started_at,
+    is_home: true,
+    event_id: DEMO_TOURNAMENT_EVENT_ID,
+    u11_formation_id: (lite.u11_formation_id as U11FormationId) || '1-3-3-1',
+    minimum_playtime_enabled: Boolean(lite.minimum_playtime_enabled),
+    minimum_playtime_minutes: lite.minimum_playtime_minutes ?? 20,
+    planned_match_minutes: lite.planned_match_minutes ?? TOURNAMENT_DEFAULT_PLANNED_MINUTES,
+    auto_matchday_feed_enabled: false,
+    score_home: lite.score_home,
+    score_away: lite.score_away,
+  };
+}
+
+/**
+ * Standard-Aufstellung 1-3-3-1 aus Meisterschafts-Seed, gefiltert auf aktuellen Turnierkader.
+ */
+export function buildDemoTournamentDefaultPrep(matchId: string | null | undefined): DemoMatchPrepState | null {
+  const mid = String(matchId ?? '').trim();
+  if (!isDemoTournamentMatchId(mid) || !getDemoTournamentSlotByMatchId(mid)) return null;
+  const squad = getDemoTournamentSquadPlayerIds(DEMO_TOURNAMENT_EVENT_ID);
+  const squadSet = new Set(squad);
+  const base = buildInitialDemoMatchStates()[DEMO_MATCH_ID_LIVE];
+  if (!base) {
+    return {
+      formationId: '1-3-3-1',
+      slots: {
+        GK: null,
+        LB: null,
+        RB: null,
+        CM: null,
+        LW: null,
+        RW: null,
+        ST: null,
+        FP: null,
+      },
+      squadPlayerIds: squad,
+      publishedLocal: false,
+    };
+  }
+  const slots = { ...base.slots } as Record<FieldSlotId, string | null>;
+  for (const key of Object.keys(slots) as FieldSlotId[]) {
+    const pid = slots[key];
+    if (pid && !squadSet.has(pid)) slots[key] = null;
+  }
+  const filteredSquad = [
+    ...new Set([
+      ...squad,
+      ...Object.values(slots).filter((id): id is string => Boolean(id)),
+    ]),
+  ].filter((id) => squadSet.has(id));
+  return {
+    formationId: base.formationId,
+    slots,
+    squadPlayerIds: filteredSquad.length > 0 ? filteredSquad : squad,
+    publishedLocal: false,
+  };
+}
+
+/**
+ * Bestätigtes LIVE-Ende → Slot + Tabellenquelle. Seed-Ergebnisse 2:2 / 2:0 bleiben geschützt.
+ */
+export function completeDemoTournamentMatch(
+  matchId: string,
+  result: { scoreHome: number; scoreAway: number },
+): { ok: boolean; error: string | null } {
+  const mid = String(matchId ?? '').trim();
+  if (!isDemoTournamentMatchId(mid)) {
+    return { ok: false, error: 'Kein Demo-Turnierspiel.' };
+  }
+  if (isDemoTournamentSeedFinishedMatchId(mid)) {
+    return { ok: false, error: 'Seed-Ergebnis ist geschützt.' };
+  }
+  const slot = getDemoTournamentSlotByMatchId(mid);
+  if (!slot) return { ok: false, error: 'Slot nicht gefunden.' };
+  const sh = Math.max(0, Math.trunc(Number(result.scoreHome)));
+  const sa = Math.max(0, Math.trunc(Number(result.scoreAway)));
+  if (!Number.isFinite(sh) || !Number.isFinite(sa)) {
+    return { ok: false, error: 'Ungültiges Ergebnis.' };
+  }
+  const ok = patchDemoTournamentMatchSlot(mid, {
+    match_status: 'finished',
+    score_home: sh,
+    score_away: sa,
+    has_lineup: true,
+    has_squad: true,
+  });
+  return ok ? { ok: true, error: null } : { ok: false, error: 'Slot-Update fehlgeschlagen.' };
 }
 
 export function createDemoTournamentMatchSlot(params: {

@@ -184,7 +184,7 @@ export const MatchPreparationPage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    if (isDemo || !matchId) {
+    if (!matchId) {
       setTournamentSquadIds([]);
       setTournamentEventId(null);
       return () => {
@@ -205,7 +205,7 @@ export const MatchPreparationPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId, isDemo]);
+  }, [matchId]);
 
   const teamSeasonId = matchRow?.team_season_id ?? null;
   const { players: livePlayers, loading: playersLoadingLive, error: playersErrorLive } = usePlayers(

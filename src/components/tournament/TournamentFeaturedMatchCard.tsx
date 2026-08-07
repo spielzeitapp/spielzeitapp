@@ -27,7 +27,6 @@ import {
   type TournamentOrchestratorCta,
 } from '../../lib/tournamentDayOrchestrator';
 import { CenterEmptyState } from '../center/CenterEmptyState';
-import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { isDemoTournamentMatchId } from '../../demo/demoTournamentState';
 
@@ -128,7 +127,6 @@ function renderCta(
     onShowOverview?: () => void;
     completingTournament?: boolean;
     basePath?: '/app' | '/demo';
-    blockLive?: boolean;
   },
 ): React.ReactNode {
   const base = handlers.basePath ?? '/app';
@@ -161,13 +159,6 @@ function renderCta(
       );
     case 'start_live':
     case 'go_live':
-      if (handlers.blockLive) {
-        return (
-          <WorkflowCtaButton key={cta.kind} variant={cta.variant} disabled onClick={() => undefined}>
-            Turnier-LIVE folgt im nächsten Demo-Schritt
-          </WorkflowCtaButton>
-        );
-      }
       return (
         <WorkflowCtaLink
           key={`${cta.kind}-${cta.matchId}`}
@@ -211,7 +202,18 @@ function renderCta(
 }
 
 async function fetchLiveDetailsForMatch(matchId: string): Promise<TournamentLiveMatchDetails | null> {
-  if (isDemoTournamentMatchId(matchId)) return null;
+  if (isDemoTournamentMatchId(matchId)) {
+    const { getDemoLiveMatchRow } = await import('../../demo/demoLiveRuntime');
+    const row = getDemoLiveMatchRow(matchId);
+    if (!row || (row.status ?? '').toLowerCase() !== 'live') return null;
+    return {
+      scoreHome: Number(row.score_home ?? 0),
+      scoreAway: Number(row.score_away ?? 0),
+      liveElapsedSeconds: Number(row.live_elapsed_seconds ?? 0) || 0,
+      liveIsRunning: Boolean(row.live_is_running),
+      livePeriod: Number(row.live_period ?? 1) || 1,
+    };
+  }
 
   const { data, error } = await supabase
     .from('matches')
@@ -245,7 +247,6 @@ export function TournamentFeaturedMatchCard({
   onCompleteTournament,
   onShowOverview,
 }: Props) {
-  const isDemo = Boolean(useDemoMode());
   const basePath = useInternalBasePath();
   const focus = useMemo(() => pickOrchestratorFocus(slots), [slots]);
   const focusSlot = focus.kind !== 'none' ? focus.slot : null;
@@ -449,7 +450,6 @@ export function TournamentFeaturedMatchCard({
                 onShowOverview,
                 completingTournament,
                 basePath,
-                blockLive: isDemo,
               }),
             )}
             {lineupLoading ? (
@@ -458,16 +458,10 @@ export function TournamentFeaturedMatchCard({
           </div>
         ) : !canManage && isLive ? (
           <div className="mt-2.5 border-t border-white/[0.06] pt-2.5">
-            {isDemo ? (
-              <WorkflowCtaButton variant="primary" disabled onClick={() => undefined}>
-                Turnier-LIVE folgt im nächsten Demo-Schritt
-              </WorkflowCtaButton>
-            ) : (
-              <WorkflowCtaLink to={liveMatchPath(focusSlot.match_id, basePath)} variant="primary">
-                <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
-                Zum Live-Spiel
-              </WorkflowCtaLink>
-            )}
+            <WorkflowCtaLink to={liveMatchPath(focusSlot.match_id, basePath)} variant="primary">
+              <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
+              Zum Live-Spiel
+            </WorkflowCtaLink>
           </div>
         ) : null}
       </div>

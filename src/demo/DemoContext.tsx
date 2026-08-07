@@ -14,7 +14,16 @@ import {
   resetDemoLiveRuntime,
   subscribeDemoLiveRuntime,
 } from './demoLiveRuntime';
-import { resetDemoTournamentState } from './demoTournamentState';
+import {
+  buildDemoTournamentDefaultPrep,
+  DEMO_TOURNAMENT_EVENT_ID,
+  DEMO_TOURNAMENT_FINAL_MATCH_ID,
+  getDemoTournamentAsDemoMatchLite,
+  getDemoTournamentSquadPlayerIds,
+  isDemoTournamentMatchId,
+  patchDemoTournamentMatchSlot,
+  resetDemoTournamentState,
+} from './demoTournamentState';
 import {
   attendanceRowsToByEventId,
   buildDemoPlayers,
@@ -118,6 +127,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   );
   const [matchPrepById, setMatchPrepById] = useState<Record<string, DemoMatchPrepState>>(() => {
     const initial = buildInitialDemoMatchStates();
+    const tournamentPrep = buildDemoTournamentDefaultPrep(DEMO_TOURNAMENT_FINAL_MATCH_ID);
+    if (tournamentPrep) {
+      initial[DEMO_TOURNAMENT_FINAL_MATCH_ID] = tournamentPrep;
+    }
     // Synchron vor dem ersten Child-Render booten — sonst findet LiveMatchScreen
     // nach Reload/Direktlink die Session noch nicht (useEffect wäre zu spät).
     const prep = initial[DEMO_MATCH_ID_LIVE];
@@ -164,25 +177,49 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
     setAttendanceRows(buildInitialDemoAttendance(demoFixtures.events));
   }, []);
 
-  const getDemoMatch = useCallback((matchId: string) => getDemoMatchLite(matchId), []);
+  const getDemoMatch = useCallback(
+    (matchId: string) => getDemoMatchLite(matchId) ?? getDemoTournamentAsDemoMatchLite(matchId),
+    [],
+  );
 
   const getDemoMatchPrep = useCallback(
     (matchId: string) => {
-      const st = matchPrepById[matchId];
-      return st ? cloneDemoMatchState(st) : null;
+      const st =
+        matchPrepById[matchId] ??
+        (isDemoTournamentMatchId(matchId) ? buildDemoTournamentDefaultPrep(matchId) : null);
+      if (!st) return null;
+      if (!isDemoTournamentMatchId(matchId)) return cloneDemoMatchState(st);
+      const allowed = new Set(getDemoTournamentSquadPlayerIds(DEMO_TOURNAMENT_EVENT_ID));
+      const slots = { ...st.slots };
+      for (const key of Object.keys(slots) as FieldSlotId[]) {
+        const pid = slots[key];
+        if (pid && !allowed.has(pid)) slots[key] = null;
+      }
+      const squadPlayerIds = st.squadPlayerIds.filter((id) => allowed.has(id));
+      return cloneDemoMatchState({
+        ...st,
+        slots,
+        squadPlayerIds: squadPlayerIds.length > 0 ? squadPlayerIds : [...allowed],
+      });
     },
     [matchPrepById],
   );
 
   const setDemoMatchSquad = useCallback((matchId: string, squadPlayerIds: string[]) => {
     setMatchPrepById((prev) => {
-      const cur = prev[matchId] ?? buildInitialDemoMatchStates()[matchId];
+      const cur =
+        prev[matchId] ??
+        buildInitialDemoMatchStates()[matchId] ??
+        buildDemoTournamentDefaultPrep(matchId);
       if (!cur) return prev;
       const allowed = new Set(squadPlayerIds);
       const slots = { ...cur.slots };
       for (const key of Object.keys(slots) as FieldSlotId[]) {
         const pid = slots[key];
         if (pid && !allowed.has(pid)) slots[key] = null;
+      }
+      if (isDemoTournamentMatchId(matchId)) {
+        patchDemoTournamentMatchSlot(matchId, { has_squad: true });
       }
       return {
         ...prev,
@@ -198,6 +235,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       squadPlayerIds: string[],
       formationId: U11FormationId,
     ) => {
+      if (isDemoTournamentMatchId(matchId)) {
+        patchDemoTournamentMatchSlot(matchId, { has_lineup: true, has_squad: true });
+      }
       setMatchPrepById((prev) => ({
         ...prev,
         [matchId]: {
@@ -229,11 +269,18 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
 
   const resetDemoMatchPrep = useCallback((matchId?: string) => {
     const initial = buildInitialDemoMatchStates();
+    const tournamentPrep = buildDemoTournamentDefaultPrep(DEMO_TOURNAMENT_FINAL_MATCH_ID);
+    if (tournamentPrep) {
+      initial[DEMO_TOURNAMENT_FINAL_MATCH_ID] = tournamentPrep;
+    }
     if (!matchId) {
       setMatchPrepById(initial);
       return;
     }
-    setMatchPrepById((prev) => ({ ...prev, [matchId]: initial[matchId] ?? prev[matchId] }));
+    setMatchPrepById((prev) => ({
+      ...prev,
+      [matchId]: initial[matchId] ?? buildDemoTournamentDefaultPrep(matchId) ?? prev[matchId],
+    }));
   }, []);
 
   const [liveRuntimeVersion, setLiveRuntimeVersion] = useState(0);
@@ -260,9 +307,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
         };
       },
     ) => {
-      const lite = getDemoMatchLite(matchId);
+      const lite = getDemoMatchLite(matchId) ?? getDemoTournamentAsDemoMatchLite(matchId);
       const prep =
-        options?.prep ?? matchPrepById[matchId] ?? buildInitialDemoMatchStates()[matchId];
+        options?.prep ??
+        matchPrepById[matchId] ??
+        buildInitialDemoMatchStates()[matchId] ??
+        (isDemoTournamentMatchId(matchId) ? buildDemoTournamentDefaultPrep(matchId) : null);
       if (!lite || !prep) return;
       const ev = data.events.find((e) => e.id === lite.event_id);
       bootDemoLiveRuntime(
@@ -286,8 +336,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
     [data.events, matchPrepById],
   );
 
-  /** Nur matchloosdorf bekommt den LIVE-Flow; solange nicht angepfiffen, folgt die Session der Vorbereitung. */
+  /** Meisterschafts-Session mit Prep syncen — aktive Turnier-Session nicht überschreiben. */
   useEffect(() => {
+    const snap = getDemoLiveRuntimeSnapshot();
+    if (snap?.matchId && snap.matchId !== DEMO_MATCH_ID_LIVE) return;
     bootLiveRuntime(DEMO_MATCH_ID_LIVE);
   }, [bootLiveRuntime]);
 
@@ -300,7 +352,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
         formationId: U11FormationId;
       },
     ) => {
-      bootLiveRuntime(matchId, { prep });
+      bootLiveRuntime(matchId, { prep, force: true });
     },
     [bootLiveRuntime],
   );

@@ -21,7 +21,6 @@ import {
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
-import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
@@ -78,7 +77,6 @@ function PrimaryCta({
   onScrollToAttendance,
   onScrollToSquad,
   basePath = '/app',
-  blockLive = false,
 }: {
   action: PreparationPrimaryAction;
   onImportPlan: () => void;
@@ -87,7 +85,6 @@ function PrimaryCta({
   onScrollToAttendance: () => void;
   onScrollToSquad: () => void;
   basePath?: '/app' | '/demo';
-  blockLive?: boolean;
 }) {
   if (action.kind === 'ready') {
     return (
@@ -145,13 +142,6 @@ function PrimaryCta({
       );
     case 'start_live':
     case 'live_match':
-      if (blockLive) {
-        return (
-          <button type="button" className={primaryClass} disabled>
-            Turnier-LIVE folgt im nächsten Demo-Schritt
-          </button>
-        );
-      }
       return (
         <Link to={liveMatchPath(action.matchId, basePath)} className={primaryClass}>
           <Radio
@@ -180,7 +170,6 @@ export function TournamentPreparationPanel({
   onScrollToAttendance,
   onScrollToSquad,
 }: Props) {
-  const isDemo = Boolean(useDemoMode());
   const basePath = useInternalBasePath();
   const featured = pickFeaturedTournamentSlot(slots);
   const matchId = featured?.match_id?.trim() ?? '';
@@ -291,7 +280,6 @@ export function TournamentPreparationPanel({
             onScrollToAttendance={onScrollToAttendance}
             onScrollToSquad={onScrollToSquad}
             basePath={basePath}
-            blockLive={isDemo}
           />
           {lineupLoading ? (
             <p className="mt-1.5 text-center text-[10px] text-white/40">Prüfe Aufstellung…</p>

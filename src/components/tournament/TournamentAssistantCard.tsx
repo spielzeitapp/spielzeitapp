@@ -27,7 +27,6 @@ import type { TournamentAttendanceSummary } from '../../lib/tournamentPreparatio
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { TC_CARD, TC_CARD_INNER } from './tournamentCenterStyles';
-import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
@@ -134,7 +133,6 @@ export function TournamentAssistantCard({
   onViewStatus,
   onLineupCopied,
 }: Props) {
-  const isDemo = Boolean(useDemoMode());
   const basePath = useInternalBasePath();
   const [lineupReady, setLineupReady] = useState(false);
   const [lineupLoading, setLineupLoading] = useState(false);
@@ -326,15 +324,6 @@ export function TournamentAssistantCard({
         ) : null;
       case 'start_live':
       case 'go_live':
-        if (isDemo) {
-          return (
-            <PrimaryButton
-              label="Turnier-LIVE folgt im nächsten Demo-Schritt"
-              onClick={() => undefined}
-              disabled
-            />
-          );
-        }
         return action.matchId ? (
           <PrimaryButton label={label} to={liveMatchPath(action.matchId, basePath)} />
         ) : null;
