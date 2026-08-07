@@ -1,10 +1,10 @@
 /**
- * DEMO.2F — in-memory runtime for ONE demo live-match session.
+ * DEMO.2F/2H — in-memory runtime for ONE demo live-match session.
  *
  * The productive LivePage / LiveMatchScreen run unchanged under /demo; every
  * Supabase read/write for a demo match id is short-circuited into this module
  * (see `src/lib/liveMatchService.ts`). Deliberately no localStorage: a reload
- * resets the session back to "not started".
+ * re-seeds the default Meisterschafts-LIVE (see DemoProvider).
  */
 
 import {
@@ -76,6 +76,16 @@ export type BootDemoLiveRuntimeParams = {
   plannedMatchMinutes?: number | null;
   slots: Record<FieldSlotId, string | null>;
   squadPlayerIds: readonly string[];
+};
+
+/** Optionen für sofort laufendes Demo-LIVE (Meisterschaft). */
+export type BootDemoLiveAsLiveOptions = {
+  /** Bereits verstrichene Spielsekunden; Uhr läuft ab jetzt weiter. */
+  elapsedSeconds?: number;
+  scoreHome?: number;
+  scoreAway?: number;
+  /** Torschütze für Seed-Tor (wenn scoreHome >= 1). */
+  goalScorerPlayerId?: string | null;
 };
 
 /** Alle Demo-Match-IDs (siehe demoDataSource / demoMatchState). */
@@ -184,12 +194,12 @@ function activeSessionFor(matchId: string | null | undefined): DemoLiveSession |
 }
 
 /**
- * Session aus der lokalen Vorbereitung aufbauen (Status `scheduled`, 0:0, keine Events).
- * Ein laufendes/beendetes Spiel bleibt erhalten, solange `force` nicht gesetzt ist.
+ * Session aus der lokalen Vorbereitung aufbauen.
+ * Standard: `scheduled` / 0:0. Mit `asLive`: sofort laufendes LIVE (bedienbar).
  */
 export function bootDemoLiveRuntime(
   params: BootDemoLiveRuntimeParams,
-  options?: { force?: boolean },
+  options?: { force?: boolean; asLive?: boolean | BootDemoLiveAsLiveOptions },
 ): void {
   const id = normId(params.matchId);
   if (!id) return;
@@ -201,17 +211,60 @@ export function bootDemoLiveRuntime(
   if (alreadyStarted && !options?.force) return;
 
   // Meisterschafts-Auto-Boot darf keine andere (z. B. Turnier-)Session überschreiben.
-  if (
-    session != null &&
-    session.match.id !== id &&
-    !options?.force
-  ) {
+  if (session != null && session.match.id !== id && !options?.force) {
     return;
   }
 
   const slots = normalizeSlots(params.slots);
   const onFieldIds = fieldSlotMapToStartingIds(slots).filter((pid) => pid.length > 0);
   const squadPlayerIds = uniqueIds([...params.squadPlayerIds, ...onFieldIds]);
+
+  const asLiveOpt =
+    options?.asLive === true
+      ? ({} as BootDemoLiveAsLiveOptions)
+      : options?.asLive && typeof options.asLive === 'object'
+        ? options.asLive
+        : null;
+
+  const elapsed = Math.max(0, Math.trunc(asLiveOpt?.elapsedSeconds ?? (asLiveOpt ? 12 * 60 : 0)));
+  const scoreHome = Math.max(0, Math.trunc(asLiveOpt?.scoreHome ?? (asLiveOpt ? 1 : 0)));
+  const scoreAway = Math.max(0, Math.trunc(asLiveOpt?.scoreAway ?? 0));
+  const nowIso = new Date().toISOString();
+  const kickoffIds = asLiveOpt ? fieldSlotMapToStartingIds(slots) : null;
+
+  const seedEvents: DemoLiveEventRow[] = [];
+  eventCounter = 0;
+  if (asLiveOpt) {
+    eventCounter += 1;
+    seedEvents.push({
+      id: `${DEMO_EVENT_ID_PREFIX}${eventCounter}`,
+      match_id: id,
+      type: 'start',
+      minute: 0,
+      period: 1,
+      player_id: null,
+      created_at: nowIso,
+    });
+    if (scoreHome > 0) {
+      const scorer =
+        normId(asLiveOpt.goalScorerPlayerId) ||
+        (onFieldIds.includes('p08') ? 'p08' : '') ||
+        onFieldIds[0] ||
+        null;
+      const goalAtSec = Math.min(elapsed, Math.max(60, elapsed - 120));
+      eventCounter += 1;
+      seedEvents.push({
+        id: `${DEMO_EVENT_ID_PREFIX}${eventCounter}`,
+        match_id: id,
+        type: 'goal',
+        minute: goalAtSec,
+        period: 1,
+        player_id: scorer,
+        created_at: nowIso,
+        payload: { team: 'home' },
+      });
+    }
+  }
 
   session = {
     match: {
@@ -220,13 +273,13 @@ export function bootDemoLiveRuntime(
       opponent: params.opponent ?? null,
       match_date: params.matchDate ?? null,
       location: params.location ?? null,
-      status: 'scheduled',
-      score_home: 0,
-      score_away: 0,
-      live_started_at: null,
-      live_elapsed_seconds: 0,
-      live_is_running: false,
-      live_period: null,
+      status: asLiveOpt ? 'live' : 'scheduled',
+      score_home: asLiveOpt ? scoreHome : 0,
+      score_away: asLiveOpt ? scoreAway : 0,
+      live_started_at: asLiveOpt ? nowIso : null,
+      live_elapsed_seconds: asLiveOpt ? elapsed : 0,
+      live_is_running: Boolean(asLiveOpt),
+      live_period: asLiveOpt ? 1 : null,
       period_scores: null,
       u11_formation_id: params.formationId ?? null,
       minimum_playtime_enabled: params.minimumPlaytimeEnabled ?? null,
@@ -235,16 +288,23 @@ export function bootDemoLiveRuntime(
       auto_matchday_feed_enabled: false,
     },
     eventIsHome: params.isHome ?? null,
-    events: [],
+    events: seedEvents,
     slots,
     squadPlayerIds,
     benchPlayerIds: getBenchPlayers(squadPlayerIds, onFieldIds),
-    kickoffStartingPlayerIds: null,
+    kickoffStartingPlayerIds: kickoffIds,
     calendarFinalized: false,
   };
-  eventCounter = 0;
   notify();
 }
+
+/** Standard-Seed für das Meisterschafts-LIVE in der öffentlichen Demo. */
+export const DEMO_CHAMPIONSHIP_LIVE_SEED: BootDemoLiveAsLiveOptions = {
+  elapsedSeconds: 12 * 60,
+  scoreHome: 1,
+  scoreAway: 0,
+  goalScorerPlayerId: 'p08',
+};
 
 export function resetDemoLiveRuntime(): void {
   session = null;

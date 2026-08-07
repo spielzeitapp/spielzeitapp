@@ -142,12 +142,12 @@ export const LivePage: React.FC = () => {
       <LivePremiumShell matchCenter>
         <LivePageHeader
           title="Match Center"
-          subtitle="Noch kein Anpfiff — Aufstellung vorbereiten und LIVE starten."
+          subtitle="Aktuell kein laufendes Livespiel."
         />
         <PremiumEmptyState
           variant="subtle"
           title="Aktuell kein Livespiel."
-          description="Stelle das Demo-Spiel gegen SV Loosdorf U12 auf und starte den Liveticker."
+          description="Das Demo-Spiel gegen SV Loosdorf U12 startet normalerweise automatisch. Sonst Vorbereitung öffnen."
           className="py-8"
         >
           <Link

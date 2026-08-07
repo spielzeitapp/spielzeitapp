@@ -10,6 +10,7 @@ import {
 } from './demoDataSource';
 import {
   bootDemoLiveRuntime,
+  DEMO_CHAMPIONSHIP_LIVE_SEED,
   getDemoLiveRuntimeSnapshot,
   resetDemoLiveRuntime,
   subscribeDemoLiveRuntime,
@@ -153,7 +154,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
           slots: prep.slots,
           squadPlayerIds: prep.squadPlayerIds,
         },
-        { force: true },
+        { force: true, asLive: DEMO_CHAMPIONSHIP_LIVE_SEED },
       );
     }
     return initial;
@@ -302,6 +303,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       matchId: string,
       options?: {
         force?: boolean;
+        asLive?: boolean | typeof DEMO_CHAMPIONSHIP_LIVE_SEED;
         prep?: {
           slots: Record<FieldSlotId, string | null>;
           squadPlayerIds: string[];
@@ -332,7 +334,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
           slots: prep.slots,
           squadPlayerIds: prep.squadPlayerIds,
         },
-        options,
+        { force: options?.force, asLive: options?.asLive },
       );
     },
     [data.events, matchPrepById],
@@ -460,7 +462,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
 
   const resetLive = useCallback(() => {
     setLive(createInitialLiveState());
-    bootLiveRuntime(DEMO_MATCH_ID_LIVE, { force: true });
+    bootLiveRuntime(DEMO_MATCH_ID_LIVE, { force: true, asLive: DEMO_CHAMPIONSHIP_LIVE_SEED });
   }, [bootLiveRuntime]);
 
   const resetAllDemo = useCallback(() => {
@@ -492,7 +494,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
           slots: prep.slots,
           squadPlayerIds: prep.squadPlayerIds,
         },
-        { force: true },
+        { force: true, asLive: DEMO_CHAMPIONSHIP_LIVE_SEED },
       );
     }
   }, [resetDemoAttendance]);
