@@ -57,6 +57,7 @@ import {
   persistPositionSwap,
   saveMatchEvent,
   updateMatchRow,
+  matchEventDbRowToEngine,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
@@ -132,7 +133,13 @@ import { getDemoTournamentEventIdForMatch } from '../../demo/demoTournamentState
 import {
   isDemoLiveCalendarFinalized,
   markDemoLiveCalendarFinalized,
+  getDemoLiveEventRows,
+  getDemoLiveMatchRow,
 } from '../../demo/demoLiveRuntime';
+import {
+  DEMO_TOUR_FINISH_MATCH_EVENT,
+  DEMO_TOUR_FOCUS_PLAYTIME_EVENT,
+} from '../../demo/demoTourActions';
 
 const HOME_FALLBACK = 'Unser Team';
 
@@ -1343,6 +1350,20 @@ export const LiveMatchScreen: React.FC = () => {
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+  useEffect(() => {
+    const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
+    if (tab === 'time' || tab === 'statistik' || tab === 'spielzeiten') {
+      setMainTab('time');
+    } else if (tab === 'events' || tab === 'liveticker') {
+      setMainTab('events');
+    } else if (tab === 'lineup' || tab === 'aufstellung') {
+      setMainTab('lineup');
+    } else if (tab === 'overview' || tab === 'uebersicht') {
+      setMainTab('overview');
+    } else if (tab === 'hub') {
+      setMainTab('hub');
+    }
+  }, [searchParams]);
   useEffect(() => {
     if (!canControlLiveMatch && mainTab === 'time') {
       setMainTab('hub');
@@ -2852,6 +2873,44 @@ export const LiveMatchScreen: React.FC = () => {
       });
     }
   };
+
+  /** DEMO.2J: Tour beendet das Spiel lokal — UI mit Runtime synchronisieren. */
+  useEffect(() => {
+    if (!isDemo || !effectiveMatchId) return;
+    const onTourFinish = () => {
+      const row = getDemoLiveMatchRow(effectiveMatchId);
+      if (!row) return;
+      setMatchRow((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: row.status,
+              live_is_running: row.live_is_running,
+              live_elapsed_seconds: row.live_elapsed_seconds,
+              score_home: row.score_home,
+              score_away: row.score_away,
+            }
+          : (row as LiveMatchRow),
+      );
+      setScoreHome(Number(row.score_home ?? 0));
+      setScoreAway(Number(row.score_away ?? 0));
+      const rows = getDemoLiveEventRows(effectiveMatchId);
+      const mapped = rows
+        .map((r) => matchEventDbRowToEngine(r))
+        .filter((e): e is NonNullable<typeof e> => e != null);
+      setEvents(mapped);
+      setMainTab('time');
+    };
+    const onFocusPlaytime = () => {
+      setMainTab('time');
+    };
+    window.addEventListener(DEMO_TOUR_FINISH_MATCH_EVENT, onTourFinish);
+    window.addEventListener(DEMO_TOUR_FOCUS_PLAYTIME_EVENT, onFocusPlaytime);
+    return () => {
+      window.removeEventListener(DEMO_TOUR_FINISH_MATCH_EVENT, onTourFinish);
+      window.removeEventListener(DEMO_TOUR_FOCUS_PLAYTIME_EVENT, onFocusPlaytime);
+    };
+  }, [isDemo, effectiveMatchId]);
 
   /** Nachgelagert: verknüpften Kalender-Termin abschließen (events.status). */
   const finalizeCalendarForMatch = async () => {
@@ -6389,8 +6448,14 @@ export const LiveMatchScreen: React.FC = () => {
                 Spiel beenden?
               </h3>
               <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
-                Die Uhr stoppt, der Live-Modus endet und der Endstand wird gespeichert. Anschließend kannst du den Kalender-Termin mit{' '}
-                <span className="font-semibold text-white">Spiel abschließen</span> abschließen.
+                {isDemo
+                  ? 'Das Demo-Spiel wird lokal abgeschlossen. Es werden keine echten Daten veröffentlicht. Anschließend kannst du Spielzeiten auswerten.'
+                  : (
+                    <>
+                      Die Uhr stoppt, der Live-Modus endet und der Endstand wird gespeichert. Anschließend kannst du den Kalender-Termin mit{' '}
+                      <span className="font-semibold text-white">Spiel abschließen</span> abschließen.
+                    </>
+                  )}
               </p>
             </div>
             <div

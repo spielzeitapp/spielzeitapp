@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEMO_TOUR_STATIONS } from '../demoTourConfig';
 import {
+  canResumeDemoTour,
   dismissDemoTour,
   getDemoTourSnapshot,
+  pauseDemoTour,
   resumeOrStartDemoTour,
   startDemoTour,
   subscribeDemoTour,
@@ -56,7 +58,12 @@ export function DemoBadge(): React.ReactElement {
   }, [navigate]);
 
   const endTour = useCallback(() => {
-    dismissDemoTour();
+    pauseDemoTour();
+    setOpen(false);
+  }, []);
+
+  const exploreFree = useCallback(() => {
+    pauseDemoTour();
     setOpen(false);
   }, []);
 
@@ -68,6 +75,8 @@ export function DemoBadge(): React.ReactElement {
     navigate('/demo/home', { replace: true });
     setOpen(false);
   }, [demo, navigate]);
+
+  const showResume = canResumeDemoTour(tourPhase);
 
   return (
     <div className="relative shrink-0" ref={rootRef}>
@@ -91,17 +100,18 @@ export function DemoBadge(): React.ReactElement {
           <p className="px-2.5 pb-1 pt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">
             Demo-Hilfe
           </p>
-          {tourPhase === 'active' ? (
-            <MenuItem label="Rundgang fortsetzen" onClick={continueTour} />
+          {showResume ? (
+            <MenuItem label="Geführte Demo fortsetzen" onClick={continueTour} />
           ) : (
-            <MenuItem label="Geführten Rundgang starten" onClick={startTour} />
+            <MenuItem label="Geführte Demo starten" onClick={startTour} />
           )}
-          {tourPhase !== 'idle' ? <MenuItem label="Rundgang beenden" onClick={endTour} /> : null}
+          {tourPhase === 'active' ? <MenuItem label="Rundgang beenden" onClick={endTour} /> : null}
           <MenuItem label="Rundgang neu starten" onClick={startTour} />
+          <MenuItem label="Demo frei erkunden" onClick={exploreFree} />
           <div className="my-1 border-t border-white/10" />
           <MenuItem label="Demo zurücksetzen" onClick={resetDemo} danger />
           <p className="px-2.5 pb-1.5 pt-1 text-[10px] leading-snug text-white/35">
-            Nur lokal · Reload setzt Daten sowieso auf den Seed zurück.
+            Alle Aktionen bleiben lokal in dieser Demo. Reload stellt den Ausgangszustand wieder her.
           </p>
           <p className="px-2.5 pb-1.5 pt-0.5 text-[10px] leading-snug text-white/35">
             Alle dargestellten Spieler, Trainer, Namen und Porträtfotos sind vollständig fiktive,

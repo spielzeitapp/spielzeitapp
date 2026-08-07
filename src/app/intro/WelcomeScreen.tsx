@@ -328,7 +328,10 @@ export const WelcomeScreen: React.FC = () => {
                     Geführte Demo starten
                   </span>
                   <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                    In 7 kurzen Stationen durch die App.
+                    Erlebe einen kompletten Spieltag – von der Trainingsplanung bis zum Siegerpost.
+                  </span>
+                  <span className="mt-0.5 block text-[11px] font-medium leading-snug text-white/45 sm:text-[12px]">
+                    Dauer ca. 3–5 Minuten. Alle Aktionen bleiben ausschließlich in dieser Demo.
                   </span>
                 </span>
                 <ChevronRight

@@ -15,6 +15,7 @@ import {
   resetDemoLiveRuntime,
   subscribeDemoLiveRuntime,
 } from './demoLiveRuntime';
+import { resetDemoTourState } from './demoTourState';
 import {
   buildDemoTournamentDefaultPrep,
   DEMO_TOURNAMENT_EVENT_ID,
@@ -474,6 +475,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
     resetDemoAttendance();
     resetDemoTournamentState();
     resetDemoLiveRuntime();
+    resetDemoTourState();
     const initial = buildInitialDemoMatchStates();
     const tournamentPrep = buildDemoTournamentDefaultPrep(DEMO_TOURNAMENT_FINAL_MATCH_ID);
     if (tournamentPrep) {

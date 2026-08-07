@@ -5,7 +5,7 @@ import { countUpcomingTeamTrainings } from '../../lib/trainingSeasonCounts';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
 import { TrainingOverviewHero } from './TrainingOverviewHero';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
-import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../lib/trainingSummaryDisplay';
+import { PARTICIPATION_EXPLICIT_BASIS_SUB, TEAM_PARTICIPATION_TILE_TITLE } from '../../lib/trainingSummaryDisplay';
 import { PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
 import { Gem } from 'lucide-react';
 import { useDemoMode } from '../../demo/DemoContext';
@@ -83,7 +83,7 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
         />
         <ProfileHighlightTile
           icon={<StatIconTrendingUp />}
-          title="Ø Beteiligung"
+          title={TEAM_PARTICIPATION_TILE_TITLE}
           value={busy ? '…' : participationLabel}
           sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
         />

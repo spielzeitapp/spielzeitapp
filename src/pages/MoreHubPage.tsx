@@ -13,8 +13,10 @@ import { cn } from '../ui/lib/cn';
 import { useDemoMode } from '../demo/DemoContext';
 import { DEMO_TOUR_STATIONS } from '../demo/demoTourConfig';
 import {
-  dismissDemoTour,
+  canResumeDemoTour,
   getDemoTourSnapshot,
+  pauseDemoTour,
+  resetDemoTourState,
   resumeOrStartDemoTour,
   startDemoTour,
   subscribeDemoTour,
@@ -39,29 +41,35 @@ function DemoHelpCard(): React.ReactElement {
     const station = DEMO_TOUR_STATIONS[snap.stepIndex];
     if (station) navigate(station.path);
   };
+  const exploreFree = () => {
+    pauseDemoTour();
+    navigate('/demo/home');
+  };
   const reset = () => {
     if (!demo?.resetAllDemo) return;
     if (!window.confirm(RESET_CONFIRM)) return;
     demo.resetAllDemo();
-    dismissDemoTour();
+    resetDemoTourState();
     navigate('/demo/home', { replace: true });
   };
+
+  const showResume = canResumeDemoTour(phase);
 
   return (
     <PremiumCard variant="subtle" showAmbientGlow={false}>
       <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-400/90">Demo-Hilfe</p>
       <h2 className="mt-1 text-[16px] font-semibold text-white">Rundgang &amp; Zurücksetzen</h2>
       <p className="mt-1 text-[12px] leading-snug text-white/55">
-        Alle Demo-Änderungen bleiben nur lokal. Ein Reload stellt den Ausgangszustand wieder her.
+        Alle Aktionen bleiben lokal in dieser Demo. Ein Reload stellt den Ausgangszustand wieder her.
       </p>
       <div className="mt-3 flex flex-col gap-2">
-        {phase === 'active' ? (
+        {showResume ? (
           <button
             type="button"
             onClick={resume}
             className={`${dsPrimaryCtaClass()} inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
           >
-            Rundgang fortsetzen
+            Geführte Demo fortsetzen
           </button>
         ) : (
           <button
@@ -69,7 +77,7 @@ function DemoHelpCard(): React.ReactElement {
             onClick={start}
             className={`${dsPrimaryCtaClass()} inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
           >
-            Geführten Rundgang starten
+            Geführte Demo starten
           </button>
         )}
         <button
@@ -78,6 +86,13 @@ function DemoHelpCard(): React.ReactElement {
           className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full px-4 text-[12px] font-semibold`}
         >
           Rundgang neu starten
+        </button>
+        <button
+          type="button"
+          onClick={exploreFree}
+          className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full px-4 text-[12px] font-semibold`}
+        >
+          Demo frei erkunden
         </button>
         <button
           type="button"
