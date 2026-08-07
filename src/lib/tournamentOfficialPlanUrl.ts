@@ -40,6 +40,9 @@ export async function saveOfficialTournamentPlanUrl(
   eventId: string,
   url: string | null,
 ): Promise<{ error: string | null }> {
+  if (String(eventId ?? '').trim() === 'ev-tournament') {
+    return { error: null };
+  }
   const { error } = await supabase
     .from('events')
     .update({ official_tournament_url: safeOptionalText(url) })

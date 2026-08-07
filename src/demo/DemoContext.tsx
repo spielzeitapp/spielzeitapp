@@ -14,6 +14,7 @@ import {
   resetDemoLiveRuntime,
   subscribeDemoLiveRuntime,
 } from './demoLiveRuntime';
+import { resetDemoTournamentState } from './demoTournamentState';
 import {
   attendanceRowsToByEventId,
   buildDemoPlayers,
@@ -239,7 +240,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
   useEffect(() => subscribeDemoLiveRuntime(() => setLiveRuntimeVersion((v) => v + 1)), []);
 
   /** Session beim Verlassen der Demo verwerfen — sonst sieht /app eine „laufende“ Partie. */
-  useEffect(() => () => resetDemoLiveRuntime(), []);
+  useEffect(
+    () => () => {
+      resetDemoLiveRuntime();
+      resetDemoTournamentState();
+    },
+    [],
+  );
 
   const bootLiveRuntime = useCallback(
     (

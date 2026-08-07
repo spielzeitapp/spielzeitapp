@@ -1,8 +1,17 @@
 import { supabase } from './supabaseClient';
+import {
+  getDemoTournamentEventIdForMatch,
+  getDemoTournamentSquadPlayerIds,
+  isDemoTournamentEventId,
+  setDemoTournamentSquadPlayerIds,
+} from '../demo/demoTournamentState';
 
 export async function fetchTournamentEventIdForMatch(matchId: string): Promise<string | null> {
   const id = String(matchId ?? '').trim();
   if (!id) return null;
+
+  const demoEventId = getDemoTournamentEventIdForMatch(id);
+  if (demoEventId) return demoEventId;
 
   const { data, error } = await supabase
     .from('tournament_matches')
@@ -19,6 +28,10 @@ export async function fetchTournamentSquadPlayerIds(
 ): Promise<{ data: string[]; error: string | null }> {
   const eventId = String(tournamentEventId ?? '').trim();
   if (!eventId) return { data: [], error: 'Turnier-Event fehlt.' };
+
+  if (isDemoTournamentEventId(eventId)) {
+    return { data: getDemoTournamentSquadPlayerIds(eventId), error: null };
+  }
 
   const { data, error } = await supabase
     .from('tournament_squad')
@@ -42,6 +55,11 @@ export async function saveTournamentSquad(
   if (!eventId) return { error: 'Turnier-Event fehlt.' };
 
   const unique = [...new Set(playerIds.map((id) => String(id ?? '').trim()).filter(Boolean))];
+
+  if (isDemoTournamentEventId(eventId)) {
+    setDemoTournamentSquadPlayerIds(eventId, unique);
+    return { error: null };
+  }
 
   const { error: delErr } = await supabase.from('tournament_squad').delete().eq('tournament_event_id', eventId);
   if (delErr) return { error: delErr.message };

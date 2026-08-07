@@ -500,6 +500,11 @@ export const MatchLineupPage: React.FC = () => {
 
   const onStartLive = async () => {
     if (!matchId || starterCount < 7) return;
+    // DEMO.2G-A: Turnier-LIVE noch nicht aktiv
+    if (isDemo && matchId.startsWith('00000000-demo-5000-')) {
+      setSaveError('Turnier-LIVE folgt im nächsten Demo-Schritt.');
+      return;
+    }
     setSaveMsg(null);
     setSaveError(null);
     setStartingLive(true);

@@ -7,6 +7,7 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { formatTournamentKickoffTime } from '../../lib/tournamentPlan';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   context: TournamentMatchNavigationContext;
@@ -15,6 +16,7 @@ type Props = {
 
 /** CTAs nach beendetem Turnierspiel — nur manuelle Navigation, kein Auto-Redirect. */
 export function TournamentNextMatchWorkflowCta({ context, className = '' }: Props) {
+  const basePath = useInternalBasePath();
   const { nextSlot, tournamentEventId, tournamentTitle } = context;
 
   if (nextSlot) {
@@ -28,7 +30,7 @@ export function TournamentNextMatchWorkflowCta({ context, className = '' }: Prop
           Nächstes Spiel: {kickoff} Uhr vs {nextSlot.opponent_name}
         </p>
         <Link
-          to={matchPreparationPath(nextSlot.match_id)}
+          to={matchPreparationPath(nextSlot.match_id, basePath)}
           className={`${dsPrimaryCtaClass()} flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-bold`}
         >
           Nächstes Turnierspiel vorbereiten
@@ -43,7 +45,7 @@ export function TournamentNextMatchWorkflowCta({ context, className = '' }: Prop
         Kein weiteres Turnierspiel geplant.
       </p>
       <Link
-        to={tournamentCenterPath(tournamentEventId)}
+        to={tournamentCenterPath(tournamentEventId, basePath)}
         className={`${dsSecondaryCtaClass()} flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
       >
         Zurück zum Turniercenter
@@ -65,10 +67,11 @@ export function TournamentPrepareButton({
   variant = 'secondary',
   fullWidth = true,
 }: PrepareButtonProps) {
+  const basePath = useInternalBasePath();
   const ctaClass = variant === 'primary' ? dsPrimaryCtaClass() : dsSecondaryCtaClass();
   return (
     <Link
-      to={matchPreparationPath(matchId)}
+      to={matchPreparationPath(matchId, basePath)}
       className={`${ctaClass} inline-flex min-h-[40px] touch-manipulation items-center justify-center px-4 py-2 text-[13px] font-semibold ${
         fullWidth ? 'w-full' : ''
       } ${className}`}

@@ -1,4 +1,9 @@
 import { supabase } from './supabaseClient';
+import {
+  getDemoTournamentCompletion,
+  isDemoTournamentEventId,
+  setDemoTournamentCompletion,
+} from '../demo/demoTournamentState';
 
 export type TournamentCompletionState = {
   completedAt: string | null;
@@ -30,6 +35,10 @@ function mapCompletionRow(row: Record<string, unknown> | null): TournamentComple
 export async function fetchTournamentCompletion(
   eventId: string,
 ): Promise<{ data: TournamentCompletionState; error: string | null }> {
+  if (isDemoTournamentEventId(eventId)) {
+    return { data: getDemoTournamentCompletion(eventId), error: null };
+  }
+
   const { data, error } = await supabase
     .from('events')
     .select(COMPLETION_COLUMNS)
@@ -62,8 +71,21 @@ export async function completeTournamentEvent(params: {
   teamsCount: number | null;
   label: string | null;
 }): Promise<{ data: TournamentCompletionState | null; error: string | null }> {
+  const mapped: TournamentCompletionState = {
+    completedAt: new Date().toISOString(),
+    completedBy: params.userId || 'demo-trainer',
+    finalPlacement: params.placement,
+    finalTeamsCount: params.teamsCount,
+    finalLabel: params.label?.trim() || null,
+  };
+
+  if (isDemoTournamentEventId(params.eventId)) {
+    setDemoTournamentCompletion(params.eventId, mapped);
+    return { data: mapped, error: null };
+  }
+
   const payload = {
-    tournament_completed_at: new Date().toISOString(),
+    tournament_completed_at: mapped.completedAt,
     tournament_completed_by: params.userId,
     tournament_final_placement: params.placement,
     tournament_final_teams_count: params.teamsCount,

@@ -21,6 +21,7 @@ import {
 } from '../../lib/tournamentPlan';
 import { canCompleteTournament, computeTournamentFinalSummary, shouldShowTournamentPremiumFinalCard } from '../../lib/tournamentFinalSummary';
 import { usePlayers } from '../../hooks/usePlayers';
+import { useDemoMode } from '../../demo/DemoContext';
 import {
   completeTournamentEvent,
   fetchTournamentCompletion,
@@ -189,7 +190,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [completingTournament, setCompletingTournament] = useState(false);
   const [orchestratorReportOpen, setOrchestratorReportOpen] = useState(false);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
-  const { players, loading: playersLoading } = usePlayers(teamSeasonId);
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const { players: dbPlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId);
+  const players = isDemo && demo ? demo.players : dbPlayers;
+  const playersLoading = isDemo ? false : playersLoadingLive;
 
   const reload = useCallback(async () => {
     setLoading(true);

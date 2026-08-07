@@ -19,6 +19,11 @@ import {
   setDemoLiveLineup,
 } from '../demo/demoLiveRuntime';
 import {
+  getDemoTournamentMatchLite,
+  isDemoTournamentMatchId,
+  patchDemoTournamentMatchSlot,
+} from '../demo/demoTournamentState';
+import {
   clampEffectiveMatchSeconds,
   computeLiveMatchSecondsFromClockState,
   getBenchPlayers,
@@ -373,6 +378,9 @@ export async function fetchEventIsHomeByMatchId(
 }
 
 export async function fetchMatchById(matchId: string): Promise<{ data: LiveMatchRow | null; error: string | null }> {
+  if (isDemoTournamentMatchId(matchId)) {
+    return { data: getDemoTournamentMatchLite(matchId) as LiveMatchRow | null, error: null };
+  }
   if (isDemoMatchId(matchId)) return { data: getDemoLiveMatchRow(matchId), error: null };
 
   const { data, error } = await supabase
@@ -470,6 +478,16 @@ export function sanitizeLineupToMatchSquad(
 }
 
 export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: LineupLoadResult; error: string | null }> {
+  if (isDemoTournamentMatchId(matchId)) {
+    const { getDemoTournamentSquadPlayerIds, DEMO_TOURNAMENT_EVENT_ID } = await import(
+      '../demo/demoTournamentState'
+    );
+    const squad = getDemoTournamentSquadPlayerIds(DEMO_TOURNAMENT_EVENT_ID);
+    return {
+      data: { startingPlayerIds: [], squadPlayerIds: squad, savedBenchPlayerIds: squad },
+      error: null,
+    };
+  }
   if (isDemoMatchId(matchId)) return { data: getDemoLiveLineup(matchId), error: null };
 
   const [lineupRes, benchRes] = await Promise.all([
@@ -849,6 +867,17 @@ export async function updateMatchRow(
   matchId: string,
   patch: Record<string, unknown>,
 ): Promise<{ error: string | null }> {
+  if (isDemoTournamentMatchId(matchId)) {
+    const status = patch.status != null ? String(patch.status) : undefined;
+    const score_home = patch.score_home != null ? Number(patch.score_home) : undefined;
+    const score_away = patch.score_away != null ? Number(patch.score_away) : undefined;
+    const ok = patchDemoTournamentMatchSlot(matchId, {
+      ...(status != null ? { match_status: status } : {}),
+      ...(score_home != null && !Number.isNaN(score_home) ? { score_home } : {}),
+      ...(score_away != null && !Number.isNaN(score_away) ? { score_away } : {}),
+    });
+    return { error: ok ? null : 'Demo-Turnierspiel nicht gefunden.' };
+  }
   if (isDemoMatchId(matchId)) {
     const ok = patchDemoLiveMatchRow(matchId, patch);
     return { error: ok ? null : 'Demo-Live-Session nicht gestartet.' };

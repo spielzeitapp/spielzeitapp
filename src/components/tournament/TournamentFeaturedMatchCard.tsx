@@ -27,6 +27,9 @@ import {
   type TournamentOrchestratorCta,
 } from '../../lib/tournamentDayOrchestrator';
 import { CenterEmptyState } from '../center/CenterEmptyState';
+import { useDemoMode } from '../../demo/DemoContext';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { isDemoTournamentMatchId } from '../../demo/demoTournamentState';
 
 type Props = {
   slots: TournamentMatchSlotView[];
@@ -124,8 +127,11 @@ function renderCta(
     onCompleteTournament?: () => void;
     onShowOverview?: () => void;
     completingTournament?: boolean;
+    basePath?: '/app' | '/demo';
+    blockLive?: boolean;
   },
 ): React.ReactNode {
+  const base = handlers.basePath ?? '/app';
   switch (cta.kind) {
     case 'add_match':
       return (
@@ -135,27 +141,44 @@ function renderCta(
       );
     case 'prepare':
       return (
-        <WorkflowCtaLink key={`${cta.kind}-${cta.matchId}`} to={matchPreparationPath(cta.matchId)} variant={cta.variant}>
+        <WorkflowCtaLink
+          key={`${cta.kind}-${cta.matchId}`}
+          to={matchPreparationPath(cta.matchId, base)}
+          variant={cta.variant}
+        >
           {cta.label}
         </WorkflowCtaLink>
       );
     case 'open_lineup':
       return (
-        <WorkflowCtaLink key={`${cta.kind}-${cta.matchId}`} to={matchLineupPath(cta.matchId)} variant={cta.variant}>
+        <WorkflowCtaLink
+          key={`${cta.kind}-${cta.matchId}`}
+          to={matchLineupPath(cta.matchId, base)}
+          variant={cta.variant}
+        >
           {cta.label}
         </WorkflowCtaLink>
       );
     case 'start_live':
-      return (
-        <WorkflowCtaLink key={`${cta.kind}-${cta.matchId}`} to={liveMatchPath(cta.matchId)} variant={cta.variant}>
-          <Radio className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-          {cta.label}
-        </WorkflowCtaLink>
-      );
     case 'go_live':
+      if (handlers.blockLive) {
+        return (
+          <WorkflowCtaButton key={cta.kind} variant={cta.variant} disabled onClick={() => undefined}>
+            Turnier-LIVE folgt im nächsten Demo-Schritt
+          </WorkflowCtaButton>
+        );
+      }
       return (
-        <WorkflowCtaLink key={`${cta.kind}-${cta.matchId}`} to={liveMatchPath(cta.matchId)} variant={cta.variant}>
-          <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
+        <WorkflowCtaLink
+          key={`${cta.kind}-${cta.matchId}`}
+          to={liveMatchPath(cta.matchId, base)}
+          variant={cta.variant}
+        >
+          <Radio
+            className={`h-3.5 w-3.5${cta.kind === 'go_live' ? ' animate-pulse' : ''}`}
+            strokeWidth={2.25}
+            aria-hidden
+          />
           {cta.label}
         </WorkflowCtaLink>
       );
@@ -188,6 +211,8 @@ function renderCta(
 }
 
 async function fetchLiveDetailsForMatch(matchId: string): Promise<TournamentLiveMatchDetails | null> {
+  if (isDemoTournamentMatchId(matchId)) return null;
+
   const { data, error } = await supabase
     .from('matches')
     .select('status, score_home, score_away, live_elapsed_seconds, live_is_running, live_period')
@@ -220,6 +245,8 @@ export function TournamentFeaturedMatchCard({
   onCompleteTournament,
   onShowOverview,
 }: Props) {
+  const isDemo = Boolean(useDemoMode());
+  const basePath = useInternalBasePath();
   const focus = useMemo(() => pickOrchestratorFocus(slots), [slots]);
   const focusSlot = focus.kind !== 'none' ? focus.slot : null;
   const focusMatchId = focusSlot?.match_id?.trim() ?? '';
@@ -421,6 +448,8 @@ export function TournamentFeaturedMatchCard({
                 onCompleteTournament,
                 onShowOverview,
                 completingTournament,
+                basePath,
+                blockLive: isDemo,
               }),
             )}
             {lineupLoading ? (
@@ -429,10 +458,16 @@ export function TournamentFeaturedMatchCard({
           </div>
         ) : !canManage && isLive ? (
           <div className="mt-2.5 border-t border-white/[0.06] pt-2.5">
-            <WorkflowCtaLink to={liveMatchPath(focusSlot.match_id)} variant="primary">
-              <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
-              Zum Live-Spiel
-            </WorkflowCtaLink>
+            {isDemo ? (
+              <WorkflowCtaButton variant="primary" disabled onClick={() => undefined}>
+                Turnier-LIVE folgt im nächsten Demo-Schritt
+              </WorkflowCtaButton>
+            ) : (
+              <WorkflowCtaLink to={liveMatchPath(focusSlot.match_id, basePath)} variant="primary">
+                <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
+                Zum Live-Spiel
+              </WorkflowCtaLink>
+            )}
           </div>
         ) : null}
       </div>

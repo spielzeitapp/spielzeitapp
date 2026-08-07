@@ -27,6 +27,8 @@ import type { TournamentAttendanceSummary } from '../../lib/tournamentPreparatio
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { TC_CARD, TC_CARD_INNER } from './tournamentCenterStyles';
+import { useDemoMode } from '../../demo/DemoContext';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   tournamentEventId: string;
@@ -132,6 +134,8 @@ export function TournamentAssistantCard({
   onViewStatus,
   onLineupCopied,
 }: Props) {
+  const isDemo = Boolean(useDemoMode());
+  const basePath = useInternalBasePath();
   const [lineupReady, setLineupReady] = useState(false);
   const [lineupLoading, setLineupLoading] = useState(false);
   const [squadCount, setSquadCount] = useState(0);
@@ -306,10 +310,10 @@ export function TournamentAssistantCard({
       case 'prepare_match':
         return action.matchId ? (
           primary ? (
-            <PrimaryButton label={label} to={matchPreparationPath(action.matchId)} />
+            <PrimaryButton label={label} to={matchPreparationPath(action.matchId, basePath)} />
           ) : (
             <Link
-              to={matchPreparationPath(action.matchId)}
+              to={matchPreparationPath(action.matchId, basePath)}
               className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
             >
               {label}
@@ -318,12 +322,21 @@ export function TournamentAssistantCard({
         ) : null;
       case 'open_lineup':
         return action.matchId ? (
-          <PrimaryButton label={label} to={matchLineupPath(action.matchId)} />
+          <PrimaryButton label={label} to={matchLineupPath(action.matchId, basePath)} />
         ) : null;
       case 'start_live':
       case 'go_live':
+        if (isDemo) {
+          return (
+            <PrimaryButton
+              label="Turnier-LIVE folgt im nächsten Demo-Schritt"
+              onClick={() => undefined}
+              disabled
+            />
+          );
+        }
         return action.matchId ? (
-          <PrimaryButton label={label} to={liveMatchPath(action.matchId)} />
+          <PrimaryButton label={label} to={liveMatchPath(action.matchId, basePath)} />
         ) : null;
       case 'create_report':
         return <PrimaryButton label={label} onClick={onCreateReport} disabled={disabled} />;

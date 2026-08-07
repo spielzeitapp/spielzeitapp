@@ -2505,6 +2505,16 @@ export async function analyzeTournamentUrl(
 export async function fetchTournamentImportRecognition(
   teamSeasonId: string,
 ): Promise<TournamentImportRecognition> {
+  if (String(teamSeasonId ?? '').startsWith('00000000-demo-')) {
+    const { demoFixtures } = await import('../demo/demoFixtures');
+    const name = demoFixtures.teamName;
+    return {
+      teamSeasonName: name,
+      teamName: name,
+      aliases: [],
+      knownNames: [name],
+    };
+  }
   const { buildTournamentImportRecognition } = await import('./teamSeasonAliases');
   return buildTournamentImportRecognition(teamSeasonId);
 }
@@ -2540,6 +2550,16 @@ export async function importTournamentPlanFromAnalysis(params: {
   updatedResults: number;
   error: string | null;
 }> {
+  if (String(params.tournamentEventId ?? '').trim() === 'ev-tournament') {
+    return {
+      importedTeams: 0,
+      importedMatches: 0,
+      skippedMatches: 0,
+      updatedResults: 0,
+      error: 'Externer Turnierplan-Import ist in der Demo deaktiviert.',
+    };
+  }
+
   const { assertTeamSeasonWritable } = await import('./seasonTransition');
   const writable = await assertTeamSeasonWritable(params.teamSeasonId);
   if (!writable.ok) {

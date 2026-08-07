@@ -7,6 +7,17 @@ import {
   utcIsoToViennaTimeHHmm,
   VIENNA_TZ,
 } from './viennaTime';
+import {
+  addDemoTournamentParticipant,
+  applyDemoTournamentMatchResult,
+  createDemoTournamentMatchSlot,
+  getDemoTournamentMatchSlots,
+  getDemoTournamentParticipants,
+  importDemoTournamentParticipants,
+  isDemoTournamentEventId,
+  removeDemoTournamentMatchSlot,
+  removeDemoTournamentParticipant,
+} from '../demo/demoTournamentState';
 /** Standard-Spieldauer für Turnierspiele (Kurzturnier). */
 export const TOURNAMENT_DEFAULT_PLANNED_MINUTES = 12;
 
@@ -254,6 +265,10 @@ function normalizeMatchSlotRow(row: TournamentMatchSlot): TournamentMatchSlot {
 export async function fetchTournamentParticipants(
   tournamentEventId: string,
 ): Promise<{ data: TournamentParticipant[]; error: string | null }> {
+  if (isDemoTournamentEventId(tournamentEventId)) {
+    return { data: getDemoTournamentParticipants(tournamentEventId), error: null };
+  }
+
   const { data, error } = await supabase
     .from('tournament_participants')
     .select('id, tournament_event_id, team_name, group_label, sort_order')
@@ -303,6 +318,14 @@ export async function importTournamentParticipantsBulk(params: {
     return { imported: 0, error: 'Keine gültigen Mannschaften zum Importieren.' };
   }
 
+  if (isDemoTournamentEventId(params.tournamentEventId)) {
+    return importDemoTournamentParticipants({
+      tournamentEventId: params.tournamentEventId,
+      groupLabel: params.groupLabel,
+      teamNames: names,
+    });
+  }
+
   const { count, error: countErr } = await supabase
     .from('tournament_participants')
     .select('id', { count: 'exact', head: true })
@@ -332,6 +355,14 @@ export async function addTournamentParticipant(params: {
   const name = params.teamName.trim();
   if (!name) return { error: 'Mannschaftsname fehlt.' };
 
+  if (isDemoTournamentEventId(params.tournamentEventId)) {
+    return addDemoTournamentParticipant({
+      tournamentEventId: params.tournamentEventId,
+      teamName: name,
+      groupLabel: params.groupLabel,
+    });
+  }
+
   const { count, error: countErr } = await supabase
     .from('tournament_participants')
     .select('id', { count: 'exact', head: true })
@@ -350,6 +381,10 @@ export async function addTournamentParticipant(params: {
 }
 
 export async function removeTournamentParticipant(participantId: string): Promise<{ error: string | null }> {
+  if (String(participantId ?? '').startsWith('00000000-demo-5000-')) {
+    const ok = removeDemoTournamentParticipant(participantId);
+    return { error: ok ? null : 'Teilnehmer nicht gefunden.' };
+  }
   const { error } = await supabase.from('tournament_participants').delete().eq('id', participantId);
   return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
@@ -415,6 +450,10 @@ async function enrichTournamentMatchSlots(
 export async function fetchTournamentMatchSlots(
   tournamentEventId: string,
 ): Promise<{ data: TournamentMatchSlotView[]; error: string | null }> {
+  if (isDemoTournamentEventId(tournamentEventId)) {
+    return { data: getDemoTournamentMatchSlots(tournamentEventId), error: null };
+  }
+
   let res = await supabase
     .from('tournament_matches')
     .select('id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order')
@@ -458,6 +497,21 @@ export async function createTournamentMatchSlot(params: {
 
   const kickoffIso = meetupUtcIsoOnViennaEventDay(params.tournamentDayIso, params.kickoffTimeHHmm);
   if (!kickoffIso) return { slotId: null, matchId: null, error: 'Ungültige Anstoßzeit.' };
+
+  if (isDemoTournamentEventId(params.tournamentEventId)) {
+    const created = createDemoTournamentMatchSlot({
+      tournamentEventId: params.tournamentEventId,
+      opponentName: opponent,
+      kickoffAt: kickoffIso,
+      pitch: params.pitch,
+      groupLabel: params.groupLabel,
+      phase: params.phase,
+    });
+    if (created.error || !created.matchId) {
+      return { slotId: null, matchId: null, error: created.error ?? 'Spiel konnte nicht angelegt werden.' };
+    }
+    return { slotId: created.matchId, matchId: created.matchId, error: null };
+  }
 
   const kickoff = new Date(kickoffIso);
   const vienna = getDateTimePartsInTimeZone(kickoff, VIENNA_TZ);
@@ -536,6 +590,10 @@ export async function createTournamentMatchSlot(params: {
 }
 
 export async function removeTournamentMatchSlot(matchId: string): Promise<{ error: string | null }> {
+  if (String(matchId ?? '').startsWith('00000000-demo-5000-')) {
+    const ok = removeDemoTournamentMatchSlot(matchId);
+    return { error: ok ? null : 'Spiel nicht gefunden.' };
+  }
   const { error } = await supabase.from('matches').delete().eq('id', matchId);
   return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
@@ -562,6 +620,14 @@ export async function applyTournamentMatchResultIfEmpty(params: {
 
   const ourGoals = Math.max(0, Math.trunc(params.ourGoals));
   const oppGoals = Math.max(0, Math.trunc(params.oppGoals));
+
+  if (String(params.matchId ?? '').startsWith('00000000-demo-5000-')) {
+    return applyDemoTournamentMatchResult({
+      matchId: params.matchId,
+      ourGoals,
+      oppGoals,
+    });
+  }
 
   const { error } = await updateMatchRow(params.matchId, {
     score_home: ourGoals,

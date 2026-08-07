@@ -133,6 +133,11 @@ export async function publishTournamentCompletionFeedPost(params: {
   caption: string;
   payload: TournamentCompletionFeedPayload;
 }): Promise<PublishTournamentCompletionFeedResult> {
+  // DEMO.2G-A: kein Feed-Write
+  if (String(params.eventId ?? '').trim() === 'ev-tournament') {
+    return { ok: true };
+  }
+
   const dedupeKey = tournamentCompletionFeedDedupeKey(params.eventId);
   const already = await isTournamentCompletionFeedPublished(params.eventId);
   if (already) return { ok: false, reason: 'already_posted' };

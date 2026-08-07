@@ -10,10 +10,11 @@ import {
   fetchTournamentSquadPlayerIds,
   saveTournamentSquad,
 } from '../../lib/tournamentSquad';
-import { supabase } from '../../lib/supabaseClient';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
+import { useDemoMode } from '../../demo/DemoContext';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   tournamentEventId: string;
@@ -41,9 +42,11 @@ function playerStatusFromAttendance(value: 'yes' | 'no' | null): PrepStatus {
 function LineupLink({
   slots,
   loading,
+  basePath = '/app',
 }: {
   slots: TournamentMatchSlotView[];
   loading: boolean;
+  basePath?: '/app' | '/demo';
 }) {
   const featured = pickFeaturedTournamentSlot(slots);
   const matchId = featured?.match_id?.trim() ?? '';
@@ -72,7 +75,7 @@ function LineupLink({
         <p className="mt-2 text-[11px] text-white/40">Zuerst Turnierspiel anlegen oder importieren.</p>
       ) : (
         <Link
-          to={matchLineupPath(matchId)}
+          to={matchLineupPath(matchId, basePath)}
           className={`mt-2 inline-flex min-h-[32px] w-full items-center justify-center rounded-full px-3 text-[11px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
         >
           {hasLineup ? 'Aufstellung öffnen' : 'Aufstellung erstellen'}
@@ -89,7 +92,12 @@ export function TournamentSquadPanel({
   loading: slotsLoading = false,
   canManage = false,
 }: Props) {
-  const { players, loading: playersLoading } = usePlayers(teamSeasonId);
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
+  const { players: dbPlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId);
+  const players = isDemo && demo ? demo.players : dbPlayers;
+  const playersLoading = isDemo ? false : playersLoadingLive;
   const [squadIds, setSquadIds] = useState<string[]>([]);
   const [squadLoading, setSquadLoading] = useState(true);
   const [squadError, setSquadError] = useState<string | null>(null);
@@ -114,6 +122,23 @@ export function TournamentSquadPanel({
     let cancelled = false;
     setAttendanceLoading(true);
     void (async () => {
+      if (isDemo && demo) {
+        const byEvent = demo.getAttendanceByEventIds([tournamentEventId]);
+        const data = byEvent[tournamentEventId];
+        const byPlayer: Record<string, 'yes' | 'no'> = {};
+        if (data) {
+          for (const [pid, status] of Object.entries(data.availabilityByPlayerId ?? {})) {
+            const n = normalizeAttendanceStatus(status);
+            if (n) byPlayer[pid.toLowerCase()] = n;
+          }
+        }
+        if (!cancelled) {
+          setAttendanceByPlayerId(byPlayer);
+          setAttendanceLoading(false);
+        }
+        return;
+      }
+      const { supabase } = await import('../../lib/supabaseClient');
       const { data, error } = await supabase
         .from('event_attendance')
         .select('player_id, status')
@@ -136,7 +161,7 @@ export function TournamentSquadPanel({
     return () => {
       cancelled = true;
     };
-  }, [tournamentEventId]);
+  }, [tournamentEventId, isDemo, demo]);
 
   const getAttendance = useCallback(
     (playerId: string): 'yes' | 'no' | null => {
@@ -276,7 +301,7 @@ export function TournamentSquadPanel({
           </Link>
         ) : null}
 
-        <LineupLink slots={slots} loading={slotsLoading} />
+        <LineupLink slots={slots} loading={slotsLoading} basePath={basePath} />
       </div>
     </section>
   );
