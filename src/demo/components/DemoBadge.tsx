@@ -103,6 +103,9 @@ export function DemoBadge(): React.ReactElement {
           <p className="px-2.5 pb-1.5 pt-1 text-[10px] leading-snug text-white/35">
             Nur lokal · Reload setzt Daten sowieso auf den Seed zurück.
           </p>
+          <p className="px-2.5 pb-1.5 pt-0.5 text-[10px] leading-snug text-white/35">
+            Spieler und Fotos sind vollständig fiktive Demo-Daten und KI-generiert.
+          </p>
         </div>
       ) : null}
     </div>

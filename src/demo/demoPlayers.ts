@@ -15,6 +15,19 @@ export const DEMO_SELF_PLAYER_ID = 'p08';
 /** LAZ-fähig (zusätzlich zu p08). */
 export const DEMO_LAZ_PLAYER_ID = 'p05';
 
+/** Öffentlicher Asset-Pfad für KI-Porträts (nur Demo). */
+export const DEMO_PLAYER_AVATAR_DIR = '/avatars/demo';
+
+/**
+ * Zentrale Avatar-Zuordnung über stabile Spieler-ID (p01–p15).
+ * Dateien: `public/avatars/demo/demo-player-pXX.webp`
+ */
+export function getDemoPlayerAvatarUrl(playerId: string | null | undefined): string | null {
+  const id = String(playerId ?? '').trim();
+  if (!/^p(0[1-9]|1[0-5])$/.test(id)) return null;
+  return `${DEMO_PLAYER_AVATAR_DIR}/demo-player-${id}.webp`;
+}
+
 export function isDemoPlayerId(playerId: string | null | undefined): boolean {
   return Boolean(playerId && /^p\d{2}$/.test(playerId.trim()));
 }
@@ -33,7 +46,7 @@ export function buildDemoPlayers(): PlayerItem[] {
     jersey_number: p.jersey,
     position: p.position,
     birthdate: null,
-    avatar_url: null,
+    avatar_url: getDemoPlayerAvatarUrl(p.id),
     cutout_url: null,
     is_active: true,
     status: 'active' as const,
