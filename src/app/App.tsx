@@ -48,6 +48,8 @@ import { SetPasswordPage } from '../pages/SetPasswordPage';
 import { AdminLoginPage } from '../pages/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
+import { ManagerLayout } from '../manager/ManagerLayout';
+import { ManagerDashboardPage } from '../manager/ManagerDashboardPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
@@ -312,6 +314,17 @@ function InternalRoutes(): React.ReactElement {
           </RequireAuth>
         }
       />
+      <Route
+        path="/manager"
+        element={
+          <RequireAuth>
+            <ManagerLayout />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<ManagerDashboardPage />} />
+        <Route path="dashboard" element={<ManagerDashboardPage />} />
+      </Route>
     </Routes>
   );
 }
@@ -358,6 +371,8 @@ function PublicRoutes(): React.ReactElement {
       <Route path="app/*" element={<Navigate to="/" replace />} />
       <Route path="/admin" element={<Navigate to="/" replace />} />
       <Route path="/admin/*" element={<Navigate to="/" replace />} />
+      <Route path="/manager" element={<Navigate to="/login" replace />} />
+      <Route path="/manager/*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
