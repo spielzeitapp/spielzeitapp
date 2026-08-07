@@ -2,6 +2,7 @@ import React from "react";
 import {
   hasCutoutUrl,
   HERO_CARD_CLASS,
+  HeroAvatarInSlot,
   HeroClubLogoWatermark,
   HeroCutoutLayer,
   HeroNameBlock,
@@ -74,6 +75,8 @@ function PlayerProfileHeroCard(props: Props) {
 
   const isCutoutLayout = profileHeroLayoutMode(cutoutUrl) === "cutout";
   const showCutoutImage = isCutoutLayout && cutoutImageOk && Boolean(cutoutSrc);
+  /** Ohne Cutout: Porträt-Avatar (wie Trainer-Hero) — Demo-KI-Fotos + produktive Avatare ohne Freisteller. */
+  const showAvatarFallback = !showCutoutImage;
 
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
   const teamLine = (teamName ?? "").trim() || parsed.team;
@@ -114,7 +117,11 @@ function PlayerProfileHeroCard(props: Props) {
           {!positionBadge && !statusSlot && seasonLine ? <HeroSeasonLine seasonLine={seasonLine} /> : null}
         </div>
 
-        <div className="relative z-[1] w-[52%] max-w-[14rem] shrink-0 sm:max-w-[15rem]" aria-hidden />
+        <div className="relative z-[1] w-[52%] max-w-[14rem] shrink-0 sm:max-w-[15rem]" aria-hidden>
+          {showAvatarFallback ? (
+            <HeroAvatarInSlot photoUrl={photoUrl} initials={initials} visible />
+          ) : null}
+        </div>
       </div>
     </div>
   );
