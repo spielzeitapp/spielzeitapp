@@ -492,9 +492,17 @@ export async function archiveTeamSeason(teamSeasonId: string): Promise<ArchiveTe
   if (await probeArchivedAtColumn()) {
     patch.archived_at = new Date().toISOString();
   }
+  // completed_at best effort (STEP 4)
+  patch.completed_at = new Date().toISOString();
 
   const { error: updErr } = await supabase.from('team_seasons').update(patch).eq('id', id);
-  if (updErr) return { ok: false, message: updErr.message };
+  if (updErr && /completed_at|column/i.test(updErr.message)) {
+    delete patch.completed_at;
+    const retry = await supabase.from('team_seasons').update(patch).eq('id', id);
+    if (retry.error) return { ok: false, message: retry.error.message };
+  } else if (updErr) {
+    return { ok: false, message: updErr.message };
+  }
 
   // Pending Reminder-Jobs der archivierten Saison stoppen (keine neuen Pushes).
   const { data: seasonEvents } = await supabase.from('events').select('id').eq('team_season_id', id);
@@ -523,11 +531,64 @@ export async function activateTeamSeason(teamSeasonId: string): Promise<{ ok: tr
   const id = teamSeasonId.trim();
   if (!id) return { ok: false, message: 'Saison fehlt. Bitte Seite neu laden.' };
 
-  const { error } = await supabase
-    .from('team_seasons')
-    .update({ status: 'active' })
-    .eq('id', id);
+  // Bevorzugt serverseitig: höchstens eine aktive Saison pro Mannschaft
+  const rpc = await supabase.rpc('activate_team_season_exclusive', {
+    p_team_season_id: id,
+  });
+  if (!rpc.error && rpc.data && typeof rpc.data === 'object') {
+    const payload = rpc.data as { ok?: boolean; error?: string };
+    if (payload.ok === true) return { ok: true };
+    if (payload.error === 'forbidden') {
+      return { ok: false, message: 'Keine Berechtigung, diese Saison zu aktivieren.' };
+    }
+    if (payload.error === 'archived_locked') {
+      return {
+        ok: false,
+        message: 'Archivierte Saisons können nicht unabsichtlich reaktiviert werden.',
+      };
+    }
+    if (payload.error === 'not_found') {
+      return { ok: false, message: 'Team-Saison nicht gefunden.' };
+    }
+    if (payload.error) {
+      return { ok: false, message: `Aktivierung fehlgeschlagen (${payload.error}).` };
+    }
+  }
 
+  // Fallback ohne RPC: andere aktive derselben Mannschaft archivieren
+  const { data: row, error: loadErr } = await supabase
+    .from('team_seasons')
+    .select('id, team_id, status')
+    .eq('id', id)
+    .maybeSingle();
+  if (loadErr) return { ok: false, message: loadErr.message };
+  if (!row) return { ok: false, message: 'Team-Saison nicht gefunden.' };
+  if (normalizeTeamSeasonStatus((row as { status?: string }).status) === 'archived') {
+    return {
+      ok: false,
+      message: 'Archivierte Saisons können nicht unabsichtlich reaktiviert werden.',
+    };
+  }
+
+  const teamId = String((row as { team_id?: string }).team_id ?? '').trim();
+  if (teamId) {
+    const siblings = await supabase
+      .from('team_seasons')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('status', 'active')
+      .neq('id', id);
+    for (const s of siblings.data ?? []) {
+      const sid = String((s as { id?: string }).id ?? '').trim();
+      if (sid) await archiveTeamSeason(sid);
+    }
+  }
+
+  const patch: Record<string, unknown> = { status: 'active' };
+  if (await probeArchivedAtColumn()) {
+    patch.archived_at = null;
+  }
+  const { error } = await supabase.from('team_seasons').update(patch).eq('id', id);
   if (error) return { ok: false, message: error.message };
   return { ok: true };
 }

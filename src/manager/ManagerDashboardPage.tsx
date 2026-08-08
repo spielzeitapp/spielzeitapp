@@ -32,6 +32,7 @@ import {
   listSessionExercises,
 } from '../lib/trainingSessions';
 import { listVenueFields, listFieldZones } from '../lib/venueFields';
+import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
 
 function greetingPrefix(now = new Date()): string {
   const h = now.getHours();
@@ -156,6 +157,11 @@ export function ManagerDashboardPage(): React.ReactElement {
   const { user: authUser } = useAuth();
   const { profile } = useProfile(authUser?.id);
   const { selectedTeamSeason, selectedTeamSeasonId, viewTeamSeason, teamSeasons } = useSession();
+
+  const [seasonDraftHint, setSeasonDraftHint] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
 
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
@@ -402,6 +408,29 @@ export function ManagerDashboardPage(): React.ReactElement {
     };
   }, [nextTraining, teamSeasonId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!teamSeasonId) {
+        if (!cancelled) setSeasonDraftHint(null);
+        return;
+      }
+      const snap = await fetchSeasonManagementSnapshot(teamSeasonId);
+      if (cancelled) return;
+      if (snap.data?.draft) {
+        setSeasonDraftHint({
+          id: snap.data.draft.id,
+          label: snap.data.draft.displayName,
+        });
+      } else {
+        setSeasonDraftHint(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
+
   const loading = eventsLoading || playersLoading;
   const error = eventsError || playersError;
 
@@ -579,11 +608,18 @@ export function ManagerDashboardPage(): React.ReactElement {
           ) : (
             <div className="space-y-1">
               <p className="font-semibold text-slate-900">
-                {(contextSeason.season?.name ?? '').trim() || 'Saison'}
+                Saison {(contextSeason.season?.name ?? '').trim() || '—'}
+                {contextSeason.age_group ? ` · ${contextSeason.age_group}` : ''}
               </p>
               <p className="text-[13px] text-slate-500">
-                Status: {getSeasonStatusLabel(contextSeason.status)}
+                {getSeasonStatusLabel(contextSeason.status)}
+                {players.length > 0 ? ` · ${players.length} Spieler` : ''}
               </p>
+              {seasonDraftHint ? (
+                <p className="pt-1 text-[13px] text-amber-800">
+                  {seasonDraftHint.label} ist vorbereitet — Kader prüfen und Saison aktivieren.
+                </p>
+              ) : null}
               {featured ? (
                 <p className="pt-1 text-[12px] text-slate-400">
                   Nächster Fokus: {eventTitle(featured)} · {formatEventWhen(featured.starts_at)}
@@ -592,10 +628,10 @@ export function ManagerDashboardPage(): React.ReactElement {
             </div>
           )}
           <Link
-            to="/app/mehr/seasons"
+            to="/manager/saisons"
             className="mt-3 inline-flex text-[13px] font-semibold text-red-700 hover:text-red-800"
           >
-            Saison verwalten
+            {seasonDraftHint ? 'Saisonentwurf öffnen' : 'Saison verwalten'}
           </Link>
         </Card>
       </div>
@@ -622,10 +658,10 @@ export function ManagerDashboardPage(): React.ReactElement {
             Spieler verwalten
           </Link>
           <Link
-            to="/app/mehr/seasons"
+            to="/manager/saisons"
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
           >
-            Saison verwalten
+            Saisonen
           </Link>
           <Link
             to="/manager/platzbelegung"

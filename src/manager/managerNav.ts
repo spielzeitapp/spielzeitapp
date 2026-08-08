@@ -31,7 +31,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
       { id: 'players', label: 'Spieler', status: 'planned' },
       { id: 'parents', label: 'Eltern', status: 'planned' },
       { id: 'events', label: 'Termine', status: 'planned' },
-      { id: 'seasons', label: 'Saisonen', status: 'planned' },
+      { id: 'seasons', label: 'Saisonen', to: '/manager/saisons', status: 'ready' },
     ],
   },
   {
