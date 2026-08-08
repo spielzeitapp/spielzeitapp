@@ -31,6 +31,12 @@ export type EventFieldAssignmentConflict = {
 const ASSIGN_SELECT =
   'id, club_id, event_id, venue_id, field_id, zone_id, starts_at, ends_at, created_at';
 
+function isAssignmentsMigrationPending(message: string): boolean {
+  return /event_field_assignments|find_event_field_assignment_conflicts|does not exist|schema cache|42P01|42883/i.test(
+    message,
+  );
+}
+
 export function defaultEventEndsAt(args: {
   startsAtIso: string;
   kind: string | null | undefined;
@@ -64,7 +70,7 @@ export async function listAssignmentsInRange(
     .gt('ends_at', rangeStartIso)
     .order('starts_at', { ascending: true });
   if (error) {
-    if (/relation .*event_field_assignments.* does not exist|42P01/i.test(error.message)) {
+    if (isAssignmentsMigrationPending(error.message)) {
       return {
         data: [],
         error: 'Platzzuordnungs-Tabellen noch nicht migriert (STEP 2 Migration ausstehend).',
@@ -92,7 +98,7 @@ export async function getAssignmentForEvent(
     .eq('event_id', eventId)
     .maybeSingle();
   if (error) {
-    if (/relation .*event_field_assignments.* does not exist|42P01/i.test(error.message)) {
+    if (isAssignmentsMigrationPending(error.message)) {
       return { data: null, error: null };
     }
     return { data: null, error: error.message };
@@ -117,7 +123,7 @@ export async function findAssignmentConflicts(input: {
     p_exclude_assignment_id: input.excludeAssignmentId ?? null,
   });
   if (error) {
-    if (/function .*find_event_field_assignment_conflicts.* does not exist|42883/i.test(error.message)) {
+    if (isAssignmentsMigrationPending(error.message)) {
       return { data: [], error: 'Konfliktprüfung noch nicht migriert.' };
     }
     return { data: [], error: error.message };

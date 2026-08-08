@@ -46,6 +46,10 @@ function nullIfEmpty(s: string | null | undefined): string | null {
   return t ? t : null;
 }
 
+function isFieldsMigrationPending(message: string): boolean {
+  return /venue_fields|venue_field_zones|does not exist|schema cache|42P01/i.test(message);
+}
+
 function normalizeFieldType(raw: string | null | undefined): VenueFieldType {
   const t = String(raw ?? '').trim().toLowerCase();
   if (t === 'main' || t === 'training' || t === 'artificial' || t === 'small' || t === 'hall') {
@@ -67,7 +71,7 @@ export async function listVenueFields(
   if (!opts?.includeInactive) q = q.eq('is_active', true);
   const { data, error } = await q;
   if (error) {
-    if (/relation .*venue_fields.* does not exist|42P01/i.test(error.message)) {
+    if (isFieldsMigrationPending(error.message)) {
       return { data: [], error: 'Platz-Tabellen noch nicht migriert (STEP 2 Migration ausstehend).' };
     }
     return { data: [], error: error.message };
@@ -94,7 +98,7 @@ export async function listVenueFieldsForClub(
   if (!opts?.includeInactive) q = q.eq('is_active', true);
   const { data, error } = await q;
   if (error) {
-    if (/relation .*venue_fields.* does not exist|42P01/i.test(error.message)) {
+    if (isFieldsMigrationPending(error.message)) {
       return { data: [], error: 'Platz-Tabellen noch nicht migriert (STEP 2 Migration ausstehend).' };
     }
     return { data: [], error: error.message };
@@ -129,6 +133,9 @@ export async function createVenueField(input: {
   };
   const { data, error } = await supabase.from('venue_fields').insert(payload).select(FIELD_SELECT).maybeSingle();
   if (error) {
+    if (isFieldsMigrationPending(error.message)) {
+      return { data: null, error: 'Platz-Tabellen noch nicht migriert (STEP 2 Migration ausstehend).' };
+    }
     if (/duplicate|unique/i.test(error.message)) return { data: null, error: 'Dieser Platzname existiert bereits.' };
     return { data: null, error: error.message };
   }
@@ -173,7 +180,12 @@ export async function listFieldZones(
     .order('name', { ascending: true });
   if (!opts?.includeInactive) q = q.eq('is_active', true);
   const { data, error } = await q;
-  if (error) return { data: [], error: error.message };
+  if (error) {
+    if (isFieldsMigrationPending(error.message)) {
+      return { data: [], error: 'Platz-Tabellen noch nicht migriert (STEP 2 Migration ausstehend).' };
+    }
+    return { data: [], error: error.message };
+  }
   return { data: (data ?? []) as VenueFieldZoneRow[], error: null };
 }
 

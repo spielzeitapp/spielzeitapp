@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Menu, X } from 'lucide-react';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 import { MANAGER_NAV_SECTIONS } from '../managerNav';
@@ -100,22 +100,20 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
                     const isActive = navItemActive(location.pathname, location.search, item.to);
                     return (
                       <li key={item.id}>
-                        <NavLink
+                        <Link
                           to={item.to}
-                          end={item.to === '/manager'}
                           onClick={closeOnNav}
-                          className={() =>
-                            [
-                              'flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium transition',
-                              isActive
-                                ? 'bg-red-600/20 text-white ring-1 ring-red-500/40'
-                                : 'text-white/70 hover:bg-white/8 hover:text-white',
-                            ].join(' ')
-                          }
+                          aria-current={isActive ? 'page' : undefined}
+                          className={[
+                            'flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium transition',
+                            isActive
+                              ? 'bg-red-600/20 text-white ring-1 ring-red-500/40'
+                              : 'text-white/70 hover:bg-white/8 hover:text-white',
+                          ].join(' ')}
                         >
                           <LayoutDashboard className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                           {item.label}
-                        </NavLink>
+                        </Link>
                       </li>
                     );
                   }
