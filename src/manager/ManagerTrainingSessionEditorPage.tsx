@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
+import { useEvents } from '../hooks/useEvents';
 import { supabase } from '../lib/supabaseClient';
 import { resolveClubIdForTeamSeason, listVenuesForClub } from '../lib/venues';
 import { getAssignmentForEvent } from '../lib/eventFieldAssignments';
@@ -31,6 +32,11 @@ import {
 } from '../lib/trainingPhases';
 import { isSeasonArchived } from '../lib/seasonLifecycle';
 import { VIENNA_TZ } from '../lib/viennaTime';
+import { ManagerTrainingCopyDialog } from './ManagerTrainingCopyDialog';
+import { ManagerTrainingAttendanceReadOnly } from './ManagerTrainingAttendanceReadOnly';
+import { ManagerTrainingDocumentationPanel } from './ManagerTrainingDocumentationPanel';
+import { updateExerciseReview } from '../lib/trainingSessionOps';
+import { TRAINING_EXERCISE_REVIEW_LABELS, type TrainingExerciseReviewStatus } from '../lib/trainingPhases';
 
 function formatWhen(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -59,10 +65,11 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const startsFromQuery = searchParams.get('starts');
   const navigate = useNavigate();
 
-  const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
+  const { user, selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
   const seasonArchived = contextSeason ? isSeasonArchived(contextSeason.status) : false;
+  const { events } = useEvents(teamSeasonId);
 
   const [session, setSession] = useState<TrainingSessionRow | null>(null);
   const [items, setItems] = useState<TrainingSessionExerciseRow[]>([]);
@@ -88,6 +95,8 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [library, setLibrary] = useState<TrainingExerciseRow[]>([]);
   const [mobileExerciseId, setMobileExerciseId] = useState<string | null>(null);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [docMode, setDocMode] = useState(false);
 
   const totalMinutes = useMemo(
     () => items.reduce((sum, it) => sum + (it.duration_minutes || 0), 0),
@@ -394,6 +403,19 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     ? mobileItems.findIndex((x) => x.id === mobileExerciseId)
     : -1;
 
+  const trainingEvents = useMemo(
+    () =>
+      events
+        .filter((e) => e.kind === 'training' || e.type === 'training')
+        .filter((e) => String(e.status ?? '').toLowerCase() !== 'canceled'),
+    [events],
+  );
+
+  const eventPastOrNow = useMemo(() => {
+    if (!eventMeta?.starts_at) return false;
+    return new Date(eventMeta.starts_at).getTime() <= Date.now() + 30 * 60 * 1000;
+  }, [eventMeta?.starts_at]);
+
   if (loading) {
     return <p className="text-[13px] text-slate-400">Einheit wird geladen…</p>;
   }
@@ -421,9 +443,27 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
           >
             Zurück
           </Link>
+          {session?.id ? (
+            <button
+              type="button"
+              onClick={() => setCopyOpen(true)}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
+            >
+              Einheit kopieren
+            </button>
+          ) : null}
+          {session?.id && session.record_type === 'session' && (eventPastOrNow || session.status === 'completed') ? (
+            <a
+              href="#training-doc"
+              onClick={() => setDocMode(true)}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
+            >
+              Training dokumentieren
+            </a>
+          ) : null}
           <button
             type="button"
-            disabled={saving || seasonArchived}
+            disabled={saving || seasonArchived || status === 'completed'}
             onClick={() => void saveMeta()}
             className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50"
           >
@@ -476,10 +516,14 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                 setStatus(e.target.value as TrainingSessionStatus);
                 setDirty(true);
               }}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px]"
+              disabled={status === 'completed'}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px] disabled:bg-slate-50"
             >
               <option value="draft">{TRAINING_SESSION_STATUS_LABELS.draft}</option>
               <option value="ready">{TRAINING_SESSION_STATUS_LABELS.ready}</option>
+              {status === 'completed' ? (
+                <option value="completed">{TRAINING_SESSION_STATUS_LABELS.completed}</option>
+              ) : null}
               <option value="archived">{TRAINING_SESSION_STATUS_LABELS.archived}</option>
             </select>
           </label>
@@ -562,6 +606,27 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
           />
         </label>
       </section>
+
+      {session?.id && session.record_type === 'session' ? (
+        <ManagerTrainingAttendanceReadOnly eventId={eventId} teamSeasonId={teamSeasonId} />
+      ) : null}
+
+      {session?.id && (docMode || eventPastOrNow || session.status === 'completed') ? (
+        <ManagerTrainingDocumentationPanel
+          session={session}
+          items={items}
+          exerciseMap={exerciseMap}
+          userId={user?.id}
+          readOnlyCompleted={session.status === 'completed'}
+          onUpdated={(s) => {
+            setSession(s);
+            setStatus(s.status);
+          }}
+          onItemsChanged={() => void reload()}
+          onError={setError}
+          onSuccess={setSuccess}
+        />
+      ) : null}
 
       <div className="hidden space-y-4 md:block">
         {TRAINING_PHASES.map((phase) => {
@@ -758,6 +823,39 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                       <p className="mt-1 whitespace-pre-wrap text-[15px] text-amber-950">{it.coach_notes}</p>
                     </section>
                   ) : null}
+                  {session?.record_type === 'session' ? (
+                    <section className="mt-4 space-y-2">
+                      <h3 className="text-[12px] font-semibold text-slate-500">Markierung</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(Object.keys(TRAINING_EXERCISE_REVIEW_LABELS) as TrainingExerciseReviewStatus[]).map(
+                          (st) => (
+                            <button
+                              key={st}
+                              type="button"
+                              disabled={saving}
+                              onClick={() => {
+                                void updateExerciseReview(it.id, {
+                                  reviewStatus: st,
+                                  wasCompleted: st === 'not_done' ? false : true,
+                                  repeatRecommended: st === 'repeat',
+                                }).then((res) => {
+                                  if (res.error) setError(res.error);
+                                  else void reload();
+                                });
+                              }}
+                              className={`min-h-[44px] rounded-full px-3 text-[12px] font-semibold ${
+                                it.review_status === st
+                                  ? 'bg-red-700 text-white'
+                                  : 'border border-slate-200 bg-white text-slate-700'
+                              }`}
+                            >
+                              {TRAINING_EXERCISE_REVIEW_LABELS[st]}
+                            </button>
+                          ),
+                        )}
+                      </div>
+                    </section>
+                  ) : null}
                 </div>
                 <div className="flex gap-2 border-t border-slate-200 p-3">
                   <button
@@ -833,6 +931,15 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
             </ul>
           </div>
         </div>
+      ) : null}
+
+      {session && copyOpen ? (
+        <ManagerTrainingCopyDialog
+          open={copyOpen}
+          session={session}
+          trainingEvents={trainingEvents}
+          onClose={() => setCopyOpen(false)}
+        />
       ) : null}
     </div>
   );

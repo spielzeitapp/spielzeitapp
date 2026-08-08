@@ -65,7 +65,19 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
   }, [trainings]);
 
   const drafts = useMemo(
-    () => sessions.filter((s) => !s.event_id && s.status !== 'archived'),
+    () => sessions.filter((s) => !s.event_id && s.status === 'draft'),
+    [sessions],
+  );
+  const readyPlans = useMemo(
+    () => sessions.filter((s) => s.status === 'ready' && s.record_type !== 'template'),
+    [sessions],
+  );
+  const recentCompleted = useMemo(
+    () =>
+      sessions
+        .filter((s) => s.status === 'completed')
+        .sort((a, b) => String(b.completed_at ?? '').localeCompare(String(a.completed_at ?? '')))
+        .slice(0, 5),
     [sessions],
   );
 
@@ -141,6 +153,18 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link
+            to="/manager/training/vorlagen"
+            className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Vorlagen
+          </Link>
+          <Link
+            to="/manager/training/chronik"
+            className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Chronik
+          </Link>
           <Link
             to="/manager/training/bibliothek"
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
@@ -220,6 +244,68 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
           </ul>
         )}
       </section>
+
+      <section className="space-y-3">
+        <h2 className="text-[13px] font-semibold text-slate-800">Fertige Pläne</h2>
+        {readyPlans.length === 0 ? (
+          <p className="text-[13px] text-slate-400">Keine Pläne mit Status „Bereit“.</p>
+        ) : (
+          <ul className="space-y-2">
+            {readyPlans.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-3"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">{s.title}</p>
+                  <p className="text-[12px] text-slate-500">
+                    Bereit
+                    {s.planned_duration_minutes != null ? ` · ${s.planned_duration_minutes} Min.` : ''}
+                  </p>
+                </div>
+                <Link
+                  to={`/manager/training/einheiten/${encodeURIComponent(s.id)}`}
+                  className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-800"
+                >
+                  Öffnen
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-[13px] font-semibold text-slate-800">Zuletzt durchgeführt</h2>
+          <Link to="/manager/training/chronik" className="text-[12px] font-semibold text-red-700">
+            Chronik
+          </Link>
+        </div>
+        {recentCompleted.length === 0 ? (
+          <p className="text-[13px] text-slate-400">Noch keine durchgeführten Trainings.</p>
+        ) : (
+          <ul className="space-y-2">
+            {recentCompleted.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-3"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">{s.title}</p>
+                  <p className="text-[12px] text-slate-500">Durchgeführt</p>
+                </div>
+                <Link
+                  to={`/manager/training/einheiten/${encodeURIComponent(s.id)}`}
+                  className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-800"
+                >
+                  Dokumentation
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
@@ -234,10 +320,14 @@ function TrainingRow({
   fieldLabel?: string;
 }): React.ReactElement {
   const planLabel = !session
-    ? 'Trainingsplan noch nicht erstellt'
-    : session.status === 'ready'
-      ? `Fertig${session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}`
-      : `Entwurf${session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}`;
+    ? 'Noch nicht geplant'
+    : session.status === 'completed'
+      ? 'Durchgeführt'
+      : session.status === 'ready'
+        ? `Bereit${session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}`
+        : session.status === 'archived'
+          ? 'Archiviert'
+          : `Entwurf${session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}`;
 
   return (
     <li className="rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">

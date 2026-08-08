@@ -59,13 +59,38 @@ export const EXERCISE_DIFFICULTY_LABELS: Record<ExerciseDifficulty, string> = {
   hard: 'Schwer',
 };
 
-export type TrainingSessionStatus = 'draft' | 'ready' | 'archived';
+export type TrainingSessionStatus = 'draft' | 'ready' | 'completed' | 'archived';
 
 export const TRAINING_SESSION_STATUS_LABELS: Record<TrainingSessionStatus, string> = {
   draft: 'Entwurf',
-  ready: 'Fertig',
+  ready: 'Bereit',
+  completed: 'Durchgeführt',
   archived: 'Archiviert',
 };
+
+export type TrainingRecordType = 'session' | 'template';
+
+export type TrainingReviewRating = 'excellent' | 'good' | 'partial' | 'off_plan';
+
+export const TRAINING_REVIEW_RATING_LABELS: Record<TrainingReviewRating, string> = {
+  excellent: 'Sehr gut',
+  good: 'Gut',
+  partial: 'Teilweise',
+  off_plan: 'Nicht wie geplant',
+};
+
+export type TrainingExerciseReviewStatus = 'worked_well' | 'adapted' | 'not_done' | 'repeat';
+
+export const TRAINING_EXERCISE_REVIEW_LABELS: Record<TrainingExerciseReviewStatus, string> = {
+  worked_well: 'Gut funktioniert',
+  adapted: 'Angepasst',
+  not_done: 'Nicht durchgeführt',
+  repeat: 'Wiederholen',
+};
+
+export function isTrainingSessionStatus(v: string): v is TrainingSessionStatus {
+  return v === 'draft' || v === 'ready' || v === 'completed' || v === 'archived';
+}
 
 export function isTrainingPhase(v: string): v is TrainingPhase {
   return (TRAINING_PHASES as readonly string[]).includes(v);

@@ -54,6 +54,8 @@ import { ManagerPlatzbelegungPage } from '../manager/ManagerPlatzbelegungPage';
 import { ManagerTrainingLibraryPage } from '../manager/ManagerTrainingLibraryPage';
 import { ManagerTrainingSessionsPage } from '../manager/ManagerTrainingSessionsPage';
 import { ManagerTrainingSessionEditorPage } from '../manager/ManagerTrainingSessionEditorPage';
+import { ManagerTrainingTemplatesPage } from '../manager/ManagerTrainingTemplatesPage';
+import { ManagerTrainingChroniclePage } from '../manager/ManagerTrainingChroniclePage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
@@ -344,6 +346,8 @@ function InternalRoutes(): React.ReactElement {
         <Route path="platzbelegung" element={<ManagerPlatzbelegungPage />} />
         <Route path="training" element={<Navigate to="/manager/training/einheiten" replace />} />
         <Route path="training/bibliothek" element={<ManagerTrainingLibraryPage />} />
+        <Route path="training/vorlagen" element={<ManagerTrainingTemplatesPage />} />
+        <Route path="training/chronik" element={<ManagerTrainingChroniclePage />} />
         <Route path="training/einheiten" element={<ManagerTrainingSessionsPage />} />
         <Route path="training/einheiten/neu" element={<ManagerTrainingSessionEditorPage />} />
         <Route path="training/einheiten/:id" element={<ManagerTrainingSessionEditorPage />} />

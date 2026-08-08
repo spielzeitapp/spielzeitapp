@@ -40,6 +40,8 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     items: [
       { id: 'training', label: 'Trainingsplanung', to: '/manager/training/einheiten', status: 'ready' },
       { id: 'training-lib', label: 'Übungsbibliothek', to: '/manager/training/bibliothek', status: 'ready' },
+      { id: 'training-tpl', label: 'Vorlagen', to: '/manager/training/vorlagen', status: 'ready' },
+      { id: 'training-chronik', label: 'Chronik', to: '/manager/training/chronik', status: 'ready' },
       { id: 'matches', label: 'Spiele', status: 'planned' },
       { id: 'tournaments', label: 'Turniere', status: 'planned' },
       { id: 'venues', label: 'Platzbelegung', to: '/manager/platzbelegung', status: 'ready' },

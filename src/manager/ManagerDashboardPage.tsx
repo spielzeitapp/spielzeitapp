@@ -140,9 +140,11 @@ type TodayFieldSummary = {
 type NextTrainingPlan = {
   loading: boolean;
   sessionId: string | null;
-  status: 'none' | 'draft' | 'ready' | 'error';
+  status: 'none' | 'draft' | 'ready' | 'completed' | 'needs_doc' | 'error';
   exerciseCount: number;
   durationMinutes: number | null;
+  actualDurationMinutes: number | null;
+  reviewRating: string | null;
   pitchLabel: string | null;
   error: string | null;
 };
@@ -180,6 +182,8 @@ export function ManagerDashboardPage(): React.ReactElement {
     status: 'none',
     exerciseCount: 0,
     durationMinutes: null,
+    actualDurationMinutes: null,
+    reviewRating: null,
     pitchLabel: null,
     error: null,
   });
@@ -321,6 +325,8 @@ export function ManagerDashboardPage(): React.ReactElement {
             status: 'none',
             exerciseCount: 0,
             durationMinutes: null,
+            actualDurationMinutes: null,
+            reviewRating: null,
             pitchLabel: null,
             error: null,
           });
@@ -358,9 +364,11 @@ export function ManagerDashboardPage(): React.ReactElement {
         setNextTrainingPlan({
           loading: false,
           sessionId: null,
-          status: sessionRes.error && /noch nicht migriert/i.test(sessionRes.error) ? 'none' : 'none',
+          status: 'none',
           exerciseCount: 0,
           durationMinutes: null,
+          actualDurationMinutes: null,
+          reviewRating: null,
           pitchLabel,
           error: sessionRes.error && !/noch nicht migriert/i.test(sessionRes.error) ? sessionRes.error : null,
         });
@@ -369,12 +377,22 @@ export function ManagerDashboardPage(): React.ReactElement {
 
       const items = await listSessionExercises(sessionRes.data.id);
       if (cancelled) return;
+      const st = sessionRes.data.status;
+      const eventStarted = new Date(nextTraining.starts_at).getTime() <= Date.now();
+      let planStatus: NextTrainingPlan['status'] = 'draft';
+      if (st === 'completed') planStatus = 'completed';
+      else if (st === 'ready') planStatus = eventStarted ? 'needs_doc' : 'ready';
+      else if (st === 'draft' && eventStarted) planStatus = 'needs_doc';
+      else planStatus = 'draft';
+
       setNextTrainingPlan({
         loading: false,
         sessionId: sessionRes.data.id,
-        status: sessionRes.data.status === 'ready' ? 'ready' : 'draft',
+        status: planStatus,
         exerciseCount: items.data.length,
         durationMinutes: sessionRes.data.planned_duration_minutes,
+        actualDurationMinutes: sessionRes.data.actual_duration_minutes,
+        reviewRating: sessionRes.data.review_rating,
         pitchLabel,
         error: null,
       });
@@ -452,14 +470,34 @@ export function ManagerDashboardPage(): React.ReactElement {
               {nextTrainingPlan.loading ? (
                 <p className="text-[13px] text-slate-400">Trainingsplan wird geladen…</p>
               ) : nextTrainingPlan.status === 'none' ? (
-                <p className="text-[13px] text-slate-500">Trainingsplan noch nicht erstellt</p>
+                <p className="text-[13px] text-slate-500">Noch nicht geplant</p>
+              ) : nextTrainingPlan.status === 'completed' ? (
+                <p className="text-[13px] text-slate-500">
+                  Training abgeschlossen
+                  {nextTrainingPlan.actualDurationMinutes != null
+                    ? ` · ${nextTrainingPlan.actualDurationMinutes} Minuten`
+                    : ''}
+                  {nextTrainingPlan.reviewRating
+                    ? ` · Bewertung: ${
+                        (
+                          {
+                            excellent: 'Sehr gut',
+                            good: 'Gut',
+                            partial: 'Teilweise',
+                            off_plan: 'Nicht wie geplant',
+                          } as Record<string, string>
+                        )[nextTrainingPlan.reviewRating] ?? nextTrainingPlan.reviewRating
+                      }`
+                    : ''}
+                </p>
+              ) : nextTrainingPlan.status === 'needs_doc' ? (
+                <p className="text-[13px] text-amber-800">Training noch dokumentieren</p>
               ) : (
                 <p className="text-[13px] text-slate-500">
-                  Trainingsplan:{' '}
-                  {nextTrainingPlan.exerciseCount} Übung
+                  Trainingsplan bereit · {nextTrainingPlan.exerciseCount} Übung
                   {nextTrainingPlan.exerciseCount === 1 ? '' : 'en'}
                   {nextTrainingPlan.durationMinutes != null
-                    ? ` · ${nextTrainingPlan.durationMinutes} Min.`
+                    ? ` · ${nextTrainingPlan.durationMinutes} Minuten`
                     : ''}
                   {nextTrainingPlan.status === 'draft' ? ' · Entwurf' : ''}
                 </p>
@@ -469,10 +507,16 @@ export function ManagerDashboardPage(): React.ReactElement {
               ) : null}
               {nextTrainingPlan.sessionId ? (
                 <Link
-                  to={`/manager/training/einheiten/${encodeURIComponent(nextTrainingPlan.sessionId)}`}
+                  to={`/manager/training/einheiten/${encodeURIComponent(nextTrainingPlan.sessionId)}${
+                    nextTrainingPlan.status === 'needs_doc' ? '#training-doc' : ''
+                  }`}
                   className="mt-2 inline-flex text-[13px] font-semibold text-red-700 hover:text-red-800"
                 >
-                  Trainingsplan öffnen
+                  {nextTrainingPlan.status === 'needs_doc'
+                    ? 'Training dokumentieren'
+                    : nextTrainingPlan.status === 'completed'
+                      ? 'Dokumentation öffnen'
+                      : 'Trainingsplan öffnen'}
                 </Link>
               ) : (
                 <Link
@@ -594,6 +638,18 @@ export function ManagerDashboardPage(): React.ReactElement {
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
           >
             Trainingsplanung
+          </Link>
+          <Link
+            to="/manager/training/vorlagen"
+            className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Vorlagen
+          </Link>
+          <Link
+            to="/manager/training/chronik"
+            className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Chronik
           </Link>
           <Link
             to="/manager/training/bibliothek"
