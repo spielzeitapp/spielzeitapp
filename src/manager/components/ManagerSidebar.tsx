@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import React, { useCallback, useEffect } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Menu, X } from 'lucide-react';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 import { MANAGER_NAV_SECTIONS } from '../managerNav';
@@ -9,6 +9,25 @@ type Props = {
   onClose: () => void;
 };
 
+function navItemActive(pathname: string, search: string, to: string): boolean {
+  const [path, query = ''] = to.split('?');
+  if (pathname !== path) return false;
+  if (!query) {
+    // Haupt-Platzbelegung ohne Tab: aktiv außer bei tab=facilities
+    if (path === '/manager/platzbelegung') {
+      const tab = new URLSearchParams(search).get('tab');
+      return tab !== 'facilities';
+    }
+    return true;
+  }
+  const want = new URLSearchParams(query);
+  const have = new URLSearchParams(search);
+  for (const [k, v] of want.entries()) {
+    if (have.get(k) !== v) return false;
+  }
+  return true;
+}
+
 /**
  * Feste Desktop-Sidebar; auf schmalen Viewports als Drawer.
  */
@@ -16,6 +35,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
   const closeOnNav = useCallback(() => {
     onClose();
   }, [onClose]);
+  const location = useLocation();
 
   useEffect(() => {
     if (!open) return;
@@ -77,13 +97,14 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
               <ul className="space-y-0.5">
                 {section.items.map((item) => {
                   if (item.status === 'ready' && item.to) {
+                    const isActive = navItemActive(location.pathname, location.search, item.to);
                     return (
                       <li key={item.id}>
                         <NavLink
                           to={item.to}
                           end={item.to === '/manager'}
                           onClick={closeOnNav}
-                          className={({ isActive }) =>
+                          className={() =>
                             [
                               'flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium transition',
                               isActive

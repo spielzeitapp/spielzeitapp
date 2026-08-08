@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CalendarDays,
@@ -23,6 +23,10 @@ import {
   isSeasonActive,
   isSeasonArchived,
 } from '../lib/seasonLifecycle';
+import { resolveClubIdForTeamSeason } from '../lib/venues';
+import { listAssignmentsForToday, listClubEventsInRange } from '../lib/eventFieldAssignments';
+import { getDateTimePartsInTimeZone, VIENNA_TZ, zonedWallTimeToUtcMillis } from '../lib/viennaTime';
+import { addDays, toViennaDayKey } from '../pages/calendar/calendarUtils';
 
 function greetingPrefix(now = new Date()): string {
   const h = now.getHours();
@@ -84,8 +88,52 @@ function EmptyLine({ text }: { text: string }): React.ReactElement {
   return <p className="text-[13px] leading-snug text-slate-400">{text}</p>;
 }
 
+function viennaDayBoundsIso(day: Date): { startIso: string; endIso: string } {
+  const p = getDateTimePartsInTimeZone(day, VIENNA_TZ);
+  if (!p) {
+    const start = new Date(day);
+    start.setHours(0, 0, 0, 0);
+    const end = addDays(start, 1);
+    return { startIso: start.toISOString(), endIso: end.toISOString() };
+  }
+  const startMs = zonedWallTimeToUtcMillis(
+    { year: p.year, month: p.month, day: p.day, hour: 0, minute: 0 },
+    VIENNA_TZ,
+  );
+  const next = addDays(new Date(startMs), 1);
+  const np = getDateTimePartsInTimeZone(next, VIENNA_TZ) ?? p;
+  const endMs = zonedWallTimeToUtcMillis(
+    { year: np.year, month: np.month, day: np.day, hour: 0, minute: 0 },
+    VIENNA_TZ,
+  );
+  return { startIso: new Date(startMs).toISOString(), endIso: new Date(endMs).toISOString() };
+}
+
+function formatHm(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('de-AT', {
+      timeZone: VIENNA_TZ,
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return '—';
+  }
+}
+
+type TodayFieldSummary = {
+  loading: boolean;
+  error: string | null;
+  assignedCount: number;
+  unassignedCount: number;
+  fieldCount: number;
+  rangeLabel: string | null;
+  nextLabel: string | null;
+  migrationPending: boolean;
+};
+
 /**
- * STEP-1-Dashboard: echte Session-Daten, keine erfundenen Kennzahlen.
+ * STEP-1-Dashboard + STEP-2 Platzbelegung-Karte: echte Session-Daten, keine erfundenen Kennzahlen.
  */
 export function ManagerDashboardPage(): React.ReactElement {
   const { user: authUser } = useAuth();
@@ -98,6 +146,17 @@ export function ManagerDashboardPage(): React.ReactElement {
   const { events, loading: eventsLoading, error: eventsError } = useEvents(teamSeasonId);
   const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonId, {
     mode: 'active',
+  });
+
+  const [todayField, setTodayField] = useState<TodayFieldSummary>({
+    loading: true,
+    error: null,
+    assignedCount: 0,
+    unassignedCount: 0,
+    fieldCount: 0,
+    rangeLabel: null,
+    nextLabel: null,
+    migrationPending: false,
   });
 
   const now = useMemo(() => new Date(), []);
@@ -139,6 +198,92 @@ export function ManagerDashboardPage(): React.ReactElement {
 
   const hasActive = teamSeasons.some((ts) => isSeasonActive(ts.status));
   const seasonArchived = contextSeason ? isSeasonArchived(contextSeason.status) : false;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!teamSeasonId) {
+        if (!cancelled) {
+          setTodayField((s) => ({ ...s, loading: false, assignedCount: 0, unassignedCount: 0 }));
+        }
+        return;
+      }
+      setTodayField((s) => ({ ...s, loading: true, error: null }));
+      const clubRes = await resolveClubIdForTeamSeason(teamSeasonId);
+      if (cancelled) return;
+      if (clubRes.error || !clubRes.clubId) {
+        setTodayField({
+          loading: false,
+          error: clubRes.error ?? 'Verein nicht ermittelbar.',
+          assignedCount: 0,
+          unassignedCount: 0,
+          fieldCount: 0,
+          rangeLabel: null,
+          nextLabel: null,
+          migrationPending: false,
+        });
+        return;
+      }
+      const bounds = viennaDayBoundsIso(now);
+      const todayKey = toViennaDayKey(now);
+      const [assignRes, eventsRes] = await Promise.all([
+        listAssignmentsForToday(clubRes.clubId, bounds.startIso, bounds.endIso),
+        listClubEventsInRange(clubRes.clubId, bounds.startIso, bounds.endIso),
+      ]);
+      if (cancelled) return;
+
+      const migrationPending = Boolean(
+        assignRes.error && /noch nicht migriert/i.test(assignRes.error),
+      );
+      const assignments = assignRes.data ?? [];
+      const assignedIds = new Set(assignments.map((a) => a.event_id));
+      const dayEvents = (eventsRes.data ?? []).filter(
+        (e) => toViennaDayKey(new Date(e.starts_at)) === todayKey,
+      );
+      const unassignedCount = dayEvents.filter((e) => !assignedIds.has(e.id)).length;
+      const fieldCount = new Set(assignments.map((a) => a.field_id)).size;
+
+      let rangeLabel: string | null = null;
+      if (assignments.length > 0) {
+        const starts = assignments.map((a) => new Date(a.starts_at).getTime());
+        const ends = assignments.map((a) => new Date(a.ends_at).getTime());
+        rangeLabel = `${formatHm(new Date(Math.min(...starts)).toISOString())}–${formatHm(new Date(Math.max(...ends)).toISOString())}`;
+      }
+
+      const nowMs = now.getTime();
+      const upcomingAssign =
+        assignments.find((a) => new Date(a.ends_at).getTime() > nowMs) ?? null;
+      let nextLabel: string | null = null;
+      if (upcomingAssign) {
+        const ev = dayEvents.find((e) => e.id === upcomingAssign.event_id);
+        const title = ev
+          ? ev.kind === 'match'
+            ? ev.opponent?.trim()
+              ? `vs. ${ev.opponent.trim()}`
+              : 'Spiel'
+            : ev.kind === 'training'
+              ? 'Training'
+              : 'Termin'
+          : 'Belegung';
+        const team = (ev?.age_group ?? ev?.team_name ?? '').trim();
+        nextLabel = `${formatHm(upcomingAssign.starts_at)} ${title}${team ? ` · ${team}` : ''}`;
+      }
+
+      setTodayField({
+        loading: false,
+        error: migrationPending ? null : assignRes.error || eventsRes.error,
+        assignedCount: assignments.length,
+        unassignedCount,
+        fieldCount,
+        rangeLabel,
+        nextLabel,
+        migrationPending,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId, now]);
 
   const loading = eventsLoading || playersLoading;
   const error = eventsError || playersError;
@@ -309,24 +454,59 @@ export function ManagerDashboardPage(): React.ReactElement {
           >
             Saison verwalten
           </Link>
+          <Link
+            to="/manager/platzbelegung"
+            className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Platzbelegung
+          </Link>
         </div>
       </section>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card title="Heute am Sportplatz" icon={<MapPin className="h-4 w-4" aria-hidden />}>
-          <p className="text-[13px] leading-snug text-slate-500">
-            Platzbelegung und Reservierungen folgen in einem späteren Schritt.
-          </p>
-          <span className="mt-3 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-            In Planung
-          </span>
+          {todayField.loading ? (
+            <EmptyLine text="Platzbelegung wird geladen…" />
+          ) : todayField.migrationPending ? (
+            <EmptyLine text="Platzbelegung bereit – Datenbank-Migration auf Staging ausstehend." />
+          ) : todayField.error ? (
+            <p className="text-[13px] text-red-700">{todayField.error}</p>
+          ) : todayField.assignedCount === 0 ? (
+            <EmptyLine text="Heute sind keine Plätze belegt." />
+          ) : (
+            <div className="space-y-1.5">
+              <p className="font-semibold text-slate-900">
+                {todayField.assignedCount} Termin{todayField.assignedCount === 1 ? '' : 'e'}
+                {todayField.rangeLabel ? ` · ${todayField.rangeLabel}` : ''}
+              </p>
+              {todayField.fieldCount > 0 ? (
+                <p className="text-[13px] text-slate-500">
+                  {todayField.fieldCount} Platz{todayField.fieldCount === 1 ? '' : 'plätze'} belegt
+                </p>
+              ) : null}
+              {todayField.nextLabel ? (
+                <p className="text-[12px] text-slate-400">Als Nächstes: {todayField.nextLabel}</p>
+              ) : null}
+            </div>
+          )}
+          {!todayField.loading && !todayField.migrationPending && todayField.unassignedCount > 0 ? (
+            <p className="mt-2 text-[12px] text-amber-800">
+              {todayField.unassignedCount} Termin
+              {todayField.unassignedCount === 1 ? '' : 'e'} ohne Platzzuordnung
+            </p>
+          ) : null}
+          <Link
+            to="/manager/platzbelegung"
+            className="mt-3 inline-flex text-[13px] font-semibold text-red-700 hover:text-red-800"
+          >
+            Platzbelegung öffnen
+          </Link>
         </Card>
 
         <Card title="Kommende Module">
           <ul className="grid gap-2 sm:grid-cols-2">
             {[
               { icon: <Dumbbell className="h-3.5 w-3.5" />, label: 'Trainingsplanung' },
-              { icon: <MapPin className="h-3.5 w-3.5" />, label: 'Platzbelegung' },
               { icon: <Video className="h-3.5 w-3.5" />, label: 'Video & Highlights' },
               { icon: <ShoppingBag className="h-3.5 w-3.5" />, label: 'Ausrüstung & Teamshop' },
             ].map((m) => (

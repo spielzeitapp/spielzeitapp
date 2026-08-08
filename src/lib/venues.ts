@@ -13,6 +13,7 @@ export type VenueRow = {
   longitude: number | null;
   is_home: boolean;
   is_active: boolean;
+  description?: string | null;
 };
 
 export type VenueInput = {
@@ -25,6 +26,7 @@ export type VenueInput = {
   latitude?: number | null;
   longitude?: number | null;
   isHome?: boolean;
+  description?: string | null;
 };
 
 const VENUE_SELECT =
@@ -80,14 +82,16 @@ export async function resolveClubIdForTeamSeason(
 
 export async function listVenuesForClub(
   clubId: string,
+  opts?: { includeInactive?: boolean },
 ): Promise<{ data: VenueRow[]; error: string | null }> {
-  const { data, error } = await supabase
+  let q = supabase
     .from('venues')
     .select(VENUE_SELECT)
     .eq('club_id', clubId)
-    .eq('is_active', true)
     .order('is_home', { ascending: false })
     .order('name', { ascending: true });
+  if (!opts?.includeInactive) q = q.eq('is_active', true);
+  const { data, error } = await q;
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as VenueRow[], error: null };
 }
@@ -149,6 +153,8 @@ export async function updateVenue(
     latitude?: number | null;
     longitude?: number | null;
     isHome?: boolean;
+    isActive?: boolean;
+    description?: string | null;
   },
 ): Promise<{ data: VenueRow | null; error: string | null }> {
   const payload: Record<string, unknown> = {};
@@ -159,6 +165,8 @@ export async function updateVenue(
   if (patch.latitude !== undefined) payload.latitude = patch.latitude;
   if (patch.longitude !== undefined) payload.longitude = patch.longitude;
   if (patch.isHome !== undefined) payload.is_home = patch.isHome === true;
+  if (patch.isActive !== undefined) payload.is_active = patch.isActive === true;
+  if (patch.description !== undefined) payload.description = nullIfEmpty(patch.description);
 
   const { data, error } = await supabase
     .from('venues')
@@ -169,6 +177,17 @@ export async function updateVenue(
   if (error) {
     if (/idx_venues_club_name_unique|duplicate/i.test(error.message)) {
       return { data: null, error: 'Dieser Spielortname ist bereits vergeben.' };
+    }
+    if (/description|42703/i.test(error.message)) {
+      delete payload.description;
+      const retry = await supabase
+        .from('venues')
+        .update(payload)
+        .eq('id', venueId)
+        .select(VENUE_SELECT)
+        .maybeSingle();
+      if (retry.error) return { data: null, error: retry.error.message };
+      return { data: (retry.data as VenueRow) ?? null, error: null };
     }
     return { data: null, error: error.message };
   }

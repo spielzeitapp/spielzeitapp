@@ -1,6 +1,6 @@
 /**
- * Sidebar-Navigation für den Spielzeit Manager (STEP 1).
- * Nur Dashboard ist aktiv; übrige Einträge sind vorbereitet („Demnächst“).
+ * Sidebar-Navigation für den Spielzeit Manager.
+ * STEP 1: Dashboard · STEP 2: Platzbelegung / Sportanlagen.
  */
 
 export type ManagerNavItem = {
@@ -42,7 +42,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
       { id: 'training-lib', label: 'Trainingsbibliothek', status: 'planned' },
       { id: 'matches', label: 'Spiele', status: 'planned' },
       { id: 'tournaments', label: 'Turniere', status: 'planned' },
-      { id: 'venues', label: 'Platzbelegung', status: 'planned' },
+      { id: 'venues', label: 'Platzbelegung', to: '/manager/platzbelegung', status: 'ready' },
       { id: 'video', label: 'Video & Analyse', status: 'planned' },
     ],
   },
@@ -59,7 +59,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     label: 'Verein',
     items: [
       { id: 'equipment', label: 'Ausrüstung & Teamshop', status: 'planned' },
-      { id: 'facilities', label: 'Sportanlagen', status: 'planned' },
+      { id: 'facilities', label: 'Sportanlagen', to: '/manager/platzbelegung?tab=facilities', status: 'ready' },
       { id: 'permissions', label: 'Berechtigungen', status: 'planned' },
     ],
   },

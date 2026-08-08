@@ -50,6 +50,7 @@ import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { ManagerLayout } from '../manager/ManagerLayout';
 import { ManagerDashboardPage } from '../manager/ManagerDashboardPage';
+import { ManagerPlatzbelegungPage } from '../manager/ManagerPlatzbelegungPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
@@ -324,6 +325,7 @@ function InternalRoutes(): React.ReactElement {
       >
         <Route index element={<ManagerDashboardPage />} />
         <Route path="dashboard" element={<ManagerDashboardPage />} />
+        <Route path="platzbelegung" element={<ManagerPlatzbelegungPage />} />
       </Route>
     </Routes>
   );
