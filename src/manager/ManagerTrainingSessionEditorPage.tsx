@@ -305,28 +305,6 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     setSaving(false);
   }
 
-  async function linkEventFromQuery() {
-    if (!eventFromQuery?.trim()) return;
-    setSaving(true);
-    setError(null);
-    setEventId(eventFromQuery);
-    const sid = await ensureSessionId();
-    if (!sid) {
-      setSaving(false);
-      return;
-    }
-    const res = await updateTrainingSession(sid, { eventId: eventFromQuery.trim() });
-    if (res.error) setError(res.error);
-    else {
-      setSuccess('Mit Termin verbunden.');
-      setSession(res.data);
-      setEventId(res.data?.event_id ?? eventFromQuery);
-      const clubRes = await resolveClubIdForTeamSeason(teamSeasonId!);
-      await loadPitch(eventFromQuery.trim(), clubRes.clubId);
-    }
-    setSaving(false);
-  }
-
   async function unlinkEvent() {
     if (!session?.id) return;
     setSaving(true);
