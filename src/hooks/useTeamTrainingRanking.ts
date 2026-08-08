@@ -30,7 +30,7 @@ export function useTeamTrainingRanking(
 ) {
   const demo = useDemoMode();
   const [result, setResult] = useState<TrainingRankingResult>(EMPTY_RESULT);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(enabled));
   const [error, setError] = useState<string | null>(null);
 
   const activePlayers = useMemo(
