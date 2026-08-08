@@ -56,6 +56,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const isNew = !id || id === 'neu';
   const [searchParams] = useSearchParams();
   const eventFromQuery = searchParams.get('event');
+  const startsFromQuery = searchParams.get('starts');
   const navigate = useNavigate();
 
   const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
@@ -115,12 +116,20 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
       setEventMeta(null);
       return;
     }
-    const { data: ev } = await supabase.from('events').select('starts_at, ends_at').eq('id', eid).maybeSingle();
+    const { data: ev, error: evErr } = await supabase
+      .from('events')
+      .select('starts_at, ends_at')
+      .eq('id', eid)
+      .maybeSingle();
     if (ev) {
       setEventMeta({
         starts_at: ev.starts_at as string,
         ends_at: (ev.ends_at as string | null) ?? null,
       });
+    } else if (startsFromQuery && eid === eventFromQuery) {
+      setEventMeta({ starts_at: startsFromQuery, ends_at: null });
+    } else if (evErr) {
+      setEventMeta(null);
     }
     const a = await getAssignmentForEvent(eid);
     if (!a.data) {
@@ -143,7 +152,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
       label: [venueName, field?.name, zoneName].filter(Boolean).join(' · '),
       missing: false,
     });
-  }, []);
+  }, [startsFromQuery, eventFromQuery]);
 
   const reload = useCallback(async () => {
     if (!teamSeasonId) {
@@ -506,6 +515,10 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
           <p className="text-[12px] font-semibold text-slate-700">Verknüpfter Trainingstermin</p>
           {eventMeta ? (
             <p className="text-[14px] text-slate-800">{formatWhen(eventMeta.starts_at)}</p>
+          ) : eventId ? (
+            <p className="text-[13px] text-slate-600">
+              Termin verknüpft (Details werden geladen oder sind eingeschränkt sichtbar).
+            </p>
           ) : (
             <p className="text-[13px] text-slate-500">Kein Termin verknüpft (Entwurf möglich).</p>
           )}
@@ -524,20 +537,13 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
           ) : null}
           <div className="flex flex-wrap gap-2 pt-1">
             {!eventId ? (
-              eventFromQuery ? (
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => void linkEventFromQuery()}
-                  className="rounded-full bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-white"
-                >
-                  Termin verbinden
-                </button>
-              ) : (
-                <p className="text-[12px] text-slate-400">
-                  Termin über „Training planen“ in der Übersicht verknüpfen.
-                </p>
-              )
+              <p className="text-[12px] text-slate-400">
+                Termin über „Training planen“ in der Übersicht verknüpfen.
+              </p>
+            ) : !session?.id ? (
+              <p className="text-[12px] text-slate-500">
+                Termin wird beim Speichern mit dieser Einheit verbunden.
+              </p>
             ) : !confirmUnlink ? (
               <button
                 type="button"

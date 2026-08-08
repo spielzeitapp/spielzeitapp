@@ -267,11 +267,11 @@ function TrainingRow({
             </Link>
           ) : (
             <Link
-              to={`/manager/training/einheiten/neu?event=${encodeURIComponent(event.id)}`}
-              className="rounded-full bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-white"
-            >
-              Training planen
-            </Link>
+                  to={`/manager/training/einheiten/neu?event=${encodeURIComponent(event.id)}&starts=${encodeURIComponent(event.starts_at)}`}
+                  className="rounded-full bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-white"
+                >
+                  Training planen
+                </Link>
           )}
         </div>
       </div>
