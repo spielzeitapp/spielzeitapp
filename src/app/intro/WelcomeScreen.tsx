@@ -98,10 +98,10 @@ export const WelcomeScreen: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex max-h-[100dvh] flex-col overflow-x-hidden overflow-y-hidden bg-black text-white"
+      className="welcome-screen fixed inset-0 z-[90] overflow-x-hidden overflow-y-auto overscroll-y-contain bg-black text-white [-webkit-overflow-scrolling:touch]"
       style={{
         paddingTop: 'max(0.375rem, env(safe-area-inset-top, 0px))',
-        paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom, 0px))',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
       }}
     >
       <style>{`
@@ -285,23 +285,31 @@ export const WelcomeScreen: React.FC = () => {
         }
       `}</style>
 
-      {/* Hero: Hochformat mit freien Zonen oben/unten — keine Overlays über Personen */}
-      <img
-        src={welcomeHeroBg}
-        alt=""
-        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[50%_46%] max-[667px]:object-[50%_44%]"
-        decoding="async"
-        fetchPriority="high"
-        aria-hidden
-      />
+      {/* Inhalt + Hero: min-height 100dvh, wächst mit Text/CTAs — Bild deckt die volle Scrollhöhe ab */}
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5">
+        <img
+          src={welcomeHeroBg}
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full min-h-full w-full object-cover object-[50%_46%] max-[667px]:object-[50%_44%]"
+          decoding="async"
+          fetchPriority="high"
+          aria-hidden
+        />
 
-      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-1">
         {/* Freier Bereich — Branding + Personengruppe im Hero-Bild */}
-        <div className="min-h-[58vh] flex-1 max-[667px]:min-h-[54vh] sm:min-h-[60vh]" aria-hidden />
+        <div
+          className={[
+            'relative z-10 shrink-0',
+            isDemoWelcome
+              ? 'min-h-[42vh] max-[390px]:min-h-[36vh] max-[667px]:min-h-[40vh] sm:min-h-[52vh]'
+              : 'min-h-[58vh] max-[667px]:min-h-[54vh] sm:min-h-[60vh]',
+          ].join(' ')}
+          aria-hidden
+        />
 
         <div
           className={[
-            'relative w-full space-y-[6px] pt-1 transition-[opacity,transform] duration-300 ease-out delay-75 max-[667px]:space-y-[5px]',
+            'relative z-10 w-full space-y-[6px] pt-1 transition-[opacity,transform] duration-300 ease-out delay-75 max-[667px]:space-y-[5px]',
             welcomeEntered ? 'translate-y-0 opacity-100' : 'translate-y-[10px] opacity-0',
           ].join(' ')}
         >
@@ -449,7 +457,7 @@ export const WelcomeScreen: React.FC = () => {
           )}
         </div>
 
-        <footer className="relative mt-2.5 flex shrink-0 flex-col items-center gap-1 px-1 pb-0 max-[667px]:mt-2 max-[667px]:gap-0.5">
+        <footer className="relative z-10 mt-2.5 flex shrink-0 flex-col items-center gap-1 px-1 pb-2 max-[667px]:mt-2 max-[667px]:gap-0.5">
           <div className="flex w-full max-w-[320px] items-center gap-2">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/14 to-white/5" />
             <Trophy className="h-3.5 w-3.5 shrink-0 text-red-500/80 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
