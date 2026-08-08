@@ -28,6 +28,7 @@ import {
   type PlayerAppStatus,
   type PlayerAppStatusRow,
 } from "../../lib/playerAppStatus";
+import { PlayerGuardiansPanel } from "./PlayerGuardiansPanel";
 
 type ParentFilterId = "all" | "linked" | "open";
 
@@ -42,6 +43,7 @@ type TeamParentsTabProps = {
   appStatusLoading: boolean;
   appStatusError: string | null;
   appStatusRpcMissing: boolean;
+  onLinksChanged?: () => void;
 };
 
 const CHIP_BASE =
@@ -301,6 +303,7 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   appStatusLoading,
   appStatusError,
   appStatusRpcMissing,
+  onLinksChanged,
 }) => {
   const [filter, setFilter] = useState<ParentFilterId>("all");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -550,47 +553,81 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
 
                         {linked ? (
                           <div className="mt-3 space-y-2 border-t border-white/8 pt-3">
-                            <p className="text-[12px] font-medium uppercase tracking-wide text-white/55">
-                              Eltern
-                            </p>
-                            {row.parents.map((parent) => {
-                              const showPushReminder = parent.push_active !== true;
-                              return (
-                                <div
-                                  key={parent.user_id}
-                                  className={[
-                                    "min-w-0 rounded-lg border px-2.5 py-2.5 text-[14px] text-white/90 sm:px-3",
-                                    showPushReminder
-                                      ? "border-red-500/15 bg-red-950/[0.12]"
-                                      : "border-white/[0.06] bg-black/15",
-                                  ].join(" ")}
-                                >
-                                  <p className="text-[15px] font-semibold leading-snug text-white">
-                                    {parentPrimaryLabel(parent)}
-                                  </p>
-                                  {parentShowEmailBelow(parent) ? (
-                                    <p className="mt-0.5 truncate text-[12px] leading-snug text-white/55">
-                                      {parent.email}
-                                    </p>
-                                  ) : null}
-                                  <ParentPushStatusBadges parent={parent} />
-                                  {showPushReminder ? (
+                            {teamSeasonId ? (
+                              <PlayerGuardiansPanel
+                                teamSeasonId={teamSeasonId}
+                                playerId={row.player_id}
+                                playerName={row.player_name}
+                                parents={row.parents}
+                                onChanged={onLinksChanged}
+                                onToast={showToast}
+                              />
+                            ) : (
+                              <>
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-white/55">
+                                  Eltern
+                                </p>
+                                {row.parents.map((parent) => {
+                                  const showPushReminder = parent.push_active !== true;
+                                  return (
+                                    <div
+                                      key={parent.user_id}
+                                      className={[
+                                        "min-w-0 rounded-lg border px-2.5 py-2.5 text-[14px] text-white/90 sm:px-3",
+                                        showPushReminder
+                                          ? "border-red-500/15 bg-red-950/[0.12]"
+                                          : "border-white/[0.06] bg-black/15",
+                                      ].join(" ")}
+                                    >
+                                      <p className="text-[15px] font-semibold leading-snug text-white">
+                                        {parentPrimaryLabel(parent)}
+                                      </p>
+                                      {parentShowEmailBelow(parent) ? (
+                                        <p className="mt-0.5 truncate text-[12px] leading-snug text-white/55">
+                                          {parent.email}
+                                        </p>
+                                      ) : null}
+                                      <ParentPushStatusBadges parent={parent} />
+                                      {showPushReminder ? (
+                                        <PushReminderButton
+                                          onClick={() => void handlePushReminder(parent, row.player_name)}
+                                        />
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              </>
+                            )}
+                            {teamSeasonId
+                              ? row.parents
+                                  .filter((p) => p.push_active !== true)
+                                  .map((parent) => (
                                     <PushReminderButton
+                                      key={`push-${parent.user_id}`}
                                       onClick={() => void handlePushReminder(parent, row.player_name)}
                                     />
-                                  ) : null}
-                                </div>
-                              );
-                            })}
+                                  ))
+                              : null}
                           </div>
                         ) : (
                           <div className="mt-3 space-y-3 border-t border-white/8 pt-3">
-                            <p className="flex items-start gap-2 text-[14px] text-amber-200/95">
-                              <span className="shrink-0" aria-hidden>
-                                ⚠️
-                              </span>
-                              <span>Kein Elternaccount verknüpft</span>
-                            </p>
+                            {teamSeasonId ? (
+                              <PlayerGuardiansPanel
+                                teamSeasonId={teamSeasonId}
+                                playerId={row.player_id}
+                                playerName={row.player_name}
+                                parents={[]}
+                                onChanged={onLinksChanged}
+                                onToast={showToast}
+                              />
+                            ) : (
+                              <p className="flex items-start gap-2 text-[14px] text-amber-200/95">
+                                <span className="shrink-0" aria-hidden>
+                                  ⚠️
+                                </span>
+                                <span>Kein Elternaccount verknüpft</span>
+                              </p>
+                            )}
                             <WhatsAppCopyButton onClick={() => void handleCopyReminder(row.player_name)} />
                           </div>
                         )}

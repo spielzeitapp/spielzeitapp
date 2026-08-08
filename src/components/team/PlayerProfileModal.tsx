@@ -32,6 +32,7 @@ import {
   ProfileTrainingAwardsSection,
   ProfileTrainingKaiserStatus,
 } from "./profile/ProfileTrainingExtras";
+import { PlayerGuardiansPanel } from "./PlayerGuardiansPanel";
 
 const PROFILE_GLASS_PANEL =
   "overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(18,18,20,0.98)] to-[rgba(60,10,18,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.08)]";
@@ -64,6 +65,8 @@ export type PlayerProfileModalProps = {
   initialTab?: ProfileTab;
   /** Aktiver Kader für anonymisierten Teamdurchschnitt im Training-Tab. */
   squadPlayers?: PlayerItem[];
+  /** Nach Eltern-Verknüpfung (optional). */
+  onGuardiansChanged?: () => void;
 };
 
 export type ProfileTab = "overview" | "matches" | "achievements" | "training";
@@ -486,8 +489,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onPlayerUpdated,
   initialTab = "overview",
   squadPlayers = [],
+  onGuardiansChanged,
 }) => {
   const [profileTab, setProfileTab] = useState<ProfileTab>(initialTab);
+  const [guardianToast, setGuardianToast] = useState<string | null>(null);
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
   const [isInjuredPlayer, setIsInjuredPlayer] = useState(player.is_injured);
   const [lazSaving, setLazSaving] = useState(false);
@@ -714,6 +719,17 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <ProfileSaveSnackbar visible={saveToastVisible} />
+        {guardianToast ? (
+          <div
+            className="pointer-events-none absolute left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-[60] -translate-x-1/2 px-3"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="rounded-full border border-white/12 bg-[rgba(8,8,12,0.94)] px-4 py-2 text-center text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)]">
+              {guardianToast}
+            </div>
+          </div>
+        ) : null}
         <ProfileCompactHeader
           title="Spielerprofil"
           titleId="player-profile-title"
@@ -950,6 +966,21 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   />
                   <ProfileTrainingAwardsSection />
                 </>
+              ) : null}
+
+              {canManage && teamSeasonId && !demo ? (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 px-3 py-3">
+                  <PlayerGuardiansPanel
+                    teamSeasonId={teamSeasonId}
+                    playerId={player.id}
+                    playerName={displayFullName(player)}
+                    onChanged={onGuardiansChanged}
+                    onToast={(msg) => {
+                      setGuardianToast(msg);
+                      window.setTimeout(() => setGuardianToast(null), 2600);
+                    }}
+                  />
+                </div>
               ) : null}
 
             </>
