@@ -22,6 +22,7 @@ export const ParentAccessPage: React.FC = () => {
     loading: parentLinksLoading,
     error: parentLinksError,
     rpcMissing: parentLinksRpcMissing,
+    refetch: refetchParentLinks,
   } = useTeamPlayerParentLinks(teamSeasonId, dataActive);
 
   const {
@@ -66,6 +67,9 @@ export const ParentAccessPage: React.FC = () => {
         appStatusLoading={playerAppStatusLoading}
         appStatusError={playerAppStatusError}
         appStatusRpcMissing={playerAppStatusRpcMissing}
+        onLinksChanged={() => {
+          void refetchParentLinks();
+        }}
       />
     </PageShell>
   );
