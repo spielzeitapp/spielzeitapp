@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, Compass, PlayCircle, Smartphone, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
-import { startDemoTour } from '../../demo/demoTourState';
-import { DEMO_TOUR_STATIONS } from '../../demo/demoTourConfig';
+import { DEMO_TOUR_WHAT_PATH, DEMO_TOUR_WELCOME_BENEFIT, DEMO_TOUR_WELCOME_HEADLINE, DEMO_TOUR_WELCOME_PRIMARY, DEMO_TOUR_WELCOME_PROBLEM } from '../../demo/demoTourConfig';
 import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg-neu.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
@@ -92,10 +91,9 @@ export const WelcomeScreen: React.FC = () => {
     navigate(ROUTE_DEMO_HOME, { replace: true });
   };
 
-  /** Geführte Demo — Tour starten, dann Home. */
+  /** Geführte Demo — WHY → WHAT, dann HOW-Tour. */
   const goDemoGuided = () => {
-    startDemoTour();
-    navigate(DEMO_TOUR_STATIONS[0]?.path ?? ROUTE_DEMO_HOME, { replace: true });
+    navigate(DEMO_TOUR_WHAT_PATH, { replace: true });
   };
 
   return (
@@ -310,12 +308,17 @@ export const WelcomeScreen: React.FC = () => {
           {isDemoWelcome ? (
             <>
               <div className="mb-1 px-0.5">
-                <p className="text-[18px] font-bold leading-tight text-white sm:text-[20px]">
-                  SpielzeitApp ausprobieren
+                <p className="text-[17px] font-bold leading-tight text-white sm:text-[19px]">
+                  {DEMO_TOUR_WELCOME_HEADLINE}
                 </p>
-                <p className="mt-1 text-[12px] font-medium leading-snug text-white/65 sm:text-[13px]">
-                  Erlebe die wichtigsten Trainerfunktionen mit einem fertigen Demo-Team – ohne Anmeldung
-                  und ohne echte Daten.
+                <p className="mt-1.5 text-[12px] font-medium leading-snug text-white/65 sm:text-[13px]">
+                  {DEMO_TOUR_WELCOME_PROBLEM}
+                </p>
+                <p className="mt-1.5 text-[12px] font-medium leading-snug text-white/75 sm:text-[13px]">
+                  {DEMO_TOUR_WELCOME_BENEFIT}
+                </p>
+                <p className="mt-1.5 text-[11px] leading-snug text-white/45">
+                  Kein Login erforderlich · Änderungen bleiben lokal · keine echten Nachrichten
                 </p>
               </div>
 
@@ -325,13 +328,10 @@ export const WelcomeScreen: React.FC = () => {
                 </span>
                 <span className="relative z-10 min-w-0 flex-1">
                   <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                    Geführte Demo starten
+                    {DEMO_TOUR_WELCOME_PRIMARY}
                   </span>
                   <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                    Erlebe einen kompletten Spieltag – von der Trainingsplanung bis zum Siegerpost.
-                  </span>
-                  <span className="mt-0.5 block text-[11px] font-medium leading-snug text-white/45 sm:text-[12px]">
-                    Dauer ca. 3–5 Minuten. Alle Aktionen bleiben ausschließlich in dieser Demo.
+                    Vom Trainingstermin bis zur Saisonbilanz – in ca. 5 Minuten.
                   </span>
                 </span>
                 <ChevronRight
@@ -457,8 +457,8 @@ export const WelcomeScreen: React.FC = () => {
           </div>
           {isDemoWelcome ? (
             <p className="max-w-[320px] text-center text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
-              Alle Daten sind fiktiv. Änderungen bleiben nur lokal. Ein Reload setzt die Demo zurück — es
-              werden keine Nachrichten oder Benachrichtigungen verschickt.
+              Alle Daten sind fiktiv. Änderungen bleiben nur lokal in dieser Browser-Session. Es werden
+              keine Nachrichten oder Benachrichtigungen verschickt.
             </p>
           ) : (
             <div className="flex max-w-[320px] items-start gap-1.5 text-left text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">

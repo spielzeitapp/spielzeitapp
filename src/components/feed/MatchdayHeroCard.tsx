@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Clock, ChevronRight, MapPin } from 'lucide-react';
 import type { MatchFeedTemplateKey } from '../../features/home/feedTemplates';
 import { MatchCardGameCore } from '../match/MatchCardGameCore';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 export type MatchdayHeroCardProps = {
   templateKey: MatchFeedTemplateKey;
@@ -69,6 +70,7 @@ export const MatchdayHeroCard: React.FC<MatchdayHeroCardProps> = ({
   eventId,
   ctaLabel,
 }) => {
+  const base = useInternalBasePath();
   const [playerImgFailed, setPlayerImgFailed] = useState(false);
   const playerUrl = playerImageUrl?.trim() ?? '';
   const wantsPlayer =
@@ -155,7 +157,7 @@ export const MatchdayHeroCard: React.FC<MatchdayHeroCardProps> = ({
 
   const cta = (
     <Link
-      to={`/app/events/${eventId}`}
+      to={`${base}/events/${eventId}`}
       className="group relative flex min-h-[56px] w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-5 text-base font-bold text-white transition-all duration-200 active:brightness-95 sm:min-h-[58px] sm:rounded-3xl sm:text-[1.05rem]"
       style={{
         background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 48%, #991b1b 100%)',

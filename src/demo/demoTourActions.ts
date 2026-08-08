@@ -17,9 +17,17 @@ export const DEMO_TOUR_FINISH_MATCH_EVENT = 'spielzeit:demo-tour-finish-match';
 /** LiveMatchScreen wechselt zum Spielzeiten-Tab. */
 export const DEMO_TOUR_FOCUS_PLAYTIME_EVENT = 'spielzeit:demo-tour-focus-playtime';
 
+/** Overlay-Hauptaktion → Formularseiten (Training/Spiel/RSVP). */
+export const DEMO_TOUR_PRIMARY_EVENT = 'spielzeit:demo-tour-primary';
+
 export function requestDemoTourFocusPlaytime(): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(DEMO_TOUR_FOCUS_PLAYTIME_EVENT));
+}
+
+export function requestDemoTourPrimaryAction(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(DEMO_TOUR_PRIMARY_EVENT));
 }
 
 export type DemoWinnerPreviewData = {

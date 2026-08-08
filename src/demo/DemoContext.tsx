@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { createInitialLiveState, demoFixtures } from './demoFixtures';
+import type { EventRow } from '../hooks/useEvents';
 import {
   buildDemoEvents,
   buildDemoFeedPosts,
@@ -7,6 +8,7 @@ import {
   DEMO_MATCH_ID_LIVE,
   DEMO_TEAM_ID,
   DEMO_TEAM_SEASON_ID,
+  toDemoEventRow,
 } from './demoDataSource';
 import {
   bootDemoLiveRuntime,
@@ -15,7 +17,8 @@ import {
   resetDemoLiveRuntime,
   subscribeDemoLiveRuntime,
 } from './demoLiveRuntime';
-import { resetDemoTourState } from './demoTourState';
+import { resetDemoTourState, getDemoTourJourney } from './demoTourState';
+import { DEMO_TOUR_LOCAL_TRAINING_ID } from './demoTourConfig';
 import {
   buildDemoTournamentDefaultPrep,
   DEMO_TOURNAMENT_EVENT_ID,
@@ -104,6 +107,8 @@ export type DemoModeContextValue = {
   resetLive: () => void;
   /** DEMO.2H — kompletter lokaler Reset (Attendance, Prep, LIVE, Turnier). */
   resetAllDemo: () => void;
+  /** DEMO.2K — lokales Event idempotent in data.events (z. B. Tour-Training). */
+  addDemoLocalEvent: (event: EventRow) => void;
 };
 
 const DemoModeContext = createContext<DemoModeContextValue | null>(null);
@@ -125,10 +130,33 @@ function buildDataSource(): DemoDataSource {
   };
 }
 
+/** Journey-Training nach Reload idempotent in Events spiegeln. */
+function hydrateJourneyEvents(base: DemoDataSource): DemoDataSource {
+  const training = getDemoTourJourney().localTraining;
+  if (!training) return base;
+  const row = toDemoEventRow({
+    id: training.id || DEMO_TOUR_LOCAL_TRAINING_ID,
+    kind: 'training',
+    starts_at: training.startsAt,
+    location: training.location,
+    notes: training.focus
+      ? `Demo – lokal · Schwerpunkt: ${training.focus}`
+      : 'Demo – lokal angelegtes Training',
+    status: 'upcoming',
+  });
+  const idx = base.events.findIndex((e) => e.id === row.id);
+  if (idx >= 0) {
+    const events = base.events.slice();
+    events[idx] = { ...events[idx], ...row, id: row.id };
+    return { ...base, events };
+  }
+  return { ...base, events: [...base.events, row] };
+}
+
 /** Öffentlicher Demo-Provider — nur lokale Fixtures, keine Supabase-Writes. */
 export function DemoProvider({ children }: { children: React.ReactNode }): React.ReactElement {
   const [live, setLive] = useState<DemoLiveState>(() => createInitialLiveState());
-  const data = useMemo(() => buildDataSource(), []);
+  const [data, setData] = useState<DemoDataSource>(() => hydrateJourneyEvents(buildDataSource()));
   const players = useMemo(() => buildDemoPlayers(), []);
   const staff = useMemo(() => buildDemoStaff(), []);
   const [attendanceRows, setAttendanceRows] = useState<DemoAttendanceRow[]>(() =>
@@ -476,6 +504,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
     resetDemoTournamentState();
     resetDemoLiveRuntime();
     resetDemoTourState();
+    setData(buildDataSource());
     const initial = buildInitialDemoMatchStates();
     const tournamentPrep = buildDemoTournamentDefaultPrep(DEMO_TOURNAMENT_FINAL_MATCH_ID);
     if (tournamentPrep) {
@@ -505,6 +534,18 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       );
     }
   }, [resetDemoAttendance]);
+
+  const addDemoLocalEvent = useCallback((event: EventRow) => {
+    setData((prev) => {
+      const idx = prev.events.findIndex((e) => e.id === event.id);
+      if (idx >= 0) {
+        const events = prev.events.slice();
+        events[idx] = { ...events[idx], ...event, id: event.id };
+        return { ...prev, events };
+      }
+      return { ...prev, events: [...prev.events, event] };
+    });
+  }, []);
 
   const value = useMemo<DemoModeContextValue>(
     () => ({
@@ -538,6 +579,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       finishMatch,
       resetLive,
       resetAllDemo,
+      addDemoLocalEvent,
     }),
     [
       data,
@@ -565,6 +607,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }): React
       finishMatch,
       resetLive,
       resetAllDemo,
+      addDemoLocalEvent,
     ],
   );
 

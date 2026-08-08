@@ -11,6 +11,7 @@ import { dsGlassToggleTrack, dsPanelRowClass, dsPrimaryCtaClass, dsSecondaryCtaC
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
 import { useDemoMode } from '../demo/DemoContext';
+import { DemoAiDisclosure } from '../demo/components/DemoAiDisclosure';
 import { DEMO_TOUR_STATIONS } from '../demo/demoTourConfig';
 import {
   canResumeDemoTour,
@@ -18,7 +19,6 @@ import {
   pauseDemoTour,
   resetDemoTourState,
   resumeOrStartDemoTour,
-  startDemoTour,
   subscribeDemoTour,
 } from '../demo/demoTourState';
 
@@ -33,8 +33,7 @@ function DemoHelpCard(): React.ReactElement {
   useEffect(() => subscribeDemoTour(() => setPhase(getDemoTourSnapshot().phase)), []);
 
   const start = () => {
-    startDemoTour();
-    navigate(DEMO_TOUR_STATIONS[0].path);
+    navigate('/demo/tour/what');
   };
   const resume = () => {
     const snap = resumeOrStartDemoTour();
@@ -60,7 +59,8 @@ function DemoHelpCard(): React.ReactElement {
       <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-400/90">Demo-Hilfe</p>
       <h2 className="mt-1 text-[16px] font-semibold text-white">Rundgang &amp; Zurücksetzen</h2>
       <p className="mt-1 text-[12px] leading-snug text-white/55">
-        Alle Aktionen bleiben lokal in dieser Demo. Ein Reload stellt den Ausgangszustand wieder her.
+        Kein Login erforderlich. Alle Aktionen bleiben lokal in dieser Demo. Tour-Fortschritt und
+        lokale Änderungen bleiben in der Browser-Session erhalten (auch nach Reload).
       </p>
       <div className="mt-3 flex flex-col gap-2">
         {showResume ? (
@@ -82,7 +82,10 @@ function DemoHelpCard(): React.ReactElement {
         )}
         <button
           type="button"
-          onClick={start}
+          onClick={() => {
+            resetDemoTourState();
+            navigate('/demo/tour/what');
+          }}
           className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full px-4 text-[12px] font-semibold`}
         >
           Rundgang neu starten
@@ -101,6 +104,9 @@ function DemoHelpCard(): React.ReactElement {
         >
           Demo zurücksetzen
         </button>
+      </div>
+      <div className="mt-3">
+        <DemoAiDisclosure />
       </div>
     </PremiumCard>
   );

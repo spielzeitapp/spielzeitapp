@@ -9,6 +9,8 @@ type Props = {
   onClose: () => void;
   onFinishTour: () => void;
   onExploreFree: () => void;
+  /** Standard: Rundgang abschließen */
+  primaryLabel?: string;
 };
 
 /**
@@ -19,6 +21,7 @@ export function DemoWinnerPostPreview({
   onClose,
   onFinishTour,
   onExploreFree,
+  primaryLabel = 'Rundgang abschließen',
 }: Props): React.ReactElement | null {
   const preview = useMemo(() => buildDemoWinnerPreviewData(), [open]);
 
@@ -93,7 +96,7 @@ export function DemoWinnerPostPreview({
             onClick={onFinishTour}
             className={`${dsPrimaryCtaClass()} inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
           >
-            Rundgang abschließen
+            {primaryLabel}
           </button>
           <button
             type="button"

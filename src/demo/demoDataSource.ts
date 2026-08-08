@@ -52,6 +52,13 @@ function basePost(
   };
 }
 
+/** Öffentlich für Demo-Tour: lokale Events idempotent in die Session legen. */
+export function toDemoEventRow(
+  partial: Partial<EventRow> & Pick<EventRow, 'id' | 'starts_at' | 'kind'>,
+): EventRow {
+  return toEventRow(partial);
+}
+
 function toEventRow(
   partial: Partial<EventRow> & Pick<EventRow, 'id' | 'starts_at' | 'kind'>,
 ): EventRow {

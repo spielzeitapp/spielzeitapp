@@ -8,20 +8,24 @@ import {
   DEMO_TOUR_FINISH,
   DEMO_TOUR_STATION_COUNT,
   DEMO_TOUR_STATIONS,
+  DEMO_TOUR_WHAT_PATH,
+  getDemoTourChapterProgress,
 } from '../demoTourConfig';
 import {
   advanceDemoTour,
   finishDemoTour,
+  getDemoTourJourney,
   getDemoTourSnapshot,
   isDemoTourOverlayVisible,
   pauseDemoTour,
-  setDemoTourStep,
+  startDemoTour,
   subscribeDemoTour,
   type DemoTourSnapshot,
 } from '../demoTourState';
 import {
   finishDemoLiveMatchForTour,
   requestDemoTourFocusPlaytime,
+  requestDemoTourPrimaryAction,
 } from '../demoTourActions';
 import { useDemoMode } from '../DemoContext';
 import { DemoWinnerPostPreview } from './DemoWinnerPostPreview';
@@ -43,15 +47,6 @@ export function DemoTourOverlay(): React.ReactElement | null {
   const loosdorfEvent = useMemo(
     () => demo?.fixtures.events.find((e) => e.id === DEMO_LOOSDORF_EVENT_ID) ?? null,
     [demo?.fixtures.events],
-  );
-
-  const goToStep = useCallback(
-    (stepIndex: number) => {
-      const next = setDemoTourStep(stepIndex);
-      const station = DEMO_TOUR_STATIONS[next.stepIndex];
-      if (station) navigate(station.path);
-    },
-    [navigate],
   );
 
   const navigateToStation = useCallback(
@@ -76,15 +71,19 @@ export function DemoTourOverlay(): React.ReactElement | null {
     pauseDemoTour();
   }, []);
 
-  const onFinish = useCallback(() => {
+  const onWinnerContinue = useCallback(() => {
     setWinnerOpen(false);
-    finishDemoTour();
-  }, []);
+    const next = advanceDemoTour();
+    if (next.phase === 'active') navigateToStation(next.stepIndex);
+  }, [navigateToStation]);
 
   const onRestart = useCallback(() => {
     setWinnerOpen(false);
-    goToStep(0);
-  }, [goToStep]);
+    setEndConfirmOpen(false);
+    setDirectionsOpen(false);
+    startDemoTour();
+    navigate(DEMO_TOUR_WHAT_PATH, { replace: true });
+  }, [navigate]);
 
   const advanceToNext = useCallback(() => {
     const next = advanceDemoTour();
@@ -100,8 +99,25 @@ export function DemoTourOverlay(): React.ReactElement | null {
     }
     const station = DEMO_TOUR_STATIONS[snap.stepIndex];
     if (!station) return;
+    const journey = getDemoTourJourney();
 
     switch (station.primaryAction) {
+      case 'save_training':
+        if (journey.localTraining) advanceToNext();
+        else requestDemoTourPrimaryAction();
+        break;
+      case 'save_match':
+        if (journey.localMatchReady) advanceToNext();
+        else requestDemoTourPrimaryAction();
+        break;
+      case 'parent_yes_training':
+        if (journey.trainingNoahStatus) advanceToNext();
+        else requestDemoTourPrimaryAction();
+        break;
+      case 'parent_yes_match':
+        if (journey.matchNoahStatus) advanceToNext();
+        else requestDemoTourPrimaryAction();
+        break;
       case 'show_directions':
         setDirectionsOpen(true);
         break;
@@ -110,14 +126,13 @@ export function DemoTourOverlay(): React.ReactElement | null {
         break;
       case 'show_winner_preview':
         setWinnerOpen(true);
-        advanceToNext();
         break;
       case 'finish':
         finishDemoTour();
         break;
       case 'advance':
       default: {
-        if (station.id === 'match_end') {
+        if (station.id === 'playtime') {
           requestDemoTourFocusPlaytime();
         }
         advanceToNext();
@@ -146,13 +161,18 @@ export function DemoTourOverlay(): React.ReactElement | null {
 
   const isFinish = snap.phase === 'finished';
   const station = DEMO_TOUR_STATIONS[snap.stepIndex];
+  const chapter = getDemoTourChapterProgress(snap.stepIndex);
   const title = isFinish ? DEMO_TOUR_FINISH.title : station?.title ?? '';
   const body = isFinish ? DEMO_TOUR_FINISH.body : station?.body ?? '';
+  const benefit = isFinish ? null : station?.benefit ?? null;
   const progressLabel = isFinish
     ? 'Abschluss'
     : `${snap.stepIndex + 1} von ${DEMO_TOUR_STATION_COUNT}`;
+  const chapterLabel = isFinish
+    ? 'What if'
+    : `${chapter.chapterLabel} · Schritt ${chapter.stepInChapter}/${chapter.stepsInChapter}`;
   const primaryLabel = isFinish
-    ? 'Demo weiter erkunden'
+    ? 'Demo frei weiter testen'
     : station?.primaryActionLabel ?? 'Weiter';
 
   return (
@@ -166,7 +186,7 @@ export function DemoTourOverlay(): React.ReactElement | null {
           <div className="mb-2 flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-400/90">
-                Demo-Rundgang · {progressLabel}
+                {chapterLabel} · {progressLabel}
               </p>
               <h2 className="mt-1 text-[15px] font-semibold leading-snug text-white sm:text-[16px]">
                 {title}
@@ -183,6 +203,21 @@ export function DemoTourOverlay(): React.ReactElement | null {
           </div>
 
           <p className="text-[12px] leading-snug text-white/65 sm:text-[13px]">{body}</p>
+          {benefit ? (
+            <p className="mt-2 text-[12px] font-medium leading-snug text-emerald-300/90 sm:text-[13px]">
+              {benefit}
+            </p>
+          ) : null}
+
+          {isFinish ? (
+            <ul className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
+              {DEMO_TOUR_FINISH.benefits.map((b) => (
+                <li key={b} className="text-[11px] leading-snug text-white/50">
+                  · {b}
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           {!isFinish ? (
             <div className="mt-3 flex flex-col gap-2">
@@ -218,7 +253,7 @@ export function DemoTourOverlay(): React.ReactElement | null {
                 onClick={onExploreFree}
                 className={`${dsPrimaryCtaClass()} inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
               >
-                Demo weiter erkunden
+                Demo frei weiter testen
               </button>
               <button
                 type="button"
@@ -226,6 +261,16 @@ export function DemoTourOverlay(): React.ReactElement | null {
                 className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-4 text-[12px] font-semibold`}
               >
                 Rundgang erneut starten
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  demo?.resetAllDemo();
+                  navigate('/demo/home', { replace: true });
+                }}
+                className="w-full py-1 text-center text-[11px] font-medium text-red-300/80 underline-offset-2 hover:text-red-200 hover:underline"
+              >
+                Demo zurücksetzen
               </button>
             </div>
           )}
@@ -285,7 +330,7 @@ export function DemoTourOverlay(): React.ReactElement | null {
               onClick={confirmDirectionsContinue}
               className={`${dsPrimaryCtaClass()} mt-3 inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
             >
-              Weiter
+              Match vorbereiten
             </button>
           </div>
         </div>
@@ -331,8 +376,9 @@ export function DemoTourOverlay(): React.ReactElement | null {
       <DemoWinnerPostPreview
         open={winnerOpen}
         onClose={() => setWinnerOpen(false)}
-        onFinishTour={onFinish}
+        onFinishTour={onWinnerContinue}
         onExploreFree={onExploreFree}
+        primaryLabel="Chronik öffnen"
       />
     </>
   );

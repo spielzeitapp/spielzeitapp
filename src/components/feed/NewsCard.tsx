@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { HomeMessage } from '../../features/home/homeFeedBuilder';
 import { formatRelativeTimeDe } from '../../features/home/homeFeedBuilder';
 import { FeedCard } from './FeedCard';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 function previewText(m: HomeMessage): string {
   const raw = (m.body ?? m.content ?? '').replace(/\s+/g, ' ').trim();
@@ -17,12 +18,13 @@ type NewsCardProps = {
 };
 
 export const NewsCard: React.FC<NewsCardProps> = ({ message, trainerLabel = 'Trainer', now }) => {
+  const base = useInternalBasePath();
   const rel = formatRelativeTimeDe(message.created_at, now);
   return (
     <FeedCard>
       <h3 className="text-lg font-bold text-white">Letzte Nachricht</h3>
       <Link
-        to="/app/nachrichten"
+        to={base === '/demo' ? `${base}/mehr` : `${base}/nachrichten`}
         className="mt-4 block min-h-[44px] rounded-xl outline-none ring-offset-2 ring-offset-[#0b0b0b] focus-visible:ring-2 focus-visible:ring-red-500/60"
       >
         <p className="text-sm font-semibold text-red-400">{trainerLabel}</p>

@@ -7,8 +7,10 @@ import { formatDateTimeDeVienna } from '../../lib/notifications/format';
 import { FeedCard } from '../../components/feed/FeedCard';
 import { ReminderCard } from '../../components/feed/ReminderCard';
 import { NewsCard } from '../../components/feed/NewsCard';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 function NextEventListCard({ event, now }: { event: EventRow; now: Date }) {
+  const base = useInternalBasePath();
   const label = eventKindLabel(event.kind);
   const when = formatDateTimeDeVienna(event.starts_at);
   const place = (event.location ?? event.address ?? '').trim() || '—';
@@ -22,7 +24,7 @@ function NextEventListCard({ event, now }: { event: EventRow; now: Date }) {
       <p className="mt-1 text-sm text-white/55">{place}</p>
       <p className="mt-3 text-base font-semibold text-red-400">{countdown}</p>
       <Link
-        to={`/app/events/${event.id}`}
+        to={`${base}/events/${event.id}`}
         className="mt-4 inline-flex min-h-[44px] items-center text-base font-semibold text-red-400 hover:text-red-300"
       >
         Details →
