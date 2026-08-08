@@ -23,10 +23,15 @@ import {
   isSeasonActive,
   isSeasonArchived,
 } from '../lib/seasonLifecycle';
-import { resolveClubIdForTeamSeason } from '../lib/venues';
-import { listAssignmentsForToday, listClubEventsInRange } from '../lib/eventFieldAssignments';
+import { resolveClubIdForTeamSeason, listVenuesForClub } from '../lib/venues';
+import { listAssignmentsForToday, listClubEventsInRange, getAssignmentForEvent } from '../lib/eventFieldAssignments';
 import { getDateTimePartsInTimeZone, VIENNA_TZ, zonedWallTimeToUtcMillis } from '../lib/viennaTime';
 import { addDays, toViennaDayKey } from '../pages/calendar/calendarUtils';
+import {
+  getTrainingSessionByEvent,
+  listSessionExercises,
+} from '../lib/trainingSessions';
+import { listVenueFields, listFieldZones } from '../lib/venueFields';
 
 function greetingPrefix(now = new Date()): string {
   const h = now.getHours();
@@ -132,8 +137,18 @@ type TodayFieldSummary = {
   migrationPending: boolean;
 };
 
+type NextTrainingPlan = {
+  loading: boolean;
+  sessionId: string | null;
+  status: 'none' | 'draft' | 'ready' | 'error';
+  exerciseCount: number;
+  durationMinutes: number | null;
+  pitchLabel: string | null;
+  error: string | null;
+};
+
 /**
- * STEP-1-Dashboard + STEP-2 Platzbelegung-Karte: echte Session-Daten, keine erfundenen Kennzahlen.
+ * STEP-1-Dashboard + STEP-2 Platzbelegung + STEP-3A Trainingsplan-Karte.
  */
 export function ManagerDashboardPage(): React.ReactElement {
   const { user: authUser } = useAuth();
@@ -157,6 +172,16 @@ export function ManagerDashboardPage(): React.ReactElement {
     rangeLabel: null,
     nextLabel: null,
     migrationPending: false,
+  });
+
+  const [nextTrainingPlan, setNextTrainingPlan] = useState<NextTrainingPlan>({
+    loading: false,
+    sessionId: null,
+    status: 'none',
+    exerciseCount: 0,
+    durationMinutes: null,
+    pitchLabel: null,
+    error: null,
   });
 
   const now = useMemo(() => new Date(), []);
@@ -285,6 +310,80 @@ export function ManagerDashboardPage(): React.ReactElement {
     };
   }, [teamSeasonId, now]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!nextTraining || !teamSeasonId) {
+        if (!cancelled) {
+          setNextTrainingPlan({
+            loading: false,
+            sessionId: null,
+            status: 'none',
+            exerciseCount: 0,
+            durationMinutes: null,
+            pitchLabel: null,
+            error: null,
+          });
+        }
+        return;
+      }
+      setNextTrainingPlan((s) => ({ ...s, loading: true, error: null }));
+      const clubRes = await resolveClubIdForTeamSeason(teamSeasonId);
+      if (cancelled) return;
+
+      const [sessionRes, assignRes] = await Promise.all([
+        getTrainingSessionByEvent(nextTraining.id),
+        getAssignmentForEvent(nextTraining.id),
+      ]);
+      if (cancelled) return;
+
+      let pitchLabel: string | null = null;
+      if (assignRes.data && clubRes.clubId) {
+        const venues = await listVenuesForClub(clubRes.clubId);
+        const venueName = venues.data.find((v) => v.id === assignRes.data!.venue_id)?.name ?? '';
+        const fields = await listVenueFields(assignRes.data.venue_id);
+        const field = fields.data.find((f) => f.id === assignRes.data!.field_id);
+        let zoneName = 'Gesamter Platz';
+        if (assignRes.data.zone_id) {
+          const zones = await listFieldZones(assignRes.data.field_id);
+          zoneName = zones.data.find((z) => z.id === assignRes.data!.zone_id)?.name ?? 'Teilfläche';
+        }
+        pitchLabel = [venueName, field?.name, zoneName].filter(Boolean).join(' · ');
+      } else if (!assignRes.error) {
+        pitchLabel = 'Platz noch nicht zugeordnet';
+      }
+
+      if (!sessionRes.data) {
+        if (cancelled) return;
+        setNextTrainingPlan({
+          loading: false,
+          sessionId: null,
+          status: sessionRes.error && /noch nicht migriert/i.test(sessionRes.error) ? 'none' : 'none',
+          exerciseCount: 0,
+          durationMinutes: null,
+          pitchLabel,
+          error: sessionRes.error && !/noch nicht migriert/i.test(sessionRes.error) ? sessionRes.error : null,
+        });
+        return;
+      }
+
+      const items = await listSessionExercises(sessionRes.data.id);
+      if (cancelled) return;
+      setNextTrainingPlan({
+        loading: false,
+        sessionId: sessionRes.data.id,
+        status: sessionRes.data.status === 'ready' ? 'ready' : 'draft',
+        exerciseCount: items.data.length,
+        durationMinutes: sessionRes.data.planned_duration_minutes,
+        pitchLabel,
+        error: null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [nextTraining, teamSeasonId]);
+
   const loading = eventsLoading || playersLoading;
   const error = eventsError || playersError;
 
@@ -348,12 +447,42 @@ export function ManagerDashboardPage(): React.ReactElement {
           {!nextTraining ? (
             <EmptyLine text="Kein kommendes Training geplant." />
           ) : (
-            <Link to={`/app/events/${encodeURIComponent(nextTraining.id)}`} className="block space-y-1">
+            <div className="space-y-1.5">
               <p className="font-semibold text-slate-900">{formatEventWhen(nextTraining.starts_at)}</p>
-              <p className="text-[13px] text-slate-500">
-                {(nextTraining.location ?? '').trim() || 'Ort noch offen'}
-              </p>
-            </Link>
+              {nextTrainingPlan.loading ? (
+                <p className="text-[13px] text-slate-400">Trainingsplan wird geladen…</p>
+              ) : nextTrainingPlan.status === 'none' ? (
+                <p className="text-[13px] text-slate-500">Trainingsplan noch nicht erstellt</p>
+              ) : (
+                <p className="text-[13px] text-slate-500">
+                  Trainingsplan:{' '}
+                  {nextTrainingPlan.exerciseCount} Übung
+                  {nextTrainingPlan.exerciseCount === 1 ? '' : 'en'}
+                  {nextTrainingPlan.durationMinutes != null
+                    ? ` · ${nextTrainingPlan.durationMinutes} Min.`
+                    : ''}
+                  {nextTrainingPlan.status === 'draft' ? ' · Entwurf' : ''}
+                </p>
+              )}
+              {nextTrainingPlan.pitchLabel ? (
+                <p className="text-[12px] text-slate-400">{nextTrainingPlan.pitchLabel}</p>
+              ) : null}
+              {nextTrainingPlan.sessionId ? (
+                <Link
+                  to={`/manager/training/einheiten/${encodeURIComponent(nextTrainingPlan.sessionId)}`}
+                  className="mt-2 inline-flex text-[13px] font-semibold text-red-700 hover:text-red-800"
+                >
+                  Trainingsplan öffnen
+                </Link>
+              ) : (
+                <Link
+                  to={`/manager/training/einheiten/neu?event=${encodeURIComponent(nextTraining.id)}`}
+                  className="mt-2 inline-flex text-[13px] font-semibold text-red-700 hover:text-red-800"
+                >
+                  Training planen
+                </Link>
+              )}
+            </div>
           )}
         </Card>
 
@@ -460,6 +589,18 @@ export function ManagerDashboardPage(): React.ReactElement {
           >
             Platzbelegung
           </Link>
+          <Link
+            to="/manager/training/einheiten"
+            className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Trainingsplanung
+          </Link>
+          <Link
+            to="/manager/training/bibliothek"
+            className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Übungsbibliothek
+          </Link>
         </div>
       </section>
 
@@ -506,7 +647,6 @@ export function ManagerDashboardPage(): React.ReactElement {
         <Card title="Kommende Module">
           <ul className="grid gap-2 sm:grid-cols-2">
             {[
-              { icon: <Dumbbell className="h-3.5 w-3.5" />, label: 'Trainingsplanung' },
               { icon: <Video className="h-3.5 w-3.5" />, label: 'Video & Highlights' },
               { icon: <ShoppingBag className="h-3.5 w-3.5" />, label: 'Ausrüstung & Teamshop' },
             ].map((m) => (

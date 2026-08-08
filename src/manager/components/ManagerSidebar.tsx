@@ -11,7 +11,10 @@ type Props = {
 
 function navItemActive(pathname: string, search: string, to: string): boolean {
   const [path, query = ''] = to.split('?');
-  if (pathname !== path) return false;
+  const pathMatch =
+    pathname === path ||
+    (path !== '/manager' && path.startsWith('/manager/') && pathname.startsWith(`${path}/`));
+  if (!pathMatch) return false;
   if (!query) {
     // Haupt-Platzbelegung ohne Tab: aktiv außer bei tab=facilities
     if (path === '/manager/platzbelegung') {
