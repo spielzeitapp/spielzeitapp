@@ -1,4 +1,5 @@
 import { analyzeTournamentPlanJson } from './_lib/tournamentPlanJsonAnalyze.js';
+import { loadPublicTeamTournamentPage } from './_lib/publicTeamTournamentPage.js';
 
 export default async function handler(req, res) {
   if (req.query?.debugPing === '1') {
@@ -17,6 +18,35 @@ export default async function handler(req, res) {
       message: 'Method not allowed',
       provider: 'meinturnierplan',
     });
+  }
+
+  // TURNIER.1 – öffentliche Team-Turnierseite (kein zweites Function-Entry)
+  const publicTournamentIdRaw = req.query?.publicTournamentId;
+  const publicTournamentId =
+    typeof publicTournamentIdRaw === 'string'
+      ? publicTournamentIdRaw.trim()
+      : Array.isArray(publicTournamentIdRaw)
+        ? String(publicTournamentIdRaw[0] ?? '').trim()
+        : '';
+
+  if (publicTournamentId) {
+    try {
+      const result = await loadPublicTeamTournamentPage(publicTournamentId);
+      if (!result.ok) {
+        return res.status(result.httpStatus).json({
+          ok: false,
+          code: result.code,
+          message: result.message,
+        });
+      }
+      return res.status(200).json({ ok: true, page: result.page });
+    } catch {
+      return res.status(503).json({
+        ok: false,
+        code: 'unavailable',
+        message: 'Turnierseite vorübergehend nicht verfügbar.',
+      });
+    }
   }
 
   const rawUrl = req.query?.url;

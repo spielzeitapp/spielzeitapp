@@ -3510,6 +3510,7 @@ export const EventDetailPage: React.FC = () => {
                 quickActions={
                   <TournamentQuickActionBar
                     shareTitle={tournamentTitle}
+                    tournamentEventId={event.id}
                     onAddToCalendar={() => void handleAddSingleEventToCalendar()}
                     onNavigate={handleStartNavigation}
                     showNavigation={canStartNavigation}

@@ -62,6 +62,7 @@ import { ManagerOefbImportPage } from '../manager/ManagerOefbImportPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
+import { PublicTeamTournamentPage } from '../pages/public/PublicTeamTournamentPage';
 import { DemoLayout } from '../demo/DemoLayout';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
@@ -252,6 +253,8 @@ function InternalRoutes(): React.ReactElement {
       <Route path="/mehr" element={<Navigate to="/app/mehr" replace />} />
       <Route path="/more" element={<Navigate to="/app/mehr" replace />} />
       <Route path="/" element={<Navigate to="/app" replace />} />
+      {/* TURNIER.1 – öffentliche Team-Turnierseite (ohne Login) */}
+      <Route path="turnier/:publicId" element={<PublicTeamTournamentPage />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
@@ -407,6 +410,8 @@ function PublicRoutes(): React.ReactElement {
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
       </Route>
+      {/* TURNIER.1 – öffentliche Team-Turnierseite auch auf der Public-Domain */}
+      <Route path="turnier/:publicId" element={<PublicTeamTournamentPage />} />
       <Route path="app" element={<Navigate to="/" replace />} />
       <Route path="app/*" element={<Navigate to="/" replace />} />
       <Route path="/admin" element={<Navigate to="/" replace />} />
