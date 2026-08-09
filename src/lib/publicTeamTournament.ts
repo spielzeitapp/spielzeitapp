@@ -292,7 +292,7 @@ export async function fetchPublicTeamTournamentPage(
   if (id === 'ev-tournament') {
     try {
       const { getDemoTournamentMatchSlots } = await import('../demo/demoTournamentState');
-      const { demoData } = await import('../demo/demoFixtures');
+      const { demoFixtures } = await import('../demo/demoFixtures');
       const { DEMO_EVENT_TIMES } = await import('../demo/demoDataSource');
       const slots = getDemoTournamentMatchSlots(id).map((s) => ({
         id: s.id,
@@ -307,7 +307,7 @@ export async function fetchPublicTeamTournamentPage(
         score_home: s.score_home,
         score_away: s.score_away,
       }));
-      const tour = demoData.tournament;
+      const tour = demoFixtures.tournament;
       const startsAt =
         DEMO_EVENT_TIMES['ev-tournament']?.().starts ??
         slots[0]?.kickoff_at ??
