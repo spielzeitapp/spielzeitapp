@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const {
   normalizeOefbImportedTeamName,
   describeOefbOpponentCorrection,
-} = require('../api/oefb/normalizeTeamName.js');
+} = require('../api/_lib/normalizeOefbTeamName.js');
 
 const cases = [
   ['U11 SPG Rohrbach', 'SPG Rohrbach'],

@@ -2,7 +2,7 @@
  * GET /api/oefb/schedule?url=…
  * Lädt ÖFB-Vereinsseite und extrahiert SPIELPLAN_MANNSCHAFT aus appPreloads.
  */
-const { normalizeOefbImportedTeamName } = require('./normalizeTeamName');
+const { normalizeOefbImportedTeamName } = require('../_lib/normalizeOefbTeamName');
 
 function extractPreloadSpiele(html) {
   // ÖFB setzt viele appPreloads[…]-Blöcke; nur der mit SPIELPLAN_MANNSCHAFT zählt.

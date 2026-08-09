@@ -1,6 +1,8 @@
 /**
  * Shared ÖFB team-name normalizer (CJS) for /api/oefb/schedule and node tests.
  * Keep in sync with src/lib/oefbTeamNameNormalize.ts
+ *
+ * Lives under api/_lib so Vercel does NOT treat it as a Serverless Function.
  */
 function normalizeOefbImportedTeamName(raw) {
   let s = String(raw ?? '').trim();
