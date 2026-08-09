@@ -238,8 +238,8 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
         </button>
       </header>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        <label className="relative sm:col-span-2 lg:col-span-2">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6">
+        <label className="relative sm:col-span-2 lg:col-span-2 xl:col-span-2">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             value={q}

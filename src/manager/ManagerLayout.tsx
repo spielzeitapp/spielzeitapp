@@ -8,7 +8,8 @@ import { getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
 import './managerShell.css';
 
 /**
- * Shell für alle /manager-Seiten: helle Sidebar, breite helle Arbeitsfläche.
+ * Shell für alle /manager-Seiten: volle Fensterbreite, helle Sidebar, breite Arbeitsfläche.
+ * max-width gilt nur für den Content — nie für Sidebar+Header gemeinsam.
  */
 export function ManagerLayout(): React.ReactElement {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,7 +19,7 @@ export function ManagerLayout(): React.ReactElement {
 
   return (
     <ManagerAccessGate>
-      <div className="manager-shell flex min-h-[100dvh] bg-[#F4F5F7] text-slate-900">
+      <div className="manager-shell flex min-h-[100dvh] w-full min-w-0 flex-1 bg-[#F4F5F7] text-slate-900">
         <ManagerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex min-w-0 flex-1 flex-col bg-[#F4F5F7]">
           <ManagerHeader onOpenSidebar={() => setSidebarOpen(true)} />
@@ -33,8 +34,8 @@ export function ManagerLayout(): React.ReactElement {
               </Link>
             </div>
           ) : null}
-          <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#F4F5F7]">
-            <div className="mx-auto w-full max-w-[120rem] px-3 py-5 sm:px-5 sm:py-6 lg:px-8 xl:px-10 2xl:px-12">
+          <main className="min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto bg-[#F4F5F7]">
+            <div className="manager-shell__content px-3 py-5 sm:px-5 sm:py-6 lg:px-8 xl:px-10 2xl:px-12">
               <Outlet />
             </div>
           </main>

@@ -17,7 +17,7 @@ function GatePanel({
   actions?: React.ReactNode;
 }): React.ReactElement {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-[#F4F5F7] px-4">
+    <div className="manager-shell flex min-h-[100dvh] w-full min-w-0 flex-1 items-center justify-center bg-[#F4F5F7] px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-700/80">Spielzeit Manager</p>
         <h1 className="mt-2 text-xl font-semibold text-slate-900">{title}</h1>

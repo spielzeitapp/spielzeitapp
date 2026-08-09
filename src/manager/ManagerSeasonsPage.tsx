@@ -252,7 +252,9 @@ export function ManagerSeasonsPage(): React.ReactElement {
         </p>
       ) : null}
 
-      {active ? (
+      {active || draft ? (
+        <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+          {active ? (
         <section className="space-y-3">
           <h2 className="text-[13px] font-semibold text-slate-800">Aktive Saison</h2>
           <SeasonSummaryCard model={active} emphasis="active" />
@@ -289,9 +291,9 @@ export function ManagerSeasonsPage(): React.ReactElement {
             Termine werden erkannt.
           </p>
         </section>
-      ) : null}
+          ) : null}
 
-      {draft ? (
+          {draft ? (
         <section className="space-y-3">
           <h2 className="text-[13px] font-semibold text-slate-800">Saisonentwurf</h2>
           <SeasonSummaryCard model={draft} emphasis="draft" />
@@ -316,6 +318,8 @@ export function ManagerSeasonsPage(): React.ReactElement {
             </button>
           </div>
         </section>
+          ) : null}
+        </div>
       ) : null}
 
       {showOefb && active ? (
@@ -335,7 +339,7 @@ export function ManagerSeasonsPage(): React.ReactElement {
         {archived.length === 0 ? (
           <p className="text-[13px] text-slate-400">Es gibt noch keine archivierten Saisonen.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid gap-3 xl:grid-cols-2">
             {archived.map((a) => (
               <li key={a.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">

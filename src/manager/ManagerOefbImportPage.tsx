@@ -255,7 +255,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
           <h1 className="mt-2 text-[22px] font-semibold tracking-tight text-slate-900">
             ÖFB-Spielplan importieren
           </h1>
-          <p className="mt-1 max-w-2xl text-[14px] text-slate-600">
+          <p className="mt-1 max-w-3xl text-[14px] text-slate-600">
             Vorschau vor dem Schreiben. Dubletten werden saisonbezogen über die ÖFB-ID erkannt.
             Vereinbarte oder veröffentlichte Termine bleiben geschützt.
           </p>
@@ -270,7 +270,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
       ) : null}
 
       {meta ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:max-w-3xl">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Zielsaison</p>
           <p className="mt-1 text-[16px] font-semibold text-slate-900">{meta.displayName}</p>
           <p className="mt-1 text-[13px] text-slate-600">
@@ -292,7 +292,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
       ) : null}
 
       {!archived && !writableMessage && meta ? (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
           <label className="block text-[13px] font-semibold text-slate-800" htmlFor="oefb-url">
             ÖFB-Spielplan-URL
           </label>

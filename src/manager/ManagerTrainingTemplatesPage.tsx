@@ -223,14 +223,14 @@ export function ManagerTrainingTemplatesPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Sport</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Vorlagen</h1>
           <p className="mt-1 text-[14px] text-slate-500">
             Wiederverwendbare Trainingspläne ohne Termin, Anwesenheit oder Platz.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Link
             to="/manager/training/einheiten"
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
@@ -276,13 +276,13 @@ export function ManagerTrainingTemplatesPage(): React.ReactElement {
           Noch keine Vorlagen. Speichere eine Einheit als Vorlage oder lege eine neue an.
         </p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3 2xl:items-stretch">
           {rows.map((t) => (
             <li
               key={t.id}
-              className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+              className="flex h-full flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex flex-1 flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-slate-900">{t.title}</p>
                   <p className="mt-1 text-[13px] text-slate-600">
@@ -305,7 +305,7 @@ export function ManagerTrainingTemplatesPage(): React.ReactElement {
                     <p className="mt-2 line-clamp-2 text-[13px] text-slate-500">{t.objective}</p>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="ml-auto flex flex-wrap justify-end gap-2">
                   <Link
                     to={`/manager/training/einheiten/${encodeURIComponent(t.id)}`}
                     className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-3 text-[12px] font-semibold text-white"

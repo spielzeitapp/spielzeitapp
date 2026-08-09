@@ -1,9 +1,36 @@
 /**
- * Manager-only light theme + form controls.
+ * Manager-only light theme + full-bleed shell + form controls.
  * Scoped to `.manager-shell` so mobile App / Demo stay on global dark color-scheme.
+ *
+ * Root cause of narrow “1280px floating” manager chrome:
+ * `#root` in layout.css is `display:flex; justify-content:center` (phone frame).
+ * Without width:100% the manager shell shrink-wraps to content and centers,
+ * leaving dark viewport sides (color-scheme: dark). Dashboard looked wider
+ * because multi-column cards forced a larger intrinsic width.
  */
 
+/* Full-bleed when any manager shell is mounted (incl. AccessGate). */
+html:has(.manager-shell),
+body:has(.manager-shell) {
+  background-color: #f4f5f7;
+}
+
+#root:has(.manager-shell) {
+  justify-content: stretch;
+  align-items: stretch;
+  width: 100%;
+  max-width: none;
+  background-color: #f4f5f7;
+}
+
 .manager-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-height: 100%;
   color-scheme: light;
   --manager-bg: #f4f5f7;
   --manager-surface: #ffffff;
@@ -16,6 +43,14 @@
   --manager-focus-ring: rgba(185, 28, 28, 0.22);
   background-color: var(--manager-bg);
   color: var(--manager-text);
+}
+
+/* Content column only — never wrap sidebar+header */
+.manager-shell__content {
+  width: 100%;
+  max-width: 120rem; /* 1920px */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .manager-shell input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),

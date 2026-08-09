@@ -145,14 +145,14 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Sport</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Trainingsplanung</h1>
           <p className="mt-1 text-[14px] text-slate-500">
             Einheiten aus AW · HT1 · HT2 · AK – verknüpft mit bestehenden Terminen.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Link
             to="/manager/training/vorlagen"
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
@@ -200,7 +200,7 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
             Keine kommenden Trainingstermine in dieser Saison.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid gap-2 2xl:grid-cols-2 2xl:items-stretch">
             {upcomingTrainings.map((e) => (
               <TrainingRow
                 key={e.id}
@@ -218,11 +218,11 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
         {drafts.length === 0 ? (
           <p className="text-[13px] text-slate-400">Keine Entwürfe ohne Termin.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid gap-2 xl:grid-cols-2">
             {drafts.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+                className="flex h-full flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
               >
                 <div>
                   <p className="font-semibold text-slate-900">{s.title}</p>
@@ -250,11 +250,11 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
         {readyPlans.length === 0 ? (
           <p className="text-[13px] text-slate-400">Keine Pläne mit Status „Bereit“.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid gap-2 xl:grid-cols-2 2xl:grid-cols-3">
             {readyPlans.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-3"
+                className="flex h-full flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-3"
               >
                 <div>
                   <p className="font-semibold text-slate-900">{s.title}</p>
@@ -285,11 +285,11 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
         {recentCompleted.length === 0 ? (
           <p className="text-[13px] text-slate-400">Noch keine durchgeführten Trainings.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid gap-2 xl:grid-cols-2 2xl:grid-cols-3">
             {recentCompleted.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-3"
+                className="flex h-full flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-3"
               >
                 <div>
                   <p className="font-semibold text-slate-900">{s.title}</p>
@@ -330,8 +330,8 @@ function TrainingRow({
           : `Entwurf${session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}`;
 
   return (
-    <li className="rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <li className="flex h-full flex-col rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="flex flex-1 flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-semibold text-slate-900">{formatWhen(event.starts_at)}</p>
           <p className="text-[13px] text-slate-600">{planLabel}</p>
@@ -347,7 +347,7 @@ function TrainingRow({
             ) : null}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
           {session ? (
             <Link
               to={`/manager/training/einheiten/${encodeURIComponent(session.id)}`}
@@ -357,11 +357,11 @@ function TrainingRow({
             </Link>
           ) : (
             <Link
-                  to={`/manager/training/einheiten/neu?event=${encodeURIComponent(event.id)}&starts=${encodeURIComponent(event.starts_at)}`}
-                  className="rounded-full bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-white"
-                >
-                  Training planen
-                </Link>
+              to={`/manager/training/einheiten/neu?event=${encodeURIComponent(event.id)}&starts=${encodeURIComponent(event.starts_at)}`}
+              className="rounded-full bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-white"
+            >
+              Training planen
+            </Link>
           )}
         </div>
       </div>
