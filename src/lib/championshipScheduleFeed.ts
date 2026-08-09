@@ -4,6 +4,7 @@
  * Kein Push hier — nur team_feed_posts (keine Flut).
  */
 import { supabase } from './supabaseClient';
+import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import { normalizeOpponentKey } from './teamVenues';
 import { isViennaPlaceholderKickoff, utcIsoToViennaTimeHHmm } from './viennaTime';
 import { safeText } from './safeText';
@@ -318,9 +319,12 @@ export async function maybePublishChampionshipMatchChangedFeed(opts: {
   if (!teamId) return { posted: false, reason: 'missing_team' };
 
   const ourTeamName = safeText(opts.ourTeamName) || 'Heim';
-  const them = safeText(opts.after.opponent) || 'Gegner';
-  const encounter =
-    opts.after.is_home === true ? `${ourTeamName} – ${them}` : `${them} – ${ourTeamName}`;
+  const enc = formatVisibleMatchEncounter({
+    isHome: opts.after.is_home,
+    ourTeamName,
+    opponentName: opts.after.opponent,
+  });
+  const encounter = enc.line;
 
   const payload: ChampionshipMatchChangedFeedPayload = {
     event_id: opts.eventId,
@@ -329,8 +333,8 @@ export async function maybePublishChampionshipMatchChangedFeed(opts: {
     meeting_at: opts.after.meeting_at,
     location: opts.after.location,
     is_home: opts.after.is_home === true,
-    opponent: opts.after.opponent,
-    our_team_name: ourTeamName,
+    opponent: enc.opponent,
+    our_team_name: enc.ourTeam,
     deep_link: `/app/events/${opts.eventId}`,
     change_fingerprint: fingerprint,
   };

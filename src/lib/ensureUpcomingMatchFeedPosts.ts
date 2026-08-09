@@ -7,6 +7,7 @@ import {
   dedupeKeyForNextMatchEvent,
   type NextMatchFeedPayload,
 } from './nextMatchFeedTypes';
+import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import { viennaCalendarDaysUntil } from './viennaTime';
 
 export type EnsureUpcomingMatchFeedPostsResult = {
@@ -102,11 +103,17 @@ async function ensureNextMatchFeedPostForEvent(
   if (exErr) return { created: false, error: exErr.message };
   if (existing?.id) return { created: false, skipped: true };
 
-  const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
-  const ourName = teamInfo.name;
-  const isHome = event.is_home !== false;
-  const homeName = isHome ? ourName : opponent;
-  const awayName = isHome ? opponent : ourName;
+  const enc = formatVisibleMatchEncounter({
+    isHome: event.is_home,
+    ourTeamName: teamInfo.name,
+    opponentName: event.opponent,
+    fallbackOur: 'Unser Team',
+  });
+  const ourName = enc.ourTeam;
+  const opponent = enc.opponent;
+  const isHome = enc.home === enc.ourTeam;
+  const homeName = enc.home;
+  const awayName = enc.away;
   const oppLogo = event.opponent_logo_url?.trim() || null;
   const home_logo_url = isHome ? getClubLogo(ourName) : getClubLogo(homeName, { logoUrl: oppLogo ?? undefined });
   const away_logo_url = isHome

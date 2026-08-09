@@ -12,6 +12,7 @@ import {
   loadImageDataUrl,
   triggerPdfBlobDownload,
 } from './championshipPdf';
+import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import {
   seasonPhaseFilenameSlug,
   seasonPhaseHeaderSuffix,
@@ -215,21 +216,23 @@ export function championshipFixturesToSeasonPlanRows(
   }>,
   ourTeamName: string,
 ): SeasonPlanRow[] {
-  const us = (ourTeamName || 'Heim').trim() || 'Heim';
   return fixtures
     .filter((f) => f.fixture_status === 'published')
     .map((f) => {
-      const them = (f.opponent || 'Gegner').trim() || 'Gegner';
-      const title = f.is_home ? `${us} – ${them}` : `${them} – ${us}`;
+      const enc = formatVisibleMatchEncounter({
+        isHome: f.is_home,
+        ourTeamName,
+        opponentName: f.opponent,
+      });
       return {
         id: f.id,
         kind: 'championship' as const,
         starts_at: f.starts_at,
         meeting_at: f.meeting_at,
         location: f.location,
-        title,
+        title: enc.line,
         is_home: f.is_home,
-        opponent: f.opponent,
+        opponent: enc.opponent,
         opponent_logo_url: f.opponent_logo_url ?? null,
         venue_id: f.venue_id ?? null,
       };
@@ -458,13 +461,17 @@ export async function downloadSeasonPlanPdf(
             return;
           }
 
-          const oppName = (row.opponent || 'Gegner').trim() || 'Gegner';
+          const enc = formatVisibleMatchEncounter({
+            isHome: row.is_home,
+            ourTeamName,
+            opponentName: row.opponent,
+          });
+          const oppName = enc.opponent;
           const oppLogo = oppLogoCache.get(oppName) || placeholderData;
-          const isHome = row.is_home === true;
-          const homeName = isHome ? ourTeamName : oppName;
-          const awayName = isHome ? oppName : ourTeamName;
-          const homeLogo = isHome ? ourLogoData : oppLogo;
-          const awayLogo = isHome ? oppLogo : ourLogoData;
+          const homeName = enc.home;
+          const awayName = enc.away;
+          const homeLogo = enc.home === enc.ourTeam ? ourLogoData : oppLogo;
+          const awayLogo = enc.away === enc.ourTeam ? ourLogoData : oppLogo;
           drawOefbEncounterCell({
             doc,
             cellX: data.cell.x,

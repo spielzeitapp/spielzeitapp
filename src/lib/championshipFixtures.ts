@@ -23,6 +23,7 @@ export type { FixtureStatus } from './championshipVisibility';
 export {
   describeOefbOpponentCorrection,
   normalizeOefbImportedTeamName,
+  formatVisibleMatchEncounter,
 } from './oefbTeamNameNormalize';
 
 /** Bekannter Vereins-Spielplan (Rohrbach) — nur Vorausfüllung, kein erratener Link. */
@@ -386,6 +387,13 @@ export async function importOefbChampionshipFixtures(opts: {
         kind: 'match',
         type: 'game',
       };
+      // Sichtbare Bezeichnungsreste in notes (z. B. alte „U11 … – U11 …“-Zeilen) mitbereinigen.
+      if (existing.notes) {
+        const cleanedNotes = normalizeOefbImportedTeamName(existing.notes);
+        if (cleanedNotes && cleanedNotes !== String(existing.notes).trim()) {
+          patch.notes = cleanedNotes;
+        }
+      }
       if (logo && !existing.opponent_logo_url) patch.opponent_logo_url = logo;
       if (!protectedRow) {
         patch.starts_at = f.starts_at;

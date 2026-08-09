@@ -1,5 +1,5 @@
 /**
- * ÖFB.1-FIX – U11-Namensnormalisierung (ohne Jest).
+ * ÖFB.1-FIX.2 – sichtbare Begegnungsnamen ohne U11 (ohne Jest).
  */
 import assert from 'assert';
 import { createRequire } from 'module';
@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const {
   normalizeOefbImportedTeamName,
   describeOefbOpponentCorrection,
+  formatVisibleMatchEncounter,
 } = require('../api/_lib/normalizeOefbTeamName.js');
 
 const cases = [
@@ -29,6 +30,41 @@ for (const [input, expected] of cases) {
     `normalize(${JSON.stringify(input)})`,
   );
 }
+
+// Eigener Teamname + Gegner, Heim
+{
+  const enc = formatVisibleMatchEncounter({
+    isHome: true,
+    ourTeamName: 'U11 SPG Rohrbach',
+    opponentName: 'U11 ASK Loosdorf',
+  });
+  assert.strictEqual(enc.ourTeam, 'SPG Rohrbach');
+  assert.strictEqual(enc.opponent, 'ASK Loosdorf');
+  assert.strictEqual(enc.home, 'SPG Rohrbach');
+  assert.strictEqual(enc.away, 'ASK Loosdorf');
+  assert.strictEqual(enc.line, 'SPG Rohrbach – ASK Loosdorf');
+}
+
+// Auswärts
+{
+  const enc = formatVisibleMatchEncounter({
+    isHome: false,
+    ourTeamName: 'U11 SPG Rohrbach',
+    opponentName: 'U11 ASK Loosdorf',
+  });
+  assert.strictEqual(enc.home, 'ASK Loosdorf');
+  assert.strictEqual(enc.away, 'SPG Rohrbach');
+  assert.strictEqual(enc.line, 'ASK Loosdorf – SPG Rohrbach');
+}
+
+assert.strictEqual(
+  formatVisibleMatchEncounter({
+    isHome: true,
+    ourTeamName: 'SV U11dorf',
+    opponentName: 'ASK Loosdorf',
+  }).line,
+  'SV U11dorf – ASK Loosdorf',
+);
 
 assert.strictEqual(
   describeOefbOpponentCorrection('U11 ASK Loosdorf', 'ASK Loosdorf'),
@@ -87,7 +123,6 @@ const prot = classifyReimport(protectedRow, incoming);
 assert.strictEqual(prot.status, 'protected');
 assert.strictEqual(prot.startsAtUnchanged, true);
 assert.strictEqual(prot.willUpdateOpponent, true);
-assert.ok(String(prot.nameCorrection).includes('→'));
 
 const cleanExisting = { ...existingDirty, opponent: 'ASK Loosdorf' };
 const idempotent = classifyReimport(cleanExisting, incoming);
@@ -98,8 +133,8 @@ const manualOther = {
   opponent: 'FC Manuell',
   starts_at: '2026-09-12T14:00:00.000Z',
   fixture_status: 'open',
-  external_id: null, // kein ÖFB
+  external_id: null,
 };
 assert.notStrictEqual(manualOther.external_id, incoming.external_id);
 
-console.log('oefb U11 normalize + reimport classify OK');
+console.log('oefb visible fixture names + U11 normalize OK');

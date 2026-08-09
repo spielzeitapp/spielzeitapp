@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
+import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { splitCombinedLocation } from '../../lib/eventLocation';
 import { formatCompactListWeekdayAbbrev } from './scheduleEventViewUtils';
 import { VIENNA_TZ } from '../../lib/viennaTime';
@@ -89,23 +90,24 @@ export function PastMatchResultCard({
     if (clickable) onNavigate(ev.id);
   };
 
-  const oppName = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
   const our = getOurTeamDisplayName();
-  const homeName = compactTeamName(ev.is_home === true ? our : ev.is_home === false ? oppName : our);
-  const awayName = compactTeamName(ev.is_home === true ? oppName : ev.is_home === false ? our : oppName);
+  const enc = formatVisibleMatchEncounter({
+    isHome: ev.is_home,
+    ourTeamName: our,
+    opponentName: ev.opponent,
+  });
+  const oppName = enc.opponent;
+  const homeName = compactTeamName(enc.home);
+  const awayName = compactTeamName(enc.away);
 
   const homeLogoSrc =
-    ev.is_home === true
+    enc.home === enc.ourTeam
       ? getClubLogo(our, { ourTeam: true })
-      : ev.is_home === false
-        ? getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined })
-        : getClubLogo(our, { ourTeam: true });
+      : getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
   const awayLogoSrc =
-    ev.is_home === true
-      ? getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined })
-      : ev.is_home === false
-        ? getClubLogo(our, { ourTeam: true })
-        : getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
+    enc.away === enc.ourTeam
+      ? getClubLogo(our, { ourTeam: true })
+      : getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
 
   const h = scoreHome != null ? scoreHome : null;
   const a = scoreAway != null ? scoreAway : null;

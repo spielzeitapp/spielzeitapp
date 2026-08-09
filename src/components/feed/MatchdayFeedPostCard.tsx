@@ -3,6 +3,7 @@ import type { EventRow } from '../../hooks/useEvents';import type { MatchdayFeed
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getClubLogo } from '../../lib/teamLogos';
+import { normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { supabase } from '../../lib/supabaseClient';
 import {
@@ -64,6 +65,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   onFeedPostDeleted,
 }) => {
   const p = post.payload as MatchdayFeedPayload;
+  const displayHomeName = normalizeOefbImportedTeamName(p.display_home_name) || p.display_home_name;
+  const displayAwayName = normalizeOefbImportedTeamName(p.display_away_name) || p.display_away_name;
   const announcementTiming = useMemo((): MatchdayAnnouncementTiming | null => {
     if (p.matchday_timing === 'today' || p.matchday_timing === 'tomorrow') {
       return p.matchday_timing;
@@ -121,11 +124,11 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   const homeLogoUrl = useMemo(() => {
     if (p.is_home) return getClubLogo(p.our_team_name);
-    return getClubLogo(p.display_home_name, { logoUrl: p.opponent_logo_url });
+    return getClubLogo(displayHomeName, { logoUrl: p.opponent_logo_url });
   }, [p]);
 
   const awayLogoUrl = useMemo(() => {
-    if (p.is_home) return getClubLogo(p.display_away_name, { logoUrl: p.opponent_logo_url });
+    if (p.is_home) return getClubLogo(displayAwayName, { logoUrl: p.opponent_logo_url });
     return getClubLogo(p.our_team_name);
   }, [p]);
 
@@ -168,7 +171,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           day: 'numeric',
           month: 'short',
         }).format(kickDate)}`;
-    const text = `${post.caption}\n${p.display_home_name} vs. ${p.display_away_name}${datePart} · Anpfiff ${kickoffTime}`;
+    const text = `${post.caption}\n${displayHomeName} vs. ${displayAwayName}${datePart} · Anpfiff ${kickoffTime}`;
     const title = 'SpielzeitApp · Matchday';
     const textAndLink = `${text}\n${url}`;
 
@@ -261,8 +264,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     }
   }, [
     post.caption,
-    p.display_home_name,
-    p.display_away_name,
+    displayHomeName,
+    displayAwayName,
     p.kickoff_iso,
     p.event_id,
     kickoffTime,
@@ -308,8 +311,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         <MatchdayPosterCard
           ref={posterCaptureRef}
-          homeTeamName={p.display_home_name}
-          awayTeamName={p.display_away_name}
+          homeTeamName={displayHomeName}
+          awayTeamName={displayAwayName}
           homeLogoUrl={homeLogoUrl}
           awayLogoUrl={awayLogoUrl}
           kickoffTime={kickoffTime}

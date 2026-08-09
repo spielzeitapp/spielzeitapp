@@ -13,6 +13,7 @@ import {
   type ChampionshipFixture,
 } from '../lib/championshipFixtures';
 import { downloadChampionshipSchedulePdf, formatPdfDateWithWeekday } from '../lib/championshipPdf';
+import { formatVisibleMatchEncounter } from '../lib/oefbTeamNameNormalize';
 import {
   fetchOpponentCatalogLogoMap,
   resolveClubIdFromTeamSeason,
@@ -69,17 +70,21 @@ function kickoffLabelRow(row: SeasonPlanRow): string {
 }
 
 function encounterLine(f: ChampionshipFixture, ourTeamName: string): string {
-  const us = (ourTeamName || 'Heim').trim() || 'Heim';
-  const them = (f.opponent || 'Gegner').trim() || 'Gegner';
-  return f.is_home === false ? `${them} – ${us}` : `${us} – ${them}`;
+  return formatVisibleMatchEncounter({
+    isHome: f.is_home,
+    ourTeamName,
+    opponentName: f.opponent,
+  }).line;
 }
 
 function otherEventTitle(row: SeasonPlanRow, ourTeamName: string): string {
   if (row.kind === 'tournament') return row.title || 'Turnier';
   if (row.opponent) {
-    const us = (ourTeamName || 'Heim').trim() || 'Heim';
-    const them = row.opponent.trim();
-    return row.is_home === false ? `${them} – ${us}` : `${us} – ${them}`;
+    return formatVisibleMatchEncounter({
+      isHome: row.is_home,
+      ourTeamName,
+      opponentName: row.opponent,
+    }).line;
   }
   return row.title || 'Termin';
 }

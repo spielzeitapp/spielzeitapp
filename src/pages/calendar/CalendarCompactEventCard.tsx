@@ -10,6 +10,7 @@ import {
 } from './calendarUtils';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
+import { formatVisibleMatchEncounter, normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 
 type Props = {
   ev: CalendarEvent;
@@ -102,13 +103,18 @@ function GameMatchup({
   isHome: boolean | null | undefined;
   opponentLogoUrl?: string | null;
 }) {
-  const ourName = getOurTeamDisplayName();
-  const oppName = opponent.trim() || 'Gegner';
+  const enc = formatVisibleMatchEncounter({
+    isHome,
+    ourTeamName: getOurTeamDisplayName(),
+    opponentName: opponent,
+  });
+  const ourName = enc.ourTeam;
+  const oppName = enc.opponent;
   const oppLogo = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
   const ourLogo = getClubLogo(ourName, { ourTeam: true });
 
-  const primaryName = isHome === false ? oppName : ourName;
-  const secondaryName = isHome === false ? ourName : oppName;
+  const primaryName = enc.home;
+  const secondaryName = enc.away;
   const primaryLogo = isHome === false ? oppLogo : ourLogo;
   const secondaryLogo = isHome === false ? ourLogo : oppLogo;
 
@@ -156,7 +162,8 @@ export const CalendarCompactEventCard: React.FC<Props> = ({ ev, showTeamName = f
     if (timeLine) metaLines.push(timeLine);
     if (meetingLine) metaLines.push(meetingLine);
   } else if (ev.type === 'game') {
-    headline = (ev.opponent ?? ev.title ?? 'Spiel').trim() || 'Spiel';
+    headline =
+      normalizeOefbImportedTeamName(ev.opponent ?? ev.title ?? 'Spiel') || 'Spiel';
     const matchLabel = shortMatchTypeLabel(ev.match_type);
     if (matchLabel) typeBadge = matchLabel;
     if (meetingLine) metaLines.push(meetingLine);

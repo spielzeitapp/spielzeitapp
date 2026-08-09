@@ -6,6 +6,7 @@ import { splitStatusForHero } from '../../features/home/homeFeedBuilder';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
+import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../match/matchCardLabels';
 import { MatchCardGameCore } from '../match/MatchCardGameCore';
 import { useInternalBasePath } from '../../demo/demoPaths';
@@ -23,15 +24,17 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
   statusLabel = 'HEUTE IST MATCHDAY',
 }) => {
   const basePath = useInternalBasePath();
-  const ourClubName = getOurTeamDisplayName();
-  const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
+  const enc = formatVisibleMatchEncounter({
+    isHome: event.is_home,
+    ourTeamName: getOurTeamDisplayName(),
+    opponentName: event.opponent,
+  });
+  const opponent = enc.opponent;
   const isHome = event.is_home;
 
   const { leftName, rightName } = useMemo(() => {
-    if (isHome === true) return { leftName: ourClubName, rightName: opponent };
-    if (isHome === false) return { leftName: opponent, rightName: ourClubName };
-    return { leftName: ourClubName, rightName: opponent };
-  }, [ourClubName, opponent, isHome]);
+    return { leftName: enc.home, rightName: enc.away };
+  }, [enc.home, enc.away]);
 
   const { leftColumnLabel, rightColumnLabel } = useMemo(() => {
     if (isHome === true) return { leftColumnLabel: 'Heim', rightColumnLabel: 'Gegner' };

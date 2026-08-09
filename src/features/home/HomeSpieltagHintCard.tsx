@@ -4,6 +4,7 @@ import { Share2 } from 'lucide-react';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
+import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { MatchdayPosterCard } from '../../components/feed/MatchdayPosterCard';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
@@ -19,11 +20,16 @@ type Props = {
 export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false }) => {
   const { event, status } = pick;
   const [shareHint, setShareHint] = useState<string | null>(null);
-  const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
-  const ourClub = getOurTeamDisplayName();
+  const enc = formatVisibleMatchEncounter({
+    isHome: event.is_home,
+    ourTeamName: getOurTeamDisplayName(),
+    opponentName: event.opponent,
+  });
+  const opponent = enc.opponent;
+  const ourClub = enc.ourTeam;
   const isHome = event.is_home !== false;
-  const homeName = isHome ? ourClub : opponent;
-  const awayName = isHome ? opponent : ourClub;
+  const homeName = enc.home;
+  const awayName = enc.away;
   const homeLogo = isHome
     ? getClubLogo(ourClub)
     : getClubLogo(homeName, { logoUrl: event.opponent_logo_url ?? undefined });

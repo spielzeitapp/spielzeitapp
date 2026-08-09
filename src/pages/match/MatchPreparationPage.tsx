@@ -16,6 +16,7 @@ import {
   DEFAULT_PLANNED_MATCH_MINUTES,
 } from '../../lib/minimumPlaytime';
 import { supabase } from '../../lib/supabaseClient';
+import { normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import { premiumPlayerDisplayName } from '../../lib/premiumPlayerCard';
 import {
@@ -544,7 +545,11 @@ export const MatchPreparationPage: React.FC = () => {
             </button>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400/90">SpielzeitApp</p>
             <h1 className="mt-0.5 text-xl font-bold tracking-tight">Match-Vorbereitung</h1>
-            <p className="mt-1 text-sm text-white/55">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
+            <p className="mt-1 text-sm text-white/55">
+              {matchRow?.opponent
+                ? `vs. ${normalizeOefbImportedTeamName(matchRow.opponent) || matchRow.opponent}`
+                : 'Spiel'}
+            </p>
           </div>
           <span className={dsStatusChipClass('selected')}>Trainer</span>
         </div>

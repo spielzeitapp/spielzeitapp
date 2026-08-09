@@ -23,6 +23,7 @@ import {
   isSeasonActive,
   isSeasonArchived,
 } from '../lib/seasonLifecycle';
+import { normalizeOefbImportedTeamName } from '../lib/oefbTeamNameNormalize';
 import { resolveClubIdForTeamSeason, listVenuesForClub } from '../lib/venues';
 import { listAssignmentsForToday, listClubEventsInRange, getAssignmentForEvent } from '../lib/eventFieldAssignments';
 import { getDateTimePartsInTimeZone, VIENNA_TZ, zonedWallTimeToUtcMillis } from '../lib/viennaTime';
@@ -59,7 +60,7 @@ function formatEventWhen(iso: string | null | undefined): string {
 
 function eventTitle(e: EventRow): string {
   if (e.kind === 'match' || e.type === 'game') {
-    const opp = (e.opponent ?? '').trim() || 'Gegner';
+    const opp = normalizeOefbImportedTeamName(e.opponent) || 'Gegner';
     return e.is_home === false ? `Auswärts vs. ${opp}` : `Heim vs. ${opp}`;
   }
   if (e.kind === 'training' || e.type === 'training') return 'Training';
@@ -293,9 +294,10 @@ export function ManagerDashboardPage(): React.ReactElement {
         const ev = dayEvents.find((e) => e.id === upcomingAssign.event_id);
         const title = ev
           ? ev.kind === 'match'
-            ? ev.opponent?.trim()
-              ? `vs. ${ev.opponent.trim()}`
-              : 'Spiel'
+            ? (() => {
+                const opp = normalizeOefbImportedTeamName(ev.opponent);
+                return opp ? `vs. ${opp}` : 'Spiel';
+              })()
             : ev.kind === 'training'
               ? 'Training'
               : 'Termin'

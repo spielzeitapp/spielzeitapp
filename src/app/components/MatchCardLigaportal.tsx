@@ -16,6 +16,7 @@ import {
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
+import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
@@ -186,18 +187,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         : notesTitle ?? 'Termin';
 
   if (effectiveEventType === 'game') {
-    // kind === 'match' – Heim/Auswärts-Logik bleibt erhalten
-    if (isHome === true) {
-      leftName = ourClubName;
-      rightName = opponent ?? 'Gegner';
-    } else if (isHome === false) {
-      leftName = opponent ?? 'Gegner';
-      rightName = ourClubName;
-    } else {
-      // Fallback: unser Team links, Gegner rechts
-      leftName = ourClubName;
-      rightName = opponent ?? 'Gegner';
-    }
+    const enc = formatVisibleMatchEncounter({
+      isHome,
+      ourTeamName: ourClubName,
+      opponentName: opponent,
+    });
+    leftName = enc.home;
+    rightName = enc.away;
   } else {
     // Training/Event: nur unser Team (Opponent wird UI-seitig ausgeblendet)
     leftName = ourClubName;

@@ -29,6 +29,10 @@ import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { assertTeamSeasonWritable, getTeamSeasonWritableState } from '../lib/seasonTransition';
 import { safeOptionalText, safeText } from '../lib/safeText';
 import { getClubLogo, getOurTeamDisplayName, getOurTeamLogoUrl } from '../lib/teamLogos';
+import {
+  formatVisibleMatchEncounter,
+  normalizeOefbImportedTeamName,
+} from '../lib/oefbTeamNameNormalize';
 import { maybePublishChampionshipMatchChangedFeed } from '../lib/championshipScheduleFeed';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
@@ -1586,7 +1590,8 @@ export const EventDetailPage: React.FC = () => {
   }
 
   if (isFinishedMatchEvent) {
-    const opponentName = (event.opponent ?? 'Gegner').trim() || 'Gegner';
+    const opponentName =
+      normalizeOefbImportedTeamName(event.opponent ?? 'Gegner') || 'Gegner';
     const eventGoalTotals = countStadiumGoalsFromMatchEventRows(matchEvents);
     const hasAnyGoalEvent = matchEvents.some((r) => {
       const g = normalizeMatchEventGoalType(r.type);
@@ -1608,8 +1613,13 @@ export const EventDetailPage: React.FC = () => {
       return (parsed.place ?? '').trim() || (matchRowLite?.location ?? event.location ?? '').trim() || null;
     })();
     const homeAway = event.is_home === true ? 'Heim' : event.is_home === false ? 'Auswärts' : null;
-    const compactOurTeamName = ourTeamName;
-    const compactOpponentName = compactTeamNameForMatchHeader(opponentName);
+    const enc = formatVisibleMatchEncounter({
+      isHome: event.is_home,
+      ourTeamName,
+      opponentName,
+    });
+    const compactOurTeamName = enc.ourTeam;
+    const compactOpponentName = compactTeamNameForMatchHeader(enc.opponent);
     /** Links im Spielbericht = Stadion-Heim → DB type goal; rechts = Stadion-Auswärts → goal_away (unabhängig von event.is_home). */
     const homeTeamName = event.is_home === false ? compactOpponentName : compactOurTeamName;
     const awayTeamName = event.is_home === false ? compactOurTeamName : compactOpponentName;

@@ -15,6 +15,7 @@ import {
   type OefbImportPreviewRow,
   type OefbImportedFixture,
 } from '../lib/championshipFixtures';
+import { formatVisibleMatchEncounter } from '../lib/oefbTeamNameNormalize';
 import { getTeamSeasonWritableState } from '../lib/seasonTransition';
 import { supabase } from '../lib/supabaseClient';
 
@@ -63,9 +64,13 @@ function statusChipClass(status: OefbImportPreviewRow['status']): string {
 }
 
 function homeAwayLabel(f: OefbImportedFixture, teamLabel: string): { home: string; away: string } {
-  const team = teamLabel.trim() || 'Eigene Mannschaft';
-  const opp = f.opponent.trim() || 'Gegner';
-  return f.is_home ? { home: team, away: opp } : { home: opp, away: team };
+  const enc = formatVisibleMatchEncounter({
+    isHome: f.is_home,
+    ourTeamName: teamLabel,
+    opponentName: f.opponent,
+    fallbackOur: 'Eigene Mannschaft',
+  });
+  return { home: enc.home, away: enc.away };
 }
 
 function previewStatusDetail(row: OefbImportPreviewRow): string | null {

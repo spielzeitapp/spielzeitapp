@@ -10,6 +10,7 @@ import {
   updateVenue,
   type VenueRow,
 } from '../lib/venues';
+import { normalizeOefbImportedTeamName } from '../lib/oefbTeamNameNormalize';
 import {
   createFieldZone,
   createVenueField,
@@ -81,7 +82,10 @@ function eventKindLabel(kind: string): string {
 }
 
 function eventTitle(e: ClubEvent): string {
-  if (e.kind === 'match') return e.opponent?.trim() ? `vs. ${e.opponent.trim()}` : 'Spiel';
+  if (e.kind === 'match') {
+    const opp = normalizeOefbImportedTeamName(e.opponent);
+    return opp ? `vs. ${opp}` : 'Spiel';
+  }
   if (e.kind === 'training') return 'Training';
   if (e.kind === 'tournament') return 'Turnier';
   return 'Termin';
