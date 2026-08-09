@@ -269,6 +269,12 @@ export function ManagerSeasonsPage(): React.ReactElement {
             >
               Trainingschronik
             </Link>
+            <Link
+              to={`/manager/saisons/${encodeURIComponent(active.id)}/oefb-import`}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 px-4 text-[13px] font-semibold text-slate-800"
+            >
+              ÖFB-Spielplan importieren
+            </Link>
             <button
               type="button"
               disabled={busy}
@@ -279,8 +285,8 @@ export function ManagerSeasonsPage(): React.ReactElement {
             </button>
           </div>
           <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-[12px] text-slate-600">
-            ÖFB-Spielplan noch nicht importiert
-            <span className="ml-2 text-slate-400">(STEP 5)</span>
+            STEP 5: ÖFB-Spielplan mit Vorschau in diese Saison importieren — Dubletten und geschützte
+            Termine werden erkannt.
           </p>
         </section>
       ) : null}
@@ -312,9 +318,15 @@ export function ManagerSeasonsPage(): React.ReactElement {
         </section>
       ) : null}
 
-      {showOefb ? (
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px] text-slate-700">
-          Nächster Schritt: ÖFB-Spielplan importieren (STEP 5) — noch nicht freigeschaltet.
+      {showOefb && active ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-900">
+          Nächster Schritt:{' '}
+          <Link
+            to={`/manager/saisons/${encodeURIComponent(active.id)}/oefb-import`}
+            className="font-semibold text-red-700 underline"
+          >
+            ÖFB-Spielplan importieren (STEP 5)
+          </Link>
         </div>
       ) : null}
 

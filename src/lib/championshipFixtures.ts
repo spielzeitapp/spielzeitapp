@@ -13,8 +13,13 @@ import { normalizeOpponentKey } from './teamVenues';
 import { locationTextFromVenue, type VenueRow } from './venues';
 import type { FixtureStatus } from './championshipVisibility';
 import { normalizeSeasonPhase, type SeasonPhase } from './seasonPhase';
+import { assertTeamSeasonWritable } from './seasonTransition';
 
 export type { FixtureStatus } from './championshipVisibility';
+
+/** Bekannter Vereins-Spielplan (Rohrbach) — nur Vorausfüllung, kein erratener Link. */
+export const DEFAULT_OEFB_SCHEDULE_URL =
+  'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Spiele';
 
 export type ChampionshipFixture = {
   id: string;
@@ -156,14 +161,150 @@ export async function fetchOefbScheduleFixtures(opts: {
   return { fixtures: json.fixtures ?? [], error: null };
 }
 
-function isProtectedManualStatus(status: string | null | undefined): boolean {
+export function isProtectedManualStatus(status: string | null | undefined): boolean {
   const s = String(status ?? '').trim().toLowerCase();
   return s === 'agreed' || s === 'published';
+}
+
+export type OefbImportPreviewStatus =
+  | 'new'
+  | 'update'
+  | 'existing'
+  | 'protected'
+  | 'error';
+
+export type OefbImportPreviewRow = {
+  fixture: OefbImportedFixture;
+  status: OefbImportPreviewStatus;
+  statusLabel: string;
+  existingEventId: string | null;
+  existingFixtureStatus: FixtureStatus | null;
+  message: string | null;
+  /** Würde beim Bestätigen einen Write auslösen (Insert oder erlaubtes Update). */
+  willWrite: boolean;
+};
+
+export type OefbImportPreviewResult = {
+  rows: OefbImportPreviewRow[];
+  counts: {
+    new: number;
+    update: number;
+    existing: number;
+    protected: number;
+    error: number;
+    writable: number;
+  };
+  error: string | null;
+};
+
+function sameInstant(a: string | null | undefined, b: string | null | undefined): boolean {
+  const ta = a ? Date.parse(a) : NaN;
+  const tb = b ? Date.parse(b) : NaN;
+  if (Number.isFinite(ta) && Number.isFinite(tb)) return ta === tb;
+  return String(a ?? '').trim() === String(b ?? '').trim();
+}
+
+/**
+ * Saisonbezogene Vorschau (ohne Writes): Neu / Aktualisierung / vorhanden / geschützt / Fehler.
+ * Dublettenschlüssel: (team_season_id, external_source=oefb, external_id).
+ */
+export async function previewOefbChampionshipImport(opts: {
+  teamSeasonId: string;
+  fixtures: OefbImportedFixture[];
+}): Promise<OefbImportPreviewResult> {
+  const emptyCounts = { new: 0, update: 0, existing: 0, protected: 0, error: 0, writable: 0 };
+  const writableGate = await assertTeamSeasonWritable(opts.teamSeasonId);
+  if (!writableGate.ok) {
+    return { rows: [], counts: emptyCounts, error: writableGate.message };
+  }
+
+  const rows: OefbImportPreviewRow[] = [];
+  for (const f of opts.fixtures) {
+    if (!f.external_id || !f.opponent || !f.starts_at) {
+      rows.push({
+        fixture: f,
+        status: 'error',
+        statusLabel: 'Fehler',
+        existingEventId: null,
+        existingFixtureStatus: null,
+        message: 'Unvollständige ÖFB-Daten (ID, Gegner oder Termin fehlen).',
+        willWrite: false,
+      });
+      continue;
+    }
+
+    const found = await selectChampionshipRows(opts.teamSeasonId, f.external_id);
+    if (found.error) {
+      return { rows: [], counts: emptyCounts, error: found.error };
+    }
+    const existing = found.data[0] ?? null;
+    if (!existing) {
+      rows.push({
+        fixture: f,
+        status: 'new',
+        statusLabel: 'Neu',
+        existingEventId: null,
+        existingFixtureStatus: null,
+        message: null,
+        willWrite: true,
+      });
+      continue;
+    }
+
+    if (isProtectedManualStatus(existing.fixture_status)) {
+      rows.push({
+        fixture: f,
+        status: 'protected',
+        statusLabel: 'Geschützt',
+        existingEventId: existing.id,
+        existingFixtureStatus: existing.fixture_status,
+        message:
+          'Vereinbart oder veröffentlicht: Kickoff/Ort/Status werden nicht überschrieben. Metadaten (Gegner, Link, Quelle) dürfen aktualisiert werden.',
+        willWrite: true,
+      });
+      continue;
+    }
+
+    const unchanged =
+      sameInstant(existing.starts_at, f.starts_at) &&
+      String(existing.opponent ?? '').trim() === String(f.opponent ?? '').trim() &&
+      Boolean(existing.is_home) === Boolean(f.is_home);
+
+    if (unchanged) {
+      rows.push({
+        fixture: f,
+        status: 'existing',
+        statusLabel: 'Bereits vorhanden',
+        existingEventId: existing.id,
+        existingFixtureStatus: existing.fixture_status,
+        message: null,
+        willWrite: true,
+      });
+    } else {
+      rows.push({
+        fixture: f,
+        status: 'update',
+        statusLabel: 'Aktualisierung',
+        existingEventId: existing.id,
+        existingFixtureStatus: existing.fixture_status,
+        message: 'Offener Termin: Kickoff/Gegner werden an den ÖFB-Stand angeglichen.',
+        willWrite: true,
+      });
+    }
+  }
+
+  const counts = { ...emptyCounts };
+  for (const r of rows) {
+    counts[r.status] += 1;
+    if (r.willWrite) counts.writable += 1;
+  }
+  return { rows, counts, error: null };
 }
 
 /**
  * Upsert ÖFB-Ligaspiele.
  * Reimport: bei agreed/published keine Überschreibung von starts_at/meeting_at/venue_id/fixture_status.
+ * Schreibt nur in die angegebene team_season_id (keine Verschiebung historischer Saisons).
  */
 export async function importOefbChampionshipFixtures(opts: {
   teamSeasonId: string;
@@ -173,6 +314,12 @@ export async function importOefbChampionshipFixtures(opts: {
   let inserted = 0;
   let updated = 0;
   let skippedProtected = 0;
+
+  const writableGate = await assertTeamSeasonWritable(opts.teamSeasonId);
+  if (!writableGate.ok) {
+    return { inserted: 0, updated: 0, skippedProtected: 0, error: writableGate.message };
+  }
+
   const clubId = await resolveClubIdFromTeamSeason(opts.teamSeasonId);
 
   for (const f of opts.fixtures) {
