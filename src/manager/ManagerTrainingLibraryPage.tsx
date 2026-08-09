@@ -317,7 +317,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
           ) : null}
         </div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filtered.map((row) => (
             <li
               key={row.id}

@@ -5,9 +5,10 @@ import { ManagerSidebar } from './components/ManagerSidebar';
 import { ManagerAccessGate } from './ManagerAccessGate';
 import { useSession } from '../auth/useSession';
 import { getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
+import './managerShell.css';
 
 /**
- * Shell für alle /manager-Seiten: dunkle Sidebar, heller Arbeitsbereich.
+ * Shell für alle /manager-Seiten: helle Sidebar, breite helle Arbeitsfläche.
  */
 export function ManagerLayout(): React.ReactElement {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -17,12 +18,12 @@ export function ManagerLayout(): React.ReactElement {
 
   return (
     <ManagerAccessGate>
-      <div className="flex min-h-[100dvh] bg-[#F4F5F7] text-slate-900">
+      <div className="manager-shell flex min-h-[100dvh] bg-[#F4F5F7] text-slate-900">
         <ManagerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col bg-[#F4F5F7]">
           <ManagerHeader onOpenSidebar={() => setSidebarOpen(true)} />
           {viewingArchive && context ? (
-            <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-950 sm:px-5 lg:px-8">
+            <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-950 sm:px-5 lg:px-8 xl:px-10">
               Du siehst eine abgeschlossene Saison ({getSeasonStatusLabel(context.status)}
               {context.season?.name ? ` · ${context.season.name}` : ''}
               {context.age_group ? ` · ${context.age_group}` : ''}). Neue Planungen gehören in die
@@ -32,8 +33,8 @@ export function ManagerLayout(): React.ReactElement {
               </Link>
             </div>
           ) : null}
-          <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <div className="mx-auto w-full max-w-6xl px-3 py-5 sm:px-5 sm:py-6 lg:px-8">
+          <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#F4F5F7]">
+            <div className="mx-auto w-full max-w-[120rem] px-3 py-5 sm:px-5 sm:py-6 lg:px-8 xl:px-10 2xl:px-12">
               <Outlet />
             </div>
           </main>

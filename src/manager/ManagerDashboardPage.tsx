@@ -469,7 +469,7 @@ export function ManagerDashboardPage(): React.ReactElement {
         <p className="text-[13px] text-slate-400">Dashboard-Daten werden geladen…</p>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         <Card title="Nächste Termine" icon={<CalendarDays className="h-4 w-4" aria-hidden />}>
           {nextEvents.length === 0 ? (
             <EmptyLine text="Keine kommenden Termine in dieser Saison." />

@@ -383,8 +383,8 @@ export function ManagerSeasonsPage(): React.ReactElement {
       </section>
 
       {showWizard && active ? (
-        <div className="fixed inset-0 z-[80] overflow-y-auto bg-slate-950/70 p-3 sm:p-6">
-          <div className="mx-auto max-w-lg rounded-2xl bg-slate-950 p-1 shadow-xl">
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-slate-900/40 p-3 sm:p-6">
+          <div className="mx-auto max-w-lg rounded-2xl shadow-xl">
             <SeasonTransitionWizard
               mode="prepare"
               sourceTeamSeasonId={active.id}

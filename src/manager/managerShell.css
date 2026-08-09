@@ -1,0 +1,95 @@
+/**
+ * Manager-only light theme + form controls.
+ * Scoped to `.manager-shell` so mobile App / Demo stay on global dark color-scheme.
+ */
+
+.manager-shell {
+  color-scheme: light;
+  --manager-bg: #f4f5f7;
+  --manager-surface: #ffffff;
+  --manager-border: #e5e7eb;
+  --manager-border-strong: #cbd5e1;
+  --manager-text: #0f172a;
+  --manager-muted: #64748b;
+  --manager-accent: #b91c1c;
+  --manager-accent-soft: #fef2f2;
+  --manager-focus-ring: rgba(185, 28, 28, 0.22);
+  background-color: var(--manager-bg);
+  color: var(--manager-text);
+}
+
+.manager-shell input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+.manager-shell select,
+.manager-shell textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: var(--manager-border);
+  color-scheme: light;
+  caret-color: #0f172a;
+}
+
+.manager-shell input::placeholder,
+.manager-shell textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+.manager-shell input:hover:not(:disabled):not([readonly]),
+.manager-shell select:hover:not(:disabled),
+.manager-shell textarea:hover:not(:disabled):not([readonly]) {
+  border-color: var(--manager-border-strong);
+}
+
+.manager-shell input:focus,
+.manager-shell input:focus-visible,
+.manager-shell select:focus,
+.manager-shell select:focus-visible,
+.manager-shell textarea:focus,
+.manager-shell textarea:focus-visible {
+  outline: none;
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px var(--manager-focus-ring);
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.manager-shell input:disabled,
+.manager-shell select:disabled,
+.manager-shell textarea:disabled,
+.manager-shell input[readonly],
+.manager-shell textarea[readonly] {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  cursor: not-allowed;
+}
+
+.manager-shell input[type='date'],
+.manager-shell input[type='time'],
+.manager-shell input[type='datetime-local'] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  color-scheme: light;
+}
+
+.manager-shell select option,
+.manager-shell select optgroup {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Chrome/Safari Autofill: keep light */
+.manager-shell input:-webkit-autofill,
+.manager-shell input:-webkit-autofill:hover,
+.manager-shell input:-webkit-autofill:focus,
+.manager-shell textarea:-webkit-autofill,
+.manager-shell select:-webkit-autofill {
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
+  box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 99999s ease-out;
+}
+
+.manager-shell ::selection {
+  background: #fecaca;
+  color: #7f1d1d;
+}

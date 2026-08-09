@@ -106,7 +106,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md">
-      <div className="flex items-center gap-3 px-3 py-3 sm:px-5 lg:px-6">
+      <div className="flex items-center gap-3 px-3 py-3 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
         <div className="min-w-0 flex-1">
