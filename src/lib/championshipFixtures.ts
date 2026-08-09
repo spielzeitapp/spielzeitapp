@@ -14,8 +14,16 @@ import { locationTextFromVenue, type VenueRow } from './venues';
 import type { FixtureStatus } from './championshipVisibility';
 import { normalizeSeasonPhase, type SeasonPhase } from './seasonPhase';
 import { assertTeamSeasonWritable } from './seasonTransition';
+import {
+  describeOefbOpponentCorrection,
+  normalizeOefbImportedTeamName,
+} from './oefbTeamNameNormalize';
 
 export type { FixtureStatus } from './championshipVisibility';
+export {
+  describeOefbOpponentCorrection,
+  normalizeOefbImportedTeamName,
+} from './oefbTeamNameNormalize';
 
 /** Bekannter Vereins-Spielplan (Rohrbach) — nur Vorausfüllung, kein erratener Link. */
 export const DEFAULT_OEFB_SCHEDULE_URL =
@@ -158,7 +166,16 @@ export async function fetchOefbScheduleFixtures(opts: {
   if (!res.ok || json.error) {
     return { fixtures: [], error: json.error ?? `HTTP ${res.status}` };
   }
-  return { fixtures: json.fixtures ?? [], error: null };
+  const fixtures = (json.fixtures ?? []).map((f) => normalizeOefbImportedFixture(f));
+  return { fixtures, error: null };
+}
+
+/** Gegnername (und damit sichtbare Spielbezeichnung) vor Preview/Upsert bereinigen. */
+export function normalizeOefbImportedFixture(f: OefbImportedFixture): OefbImportedFixture {
+  return {
+    ...f,
+    opponent: normalizeOefbImportedTeamName(f.opponent),
+  };
 }
 
 export function isProtectedManualStatus(status: string | null | undefined): boolean {
@@ -180,6 +197,8 @@ export type OefbImportPreviewRow = {
   existingEventId: string | null;
   existingFixtureStatus: FixtureStatus | null;
   message: string | null;
+  /** Sichtbare Namenskorrektur, z. B. „U11 ASK Loosdorf → ASK Loosdorf“. */
+  nameCorrection: string | null;
   /** Würde beim Bestätigen einen Write auslösen (Insert oder erlaubtes Update). */
   willWrite: boolean;
 };
@@ -219,7 +238,8 @@ export async function previewOefbChampionshipImport(opts: {
   }
 
   const rows: OefbImportPreviewRow[] = [];
-  for (const f of opts.fixtures) {
+  for (const raw of opts.fixtures) {
+    const f = normalizeOefbImportedFixture(raw);
     if (!f.external_id || !f.opponent || !f.starts_at) {
       rows.push({
         fixture: f,
@@ -228,6 +248,7 @@ export async function previewOefbChampionshipImport(opts: {
         existingEventId: null,
         existingFixtureStatus: null,
         message: 'Unvollständige ÖFB-Daten (ID, Gegner oder Termin fehlen).',
+        nameCorrection: null,
         willWrite: false,
       });
       continue;
@@ -246,10 +267,13 @@ export async function previewOefbChampionshipImport(opts: {
         existingEventId: null,
         existingFixtureStatus: null,
         message: null,
+        nameCorrection: null,
         willWrite: true,
       });
       continue;
     }
+
+    const nameCorrection = describeOefbOpponentCorrection(existing.opponent, f.opponent);
 
     if (isProtectedManualStatus(existing.fixture_status)) {
       rows.push({
@@ -258,8 +282,10 @@ export async function previewOefbChampionshipImport(opts: {
         statusLabel: 'Geschützt',
         existingEventId: existing.id,
         existingFixtureStatus: existing.fixture_status,
-        message:
-          'Vereinbart oder veröffentlicht: Kickoff/Ort/Status werden nicht überschrieben. Metadaten (Gegner, Link, Quelle) dürfen aktualisiert werden.',
+        message: nameCorrection
+          ? `Termin bleibt unverändert. Name wird bereinigt: ${nameCorrection}`
+          : 'Vereinbart oder veröffentlicht: Kickoff/Ort/Status werden nicht überschrieben. Sichere Metadaten dürfen aktualisiert werden.',
+        nameCorrection,
         willWrite: true,
       });
       continue;
@@ -278,6 +304,7 @@ export async function previewOefbChampionshipImport(opts: {
         existingEventId: existing.id,
         existingFixtureStatus: existing.fixture_status,
         message: null,
+        nameCorrection: null,
         willWrite: true,
       });
     } else {
@@ -287,7 +314,10 @@ export async function previewOefbChampionshipImport(opts: {
         statusLabel: 'Aktualisierung',
         existingEventId: existing.id,
         existingFixtureStatus: existing.fixture_status,
-        message: 'Offener Termin: Kickoff/Gegner werden an den ÖFB-Stand angeglichen.',
+        message: nameCorrection
+          ? `Namenskorrektur: ${nameCorrection}`
+          : 'Offener Termin: Kickoff/Gegner werden an den ÖFB-Stand angeglichen.',
+        nameCorrection,
         willWrite: true,
       });
     }
@@ -322,7 +352,8 @@ export async function importOefbChampionshipFixtures(opts: {
 
   const clubId = await resolveClubIdFromTeamSeason(opts.teamSeasonId);
 
-  for (const f of opts.fixtures) {
+  for (const raw of opts.fixtures) {
+    const f = normalizeOefbImportedFixture(raw);
     if (!f.external_id || !f.opponent || !f.starts_at) continue;
     const logo = resolveOpponentLogoForStorage(f.opponent, f.opponent_logo_url);
     if (clubId) {
@@ -343,6 +374,8 @@ export async function importOefbChampionshipFixtures(opts: {
 
     if (existing) {
       const protectedRow = isProtectedManualStatus(existing.fixture_status);
+      // Auch bei agreed/published: Gegner/Bezeichnung + sichere Metadaten aktualisieren;
+      // Termin/Ort/Status bleiben geschützt.
       const patch: Record<string, unknown> = {
         opponent: f.opponent,
         is_home: f.is_home,

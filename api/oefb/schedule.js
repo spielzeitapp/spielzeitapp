@@ -2,6 +2,8 @@
  * GET /api/oefb/schedule?url=…
  * Lädt ÖFB-Vereinsseite und extrahiert SPIELPLAN_MANNSCHAFT aus appPreloads.
  */
+const { normalizeOefbImportedTeamName } = require('./normalizeTeamName');
+
 function extractPreloadSpiele(html) {
   // ÖFB setzt viele appPreloads[…]-Blöcke; nur der mit SPIELPLAN_MANNSCHAFT zählt.
   const typeMarker = '"type":"SPIELPLAN_MANNSCHAFT"';
@@ -58,10 +60,13 @@ function externalIdFromSpielUrl(spielUrl) {
 }
 
 function mapFixture(raw, ourTeamHints) {
-  const heim = String(raw.heimName ?? '').trim();
-  const gast = String(raw.gastName ?? '').trim();
+  // ÖFB liefert oft „U11 …“ in heimName/gastName — vor Speicherung/Anzeige strippen.
+  const heim = normalizeOefbImportedTeamName(raw.heimName);
+  const gast = normalizeOefbImportedTeamName(raw.gastName);
   const art = String(raw.art ?? '').trim();
-  const hints = (ourTeamHints || []).map((h) => String(h).trim().toLowerCase()).filter(Boolean);
+  const hints = (ourTeamHints || [])
+    .map((h) => normalizeOefbImportedTeamName(h).toLowerCase())
+    .filter(Boolean);
   const heimNorm = heim.toLowerCase();
   const isHome =
     hints.length === 0
@@ -153,7 +158,9 @@ module.exports = async function handler(req, res) {
 
     res.status(200).json({
       ok: true,
-      teamLabel: extracted.teamLabel,
+      teamLabel: extracted.teamLabel
+        ? normalizeOefbImportedTeamName(extracted.teamLabel)
+        : null,
       count: fixtures.length,
       fixtures,
       sourceUrl: parsedUrl.toString(),

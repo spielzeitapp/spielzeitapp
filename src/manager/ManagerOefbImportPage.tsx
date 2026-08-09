@@ -68,6 +68,17 @@ function homeAwayLabel(f: OefbImportedFixture, teamLabel: string): { home: strin
   return f.is_home ? { home: team, away: opp } : { home: opp, away: team };
 }
 
+function previewStatusDetail(row: OefbImportPreviewRow): string | null {
+  if (row.nameCorrection) {
+    if (row.status === 'protected') {
+      return `Termin geschützt · Name: ${row.nameCorrection}`;
+    }
+    return row.nameCorrection;
+  }
+  if (row.message) return row.message;
+  return null;
+}
+
 export function ManagerOefbImportPage(): React.ReactElement {
   const { seasonId } = useParams<{ seasonId: string }>();
   const { user, effectiveRole, backendRole, setViewTeamSeasonId } = useSession();
@@ -406,12 +417,19 @@ export function ManagerOefbImportPage(): React.ReactElement {
                       <td className="px-3 py-2 text-slate-600">{row.fixture.location ?? '—'}</td>
                       <td className="px-3 py-2 text-slate-600">{row.fixture.competition ?? '—'}</td>
                       <td className="px-3 py-2">
-                        <span
-                          className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusChipClass(row.status)}`}
-                          title={row.message ?? undefined}
-                        >
-                          {row.statusLabel}
-                        </span>
+                        <div className="space-y-1">
+                          <span
+                            className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusChipClass(row.status)}`}
+                            title={row.message ?? undefined}
+                          >
+                            {row.statusLabel}
+                          </span>
+                          {previewStatusDetail(row) ? (
+                            <p className="max-w-[16rem] text-[11px] leading-snug text-slate-500">
+                              {previewStatusDetail(row)}
+                            </p>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-3 py-2">
                         {row.fixture.external_url ? (
@@ -444,8 +462,8 @@ export function ManagerOefbImportPage(): React.ReactElement {
             />
             <span>
               Ich habe die Vorschau geprüft. Neue und aktualisierbare Spiele dürfen in die Zielsaison
-              geschrieben werden. Geschützte Termine (vereinbart/veröffentlicht) werden nicht im
-              Kickoff überschrieben.
+              geschrieben werden. Geschützte Termine (vereinbart/veröffentlicht) behalten Kickoff, Ort
+              und Status — sichtbare Bezeichnungen (ohne „U11“) dürfen trotzdem bereinigt werden.
             </span>
           </label>
 
