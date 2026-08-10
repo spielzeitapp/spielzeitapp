@@ -143,11 +143,11 @@ BEGIN
   PERFORM public._platz5_seed_standard_zones(f_sv_main, v_club);
   PERFORM public._platz5_seed_standard_zones(f_sv_side, v_club);
 
-  INSERT INTO public.team_season_training_venues (team_season_id, venue_id, is_active, sort_order)
+  INSERT INTO public.team_season_training_venues (team_season_id, venue_id, purpose, is_active, sort_order)
   VALUES
-    (v_u12, v_rohrbach, true, 0),
-    (v_u12, v_stveit, true, 10)
-  ON CONFLICT (team_season_id, venue_id) DO UPDATE
+    (v_u12, v_rohrbach, 'training', true, 0),
+    (v_u12, v_stveit, 'training', true, 10)
+  ON CONFLICT (team_season_id, venue_id, purpose) DO UPDATE
     SET is_active = true,
         sort_order = EXCLUDED.sort_order,
         updated_at = now();

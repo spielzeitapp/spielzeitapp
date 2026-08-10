@@ -18,6 +18,17 @@ import {
   describeOefbOpponentCorrection,
   normalizeOefbImportedTeamName,
 } from './oefbTeamNameNormalize';
+import { tryApplyHomeDefaultAssignment } from './eventFieldAssignments';
+
+/** Sicherer Optional-Call — darf Import nie blockieren. */
+async function safeTryApplyHomeDefault(eventId: string, isHome: boolean): Promise<void> {
+  if (!isHome || !eventId) return;
+  try {
+    await tryApplyHomeDefaultAssignment(eventId);
+  } catch {
+    /* ignore */
+  }
+}
 
 export type { FixtureStatus } from './championshipVisibility';
 export {
@@ -408,6 +419,7 @@ export async function importOefbChampionshipFixtures(opts: {
       }
       if (updErr) return { inserted, updated, skippedProtected, error: updErr.message };
       updated += 1;
+      await safeTryApplyHomeDefault(existing.id, Boolean(f.is_home));
       continue;
     }
 
@@ -433,10 +445,18 @@ export async function importOefbChampionshipFixtures(opts: {
       opponent_logo_url: logo,
     };
 
-    let { error: insErr } = await supabase.from('events').insert(insertPayload);
+    let { data: insertedRow, error: insErr } = await supabase
+      .from('events')
+      .insert(insertPayload)
+      .select('id')
+      .maybeSingle();
     if (insErr && isMissingLogoColumnError(insErr.message)) {
       delete insertPayload.opponent_logo_url;
-      ({ error: insErr } = await supabase.from('events').insert(insertPayload));
+      ({ data: insertedRow, error: insErr } = await supabase
+        .from('events')
+        .insert(insertPayload)
+        .select('id')
+        .maybeSingle());
     }
     if (insErr) {
       if (isMissingColumnError(insErr.message)) {
@@ -445,6 +465,8 @@ export async function importOefbChampionshipFixtures(opts: {
       return { inserted, updated, skippedProtected, error: insErr.message };
     }
     inserted += 1;
+    const newId = insertedRow ? String((insertedRow as { id: string }).id) : '';
+    await safeTryApplyHomeDefault(newId, Boolean(f.is_home));
   }
 
   return { inserted, updated, skippedProtected, error: null };
@@ -486,6 +508,9 @@ export async function updateChampionshipFixture(
     ({ error } = await supabase.from('events').update(payload).eq('id', eventId));
   }
   if (error) return { error: error.message };
+  if (patch.isHome === true) {
+    await safeTryApplyHomeDefault(eventId, true);
+  }
   return { error: null };
 }
 

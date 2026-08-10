@@ -32,6 +32,7 @@ import {
   listAssignmentsInRange,
   listClubEventsInRange,
   listClubTeamSeasonIds,
+  listSharedAssignmentsViaOccupancy,
   upsertEventFieldAssignment,
   type EventFieldAssignmentRow,
 } from '../lib/eventFieldAssignments';
@@ -50,7 +51,10 @@ import {
   inferDemandFromZone,
   type FieldSplitDemand,
 } from '../lib/fieldZoneGeometry';
-import { listAllowedTrainingVenueRows } from '../lib/teamSeasonTrainingVenues';
+import {
+  listAllowedVenueRowsForPurpose,
+} from '../lib/teamSeasonTrainingVenues';
+import { mergeSharedOccupancyIntoSchedule } from '../lib/sharedVenueOccupancy';
 import { FacilityFieldPitch, type PitchOccupancy } from '../components/facility/FacilityFieldPitch';
 import {
   addDays,
@@ -72,6 +76,10 @@ type ScheduleBlock = {
   startsAt: string;
   endsAt: string;
   unassigned: boolean;
+  /** PLATZ.6 Shared-Occupancy: can_edit aus RPC, sonst null → Club-Logik */
+  canEditOverride?: boolean | null;
+  orgName?: string | null;
+  isSharedForeign?: boolean;
 };
 
 function viennaRangeIso(day: Date, hour: number, minute = 0): string {
@@ -113,11 +121,18 @@ function eventTitle(e: ClubEvent): string {
   return 'Termin';
 }
 
-function kindColor(kind: string): string {
-  if (kind === 'match') return 'bg-red-700 text-white';
-  if (kind === 'training') return 'bg-emerald-700 text-white';
-  if (kind === 'tournament') return 'bg-amber-600 text-white';
-  return 'bg-slate-600 text-white';
+function eventTeamLabel(b: ScheduleBlock): string {
+  const base = [b.event.age_group, b.event.team_name].filter(Boolean).join(' · ') || 'Mannschaft';
+  if (b.orgName) return `${base} · ${b.orgName}`;
+  return base;
+}
+
+function blockCanEdit(
+  b: ScheduleBlock,
+  canManageEvent: (e: ClubEvent) => boolean,
+): boolean {
+  if (b.canEditOverride != null) return b.canEditOverride;
+  return canManageEvent(b.event);
 }
 
 /**
@@ -150,6 +165,9 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   const [filterKind, setFilterKind] = useState<string>('');
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [assignments, setAssignments] = useState<EventFieldAssignmentRow[]>([]);
+  const [sharedMetaByEvent, setSharedMetaByEvent] = useState<
+    Map<string, { can_edit: boolean; org_name: string; is_own: boolean }>
+  >(() => new Map());
   const [loadingWeek, setLoadingWeek] = useState(false);
   const [weekError, setWeekError] = useState<string | null>(null);
   const [selectedDayKey, setSelectedDayKey] = useState(() => toViennaDayKey(new Date()));
@@ -186,8 +204,23 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     setClubTeamSeasonIds(seasonsRes.data);
     const vRes = await listVenuesForClub(clubRes.clubId, { includeInactive: true });
     if (vRes.error) setMetaError(vRes.error);
-    setVenues(vRes.data);
-    const activeVenues = vRes.data.filter((v) => v.is_active);
+
+    // PLATZ.6: freigegebene Anlagen (Training + Heimspiel) einmischen — z. B. Rohrbach für NSG/U12
+    const [trainAllow, homeAllow] = await Promise.all([
+      listAllowedVenueRowsForPurpose(teamSeasonId, 'training'),
+      listAllowedVenueRowsForPurpose(teamSeasonId, 'home_match'),
+    ]);
+    const byId = new Map<string, VenueRow>();
+    for (const v of vRes.data) byId.set(v.id, v);
+    for (const v of [...trainAllow.data, ...homeAllow.data]) {
+      if (!byId.has(v.id)) byId.set(v.id, v);
+    }
+    const mergedVenues = Array.from(byId.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, 'de'),
+    );
+    setVenues(mergedVenues);
+
+    const activeVenues = mergedVenues.filter((v) => v.is_active);
     const allFields: VenueFieldRow[] = [];
     const zoneMap: Record<string, VenueFieldZoneRow[]> = {};
     for (const v of activeVenues) {
@@ -208,6 +241,7 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     if (!clubId) {
       setEvents([]);
       setAssignments([]);
+      setSharedMetaByEvent(new Map());
       return;
     }
     setLoadingWeek(true);
@@ -221,10 +255,52 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     if (eRes.error) setWeekError(eRes.error);
     if (aRes.error && !/migriert/i.test(aRes.error)) setWeekError(aRes.error);
     else if (aRes.error) setMetaError(aRes.error);
-    setEvents(eRes.data);
-    setAssignments(aRes.data);
+
+    const venueIdsForShared = (
+      filterVenueId
+        ? venues.filter((v) => v.id === filterVenueId)
+        : venues.filter((v) => v.is_active)
+    ).map((v) => v.id);
+
+    const sharedRes = await listSharedAssignmentsViaOccupancy(
+      venueIdsForShared,
+      rangeStart,
+      rangeEnd,
+      { excludeAssignmentIds: new Set(aRes.data.map((a) => a.id)) },
+    );
+    if (sharedRes.error) setWeekError((prev) => prev ?? sharedRes.error);
+
+    const clubEventsAsShared = eRes.data.map((e) => ({
+      ...e,
+      org_name: null as string | null,
+    }));
+    const merged = mergeSharedOccupancyIntoSchedule({
+      events: clubEventsAsShared,
+      assignments: aRes.data,
+      occupancy: sharedRes.occupancy,
+      clubId,
+    });
+
+    setEvents(
+      merged.events.map((e) => ({
+        id: e.id,
+        team_season_id: e.team_season_id,
+        kind: e.kind,
+        type: e.type,
+        opponent: e.opponent,
+        starts_at: e.starts_at,
+        notes: e.notes,
+        location: e.location,
+        venue_id: e.venue_id,
+        status: e.status,
+        team_name: e.team_name,
+        age_group: e.age_group,
+      })),
+    );
+    setAssignments(merged.assignments);
+    setSharedMetaByEvent(merged.sharedMeta);
     setLoadingWeek(false);
-  }, [clubId, weekStart, weekEnd]);
+  }, [clubId, weekStart, weekEnd, venues, filterVenueId]);
 
   useEffect(() => {
     void reloadMeta();
@@ -252,15 +328,19 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
           type: event.type,
           notes: event.notes,
         });
+      const meta = sharedMetaByEvent.get(event.id);
       return {
         event,
         assignment,
         startsAt,
         endsAt,
         unassigned: !assignment,
+        canEditOverride: meta ? meta.can_edit : null,
+        orgName: meta && !meta.is_own ? meta.org_name : null,
+        isSharedForeign: Boolean(meta && !meta.is_own),
       };
     });
-  }, [events, assignmentByEvent]);
+  }, [events, assignmentByEvent, sharedMetaByEvent]);
 
   const filteredBlocks = useMemo(() => {
     return blocks.filter((b) => {
@@ -658,7 +738,7 @@ function CalendarPanel(props: {
                 ) : (
                   <ul className="space-y-1.5">
                     {dayBlocks.map((b) => {
-                      const manageable = props.canManageEvent(b.event);
+                      const manageable = blockCanEdit(b, props.canManageEvent);
                       const util = utilizationLabel(b, props.zonesByField, props.assignmentCandidates);
                       return (
                       <li key={b.event.id}>
@@ -678,9 +758,7 @@ function CalendarPanel(props: {
                           <p className="opacity-95">
                             {eventKindLabel(b.event.kind)} · {eventTitle(b.event)}
                           </p>
-                          <p className="opacity-80">
-                            {[b.event.age_group, b.event.team_name].filter(Boolean).join(' · ') || 'Mannschaft'}
-                          </p>
+                          <p className="opacity-80">{eventTeamLabel(b)}</p>
                           <p className="mt-0.5 opacity-80">
                             {b.unassigned
                               ? 'Platz noch nicht zugeordnet'
@@ -688,7 +766,7 @@ function CalendarPanel(props: {
                           </p>
                           {util ? <p className="mt-0.5 text-[10px] font-semibold opacity-90">{util}</p> : null}
                           {!manageable ? (
-                            <p className="mt-0.5 text-[10px] opacity-75">Nur Ansehen</p>
+                            <p className="mt-0.5 text-[10px] opacity-75">Nur ansehen</p>
                           ) : null}
                         </button>
                       </li>
@@ -734,7 +812,7 @@ function CalendarPanel(props: {
         ) : (
           <ul className="space-y-2">
             {selectedBlocks.map((b) => {
-              const manageable = props.canManageEvent(b.event);
+              const manageable = blockCanEdit(b, props.canManageEvent);
               const util = utilizationLabel(b, props.zonesByField, props.assignmentCandidates);
               return (
               <li key={b.event.id}>
@@ -747,9 +825,7 @@ function CalendarPanel(props: {
                     {formatHm(b.startsAt)}–{formatHm(b.endsAt)} · {eventKindLabel(b.event.kind)}
                   </p>
                   <p className="text-[13px] text-slate-600">{eventTitle(b.event)}</p>
-                  <p className="text-[12px] text-slate-500">
-                    {[b.event.age_group, b.event.team_name].filter(Boolean).join(' · ') || 'Mannschaft'}
-                  </p>
+                  <p className="text-[12px] text-slate-500">{eventTeamLabel(b)}</p>
                   <p className="text-[12px] text-slate-500">
                     {b.unassigned
                       ? 'Platz noch nicht zugeordnet'
@@ -757,7 +833,7 @@ function CalendarPanel(props: {
                   </p>
                   {util ? <p className="text-[11px] font-semibold text-slate-600">{util}</p> : null}
                   {!manageable ? (
-                    <p className="text-[11px] text-slate-400">Nur Ansehen — Bearbeitung durch die zuständige Mannschaft</p>
+                    <p className="text-[11px] text-slate-400">Nur ansehen</p>
                   ) : null}
                 </button>
               </li>
@@ -812,15 +888,16 @@ function FieldDayPitchPanel(props: {
   const occ: PitchOccupancy[] = assigned.map((b) => {
     const z = b.assignment?.zone_id ? zones.find((x) => x.id === b.assignment!.zone_id) : null;
     const geom = z ? zoneRowToGeometry(z) : null;
+    const editable = blockCanEdit(b, props.canManageEvent);
     return {
       zoneId: b.assignment?.zone_id ?? null,
       zone: geom,
-      teamLabel: [b.event.age_group, b.event.team_name].filter(Boolean).join(' ') || 'Mannschaft',
+      teamLabel: eventTeamLabel(b),
       timeLabel: `${formatHm(b.startsAt)}–${formatHm(b.endsAt)}`,
       kindLabel: eventKindLabel(b.event.kind),
       demandLabel: zoneDemandLabel(z),
-      own: props.canManageEvent(b.event),
-      readOnly: !props.canManageEvent(b.event),
+      own: editable,
+      readOnly: !editable,
     };
   });
 
@@ -1274,7 +1351,7 @@ function AssignModal(props: {
       return;
     }
     void (async () => {
-      const res = await listAllowedTrainingVenueRows(props.event.team_season_id);
+      const res = await listAllowedVenueRowsForPurpose(props.event.team_season_id, 'training');
       if (cancelled) return;
       setTrainingVenues(res.data);
       if (res.emptyReason === 'none_assigned') {

@@ -585,7 +585,13 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               ? { isHome: form.is_home, opponentName: form.opponent }
               : null
           }
-          purpose={eventTypeLocal === 'training' ? 'training' : 'general'}
+          purpose={
+            eventTypeLocal === 'training'
+              ? 'training'
+              : eventTypeLocal === 'game' && form.is_home
+                ? 'home_match'
+                : 'general'
+          }
           labelClass={labelClass}
           inputClass={inputClass}
           disabled={creating}

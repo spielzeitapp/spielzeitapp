@@ -6,6 +6,11 @@ import { supabase } from './supabaseClient';
 import { resolveEndAtFromNotes } from '../pages/calendar/calendarUtils';
 import type { EventKind } from './eventTypeUtils';
 import { normalizeEventKind } from './eventTypeUtils';
+import {
+  listSharedVenueOccupancy,
+  occupancyToAssignmentRow,
+  type SharedVenueOccupancyRow,
+} from './sharedVenueOccupancy';
 
 export type EventFieldAssignmentRow = {
   id: string;
@@ -359,4 +364,65 @@ export async function listClubTeamSeasonIds(
     data: (seasons ?? []).map((s) => String((s as { id: string }).id)).filter(Boolean),
     error: null,
   };
+}
+
+/**
+ * PLATZ.6: Shared-Venue-Belegungen als Assignment-Rows (Deduplizierung optional über existingIds).
+ */
+export async function listSharedAssignmentsViaOccupancy(
+  venueIds: readonly string[],
+  rangeStartIso: string,
+  rangeEndIso: string,
+  opts?: { excludeAssignmentIds?: ReadonlySet<string> },
+): Promise<{
+  data: EventFieldAssignmentRow[];
+  occupancy: SharedVenueOccupancyRow[];
+  error: string | null;
+}> {
+  const uniqueVenueIds = [...new Set(venueIds.filter(Boolean))];
+  if (uniqueVenueIds.length === 0) return { data: [], occupancy: [], error: null };
+
+  const results = await Promise.all(
+    uniqueVenueIds.map((id) => listSharedVenueOccupancy(id, rangeStartIso, rangeEndIso)),
+  );
+  const firstErr = results.find((r) => r.error)?.error ?? null;
+  const occupancy: SharedVenueOccupancyRow[] = [];
+  const seen = new Set<string>();
+  for (const r of results) {
+    for (const row of r.data) {
+      if (seen.has(row.assignment_id)) continue;
+      if (opts?.excludeAssignmentIds?.has(row.assignment_id)) continue;
+      seen.add(row.assignment_id);
+      occupancy.push(row);
+    }
+  }
+  return {
+    data: occupancy.map((row) => occupancyToAssignmentRow(row) as EventFieldAssignmentRow),
+    occupancy,
+    error: firstErr,
+  };
+}
+
+/**
+ * PLATZ.6: Wendet nur bei vorhandenem Home-Default eine Zuordnung an (kein Raten).
+ * Fehler der RPC werden geschluckt — Import/Update darf nicht scheitern.
+ */
+export async function tryApplyHomeDefaultAssignment(
+  eventId: string,
+): Promise<{ assignmentId: string | null; error: string | null }> {
+  if (!eventId) return { assignmentId: null, error: null };
+  try {
+    const { data, error } = await supabase.rpc('try_apply_home_default_assignment', {
+      p_event_id: eventId,
+    });
+    if (error) {
+      if (/try_apply_home_default_assignment|42883|does not exist|schema cache/i.test(error.message)) {
+        return { assignmentId: null, error: null };
+      }
+      return { assignmentId: null, error: error.message };
+    }
+    return { assignmentId: data ? String(data) : null, error: null };
+  } catch {
+    return { assignmentId: null, error: null };
+  }
 }

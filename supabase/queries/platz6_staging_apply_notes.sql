@@ -1,0 +1,26 @@
+-- PLATZ.6 Staging apply notes (nicht Production).
+-- Project: spielzeitapp-staging / acbaecjzoabafbsjrzvr
+--
+-- Reihenfolge:
+-- 1) PLATZ.3–5.1 (bereits applied)
+-- 2) PLATZ.6 Migration: supabase/migrations/20260810200000_platz6_shared_venue_access.sql
+-- 3) Seed: supabase/queries/platz6_staging_seed.sql (nur nach ID-Preflight)
+--
+-- Verifizierte Seed-IDs (NSG):
+-- Club: 9c7a8741-6e73-42d5-88d8-46ce5217e8cd (NSG Gölsental)
+-- Rohrbach: ec1ba01f-cc58-4c91-b524-463b510ca339
+-- St.Veit:  ec5f02b6-b5f3-4b8a-a005-a1ac2280fc0c
+-- U12 ts:   5dd421cd-b47f-4889-8867-9bc1fa451c09
+--
+-- U12 Allowlist nach Seed:
+--   Rohrbach: training + home_match
+--   St.Veit:  training only
+--
+-- USC: nur wenn Club exakt 'USC Rohrbach' existiert und Teams
+-- Kampfmannschaft/Reserve mit active|draft Season vorhanden —
+-- sonst NOTICE + Skip (kein Invent von Clubs/Teams/Venues).
+--
+-- Client: list_shared_venue_occupancy, try_apply_home_default_assignment,
+-- purpose=home_match im VenuePicker für Heimspiele.
+--
+-- Kein db push aller lokalen Migrationen. Production unverändert.
