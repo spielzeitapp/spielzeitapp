@@ -1,0 +1,7 @@
+-- PLATZ.5.1 Staging apply notes (nicht Production).
+-- Migration: 20260810180000_platz51_rotate_half_third_zones.sql
+-- Project: spielzeitapp-staging / acbaecjzoabafbsjrzvr
+--
+-- Vorher: half/third vertikal (links/rechts).
+-- Nachher: half/third quer (oben/unten).
+-- Viertel und Ganzer Platz unverändert. Zone-IDs erhalten.

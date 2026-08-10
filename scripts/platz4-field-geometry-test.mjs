@@ -14,11 +14,11 @@ function intervalsOverlapHalfOpen(aStart, aEnd, bStart, bEnd) {
 
 const PRESETS = {
   entire: { id: 'entire', blocks: true, rect: { x: 0, y: 0, w: 1, h: 1 } },
-  half_a: { id: 'half_a', blocks: false, rect: { x: 0, y: 0, w: 0.5, h: 1 } },
-  half_b: { id: 'half_b', blocks: false, rect: { x: 0.5, y: 0, w: 0.5, h: 1 } },
-  third_a: { id: 'third_a', blocks: false, rect: { x: 0, y: 0, w: 1 / 3, h: 1 } },
-  third_b: { id: 'third_b', blocks: false, rect: { x: 1 / 3, y: 0, w: 1 / 3, h: 1 } },
-  third_c: { id: 'third_c', blocks: false, rect: { x: 2 / 3, y: 0, w: 1 / 3, h: 1 } },
+  half_a: { id: 'half_a', blocks: false, rect: { x: 0, y: 0, w: 1, h: 0.5 } },
+  half_b: { id: 'half_b', blocks: false, rect: { x: 0, y: 0.5, w: 1, h: 0.5 } },
+  third_a: { id: 'third_a', blocks: false, rect: { x: 0, y: 0, w: 1, h: 1 / 3 } },
+  third_b: { id: 'third_b', blocks: false, rect: { x: 0, y: 1 / 3, w: 1, h: 1 / 3 } },
+  third_c: { id: 'third_c', blocks: false, rect: { x: 0, y: 2 / 3, w: 1, h: 1 / 3 } },
   quarter_a: { id: 'quarter_a', blocks: false, rect: { x: 0, y: 0, w: 0.5, h: 0.5 } },
   quarter_b: { id: 'quarter_b', blocks: false, rect: { x: 0.5, y: 0, w: 0.5, h: 0.5 } },
   quarter_c: { id: 'quarter_c', blocks: false, rect: { x: 0, y: 0.5, w: 0.5, h: 0.5 } },
@@ -47,7 +47,17 @@ const t1 = 18.5 * 3600_000;
 assert.strictEqual(intervalsOverlapHalfOpen(0, 100, 100, 200), false);
 assert.strictEqual(rectsOverlap(PRESETS.half_a.rect, PRESETS.half_b.rect), false);
 assert.ok(rectsOverlap(PRESETS.half_a.rect, PRESETS.quarter_a.rect));
-assert.strictEqual(rectsOverlap(PRESETS.half_a.rect, PRESETS.quarter_b.rect), false);
+assert.ok(rectsOverlap(PRESETS.half_a.rect, PRESETS.quarter_b.rect));
+assert.strictEqual(rectsOverlap(PRESETS.half_a.rect, PRESETS.quarter_c.rect), false);
+assert.strictEqual(rectsOverlap(PRESETS.half_a.rect, PRESETS.quarter_d.rect), false);
+assert.strictEqual(PRESETS.half_a.rect.w, 1);
+assert.strictEqual(PRESETS.half_a.rect.h, 0.5);
+assert.strictEqual(PRESETS.half_b.rect.y, 0.5);
+assert.strictEqual(PRESETS.third_a.rect.w, 1);
+assert.ok(Math.abs(PRESETS.third_b.rect.y - 1 / 3) < 1e-9);
+assert.strictEqual(rectsOverlap(PRESETS.third_a.rect, PRESETS.third_b.rect), false);
+assert.ok(rectsOverlap(PRESETS.half_a.rect, PRESETS.third_a.rect));
+assert.strictEqual(rectsOverlap(PRESETS.half_b.rect, PRESETS.third_a.rect), false);
 
 const u12 = {
   id: 'a1',
@@ -94,9 +104,15 @@ assert.strictEqual(
   0,
 );
 
-assert.strictEqual(
+assert.ok(
   findConflicts(
     { id: 'qB', fieldId: 'haupt', startsAtMs: t0, endsAtMs: t1, zone: PRESETS.quarter_b },
+    [u12],
+  ).length > 0,
+);
+assert.strictEqual(
+  findConflicts(
+    { id: 'qC', fieldId: 'haupt', startsAtMs: t0, endsAtMs: t1, zone: PRESETS.quarter_c },
     [u12],
   ).length,
   0,

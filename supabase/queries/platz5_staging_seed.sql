@@ -20,11 +20,11 @@ BEGIN
   FOR r IN
     SELECT * FROM (VALUES
       ('entire',    'Ganzer Platz', 'entire',  true,  0,  0::numeric, 0::numeric, 1::numeric, 1::numeric),
-      ('half_a',    'Hälfte A',     'half',    false, 10, 0::numeric, 0::numeric, 0.5::numeric, 1::numeric),
-      ('half_b',    'Hälfte B',     'half',    false, 11, 0.5::numeric, 0::numeric, 0.5::numeric, 1::numeric),
-      ('third_a',   'Drittel A',    'third',   false, 20, 0::numeric, 0::numeric, (1::numeric/3), 1::numeric),
-      ('third_b',   'Drittel B',    'third',   false, 21, (1::numeric/3), 0::numeric, (1::numeric/3), 1::numeric),
-      ('third_c',   'Drittel C',    'third',   false, 22, (2::numeric/3), 0::numeric, (1::numeric/3), 1::numeric),
+      ('half_a',    'Hälfte A',     'half',    false, 10, 0::numeric, 0::numeric, 1::numeric, 0.5::numeric),
+      ('half_b',    'Hälfte B',     'half',    false, 11, 0::numeric, 0.5::numeric, 1::numeric, 0.5::numeric),
+      ('third_a',   'Drittel A',    'third',   false, 20, 0::numeric, 0::numeric, 1::numeric, (1::numeric/3)),
+      ('third_b',   'Drittel B',    'third',   false, 21, 0::numeric, (1::numeric/3), 1::numeric, (1::numeric/3)),
+      ('third_c',   'Drittel C',    'third',   false, 22, 0::numeric, (2::numeric/3), 1::numeric, (1::numeric/3)),
       ('quarter_a', 'Viertel A',    'quarter', false, 30, 0::numeric, 0::numeric, 0.5::numeric, 0.5::numeric),
       ('quarter_b', 'Viertel B',    'quarter', false, 31, 0.5::numeric, 0::numeric, 0.5::numeric, 0.5::numeric),
       ('quarter_c', 'Viertel C',    'quarter', false, 32, 0::numeric, 0.5::numeric, 0.5::numeric, 0.5::numeric),

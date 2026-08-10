@@ -33,11 +33,11 @@ export const STANDARD_ZONE_PRESETS: ReadonlyArray<{
   rect: NormalizedRect;
 }> = [
   { zoneCode: 'entire', name: 'Ganzer Platz', layoutKind: 'entire', blocksEntireField: true, sortOrder: 0, rect: { x: 0, y: 0, w: 1, h: 1 } },
-  { zoneCode: 'half_a', name: 'Hälfte A', layoutKind: 'half', blocksEntireField: false, sortOrder: 10, rect: { x: 0, y: 0, w: 0.5, h: 1 } },
-  { zoneCode: 'half_b', name: 'Hälfte B', layoutKind: 'half', blocksEntireField: false, sortOrder: 11, rect: { x: 0.5, y: 0, w: 0.5, h: 1 } },
-  { zoneCode: 'third_a', name: 'Drittel A', layoutKind: 'third', blocksEntireField: false, sortOrder: 20, rect: { x: 0, y: 0, w: 1 / 3, h: 1 } },
-  { zoneCode: 'third_b', name: 'Drittel B', layoutKind: 'third', blocksEntireField: false, sortOrder: 21, rect: { x: 1 / 3, y: 0, w: 1 / 3, h: 1 } },
-  { zoneCode: 'third_c', name: 'Drittel C', layoutKind: 'third', blocksEntireField: false, sortOrder: 22, rect: { x: 2 / 3, y: 0, w: 1 / 3, h: 1 } },
+  { zoneCode: 'half_a', name: 'Hälfte A', layoutKind: 'half', blocksEntireField: false, sortOrder: 10, rect: { x: 0, y: 0, w: 1, h: 0.5 } },
+  { zoneCode: 'half_b', name: 'Hälfte B', layoutKind: 'half', blocksEntireField: false, sortOrder: 11, rect: { x: 0, y: 0.5, w: 1, h: 0.5 } },
+  { zoneCode: 'third_a', name: 'Drittel A', layoutKind: 'third', blocksEntireField: false, sortOrder: 20, rect: { x: 0, y: 0, w: 1, h: 1 / 3 } },
+  { zoneCode: 'third_b', name: 'Drittel B', layoutKind: 'third', blocksEntireField: false, sortOrder: 21, rect: { x: 0, y: 1 / 3, w: 1, h: 1 / 3 } },
+  { zoneCode: 'third_c', name: 'Drittel C', layoutKind: 'third', blocksEntireField: false, sortOrder: 22, rect: { x: 0, y: 2 / 3, w: 1, h: 1 / 3 } },
   { zoneCode: 'quarter_a', name: 'Viertel A', layoutKind: 'quarter', blocksEntireField: false, sortOrder: 30, rect: { x: 0, y: 0, w: 0.5, h: 0.5 } },
   { zoneCode: 'quarter_b', name: 'Viertel B', layoutKind: 'quarter', blocksEntireField: false, sortOrder: 31, rect: { x: 0.5, y: 0, w: 0.5, h: 0.5 } },
   { zoneCode: 'quarter_c', name: 'Viertel C', layoutKind: 'quarter', blocksEntireField: false, sortOrder: 32, rect: { x: 0, y: 0.5, w: 0.5, h: 0.5 } },
