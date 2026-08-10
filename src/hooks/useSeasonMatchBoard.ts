@@ -28,11 +28,16 @@ const EMPTY_BOARD: SeasonMatchBoard = {
   all: [],
 };
 
-export function useSeasonMatchBoard(teamSeasonId: string | null, recentLimit = 10) {
+export function useSeasonMatchBoard(
+  teamSeasonId: string | null,
+  recentLimit = 10,
+  opts?: { includeOrphanMatches?: boolean },
+) {
   const [board, setBoard] = useState<SeasonMatchBoard>(EMPTY_BOARD);
   const [trainings, setTrainings] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const includeOrphanMatches = opts?.includeOrphanMatches === true;
 
   const refetch = useCallback(async () => {
     const sid = (teamSeasonId ?? '').trim();
@@ -48,7 +53,7 @@ export function useSeasonMatchBoard(teamSeasonId: string | null, recentLimit = 1
     setError(null);
     try {
       const [next, trainingCount] = await Promise.all([
-        fetchSeasonMatchBoard(sid, recentLimit),
+        fetchSeasonMatchBoard(sid, recentLimit, { includeOrphanMatches }),
         countPastTeamTrainings(sid),
       ]);
       setBoard(next);
@@ -60,7 +65,7 @@ export function useSeasonMatchBoard(teamSeasonId: string | null, recentLimit = 1
     } finally {
       setLoading(false);
     }
-  }, [teamSeasonId, recentLimit]);
+  }, [teamSeasonId, recentLimit, includeOrphanMatches]);
 
   useEffect(() => {
     void refetch();

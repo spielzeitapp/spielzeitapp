@@ -5,7 +5,7 @@ import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
-import { canPrepareNextSeason, formatTeamSeasonCompactSwitcherLabel, isSeasonArchived, isSeasonActive, isSeasonDraft } from '../lib/seasonLifecycle';
+import { canPrepareNextSeason, formatTeamSeasonCompactSwitcherLabel, resolveTeamSeasonSwitcherAction } from '../lib/seasonLifecycle';
 import { canViewParentLinks, normalizeRole } from '../lib/roles';
 import { dsGlassToggleTrack, dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
@@ -40,9 +40,8 @@ export const MoreHubPage: React.FC = () => {
     backendRole,
     user,
   } = useSession();
-  const canSwitchTeam =
-    (teamSeasons?.length ?? 0) > 1 &&
-    (effectiveRole === 'trainer' || effectiveRole === 'head_coach' || effectiveRole === 'co_trainer');
+  /** Alle Rollen mit >1 Saison: Archiv/Historie muss erreichbar bleiben (nicht nur Trainer). */
+  const canSwitchTeam = (teamSeasons?.length ?? 0) > 1;
 
   const showTrainerTools = isTrainerToolsRole(effectiveRole);
   const showSeasonManagement =
@@ -348,11 +347,8 @@ export const MoreHubPage: React.FC = () => {
               }
               const ts = (teamSeasons ?? []).find((row) => row.id === id);
               if (!ts) return;
-              if (isSeasonArchived(ts.status)) {
-                setViewTeamSeasonId(id);
-                return;
-              }
-              if (isSeasonActive(ts.status) || isSeasonDraft(ts.status)) {
+              const action = resolveTeamSeasonSwitcherAction(ts.status);
+              if (action === 'select-work') {
                 setSelectedTeamSeasonId(id);
                 return;
               }

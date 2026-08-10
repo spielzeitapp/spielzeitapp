@@ -25,7 +25,7 @@ import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions'
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { isMatchReviewPending } from '../lib/matchPreparationAccess';
-import { formatTeamSeasonCompactSwitcherLabel } from '../lib/seasonLifecycle';
+import { formatTeamSeasonCompactSwitcherLabel, resolveTeamSeasonSwitcherAction } from '../lib/seasonLifecycle';
 import { assertTeamSeasonWritable } from '../lib/seasonTransition';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
@@ -173,6 +173,7 @@ export const SchedulePage: React.FC = () => {
     activeTeamSeasonId,
     teamSeasons,
     setViewTeamSeasonId,
+    setSelectedTeamSeasonId,
     isHistoryReadOnly,
     softLockMessage,
     role: roleFromHook,
@@ -999,7 +1000,21 @@ export const SchedulePage: React.FC = () => {
                       <span className="sr-only">Saison anzeigen</span>
                       <select
                         value={readTeamSeasonId ?? ''}
-                        onChange={(e) => setViewTeamSeasonId(e.target.value || null)}
+                        onChange={(e) => {
+                          const id = e.target.value || null;
+                          if (!id) {
+                            setViewTeamSeasonId(null);
+                            return;
+                          }
+                          const ts = teamSeasons.find((row) => row.id === id);
+                          if (!ts) return;
+                          const action = resolveTeamSeasonSwitcherAction(ts.status);
+                          if (action === 'select-work') {
+                            setSelectedTeamSeasonId(id);
+                            return;
+                          }
+                          setViewTeamSeasonId(id);
+                        }}
                         className="w-full max-w-full rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1.5 text-xs text-white/90 sm:text-sm"
                         aria-label="Saison für Termine wählen"
                       >

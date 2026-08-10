@@ -99,7 +99,7 @@ function headerBadge(match: SeasonMatchCardData): string {
 
 export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
   const navigate = useNavigate();
-  const href = seasonMatchCardHref(match.eventId);
+  const href = seasonMatchCardHref(match.eventId, match.id);
   const clickable = Boolean(href);
 
   const handleClick = () => {

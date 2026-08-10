@@ -36,10 +36,11 @@ function mapVisiblePosts(
   rows: TeamFeedPostDbRow[],
   eventStatusById: Map<string, string>,
   now: Date,
+  opts?: { chronicle?: boolean },
 ): { posts: ClassifiedFeedPost[]; parseDropped: number } {
   const mapped: ClassifiedFeedPost[] = [];
   for (const r of rows) {
-    if (!isFeedPostVisibleInHomeFeed(r, eventStatusById, now)) continue;
+    if (!isFeedPostVisibleInHomeFeed(r, eventStatusById, now, opts)) continue;
     const c = classifyTeamFeedPost(r);
     if (c) mapped.push(c);
   }
@@ -57,10 +58,11 @@ async function fetchEventStatusMapForSeasons(teamSeasonIds: string[]): Promise<M
   return buildEventStatusMap((data ?? []) as { id: string; status: string | null }[]);
 }
 
-/** Aktive Saison robust: primär team_season_id, Fallback team_id+season falls team_id drift. */
+/** Aktive / View-Saison robust: primär team_season_id. */
 async function fetchActiveSeasonPosts(opts: {
   teamSeasonId: string;
   teamId: string | null;
+  chronicleView?: boolean;
 }): Promise<{ posts: ClassifiedFeedPost[]; dbRowCount: number; parseDropped: number }> {
   const { data, error } = await supabase
     .from('team_feed_posts')
@@ -76,8 +78,6 @@ async function fetchActiveSeasonPosts(opts: {
 
   let rows = (data ?? []) as TeamFeedPostDbRow[];
 
-  // Falls aktive Posts team_id NULL / drift haben, trotzdem by season laden (oben).
-  // Zusätzlich: Posts mit korrekter team_id aber ggf. anderer season-id? nicht nötig.
   if (rows.length === 0 && opts.teamId) {
     const { data: byTeam, error: byTeamErr } = await supabase
       .from('team_feed_posts')
@@ -90,7 +90,9 @@ async function fetchActiveSeasonPosts(opts: {
   }
 
   const eventStatusById = await fetchEventStatusMapForSeasons([opts.teamSeasonId]);
-  const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date());
+  const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date(), {
+    chronicle: opts.chronicleView === true,
+  });
   return { posts, dbRowCount: rows.length, parseDropped };
 }
 
@@ -175,10 +177,14 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
 }
 
 /**
- * Home-Feed: aktive Saison + separate Team-Chronik (ältere Saisons).
- * Ensures nur für die aktive Work-Season.
+ * Home-Feed: Lesesaison + Team-Chronik (andere Saisons).
+ * Ensures nur für beschreibbare Work-Seasons (nicht Archiv).
  */
-export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | null = null) {
+export function useTeamFeedPosts(
+  teamSeasonId: string | null,
+  teamId: string | null = null,
+  opts?: { skipEnsures?: boolean; chronicleView?: boolean },
+) {
   const [activePosts, setActivePosts] = useState<ClassifiedFeedPost[]>([]);
   const [historicPosts, setHistoricPosts] = useState<ClassifiedFeedPost[]>([]);
   const [loading, setLoading] = useState(false);
@@ -187,6 +193,8 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
   const [hasMoreHistoric, setHasMoreHistoric] = useState(false);
   const [historicOffset, setHistoricOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const skipEnsures = opts?.skipEnsures === true;
+  const chronicleView = opts?.chronicleView === true;
 
   const loadAll = useCallback(async () => {
     if (!teamSeasonId) {
@@ -200,16 +208,19 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
     }
 
     setLoading(true);
-    setEnsuring(true);
+    setEnsuring(!skipEnsures);
     setError(null);
     try {
       await logMatchdayFeedSeasonContext(teamSeasonId);
-      await runFeedEnsures(teamSeasonId);
+      if (!skipEnsures) {
+        await runFeedEnsures(teamSeasonId);
+      }
       setEnsuring(false);
 
       const active = await fetchActiveSeasonPosts({
         teamSeasonId,
         teamId,
+        chronicleView,
       });
       console.info('[matchday] (5a) active season feed:', {
         teamSeasonId,
@@ -250,7 +261,7 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
       setEnsuring(false);
       setLoading(false);
     }
-  }, [teamSeasonId, teamId]);
+  }, [teamSeasonId, teamId, skipEnsures, chronicleView]);
 
   const loadMoreHistoric = useCallback(async () => {
     if (!teamSeasonId || !teamId || loadingMore || !hasMoreHistoric) return;
@@ -294,16 +305,18 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
         return;
       }
       setLoading(true);
-      setEnsuring(true);
+      setEnsuring(!skipEnsures);
       setError(null);
       try {
         await logMatchdayFeedSeasonContext(teamSeasonId);
         if (cancelled) return;
-        await runFeedEnsures(teamSeasonId);
+        if (!skipEnsures) {
+          await runFeedEnsures(teamSeasonId);
+        }
         if (cancelled) return;
         setEnsuring(false);
 
-        const active = await fetchActiveSeasonPosts({ teamSeasonId, teamId });
+        const active = await fetchActiveSeasonPosts({ teamSeasonId, teamId, chronicleView });
         if (cancelled) return;
         setActivePosts(active.posts);
 
@@ -341,7 +354,7 @@ export function useTeamFeedPosts(teamSeasonId: string | null, teamId: string | n
     return () => {
       cancelled = true;
     };
-  }, [teamSeasonId, teamId]);
+  }, [teamSeasonId, teamId, skipEnsures, chronicleView]);
 
   /** Rückwärtskompatibel: alle geladenen Posts (active + historic). */
   const posts = [...activePosts, ...historicPosts];

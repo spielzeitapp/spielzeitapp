@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
+import { TeamSwitcher } from '../components/TeamSwitcher';
 import { isStagingApp } from '../../lib/appEnvironment';
 
 const APP_HEADER_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
@@ -68,6 +69,7 @@ export const Header: React.FC = () => {
     effectiveRole,
     loading: sessionLoading,
     backendRole,
+    teamSeasons,
   } = useSession();
   const { user, loading: authLoading } = useAuth();
   const publicView = isPublicRoute(pathname);
@@ -156,6 +158,12 @@ export const Header: React.FC = () => {
             </>
           )}
         </div>
+
+        {!publicView && (teamSeasons?.length ?? 0) > 1 ? (
+          <div className="flex shrink-0 justify-center px-1">
+            <TeamSwitcher compact hideWhenSingle />
+          </div>
+        ) : null}
 
         {/* Rechts: Staff-Navigation (Anfragen), Profil + Login (kein Logout im Header) + kompakte Rollen-Badge */}
         {!publicView && (

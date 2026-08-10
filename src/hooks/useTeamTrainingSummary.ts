@@ -16,6 +16,7 @@ export function useTeamTrainingSummary(
   players: PlayerItem[],
   teamSeasonId: string | null,
   enabled = true,
+  opts?: { squadMode?: 'active_only' | 'as_provided' },
 ) {
   const {
     qualified,
@@ -27,7 +28,7 @@ export function useTeamTrainingSummary(
     sessionParticipations,
     loading: rankingLoading,
     error: rankingError,
-  } = useTeamTrainingRanking(players, teamSeasonId, enabled);
+  } = useTeamTrainingRanking(players, teamSeasonId, enabled, opts);
 
   const ranking: TrainingRankingResult = useMemo(
     () => ({

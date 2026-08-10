@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import type { TrainingSessionParticipation } from '../../lib/teamTrainingParticipationStats';
 import { participationPctBadgeClass } from '../../lib/trainingAttendance';
+import { VIENNA_TZ } from '../../lib/viennaTime';
 import { cn } from '../../ui/lib/cn';
 
 type Props = {
@@ -13,11 +14,12 @@ type Props = {
 function formatTrainingDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('de-AT', {
+  return new Intl.DateTimeFormat('de-AT', {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
-  });
+    timeZone: VIENNA_TZ,
+  }).format(d);
 }
 
 function formatCompactCounts(counts: TrainingSessionParticipation['counts']): string {

@@ -30,6 +30,7 @@ type Props = {
     getStatus: (playerId: string) => string | null | undefined,
     playerId: string,
   ) => AttendanceBucket;
+  readOnly?: boolean;
 };
 
 function CompactPlayerRow({
@@ -39,6 +40,7 @@ function CompactPlayerRow({
   bucket,
   onYes,
   onNo,
+  readOnly = false,
 }: {
   player: PlayerItem;
   badge: string;
@@ -46,6 +48,7 @@ function CompactPlayerRow({
   bucket: AttendanceBucket;
   onYes: () => void;
   onNo: () => void;
+  readOnly?: boolean;
 }) {
   const name = premiumPlayerDisplayName(player);
   const avatarSrc = premiumPlayerAvatarSrc(player);
@@ -80,22 +83,24 @@ function CompactPlayerRow({
       >
         {badge}
       </span>
-      <div className="flex shrink-0 gap-0.5">
-        <button
-          type="button"
-          onClick={onYes}
-          className={`${dsRsvpChoiceClass('yes', bucket === 'yes')} !min-h-[26px] !px-2 !py-0.5 !text-[9px]`}
-        >
-          ✓
-        </button>
-        <button
-          type="button"
-          onClick={onNo}
-          className={`${dsRsvpChoiceClass('no', bucket === 'no')} !min-h-[26px] !px-2 !py-0.5 !text-[9px]`}
-        >
-          ✗
-        </button>
-      </div>
+      {readOnly ? null : (
+        <div className="flex shrink-0 gap-0.5">
+          <button
+            type="button"
+            onClick={onYes}
+            className={`${dsRsvpChoiceClass('yes', bucket === 'yes')} !min-h-[26px] !px-2 !py-0.5 !text-[9px]`}
+          >
+            ✓
+          </button>
+          <button
+            type="button"
+            onClick={onNo}
+            className={`${dsRsvpChoiceClass('no', bucket === 'no')} !min-h-[26px] !px-2 !py-0.5 !text-[9px]`}
+          >
+            ✗
+          </button>
+        </div>
+      )}
     </li>
   );
 }
@@ -112,6 +117,7 @@ export function TournamentCompactAttendancePanel({
   onSetAttendance,
   sortPlayers,
   statusBucket,
+  readOnly = false,
 }: Props) {
   const summary = (
     <div className={`flex flex-wrap ${DS_STAT_GRID_GAP}`}>
@@ -181,6 +187,7 @@ export function TournamentCompactAttendancePanel({
                 bucket={bucket}
                 onYes={() => onSetAttendance(player.id, 'yes')}
                 onNo={() => onSetAttendance(player.id, 'no')}
+                readOnly={readOnly}
               />
             );
           })}

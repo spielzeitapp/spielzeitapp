@@ -65,6 +65,7 @@ export function useActiveTeamSeason() {
     teamLine,
     seasonLine,
     selectedTeamSeason: readTeamSeason,
+    readTeamSeason,
     activeTeamSeason: selectedTeamSeason,
     selectedMembership,
     role,

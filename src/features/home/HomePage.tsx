@@ -64,7 +64,7 @@ function filterVisibleFeedPosts(
 
 export const HomePage: React.FC = () => {
   const {
-    selectedTeamSeasonId: teamSeasonId,
+    selectedTeamSeasonId: sessionTeamSeasonId,
     loading: sessionLoading,
     selectedTeamSeason,
     teamSeasons,
@@ -72,26 +72,32 @@ export const HomePage: React.FC = () => {
     membershipRole,
     effectiveRole,
   } = useSession();
+  /** Home: Lesesaison (Archiv-View) — nicht still auf Active zurückfallen. */
+  const { activeTeamSeason, readTeamSeason, readTeamSeasonId, isHistoryReadOnly } = useActiveTeamSeason();
+  const teamSeasonId = readTeamSeasonId ?? sessionTeamSeasonId;
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
-  /** Home zeigt immer die aktive Work-Season (nicht Archiv-View). */
-  const { activeTeamSeason } = useActiveTeamSeason();
   const homeLabelParts = useMemo(() => {
-    if (!activeTeamSeason) return null;
+    const labelSeason = readTeamSeason ?? activeTeamSeason;
+    if (!labelSeason) return null;
     return resolveTeamSeasonLabelParts({
-      displayName: activeTeamSeason.display_name,
-      ageGroup: activeTeamSeason.age_group,
-      teamName: activeTeamSeason.team?.name,
-      seasonName: activeTeamSeason.season?.name,
-      status: activeTeamSeason.status,
+      displayName: labelSeason.display_name,
+      ageGroup: labelSeason.age_group,
+      teamName: labelSeason.team?.name,
+      seasonName: labelSeason.season?.name,
+      status: labelSeason.status,
     });
-  }, [activeTeamSeason]);
+  }, [activeTeamSeason, readTeamSeason]);
   const teamName = homeLabelParts?.teamLine ?? 'Team';
   const seasonLabel = homeLabelParts?.seasonLine && homeLabelParts.seasonLine !== '—'
     ? homeLabelParts.seasonLine
     : '—';
   const teamSeasonLine = homeLabelParts?.full ?? `${teamName} · ${seasonLabel}`;
-  const teamId = String(selectedTeamSeason?.team?.id ?? selectedTeamSeason?.team_id ?? '');
+  const teamId = String(
+    (readTeamSeason ?? selectedTeamSeason)?.team?.id ??
+      (readTeamSeason ?? selectedTeamSeason)?.team_id ??
+      '',
+  );
 
   const seasonMetaById = useMemo(() => {
     const map = new Map<string, FeedSeasonDisplayMeta>();
@@ -199,8 +205,12 @@ export const HomePage: React.FC = () => {
     hasMoreHistoric,
     refetch: refetchFeed,
     loadMoreHistoric,
-  } = useTeamFeedPosts(teamSeasonId, teamId || null);
-  const staffCanDeleteFeed = canStaffManageTeamFeed(backendRole, membershipRole);
+  } = useTeamFeedPosts(teamSeasonId, teamId || null, {
+    skipEnsures: isHistoryReadOnly,
+    chronicleView: isHistoryReadOnly,
+  });
+  const staffCanDeleteFeed =
+    !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
 
   const eventById = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
@@ -293,7 +303,7 @@ export const HomePage: React.FC = () => {
           <p className={cn(dsSublineClass(), 'text-[12px] sm:text-[13px]')}>{teamSeasonLine}</p>
 
           <div className="min-w-0 space-y-3">
-            {teamSeasonId && teamId ? (
+            {teamSeasonId && teamId && !isHistoryReadOnly ? (
               <HomeFeedComposer
                 backendRole={backendRole}
                 membershipRole={membershipRole}
@@ -302,6 +312,11 @@ export const HomePage: React.FC = () => {
                 userId={session?.user?.id ?? null}
                 onPosted={() => void refetchFeed()}
               />
+            ) : null}
+            {isHistoryReadOnly ? (
+              <p className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100/95">
+                Archiv-Ansicht — Feed nur lesen. Aktive Saison bleibt zum Schreiben unverändert.
+              </p>
             ) : null}
 
             {spieltagHintPick ? (

@@ -20,12 +20,15 @@ type Props = {
   players: PlayerItem[];
   teamSeasonId: string;
   onPlayerClick?: (player: PlayerItem) => void;
+  /** Archiv: übergebene Liste = historischer Trainingskader. */
+  squadMode?: 'active_only' | 'as_provided';
 };
 
 export const TeamTrainingDashboard: React.FC<Props> = ({
   players,
   teamSeasonId,
   onPlayerClick,
+  squadMode = 'active_only',
 }) => {
   const [subTab, setSubTab] = useState<TrainingSubTab>('overview');
   const [upcomingTrainings, setUpcomingTrainings] = useState(0);
@@ -50,7 +53,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
     jugglingLoading,
     rankingLoading,
     rankingError,
-  } = useTeamTrainingSummary(players, teamSeasonId, true);
+  } = useTeamTrainingSummary(players, teamSeasonId, true, { squadMode });
 
   const ratedTrainingsLabel =
     rankingLoading && ratedTrainingsCount === 0

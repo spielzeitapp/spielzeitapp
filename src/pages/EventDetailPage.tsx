@@ -22,6 +22,7 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
+import { useHistoricalTrainingRoster } from '../hooks/useHistoricalTrainingRoster';
 import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
@@ -493,8 +494,10 @@ export const EventDetailPage: React.FC = () => {
   const isFan = effectiveRole === 'fan';
   /** Soft-Lock: Archiv-Saison → keine Trainer-Writes (Edit/Delete/Kader/Live-Prep). */
   const [seasonWritable, setSeasonWritable] = useState(true);
-  /** Trainer/Chef/Co/Admin: Spielplan & Spielbericht (Membership-Rolle ist bereits normalisiert). */
-  const canTrainerManageEvent = canManageMatches(effectiveRole) && seasonWritable;
+  /** Trainer/Chef/Co/Admin: Lesen (auch Archiv). */
+  const canTrainerViewEvent = canManageMatches(effectiveRole);
+  /** Trainer-Writes nur in beschreibbarer Saison. */
+  const canTrainerManageEvent = canTrainerViewEvent && seasonWritable;
   /** Match-/Karten-Teamname: immer Club-Identität, nie U11/U12/Saison. */
   const ourTeamName = getOurTeamDisplayName();
 
@@ -517,7 +520,21 @@ export const EventDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [teamSeasonId]);
-  const { players, loading: playersLoading } = usePlayers(teamSeasonId);
+  const archiveTrainingRoster =
+    !seasonWritable && Boolean(teamSeasonId) && event?.kind === 'training';
+  const { players: livePlayers, loading: playersLoadingLive } = usePlayers(
+    archiveTrainingRoster ? null : teamSeasonId,
+    { mode: 'active' },
+  );
+  const {
+    players: historicalTrainingPlayers,
+    loading: historicalTrainingLoading,
+  } = useHistoricalTrainingRoster(teamSeasonId, {
+    enabled: Boolean(archiveTrainingRoster),
+    eventId: archiveTrainingRoster ? eventId : null,
+  });
+  const players = archiveTrainingRoster ? historicalTrainingPlayers : livePlayers;
+  const playersLoading = archiveTrainingRoster ? historicalTrainingLoading : playersLoadingLive;
   const { myAttendancePlayerIds } = useAvailabilityPermissions({
     role: effectiveRole,
     teamSeasonId,
@@ -986,7 +1003,7 @@ export const EventDetailPage: React.FC = () => {
   ]);
 
   const loadEventAttendance = useCallback(async () => {
-    if (!eventId || !canTrainerManageEvent) {
+    if (!eventId || !canTrainerViewEvent) {
       setEventAttendanceByPlayerId({});
       setEventAttendanceReasonByPlayerId({});
       setLoadingEventAttendance(false);
@@ -1013,7 +1030,7 @@ export const EventDetailPage: React.FC = () => {
         setEventAttendanceReasonByPlayerId({});
       }
     setLoadingEventAttendance(false);
-  }, [eventId, canTrainerManageEvent]);
+  }, [eventId, canTrainerViewEvent]);
 
   useEffect(() => {
     loadEventAttendance();
@@ -3147,7 +3164,7 @@ export const EventDetailPage: React.FC = () => {
   const canStartNavigation = Boolean(buildMapsNavigationUrl(audienceNavOpts));
 
   const tournamentTrainerAttendanceSection =
-    isTournament && canTrainerManageEvent ? (
+    isTournament && canTrainerViewEvent ? (
       <TournamentCompactAttendancePanel
         players={players}
         playersLoading={playersLoading}
@@ -3157,19 +3174,27 @@ export const EventDetailPage: React.FC = () => {
         openCount={Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
         getAttendanceStatus={getAttendanceStatus}
         getMatchRsvpDisplay={getMatchRsvpDisplay}
-        onSetAttendance={(playerId, status) => handleTrainerRsvp(playerId, status)}
+        onSetAttendance={(playerId, status) => {
+          if (!canTrainerManageEvent) return;
+          handleTrainerRsvp(playerId, status);
+        }}
         sortPlayers={sortPlayersByRsvpBuckets}
         statusBucket={statusBucket}
+        readOnly={!canTrainerManageEvent}
       />
     ) : null;
 
   const trainingTrainerAttendanceSection =
-    isTraining && canTrainerManageEvent ? (
+    isTraining && canTrainerViewEvent ? (
       <TrainingAttendancePanel
         players={players}
         getStatus={getTrainingAttendanceStatus}
-        onSetStatus={(playerId, status) => void handleTrainerTrainingStatus(playerId, status)}
+        onSetStatus={(playerId, status) => {
+          if (!canTrainerManageEvent) return;
+          void handleTrainerTrainingStatus(playerId, status);
+        }}
         loading={playersLoading || loadingEventAttendance}
+        readOnly={!canTrainerManageEvent}
         className="-mx-1 min-w-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] sm:-mx-1.5"
       />
     ) : null;
@@ -3417,6 +3442,7 @@ export const EventDetailPage: React.FC = () => {
                 trainingTitle={eventCompactTitle}
                 trainingTopics={eventDetailsPrimary}
                 canManage={canTrainerManageEvent}
+                canViewHistory={canTrainerViewEvent && !seasonWritable}
                 trainerAttendanceSection={trainingTrainerAttendanceSection}
                 trainerFeedSection={
                   canTrainerManageEvent ? (
@@ -3618,8 +3644,8 @@ export const EventDetailPage: React.FC = () => {
 
         {!isFan &&
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
-        !(isTournament && canTrainerManageEvent) &&
-        !(isTraining && canTrainerManageEvent) ? (
+        !(isTournament && canTrainerViewEvent) &&
+        !(isTraining && canTrainerViewEvent) ? (
           <Card
             className={
               isTraining
