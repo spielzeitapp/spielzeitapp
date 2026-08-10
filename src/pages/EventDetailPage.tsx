@@ -505,8 +505,10 @@ export const EventDetailPage: React.FC = () => {
   const isFan = !isDemo && effectiveRole === 'fan';
   /** Soft-Lock: Archiv-Saison → keine Trainer-Writes (Edit/Delete/Kader/Live-Prep). */
   const [seasonWritable, setSeasonWritable] = useState(true);
-  /** Trainer/Chef/Co/Admin: Spielplan & Spielbericht (Membership-Rolle ist bereits normalisiert). */
-  const canTrainerManageEvent = isDemo || (canManageMatches(effectiveRole) && seasonWritable);
+  /** Trainer/Chef/Co/Admin: Lesen (auch Archiv). */
+  const canTrainerViewEvent = isDemo || canManageMatches(effectiveRole);
+  /** Trainer-Writes nur in beschreibbarer Saison. */
+  const canTrainerManageEvent = canTrainerViewEvent && seasonWritable;
   /** Match-/Karten-Teamname: immer Club-Identität, nie U11/U12/Saison. */
   const ourTeamName = isDemo && demo ? demo.data.teamName : getOurTeamDisplayName();
 
@@ -533,7 +535,10 @@ export const EventDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [teamSeasonId, isDemo]);
-  const { players: livePlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId);
+  /** Archiv: voller historischer Kader (nicht nur „active“-Filter der Live-Saison). */
+  const { players: livePlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId, {
+    mode: seasonWritable ? 'active' : 'all',
+  });
   const players = isDemo && demo ? demo.players : livePlayers;
   const playersLoading = isDemo ? false : playersLoadingLive;
   const { myAttendancePlayerIds: liveAttendancePlayerIds } = useAvailabilityPermissions({
@@ -1071,7 +1076,7 @@ export const EventDetailPage: React.FC = () => {
   ]);
 
   const loadEventAttendance = useCallback(async () => {
-    if (!eventId || !canTrainerManageEvent) {
+    if (!eventId || !canTrainerViewEvent) {
       setEventAttendanceByPlayerId({});
       setEventAttendanceReasonByPlayerId({});
       setLoadingEventAttendance(false);
@@ -1112,7 +1117,7 @@ export const EventDetailPage: React.FC = () => {
         setEventAttendanceReasonByPlayerId({});
       }
     setLoadingEventAttendance(false);
-  }, [eventId, canTrainerManageEvent, isDemo, demo]);
+  }, [eventId, canTrainerViewEvent, isDemo, demo]);
 
   useEffect(() => {
     loadEventAttendance();
@@ -3321,7 +3326,7 @@ export const EventDetailPage: React.FC = () => {
   const canStartNavigation = Boolean(buildMapsNavigationUrl(audienceNavOpts));
 
   const tournamentTrainerAttendanceSection =
-    isTournament && canTrainerManageEvent ? (
+    isTournament && canTrainerViewEvent ? (
       <TournamentCompactAttendancePanel
         players={players}
         playersLoading={playersLoading}
@@ -3331,19 +3336,27 @@ export const EventDetailPage: React.FC = () => {
         openCount={Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
         getAttendanceStatus={getAttendanceStatus}
         getMatchRsvpDisplay={getMatchRsvpDisplay}
-        onSetAttendance={(playerId, status) => handleTrainerRsvp(playerId, status)}
+        onSetAttendance={(playerId, status) => {
+          if (!canTrainerManageEvent) return;
+          handleTrainerRsvp(playerId, status);
+        }}
         sortPlayers={sortPlayersByRsvpBuckets}
         statusBucket={statusBucket}
+        readOnly={!canTrainerManageEvent}
       />
     ) : null;
 
   const trainingTrainerAttendanceSection =
-    isTraining && canTrainerManageEvent ? (
+    isTraining && canTrainerViewEvent ? (
       <TrainingAttendancePanel
         players={players}
         getStatus={getTrainingAttendanceStatus}
-        onSetStatus={(playerId, status) => void handleTrainerTrainingStatus(playerId, status)}
+        onSetStatus={(playerId, status) => {
+          if (!canTrainerManageEvent) return;
+          void handleTrainerTrainingStatus(playerId, status);
+        }}
         loading={playersLoading || loadingEventAttendance}
+        readOnly={!canTrainerManageEvent}
         className="-mx-1 min-w-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] sm:-mx-1.5"
       />
     ) : null;
@@ -3592,6 +3605,7 @@ export const EventDetailPage: React.FC = () => {
                 trainingTitle={eventCompactTitle}
                 trainingTopics={eventDetailsPrimary}
                 canManage={canTrainerManageEvent}
+                canViewHistory={canTrainerViewEvent && !seasonWritable}
                 trainerAttendanceSection={trainingTrainerAttendanceSection}
                 trainerFeedSection={
                   canTrainerManageEvent ? (
@@ -3795,8 +3809,8 @@ export const EventDetailPage: React.FC = () => {
 
         {!isFan &&
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
-        !(isTournament && canTrainerManageEvent) &&
-        !(isTraining && canTrainerManageEvent) ? (
+        !(isTournament && canTrainerViewEvent) &&
+        !(isTraining && canTrainerViewEvent) ? (
           <Card
             className={
               isTraining

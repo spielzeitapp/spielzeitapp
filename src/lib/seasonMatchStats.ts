@@ -5,9 +5,12 @@ import { isInactiveEventStatus } from './eventFilters';
  * Match-IDs, die für Saisonsstatistik zählen:
  * - Liga/Freundschaftsspiel mit aktivem Event
  * - Turnierspiel mit aktivem Turnier-Event
- * Keine verwaisten Import-/Turnier-Leichen ohne Event.
+ * - optional: alle Matches der Saison (Archiv / Orphans ohne Event-Zeile)
  */
-export async function fetchValidSeasonMatchIds(teamSeasonId: string): Promise<Set<string>> {
+export async function fetchValidSeasonMatchIds(
+  teamSeasonId: string,
+  opts?: { includeOrphanMatches?: boolean },
+): Promise<Set<string>> {
   const sid = teamSeasonId.trim();
   const valid = new Set<string>();
   if (!sid) return valid;
@@ -49,6 +52,19 @@ export async function fetchValidSeasonMatchIds(teamSeasonId: string): Promise<Se
           const mid = (row as { match_id?: string }).match_id;
           if (mid) valid.add(String(mid));
         }
+      }
+    }
+  }
+
+  if (opts?.includeOrphanMatches) {
+    const { data: seasonMatches, error: smErr } = await supabase
+      .from('matches')
+      .select('id')
+      .eq('team_season_id', sid);
+    if (!smErr) {
+      for (const row of seasonMatches ?? []) {
+        const mid = (row as { id?: string }).id;
+        if (mid) valid.add(String(mid));
       }
     }
   }
@@ -440,13 +456,17 @@ function compareMatchDateDesc(a: SeasonMatchCardData, b: SeasonMatchCardData): n
   return db - da;
 }
 
-/** Zielroute für Saison-Spielkarten — immer Event-Detail wenn möglich. */
+/** Zielroute für Saison-Spielkarten — Event-Detail bevorzugt, sonst Match-Detail. */
 export function seasonMatchCardHref(
   eventId: string | null | undefined,
   base: '/app' | '/demo' = '/app',
+  matchId?: string | null,
 ): string | null {
-  const id = (eventId ?? '').trim();
-  return id ? `${base}/events/${encodeURIComponent(id)}` : null;
+  const eid = (eventId ?? '').trim();
+  if (eid) return `${base}/events/${encodeURIComponent(eid)}`;
+  const mid = (matchId ?? '').trim();
+  if (mid) return `${base}/match/${encodeURIComponent(mid)}`;
+  return null;
 }
 
 type BoardMatchRow = VisibleSeasonMatch & {
@@ -457,6 +477,7 @@ type BoardMatchRow = VisibleSeasonMatch & {
 export async function fetchSeasonMatchBoard(
   teamSeasonId: string,
   recentLimit = 10,
+  opts?: { includeOrphanMatches?: boolean },
 ): Promise<SeasonMatchBoard> {
   const sid = teamSeasonId.trim();
   const empty: SeasonMatchBoard = {
@@ -467,7 +488,9 @@ export async function fetchSeasonMatchBoard(
   };
   if (!sid) return empty;
 
-  const validIds = await fetchValidSeasonMatchIds(sid);
+  const validIds = await fetchValidSeasonMatchIds(sid, {
+    includeOrphanMatches: opts?.includeOrphanMatches === true,
+  });
   if (validIds.size === 0) return empty;
 
   const [matchesRes, isHomeByMatchId, eventMetaByMatchId] = await Promise.all([

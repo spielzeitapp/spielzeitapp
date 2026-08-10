@@ -20,7 +20,10 @@ type Props = {
   status?: string | null;
   trainingTitle: string;
   trainingTopics?: string | null;
+  /** Writes (Bearbeiten, Feed schreiben, Attendance ändern). */
   canManage: boolean;
+  /** Archiv-Lesen: Teilnehmer/Stats/Kaiser ohne Writes. */
+  canViewHistory?: boolean;
   trainerAttendanceSection?: React.ReactNode;
   trainerFeedSection?: React.ReactNode;
   trainerActions?: React.ReactNode;
@@ -33,11 +36,15 @@ export function TrainingDetailSections({
   trainingTitle,
   trainingTopics = null,
   canManage,
+  canViewHistory = false,
   trainerAttendanceSection = null,
   trainerFeedSection = null,
   trainerActions = null,
 }: Props) {
-  const { players } = usePlayers(teamSeasonId);
+  const canViewStaffReadouts = canManage || canViewHistory;
+  const { players } = usePlayers(teamSeasonId, {
+    mode: canViewHistory ? 'all' : 'active',
+  });
   const trainingPhase = useMemo(
     (): TrainingCenterPhase => resolveTrainingCenterPhase({ startsAtIso, status }),
     [startsAtIso, status],
@@ -51,16 +58,16 @@ export function TrainingDetailSections({
     participationLabel,
     jugglingAwards,
     jugglingLoading,
-  } = useTeamTrainingSummary(players, teamSeasonId, canManage);
+  } = useTeamTrainingSummary(players, teamSeasonId, canViewStaffReadouts);
 
   const overviewSectionOrder = useMemo((): string[] => {
-    if (trainingPhase === 'after') {
+    if (trainingPhase === 'after' || canViewHistory) {
       return [
         'participants',
         'stats',
         'kaiser',
         'challenges',
-        ...(canManage ? ['topics', 'feed', 'admin'] : ['feed']),
+        ...(canManage ? ['topics', 'feed', 'admin'] : canViewHistory ? ['topics'] : ['feed']),
       ];
     }
     if (trainingPhase === 'during') {
@@ -75,7 +82,7 @@ export function TrainingDetailSections({
       return ['availability', 'topics', 'challenges', 'feed', 'participants', 'stats', 'admin'];
     }
     return ['topics', 'feed'];
-  }, [trainingPhase, canManage]);
+  }, [trainingPhase, canManage, canViewHistory]);
 
   const topicsText = safeText(trainingTopics);
 
@@ -111,13 +118,17 @@ export function TrainingDetailSections({
         );
       case 'topics':
         if (!topicsText) {
-          if (!canManage) return null;
+          if (!canManage && !canViewHistory) return null;
           return (
             <CenterEmptyState
               key={key}
               icon={Dumbbell}
               title="Keine Trainingsthemen"
-              description="Trage Schwerpunkte und Übungen beim Bearbeiten des Trainings ein."
+              description={
+                canManage
+                  ? 'Trage Schwerpunkte und Übungen beim Bearbeiten des Trainings ein.'
+                  : 'Für dieses historische Training sind keine Themen hinterlegt.'
+              }
             />
           );
         }
@@ -143,19 +154,24 @@ export function TrainingDetailSections({
           </CenterCollapsibleSection>
         );
       case 'participants':
-        if (!canManage || !trainerAttendanceSection) return null;
+        if (!canViewStaffReadouts || !trainerAttendanceSection) return null;
         return (
           <CenterCollapsibleSection
             key={key}
-            title="Trainingsteilnehmer"
+            title={canViewHistory && !canManage ? 'Trainingsteilnehmer (Archiv)' : 'Trainingsteilnehmer'}
             icon="👥"
-            defaultExpanded={trainingPhase !== 'before'}
+            defaultExpanded={trainingPhase !== 'before' || canViewHistory}
           >
+            {canViewHistory && !canManage ? (
+              <p className="mb-3 text-[11px] text-amber-200/90">
+                Abgeschlossene Saison — nur Lesen. Keine Änderungen an der Teilnahme.
+              </p>
+            ) : null}
             {trainerAttendanceSection}
           </CenterCollapsibleSection>
         );
       case 'stats':
-        if (!canManage) return null;
+        if (!canViewStaffReadouts) return null;
         return (
           <section key={key} className={EC_CARD}>
             <div className={EC_CARD_INNER}>
@@ -174,7 +190,7 @@ export function TrainingDetailSections({
           </section>
         );
       case 'kaiser':
-        if (!canManage) return null;
+        if (!canViewStaffReadouts) return null;
         return (
           <div key={key}>
             <TrainingKaiserCard

@@ -243,7 +243,9 @@ export const TeamPage: React.FC = () => {
     all: allSeasonMatchesLive,
     loading: seasonMatchesLoadingLive,
     error: seasonMatchesErrorLive,
-  } = useSeasonMatchBoard(isDemo ? null : teamSeasonId, 10);
+  } = useSeasonMatchBoard(isDemo ? null : teamSeasonId, isHistoryReadOnly ? 50 : 10, {
+    includeOrphanMatches: isHistoryReadOnly,
+  });
 
   const demoSeasonBoard = useMemo(() => {
     if (!isDemo || !demo) return null;

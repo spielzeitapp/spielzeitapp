@@ -24,6 +24,8 @@ type Props = {
   onSetStatus: (playerId: string, status: TrainingAttendanceStatus) => void;
   loading?: boolean;
   className?: string;
+  /** Archiv / Soft-Lock: Status anzeigen, keine Buttons. */
+  readOnly?: boolean;
 };
 
 function comparePlayers(a: PlayerItem, b: PlayerItem): number {
@@ -142,6 +144,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   onSetStatus,
   loading = false,
   className = '',
+  readOnly = false,
 }) => {
   const counts = useMemo(() => {
     const statuses = players.map((p) => getStatus(p.id));
@@ -213,6 +216,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                     </>
                   }
                   footer={
+                    readOnly ? undefined : (
                     <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
                       <button
                         type="button"
@@ -255,6 +259,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         LAZ
                       </button>
                     </div>
+                    )
                   }
                 />
               </li>
