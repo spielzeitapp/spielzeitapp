@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Dumbbell, Radio } from 'lucide-react';
 import { usePlayers } from '../../hooks/usePlayers';
+import { useHistoricalTrainingRoster } from '../../hooks/useHistoricalTrainingRoster';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
 import { resolveTrainingCenterPhase, type TrainingCenterPhase } from '../../lib/trainingCenterPhase';
 import { safeText } from '../../lib/safeText';
@@ -42,9 +43,13 @@ export function TrainingDetailSections({
   trainerActions = null,
 }: Props) {
   const canViewStaffReadouts = canManage || canViewHistory;
-  const { players } = usePlayers(teamSeasonId, {
-    mode: canViewHistory ? 'all' : 'active',
+  const { players: livePlayers } = usePlayers(canViewHistory ? null : teamSeasonId, {
+    mode: 'active',
   });
+  const { players: historicalPlayers } = useHistoricalTrainingRoster(teamSeasonId, {
+    enabled: canViewHistory,
+  });
+  const players = canViewHistory ? historicalPlayers : livePlayers;
   const trainingPhase = useMemo(
     (): TrainingCenterPhase => resolveTrainingCenterPhase({ startsAtIso, status }),
     [startsAtIso, status],
@@ -58,7 +63,9 @@ export function TrainingDetailSections({
     participationLabel,
     jugglingAwards,
     jugglingLoading,
-  } = useTeamTrainingSummary(players, teamSeasonId, canViewStaffReadouts);
+  } = useTeamTrainingSummary(players, teamSeasonId, canViewStaffReadouts, {
+    squadMode: canViewHistory ? 'as_provided' : 'active_only',
+  });
 
   const overviewSectionOrder = useMemo((): string[] => {
     if (trainingPhase === 'after' || canViewHistory) {

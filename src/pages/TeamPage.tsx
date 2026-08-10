@@ -14,6 +14,7 @@ import {
 } from "../ui";
 import { Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
+import { useHistoricalTrainingRoster } from "../hooks/useHistoricalTrainingRoster";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
 import { assertTeamSeasonWritable } from "../lib/seasonTransition";
@@ -185,6 +186,12 @@ export const TeamPage: React.FC = () => {
   } = usePlayers(isDemo ? null : (readTeamSeasonId ?? teamSeasonId), {
     mode: canManageRoster(normalizeRole(role)) || isHistoryReadOnly ? "all" : "active",
   });
+  const {
+    players: historicalTrainingPlayers,
+  } = useHistoricalTrainingRoster(isDemo ? null : (readTeamSeasonId ?? teamSeasonId), {
+    enabled: !isDemo && isHistoryReadOnly,
+  });
+  const trainingRosterPlayers = isHistoryReadOnly ? historicalTrainingPlayers : players;
   const players = isDemo ? demo!.players : livePlayers;
   const plLoading = isDemo ? false : plLoadingLive;
   const plError = isDemo ? null : plErrorLive;
@@ -1277,14 +1284,19 @@ export const TeamPage: React.FC = () => {
           </PremiumCard>
         ) : canViewTrainingKaiser && teamSeasonId != null ? (
           <TeamTrainingDashboard
-            players={players}
+            players={trainingRosterPlayers}
             teamSeasonId={teamSeasonId}
+            squadMode={isHistoryReadOnly ? "as_provided" : "active_only"}
             onPlayerClick={(player) => {
               openPlayerProfile(player, "training");
             }}
           />
         ) : teamSeasonId != null ? (
-          <TeamTrainingPublicOverview players={players} teamSeasonId={teamSeasonId} />
+          <TeamTrainingPublicOverview
+            players={trainingRosterPlayers}
+            teamSeasonId={teamSeasonId}
+            squadMode={isHistoryReadOnly ? "as_provided" : "active_only"}
+          />
         ) : null
       ) : null}
 

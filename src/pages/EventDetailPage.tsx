@@ -22,6 +22,7 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
+import { useHistoricalTrainingRoster } from '../hooks/useHistoricalTrainingRoster';
 import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
@@ -535,12 +536,30 @@ export const EventDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [teamSeasonId, isDemo]);
-  /** Archiv: voller historischer Kader (nicht nur „active“-Filter der Live-Saison). */
-  const { players: livePlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId, {
-    mode: seasonWritable ? 'active' : 'all',
+  const archiveTrainingRoster =
+    !isDemo && !seasonWritable && Boolean(teamSeasonId) && event?.kind === 'training';
+  const { players: livePlayers, loading: playersLoadingLive } = usePlayers(
+    isDemo || archiveTrainingRoster ? null : teamSeasonId,
+    { mode: 'active' },
+  );
+  const {
+    players: historicalTrainingPlayers,
+    loading: historicalTrainingLoading,
+  } = useHistoricalTrainingRoster(teamSeasonId, {
+    enabled: Boolean(archiveTrainingRoster),
+    eventId: archiveTrainingRoster ? eventId : null,
   });
-  const players = isDemo && demo ? demo.players : livePlayers;
-  const playersLoading = isDemo ? false : playersLoadingLive;
+  const players =
+    isDemo && demo
+      ? demo.players
+      : archiveTrainingRoster
+        ? historicalTrainingPlayers
+        : livePlayers;
+  const playersLoading = isDemo
+    ? false
+    : archiveTrainingRoster
+      ? historicalTrainingLoading
+      : playersLoadingLive;
   const { myAttendancePlayerIds: liveAttendancePlayerIds } = useAvailabilityPermissions({
     role: effectiveRole,
     teamSeasonId: isDemo ? null : teamSeasonId,

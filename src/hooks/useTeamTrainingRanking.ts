@@ -27,16 +27,24 @@ export function useTeamTrainingRanking(
   players: PlayerItem[],
   teamSeasonId: string | null,
   enabled = true,
+  opts?: {
+    /**
+     * active_only (Default): nur status=active im Nenner.
+     * as_provided: übergebene Liste ist bereits der historische Trainingskader.
+     */
+    squadMode?: 'active_only' | 'as_provided';
+  },
 ) {
   const demo = useDemoMode();
   const [result, setResult] = useState<TrainingRankingResult>(EMPTY_RESULT);
   const [loading, setLoading] = useState(Boolean(enabled));
   const [error, setError] = useState<string | null>(null);
+  const squadMode = opts?.squadMode ?? 'active_only';
 
-  const activePlayers = useMemo(
-    () => players.filter((p) => (p.status ?? 'active') === 'active'),
-    [players],
-  );
+  const squadPlayers = useMemo(() => {
+    if (squadMode === 'as_provided') return players;
+    return players.filter((p) => (p.status ?? 'active') === 'active');
+  }, [players, squadMode]);
 
   const demoAttendanceKey = demo
     ? demo.attendanceRows.map((r) => `${r.event_id}:${r.player_id}:${r.status}`).join('|')
@@ -57,14 +65,14 @@ export function useTeamTrainingRanking(
       return;
     }
 
-    const useDemoData = Boolean(demo) || activePlayers.some((p) => isDemoPlayerId(p.id));
+    const useDemoData = Boolean(demo) || squadPlayers.some((p) => isDemoPlayerId(p.id));
 
     setLoading(true);
     setError(null);
     try {
       if (useDemoData && demo) {
         const pastEvents = getDemoPastTrainingEvents(demo.data.events);
-        const playerIds = activePlayers.map((p) => p.id);
+        const playerIds = squadPlayers.map((p) => p.id);
         const statsByPlayerId = buildDemoStatsByPlayerId(
           playerIds,
           pastEvents,
@@ -75,7 +83,7 @@ export function useTeamTrainingRanking(
           playerIds,
           demo.attendanceRows,
         );
-        const ranking = buildTrainingRanking(activePlayers, statsByPlayerId, pastEvents.length);
+        const ranking = buildTrainingRanking(squadPlayers, statsByPlayerId, pastEvents.length);
         setResult({
           ...ranking,
           teamParticipationPct: computeDemoSquadParticipationPct(sessionParticipations),
@@ -84,7 +92,7 @@ export function useTeamTrainingRanking(
         return;
       }
 
-      if (activePlayers.length === 0) {
+      if (squadPlayers.length === 0) {
         const participationRpc = await fetchTeamTrainingParticipationPct(sid);
         setResult({
           ...EMPTY_RESULT,
@@ -96,14 +104,14 @@ export function useTeamTrainingRanking(
         return;
       }
 
-      const playerIds = activePlayers.map((p) => p.id);
+      const playerIds = squadPlayers.map((p) => p.id);
       const [{ events, statsByPlayerId }, squadParticipation, participationRpc] = await Promise.all([
         loadTeamPlayersTrainingStats(playerIds, sid),
         loadSquadTrainingParticipation(sid, playerIds),
         fetchTeamTrainingParticipationPct(sid),
       ]);
       const sessionsCount = events.length;
-      const ranking = buildTrainingRanking(activePlayers, statsByPlayerId, sessionsCount);
+      const ranking = buildTrainingRanking(squadPlayers, statsByPlayerId, sessionsCount);
       setResult({
         ...ranking,
         teamParticipationPct: participationRpc.pct ?? squadParticipation.squadParticipationPct,
@@ -118,7 +126,7 @@ export function useTeamTrainingRanking(
     } finally {
       setLoading(false);
     }
-  }, [activePlayers, teamSeasonId, enabled, demo, demoAttendanceKey]);
+  }, [squadPlayers, teamSeasonId, enabled, demo, demoAttendanceKey]);
 
   useEffect(() => {
     void load();

@@ -14,14 +14,20 @@ import { countDemoUpcomingTrainings } from '../../demo/demoTrainingStats';
 type Props = {
   players: PlayerItem[];
   teamSeasonId: string;
+  squadMode?: 'active_only' | 'as_provided';
 };
 
-export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeasonId }) => {
+export const TeamTrainingPublicOverview: React.FC<Props> = ({
+  players,
+  teamSeasonId,
+  squadMode = 'active_only',
+}) => {
   const demo = useDemoMode();
   const { ratedTrainingsCount, participationLabel, ranking, rankingLoading, rankingError } = useTeamTrainingSummary(
     players,
     teamSeasonId,
     true,
+    { squadMode },
   );
   const [upcomingTrainings, setUpcomingTrainings] = useState(0);
 
