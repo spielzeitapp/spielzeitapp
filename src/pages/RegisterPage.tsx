@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
-import { getAuthRedirectUrl } from '../lib/authRedirect';
+import { AUTH_EMAIL_CONFIRM_PATH, getAuthRedirectUrl } from '../lib/authRedirect';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -55,12 +55,15 @@ export const RegisterPage: React.FC = () => {
         password,
         options: {
           data: { first_name: trimmedFirst, last_name: trimmedLast },
-          emailRedirectTo: getAuthRedirectUrl('/'),
+          emailRedirectTo: getAuthRedirectUrl(AUTH_EMAIL_CONFIRM_PATH),
         },
       };
       console.log('[RegisterPage] signUp payload (no password):', {
         email: signUpPayload.email,
-        options: signUpPayload.options,
+        options: {
+          data: signUpPayload.options.data,
+          emailRedirectTo: signUpPayload.options.emailRedirectTo,
+        },
       });
 
       const result = await supabase.auth.signUp(signUpPayload);

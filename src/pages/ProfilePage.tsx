@@ -471,7 +471,19 @@ export const ProfilePage: React.FC = () => {
                 ) : childrenError ? (
                   <p className="mt-0.5 text-xs text-[var(--text-sub)]">Kind-Verknüpfung aktuell nicht verfügbar.</p>
                 ) : linkedChildren.length === 0 ? (
-                  <p className="mt-0.5 text-xs text-[var(--text-sub)]">Kein Kind verknüpft.</p>
+                  <div className="mt-2 space-y-2">
+                    <p className="text-sm font-medium text-[var(--text-main)]">Noch kein Kind verknüpft</p>
+                    <p className="text-xs text-[var(--text-sub)]">
+                      Sobald dein Kind verknüpft ist, siehst du hier die Mannschaft, Termine und Zu-
+                      oder Absagen. Ein Trainer kann die Verknüpfung ebenfalls für dich anlegen.
+                    </p>
+                    <Link
+                      to="/app/parent-onboarding?mode=link"
+                      className="inline-flex min-h-[40px] items-center rounded-full bg-red-600 px-4 text-sm font-semibold text-white"
+                    >
+                      Kind verknüpfen
+                    </Link>
+                  </div>
                 ) : (
                   <ul className="mt-2 space-y-3">
                     {linkedChildren.map((child) => (

@@ -294,17 +294,28 @@ export const HomePage: React.FC = () => {
           title={
             effectiveRole === 'fan'
               ? 'Dein Team wartet auf dich'
-              : 'Team / Saison wählen'
+              : effectiveRole === 'parent'
+                ? 'Noch kein Kind verknüpft'
+                : 'Team / Saison wählen'
           }
           description={
             effectiveRole === 'fan'
               ? 'Wähle dein Team, um Spieltage, Ergebnisse und Live-Updates zu sehen.'
-              : 'Bitte Team / Saison wählen (z. B. unter „Mehr“).'
+              : effectiveRole === 'parent'
+                ? 'Sobald dein Kind verknüpft ist, siehst du hier die Mannschaft, Termine und Zu- oder Absagen. Ein Trainer kann die Verknüpfung ebenfalls durchführen.'
+                : 'Bitte Team / Saison wählen (z. B. unter „Mehr“).'
           }
         >
           {effectiveRole === 'fan' ? (
             <Link to="/app/fan-onboarding" className={cn(dsPrimaryCtaClass(), 'inline-flex min-h-[44px] items-center px-5')}>
               Team wählen
+            </Link>
+          ) : effectiveRole === 'parent' ? (
+            <Link
+              to="/app/parent-onboarding?mode=link"
+              className={cn(dsPrimaryCtaClass(), 'inline-flex min-h-[44px] items-center px-5')}
+            >
+              Kind verknüpfen
             </Link>
           ) : null}
         </PremiumEmptyState>

@@ -1,13 +1,14 @@
 import { normalizeRole as normalizeSessionRole } from '../auth/useSession';
 import type { Membership } from '../auth/useSession';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from './roles';
 import {
   getVapidPublicKey,
-  isPushBrowserSupported,
   isPushFullyActive,
 } from './pushSubscriptionCore';
 import { shouldDeferPushOnboardingPrompt } from './pushOnboardingPrompt';
+import { isParentLinkDeferred, isParentOnboardingSatisfied } from './parentChildLink';
 
 export const PUSH_ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
@@ -50,8 +51,9 @@ export async function isUserOnboardingComplete(params: {
   backendRole: string;
   previewRole: string | null;
   memberships: Membership[];
+  user?: User | null;
 }): Promise<boolean> {
-  const { userId, backendRole, previewRole, memberships } = params;
+  const { userId, backendRole, previewRole, memberships, user } = params;
   const membershipList = memberships ?? [];
 
   if (hasStaffAccess(backendRole, membershipList)) return true;
@@ -73,8 +75,9 @@ export async function isUserOnboardingComplete(params: {
     .eq('user_id', userId)
     .limit(1);
   const hasGuardian = !pgRes.error && (pgRes.data ?? []).length > 0;
+  const deferred = isParentLinkDeferred(user ?? null);
 
-  if (hasParentMembership && hasGuardian) return true;
+  if (hasGuardian) return true;
   if (hasFanMembership) return true;
   if (
     preview === 'fan' &&
@@ -87,15 +90,19 @@ export async function isUserOnboardingComplete(params: {
   if (preview === 'player' && !hasPlayerMembership) return false;
   if (hasPlayerMembership) return true;
 
-  const needsParentOnboarding =
-    preview === 'parent' ||
-    normalizeSessionRole(backendRole) === 'parent' ||
-    hasParentMembership ||
-    hasGuardian;
+  const parentSat = isParentOnboardingSatisfied({
+    hasGuardian,
+    hasParentMembership,
+    deferred,
+    previewIsParent: preview === 'parent',
+    backendIsParent: normalizeSessionRole(backendRole) === 'parent',
+  });
+  if (parentSat.needsOnboardingUi) return false;
+  if (parentSat.complete && (hasParentMembership || deferred || preview === 'parent')) {
+    return true;
+  }
 
-  if (needsParentOnboarding) return false;
-
-  if (membershipList.length === 0 && !hasGuardian) return false;
+  if (membershipList.length === 0 && !hasGuardian && !deferred) return false;
 
   return true;
 }

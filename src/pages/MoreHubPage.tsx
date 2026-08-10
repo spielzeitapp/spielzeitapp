@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CalendarRange, ChevronRight, Settings, Smartphone, Users, Wrench } from 'lucide-react';
+import { Bell, CalendarRange, ChevronRight, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -443,6 +443,27 @@ export const MoreHubPage: React.FC = () => {
               </PremiumCard>
             )}
           </div>
+        )}
+
+        {(effectiveRole === 'parent' ||
+          normalizeRole(effectiveRole) === 'parent' ||
+          normalizeRole(sessionEffectiveRole) === 'parent') && (
+          <HubRowLink
+            to="/app/parent-onboarding?mode=link"
+            className={dsPanelRowClass()}
+            isDemo={isDemo}
+          >
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex items-center gap-3">
+                <Link2 className="h-5 w-5 text-red-400" aria-hidden />
+                <span>Kind verknüpfen</span>
+              </span>
+              <span className="pl-8 text-[11px] font-normal text-white/45">
+                Aktive Saison und verfügbare Spieler
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+          </HubRowLink>
         )}
 
         <HubRowLink to="/app/profile" className={dsPanelRowClass()} isDemo={isDemo}>

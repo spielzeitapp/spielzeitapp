@@ -45,6 +45,7 @@ import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { SetPasswordPage } from '../pages/SetPasswordPage';
+import { AuthMinimalLayout } from './layout/AuthMinimalLayout';
 import { AdminLoginPage } from '../pages/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
@@ -265,6 +266,9 @@ function InternalRoutes(): React.ReactElement {
         <Route index element={<IntroEntryRedirect />} />
         <Route path="intro/splash" element={<SplashScreen />} />
         <Route path="intro/welcome" element={<WelcomeScreen />} />
+        <Route element={<AuthMinimalLayout />}>
+          <Route path="set-password" element={<SetPasswordPage />} />
+        </Route>
         <Route element={<InternalLayout />}>
         <Route path="home" element={<AppHomePage />} />
         <Route path="termine" element={<TermineLayout />}>
@@ -277,7 +281,6 @@ function InternalRoutes(): React.ReactElement {
         <Route path="parent-onboarding" element={<ParentOnboardingPage />} />
         <Route path="fan-onboarding" element={<FanOnboardingPage />} />
         <Route path="player-onboarding" element={<PlayerOnboardingPage />} />
-        <Route path="set-password" element={<SetPasswordPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
         <Route path="match/:id" element={<MatchDetailPage />} />
         <Route path="aufstellung" element={<Navigate to="/app/match-lineup" replace />} />
