@@ -14,10 +14,12 @@ import { normalizeOefbImportedTeamName } from '../lib/oefbTeamNameNormalize';
 import {
   createFieldZone,
   createVenueField,
+  ensureStandardFieldZones,
   listFieldZones,
   listVenueFields,
   updateFieldZone,
   updateVenueField,
+  zoneRowToGeometry,
   VENUE_FIELD_TYPE_LABELS,
   type VenueFieldRow,
   type VenueFieldType,
@@ -37,9 +39,18 @@ import {
   canManageFacilityAssignmentForEvent,
   fieldUtilizationInInterval,
   findLocalFieldConflicts,
+  suggestFreeSiblingFields,
   suggestFreeZones,
   type FieldConflictCandidate,
 } from '../lib/fieldScheduleConflicts';
+import {
+  SPLIT_DEMAND_LABELS,
+  SPLIT_DEMAND_SHORT,
+  filterZonesForDemand,
+  inferDemandFromZone,
+  type FieldSplitDemand,
+} from '../lib/fieldZoneGeometry';
+import { FacilityFieldPitch, type PitchOccupancy } from '../components/facility/FacilityFieldPitch';
 import {
   addDays,
   formatWeekRangeLabel,
@@ -287,19 +298,27 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   );
 
   const assignmentCandidates = useMemo((): FieldConflictCandidate[] => {
+    const eventById = new Map(events.map((e) => [e.id, e]));
     return assignments.map((a) => {
       const zone = a.zone_id ? (zonesByField[a.field_id] ?? []).find((z) => z.id === a.zone_id) : null;
+      const geom = zone ? zoneRowToGeometry(zone) : null;
+      const ev = eventById.get(a.event_id);
+      const label = ev
+        ? [ev.age_group, ev.team_name].filter(Boolean).join(' ') || 'Mannschaft'
+        : 'Mannschaft';
       return {
         id: a.id,
         fieldId: a.field_id,
         zoneId: a.zone_id,
-        blocksEntireField: !a.zone_id || Boolean(zone?.blocks_entire_field),
+        blocksEntireField: !a.zone_id || Boolean(zone?.blocks_entire_field) || geom?.layoutKind === 'entire',
         startsAtMs: new Date(a.starts_at).getTime(),
         endsAtMs: new Date(a.ends_at).getTime(),
         eventId: a.event_id,
+        zone: geom,
+        label,
       };
     });
-  }, [assignments, zonesByField]);
+  }, [assignments, zonesByField, events]);
 
   const blocksByDay = useMemo(() => {
     const m = new Map<string, ScheduleBlock[]>();
@@ -745,6 +764,73 @@ function CalendarPanel(props: {
             })}
           </ul>
         )}
+        {props.filterFieldId ? (
+          <FieldDayPitchPanel
+            fieldId={props.filterFieldId}
+            dayBlocks={selectedBlocks}
+            fields={props.fields}
+            venues={props.venues}
+            zonesByField={props.zonesByField}
+            canManageEvent={props.canManageEvent}
+          />
+        ) : props.filterVenueId ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-[13px] font-semibold text-slate-800">Plätze dieser Sportanlage</p>
+            <ul className="mt-2 space-y-2">
+              {props.fieldsForFilter.map((f) => {
+                const count = selectedBlocks.filter((b) => b.assignment?.field_id === f.id).length;
+                return (
+                  <li key={f.id} className="flex items-center justify-between text-[12px] text-slate-600">
+                    <span className="font-medium text-slate-800">{f.name}</span>
+                    <span>{count === 0 ? 'frei / keine Buchung' : `${count} Belegung${count === 1 ? '' : 'en'}`}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function FieldDayPitchPanel(props: {
+  fieldId: string;
+  dayBlocks: ScheduleBlock[];
+  fields: VenueFieldRow[];
+  venues: VenueRow[];
+  zonesByField: Record<string, VenueFieldZoneRow[]>;
+  canManageEvent: (e: ClubEvent) => boolean;
+}): React.ReactElement | null {
+  const field = props.fields.find((f) => f.id === props.fieldId);
+  if (!field) return null;
+  const venue = props.venues.find((v) => v.id === field.venue_id);
+  const zones = props.zonesByField[field.id] ?? [];
+  const geoms = zones.map(zoneRowToGeometry);
+  const assigned = props.dayBlocks.filter((b) => b.assignment?.field_id === field.id && !b.unassigned);
+  const occ: PitchOccupancy[] = assigned.map((b) => {
+    const z = b.assignment?.zone_id ? zones.find((x) => x.id === b.assignment!.zone_id) : null;
+    const geom = z ? zoneRowToGeometry(z) : null;
+    return {
+      zoneId: b.assignment?.zone_id ?? null,
+      zone: geom,
+      teamLabel: [b.event.age_group, b.event.team_name].filter(Boolean).join(' ') || 'Mannschaft',
+      timeLabel: `${formatHm(b.startsAt)}–${formatHm(b.endsAt)}`,
+      kindLabel: eventKindLabel(b.event.kind),
+      demandLabel: zoneDemandLabel(z),
+      own: props.canManageEvent(b.event),
+      readOnly: !props.canManageEvent(b.event),
+    };
+  });
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-[13px] font-semibold text-slate-800">
+        {venue?.name ?? 'Sportanlage'} · {field.name}
+      </p>
+      <p className="text-[12px] text-slate-500">Grafischer Belegungsplan für den gewählten Tag</p>
+      <div className="mt-3 max-w-xs">
+        <FacilityFieldPitch zones={geoms} demand="half" occupancies={occ} compact />
       </div>
     </div>
   );
@@ -756,12 +842,18 @@ function utilizationLabel(
   candidates: FieldConflictCandidate[],
 ): string | null {
   if (!block.assignment) return null;
-  const zones = (zonesByField[block.assignment.field_id] ?? []).map((z) => ({
-    id: z.id,
-    name: z.name,
-    blocksEntireField: z.blocks_entire_field,
-    isActive: z.is_active,
-  }));
+  const zones = (zonesByField[block.assignment.field_id] ?? []).map((z) => {
+    const geom = zoneRowToGeometry(z);
+    return {
+      id: z.id,
+      name: z.name,
+      blocksEntireField: z.blocks_entire_field || geom.layoutKind === 'entire',
+      isActive: z.is_active,
+      zone: geom,
+      layoutKind: geom.layoutKind,
+      rect: geom.rect,
+    };
+  });
   const util = fieldUtilizationInInterval({
     fieldId: block.assignment.field_id,
     startsAtMs: new Date(block.startsAt).getTime(),
@@ -772,6 +864,13 @@ function utilizationLabel(
   if (util === 'full') return 'Platz vollständig ausgelastet';
   if (util === 'partial') return 'Teilfläche belegt';
   return null;
+}
+
+function zoneDemandLabel(zone: VenueFieldZoneRow | null | undefined): string {
+  if (!zone) return SPLIT_DEMAND_SHORT.entire;
+  const geom = zoneRowToGeometry(zone);
+  const demand = inferDemandFromZone(geom);
+  return SPLIT_DEMAND_SHORT[demand];
 }
 
 function fieldLabel(
@@ -786,7 +885,9 @@ function fieldLabel(
   const zone = assignment.zone_id
     ? (zonesByField[assignment.field_id] ?? []).find((z) => z.id === assignment.zone_id)
     : null;
-  return [venue?.name, field?.name, zone?.name ?? 'Gesamter Platz'].filter(Boolean).join(' · ');
+  return [venue?.name, field?.name, zone?.name ?? 'Gesamter Platz', zone ? zoneDemandLabel(zone) : null]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 function FacilitiesPanel(props: {
@@ -1013,6 +1114,16 @@ function FieldRow(props: {
   onToast: (msg: string) => void;
 }): React.ReactElement {
   const [zoneName, setZoneName] = useState('');
+  const [seeding, setSeeding] = useState(false);
+  const geoms = props.zones.map(zoneRowToGeometry);
+  const previewDemand: FieldSplitDemand =
+    geoms.some((z) => z.layoutKind === 'half')
+      ? 'half'
+      : geoms.some((z) => z.layoutKind === 'third')
+        ? 'third'
+        : geoms.some((z) => z.layoutKind === 'quarter')
+          ? 'quarter'
+          : 'entire';
 
   return (
     <li className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
@@ -1023,7 +1134,7 @@ function FieldRow(props: {
             {VENUE_FIELD_TYPE_LABELS[props.field.field_type]}
           </span>
           {!props.field.is_active ? (
-            <span className="ml-2 text-[11px] text-slate-400">inaktiv</span>
+            <span className="ml-2 text-[11px] text-slate-400">archiviert</span>
           ) : null}
         </p>
         <button
@@ -1034,17 +1145,40 @@ function FieldRow(props: {
             await props.onReload();
           }}
         >
-          {props.field.is_active ? 'Deaktivieren' : 'Aktivieren'}
+          {props.field.is_active ? 'Archivieren' : 'Reaktivieren'}
         </button>
       </div>
       <p className="mt-1 text-[11px] text-slate-500">
-        Teilflächen: {props.zones.length === 0 ? 'nur gesamter Platz' : props.zones.map((z) => z.name).join(', ')}
+        Aufteilungen:{' '}
+        {(props.field.supported_splits ?? ['entire', 'half', 'third', 'quarter'])
+          .map((s) => SPLIT_DEMAND_LABELS[s])
+          .join(' · ')}
+      </p>
+      <p className="mt-1 text-[11px] text-slate-500">
+        Zonen: {props.zones.length === 0 ? 'noch keine Standardzonen' : props.zones.map((z) => z.name).join(', ')}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={seeding}
+          className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-red-800 disabled:opacity-40"
+          onClick={async () => {
+            setSeeding(true);
+            const res = await ensureStandardFieldZones(props.field.id);
+            setSeeding(false);
+            if (res.error) props.onToast(res.error);
+            else {
+              props.onToast('Standardzonen (Ganz/½/⅓/¼) angelegt bzw. aktualisiert.');
+              await props.onReload();
+            }
+          }}
+        >
+          Standardzonen erzeugen
+        </button>
         <input
           value={zoneName}
           onChange={(e) => setZoneName(e.target.value)}
-          placeholder="Teilfläche (z. B. Hälfte Nord)"
+          placeholder="Eigene Teilfläche (Name)"
           className="min-w-[12rem] flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12px]"
         />
         <button
@@ -1067,26 +1201,13 @@ function FieldRow(props: {
         >
           Teilfläche +
         </button>
-        <button
-          type="button"
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold"
-          onClick={async () => {
-            const res = await createFieldZone({
-              fieldId: props.field.id,
-              clubId: props.clubId,
-              name: 'Gesamter Platz',
-              blocksEntireField: true,
-            });
-            if (res.error) props.onToast(res.error);
-            else {
-              props.onToast('Zone „Gesamter Platz“ angelegt.');
-              await props.onReload();
-            }
-          }}
-        >
-          + Gesamter Platz
-        </button>
       </div>
+      {geoms.length > 0 ? (
+        <div className="mt-3 max-w-xs">
+          <p className="mb-1 text-[11px] font-semibold text-slate-600">Vorschau Aufteilung ({SPLIT_DEMAND_LABELS[previewDemand]})</p>
+          <FacilityFieldPitch zones={geoms} demand={previewDemand} compact />
+        </div>
+      ) : null}
       {props.zones.length > 0 ? (
         <ul className="mt-2 space-y-1">
           {props.zones.map((z) => (
@@ -1094,6 +1215,7 @@ function FieldRow(props: {
               <span>
                 {z.name}
                 {z.blocks_entire_field ? ' · blockiert alle Teilflächen' : ''}
+                {z.layout_kind && z.layout_kind !== 'named' ? ` · ${z.layout_kind}` : ''}
               </span>
               <button
                 type="button"
@@ -1128,6 +1250,7 @@ function AssignModal(props: {
   const [existing, setExisting] = useState<EventFieldAssignmentRow | null>(null);
   const [venueId, setVenueId] = useState('');
   const [fieldId, setFieldId] = useState('');
+  const [demand, setDemand] = useState<FieldSplitDemand>('entire');
   const [zoneId, setZoneId] = useState('');
   const [startLocal, setStartLocal] = useState('');
   const [endLocal, setEndLocal] = useState('');
@@ -1153,8 +1276,15 @@ function AssignModal(props: {
           type: props.event.type,
           notes: props.event.notes,
         });
-      setVenueId(a?.venue_id ?? props.event.venue_id ?? props.venues[0]?.id ?? '');
-      setFieldId(a?.field_id ?? '');
+      const vId = a?.venue_id ?? props.event.venue_id ?? props.venues[0]?.id ?? '';
+      const fId = a?.field_id ?? '';
+      setVenueId(vId);
+      setFieldId(fId);
+      const zoneRow = a?.zone_id
+        ? (props.zonesByField[fId] ?? []).find((z) => z.id === a.zone_id)
+        : null;
+      const geom = zoneRow ? zoneRowToGeometry(zoneRow) : null;
+      setDemand(inferDemandFromZone(geom));
       setZoneId(a?.zone_id ?? '');
       setStartLocal(toDatetimeLocalValue(starts));
       setEndLocal(toDatetimeLocalValue(ends));
@@ -1163,14 +1293,126 @@ function AssignModal(props: {
     return () => {
       cancelled = true;
     };
-  }, [props.event, props.venues]);
+  }, [props.event, props.venues, props.zonesByField]);
 
-  const fieldsForVenue = props.fields.filter((f) => f.venue_id === venueId);
-  const zones = fieldId ? props.zonesByField[fieldId] ?? [] : [];
+  const fieldsForVenue = props.fields.filter((f) => f.venue_id === venueId && f.is_active !== false);
+  const zoneRows = fieldId ? props.zonesByField[fieldId] ?? [] : [];
+  const zoneGeoms = zoneRows.map(zoneRowToGeometry);
+  const fieldRow = props.fields.find((f) => f.id === fieldId);
+  const supported = fieldRow?.supported_splits ?? (['entire', 'half', 'third', 'quarter'] as FieldSplitDemand[]);
+  const demandZones = filterZonesForDemand(zoneGeoms, demand);
 
   useEffect(() => {
     if (!fieldId && fieldsForVenue[0]) setFieldId(fieldsForVenue[0].id);
   }, [venueId, fieldsForVenue, fieldId]);
+
+  useEffect(() => {
+    if (demand === 'entire') {
+      const entire = zoneGeoms.find((z) => z.layoutKind === 'entire' || z.blocksEntireField);
+      if (entire?.id && zoneId !== entire.id) setZoneId(entire.id);
+      return;
+    }
+    if (zoneId && !demandZones.some((z) => z.id === zoneId)) {
+      setZoneId('');
+    }
+  }, [demand, fieldId, zoneGeoms, demandZones, zoneId]);
+
+  const startsAtIso = fromDatetimeLocalValue(startLocal);
+  const endsAtIso = fromDatetimeLocalValue(endLocal);
+
+  const liveConflicts = useMemo(() => {
+    if (!fieldId || !startsAtIso || !endsAtIso) return [];
+    const selected = zoneId ? zoneGeoms.find((z) => z.id === zoneId) : null;
+    const blocksEntire = demand === 'entire' || !selected || selected.blocksEntireField;
+    return findLocalFieldConflicts(
+      {
+        id: existing?.id ?? 'new',
+        fieldId,
+        zoneId: zoneId || null,
+        blocksEntireField: blocksEntire,
+        startsAtMs: new Date(startsAtIso).getTime(),
+        endsAtMs: new Date(endsAtIso).getTime(),
+        zone: selected ?? (blocksEntire
+          ? {
+              name: 'Ganzer Platz',
+              layoutKind: 'entire',
+              blocksEntireField: true,
+              rect: { x: 0, y: 0, w: 1, h: 1 },
+            }
+          : null),
+      },
+      props.assignmentCandidates,
+    );
+  }, [fieldId, zoneId, demand, startsAtIso, endsAtIso, existing, zoneGeoms, props.assignmentCandidates]);
+
+  const pitchOccupancies: PitchOccupancy[] = useMemo(() => {
+    if (!fieldId || !startsAtIso || !endsAtIso) return [];
+    const startMs = new Date(startsAtIso).getTime();
+    const endMs = new Date(endsAtIso).getTime();
+    return props.assignmentCandidates
+      .filter(
+        (c) =>
+          c.fieldId === fieldId &&
+          (!existing || c.id !== existing.id) &&
+          c.startsAtMs < endMs &&
+          c.endsAtMs > startMs,
+      )
+      .map((c) => {
+        const zRow = c.zoneId ? zoneRows.find((z) => z.id === c.zoneId) : null;
+        const geom = c.zone ?? (zRow ? zoneRowToGeometry(zRow) : null);
+        const conflict = liveConflicts.some((x) => x.id === c.id);
+        return {
+          zoneId: c.zoneId,
+          zone: geom,
+          teamLabel: c.label ?? 'Mannschaft',
+          timeLabel: `${formatHm(new Date(c.startsAtMs).toISOString())}–${formatHm(new Date(c.endsAtMs).toISOString())}`,
+          demandLabel: geom ? SPLIT_DEMAND_SHORT[inferDemandFromZone(geom)] : 'Ganz',
+          own: false,
+          readOnly: true,
+          conflict,
+        };
+      });
+  }, [fieldId, startsAtIso, endsAtIso, props.assignmentCandidates, zoneRows, existing, liveConflicts]);
+
+  const buildHint = (fieldIdArg: string, startsAt: string, endsAt: string, excludeId: string | null) => {
+    const zones = (props.zonesByField[fieldIdArg] ?? []).map((z) => {
+      const geom = zoneRowToGeometry(z);
+      return {
+        id: z.id,
+        name: z.name,
+        blocksEntireField: z.blocks_entire_field || geom.layoutKind === 'entire',
+        isActive: z.is_active,
+        zone: geom,
+        layoutKind: geom.layoutKind,
+        rect: geom.rect,
+      };
+    });
+    const suggestion = suggestFreeZones({
+      fieldId: fieldIdArg,
+      startsAtMs: new Date(startsAt).getTime(),
+      endsAtMs: new Date(endsAt).getTime(),
+      zones,
+      existing: props.assignmentCandidates,
+      excludeAssignmentId: excludeId,
+    });
+    const siblings = suggestFreeSiblingFields({
+      venueId,
+      fieldId: fieldIdArg,
+      startsAtMs: new Date(startsAt).getTime(),
+      endsAtMs: new Date(endsAt).getTime(),
+      fields: props.fields,
+      existing: props.assignmentCandidates,
+      excludeAssignmentId: excludeId,
+    });
+    const freeNames = [
+      ...(suggestion.entireFieldFree ? ['Ganzer Platz'] : []),
+      ...suggestion.freeZones.map((z) => z.name),
+      ...siblings.map((s) => s.name),
+    ];
+    return freeNames.length
+      ? `Noch frei: ${freeNames.join(' · ')}`
+      : 'In diesem Zeitraum ist der Platz vollständig ausgelastet.';
+  };
 
   const save = async () => {
     if (!props.canManage) {
@@ -1188,46 +1430,33 @@ function AssignModal(props: {
       return;
     }
     if (!venueId || !fieldId) {
-      setError('Sportanlage und Platz sind Pflicht.');
+      setError('Sportanlage und konkreter Platz sind Pflicht.');
+      setSaving(false);
+      return;
+    }
+    if (demand !== 'entire' && !zoneId) {
+      setError('Bitte einen konkreten Bereich auf dem Spielfeld wählen.');
       setSaving(false);
       return;
     }
 
-    const zones = (props.zonesByField[fieldId] ?? []).map((z) => ({
-      id: z.id,
-      name: z.name,
-      blocksEntireField: z.blocks_entire_field,
-      isActive: z.is_active,
-    }));
-    const localConflicts = findLocalFieldConflicts(
-      {
-        id: existing?.id ?? 'new',
-        fieldId,
-        zoneId: zoneId || null,
-        blocksEntireField: !zoneId || Boolean(zones.find((z) => z.id === zoneId)?.blocksEntireField),
-        startsAtMs: new Date(startsAt).getTime(),
-        endsAtMs: new Date(endsAt).getTime(),
-      },
-      props.assignmentCandidates,
-    );
-    if (localConflicts.length > 0) {
-      const suggestion = suggestFreeZones({
-        fieldId,
-        startsAtMs: new Date(startsAt).getTime(),
-        endsAtMs: new Date(endsAt).getTime(),
-        zones,
-        existing: props.assignmentCandidates,
-        excludeAssignmentId: existing?.id ?? null,
-      });
-      const freeNames = [
-        ...(suggestion.entireFieldFree ? ['Gesamter Platz'] : []),
-        ...suggestion.freeZones.map((z) => z.name),
-      ];
-      setHint(
-        freeNames.length
-          ? `Noch frei in diesem Zeitraum: ${freeNames.join(', ')}`
-          : 'In diesem Zeitraum ist der Platz vollständig ausgelastet.',
+    let resolvedZoneId: string | null = zoneId || null;
+    if (demand === 'entire') {
+      const entire = zoneGeoms.find((z) => z.layoutKind === 'entire' || z.blocksEntireField);
+      resolvedZoneId = entire?.id ?? null;
+    }
+
+    if (liveConflicts.length > 0) {
+      const reason = liveConflicts
+        .map((c) => c.label ?? 'bestehende Belegung')
+        .slice(0, 2)
+        .join('; ');
+      setError(
+        `Konflikt: ${reason || 'Fläche bereits belegt'}. Bitte anderen Bereich oder Platz wählen.`,
       );
+      setHint(buildHint(fieldId, startsAt, endsAt, existing?.id ?? null));
+      setSaving(false);
+      return;
     }
 
     const res = await upsertEventFieldAssignment({
@@ -1235,7 +1464,7 @@ function AssignModal(props: {
       eventId: props.event.id,
       venueId,
       fieldId,
-      zoneId: zoneId || null,
+      zoneId: resolvedZoneId,
       startsAt,
       endsAt,
       existingId: existing?.id ?? null,
@@ -1244,23 +1473,7 @@ function AssignModal(props: {
     if (res.error) {
       setError(res.error);
       if (res.conflicts?.length) {
-        const suggestion = suggestFreeZones({
-          fieldId,
-          startsAtMs: new Date(startsAt).getTime(),
-          endsAtMs: new Date(endsAt).getTime(),
-          zones,
-          existing: props.assignmentCandidates,
-          excludeAssignmentId: existing?.id ?? null,
-        });
-        const freeNames = [
-          ...(suggestion.entireFieldFree ? ['Gesamter Platz'] : []),
-          ...suggestion.freeZones.map((z) => z.name),
-        ];
-        setHint(
-          freeNames.length
-            ? `Noch frei in diesem Zeitraum: ${freeNames.join(', ')}`
-            : 'In diesem Zeitraum ist der Platz vollständig ausgelastet.',
-        );
+        setHint(buildHint(fieldId, startsAt, endsAt, existing?.id ?? null));
       }
       return;
     }
@@ -1287,7 +1500,7 @@ function AssignModal(props: {
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 px-3 pb-4 pt-10 sm:items-center" role="presentation" onClick={props.onClose}>
       <div
-        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-4 shadow-xl sm:p-5"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl sm:p-5"
         role="dialog"
         aria-modal="true"
         aria-labelledby="assign-title"
@@ -1302,7 +1515,7 @@ function AssignModal(props: {
         </p>
         {!props.canManage ? (
           <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] text-slate-600">
-            Sichtbar für den Verein — Änderungen nur durch Staff dieser Mannschaft oder Vereinsadmin.
+            Nur ansehen — Änderungen nur durch Staff dieser Mannschaft oder Vereinsadmin.
           </p>
         ) : null}
         {loading ? (
@@ -1310,9 +1523,10 @@ function AssignModal(props: {
         ) : (
           <div className="mt-4 space-y-3">
             <label className="block text-[12px] font-medium text-slate-600">
-              Sportanlage
+              1. Sportanlage
               <select
                 value={venueId}
+                disabled={!props.canManage}
                 onChange={(e) => {
                   setVenueId(e.target.value);
                   setFieldId('');
@@ -1328,13 +1542,14 @@ function AssignModal(props: {
               </select>
             </label>
             <label className="block text-[12px] font-medium text-slate-600">
-              Platz
+              2. Konkreter Platz
               <select
                 value={fieldId}
                 disabled={!props.canManage}
                 onChange={(e) => {
                   setFieldId(e.target.value);
                   setZoneId('');
+                  setDemand('entire');
                 }}
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
               >
@@ -1346,26 +1561,66 @@ function AssignModal(props: {
                 ))}
               </select>
             </label>
-            <label className="block text-[12px] font-medium text-slate-600">
-              Teilfläche (optional)
-              <select
-                value={zoneId}
-                disabled={!props.canManage}
-                onChange={(e) => setZoneId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
-              >
-                <option value="">Gesamter Platz</option>
-                {zones.map((z) => (
-                  <option key={z.id} value={z.id}>
-                    {z.name}
-                    {z.blocks_entire_field ? ' (blockiert alles)' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <fieldset disabled={!props.canManage || !fieldId}>
+              <legend className="text-[12px] font-medium text-slate-600">3. Platzbedarf</legend>
+              <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(['entire', 'half', 'third', 'quarter'] as FieldSplitDemand[])
+                  .filter((d) => supported.includes(d))
+                  .map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        setDemand(d);
+                        setZoneId('');
+                      }}
+                      className={[
+                        'rounded-lg border px-2 py-2 text-[12px] font-semibold',
+                        demand === d
+                          ? 'border-red-700 bg-red-700 text-white'
+                          : 'border-slate-200 bg-white text-slate-700',
+                      ].join(' ')}
+                    >
+                      {SPLIT_DEMAND_LABELS[d]}
+                    </button>
+                  ))}
+              </div>
+            </fieldset>
+            {fieldId ? (
+              <div>
+                <p className="text-[12px] font-medium text-slate-600">4. Bereich auf dem Spielfeld</p>
+                <FacilityFieldPitch
+                  zones={zoneGeoms}
+                  demand={demand}
+                  selectedZoneId={zoneId || null}
+                  onSelectZone={(id) => {
+                    if (!props.canManage) return;
+                    setZoneId(id ?? '');
+                  }}
+                  occupancies={pitchOccupancies}
+                  disabled={!props.canManage}
+                />
+                <label className="mt-2 block text-[12px] font-medium text-slate-600">
+                  Bereich (Auswahlfeld)
+                  <select
+                    value={zoneId}
+                    disabled={!props.canManage}
+                    onChange={(e) => setZoneId(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
+                  >
+                    <option value="">{demand === 'entire' ? 'Ganzer Platz' : 'Bitte Bereich wählen'}</option>
+                    {demandZones.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
             <div className="grid gap-2 sm:grid-cols-2">
               <label className="block text-[12px] font-medium text-slate-600">
-                Beginn
+                5. Beginn
                 <input
                   type="datetime-local"
                   value={startLocal}
@@ -1385,6 +1640,11 @@ function AssignModal(props: {
                 />
               </label>
             </div>
+            {liveConflicts.length > 0 ? (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
+                Konflikt in Echtzeit: Fläche überschneidet sich mit bestehender Belegung.
+              </p>
+            ) : null}
             {error ? (
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
                 {error}

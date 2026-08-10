@@ -1,7 +1,14 @@
 /**
- * Zeitliche Platzkonflikte (halb-offen [start, end)).
+ * Zeitliche und räumliche Platzkonflikte (halb-offen [start, end)).
  * Berührung an der Grenze (Ende = Beginn) ist kein Konflikt.
+ * PLATZ.4: räumliche Rect-Overlaps ergänzen die Legacy-Zonen-ID-Logik.
  */
+
+import {
+  zonesSpatiallyConflict,
+  type NormalizedRect,
+  type ZoneGeometry,
+} from './fieldZoneGeometry';
 
 export type FieldConflictCandidate = {
   id: string;
@@ -13,6 +20,8 @@ export type FieldConflictCandidate = {
   endsAtMs: number;
   eventId?: string;
   label?: string;
+  /** optional: Geometrie für räumliche Konflikte */
+  zone?: ZoneGeometry | null;
 };
 
 export function intervalsOverlapHalfOpen(
@@ -24,6 +33,7 @@ export function intervalsOverlapHalfOpen(
   return aStart < bEnd && aEnd > bStart;
 }
 
+/** Legacy: nur IDs / blocks_entire (ohne Geometrie). */
 export function zonesConflict(
   a: { zoneId: string | null; blocksEntireField: boolean },
   b: { zoneId: string | null; blocksEntireField: boolean },
@@ -31,6 +41,26 @@ export function zonesConflict(
   if (a.blocksEntireField || b.blocksEntireField) return true;
   if (a.zoneId == null || b.zoneId == null) return true;
   return a.zoneId === b.zoneId;
+}
+
+function candidateZoneGeom(c: FieldConflictCandidate): ZoneGeometry | null {
+  if (c.zone) return c.zone;
+  if (c.blocksEntireField || c.zoneId == null) {
+    return {
+      id: c.zoneId ?? undefined,
+      name: 'Ganzer Platz',
+      layoutKind: 'entire',
+      blocksEntireField: true,
+      rect: { x: 0, y: 0, w: 1, h: 1 },
+    };
+  }
+  return {
+    id: c.zoneId,
+    name: c.label ?? c.zoneId,
+    layoutKind: 'named',
+    blocksEntireField: false,
+    rect: null,
+  };
 }
 
 export function findLocalFieldConflicts(
@@ -43,7 +73,7 @@ export function findLocalFieldConflicts(
     if (!intervalsOverlapHalfOpen(candidate.startsAtMs, candidate.endsAtMs, row.startsAtMs, row.endsAtMs)) {
       return false;
     }
-    return zonesConflict(candidate, row);
+    return zonesSpatiallyConflict(candidateZoneGeom(candidate), candidateZoneGeom(row));
   });
 }
 
@@ -52,7 +82,21 @@ export type ZoneMeta = {
   name: string;
   blocksEntireField: boolean;
   isActive?: boolean;
+  zone?: ZoneGeometry;
+  layoutKind?: ZoneGeometry['layoutKind'];
+  rect?: NormalizedRect | null;
 };
+
+function zoneMetaToGeom(z: ZoneMeta): ZoneGeometry {
+  if (z.zone) return z.zone;
+  return {
+    id: z.id,
+    name: z.name,
+    layoutKind: z.layoutKind ?? (z.blocksEntireField ? 'entire' : 'named'),
+    blocksEntireField: z.blocksEntireField,
+    rect: z.rect ?? null,
+  };
+}
 
 /**
  * Freie Teilflächen für denselben Zeitraum (ohne blockierende Gesamtflächen).
@@ -85,6 +129,7 @@ export function suggestFreeZones(opts: {
   const freeZones = opts.zones
     .filter((z) => z.isActive !== false && !z.blocksEntireField)
     .filter((z) => {
+      const geom = zoneMetaToGeom(z);
       const candidate: FieldConflictCandidate = {
         id: `candidate-${z.id}`,
         fieldId: opts.fieldId,
@@ -92,6 +137,7 @@ export function suggestFreeZones(opts: {
         blocksEntireField: false,
         startsAtMs: opts.startsAtMs,
         endsAtMs: opts.endsAtMs,
+        zone: geom,
       };
       return findLocalFieldConflicts(candidate, existing).length === 0;
     });
@@ -100,10 +146,38 @@ export function suggestFreeZones(opts: {
 }
 
 /**
- * Auslastung eines Platzes im Intervall:
- * - free: nichts belegt
- * - partial: mind. eine nicht-blockierende Teilfläche belegt, Gesamtplatz noch frei
- * - full: Gesamtplatz / blockierende Zone oder alle nicht-blockierenden Zonen belegt
+ * Freie alternative Plätze derselben Sportanlage (andere field_id).
+ */
+export function suggestFreeSiblingFields(opts: {
+  venueId: string;
+  fieldId: string;
+  startsAtMs: number;
+  endsAtMs: number;
+  fields: readonly { id: string; venue_id: string; name: string; is_active?: boolean }[];
+  existing: readonly FieldConflictCandidate[];
+  excludeAssignmentId?: string | null;
+}): { id: string; name: string }[] {
+  return opts.fields
+    .filter((f) => f.venue_id === opts.venueId && f.id !== opts.fieldId && f.is_active !== false)
+    .filter((f) => {
+      const candidate: FieldConflictCandidate = {
+        id: `sibling-${f.id}`,
+        fieldId: f.id,
+        zoneId: null,
+        blocksEntireField: true,
+        startsAtMs: opts.startsAtMs,
+        endsAtMs: opts.endsAtMs,
+      };
+      const existing = opts.existing.filter(
+        (e) => !opts.excludeAssignmentId || e.id !== opts.excludeAssignmentId,
+      );
+      return findLocalFieldConflicts(candidate, existing).length === 0;
+    })
+    .map((f) => ({ id: f.id, name: f.name }));
+}
+
+/**
+ * Auslastung eines Platzes im Intervall (Flächenanteil, nicht nur Zonen-Anzahl).
  */
 export function fieldUtilizationInInterval(opts: {
   fieldId: string;
@@ -120,14 +194,17 @@ export function fieldUtilizationInInterval(opts: {
   if (overlapping.length === 0) return 'free';
   if (overlapping.some((e) => e.blocksEntireField || e.zoneId == null)) return 'full';
 
-  const partialZones = opts.zones.filter((z) => z.isActive !== false && !z.blocksEntireField);
-  if (partialZones.length === 0) return 'full';
-
-  const occupied = new Set(
-    overlapping.map((e) => e.zoneId).filter((id): id is string => Boolean(id)),
-  );
-  const allPartialsTaken = partialZones.every((z) => occupied.has(z.id));
-  return allPartialsTaken ? 'full' : 'partial';
+  // Räumliche Abdeckung grob: wenn gesamte Fläche durch Overlaps der Belegungen „voll“
+  // Für einfache UI: wenn kein freier Partial-Zone mehr frei → full
+  const suggestion = suggestFreeZones({
+    fieldId: opts.fieldId,
+    startsAtMs: opts.startsAtMs,
+    endsAtMs: opts.endsAtMs,
+    zones: opts.zones,
+    existing: overlapping,
+  });
+  if (!suggestion.entireFieldFree && suggestion.freeZones.length === 0) return 'full';
+  return 'partial';
 }
 
 /** PLATZ.3 Client-Rechte: eigene Staff-Mannschaft oder Vereins-Admin (role=admin irgendwo im Club). */
