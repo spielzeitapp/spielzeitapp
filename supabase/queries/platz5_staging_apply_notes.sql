@@ -1,0 +1,17 @@
+-- PLATZ.5 Staging apply notes (nicht Production).
+-- Project: spielzeitapp-staging / acbaecjzoabafbsjrzvr
+--
+-- Reihenfolge:
+-- 1) PLATZ.3 20260810120000
+-- 2) PLATZ.4 20260810140000
+-- 3) PLATZ.5 20260810160000
+-- 4) Seed: supabase/queries/platz5_staging_seed.sql (nur nach ID-Preflight)
+--
+-- Verifizierte Seed-IDs (2026-08-10):
+-- Club: 9c7a8741-6e73-42d5-88d8-46ce5217e8cd (NSG Gölsental)
+-- Rohrbach: ec1ba01f-cc58-4c91-b524-463b510ca339
+-- St.Veit:  ec5f02b6-b5f3-4b8a-a005-a1ac2280fc0c
+-- U12 ts:   5dd421cd-b47f-4889-8867-9bc1fa451c09
+--
+-- Kein db push aller lokalen Migrationen (viele Local-only).
+-- Production (shxugattqatahckhspwk) unverändert.

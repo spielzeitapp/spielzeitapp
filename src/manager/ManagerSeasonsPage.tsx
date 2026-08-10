@@ -24,6 +24,7 @@ import {
   prepareSeasonDraftWithOptions,
 } from '../lib/seasonTransition';
 import { SeasonTransitionWizard } from '../components/season/SeasonTransitionWizard';
+import { ManagerTrainingVenuesPanel } from './ManagerTrainingVenuesPanel';
 
 function canAccess(effectiveRole: string, backendRole: string): boolean {
   if ((backendRole ?? '').trim().toLowerCase() === 'admin') return true;
@@ -290,6 +291,11 @@ export function ManagerSeasonsPage(): React.ReactElement {
             STEP 5: ÖFB-Spielplan mit Vorschau in diese Saison importieren — Dubletten und geschützte
             Termine werden erkannt.
           </p>
+          <ManagerTrainingVenuesPanel
+            teamSeasonId={active.id}
+            effectiveRole={effectiveRole}
+            backendRole={backendRole}
+          />
         </section>
           ) : null}
 

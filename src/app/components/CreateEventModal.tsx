@@ -11,8 +11,13 @@ import {
 import { combineLocationParts, formatFullLocation } from '../../lib/eventLocation';
 import { eventKindFromFormType, normalizeEventTypeField } from '../../lib/eventTypeUtils';
 import { assertTeamSeasonWritable } from '../../lib/seasonTransition';
-import { locationTextFromVenue, type VenueRow } from '../../lib/venues';
+import { locationTextFromVenue, resolveClubIdForTeamSeason, type VenueRow } from '../../lib/venues';
 import { VenuePicker } from '../../components/venues/VenuePicker';
+import {
+  TrainingFacilityFields,
+  type TrainingFacilitySelection,
+} from '../../components/venues/TrainingFacilityFields';
+import { upsertEventFieldAssignment, defaultEventEndsAt } from '../../lib/eventFieldAssignments';
 import {
   EventDateField,
   EventTimeField,
@@ -121,6 +126,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 }) => {
   const [form, setForm] = useState<CreateEventFormValues>(defaultForm);
   const [selectedVenue, setSelectedVenue] = useState<VenueRow | null>(null);
+  const [trainingFacility, setTrainingFacility] = useState<TrainingFacilitySelection>({
+    fieldId: null,
+    zoneId: null,
+  });
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [eventTypeLocal, setEventTypeLocal] = useState<
@@ -313,6 +322,42 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         setError(eventErr.message);
         setCreating(false);
         return;
+      }
+
+      if (
+        eventTypeLocal === 'training' &&
+        selectedVenue?.id &&
+        trainingFacility.fieldId &&
+        Array.isArray(insertedRows) &&
+        insertedRows.length > 0
+      ) {
+        const clubRes = await resolveClubIdForTeamSeason(teamSeasonId);
+        if (clubRes.clubId) {
+          for (const ev of insertedRows as Array<{ id: string; starts_at: string; kind?: string; type?: string; notes?: string | null }>) {
+            const endsAt = defaultEventEndsAt({
+              startsAtIso: ev.starts_at,
+              kind: ev.kind ?? 'training',
+              type: ev.type,
+              notes: ev.notes,
+            });
+            const assignRes = await upsertEventFieldAssignment({
+              clubId: clubRes.clubId,
+              eventId: ev.id,
+              venueId: selectedVenue.id,
+              fieldId: trainingFacility.fieldId,
+              zoneId: trainingFacility.zoneId,
+              startsAt: ev.starts_at,
+              endsAt,
+            });
+            if (assignRes.error) {
+              setError(
+                `Training gespeichert, aber Platzzuordnung fehlgeschlagen: ${assignRes.error}`,
+              );
+              setCreating(false);
+              return;
+            }
+          }
+        }
       }
 
       console.log('[reminderPipeline] events.insert ok', {
@@ -527,7 +572,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         <VenuePicker
           teamSeasonId={teamSeasonId}
           venueId={selectedVenue?.id ?? null}
-          onVenueChange={(v) => setSelectedVenue(v)}
+          onVenueChange={(v) => {
+            setSelectedVenue(v);
+            setTrainingFacility({ fieldId: null, zoneId: null });
+          }}
           locationName={form.location}
           locationAddress={form.location_address}
           onLocationNameChange={(v) => setForm((f) => ({ ...f, location: v }))}
@@ -537,10 +585,21 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               ? { isHome: form.is_home, opponentName: form.opponent }
               : null
           }
+          purpose={eventTypeLocal === 'training' ? 'training' : 'general'}
           labelClass={labelClass}
           inputClass={inputClass}
           disabled={creating}
         />
+        {eventTypeLocal === 'training' ? (
+          <TrainingFacilityFields
+            venueId={selectedVenue?.id ?? null}
+            value={trainingFacility}
+            onChange={setTrainingFacility}
+            labelClass={labelClass}
+            inputClass={inputClass}
+            disabled={creating}
+          />
+        ) : null}
         <div>
           <label htmlFor="create-event-start_date" className={labelClass}>
             Datum *

@@ -50,6 +50,7 @@ import {
   inferDemandFromZone,
   type FieldSplitDemand,
 } from '../lib/fieldZoneGeometry';
+import { listAllowedTrainingVenueRows } from '../lib/teamSeasonTrainingVenues';
 import { FacilityFieldPitch, type PitchOccupancy } from '../components/facility/FacilityFieldPitch';
 import {
   addDays,
@@ -1258,6 +1259,38 @@ function AssignModal(props: {
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [trainingVenues, setTrainingVenues] = useState<VenueRow[] | null>(null);
+  const [trainingVenueHint, setTrainingVenueHint] = useState<string | null>(null);
+
+  const isTrainingEvent =
+    String(props.event.kind ?? '').toLowerCase() === 'training' ||
+    String(props.event.type ?? '').toLowerCase() === 'training';
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isTrainingEvent) {
+      setTrainingVenues(null);
+      setTrainingVenueHint(null);
+      return;
+    }
+    void (async () => {
+      const res = await listAllowedTrainingVenueRows(props.event.team_season_id);
+      if (cancelled) return;
+      setTrainingVenues(res.data);
+      if (res.emptyReason === 'none_assigned') {
+        setTrainingVenueHint(
+          'Für diese Mannschaft ist noch keine Trainingsanlage freigegeben. Bitte den Jugendleiter oder Vereinsadmin kontaktieren.',
+        );
+      } else if (res.emptyReason === 'migration') {
+        setTrainingVenueHint('Trainingsanlagen-Zuordnung noch nicht verfügbar.');
+      } else {
+        setTrainingVenueHint(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isTrainingEvent, props.event.team_season_id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1295,6 +1328,7 @@ function AssignModal(props: {
     };
   }, [props.event, props.venues, props.zonesByField]);
 
+  const pickerVenues = trainingVenues ?? props.venues;
   const fieldsForVenue = props.fields.filter((f) => f.venue_id === venueId && f.is_active !== false);
   const zoneRows = fieldId ? props.zonesByField[fieldId] ?? [] : [];
   const zoneGeoms = zoneRows.map(zoneRowToGeometry);
@@ -1534,13 +1568,18 @@ function AssignModal(props: {
                 }}
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
               >
-                {props.venues.map((v) => (
+                {pickerVenues.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
                   </option>
                 ))}
               </select>
             </label>
+            {trainingVenueHint ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950">
+                {trainingVenueHint}
+              </p>
+            ) : null}
             <label className="block text-[12px] font-medium text-slate-600">
               2. Konkreter Platz
               <select

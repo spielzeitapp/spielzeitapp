@@ -4427,6 +4427,7 @@ export const EventDetailPage: React.FC = () => {
                       }
                     : null
                 }
+                purpose={editEvent?.kind === 'training' ? 'training' : 'general'}
                 labelClass="mb-1 block text-sm font-medium text-[var(--text-main)]"
                 inputClass="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
                 disabled={savingEdit}
