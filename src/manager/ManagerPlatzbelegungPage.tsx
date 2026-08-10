@@ -29,9 +29,17 @@ import {
   getAssignmentForEvent,
   listAssignmentsInRange,
   listClubEventsInRange,
+  listClubTeamSeasonIds,
   upsertEventFieldAssignment,
   type EventFieldAssignmentRow,
 } from '../lib/eventFieldAssignments';
+import {
+  canManageFacilityAssignmentForEvent,
+  fieldUtilizationInInterval,
+  findLocalFieldConflicts,
+  suggestFreeZones,
+  type FieldConflictCandidate,
+} from '../lib/fieldScheduleConflicts';
 import {
   addDays,
   formatWeekRangeLabel,
@@ -39,6 +47,8 @@ import {
   toViennaDayKey,
 } from '../pages/calendar/calendarUtils';
 import { getDateTimePartsInTimeZone, VIENNA_TZ, zonedWallTimeToUtcMillis } from '../lib/viennaTime';
+
+/** PLATZ.3: Serienbuchungen von Platzzuordnungen sind Folgepunkt — Events-Serie existiert separat. */
 
 type TabId = 'calendar' | 'facilities';
 
@@ -102,7 +112,7 @@ function kindColor(kind: string): string {
  * Manager STEP 2: Sportanlagen, Plätze und Wochen-Platzbelegung.
  */
 export function ManagerPlatzbelegungPage(): React.ReactElement {
-  const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
+  const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason, memberships } = useSession();
   const [searchParams, setSearchParams] = useSearchParams();
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
@@ -114,6 +124,7 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   };
   const [clubId, setClubId] = useState<string | null>(null);
   const [clubError, setClubError] = useState<string | null>(null);
+  const [clubTeamSeasonIds, setClubTeamSeasonIds] = useState<string[]>([]);
   const [venues, setVenues] = useState<VenueRow[]>([]);
   const [fields, setFields] = useState<VenueFieldRow[]>([]);
   const [zonesByField, setZonesByField] = useState<Record<string, VenueFieldZoneRow[]>>({});
@@ -123,6 +134,8 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
   const [filterVenueId, setFilterVenueId] = useState<string>('');
   const [filterFieldId, setFilterFieldId] = useState<string>('');
+  const [filterTeamSeasonId, setFilterTeamSeasonId] = useState<string>('');
+  const [filterKind, setFilterKind] = useState<string>('');
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [assignments, setAssignments] = useState<EventFieldAssignmentRow[]>([]);
   const [loadingWeek, setLoadingWeek] = useState(false);
@@ -157,6 +170,8 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     }
     setClubId(clubRes.clubId);
     setClubError(null);
+    const seasonsRes = await listClubTeamSeasonIds(clubRes.clubId);
+    setClubTeamSeasonIds(seasonsRes.data);
     const vRes = await listVenuesForClub(clubRes.clubId, { includeInactive: true });
     if (vRes.error) setMetaError(vRes.error);
     setVenues(vRes.data);
@@ -237,17 +252,54 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
 
   const filteredBlocks = useMemo(() => {
     return blocks.filter((b) => {
+      if (filterTeamSeasonId && b.event.team_season_id !== filterTeamSeasonId) return false;
+      if (filterKind && b.event.kind !== filterKind) return false;
       if (filterFieldId) {
         return b.assignment?.field_id === filterFieldId;
       }
       if (filterVenueId) {
         if (b.assignment) return b.assignment.venue_id === filterVenueId;
-        // Unzugeordnete Termine weiter anzeigen, wenn nur Anlage gefiltert wird
         return true;
       }
       return true;
     });
-  }, [blocks, filterVenueId, filterFieldId]);
+  }, [blocks, filterVenueId, filterFieldId, filterTeamSeasonId, filterKind]);
+
+  const teamFilterOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of events) {
+      if (!map.has(e.team_season_id)) {
+        const label = [e.age_group, e.team_name].filter(Boolean).join(' · ') || 'Mannschaft';
+        map.set(e.team_season_id, label);
+      }
+    }
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'));
+  }, [events]);
+
+  const canManageEvent = useCallback(
+    (event: ClubEvent) =>
+      canManageFacilityAssignmentForEvent({
+        eventTeamSeasonId: event.team_season_id,
+        memberships,
+        clubTeamSeasonIds,
+      }),
+    [memberships, clubTeamSeasonIds],
+  );
+
+  const assignmentCandidates = useMemo((): FieldConflictCandidate[] => {
+    return assignments.map((a) => {
+      const zone = a.zone_id ? (zonesByField[a.field_id] ?? []).find((z) => z.id === a.zone_id) : null;
+      return {
+        id: a.id,
+        fieldId: a.field_id,
+        zoneId: a.zone_id,
+        blocksEntireField: !a.zone_id || Boolean(zone?.blocks_entire_field),
+        startsAtMs: new Date(a.starts_at).getTime(),
+        endsAtMs: new Date(a.ends_at).getTime(),
+        eventId: a.event_id,
+      };
+    });
+  }, [assignments, zonesByField]);
 
   const blocksByDay = useMemo(() => {
     const m = new Map<string, ScheduleBlock[]>();
@@ -291,7 +343,7 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-700/80">Sport</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Platzbelegung</h1>
           <p className="mt-1 text-[14px] text-slate-500">
-            Sportanlagen, Plätze und Zuordnung bestehender Termine — ohne Termin-Dubletten.
+            Vereinsweite Übersicht aller Mannschaften — Sportanlagen und Plätze gemeinsam nutzen.
           </p>
         </div>
         <div className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
@@ -349,12 +401,17 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
           zonesByField={zonesByField}
           filterVenueId={filterVenueId}
           filterFieldId={filterFieldId}
+          filterTeamSeasonId={filterTeamSeasonId}
+          filterKind={filterKind}
+          teamFilterOptions={teamFilterOptions}
           fieldsForFilter={fieldsForFilter}
           onFilterVenue={(id) => {
             setFilterVenueId(id);
             setFilterFieldId('');
           }}
           onFilterField={setFilterFieldId}
+          onFilterTeam={setFilterTeamSeasonId}
+          onFilterKind={setFilterKind}
           onPrev={() => setWeekAnchor((d) => addDays(d, -7))}
           onNext={() => setWeekAnchor((d) => addDays(d, 7))}
           onToday={() => {
@@ -363,6 +420,8 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
             setSelectedDayKey(toViennaDayKey(now));
           }}
           onOpenAssign={setAssignEvent}
+          canManageEvent={canManageEvent}
+          assignmentCandidates={assignmentCandidates}
           hasVenues={activeVenues.length > 0}
           hasFields={fields.some((f) => f.is_active)}
           onGoFacilities={() => setTab('facilities')}
@@ -389,6 +448,8 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
           venues={activeVenues}
           fields={fields.filter((f) => f.is_active)}
           zonesByField={zonesByField}
+          assignmentCandidates={assignmentCandidates}
+          canManage={canManageEvent(assignEvent)}
           onClose={() => setAssignEvent(null)}
           onSaved={async () => {
             setAssignEvent(null);
@@ -420,13 +481,20 @@ function CalendarPanel(props: {
   zonesByField: Record<string, VenueFieldZoneRow[]>;
   filterVenueId: string;
   filterFieldId: string;
+  filterTeamSeasonId: string;
+  filterKind: string;
+  teamFilterOptions: [string, string][];
   fieldsForFilter: VenueFieldRow[];
   onFilterVenue: (id: string) => void;
   onFilterField: (id: string) => void;
+  onFilterTeam: (id: string) => void;
+  onFilterKind: (kind: string) => void;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
   onOpenAssign: (e: ClubEvent) => void;
+  canManageEvent: (e: ClubEvent) => boolean;
+  assignmentCandidates: FieldConflictCandidate[];
   hasVenues: boolean;
   hasFields: boolean;
   onGoFacilities: () => void;
@@ -486,6 +554,31 @@ function CalendarPanel(props: {
             </option>
           ))}
         </select>
+        <select
+          value={props.filterTeamSeasonId}
+          onChange={(e) => props.onFilterTeam(e.target.value)}
+          className="rounded-lg border border-slate-200 px-2.5 py-2 text-[12px]"
+          aria-label="Mannschaft filtern"
+        >
+          <option value="">Alle Mannschaften</option>
+          {props.teamFilterOptions.map(([id, label]) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={props.filterKind}
+          onChange={(e) => props.onFilterKind(e.target.value)}
+          className="rounded-lg border border-slate-200 px-2.5 py-2 text-[12px]"
+          aria-label="Terminart filtern"
+        >
+          <option value="">Alle Terminarten</option>
+          <option value="training">Training</option>
+          <option value="match">Spiel</option>
+          <option value="tournament">Turnier</option>
+          <option value="event">Sonstiges</option>
+        </select>
       </div>
 
       {!props.hasVenues ? (
@@ -544,7 +637,10 @@ function CalendarPanel(props: {
                   <p className="px-1 py-2 text-[11px] text-slate-300">Keine Termine</p>
                 ) : (
                   <ul className="space-y-1.5">
-                    {dayBlocks.map((b) => (
+                    {dayBlocks.map((b) => {
+                      const manageable = props.canManageEvent(b.event);
+                      const util = utilizationLabel(b, props.zonesByField, props.assignmentCandidates);
+                      return (
                       <li key={b.event.id}>
                         <button
                           type="button"
@@ -570,9 +666,14 @@ function CalendarPanel(props: {
                               ? 'Platz noch nicht zugeordnet'
                               : fieldLabel(b.assignment, props.fields, props.zonesByField, props.venues)}
                           </p>
+                          {util ? <p className="mt-0.5 text-[10px] font-semibold opacity-90">{util}</p> : null}
+                          {!manageable ? (
+                            <p className="mt-0.5 text-[10px] opacity-75">Nur Ansehen</p>
+                          ) : null}
                         </button>
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 )}
               </div>
@@ -612,7 +713,10 @@ function CalendarPanel(props: {
           </p>
         ) : (
           <ul className="space-y-2">
-            {selectedBlocks.map((b) => (
+            {selectedBlocks.map((b) => {
+              const manageable = props.canManageEvent(b.event);
+              const util = utilizationLabel(b, props.zonesByField, props.assignmentCandidates);
+              return (
               <li key={b.event.id}>
                 <button
                   type="button"
@@ -624,18 +728,50 @@ function CalendarPanel(props: {
                   </p>
                   <p className="text-[13px] text-slate-600">{eventTitle(b.event)}</p>
                   <p className="text-[12px] text-slate-500">
+                    {[b.event.age_group, b.event.team_name].filter(Boolean).join(' · ') || 'Mannschaft'}
+                  </p>
+                  <p className="text-[12px] text-slate-500">
                     {b.unassigned
                       ? 'Platz noch nicht zugeordnet'
                       : fieldLabel(b.assignment, props.fields, props.zonesByField, props.venues)}
                   </p>
+                  {util ? <p className="text-[11px] font-semibold text-slate-600">{util}</p> : null}
+                  {!manageable ? (
+                    <p className="text-[11px] text-slate-400">Nur Ansehen — Bearbeitung durch die zuständige Mannschaft</p>
+                  ) : null}
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>
     </div>
   );
+}
+
+function utilizationLabel(
+  block: ScheduleBlock,
+  zonesByField: Record<string, VenueFieldZoneRow[]>,
+  candidates: FieldConflictCandidate[],
+): string | null {
+  if (!block.assignment) return null;
+  const zones = (zonesByField[block.assignment.field_id] ?? []).map((z) => ({
+    id: z.id,
+    name: z.name,
+    blocksEntireField: z.blocks_entire_field,
+    isActive: z.is_active,
+  }));
+  const util = fieldUtilizationInInterval({
+    fieldId: block.assignment.field_id,
+    startsAtMs: new Date(block.startsAt).getTime(),
+    endsAtMs: new Date(block.endsAt).getTime(),
+    zones,
+    existing: candidates,
+  });
+  if (util === 'full') return 'Platz vollständig ausgelastet';
+  if (util === 'partial') return 'Teilfläche belegt';
+  return null;
 }
 
 function fieldLabel(
@@ -983,6 +1119,8 @@ function AssignModal(props: {
   venues: VenueRow[];
   fields: VenueFieldRow[];
   zonesByField: Record<string, VenueFieldZoneRow[]>;
+  assignmentCandidates: FieldConflictCandidate[];
+  canManage: boolean;
   onClose: () => void;
   onSaved: () => Promise<void>;
   onRemoved: () => Promise<void>;
@@ -995,6 +1133,7 @@ function AssignModal(props: {
   const [endLocal, setEndLocal] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -1034,8 +1173,13 @@ function AssignModal(props: {
   }, [venueId, fieldsForVenue, fieldId]);
 
   const save = async () => {
+    if (!props.canManage) {
+      setError('Diese Belegung gehört einer anderen Mannschaft und kann nicht geändert werden.');
+      return;
+    }
     setSaving(true);
     setError(null);
+    setHint(null);
     const startsAt = fromDatetimeLocalValue(startLocal);
     const endsAt = fromDatetimeLocalValue(endLocal);
     if (!startsAt || !endsAt) {
@@ -1048,6 +1192,44 @@ function AssignModal(props: {
       setSaving(false);
       return;
     }
+
+    const zones = (props.zonesByField[fieldId] ?? []).map((z) => ({
+      id: z.id,
+      name: z.name,
+      blocksEntireField: z.blocks_entire_field,
+      isActive: z.is_active,
+    }));
+    const localConflicts = findLocalFieldConflicts(
+      {
+        id: existing?.id ?? 'new',
+        fieldId,
+        zoneId: zoneId || null,
+        blocksEntireField: !zoneId || Boolean(zones.find((z) => z.id === zoneId)?.blocksEntireField),
+        startsAtMs: new Date(startsAt).getTime(),
+        endsAtMs: new Date(endsAt).getTime(),
+      },
+      props.assignmentCandidates,
+    );
+    if (localConflicts.length > 0) {
+      const suggestion = suggestFreeZones({
+        fieldId,
+        startsAtMs: new Date(startsAt).getTime(),
+        endsAtMs: new Date(endsAt).getTime(),
+        zones,
+        existing: props.assignmentCandidates,
+        excludeAssignmentId: existing?.id ?? null,
+      });
+      const freeNames = [
+        ...(suggestion.entireFieldFree ? ['Gesamter Platz'] : []),
+        ...suggestion.freeZones.map((z) => z.name),
+      ];
+      setHint(
+        freeNames.length
+          ? `Noch frei in diesem Zeitraum: ${freeNames.join(', ')}`
+          : 'In diesem Zeitraum ist der Platz vollständig ausgelastet.',
+      );
+    }
+
     const res = await upsertEventFieldAssignment({
       clubId: props.clubId,
       eventId: props.event.id,
@@ -1061,12 +1243,35 @@ function AssignModal(props: {
     setSaving(false);
     if (res.error) {
       setError(res.error);
+      if (res.conflicts?.length) {
+        const suggestion = suggestFreeZones({
+          fieldId,
+          startsAtMs: new Date(startsAt).getTime(),
+          endsAtMs: new Date(endsAt).getTime(),
+          zones,
+          existing: props.assignmentCandidates,
+          excludeAssignmentId: existing?.id ?? null,
+        });
+        const freeNames = [
+          ...(suggestion.entireFieldFree ? ['Gesamter Platz'] : []),
+          ...suggestion.freeZones.map((z) => z.name),
+        ];
+        setHint(
+          freeNames.length
+            ? `Noch frei in diesem Zeitraum: ${freeNames.join(', ')}`
+            : 'In diesem Zeitraum ist der Platz vollständig ausgelastet.',
+        );
+      }
       return;
     }
     await props.onSaved();
   };
 
   const remove = async () => {
+    if (!props.canManage) {
+      setError('Diese Belegung gehört einer anderen Mannschaft und kann nicht geändert werden.');
+      return;
+    }
     if (!existing) return;
     if (!window.confirm('Platzzuordnung entfernen? Der Termin bleibt erhalten.')) return;
     setSaving(true);
@@ -1089,12 +1294,17 @@ function AssignModal(props: {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="assign-title" className="text-[16px] font-semibold text-slate-900">
-          Platz zuordnen
+          {props.canManage ? 'Platz zuordnen' : 'Platzbelegung ansehen'}
         </h2>
         <p className="mt-1 text-[13px] text-slate-500">
           {eventKindLabel(props.event.kind)} · {eventTitle(props.event)} ·{' '}
           {[props.event.age_group, props.event.team_name].filter(Boolean).join(' · ')}
         </p>
+        {!props.canManage ? (
+          <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] text-slate-600">
+            Sichtbar für den Verein — Änderungen nur durch Staff dieser Mannschaft oder Vereinsadmin.
+          </p>
+        ) : null}
         {loading ? (
           <p className="mt-4 text-[13px] text-slate-400">Laden…</p>
         ) : (
@@ -1108,7 +1318,7 @@ function AssignModal(props: {
                   setFieldId('');
                   setZoneId('');
                 }}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
               >
                 {props.venues.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -1121,11 +1331,12 @@ function AssignModal(props: {
               Platz
               <select
                 value={fieldId}
+                disabled={!props.canManage}
                 onChange={(e) => {
                   setFieldId(e.target.value);
                   setZoneId('');
                 }}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
               >
                 <option value="">Bitte wählen</option>
                 {fieldsForVenue.map((f) => (
@@ -1139,8 +1350,9 @@ function AssignModal(props: {
               Teilfläche (optional)
               <select
                 value={zoneId}
+                disabled={!props.canManage}
                 onChange={(e) => setZoneId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
               >
                 <option value="">Gesamter Platz</option>
                 {zones.map((z) => (
@@ -1157,8 +1369,9 @@ function AssignModal(props: {
                 <input
                   type="datetime-local"
                   value={startLocal}
+                  disabled={!props.canManage}
                   onChange={(e) => setStartLocal(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
                 />
               </label>
               <label className="block text-[12px] font-medium text-slate-600">
@@ -1166,8 +1379,9 @@ function AssignModal(props: {
                 <input
                   type="datetime-local"
                   value={endLocal}
+                  disabled={!props.canManage}
                   onChange={(e) => setEndLocal(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
                 />
               </label>
             </div>
@@ -1176,24 +1390,31 @@ function AssignModal(props: {
                 {error}
               </p>
             ) : null}
+            {hint ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950">
+                {hint}
+              </p>
+            ) : null}
             <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => void save()}
-                className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50"
-              >
-                Speichern
-              </button>
+              {props.canManage ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void save()}
+                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50"
+                >
+                  Speichern
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={props.onClose}
                 className="inline-flex min-h-[40px] flex-1 items-center justify-center rounded-full border border-slate-200 px-4 text-[12px] font-semibold text-slate-700"
               >
-                Abbrechen
+                {props.canManage ? 'Abbrechen' : 'Schließen'}
               </button>
             </div>
-            {existing ? (
+            {existing && props.canManage ? (
               <button
                 type="button"
                 disabled={saving}

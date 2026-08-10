@@ -212,7 +212,7 @@ function humanizeAssignError(message: string): string {
   return message;
 }
 
-/** Events des Clubs im Zeitraum (über alle Team-Saisons, die der User lesen darf). */
+/** Events des Clubs im Zeitraum (vereinsweit über RPC, Fallback ohne Migration). */
 export async function listClubEventsInRange(
   clubId: string,
   rangeStartIso: string,
@@ -234,6 +234,38 @@ export async function listClubEventsInRange(
   }>;
   error: string | null;
 }> {
+  const rpc = await supabase.rpc('list_club_facility_schedule_events', {
+    p_club_id: clubId,
+    p_range_start: rangeStartIso,
+    p_range_end: rangeEndIso,
+  });
+
+  if (!rpc.error && Array.isArray(rpc.data)) {
+    return {
+      data: (rpc.data as Array<Record<string, unknown>>).map((raw) => ({
+        id: String(raw.id),
+        team_season_id: String(raw.team_season_id),
+        kind: normalizeEventKind(String(raw.kind ?? '')),
+        type: (raw.type as string | null) ?? null,
+        opponent: (raw.opponent as string | null) ?? null,
+        starts_at: String(raw.starts_at),
+        // Private Notizen anderer Mannschaften nie über die Platz-API ausgeben.
+        notes: null,
+        location: (raw.location as string | null) ?? null,
+        venue_id: (raw.venue_id as string | null) ?? null,
+        status: (raw.status as string | null) ?? null,
+        team_name: (raw.team_name as string | null) ?? null,
+        age_group: (raw.age_group as string | null) ?? null,
+      })),
+      error: null,
+    };
+  }
+
+  // Fallback vor PLATZ.3-Migration: bisherige Query (RLS = nur eigene Mannschaften).
+  if (rpc.error && !/list_club_facility_schedule_events|42883|does not exist|schema cache/i.test(rpc.error.message)) {
+    return { data: [], error: rpc.error.message };
+  }
+
   const { data: teams, error: tErr } = await supabase
     .from('teams')
     .select('id, name, age_group')
@@ -267,7 +299,7 @@ export async function listClubEventsInRange(
 
   const { data: events, error: eErr } = await supabase
     .from('events')
-    .select('id, team_season_id, kind, type, opponent, starts_at, notes, location, venue_id, status')
+    .select('id, team_season_id, kind, type, opponent, starts_at, location, venue_id, status')
     .in('team_season_id', seasonIds)
     .gte('starts_at', rangeStartIso)
     .lt('starts_at', rangeEndIso)
@@ -284,7 +316,6 @@ export async function listClubEventsInRange(
         type: string | null;
         opponent: string | null;
         starts_at: string;
-        notes: string | null;
         location: string | null;
         venue_id: string | null;
         status: string | null;
@@ -298,7 +329,7 @@ export async function listClubEventsInRange(
         type: e.type,
         opponent: e.opponent,
         starts_at: e.starts_at,
-        notes: e.notes,
+        notes: null,
         location: e.location,
         venue_id: e.venue_id,
         status: e.status,
@@ -306,6 +337,26 @@ export async function listClubEventsInRange(
         age_group: team?.age_group ?? null,
       };
     }),
+    error: null,
+  };
+}
+
+/** Alle Team-Saison-IDs eines Clubs (für Client-Rechte / Filter). */
+export async function listClubTeamSeasonIds(
+  clubId: string,
+): Promise<{ data: string[]; error: string | null }> {
+  const { data: teams, error: tErr } = await supabase.from('teams').select('id').eq('club_id', clubId);
+  if (tErr) return { data: [], error: tErr.message };
+  const teamIds = (teams ?? []).map((t) => String((t as { id: string }).id)).filter(Boolean);
+  if (teamIds.length === 0) return { data: [], error: null };
+  const { data: seasons, error: sErr } = await supabase
+    .from('team_seasons')
+    .select('id')
+    .in('team_id', teamIds)
+    .in('status', ['active', 'draft']);
+  if (sErr) return { data: [], error: sErr.message };
+  return {
+    data: (seasons ?? []).map((s) => String((s as { id: string }).id)).filter(Boolean),
     error: null,
   };
 }
