@@ -4,11 +4,10 @@ import type { SessionTeamSeasonItem } from '../../auth/useSession';
 import {
   formatTeamSeasonCompactSwitcherLabel,
   isSeasonActive,
-  isSeasonArchived,
-  isSeasonDraft,
+  resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 
-function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
+function labelForTeamSeason(ts: SessionTeamSeasonItem, activeId: string | null): string {
   return formatTeamSeasonCompactSwitcherLabel(
     {
       displayName: ts.display_name,
@@ -19,16 +18,28 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
     },
     {
       markArchived: true,
-      markCurrent: isSeasonActive(ts.status),
+      markCurrent: ts.id === activeId || isSeasonActive(ts.status),
     },
   );
 }
+
+export type TeamSwitcherProps = {
+  /** kompakt im App-Header */
+  compact?: boolean;
+  className?: string;
+  /** Wenn false und nur 1 Saison: nichts rendern */
+  hideWhenSingle?: boolean;
+};
 
 /**
  * Wechselt die aktive Arbeitssaison (Write).
  * Archiv-Auswahl setzt nur die View-Saison — active bleibt unverändert.
  */
-export const TeamSwitcher: React.FC = () => {
+export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
+  compact = false,
+  className,
+  hideWhenSingle = false,
+}) => {
   const {
     teamSeasons,
     selectedTeamSeasonId,
@@ -38,12 +49,15 @@ export const TeamSwitcher: React.FC = () => {
   } = useSession();
 
   if (teamSeasons.length === 0) {
+    if (hideWhenSingle) return null;
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-slate-900/60 px-3 py-1 text-xs font-medium text-[var(--text)]">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-xs font-medium text-white/80">
         Keine Teams
       </span>
     );
   }
+
+  if (hideWhenSingle && teamSeasons.length < 2) return null;
 
   // Anzeige: View-Saison (kann Archiv sein), ohne active zu überschreiben.
   const value = viewTeamSeasonId ?? selectedTeamSeasonId ?? '';
@@ -56,28 +70,29 @@ export const TeamSwitcher: React.FC = () => {
     }
     const ts = teamSeasons.find((row) => row.id === id);
     if (!ts) return;
-    if (isSeasonArchived(ts.status)) {
+    const action = resolveTeamSeasonSwitcherAction(ts.status);
+    if (action === 'view-archive' || action === 'view-only') {
       setViewTeamSeasonId(id);
       return;
     }
-    if (isSeasonActive(ts.status) || isSeasonDraft(ts.status)) {
-      setSelectedTeamSeasonId(id);
-      return;
-    }
-    setViewTeamSeasonId(id);
+    setSelectedTeamSeasonId(id);
   };
+
+  const selectClass = compact
+    ? 'inline-flex max-w-[min(42vw,9.5rem)] min-w-0 appearance-none truncate rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[10px] font-medium text-white/90 sm:max-w-[11rem] sm:text-[11px]'
+    : 'inline-flex max-w-[min(100%,12.5rem)] min-w-0 appearance-none items-center gap-1 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-xs font-medium text-white/90 shadow-sm text-left sm:max-w-xs';
 
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="inline-flex max-w-[min(100%,12.5rem)] min-w-0 appearance-none items-center gap-1 rounded-full border border-[var(--border)] bg-slate-900/60 px-3 py-1 text-xs font-medium text-[var(--text)] shadow-sm text-left sm:max-w-xs"
+      className={[selectClass, className].filter(Boolean).join(' ')}
       aria-label="Team/Saison wählen"
     >
       <option value="">Team wählen</option>
       {teamSeasons.map((ts) => (
         <option key={ts.id} value={ts.id}>
-          {labelForTeamSeason(ts)}
+          {labelForTeamSeason(ts, selectedTeamSeasonId)}
         </option>
       ))}
     </select>

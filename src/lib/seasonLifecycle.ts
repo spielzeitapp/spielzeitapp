@@ -298,6 +298,19 @@ export function formatTeamSeasonCompactSwitcherLabel(
 }
 
 /**
+ * Einheitliche Switcher-Logik (App + Manager):
+ * - archived → nur View (Read-only Historie), Active unverändert
+ * - active/draft → Active + View (Schreiben nur in nicht-archivierten Saisons)
+ */
+export function resolveTeamSeasonSwitcherAction(
+  status: string | null | undefined,
+): 'view-archive' | 'select-work' | 'view-only' {
+  if (isSeasonArchived(status)) return 'view-archive';
+  if (isSeasonActive(status) || isSeasonDraft(status)) return 'select-work';
+  return 'view-only';
+}
+
+/**
  * Auswahl nach Reload / Login:
  * 1) gespeicherte/explizite ID, wenn gültig und active
  * 2) erste active team_season (Trainer-/Eltern-Membership bevorzugt)

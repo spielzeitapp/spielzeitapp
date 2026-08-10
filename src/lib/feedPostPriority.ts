@@ -83,12 +83,25 @@ function isSchedulingFeedPostKind(postKind: string, mediaType: string): boolean 
 /**
  * Spieltag-/Next-Match-Posts ausblenden, wenn das verknüpfte Event beendet ist.
  * lineup_auto und result_auto bleiben sichtbar.
+ * Chronik-Modus: historische Posts bleiben sichtbar (keine Tages-/Status-Filter).
  */
 export function isFeedPostVisibleInHomeFeed(
   row: TeamFeedPostDbRow,
   eventStatusById: Map<string, string>,
   now: Date = new Date(),
+  opts?: { chronicle?: boolean },
 ): boolean {
+  if (opts?.chronicle) {
+    const pk = (row.post_kind ?? '').toLowerCase().trim();
+    const mt = (row.media_type ?? '').toLowerCase().trim();
+    // Rein ephemere Tages-Hinweise nicht in der Chronik behalten
+    if (pk === 'matchday_today_auto' || pk === 'matchday_tomorrow_auto') return false;
+    if (mt === 'matchday' && (pk === 'matchday_today_auto' || pk === 'matchday_tomorrow_auto')) {
+      return false;
+    }
+    return true;
+  }
+
   const pk = (row.post_kind ?? '').toLowerCase().trim();
   const mt = (row.media_type ?? '').toLowerCase().trim();
 

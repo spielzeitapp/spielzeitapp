@@ -12,6 +12,7 @@ import {
   formatTeamSeasonCompactSwitcherLabel,
   isSeasonActive,
   resolveTeamSeasonLabelParts,
+  resolveTeamSeasonSwitcherAction,
 } from '../lib/seasonLifecycle';
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath } from '../demo/demoPaths';
@@ -164,6 +165,7 @@ export const CalendarPage: React.FC = () => {
   const {
     readTeamSeasonId,
     setViewTeamSeasonId,
+    setSelectedTeamSeasonId,
     teamSeasons,
     activeTeamSeasonId,
   } = useActiveTeamSeason();
@@ -300,9 +302,24 @@ export const CalendarPage: React.FC = () => {
         return;
       }
       setAllTeamsMode(false);
-      setViewTeamSeasonId(value || null);
+      const id = value || null;
+      if (!id) {
+        setViewTeamSeasonId(null);
+        return;
+      }
+      const ts = teamSeasons.find((row) => row.id === id);
+      if (!ts) {
+        setViewTeamSeasonId(id);
+        return;
+      }
+      const action = resolveTeamSeasonSwitcherAction(ts.status);
+      if (action === 'select-work') {
+        setSelectedTeamSeasonId(id);
+        return;
+      }
+      setViewTeamSeasonId(id);
     },
-    [canSeeAllTeams, setViewTeamSeasonId],
+    [canSeeAllTeams, setViewTeamSeasonId, setSelectedTeamSeasonId, teamSeasons],
   );
 
   useEffect(() => {

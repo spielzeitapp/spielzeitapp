@@ -18,6 +18,10 @@ import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
 import { assertTeamSeasonWritable } from "../lib/seasonTransition";
 import {
+  formatTeamSeasonCompactSwitcherLabel,
+  resolveTeamSeasonSwitcherAction,
+} from "../lib/seasonLifecycle";
+import {
   createRosterPlayer,
   updateRosterPlayerSeasonFields,
 } from "../lib/rosterService";
@@ -150,6 +154,9 @@ export const TeamPage: React.FC = () => {
     teamSeasonId: sessionTeamSeasonId,
     readTeamSeasonId: sessionReadTeamSeasonId,
     activeTeamSeasonId: sessionActiveTeamSeasonId,
+    teamSeasons: sessionTeamSeasons,
+    setViewTeamSeasonId,
+    setSelectedTeamSeasonId,
     isHistoryReadOnly,
     softLockMessage,
     role: sessionRole,
@@ -160,6 +167,7 @@ export const TeamPage: React.FC = () => {
   const teamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionTeamSeasonId;
   const readTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionReadTeamSeasonId;
   const activeTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionActiveTeamSeasonId;
+  const teamSeasons = isDemo ? [] : sessionTeamSeasons;
   const role = isDemo ? "trainer" : sessionRole;
   const tsLoading = isDemo ? false : tsLoadingRaw;
   const tsError = isDemo ? null : tsErrorRaw;
@@ -978,10 +986,54 @@ export const TeamPage: React.FC = () => {
             <p className="text-lg font-bold leading-tight text-white sm:text-xl">
               {tsLoading ? "Lade Team…" : heroTeamName}
             </p>
-            <p className="mt-1 text-[14px] text-white/70">
-              {heroSeason}
-              {isHistoryReadOnly ? " · Archiv" : ""}
-            </p>
+            {!isDemo && teamSeasons.length > 1 ? (
+              <label className="mt-2 block min-w-0">
+                <span className="sr-only">Saison anzeigen</span>
+                <select
+                  value={readTeamSeasonId ?? ""}
+                  onChange={(e) => {
+                    const id = e.target.value || null;
+                    if (!id) {
+                      setViewTeamSeasonId(null);
+                      return;
+                    }
+                    const ts = teamSeasons.find((row) => row.id === id);
+                    if (!ts) return;
+                    const action = resolveTeamSeasonSwitcherAction(ts.status);
+                    if (action === "select-work") {
+                      setSelectedTeamSeasonId(id);
+                      return;
+                    }
+                    setViewTeamSeasonId(id);
+                  }}
+                  className="w-full max-w-full rounded-lg border border-white/15 bg-black/45 px-2.5 py-1.5 text-xs text-white/90 sm:text-sm"
+                  aria-label="Saison für Mannschaft wählen"
+                >
+                  {teamSeasons.map((ts) => (
+                    <option key={ts.id} value={ts.id}>
+                      {formatTeamSeasonCompactSwitcherLabel(
+                        {
+                          displayName: ts.display_name,
+                          ageGroup: ts.age_group,
+                          teamName: ts.team?.name,
+                          seasonName: ts.season?.name,
+                          status: ts.status,
+                        },
+                        {
+                          markArchived: true,
+                          markCurrent: ts.id === activeTeamSeasonId,
+                        },
+                      )}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <p className="mt-1 text-[14px] text-white/70">
+                {heroSeason}
+                {isHistoryReadOnly ? " · Archiv" : ""}
+              </p>
+            )}
           </div>
           {isHistoryReadOnly ? (
             <p className="mt-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-[12px] text-amber-100/95">

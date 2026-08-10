@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
+import { TeamSwitcher } from '../components/TeamSwitcher';
 import { isStagingApp } from '../../lib/appEnvironment';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
@@ -72,6 +73,7 @@ export const Header: React.FC = () => {
     effectiveRole,
     loading: sessionLoading,
     backendRole,
+    teamSeasons,
   } = useSession();
   const { user, loading: authLoading } = useAuth();
   const publicView = isPublicRoute(pathname);
@@ -167,6 +169,12 @@ export const Header: React.FC = () => {
             </>
           )}
         </div>
+
+        {!publicView && !isDemo && (teamSeasons?.length ?? 0) > 1 ? (
+          <div className="flex shrink-0 justify-center px-1">
+            <TeamSwitcher compact hideWhenSingle />
+          </div>
+        ) : null}
 
         {/* Rechts: Staff / Demo-Trainer-Chrome (gleiche Höhe wie App) */}
         {!publicView && (

@@ -36,10 +36,11 @@ function mapVisiblePosts(
   rows: TeamFeedPostDbRow[],
   eventStatusById: Map<string, string>,
   now: Date,
+  opts?: { chronicle?: boolean },
 ): { posts: ClassifiedFeedPost[]; parseDropped: number } {
   const mapped: ClassifiedFeedPost[] = [];
   for (const r of rows) {
-    if (!isFeedPostVisibleInHomeFeed(r, eventStatusById, now)) continue;
+    if (!isFeedPostVisibleInHomeFeed(r, eventStatusById, now, opts)) continue;
     const c = classifyTeamFeedPost(r);
     if (c) mapped.push(c);
   }
@@ -126,7 +127,9 @@ async function fetchHistoricPostsPage(opts: {
 
   const seasonIds = rows.map((r) => r.team_season_id).filter(Boolean);
   const eventStatusById = await fetchEventStatusMapForSeasons(seasonIds);
-  const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date());
+  const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date(), {
+    chronicle: true,
+  });
 
   return {
     posts,

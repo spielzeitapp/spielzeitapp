@@ -9,7 +9,7 @@ import {
   getSeasonStatusLabel,
   isSeasonActive,
   isSeasonArchived,
-  isSeasonDraft,
+  resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 import { ManagerMenuButton } from './ManagerSidebar';
 
@@ -86,11 +86,8 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
     }
     const ts = teamSeasons.find((row) => row.id === id);
     if (!ts) return;
-    if (isSeasonArchived(ts.status)) {
-      setViewTeamSeasonId(id);
-      return;
-    }
-    if (isSeasonActive(ts.status) || isSeasonDraft(ts.status)) {
+    const action = resolveTeamSeasonSwitcherAction(ts.status);
+    if (action === 'select-work') {
       setSelectedTeamSeasonId(id);
       return;
     }
