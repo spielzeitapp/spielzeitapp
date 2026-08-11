@@ -30,13 +30,23 @@ assert.ok(mig.includes('email_confirmed_at'));
 assert.ok(mig.includes('SET search_path = public'));
 assert.ok(mig.includes('REVOKE ALL ON FUNCTION public.preview_parent_link_invite(text) FROM anon'));
 
-assert.ok(api.includes('signInWithOtp'));
+assert.ok(api.includes('signInWithOtp') || api.includes('/auth/v1/otp'));
+assert.ok(api.includes('email_redirect_to') || api.includes('emailRedirectTo'));
 assert.ok(api.includes('https://app.spielzeitapp.at'));
 assert.ok(api.includes('parent_invite_refuses_live_domain'));
 assert.ok(api.includes('shxugattqatahckhspwk'));
 assert.ok(api.includes('SUPABASE_SERVICE_ROLE_KEY'));
 assert.ok(!api.includes('VITE_SUPABASE_SERVICE'));
 assert.ok(api.includes('code_fallback'));
+assert.ok(api.includes('localhost'));
+assert.ok(api.includes("origin: STAGING_ORIGIN"));
+assert.ok(api.includes('/app/parent-invite'));
+assert.ok(api.includes('resolveInviteOrigin'));
+assert.ok(api.includes('parent_invite_refuses_live_supabase'));
+assert.ok(!api.includes('req.headers.origin'));
+assert.ok(!api.includes('x-forwarded-host'));
+assert.ok(api.includes('email_redirect_to'));
+assert.ok(api.includes('/auth/v1/otp'));
 
 assert.ok(panel.includes('Einladung per E-Mail senden'));
 assert.ok(panel.includes('Einladungscode erstellen'));

@@ -42,7 +42,10 @@ function maskEmail(email) {
 }
 
 /**
- * Parent invite links must never point at Live for this staging release.
+ * Parent invite links: always canonical Staging origin for this develop flow.
+ * Never trust client Origin headers. Never emit localhost or Live.
+ * Supabase Auth Site URL + Redirect Allowlist must also allow this origin
+ * (otherwise GoTrue falls back to Site URL, e.g. localhost).
  */
 function resolveInviteOrigin() {
   const configured = String(
@@ -55,32 +58,18 @@ function resolveInviteOrigin() {
     return { ok: false, error: 'parent_invite_refuses_live_domain' };
   }
 
-  if (configured === STAGING_ORIGIN) {
-    return { ok: true, origin: STAGING_ORIGIN };
-  }
-
-  const appEnv = String(process.env.APP_ENV || process.env.VITE_APP_ENV || '')
-    .trim()
-    .toLowerCase();
-  if (appEnv === 'staging' || appEnv === 'test' || !configured) {
-    return { ok: true, origin: STAGING_ORIGIN };
-  }
-
-  // Non-staging custom base (e.g. preview): still forbid live Supabase project
   const supabaseUrl = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '');
   if (supabaseUrl.includes(`${LIVE_REF}.supabase.co`)) {
     return { ok: false, error: 'parent_invite_refuses_live_supabase' };
   }
 
-  try {
-    const u = new URL(configured);
-    if (u.protocol !== 'https:') {
-      return { ok: false, error: 'parent_invite_https_required' };
-    }
-    return { ok: true, origin: u.origin };
-  } catch {
+  if (/localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]/i.test(configured)) {
+    // Misconfigured env must not poison invite emails.
     return { ok: true, origin: STAGING_ORIGIN };
   }
+
+  // Canonical Staging invite target (serverseitig fix, nicht aus Request-Headern).
+  return { ok: true, origin: STAGING_ORIGIN };
 }
 
 function normalizeMembershipRole(roleStr) {
@@ -230,20 +219,39 @@ export default async function handler(req, res) {
     const acceptPath = `/app/parent-invite?t=${encodeURIComponent(tokenPlain)}`;
     const emailRedirectTo = `${originRes.origin}${acceptPath}`;
 
-    // Reuse Supabase Auth mailer (no client secrets). Template is Auth magic-link/OTP.
-    const { error: otpError } = await admin.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo,
-      },
-    });
+    // Raw Auth OTP API (top-level email_redirect_to). Avoid admin.generateLink
+    // options.redirect_to quirks that silently fall back to Site URL.
+    let otpError = null;
+    try {
+      const otpRes = await fetch(`${String(supabaseUrl).replace(/\/$/, '')}/auth/v1/otp`, {
+        method: 'POST',
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          create_user: true,
+          data: {
+            spielzeit_parent_invite: true,
+          },
+          email_redirect_to: emailRedirectTo,
+        }),
+      });
+      if (!otpRes.ok) {
+        otpError = { status: otpRes.status };
+        console.error('[parent/send-invite] auth mail failed');
+      }
+    } catch {
+      otpError = { status: 0 };
+      console.error('[parent/send-invite] auth mail failed');
+    }
 
     let emailSent = !otpError;
     let mailBlocker = null;
     if (otpError) {
       mailBlocker = 'supabase_auth_mail_failed';
-      console.error('[parent/send-invite] auth mail failed');
     } else {
       await userClient.rpc('mark_parent_link_invite_sent', {
         p_invite_id: invite.invite_id,
