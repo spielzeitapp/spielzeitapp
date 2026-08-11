@@ -22,7 +22,6 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
-import { useHistoricalTrainingRoster } from '../hooks/useHistoricalTrainingRoster';
 import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
@@ -520,21 +519,8 @@ export const EventDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [teamSeasonId]);
-  const archiveTrainingRoster =
-    !seasonWritable && Boolean(teamSeasonId) && event?.kind === 'training';
-  const { players: livePlayers, loading: playersLoadingLive } = usePlayers(
-    archiveTrainingRoster ? null : teamSeasonId,
-    { mode: 'active' },
-  );
-  const {
-    players: historicalTrainingPlayers,
-    loading: historicalTrainingLoading,
-  } = useHistoricalTrainingRoster(teamSeasonId, {
-    enabled: Boolean(archiveTrainingRoster),
-    eventId: archiveTrainingRoster ? eventId : null,
-  });
-  const players = archiveTrainingRoster ? historicalTrainingPlayers : livePlayers;
-  const playersLoading = archiveTrainingRoster ? historicalTrainingLoading : playersLoadingLive;
+  /** Archiv-Training: Teilnehmerliste/Berechnung nur active — Attendance bleibt in DB. */
+  const { players, loading: playersLoading } = usePlayers(teamSeasonId, { mode: 'active' });
   const { myAttendancePlayerIds } = useAvailabilityPermissions({
     role: effectiveRole,
     teamSeasonId,

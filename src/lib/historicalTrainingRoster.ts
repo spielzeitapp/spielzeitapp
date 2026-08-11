@@ -118,26 +118,17 @@ export async function listHistoricalSeasonTrainingRoster(
 
 /**
  * Historischer Event-Trainingskader (einzelnes Training im Archiv):
- * aktive Join-Spieler ∪ Spieler mit Attendance genau für dieses Event.
+ * Nur status=active — pausierte Spieler mit historischer Attendance bleiben in der DB,
+ * fließen aber nicht in Teilnehmerliste/Berechnung ein.
  */
 export async function listHistoricalEventTrainingRoster(
   teamSeasonId: string,
-  eventId: string,
+  _eventId: string,
 ): Promise<{ data: RosterPlayer[]; error: string | null }> {
   const sid = teamSeasonId.trim();
-  const eid = eventId.trim();
-  if (!sid || !eid) return { data: [], error: null };
+  if (!sid) return { data: [], error: null };
 
-  const [activeRes, allRes, attendeeRes] = await Promise.all([
-    listRoster(sid, 'active'),
-    listRoster(sid, 'all'),
-    fetchEventAttendancePlayerIds(eid),
-  ]);
-
+  const activeRes = await listRoster(sid, 'active');
   if (activeRes.error) return { data: [], error: activeRes.error };
-  if (allRes.error) return { data: [], error: allRes.error };
-  if (attendeeRes.error) return { data: [], error: attendeeRes.error };
-
-  const fromAttendance = pickPlayersByIds(allRes.data, attendeeRes.ids);
-  return { data: mergeRosterById(activeRes.data, fromAttendance), error: null };
+  return { data: sortRoster(activeRes.data), error: null };
 }
