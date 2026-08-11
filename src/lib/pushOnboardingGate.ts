@@ -8,7 +8,7 @@ import {
   isPushFullyActive,
 } from './pushSubscriptionCore';
 import { shouldDeferPushOnboardingPrompt } from './pushOnboardingPrompt';
-import { isParentLinkDeferred, isParentOnboardingSatisfied } from './parentChildLink';
+import { isParentLinkDeferred, isParentOnboardingSatisfied, isParentRoleChosen } from './parentChildLink';
 
 export const PUSH_ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
@@ -96,9 +96,13 @@ export async function isUserOnboardingComplete(params: {
     deferred,
     previewIsParent: preview === 'parent',
     backendIsParent: normalizeSessionRole(backendRole) === 'parent',
+    parentRoleChosen: isParentRoleChosen(user ?? null),
   });
   if (parentSat.needsOnboardingUi) return false;
-  if (parentSat.complete && (hasParentMembership || deferred || preview === 'parent')) {
+  if (
+    parentSat.complete &&
+    (hasParentMembership || deferred || preview === 'parent' || isParentRoleChosen(user ?? null))
+  ) {
     return true;
   }
 

@@ -10,10 +10,36 @@ import { formatTeamSeasonDisplayLabel, isSeasonActive, isSeasonDraft } from './s
 /** user_metadata-Flag: Onboarding ohne Kind abgeschlossen (kein player_guardians-Eintrag). */
 export const PARENT_LINK_DEFERRED_META_KEY = 'parent_link_deferred';
 
+/** user_metadata-Flag: Elternrolle bewusst gewählt (vor Membership / Kind-Verknüpfung). */
+export const PARENT_ROLE_CHOSEN_META_KEY = 'parent_role_chosen';
+
 export function isParentLinkDeferred(user: User | null | undefined): boolean {
   if (!user) return false;
   const meta = user.user_metadata as Record<string, unknown> | undefined;
   return meta?.[PARENT_LINK_DEFERRED_META_KEY] === true;
+}
+
+export function isParentRoleChosen(user: User | null | undefined): boolean {
+  if (!user) return false;
+  const meta = user.user_metadata as Record<string, unknown> | undefined;
+  return meta?.[PARENT_ROLE_CHOSEN_META_KEY] === true;
+}
+
+/**
+ * UI-Rolle „parent“ für Nutzer ohne Membership: gewählte Elternrolle oder verschobene Verknüpfung.
+ * deferred allein impliziert Eltern-Onboarding (Self-Healing für fehlerhafte Testkonten).
+ */
+export function resolveParentUiRole(user: User | null | undefined): 'parent' | null {
+  if (!user) return null;
+  if (isParentRoleChosen(user) || isParentLinkDeferred(user)) return 'parent';
+  return null;
+}
+
+export async function persistParentRoleChoice(): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.updateUser({
+    data: { [PARENT_ROLE_CHOSEN_META_KEY]: true },
+  });
+  return { error: error?.message ?? null };
 }
 
 export async function setParentLinkDeferred(deferred: boolean): Promise<{ error: string | null }> {
@@ -51,10 +77,36 @@ export type ParentLinkTeamSeasonOption = {
  * Nur active/draft-Saisons für Kind-Verknüpfung, deterministisch sortiert.
  * Labels über zentrale formatTeamSeasonDisplayLabel (U12 statt historisches Team-U11).
  */
+export type ParentLinkPlayerOption = {
+  id: string;
+  display_name: string;
+  jersey_number: number | null;
+};
+
 export async function listActiveTeamSeasonsForParentLink(): Promise<{
   data: ParentLinkTeamSeasonOption[];
   error: string | null;
 }> {
+  const { data: rpcRows, error: rpcError } = await supabase.rpc('list_parent_link_team_seasons');
+  if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+    const opts: ParentLinkTeamSeasonOption[] = (rpcRows as Array<{
+      id: string;
+      team_id: string;
+      label?: string | null;
+      status?: string | null;
+    }>).map((row) => ({
+      id: String(row.id),
+      teamId: String(row.team_id),
+      label: String(row.label ?? '').trim() || 'Mannschaft',
+      status: row.status ?? 'active',
+    }));
+    return { data: opts, error: null };
+  }
+
+  if (rpcError && !/could not find the function|42883|does not exist/i.test(rpcError.message)) {
+    console.warn('[parentChildLink] list_parent_link_team_seasons RPC', rpcError.message);
+  }
+
   const { data: rows, error } = await supabase
     .from('team_seasons')
     .select(
@@ -68,7 +120,7 @@ export async function listActiveTeamSeasonsForParentLink(): Promise<{
       seasons ( name )
     `,
     )
-    .in('status', ['active', 'draft'])
+    .eq('status', 'active')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -95,7 +147,7 @@ export async function listActiveTeamSeasonsForParentLink(): Promise<{
   const opts: ParentLinkTeamSeasonOption[] = [];
   for (const raw of (rows ?? []) as Raw[]) {
     const status = (raw.status ?? '').toLowerCase();
-    if (!(isSeasonActive(status) || isSeasonDraft(status))) continue;
+    if (!isSeasonActive(status)) continue;
     const team = Array.isArray(raw.teams) ? raw.teams[0] : raw.teams;
     const season = Array.isArray(raw.seasons) ? raw.seasons[0] : raw.seasons;
     const label = formatTeamSeasonDisplayLabel({
@@ -117,6 +169,81 @@ export async function listActiveTeamSeasonsForParentLink(): Promise<{
   return { data: opts, error: null };
 }
 
+/**
+ * Minimale Spielerliste für Kind-Verknüpfung (RPC bevorzugt, sonst Legacy players-Compat).
+ */
+export async function listPlayersForParentLink(
+  teamSeasonId: string,
+  userId: string,
+): Promise<{ data: ParentLinkPlayerOption[]; error: string | null }> {
+  const sid = teamSeasonId?.trim();
+  if (!sid) return { data: [], error: 'Keine Mannschaft gewählt.' };
+
+  const { data: rpcRows, error: rpcError } = await supabase.rpc('list_parent_link_roster', {
+    p_team_season_id: sid,
+  });
+
+  if (!rpcError && Array.isArray(rpcRows)) {
+    const mapped = (rpcRows as Array<{
+      id: string;
+      display_name?: string | null;
+      jersey_number?: number | null;
+    }>).map((row) => ({
+      id: String(row.id),
+      display_name: String(row.display_name ?? '').trim() || 'Spieler',
+      jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
+    }));
+    return { data: mapped, error: null };
+  }
+
+  if (rpcError && !/could not find the function|42883|does not exist/i.test(rpcError.message)) {
+    console.warn('[parentChildLink] list_parent_link_roster RPC', rpcError.message);
+  }
+
+  const { data: playerRows, error: playerError } = await supabase
+    .from('players')
+    .select('id, first_name, last_name, jersey_number')
+    .eq('team_season_id', sid)
+    .or('status.eq.active,and(status.is.null,is_active.eq.true)');
+
+  if (playerError) {
+    return { data: [], error: playerError.message };
+  }
+
+  let linkedIds = new Set<string>();
+  if (userId) {
+    const { data: linkedRows, error: linkedError } = await supabase
+      .from('player_guardians')
+      .select('player_id')
+      .eq('user_id', userId);
+
+    if (linkedError) {
+      return { data: [], error: linkedError.message };
+    }
+
+    linkedIds = new Set((linkedRows ?? []).map((r: { player_id: string }) => r.player_id));
+  }
+
+  const mapped: ParentLinkPlayerOption[] = ((playerRows ?? []) as Array<{
+    id: string;
+    first_name?: string | null;
+    last_name?: string | null;
+    jersey_number?: number | null;
+  }>)
+    .filter((row) => !linkedIds.has(row.id))
+    .map((row) => {
+      const first = (row.first_name ?? '').toString().trim();
+      const last = (row.last_name ?? '').toString().trim();
+      return {
+        id: row.id,
+        display_name: `${first} ${last}`.trim() || 'Spieler',
+        jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
+      };
+    });
+
+  return { data: mapped, error: null };
+}
+
 async function listActiveTeamSeasonsForParentLinkLegacy(): Promise<{
   data: ParentLinkTeamSeasonOption[];
   error: string | null;
@@ -124,7 +251,7 @@ async function listActiveTeamSeasonsForParentLinkLegacy(): Promise<{
   const { data: teamSeasonRows, error: tsError } = await supabase
     .from('team_seasons')
     .select('id, team_id, status, display_name, age_group')
-    .in('status', ['active', 'draft']);
+    .eq('status', 'active');
 
   if (tsError) {
     // Älteste Variante: kein status-Filter möglich → alles laden und clientseitig filtern, wenn status fehlt
@@ -193,6 +320,7 @@ export function isParentOnboardingSatisfied(opts: {
   deferred: boolean;
   previewIsParent: boolean;
   backendIsParent: boolean;
+  parentRoleChosen?: boolean;
 }): { complete: boolean; needsOnboardingUi: boolean } {
   if (opts.hasGuardian) {
     return { complete: true, needsOnboardingUi: false };
@@ -201,7 +329,10 @@ export function isParentOnboardingSatisfied(opts: {
     return { complete: true, needsOnboardingUi: false };
   }
   const looksLikeParent =
-    opts.previewIsParent || opts.backendIsParent || opts.hasParentMembership;
+    opts.previewIsParent ||
+    opts.backendIsParent ||
+    opts.hasParentMembership ||
+    opts.parentRoleChosen === true;
   if (looksLikeParent) {
     return { complete: false, needsOnboardingUi: true };
   }

@@ -128,8 +128,11 @@ export const ProfilePage: React.FC = () => {
       const n = normalizeRole(String(mr));
       return n !== '' ? n : String(mr).trim();
     }
+    if (effectiveRole === 'parent') {
+      return 'parent';
+    }
     return backendRole || '–';
-  }, [selectedMembership, backendRole]);
+  }, [selectedMembership, backendRole, effectiveRole]);
   const email = authUser?.email?.trim() || '–';
   const nameLine = profileDisplayName(profile);
   const headingMain = nameLine ?? email;

@@ -5,6 +5,7 @@ import type { TeamSeasonListItem, TeamSeasonTeam, TeamSeasonSeason } from '../se
 import { useAuth } from './AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { pickPreferredActiveTeamSeasonId } from '../lib/seasonLifecycle';
+import { resolveParentUiRole } from '../lib/parentChildLink';
 
 /** team_seasons.id und memberships.team_season_id als string (UUID), nie Number. */
 export type SessionTeamSeasonItem = Omit<TeamSeasonListItem, 'id'> & {
@@ -240,6 +241,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (memberships.length === 0 && previewRole) {
       const p = toRole(previewRole);
       if (p) return p;
+    }
+
+    // Eltern ohne Membership: dauerhaft gespeicherte Rollenwahl (Auth-Metadata)
+    if (memberships.length === 0 && authUser) {
+      const parentUi = resolveParentUiRole(authUser);
+      if (parentUi) return parentUi;
     }
 
     const fromMembership =

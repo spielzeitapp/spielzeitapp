@@ -18,6 +18,7 @@ import { DemoTourOverlay } from '../../demo/components/DemoTourOverlay';
 import {
   isParentLinkDeferred,
   isParentOnboardingSatisfied,
+  isParentRoleChosen,
   userHasPlayerGuardian,
 } from '../../lib/parentChildLink';
 
@@ -154,6 +155,7 @@ export const InternalLayout: React.FC = () => {
         deferred,
         previewIsParent: preview === 'parent',
         backendIsParent: normalizeSessionRole(backendRole) === 'parent',
+        parentRoleChosen: isParentRoleChosen(user),
       });
 
       if (parentSat.needsOnboardingUi) {

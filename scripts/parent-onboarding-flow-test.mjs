@@ -34,9 +34,19 @@ function getAuthRedirectUrl(origin, pathIn = '/') {
 function isParentOnboardingSatisfied(opts) {
   if (opts.hasGuardian) return { complete: true, needsOnboardingUi: false };
   if (opts.deferred) return { complete: true, needsOnboardingUi: false };
-  const looksLikeParent = opts.previewIsParent || opts.backendIsParent || opts.hasParentMembership;
+  const looksLikeParent =
+    opts.previewIsParent ||
+    opts.backendIsParent ||
+    opts.hasParentMembership ||
+    opts.parentRoleChosen === true;
   if (looksLikeParent) return { complete: false, needsOnboardingUi: true };
   return { complete: true, needsOnboardingUi: false };
+}
+
+function resolveParentUiRole(meta) {
+  if (!meta) return null;
+  if (meta.parent_role_chosen === true || meta.parent_link_deferred === true) return 'parent';
+  return null;
 }
 
 function normalizeTeamSeasonStatus(status) {
@@ -48,7 +58,7 @@ function normalizeTeamSeasonStatus(status) {
 function filterActiveSeasons(rows) {
   return rows.filter((r) => {
     const st = normalizeTeamSeasonStatus(r.status);
-    return st === 'active' || st === 'draft';
+    return st === 'active';
   });
 }
 
@@ -95,6 +105,29 @@ assert.deepStrictEqual(
   { complete: false, needsOnboardingUi: true },
 );
 
+// 3b) parent_role_chosen ohne Guardian → Onboarding nötig
+assert.deepStrictEqual(
+  isParentOnboardingSatisfied({
+    hasGuardian: false,
+    hasParentMembership: false,
+    deferred: false,
+    previewIsParent: false,
+    backendIsParent: false,
+    parentRoleChosen: true,
+  }),
+  { complete: false, needsOnboardingUi: true },
+);
+
+// 3c) deferred ohne Rolle → Self-Healing UI-Rolle parent
+assert.strictEqual(
+  resolveParentUiRole({ parent_link_deferred: true, parent_role_chosen: false }),
+  'parent',
+);
+
+// 3d) parent_role_chosen → UI-Rolle parent
+assert.strictEqual(resolveParentUiRole({ parent_role_chosen: true }), 'parent');
+assert.strictEqual(resolveParentUiRole({}), null);
+
 // 4) Aktive U12, archivierte U11 ausfiltern
 const seasons = [
   { id: 'a', status: 'archived', display_name: 'U11 SPG Rohrbach · 2025/26', team_name: 'U11 SPG Rohrbach' },
@@ -129,16 +162,35 @@ assert.ok(authLayout.includes('safe-area-inset-bottom'));
 assert.ok(!authLayout.includes('BottomNav'));
 assert.ok(!authLayout.includes('<Header'));
 
-// 7) ParentOnboarding enthält Später verknüpfen
+// 7) ParentOnboarding enthält Später verknüpfen + Rollenpersistenz
 const onboarding = fs.readFileSync(path.join(root, 'src/pages/ParentOnboardingPage.tsx'), 'utf8');
 assert.ok(onboarding.includes('Später verknüpfen'));
 assert.ok(onboarding.includes('setParentLinkDeferred'));
+assert.ok(onboarding.includes('persistParentRoleChoice'));
 assert.ok(onboarding.includes('userHasPlayerGuardian'));
 assert.ok(onboarding.includes('listActiveTeamSeasonsForParentLink'));
+assert.ok(onboarding.includes('listPlayersForParentLink'));
+
+// 7b) RoleChoice persistiert Elternrolle vor Navigation
+const roleChoice = fs.readFileSync(path.join(root, 'src/pages/RoleChoicePage.tsx'), 'utf8');
+assert.ok(roleChoice.includes('persistParentRoleChoice'));
+assert.ok(roleChoice.includes('Speichere'));
 
 // 8) Mehr-Hub Link
 const mehr = fs.readFileSync(path.join(root, 'src/pages/MoreHubPage.tsx'), 'utf8');
 assert.ok(mehr.includes('Kind verknüpfen'));
 assert.ok(mehr.includes('parent-onboarding?mode=link'));
+
+// 9) useSession leitet Elternrolle aus Metadata ab
+const useSession = fs.readFileSync(path.join(root, 'src/auth/useSession.tsx'), 'utf8');
+assert.ok(useSession.includes('resolveParentUiRole'));
+
+// 10) RPC-Migration für sichere Spielerliste
+const migration = fs.readFileSync(
+  path.join(root, 'supabase/migrations/20260811120000_parent_link_onboarding_rpc.sql'),
+  'utf8',
+);
+assert.ok(migration.includes('list_parent_link_roster'));
+assert.ok(migration.includes('list_parent_link_team_seasons'));
 
 console.log('parent-onboarding-flow-test: OK');

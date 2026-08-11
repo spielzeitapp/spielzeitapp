@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { listRoster } from '../lib/rosterService';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from '../lib/roles';
@@ -9,6 +8,8 @@ import { useSession } from '../auth/useSession';
 import {
   clearParentLinkDeferred,
   listActiveTeamSeasonsForParentLink,
+  listPlayersForParentLink,
+  persistParentRoleChoice,
   setParentLinkDeferred,
   userHasPlayerGuardian,
   type ParentLinkTeamSeasonOption,
@@ -79,6 +80,16 @@ export const ParentOnboardingPage: React.FC = () => {
 
       setUserId(user.id);
 
+      const rolePersist = await persistParentRoleChoice();
+      if (!alive) return;
+      if (rolePersist.error) {
+        setError(rolePersist.error);
+        setLoadError(rolePersist.error);
+        setLoading(false);
+        return;
+      }
+      setPreviewRole('parent');
+
       const { hasGuardian, error: guardianError } = await userHasPlayerGuardian(user.id);
       if (!alive) return;
 
@@ -126,13 +137,13 @@ export const ParentOnboardingPage: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [navigate, linkMode]);
+  }, [navigate, linkMode, setPreviewRole]);
 
   useEffect(() => {
     let alive = true;
 
     async function loadPlayersForTeam(teamSeasonId: string) {
-      if (!teamSeasonId) {
+      if (!teamSeasonId || !userId) {
         setPlayers([]);
         setPlayersLoading(false);
         setPlayersError(null);
@@ -142,7 +153,7 @@ export const ParentOnboardingPage: React.FC = () => {
       setPlayersLoading(true);
       setPlayersError(null);
 
-      const { data, error } = await listRoster(teamSeasonId, 'active');
+      const { data, error } = await listPlayersForParentLink(teamSeasonId, userId);
       if (!alive) return;
 
       if (error) {
@@ -152,16 +163,11 @@ export const ParentOnboardingPage: React.FC = () => {
         return;
       }
 
-      const mapped: PlayerOption[] = data.map((r) => {
-        const first = (r.first_name ?? '').toString().trim();
-        const last = (r.last_name ?? '').toString().trim();
-        const display_name = `${first} ${last}`.trim() || 'Spieler';
-        return {
-          id: r.id,
-          display_name,
-          jersey_number: r.jersey_number ?? null,
-        };
-      });
+      const mapped: PlayerOption[] = data.map((r) => ({
+        id: r.id,
+        display_name: r.display_name,
+        jersey_number: r.jersey_number ?? null,
+      }));
 
       setPlayers(mapped);
       setSelectedPlayerId('');
@@ -178,7 +184,7 @@ export const ParentOnboardingPage: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [selectedTeamSeasonId]);
+  }, [selectedTeamSeasonId, userId]);
 
   const noSeasons = !loading && !loadError && teamSeasons.length === 0;
   const noPlayersForSeason =
@@ -198,6 +204,13 @@ export const ParentOnboardingPage: React.FC = () => {
   const handleDefer = async () => {
     setDeferring(true);
     setError(null);
+
+    const { error: roleError } = await persistParentRoleChoice();
+    if (roleError) {
+      setError(roleError);
+      setDeferring(false);
+      return;
+    }
 
     const { error: deferError } = await setParentLinkDeferred(true);
     if (deferError) {
@@ -345,6 +358,7 @@ export const ParentOnboardingPage: React.FC = () => {
     }
 
     await clearParentLinkDeferred();
+    setPreviewRole('parent');
     setSaving(false);
     goHomeAndReload();
   };
