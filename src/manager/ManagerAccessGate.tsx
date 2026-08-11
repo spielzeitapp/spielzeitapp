@@ -69,7 +69,10 @@ export function ManagerAccessGate({ children }: Props): React.ReactElement {
     );
   }
 
-  if (memberships.length === 0 || teamSeasons.length === 0) {
+  // Plattformadmin (user_roles.admin) darf den Manager auch ohne Team-Kontext nutzen
+  // (z. B. Vereinsverwaltung) – keine neue Rechtearchitektur.
+  const backendKey = String(backendRole ?? '').trim().toLowerCase();
+  if (backendKey !== 'admin' && (memberships.length === 0 || teamSeasons.length === 0)) {
     return (
       <GatePanel
         title="Keine Mannschaft zugeordnet"

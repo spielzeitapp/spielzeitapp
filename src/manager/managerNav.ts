@@ -9,6 +9,8 @@ export type ManagerNavItem = {
   /** Aktive Route (nur für umgesetzte Module). */
   to?: string;
   status: 'ready' | 'planned';
+  /** Nur Plattformadmin (user_roles.admin) – kein neues Rechte-Modul. */
+  platformAdminOnly?: boolean;
 };
 
 export type ManagerNavSection = {
@@ -60,6 +62,13 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     id: 'club',
     label: 'Verein',
     items: [
+      {
+        id: 'clubs',
+        label: 'Vereine',
+        to: '/manager/vereine',
+        status: 'ready',
+        platformAdminOnly: true,
+      },
       { id: 'equipment', label: 'Ausrüstung & Teamshop', status: 'planned' },
       { id: 'facilities', label: 'Sportanlagen', to: '/manager/platzbelegung?tab=facilities', status: 'ready' },
       { id: 'permissions', label: 'Berechtigungen', status: 'planned' },

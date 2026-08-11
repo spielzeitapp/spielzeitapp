@@ -61,6 +61,8 @@ import { ManagerTrainingChroniclePage } from '../manager/ManagerTrainingChronicl
 import { ManagerSeasonsPage } from '../manager/ManagerSeasonsPage';
 import { ManagerSeasonRosterPage } from '../manager/ManagerSeasonRosterPage';
 import { ManagerOefbImportPage } from '../manager/ManagerOefbImportPage';
+import { ManagerClubsPage } from '../manager/ManagerClubsPage';
+import { ManagerClubDetailPage } from '../manager/ManagerClubDetailPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
@@ -358,6 +360,8 @@ function InternalRoutes(): React.ReactElement {
         <Route path="saisons" element={<ManagerSeasonsPage />} />
         <Route path="saisons/:seasonId/kader" element={<ManagerSeasonRosterPage />} />
         <Route path="saisons/:seasonId/oefb-import" element={<ManagerOefbImportPage />} />
+        <Route path="vereine" element={<ManagerClubsPage />} />
+        <Route path="vereine/:clubId" element={<ManagerClubDetailPage />} />
         <Route path="training" element={<Navigate to="/manager/training/einheiten" replace />} />
         <Route path="training/bibliothek" element={<ManagerTrainingLibraryPage />} />
         <Route path="training/vorlagen" element={<ManagerTrainingTemplatesPage />} />

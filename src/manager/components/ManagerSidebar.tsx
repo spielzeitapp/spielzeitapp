@@ -2,6 +2,8 @@ import React, { useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Menu, X } from 'lucide-react';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
+import { useSession } from '../../auth/useSession';
+import { isPlatformAdminRole } from '../../lib/platformClubAdmin';
 import { MANAGER_NAV_SECTIONS } from '../managerNav';
 
 type Props = {
@@ -39,6 +41,8 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
     onClose();
   }, [onClose]);
   const location = useLocation();
+  const { backendRole } = useSession();
+  const platformAdmin = isPlatformAdminRole(backendRole);
 
   useEffect(() => {
     if (!open) return;
@@ -92,13 +96,18 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
         </p>
 
         <nav className="mt-2 flex-1 overflow-y-auto px-2 pb-4">
-          {MANAGER_NAV_SECTIONS.map((section) => (
+          {MANAGER_NAV_SECTIONS.map((section) => {
+            const items = section.items.filter(
+              (item) => !item.platformAdminOnly || platformAdmin,
+            );
+            if (items.length === 0) return null;
+            return (
             <div key={section.id} className="mb-4">
               <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                 {section.label}
               </p>
               <ul className="space-y-0.5">
-                {section.items.map((item) => {
+                {items.map((item) => {
                   if (item.status === 'ready' && item.to) {
                     const isActive = navItemActive(location.pathname, location.search, item.to);
                     return (
@@ -142,7 +151,8 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
                 })}
               </ul>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="shrink-0 space-y-1 border-t border-slate-200 p-3">
