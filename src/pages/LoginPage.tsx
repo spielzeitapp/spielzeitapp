@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
+import { isSafeAuthRedirectPath } from '../lib/authRedirect';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 
@@ -11,6 +12,7 @@ const inputClass =
 export const LoginPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,8 +21,16 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPlayerLogin, setShowPlayerLogin] = useState(false);
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/app/termine';
+  const fromState = (location.state as { from?: { pathname: string } })?.from?.pathname;
+  const nextRaw = searchParams.get('next') ?? '';
+  const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
+  const from = nextSafe || fromState || '/app/termine';
   const playerLoginEnabled = isPlayerQrAccessEnabled();
+
+  useEffect(() => {
+    const prefill = (searchParams.get('email') ?? '').trim();
+    if (prefill) setEmail(prefill);
+  }, [searchParams]);
 
   if (showPlayerLogin) {
     return (

@@ -138,6 +138,8 @@ export type RedeemParentInviteStatus =
   | 'already_used'
   | 'player_not_in_team'
   | 'not_authenticated'
+  | 'email_mismatch'
+  | 'email_not_verified'
   | 'error';
 
 export type RedeemParentInviteResult = {
@@ -145,6 +147,7 @@ export type RedeemParentInviteResult = {
   playerId: string | null;
   teamSeasonId: string | null;
   playerDisplayName: string | null;
+  expectedEmailMasked: string | null;
   message: string | null;
 };
 
@@ -166,6 +169,10 @@ function redeemMessage(status: RedeemParentInviteStatus): string {
       return 'Das Kind ist aktuell keinem aktiven Kader zugeordnet.';
     case 'not_authenticated':
       return 'Bitte erneut anmelden.';
+    case 'email_mismatch':
+      return 'Diese Einladung gilt für eine andere E-Mail-Adresse.';
+    case 'email_not_verified':
+      return 'Bitte zuerst die E-Mail-Adresse bestätigen.';
     default:
       return 'Verknüpfung fehlgeschlagen.';
   }
@@ -188,6 +195,7 @@ export async function redeemParentLinkInvite(rawToken: string): Promise<RedeemPa
       playerId: null,
       teamSeasonId: null,
       playerDisplayName: null,
+      expectedEmailMasked: null,
       message: redeemMessage('invalid_token'),
     };
   }
@@ -199,6 +207,7 @@ export async function redeemParentLinkInvite(rawToken: string): Promise<RedeemPa
       playerId: null,
       teamSeasonId: null,
       playerDisplayName: null,
+      expectedEmailMasked: null,
       message: 'Verknüpfung fehlgeschlagen.',
     };
   }
@@ -214,6 +223,8 @@ export async function redeemParentLinkInvite(rawToken: string): Promise<RedeemPa
     'already_used',
     'player_not_in_team',
     'not_authenticated',
+    'email_mismatch',
+    'email_not_verified',
     'error',
   ];
   const status = (allowed.includes(statusRaw as RedeemParentInviteStatus)
@@ -226,6 +237,8 @@ export async function redeemParentLinkInvite(rawToken: string): Promise<RedeemPa
     teamSeasonId: row.team_season_id != null ? String(row.team_season_id) : null,
     playerDisplayName:
       row.player_display_name != null ? String(row.player_display_name).trim() || null : null,
+    expectedEmailMasked:
+      row.expected_email_masked != null ? String(row.expected_email_masked) : null,
     message: redeemMessage(status),
   };
 }

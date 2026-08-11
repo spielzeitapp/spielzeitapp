@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
-import { AUTH_EMAIL_CONFIRM_PATH, getAuthRedirectUrl } from '../lib/authRedirect';
+import { AUTH_EMAIL_CONFIRM_PATH, getAuthRedirectUrl, isSafeAuthRedirectPath } from '../lib/authRedirect';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -12,6 +12,7 @@ const MIN_PASSWORD_LENGTH = 6;
 /** Redirect nach E-Mail-Bestätigung — aktueller Host (index.html leitet / → /app). */
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -21,6 +22,15 @@ export const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
+
+  const nextRaw = searchParams.get('next') ?? '';
+  const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
+  const emailRedirectPath = nextSafe || AUTH_EMAIL_CONFIRM_PATH;
+
+  useEffect(() => {
+    const prefill = (searchParams.get('email') ?? '').trim();
+    if (prefill) setEmail(prefill);
+  }, [searchParams]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,31 +65,12 @@ export const RegisterPage: React.FC = () => {
         password,
         options: {
           data: { first_name: trimmedFirst, last_name: trimmedLast },
-          emailRedirectTo: getAuthRedirectUrl(AUTH_EMAIL_CONFIRM_PATH),
+          emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
         },
       };
-      console.log('[RegisterPage] signUp payload (no password):', {
-        email: signUpPayload.email,
-        options: {
-          data: signUpPayload.options.data,
-          emailRedirectTo: signUpPayload.options.emailRedirectTo,
-        },
-      });
 
       const result = await supabase.auth.signUp(signUpPayload);
       const { data, error: signUpError } = result;
-
-      console.log('[RegisterPage] signUp result:', {
-        hasData: !!data,
-        hasError: !!signUpError,
-        errorMessage: signUpError?.message ?? null,
-        errorCode: (signUpError as { code?: string } | null)?.code ?? null,
-        hasSession: !!data?.session,
-        hasUser: !!data?.user,
-        userIdentitiesLength: data?.user?.identities?.length ?? 0,
-        userEmailConfirmed: data?.user?.email_confirmed_at ?? null,
-        userId: data?.user?.id ?? null,
-      });
 
       if (signUpError) {
         setError(signUpError.message);
@@ -90,24 +81,20 @@ export const RegisterPage: React.FC = () => {
 
       if (data.session) {
         setLoading(false);
-        navigate('/app/role-choice', { replace: true });
+        navigate(nextSafe || '/app/role-choice', { replace: true });
         return;
       }
 
-      if (data?.user?.identities?.length === 0) {
-        console.warn('[RegisterPage] signUp returned user with identities.length === 0 (email may already be registered). No confirmation email is sent in that case.');
-      }
       setNeedsEmailConfirmation(true);
       setMessage({
         type: 'success',
-        text: 'Konto angelegt. Bitte E-Mail bestätigen – du erhältst einen Link zur Bestätigung.',
+        text: 'Konto angelegt. Bitte bestätige die E-Mail und kehre danach zur Einladung zurück.',
       });
-    } catch (e) {
-      console.error('[RegisterPage] signUp exception:', e);
-      const msg = e instanceof Error ? e.message : 'Registrierung fehlgeschlagen.';
+      setLoading(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
       setMessage({ type: 'error', text: msg });
-    } finally {
       setLoading(false);
     }
   };

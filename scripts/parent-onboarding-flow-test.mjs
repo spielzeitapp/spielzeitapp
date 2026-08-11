@@ -232,7 +232,8 @@ assert.ok(secureMig.includes('REVOKE ALL ON FUNCTION public.redeem_parent_link_i
 const panel = fs.readFileSync(path.join(root, 'src/components/team/PlayerGuardiansPanel.tsx'), 'utf8');
 assert.ok(panel.includes('Eltern einladen'));
 assert.ok(panel.includes('createParentLinkInvite'));
-assert.ok(panel.includes('Elternteil per E-Mail verknüpfen'));
+assert.ok(panel.includes('Einladung per E-Mail senden'));
+assert.ok(panel.includes('Verknüpfung aufheben'));
 
 // 12) Client-Lib ohne Self-Claim-Insert
 const parentLib = fs.readFileSync(path.join(root, 'src/lib/parentChildLink.ts'), 'utf8');

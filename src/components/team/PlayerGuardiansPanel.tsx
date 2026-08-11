@@ -15,6 +15,7 @@ import {
   listParentLinkInvitesForPlayer,
   parentInviteStateLabel,
   revokeParentLinkInvite,
+  sendParentEmailInvite,
   type ParentInviteInfo,
 } from '../../lib/parentLinkInvites';
 import { LinkGuardianSheet } from './LinkGuardianSheet';
@@ -46,6 +47,10 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [invites, setInvites] = useState<ParentInviteInfo[]>([]);
   const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [lastSendMasked, setLastSendMasked] = useState<string | null>(null);
+  const [lastSendAt, setLastSendAt] = useState<string | null>(null);
+  const [lastExpiresAt, setLastExpiresAt] = useState<string | null>(null);
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [freshExpiresAt, setFreshExpiresAt] = useState<string | null>(null);
 
@@ -93,7 +98,45 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
     onToast?.(msg);
   };
 
-  const handleCreateInvite = async () => {
+  const handleSendEmailInvite = async () => {
+    if (inviteBusy) return;
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      toast('Bitte eine gültige E-Mail-Adresse eingeben.');
+      return;
+    }
+    setInviteBusy(true);
+    setFreshToken(null);
+    setFreshExpiresAt(null);
+    const result = await sendParentEmailInvite({
+      teamSeasonId,
+      playerId,
+      email,
+    });
+    setInviteBusy(false);
+
+    if (!result.ok) {
+      toast(result.message ?? 'Einladung fehlgeschlagen.');
+      return;
+    }
+
+    setLastSendMasked(result.recipientEmailMasked);
+    setLastSendAt(new Date().toISOString());
+    setLastExpiresAt(result.expiresAt);
+
+    if (result.emailSent) {
+      toast(`Einladung an ${result.recipientEmailMasked ?? 'Eltern'} gesendet.`);
+    } else {
+      setFreshToken(result.codeFallback);
+      setFreshExpiresAt(result.expiresAt);
+      toast(
+        'E-Mail-Versand nicht möglich — Einladungscode als Fallback erstellt. Bitte manuell weitergeben.',
+      );
+    }
+    void loadInvites();
+  };
+
+  const handleCreateCodeInvite = async () => {
     if (inviteBusy) return;
     setInviteBusy(true);
     setFreshToken(null);
@@ -106,7 +149,7 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
     }
     setFreshToken(result.tokenPlain);
     setFreshExpiresAt(result.expiresAt);
-    toast(`Eltern-Einladung für ${playerName.trim() || 'Spieler'} erstellt.`);
+    toast(`Einladungscode für ${playerName.trim() || 'Spieler'} erstellt.`);
     void loadInvites();
   };
 
@@ -191,41 +234,76 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
                 onClick={() => void handleUnlink(parent)}
                 className={`mt-2 w-full ${dsSecondaryCtaClass()} !min-h-[40px] !rounded-xl !py-2 !text-[13px] disabled:opacity-50`}
               >
-                {busyUserId === parent.user_id ? 'Entferne…' : 'Verknüpfung entfernen'}
+                {busyUserId === parent.user_id ? 'Entferne…' : 'Verknüpfung aufheben'}
               </button>
             </li>
           ))}
         </ul>
       )}
 
-      <button
-        type="button"
-        onClick={() => setLinkOpen(true)}
-        className={`mt-3 w-full ${dsPrimaryCtaClass()} !min-h-[44px] !rounded-xl !text-[14px]`}
-      >
-        Elternteil per E-Mail verknüpfen
-      </button>
-
       <div className="mt-4 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3">
         <p className="text-[12px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
           Eltern einladen
         </p>
         <p className="mt-1 text-[12px] text-white/55">
-          Einmalcode für die Eltern-App — getrennt vom Spielerzugang (Code/PIN/QR).
+          E-Mail-Einladung mit sicherem Link — getrennt vom Spielerzugang (Code/PIN/QR).
         </p>
+
+        <label className="mt-3 block text-[12px] text-white/70" htmlFor={`parent-invite-email-${playerId}`}>
+          E-Mail-Adresse des Elternteils
+        </label>
+        <input
+          id={`parent-invite-email-${playerId}`}
+          type="email"
+          autoComplete="email"
+          value={inviteEmail}
+          onChange={(e) => setInviteEmail(e.target.value)}
+          placeholder="eltern@example.com"
+          className="mt-1 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-[14px] text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+        />
+
+        <button
+          type="button"
+          disabled={inviteBusy || !inviteEmail.trim()}
+          onClick={() => void handleSendEmailInvite()}
+          className={`mt-2.5 w-full ${dsPrimaryCtaClass()} !min-h-[44px] !rounded-xl !text-[14px] disabled:opacity-50`}
+        >
+          {inviteBusy ? 'Sende…' : 'Einladung per E-Mail senden'}
+        </button>
+
+        {lastSendMasked ? (
+          <div className="mt-2.5 rounded-lg border border-emerald-500/25 bg-emerald-950/25 px-2.5 py-2 text-[12px] text-emerald-100/90">
+            <p>
+              Status: <span className="font-semibold">Gesendet</span> an {lastSendMasked}
+            </p>
+            {lastSendAt ? (
+              <p className="mt-0.5 text-white/50">
+                Versand: {new Date(lastSendAt).toLocaleString('de-AT')}
+              </p>
+            ) : null}
+            {lastExpiresAt ? (
+              <p className="text-white/50">
+                Gültig bis {new Date(lastExpiresAt).toLocaleString('de-AT')}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <button
           type="button"
           disabled={inviteBusy}
-          onClick={() => void handleCreateInvite()}
-          className={`mt-2.5 w-full ${dsSecondaryCtaClass()} !min-h-[40px] !rounded-xl !py-2 !text-[13px] disabled:opacity-50`}
+          onClick={() => void handleCreateCodeInvite()}
+          className={`mt-2 w-full ${dsSecondaryCtaClass()} !min-h-[40px] !rounded-xl !py-2 !text-[13px] disabled:opacity-50`}
         >
-          {inviteBusy ? 'Erstelle…' : 'Eltern-Einladungscode erzeugen'}
+          {inviteBusy ? 'Erstelle…' : 'Einladungscode erstellen'}
         </button>
 
         {freshToken ? (
-          <div className="mt-2.5 rounded-lg border border-emerald-500/25 bg-emerald-950/25 px-2.5 py-2">
-            <p className="text-[11px] text-emerald-200/80">Nur jetzt sichtbar — an Eltern weitergeben:</p>
-            <p className="mt-1 break-all font-mono text-[12px] text-emerald-100">{freshToken}</p>
+          <div className="mt-2.5 rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2">
+            <p className="text-[11px] text-amber-100/80">
+              Code-Fallback — nur jetzt sichtbar (WhatsApp / persönliche Übergabe):
+            </p>
+            <p className="mt-1 break-all font-mono text-[12px] text-amber-50">{freshToken}</p>
             {freshExpiresAt ? (
               <p className="mt-1 text-[11px] text-white/50">
                 Gültig bis {new Date(freshExpiresAt).toLocaleString('de-AT')}
@@ -236,16 +314,25 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
 
         {invites.length > 0 ? (
           <ul className="mt-2.5 space-y-1.5">
-            {invites.slice(0, 5).map((invite) => (
+            {invites.slice(0, 6).map((invite) => (
               <li
                 key={invite.id}
                 className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.06] px-2 py-1.5"
               >
                 <div className="min-w-0">
-                  <p className="text-[12px] text-white/80">{parentInviteStateLabel(invite.state)}</p>
+                  <p className="text-[12px] text-white/80">
+                    {parentInviteStateLabel(invite.state)}
+                    {invite.channel === 'email' ? ' · E-Mail' : ' · Code'}
+                    {invite.recipientEmailMasked ? ` · ${invite.recipientEmailMasked}` : ''}
+                  </p>
                   {invite.expiresAt ? (
                     <p className="truncate text-[11px] text-white/45">
                       bis {new Date(invite.expiresAt).toLocaleString('de-AT')}
+                    </p>
+                  ) : null}
+                  {invite.lastSentAt ? (
+                    <p className="truncate text-[11px] text-white/40">
+                      gesendet {new Date(invite.lastSentAt).toLocaleString('de-AT')}
                     </p>
                   ) : null}
                 </div>
@@ -264,6 +351,14 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
           </ul>
         ) : null}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setLinkOpen(true)}
+        className={`mt-3 w-full ${dsSecondaryCtaClass()} !min-h-[40px] !rounded-xl !text-[13px]`}
+      >
+        Bestehenden Account per E-Mail direkt verknüpfen
+      </button>
 
       <LinkGuardianSheet
         open={linkOpen}

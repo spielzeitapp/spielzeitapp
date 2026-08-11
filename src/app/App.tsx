@@ -17,6 +17,7 @@ import { TermineLayout } from '../pages/TermineLayout';
 import { MoreLayout } from '../pages/MoreLayout';
 import { MorePage } from '../pages/MorePage';
 import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
+import { ParentInviteAcceptPage } from '../pages/ParentInviteAcceptPage';
 import { FanOnboardingPage } from '../pages/FanOnboardingPage';
 import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
@@ -260,6 +261,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="register" element={<RegisterPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="app/player-access" element={<PlayerAccessRedeemPage />} />
+      <Route path="app/parent-invite" element={<ParentInviteAcceptPage />} />
       <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
       <Route path="live" element={<LiveShortcutRedirect />} />
       <Route path="app" element={<RequireAuth><IntroAppOutlet /></RequireAuth>}>
