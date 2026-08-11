@@ -46,16 +46,17 @@ export const ParentOnboardingPage: React.FC = () => {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [teamSeasons, setTeamSeasons] = useState<ParentLinkTeamSeasonOption[]>([]);
-  const [selectedTeamSeasonId, setSelectedTeamSeasonId] = useState('');
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deferring, setDeferring] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [players, setPlayers] = useState<PlayerOption[]>([]);
-  const [playersLoading, setPlayersLoading] = useState(false);
-  const [playersError, setPlayersError] = useState<string | null>(null);
+
+  type ChildOption = PlayerOption & { teamSeasonId: string; teamLabel: string };
+  const [children, setChildren] = useState<ChildOption[]>([]);
+  const [childrenLoading, setChildrenLoading] = useState(false);
+  const [childrenError, setChildrenError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -101,7 +102,8 @@ export const ParentOnboardingPage: React.FC = () => {
         return;
       }
 
-      if (hasGuardian) {
+      if (hasGuardian && !linkMode) {
+        // Eltern mit bereits verknüpftem Kind: Onboarding-Pflicht überspringen, aber bei mode=link weitere Kinder erlauben.
         navigate('/app/home', { replace: true });
         return;
       }
@@ -118,10 +120,44 @@ export const ParentOnboardingPage: React.FC = () => {
       }
 
       setTeamSeasons(opts);
-      if (opts.length > 0) {
-        setSelectedTeamSeasonId(opts[0].id);
+      setChildrenLoading(true);
+      setChildrenError(null);
+      setChildren([]);
+
+      if (opts.length === 0) {
+        setChildrenLoading(false);
       } else {
-        setSelectedTeamSeasonId('');
+        const collected: ChildOption[] = [];
+        // Ohne Team-Auswahl: sammle alle verfügbaren Kinder über alle aktiven team_seasons deterministisch.
+        for (const ts of opts) {
+          const { data: roster, error: rosterError } = await listPlayersForParentLink(ts.id, user.id);
+          if (rosterError) {
+            if (!alive) break;
+            setChildrenError(rosterError);
+            break;
+          }
+          for (const p of roster) {
+            collected.push({
+              ...p,
+              teamSeasonId: ts.id,
+              teamLabel: ts.label,
+            });
+          }
+        }
+
+        // Sortierung: erst Team/Altersklasse, dann Name.
+        collected.sort((a, b) => {
+          const ta = (a.teamLabel ?? '').toLowerCase();
+          const tb = (b.teamLabel ?? '').toLowerCase();
+          if (ta !== tb) return ta.localeCompare(tb, 'de');
+          return (a.display_name ?? '').localeCompare(b.display_name ?? '', 'de');
+        });
+
+        if (alive) {
+          setChildren(collected);
+          setSelectedPlayerId('');
+        }
+        if (alive) setChildrenLoading(false);
       }
       setLoading(false);
     }
@@ -139,62 +175,9 @@ export const ParentOnboardingPage: React.FC = () => {
     };
   }, [navigate, linkMode, setPreviewRole]);
 
-  useEffect(() => {
-    let alive = true;
-
-    async function loadPlayersForTeam(teamSeasonId: string) {
-      if (!teamSeasonId || !userId) {
-        setPlayers([]);
-        setPlayersLoading(false);
-        setPlayersError(null);
-        return;
-      }
-
-      setPlayersLoading(true);
-      setPlayersError(null);
-
-      const { data, error } = await listPlayersForParentLink(teamSeasonId, userId);
-      if (!alive) return;
-
-      if (error) {
-        setPlayers([]);
-        setPlayersError(error ?? 'Spieler konnten nicht geladen werden.');
-        setPlayersLoading(false);
-        return;
-      }
-
-      const mapped: PlayerOption[] = data.map((r) => ({
-        id: r.id,
-        display_name: r.display_name,
-        jersey_number: r.jersey_number ?? null,
-      }));
-
-      setPlayers(mapped);
-      setSelectedPlayerId('');
-      setPlayersLoading(false);
-    }
-
-    loadPlayersForTeam(selectedTeamSeasonId).catch((e) => {
-      if (!alive) return;
-      setPlayers([]);
-      setPlayersError(e?.message ?? 'Spieler konnten nicht geladen werden.');
-      setPlayersLoading(false);
-    });
-
-    return () => {
-      alive = false;
-    };
-  }, [selectedTeamSeasonId, userId]);
-
   const noSeasons = !loading && !loadError && teamSeasons.length === 0;
-  const noPlayersForSeason =
-    !loading &&
-    !loadError &&
-    !!selectedTeamSeasonId &&
-    !playersLoading &&
-    !playersError &&
-    players.length === 0;
-  const noChildSelectable = noSeasons || noPlayersForSeason;
+  const noChildSelectable =
+    !loading && !loadError && !childrenLoading && !childrenError && children.length === 0;
 
   const goHomeAndReload = () => {
     navigate('/app/home', { replace: true });
@@ -224,8 +207,15 @@ export const ParentOnboardingPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!userId || !selectedTeamSeasonId || !selectedPlayerId) {
-      setError('Bitte Team und Kind auswählen.');
+    if (!userId || !selectedPlayerId) {
+      setError('Bitte Kind auswählen.');
+      return;
+    }
+
+    const selectedChild = children.find((c) => c.id === selectedPlayerId) ?? null;
+    const selectedTeamSeasonId = selectedChild?.teamSeasonId ?? null;
+    if (!selectedTeamSeasonId) {
+      setError('Dieses Kind hat keinen aktiven Saisonkader.');
       return;
     }
 
@@ -323,8 +313,7 @@ export const ParentOnboardingPage: React.FC = () => {
       }
 
       if (teamId) {
-        const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
-        const childName = selectedPlayer?.display_name ?? null;
+        const childName = selectedChild?.display_name ?? null;
 
         const { data: existingReq, error: checkError } = await supabase
           .from('join_requests')
@@ -387,7 +376,7 @@ export const ParentOnboardingPage: React.FC = () => {
             <p className="text-sm text-[var(--text-sub)]">
               {linkMode
                 ? 'Verknüpfe jetzt dein Kind mit deinem Eltern-Konto.'
-                : 'Bitte wähle Team und Kind aus.'}
+                : 'Bitte wähle dein Kind aus.'}
             </p>
 
             {error && (
@@ -436,42 +425,22 @@ export const ParentOnboardingPage: React.FC = () => {
                   <>
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-[var(--text-main)]">
-                        Team auswählen
-                      </label>
-                      <select
-                        className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-                        value={selectedTeamSeasonId}
-                        onChange={(e) => {
-                          setSelectedTeamSeasonId(e.target.value);
-                          setSelectedPlayerId('');
-                        }}
-                      >
-                        {teamSeasons.map((ts) => (
-                          <option key={ts.id} value={ts.id}>
-                            {ts.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-[var(--text-main)]">
                         Kind auswählen
                       </label>
-                      {playersLoading ? (
+                      {childrenLoading ? (
                         <p className="text-sm text-[var(--text-sub)]">Lade…</p>
-                      ) : playersError ? (
+                      ) : childrenError ? (
                         <p className="text-sm text-[var(--text-sub)]">
-                          Spieler konnten nicht geladen werden.
+                          Kinder konnten nicht geladen werden.
                         </p>
-                      ) : noPlayersForSeason ? (
+                      ) : noChildSelectable ? (
                         <p className="text-sm text-[var(--text-sub)]">
                           Derzeit ist kein Kind auswählbar. Du kannst diesen Schritt überspringen
                           und die Verknüpfung später durchführen.
                         </p>
                       ) : (
                         <div className="space-y-2 max-h-[260px] overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
-                          {players.map((p) => (
+                          {children.map((p) => (
                             <label
                               key={p.id}
                               className="flex items-center justify-between gap-3 py-1.5"
@@ -485,7 +454,7 @@ export const ParentOnboardingPage: React.FC = () => {
                                   onChange={() => setSelectedPlayerId(p.id)}
                                 />
                                 <span className="text-sm text-[var(--text-main)]">
-                                  {p.display_name}
+                                  {p.display_name} <span className="text-[var(--text-sub)]">· {p.teamLabel}</span>
                                 </span>
                               </div>
                               {p.jersey_number != null && (
@@ -508,8 +477,6 @@ export const ParentOnboardingPage: React.FC = () => {
                           disabled={
                             saving ||
                             deferring ||
-                            playersLoading ||
-                            !selectedTeamSeasonId ||
                             !selectedPlayerId
                           }
                         >

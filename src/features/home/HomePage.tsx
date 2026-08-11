@@ -29,7 +29,7 @@ import {
 } from '../../lib/autoMatchdayFeedEnabled';
 import { isMatchReviewPending } from '../../lib/matchPreparationAccess';
 import { supabase } from '../../lib/supabaseClient';
-import { dsPrimaryCtaClass, dsSublineClass } from '../../lib/premiumDesignSystem';
+import { dsPrimaryCtaClass, dsSecondaryCtaClass, dsSublineClass } from '../../lib/premiumDesignSystem';
 import {
   GlassCard,
   PageShell,
@@ -324,9 +324,9 @@ export const HomePage: React.FC = () => {
           ) : effectiveRole === 'parent' ? (
             <Link
               to="/app/parent-onboarding?mode=link"
-              className={cn(dsPrimaryCtaClass(), 'inline-flex min-h-[44px] items-center px-5')}
+              className={cn(dsSecondaryCtaClass(), 'inline-flex min-h-[44px] items-center px-5')}
             >
-              Kind verknüpfen
+              Jetzt Kind verknüpfen
             </Link>
           ) : null}
         </PremiumEmptyState>

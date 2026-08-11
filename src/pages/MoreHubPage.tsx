@@ -193,7 +193,8 @@ export const MoreHubPage: React.FC = () => {
   const effectiveRole = isDemo ? 'trainer' : sessionEffectiveRole;
   const backendRole = isDemo ? 'trainer' : sessionBackendRole;
   /** Alle Rollen mit >1 Saison: Archiv/Historie muss erreichbar bleiben (nicht nur Trainer). */
-  const canSwitchTeam = !isDemo && (teamSeasons?.length ?? 0) > 1;
+  const canSwitchTeam =
+    !isDemo && (teamSeasons?.length ?? 0) > 1 && normalizeRole(effectiveRole) !== 'parent';
 
   const showTrainerTools = !isDemo && isTrainerToolsRole(effectiveRole);
   const showSeasonManagement =
@@ -208,6 +209,46 @@ export const MoreHubPage: React.FC = () => {
   const showDebugHubButtons = !isDemo && showMehrHubDebugButtons(backendRole, effectiveRole);
   const unreadCountRaw = useUnreadCount(user?.id);
   const unreadCount = isDemo ? 0 : unreadCountRaw;
+
+  const [hasLinkedChildren, setHasLinkedChildren] = useState(false);
+  useEffect(() => {
+    if (isDemo) {
+      setHasLinkedChildren(false);
+      return;
+    }
+    if (normalizeRole(effectiveRole) !== 'parent') {
+      setHasLinkedChildren(false);
+      return;
+    }
+    if (!user?.id) {
+      setHasLinkedChildren(false);
+      return;
+    }
+
+    let cancelled = false;
+    void supabase
+      .from('player_guardians')
+      .select('player_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn('[MoreHubPage] guardian count load failed', error.message ?? error);
+          setHasLinkedChildren(false);
+          return;
+        }
+        setHasLinkedChildren(Array.isArray(data) && data.length > 0);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setHasLinkedChildren(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isDemo, effectiveRole, user?.id]);
 
   const [teamAdminOpen, setTeamAdminOpen] = useState(false);
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
@@ -458,7 +499,7 @@ export const MoreHubPage: React.FC = () => {
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex items-center gap-3">
                 <Link2 className="h-5 w-5 text-red-400" aria-hidden />
-                <span>Kind verknüpfen</span>
+                <span>{hasLinkedChildren ? 'Weiteres Kind verknüpfen' : 'Kind verknüpfen'}</span>
               </span>
               <span className="pl-8 text-[11px] font-normal text-white/45">
                 Aktive Saison und verfügbare Spieler

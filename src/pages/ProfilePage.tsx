@@ -133,6 +133,11 @@ export const ProfilePage: React.FC = () => {
     }
     return backendRole || '–';
   }, [selectedMembership, backendRole, effectiveRole]);
+
+  const uiViewLabel = useMemo(() => {
+    if (effectiveRole === 'parent') return 'Eltern';
+    return effectiveRole !== '' ? effectiveRole : '–';
+  }, [effectiveRole]);
   const email = authUser?.email?.trim() || '–';
   const nameLine = profileDisplayName(profile);
   const headingMain = nameLine ?? email;
@@ -448,7 +453,7 @@ export const ProfilePage: React.FC = () => {
           <p className="mt-1 text-sm text-[var(--text-sub)]">
             UI-Ansicht:{' '}
             <span className="font-medium text-[var(--text-main)]">
-              {effectiveRole !== '' ? effectiveRole : '–'}
+              {uiViewLabel}
             </span>
           </p>
 

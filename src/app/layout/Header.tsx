@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 import { TeamSwitcher } from '../components/TeamSwitcher';
+import { ParentChildrenSwitcher } from '../../components/parent/ParentChildrenSwitcher';
 import { isStagingApp } from '../../lib/appEnvironment';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
@@ -170,9 +171,15 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {!publicView && !isDemo && (teamSeasons?.length ?? 0) > 1 ? (
+        {!publicView && !isDemo && effectiveRole !== 'parent' && (teamSeasons?.length ?? 0) > 1 ? (
           <div className="flex shrink-0 justify-center px-1">
             <TeamSwitcher compact hideWhenSingle />
+          </div>
+        ) : null}
+
+        {!publicView && !isDemo && effectiveRole === 'parent' ? (
+          <div className="flex shrink-0 justify-center px-1">
+            <ParentChildrenSwitcher />
           </div>
         ) : null}
 

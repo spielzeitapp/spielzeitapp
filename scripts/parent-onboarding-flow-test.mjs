@@ -170,6 +170,8 @@ assert.ok(onboarding.includes('persistParentRoleChoice'));
 assert.ok(onboarding.includes('userHasPlayerGuardian'));
 assert.ok(onboarding.includes('listActiveTeamSeasonsForParentLink'));
 assert.ok(onboarding.includes('listPlayersForParentLink'));
+assert.ok(!onboarding.includes('Team auswählen'));
+assert.ok(onboarding.includes('Bitte wähle dein Kind aus.'));
 
 // 7b) RoleChoice persistiert Elternrolle vor Navigation
 const roleChoice = fs.readFileSync(path.join(root, 'src/pages/RoleChoicePage.tsx'), 'utf8');
@@ -179,7 +181,12 @@ assert.ok(roleChoice.includes('Speichere'));
 // 8) Mehr-Hub Link
 const mehr = fs.readFileSync(path.join(root, 'src/pages/MoreHubPage.tsx'), 'utf8');
 assert.ok(mehr.includes('Kind verknüpfen'));
+assert.ok(mehr.includes('Weiteres Kind verknüpfen'));
 assert.ok(mehr.includes('parent-onboarding?mode=link'));
+
+// 8b) Eltern-Rollenumschalter im Header
+const header = fs.readFileSync(path.join(root, 'src/app/layout/Header.tsx'), 'utf8');
+assert.ok(header.includes('ParentChildrenSwitcher'));
 
 // 9) useSession leitet Elternrolle aus Metadata ab
 const useSession = fs.readFileSync(path.join(root, 'src/auth/useSession.tsx'), 'utf8');
