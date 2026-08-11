@@ -1,17 +1,12 @@
 /**
- * Eltern-Onboarding / Auth-Redirect / Gate-Logik (ohne Netzwerk).
+ * Eltern-Onboarding / Auth-Redirect / Gate-Logik + sichere Verknüpfung (ohne Netzwerk).
  */
 import assert from 'assert';
-import { createRequire } from 'module';
-import { pathToFileURL } from 'url';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
-
-// Dynamischer Import der TS-Quellen geht nicht ohne Build — Logik hier spiegeln / aus dist prüfen.
-// Stattdessen: reine JS-Spiegel der kritischen Hilfen (gleiche Regeln wie parentChildLink + authRedirect).
 
 function isSafeAuthRedirectPath(p) {
   if (!p || typeof p !== 'string') return false;
@@ -67,6 +62,17 @@ function formatLabel(row) {
   const age = row.age_group || '';
   const team = row.team_name || 'Team';
   return age ? `${age} ${team}`.trim() : team;
+}
+
+function normalizeParentInviteToken(raw) {
+  return String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '');
+}
+
+function isParentInviteTokenShape(token) {
+  return /^[0-9a-f]{48}$/.test(token);
 }
 
 // 1) Guardian vorhanden → kein Onboarding-UI
@@ -149,7 +155,6 @@ assert.strictEqual(isSafeAuthRedirectPath('//evil.example'), false);
 assert.strictEqual(isSafeAuthRedirectPath('/app/set-password'), true);
 assert.ok(!getAuthRedirectUrl('https://app.spielzeitapp.at', 'https://evil.com').includes('evil.com'));
 
-// 6) Auth-Layout: Passwortseite ohne App-Chrome (Dateiprüfung)
 const fs = await import('fs');
 const appTsx = fs.readFileSync(path.join(root, 'src/app/App.tsx'), 'utf8');
 assert.ok(appTsx.includes('AuthMinimalLayout'));
@@ -162,16 +167,24 @@ assert.ok(authLayout.includes('safe-area-inset-bottom'));
 assert.ok(!authLayout.includes('BottomNav'));
 assert.ok(!authLayout.includes('<Header'));
 
-// 7) ParentOnboarding enthält Später verknüpfen + Rollenpersistenz
+// 7) ParentOnboarding: Code-Flow, kein offenes Kaderlisting
 const onboarding = fs.readFileSync(path.join(root, 'src/pages/ParentOnboardingPage.tsx'), 'utf8');
 assert.ok(onboarding.includes('Später verknüpfen'));
 assert.ok(onboarding.includes('setParentLinkDeferred'));
 assert.ok(onboarding.includes('persistParentRoleChoice'));
 assert.ok(onboarding.includes('userHasPlayerGuardian'));
-assert.ok(onboarding.includes('listActiveTeamSeasonsForParentLink'));
-assert.ok(onboarding.includes('listPlayersForParentLink'));
+assert.ok(onboarding.includes('redeemParentLinkInvite'));
+assert.ok(onboarding.includes('Einladungscode'));
+assert.ok(!onboarding.includes('listActiveTeamSeasonsForParentLink'));
+assert.ok(!onboarding.includes('listPlayersForParentLink'));
 assert.ok(!onboarding.includes('Team auswählen'));
-assert.ok(onboarding.includes('Bitte wähle dein Kind aus.'));
+assert.ok(!onboarding.includes("from('player_guardians')\n          .insert"));
+
+// Token-Shape: 48 hex, kein Spieler-Kurzcode
+assert.ok(isParentInviteTokenShape(normalizeParentInviteToken('a'.repeat(48))));
+assert.ok(!isParentInviteTokenShape('AB12CD'));
+assert.ok(!isParentInviteTokenShape('player-login-code'));
+assert.ok(!isParentInviteTokenShape('a'.repeat(47)));
 
 // 7b) RoleChoice persistiert Elternrolle vor Navigation
 const roleChoice = fs.readFileSync(path.join(root, 'src/pages/RoleChoicePage.tsx'), 'utf8');
@@ -192,12 +205,39 @@ assert.ok(header.includes('ParentChildrenSwitcher'));
 const useSession = fs.readFileSync(path.join(root, 'src/auth/useSession.tsx'), 'utf8');
 assert.ok(useSession.includes('resolveParentUiRole'));
 
-// 10) RPC-Migration für sichere Spielerliste
+// 10) Historische List-RPC-Migration bleibt (bereits angewendet), Folgemigration sperrt
 const migration = fs.readFileSync(
   path.join(root, 'supabase/migrations/20260811120000_parent_link_onboarding_rpc.sql'),
   'utf8',
 );
 assert.ok(migration.includes('list_parent_link_roster'));
 assert.ok(migration.includes('list_parent_link_team_seasons'));
+
+const secureMig = fs.readFileSync(
+  path.join(root, 'supabase/migrations/20260811160000_secure_parent_link_invites.sql'),
+  'utf8',
+);
+assert.ok(secureMig.includes('parent_link_roster_listing_disabled'));
+assert.ok(secureMig.includes('create_parent_link_invite'));
+assert.ok(secureMig.includes('redeem_parent_link_invite'));
+assert.ok(secureMig.includes('REVOKE ALL ON FUNCTION public.list_parent_link_roster'));
+assert.ok(secureMig.includes('DROP POLICY IF EXISTS player_guardians_insert_own'));
+assert.ok(secureMig.includes('parent_link_invites'));
+assert.ok(secureMig.includes('CREATE TABLE IF NOT EXISTS public.parent_link_invites'));
+assert.ok(!secureMig.includes('INSERT INTO public.player_access_invites'));
+assert.ok(secureMig.includes("GRANT EXECUTE ON FUNCTION public.redeem_parent_link_invite(text) TO authenticated"));
+assert.ok(secureMig.includes('REVOKE ALL ON FUNCTION public.redeem_parent_link_invite(text) FROM anon'));
+
+// 11) Trainer-UI: Eltern einladen getrennt von Spielerzugang
+const panel = fs.readFileSync(path.join(root, 'src/components/team/PlayerGuardiansPanel.tsx'), 'utf8');
+assert.ok(panel.includes('Eltern einladen'));
+assert.ok(panel.includes('createParentLinkInvite'));
+assert.ok(panel.includes('Elternteil per E-Mail verknüpfen'));
+
+// 12) Client-Lib ohne Self-Claim-Insert
+const parentLib = fs.readFileSync(path.join(root, 'src/lib/parentChildLink.ts'), 'utf8');
+assert.ok(parentLib.includes('redeemParentLinkInvite'));
+assert.ok(!parentLib.includes('list_parent_link_roster'));
+assert.ok(!parentLib.includes('.insert({'));
 
 console.log('parent-onboarding-flow-test: OK');

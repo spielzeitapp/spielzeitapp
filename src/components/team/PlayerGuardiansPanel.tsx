@@ -10,6 +10,13 @@ import {
   guardianDisplayLabel,
   unlinkPlayerGuardian,
 } from '../../lib/playerGuardians';
+import {
+  createParentLinkInvite,
+  listParentLinkInvitesForPlayer,
+  parentInviteStateLabel,
+  revokeParentLinkInvite,
+  type ParentInviteInfo,
+} from '../../lib/parentLinkInvites';
 import { LinkGuardianSheet } from './LinkGuardianSheet';
 
 type PlayerGuardiansPanelProps = {
@@ -37,12 +44,26 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [invites, setInvites] = useState<ParentInviteInfo[]>([]);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [freshToken, setFreshToken] = useState<string | null>(null);
+  const [freshExpiresAt, setFreshExpiresAt] = useState<string | null>(null);
+
+  const loadInvites = useCallback(async () => {
+    const result = await listParentLinkInvitesForPlayer({ teamSeasonId, playerId });
+    if (result.error) {
+      setInvites([]);
+      return;
+    }
+    setInvites(result.invites);
+  }, [teamSeasonId, playerId]);
 
   const load = useCallback(async () => {
     if (parentsProp != null) {
       setParents(parentsProp);
       setLoading(false);
       setError(null);
+      void loadInvites();
       return;
     }
     setLoading(true);
@@ -57,7 +78,8 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
     const row = result.rows.find((r) => r.player_id === playerId);
     setParents(row?.parents ?? []);
     setLoading(false);
-  }, [teamSeasonId, playerId, parentsProp]);
+    void loadInvites();
+  }, [teamSeasonId, playerId, parentsProp, loadInvites]);
 
   useEffect(() => {
     void load();
@@ -69,6 +91,40 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
 
   const toast = (msg: string) => {
     onToast?.(msg);
+  };
+
+  const handleCreateInvite = async () => {
+    if (inviteBusy) return;
+    setInviteBusy(true);
+    setFreshToken(null);
+    setFreshExpiresAt(null);
+    const result = await createParentLinkInvite({ teamSeasonId, playerId });
+    setInviteBusy(false);
+    if (result.status !== 'created' || !result.tokenPlain) {
+      toast(result.message ?? 'Einladung fehlgeschlagen.');
+      return;
+    }
+    setFreshToken(result.tokenPlain);
+    setFreshExpiresAt(result.expiresAt);
+    toast(`Eltern-Einladung für ${playerName.trim() || 'Spieler'} erstellt.`);
+    void loadInvites();
+  };
+
+  const handleRevokeInvite = async (inviteId: string) => {
+    if (inviteBusy) return;
+    setInviteBusy(true);
+    const result = await revokeParentLinkInvite(inviteId);
+    setInviteBusy(false);
+    if (result.status !== 'revoked') {
+      toast(result.message ?? 'Widerruf fehlgeschlagen.');
+      return;
+    }
+    toast('Einladung widerrufen.');
+    if (freshToken) {
+      setFreshToken(null);
+      setFreshExpiresAt(null);
+    }
+    void loadInvites();
   };
 
   const handleUnlink = async (parent: ParentLinkInfo) => {
@@ -147,8 +203,67 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
         onClick={() => setLinkOpen(true)}
         className={`mt-3 w-full ${dsPrimaryCtaClass()} !min-h-[44px] !rounded-xl !text-[14px]`}
       >
-        Elternteil verknüpfen
+        Elternteil per E-Mail verknüpfen
       </button>
+
+      <div className="mt-4 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3">
+        <p className="text-[12px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
+          Eltern einladen
+        </p>
+        <p className="mt-1 text-[12px] text-white/55">
+          Einmalcode für die Eltern-App — getrennt vom Spielerzugang (Code/PIN/QR).
+        </p>
+        <button
+          type="button"
+          disabled={inviteBusy}
+          onClick={() => void handleCreateInvite()}
+          className={`mt-2.5 w-full ${dsSecondaryCtaClass()} !min-h-[40px] !rounded-xl !py-2 !text-[13px] disabled:opacity-50`}
+        >
+          {inviteBusy ? 'Erstelle…' : 'Eltern-Einladungscode erzeugen'}
+        </button>
+
+        {freshToken ? (
+          <div className="mt-2.5 rounded-lg border border-emerald-500/25 bg-emerald-950/25 px-2.5 py-2">
+            <p className="text-[11px] text-emerald-200/80">Nur jetzt sichtbar — an Eltern weitergeben:</p>
+            <p className="mt-1 break-all font-mono text-[12px] text-emerald-100">{freshToken}</p>
+            {freshExpiresAt ? (
+              <p className="mt-1 text-[11px] text-white/50">
+                Gültig bis {new Date(freshExpiresAt).toLocaleString('de-AT')}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {invites.length > 0 ? (
+          <ul className="mt-2.5 space-y-1.5">
+            {invites.slice(0, 5).map((invite) => (
+              <li
+                key={invite.id}
+                className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.06] px-2 py-1.5"
+              >
+                <div className="min-w-0">
+                  <p className="text-[12px] text-white/80">{parentInviteStateLabel(invite.state)}</p>
+                  {invite.expiresAt ? (
+                    <p className="truncate text-[11px] text-white/45">
+                      bis {new Date(invite.expiresAt).toLocaleString('de-AT')}
+                    </p>
+                  ) : null}
+                </div>
+                {invite.state === 'open' ? (
+                  <button
+                    type="button"
+                    disabled={inviteBusy}
+                    onClick={() => void handleRevokeInvite(invite.id)}
+                    className="shrink-0 text-[12px] text-red-300/90 disabled:opacity-50"
+                  >
+                    Widerrufen
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
 
       <LinkGuardianSheet
         open={linkOpen}

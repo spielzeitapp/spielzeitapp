@@ -3,23 +3,18 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
-import { canManageMatches, normalizeRole as normalizeRoleKey } from '../lib/roles';
 import { useSession } from '../auth/useSession';
 import {
   clearParentLinkDeferred,
-  listActiveTeamSeasonsForParentLink,
-  listPlayersForParentLink,
+  isParentInviteTokenShape,
+  listMyLinkedChildren,
+  normalizeParentInviteToken,
   persistParentRoleChoice,
+  redeemParentLinkInvite,
   setParentLinkDeferred,
   userHasPlayerGuardian,
-  type ParentLinkTeamSeasonOption,
+  type LinkedChildOption,
 } from '../lib/parentChildLink';
-
-type PlayerOption = {
-  id: string;
-  display_name: string;
-  jersey_number: number | null;
-};
 
 function isLinkMode(
   searchParams: URLSearchParams,
@@ -45,18 +40,14 @@ export const ParentOnboardingPage: React.FC = () => {
   const linkMode = isLinkMode(searchParams, location.state);
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [teamSeasons, setTeamSeasons] = useState<ParentLinkTeamSeasonOption[]>([]);
-  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+  const [linkedChildren, setLinkedChildren] = useState<LinkedChildOption[]>([]);
+  const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deferring, setDeferring] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  type ChildOption = PlayerOption & { teamSeasonId: string; teamLabel: string };
-  const [children, setChildren] = useState<ChildOption[]>([]);
-  const [childrenLoading, setChildrenLoading] = useState(false);
-  const [childrenError, setChildrenError] = useState<string | null>(null);
+  const [successHint, setSuccessHint] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -65,6 +56,7 @@ export const ParentOnboardingPage: React.FC = () => {
       setLoading(true);
       setError(null);
       setLoadError(null);
+      setSuccessHint(null);
 
       const { data: userRes, error: authError } = await supabase.auth.getUser();
       const user = userRes?.user ?? null;
@@ -103,62 +95,16 @@ export const ParentOnboardingPage: React.FC = () => {
       }
 
       if (hasGuardian && !linkMode) {
-        // Eltern mit bereits verknüpftem Kind: Onboarding-Pflicht überspringen, aber bei mode=link weitere Kinder erlauben.
         navigate('/app/home', { replace: true });
         return;
       }
 
-      const { data: opts, error: seasonsError } = await listActiveTeamSeasonsForParentLink();
+      const linked = await listMyLinkedChildren();
       if (!alive) return;
-
-      if (seasonsError) {
-        setError(seasonsError);
-        setLoadError(seasonsError);
-        setTeamSeasons([]);
-        setLoading(false);
-        return;
+      if (linked.error) {
+        console.warn('[PARENT ONBOARDING] linked children', linked.error);
       }
-
-      setTeamSeasons(opts);
-      setChildrenLoading(true);
-      setChildrenError(null);
-      setChildren([]);
-
-      if (opts.length === 0) {
-        setChildrenLoading(false);
-      } else {
-        const collected: ChildOption[] = [];
-        // Ohne Team-Auswahl: sammle alle verfügbaren Kinder über alle aktiven team_seasons deterministisch.
-        for (const ts of opts) {
-          const { data: roster, error: rosterError } = await listPlayersForParentLink(ts.id, user.id);
-          if (rosterError) {
-            if (!alive) break;
-            setChildrenError(rosterError);
-            break;
-          }
-          for (const p of roster) {
-            collected.push({
-              ...p,
-              teamSeasonId: ts.id,
-              teamLabel: ts.label,
-            });
-          }
-        }
-
-        // Sortierung: erst Team/Altersklasse, dann Name.
-        collected.sort((a, b) => {
-          const ta = (a.teamLabel ?? '').toLowerCase();
-          const tb = (b.teamLabel ?? '').toLowerCase();
-          if (ta !== tb) return ta.localeCompare(tb, 'de');
-          return (a.display_name ?? '').localeCompare(b.display_name ?? '', 'de');
-        });
-
-        if (alive) {
-          setChildren(collected);
-          setSelectedPlayerId('');
-        }
-        if (alive) setChildrenLoading(false);
-      }
+      setLinkedChildren(linked.data);
       setLoading(false);
     }
 
@@ -174,10 +120,6 @@ export const ParentOnboardingPage: React.FC = () => {
       alive = false;
     };
   }, [navigate, linkMode, setPreviewRole]);
-
-  const noSeasons = !loading && !loadError && teamSeasons.length === 0;
-  const noChildSelectable =
-    !loading && !loadError && !childrenLoading && !childrenError && children.length === 0;
 
   const goHomeAndReload = () => {
     navigate('/app/home', { replace: true });
@@ -206,148 +148,32 @@ export const ParentOnboardingPage: React.FC = () => {
     goHomeAndReload();
   };
 
-  const handleSave = async () => {
-    if (!userId || !selectedPlayerId) {
-      setError('Bitte Kind auswählen.');
+  const handleRedeem = async () => {
+    if (!userId) {
+      setError('Kein Benutzer angemeldet.');
       return;
     }
 
-    const selectedChild = children.find((c) => c.id === selectedPlayerId) ?? null;
-    const selectedTeamSeasonId = selectedChild?.teamSeasonId ?? null;
-    if (!selectedTeamSeasonId) {
-      setError('Dieses Kind hat keinen aktiven Saisonkader.');
+    const token = normalizeParentInviteToken(inviteCode);
+    if (!isParentInviteTokenShape(token)) {
+      setError('Bitte den vollständigen Einladungscode vom Trainer eingeben.');
       return;
     }
 
     setSaving(true);
     setError(null);
+    setSuccessHint(null);
 
-    const { data: existingMembership, error: existingMembershipError } = await supabase
-      .from('memberships')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('team_season_id', selectedTeamSeasonId)
-      .maybeSingle();
-
-    if (existingMembershipError && existingMembershipError.code !== 'PGRST116') {
-      setError(
-        existingMembershipError.message ??
-          'Bestehende Mitgliedschaft konnte nicht geprüft werden.',
-      );
+    const result = await redeemParentLinkInvite(token);
+    if (result.status !== 'linked' && result.status !== 'already_linked') {
+      setError(result.message ?? 'Verknüpfung fehlgeschlagen.');
       setSaving(false);
       return;
-    }
-
-    const existingMembershipRole = normalizeRoleKey(existingMembership?.role ?? null);
-    const preserveStaffMembership =
-      existingMembershipRole != null && canManageMatches(existingMembershipRole);
-
-    if (!preserveStaffMembership) {
-      const membershipRes = await supabase
-        .from('memberships')
-        .upsert(
-          {
-            user_id: userId,
-            team_season_id: selectedTeamSeasonId,
-            role: 'parent',
-          },
-          { onConflict: 'user_id,team_season_id' },
-        )
-        .select('user_id, team_season_id, role');
-
-      if (membershipRes.error) {
-        setError(membershipRes.error.message ?? 'Speichern der Membership fehlgeschlagen.');
-        setSaving(false);
-        return;
-      }
-    } else {
-      console.log('[PARENT ONBOARDING] Staff-Membership bleibt unverändert', {
-        role: existingMembershipRole,
-        teamSeasonId: selectedTeamSeasonId,
-      });
-    }
-
-    const existing = await supabase
-      .from('player_guardians')
-      .select('user_id, player_id')
-      .eq('user_id', userId)
-      .eq('player_id', selectedPlayerId)
-      .maybeSingle();
-
-    if (existing.error && existing.error.code !== 'PGRST116') {
-      setError(existing.error.message ?? 'Prüfung der Kind-Verknüpfung fehlgeschlagen.');
-      setSaving(false);
-      return;
-    }
-
-    const pgRes = existing.data
-      ? { data: existing.data, error: null as null }
-      : await supabase
-          .from('player_guardians')
-          .insert({
-            user_id: userId,
-            player_id: selectedPlayerId,
-          })
-          .select('user_id, player_id')
-          .maybeSingle();
-
-    if (pgRes.error) {
-      setError(pgRes.error.message ?? 'Speichern der Kind-Verknüpfung fehlgeschlagen.');
-      setSaving(false);
-      return;
-    }
-
-    try {
-      const selectedSeason = teamSeasons.find((ts) => ts.id === selectedTeamSeasonId);
-      let teamId = selectedSeason?.teamId ?? null;
-
-      if (!teamId) {
-        const { data: tsRow, error: tsError } = await supabase
-          .from('team_seasons')
-          .select('team_id')
-          .eq('id', selectedTeamSeasonId)
-          .maybeSingle();
-        if (!tsError && tsRow?.team_id) {
-          teamId = tsRow.team_id as string;
-        }
-      }
-
-      if (teamId) {
-        const childName = selectedChild?.display_name ?? null;
-
-        const { data: existingReq, error: checkError } = await supabase
-          .from('join_requests')
-          .select('id, status')
-          .eq('user_id', userId)
-          .eq('team_id', teamId)
-          .eq('requested_role', 'parent')
-          .eq('status', 'pending')
-          .maybeSingle();
-
-        if (checkError) {
-          console.warn('[PARENT ONBOARDING] join_request check', checkError);
-        }
-
-        if (!existingReq) {
-          const { error: jrError } = await supabase.from('join_requests').insert({
-            user_id: userId,
-            team_id: teamId,
-            requested_role: 'parent',
-            child_name: childName,
-            status: 'pending',
-          } as any);
-
-          if (jrError) {
-            console.warn('[PARENT ONBOARDING] join_request insert', jrError);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('[PARENT ONBOARDING] join_request exception', e);
     }
 
     await clearParentLinkDeferred();
     setPreviewRole('parent');
+    setSuccessHint(result.message);
     setSaving(false);
     goHomeAndReload();
   };
@@ -375,13 +201,18 @@ export const ParentOnboardingPage: React.FC = () => {
             <CardTitle>Kind verknüpfen</CardTitle>
             <p className="text-sm text-[var(--text-sub)]">
               {linkMode
-                ? 'Verknüpfe jetzt dein Kind mit deinem Eltern-Konto.'
-                : 'Bitte wähle dein Kind aus.'}
+                ? 'Verknüpfe ein weiteres Kind mit dem Einladungscode vom Trainer.'
+                : 'Verknüpfe dein Kind mit dem Einladungscode vom Trainer.'}
             </p>
 
             {error && (
               <p className="text-sm text-red-500" role="alert">
                 {error}
+              </p>
+            )}
+            {successHint && (
+              <p className="text-sm text-emerald-400" role="status">
+                {successHint}
               </p>
             )}
 
@@ -416,82 +247,66 @@ export const ParentOnboardingPage: React.FC = () => {
               </div>
             ) : (
               <>
-                {noSeasons ? (
-                  <p className="text-sm text-[var(--text-sub)]">
-                    Derzeit ist kein Kind auswählbar. Du kannst diesen Schritt überspringen und
-                    die Verknüpfung später durchführen.
-                  </p>
+                {linkedChildren.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-[var(--text-main)]">Bereits verknüpft</p>
+                    <ul className="space-y-1.5 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
+                      {linkedChildren.map((child) => (
+                        <li key={child.playerId} className="text-sm text-[var(--text-main)]">
+                          {child.displayName}
+                          {child.teamLabel ? (
+                            <span className="text-[var(--text-sub)]"> · {child.teamLabel}</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : (
-                  <>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-[var(--text-main)]">
-                        Kind auswählen
-                      </label>
-                      {childrenLoading ? (
-                        <p className="text-sm text-[var(--text-sub)]">Lade…</p>
-                      ) : childrenError ? (
-                        <p className="text-sm text-[var(--text-sub)]">
-                          Kinder konnten nicht geladen werden.
-                        </p>
-                      ) : noChildSelectable ? (
-                        <p className="text-sm text-[var(--text-sub)]">
-                          Derzeit ist kein Kind auswählbar. Du kannst diesen Schritt überspringen
-                          und die Verknüpfung später durchführen.
-                        </p>
-                      ) : (
-                        <div className="space-y-2 max-h-[260px] overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
-                          {children.map((p) => (
-                            <label
-                              key={p.id}
-                              className="flex items-center justify-between gap-3 py-1.5"
-                            >
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="radio"
-                                  name="child"
-                                  className="h-4 w-4"
-                                  checked={selectedPlayerId === p.id}
-                                  onChange={() => setSelectedPlayerId(p.id)}
-                                />
-                                <span className="text-sm text-[var(--text-main)]">
-                                  {p.display_name} <span className="text-[var(--text-sub)]">· {p.teamLabel}</span>
-                                </span>
-                              </div>
-                              {p.jersey_number != null && (
-                                <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-[var(--text-sub)]">
-                                  #{p.jersey_number}
-                                </span>
-                              )}
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {!noChildSelectable && (
-                      <div className="pt-2">
-                        <Button
-                          variant="primary"
-                          className="w-full"
-                          onClick={handleSave}
-                          disabled={
-                            saving ||
-                            deferring ||
-                            !selectedPlayerId
-                          }
-                        >
-                          {saving ? 'Speichere…' : 'Verknüpfung speichern'}
-                        </Button>
-                      </div>
-                    )}
-                  </>
+                  <p className="text-sm text-[var(--text-sub)]">
+                    Noch kein Kind verknüpft. Den Code erhältst du vom Trainer — es gibt keine
+                    freie Spielersuche.
+                  </p>
                 )}
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="parent-invite-code"
+                    className="block text-sm font-medium text-[var(--text-main)]"
+                  >
+                    Einladungscode
+                  </label>
+                  <input
+                    id="parent-invite-code"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="one-time-code"
+                    spellCheck={false}
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    placeholder="Code vom Trainer"
+                    className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 text-[var(--text-main)] placeholder:text-[var(--text-sub)] focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                  />
+                  <p className="text-xs text-[var(--text-sub)]">
+                    Der Code ist einmalig und vom Spielerzugang (Code/PIN/QR) getrennt.
+                  </p>
+                </div>
 
                 <div className="pt-2">
                   <Button
-                    variant={noChildSelectable ? 'primary' : 'ghost'}
+                    variant="primary"
                     className="w-full"
-                    onClick={handleDefer}
+                    onClick={() => void handleRedeem()}
+                    disabled={saving || deferring || !inviteCode.trim()}
+                  >
+                    {saving ? 'Verknüpfe…' : 'Mit Code verknüpfen'}
+                  </Button>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => void handleDefer()}
                     disabled={saving || deferring}
                   >
                     {deferring ? 'Weiter…' : 'Später verknüpfen'}

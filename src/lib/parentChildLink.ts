@@ -1,11 +1,10 @@
 /**
- * Eltern-Kind-Verknüpfung: Status, Skip („Später verknüpfen“) und aktive Saisons.
- * Keine RLS-Umgehung — nur Client-Hilfen über Auth-Metadata + erlaubte Queries.
+ * Eltern-Kind: Rollen-Metadata, Skip und sichere Verknüpfung (Einladungscode).
+ * Keine offenen Kaderlisten, keine clientseitigen player_guardians-Inserts.
  */
 
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient';
-import { formatTeamSeasonDisplayLabel, isSeasonActive, isSeasonDraft } from './seasonLifecycle';
 
 /** user_metadata-Flag: Onboarding ohne Kind abgeschlossen (kein player_guardians-Eintrag). */
 export const PARENT_LINK_DEFERRED_META_KEY = 'parent_link_deferred';
@@ -66,251 +65,169 @@ export async function userHasPlayerGuardian(userId: string): Promise<{
   return { hasGuardian: (data ?? []).length > 0, error: null };
 }
 
-export type ParentLinkTeamSeasonOption = {
-  id: string;
-  label: string;
-  teamId: string;
-  status: string | null;
+export type LinkedChildOption = {
+  playerId: string;
+  displayName: string;
+  teamSeasonId: string | null;
+  teamLabel: string | null;
 };
 
-/**
- * Nur active/draft-Saisons für Kind-Verknüpfung, deterministisch sortiert.
- * Labels über zentrale formatTeamSeasonDisplayLabel (U12 statt historisches Team-U11).
- */
-export type ParentLinkPlayerOption = {
-  id: string;
-  display_name: string;
-  jersey_number: number | null;
-};
-
-export async function listActiveTeamSeasonsForParentLink(): Promise<{
-  data: ParentLinkTeamSeasonOption[];
+export async function listMyLinkedChildren(): Promise<{
+  data: LinkedChildOption[];
   error: string | null;
 }> {
-  const { data: rpcRows, error: rpcError } = await supabase.rpc('list_parent_link_team_seasons');
-  if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
-    const opts: ParentLinkTeamSeasonOption[] = (rpcRows as Array<{
-      id: string;
-      team_id: string;
-      label?: string | null;
-      status?: string | null;
-    }>).map((row) => ({
-      id: String(row.id),
-      teamId: String(row.team_id),
-      label: String(row.label ?? '').trim() || 'Mannschaft',
-      status: row.status ?? 'active',
-    }));
-    return { data: opts, error: null };
-  }
-
-  if (rpcError && !/could not find the function|42883|does not exist/i.test(rpcError.message)) {
-    console.warn('[parentChildLink] list_parent_link_team_seasons RPC', rpcError.message);
-  }
-
-  const { data: rows, error } = await supabase
-    .from('team_seasons')
-    .select(
-      `
-      id,
-      team_id,
-      status,
-      display_name,
-      age_group,
-      teams ( id, name, age_group ),
-      seasons ( name )
-    `,
-    )
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
-
+  const { data, error } = await supabase.rpc('list_my_linked_children');
   if (error) {
-    // Fallback ohne Joins / neuere Spalten
-    if (/column|relationship|does not exist|42703/i.test(error.message)) {
-      return listActiveTeamSeasonsForParentLinkLegacy();
-    }
-    return { data: [], error: error.message };
-  }
+    // Fallback: nur eigene Guardians ohne fremde Kader
+    const { data: userRes } = await supabase.auth.getUser();
+    const uid = userRes?.user?.id;
+    if (!uid) return { data: [], error: error.message };
 
-  type Raw = {
-    id: string;
-    team_id: string;
-    status?: string | null;
-    display_name?: string | null;
-    age_group?: string | null;
-    teams?:
-      | { id?: string; name?: string | null; age_group?: string | null }
-      | { id?: string; name?: string | null; age_group?: string | null }[]
-      | null;
-    seasons?: { name?: string | null } | { name?: string | null }[] | null;
-  };
-
-  const opts: ParentLinkTeamSeasonOption[] = [];
-  for (const raw of (rows ?? []) as Raw[]) {
-    const status = (raw.status ?? '').toLowerCase();
-    if (!isSeasonActive(status)) continue;
-    const team = Array.isArray(raw.teams) ? raw.teams[0] : raw.teams;
-    const season = Array.isArray(raw.seasons) ? raw.seasons[0] : raw.seasons;
-    const label = formatTeamSeasonDisplayLabel({
-      displayName: raw.display_name,
-      ageGroup: raw.age_group ?? team?.age_group,
-      teamName: team?.name,
-      seasonName: season?.name,
-      status: raw.status,
-    });
-    opts.push({
-      id: String(raw.id),
-      teamId: String(raw.team_id),
-      label: label || 'Mannschaft',
-      status: raw.status ?? null,
-    });
-  }
-
-  opts.sort((a, b) => a.label.localeCompare(b.label, 'de'));
-  return { data: opts, error: null };
-}
-
-/**
- * Minimale Spielerliste für Kind-Verknüpfung (RPC bevorzugt, sonst Legacy players-Compat).
- */
-export async function listPlayersForParentLink(
-  teamSeasonId: string,
-  userId: string,
-): Promise<{ data: ParentLinkPlayerOption[]; error: string | null }> {
-  const sid = teamSeasonId?.trim();
-  if (!sid) return { data: [], error: 'Keine Mannschaft gewählt.' };
-
-  const { data: rpcRows, error: rpcError } = await supabase.rpc('list_parent_link_roster', {
-    p_team_season_id: sid,
-  });
-
-  if (!rpcError && Array.isArray(rpcRows)) {
-    const mapped = (rpcRows as Array<{
-      id: string;
-      display_name?: string | null;
-      jersey_number?: number | null;
-    }>).map((row) => ({
-      id: String(row.id),
-      display_name: String(row.display_name ?? '').trim() || 'Spieler',
-      jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
-    }));
-    return { data: mapped, error: null };
-  }
-
-  if (rpcError && !/could not find the function|42883|does not exist/i.test(rpcError.message)) {
-    console.warn('[parentChildLink] list_parent_link_roster RPC', rpcError.message);
-  }
-
-  const { data: playerRows, error: playerError } = await supabase
-    .from('players')
-    .select('id, first_name, last_name, jersey_number')
-    .eq('team_season_id', sid)
-    .or('status.eq.active,and(status.is.null,is_active.eq.true)');
-
-  if (playerError) {
-    return { data: [], error: playerError.message };
-  }
-
-  let linkedIds = new Set<string>();
-  if (userId) {
-    const { data: linkedRows, error: linkedError } = await supabase
+    const { data: rows, error: gErr } = await supabase
       .from('player_guardians')
       .select('player_id')
-      .eq('user_id', userId);
+      .eq('user_id', uid);
+    if (gErr) return { data: [], error: gErr.message };
 
-    if (linkedError) {
-      return { data: [], error: linkedError.message };
-    }
+    const ids = (rows ?? []).map((r: { player_id: string }) => r.player_id);
+    if (ids.length === 0) return { data: [], error: null };
 
-    linkedIds = new Set((linkedRows ?? []).map((r: { player_id: string }) => r.player_id));
+    const { data: players, error: pErr } = await supabase
+      .from('players')
+      .select('id, first_name, last_name')
+      .in('id', ids);
+    if (pErr) return { data: [], error: pErr.message };
+
+    return {
+      data: (players ?? []).map(
+        (p: { id: string; first_name?: string | null; last_name?: string | null }) => ({
+          playerId: p.id,
+          displayName:
+            `${(p.first_name ?? '').toString().trim()} ${(p.last_name ?? '').toString().trim()}`.trim() ||
+            'Kind',
+          teamSeasonId: null,
+          teamLabel: null,
+        }),
+      ),
+      error: null,
+    };
   }
 
-  const mapped: ParentLinkPlayerOption[] = ((playerRows ?? []) as Array<{
-    id: string;
-    first_name?: string | null;
-    last_name?: string | null;
-    jersey_number?: number | null;
-  }>)
-    .filter((row) => !linkedIds.has(row.id))
-    .map((row) => {
-      const first = (row.first_name ?? '').toString().trim();
-      const last = (row.last_name ?? '').toString().trim();
-      return {
-        id: row.id,
-        display_name: `${first} ${last}`.trim() || 'Spieler',
-        jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
-      };
-    });
-
-  return { data: mapped, error: null };
+  return {
+    data: ((data ?? []) as Array<{
+      player_id: string;
+      display_name?: string | null;
+      team_season_id?: string | null;
+      team_label?: string | null;
+    }>).map((row) => ({
+      playerId: String(row.player_id),
+      displayName: String(row.display_name ?? '').trim() || 'Kind',
+      teamSeasonId: row.team_season_id ? String(row.team_season_id) : null,
+      teamLabel: row.team_label ? String(row.team_label).trim() : null,
+    })),
+    error: null,
+  };
 }
 
-async function listActiveTeamSeasonsForParentLinkLegacy(): Promise<{
-  data: ParentLinkTeamSeasonOption[];
-  error: string | null;
-}> {
-  const { data: teamSeasonRows, error: tsError } = await supabase
-    .from('team_seasons')
-    .select('id, team_id, status, display_name, age_group')
-    .eq('status', 'active');
+export type RedeemParentInviteStatus =
+  | 'linked'
+  | 'already_linked'
+  | 'invalid_token'
+  | 'expired'
+  | 'revoked'
+  | 'already_used'
+  | 'player_not_in_team'
+  | 'not_authenticated'
+  | 'error';
 
-  if (tsError) {
-    // Älteste Variante: kein status-Filter möglich → alles laden und clientseitig filtern, wenn status fehlt
-    if (/status|42703|column/i.test(tsError.message)) {
-      const { data: allRows, error } = await supabase.from('team_seasons').select('id, team_id');
-      if (error) return { data: [], error: error.message };
-      const teamIds = [...new Set((allRows ?? []).map((r: { team_id: string }) => r.team_id))];
-      const { data: teamsRows } = await supabase.from('teams').select('id, name').in('id', teamIds);
-      const nameById = new Map((teamsRows ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
-      return {
-        data: (allRows ?? []).map((r: { id: string; team_id: string }) => ({
-          id: String(r.id),
-          teamId: String(r.team_id),
-          label: nameById.get(r.team_id) ?? 'Team',
-          status: null,
-        })),
-        error: null,
-      };
-    }
-    return { data: [], error: tsError.message };
+export type RedeemParentInviteResult = {
+  status: RedeemParentInviteStatus;
+  playerId: string | null;
+  teamSeasonId: string | null;
+  playerDisplayName: string | null;
+  message: string | null;
+};
+
+function redeemMessage(status: RedeemParentInviteStatus): string {
+  switch (status) {
+    case 'linked':
+      return 'Kind erfolgreich verknüpft.';
+    case 'already_linked':
+      return 'Dieses Kind ist bereits mit deinem Konto verknüpft.';
+    case 'invalid_token':
+      return 'Einladungscode ungültig.';
+    case 'expired':
+      return 'Diese Einladung ist abgelaufen. Bitte den Trainer um einen neuen Code.';
+    case 'revoked':
+      return 'Diese Einladung wurde widerrufen.';
+    case 'already_used':
+      return 'Diese Einladung wurde bereits verwendet.';
+    case 'player_not_in_team':
+      return 'Das Kind ist aktuell keinem aktiven Kader zugeordnet.';
+    case 'not_authenticated':
+      return 'Bitte erneut anmelden.';
+    default:
+      return 'Verknüpfung fehlgeschlagen.';
+  }
+}
+
+/** Normalisiert Eltern-Einladungscode (48 hex). Spieler-Login-Codes werden nicht akzeptiert. */
+export function normalizeParentInviteToken(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\s+/g, '');
+}
+
+export function isParentInviteTokenShape(token: string): boolean {
+  return /^[0-9a-f]{48}$/.test(token);
+}
+
+export async function redeemParentLinkInvite(rawToken: string): Promise<RedeemParentInviteResult> {
+  const token = normalizeParentInviteToken(rawToken);
+  if (!isParentInviteTokenShape(token)) {
+    return {
+      status: 'invalid_token',
+      playerId: null,
+      teamSeasonId: null,
+      playerDisplayName: null,
+      message: redeemMessage('invalid_token'),
+    };
   }
 
-  const teamIds = [...new Set((teamSeasonRows ?? []).map((r: { team_id: string }) => r.team_id))];
-  const { data: teamsRows, error: teamsError } = await supabase
-    .from('teams')
-    .select('id, name, age_group')
-    .in('id', teamIds);
-  if (teamsError) return { data: [], error: teamsError.message };
+  const { data, error } = await supabase.rpc('redeem_parent_link_invite', { p_token: token });
+  if (error) {
+    return {
+      status: 'error',
+      playerId: null,
+      teamSeasonId: null,
+      playerDisplayName: null,
+      message: 'Verknüpfung fehlgeschlagen.',
+    };
+  }
 
-  const teamById = new Map(
-    (teamsRows ?? []).map((t: { id: string; name?: string; age_group?: string }) => [t.id, t]),
-  );
+  const row = (data ?? {}) as Record<string, unknown>;
+  const statusRaw = String(row.status ?? 'error');
+  const allowed: RedeemParentInviteStatus[] = [
+    'linked',
+    'already_linked',
+    'invalid_token',
+    'expired',
+    'revoked',
+    'already_used',
+    'player_not_in_team',
+    'not_authenticated',
+    'error',
+  ];
+  const status = (allowed.includes(statusRaw as RedeemParentInviteStatus)
+    ? statusRaw
+    : 'error') as RedeemParentInviteStatus;
 
-  const opts: ParentLinkTeamSeasonOption[] = (teamSeasonRows ?? []).map(
-    (r: {
-      id: string;
-      team_id: string;
-      status?: string | null;
-      display_name?: string | null;
-      age_group?: string | null;
-    }) => {
-      const team = teamById.get(r.team_id);
-      const label = formatTeamSeasonDisplayLabel({
-        displayName: r.display_name,
-        ageGroup: r.age_group ?? team?.age_group,
-        teamName: team?.name,
-        status: r.status,
-      });
-      return {
-        id: String(r.id),
-        teamId: String(r.team_id),
-        label: label || team?.name || 'Team',
-        status: r.status ?? null,
-      };
-    },
-  );
-
-  opts.sort((a, b) => a.label.localeCompare(b.label, 'de'));
-  return { data: opts, error: null };
+  return {
+    status,
+    playerId: row.player_id != null ? String(row.player_id) : null,
+    teamSeasonId: row.team_season_id != null ? String(row.team_season_id) : null,
+    playerDisplayName:
+      row.player_display_name != null ? String(row.player_display_name).trim() || null : null,
+    message: redeemMessage(status),
+  };
 }
 
 /** Gate-Logik: Eltern mit Guardian oder Skip gelten als onboarding-fertig. */
