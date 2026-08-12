@@ -9,22 +9,29 @@ import {
   isParentInviteTokenShape,
   normalizeParentInviteToken,
   persistParentRoleChoice,
+  redeemOpenParentEmailInviteForMe,
   redeemParentLinkInvite,
 } from '../lib/parentChildLink';
 import {
   buildParentInviteAuthNext,
   captureParentInviteTokenFromUrl,
   clearParentInviteTokenFromUserMetadata,
+  clearPendingParentEmailInviteFlag,
   clearStashedParentInviteToken,
+  hasOpenParentEmailInviteForMe,
+  markPendingParentEmailInvite,
   peekParentLinkInvite,
+  previewOpenParentEmailInviteForMe,
   previewParentLinkInvite,
   readParentInviteTokenFromUserMetadata,
+  readPendingParentEmailInviteFlag,
   readStashedParentInviteEmail,
   readStashedParentInviteToken,
   stashParentInviteEmail,
   stashParentInviteToken,
   type ParentInvitePreview,
 } from '../lib/parentLinkInvites';
+import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 import { supabase } from '../lib/supabaseClient';
 import { isSafeAuthRedirectPath } from '../lib/authRedirect';
 
@@ -32,6 +39,7 @@ const TEAM_SEASON_STORAGE_KEY = 'spielzeit_team_season_id';
 
 function goHomeWithTeamSeason(teamSeasonId: string | null) {
   try {
+    clearAccountScopedClientState();
     if (teamSeasonId) {
       window.localStorage.setItem(TEAM_SEASON_STORAGE_KEY, teamSeasonId);
     }
@@ -68,7 +76,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
   const params = useParams<{ token?: string }>();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
-  const { setPreviewRole } = useSession();
+  const { setPreviewRole, reloadSessionTeamSeasons } = useSession();
 
   const [token, setToken] = useState<string | null>(() =>
     resolveTokenFromSources({
@@ -77,6 +85,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
       user: null,
     }),
   );
+  const [emailBoundMode, setEmailBoundMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState<string | null>(null);
   const [preview, setPreview] = useState<ParentInvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +100,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
     });
     setToken(resolved);
     if (resolved) {
+      setEmailBoundMode(false);
       const canonical = buildParentInviteAuthNext(resolved);
       const currentPath = `${window.location.pathname}${window.location.search}`;
       if (!currentPath.startsWith(`/app/parent-invite/${resolved}`)) {
@@ -103,7 +113,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
     let alive = true;
     async function loadPeek() {
       if (!token) {
-        setInviteEmail(readStashedParentInviteEmail());
+        setInviteEmail(readStashedParentInviteEmail() || user?.email?.trim().toLowerCase() || null);
         return;
       }
       const peek = await peekParentLinkInvite(token);
@@ -130,17 +140,12 @@ export const ParentInviteAcceptPage: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [token]);
+  }, [token, user?.email]);
 
   useEffect(() => {
     let alive = true;
 
     async function run() {
-      if (!token) {
-        setLoading(false);
-        setPreview(null);
-        return;
-      }
       setLoading(true);
       setError(null);
 
@@ -150,6 +155,12 @@ export const ParentInviteAcceptPage: React.FC = () => {
 
       if (!user) {
         if (!alive) return;
+        if (!token) {
+          setEmailBoundMode(false);
+          setPreview(null);
+          setLoading(false);
+          return;
+        }
         setPreview((prev) =>
           prev &&
           ['invalid_token', 'expired', 'revoked', 'already_used'].includes(prev.status)
@@ -168,7 +179,28 @@ export const ParentInviteAcceptPage: React.FC = () => {
         return;
       }
 
-      const result = await previewParentLinkInvite(token);
+      if (token) {
+        setEmailBoundMode(false);
+        const result = await previewParentLinkInvite(token);
+        if (!alive) return;
+        setPreview(result);
+        setLoading(false);
+        return;
+      }
+
+      // Kein Plain-Token: offene Einladung über verifizierte Auth-E-Mail laden
+      const open = readPendingParentEmailInviteFlag() || (await hasOpenParentEmailInviteForMe());
+      if (!alive) return;
+      if (!open) {
+        setEmailBoundMode(false);
+        setPreview(null);
+        setLoading(false);
+        return;
+      }
+
+      markPendingParentEmailInvite();
+      setEmailBoundMode(true);
+      const result = await previewOpenParentEmailInviteForMe();
       if (!alive) return;
       setPreview(result);
       setLoading(false);
@@ -196,10 +228,13 @@ export const ParentInviteAcceptPage: React.FC = () => {
   }, [authNext, inviteEmail]);
 
   const handleConfirm = async () => {
-    if (!token || confirming) return;
+    if (confirming) return;
+    if (!token && !emailBoundMode) return;
     setConfirming(true);
     setError(null);
-    const result = await redeemParentLinkInvite(token);
+    const result = token
+      ? await redeemParentLinkInvite(token)
+      : await redeemOpenParentEmailInviteForMe();
     if (result.status !== 'linked' && result.status !== 'already_linked') {
       setError(result.message);
       setConfirming(false);
@@ -225,7 +260,13 @@ export const ParentInviteAcceptPage: React.FC = () => {
     await clearParentLinkDeferred();
     await clearParentInviteTokenFromUserMetadata();
     clearStashedParentInviteToken();
+    clearPendingParentEmailInviteFlag();
     setPreviewRole('parent');
+    try {
+      await reloadSessionTeamSeasons(result.teamSeasonId);
+    } catch {
+      /* full reload below */
+    }
     goHomeWithTeamSeason(result.teamSeasonId);
   };
 
@@ -233,6 +274,13 @@ export const ParentInviteAcceptPage: React.FC = () => {
     await supabase.auth.signOut();
     navigate(`/login?${authQuery}`, { replace: true });
   };
+
+  const showNoInvite =
+    !loading &&
+    !authLoading &&
+    !token &&
+    !emailBoundMode &&
+    !preview;
 
   return (
     <div className="page relative min-h-[60vh] px-4 pt-6">
@@ -243,7 +291,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
 
             {loading || authLoading ? (
               <p className="text-sm text-[var(--text-sub)]">Lade Einladung…</p>
-            ) : !token ? (
+            ) : showNoInvite ? (
               <p className="text-sm text-[var(--text-sub)]">
                 Kein gültiger Einladungslink. Bitte den Link aus der E-Mail erneut öffnen oder den
                 Code unter „Kind verknüpfen“ eingeben.
@@ -316,6 +364,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
                   className="w-full"
                   onClick={() => {
                     clearStashedParentInviteToken();
+                    clearPendingParentEmailInviteFlag();
                     void clearParentInviteTokenFromUserMetadata();
                     goHomeWithTeamSeason(null);
                   }}

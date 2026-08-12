@@ -1,6 +1,9 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
+import {
+  readPendingParentEmailInviteFlag,
+  resolvePendingParentInvitePath,
+} from '../../lib/parentLinkInvites';
 import { isIntroFlowCompleted } from './introFlowSession';
 
 /**
@@ -11,6 +14,9 @@ export const IntroEntryRedirect: React.FC = () => {
   const pendingInvite = resolvePendingParentInvitePath();
   if (pendingInvite) {
     return <Navigate to={pendingInvite} replace />;
+  }
+  if (readPendingParentEmailInviteFlag()) {
+    return <Navigate to="/app/parent-invite" replace />;
   }
 
   if (isIntroFlowCompleted()) {

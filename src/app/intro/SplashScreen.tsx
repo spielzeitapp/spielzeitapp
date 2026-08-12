@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import spielzeitappSplash from '../../assets/branding/spielzeitapp-splash.png';
-import { resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
+import { readPendingParentEmailInviteFlag, resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
 
 const APP_SPLASH_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
 
@@ -23,7 +23,11 @@ export const SplashScreen: React.FC = () => {
     if (!isDemo) {
       const pending = resolvePendingParentInvitePath();
       if (pending) {
-        window.location.assign(pending);
+        window.location.replace(pending);
+        return;
+      }
+      if (readPendingParentEmailInviteFlag()) {
+        window.location.replace('/app/parent-invite');
         return;
       }
     }

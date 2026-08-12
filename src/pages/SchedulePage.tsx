@@ -199,7 +199,7 @@ export const SchedulePage: React.FC = () => {
   const userId = user?.id ?? null;
   const effectiveTeamSeasonId = isDemo
     ? demo!.data.teamSeasonId
-    : (teamSeasonId ?? publicTeamId);
+    : (teamSeasonId ?? (user ? null : publicTeamId));
   const { events: rawEventsLive, loading: eLoadingLive, error: eErrorLive, refetch: refetchLive } =
     useEvents(isDemo ? null : effectiveTeamSeasonId);
   const rawEvents = isDemo ? demo!.data.events : rawEventsLive;
@@ -254,7 +254,7 @@ export const SchedulePage: React.FC = () => {
     }),
   [rawEvents, matchStatusById]);
 
-  const loading = isDemo ? false : tsLoading || (!teamSeasonId && publicLoading);
+  const loading = isDemo ? false : tsLoading || (!user && !teamSeasonId && publicLoading);
 
   const teamSeasonSubtitle = (() => {
     if (isDemo) return `${demo!.data.teamName} · ${demo!.data.seasonLabel}`;

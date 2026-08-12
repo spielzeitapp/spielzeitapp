@@ -374,31 +374,7 @@ export function isParentInviteTokenShape(token: string): boolean {
   return /^[0-9a-f]{48}$/.test(token);
 }
 
-export async function redeemParentLinkInvite(rawToken: string): Promise<RedeemParentInviteResult> {
-  const token = normalizeParentInviteToken(rawToken);
-  if (!isParentInviteTokenShape(token)) {
-    return {
-      status: 'invalid_token',
-      playerId: null,
-      teamSeasonId: null,
-      playerDisplayName: null,
-      expectedEmailMasked: null,
-      message: redeemMessage('invalid_token'),
-    };
-  }
-
-  const { data, error } = await supabase.rpc('redeem_parent_link_invite', { p_token: token });
-  if (error) {
-    return {
-      status: 'error',
-      playerId: null,
-      teamSeasonId: null,
-      playerDisplayName: null,
-      expectedEmailMasked: null,
-      message: 'Verknüpfung fehlgeschlagen.',
-    };
-  }
-
+function mapRedeemParentInviteRow(data: unknown): RedeemParentInviteResult {
   const row = (data ?? {}) as Record<string, unknown>;
   const statusRaw = String(row.status ?? 'error');
   const allowed: RedeemParentInviteStatus[] = [
@@ -428,6 +404,50 @@ export async function redeemParentLinkInvite(rawToken: string): Promise<RedeemPa
       row.expected_email_masked != null ? String(row.expected_email_masked) : null,
     message: redeemMessage(status),
   };
+}
+
+export async function redeemParentLinkInvite(rawToken: string): Promise<RedeemParentInviteResult> {
+  const token = normalizeParentInviteToken(rawToken);
+  if (!isParentInviteTokenShape(token)) {
+    return {
+      status: 'invalid_token',
+      playerId: null,
+      teamSeasonId: null,
+      playerDisplayName: null,
+      expectedEmailMasked: null,
+      message: redeemMessage('invalid_token'),
+    };
+  }
+
+  const { data, error } = await supabase.rpc('redeem_parent_link_invite', { p_token: token });
+  if (error) {
+    return {
+      status: 'error',
+      playerId: null,
+      teamSeasonId: null,
+      playerDisplayName: null,
+      expectedEmailMasked: null,
+      message: 'Verknüpfung fehlgeschlagen.',
+    };
+  }
+
+  return mapRedeemParentInviteRow(data);
+}
+
+/** Redeem newest open invite for authenticated verified email (no plain token). */
+export async function redeemOpenParentEmailInviteForMe(): Promise<RedeemParentInviteResult> {
+  const { data, error } = await supabase.rpc('redeem_open_parent_email_invite_for_me');
+  if (error) {
+    return {
+      status: 'error',
+      playerId: null,
+      teamSeasonId: null,
+      playerDisplayName: null,
+      expectedEmailMasked: null,
+      message: 'Verknüpfung fehlgeschlagen.',
+    };
+  }
+  return mapRedeemParentInviteRow(data);
 }
 
 /** Gate-Logik: Eltern mit Guardian oder Skip gelten als onboarding-fertig. */

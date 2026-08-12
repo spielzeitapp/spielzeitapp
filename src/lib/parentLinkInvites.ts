@@ -322,22 +322,7 @@ export async function peekParentLinkInvite(token: string): Promise<ParentInviteP
   };
 }
 
-export async function previewParentLinkInvite(token: string): Promise<ParentInvitePreview> {
-  const { data, error } = await supabase.rpc('preview_parent_link_invite', {
-    p_token: token,
-  });
-  if (error) {
-    return {
-      status: 'error',
-      playerDisplayName: null,
-      teamLabel: null,
-      seasonLabel: null,
-      expiresAt: null,
-      expectedEmailMasked: null,
-      message: 'Einladung konnte nicht geprüft werden.',
-    };
-  }
-  const row = asRecord(data);
+function mapParentInvitePreviewRow(row: Record<string, unknown>): ParentInvitePreview {
   const status = String(row.status ?? 'error') as ParentInvitePreviewStatus;
   const messages: Partial<Record<ParentInvitePreviewStatus, string>> = {
     needs_auth: 'Bitte zuerst anmelden oder registrieren.',
@@ -360,6 +345,74 @@ export async function previewParentLinkInvite(token: string): Promise<ParentInvi
       row.expected_email_masked != null ? String(row.expected_email_masked) : null,
     message: status === 'ready' ? null : messages[status] ?? 'Einladung konnte nicht geprüft werden.',
   };
+}
+
+export async function previewParentLinkInvite(token: string): Promise<ParentInvitePreview> {
+  const { data, error } = await supabase.rpc('preview_parent_link_invite', {
+    p_token: token,
+  });
+  if (error) {
+    return {
+      status: 'error',
+      playerDisplayName: null,
+      teamLabel: null,
+      seasonLabel: null,
+      expiresAt: null,
+      expectedEmailMasked: null,
+      message: 'Einladung konnte nicht geprüft werden.',
+    };
+  }
+  return mapParentInvitePreviewRow(asRecord(data));
+}
+
+/** Preview newest open invite bound to the authenticated verified email (no plain token). */
+export async function previewOpenParentEmailInviteForMe(): Promise<ParentInvitePreview> {
+  const { data, error } = await supabase.rpc('preview_open_parent_email_invite_for_me');
+  if (error) {
+    return {
+      status: 'error',
+      playerDisplayName: null,
+      teamLabel: null,
+      seasonLabel: null,
+      expiresAt: null,
+      expectedEmailMasked: null,
+      message: 'Einladung konnte nicht geprüft werden.',
+    };
+  }
+  return mapParentInvitePreviewRow(asRecord(data));
+}
+
+/** True when auth email has an open personal parent invite (token may be lost). */
+export async function hasOpenParentEmailInviteForMe(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('has_open_parent_email_invite_for_me');
+  if (error) return false;
+  return asRecord(data).has_open === true;
+}
+
+const PARENT_EMAIL_INVITE_PENDING_KEY = 'spz_parent_email_invite_pending_v1';
+
+export function markPendingParentEmailInvite(): void {
+  try {
+    window.sessionStorage.setItem(PARENT_EMAIL_INVITE_PENDING_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readPendingParentEmailInviteFlag(): boolean {
+  try {
+    return window.sessionStorage.getItem(PARENT_EMAIL_INVITE_PENDING_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function clearPendingParentEmailInviteFlag(): void {
+  try {
+    window.sessionStorage.removeItem(PARENT_EMAIL_INVITE_PENDING_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function parentInviteStateLabel(state: ParentInviteState): string {

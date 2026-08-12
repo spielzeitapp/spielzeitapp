@@ -5,12 +5,15 @@ import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
 import { isSafeAuthRedirectPath } from '../lib/authRedirect';
 import {
   ensureParentInviteContextFromNext,
+  hasOpenParentEmailInviteForMe,
   isAppIntroEntryPath,
+  markPendingParentEmailInvite,
   readParentInviteTokenFromUserMetadata,
   readStashedParentInviteEmail,
   resolvePendingParentInvitePath,
   stashParentInviteToken,
 } from '../lib/parentLinkInvites';
+import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/parentChildLink';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
@@ -117,19 +120,35 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
+    // Kontowechsel: Team/Saison/Rolle des vorherigen Users nicht mitnehmen
+    clearAccountScopedClientState();
+
     const metaToken = readParentInviteTokenFromUserMetadata(signInData.user);
     if (metaToken) stashParentInviteToken(metaToken);
     ensureParentInviteContextFromNext(nextSafe);
     stashTokenIfValid(orphanT);
 
+    // 1) Token-Pfad (URL/Stash/Metadata)
     const inviteDest = resolvePendingParentInvitePath(signInData.user);
     if (inviteDest) {
-      window.location.assign(inviteDest);
+      window.location.replace(inviteDest);
       return;
     }
 
+    // 2) Email-gebundene offene Einladung (Token verloren / Metadata fehlt bei bestehenden Konten)
+    try {
+      const openEmailInvite = await hasOpenParentEmailInviteForMe();
+      if (openEmailInvite) {
+        markPendingParentEmailInvite();
+        window.location.replace('/app/parent-invite');
+        return;
+      }
+    } catch {
+      /* ignore — normal login continues */
+    }
+
     if (isParentInviteFlow || (nextSafe && nextSafe.includes('/app/parent-invite'))) {
-      window.location.assign('/app/parent-invite');
+      window.location.replace('/app/parent-invite');
       return;
     }
 

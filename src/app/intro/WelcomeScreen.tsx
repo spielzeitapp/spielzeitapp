@@ -3,7 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, Compass, PlayCircle, Smartphone, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
-import { resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
+import {
+  readPendingParentEmailInviteFlag,
+  resolvePendingParentInvitePath,
+} from '../../lib/parentLinkInvites';
 import { DEMO_TOUR_WHAT_PATH, DEMO_TOUR_WELCOME_BENEFIT, DEMO_TOUR_WELCOME_HEADLINE, DEMO_TOUR_WELCOME_PRIMARY, DEMO_TOUR_WELCOME_PROBLEM } from '../../demo/demoTourConfig';
 import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg-neu.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
@@ -81,7 +84,11 @@ export const WelcomeScreen: React.FC = () => {
     markIntroFlowCompleted();
     const pending = resolvePendingParentInvitePath();
     if (pending) {
-      window.location.assign(pending);
+      window.location.replace(pending);
+      return;
+    }
+    if (readPendingParentEmailInviteFlag()) {
+      window.location.replace('/app/parent-invite');
       return;
     }
     navigate(ROUTE_APP_HOME, { replace: true });

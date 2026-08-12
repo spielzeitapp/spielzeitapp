@@ -21,7 +21,7 @@ import {
   isParentRoleChosen,
   userHasPlayerGuardian,
 } from '../../lib/parentChildLink';
-import { resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
+import { resolvePendingParentInvitePath, hasOpenParentEmailInviteForMe, markPendingParentEmailInvite, readPendingParentEmailInviteFlag } from '../../lib/parentLinkInvites';
 import { supabase } from '../../lib/supabaseClient';
 
 const ONBOARDING_EXEMPT_PATHS = [
@@ -92,7 +92,12 @@ export const InternalLayout: React.FC = () => {
         location.pathname.startsWith('/app/parent-invite/');
       if (pendingInvitePath && !onInvitePage) {
         if (alive) setGateChecking(false);
-        navigate(pendingInvitePath, { replace: true });
+        window.location.replace(pendingInvitePath);
+        return;
+      }
+      if (!onInvitePage && readPendingParentEmailInviteFlag()) {
+        if (alive) setGateChecking(false);
+        window.location.replace('/app/parent-invite');
         return;
       }
 
@@ -127,6 +132,18 @@ export const InternalLayout: React.FC = () => {
 
       const guardianRes = await userHasPlayerGuardian(user.id);
       const hasGuardian = guardianRes.hasGuardian;
+
+      // Offene E-Mail-Einladung schlägt remembered route / Termine / Onboarding
+      if (!hasGuardian && !onInvitePage) {
+        const openEmailInvite = await hasOpenParentEmailInviteForMe();
+        if (!alive) return;
+        if (openEmailInvite) {
+          markPendingParentEmailInvite();
+          setGateChecking(false);
+          window.location.replace('/app/parent-invite');
+          return;
+        }
+      }
 
       // Frische Metadata (parent_link_deferred), falls Auth-Context noch stale ist
       let gateUser = user;
