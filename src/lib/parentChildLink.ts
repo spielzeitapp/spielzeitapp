@@ -246,7 +246,7 @@ export type LinkParentSelfServiceResult = {
   message: string | null;
 };
 
-function linkSelfServiceMessage(status: LinkParentSelfServiceStatus): string {
+function linkSelfServiceMessage(status: LinkParentSelfServiceStatus, detail?: string | null): string {
   switch (status) {
     case 'linked':
       return 'Kind erfolgreich verknüpft.';
@@ -261,7 +261,10 @@ function linkSelfServiceMessage(status: LinkParentSelfServiceStatus): string {
     case 'invalid_input':
       return 'Bitte Verein, Mannschaft, Saison und Kind auswählen.';
     default:
-      return 'Verknüpfung fehlgeschlagen.';
+      if (detail && /btrim|membership_role|enum/i.test(detail)) {
+        return 'Verknüpfung technisch fehlgeschlagen (Rollenfeld). Bitte Support informieren.';
+      }
+      return 'Verknüpfung fehlgeschlagen. Bitte erneut versuchen.';
   }
 }
 
@@ -276,14 +279,14 @@ export async function linkParentSelfService(
   if (error) {
     console.warn('[parentChildLink] link_parent_self_service rpc error', {
       code: (error as { code?: string }).code ?? null,
-      // message ohne Tokens/PII belassen, Status für UI
+      message: error.message ? String(error.message).slice(0, 120) : null,
     });
     return {
       status: 'error',
       playerId: null,
       teamSeasonId: null,
       playerDisplayName: null,
-      message: 'Verknüpfung fehlgeschlagen.',
+      message: linkSelfServiceMessage('error', error.message),
     };
   }
 
@@ -301,6 +304,7 @@ export async function linkParentSelfService(
   const status = (allowed.includes(statusRaw as LinkParentSelfServiceStatus)
     ? statusRaw
     : 'error') as LinkParentSelfServiceStatus;
+  const detail = row.message != null ? String(row.message) : null;
 
   return {
     status,
@@ -308,7 +312,7 @@ export async function linkParentSelfService(
     teamSeasonId: row.team_season_id != null ? String(row.team_season_id) : null,
     playerDisplayName:
       row.player_display_name != null ? String(row.player_display_name).trim() || null : null,
-    message: linkSelfServiceMessage(status),
+    message: linkSelfServiceMessage(status, detail),
   };
 }
 

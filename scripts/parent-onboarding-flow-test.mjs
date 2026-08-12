@@ -266,6 +266,18 @@ assert.ok(selfServiceMig.includes('GRANT EXECUTE ON FUNCTION public.link_parent_
 assert.ok(selfServiceMig.includes('REVOKE ALL ON FUNCTION public.list_parent_onboarding_roster'));
 assert.ok(!selfServiceMig.includes('DROP POLICY'));
 
+const roleCastMig = fs.readFileSync(
+  path.join(root, 'supabase/migrations/20260812140000_fix_parent_link_role_cast.sql'),
+  'utf8',
+);
+assert.ok(roleCastMig.includes('m.role::text'));
+assert.ok(roleCastMig.includes('lower(trim(m.role::text))'));
+const roleCastExec = roleCastMig
+  .split('\n')
+  .filter((line) => !line.trim().startsWith('--'))
+  .join('\n');
+assert.ok(!/\btrim\(m\.role\)\s/.test(roleCastExec));
+
 const authRedirect = fs.readFileSync(path.join(root, 'src/lib/authRedirect.ts'), 'utf8');
 assert.ok(authRedirect.includes("AUTH_EMAIL_CONFIRM_PATH = '/app'"));
 assert.ok(authRedirect.includes('AUTH_PASSWORD_RECOVERY_PATH'));
