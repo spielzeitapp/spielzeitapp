@@ -242,7 +242,9 @@ assert.ok(secureMig.includes('REVOKE ALL ON FUNCTION public.redeem_parent_link_i
 // 11) Trainer-UI: Eltern einladen getrennt von Spielerzugang
 const panel = fs.readFileSync(path.join(root, 'src/components/team/PlayerGuardiansPanel.tsx'), 'utf8');
 assert.ok(panel.includes('Eltern einladen'));
+assert.ok(panel.includes('Elternteil einladen'));
 assert.ok(panel.includes('createParentLinkInvite'));
+assert.ok(panel.includes('Einladung senden'));
 assert.ok(panel.includes('Einladung per E-Mail senden'));
 assert.ok(panel.includes('Verknüpfung aufheben'));
 

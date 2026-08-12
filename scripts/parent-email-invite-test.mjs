@@ -58,10 +58,25 @@ assert.ok(api.includes('email_redirect_to'));
 assert.ok(api.includes('/auth/v1/otp'));
 assert.ok(api.includes('create_user: true'));
 
+assert.ok(panel.includes('Eltern & Verknüpfungen') || panel.includes('Eltern &amp; Verknüpfungen'));
+assert.ok(panel.includes('Elternteil einladen'));
+assert.ok(panel.includes('Einladung senden'));
 assert.ok(panel.includes('Einladung per E-Mail senden'));
 assert.ok(panel.includes('Einladungscode erstellen'));
+assert.ok(panel.includes('Erneut senden'));
 assert.ok(panel.includes('Verknüpfung aufheben'));
 assert.ok(panel.includes('sendParentEmailInvite'));
+
+const profileModal = fs.readFileSync(
+  path.join(root, 'src/components/team/PlayerProfileModal.tsx'),
+  'utf8',
+);
+assert.ok(profileModal.includes('PlayerGuardiansPanel'));
+assert.ok(profileModal.includes('canManage && teamSeasonId && !demo'));
+// Panel sitzt unter Hero/Settings, vor Sticky-Tabs (nicht erst unter Stats)
+const guardiansIdx = profileModal.indexOf('<PlayerGuardiansPanel');
+const stickyTabsIdx = profileModal.indexOf('{/* Sticky tabs */}');
+assert.ok(guardiansIdx > 0 && stickyTabsIdx > 0 && guardiansIdx < stickyTabsIdx);
 
 assert.ok(accept.includes('stashParentInviteToken'));
 assert.ok(accept.includes("navigate('/app/parent-invite', { replace: true })"));

@@ -819,6 +819,22 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             </PlayerSpecialSettingsAccordion>
           ) : null}
 
+          {/* Staff-only: direkt unter Spielerkarte, vor Statistik — A/B-Test Einstieg */}
+          {canManage && teamSeasonId && !demo ? (
+            <div className="mb-3 mt-1 rounded-2xl border border-white/10 bg-black/25 px-3 py-3">
+              <PlayerGuardiansPanel
+                teamSeasonId={teamSeasonId}
+                playerId={player.id}
+                playerName={displayFullName(player)}
+                onChanged={onGuardiansChanged}
+                onToast={(msg) => {
+                  setGuardianToast(msg);
+                  window.setTimeout(() => setGuardianToast(null), 2600);
+                }}
+              />
+            </div>
+          ) : null}
+
           {/* Sticky tabs */}
           <div className="sticky top-0 z-10 -mx-3 mb-3 border-b border-[rgba(220,38,38,0.12)] bg-[linear-gradient(180deg,rgba(8,4,6,0.96)_0%,rgba(0,0,0,0.88)_100%)] px-1 py-1 backdrop-blur-md sm:-mx-4">
             <div className="flex gap-1 rounded-xl border border-[rgba(220,38,38,0.16)] bg-[rgba(8,8,10,0.85)] p-0.5">
@@ -985,21 +1001,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   />
                   <ProfileTrainingAwardsSection />
                 </>
-              ) : null}
-
-              {canManage && teamSeasonId && !demo ? (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 px-3 py-3">
-                  <PlayerGuardiansPanel
-                    teamSeasonId={teamSeasonId}
-                    playerId={player.id}
-                    playerName={displayFullName(player)}
-                    onChanged={onGuardiansChanged}
-                    onToast={(msg) => {
-                      setGuardianToast(msg);
-                      window.setTimeout(() => setGuardianToast(null), 2600);
-                    }}
-                  />
-                </div>
               ) : null}
 
             </>
