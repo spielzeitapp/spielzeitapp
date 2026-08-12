@@ -183,3 +183,92 @@ export async function deleteEmptyPlatformClub(input: {
 export function isPlatformAdminRole(backendRole: string | null | undefined): boolean {
   return String(backendRole ?? '').trim().toLowerCase() === 'admin';
 }
+
+export type AdminCreateTeamResult = {
+  status: string;
+  team_id: string;
+  name?: string;
+  age_group?: string | null;
+};
+
+export async function adminCreateTeam(input: {
+  clubId: string;
+  name: string;
+  ageGroup?: string | null;
+}): Promise<{ data: AdminCreateTeamResult | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('admin_create_team', {
+    p_club_id: input.clubId,
+    p_name: input.name,
+    p_age_group: input.ageGroup ?? null,
+  });
+  if (error) return { data: null, error: rpcErrorMessage(error) };
+  return { data: data as AdminCreateTeamResult, error: null };
+}
+
+export async function adminEnsureTeamSeason(input: {
+  teamId: string;
+  seasonName: string;
+  status?: 'active' | 'draft';
+  displayName?: string | null;
+  ageGroup?: string | null;
+}): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('admin_ensure_team_season', {
+    p_team_id: input.teamId,
+    p_season_name: input.seasonName,
+    p_status: input.status ?? 'active',
+    p_display_name: input.displayName ?? null,
+    p_age_group: input.ageGroup ?? null,
+  });
+  if (error) return { data: null, error: rpcErrorMessage(error) };
+  return { data: (data ?? null) as Record<string, unknown> | null, error: null };
+}
+
+export async function adminAssignTeamSeasonStaff(input: {
+  teamSeasonId: string;
+  userId: string;
+  role?: 'trainer' | 'co_trainer' | 'head_coach' | 'head';
+}): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('admin_assign_team_season_staff', {
+    p_team_season_id: input.teamSeasonId,
+    p_user_id: input.userId,
+    p_role: input.role ?? 'head_coach',
+  });
+  if (error) return { data: null, error: rpcErrorMessage(error) };
+  return { data: (data ?? null) as Record<string, unknown> | null, error: null };
+}
+
+export async function adminSetTeamSeasonVenueGrant(input: {
+  teamSeasonId: string;
+  venueId: string;
+  purpose: 'training' | 'home_match';
+  isActive?: boolean;
+  sortOrder?: number;
+}): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('admin_set_team_season_venue_grant', {
+    p_team_season_id: input.teamSeasonId,
+    p_venue_id: input.venueId,
+    p_purpose: input.purpose,
+    p_is_active: input.isActive ?? true,
+    p_sort_order: input.sortOrder ?? 0,
+  });
+  if (error) return { data: null, error: rpcErrorMessage(error) };
+  return { data: (data ?? null) as Record<string, unknown> | null, error: null };
+}
+
+export type GrantableVenue = {
+  id: string;
+  name: string;
+  club_id: string;
+  club_name: string;
+  is_active: boolean;
+};
+
+export async function adminListGrantableVenues(): Promise<{
+  data: GrantableVenue[];
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('admin_list_grantable_venues');
+  if (error) return { data: [], error: rpcErrorMessage(error) };
+  const rows = Array.isArray(data) ? (data as GrantableVenue[]) : [];
+  return { data: rows, error: null };
+}

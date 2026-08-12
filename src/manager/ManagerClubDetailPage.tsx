@@ -6,6 +6,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import {
+  adminAssignTeamSeasonStaff,
+  adminCreateTeam,
+  adminEnsureTeamSeason,
+  adminListGrantableVenues,
+  adminSetTeamSeasonVenueGrant,
   archivePlatformClub,
   deleteEmptyPlatformClub,
   getPlatformClub,
@@ -13,12 +18,15 @@ import {
   restorePlatformClub,
   updatePlatformClub,
   type ClubDetail,
+  type GrantableVenue,
 } from '../lib/platformClubAdmin';
+import { useAuth } from '../auth/AuthProvider';
 
 export function ManagerClubDetailPage(): React.ReactElement {
   const { clubId = '' } = useParams();
   const navigate = useNavigate();
   const { backendRole, loading: sessionLoading } = useSession();
+  const { user: authUser } = useAuth();
   const allowed = isPlatformAdminRole(backendRole);
 
   const [detail, setDetail] = useState<ClubDetail | null>(null);
@@ -31,6 +39,16 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDeleteName, setConfirmDeleteName] = useState('');
   const [showDelete, setShowDelete] = useState(false);
+
+  const [teamName, setTeamName] = useState('');
+  const [teamAge, setTeamAge] = useState('U13');
+  const [seasonTeamId, setSeasonTeamId] = useState('');
+  const [seasonName, setSeasonName] = useState('2026/27');
+  const [staffTeamSeasonId, setStaffTeamSeasonId] = useState('');
+  const [grantTeamSeasonId, setGrantTeamSeasonId] = useState('');
+  const [grantVenueId, setGrantVenueId] = useState('');
+  const [grantPurpose, setGrantPurpose] = useState<'training' | 'home_match'>('training');
+  const [grantableVenues, setGrantableVenues] = useState<GrantableVenue[]>([]);
 
   const reload = useCallback(async () => {
     if (!clubId) return;
@@ -50,6 +68,21 @@ export function ManagerClubDetailPage(): React.ReactElement {
     if (!allowed) return;
     void reload();
   }, [allowed, reload]);
+
+  useEffect(() => {
+    if (!allowed) return;
+    void (async () => {
+      const res = await adminListGrantableVenues();
+      if (!res.error) setGrantableVenues(res.data);
+    })();
+  }, [allowed]);
+
+  useEffect(() => {
+    if (!detail) return;
+    if (!seasonTeamId && detail.teams[0]) setSeasonTeamId(detail.teams[0].id);
+    if (!staffTeamSeasonId && detail.team_seasons[0]) setStaffTeamSeasonId(detail.team_seasons[0].id);
+    if (!grantTeamSeasonId && detail.team_seasons[0]) setGrantTeamSeasonId(detail.team_seasons[0].id);
+  }, [detail, seasonTeamId, staffTeamSeasonId, grantTeamSeasonId]);
 
   if (sessionLoading) {
     return <p className="text-[14px] text-slate-600">Sitzung wird geladen…</p>;
@@ -272,6 +305,204 @@ export function ManagerClubDetailPage(): React.ReactElement {
               )}
             </section>
           </div>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <h2 className="text-[16px] font-semibold text-slate-900">Struktur &amp; Freigaben</h2>
+            <p className="mt-1 text-[12px] text-slate-500">
+              Plattformadmin-Werkzeuge für Mannschaft, Saison, Vereinsadmin (Staff) und
+              Anlagenfreigaben ohne Eigentumsübertragung.
+            </p>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <form
+                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!clubId || !teamName.trim()) return;
+                  void run(async () => {
+                    const res = await adminCreateTeam({
+                      clubId,
+                      name: teamName.trim(),
+                      ageGroup: teamAge.trim() || null,
+                    });
+                    return { error: res.error };
+                  }, 'Mannschaft gespeichert.');
+                }}
+              >
+                <p className="text-[13px] font-semibold text-slate-800">Mannschaft anlegen</p>
+                <input
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  placeholder="Name"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                />
+                <input
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  placeholder="Altersklasse (z. B. U13)"
+                  value={teamAge}
+                  onChange={(e) => setTeamAge(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={busy || !teamName.trim()}
+                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                >
+                  Mannschaft speichern
+                </button>
+              </form>
+
+              <form
+                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!seasonTeamId || !seasonName.trim()) return;
+                  void run(async () => {
+                    const res = await adminEnsureTeamSeason({
+                      teamId: seasonTeamId,
+                      seasonName: seasonName.trim(),
+                      status: 'active',
+                      ageGroup: teamAge.trim() || null,
+                    });
+                    return { error: res.error };
+                  }, 'Saison gespeichert.');
+                }}
+              >
+                <p className="text-[13px] font-semibold text-slate-800">Saison sicherstellen</p>
+                <select
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  value={seasonTeamId}
+                  onChange={(e) => setSeasonTeamId(e.target.value)}
+                >
+                  <option value="">Mannschaft wählen…</option>
+                  {detail.teams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  placeholder="Saison (z. B. 2026/27)"
+                  value={seasonName}
+                  onChange={(e) => setSeasonName(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={busy || !seasonTeamId || !seasonName.trim()}
+                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                >
+                  Saison speichern
+                </button>
+              </form>
+
+              <form
+                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!staffTeamSeasonId || !authUser?.id) return;
+                  void run(async () => {
+                    const res = await adminAssignTeamSeasonStaff({
+                      teamSeasonId: staffTeamSeasonId,
+                      userId: authUser.id,
+                      role: 'head_coach',
+                    });
+                    return { error: res.error };
+                  }, 'Dich als Vereinsadmin (head_coach) zugeordnet.');
+                }}
+              >
+                <p className="text-[13px] font-semibold text-slate-800">Vereinsadmin zuordnen</p>
+                <p className="text-[12px] text-slate-500">
+                  Ordnet dich (aktuelle Session) als head_coach der gewählten Saison zu. Keine
+                  E-Mail-Hardcodes.
+                </p>
+                <select
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  value={staffTeamSeasonId}
+                  onChange={(e) => setStaffTeamSeasonId(e.target.value)}
+                >
+                  <option value="">Saison wählen…</option>
+                  {detail.team_seasons.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.team_name}
+                      {s.season_name ? ` · ${s.season_name}` : ''} ({s.status})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  disabled={busy || !staffTeamSeasonId || !authUser?.id}
+                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                >
+                  Mich zuordnen
+                </button>
+              </form>
+
+              <form
+                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!grantTeamSeasonId || !grantVenueId) return;
+                  void run(async () => {
+                    const res = await adminSetTeamSeasonVenueGrant({
+                      teamSeasonId: grantTeamSeasonId,
+                      venueId: grantVenueId,
+                      purpose: grantPurpose,
+                      isActive: true,
+                    });
+                    return { error: res.error };
+                  }, 'Anlagenfreigabe gespeichert (Eigentümer unverändert).');
+                }}
+              >
+                <p className="text-[13px] font-semibold text-slate-800">Anlagenfreigabe</p>
+                <p className="text-[12px] text-slate-500">
+                  Bestehende Anlage freigeben (training / home_match). Keine Duplikate, kein
+                  Eigentumswechsel.
+                </p>
+                <select
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  value={grantTeamSeasonId}
+                  onChange={(e) => setGrantTeamSeasonId(e.target.value)}
+                >
+                  <option value="">Saison wählen…</option>
+                  {detail.team_seasons.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.team_name}
+                      {s.season_name ? ` · ${s.season_name}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  value={grantVenueId}
+                  onChange={(e) => setGrantVenueId(e.target.value)}
+                >
+                  <option value="">Anlage wählen…</option>
+                  {grantableVenues.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.club_name})
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  value={grantPurpose}
+                  onChange={(e) =>
+                    setGrantPurpose(e.target.value === 'home_match' ? 'home_match' : 'training')
+                  }
+                >
+                  <option value="training">training</option>
+                  <option value="home_match">home_match</option>
+                </select>
+                <button
+                  type="submit"
+                  disabled={busy || !grantTeamSeasonId || !grantVenueId}
+                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                >
+                  Freigabe speichern
+                </button>
+              </form>
+            </div>
+          </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <h2 className="text-[16px] font-semibold text-slate-900">Aktionen</h2>
