@@ -216,7 +216,8 @@ export default async function handler(req, res) {
     }
 
     const tokenPlain = String(invite.token_plain);
-    const acceptPath = `/app/parent-invite?t=${encodeURIComponent(tokenPlain)}`;
+    // Path-based accept URL — GoTrue often strips ?query from redirect_to.
+    const acceptPath = `/app/parent-invite/${encodeURIComponent(tokenPlain)}`;
     const emailRedirectTo = `${originRes.origin}${acceptPath}`;
 
     // Raw Auth OTP API (top-level email_redirect_to). Avoid admin.generateLink
@@ -235,6 +236,8 @@ export default async function handler(req, res) {
           create_user: true,
           data: {
             spielzeit_parent_invite: true,
+            // Backup if redirect loses the path token — cleared after redeem.
+            spielzeit_parent_invite_token: tokenPlain,
           },
           email_redirect_to: emailRedirectTo,
         }),

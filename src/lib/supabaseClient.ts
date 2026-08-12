@@ -13,32 +13,38 @@ const PARENT_INVITE_TOKEN_LOCAL_KEY = 'spz_parent_invite_token_v1';
 const PARENT_INVITE_STASH_TTL_MS = 72 * 60 * 60 * 1000;
 
 /**
- * Capture ?t= early (Magic Link), before Auth hash processing rewrites the URL.
- * Kept here (not parentLinkInvites) to avoid circular import with supabaseClient.
+ * Capture invite token early (Magic Link), before Auth hash processing rewrites the URL.
+ * Supports /app/parent-invite/<token> and ?t= — kept here to avoid circular imports.
  */
 export function captureParentInviteTokenFromUrl(): void {
   if (typeof window === 'undefined') return;
   try {
-    const search = window.location.search.startsWith('?')
-      ? window.location.search.slice(1)
-      : window.location.search;
-    const hash = window.location.hash.startsWith('#')
-      ? window.location.hash.slice(1)
-      : window.location.hash;
-    const fromSearch = new URLSearchParams(search).get('t');
-    const fromHash = new URLSearchParams(hash).get('t');
-    const raw = (fromSearch || fromHash || '').trim().toLowerCase().replace(/\s+/g, '');
-    if (!/^[0-9a-f]{48}$/.test(raw)) return;
+    const path = window.location.pathname || '';
+    const pathMatch = path.match(/\/app\/parent-invite\/([0-9a-fA-F]{48})\/?$/);
+    let raw = '';
+    if (pathMatch?.[1]) {
+      raw = pathMatch[1];
+    } else {
+      const search = window.location.search.startsWith('?')
+        ? window.location.search.slice(1)
+        : window.location.search;
+      const hash = window.location.hash.startsWith('#')
+        ? window.location.hash.slice(1)
+        : window.location.hash;
+      raw = new URLSearchParams(search).get('t') || new URLSearchParams(hash).get('t') || '';
+    }
+    const token = String(raw).trim().toLowerCase().replace(/\s+/g, '');
+    if (!/^[0-9a-f]{48}$/.test(token)) return;
 
     try {
-      window.sessionStorage.setItem(PARENT_INVITE_TOKEN_STORAGE_KEY, raw);
+      window.sessionStorage.setItem(PARENT_INVITE_TOKEN_STORAGE_KEY, token);
     } catch {
       /* ignore */
     }
     try {
       window.localStorage.setItem(
         PARENT_INVITE_TOKEN_LOCAL_KEY,
-        JSON.stringify({ token: raw, expiresAt: Date.now() + PARENT_INVITE_STASH_TTL_MS }),
+        JSON.stringify({ token, expiresAt: Date.now() + PARENT_INVITE_STASH_TTL_MS }),
       );
     } catch {
       /* ignore */

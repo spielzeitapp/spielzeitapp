@@ -54,9 +54,13 @@ assert.ok(api.includes('resolveInviteOrigin'));
 assert.ok(api.includes('parent_invite_refuses_live_supabase'));
 assert.ok(!api.includes('req.headers.origin'));
 assert.ok(!api.includes('x-forwarded-host'));
+assert.ok(api.includes('/app/parent-invite/'));
+assert.ok(api.includes('spielzeit_parent_invite_token'));
 assert.ok(api.includes('email_redirect_to'));
 assert.ok(api.includes('/auth/v1/otp'));
 assert.ok(api.includes('create_user: true'));
+// Path-based redirect (not only ?t=) — GoTrue strips query from redirect_to
+assert.ok(!api.includes("acceptPath = `/app/parent-invite?t="));
 
 assert.ok(panel.includes('Eltern & Verknüpfungen') || panel.includes('Eltern &amp; Verknüpfungen'));
 assert.ok(panel.includes('Elternteil einladen'));
@@ -144,6 +148,13 @@ assert.ok(inviteLib.includes('/api/parent/send-invite'));
 assert.ok(inviteLib.includes('peekParentLinkInvite'));
 assert.ok(inviteLib.includes('PARENT_INVITE_TOKEN_LOCAL_KEY'));
 assert.ok(inviteLib.includes('buildParentInviteAuthNext'));
+assert.ok(inviteLib.includes('/app/parent-invite/'));
+assert.ok(inviteLib.includes('readParentInviteTokenFromUserMetadata'));
+assert.ok(inviteLib.includes('isAppIntroEntryPath'));
+assert.ok(login.includes('window.location.assign'));
+assert.ok(login.includes('readParentInviteTokenFromUserMetadata'));
+assert.ok(accept.includes('useParams'));
+assert.ok(app.includes('app/parent-invite/:token'));
 
 assert.ok(parentLib.includes('^[0-9a-f]{48}$') || parentLib.includes('/^[0-9a-f]{48}$/'));
 

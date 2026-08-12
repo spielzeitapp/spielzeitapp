@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { useAuth } from '../auth/AuthProvider';
@@ -14,9 +14,11 @@ import {
 import {
   buildParentInviteAuthNext,
   captureParentInviteTokenFromUrl,
+  clearParentInviteTokenFromUserMetadata,
   clearStashedParentInviteToken,
   peekParentLinkInvite,
   previewParentLinkInvite,
+  readParentInviteTokenFromUserMetadata,
   readStashedParentInviteEmail,
   readStashedParentInviteToken,
   stashParentInviteEmail,
@@ -39,21 +41,42 @@ function goHomeWithTeamSeason(teamSeasonId: string | null) {
   window.location.assign('/app/home');
 }
 
+function resolveTokenFromSources(opts: {
+  pathToken?: string | null;
+  queryToken?: string | null;
+  user?: { user_metadata?: Record<string, unknown> | null } | null;
+}): string | null {
+  captureParentInviteTokenFromUrl();
+  const candidates = [
+    opts.pathToken,
+    opts.queryToken,
+    readStashedParentInviteToken(),
+    readParentInviteTokenFromUserMetadata(opts.user),
+  ];
+  for (const raw of candidates) {
+    const token = normalizeParentInviteToken(raw ?? '');
+    if (isParentInviteTokenShape(token)) {
+      stashParentInviteToken(token);
+      return token;
+    }
+  }
+  return null;
+}
+
 export const ParentInviteAcceptPage: React.FC = () => {
   const navigate = useNavigate();
+  const params = useParams<{ token?: string }>();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { setPreviewRole } = useSession();
 
-  const [token, setToken] = useState<string | null>(() => {
-    captureParentInviteTokenFromUrl();
-    const fromQuery = normalizeParentInviteToken(searchParams.get('t') ?? '');
-    if (isParentInviteTokenShape(fromQuery)) return fromQuery;
-    const stashed = readStashedParentInviteToken();
-    return stashed && isParentInviteTokenShape(normalizeParentInviteToken(stashed))
-      ? normalizeParentInviteToken(stashed)
-      : null;
-  });
+  const [token, setToken] = useState<string | null>(() =>
+    resolveTokenFromSources({
+      pathToken: params.token,
+      queryToken: searchParams.get('t'),
+      user: null,
+    }),
+  );
   const [inviteEmail, setInviteEmail] = useState<string | null>(null);
   const [preview, setPreview] = useState<ParentInvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,26 +84,20 @@ export const ParentInviteAcceptPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    captureParentInviteTokenFromUrl();
-    const fromQuery = normalizeParentInviteToken(searchParams.get('t') ?? '');
-    if (isParentInviteTokenShape(fromQuery)) {
-      stashParentInviteToken(fromQuery);
-      setToken(fromQuery);
-      // Keep ?t= in the URL across Login/Reload — do not strip until redeem succeeds.
-      return;
-    }
-    const stashed = readStashedParentInviteToken();
-    if (stashed && isParentInviteTokenShape(normalizeParentInviteToken(stashed))) {
-      const normalized = normalizeParentInviteToken(stashed);
-      setToken(normalized);
-      // Restore token into URL if missing (e.g. after auth callback rewrite).
-      if (!searchParams.get('t')) {
-        navigate(buildParentInviteAuthNext(normalized), { replace: true });
+    const resolved = resolveTokenFromSources({
+      pathToken: params.token,
+      queryToken: searchParams.get('t'),
+      user,
+    });
+    setToken(resolved);
+    if (resolved) {
+      const canonical = buildParentInviteAuthNext(resolved);
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      if (!currentPath.startsWith(`/app/parent-invite/${resolved}`)) {
+        navigate(canonical, { replace: true });
       }
-      return;
     }
-    setToken(null);
-  }, [searchParams, navigate]);
+  }, [params.token, searchParams, user, navigate]);
 
   useEffect(() => {
     let alive = true;
@@ -151,8 +168,6 @@ export const ParentInviteAcceptPage: React.FC = () => {
         return;
       }
 
-      // Do NOT persist parent role / previewRole before redeem — that would send
-      // incomplete accounts into Kind-Selbstverknüpfung if they leave this page.
       const result = await previewParentLinkInvite(token);
       if (!alive) return;
       setPreview(result);
@@ -174,10 +189,10 @@ export const ParentInviteAcceptPage: React.FC = () => {
   }, [token]);
 
   const authQuery = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set('next', authNext);
-    if (inviteEmail) params.set('email', inviteEmail);
-    return params.toString();
+    const paramsQs = new URLSearchParams();
+    paramsQs.set('next', authNext);
+    if (inviteEmail) paramsQs.set('email', inviteEmail);
+    return paramsQs.toString();
   }, [authNext, inviteEmail]);
 
   const handleConfirm = async () => {
@@ -208,6 +223,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
 
     await persistParentRoleChoice();
     await clearParentLinkDeferred();
+    await clearParentInviteTokenFromUserMetadata();
     clearStashedParentInviteToken();
     setPreviewRole('parent');
     goHomeWithTeamSeason(result.teamSeasonId);
@@ -300,6 +316,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
                   className="w-full"
                   onClick={() => {
                     clearStashedParentInviteToken();
+                    void clearParentInviteTokenFromUserMetadata();
                     goHomeWithTeamSeason(null);
                   }}
                 >

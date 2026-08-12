@@ -5,14 +5,25 @@ import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
 import { isSafeAuthRedirectPath } from '../lib/authRedirect';
 import {
   ensureParentInviteContextFromNext,
+  isAppIntroEntryPath,
+  readParentInviteTokenFromUserMetadata,
   readStashedParentInviteEmail,
   resolvePendingParentInvitePath,
+  stashParentInviteToken,
 } from '../lib/parentLinkInvites';
+import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/parentChildLink';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
+
+function stashTokenIfValid(raw: string | null | undefined): string | null {
+  const token = normalizeParentInviteToken(raw ?? '');
+  if (!isParentInviteTokenShape(token)) return null;
+  stashParentInviteToken(token);
+  return token;
+}
 
 export const LoginPage: React.FC = () => {
   const location = useLocation();
@@ -26,28 +37,49 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPlayerLogin, setShowPlayerLogin] = useState(false);
 
-  const fromState = (location.state as { from?: { pathname: string } })?.from?.pathname;
+  const fromState = (location.state as { from?: { pathname: string; search?: string } })?.from;
+  const fromStatePath = fromState?.pathname
+    ? `${fromState.pathname}${fromState.search ?? ''}`
+    : null;
   const nextRaw = searchParams.get('next') ?? '';
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
+  const orphanT = searchParams.get('t');
+
   const pendingInvitePath = resolvePendingParentInvitePath();
+  const orphanTokenValid = isParentInviteTokenShape(normalizeParentInviteToken(orphanT ?? ''));
+  const isParentInviteFlow = Boolean(
+    pendingInvitePath ||
+      (nextSafe && nextSafe.includes('/app/parent-invite')) ||
+      orphanTokenValid ||
+      readStashedParentInviteEmail() ||
+      (searchParams.get('email') ?? '').trim(),
+  );
+
+  const safeFromState =
+    fromStatePath &&
+    isSafeAuthRedirectPath(fromStatePath) &&
+    !(isParentInviteFlow && isAppIntroEntryPath(fromStatePath))
+      ? fromStatePath
+      : null;
+
   const from =
     pendingInvitePath ||
-    nextSafe ||
-    (fromState && isSafeAuthRedirectPath(fromState) ? fromState : null) ||
+    (nextSafe && nextSafe.includes('/app/parent-invite') ? nextSafe : null) ||
+    (isParentInviteFlow ? null : nextSafe) ||
+    safeFromState ||
     '/app/termine';
+
   const playerLoginEnabled = isPlayerQrAccessEnabled();
   const inviteEmailLocked = Boolean(
     (searchParams.get('email') ?? '').trim() || readStashedParentInviteEmail(),
   );
-  const isParentInviteFlow = Boolean(
-    pendingInvitePath || (nextSafe && nextSafe.includes('/app/parent-invite')),
-  );
 
   useEffect(() => {
     ensureParentInviteContextFromNext(nextSafe);
+    stashTokenIfValid(orphanT);
     const prefill = (searchParams.get('email') ?? '').trim() || readStashedParentInviteEmail() || '';
     if (prefill) setEmail(prefill);
-  }, [searchParams, nextSafe]);
+  }, [searchParams, nextSafe, orphanT]);
 
   if (showPlayerLogin) {
     return (
@@ -63,6 +95,8 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
     setRememberMePreference(rememberMe);
     ensureParentInviteContextFromNext(nextSafe);
+    stashTokenIfValid(orphanT);
+
     const lockedEmail =
       (searchParams.get('email') ?? '').trim().toLowerCase() ||
       (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
@@ -72,7 +106,8 @@ export const LoginPage: React.FC = () => {
       setError('Für diese Einladung musst du die eingeladene E-Mail-Adresse verwenden.');
       return;
     }
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: trimmedEmail,
       password,
     });
@@ -81,10 +116,29 @@ export const LoginPage: React.FC = () => {
       setError(signInError.message);
       return;
     }
-    const inviteDest =
-      resolvePendingParentInvitePath() ||
-      (nextSafe && nextSafe.includes('/app/parent-invite') ? nextSafe : null);
-    navigate(inviteDest || from, { replace: true });
+
+    const metaToken = readParentInviteTokenFromUserMetadata(signInData.user);
+    if (metaToken) stashParentInviteToken(metaToken);
+    ensureParentInviteContextFromNext(nextSafe);
+    stashTokenIfValid(orphanT);
+
+    const inviteDest = resolvePendingParentInvitePath(signInData.user);
+    if (inviteDest) {
+      window.location.assign(inviteDest);
+      return;
+    }
+
+    if (isParentInviteFlow || (nextSafe && nextSafe.includes('/app/parent-invite'))) {
+      window.location.assign('/app/parent-invite');
+      return;
+    }
+
+    const dest = nextSafe && !isAppIntroEntryPath(nextSafe) ? nextSafe : from || '/app/termine';
+    if (isAppIntroEntryPath(dest)) {
+      navigate('/app/termine', { replace: true });
+      return;
+    }
+    navigate(dest, { replace: true });
   };
 
   return (

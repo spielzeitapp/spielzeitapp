@@ -30,10 +30,13 @@ assert.ok(accept.includes("playerDisplayName: null"));
 // Wrong email blocked
 assert.ok(accept.includes('email_mismatch'));
 assert.ok(register.includes('eingeladene E-Mail-Adresse'));
-assert.ok(inviteLib.includes('resolvePendingParentInvitePath'));
-assert.ok(login.includes('resolvePendingParentInvitePath'));
 assert.ok(login.includes('eingeladene E-Mail-Adresse'));
+assert.ok(login.includes('window.location.assign'));
+assert.ok(login.includes('readParentInviteTokenFromUserMetadata'));
 assert.ok(accept.includes('authLoading'));
+assert.ok(accept.includes('useParams'));
+assert.ok(accept.includes('clearParentInviteTokenFromUserMetadata'));
+assert.ok(inviteLib.includes('resolvePendingParentInvitePath'));
 assert.ok(
   accept.indexOf('await persistParentRoleChoice()') >
     accept.indexOf('await redeemParentLinkInvite(token)'),

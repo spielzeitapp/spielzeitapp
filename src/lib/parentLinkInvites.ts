@@ -470,15 +470,49 @@ export function clearStashedParentInviteEmail(): void {
   }
 }
 
-/** Safe relative next path that keeps the invite token across login/register/confirm. */
+/** Path-based invite URL — survives GoTrue better than ?t= query (often stripped). */
 export function buildParentInviteAuthNext(token: string): string {
-  return `/app/parent-invite?t=${encodeURIComponent(token)}`;
+  const normalized = normalizeParentInviteToken(token);
+  return `/app/parent-invite/${encodeURIComponent(normalized)}`;
 }
 
-/** Parse invite token from a safe next path like /app/parent-invite?t=… */
+/** Legacy query form kept for older emails already in flight. */
+export function buildParentInviteAuthNextQuery(token: string): string {
+  return `/app/parent-invite?t=${encodeURIComponent(normalizeParentInviteToken(token))}`;
+}
+
+const PARENT_INVITE_META_TOKEN_KEY = 'spielzeit_parent_invite_token';
+
+export function readParentInviteTokenFromUserMetadata(
+  user: { user_metadata?: Record<string, unknown> | null } | null | undefined,
+): string | null {
+  if (!user?.user_metadata) return null;
+  const raw = user.user_metadata[PARENT_INVITE_META_TOKEN_KEY];
+  if (raw == null) return null;
+  const token = normalizeParentInviteToken(String(raw));
+  return isParentInviteTokenShape(token) ? token : null;
+}
+
+export async function clearParentInviteTokenFromUserMetadata(): Promise<void> {
+  try {
+    await supabase.auth.updateUser({
+      data: { [PARENT_INVITE_META_TOKEN_KEY]: null, spielzeit_parent_invite: null },
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Parse invite token from next path: /app/parent-invite/<token> or ?t= */
 export function extractInviteTokenFromNext(next: string | null | undefined): string | null {
   if (!next || !next.includes('/app/parent-invite')) return null;
   try {
+    const pathOnly = next.split('?')[0] ?? next;
+    const pathMatch = pathOnly.match(/\/app\/parent-invite\/([0-9a-fA-F]{48})\/?$/);
+    if (pathMatch?.[1]) {
+      const token = normalizeParentInviteToken(pathMatch[1]);
+      if (isParentInviteTokenShape(token)) return token;
+    }
     const qIdx = next.indexOf('?');
     const qs = qIdx >= 0 ? next.slice(qIdx + 1) : '';
     const raw = new URLSearchParams(qs).get('t') ?? '';
@@ -496,14 +530,20 @@ export function ensureParentInviteContextFromNext(next: string | null | undefine
 }
 
 /**
- * Capture ?t= from the current URL as early as possible (Magic Link / deep link),
- * before Auth hash processing or React Router may rewrite the location.
- * Re-exported implementation lives next to auth bootstrap in supabaseClient
- * (avoids circular imports); this wrapper also runs from invite helpers.
+ * Capture invite token from URL path, ?t=, or hash as early as possible.
  */
 export function captureParentInviteTokenFromUrl(): void {
   if (typeof window === 'undefined') return;
   try {
+    const path = window.location.pathname || '';
+    const pathMatch = path.match(/\/app\/parent-invite\/([0-9a-fA-F]{48})\/?$/);
+    if (pathMatch?.[1]) {
+      const token = normalizeParentInviteToken(pathMatch[1]);
+      if (isParentInviteTokenShape(token)) {
+        stashParentInviteToken(token);
+        return;
+      }
+    }
     const search = window.location.search.startsWith('?')
       ? window.location.search.slice(1)
       : window.location.search;
@@ -522,15 +562,41 @@ export function captureParentInviteTokenFromUrl(): void {
   }
 }
 
-/** Pending personal invite — used to bypass role-choice / self-link until accept/redeem. */
-export function resolvePendingParentInvitePath(): string | null {
+/**
+ * Resolve pending invite path from URL stash and optional auth user_metadata backup.
+ * Call synchronously before every post-login navigate.
+ */
+export function resolvePendingParentInvitePath(
+  user?: { user_metadata?: Record<string, unknown> | null } | null,
+): string | null {
   captureParentInviteTokenFromUrl();
-  const token = readStashedParentInviteToken();
+  let token = readStashedParentInviteToken();
+  if (!token || !isParentInviteTokenShape(token)) {
+    const fromMeta = readParentInviteTokenFromUserMetadata(user);
+    if (fromMeta) {
+      stashParentInviteToken(fromMeta);
+      token = fromMeta;
+    }
+  }
   if (!token || !isParentInviteTokenShape(token)) return null;
   const path = buildParentInviteAuthNext(token);
   return isSafeAuthRedirectPath(path) ? path : null;
 }
 
-export function hasPendingParentInvite(): boolean {
-  return resolvePendingParentInvitePath() != null;
+export function hasPendingParentInvite(
+  user?: { user_metadata?: Record<string, unknown> | null } | null,
+): boolean {
+  return resolvePendingParentInvitePath(user) != null;
+}
+
+/** True for /app index and intro — must not win over pending invite after login. */
+export function isAppIntroEntryPath(path: string | null | undefined): boolean {
+  if (!path) return false;
+  const clean = path.split('?')[0]?.replace(/\/+$/, '') || '';
+  return (
+    clean === '/app' ||
+    clean === '/' ||
+    clean === '/app/intro/splash' ||
+    clean === '/app/intro/welcome'
+  );
 }
