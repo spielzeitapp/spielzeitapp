@@ -34,6 +34,19 @@ assert.ok(inviteLib.includes('resolvePendingParentInvitePath'));
 assert.ok(login.includes('resolvePendingParentInvitePath'));
 assert.ok(login.includes('eingeladene E-Mail-Adresse'));
 assert.ok(accept.includes('authLoading'));
+assert.ok(
+  accept.indexOf('await persistParentRoleChoice()') >
+    accept.indexOf('await redeemParentLinkInvite(token)'),
+);
+
+const parentOnboarding = fs.readFileSync(
+  path.join(root, 'src/pages/ParentOnboardingPage.tsx'),
+  'utf8',
+);
+assert.ok(parentOnboarding.includes('resolvePendingParentInvitePath'));
+
+const roleChoice = fs.readFileSync(path.join(root, 'src/pages/RoleChoicePage.tsx'), 'utf8');
+assert.ok(roleChoice.includes('resolvePendingParentInvitePath'));
 
 // Idempotent accept + home with season
 assert.ok(accept.includes('already_linked'));

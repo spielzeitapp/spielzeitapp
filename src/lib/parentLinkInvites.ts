@@ -495,8 +495,36 @@ export function ensureParentInviteContextFromNext(next: string | null | undefine
   if (token) stashParentInviteToken(token);
 }
 
-/** Pending personal invite — used to bypass role-choice until accept/redeem. */
+/**
+ * Capture ?t= from the current URL as early as possible (Magic Link / deep link),
+ * before Auth hash processing or React Router may rewrite the location.
+ * Re-exported implementation lives next to auth bootstrap in supabaseClient
+ * (avoids circular imports); this wrapper also runs from invite helpers.
+ */
+export function captureParentInviteTokenFromUrl(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const search = window.location.search.startsWith('?')
+      ? window.location.search.slice(1)
+      : window.location.search;
+    const hash = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const fromSearch = new URLSearchParams(search).get('t');
+    const fromHash = new URLSearchParams(hash).get('t');
+    const raw = fromSearch || fromHash || '';
+    const token = normalizeParentInviteToken(raw);
+    if (isParentInviteTokenShape(token)) {
+      stashParentInviteToken(token);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Pending personal invite — used to bypass role-choice / self-link until accept/redeem. */
 export function resolvePendingParentInvitePath(): string | null {
+  captureParentInviteTokenFromUrl();
   const token = readStashedParentInviteToken();
   if (!token || !isParentInviteTokenShape(token)) return null;
   const path = buildParentInviteAuthNext(token);

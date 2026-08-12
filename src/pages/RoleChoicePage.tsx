@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { useSession } from '../auth/useSession';
 import { persistParentRoleChoice } from '../lib/parentChildLink';
+import { resolvePendingParentInvitePath } from '../lib/parentLinkInvites';
 
 export const RoleChoicePage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,7 +12,20 @@ export const RoleChoicePage: React.FC = () => {
   const [savingRole, setSavingRole] = useState<'parent' | 'fan' | 'player' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const pendingInvite = resolvePendingParentInvitePath();
+    if (pendingInvite) {
+      navigate(pendingInvite, { replace: true });
+    }
+  }, [navigate]);
+
   const chooseParent = async () => {
+    const pendingInvite = resolvePendingParentInvitePath();
+    if (pendingInvite) {
+      navigate(pendingInvite, { replace: true });
+      return;
+    }
+
     setSavingRole('parent');
     setError(null);
 

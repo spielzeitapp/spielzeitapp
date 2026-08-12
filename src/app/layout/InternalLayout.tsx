@@ -84,6 +84,18 @@ export const InternalLayout: React.FC = () => {
     let alive = true;
 
     async function gate() {
+      // Persönliche Einladung hat Vorrang vor Rollenwahl UND Kind-Selbstverknüpfung —
+      // auch wenn die aktuelle Route eigentlich onboarding-exempt ist.
+      const pendingInvitePath = resolvePendingParentInvitePath();
+      const onInvitePage =
+        location.pathname === '/app/parent-invite' ||
+        location.pathname.startsWith('/app/parent-invite/');
+      if (pendingInvitePath && !onInvitePage) {
+        if (alive) setGateChecking(false);
+        navigate(pendingInvitePath, { replace: true });
+        return;
+      }
+
       if (isOnboardingExemptPath(location.pathname)) {
         if (alive) setGateChecking(false);
         return;
@@ -95,13 +107,6 @@ export const InternalLayout: React.FC = () => {
       }
 
       if (alive) setGateChecking(true);
-
-      const pendingInvitePath = resolvePendingParentInvitePath();
-      if (pendingInvitePath) {
-        setGateChecking(false);
-        navigate(pendingInvitePath, { replace: true });
-        return;
-      }
 
       const membershipList = memberships ?? [];
       if (hasStaffAccess(backendRole, membershipList)) {

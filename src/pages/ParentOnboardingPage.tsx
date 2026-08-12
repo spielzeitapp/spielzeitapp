@@ -24,6 +24,7 @@ import {
   type ParentOnboardingSeasonOption,
   type ParentOnboardingTeamOption,
 } from '../lib/parentChildLink';
+import { resolvePendingParentInvitePath } from '../lib/parentLinkInvites';
 
 function isLinkMode(
   searchParams: URLSearchParams,
@@ -78,6 +79,12 @@ export const ParentOnboardingPage: React.FC = () => {
   const [inviteCode, setInviteCode] = useState('');
 
   useEffect(() => {
+    const pendingInvite = resolvePendingParentInvitePath();
+    if (pendingInvite) {
+      navigate(pendingInvite, { replace: true });
+      return;
+    }
+
     let alive = true;
 
     async function load() {

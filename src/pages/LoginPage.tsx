@@ -62,6 +62,7 @@ export const LoginPage: React.FC = () => {
     setError('');
     setLoading(true);
     setRememberMePreference(rememberMe);
+    ensureParentInviteContextFromNext(nextSafe);
     const lockedEmail =
       (searchParams.get('email') ?? '').trim().toLowerCase() ||
       (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
@@ -80,7 +81,10 @@ export const LoginPage: React.FC = () => {
       setError(signInError.message);
       return;
     }
-    navigate(resolvePendingParentInvitePath() || from, { replace: true });
+    const inviteDest =
+      resolvePendingParentInvitePath() ||
+      (nextSafe && nextSafe.includes('/app/parent-invite') ? nextSafe : null);
+    navigate(inviteDest || from, { replace: true });
   };
 
   return (

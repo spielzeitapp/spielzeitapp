@@ -79,7 +79,7 @@ const stickyTabsIdx = profileModal.indexOf('{/* Sticky tabs */}');
 assert.ok(guardiansIdx > 0 && stickyTabsIdx > 0 && guardiansIdx < stickyTabsIdx);
 
 assert.ok(accept.includes('stashParentInviteToken'));
-assert.ok(accept.includes("navigate('/app/parent-invite', { replace: true })"));
+assert.ok(!accept.includes("navigate('/app/parent-invite', { replace: true })"));
 assert.ok(accept.includes('email_mismatch'));
 assert.ok(accept.includes('Einladung annehmen'));
 assert.ok(accept.includes('buildParentInviteAuthNext'));
@@ -94,6 +94,7 @@ assert.ok(login.includes('isSafeAuthRedirectPath'));
 assert.ok(inviteLib.includes('resolvePendingParentInvitePath'));
 assert.ok(inviteLib.includes('ensureParentInviteContextFromNext'));
 assert.ok(inviteLib.includes('hasPendingParentInvite'));
+assert.ok(inviteLib.includes('captureParentInviteTokenFromUrl'));
 
 assert.ok(login.includes('resolvePendingParentInvitePath'));
 assert.ok(login.includes('ensureParentInviteContextFromNext'));
@@ -104,6 +105,7 @@ const internalLayout = fs.readFileSync(
   'utf8',
 );
 assert.ok(internalLayout.includes('resolvePendingParentInvitePath'));
+assert.ok(internalLayout.indexOf('resolvePendingParentInvitePath') < internalLayout.indexOf('isOnboardingExemptPath(location.pathname)'));
 
 const introEntry = fs.readFileSync(
   path.join(root, 'src/app/intro/IntroEntryRedirect.tsx'),
@@ -111,8 +113,26 @@ const introEntry = fs.readFileSync(
 );
 assert.ok(introEntry.includes('resolvePendingParentInvitePath'));
 
+const parentOnboarding = fs.readFileSync(
+  path.join(root, 'src/pages/ParentOnboardingPage.tsx'),
+  'utf8',
+);
+assert.ok(parentOnboarding.includes('resolvePendingParentInvitePath'));
+
+const roleChoice = fs.readFileSync(path.join(root, 'src/pages/RoleChoicePage.tsx'), 'utf8');
+assert.ok(roleChoice.includes('resolvePendingParentInvitePath'));
+
 assert.ok(accept.includes('authLoading'));
 assert.ok(accept.includes('useAuth'));
+// Role may only be persisted after successful redeem — not before preview
+const persistCallIdx = accept.indexOf('await persistParentRoleChoice()');
+const redeemCallIdx = accept.indexOf('await redeemParentLinkInvite(token)');
+assert.ok(persistCallIdx > 0 && redeemCallIdx > 0 && persistCallIdx > redeemCallIdx);
+assert.ok(accept.includes('Keep ?t=') || accept.includes('buildParentInviteAuthNext'));
+
+const supabaseClient = fs.readFileSync(path.join(root, 'src/lib/supabaseClient.ts'), 'utf8');
+assert.ok(supabaseClient.includes('captureParentInviteTokenFromUrl'));
+assert.ok(supabaseClient.includes('spz_parent_invite_token'));
 assert.ok(register.includes('emailRedirectPath'));
 assert.ok(register.includes('isParentInviteFlow'));
 assert.ok(register.includes('inviteEmailLocked') || register.includes('lockedEmail'));

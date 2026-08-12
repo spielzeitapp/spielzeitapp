@@ -13,6 +13,7 @@ import {
 } from '../lib/parentChildLink';
 import {
   buildParentInviteAuthNext,
+  captureParentInviteTokenFromUrl,
   clearStashedParentInviteToken,
   peekParentLinkInvite,
   previewParentLinkInvite,
@@ -44,7 +45,15 @@ export const ParentInviteAcceptPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { setPreviewRole } = useSession();
 
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(() => {
+    captureParentInviteTokenFromUrl();
+    const fromQuery = normalizeParentInviteToken(searchParams.get('t') ?? '');
+    if (isParentInviteTokenShape(fromQuery)) return fromQuery;
+    const stashed = readStashedParentInviteToken();
+    return stashed && isParentInviteTokenShape(normalizeParentInviteToken(stashed))
+      ? normalizeParentInviteToken(stashed)
+      : null;
+  });
   const [inviteEmail, setInviteEmail] = useState<string | null>(null);
   const [preview, setPreview] = useState<ParentInvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,16 +61,22 @@ export const ParentInviteAcceptPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    captureParentInviteTokenFromUrl();
     const fromQuery = normalizeParentInviteToken(searchParams.get('t') ?? '');
     if (isParentInviteTokenShape(fromQuery)) {
       stashParentInviteToken(fromQuery);
       setToken(fromQuery);
-      navigate('/app/parent-invite', { replace: true });
+      // Keep ?t= in the URL across Login/Reload — do not strip until redeem succeeds.
       return;
     }
     const stashed = readStashedParentInviteToken();
     if (stashed && isParentInviteTokenShape(normalizeParentInviteToken(stashed))) {
-      setToken(normalizeParentInviteToken(stashed));
+      const normalized = normalizeParentInviteToken(stashed);
+      setToken(normalized);
+      // Restore token into URL if missing (e.g. after auth callback rewrite).
+      if (!searchParams.get('t')) {
+        navigate(buildParentInviteAuthNext(normalized), { replace: true });
+      }
       return;
     }
     setToken(null);
@@ -136,9 +151,8 @@ export const ParentInviteAcceptPage: React.FC = () => {
         return;
       }
 
-      await persistParentRoleChoice();
-      setPreviewRole('parent');
-
+      // Do NOT persist parent role / previewRole before redeem — that would send
+      // incomplete accounts into Kind-Selbstverknüpfung if they leave this page.
       const result = await previewParentLinkInvite(token);
       if (!alive) return;
       setPreview(result);
@@ -149,7 +163,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [token, user, authLoading, setPreviewRole]);
+  }, [token, user, authLoading]);
 
   const authNext = useMemo(() => {
     if (token && isParentInviteTokenShape(token)) {
@@ -192,6 +206,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
       return;
     }
 
+    await persistParentRoleChoice();
     await clearParentLinkDeferred();
     clearStashedParentInviteToken();
     setPreviewRole('parent');
@@ -283,7 +298,10 @@ export const ParentInviteAcceptPage: React.FC = () => {
                 <Button
                   variant="primary"
                   className="w-full"
-                  onClick={() => goHomeWithTeamSeason(null)}
+                  onClick={() => {
+                    clearStashedParentInviteToken();
+                    goHomeWithTeamSeason(null);
+                  }}
                 >
                   Zur App
                 </Button>
