@@ -91,7 +91,28 @@ assert.ok(app.includes('ParentInviteAcceptPage'));
 
 assert.ok(login.includes("searchParams.get('next')") || login.includes('searchParams.get("next")'));
 assert.ok(login.includes('isSafeAuthRedirectPath'));
-assert.ok(login.includes('inviteEmailLocked') || login.includes('isParentInviteFlow'));
+assert.ok(inviteLib.includes('resolvePendingParentInvitePath'));
+assert.ok(inviteLib.includes('ensureParentInviteContextFromNext'));
+assert.ok(inviteLib.includes('hasPendingParentInvite'));
+
+assert.ok(login.includes('resolvePendingParentInvitePath'));
+assert.ok(login.includes('ensureParentInviteContextFromNext'));
+assert.ok(login.includes('readStashedParentInviteEmail'));
+
+const internalLayout = fs.readFileSync(
+  path.join(root, 'src/app/layout/InternalLayout.tsx'),
+  'utf8',
+);
+assert.ok(internalLayout.includes('resolvePendingParentInvitePath'));
+
+const introEntry = fs.readFileSync(
+  path.join(root, 'src/app/intro/IntroEntryRedirect.tsx'),
+  'utf8',
+);
+assert.ok(introEntry.includes('resolvePendingParentInvitePath'));
+
+assert.ok(accept.includes('authLoading'));
+assert.ok(accept.includes('useAuth'));
 assert.ok(register.includes('emailRedirectPath'));
 assert.ok(register.includes('isParentInviteFlow'));
 assert.ok(register.includes('inviteEmailLocked') || register.includes('lockedEmail'));

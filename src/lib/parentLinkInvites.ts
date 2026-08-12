@@ -2,6 +2,11 @@
  * Trainer: Eltern-Einladung (E-Mail + Code-Fallback), getrennt von Spieler-Code/PIN/QR.
  */
 
+import { isSafeAuthRedirectPath } from './authRedirect';
+import {
+  isParentInviteTokenShape,
+  normalizeParentInviteToken,
+} from './parentChildLink';
 import { supabase } from './supabaseClient';
 
 export type ParentInviteState = 'open' | 'used' | 'revoked' | 'expired';
@@ -468,4 +473,36 @@ export function clearStashedParentInviteEmail(): void {
 /** Safe relative next path that keeps the invite token across login/register/confirm. */
 export function buildParentInviteAuthNext(token: string): string {
   return `/app/parent-invite?t=${encodeURIComponent(token)}`;
+}
+
+/** Parse invite token from a safe next path like /app/parent-invite?t=… */
+export function extractInviteTokenFromNext(next: string | null | undefined): string | null {
+  if (!next || !next.includes('/app/parent-invite')) return null;
+  try {
+    const qIdx = next.indexOf('?');
+    const qs = qIdx >= 0 ? next.slice(qIdx + 1) : '';
+    const raw = new URLSearchParams(qs).get('t') ?? '';
+    const token = normalizeParentInviteToken(raw);
+    return isParentInviteTokenShape(token) ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Stash token from next= before login/register so Magic-Link → Login keeps context. */
+export function ensureParentInviteContextFromNext(next: string | null | undefined): void {
+  const token = extractInviteTokenFromNext(next);
+  if (token) stashParentInviteToken(token);
+}
+
+/** Pending personal invite — used to bypass role-choice until accept/redeem. */
+export function resolvePendingParentInvitePath(): string | null {
+  const token = readStashedParentInviteToken();
+  if (!token || !isParentInviteTokenShape(token)) return null;
+  const path = buildParentInviteAuthNext(token);
+  return isSafeAuthRedirectPath(path) ? path : null;
+}
+
+export function hasPendingParentInvite(): boolean {
+  return resolvePendingParentInvitePath() != null;
 }

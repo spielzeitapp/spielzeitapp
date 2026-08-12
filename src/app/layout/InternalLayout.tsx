@@ -21,6 +21,7 @@ import {
   isParentRoleChosen,
   userHasPlayerGuardian,
 } from '../../lib/parentChildLink';
+import { resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
 import { supabase } from '../../lib/supabaseClient';
 
 const ONBOARDING_EXEMPT_PATHS = [
@@ -94,6 +95,13 @@ export const InternalLayout: React.FC = () => {
       }
 
       if (alive) setGateChecking(true);
+
+      const pendingInvitePath = resolvePendingParentInvitePath();
+      if (pendingInvitePath) {
+        setGateChecking(false);
+        navigate(pendingInvitePath, { replace: true });
+        return;
+      }
 
       const membershipList = memberships ?? [];
       if (hasStaffAccess(backendRole, membershipList)) {

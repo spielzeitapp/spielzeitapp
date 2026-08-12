@@ -30,7 +30,10 @@ assert.ok(accept.includes("playerDisplayName: null"));
 // Wrong email blocked
 assert.ok(accept.includes('email_mismatch'));
 assert.ok(register.includes('eingeladene E-Mail-Adresse'));
+assert.ok(inviteLib.includes('resolvePendingParentInvitePath'));
+assert.ok(login.includes('resolvePendingParentInvitePath'));
 assert.ok(login.includes('eingeladene E-Mail-Adresse'));
+assert.ok(accept.includes('authLoading'));
 
 // Idempotent accept + home with season
 assert.ok(accept.includes('already_linked'));

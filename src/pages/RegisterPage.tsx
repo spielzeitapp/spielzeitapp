@@ -3,6 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
 import { AUTH_EMAIL_CONFIRM_PATH, getAuthRedirectUrl, isSafeAuthRedirectPath } from '../lib/authRedirect';
+import {
+  ensureParentInviteContextFromNext,
+  readStashedParentInviteEmail,
+  resolvePendingParentInvitePath,
+} from '../lib/parentLinkInvites';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -25,14 +30,20 @@ export const RegisterPage: React.FC = () => {
 
   const nextRaw = searchParams.get('next') ?? '';
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
-  const emailRedirectPath = nextSafe || AUTH_EMAIL_CONFIRM_PATH;
-  const inviteEmailLocked = Boolean((searchParams.get('email') ?? '').trim());
-  const isParentInviteFlow = Boolean(nextSafe && nextSafe.includes('/app/parent-invite'));
+  const pendingInvitePath = resolvePendingParentInvitePath();
+  const emailRedirectPath = pendingInvitePath || nextSafe || AUTH_EMAIL_CONFIRM_PATH;
+  const inviteEmailLocked = Boolean(
+    (searchParams.get('email') ?? '').trim() || readStashedParentInviteEmail(),
+  );
+  const isParentInviteFlow = Boolean(
+    pendingInvitePath || (nextSafe && nextSafe.includes('/app/parent-invite')),
+  );
 
   useEffect(() => {
-    const prefill = (searchParams.get('email') ?? '').trim();
+    ensureParentInviteContextFromNext(nextSafe);
+    const prefill = (searchParams.get('email') ?? '').trim() || readStashedParentInviteEmail() || '';
     if (prefill) setEmail(prefill);
-  }, [searchParams]);
+  }, [searchParams, nextSafe]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +54,9 @@ export const RegisterPage: React.FC = () => {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
     const trimmedEmail = email.trim().toLowerCase();
-    const lockedEmail = (searchParams.get('email') ?? '').trim().toLowerCase();
+    const lockedEmail =
+      (searchParams.get('email') ?? '').trim().toLowerCase() ||
+      (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
 
     if (!trimmedFirst || !trimmedLast || !trimmedEmail) {
       setMessage({ type: 'error', text: 'Bitte Vorname, Nachname und E-Mail ausfüllen.' });
@@ -92,7 +105,7 @@ export const RegisterPage: React.FC = () => {
 
       if (data.session) {
         setLoading(false);
-        navigate(nextSafe || '/app/role-choice', { replace: true });
+        navigate(pendingInvitePath || nextSafe || '/app/role-choice', { replace: true });
         return;
       }
 
@@ -248,7 +261,16 @@ export const RegisterPage: React.FC = () => {
 
         <p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
           Bereits registriert?{' '}
-          <Link to="/login" className="text-white/80 hover:text-white hover:underline">
+          <Link
+            to={
+              nextSafe || pendingInvitePath
+                ? `/login?next=${encodeURIComponent(nextSafe || pendingInvitePath || '')}${
+                    email.trim() ? `&email=${encodeURIComponent(email.trim())}` : ''
+                  }`
+                : '/login'
+            }
+            className="text-white/80 hover:text-white hover:underline"
+          >
             Anmelden
           </Link>
         </p>

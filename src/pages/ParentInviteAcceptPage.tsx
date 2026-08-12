@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
+import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
 import {
   clearParentLinkDeferred,
@@ -40,7 +41,8 @@ function goHomeWithTeamSeason(teamSeasonId: string | null) {
 export const ParentInviteAcceptPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, setPreviewRole } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const { setPreviewRole } = useSession();
 
   const [token, setToken] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState<string | null>(null);
@@ -110,6 +112,10 @@ export const ParentInviteAcceptPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      if (authLoading) {
+        return;
+      }
+
       if (!user) {
         if (!alive) return;
         setPreview((prev) =>
@@ -143,7 +149,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [token, user, setPreviewRole]);
+  }, [token, user, authLoading, setPreviewRole]);
 
   const authNext = useMemo(() => {
     if (token && isParentInviteTokenShape(token)) {
@@ -204,7 +210,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
           <div className="space-y-4">
             <CardTitle>Einladung annehmen</CardTitle>
 
-            {loading ? (
+            {loading || authLoading ? (
               <p className="text-sm text-[var(--text-sub)]">Lade Einladung…</p>
             ) : !token ? (
               <p className="text-sm text-[var(--text-sub)]">
@@ -217,7 +223,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
               </p>
             ) : null}
 
-            {!loading && preview?.status === 'needs_auth' ? (
+            {!loading && !authLoading && preview?.status === 'needs_auth' ? (
               <div className="space-y-3">
                 <p className="text-sm text-[var(--text-sub)]">
                   Melde dich an oder registriere dich, um die Einladung fortzusetzen. Die Kinddaten
@@ -245,7 +251,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
               </div>
             ) : null}
 
-            {!loading && preview?.status === 'email_mismatch' ? (
+            {!loading && !authLoading && preview?.status === 'email_mismatch' ? (
               <div className="space-y-3">
                 <p className="text-sm text-[var(--text-sub)]">
                   Diese Einladung ist für eine andere E-Mail-Adresse bestimmt
@@ -258,11 +264,12 @@ export const ParentInviteAcceptPage: React.FC = () => {
               </div>
             ) : null}
 
-            {!loading && preview?.status === 'email_not_verified' ? (
+            {!loading && !authLoading && preview?.status === 'email_not_verified' ? (
               <p className="text-sm text-[var(--text-sub)]">{preview.message}</p>
             ) : null}
 
             {!loading &&
+            !authLoading &&
             preview &&
             ['invalid_token', 'expired', 'revoked', 'already_used', 'error'].includes(
               preview.status,
@@ -270,7 +277,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
               <p className="text-sm text-[var(--text-sub)]">{preview.message}</p>
             ) : null}
 
-            {!loading && preview?.status === 'already_linked' ? (
+            {!loading && !authLoading && preview?.status === 'already_linked' ? (
               <div className="space-y-3">
                 <p className="text-sm text-emerald-400">{preview.message}</p>
                 <Button
@@ -283,7 +290,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
               </div>
             ) : null}
 
-            {!loading && preview?.status === 'ready' ? (
+            {!loading && !authLoading && preview?.status === 'ready' ? (
               <div className="space-y-3">
                 <p className="text-sm text-[var(--text-sub)]">
                   Möchtest du dieses Kind mit deinem Elternkonto verknüpfen?

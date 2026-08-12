@@ -3,6 +3,11 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { Button } from '../app/components/ui/Button';
 import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
 import { isSafeAuthRedirectPath } from '../lib/authRedirect';
+import {
+  ensureParentInviteContextFromNext,
+  readStashedParentInviteEmail,
+  resolvePendingParentInvitePath,
+} from '../lib/parentLinkInvites';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 
@@ -24,15 +29,25 @@ export const LoginPage: React.FC = () => {
   const fromState = (location.state as { from?: { pathname: string } })?.from?.pathname;
   const nextRaw = searchParams.get('next') ?? '';
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
-  const from = nextSafe || fromState || '/app/termine';
+  const pendingInvitePath = resolvePendingParentInvitePath();
+  const from =
+    pendingInvitePath ||
+    nextSafe ||
+    (fromState && isSafeAuthRedirectPath(fromState) ? fromState : null) ||
+    '/app/termine';
   const playerLoginEnabled = isPlayerQrAccessEnabled();
-  const inviteEmailLocked = Boolean((searchParams.get('email') ?? '').trim());
-  const isParentInviteFlow = Boolean(nextSafe && nextSafe.includes('/app/parent-invite'));
+  const inviteEmailLocked = Boolean(
+    (searchParams.get('email') ?? '').trim() || readStashedParentInviteEmail(),
+  );
+  const isParentInviteFlow = Boolean(
+    pendingInvitePath || (nextSafe && nextSafe.includes('/app/parent-invite')),
+  );
 
   useEffect(() => {
-    const prefill = (searchParams.get('email') ?? '').trim();
+    ensureParentInviteContextFromNext(nextSafe);
+    const prefill = (searchParams.get('email') ?? '').trim() || readStashedParentInviteEmail() || '';
     if (prefill) setEmail(prefill);
-  }, [searchParams]);
+  }, [searchParams, nextSafe]);
 
   if (showPlayerLogin) {
     return (
@@ -47,7 +62,9 @@ export const LoginPage: React.FC = () => {
     setError('');
     setLoading(true);
     setRememberMePreference(rememberMe);
-    const lockedEmail = (searchParams.get('email') ?? '').trim().toLowerCase();
+    const lockedEmail =
+      (searchParams.get('email') ?? '').trim().toLowerCase() ||
+      (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
     const trimmedEmail = email.trim().toLowerCase();
     if (lockedEmail && trimmedEmail !== lockedEmail) {
       setLoading(false);
@@ -63,7 +80,7 @@ export const LoginPage: React.FC = () => {
       setError(signInError.message);
       return;
     }
-    navigate(from, { replace: true });
+    navigate(resolvePendingParentInvitePath() || from, { replace: true });
   };
 
   return (
