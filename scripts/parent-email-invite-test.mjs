@@ -58,8 +58,11 @@ assert.ok(api.includes('/app/parent-invite/'));
 assert.ok(api.includes('spielzeit_parent_invite_token'));
 assert.ok(api.includes('email_redirect_to'));
 assert.ok(api.includes('/auth/v1/otp'));
-assert.ok(api.includes('create_user: true'));
-// Path-based redirect (not only ?t=) — GoTrue strips query from redirect_to
+assert.ok(api.includes('create_user: !authExists') || api.includes('create_user: true'));
+assert.ok(api.includes('complete_signup'));
+assert.ok(api.includes('/register?'));
+// Path-based accept still used as next= target
+assert.ok(api.includes('/app/parent-invite/'));
 assert.ok(!api.includes("acceptPath = `/app/parent-invite?t="));
 
 assert.ok(panel.includes('Eltern & Verknüpfungen') || panel.includes('Eltern &amp; Verknüpfungen'));
@@ -75,12 +78,10 @@ const profileModal = fs.readFileSync(
   path.join(root, 'src/components/team/PlayerProfileModal.tsx'),
   'utf8',
 );
-assert.ok(profileModal.includes('PlayerGuardiansPanel'));
-assert.ok(profileModal.includes('canManage && teamSeasonId && !demo'));
-// Panel sitzt unter Hero/Settings, vor Sticky-Tabs (nicht erst unter Stats)
-const guardiansIdx = profileModal.indexOf('<PlayerGuardiansPanel');
-const stickyTabsIdx = profileModal.indexOf('{/* Sticky tabs */}');
-assert.ok(guardiansIdx > 0 && stickyTabsIdx > 0 && guardiansIdx < stickyTabsIdx);
+// Trainer UI: guardians panel moved to parent-access hub (PARENT-INVITE.FINAL)
+assert.ok(
+  profileModal.includes('TrainerParentAccessHint') || profileModal.includes('PlayerGuardiansPanel'),
+);
 
 assert.ok(accept.includes('stashParentInviteToken'));
 assert.ok(!accept.includes("navigate('/app/parent-invite', { replace: true })"));
@@ -90,6 +91,7 @@ assert.ok(accept.includes('buildParentInviteAuthNext'));
 assert.ok(accept.includes('peekParentLinkInvite'));
 assert.ok(accept.includes('spielzeit_team_season_id'));
 assert.ok(accept.includes('seasonLabel'));
+assert.ok(accept.includes('buildParentInviteAuthQuery') || accept.includes('/register?'));
 assert.ok(app.includes('parent-invite'));
 assert.ok(app.includes('ParentInviteAcceptPage'));
 
@@ -151,7 +153,7 @@ assert.ok(inviteLib.includes('buildParentInviteAuthNext'));
 assert.ok(inviteLib.includes('/app/parent-invite/'));
 assert.ok(inviteLib.includes('readParentInviteTokenFromUserMetadata'));
 assert.ok(inviteLib.includes('isAppIntroEntryPath'));
-assert.ok(login.includes('window.location.assign'));
+assert.ok(login.includes('window.location.replace') || login.includes('window.location.assign'));
 assert.ok(login.includes('readParentInviteTokenFromUserMetadata'));
 assert.ok(accept.includes('useParams'));
 assert.ok(app.includes('app/parent-invite/:token'));

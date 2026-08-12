@@ -5,17 +5,20 @@ import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
 import { isSafeAuthRedirectPath } from '../lib/authRedirect';
 import { resolvePostAuthDestination } from '../lib/postAuthDestination';
 import {
+  buildParentInviteAuthQuery,
   ensureParentInviteContextFromNext,
   isAppIntroEntryPath,
   readParentInviteTokenFromUserMetadata,
   readStashedParentInviteEmail,
   resolvePendingParentInvitePath,
+  stashParentInviteEmail,
   stashParentInviteToken,
 } from '../lib/parentLinkInvites';
 import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/parentChildLink';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
+import { useAuth } from '../auth/AuthProvider';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -31,6 +34,7 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -73,9 +77,39 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     ensureParentInviteContextFromNext(nextSafe);
     stashTokenIfValid(orphanT);
-    const prefill = (searchParams.get('email') ?? '').trim() || readStashedParentInviteEmail() || '';
-    if (prefill) setEmail(prefill);
+    const prefill =
+      (searchParams.get('email') ?? '').trim().toLowerCase() ||
+      readStashedParentInviteEmail() ||
+      '';
+    if (prefill) {
+      setEmail(prefill);
+      stashParentInviteEmail(prefill);
+    }
   }, [searchParams, nextSafe, orphanT]);
+
+  // Magic-Link landete auf /login mit Session → Invite-Ziel.
+  useEffect(() => {
+    if (authLoading || !user || !isParentInviteFlow) return;
+    let cancelled = false;
+    (async () => {
+      const dest = await resolvePostAuthDestination({
+        user,
+        next: nextSafe,
+        from: safeFromState,
+        consciousLogin: false,
+        parentInviteFlowHint: true,
+      });
+      if (cancelled) return;
+      if (dest.hardReplace) {
+        window.location.replace(dest.path);
+        return;
+      }
+      navigate(dest.path, { replace: true });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user, isParentInviteFlow, nextSafe, safeFromState, navigate]);
 
   if (showPlayerLogin) {
     return (
@@ -154,7 +188,10 @@ export const LoginPage: React.FC = () => {
               id="login-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                if (inviteEmailLocked) return;
+                setEmail(e.target.value.trim().toLowerCase());
+              }}
               placeholder="name@beispiel.de"
               required
               readOnly={inviteEmailLocked}
@@ -242,9 +279,7 @@ export const LoginPage: React.FC = () => {
           <Link
             to={
               nextSafe
-                ? `/register?next=${encodeURIComponent(nextSafe)}${
-                    email.trim() ? `&email=${encodeURIComponent(email.trim())}` : ''
-                  }`
+                ? `/register?${buildParentInviteAuthQuery({ next: nextSafe, email })}`
                 : '/register'
             }
             className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"

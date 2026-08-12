@@ -274,6 +274,8 @@ export type ParentInvitePeek = {
   recipientEmail: string | null;
   recipientEmailMasked: string | null;
   expiresAt: string | null;
+  /** True only when invite-bound email has a usable password account (login). */
+  accountExists: boolean;
   message: string | null;
 };
 
@@ -287,6 +289,7 @@ export async function peekParentLinkInvite(token: string): Promise<ParentInviteP
       recipientEmail: null,
       recipientEmailMasked: null,
       expiresAt: null,
+      accountExists: false,
       message: 'Einladung konnte nicht geprüft werden.',
     };
   }
@@ -318,8 +321,21 @@ export async function peekParentLinkInvite(token: string): Promise<ParentInviteP
     recipientEmailMasked:
       row.recipient_email_masked != null ? String(row.recipient_email_masked) : null,
     expiresAt: row.expires_at != null ? String(row.expires_at) : null,
+    accountExists: row.account_exists === true,
     message: messages[status],
   };
+}
+
+/** Query string for /login or /register during parent invite auth. */
+export function buildParentInviteAuthQuery(opts: {
+  next: string;
+  email?: string | null;
+}): string {
+  const paramsQs = new URLSearchParams();
+  paramsQs.set('next', opts.next);
+  const email = (opts.email ?? '').trim().toLowerCase();
+  if (email) paramsQs.set('email', email);
+  return paramsQs.toString();
 }
 
 function mapParentInvitePreviewRow(row: Record<string, unknown>): ParentInvitePreview {

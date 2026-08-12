@@ -1,13 +1,16 @@
 /**
  * POST /api/parent/send-invite
- * Trainer/Admin: create parent email invite + send Supabase Auth magic-link/OTP email.
- * Secrets stay server-side. Invite link forced to Staging origin for this develop flow.
+ * - Default: Trainer/Admin creates parent email invite + Auth mail (OTP).
+ * - action=complete_signup: Invite-bound password signup for passwordless stubs
+ *   (token + email must match; no open account enumeration).
+ * Secrets stay server-side. Invite links forced to Staging origin for develop.
  */
 import { createClient } from '@supabase/supabase-js';
 
 const STAGING_ORIGIN = 'https://app.spielzeitapp.at';
 const LIVE_ORIGIN_RE = /^https:\/\/(www\.)?spielzeitapp\.at$/i;
 const LIVE_REF = 'shxugattqatahckhspwk';
+const MIN_PASSWORD_LENGTH = 6;
 
 function parseBody(req) {
   try {
@@ -41,11 +44,13 @@ function maskEmail(email) {
   return `${local.slice(0, 1)}***@${domain}`;
 }
 
+function isInviteTokenShape(token) {
+  return /^[0-9a-f]{48}$/.test(String(token ?? '').trim().toLowerCase());
+}
+
 /**
  * Parent invite links: always canonical Staging origin for this develop flow.
  * Never trust client Origin headers. Never emit localhost or Live.
- * Supabase Auth Site URL + Redirect Allowlist must also allow this origin
- * (otherwise GoTrue falls back to Site URL, e.g. localhost).
  */
 function resolveInviteOrigin() {
   const configured = String(
@@ -64,11 +69,9 @@ function resolveInviteOrigin() {
   }
 
   if (/localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]/i.test(configured)) {
-    // Misconfigured env must not poison invite emails.
     return { ok: true, origin: STAGING_ORIGIN };
   }
 
-  // Canonical Staging invite target (serverseitig fix, nicht aus Request-Headern).
   return { ok: true, origin: STAGING_ORIGIN };
 }
 
@@ -94,6 +97,138 @@ function normalizeMembershipRole(roleStr) {
   return null;
 }
 
+function asRecord(data) {
+  if (data != null && typeof data === 'object' && !Array.isArray(data)) {
+    return data;
+  }
+  return {};
+}
+
+async function handleCompleteSignup(req, res, { supabaseUrl, serviceKey, admin }) {
+  const body = parseBody(req);
+  if (body === null) {
+    return res.status(400).json({ ok: false, error: 'Invalid JSON' });
+  }
+
+  const token = String(body.token ?? '')
+    .trim()
+    .toLowerCase();
+  const email = normalizeEmail(body.email);
+  const password = String(body.password ?? '');
+  const firstName = String(body.first_name ?? '').trim();
+  const lastName = String(body.last_name ?? '').trim();
+
+  if (!isInviteTokenShape(token) || !isValidEmail(email)) {
+    return res.status(400).json({ ok: false, error: 'invalid_input' });
+  }
+  if (!firstName || !lastName) {
+    return res.status(400).json({ ok: false, error: 'invalid_name' });
+  }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({ ok: false, error: 'weak_password' });
+  }
+
+  const { data: peekData, error: peekError } = await admin.rpc('peek_parent_link_invite', {
+    p_token: token,
+  });
+  if (peekError) {
+    return res.status(400).json({ ok: false, error: 'invite_check_failed' });
+  }
+  const peek = asRecord(peekData);
+  if (String(peek.status) !== 'ready') {
+    return res.status(400).json({
+      ok: false,
+      error: String(peek.status || 'invalid_token'),
+    });
+  }
+  const recipient = normalizeEmail(peek.recipient_email);
+  if (!recipient || recipient !== email) {
+    return res.status(403).json({ ok: false, error: 'email_mismatch' });
+  }
+  if (peek.account_exists === true) {
+    return res.status(409).json({ ok: false, error: 'account_exists' });
+  }
+
+  const { data: statusData, error: statusError } = await admin.rpc(
+    'parent_invite_auth_email_status',
+    { p_email: email },
+  );
+  if (statusError) {
+    return res.status(500).json({ ok: false, error: 'auth_status_failed' });
+  }
+  const status = asRecord(statusData);
+  let userId = status.user_id ? String(status.user_id) : null;
+
+  const meta = {
+    first_name: firstName,
+    last_name: lastName,
+    spielzeit_parent_invite: true,
+    spielzeit_parent_invite_token: token,
+  };
+
+  if (!userId) {
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: false,
+      user_metadata: meta,
+    });
+    if (createErr || !created?.user?.id) {
+      return res.status(400).json({ ok: false, error: 'create_user_failed' });
+    }
+    userId = created.user.id;
+  } else if (status.has_password === true) {
+    return res.status(409).json({ ok: false, error: 'account_exists' });
+  } else {
+    const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
+      password,
+      user_metadata: meta,
+    });
+    if (updateErr) {
+      return res.status(400).json({ ok: false, error: 'update_user_failed' });
+    }
+  }
+
+  // Trigger confirmation mail with redirect back to invite accept (keeps token in path).
+  const originRes = resolveInviteOrigin();
+  if (!originRes.ok) {
+    return res.status(403).json({ ok: false, error: originRes.error });
+  }
+  const acceptPath = `/app/parent-invite/${encodeURIComponent(token)}`;
+  const emailRedirectTo = `${originRes.origin}${acceptPath}`;
+
+  let confirmSent = false;
+  try {
+    const otpRes = await fetch(`${String(supabaseUrl).replace(/\/$/, '')}/auth/v1/otp`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        create_user: false,
+        data: meta,
+        email_redirect_to: emailRedirectTo,
+      }),
+    });
+    confirmSent = otpRes.ok;
+    if (!otpRes.ok) {
+      console.error('[parent/send-invite] confirm mail failed');
+    }
+  } catch {
+    console.error('[parent/send-invite] confirm mail failed');
+  }
+
+  return res.status(200).json({
+    ok: true,
+    status: 'pending_email_confirmation',
+    email_confirm_sent: confirmSent,
+    accept_path: acceptPath,
+  });
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== 'POST') {
@@ -103,21 +238,6 @@ export default async function handler(req, res) {
     const body = parseBody(req);
     if (body === null) {
       return res.status(400).json({ ok: false, error: 'Invalid JSON' });
-    }
-
-    const teamSeasonId =
-      typeof body.team_season_id === 'string' ? body.team_season_id.trim() : '';
-    const playerId = typeof body.player_id === 'string' ? body.player_id.trim() : '';
-    const email = normalizeEmail(body.email);
-    const expiresHours = Number.isFinite(Number(body.expires_hours))
-      ? Number(body.expires_hours)
-      : 72;
-
-    if (!teamSeasonId || !playerId || !isValidEmail(email)) {
-      return res.status(400).json({
-        ok: false,
-        error: 'team_season_id, player_id and valid email required',
-      });
     }
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -142,6 +262,29 @@ export default async function handler(req, res) {
       });
     }
 
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    if (String(body.action || '') === 'complete_signup') {
+      return handleCompleteSignup(req, res, { supabaseUrl, serviceKey, admin });
+    }
+
+    const teamSeasonId =
+      typeof body.team_season_id === 'string' ? body.team_season_id.trim() : '';
+    const playerId = typeof body.player_id === 'string' ? body.player_id.trim() : '';
+    const email = normalizeEmail(body.email);
+    const expiresHours = Number.isFinite(Number(body.expires_hours))
+      ? Number(body.expires_hours)
+      : 72;
+
+    if (!teamSeasonId || !playerId || !isValidEmail(email)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'team_season_id, player_id and valid email required',
+      });
+    }
+
     const originRes = resolveInviteOrigin();
     if (!originRes.ok) {
       return res.status(403).json({ ok: false, error: originRes.error });
@@ -153,10 +296,6 @@ export default async function handler(req, res) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
     const {
       data: { user },
       error: userErr,
@@ -165,7 +304,6 @@ export default async function handler(req, res) {
       return res.status(401).json({ ok: false, error: 'Invalid session' });
     }
 
-    // Defense-in-depth staff check (RPC also enforces can_manage_team_staff)
     const { data: globalRoleRow } = await admin
       .from('user_roles')
       .select('role')
@@ -216,12 +354,22 @@ export default async function handler(req, res) {
     }
 
     const tokenPlain = String(invite.token_plain);
-    // Path-based accept URL — GoTrue often strips ?query from redirect_to.
     const acceptPath = `/app/parent-invite/${encodeURIComponent(tokenPlain)}`;
-    const emailRedirectTo = `${originRes.origin}${acceptPath}`;
 
-    // Raw Auth OTP API (top-level email_redirect_to). Avoid admin.generateLink
-    // options.redirect_to quirks that silently fall back to Site URL.
+    // Route Auth mail landing: existing password → login; otherwise → register (locked email).
+    const { data: authStatusRaw } = await admin.rpc('parent_invite_auth_email_status', {
+      p_email: email,
+    });
+    const authStatus = asRecord(authStatusRaw);
+    const hasPassword = authStatus.has_password === true;
+    const authExists = authStatus.exists === true;
+    const authQs = new URLSearchParams();
+    authQs.set('next', acceptPath);
+    authQs.set('email', email);
+    const emailRedirectTo = hasPassword
+      ? `${originRes.origin}/login?${authQs.toString()}`
+      : `${originRes.origin}/register?${authQs.toString()}`;
+
     let otpError = null;
     try {
       const otpRes = await fetch(`${String(supabaseUrl).replace(/\/$/, '')}/auth/v1/otp`, {
@@ -233,10 +381,10 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           email,
-          create_user: true,
+          // Only create stub when no auth row exists — password signup stays on /register.
+          create_user: !authExists,
           data: {
             spielzeit_parent_invite: true,
-            // Backup if redirect loses the path token — cleared after redeem.
             spielzeit_parent_invite_token: tokenPlain,
           },
           email_redirect_to: emailRedirectTo,
@@ -269,10 +417,10 @@ export default async function handler(req, res) {
       recipient_email_masked: invite.recipient_email_masked || maskEmail(email),
       email_sent: emailSent,
       accept_origin: originRes.origin,
+      auth_route: hasPassword ? 'login' : 'register',
       mail_blocker: mailBlocker,
     };
 
-    // Only expose one-time code when Auth mail did not send — WhatsApp / handoff fallback
     if (!emailSent) {
       response.code_fallback = tokenPlain;
     }

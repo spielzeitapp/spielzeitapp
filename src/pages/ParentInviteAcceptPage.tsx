@@ -14,6 +14,7 @@ import {
 } from '../lib/parentChildLink';
 import {
   buildParentInviteAuthNext,
+  buildParentInviteAuthQuery,
   captureParentInviteTokenFromUrl,
   clearParentInviteTokenFromUserMetadata,
   clearPendingParentEmailInviteFlag,
@@ -87,6 +88,8 @@ export const ParentInviteAcceptPage: React.FC = () => {
   );
   const [emailBoundMode, setEmailBoundMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState<string | null>(null);
+  const [accountExists, setAccountExists] = useState(false);
+  const [authRoutePending, setAuthRoutePending] = useState(false);
   const [preview, setPreview] = useState<ParentInvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -114,13 +117,17 @@ export const ParentInviteAcceptPage: React.FC = () => {
     async function loadPeek() {
       if (!token) {
         setInviteEmail(readStashedParentInviteEmail() || user?.email?.trim().toLowerCase() || null);
+        setAccountExists(false);
         return;
       }
       const peek = await peekParentLinkInvite(token);
       if (!alive) return;
-      if (peek.status === 'ready' && peek.recipientEmail) {
-        stashParentInviteEmail(peek.recipientEmail);
-        setInviteEmail(peek.recipientEmail);
+      if (peek.status === 'ready') {
+        if (peek.recipientEmail) {
+          stashParentInviteEmail(peek.recipientEmail);
+          setInviteEmail(peek.recipientEmail);
+        }
+        setAccountExists(peek.accountExists === true);
         return;
       }
       if (peek.status !== 'ready' && peek.status !== 'error') {
@@ -135,6 +142,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
         });
       }
       setInviteEmail(readStashedParentInviteEmail());
+      setAccountExists(false);
     }
     void loadPeek();
     return () => {
@@ -148,6 +156,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
     async function run() {
       setLoading(true);
       setError(null);
+      setAuthRoutePending(false);
 
       if (authLoading) {
         return;
@@ -161,20 +170,47 @@ export const ParentInviteAcceptPage: React.FC = () => {
           setLoading(false);
           return;
         }
-        setPreview((prev) =>
-          prev &&
-          ['invalid_token', 'expired', 'revoked', 'already_used'].includes(prev.status)
-            ? prev
-            : {
-                status: 'needs_auth',
-                playerDisplayName: null,
-                teamLabel: null,
-                seasonLabel: null,
-                expiresAt: null,
-                expectedEmailMasked: null,
-                message: 'Bitte zuerst anmelden oder registrieren.',
-              },
-        );
+
+        const peek = await peekParentLinkInvite(token);
+        if (!alive) return;
+        if (peek.status !== 'ready' && peek.status !== 'error') {
+          setPreview({
+            status: peek.status,
+            playerDisplayName: null,
+            teamLabel: null,
+            seasonLabel: null,
+            expiresAt: peek.expiresAt,
+            expectedEmailMasked: peek.recipientEmailMasked,
+            message: peek.message,
+          });
+          setLoading(false);
+          return;
+        }
+        if (peek.status === 'ready') {
+          const email = peek.recipientEmail;
+          if (email) {
+            stashParentInviteEmail(email);
+            setInviteEmail(email);
+          }
+          setAccountExists(peek.accountExists === true);
+          const nextPath = buildParentInviteAuthNext(token);
+          const qs = buildParentInviteAuthQuery({ next: nextPath, email });
+          const target = peek.accountExists ? `/login?${qs}` : `/register?${qs}`;
+          setAuthRoutePending(true);
+          setLoading(false);
+          navigate(target, { replace: true });
+          return;
+        }
+
+        setPreview({
+          status: 'needs_auth',
+          playerDisplayName: null,
+          teamLabel: null,
+          seasonLabel: null,
+          expiresAt: null,
+          expectedEmailMasked: null,
+          message: 'Bitte zuerst anmelden oder registrieren.',
+        });
         setLoading(false);
         return;
       }
@@ -220,12 +256,10 @@ export const ParentInviteAcceptPage: React.FC = () => {
     return '/app/parent-invite';
   }, [token]);
 
-  const authQuery = useMemo(() => {
-    const paramsQs = new URLSearchParams();
-    paramsQs.set('next', authNext);
-    if (inviteEmail) paramsQs.set('email', inviteEmail);
-    return paramsQs.toString();
-  }, [authNext, inviteEmail]);
+  const authQuery = useMemo(
+    () => buildParentInviteAuthQuery({ next: authNext, email: inviteEmail }),
+    [authNext, inviteEmail],
+  );
 
   const handleConfirm = async () => {
     if (confirming) return;
@@ -289,8 +323,14 @@ export const ParentInviteAcceptPage: React.FC = () => {
           <div className="space-y-4">
             <CardTitle>Einladung annehmen</CardTitle>
 
-            {loading || authLoading ? (
-              <p className="text-sm text-[var(--text-sub)]">Lade Einladung…</p>
+            {loading || authLoading || authRoutePending ? (
+              <p className="text-sm text-[var(--text-sub)]">
+                {authRoutePending
+                  ? accountExists
+                    ? 'Weiter zur Anmeldung…'
+                    : 'Weiter zur Registrierung…'
+                  : 'Lade Einladung…'}
+              </p>
             ) : showNoInvite ? (
               <p className="text-sm text-[var(--text-sub)]">
                 Kein gültiger Einladungslink. Bitte den Link aus der E-Mail erneut öffnen oder den
@@ -302,31 +342,24 @@ export const ParentInviteAcceptPage: React.FC = () => {
               </p>
             ) : null}
 
-            {!loading && !authLoading && preview?.status === 'needs_auth' ? (
+            {!loading && !authLoading && !authRoutePending && preview?.status === 'needs_auth' ? (
               <div className="space-y-3">
                 <p className="text-sm text-[var(--text-sub)]">
-                  Melde dich an oder registriere dich, um die Einladung fortzusetzen. Die Kinddaten
-                  werden erst nach erfolgreicher Anmeldung mit der eingeladenen E-Mail geprüft.
+                  {accountExists
+                    ? 'Melde dich mit der eingeladenen E-Mail an, um fortzufahren. Kinddaten erscheinen erst nach Prüfung.'
+                    : 'Lege ein Konto mit der eingeladenen E-Mail an. Kinddaten erscheinen erst nach Bestätigung und Annahme.'}
                 </p>
                 {inviteEmail ? (
                   <p className="text-sm text-[var(--text-sub)]">
                     Diese Einladung gilt für: <span className="font-medium">{inviteEmail}</span>
                   </p>
                 ) : null}
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Link
-                    to={`/login?${authQuery}`}
-                    className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white"
-                  >
-                    Anmelden
-                  </Link>
-                  <Link
-                    to={`/register?${authQuery}`}
-                    className="flex-1 rounded-xl border border-[var(--glass-border)] px-4 py-3 text-center text-sm font-semibold text-[var(--text-main)]"
-                  >
-                    Registrieren
-                  </Link>
-                </div>
+                <Link
+                  to={accountExists ? `/login?${authQuery}` : `/register?${authQuery}`}
+                  className="block rounded-xl bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white"
+                >
+                  {accountExists ? 'Zur Anmeldung' : 'Zur Registrierung'}
+                </Link>
               </div>
             ) : null}
 
