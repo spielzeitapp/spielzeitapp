@@ -88,7 +88,7 @@ export const RegisterPage: React.FC = () => {
       setNeedsEmailConfirmation(true);
       setMessage({
         type: 'success',
-        text: 'Konto angelegt. Bitte bestätige die E-Mail und kehre danach zur Einladung zurück.',
+        text: 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es mit der Rollenwahl weiter — ohne erneutes Passwort.',
       });
       setLoading(false);
     } catch (err) {
@@ -105,7 +105,8 @@ export const RegisterPage: React.FC = () => {
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
           <h1 className="text-xl font-semibold text-white">E-Mail bestätigen</h1>
           <p className="mt-2 text-sm text-white/70">
-            Wir haben dir eine E-Mail geschickt. Bitte klicke auf den Link darin, um dein Konto zu aktivieren. Danach kannst du dich mit E-Mail und Passwort anmelden.
+            Bitte bestätige deine E-Mail-Adresse. Nach dem Klick auf den Bestätigungslink geht es
+            weiter zur Rollenwahl. Dein Passwort bleibt gültig — du musst es nicht erneut setzen.
           </p>
           <p className="mt-4 text-center text-sm text-white/60">
             <Link to="/login" className="text-white/80 hover:text-white hover:underline">

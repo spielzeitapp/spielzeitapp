@@ -55,5 +55,115 @@ export function getAuthRedirectUrl(path = '/'): string {
   return `${origin}${safePath}`;
 }
 
-/** Empfohlenes Ziel nach E-Mail-Bestätigung (Passwort setzen / App-Einstieg). */
-export const AUTH_EMAIL_CONFIRM_PATH = '/app/set-password';
+/**
+ * Nach normaler Signup-E-Mail-Bestätigung: App-Einstieg (Rollenwahl/Onboarding-Gate).
+ * Nicht /app/set-password — Passwort wurde bei der Registrierung bereits gesetzt.
+ */
+export const AUTH_EMAIL_CONFIRM_PATH = '/app';
+
+/** Nur für „Passwort vergessen“ / Recovery. */
+export const AUTH_PASSWORD_RECOVERY_PATH = '/app/set-password';
+
+const PASSWORD_RECOVERY_FLAG_KEY = 'sz_auth_password_recovery';
+const EMAIL_CONFIRM_FLAG_KEY = 'sz_auth_email_confirm';
+
+/** Liest type aus Hash/Query, bevor Supabase die URL konsumiert. */
+export function captureAuthCallbackTypeFromUrl(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const hash = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const search = window.location.search.startsWith('?')
+      ? window.location.search.slice(1)
+      : window.location.search;
+    const params = new URLSearchParams(hash || search);
+    const type = (params.get('type') ?? '').trim().toLowerCase();
+    if (type === 'recovery') {
+      window.sessionStorage.setItem(PASSWORD_RECOVERY_FLAG_KEY, '1');
+      window.sessionStorage.removeItem(EMAIL_CONFIRM_FLAG_KEY);
+      return;
+    }
+    if (
+      type === 'signup' ||
+      type === 'invite' ||
+      type === 'magiclink' ||
+      type === 'email_change' ||
+      type === 'email'
+    ) {
+      window.sessionStorage.setItem(EMAIL_CONFIRM_FLAG_KEY, '1');
+      window.sessionStorage.removeItem(PASSWORD_RECOVERY_FLAG_KEY);
+    }
+  } catch {
+    // ignore storage / URL errors
+  }
+}
+
+export function markPasswordRecoveryFlow(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(PASSWORD_RECOVERY_FLAG_KEY, '1');
+    window.sessionStorage.removeItem(EMAIL_CONFIRM_FLAG_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearPasswordRecoveryFlow(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(PASSWORD_RECOVERY_FLAG_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearEmailConfirmFlow(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(EMAIL_CONFIRM_FLAG_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function isPasswordRecoveryFlow(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.sessionStorage.getItem(PASSWORD_RECOVERY_FLAG_KEY) === '1') return true;
+    const hash = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const search = window.location.search.startsWith('?')
+      ? window.location.search.slice(1)
+      : window.location.search;
+    const params = new URLSearchParams(hash || search);
+    return (params.get('type') ?? '').trim().toLowerCase() === 'recovery';
+  } catch {
+    return false;
+  }
+}
+
+export function isEmailConfirmFlow(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.sessionStorage.getItem(EMAIL_CONFIRM_FLAG_KEY) === '1') return true;
+    const hash = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const search = window.location.search.startsWith('?')
+      ? window.location.search.slice(1)
+      : window.location.search;
+    const params = new URLSearchParams(hash || search);
+    const type = (params.get('type') ?? '').trim().toLowerCase();
+    return (
+      type === 'signup' ||
+      type === 'invite' ||
+      type === 'magiclink' ||
+      type === 'email_change' ||
+      type === 'email'
+    );
+  } catch {
+    return false;
+  }
+}

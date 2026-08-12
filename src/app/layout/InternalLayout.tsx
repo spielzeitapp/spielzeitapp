@@ -21,6 +21,7 @@ import {
   isParentRoleChosen,
   userHasPlayerGuardian,
 } from '../../lib/parentChildLink';
+import { supabase } from '../../lib/supabaseClient';
 
 const ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
@@ -113,7 +114,16 @@ export const InternalLayout: React.FC = () => {
 
       const guardianRes = await userHasPlayerGuardian(user.id);
       const hasGuardian = guardianRes.hasGuardian;
-      const deferred = isParentLinkDeferred(user);
+
+      // Frische Metadata (parent_link_deferred), falls Auth-Context noch stale ist
+      let gateUser = user;
+      try {
+        const { data: fresh } = await supabase.auth.getUser();
+        if (fresh?.user) gateUser = fresh.user;
+      } catch {
+        // ignore — Fallback auf Context-User
+      }
+      const deferred = isParentLinkDeferred(gateUser);
 
       if (!alive) return;
 
@@ -155,7 +165,7 @@ export const InternalLayout: React.FC = () => {
         deferred,
         previewIsParent: preview === 'parent',
         backendIsParent: normalizeSessionRole(backendRole) === 'parent',
-        parentRoleChosen: isParentRoleChosen(user),
+        parentRoleChosen: isParentRoleChosen(gateUser),
       });
 
       if (parentSat.needsOnboardingUi) {

@@ -184,7 +184,11 @@ assert.ok(onboarding.includes('Mannschaft auswählen'));
 assert.ok(onboarding.includes('Saison auswählen'));
 assert.ok(onboarding.includes('Kind auswählen'));
 assert.ok(onboarding.includes('Ich habe einen Einladungscode'));
-assert.ok(onboarding.includes('showInviteCode'));
+assert.ok(onboarding.includes('Wird gespeichert'));
+assert.ok(onboarding.includes('Kind erfolgreich verknüpft'));
+assert.ok(onboarding.includes('location.assign'));
+assert.ok(onboarding.includes('setParentLinkDeferred'));
+assert.ok(!onboarding.includes('goHomeAndReload'));
 assert.ok(!onboarding.includes("from('player_guardians')\n          .insert"));
 
 // Token-Shape: 48 hex, kein Spieler-Kurzcode
@@ -261,5 +265,28 @@ assert.ok(selfServiceMig.includes('player_on_team_season_roster'));
 assert.ok(selfServiceMig.includes('GRANT EXECUTE ON FUNCTION public.link_parent_self_service'));
 assert.ok(selfServiceMig.includes('REVOKE ALL ON FUNCTION public.list_parent_onboarding_roster'));
 assert.ok(!selfServiceMig.includes('DROP POLICY'));
+
+const authRedirect = fs.readFileSync(path.join(root, 'src/lib/authRedirect.ts'), 'utf8');
+assert.ok(authRedirect.includes("AUTH_EMAIL_CONFIRM_PATH = '/app'"));
+assert.ok(authRedirect.includes('AUTH_PASSWORD_RECOVERY_PATH'));
+assert.ok(authRedirect.includes('captureAuthCallbackTypeFromUrl'));
+assert.ok(authRedirect.includes('isPasswordRecoveryFlow'));
+assert.ok(!authRedirect.includes("AUTH_EMAIL_CONFIRM_PATH = '/app/set-password'"));
+
+const setPwdPage = fs.readFileSync(path.join(root, 'src/pages/SetPasswordPage.tsx'), 'utf8');
+assert.ok(setPwdPage.includes('isPasswordRecoveryFlow'));
+assert.ok(setPwdPage.includes('isEmailConfirmFlow'));
+assert.ok(setPwdPage.includes("navigate('/app'"));
+
+const registerPage = fs.readFileSync(path.join(root, 'src/pages/RegisterPage.tsx'), 'utf8');
+assert.ok(registerPage.includes('AUTH_EMAIL_CONFIRM_PATH'));
+assert.ok(registerPage.includes('Bitte bestätige deine E-Mail-Adresse'));
+
+const forgot = fs.readFileSync(path.join(root, 'src/pages/ForgotPasswordPage.tsx'), 'utf8');
+assert.ok(forgot.includes('AUTH_PASSWORD_RECOVERY_PATH'));
+
+const layout = fs.readFileSync(path.join(root, 'src/app/layout/InternalLayout.tsx'), 'utf8');
+assert.ok(layout.includes('getUser()'));
+assert.ok(layout.includes('isParentLinkDeferred'));
 
 console.log('parent-onboarding-flow-test: OK');

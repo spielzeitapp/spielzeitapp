@@ -313,7 +313,7 @@ export const HomePage: React.FC = () => {
             effectiveRole === 'fan'
               ? 'Wähle dein Team, um Spieltage, Ergebnisse und Live-Updates zu sehen.'
               : effectiveRole === 'parent'
-                ? 'Sobald dein Kind verknüpft ist, siehst du hier die Mannschaft, Termine und Zu- oder Absagen. Ein Trainer kann die Verknüpfung ebenfalls durchführen.'
+                ? 'Sobald dein Kind verknüpft ist, siehst du hier die Mannschaft, Termine und Zu- oder Absagen.'
                 : 'Bitte Team / Saison wählen (z. B. unter „Mehr“).'
           }
         >

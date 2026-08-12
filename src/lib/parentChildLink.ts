@@ -274,6 +274,10 @@ export async function linkParentSelfService(
     p_player_id: playerId.trim(),
   });
   if (error) {
+    console.warn('[parentChildLink] link_parent_self_service rpc error', {
+      code: (error as { code?: string }).code ?? null,
+      // message ohne Tokens/PII belassen, Status für UI
+    });
     return {
       status: 'error',
       playerId: null,

@@ -6,6 +6,11 @@ import {
   LIVE_SUPABASE_PROJECT_REF,
   STAGING_SUPABASE_PROJECT_REF,
 } from "./appEnvironment";
+import { captureAuthCallbackTypeFromUrl } from "./authRedirect";
+
+/** type=signup|recovery aus Hash lesen, bevor detectSessionInUrl die URL leert. */
+captureAuthCallbackTypeFromUrl();
+
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;

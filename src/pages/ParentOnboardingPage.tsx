@@ -329,12 +329,22 @@ export const ParentOnboardingPage: React.FC = () => {
   const noChildSelectable =
     noClubs || noTeams || noSeasons || noPlayersForSeason;
 
-  const goHomeAndReload = () => {
-    navigate('/app/home', { replace: true });
-    window.location.reload();
+  const TEAM_SEASON_STORAGE_KEY = 'spielzeit_team_season_id';
+
+  /** Harte Navigation nach Home — vermeidet Reload auf falscher URL / Onboarding-Schleife. */
+  const goHome = (preferredTeamSeasonId?: string | null) => {
+    try {
+      if (preferredTeamSeasonId) {
+        window.localStorage.setItem(TEAM_SEASON_STORAGE_KEY, preferredTeamSeasonId);
+      }
+    } catch {
+      // ignore
+    }
+    window.location.assign('/app/home');
   };
 
   const handleDefer = async () => {
+    if (saving || deferring) return;
     setDeferring(true);
     setError(null);
 
@@ -352,11 +362,14 @@ export const ParentOnboardingPage: React.FC = () => {
       return;
     }
 
+    // Session/User neu laden, damit parent_link_deferred im Gate ankommt
+    await supabase.auth.getUser();
     setPreviewRole('parent');
-    goHomeAndReload();
+    goHome();
   };
 
   const handleSave = async () => {
+    if (saving || deferring) return;
     if (!userId || !selectedTeamSeasonId || !selectedPlayerId) {
       setError('Bitte Verein, Mannschaft, Saison und Kind auswählen.');
       return;
@@ -366,21 +379,37 @@ export const ParentOnboardingPage: React.FC = () => {
     setError(null);
     setSuccessHint(null);
 
-    const result = await linkParentSelfService(selectedTeamSeasonId, selectedPlayerId);
-    if (result.status !== 'linked' && result.status !== 'already_linked') {
-      setError(result.message ?? 'Verknüpfung fehlgeschlagen.');
-      setSaving(false);
-      return;
-    }
+    try {
+      const result = await linkParentSelfService(selectedTeamSeasonId, selectedPlayerId);
+      if (result.status !== 'linked' && result.status !== 'already_linked') {
+        console.warn('[PARENT ONBOARDING] link_parent_self_service failed', {
+          status: result.status,
+        });
+        setError(result.message ?? 'Verknüpfung fehlgeschlagen.');
+        setSaving(false);
+        return;
+      }
 
-    await clearParentLinkDeferred();
-    setPreviewRole('parent');
-    setSuccessHint(result.message);
-    setSaving(false);
-    goHomeAndReload();
+      await clearParentLinkDeferred();
+      await supabase.auth.getUser();
+      setPreviewRole('parent');
+      setSuccessHint('Kind erfolgreich verknüpft.');
+
+      // Kurz Erfolgsmeldung zeigen, dann Home mit frischer Session
+      window.setTimeout(() => {
+        goHome(result.teamSeasonId ?? selectedTeamSeasonId);
+      }, 700);
+    } catch (e) {
+      console.warn('[PARENT ONBOARDING] link exception', {
+        name: e instanceof Error ? e.name : 'unknown',
+      });
+      setError('Verknüpfung fehlgeschlagen. Bitte erneut versuchen.');
+      setSaving(false);
+    }
   };
 
   const handleRedeem = async () => {
+    if (saving || deferring) return;
     if (!userId) {
       setError('Kein Benutzer angemeldet.');
       return;
@@ -396,18 +425,29 @@ export const ParentOnboardingPage: React.FC = () => {
     setError(null);
     setSuccessHint(null);
 
-    const result = await redeemParentLinkInvite(token);
-    if (result.status !== 'linked' && result.status !== 'already_linked') {
-      setError(result.message ?? 'Verknüpfung fehlgeschlagen.');
-      setSaving(false);
-      return;
-    }
+    try {
+      const result = await redeemParentLinkInvite(token);
+      if (result.status !== 'linked' && result.status !== 'already_linked') {
+        console.warn('[PARENT ONBOARDING] redeem failed', { status: result.status });
+        setError(result.message ?? 'Verknüpfung fehlgeschlagen.');
+        setSaving(false);
+        return;
+      }
 
-    await clearParentLinkDeferred();
-    setPreviewRole('parent');
-    setSuccessHint(result.message);
-    setSaving(false);
-    goHomeAndReload();
+      await clearParentLinkDeferred();
+      await supabase.auth.getUser();
+      setPreviewRole('parent');
+      setSuccessHint('Kind erfolgreich verknüpft.');
+      window.setTimeout(() => {
+        goHome(result.teamSeasonId);
+      }, 700);
+    } catch (e) {
+      console.warn('[PARENT ONBOARDING] redeem exception', {
+        name: e instanceof Error ? e.name : 'unknown',
+      });
+      setError('Verknüpfung fehlgeschlagen. Bitte erneut versuchen.');
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -643,7 +683,7 @@ export const ParentOnboardingPage: React.FC = () => {
                             !selectedPlayerId
                           }
                         >
-                          {saving ? 'Speichere…' : 'Verknüpfung speichern'}
+                          {saving ? 'Wird gespeichert …' : 'Verknüpfung speichern'}
                         </Button>
                       </div>
                     )}
@@ -657,7 +697,7 @@ export const ParentOnboardingPage: React.FC = () => {
                     onClick={() => void handleDefer()}
                     disabled={saving || deferring}
                   >
-                    {deferring ? 'Weiter…' : 'Später verknüpfen'}
+                    {deferring ? 'Weiter …' : 'Später verknüpfen'}
                   </Button>
                 </div>
 

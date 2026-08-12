@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { markPasswordRecoveryFlow } from '../lib/authRedirect';
+
 
 interface AuthContextValue {
   user: User | null;
@@ -47,7 +49,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        markPasswordRecoveryFlow();
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
