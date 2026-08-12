@@ -258,10 +258,64 @@ export type ParentInvitePreview = {
   status: ParentInvitePreviewStatus;
   playerDisplayName: string | null;
   teamLabel: string | null;
+  seasonLabel: string | null;
   expiresAt: string | null;
   expectedEmailMasked: string | null;
   message: string | null;
 };
+
+export type ParentInvitePeek = {
+  status: 'ready' | 'invalid_token' | 'expired' | 'revoked' | 'already_used' | 'error';
+  recipientEmail: string | null;
+  recipientEmailMasked: string | null;
+  expiresAt: string | null;
+  message: string | null;
+};
+
+export async function peekParentLinkInvite(token: string): Promise<ParentInvitePeek> {
+  const { data, error } = await supabase.rpc('peek_parent_link_invite', {
+    p_token: token,
+  });
+  if (error) {
+    return {
+      status: 'error',
+      recipientEmail: null,
+      recipientEmailMasked: null,
+      expiresAt: null,
+      message: 'Einladung konnte nicht geprüft werden.',
+    };
+  }
+  const row = asRecord(data);
+  const statusRaw = String(row.status ?? 'error');
+  const allowed: ParentInvitePeek['status'][] = [
+    'ready',
+    'invalid_token',
+    'expired',
+    'revoked',
+    'already_used',
+    'error',
+  ];
+  const status = allowed.includes(statusRaw as ParentInvitePeek['status'])
+    ? (statusRaw as ParentInvitePeek['status'])
+    : 'error';
+  const messages: Record<ParentInvitePeek['status'], string | null> = {
+    ready: null,
+    invalid_token: 'Einladung ungültig.',
+    expired: 'Diese Einladung ist abgelaufen.',
+    revoked: 'Diese Einladung wurde widerrufen.',
+    already_used: 'Diese Einladung wurde bereits verwendet.',
+    error: 'Einladung konnte nicht geprüft werden.',
+  };
+  return {
+    status,
+    recipientEmail:
+      row.recipient_email != null ? String(row.recipient_email).trim().toLowerCase() || null : null,
+    recipientEmailMasked:
+      row.recipient_email_masked != null ? String(row.recipient_email_masked) : null,
+    expiresAt: row.expires_at != null ? String(row.expires_at) : null,
+    message: messages[status],
+  };
+}
 
 export async function previewParentLinkInvite(token: string): Promise<ParentInvitePreview> {
   const { data, error } = await supabase.rpc('preview_parent_link_invite', {
@@ -272,6 +326,7 @@ export async function previewParentLinkInvite(token: string): Promise<ParentInvi
       status: 'error',
       playerDisplayName: null,
       teamLabel: null,
+      seasonLabel: null,
       expiresAt: null,
       expectedEmailMasked: null,
       message: 'Einladung konnte nicht geprüft werden.',
@@ -288,17 +343,17 @@ export async function previewParentLinkInvite(token: string): Promise<ParentInvi
     already_linked: 'Dieses Kind ist bereits mit deinem Konto verknüpft.',
     email_mismatch: 'Diese Einladung gilt für eine andere E-Mail-Adresse.',
     email_not_verified: 'Bitte zuerst die E-Mail-Adresse bestätigen.',
-    ready: null,
   };
   return {
-    status: messages[status] !== undefined || status === 'ready' ? status : 'error',
+    status: status in messages || status === 'ready' ? status : 'error',
     playerDisplayName:
       row.player_display_name != null ? String(row.player_display_name).trim() || null : null,
     teamLabel: row.team_label != null ? String(row.team_label).trim() || null : null,
+    seasonLabel: row.season_label != null ? String(row.season_label).trim() || null : null,
     expiresAt: row.expires_at != null ? String(row.expires_at) : null,
     expectedEmailMasked:
       row.expected_email_masked != null ? String(row.expected_email_masked) : null,
-    message: messages[status] ?? 'Einladung konnte nicht geprüft werden.',
+    message: status === 'ready' ? null : messages[status] ?? 'Einladung konnte nicht geprüft werden.',
   };
 }
 
@@ -316,6 +371,48 @@ export function parentInviteStateLabel(state: ParentInviteState): string {
 }
 
 export const PARENT_INVITE_TOKEN_STORAGE_KEY = 'spz_parent_invite_token';
+export const PARENT_INVITE_TOKEN_LOCAL_KEY = 'spz_parent_invite_token_v1';
+export const PARENT_INVITE_EMAIL_LOCAL_KEY = 'spz_parent_invite_email_v1';
+/** Align with default invite TTL (72h). */
+const PARENT_INVITE_STASH_TTL_MS = 72 * 60 * 60 * 1000;
+
+type StashedInvitePayload = { token: string; expiresAt: number };
+
+function writeLocalInvitePayload(key: string, value: string): void {
+  try {
+    const payload: StashedInvitePayload = {
+      token: value,
+      expiresAt: Date.now() + PARENT_INVITE_STASH_TTL_MS,
+    };
+    window.localStorage.setItem(key, JSON.stringify(payload));
+  } catch {
+    /* ignore */
+  }
+}
+
+function readLocalInvitePayload(key: string): string | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StashedInvitePayload>;
+    if (!parsed?.token || typeof parsed.token !== 'string') {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+    if (typeof parsed.expiresAt === 'number' && parsed.expiresAt < Date.now()) {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+    return parsed.token.trim() || null;
+  } catch {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+}
 
 export function stashParentInviteToken(token: string): void {
   try {
@@ -323,15 +420,17 @@ export function stashParentInviteToken(token: string): void {
   } catch {
     /* ignore */
   }
+  writeLocalInvitePayload(PARENT_INVITE_TOKEN_LOCAL_KEY, token);
 }
 
 export function readStashedParentInviteToken(): string | null {
   try {
-    const v = sessionStorage.getItem(PARENT_INVITE_TOKEN_STORAGE_KEY);
-    return v && v.trim() ? v.trim() : null;
+    const session = sessionStorage.getItem(PARENT_INVITE_TOKEN_STORAGE_KEY);
+    if (session && session.trim()) return session.trim();
   } catch {
-    return null;
+    /* ignore */
   }
+  return readLocalInvitePayload(PARENT_INVITE_TOKEN_LOCAL_KEY);
 }
 
 export function clearStashedParentInviteToken(): void {
@@ -340,4 +439,33 @@ export function clearStashedParentInviteToken(): void {
   } catch {
     /* ignore */
   }
+  try {
+    window.localStorage.removeItem(PARENT_INVITE_TOKEN_LOCAL_KEY);
+  } catch {
+    /* ignore */
+  }
+  clearStashedParentInviteEmail();
+}
+
+export function stashParentInviteEmail(email: string): void {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return;
+  writeLocalInvitePayload(PARENT_INVITE_EMAIL_LOCAL_KEY, normalized);
+}
+
+export function readStashedParentInviteEmail(): string | null {
+  return readLocalInvitePayload(PARENT_INVITE_EMAIL_LOCAL_KEY);
+}
+
+export function clearStashedParentInviteEmail(): void {
+  try {
+    window.localStorage.removeItem(PARENT_INVITE_EMAIL_LOCAL_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Safe relative next path that keeps the invite token across login/register/confirm. */
+export function buildParentInviteAuthNext(token: string): string {
+  return `/app/parent-invite?t=${encodeURIComponent(token)}`;
 }

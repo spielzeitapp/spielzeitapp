@@ -26,6 +26,8 @@ export const LoginPage: React.FC = () => {
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
   const from = nextSafe || fromState || '/app/termine';
   const playerLoginEnabled = isPlayerQrAccessEnabled();
+  const inviteEmailLocked = Boolean((searchParams.get('email') ?? '').trim());
+  const isParentInviteFlow = Boolean(nextSafe && nextSafe.includes('/app/parent-invite'));
 
   useEffect(() => {
     const prefill = (searchParams.get('email') ?? '').trim();
@@ -45,8 +47,15 @@ export const LoginPage: React.FC = () => {
     setError('');
     setLoading(true);
     setRememberMePreference(rememberMe);
+    const lockedEmail = (searchParams.get('email') ?? '').trim().toLowerCase();
+    const trimmedEmail = email.trim().toLowerCase();
+    if (lockedEmail && trimmedEmail !== lockedEmail) {
+      setLoading(false);
+      setError('Für diese Einladung musst du die eingeladene E-Mail-Adresse verwenden.');
+      return;
+    }
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: trimmedEmail,
       password,
     });
     setLoading(false);
@@ -61,7 +70,11 @@ export const LoginPage: React.FC = () => {
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
         <h1 className="text-xl font-semibold text-white">Anmelden</h1>
-        <p className="mt-1 text-sm text-white/60">E-Mail und Passwort eingeben</p>
+        <p className="mt-1 text-sm text-white/60">
+          {isParentInviteFlow
+            ? 'Mit der eingeladenen E-Mail anmelden, um die Eltern-Einladung fortzusetzen.'
+            : 'E-Mail und Passwort eingeben'}
+        </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
@@ -75,9 +88,15 @@ export const LoginPage: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@beispiel.de"
               required
+              readOnly={inviteEmailLocked}
               autoComplete="email"
               className={inputClass}
             />
+            {inviteEmailLocked ? (
+              <p className="mt-1 text-xs text-white/50">
+                Diese Einladung ist an diese E-Mail-Adresse gebunden.
+              </p>
+            ) : null}
           </div>
           <div>
             <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-white/80">
@@ -152,7 +171,13 @@ export const LoginPage: React.FC = () => {
             Passwort vergessen?
           </Link>
           <Link
-            to="/register"
+            to={
+              nextSafe
+                ? `/register?next=${encodeURIComponent(nextSafe)}${
+                    email.trim() ? `&email=${encodeURIComponent(email.trim())}` : ''
+                  }`
+                : '/register'
+            }
             className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
           >
             Noch kein Konto? Registrieren

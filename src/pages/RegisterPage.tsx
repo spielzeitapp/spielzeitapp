@@ -26,6 +26,8 @@ export const RegisterPage: React.FC = () => {
   const nextRaw = searchParams.get('next') ?? '';
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
   const emailRedirectPath = nextSafe || AUTH_EMAIL_CONFIRM_PATH;
+  const inviteEmailLocked = Boolean((searchParams.get('email') ?? '').trim());
+  const isParentInviteFlow = Boolean(nextSafe && nextSafe.includes('/app/parent-invite'));
 
   useEffect(() => {
     const prefill = (searchParams.get('email') ?? '').trim();
@@ -41,9 +43,18 @@ export const RegisterPage: React.FC = () => {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
     const trimmedEmail = email.trim().toLowerCase();
+    const lockedEmail = (searchParams.get('email') ?? '').trim().toLowerCase();
 
     if (!trimmedFirst || !trimmedLast || !trimmedEmail) {
       setMessage({ type: 'error', text: 'Bitte Vorname, Nachname und E-Mail ausfüllen.' });
+      return;
+    }
+
+    if (lockedEmail && trimmedEmail !== lockedEmail) {
+      setMessage({
+        type: 'error',
+        text: 'Für diese Einladung musst du die eingeladene E-Mail-Adresse verwenden.',
+      });
       return;
     }
 
@@ -105,11 +116,21 @@ export const RegisterPage: React.FC = () => {
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
           <h1 className="text-xl font-semibold text-white">E-Mail bestätigen</h1>
           <p className="mt-2 text-sm text-white/70">
-            Bitte bestätige deine E-Mail-Adresse. Nach dem Klick auf den Bestätigungslink geht es
-            weiter zur Rollenwahl. Dein Passwort bleibt gültig — du musst es nicht erneut setzen.
+            {isParentInviteFlow
+              ? 'Bitte bestätige deine E-Mail-Adresse. Danach öffnet sich die Einladung — ohne Rollen- oder Teamauswahl. Dein Passwort bleibt gültig.'
+              : 'Bitte bestätige deine E-Mail-Adresse. Nach dem Klick auf den Bestätigungslink geht es weiter zur Rollenwahl. Dein Passwort bleibt gültig — du musst es nicht erneut setzen.'}
           </p>
           <p className="mt-4 text-center text-sm text-white/60">
-            <Link to="/login" className="text-white/80 hover:text-white hover:underline">
+            <Link
+              to={
+                nextSafe
+                  ? `/login?next=${encodeURIComponent(nextSafe)}${
+                      email.trim() ? `&email=${encodeURIComponent(email.trim())}` : ''
+                    }`
+                  : '/login'
+              }
+              className="text-white/80 hover:text-white hover:underline"
+            >
               Zur Anmeldung
             </Link>
           </p>
@@ -123,7 +144,9 @@ export const RegisterPage: React.FC = () => {
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
         <h1 className="text-xl font-semibold text-white">Registrieren</h1>
         <p className="mt-1 text-sm text-white/60">
-          Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.
+          {isParentInviteFlow
+            ? 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'
+            : 'Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.'}
         </p>
 
         <form onSubmit={handleRegister} className="mt-6 space-y-4">
@@ -168,9 +191,15 @@ export const RegisterPage: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@beispiel.de"
               required
+              readOnly={inviteEmailLocked}
               autoComplete="email"
               className={inputClass}
             />
+            {inviteEmailLocked ? (
+              <p className="mt-1 text-xs text-white/50">
+                Diese Einladung ist an diese E-Mail-Adresse gebunden.
+              </p>
+            ) : null}
           </div>
           <div>
             <label htmlFor="reg-password" className="mb-1 block text-sm font-medium text-white/80">

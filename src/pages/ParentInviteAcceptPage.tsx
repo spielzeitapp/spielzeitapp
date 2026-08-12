@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
@@ -11,17 +11,30 @@ import {
   redeemParentLinkInvite,
 } from '../lib/parentChildLink';
 import {
+  buildParentInviteAuthNext,
   clearStashedParentInviteToken,
+  peekParentLinkInvite,
   previewParentLinkInvite,
+  readStashedParentInviteEmail,
   readStashedParentInviteToken,
+  stashParentInviteEmail,
   stashParentInviteToken,
   type ParentInvitePreview,
 } from '../lib/parentLinkInvites';
 import { supabase } from '../lib/supabaseClient';
 import { isSafeAuthRedirectPath } from '../lib/authRedirect';
 
-function buildAuthNext(path: string): string {
-  return isSafeAuthRedirectPath(path) ? path : '/app/parent-invite';
+const TEAM_SEASON_STORAGE_KEY = 'spielzeit_team_season_id';
+
+function goHomeWithTeamSeason(teamSeasonId: string | null) {
+  try {
+    if (teamSeasonId) {
+      window.localStorage.setItem(TEAM_SEASON_STORAGE_KEY, teamSeasonId);
+    }
+  } catch {
+    /* ignore */
+  }
+  window.location.assign('/app/home');
 }
 
 export const ParentInviteAcceptPage: React.FC = () => {
@@ -30,6 +43,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
   const { user, setPreviewRole } = useSession();
 
   const [token, setToken] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState<string | null>(null);
   const [preview, setPreview] = useState<ParentInvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -40,7 +54,6 @@ export const ParentInviteAcceptPage: React.FC = () => {
     if (isParentInviteTokenShape(fromQuery)) {
       stashParentInviteToken(fromQuery);
       setToken(fromQuery);
-      // Remove token from visible URL after stashing
       navigate('/app/parent-invite', { replace: true });
       return;
     }
@@ -51,6 +64,39 @@ export const ParentInviteAcceptPage: React.FC = () => {
     }
     setToken(null);
   }, [searchParams, navigate]);
+
+  useEffect(() => {
+    let alive = true;
+    async function loadPeek() {
+      if (!token) {
+        setInviteEmail(readStashedParentInviteEmail());
+        return;
+      }
+      const peek = await peekParentLinkInvite(token);
+      if (!alive) return;
+      if (peek.status === 'ready' && peek.recipientEmail) {
+        stashParentInviteEmail(peek.recipientEmail);
+        setInviteEmail(peek.recipientEmail);
+        return;
+      }
+      if (peek.status !== 'ready' && peek.status !== 'error') {
+        setPreview({
+          status: peek.status,
+          playerDisplayName: null,
+          teamLabel: null,
+          seasonLabel: null,
+          expiresAt: peek.expiresAt,
+          expectedEmailMasked: peek.recipientEmailMasked,
+          message: peek.message,
+        });
+      }
+      setInviteEmail(readStashedParentInviteEmail());
+    }
+    void loadPeek();
+    return () => {
+      alive = false;
+    };
+  }, [token]);
 
   useEffect(() => {
     let alive = true;
@@ -66,14 +112,20 @@ export const ParentInviteAcceptPage: React.FC = () => {
 
       if (!user) {
         if (!alive) return;
-        setPreview({
-          status: 'needs_auth',
-          playerDisplayName: null,
-          teamLabel: null,
-          expiresAt: null,
-          expectedEmailMasked: null,
-          message: 'Bitte zuerst anmelden oder registrieren.',
-        });
+        setPreview((prev) =>
+          prev &&
+          ['invalid_token', 'expired', 'revoked', 'already_used'].includes(prev.status)
+            ? prev
+            : {
+                status: 'needs_auth',
+                playerDisplayName: null,
+                teamLabel: null,
+                seasonLabel: null,
+                expiresAt: null,
+                expectedEmailMasked: null,
+                message: 'Bitte zuerst anmelden oder registrieren.',
+              },
+        );
         setLoading(false);
         return;
       }
@@ -93,8 +145,23 @@ export const ParentInviteAcceptPage: React.FC = () => {
     };
   }, [token, user, setPreviewRole]);
 
+  const authNext = useMemo(() => {
+    if (token && isParentInviteTokenShape(token)) {
+      const path = buildParentInviteAuthNext(token);
+      return isSafeAuthRedirectPath(path) ? path : '/app/parent-invite';
+    }
+    return '/app/parent-invite';
+  }, [token]);
+
+  const authQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set('next', authNext);
+    if (inviteEmail) params.set('email', inviteEmail);
+    return params.toString();
+  }, [authNext, inviteEmail]);
+
   const handleConfirm = async () => {
-    if (!token) return;
+    if (!token || confirming) return;
     setConfirming(true);
     setError(null);
     const result = await redeemParentLinkInvite(token);
@@ -106,11 +173,12 @@ export const ParentInviteAcceptPage: React.FC = () => {
           prev
             ? {
                 ...prev,
-                status: result.status,
+                status: result.status as 'email_mismatch' | 'email_not_verified',
                 expectedEmailMasked: result.expectedEmailMasked,
                 message: result.message,
                 playerDisplayName: null,
                 teamLabel: null,
+                seasonLabel: null,
               }
             : prev,
         );
@@ -121,20 +189,13 @@ export const ParentInviteAcceptPage: React.FC = () => {
     await clearParentLinkDeferred();
     clearStashedParentInviteToken();
     setPreviewRole('parent');
-    setConfirming(false);
-    navigate('/app/home', { replace: true });
-    window.location.reload();
+    goHomeWithTeamSeason(result.teamSeasonId);
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate(
-      `/login?next=${encodeURIComponent(buildAuthNext('/app/parent-invite'))}`,
-      { replace: true },
-    );
+    navigate(`/login?${authQuery}`, { replace: true });
   };
-
-  const nextParam = encodeURIComponent(buildAuthNext('/app/parent-invite'));
 
   return (
     <div className="page relative min-h-[60vh] px-4 pt-6">
@@ -159,18 +220,23 @@ export const ParentInviteAcceptPage: React.FC = () => {
             {!loading && preview?.status === 'needs_auth' ? (
               <div className="space-y-3">
                 <p className="text-sm text-[var(--text-sub)]">
-                  Melde dich an oder registriere dich, um die Einladung fortzusetzen. Die
-                  Kinddaten werden erst nach erfolgreicher Anmeldung geprüft.
+                  Melde dich an oder registriere dich, um die Einladung fortzusetzen. Die Kinddaten
+                  werden erst nach erfolgreicher Anmeldung mit der eingeladenen E-Mail geprüft.
                 </p>
+                {inviteEmail ? (
+                  <p className="text-sm text-[var(--text-sub)]">
+                    Diese Einladung gilt für: <span className="font-medium">{inviteEmail}</span>
+                  </p>
+                ) : null}
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Link
-                    to={`/login?next=${nextParam}`}
+                    to={`/login?${authQuery}`}
                     className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white"
                   >
                     Anmelden
                   </Link>
                   <Link
-                    to={`/register?next=${nextParam}`}
+                    to={`/register?${authQuery}`}
                     className="flex-1 rounded-xl border border-[var(--glass-border)] px-4 py-3 text-center text-sm font-semibold text-[var(--text-main)]"
                   >
                     Registrieren
@@ -210,7 +276,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
                 <Button
                   variant="primary"
                   className="w-full"
-                  onClick={() => navigate('/app/home', { replace: true })}
+                  onClick={() => goHomeWithTeamSeason(null)}
                 >
                   Zur App
                 </Button>
@@ -229,6 +295,9 @@ export const ParentInviteAcceptPage: React.FC = () => {
                   {preview.teamLabel ? (
                     <p className="mt-1 text-sm text-[var(--text-sub)]">{preview.teamLabel}</p>
                   ) : null}
+                  {preview.seasonLabel ? (
+                    <p className="mt-0.5 text-sm text-[var(--text-sub)]">{preview.seasonLabel}</p>
+                  ) : null}
                   {preview.expiresAt ? (
                     <p className="mt-1 text-xs text-[var(--text-sub)]">
                       Gültig bis {new Date(preview.expiresAt).toLocaleString('de-AT')}
@@ -241,7 +310,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
                   disabled={confirming}
                   onClick={() => void handleConfirm()}
                 >
-                  {confirming ? 'Verknüpfe…' : 'Verknüpfung bestätigen'}
+                  {confirming ? 'Verknüpfe…' : 'Einladung annehmen'}
                 </Button>
               </div>
             ) : null}
