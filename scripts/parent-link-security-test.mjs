@@ -35,6 +35,14 @@ assert.ok(mig.includes('SET search_path = public'));
 assert.ok(mig.includes('SECURITY DEFINER'));
 assert.ok(!/GRANT EXECUTE[\s\S]*list_parent_link_roster[\s\S]*TO authenticated/.test(mig));
 
+const selfServiceMig = fs.readFileSync(
+  path.join(root, 'supabase/migrations/20260812120000_parent_self_service_onboarding.sql'),
+  'utf8',
+);
+assert.ok(selfServiceMig.includes('list_parent_onboarding_roster'));
+assert.ok(selfServiceMig.includes('link_parent_self_service'));
+assert.ok(!selfServiceMig.includes('GRANT INSERT ON public.player_guardians'));
+
 // Trennung: Eltern-Einladung ≠ Spieler-Login
 assert.ok(playerLogin.includes('player_code_login'));
 assert.ok(!playerLogin.includes('redeem_parent_link_invite'));

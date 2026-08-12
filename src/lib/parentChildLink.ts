@@ -1,6 +1,6 @@
 /**
- * Eltern-Kind: Rollen-Metadata, Skip und sichere Verknüpfung (Einladungscode).
- * Keine offenen Kaderlisten, keine clientseitigen player_guardians-Inserts.
+ * Eltern-Kind: Rollen-Metadata, Skip, Self-Service-Auswahl und sichere Verknüpfung.
+ * Keine clientseitigen player_guardians-Inserts — Listing und Link nur per RPC.
  */
 
 import type { User } from '@supabase/supabase-js';
@@ -126,6 +126,185 @@ export async function listMyLinkedChildren(): Promise<{
       teamLabel: row.team_label ? String(row.team_label).trim() : null,
     })),
     error: null,
+  };
+}
+
+export type ParentOnboardingClubOption = {
+  id: string;
+  name: string;
+};
+
+export type ParentOnboardingTeamOption = {
+  id: string;
+  label: string;
+};
+
+export type ParentOnboardingSeasonOption = {
+  id: string;
+  label: string;
+  status: string | null;
+};
+
+export type ParentOnboardingPlayerOption = {
+  id: string;
+  display_name: string;
+  jersey_number: number | null;
+};
+
+export async function listParentOnboardingClubs(): Promise<{
+  data: ParentOnboardingClubOption[];
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('list_parent_onboarding_clubs');
+  if (error) return { data: [], error: error.message };
+  return {
+    data: ((data ?? []) as Array<{ id: string; name?: string | null }>).map((row) => ({
+      id: String(row.id),
+      name: String(row.name ?? '').trim() || 'Verein',
+    })),
+    error: null,
+  };
+}
+
+export async function listParentOnboardingTeams(clubId: string): Promise<{
+  data: ParentOnboardingTeamOption[];
+  error: string | null;
+}> {
+  const cid = clubId?.trim();
+  if (!cid) return { data: [], error: 'Kein Verein gewählt.' };
+  const { data, error } = await supabase.rpc('list_parent_onboarding_teams', { p_club_id: cid });
+  if (error) return { data: [], error: error.message };
+  return {
+    data: ((data ?? []) as Array<{ id: string; label?: string | null }>).map((row) => ({
+      id: String(row.id),
+      label: String(row.label ?? '').trim() || 'Mannschaft',
+    })),
+    error: null,
+  };
+}
+
+export async function listParentOnboardingSeasons(teamId: string): Promise<{
+  data: ParentOnboardingSeasonOption[];
+  error: string | null;
+}> {
+  const tid = teamId?.trim();
+  if (!tid) return { data: [], error: 'Keine Mannschaft gewählt.' };
+  const { data, error } = await supabase.rpc('list_parent_onboarding_seasons', { p_team_id: tid });
+  if (error) return { data: [], error: error.message };
+  return {
+    data: ((data ?? []) as Array<{
+      id: string;
+      label?: string | null;
+      status?: string | null;
+    }>).map((row) => ({
+      id: String(row.id),
+      label: String(row.label ?? '').trim() || 'Saison',
+      status: row.status != null ? String(row.status) : null,
+    })),
+    error: null,
+  };
+}
+
+export async function listParentOnboardingRoster(teamSeasonId: string): Promise<{
+  data: ParentOnboardingPlayerOption[];
+  error: string | null;
+}> {
+  const sid = teamSeasonId?.trim();
+  if (!sid) return { data: [], error: 'Keine Saison gewählt.' };
+  const { data, error } = await supabase.rpc('list_parent_onboarding_roster', {
+    p_team_season_id: sid,
+  });
+  if (error) return { data: [], error: error.message };
+  return {
+    data: ((data ?? []) as Array<{
+      id: string;
+      display_name?: string | null;
+      jersey_number?: number | null;
+    }>).map((row) => ({
+      id: String(row.id),
+      display_name: String(row.display_name ?? '').trim() || 'Spieler',
+      jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
+    })),
+    error: null,
+  };
+}
+
+export type LinkParentSelfServiceStatus =
+  | 'linked'
+  | 'already_linked'
+  | 'player_not_in_team'
+  | 'not_authenticated'
+  | 'invalid_input'
+  | 'forbidden'
+  | 'error';
+
+export type LinkParentSelfServiceResult = {
+  status: LinkParentSelfServiceStatus;
+  playerId: string | null;
+  teamSeasonId: string | null;
+  playerDisplayName: string | null;
+  message: string | null;
+};
+
+function linkSelfServiceMessage(status: LinkParentSelfServiceStatus): string {
+  switch (status) {
+    case 'linked':
+      return 'Kind erfolgreich verknüpft.';
+    case 'already_linked':
+      return 'Dieses Kind ist bereits mit deinem Konto verknüpft.';
+    case 'player_not_in_team':
+      return 'Das Kind ist aktuell keinem aktiven Kader zugeordnet.';
+    case 'not_authenticated':
+      return 'Bitte erneut anmelden.';
+    case 'forbidden':
+      return 'Diese Auswahl ist derzeit nicht verfügbar.';
+    case 'invalid_input':
+      return 'Bitte Verein, Mannschaft, Saison und Kind auswählen.';
+    default:
+      return 'Verknüpfung fehlgeschlagen.';
+  }
+}
+
+export async function linkParentSelfService(
+  teamSeasonId: string,
+  playerId: string,
+): Promise<LinkParentSelfServiceResult> {
+  const { data, error } = await supabase.rpc('link_parent_self_service', {
+    p_team_season_id: teamSeasonId.trim(),
+    p_player_id: playerId.trim(),
+  });
+  if (error) {
+    return {
+      status: 'error',
+      playerId: null,
+      teamSeasonId: null,
+      playerDisplayName: null,
+      message: 'Verknüpfung fehlgeschlagen.',
+    };
+  }
+
+  const row = (data ?? {}) as Record<string, unknown>;
+  const statusRaw = String(row.status ?? 'error');
+  const allowed: LinkParentSelfServiceStatus[] = [
+    'linked',
+    'already_linked',
+    'player_not_in_team',
+    'not_authenticated',
+    'invalid_input',
+    'forbidden',
+    'error',
+  ];
+  const status = (allowed.includes(statusRaw as LinkParentSelfServiceStatus)
+    ? statusRaw
+    : 'error') as LinkParentSelfServiceStatus;
+
+  return {
+    status,
+    playerId: row.player_id != null ? String(row.player_id) : null,
+    teamSeasonId: row.team_season_id != null ? String(row.team_season_id) : null,
+    playerDisplayName:
+      row.player_display_name != null ? String(row.player_display_name).trim() || null : null,
+    message: linkSelfServiceMessage(status),
   };
 }
 

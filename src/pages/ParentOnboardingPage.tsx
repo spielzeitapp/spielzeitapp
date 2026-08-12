@@ -7,13 +7,22 @@ import { useSession } from '../auth/useSession';
 import {
   clearParentLinkDeferred,
   isParentInviteTokenShape,
+  linkParentSelfService,
   listMyLinkedChildren,
+  listParentOnboardingClubs,
+  listParentOnboardingRoster,
+  listParentOnboardingSeasons,
+  listParentOnboardingTeams,
   normalizeParentInviteToken,
   persistParentRoleChoice,
   redeemParentLinkInvite,
   setParentLinkDeferred,
   userHasPlayerGuardian,
   type LinkedChildOption,
+  type ParentOnboardingClubOption,
+  type ParentOnboardingPlayerOption,
+  type ParentOnboardingSeasonOption,
+  type ParentOnboardingTeamOption,
 } from '../lib/parentChildLink';
 
 function isLinkMode(
@@ -41,13 +50,32 @@ export const ParentOnboardingPage: React.FC = () => {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [linkedChildren, setLinkedChildren] = useState<LinkedChildOption[]>([]);
-  const [inviteCode, setInviteCode] = useState('');
+  const [clubs, setClubs] = useState<ParentOnboardingClubOption[]>([]);
+  const [teams, setTeams] = useState<ParentOnboardingTeamOption[]>([]);
+  const [seasons, setSeasons] = useState<ParentOnboardingSeasonOption[]>([]);
+  const [players, setPlayers] = useState<ParentOnboardingPlayerOption[]>([]);
+
+  const [selectedClubId, setSelectedClubId] = useState('');
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [selectedTeamSeasonId, setSelectedTeamSeasonId] = useState('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+
   const [loading, setLoading] = useState(true);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [seasonsLoading, setSeasonsLoading] = useState(false);
+  const [playersLoading, setPlayersLoading] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [deferring, setDeferring] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
+  const [seasonsError, setSeasonsError] = useState<string | null>(null);
+  const [playersError, setPlayersError] = useState<string | null>(null);
   const [successHint, setSuccessHint] = useState<string | null>(null);
+
+  const [showInviteCode, setShowInviteCode] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -87,7 +115,6 @@ export const ParentOnboardingPage: React.FC = () => {
       if (!alive) return;
 
       if (guardianError) {
-        console.warn('[PARENT ONBOARDING] Guardian-Check fehlgeschlagen', guardianError);
         setError(guardianError);
         setLoadError(guardianError);
         setLoading(false);
@@ -105,6 +132,24 @@ export const ParentOnboardingPage: React.FC = () => {
         console.warn('[PARENT ONBOARDING] linked children', linked.error);
       }
       setLinkedChildren(linked.data);
+
+      const clubRes = await listParentOnboardingClubs();
+      if (!alive) return;
+
+      if (clubRes.error) {
+        setError(clubRes.error);
+        setLoadError(clubRes.error);
+        setClubs([]);
+        setLoading(false);
+        return;
+      }
+
+      setClubs(clubRes.data);
+      if (clubRes.data.length === 1) {
+        setSelectedClubId(clubRes.data[0].id);
+      } else {
+        setSelectedClubId('');
+      }
       setLoading(false);
     }
 
@@ -120,6 +165,169 @@ export const ParentOnboardingPage: React.FC = () => {
       alive = false;
     };
   }, [navigate, linkMode, setPreviewRole]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadTeams() {
+      if (!selectedClubId) {
+        setTeams([]);
+        setTeamsLoading(false);
+        setTeamsError(null);
+        setSelectedTeamId('');
+        return;
+      }
+
+      setTeamsLoading(true);
+      setTeamsError(null);
+      setSelectedTeamId('');
+      setSelectedTeamSeasonId('');
+      setSelectedPlayerId('');
+      setSeasons([]);
+      setPlayers([]);
+
+      const res = await listParentOnboardingTeams(selectedClubId);
+      if (!alive) return;
+
+      if (res.error) {
+        setTeams([]);
+        setTeamsError(res.error);
+        setTeamsLoading(false);
+        return;
+      }
+
+      setTeams(res.data);
+      if (res.data.length === 1) {
+        setSelectedTeamId(res.data[0].id);
+      }
+      setTeamsLoading(false);
+    }
+
+    loadTeams().catch((e) => {
+      if (!alive) return;
+      setTeams([]);
+      setTeamsError(e?.message ?? 'Mannschaften konnten nicht geladen werden.');
+      setTeamsLoading(false);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedClubId]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadSeasons() {
+      if (!selectedTeamId) {
+        setSeasons([]);
+        setSeasonsLoading(false);
+        setSeasonsError(null);
+        setSelectedTeamSeasonId('');
+        return;
+      }
+
+      setSeasonsLoading(true);
+      setSeasonsError(null);
+      setSelectedTeamSeasonId('');
+      setSelectedPlayerId('');
+      setPlayers([]);
+
+      const res = await listParentOnboardingSeasons(selectedTeamId);
+      if (!alive) return;
+
+      if (res.error) {
+        setSeasons([]);
+        setSeasonsError(res.error);
+        setSeasonsLoading(false);
+        return;
+      }
+
+      setSeasons(res.data);
+      if (res.data.length > 0) {
+        setSelectedTeamSeasonId(res.data[0].id);
+      }
+      setSeasonsLoading(false);
+    }
+
+    loadSeasons().catch((e) => {
+      if (!alive) return;
+      setSeasons([]);
+      setSeasonsError(e?.message ?? 'Saisons konnten nicht geladen werden.');
+      setSeasonsLoading(false);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedTeamId]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadPlayers() {
+      if (!selectedTeamSeasonId) {
+        setPlayers([]);
+        setPlayersLoading(false);
+        setPlayersError(null);
+        setSelectedPlayerId('');
+        return;
+      }
+
+      setPlayersLoading(true);
+      setPlayersError(null);
+      setSelectedPlayerId('');
+
+      const res = await listParentOnboardingRoster(selectedTeamSeasonId);
+      if (!alive) return;
+
+      if (res.error) {
+        setPlayers([]);
+        setPlayersError(res.error);
+        setPlayersLoading(false);
+        return;
+      }
+
+      setPlayers(res.data);
+      setPlayersLoading(false);
+    }
+
+    loadPlayers().catch((e) => {
+      if (!alive) return;
+      setPlayers([]);
+      setPlayersError(e?.message ?? 'Spieler konnten nicht geladen werden.');
+      setPlayersLoading(false);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedTeamSeasonId]);
+
+  const noClubs = !loading && !loadError && clubs.length === 0;
+  const noTeams =
+    !loading &&
+    !loadError &&
+    !!selectedClubId &&
+    !teamsLoading &&
+    !teamsError &&
+    teams.length === 0;
+  const noSeasons =
+    !loading &&
+    !loadError &&
+    !!selectedTeamId &&
+    !seasonsLoading &&
+    !seasonsError &&
+    seasons.length === 0;
+  const noPlayersForSeason =
+    !loading &&
+    !loadError &&
+    !!selectedTeamSeasonId &&
+    !playersLoading &&
+    !playersError &&
+    players.length === 0;
+  const noChildSelectable =
+    noClubs || noTeams || noSeasons || noPlayersForSeason;
 
   const goHomeAndReload = () => {
     navigate('/app/home', { replace: true });
@@ -148,6 +356,30 @@ export const ParentOnboardingPage: React.FC = () => {
     goHomeAndReload();
   };
 
+  const handleSave = async () => {
+    if (!userId || !selectedTeamSeasonId || !selectedPlayerId) {
+      setError('Bitte Verein, Mannschaft, Saison und Kind auswählen.');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setSuccessHint(null);
+
+    const result = await linkParentSelfService(selectedTeamSeasonId, selectedPlayerId);
+    if (result.status !== 'linked' && result.status !== 'already_linked') {
+      setError(result.message ?? 'Verknüpfung fehlgeschlagen.');
+      setSaving(false);
+      return;
+    }
+
+    await clearParentLinkDeferred();
+    setPreviewRole('parent');
+    setSuccessHint(result.message);
+    setSaving(false);
+    goHomeAndReload();
+  };
+
   const handleRedeem = async () => {
     if (!userId) {
       setError('Kein Benutzer angemeldet.');
@@ -156,7 +388,7 @@ export const ParentOnboardingPage: React.FC = () => {
 
     const token = normalizeParentInviteToken(inviteCode);
     if (!isParentInviteTokenShape(token)) {
-      setError('Bitte den vollständigen Einladungscode vom Trainer eingeben.');
+      setError('Bitte den vollständigen Einladungscode eingeben.');
       return;
     }
 
@@ -201,8 +433,8 @@ export const ParentOnboardingPage: React.FC = () => {
             <CardTitle>Kind verknüpfen</CardTitle>
             <p className="text-sm text-[var(--text-sub)]">
               {linkMode
-                ? 'Verknüpfe ein weiteres Kind mit dem Einladungscode vom Trainer.'
-                : 'Verknüpfe dein Kind mit dem Einladungscode vom Trainer.'}
+                ? 'Verknüpfe ein weiteres Kind mit deinem Eltern-Konto.'
+                : 'Wähle Verein, Mannschaft, Saison und dein Kind aus.'}
             </p>
 
             {error && (
@@ -247,7 +479,7 @@ export const ParentOnboardingPage: React.FC = () => {
               </div>
             ) : (
               <>
-                {linkedChildren.length > 0 ? (
+                {linkedChildren.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-[var(--text-main)]">Bereits verknüpft</p>
                     <ul className="space-y-1.5 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
@@ -261,56 +493,217 @@ export const ParentOnboardingPage: React.FC = () => {
                       ))}
                     </ul>
                   </div>
-                ) : (
-                  <p className="text-sm text-[var(--text-sub)]">
-                    Noch kein Kind verknüpft. Den Code erhältst du vom Trainer — es gibt keine
-                    freie Spielersuche.
-                  </p>
                 )}
 
-                <div className="space-y-2">
-                  <label
-                    htmlFor="parent-invite-code"
-                    className="block text-sm font-medium text-[var(--text-main)]"
-                  >
-                    Einladungscode
-                  </label>
-                  <input
-                    id="parent-invite-code"
-                    type="text"
-                    inputMode="text"
-                    autoComplete="one-time-code"
-                    spellCheck={false}
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value)}
-                    placeholder="Code vom Trainer"
-                    className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 text-[var(--text-main)] placeholder:text-[var(--text-sub)] focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                  />
-                  <p className="text-xs text-[var(--text-sub)]">
-                    Der Code ist einmalig und vom Spielerzugang (Code/PIN/QR) getrennt.
+                {noClubs ? (
+                  <p className="text-sm text-[var(--text-sub)]">
+                    Derzeit ist kein Verein für die Kind-Verknüpfung verfügbar. Du kannst diesen
+                    Schritt überspringen oder später erneut versuchen.
                   </p>
-                </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-[var(--text-main)]">
+                        Verein auswählen
+                      </label>
+                      <select
+                        className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                        value={selectedClubId}
+                        onChange={(e) => setSelectedClubId(e.target.value)}
+                        disabled={clubs.length === 1}
+                      >
+                        {clubs.length > 1 && <option value="">Bitte wählen…</option>}
+                        {clubs.map((club) => (
+                          <option key={club.id} value={club.id}>
+                            {club.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedClubId && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-[var(--text-main)]">
+                          Mannschaft auswählen
+                        </label>
+                        {teamsLoading ? (
+                          <p className="text-sm text-[var(--text-sub)]">Lade…</p>
+                        ) : teamsError ? (
+                          <p className="text-sm text-red-400">{teamsError}</p>
+                        ) : noTeams ? (
+                          <p className="text-sm text-[var(--text-sub)]">
+                            Für diesen Verein ist derzeit keine Mannschaft verfügbar.
+                          </p>
+                        ) : (
+                          <select
+                            className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                            value={selectedTeamId}
+                            onChange={(e) => setSelectedTeamId(e.target.value)}
+                            disabled={teams.length === 1}
+                          >
+                            {teams.length > 1 && <option value="">Bitte wählen…</option>}
+                            {teams.map((team) => (
+                              <option key={team.id} value={team.id}>
+                                {team.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedTeamId && !noTeams && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-[var(--text-main)]">
+                          Saison auswählen
+                        </label>
+                        {seasonsLoading ? (
+                          <p className="text-sm text-[var(--text-sub)]">Lade…</p>
+                        ) : seasonsError ? (
+                          <p className="text-sm text-red-400">{seasonsError}</p>
+                        ) : noSeasons ? (
+                          <p className="text-sm text-[var(--text-sub)]">
+                            Für diese Mannschaft ist derzeit keine aktive Saison verfügbar.
+                          </p>
+                        ) : (
+                          <select
+                            className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                            value={selectedTeamSeasonId}
+                            onChange={(e) => setSelectedTeamSeasonId(e.target.value)}
+                            disabled={seasons.length === 1}
+                          >
+                            {seasons.map((season) => (
+                              <option key={season.id} value={season.id}>
+                                {season.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedTeamSeasonId && !noSeasons && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-[var(--text-main)]">
+                          Kind auswählen
+                        </label>
+                        {playersLoading ? (
+                          <p className="text-sm text-[var(--text-sub)]">Lade…</p>
+                        ) : playersError ? (
+                          <p className="text-sm text-[var(--text-sub)]">
+                            Spieler konnten nicht geladen werden.
+                          </p>
+                        ) : noPlayersForSeason ? (
+                          <p className="text-sm text-[var(--text-sub)]">
+                            Derzeit ist kein Kind auswählbar. Bereits verknüpfte Kinder werden nicht
+                            erneut angeboten.
+                          </p>
+                        ) : (
+                          <div className="space-y-2 max-h-[260px] overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
+                            {players.map((p) => (
+                              <label
+                                key={p.id}
+                                className="flex items-center justify-between gap-3 py-1.5"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="radio"
+                                    name="child"
+                                    className="h-4 w-4"
+                                    checked={selectedPlayerId === p.id}
+                                    onChange={() => setSelectedPlayerId(p.id)}
+                                  />
+                                  <span className="text-sm text-[var(--text-main)]">
+                                    {p.display_name}
+                                  </span>
+                                </div>
+                                {p.jersey_number != null && (
+                                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-[var(--text-sub)]">
+                                    #{p.jersey_number}
+                                  </span>
+                                )}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {!noChildSelectable && (
+                      <div className="pt-2">
+                        <Button
+                          variant="primary"
+                          className="w-full"
+                          onClick={() => void handleSave()}
+                          disabled={
+                            saving ||
+                            deferring ||
+                            playersLoading ||
+                            !selectedTeamSeasonId ||
+                            !selectedPlayerId
+                          }
+                        >
+                          {saving ? 'Speichere…' : 'Verknüpfung speichern'}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <div className="pt-2">
                   <Button
-                    variant="primary"
-                    className="w-full"
-                    onClick={() => void handleRedeem()}
-                    disabled={saving || deferring || !inviteCode.trim()}
-                  >
-                    {saving ? 'Verknüpfe…' : 'Mit Code verknüpfen'}
-                  </Button>
-                </div>
-
-                <div className="pt-2">
-                  <Button
-                    variant="ghost"
+                    variant={noChildSelectable ? 'primary' : 'ghost'}
                     className="w-full"
                     onClick={() => void handleDefer()}
                     disabled={saving || deferring}
                   >
                     {deferring ? 'Weiter…' : 'Später verknüpfen'}
                   </Button>
+                </div>
+
+                <div className="border-t border-[var(--glass-border)] pt-4">
+                  {!showInviteCode ? (
+                    <button
+                      type="button"
+                      className="text-sm text-[var(--text-sub)] underline-offset-2 hover:underline"
+                      onClick={() => setShowInviteCode(true)}
+                    >
+                      Ich habe einen Einladungscode
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-[var(--text-sub)]">
+                        Optional: Code vom Trainer eingeben (getrennt vom Spieler-Login).
+                      </p>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="parent-invite-code"
+                          className="block text-sm font-medium text-[var(--text-main)]"
+                        >
+                          Einladungscode
+                        </label>
+                        <input
+                          id="parent-invite-code"
+                          type="text"
+                          inputMode="text"
+                          autoComplete="one-time-code"
+                          spellCheck={false}
+                          value={inviteCode}
+                          onChange={(e) => setInviteCode(e.target.value)}
+                          placeholder="Code vom Trainer"
+                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 text-[var(--text-main)] placeholder:text-[var(--text-sub)] focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => void handleRedeem()}
+                        disabled={saving || deferring || !inviteCode.trim()}
+                      >
+                        {saving ? 'Verknüpfe…' : 'Mit Code verknüpfen'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </>
             )}

@@ -167,17 +167,24 @@ assert.ok(authLayout.includes('safe-area-inset-bottom'));
 assert.ok(!authLayout.includes('BottomNav'));
 assert.ok(!authLayout.includes('<Header'));
 
-// 7) ParentOnboarding: Code-Flow, kein offenes Kaderlisting
+// 7) ParentOnboarding: Self-Service + optionaler Code-Flow
 const onboarding = fs.readFileSync(path.join(root, 'src/pages/ParentOnboardingPage.tsx'), 'utf8');
 assert.ok(onboarding.includes('Später verknüpfen'));
 assert.ok(onboarding.includes('setParentLinkDeferred'));
 assert.ok(onboarding.includes('persistParentRoleChoice'));
 assert.ok(onboarding.includes('userHasPlayerGuardian'));
 assert.ok(onboarding.includes('redeemParentLinkInvite'));
-assert.ok(onboarding.includes('Einladungscode'));
-assert.ok(!onboarding.includes('listActiveTeamSeasonsForParentLink'));
-assert.ok(!onboarding.includes('listPlayersForParentLink'));
-assert.ok(!onboarding.includes('Team auswählen'));
+assert.ok(onboarding.includes('linkParentSelfService'));
+assert.ok(onboarding.includes('listParentOnboardingClubs'));
+assert.ok(onboarding.includes('listParentOnboardingTeams'));
+assert.ok(onboarding.includes('listParentOnboardingSeasons'));
+assert.ok(onboarding.includes('listParentOnboardingRoster'));
+assert.ok(onboarding.includes('Verein auswählen'));
+assert.ok(onboarding.includes('Mannschaft auswählen'));
+assert.ok(onboarding.includes('Saison auswählen'));
+assert.ok(onboarding.includes('Kind auswählen'));
+assert.ok(onboarding.includes('Ich habe einen Einladungscode'));
+assert.ok(onboarding.includes('showInviteCode'));
 assert.ok(!onboarding.includes("from('player_guardians')\n          .insert"));
 
 // Token-Shape: 48 hex, kein Spieler-Kurzcode
@@ -235,10 +242,24 @@ assert.ok(panel.includes('createParentLinkInvite'));
 assert.ok(panel.includes('Einladung per E-Mail senden'));
 assert.ok(panel.includes('Verknüpfung aufheben'));
 
-// 12) Client-Lib ohne Self-Claim-Insert
+// 12) Client-Lib: Self-Service-RPCs + Invite, kein Self-Claim-Insert
 const parentLib = fs.readFileSync(path.join(root, 'src/lib/parentChildLink.ts'), 'utf8');
 assert.ok(parentLib.includes('redeemParentLinkInvite'));
-assert.ok(!parentLib.includes('list_parent_link_roster'));
+assert.ok(parentLib.includes('linkParentSelfService'));
+assert.ok(parentLib.includes('list_parent_onboarding_clubs'));
+assert.ok(parentLib.includes('list_parent_onboarding_roster'));
 assert.ok(!parentLib.includes('.insert({'));
+
+const selfServiceMig = fs.readFileSync(
+  path.join(root, 'supabase/migrations/20260812120000_parent_self_service_onboarding.sql'),
+  'utf8',
+);
+assert.ok(selfServiceMig.includes('list_parent_onboarding_clubs'));
+assert.ok(selfServiceMig.includes('link_parent_self_service'));
+assert.ok(selfServiceMig.includes('club_is_operable'));
+assert.ok(selfServiceMig.includes('player_on_team_season_roster'));
+assert.ok(selfServiceMig.includes('GRANT EXECUTE ON FUNCTION public.link_parent_self_service'));
+assert.ok(selfServiceMig.includes('REVOKE ALL ON FUNCTION public.list_parent_onboarding_roster'));
+assert.ok(!selfServiceMig.includes('DROP POLICY'));
 
 console.log('parent-onboarding-flow-test: OK');
