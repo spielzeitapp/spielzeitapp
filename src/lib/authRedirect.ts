@@ -14,6 +14,9 @@ const ALLOWED_APP_PATH_PREFIXES = [
   '/forgot-password',
 ] as const;
 
+/** Standard nach „Zur App“ / App-Einstieg ohne Invite oder Deep Link. */
+export const POST_AUTH_HOME_PATH = '/app/home';
+
 /** Nur relative App-Pfade; keine externe Open-Redirect. */
 export function isSafeAuthRedirectPath(path: string): boolean {
   if (!path || typeof path !== 'string') return false;

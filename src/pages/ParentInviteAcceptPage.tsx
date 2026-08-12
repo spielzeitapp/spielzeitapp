@@ -383,18 +383,44 @@ export const ParentInviteAcceptPage: React.FC = () => {
                   <p className="text-base font-semibold text-[var(--text-main)]">
                     {preview.playerDisplayName || 'Kind'}
                   </p>
-                  {preview.teamLabel ? (
-                    <p className="mt-1 text-sm text-[var(--text-sub)]">{preview.teamLabel}</p>
-                  ) : null}
-                  {preview.seasonLabel ? (
-                    <p className="mt-0.5 text-sm text-[var(--text-sub)]">{preview.seasonLabel}</p>
-                  ) : null}
+                  {(() => {
+                    const teamRaw = (preview.teamLabel ?? '').trim();
+                    const seasonRaw = (preview.seasonLabel ?? '').trim();
+                    const teamLooksLikeSeason =
+                      Boolean(seasonRaw) &&
+                      (teamRaw === seasonRaw ||
+                        teamRaw.endsWith(`· ${seasonRaw}`) ||
+                        teamRaw.endsWith(`- ${seasonRaw}`) ||
+                        teamRaw.includes(seasonRaw));
+                    const teamOnly = teamLooksLikeSeason
+                      ? teamRaw
+                          .replace(new RegExp(`\\s*[·\\-]\\s*${seasonRaw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`), '')
+                          .trim() || teamRaw
+                      : teamRaw;
+                    return (
+                      <>
+                        {teamOnly ? (
+                          <p className="mt-1 text-sm text-[var(--text-sub)]">{teamOnly}</p>
+                        ) : null}
+                        {seasonRaw ? (
+                          <p className="mt-0.5 text-sm text-[var(--text-sub)]">
+                            Saison {seasonRaw}
+                          </p>
+                        ) : null}
+                      </>
+                    );
+                  })()}
                   {preview.expiresAt ? (
                     <p className="mt-1 text-xs text-[var(--text-sub)]">
                       Gültig bis {new Date(preview.expiresAt).toLocaleString('de-AT')}
                     </p>
                   ) : null}
                 </div>
+                <p className="text-sm text-[var(--text-sub)]">
+                  Mit der Annahme wirst du mit{' '}
+                  {preview.playerDisplayName || 'diesem Kind'} verknüpft und erhältst Zugriff auf
+                  Termine, Zu- und Absagen sowie Mannschaftsinformationen.
+                </p>
                 <Button
                   variant="primary"
                   className="w-full"

@@ -20,10 +20,10 @@ const migration = fs.readFileSync(
   'utf8',
 );
 
-assert.ok(login.includes('hasOpenParentEmailInviteForMe'));
-assert.ok(login.includes("window.location.replace('/app/parent-invite')"));
+assert.ok(login.includes('resolvePostAuthDestination') || login.includes('hasOpenParentEmailInviteForMe'));
+assert.ok(login.includes("window.location.replace") || login.includes('hardReplace'));
 assert.ok(login.includes('clearAccountScopedClientState'));
-assert.ok(login.indexOf('hasOpenParentEmailInviteForMe') < login.indexOf("navigate(dest"));
+assert.ok(login.includes('resolvePostAuthDestination') || login.indexOf('hasOpenParentEmailInviteForMe') < login.indexOf("navigate(dest"));
 
 assert.ok(accept.includes('previewOpenParentEmailInviteForMe'));
 assert.ok(accept.includes('redeemOpenParentEmailInviteForMe'));

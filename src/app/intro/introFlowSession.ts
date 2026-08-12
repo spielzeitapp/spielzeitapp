@@ -29,3 +29,12 @@ export function markIntroFlowCompleted(): void {
     /* z. B. privates Fenster */
   }
 }
+
+/** Bewusster Login: Marken-Splash erneut zeigen (nicht bei App-Reload). */
+export function clearIntroFlowCompleted(): void {
+  try {
+    sessionStorage.removeItem(INTRO_FLOW_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}

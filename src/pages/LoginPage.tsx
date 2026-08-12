@@ -3,11 +3,10 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { Button } from '../app/components/ui/Button';
 import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
 import { isSafeAuthRedirectPath } from '../lib/authRedirect';
+import { resolvePostAuthDestination } from '../lib/postAuthDestination';
 import {
   ensureParentInviteContextFromNext,
-  hasOpenParentEmailInviteForMe,
   isAppIntroEntryPath,
-  markPendingParentEmailInvite,
   readParentInviteTokenFromUserMetadata,
   readStashedParentInviteEmail,
   resolvePendingParentInvitePath,
@@ -58,19 +57,13 @@ export const LoginPage: React.FC = () => {
       (searchParams.get('email') ?? '').trim(),
   );
 
+  /** Nur echte RequireAuth-/Deep-Link-Herkunft — kein Termine-Default. */
   const safeFromState =
     fromStatePath &&
     isSafeAuthRedirectPath(fromStatePath) &&
     !(isParentInviteFlow && isAppIntroEntryPath(fromStatePath))
       ? fromStatePath
       : null;
-
-  const from =
-    pendingInvitePath ||
-    (nextSafe && nextSafe.includes('/app/parent-invite') ? nextSafe : null) ||
-    (isParentInviteFlow ? null : nextSafe) ||
-    safeFromState ||
-    '/app/termine';
 
   const playerLoginEnabled = isPlayerQrAccessEnabled();
   const inviteEmailLocked = Boolean(
@@ -120,7 +113,6 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    // Kontowechsel: Team/Saison/Rolle des vorherigen Users nicht mitnehmen
     clearAccountScopedClientState();
 
     const metaToken = readParentInviteTokenFromUserMetadata(signInData.user);
@@ -128,36 +120,19 @@ export const LoginPage: React.FC = () => {
     ensureParentInviteContextFromNext(nextSafe);
     stashTokenIfValid(orphanT);
 
-    // 1) Token-Pfad (URL/Stash/Metadata)
-    const inviteDest = resolvePendingParentInvitePath(signInData.user);
-    if (inviteDest) {
-      window.location.replace(inviteDest);
+    const dest = await resolvePostAuthDestination({
+      user: signInData.user,
+      next: nextSafe,
+      from: safeFromState,
+      consciousLogin: true,
+      parentInviteFlowHint: isParentInviteFlow,
+    });
+
+    if (dest.hardReplace) {
+      window.location.replace(dest.path);
       return;
     }
-
-    // 2) Email-gebundene offene Einladung (Token verloren / Metadata fehlt bei bestehenden Konten)
-    try {
-      const openEmailInvite = await hasOpenParentEmailInviteForMe();
-      if (openEmailInvite) {
-        markPendingParentEmailInvite();
-        window.location.replace('/app/parent-invite');
-        return;
-      }
-    } catch {
-      /* ignore — normal login continues */
-    }
-
-    if (isParentInviteFlow || (nextSafe && nextSafe.includes('/app/parent-invite'))) {
-      window.location.replace('/app/parent-invite');
-      return;
-    }
-
-    const dest = nextSafe && !isAppIntroEntryPath(nextSafe) ? nextSafe : from || '/app/termine';
-    if (isAppIntroEntryPath(dest)) {
-      navigate('/app/termine', { replace: true });
-      return;
-    }
-    navigate(dest, { replace: true });
+    navigate(dest.path, { replace: true });
   };
 
   return (

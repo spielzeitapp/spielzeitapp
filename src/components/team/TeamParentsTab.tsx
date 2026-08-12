@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   GlassCard,
   PremiumCard,
@@ -28,9 +28,10 @@ import {
   type PlayerAppStatus,
   type PlayerAppStatusRow,
 } from "../../lib/playerAppStatus";
+import { listParentLinkInvitesForPlayer } from "../../lib/parentLinkInvites";
 import { PlayerGuardiansPanel } from "./PlayerGuardiansPanel";
 
-type ParentFilterId = "all" | "linked" | "open";
+type ParentFilterId = "all" | "missing" | "open" | "linked";
 
 type TeamParentsTabProps = {
   teamSeasonId: string | null;
@@ -44,6 +45,10 @@ type TeamParentsTabProps = {
   appStatusError: string | null;
   appStatusRpcMissing: boolean;
   onLinksChanged?: () => void;
+  /** Optional: Mannschafts-/Saisonlabel oben. */
+  teamSeasonLabel?: string | null;
+  /** Deep-Link vom Spielerprofil: diese Karte öffnen/hervorheben. */
+  focusPlayerId?: string | null;
 };
 
 const CHIP_BASE =
@@ -304,12 +309,62 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   appStatusError,
   appStatusRpcMissing,
   onLinksChanged,
+  teamSeasonLabel = null,
+  focusPlayerId = null,
 }) => {
   const [filter, setFilter] = useState<ParentFilterId>("all");
+  const [search, setSearch] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [openInviteByPlayer, setOpenInviteByPlayer] = useState<Record<string, number>>({});
+  const focusRef = useRef<HTMLLIElement | null>(null);
 
   const linkedCount = useMemo(() => rows.filter((r) => r.parent_count > 0).length, [rows]);
-  const openCount = useMemo(() => rows.filter((r) => r.parent_count === 0).length, [rows]);
+  const missingCount = useMemo(
+    () =>
+      rows.filter((r) => r.parent_count === 0 && (openInviteByPlayer[r.player_id] ?? 0) === 0)
+        .length,
+    [rows, openInviteByPlayer],
+  );
+  const openInvitePlayerCount = useMemo(
+    () => rows.filter((r) => (openInviteByPlayer[r.player_id] ?? 0) > 0).length,
+    [rows, openInviteByPlayer],
+  );
+
+  useEffect(() => {
+    let alive = true;
+    async function loadOpenInvites() {
+      if (!teamSeasonId || rows.length === 0) {
+        if (alive) setOpenInviteByPlayer({});
+        return;
+      }
+      const entries = await Promise.all(
+        rows.map(async (row) => {
+          const res = await listParentLinkInvitesForPlayer({
+            teamSeasonId,
+            playerId: row.player_id,
+          });
+          const open = res.invites.filter((i) => i.state === "open").length;
+          return [row.player_id, open] as const;
+        }),
+      );
+      if (!alive) return;
+      const next: Record<string, number> = {};
+      for (const [id, n] of entries) next[id] = n;
+      setOpenInviteByPlayer(next);
+    }
+    void loadOpenInvites();
+    return () => {
+      alive = false;
+    };
+  }, [teamSeasonId, rows]);
+
+  useEffect(() => {
+    if (!focusPlayerId || loading) return;
+    const t = window.setTimeout(() => {
+      focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [focusPlayerId, loading, filter, search]);
 
   const pushSummary = useMemo(() => {
     let pushActiveCount = 0;
@@ -327,19 +382,34 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   const appStatusSummary = useMemo(() => summarizePlayerAppStatus(appStatusRows), [appStatusRows]);
 
   const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
     let list = rows;
     if (filter === "linked") list = rows.filter((r) => r.parent_count > 0);
-    else if (filter === "open") list = rows.filter((r) => r.parent_count === 0);
+    else if (filter === "missing") {
+      list = rows.filter(
+        (r) => r.parent_count === 0 && (openInviteByPlayer[r.player_id] ?? 0) === 0,
+      );
+    } else if (filter === "open") {
+      list = rows.filter((r) => (openInviteByPlayer[r.player_id] ?? 0) > 0);
+    }
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.player_name.toLowerCase().includes(q) ||
+          (r.jersey_number != null && String(r.jersey_number).includes(q)),
+      );
+    }
 
     return [...list].sort((a, b) => {
       const priority = (row: PlayerParentLinkRow): number => {
-        if (row.parent_count === 0) return 0;
+        if (row.parent_count === 0 && (openInviteByPlayer[row.player_id] ?? 0) === 0) return 0;
+        if ((openInviteByPlayer[row.player_id] ?? 0) > 0) return 1;
         const app = appStatusByPlayer.get(row.player_id)?.app_status ?? "not_setup";
-        if (app === "not_setup") return 1;
+        if (app === "not_setup") return 2;
         const pushOff = row.parents.some((p) => p.push_active !== true);
-        if (pushOff) return 2;
-        if (app === "created") return 3;
-        return 4;
+        if (pushOff) return 3;
+        if (app === "created") return 4;
+        return 5;
       };
       const pa = priority(a);
       const pb = priority(b);
@@ -349,7 +419,7 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
       if (ja !== jb) return ja - jb;
       return a.player_name.localeCompare(b.player_name, "de");
     });
-  }, [rows, filter, appStatusByPlayer]);
+  }, [rows, filter, search, openInviteByPlayer, appStatusByPlayer]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -408,10 +478,13 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
           as="h2"
           className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
         >
-          Eltern
+          Eltern &amp; Spielerzugänge
         </SectionTitle>
+        {teamSeasonLabel ? (
+          <p className="mt-1 text-[13px] font-medium text-white/75">{teamSeasonLabel}</p>
+        ) : null}
         <p className="mt-1 text-[13px] text-white/60">
-          Verknüpfungen, Push und Spieler-App-Zugänge im Überblick.
+          Verknüpfungen, Einladungen und Spieler-App-Zugänge im Überblick.
         </p>
 
         {teamSeasonId == null && !tsLoading ? (
@@ -453,13 +526,27 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                   <span className="font-bold text-white">{rows.length}</span> Spieler
                 </span>
                 <span className="text-emerald-300">
-                  <span className="font-bold">{linkedCount}</span> mit Eltern verknüpft
+                  <span className="font-bold">{linkedCount}</span> verknüpft
+                </span>
+                <span className="text-sky-300">
+                  <span className="font-bold">{openInvitePlayerCount}</span> offene Einladungen
                 </span>
                 <span className="text-amber-300">
-                  <span className="font-bold">{openCount}</span> noch offen
+                  <span className="font-bold">{missingCount}</span> ohne Elternzugang
                 </span>
               </div>
             </GlassCard>
+
+            <label className="block min-w-0">
+              <span className="sr-only">Spieler suchen</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Spieler oder Nummer suchen…"
+                className="h-11 w-full rounded-xl border border-white/12 bg-black/30 px-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+              />
+            </label>
 
             <PremiumTabTrack className="min-w-0">
               <PremiumTab
@@ -472,11 +559,11 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
               </PremiumTab>
               <PremiumTab
                 kind="filter"
-                active={filter === "linked"}
-                onClick={() => setFilter("linked")}
+                active={filter === "missing"}
+                onClick={() => setFilter("missing")}
                 className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
               >
-                Verknüpft ({linkedCount})
+                Fehlt ({missingCount})
               </PremiumTab>
               <PremiumTab
                 kind="filter"
@@ -484,7 +571,15 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                 onClick={() => setFilter("open")}
                 className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
               >
-                Offen ({openCount})
+                Offen ({openInvitePlayerCount})
+              </PremiumTab>
+              <PremiumTab
+                kind="filter"
+                active={filter === "linked"}
+                onClick={() => setFilter("linked")}
+                className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
+              >
+                Verknüpft ({linkedCount})
               </PremiumTab>
             </PremiumTabTrack>
 
@@ -506,26 +601,53 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
             {filteredRows.length === 0 ? (
               <PremiumEmptyState
                 variant="subtle"
-                title={filter === "linked" ? "Keine verknüpften Spieler." : "Keine offenen Spieler."}
+                title={
+                  filter === "linked"
+                    ? "Keine verknüpften Spieler."
+                    : filter === "open"
+                      ? "Keine offenen Einladungen."
+                      : filter === "missing"
+                        ? "Alle Spieler haben einen Elternzugang oder eine offene Einladung."
+                        : "Keine Treffer."
+                }
                 className="py-6"
               />
             ) : (
               <ul className="min-w-0 space-y-2.5 pb-8">
                 {filteredRows.map((row) => {
                   const linked = row.parent_count > 0;
+                  const openInvites = openInviteByPlayer[row.player_id] ?? 0;
+                  const accessStatus = linked
+                    ? "Eltern verknüpft"
+                    : openInvites > 0
+                      ? "Einladung offen"
+                      : "Noch kein Elternzugang";
+                  const accessBadgeClass = linked
+                    ? "border-emerald-400/30 bg-emerald-900/25 text-emerald-200"
+                    : openInvites > 0
+                      ? "border-sky-400/30 bg-sky-900/25 text-sky-100"
+                      : "border-amber-400/35 bg-amber-900/30 text-amber-200";
                   const appStatus = appStatusByPlayer.get(row.player_id);
                   const appStatusKey = appStatus?.app_status ?? "not_setup";
                   const appStatusLastUsed = appStatus?.last_used_at ?? null;
+                  const isFocused = focusPlayerId === row.player_id;
                   return (
-                    <li key={row.player_id} className="min-w-0">
+                    <li
+                      key={row.player_id}
+                      className="min-w-0"
+                      ref={isFocused ? focusRef : undefined}
+                    >
                       <GlassCard
                         variant="subtle"
                         showAmbientGlow={false}
                         className={[
                           "min-w-0 px-3 py-3 sm:px-4",
+                          isFocused ? "ring-2 ring-red-500/50" : "",
                           linked
                             ? "border-emerald-500/20"
-                            : "border-amber-500/25 bg-amber-950/10",
+                            : openInvites > 0
+                              ? "border-sky-500/25 bg-sky-950/10"
+                              : "border-amber-500/25 bg-amber-950/10",
                           appStatusKey === "not_setup" ? "border-white/14 bg-white/[0.03]" : "",
                         ].join(" ")}
                       >
@@ -541,10 +663,10 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                               <span
                                 className={[
                                   "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                                  statusBadgeClass(row),
+                                  accessBadgeClass,
                                 ].join(" ")}
                               >
-                                {statusLabel(row)}
+                                {accessStatus}
                               </span>
                             </p>
                             <PlayerAppStatusBlock status={appStatusKey} lastUsedAt={appStatusLastUsed} />

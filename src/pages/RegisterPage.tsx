@@ -7,7 +7,10 @@ import {
   ensureParentInviteContextFromNext,
   readStashedParentInviteEmail,
   resolvePendingParentInvitePath,
+  stashParentInviteEmail,
 } from '../lib/parentLinkInvites';
+import { resolvePostAuthDestination } from '../lib/postAuthDestination';
+import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -71,6 +74,10 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (isParentInviteFlow && trimmedEmail) {
+      stashParentInviteEmail(trimmedEmail);
+    }
+
     if (password.length < MIN_PASSWORD_LENGTH) {
       setMessage({ type: 'error', text: `Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` });
       return;
@@ -105,6 +112,22 @@ export const RegisterPage: React.FC = () => {
 
       if (data.session) {
         setLoading(false);
+        clearAccountScopedClientState();
+        const dest = await resolvePostAuthDestination({
+          user: data.session.user,
+          next: nextSafe,
+          consciousLogin: !isParentInviteFlow,
+          parentInviteFlowHint: isParentInviteFlow,
+        });
+        if (dest.hardReplace) {
+          window.location.replace(dest.path);
+          return;
+        }
+        // Invite / Deep Link / Splash — keine Rollenwahl bei persönlicher Einladung
+        if (dest.kind === 'parent_invite' || dest.kind === 'deep_link' || dest.kind === 'branded_entry') {
+          navigate(dest.path, { replace: true });
+          return;
+        }
         navigate(pendingInvitePath || nextSafe || '/app/role-choice', { replace: true });
         return;
       }
@@ -112,7 +135,9 @@ export const RegisterPage: React.FC = () => {
       setNeedsEmailConfirmation(true);
       setMessage({
         type: 'success',
-        text: 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es mit der Rollenwahl weiter — ohne erneutes Passwort.',
+        text: isParentInviteFlow
+          ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es direkt mit der Einladung weiter — ohne Rollen- oder Mannschaftswahl.'
+          : 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es mit der Rollenwahl weiter — ohne erneutes Passwort.',
       });
       setLoading(false);
     } catch (err) {

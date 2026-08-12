@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { markPasswordRecoveryFlow } from '../lib/authRedirect';
 import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
+import { clearIntroFlowCompleted } from '../app/intro/introFlowSession';
 
 
 interface AuthContextValue {
@@ -56,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (event === 'SIGNED_OUT') {
         clearAccountScopedClientState();
+        clearIntroFlowCompleted();
       }
       setSession(session);
       setUser(session?.user ?? null);
@@ -75,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     clearAccountScopedClientState();
+    clearIntroFlowCompleted();
     await supabase.auth.signOut();
   };
 

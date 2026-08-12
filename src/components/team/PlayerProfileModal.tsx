@@ -35,7 +35,7 @@ import {
   ProfileTrainingAwardsSection,
   ProfileTrainingKaiserStatus,
 } from "./profile/ProfileTrainingExtras";
-import { PlayerGuardiansPanel } from "./PlayerGuardiansPanel";
+import { TrainerParentAccessHint } from "./TrainerParentAccessHint";
 
 const PROFILE_GLASS_PANEL =
   "overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(18,18,20,0.98)] to-[rgba(60,10,18,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.08)]";
@@ -819,20 +819,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             </PlayerSpecialSettingsAccordion>
           ) : null}
 
-          {/* Staff-only: direkt unter Spielerkarte, vor Statistik — A/B-Test Einstieg */}
+          {/* Staff-only: kompakter Hinweis — volle Verwaltung unter Mehr → Eltern & Spielerzugänge */}
           {canManage && teamSeasonId && !demo ? (
-            <div className="mb-3 mt-1 rounded-2xl border border-white/10 bg-black/25 px-3 py-3">
-              <PlayerGuardiansPanel
-                teamSeasonId={teamSeasonId}
-                playerId={player.id}
-                playerName={displayFullName(player)}
-                onChanged={onGuardiansChanged}
-                onToast={(msg) => {
-                  setGuardianToast(msg);
-                  window.setTimeout(() => setGuardianToast(null), 2600);
-                }}
-              />
-            </div>
+            <TrainerParentAccessHint teamSeasonId={teamSeasonId} playerId={player.id} />
           ) : null}
 
           {/* Sticky tabs */}

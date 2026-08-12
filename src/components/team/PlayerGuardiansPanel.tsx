@@ -419,8 +419,7 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
               Eltern einladen
             </p>
             <p className="mt-1 text-[12px] text-white/55">
-              Bekannte Eltern-E-Mail eingeben. Der Link ist zeitlich begrenzt und nur für diese Adresse
-              gültig.
+              Die Einladung ist 72 Stunden gültig und nur mit dieser E-Mail-Adresse verwendbar.
             </p>
 
             <label
