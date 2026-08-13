@@ -1,17 +1,77 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
+import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
-import { getAuthRedirectUrl } from '../lib/authRedirect';
+import { AUTH_EMAIL_CONFIRM_PATH, getAuthRedirectUrl, isSafeAuthRedirectPath } from '../lib/authRedirect';
+import {
+  buildParentInviteAuthQuery,
+  ensureParentInviteContextFromNext,
+  extractInviteTokenFromNext,
+  readStashedParentInviteEmail,
+  readStashedParentInviteToken,
+  resolvePendingParentInvitePath,
+  stashParentInviteEmail,
+  stashParentInviteToken,
+} from '../lib/parentLinkInvites';
+import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/parentChildLink';
+import { resolvePostAuthDestination } from '../lib/postAuthDestination';
+import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
 const MIN_PASSWORD_LENGTH = 6;
 
+async function completeInviteSignup(input: {
+  token: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}): Promise<{ ok: boolean; error: string | null; needsConfirm: boolean }> {
+  try {
+    const res = await fetch('/api/parent/send-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'complete_signup',
+        token: input.token,
+        email: input.email,
+        password: input.password,
+        first_name: input.firstName,
+        last_name: input.lastName,
+      }),
+    });
+    const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok || payload.ok !== true) {
+      const err = String(payload.error ?? 'signup_failed');
+      const messages: Record<string, string> = {
+        account_exists: 'Für diese E-Mail existiert bereits ein Konto. Bitte anmelden.',
+        email_mismatch: 'Für diese Einladung musst du die eingeladene E-Mail-Adresse verwenden.',
+        expired: 'Diese Einladung ist abgelaufen.',
+        revoked: 'Diese Einladung wurde widerrufen.',
+        already_used: 'Diese Einladung wurde bereits verwendet.',
+        invalid_token: 'Einladung ungültig.',
+        weak_password: `Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.`,
+      };
+      return { ok: false, error: messages[err] ?? 'Registrierung fehlgeschlagen.', needsConfirm: false };
+    }
+    return {
+      ok: true,
+      error: null,
+      needsConfirm: String(payload.status) === 'pending_email_confirmation',
+    };
+  } catch {
+    return { ok: false, error: 'Registrierung fehlgeschlagen.', needsConfirm: false };
+  }
+}
+
 /** Redirect nach E-Mail-Bestätigung — aktueller Host (index.html leitet / → /app). */
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, session, loading: authLoading } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,6 +82,41 @@ export const RegisterPage: React.FC = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
 
+  const nextRaw = searchParams.get('next') ?? '';
+  const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
+  const pendingInvitePath = resolvePendingParentInvitePath();
+  const emailRedirectPath = pendingInvitePath || nextSafe || AUTH_EMAIL_CONFIRM_PATH;
+  const inviteEmailLocked = Boolean(
+    (searchParams.get('email') ?? '').trim() ||
+      readStashedParentInviteEmail() ||
+      (isParentInviteFlow && user?.email),
+  );
+  const isParentInviteFlow = Boolean(
+    pendingInvitePath || (nextSafe && nextSafe.includes('/app/parent-invite')),
+  );
+
+  const inviteToken = (() => {
+    const fromNext = extractInviteTokenFromNext(nextSafe);
+    if (fromNext) return fromNext;
+    const stashed = normalizeParentInviteToken(readStashedParentInviteToken() ?? '');
+    return isParentInviteTokenShape(stashed) ? stashed : null;
+  })();
+
+  useEffect(() => {
+    ensureParentInviteContextFromNext(nextSafe);
+    const prefill =
+      (searchParams.get('email') ?? '').trim().toLowerCase() ||
+      readStashedParentInviteEmail() ||
+      '';
+    if (prefill) {
+      setEmail(prefill);
+      stashParentInviteEmail(prefill);
+    }
+  }, [searchParams, nextSafe]);
+
+  // Magic-Link kann mit Session auf /register landen — Passwort/Name setzen, dann Accept.
+  const hasInviteSession = Boolean(isParentInviteFlow && user && session);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -31,10 +126,26 @@ export const RegisterPage: React.FC = () => {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
     const trimmedEmail = email.trim().toLowerCase();
+    const lockedEmail =
+      (searchParams.get('email') ?? '').trim().toLowerCase() ||
+      (readStashedParentInviteEmail() ?? '').trim().toLowerCase() ||
+      (user?.email ?? '').trim().toLowerCase();
 
     if (!trimmedFirst || !trimmedLast || !trimmedEmail) {
       setMessage({ type: 'error', text: 'Bitte Vorname, Nachname und E-Mail ausfüllen.' });
       return;
+    }
+
+    if (lockedEmail && trimmedEmail !== lockedEmail) {
+      setMessage({
+        type: 'error',
+        text: 'Für diese Einladung musst du die eingeladene E-Mail-Adresse verwenden.',
+      });
+      return;
+    }
+
+    if (isParentInviteFlow && trimmedEmail) {
+      stashParentInviteEmail(trimmedEmail);
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
@@ -50,33 +161,82 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
 
     try {
+      // Bereits per Magic-Link bestätigt: Passwort setzen und zur Einladung.
+      if (hasInviteSession) {
+        const { error: updateError } = await supabase.auth.updateUser({
+          password,
+          data: {
+            first_name: trimmedFirst,
+            last_name: trimmedLast,
+            spielzeit_parent_invite: true,
+            ...(inviteToken ? { spielzeit_parent_invite_token: inviteToken } : {}),
+          },
+        });
+        if (updateError) {
+          setError(updateError.message);
+          setMessage({ type: 'error', text: updateError.message });
+          setLoading(false);
+          return;
+        }
+        clearAccountScopedClientState();
+        const dest = await resolvePostAuthDestination({
+          user,
+          next: nextSafe,
+          consciousLogin: false,
+          parentInviteFlowHint: true,
+        });
+        setLoading(false);
+        if (dest.hardReplace) {
+          window.location.replace(dest.path);
+          return;
+        }
+        navigate(dest.path, { replace: true });
+        return;
+      }
+
+      // Invite flow ohne Session: token-bound complete_signup (passwordless stubs).
+      if (isParentInviteFlow && inviteToken) {
+        stashParentInviteToken(inviteToken);
+        const completed = await completeInviteSignup({
+          token: inviteToken,
+          email: trimmedEmail,
+          password,
+          firstName: trimmedFirst,
+          lastName: trimmedLast,
+        });
+        if (!completed.ok) {
+          setError(completed.error || 'Registrierung fehlgeschlagen.');
+          setMessage({ type: 'error', text: completed.error || 'Registrierung fehlgeschlagen.' });
+          setLoading(false);
+          if (completed.error?.includes('bereits ein Konto')) {
+            const qs = buildParentInviteAuthQuery({
+              next: pendingInvitePath || nextSafe || '/app/parent-invite',
+              email: trimmedEmail,
+            });
+            navigate(`/login?${qs}`, { replace: true });
+          }
+          return;
+        }
+        setNeedsEmailConfirmation(true);
+        setMessage({
+          type: 'success',
+          text: 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse, um die Registrierung abzuschließen. Danach kannst du die persönliche Einladung annehmen und dein Kind direkt mit deinem Elternkonto verknüpfen — ohne Rollen- oder Mannschaftswahl.',
+        });
+        setLoading(false);
+        return;
+      }
+
       const signUpPayload = {
         email: trimmedEmail,
         password,
         options: {
           data: { first_name: trimmedFirst, last_name: trimmedLast },
-          emailRedirectTo: getAuthRedirectUrl('/'),
+          emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
         },
       };
-      console.log('[RegisterPage] signUp payload (no password):', {
-        email: signUpPayload.email,
-        options: signUpPayload.options,
-      });
 
       const result = await supabase.auth.signUp(signUpPayload);
       const { data, error: signUpError } = result;
-
-      console.log('[RegisterPage] signUp result:', {
-        hasData: !!data,
-        hasError: !!signUpError,
-        errorMessage: signUpError?.message ?? null,
-        errorCode: (signUpError as { code?: string } | null)?.code ?? null,
-        hasSession: !!data?.session,
-        hasUser: !!data?.user,
-        userIdentitiesLength: data?.user?.identities?.length ?? 0,
-        userEmailConfirmed: data?.user?.email_confirmed_at ?? null,
-        userId: data?.user?.id ?? null,
-      });
 
       if (signUpError) {
         setError(signUpError.message);
@@ -87,24 +247,37 @@ export const RegisterPage: React.FC = () => {
 
       if (data.session) {
         setLoading(false);
-        navigate('/app/role-choice', { replace: true });
+        clearAccountScopedClientState();
+        const dest = await resolvePostAuthDestination({
+          user: data.session.user,
+          next: nextSafe,
+          consciousLogin: !isParentInviteFlow,
+          parentInviteFlowHint: isParentInviteFlow,
+        });
+        if (dest.hardReplace) {
+          window.location.replace(dest.path);
+          return;
+        }
+        if (dest.kind === 'parent_invite' || dest.kind === 'deep_link' || dest.kind === 'branded_entry') {
+          navigate(dest.path, { replace: true });
+          return;
+        }
+        navigate(pendingInvitePath || nextSafe || '/app/role-choice', { replace: true });
         return;
       }
 
-      if (data?.user?.identities?.length === 0) {
-        console.warn('[RegisterPage] signUp returned user with identities.length === 0 (email may already be registered). No confirmation email is sent in that case.');
-      }
       setNeedsEmailConfirmation(true);
       setMessage({
         type: 'success',
-        text: 'Konto angelegt. Bitte E-Mail bestätigen – du erhältst einen Link zur Bestätigung.',
+        text: isParentInviteFlow
+          ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es direkt mit der Einladung weiter — ohne Rollen- oder Mannschaftswahl.'
+          : 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es mit der Rollenwahl weiter — ohne erneutes Passwort.',
       });
-    } catch (e) {
-      console.error('[RegisterPage] signUp exception:', e);
-      const msg = e instanceof Error ? e.message : 'Registrierung fehlgeschlagen.';
+      setLoading(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
       setMessage({ type: 'error', text: msg });
-    } finally {
       setLoading(false);
     }
   };
@@ -115,10 +288,19 @@ export const RegisterPage: React.FC = () => {
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
           <h1 className="text-xl font-semibold text-white">E-Mail bestätigen</h1>
           <p className="mt-2 text-sm text-white/70">
-            Wir haben dir eine E-Mail geschickt. Bitte klicke auf den Link darin, um dein Konto zu aktivieren. Danach kannst du dich mit E-Mail und Passwort anmelden.
+            {isParentInviteFlow
+              ? 'Bitte bestätige deine E-Mail-Adresse. Danach öffnet sich die Einladung — ohne Rollen- oder Teamauswahl. Dein Passwort bleibt gültig.'
+              : 'Bitte bestätige deine E-Mail-Adresse. Nach dem Klick auf den Bestätigungslink geht es weiter zur Rollenwahl. Dein Passwort bleibt gültig — du musst es nicht erneut setzen.'}
           </p>
           <p className="mt-4 text-center text-sm text-white/60">
-            <Link to="/login" className="text-white/80 hover:text-white hover:underline">
+            <Link
+              to={
+                nextSafe
+                  ? `/login?${buildParentInviteAuthQuery({ next: nextSafe, email })}`
+                  : '/login'
+              }
+              className="text-white/80 hover:text-white hover:underline"
+            >
               Zur Anmeldung
             </Link>
           </p>
@@ -127,12 +309,26 @@ export const RegisterPage: React.FC = () => {
     );
   }
 
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
+        <p className="text-sm text-white/60">Laden…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
-        <h1 className="text-xl font-semibold text-white">Registrieren</h1>
+        <h1 className="text-xl font-semibold text-white">
+          {hasInviteSession ? 'Konto vervollständigen' : 'Registrieren'}
+        </h1>
         <p className="mt-1 text-sm text-white/60">
-          Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.
+          {isParentInviteFlow
+            ? hasInviteSession
+              ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
+              : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'
+            : 'Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.'}
         </p>
 
         <form onSubmit={handleRegister} className="mt-6 space-y-4">
@@ -174,12 +370,21 @@ export const RegisterPage: React.FC = () => {
               id="reg-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                if (inviteEmailLocked) return;
+                setEmail(e.target.value.trim().toLowerCase());
+              }}
               placeholder="name@beispiel.de"
               required
+              readOnly={inviteEmailLocked}
               autoComplete="email"
               className={inputClass}
             />
+            {inviteEmailLocked ? (
+              <p className="mt-1 text-xs text-white/50">
+                Diese Einladung ist an diese E-Mail-Adresse gebunden.
+              </p>
+            ) : null}
           </div>
           <div>
             <label htmlFor="reg-password" className="mb-1 block text-sm font-medium text-white/80">
@@ -222,13 +427,27 @@ export const RegisterPage: React.FC = () => {
           )}
 
           <Button type="submit" fullWidth disabled={loading} className="mt-2">
-            {loading ? 'Wird angelegt…' : 'Konto anlegen'}
+            {loading
+              ? 'Wird gespeichert…'
+              : hasInviteSession
+                ? 'Speichern und weiter'
+                : 'Konto anlegen'}
           </Button>
         </form>
 
         <p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
           Bereits registriert?{' '}
-          <Link to="/login" className="text-white/80 hover:text-white hover:underline">
+          <Link
+            to={
+              nextSafe || pendingInvitePath
+                ? `/login?${buildParentInviteAuthQuery({
+                    next: nextSafe || pendingInvitePath || '',
+                    email,
+                  })}`
+                : '/login'
+            }
+            className="text-white/80 hover:text-white hover:underline"
+          >
             Anmelden
           </Link>
         </p>

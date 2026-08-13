@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, CalendarRange, ChevronRight, Settings, Smartphone, Users, Wrench } from 'lucide-react';
+import { Bell, CalendarRange, ChevronRight, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -53,6 +53,42 @@ export const MoreHubPage: React.FC = () => {
   const showParentAccessLink = canViewParentLinks(normalizeRole(effectiveRole));
   const showDebugHubButtons = showMehrHubDebugButtons(backendRole, effectiveRole);
   const unreadCount = useUnreadCount(user?.id);
+
+  const [hasLinkedChildren, setHasLinkedChildren] = useState(false);
+  useEffect(() => {
+    if (normalizeRole(effectiveRole) !== 'parent') {
+      setHasLinkedChildren(false);
+      return;
+    }
+    if (!user?.id) {
+      setHasLinkedChildren(false);
+      return;
+    }
+
+    let cancelled = false;
+    void supabase
+      .from('player_guardians')
+      .select('player_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn('[MoreHubPage] guardian count load failed', error.message ?? error);
+          setHasLinkedChildren(false);
+          return;
+        }
+        setHasLinkedChildren(Array.isArray(data) && data.length > 0);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setHasLinkedChildren(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveRole, user?.id]);
 
   const [teamAdminOpen, setTeamAdminOpen] = useState(false);
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
@@ -285,6 +321,22 @@ export const MoreHubPage: React.FC = () => {
               </PremiumCard>
             )}
           </div>
+        )}
+
+        {(effectiveRole === 'parent' ||
+          normalizeRole(effectiveRole) === 'parent') && (
+          <Link to="/app/parent-onboarding?mode=link" className={dsPanelRowClass()}>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex items-center gap-3">
+                <Link2 className="h-5 w-5 text-red-400" aria-hidden />
+                <span>{hasLinkedChildren ? 'Weiteres Kind verknüpfen' : 'Kind verknüpfen'}</span>
+              </span>
+              <span className="pl-8 text-[11px] font-normal text-white/45">
+                Aktive Saison und verfügbare Spieler
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+          </Link>
         )}
 
         <Link to="/app/profile" className={dsPanelRowClass()}>

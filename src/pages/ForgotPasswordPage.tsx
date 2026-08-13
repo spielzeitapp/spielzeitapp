@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
-import { getAuthRedirectUrl } from '../lib/authRedirect';
+import { AUTH_PASSWORD_RECOVERY_PATH, getAuthRedirectUrl } from '../lib/authRedirect';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -26,7 +26,7 @@ export const ForgotPasswordPage: React.FC = () => {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-      redirectTo: getAuthRedirectUrl('/app/set-password'),
+      redirectTo: getAuthRedirectUrl(AUTH_PASSWORD_RECOVERY_PATH),
     });
     setLoading(false);
     if (error) {

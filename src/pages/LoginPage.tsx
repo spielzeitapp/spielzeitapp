@@ -1,16 +1,51 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
+import {
+  clearEmailConfirmFlow,
+  isEmailConfirmFlow,
+  isSafeAuthRedirectPath,
+} from '../lib/authRedirect';
+import { resolvePostAuthDestination } from '../lib/postAuthDestination';
+import {
+  buildParentInviteAuthNext,
+  buildParentInviteAuthQuery,
+  ensureParentInviteContextFromNext,
+  isAppIntroEntryPath,
+  readParentInviteTokenFromUserMetadata,
+  readStashedParentInviteEmail,
+  readStashedParentInviteToken,
+  resolvePendingParentInvitePath,
+  stashParentInviteEmail,
+  stashParentInviteToken,
+} from '../lib/parentLinkInvites';
+import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
+import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/parentChildLink';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
+import { useAuth } from '../auth/AuthProvider';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
+function stashTokenIfValid(raw: string | null | undefined): string | null {
+  const token = normalizeParentInviteToken(raw ?? '');
+  if (!isParentInviteTokenShape(token)) return null;
+  stashParentInviteToken(token);
+  return token;
+}
+
+function pathLooksLikeParentInvite(path: string | null | undefined): boolean {
+  if (!path) return false;
+  return path.includes('/app/parent-invite');
+}
+
 export const LoginPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,8 +54,102 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPlayerLogin, setShowPlayerLogin] = useState(false);
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/app/termine';
+  const fromState = (location.state as { from?: { pathname: string; search?: string } })?.from;
+  const fromStatePath = fromState?.pathname
+    ? `${fromState.pathname}${fromState.search ?? ''}`
+    : null;
+  const nextRaw = searchParams.get('next') ?? '';
+  const nextFromQuery = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
+  const orphanT = searchParams.get('t');
+  const inviteConfirmedFlag =
+    searchParams.get('invite_confirmed') === '1' || searchParams.get('invite_confirmed') === 'true';
+
+  // Recover invite next from RequireAuth from-state or stash/metadata (Confirm Site-URL fallback).
+  const pendingInvitePath = resolvePendingParentInvitePath(user);
+  const fromInvitePath =
+    fromStatePath && pathLooksLikeParentInvite(fromStatePath) && isSafeAuthRedirectPath(fromStatePath)
+      ? fromStatePath.split('?')[0] || fromStatePath
+      : null;
+  const nextSafe = nextFromQuery || fromInvitePath || pendingInvitePath;
+
+  const orphanTokenValid = isParentInviteTokenShape(normalizeParentInviteToken(orphanT ?? ''));
+  const metaToken = readParentInviteTokenFromUserMetadata(user);
+  const isParentInviteFlow = Boolean(
+    pendingInvitePath ||
+      nextSafe ||
+      orphanTokenValid ||
+      metaToken ||
+      readStashedParentInviteEmail() ||
+      (searchParams.get('email') ?? '').trim() ||
+      inviteConfirmedFlag,
+  );
+
+  const showInviteConfirmedHint = Boolean(
+    isParentInviteFlow && (inviteConfirmedFlag || isEmailConfirmFlow()),
+  );
+
+  /** Nur echte RequireAuth-/Deep-Link-Herkunft — kein Termine-Default. */
+  const safeFromState =
+    fromStatePath &&
+    isSafeAuthRedirectPath(fromStatePath) &&
+    !(isParentInviteFlow && isAppIntroEntryPath(fromStatePath))
+      ? fromStatePath
+      : null;
+
   const playerLoginEnabled = isPlayerQrAccessEnabled();
+  const lockedInviteEmail = useMemo(() => {
+    const fromQuery = (searchParams.get('email') ?? '').trim().toLowerCase();
+    if (fromQuery) return fromQuery;
+    const stashed = (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
+    if (stashed) return stashed;
+    const fromUser = (user?.email ?? '').trim().toLowerCase();
+    if (isParentInviteFlow && fromUser) return fromUser;
+    return '';
+  }, [searchParams, user?.email, isParentInviteFlow]);
+
+  const inviteEmailLocked = Boolean(lockedInviteEmail);
+
+  useEffect(() => {
+    ensureParentInviteContextFromNext(nextSafe);
+    stashTokenIfValid(orphanT);
+    if (metaToken) stashParentInviteToken(metaToken);
+    const stashedToken = readStashedParentInviteToken();
+    if (stashedToken && isParentInviteTokenShape(stashedToken) && !nextFromQuery) {
+      ensureParentInviteContextFromNext(buildParentInviteAuthNext(stashedToken));
+    }
+    if (lockedInviteEmail) {
+      setEmail(lockedInviteEmail);
+      stashParentInviteEmail(lockedInviteEmail);
+    }
+  }, [searchParams, nextSafe, orphanT, metaToken, lockedInviteEmail, nextFromQuery]);
+
+  // Confirm / Magic-Link landete auf /login mit Session → Invite-Accept (kein Splash).
+  useEffect(() => {
+    if (authLoading || !user || !isParentInviteFlow) return;
+    let cancelled = false;
+    (async () => {
+      const meta = readParentInviteTokenFromUserMetadata(user);
+      if (meta) stashParentInviteToken(meta);
+      ensureParentInviteContextFromNext(nextSafe);
+      const dest = await resolvePostAuthDestination({
+        user,
+        next: nextSafe,
+        from: safeFromState,
+        consciousLogin: false,
+        parentInviteFlowHint: true,
+      });
+      if (cancelled) return;
+      clearEmailConfirmFlow();
+      if (dest.hardReplace) {
+        window.location.replace(dest.path);
+        return;
+      }
+      navigate(dest.path, { replace: true });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user, isParentInviteFlow, nextSafe, safeFromState, navigate]);
 
   if (showPlayerLogin) {
     return (
@@ -35,8 +164,18 @@ export const LoginPage: React.FC = () => {
     setError('');
     setLoading(true);
     setRememberMePreference(rememberMe);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+    ensureParentInviteContextFromNext(nextSafe);
+    stashTokenIfValid(orphanT);
+
+    const trimmedEmail = email.trim().toLowerCase();
+    if (lockedInviteEmail && trimmedEmail !== lockedInviteEmail) {
+      setLoading(false);
+      setError('Für diese Einladung musst du die eingeladene E-Mail-Adresse verwenden.');
+      return;
+    }
+
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
       password,
     });
     setLoading(false);
@@ -44,16 +183,50 @@ export const LoginPage: React.FC = () => {
       setError(signInError.message);
       return;
     }
-    navigate(from, { replace: true });
+
+    clearAccountScopedClientState();
+
+    const recoveredMeta = readParentInviteTokenFromUserMetadata(signInData.user);
+    if (recoveredMeta) stashParentInviteToken(recoveredMeta);
+    ensureParentInviteContextFromNext(nextSafe);
+    stashTokenIfValid(orphanT);
+    if (lockedInviteEmail) stashParentInviteEmail(lockedInviteEmail);
+
+    const dest = await resolvePostAuthDestination({
+      user: signInData.user,
+      next: nextSafe,
+      from: safeFromState,
+      // Invite wins over splash inside resolvePostAuthDestination.
+      consciousLogin: !isParentInviteFlow,
+      parentInviteFlowHint: isParentInviteFlow,
+    });
+
+    clearEmailConfirmFlow();
+
+    if (dest.hardReplace) {
+      window.location.replace(dest.path);
+      return;
+    }
+    navigate(dest.path, { replace: true });
   };
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
         <h1 className="text-xl font-semibold text-white">Anmelden</h1>
-        <p className="mt-1 text-sm text-white/60">E-Mail und Passwort eingeben</p>
+        <p className="mt-1 text-sm text-white/60">
+          {showInviteConfirmedHint
+            ? 'E-Mail bestätigt. Melde dich jetzt an, um die Einladung anzunehmen.'
+            : isParentInviteFlow
+              ? 'Mit der eingeladenen E-Mail anmelden, um die Eltern-Einladung fortzusetzen.'
+              : 'E-Mail und Passwort eingeben'}
+        </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="mt-6 space-y-4"
+          autoComplete={inviteEmailLocked ? 'on' : 'on'}
+        >
           <div>
             <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-white/80">
               E-Mail
@@ -61,13 +234,25 @@ export const LoginPage: React.FC = () => {
             <input
               id="login-email"
               type="email"
+              name={inviteEmailLocked ? 'invite-email' : 'email'}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                if (inviteEmailLocked) return;
+                setEmail(e.target.value.trim().toLowerCase());
+              }}
               placeholder="name@beispiel.de"
               required
-              autoComplete="email"
+              readOnly={inviteEmailLocked}
+              // Safari: locked invite email must not be overwritten by another saved account.
+              autoComplete={inviteEmailLocked ? 'off' : 'username'}
+              inputMode="email"
               className={inputClass}
             />
+            {inviteEmailLocked ? (
+              <p className="mt-1 text-xs text-white/50">
+                Diese Einladung ist an diese E-Mail-Adresse gebunden.
+              </p>
+            ) : null}
           </div>
           <div>
             <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-white/80">
@@ -77,6 +262,7 @@ export const LoginPage: React.FC = () => {
               <input
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -110,7 +296,7 @@ export const LoginPage: React.FC = () => {
           </Button>
         </form>
 
-        {playerLoginEnabled ? (
+        {playerLoginEnabled && !isParentInviteFlow ? (
           <div className="mt-4 border-t border-white/10 pt-4">
             <button
               type="button"
@@ -132,12 +318,18 @@ export const LoginPage: React.FC = () => {
           >
             Passwort vergessen?
           </Link>
-          <Link
-            to="/register"
-            className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
-          >
-            Noch kein Konto? Registrieren
-          </Link>
+          {!isParentInviteFlow ? (
+            <Link
+              to={
+                nextSafe
+                  ? `/register?${buildParentInviteAuthQuery({ next: nextSafe, email })}`
+                  : '/register'
+              }
+              className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
+            >
+              Noch kein Konto? Registrieren
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>

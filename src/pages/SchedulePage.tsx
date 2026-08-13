@@ -184,7 +184,7 @@ export const SchedulePage: React.FC = () => {
     usePublicTeamSeason();
   const { selectedMembership, user, selectedTeamSeason, isViewOnlyPlayer } = useSession();
   const userId = user?.id ?? null;
-  const effectiveTeamSeasonId = teamSeasonId ?? publicTeamId;
+  const effectiveTeamSeasonId = teamSeasonId ?? (user ? null : publicTeamId);
   const { events: rawEvents, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
 
   const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});

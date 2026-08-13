@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 import { TeamSwitcher } from '../components/TeamSwitcher';
+import { ParentChildrenSwitcher } from '../../components/parent/ParentChildrenSwitcher';
 import { isStagingApp } from '../../lib/appEnvironment';
 
 const APP_HEADER_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
@@ -159,9 +160,15 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {!publicView && (teamSeasons?.length ?? 0) > 1 ? (
+        {!publicView && effectiveRole !== 'parent' && (teamSeasons?.length ?? 0) > 1 ? (
           <div className="flex shrink-0 justify-center px-1">
             <TeamSwitcher compact hideWhenSingle />
+          </div>
+        ) : null}
+
+        {!publicView && effectiveRole === 'parent' ? (
+          <div className="flex min-w-0 justify-center px-1">
+            <ParentChildrenSwitcher />
           </div>
         ) : null}
 

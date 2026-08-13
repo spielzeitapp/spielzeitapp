@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppBackground } from './AppBackground';
 import { Header } from './Header';
@@ -14,6 +14,18 @@ import { supabase } from '../../lib/supabaseClient';
 import { TabletSidebar } from '../components/TabletSidebar';
 import { PushOnboardingPrompt } from '../../components/PushOnboardingPrompt';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/roles';
+import {
+  isParentLinkDeferred,
+  isParentOnboardingSatisfied,
+  isParentRoleChosen,
+  userHasPlayerGuardian,
+} from '../../lib/parentChildLink';
+import {
+  hasOpenParentEmailInviteForMe,
+  markPendingParentEmailInvite,
+  readPendingParentEmailInviteFlag,
+  resolvePendingParentInvitePath,
+} from '../../lib/parentLinkInvites';
 
 const ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
@@ -38,11 +50,7 @@ function hasStaffAccess(backendRole: string, memberships: { role?: string | null
 
 /**
  * Layout für den internen Bereich /app/*.
- * Immer mit Header, TopNav/BottomNav (keine öffentliche Reduktion).
- *
- * E2E Parent flow:
- * - First time: register → /app → role-choice → parent-onboarding (team + child) → App.
- * - Second login: email + password → /app/home (onboarding skipped if memberships + player_guardians exist).
+ * Persönliche Eltern-Einladung hat Vorrang vor Splash, Rollenwahl und Kind-Selbstverknüpfung.
  */
 export const InternalLayout: React.FC = () => {
   const isTouchLayout = useIsTouchLayout();
@@ -50,9 +58,9 @@ export const InternalLayout: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { memberships, loading: sessionLoading, backendRole, previewRole } = useSession();
+  const [gateChecking, setGateChecking] = useState(true);
   const isLiveRoute = location.pathname.startsWith('/app/live');
   const pathClean = location.pathname.replace(/\/+$/, '') || '/';
-  /** Wie Home/Termine: kein doppeltes Horizontal-Padding zur Shell — Seite steuert px-3/sm:px-4, ab md wie üblich Shell-Padding. */
   const isWideMobileShellRoute =
     pathClean === '/app/home' ||
     pathClean === '/app/team' ||
@@ -63,19 +71,42 @@ export const InternalLayout: React.FC = () => {
   useSyncPendingProfile(user ?? null);
   useSyncProfileFromUserMetadata(user ?? null);
 
-  /** Onboarding-Gate: neue Nutzer zur Rollenwahl / Eltern-Onboarding; Staff nicht blockieren. */
   useEffect(() => {
     let alive = true;
 
     async function gate() {
-      if (isOnboardingExemptPath(location.pathname)) {
+      const pendingInvitePath = resolvePendingParentInvitePath();
+      const onInvitePage =
+        location.pathname === '/app/parent-invite' ||
+        location.pathname.startsWith('/app/parent-invite/');
+      if (pendingInvitePath && !onInvitePage) {
+        if (alive) setGateChecking(false);
+        window.location.replace(pendingInvitePath);
+        return;
+      }
+      if (!onInvitePage && readPendingParentEmailInviteFlag()) {
+        if (alive) setGateChecking(false);
+        window.location.replace('/app/parent-invite');
         return;
       }
 
-      if (!user || sessionLoading) return;
+      if (isOnboardingExemptPath(location.pathname)) {
+        if (alive) setGateChecking(false);
+        return;
+      }
+
+      if (!user || sessionLoading) {
+        if (alive) setGateChecking(true);
+        return;
+      }
+
+      if (alive) setGateChecking(true);
 
       const membershipList = memberships ?? [];
-      if (hasStaffAccess(backendRole, membershipList)) return;
+      if (hasStaffAccess(backendRole, membershipList)) {
+        if (alive) setGateChecking(false);
+        return;
+      }
 
       const preview = normalizeSessionRole(previewRole ?? '') ?? '';
       const hasParentMembership = membershipList.some(
@@ -88,18 +119,40 @@ export const InternalLayout: React.FC = () => {
         (m) => normalizeSessionRole(m.role) === 'fan',
       );
 
-      const pgRes = await supabase
-        .from('player_guardians')
-        .select('player_id')
-        .eq('user_id', user.id)
-        .limit(1);
-      const hasGuardian = !pgRes.error && (pgRes.data ?? []).length > 0;
+      const guardianRes = await userHasPlayerGuardian(user.id);
+      const hasGuardian = guardianRes.hasGuardian;
+
+      if (!hasGuardian && !onInvitePage) {
+        const openEmailInvite = await hasOpenParentEmailInviteForMe();
+        if (!alive) return;
+        if (openEmailInvite) {
+          markPendingParentEmailInvite();
+          setGateChecking(false);
+          window.location.replace('/app/parent-invite');
+          return;
+        }
+      }
+
+      let gateUser = user;
+      try {
+        const { data: fresh } = await supabase.auth.getUser();
+        if (fresh?.user) gateUser = fresh.user;
+      } catch {
+        // ignore — Fallback auf Context-User
+      }
+      const deferred = isParentLinkDeferred(gateUser);
 
       if (!alive) return;
 
-      if (hasParentMembership && hasGuardian) return;
+      if (hasGuardian) {
+        setGateChecking(false);
+        return;
+      }
 
-      if (hasFanMembership) return;
+      if (hasFanMembership) {
+        setGateChecking(false);
+        return;
+      }
 
       if (
         preview === 'fan' &&
@@ -107,34 +160,53 @@ export const InternalLayout: React.FC = () => {
         !hasPlayerMembership &&
         !hasGuardian
       ) {
+        setGateChecking(false);
         navigate('/app/fan-onboarding', { replace: true });
         return;
       }
 
       if (preview === 'player' && !hasPlayerMembership) {
+        setGateChecking(false);
         navigate('/app/player-onboarding', { replace: true });
         return;
       }
-      if (hasPlayerMembership) return;
+      if (hasPlayerMembership) {
+        setGateChecking(false);
+        return;
+      }
 
-      const needsParentOnboarding =
-        preview === 'parent' ||
-        normalizeSessionRole(backendRole) === 'parent' ||
-        hasParentMembership ||
-        hasGuardian;
+      const parentSat = isParentOnboardingSatisfied({
+        hasGuardian,
+        hasParentMembership,
+        deferred,
+        previewIsParent: preview === 'parent',
+        backendIsParent: normalizeSessionRole(backendRole) === 'parent',
+        parentRoleChosen: isParentRoleChosen(gateUser),
+      });
 
-      if (needsParentOnboarding) {
+      if (parentSat.needsOnboardingUi) {
+        setGateChecking(false);
         navigate('/app/parent-onboarding', { replace: true });
         return;
       }
 
-      if (membershipList.length === 0 && !hasGuardian) {
-        navigate('/app/role-choice', { replace: true });
+      if (parentSat.complete && (deferred || hasParentMembership || preview === 'parent')) {
+        setGateChecking(false);
+        return;
       }
+
+      if (membershipList.length === 0 && !hasGuardian && !deferred) {
+        setGateChecking(false);
+        navigate('/app/role-choice', { replace: true });
+        return;
+      }
+
+      setGateChecking(false);
     }
 
     gate().catch((e) => {
       console.error('[OnboardingGate]', e);
+      if (alive) setGateChecking(false);
     });
 
     return () => {
@@ -149,6 +221,10 @@ export const InternalLayout: React.FC = () => {
     memberships,
     navigate,
   ]);
+
+  const blockContent =
+    !isOnboardingExemptPath(location.pathname) &&
+    (sessionLoading || gateChecking);
 
   return (
     <AppBackground>
@@ -175,7 +251,11 @@ export const InternalLayout: React.FC = () => {
             <div className="lg:flex lg:items-start lg:gap-6">
               <TabletSidebar compact={isLiveRoute} />
               <div className="min-w-0 flex-1">
-                <Outlet />
+                {blockContent ? (
+                  <p className="px-4 py-8 text-sm text-white/55">Lade…</p>
+                ) : (
+                  <Outlet />
+                )}
               </div>
             </div>
           </div>

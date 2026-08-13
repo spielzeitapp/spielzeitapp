@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { normalizeRole, canViewParentLinks } from '../lib/roles';
@@ -12,7 +12,14 @@ import { useTeamPlayerAppStatus } from '../hooks/useTeamPlayerAppStatus';
 
 /** Eltern & Spielerzugänge — organisatorische Verwaltung (nicht Team-Sportansicht). */
 export const ParentAccessPage: React.FC = () => {
-  const { teamSeasonId, role, loading: tsLoading } = useActiveTeamSeason();
+  const [searchParams] = useSearchParams();
+  const focusPlayerId = (searchParams.get('player') ?? '').trim() || null;
+  const {
+    teamSeasonId,
+    teamLabelWithStatus,
+    role,
+    loading: tsLoading,
+  } = useActiveTeamSeason();
   const roleNormalized = normalizeRole(role);
   const allowed = canViewParentLinks(roleNormalized);
   const dataActive = allowed && !tsLoading;
@@ -52,12 +59,14 @@ export const ParentAccessPage: React.FC = () => {
         </span>
       </Link>
 
-      <SectionTitle subtitle="Verknüpfungen, Push und Spieler-App im Überblick">
+      <SectionTitle subtitle="Zentrale Verwaltung für Eltern-Einladungen und Spieler-App">
         Eltern &amp; Spielerzugänge
       </SectionTitle>
 
       <TeamParentsTab
         teamSeasonId={teamSeasonId}
+        teamSeasonLabel={teamLabelWithStatus}
+        focusPlayerId={focusPlayerId}
         tsLoading={tsLoading}
         rows={parentLinkRows}
         loading={parentLinksLoading}

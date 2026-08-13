@@ -6,6 +6,55 @@ import {
   LIVE_SUPABASE_PROJECT_REF,
   STAGING_SUPABASE_PROJECT_REF,
 } from "./appEnvironment";
+import { captureAuthCallbackTypeFromUrl } from './authRedirect';
+
+const PARENT_INVITE_TOKEN_STORAGE_KEY = 'spz_parent_invite_token';
+const PARENT_INVITE_TOKEN_LOCAL_KEY = 'spz_parent_invite_token_v1';
+const PARENT_INVITE_STASH_TTL_MS = 72 * 60 * 60 * 1000;
+
+/**
+ * Capture invite token early (Magic Link), before Auth hash processing rewrites the URL.
+ */
+export function captureParentInviteTokenFromUrl(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const path = window.location.pathname || '';
+    const pathMatch = path.match(/\/app\/parent-invite\/([0-9a-fA-F]{48})\/?$/);
+    let raw = '';
+    if (pathMatch?.[1]) {
+      raw = pathMatch[1];
+    } else {
+      const search = window.location.search.startsWith('?')
+        ? window.location.search.slice(1)
+        : window.location.search;
+      const hash = window.location.hash.startsWith('#')
+        ? window.location.hash.slice(1)
+        : window.location.hash;
+      raw = new URLSearchParams(search).get('t') || new URLSearchParams(hash).get('t') || '';
+    }
+    const token = String(raw).trim().toLowerCase().replace(/\s+/g, '');
+    if (!/^[0-9a-f]{48}$/.test(token)) return;
+
+    try {
+      window.sessionStorage.setItem(PARENT_INVITE_TOKEN_STORAGE_KEY, token);
+    } catch {
+      /* ignore */
+    }
+    try {
+      window.localStorage.setItem(
+        PARENT_INVITE_TOKEN_LOCAL_KEY,
+        JSON.stringify({ token, expiresAt: Date.now() + PARENT_INVITE_STASH_TTL_MS }),
+      );
+    } catch {
+      /* ignore */
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+captureAuthCallbackTypeFromUrl();
+captureParentInviteTokenFromUrl();
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;

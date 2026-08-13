@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { markPasswordRecoveryFlow } from '../lib/authRedirect';
+import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
+import { clearIntroFlowCompleted } from '../app/intro/introFlowSession';
+
 
 interface AuthContextValue {
   user: User | null;
@@ -47,7 +51,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        markPasswordRecoveryFlow();
+      }
+      if (event === 'SIGNED_OUT') {
+        clearAccountScopedClientState();
+        clearIntroFlowCompleted();
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -65,6 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    clearAccountScopedClientState();
+    clearIntroFlowCompleted();
     await supabase.auth.signOut();
   };
 

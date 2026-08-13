@@ -24,6 +24,7 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedBacke
   }
 
   if (!user) {
+    // Preserve full location (path + search) so parent-invite tokens in from-state survive.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

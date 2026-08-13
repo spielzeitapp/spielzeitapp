@@ -233,13 +233,14 @@ export const PushOnboardingPrompt: React.FC = () => {
       backendRole,
       previewRole,
       memberships,
+      user,
     }).then((complete) => {
       if (alive) setOnboardingComplete(complete);
     });
     return () => {
       alive = false;
     };
-  }, [user?.id, sessionLoading, backendRole, previewRole, memberships]);
+  }, [user, sessionLoading, backendRole, previewRole, memberships]);
 
   const shouldShow = useMemo(
     () =>

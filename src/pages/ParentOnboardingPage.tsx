@@ -1,48 +1,105 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { listRoster } from '../lib/rosterService';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
-import { canManageMatches, normalizeRole as normalizeRoleKey } from '../lib/roles';
+import { useSession } from '../auth/useSession';
+import {
+  clearParentLinkDeferred,
+  isParentInviteTokenShape,
+  linkParentSelfService,
+  listMyLinkedChildren,
+  listParentOnboardingClubs,
+  listParentOnboardingRoster,
+  listParentOnboardingSeasons,
+  listParentOnboardingTeams,
+  normalizeParentInviteToken,
+  persistParentRoleChoice,
+  redeemParentLinkInvite,
+  setParentLinkDeferred,
+  userHasPlayerGuardian,
+  type LinkedChildOption,
+  type ParentOnboardingClubOption,
+  type ParentOnboardingPlayerOption,
+  type ParentOnboardingSeasonOption,
+  type ParentOnboardingTeamOption,
+} from '../lib/parentChildLink';
+import { resolvePendingParentInvitePath } from '../lib/parentLinkInvites';
 
-type TeamSeasonOption = {
-  id: string;
-  label: string;
-};
+function isLinkMode(
+  searchParams: URLSearchParams,
+  locationState: unknown,
+): boolean {
+  if (searchParams.get('mode') === 'link') return true;
+  if (
+    locationState &&
+    typeof locationState === 'object' &&
+    'mode' in locationState &&
+    (locationState as { mode?: unknown }).mode === 'link'
+  ) {
+    return true;
+  }
+  return false;
+}
 
 export const ParentOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { setPreviewRole } = useSession();
+  const linkMode = isLinkMode(searchParams, location.state);
+
   const [userId, setUserId] = useState<string | null>(null);
-  const [teamSeasons, setTeamSeasons] = useState<TeamSeasonOption[]>([]);
-  const [selectedTeamSeasonId, setSelectedTeamSeasonId] = useState<string>('');
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
+  const [linkedChildren, setLinkedChildren] = useState<LinkedChildOption[]>([]);
+  const [clubs, setClubs] = useState<ParentOnboardingClubOption[]>([]);
+  const [teams, setTeams] = useState<ParentOnboardingTeamOption[]>([]);
+  const [seasons, setSeasons] = useState<ParentOnboardingSeasonOption[]>([]);
+  const [players, setPlayers] = useState<ParentOnboardingPlayerOption[]>([]);
+
+  const [selectedClubId, setSelectedClubId] = useState('');
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [selectedTeamSeasonId, setSelectedTeamSeasonId] = useState('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [players, setPlayers] = useState<
-    { id: string; display_name: string; jersey_number: number | null }[]
-  >([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [seasonsLoading, setSeasonsLoading] = useState(false);
   const [playersLoading, setPlayersLoading] = useState(false);
-  const [playersError, setPlayersError] = useState<string | null>(null);
+
+  const [saving, setSaving] = useState(false);
+  const [deferring, setDeferring] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
+  const [seasonsError, setSeasonsError] = useState<string | null>(null);
+  const [playersError, setPlayersError] = useState<string | null>(null);
+  const [successHint, setSuccessHint] = useState<string | null>(null);
+
+  const [showInviteCode, setShowInviteCode] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
 
   useEffect(() => {
+    const pendingInvite = resolvePendingParentInvitePath();
+    if (pendingInvite) {
+      navigate(pendingInvite, { replace: true });
+      return;
+    }
+
     let alive = true;
 
     async function load() {
       setLoading(true);
       setError(null);
+      setLoadError(null);
+      setSuccessHint(null);
 
       const { data: userRes, error: authError } = await supabase.auth.getUser();
       const user = userRes?.user ?? null;
-      console.log('[PARENT ONBOARDING AUTH USER]', { user, authError });
 
       if (!alive) return;
 
       if (authError || !user) {
         const msg = authError?.message ?? 'Kein Benutzer angemeldet.';
-        console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
         setError(msg);
         setLoadError(msg);
         setLoading(false);
@@ -51,70 +108,54 @@ export const ParentOnboardingPage: React.FC = () => {
 
       setUserId(user.id);
 
-      console.log('[PARENT TEAM LOAD START]');
+      const rolePersist = await persistParentRoleChoice();
+      if (!alive) return;
+      if (rolePersist.error) {
+        setError(rolePersist.error);
+        setLoadError(rolePersist.error);
+        setLoading(false);
+        return;
+      }
+      setPreviewRole('parent');
 
-      const { data: teamSeasonRows, error: tsError } = await supabase
-        .from('team_seasons')
-        .select('id, team_id');
-
-      console.log('[PARENT TEAM LOAD RAW TEAM_SEASONS]', {
-        data: teamSeasonRows,
-        error: tsError,
-      });
-
+      const { hasGuardian, error: guardianError } = await userHasPlayerGuardian(user.id);
       if (!alive) return;
 
-      if (tsError) {
-        const msg = tsError.message ?? 'Teams konnten nicht geladen werden.';
-        console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
-        setError(msg);
-        setLoadError(msg);
-        setTeamSeasons([]);
+      if (guardianError) {
+        setError(guardianError);
+        setLoadError(guardianError);
         setLoading(false);
         return;
       }
 
-      const teamIds = [
-        ...new Set((teamSeasonRows ?? []).map((row: any) => row.team_id).filter(Boolean)),
-      ];
+      if (hasGuardian && !linkMode) {
+        navigate('/app/home', { replace: true });
+        return;
+      }
 
-      const { data: teamsRows, error: teamsError } = await supabase
-        .from('teams')
-        .select('id, name')
-        .in('id', teamIds);
+      const linked = await listMyLinkedChildren();
+      if (!alive) return;
+      if (linked.error) {
+        console.warn('[PARENT ONBOARDING] linked children', linked.error);
+      }
+      setLinkedChildren(linked.data);
 
-      console.log('[PARENT TEAM LOAD RAW TEAMS]', {
-        data: teamsRows,
-        error: teamsError,
-      });
-
+      const clubRes = await listParentOnboardingClubs();
       if (!alive) return;
 
-      if (teamsError) {
-        const msg = teamsError.message ?? 'Teamnamen konnten nicht geladen werden.';
-        console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
-        setError(msg);
-        setLoadError(msg);
-        setTeamSeasons([]);
+      if (clubRes.error) {
+        setError(clubRes.error);
+        setLoadError(clubRes.error);
+        setClubs([]);
         setLoading(false);
         return;
       }
 
-      const teamNameById = new Map(
-        (teamsRows ?? []).map((row: any) => [String(row.id), String(row.name ?? 'Team')]),
-      );
-
-      const opts: TeamSeasonOption[] = (teamSeasonRows ?? []).map((row: any) => ({
-        id: String(row.id),
-        label: (teamNameById.get(String(row.team_id)) ?? 'Team').toString().trim(),
-      }));
-
-      console.log('[PARENT TEAM OPTIONS]', opts);
-
-      setTeamSeasons(opts);
-      if (opts.length > 0) {
-        const firstId = opts[0].id;
-        setSelectedTeamSeasonId(firstId);
+      setClubs(clubRes.data);
+      if (clubRes.data.length === 1) {
+        setSelectedClubId(clubRes.data[0].id);
+      } else {
+        setSelectedClubId('');
       }
       setLoading(false);
     }
@@ -122,7 +163,6 @@ export const ParentOnboardingPage: React.FC = () => {
     load().catch((e) => {
       if (!alive) return;
       const msg = e?.message ?? 'Unbekannter Fehler beim Laden.';
-      console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
       setError(msg);
       setLoadError(msg);
       setLoading(false);
@@ -131,67 +171,135 @@ export const ParentOnboardingPage: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [navigate, linkMode, setPreviewRole]);
 
-  // Spieler für ausgewählte team_season_id laden
   useEffect(() => {
     let alive = true;
 
-    async function loadPlayersForTeam(teamSeasonId: string) {
-      if (!teamSeasonId) {
+    async function loadTeams() {
+      if (!selectedClubId) {
+        setTeams([]);
+        setTeamsLoading(false);
+        setTeamsError(null);
+        setSelectedTeamId('');
+        return;
+      }
+
+      setTeamsLoading(true);
+      setTeamsError(null);
+      setSelectedTeamId('');
+      setSelectedTeamSeasonId('');
+      setSelectedPlayerId('');
+      setSeasons([]);
+      setPlayers([]);
+
+      const res = await listParentOnboardingTeams(selectedClubId);
+      if (!alive) return;
+
+      if (res.error) {
+        setTeams([]);
+        setTeamsError(res.error);
+        setTeamsLoading(false);
+        return;
+      }
+
+      setTeams(res.data);
+      if (res.data.length === 1) {
+        setSelectedTeamId(res.data[0].id);
+      }
+      setTeamsLoading(false);
+    }
+
+    loadTeams().catch((e) => {
+      if (!alive) return;
+      setTeams([]);
+      setTeamsError(e?.message ?? 'Mannschaften konnten nicht geladen werden.');
+      setTeamsLoading(false);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedClubId]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadSeasons() {
+      if (!selectedTeamId) {
+        setSeasons([]);
+        setSeasonsLoading(false);
+        setSeasonsError(null);
+        setSelectedTeamSeasonId('');
+        return;
+      }
+
+      setSeasonsLoading(true);
+      setSeasonsError(null);
+      setSelectedTeamSeasonId('');
+      setSelectedPlayerId('');
+      setPlayers([]);
+
+      const res = await listParentOnboardingSeasons(selectedTeamId);
+      if (!alive) return;
+
+      if (res.error) {
+        setSeasons([]);
+        setSeasonsError(res.error);
+        setSeasonsLoading(false);
+        return;
+      }
+
+      setSeasons(res.data);
+      if (res.data.length > 0) {
+        setSelectedTeamSeasonId(res.data[0].id);
+      }
+      setSeasonsLoading(false);
+    }
+
+    loadSeasons().catch((e) => {
+      if (!alive) return;
+      setSeasons([]);
+      setSeasonsError(e?.message ?? 'Saisons konnten nicht geladen werden.');
+      setSeasonsLoading(false);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedTeamId]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadPlayers() {
+      if (!selectedTeamSeasonId) {
         setPlayers([]);
         setPlayersLoading(false);
         setPlayersError(null);
+        setSelectedPlayerId('');
         return;
       }
+
       setPlayersLoading(true);
       setPlayersError(null);
+      setSelectedPlayerId('');
 
-      console.log('[PARENT PLAYER LOAD START]', { teamSeasonId });
-
-      const { data, error } = await listRoster(teamSeasonId, 'active');
-
+      const res = await listParentOnboardingRoster(selectedTeamSeasonId);
       if (!alive) return;
 
-      console.log('[PARENT PLAYER LOAD RAW]', { data, error });
-
-      if (error) {
-        console.log('[PARENT ONBOARDING PLAYER LOAD ERROR]', error);
+      if (res.error) {
         setPlayers([]);
-        setPlayersError(error ?? 'Spieler konnten nicht geladen werden.');
+        setPlayersError(res.error);
         setPlayersLoading(false);
         return;
       }
 
-      const rows = data.map((r) => ({
-        id: r.id,
-        first_name: r.first_name,
-        last_name: r.last_name,
-        jersey_number: r.jersey_number,
-      }));
-
-      console.log('[PARENT PLAYER LOAD RESULT]', {
-        rowCount: rows.length,
-        ids: rows.map((r) => r.id),
-      });
-
-      const mapped = rows.map((r) => {
-        const first = (r.first_name ?? '').toString().trim();
-        const last = (r.last_name ?? '').toString().trim();
-        const display_name = `${first} ${last}`.trim() || 'Spieler';
-        return {
-          id: r.id,
-          display_name,
-          jersey_number: r.jersey_number ?? null,
-        };
-      });
-
-      setPlayers(mapped);
+      setPlayers(res.data);
       setPlayersLoading(false);
     }
 
-    loadPlayersForTeam(selectedTeamSeasonId).catch((e) => {
-      console.log('[PARENT ONBOARDING PLAYER LOAD ERROR]', e);
+    loadPlayers().catch((e) => {
       if (!alive) return;
       setPlayers([]);
       setPlayersError(e?.message ?? 'Spieler konnten nicht geladen werden.');
@@ -203,179 +311,166 @@ export const ParentOnboardingPage: React.FC = () => {
     };
   }, [selectedTeamSeasonId]);
 
-  const handleSave = async () => {
-      if (!userId || !selectedTeamSeasonId || !selectedPlayerId) {
-        const msg = 'Bitte Team und Kind auswählen.';
-        console.log('[PARENT ONBOARDING SAVE ERROR]', msg, {
-          userId,
-          selectedTeamSeasonId,
-          selectedPlayerId,
-        });
-        setError(msg);
-        return;
-      }
+  const noClubs = !loading && !loadError && clubs.length === 0;
+  const noTeams =
+    !loading &&
+    !loadError &&
+    !!selectedClubId &&
+    !teamsLoading &&
+    !teamsError &&
+    teams.length === 0;
+  const noSeasons =
+    !loading &&
+    !loadError &&
+    !!selectedTeamId &&
+    !seasonsLoading &&
+    !seasonsError &&
+    seasons.length === 0;
+  const noPlayersForSeason =
+    !loading &&
+    !loadError &&
+    !!selectedTeamSeasonId &&
+    !playersLoading &&
+    !playersError &&
+    players.length === 0;
+  const noChildSelectable =
+    noClubs || noTeams || noSeasons || noPlayersForSeason;
 
-    console.log('[PARENT ONBOARDING TEAM SELECTED]', { teamSeasonId: selectedTeamSeasonId });
-    console.log('[PARENT ONBOARDING PLAYER SELECTED]', { playerId: selectedPlayerId });
+  const TEAM_SEASON_STORAGE_KEY = 'spielzeit_team_season_id';
+
+  /** Harte Navigation nach Home — vermeidet Reload auf falscher URL / Onboarding-Schleife. */
+  const goHome = (preferredTeamSeasonId?: string | null) => {
+    try {
+      if (preferredTeamSeasonId) {
+        window.localStorage.setItem(TEAM_SEASON_STORAGE_KEY, preferredTeamSeasonId);
+      }
+    } catch {
+      // ignore
+    }
+    window.location.assign('/app/home');
+  };
+
+  const handleDefer = async () => {
+    if (saving || deferring) return;
+    setDeferring(true);
+    setError(null);
+
+    const { error: roleError } = await persistParentRoleChoice();
+    if (roleError) {
+      setError(roleError);
+      setDeferring(false);
+      return;
+    }
+
+    const { error: deferError } = await setParentLinkDeferred(true);
+    if (deferError) {
+      setError(deferError);
+      setDeferring(false);
+      return;
+    }
+
+    // Session/User neu laden, damit parent_link_deferred im Gate ankommt
+    await supabase.auth.getUser();
+    setPreviewRole('parent');
+    goHome();
+  };
+
+  const handleSave = async () => {
+    if (saving || deferring) return;
+    if (!userId || !selectedTeamSeasonId || !selectedPlayerId) {
+      setError('Bitte Verein, Mannschaft, Saison und Kind auswählen.');
+      return;
+    }
 
     setSaving(true);
     setError(null);
+    setSuccessHint(null);
 
-    const { data: existingMembership, error: existingMembershipError } = await supabase
-      .from('memberships')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('team_season_id', selectedTeamSeasonId)
-      .maybeSingle();
-
-    if (existingMembershipError && existingMembershipError.code !== 'PGRST116') {
-      const msg =
-        existingMembershipError.message ?? 'Bestehende Mitgliedschaft konnte nicht geprüft werden.';
-      console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
-      setError(msg);
-      setSaving(false);
-      return;
-    }
-
-    const existingMembershipRole = normalizeRoleKey(existingMembership?.role ?? null);
-    const preserveStaffMembership =
-      existingMembershipRole != null && canManageMatches(existingMembershipRole);
-
-    if (!preserveStaffMembership) {
-      const membershipRes = await supabase
-        .from('memberships')
-        .upsert(
-          {
-            user_id: userId,
-            team_season_id: selectedTeamSeasonId,
-            role: 'parent',
-          },
-          { onConflict: 'user_id,team_season_id' },
-        )
-        .select('user_id, team_season_id, role');
-
-      console.log('[PARENT MEMBERSHIP UPSERT RESULT]', {
-        data: membershipRes.data,
-        error: membershipRes.error,
-      });
-
-      if (membershipRes.error) {
-        const msg = membershipRes.error.message ?? 'Speichern der Membership fehlgeschlagen.';
-        console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
-        setError(msg);
+    try {
+      const result = await linkParentSelfService(selectedTeamSeasonId, selectedPlayerId);
+      if (result.status !== 'linked' && result.status !== 'already_linked') {
+        console.warn('[PARENT ONBOARDING] link_parent_self_service failed', {
+          status: result.status,
+        });
+        setError(result.message ?? 'Verknüpfung fehlgeschlagen.');
         setSaving(false);
         return;
       }
-    } else {
-      console.log('[PARENT ONBOARDING] Staff-Membership bleibt unverändert', {
-        role: existingMembershipRole,
-        teamSeasonId: selectedTeamSeasonId,
-      });
-    }
 
-    // player_guardians: nicht doppelt anlegen (ohne Annahme über Unique-Constraint).
-    const existing = await supabase
-      .from('player_guardians')
-      .select('user_id, player_id')
-      .eq('user_id', userId)
-      .eq('player_id', selectedPlayerId)
-      .maybeSingle();
-    if (existing.error && existing.error.code !== 'PGRST116') {
-      console.log('[PARENT GUARDIAN UPSERT RESULT]', { data: null, error: existing.error });
-      const msg = existing.error.message ?? 'Prüfung der Kind-Verknüpfung fehlgeschlagen.';
-      console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
-      setError(msg);
-      setSaving(false);
-      return;
-    }
+      await clearParentLinkDeferred();
+      await supabase.auth.getUser();
+      setPreviewRole('parent');
+      setSuccessHint('Kind erfolgreich verknüpft.');
 
-    const pgRes = existing.data
-      ? { data: existing.data, error: null as any }
-      : await supabase
-          .from('player_guardians')
-          .insert({
-            user_id: userId,
-            player_id: selectedPlayerId,
-          })
-          .select('user_id, player_id')
-          .maybeSingle();
-
-    console.log('[PARENT GUARDIAN UPSERT RESULT]', {
-      data: pgRes.data,
-      error: pgRes.error,
-    });
-
-    if (pgRes.error) {
-      const msg = pgRes.error.message ?? 'Speichern der Kind-Verknüpfung fehlgeschlagen.';
-      console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
-      setError(msg);
-      setSaving(false);
-      return;
-    }
-
-    // Nach erfolgreicher Membership + player_guardians: join_request als Approval-Layer anlegen.
-    try {
-      const { data: tsRow, error: tsError } = await supabase
-        .from('team_seasons')
-        .select('team_id')
-        .eq('id', selectedTeamSeasonId)
-        .maybeSingle();
-
-      if (!tsError && tsRow?.team_id) {
-        const teamId = tsRow.team_id as string;
-        const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
-        const childName = selectedPlayer?.display_name ?? null;
-
-        // Duplikatprüfung: pending join_request für (user_id, team_id, 'parent')?
-        const { data: existingReq, error: checkError } = await supabase
-          .from('join_requests')
-          .select('id, status')
-          .eq('user_id', userId)
-          .eq('team_id', teamId)
-          .eq('requested_role', 'parent')
-          .eq('status', 'pending')
-          .maybeSingle();
-
-        if (checkError) {
-          console.warn('[PARENT ONBOARDING JOIN_REQUEST CHECK ERROR]', checkError);
-        }
-
-        if (!existingReq) {
-          const { error: jrError } = await supabase.from('join_requests').insert({
-            user_id: userId,
-            team_id: teamId,
-            requested_role: 'parent',
-            child_name: childName,
-            status: 'pending',
-          } as any);
-
-          if (jrError) {
-            console.warn('[PARENT ONBOARDING JOIN_REQUEST INSERT ERROR]', jrError);
-          } else {
-            console.log('[PARENT ONBOARDING JOIN_REQUEST CREATED]', {
-              user_id: userId,
-              team_id: teamId,
-              child_name: childName,
-            });
-          }
-        } else {
-          console.log('[PARENT ONBOARDING JOIN_REQUEST ALREADY EXISTS]', existingReq);
-        }
-      } else {
-        console.warn('[PARENT ONBOARDING TEAM_SEASON LOOKUP ERROR]', tsError);
-      }
+      // Kurz Erfolgsmeldung zeigen, dann Home mit frischer Session
+      window.setTimeout(() => {
+        goHome(result.teamSeasonId ?? selectedTeamSeasonId);
+      }, 700);
     } catch (e) {
-      console.warn('[PARENT ONBOARDING JOIN_REQUEST EXCEPTION]', e);
+      console.warn('[PARENT ONBOARDING] link exception', {
+        name: e instanceof Error ? e.name : 'unknown',
+      });
+      setError('Verknüpfung fehlgeschlagen. Bitte erneut versuchen.');
+      setSaving(false);
+    }
+  };
+
+  const handleRedeem = async () => {
+    if (saving || deferring) return;
+    if (!userId) {
+      setError('Kein Benutzer angemeldet.');
+      return;
     }
 
-    setSaving(false);
-    // Passwort wurde bereits bei der Registrierung gesetzt; nach erfolgreichem Onboarding
-    // direkt in den normalen Flow (/app/home) leiten.
-    navigate('/app/home', { replace: true });
-    // WICHTIG: Memberships & player_guardians werden im Session-Context einmalig geladen.
-    // Nach dem ersten Anlegen laden wir die Seite neu, damit Rollen & Berechtigungen sofort korrekt sind.
-    window.location.reload();
+    const token = normalizeParentInviteToken(inviteCode);
+    if (!isParentInviteTokenShape(token)) {
+      setError('Bitte den vollständigen Einladungscode eingeben.');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setSuccessHint(null);
+
+    try {
+      const result = await redeemParentLinkInvite(token);
+      if (result.status !== 'linked' && result.status !== 'already_linked') {
+        console.warn('[PARENT ONBOARDING] redeem failed', { status: result.status });
+        setError(result.message ?? 'Verknüpfung fehlgeschlagen.');
+        setSaving(false);
+        return;
+      }
+
+      await clearParentLinkDeferred();
+      await supabase.auth.getUser();
+      setPreviewRole('parent');
+      setSuccessHint('Kind erfolgreich verknüpft.');
+      window.setTimeout(() => {
+        goHome(result.teamSeasonId);
+      }, 700);
+    } catch (e) {
+      console.warn('[PARENT ONBOARDING] redeem exception', {
+        name: e instanceof Error ? e.name : 'unknown',
+      });
+      setError('Verknüpfung fehlgeschlagen. Bitte erneut versuchen.');
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="page relative min-h-[60vh] px-4 pt-6">
+        <div className="mx-auto max-w-[720px]">
+          <Card>
+            <div className="space-y-4">
+              <CardTitle>Kind verknüpfen</CardTitle>
+              <p className="text-sm text-[var(--text-sub)]">Lade…</p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page relative min-h-[60vh] px-4 pt-6">
@@ -384,7 +479,9 @@ export const ParentOnboardingPage: React.FC = () => {
           <div className="space-y-4">
             <CardTitle>Kind verknüpfen</CardTitle>
             <p className="text-sm text-[var(--text-sub)]">
-              Bitte wähle Team und Kind aus.
+              {linkMode
+                ? 'Verknüpfe ein weiteres Kind mit deinem Eltern-Konto.'
+                : 'Wähle Verein, Mannschaft, Saison und dein Kind aus.'}
             </p>
 
             {error && (
@@ -392,10 +489,13 @@ export const ParentOnboardingPage: React.FC = () => {
                 {error}
               </p>
             )}
+            {successHint && (
+              <p className="text-sm text-emerald-400" role="status">
+                {successHint}
+              </p>
+            )}
 
-            {loading ? (
-              <p className="text-sm text-[var(--text-sub)]">Lade Daten…</p>
-            ) : loadError ? (
+            {loadError ? (
               <div className="space-y-3">
                 <p className="text-sm text-red-400">
                   Es gab ein Problem beim Laden der Onboarding-Daten.
@@ -404,10 +504,7 @@ export const ParentOnboardingPage: React.FC = () => {
                   <Button
                     variant="primary"
                     className="flex-1"
-                    onClick={() => {
-                      console.log('[PARENT ONBOARDING RETRY]');
-                      window.location.reload();
-                    }}
+                    onClick={() => window.location.reload()}
                   >
                     Erneut laden
                   </Button>
@@ -415,13 +512,11 @@ export const ParentOnboardingPage: React.FC = () => {
                     variant="ghost"
                     className="flex-1"
                     onClick={async () => {
-                      console.log('[AUTH LOGOUT START]');
                       try {
                         await supabase.auth.signOut();
-                        console.log('[AUTH LOGOUT SUCCESS]');
                         navigate('/login', { replace: true });
                       } catch (e) {
-                        console.error('[AUTH LOGOUT ERROR]', e);
+                        console.error('[PARENT ONBOARDING] Abmelden fehlgeschlagen', e);
                       }
                     }}
                   >
@@ -431,81 +526,231 @@ export const ParentOnboardingPage: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-[var(--text-main)]">
-                    Team auswählen
-                  </label>
-                  <select
-                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-                    value={selectedTeamSeasonId}
-                    onChange={(e) => {
-                      setSelectedTeamSeasonId(e.target.value);
-                      setSelectedPlayerId('');
-                    }}
-                  >
-                    {teamSeasons.map((ts) => (
-                      <option key={ts.id} value={ts.id}>
-                        {ts.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-[var(--text-main)]">
-                    Kind auswählen
-                  </label>
-                  {playersLoading ? (
-                    <p className="text-sm text-[var(--text-sub)]">
-                      Lade Spieler…
-                    </p>
-                  ) : playersError ? (
-                    <p className="text-sm text-[var(--text-sub)]">
-                      Spieler konnten nicht geladen werden.
-                    </p>
-                  ) : players.length === 0 ? (
-                    <p className="text-sm text-[var(--text-sub)]">
-                      Kein Spieler gefunden. Bitte Trainer kontaktieren.
-                    </p>
-                  ) : (
-                    <div className="space-y-2 max-h-[260px] overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
-                      {players.map((p) => (
-                        <label
-                          key={p.id}
-                          className="flex items-center justify-between gap-3 py-1.5"
-                        >
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name="child"
-                              className="h-4 w-4"
-                              checked={selectedPlayerId === p.id}
-                              onChange={() => setSelectedPlayerId(p.id)}
-                            />
-                            <span className="text-sm text-[var(--text-main)]">
-                              {p.display_name}
-                            </span>
-                          </div>
-                          {p.jersey_number != null && (
-                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-[var(--text-sub)]">
-                              #{p.jersey_number}
-                            </span>
-                          )}
-                        </label>
+                {linkedChildren.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-[var(--text-main)]">Bereits verknüpft</p>
+                    <ul className="space-y-1.5 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
+                      {linkedChildren.map((child) => (
+                        <li key={child.playerId} className="text-sm text-[var(--text-main)]">
+                          {child.displayName}
+                          {child.teamLabel ? (
+                            <span className="text-[var(--text-sub)]"> · {child.teamLabel}</span>
+                          ) : null}
+                        </li>
                       ))}
+                    </ul>
+                  </div>
+                )}
+
+                {noClubs ? (
+                  <p className="text-sm text-[var(--text-sub)]">
+                    Derzeit ist kein Verein für die Kind-Verknüpfung verfügbar. Du kannst diesen
+                    Schritt überspringen oder später erneut versuchen.
+                  </p>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-[var(--text-main)]">
+                        Verein auswählen
+                      </label>
+                      <select
+                        className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                        value={selectedClubId}
+                        onChange={(e) => setSelectedClubId(e.target.value)}
+                        disabled={clubs.length === 1}
+                      >
+                        {clubs.length > 1 && <option value="">Bitte wählen…</option>}
+                        {clubs.map((club) => (
+                          <option key={club.id} value={club.id}>
+                            {club.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  )}
-                </div>
+
+                    {selectedClubId && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-[var(--text-main)]">
+                          Mannschaft auswählen
+                        </label>
+                        {teamsLoading ? (
+                          <p className="text-sm text-[var(--text-sub)]">Lade…</p>
+                        ) : teamsError ? (
+                          <p className="text-sm text-red-400">{teamsError}</p>
+                        ) : noTeams ? (
+                          <p className="text-sm text-[var(--text-sub)]">
+                            Für diesen Verein ist derzeit keine Mannschaft verfügbar.
+                          </p>
+                        ) : (
+                          <select
+                            className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                            value={selectedTeamId}
+                            onChange={(e) => setSelectedTeamId(e.target.value)}
+                            disabled={teams.length === 1}
+                          >
+                            {teams.length > 1 && <option value="">Bitte wählen…</option>}
+                            {teams.map((team) => (
+                              <option key={team.id} value={team.id}>
+                                {team.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedTeamId && !noTeams && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-[var(--text-main)]">
+                          Saison auswählen
+                        </label>
+                        {seasonsLoading ? (
+                          <p className="text-sm text-[var(--text-sub)]">Lade…</p>
+                        ) : seasonsError ? (
+                          <p className="text-sm text-red-400">{seasonsError}</p>
+                        ) : noSeasons ? (
+                          <p className="text-sm text-[var(--text-sub)]">
+                            Für diese Mannschaft ist derzeit keine aktive Saison verfügbar.
+                          </p>
+                        ) : (
+                          <select
+                            className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                            value={selectedTeamSeasonId}
+                            onChange={(e) => setSelectedTeamSeasonId(e.target.value)}
+                            disabled={seasons.length === 1}
+                          >
+                            {seasons.map((season) => (
+                              <option key={season.id} value={season.id}>
+                                {season.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedTeamSeasonId && !noSeasons && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-[var(--text-main)]">
+                          Kind auswählen
+                        </label>
+                        {playersLoading ? (
+                          <p className="text-sm text-[var(--text-sub)]">Lade…</p>
+                        ) : playersError ? (
+                          <p className="text-sm text-[var(--text-sub)]">
+                            Spieler konnten nicht geladen werden.
+                          </p>
+                        ) : noPlayersForSeason ? (
+                          <p className="text-sm text-[var(--text-sub)]">
+                            Derzeit ist kein Kind auswählbar. Bereits verknüpfte Kinder werden nicht
+                            erneut angeboten.
+                          </p>
+                        ) : (
+                          <div className="space-y-2 max-h-[260px] overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
+                            {players.map((p) => (
+                              <label
+                                key={p.id}
+                                className="flex items-center justify-between gap-3 py-1.5"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="radio"
+                                    name="child"
+                                    className="h-4 w-4"
+                                    checked={selectedPlayerId === p.id}
+                                    onChange={() => setSelectedPlayerId(p.id)}
+                                  />
+                                  <span className="text-sm text-[var(--text-main)]">
+                                    {p.display_name}
+                                  </span>
+                                </div>
+                                {p.jersey_number != null && (
+                                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-[var(--text-sub)]">
+                                    #{p.jersey_number}
+                                  </span>
+                                )}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {!noChildSelectable && (
+                      <div className="pt-2">
+                        <Button
+                          variant="primary"
+                          className="w-full"
+                          onClick={() => void handleSave()}
+                          disabled={
+                            saving ||
+                            deferring ||
+                            playersLoading ||
+                            !selectedTeamSeasonId ||
+                            !selectedPlayerId
+                          }
+                        >
+                          {saving ? 'Wird gespeichert …' : 'Verknüpfung speichern'}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <div className="pt-2">
                   <Button
-                    variant="primary"
+                    variant={noChildSelectable ? 'primary' : 'ghost'}
                     className="w-full"
-                    onClick={handleSave}
-                    disabled={saving || !selectedTeamSeasonId || !selectedPlayerId}
+                    onClick={() => void handleDefer()}
+                    disabled={saving || deferring}
                   >
-                    {saving ? 'Speichere…' : 'Verknüpfung speichern'}
+                    {deferring ? 'Weiter …' : 'Später verknüpfen'}
                   </Button>
+                </div>
+
+                <div className="border-t border-[var(--glass-border)] pt-4">
+                  {!showInviteCode ? (
+                    <button
+                      type="button"
+                      className="text-sm text-[var(--text-sub)] underline-offset-2 hover:underline"
+                      onClick={() => setShowInviteCode(true)}
+                    >
+                      Ich habe einen Einladungscode
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-[var(--text-sub)]">
+                        Optional: Code vom Trainer eingeben (getrennt vom Spieler-Login).
+                      </p>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="parent-invite-code"
+                          className="block text-sm font-medium text-[var(--text-main)]"
+                        >
+                          Einladungscode
+                        </label>
+                        <input
+                          id="parent-invite-code"
+                          type="text"
+                          inputMode="text"
+                          autoComplete="one-time-code"
+                          spellCheck={false}
+                          value={inviteCode}
+                          onChange={(e) => setInviteCode(e.target.value)}
+                          placeholder="Code vom Trainer"
+                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 text-[var(--text-main)] placeholder:text-[var(--text-sub)] focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => void handleRedeem()}
+                        disabled={saving || deferring || !inviteCode.trim()}
+                      >
+                        {saving ? 'Verknüpfe…' : 'Mit Code verknüpfen'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -515,4 +760,3 @@ export const ParentOnboardingPage: React.FC = () => {
     </div>
   );
 };
-

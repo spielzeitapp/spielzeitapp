@@ -40,6 +40,9 @@ import { SeasonManagementPage } from '../pages/SeasonManagementPage';
 import { ChampionshipManagementPage } from '../pages/ChampionshipManagementPage';
 import { TeamSchedulePage } from '../pages/TeamSchedulePage';
 import { ParentAccessPage } from '../pages/ParentAccessPage';
+import { ParentAccessPlayerPage } from '../pages/ParentAccessPlayerPage';
+import { ParentInviteAcceptPage } from '../pages/ParentInviteAcceptPage';
+import { AuthMinimalLayout } from './layout/AuthMinimalLayout';
 import { JugglingChallengePage } from '../pages/JugglingChallengePage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
@@ -179,12 +182,17 @@ function InternalRoutes(): React.ReactElement {
       <Route path="register" element={<RegisterPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="app/player-access" element={<PlayerAccessRedeemPage />} />
+      <Route path="app/parent-invite/:token" element={<ParentInviteAcceptPage />} />
+      <Route path="app/parent-invite" element={<ParentInviteAcceptPage />} />
       <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
       <Route path="live" element={<LiveShortcutRedirect />} />
       <Route path="app" element={<RequireAuth><IntroAppOutlet /></RequireAuth>}>
         <Route index element={<IntroEntryRedirect />} />
         <Route path="intro/splash" element={<SplashScreen />} />
         <Route path="intro/welcome" element={<WelcomeScreen />} />
+        <Route element={<AuthMinimalLayout />}>
+          <Route path="set-password" element={<SetPasswordPage />} />
+        </Route>
         <Route element={<InternalLayout />}>
         <Route path="home" element={<AppHomePage />} />
         <Route path="termine" element={<TermineLayout />}>
@@ -197,7 +205,6 @@ function InternalRoutes(): React.ReactElement {
         <Route path="parent-onboarding" element={<ParentOnboardingPage />} />
         <Route path="fan-onboarding" element={<FanOnboardingPage />} />
         <Route path="player-onboarding" element={<PlayerOnboardingPage />} />
-        <Route path="set-password" element={<SetPasswordPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
         <Route path="match/:id" element={<MatchDetailPage />} />
         <Route path="aufstellung" element={<Navigate to="/app/match-lineup" replace />} />
@@ -225,6 +232,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="seasons" element={<SeasonManagementPage />} />
           <Route path="championship" element={<ChampionshipManagementPage />} />
           <Route path="parent-access" element={<ParentAccessPage />} />
+          <Route path="parent-access/player/:playerId" element={<ParentAccessPlayerPage />} />
           {/* Legacy: /app/mehr/notifications -> /app/nachrichten */}
           <Route path="notifications" element={<Navigate to="/app/nachrichten" replace />} />
           <Route path="profile" element={<Navigate to="/app/profile" replace />} />

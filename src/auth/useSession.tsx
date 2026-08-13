@@ -1,10 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Role, User, FeatureKey } from './rbac';
 import { canAccess as canAccessFeature } from './rbac';
 import type { TeamSeasonListItem, TeamSeasonTeam, TeamSeasonSeason } from '../services/teamSeasonRepo';
 import { useAuth } from './AuthProvider';
 import { supabase } from '../lib/supabaseClient';
+import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 import { pickPreferredActiveTeamSeasonId } from '../lib/seasonLifecycle';
+import { resolveParentUiRole } from '../lib/parentChildLink';
 
 /** team_seasons.id und memberships.team_season_id als string (UUID), nie Number. */
 export type SessionTeamSeasonItem = Omit<TeamSeasonListItem, 'id'> & {
@@ -188,6 +190,7 @@ const defaultTeamId = 'u11';
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user: authUser, loading: authLoading, signOut } = useAuth();
+  const prevAuthUserIdRef = useRef<string | null>(null);
   const [roleFromUserRoles, setRoleFromUserRoles] = useState<Role | null>(null);
   const [selectedTeamId, setSelectedTeamIdState] = useState<string>(defaultTeamId);
   const [teamSeasons, setTeamSeasons] = useState<SessionTeamSeasonItem[]>([]);
@@ -240,6 +243,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (memberships.length === 0 && previewRole) {
       const p = toRole(previewRole);
       if (p) return p;
+    }
+
+    // Eltern ohne Membership: dauerhaft gespeicherte Rollenwahl (Auth-Metadata)
+    if (memberships.length === 0 && authUser) {
+      const parentUi = resolveParentUiRole(authUser);
+      if (parentUi) return parentUi;
     }
 
     const fromMembership =
@@ -327,6 +336,27 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // ignore
     }
   }, []);
+
+  useEffect(() => {
+    const nextId = authUser?.id ?? null;
+    const prevId = prevAuthUserIdRef.current;
+    if (prevId && prevId !== nextId) {
+      // Logout oder Kontowechsel: Team/Saison/Rolle des anderen Users nicht übernehmen
+      clearAccountScopedClientState();
+      setSelectedTeamIdState(defaultTeamId);
+      setTeamSeasons([]);
+      setSelectedTeamSeasonIdState(null);
+      setViewTeamSeasonIdState(null);
+      setMemberships([]);
+      setRoleFromUserRoles(null);
+      setPreviewRoleState(null);
+      setHasPendingPlayerRequest(false);
+      setPlayerAccessMode(null);
+    } else if (!nextId && prevId) {
+      clearAccountScopedClientState();
+    }
+    prevAuthUserIdRef.current = nextId;
+  }, [authUser?.id]);
 
   useEffect(() => {
     try {
