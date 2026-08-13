@@ -382,7 +382,7 @@ export default async function handler(req, res) {
     const loginRedirect = `${originRes.origin}/login?${authQs.toString()}`;
     const registerRedirect = `${originRes.origin}/register?${authQs.toString()}`;
 
-    // 1) Preferred: direct invite mail → no auth.users row created by send.
+    // 1) Preferred: direct invite mail (World4You SMTP → Resend) — no auth.users row.
     const directMail = await sendParentInviteEmail({
       to: email,
       acceptUrl,
@@ -391,20 +391,35 @@ export default async function handler(req, res) {
     let emailSent = false;
     let mailBlocker = null;
     let delivery = null;
+    let provider = null;
     let authStubCreated = false;
-    let otpError = null;
+    let trainerMessage = null;
 
     if (directMail.ok) {
       emailSent = true;
-      delivery = `direct_${directMail.provider || 'mail'}`;
+      delivery = 'direct';
+      provider = directMail.provider || 'direct';
+      authStubCreated = false;
       await userClient.rpc('mark_parent_link_invite_sent', {
         p_invite_id: invite.invite_id,
       });
+    } else if (directMail.configured) {
+      // Direct mail was configured but failed — do NOT create Auth stubs via OTP.
+      mailBlocker =
+        directMail.error === 'smtp_failed' || directMail.error === 'nodemailer_missing'
+          ? 'smtp_send_failed'
+          : directMail.error === 'resend_failed' || directMail.error === 'resend_error'
+            ? 'resend_send_failed'
+            : 'direct_mail_failed';
+      provider = directMail.provider;
+      authStubCreated = false;
+      trainerMessage =
+        'Die Einladung wurde angelegt, aber der E-Mail-Versand ist fehlgeschlagen. Bitte später erneut versuchen oder den Code manuell weitergeben.';
     } else {
-      // 2) Fallback: Supabase Auth OTP (existing SMTP). Never create_user when a row exists.
-      // For brand-new emails this may create a passwordless stub — only when no mailer.
+      // 2) OTP fallback ONLY when no direct-mail transport is configured.
       const createUser = !authExists;
       const emailRedirectTo = hasPassword ? loginRedirect : registerRedirect;
+      let otpError = null;
       try {
         const otpRes = await fetch(`${String(supabaseUrl).replace(/\/$/, '')}/auth/v1/otp`, {
           method: 'POST',
@@ -428,7 +443,8 @@ export default async function handler(req, res) {
           console.error('[parent/send-invite] auth mail failed');
         } else {
           emailSent = true;
-          delivery = 'auth_otp';
+          delivery = 'otp_fallback';
+          provider = 'supabase';
           authStubCreated = createUser;
           await userClient.rpc('mark_parent_link_invite_sent', {
             p_invite_id: invite.invite_id,
@@ -440,12 +456,9 @@ export default async function handler(req, res) {
       }
 
       if (!emailSent) {
-        mailBlocker =
-          directMail.error === 'no_mailer_configured'
-            ? otpError
-              ? 'supabase_auth_mail_failed'
-              : 'no_mailer_configured'
-            : directMail.error || 'mail_failed';
+        mailBlocker = otpError ? 'supabase_auth_mail_failed' : 'no_mailer_configured';
+        trainerMessage =
+          'E-Mail-Versand nicht möglich. Die Einladung wurde angelegt — bitte den Code manuell weitergeben.';
       }
     }
 
@@ -460,8 +473,10 @@ export default async function handler(req, res) {
       accept_path: acceptPath,
       auth_route: hasPassword ? 'login' : 'register',
       delivery,
+      provider,
       auth_stub_created: authStubCreated,
       mail_blocker: mailBlocker,
+      message: trainerMessage,
     };
 
     if (!emailSent) {

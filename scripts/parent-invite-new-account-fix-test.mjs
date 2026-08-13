@@ -53,6 +53,7 @@ assert.ok(api.includes("auth_route: hasPassword ? 'login' : 'register'"));
 assert.ok(api.includes('create_user: createUser') || api.includes('create_user: !authExists'));
 assert.ok(api.includes('const createUser = !authExists') || api.includes('create_user: !authExists'));
 assert.ok(api.includes('sendParentInviteEmail') || api.includes('auth_stub_created'));
+assert.ok(api.includes("delivery = 'direct'") || api.includes('delivery'));
 assert.ok(api.includes('/register?'));
 assert.ok(api.includes('/login?'));
 assert.ok(api.includes('invite_confirmed'));

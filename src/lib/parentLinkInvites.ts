@@ -183,7 +183,10 @@ export async function sendParentEmailInvite(input: {
     emailSent: payload.email_sent === true,
     codeFallback: payload.code_fallback != null ? String(payload.code_fallback) : null,
     mailBlocker: payload.mail_blocker != null ? String(payload.mail_blocker) : null,
-    message: null,
+    message:
+      payload.message != null && String(payload.message).trim()
+        ? String(payload.message).trim()
+        : null,
   };
 }
 

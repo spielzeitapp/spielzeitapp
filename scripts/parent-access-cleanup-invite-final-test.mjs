@@ -26,12 +26,17 @@ const peekMig = read('supabase/migrations/20260812210000_parent_invite_peek_acco
 assert.ok(sendInvite.includes('sendParentInviteEmail'));
 assert.ok(sendInvite.includes('auth_stub_created'));
 assert.ok(sendInvite.includes('directMail'));
+assert.ok(sendInvite.includes("delivery = 'direct'") || sendInvite.includes("delivery: 'direct'"));
 assert.ok(mailLib.includes('RESEND_API_KEY') || mailLib.includes('api.resend.com'));
+assert.ok(mailLib.includes('PARENT_INVITE_SMTP_HOST'));
+assert.ok(mailLib.includes('world4you_smtp') || mailLib.includes("'world4you_smtp'"));
 assert.ok(mailLib.includes('/app/parent-invite/') || mailLib.includes('acceptUrl'));
 assert.ok(mailLib.includes('Einladung öffnen'));
 // OTP create_user only when auth row missing (fallback)
 assert.ok(sendInvite.includes('const createUser = !authExists'));
 assert.ok(!/create_user:\s*true/.test(sendInvite));
+assert.ok(sendInvite.includes('directMail.configured'));
+assert.ok(sendInvite.includes("delivery = 'otp_fallback'"));
 
 // --- account_exists = password only ---
 assert.ok(peekMig.includes('encrypted_password'));

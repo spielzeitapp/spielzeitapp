@@ -189,8 +189,12 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
       setFreshToken(result.codeFallback);
       setFreshExpiresAt(result.expiresAt);
       const fallbackMsg =
-        'E-Mail-Versand nicht möglich — Einladungscode als Fallback erstellt. Bitte manuell weitergeben.';
-      setInviteSuccess(fallbackMsg);
+        result.message?.trim() ||
+        (result.mailBlocker === 'smtp_send_failed' || result.mailBlocker === 'direct_mail_failed'
+          ? 'Die Einladung wurde angelegt, aber der E-Mail-Versand ist fehlgeschlagen. Bitte später erneut versuchen oder den Code manuell weitergeben.'
+          : 'E-Mail-Versand nicht möglich — Einladungscode als Fallback erstellt. Bitte manuell weitergeben.');
+      setInviteError(fallbackMsg);
+      setInviteSuccess(null);
       toast(fallbackMsg);
     }
     void loadInvites();
