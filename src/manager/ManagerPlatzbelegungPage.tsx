@@ -56,6 +56,11 @@ import {
 } from '../lib/teamSeasonTrainingVenues';
 import { mergeSharedOccupancyIntoSchedule } from '../lib/sharedVenueOccupancy';
 import { FacilityFieldPitch, type PitchOccupancy } from '../components/facility/FacilityFieldPitch';
+import { CreateOccupancyModal } from './CreateOccupancyModal';
+import { normalizeRole } from '../lib/roles';
+import { occupancyPurposeForKind, type OccupancyKindForm } from '../lib/createFacilityOccupancy';
+import { supabase } from '../lib/supabaseClient';
+import { locationTextFromVenue } from '../lib/venues';
 import {
   addDays,
   formatWeekRangeLabel,
@@ -120,10 +125,12 @@ function kindColor(kind: string): string {
 }
 
 function eventTitle(e: ClubEvent): string {
+  const noteTitle = (e.notes ?? '').split('\n')[0]?.trim() || '';
   if (e.kind === 'match') {
-    const opp = normalizeOefbImportedTeamName(e.opponent);
+    const opp = normalizeOefbImportedTeamName(e.opponent) || noteTitle;
     return opp ? `vs. ${opp}` : 'Spiel';
   }
+  if (noteTitle) return noteTitle;
   if (e.kind === 'training') return 'Training';
   if (e.kind === 'tournament') return 'Turnier';
   return 'Termin';
@@ -147,10 +154,12 @@ function blockCanEdit(
  * Manager STEP 2: Sportanlagen, Plätze und Wochen-Platzbelegung.
  */
 export function ManagerPlatzbelegungPage(): React.ReactElement {
-  const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason, memberships } = useSession();
+  const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason, memberships, backendRole } =
+    useSession();
   const [searchParams, setSearchParams] = useSearchParams();
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
+  const isPlatformAdmin = normalizeRole(backendRole) === 'admin';
 
   const tab: TabId = searchParams.get('tab') === 'facilities' ? 'facilities' : 'calendar';
   const setTab = (next: TabId) => {
@@ -181,6 +190,8 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   const [selectedDayKey, setSelectedDayKey] = useState(() => toViennaDayKey(new Date()));
 
   const [assignEvent, setAssignEvent] = useState<ClubEvent | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDayKey, setCreateDayKey] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const weekStart = useMemo(() => startOfWeekMonday(weekAnchor), [weekAnchor]);
@@ -376,15 +387,68 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'));
   }, [events]);
 
+  const createTeamOptions = useMemo((): [string, string][] => {
+    const map = new Map<string, string>(teamFilterOptions);
+    if (teamSeasonId && contextSeason) {
+      const label =
+        [contextSeason.age_group, contextSeason.display_name || contextSeason.team?.name]
+          .filter(Boolean)
+          .join(' · ') || 'Aktuelle Mannschaft';
+      map.set(teamSeasonId, label);
+    }
+    for (const m of memberships) {
+      const id = m.team_season_id;
+      if (!clubTeamSeasonIds.includes(id)) continue;
+      if (map.has(id)) continue;
+      const ts = (m as { team_seasons?: { team?: { name?: string }; season?: { name?: string } } })
+        .team_seasons;
+      const label =
+        [ts?.team?.name, ts?.season?.name].filter(Boolean).join(' · ') || 'Mannschaft';
+      map.set(id, label);
+    }
+    if (isPlatformAdmin) {
+      for (const id of clubTeamSeasonIds) {
+        if (!map.has(id)) map.set(id, `Mannschaft ${id.slice(0, 8)}`);
+      }
+    }
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'));
+  }, [
+    teamFilterOptions,
+    teamSeasonId,
+    contextSeason,
+    memberships,
+    clubTeamSeasonIds,
+    isPlatformAdmin,
+  ]);
+
   const canManageEvent = useCallback(
-    (event: ClubEvent) =>
-      canManageFacilityAssignmentForEvent({
+    (event: ClubEvent) => {
+      if (isPlatformAdmin) return true;
+      return canManageFacilityAssignmentForEvent({
         eventTeamSeasonId: event.team_season_id,
         memberships,
         clubTeamSeasonIds,
-      }),
-    [memberships, clubTeamSeasonIds],
+      });
+    },
+    [memberships, clubTeamSeasonIds, isPlatformAdmin],
   );
+
+  const canCreateForTeamSeason = useCallback(
+    (tsId: string) => {
+      if (isPlatformAdmin) return clubTeamSeasonIds.includes(tsId) || tsId === teamSeasonId;
+      return canManageFacilityAssignmentForEvent({
+        eventTeamSeasonId: tsId,
+        memberships,
+        clubTeamSeasonIds,
+      });
+    },
+    [isPlatformAdmin, clubTeamSeasonIds, teamSeasonId, memberships],
+  );
+
+  const openCreate = (dayKey?: string | null) => {
+    setCreateDayKey(dayKey ?? selectedDayKey);
+    setCreateOpen(true);
+  };
 
   const assignmentCandidates = useMemo((): FieldConflictCandidate[] => {
     const eventById = new Map(events.map((e) => [e.id, e]));
@@ -454,27 +518,39 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
             Vereinsweite Übersicht aller Mannschaften — Sportanlagen und Plätze gemeinsam nutzen.
           </p>
         </div>
-        <div className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setTab('calendar')}
-            className={[
-              'rounded-full px-3 py-1.5 text-[12px] font-semibold',
-              tab === 'calendar' ? 'bg-red-700 text-white' : 'text-slate-600 hover:bg-slate-50',
-            ].join(' ')}
-          >
-            Wochenkalender
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('facilities')}
-            className={[
-              'rounded-full px-3 py-1.5 text-[12px] font-semibold',
-              tab === 'facilities' ? 'bg-red-700 text-white' : 'text-slate-600 hover:bg-slate-50',
-            ].join(' ')}
-          >
-            Sportanlagen
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {tab === 'calendar' && createTeamOptions.some(([id]) => canCreateForTeamSeason(id)) ? (
+            <button
+              type="button"
+              onClick={() => openCreate(selectedDayKey)}
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white shadow-sm hover:bg-red-800"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              Belegung anlegen
+            </button>
+          ) : null}
+          <div className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setTab('calendar')}
+              className={[
+                'rounded-full px-3 py-1.5 text-[12px] font-semibold',
+                tab === 'calendar' ? 'bg-red-700 text-white' : 'text-slate-600 hover:bg-slate-50',
+              ].join(' ')}
+            >
+              Wochenkalender
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('facilities')}
+              className={[
+                'rounded-full px-3 py-1.5 text-[12px] font-semibold',
+                tab === 'facilities' ? 'bg-red-700 text-white' : 'text-slate-600 hover:bg-slate-50',
+              ].join(' ')}
+            >
+              Sportanlagen
+            </button>
+          </div>
         </div>
       </header>
 
@@ -528,6 +604,8 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
             setSelectedDayKey(toViennaDayKey(now));
           }}
           onOpenAssign={setAssignEvent}
+          onCreateForDay={(dayKey) => openCreate(dayKey)}
+          canCreate={createTeamOptions.some(([id]) => canCreateForTeamSeason(id))}
           canManageEvent={canManageEvent}
           assignmentCandidates={assignmentCandidates}
           hasVenues={activeVenues.length > 0}
@@ -548,6 +626,29 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
           onToast={showToast}
         />
       )}
+
+      {createOpen && clubId && teamSeasonId ? (
+        <CreateOccupancyModal
+          clubId={clubId}
+          defaultTeamSeasonId={teamSeasonId}
+          teamOptions={createTeamOptions}
+          canCreateForTeamSeason={canCreateForTeamSeason}
+          clubVenues={venues}
+          fields={fields.filter((f) => f.is_active)}
+          zonesByField={zonesByField}
+          initialDayKey={createDayKey}
+          onClose={() => {
+            setCreateOpen(false);
+            setCreateDayKey(null);
+          }}
+          onCreated={async () => {
+            setCreateOpen(false);
+            setCreateDayKey(null);
+            showToast('Belegung gespeichert.');
+            await reloadWeek();
+          }}
+        />
+      ) : null}
 
       {assignEvent && clubId ? (
         <AssignModal
@@ -601,6 +702,8 @@ function CalendarPanel(props: {
   onNext: () => void;
   onToday: () => void;
   onOpenAssign: (e: ClubEvent) => void;
+  onCreateForDay?: (dayKey: string) => void;
+  canCreate?: boolean;
   canManageEvent: (e: ClubEvent) => boolean;
   assignmentCandidates: FieldConflictCandidate[];
   hasVenues: boolean;
@@ -740,9 +843,25 @@ function CalendarPanel(props: {
             const key = toViennaDayKey(d);
             const dayBlocks = props.blocksByDay.get(key) ?? [];
             return (
-              <div key={key} className="min-h-[280px] border-l border-slate-100 p-2 first:border-l-0">
+              <div
+                key={key}
+                className="min-h-[280px] border-l border-slate-100 p-2 first:border-l-0"
+                onDoubleClick={() => {
+                  if (props.canCreate && props.onCreateForDay) props.onCreateForDay(key);
+                }}
+              >
                 {dayBlocks.length === 0 ? (
-                  <p className="px-1 py-2 text-[11px] text-slate-300">Keine Termine</p>
+                  props.canCreate && props.onCreateForDay ? (
+                    <button
+                      type="button"
+                      onClick={() => props.onCreateForDay?.(key)}
+                      className="w-full rounded-lg border border-dashed border-slate-200 px-1 py-3 text-left text-[11px] text-slate-400 hover:border-red-300 hover:bg-red-50/50 hover:text-red-700"
+                    >
+                      Frei — Belegung anlegen
+                    </button>
+                  ) : (
+                    <p className="px-1 py-2 text-[11px] text-slate-300">Keine Termine</p>
+                  )
                 ) : (
                   <ul className="space-y-1.5">
                     {dayBlocks.map((b) => {
@@ -814,9 +933,19 @@ function CalendarPanel(props: {
           })}
         </div>
         {selectedBlocks.length === 0 ? (
-          <p className="rounded-2xl border border-slate-200 bg-white p-4 text-[13px] text-slate-400">
-            Keine Termine an diesem Tag.
-          </p>
+          props.canCreate && props.onCreateForDay ? (
+            <button
+              type="button"
+              onClick={() => props.onCreateForDay?.(props.selectedDayKey)}
+              className="w-full rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-left text-[13px] text-slate-500 hover:border-red-300 hover:text-red-700"
+            >
+              Keine Termine — Belegung anlegen
+            </button>
+          ) : (
+            <p className="rounded-2xl border border-slate-200 bg-white p-4 text-[13px] text-slate-400">
+              Keine Termine an diesem Tag.
+            </p>
+          )
         ) : (
           <ul className="space-y-2">
             {selectedBlocks.map((b) => {
@@ -1346,28 +1475,45 @@ function AssignModal(props: {
   const [loading, setLoading] = useState(true);
   const [trainingVenues, setTrainingVenues] = useState<VenueRow[] | null>(null);
   const [trainingVenueHint, setTrainingVenueHint] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState(() => {
+    const noteTitle = (props.event.notes ?? '').split('\n')[0]?.trim() || '';
+    if (props.event.kind === 'match') {
+      return normalizeOefbImportedTeamName(props.event.opponent) || noteTitle || '';
+    }
+    return noteTitle || eventTitle(props.event);
+  });
 
-  const isTrainingEvent =
-    String(props.event.kind ?? '').toLowerCase() === 'training' ||
-    String(props.event.type ?? '').toLowerCase() === 'training';
+  const occupancyKind: OccupancyKindForm =
+    props.event.kind === 'match'
+      ? 'match'
+      : props.event.kind === 'tournament'
+        ? 'tournament'
+        : props.event.kind === 'training' || String(props.event.type ?? '').toLowerCase() === 'training'
+          ? 'training'
+          : 'event';
+  const venuePurpose = occupancyPurposeForKind(occupancyKind);
 
   useEffect(() => {
     let cancelled = false;
-    if (!isTrainingEvent) {
-      setTrainingVenues(null);
-      setTrainingVenueHint(null);
-      return;
-    }
     void (async () => {
-      const res = await listAllowedVenueRowsForPurpose(props.event.team_season_id, 'training');
+      const res = await listAllowedVenueRowsForPurpose(props.event.team_season_id, venuePurpose);
       if (cancelled) return;
-      setTrainingVenues(res.data);
-      if (res.emptyReason === 'none_assigned') {
+      const byId = new Map<string, VenueRow>();
+      for (const v of props.venues) {
+        if (v.is_active !== false) byId.set(v.id, v);
+      }
+      for (const v of res.data) {
+        if (v.is_active !== false) byId.set(v.id, v);
+      }
+      setTrainingVenues(Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, 'de')));
+      if (res.emptyReason === 'none_assigned' && byId.size === 0) {
         setTrainingVenueHint(
-          'Für diese Mannschaft ist noch keine Trainingsanlage freigegeben. Bitte den Jugendleiter oder Vereinsadmin kontaktieren.',
+          venuePurpose === 'home_match'
+            ? 'Keine Anlage mit Freigabe „Heimspiel“ verfügbar.'
+            : 'Für diese Mannschaft ist noch keine Trainingsanlage freigegeben.',
         );
       } else if (res.emptyReason === 'migration') {
-        setTrainingVenueHint('Trainingsanlagen-Zuordnung noch nicht verfügbar.');
+        setTrainingVenueHint('Anlagen-Zuordnung noch nicht verfügbar.');
       } else {
         setTrainingVenueHint(null);
       }
@@ -1375,7 +1521,7 @@ function AssignModal(props: {
     return () => {
       cancelled = true;
     };
-  }, [isTrainingEvent, props.event.team_season_id]);
+  }, [venuePurpose, props.event.team_season_id, props.venues]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1588,12 +1734,36 @@ function AssignModal(props: {
       endsAt,
       existingId: existing?.id ?? null,
     });
-    setSaving(false);
     if (res.error) {
+      setSaving(false);
       setError(res.error);
       if (res.conflicts?.length) {
         setHint(buildHint(fieldId, startsAt, endsAt, existing?.id ?? null));
       }
+      return;
+    }
+
+    const title = titleDraft.trim();
+    const noteRest = (props.event.notes ?? '').split('\n').slice(1).join('\n').trim();
+    const eventPatch: Record<string, unknown> = {
+      starts_at: startsAt,
+      venue_id: venueId,
+    };
+    const venueRow = pickerVenues.find((v) => v.id === venueId);
+    if (venueRow) {
+      eventPatch.location = locationTextFromVenue(venueRow) || venueRow.name;
+    }
+    if (props.event.kind === 'match') {
+      eventPatch.opponent = title || null;
+      eventPatch.is_home = true;
+      if (noteRest) eventPatch.notes = noteRest;
+    } else if (title) {
+      eventPatch.notes = noteRest ? `${title}\n${noteRest}` : title;
+    }
+    const { error: evErr } = await supabase.from('events').update(eventPatch).eq('id', props.event.id);
+    setSaving(false);
+    if (evErr) {
+      setError(evErr.message || 'Platz gespeichert, Termin-Update fehlgeschlagen.');
       return;
     }
     await props.onSaved();
@@ -1626,10 +1796,10 @@ function AssignModal(props: {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="assign-title" className="text-[16px] font-semibold text-slate-900">
-          {props.canManage ? 'Platz zuordnen' : 'Platzbelegung ansehen'}
+          {props.canManage ? 'Belegung bearbeiten' : 'Platzbelegung ansehen'}
         </h2>
         <p className="mt-1 text-[13px] text-slate-500">
-          {eventKindLabel(props.event.kind)} · {eventTitle(props.event)} ·{' '}
+          {eventKindLabel(props.event.kind)} ·{' '}
           {[props.event.age_group, props.event.team_name].filter(Boolean).join(' · ')}
         </p>
         {!props.canManage ? (
@@ -1641,6 +1811,16 @@ function AssignModal(props: {
           <p className="mt-4 text-[13px] text-slate-400">Laden…</p>
         ) : (
           <div className="mt-4 space-y-3">
+            <label className="block text-[12px] font-medium text-slate-600">
+              {props.event.kind === 'match' ? 'Gegner / Titel' : 'Titel'}
+              <input
+                type="text"
+                value={titleDraft}
+                disabled={!props.canManage}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] disabled:bg-slate-50"
+              />
+            </label>
             <label className="block text-[12px] font-medium text-slate-600">
               1. Sportanlage
               <select
