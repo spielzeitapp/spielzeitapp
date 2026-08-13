@@ -195,7 +195,13 @@ export const ParentInviteAcceptPage: React.FC = () => {
           setAccountExists(peek.accountExists === true);
           const nextPath = buildParentInviteAuthNext(token);
           const qs = buildParentInviteAuthQuery({ next: nextPath, email });
-          const target = peek.accountExists ? `/login?${qs}` : `/register?${qs}`;
+          const confirmed =
+            typeof window !== 'undefined' &&
+            (window.sessionStorage.getItem('sz_auth_email_confirm') === '1' ||
+              new URLSearchParams(window.location.search).get('invite_confirmed') === '1');
+          const target = peek.accountExists
+            ? `/login?${qs}${confirmed ? '&invite_confirmed=1' : ''}`
+            : `/register?${qs}`;
           setAuthRoutePending(true);
           setLoading(false);
           navigate(target, { replace: true });

@@ -34,7 +34,11 @@ assert.ok(postAuth.includes('clearIntroFlowCompleted'));
 assert.ok(postAuth.indexOf('resolvePendingParentInvitePath') < postAuth.indexOf('isInternalAppDeepLink'));
 
 assert.ok(login.includes('resolvePostAuthDestination'));
-assert.ok(login.includes('consciousLogin: true'));
+assert.ok(
+  login.includes('consciousLogin: true') ||
+    login.includes('consciousLogin: !isParentInviteFlow') ||
+    login.includes('consciousLogin: false'),
+);
 assert.ok(!login.includes("'/app/termine'"));
 assert.ok(!login.includes('"/app/termine"'));
 

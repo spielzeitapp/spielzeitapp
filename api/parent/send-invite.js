@@ -189,13 +189,19 @@ async function handleCompleteSignup(req, res, { supabaseUrl, serviceKey, admin }
     }
   }
 
-  // Trigger confirmation mail with redirect back to invite accept (keeps token in path).
+  // Confirm-Roundtrip must be self-contained: Mail/in-app browsers often lose
+  // localStorage and GoTrue may fall back to Site URL `/login` without query.
+  // Land on login with next+email; if a session is established, Login redirects to Accept.
   const originRes = resolveInviteOrigin();
   if (!originRes.ok) {
     return res.status(403).json({ ok: false, error: originRes.error });
   }
   const acceptPath = `/app/parent-invite/${encodeURIComponent(token)}`;
-  const emailRedirectTo = `${originRes.origin}${acceptPath}`;
+  const confirmQs = new URLSearchParams();
+  confirmQs.set('next', acceptPath);
+  confirmQs.set('email', email);
+  confirmQs.set('invite_confirmed', '1');
+  const emailRedirectTo = `${originRes.origin}/login?${confirmQs.toString()}`;
 
   let confirmSent = false;
   try {
@@ -226,6 +232,7 @@ async function handleCompleteSignup(req, res, { supabaseUrl, serviceKey, admin }
     status: 'pending_email_confirmation',
     email_confirm_sent: confirmSent,
     accept_path: acceptPath,
+    confirm_redirect: emailRedirectTo,
   });
 }
 

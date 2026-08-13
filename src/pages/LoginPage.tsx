@@ -1,15 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
-import { isSafeAuthRedirectPath } from '../lib/authRedirect';
+import {
+  clearEmailConfirmFlow,
+  isEmailConfirmFlow,
+  isSafeAuthRedirectPath,
+} from '../lib/authRedirect';
 import { resolvePostAuthDestination } from '../lib/postAuthDestination';
 import {
+  buildParentInviteAuthNext,
   buildParentInviteAuthQuery,
   ensureParentInviteContextFromNext,
   isAppIntroEntryPath,
   readParentInviteTokenFromUserMetadata,
   readStashedParentInviteEmail,
+  readStashedParentInviteToken,
   resolvePendingParentInvitePath,
   stashParentInviteEmail,
   stashParentInviteToken,
@@ -30,6 +36,11 @@ function stashTokenIfValid(raw: string | null | undefined): string | null {
   return token;
 }
 
+function pathLooksLikeParentInvite(path: string | null | undefined): boolean {
+  if (!path) return false;
+  return path.includes('/app/parent-invite');
+}
+
 export const LoginPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -48,17 +59,33 @@ export const LoginPage: React.FC = () => {
     ? `${fromState.pathname}${fromState.search ?? ''}`
     : null;
   const nextRaw = searchParams.get('next') ?? '';
-  const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
+  const nextFromQuery = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
   const orphanT = searchParams.get('t');
+  const inviteConfirmedFlag =
+    searchParams.get('invite_confirmed') === '1' || searchParams.get('invite_confirmed') === 'true';
 
-  const pendingInvitePath = resolvePendingParentInvitePath();
+  // Recover invite next from RequireAuth from-state or stash/metadata (Confirm Site-URL fallback).
+  const pendingInvitePath = resolvePendingParentInvitePath(user);
+  const fromInvitePath =
+    fromStatePath && pathLooksLikeParentInvite(fromStatePath) && isSafeAuthRedirectPath(fromStatePath)
+      ? fromStatePath.split('?')[0] || fromStatePath
+      : null;
+  const nextSafe = nextFromQuery || fromInvitePath || pendingInvitePath;
+
   const orphanTokenValid = isParentInviteTokenShape(normalizeParentInviteToken(orphanT ?? ''));
+  const metaToken = readParentInviteTokenFromUserMetadata(user);
   const isParentInviteFlow = Boolean(
     pendingInvitePath ||
-      (nextSafe && nextSafe.includes('/app/parent-invite')) ||
+      nextSafe ||
       orphanTokenValid ||
+      metaToken ||
       readStashedParentInviteEmail() ||
-      (searchParams.get('email') ?? '').trim(),
+      (searchParams.get('email') ?? '').trim() ||
+      inviteConfirmedFlag,
+  );
+
+  const showInviteConfirmedHint = Boolean(
+    isParentInviteFlow && (inviteConfirmedFlag || isEmailConfirmFlow()),
   );
 
   /** Nur echte RequireAuth-/Deep-Link-Herkunft — kein Termine-Default. */
@@ -70,28 +97,40 @@ export const LoginPage: React.FC = () => {
       : null;
 
   const playerLoginEnabled = isPlayerQrAccessEnabled();
-  const inviteEmailLocked = Boolean(
-    (searchParams.get('email') ?? '').trim() || readStashedParentInviteEmail(),
-  );
+  const lockedInviteEmail = useMemo(() => {
+    const fromQuery = (searchParams.get('email') ?? '').trim().toLowerCase();
+    if (fromQuery) return fromQuery;
+    const stashed = (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
+    if (stashed) return stashed;
+    const fromUser = (user?.email ?? '').trim().toLowerCase();
+    if (isParentInviteFlow && fromUser) return fromUser;
+    return '';
+  }, [searchParams, user?.email, isParentInviteFlow]);
+
+  const inviteEmailLocked = Boolean(lockedInviteEmail);
 
   useEffect(() => {
     ensureParentInviteContextFromNext(nextSafe);
     stashTokenIfValid(orphanT);
-    const prefill =
-      (searchParams.get('email') ?? '').trim().toLowerCase() ||
-      readStashedParentInviteEmail() ||
-      '';
-    if (prefill) {
-      setEmail(prefill);
-      stashParentInviteEmail(prefill);
+    if (metaToken) stashParentInviteToken(metaToken);
+    const stashedToken = readStashedParentInviteToken();
+    if (stashedToken && isParentInviteTokenShape(stashedToken) && !nextFromQuery) {
+      ensureParentInviteContextFromNext(buildParentInviteAuthNext(stashedToken));
     }
-  }, [searchParams, nextSafe, orphanT]);
+    if (lockedInviteEmail) {
+      setEmail(lockedInviteEmail);
+      stashParentInviteEmail(lockedInviteEmail);
+    }
+  }, [searchParams, nextSafe, orphanT, metaToken, lockedInviteEmail, nextFromQuery]);
 
-  // Magic-Link landete auf /login mit Session → Invite-Ziel.
+  // Confirm / Magic-Link landete auf /login mit Session → Invite-Accept (kein Splash).
   useEffect(() => {
     if (authLoading || !user || !isParentInviteFlow) return;
     let cancelled = false;
     (async () => {
+      const meta = readParentInviteTokenFromUserMetadata(user);
+      if (meta) stashParentInviteToken(meta);
+      ensureParentInviteContextFromNext(nextSafe);
       const dest = await resolvePostAuthDestination({
         user,
         next: nextSafe,
@@ -100,6 +139,7 @@ export const LoginPage: React.FC = () => {
         parentInviteFlowHint: true,
       });
       if (cancelled) return;
+      clearEmailConfirmFlow();
       if (dest.hardReplace) {
         window.location.replace(dest.path);
         return;
@@ -127,11 +167,8 @@ export const LoginPage: React.FC = () => {
     ensureParentInviteContextFromNext(nextSafe);
     stashTokenIfValid(orphanT);
 
-    const lockedEmail =
-      (searchParams.get('email') ?? '').trim().toLowerCase() ||
-      (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
     const trimmedEmail = email.trim().toLowerCase();
-    if (lockedEmail && trimmedEmail !== lockedEmail) {
+    if (lockedInviteEmail && trimmedEmail !== lockedInviteEmail) {
       setLoading(false);
       setError('Für diese Einladung musst du die eingeladene E-Mail-Adresse verwenden.');
       return;
@@ -149,18 +186,22 @@ export const LoginPage: React.FC = () => {
 
     clearAccountScopedClientState();
 
-    const metaToken = readParentInviteTokenFromUserMetadata(signInData.user);
-    if (metaToken) stashParentInviteToken(metaToken);
+    const recoveredMeta = readParentInviteTokenFromUserMetadata(signInData.user);
+    if (recoveredMeta) stashParentInviteToken(recoveredMeta);
     ensureParentInviteContextFromNext(nextSafe);
     stashTokenIfValid(orphanT);
+    if (lockedInviteEmail) stashParentInviteEmail(lockedInviteEmail);
 
     const dest = await resolvePostAuthDestination({
       user: signInData.user,
       next: nextSafe,
       from: safeFromState,
-      consciousLogin: true,
+      // Invite wins over splash inside resolvePostAuthDestination.
+      consciousLogin: !isParentInviteFlow,
       parentInviteFlowHint: isParentInviteFlow,
     });
+
+    clearEmailConfirmFlow();
 
     if (dest.hardReplace) {
       window.location.replace(dest.path);
@@ -174,12 +215,18 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
         <h1 className="text-xl font-semibold text-white">Anmelden</h1>
         <p className="mt-1 text-sm text-white/60">
-          {isParentInviteFlow
-            ? 'Mit der eingeladenen E-Mail anmelden, um die Eltern-Einladung fortzusetzen.'
-            : 'E-Mail und Passwort eingeben'}
+          {showInviteConfirmedHint
+            ? 'E-Mail bestätigt. Melde dich jetzt an, um die Einladung anzunehmen.'
+            : isParentInviteFlow
+              ? 'Mit der eingeladenen E-Mail anmelden, um die Eltern-Einladung fortzusetzen.'
+              : 'E-Mail und Passwort eingeben'}
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="mt-6 space-y-4"
+          autoComplete={inviteEmailLocked ? 'on' : 'on'}
+        >
           <div>
             <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-white/80">
               E-Mail
@@ -187,6 +234,7 @@ export const LoginPage: React.FC = () => {
             <input
               id="login-email"
               type="email"
+              name={inviteEmailLocked ? 'invite-email' : 'email'}
               value={email}
               onChange={(e) => {
                 if (inviteEmailLocked) return;
@@ -195,7 +243,9 @@ export const LoginPage: React.FC = () => {
               placeholder="name@beispiel.de"
               required
               readOnly={inviteEmailLocked}
-              autoComplete="email"
+              // Safari: locked invite email must not be overwritten by another saved account.
+              autoComplete={inviteEmailLocked ? 'off' : 'username'}
+              inputMode="email"
               className={inputClass}
             />
             {inviteEmailLocked ? (
@@ -212,6 +262,7 @@ export const LoginPage: React.FC = () => {
               <input
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -245,7 +296,7 @@ export const LoginPage: React.FC = () => {
           </Button>
         </form>
 
-        {playerLoginEnabled ? (
+        {playerLoginEnabled && !isParentInviteFlow ? (
           <div className="mt-4 border-t border-white/10 pt-4">
             <button
               type="button"
@@ -261,31 +312,37 @@ export const LoginPage: React.FC = () => {
         ) : null}
 
         <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
-          <Link
-            to="/demo"
-            className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-white/10"
-          >
-            Demo ansehen
-          </Link>
-          <p className="text-center text-[11px] text-white/45">
-            U12-Demoteam ohne Login — gleiche App-Oberfläche
-          </p>
+          {!isParentInviteFlow ? (
+            <>
+              <Link
+                to="/demo"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-white/10"
+              >
+                Demo ansehen
+              </Link>
+              <p className="text-center text-[11px] text-white/45">
+                U12-Demoteam ohne Login — gleiche App-Oberfläche
+              </p>
+            </>
+          ) : null}
           <Link
             to="/forgot-password"
             className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
           >
             Passwort vergessen?
           </Link>
-          <Link
-            to={
-              nextSafe
-                ? `/register?${buildParentInviteAuthQuery({ next: nextSafe, email })}`
-                : '/register'
-            }
-            className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
-          >
-            Noch kein Konto? Registrieren
-          </Link>
+          {!isParentInviteFlow ? (
+            <Link
+              to={
+                nextSafe
+                  ? `/register?${buildParentInviteAuthQuery({ next: nextSafe, email })}`
+                  : '/register'
+              }
+              className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
+            >
+              Noch kein Konto? Registrieren
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>

@@ -61,6 +61,8 @@ assert.ok(api.includes('/auth/v1/otp'));
 assert.ok(api.includes('create_user: !authExists') || api.includes('create_user: true'));
 assert.ok(api.includes('complete_signup'));
 assert.ok(api.includes('/register?'));
+assert.ok(api.includes('invite_confirmed'));
+assert.ok(api.includes('/login?'));
 // Path-based accept still used as next= target
 assert.ok(api.includes('/app/parent-invite/'));
 assert.ok(!api.includes("acceptPath = `/app/parent-invite?t="));

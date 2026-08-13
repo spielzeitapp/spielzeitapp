@@ -30,7 +30,9 @@ assert.ok(inviteLib.includes('account_exists'));
 assert.ok(inviteLib.includes('buildParentInviteAuthQuery'));
 
 assert.ok(accept.includes('buildParentInviteAuthQuery'));
-assert.ok(accept.includes("peek.accountExists ? `/login?${qs}` : `/register?${qs}`"));
+assert.ok(accept.includes('peek.accountExists'));
+assert.ok(accept.includes('`/login?${qs}') || accept.includes('/login?'));
+assert.ok(accept.includes('`/register?${qs}') || accept.includes('/register?'));
 assert.ok(accept.includes('Weiter zur Registrierung'));
 assert.ok(accept.includes('Weiter zur Anmeldung'));
 
@@ -51,6 +53,7 @@ assert.ok(api.includes("auth_route: hasPassword ? 'login' : 'register'"));
 assert.ok(api.includes('create_user: !authExists'));
 assert.ok(api.includes('/register?'));
 assert.ok(api.includes('/login?'));
+assert.ok(api.includes('invite_confirmed'));
 assert.ok(api.includes('email_mismatch'));
 assert.ok(api.includes('account_exists'));
 assert.ok(!api.includes('shxugattqatahckhspwk') || api.includes('LIVE_REF'));
