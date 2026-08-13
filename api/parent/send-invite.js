@@ -1,11 +1,15 @@
 /**
  * POST /api/parent/send-invite
- * - Default: Trainer/Admin creates parent email invite + Auth mail (OTP).
+ * - Default: Trainer/Admin creates parent email invite + personal invite mail
+ *   (prefer direct accept-URL mail without creating auth.users).
+ * - Fallback: Auth OTP only when needed; create_user only for truly missing emails
+ *   and only if direct mailer is unavailable.
  * - action=complete_signup: Invite-bound password signup for passwordless stubs
  *   (token + email must match; no open account enumeration).
  * Secrets stay server-side. Invite links forced to Staging origin for develop.
  */
 import { createClient } from '@supabase/supabase-js';
+import { sendParentInviteEmail } from '../_lib/sendParentInviteEmail.js';
 
 const STAGING_ORIGIN = 'https://app.spielzeitapp.at';
 const LIVE_ORIGIN_RE = /^https:\/\/(www\.)?spielzeitapp\.at$/i;
@@ -362,8 +366,10 @@ export default async function handler(req, res) {
 
     const tokenPlain = String(invite.token_plain);
     const acceptPath = `/app/parent-invite/${encodeURIComponent(tokenPlain)}`;
+    const acceptUrl = `${originRes.origin}${acceptPath}`;
 
     // Route Auth mail landing: existing password → login; otherwise → register (locked email).
+    // Prefer landing on Accept when magic-session is established (token in path survives).
     const { data: authStatusRaw } = await admin.rpc('parent_invite_auth_email_status', {
       p_email: email,
     });
@@ -373,47 +379,74 @@ export default async function handler(req, res) {
     const authQs = new URLSearchParams();
     authQs.set('next', acceptPath);
     authQs.set('email', email);
-    const emailRedirectTo = hasPassword
-      ? `${originRes.origin}/login?${authQs.toString()}`
-      : `${originRes.origin}/register?${authQs.toString()}`;
+    const loginRedirect = `${originRes.origin}/login?${authQs.toString()}`;
+    const registerRedirect = `${originRes.origin}/register?${authQs.toString()}`;
 
-    let otpError = null;
-    try {
-      const otpRes = await fetch(`${String(supabaseUrl).replace(/\/$/, '')}/auth/v1/otp`, {
-        method: 'POST',
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          // Only create stub when no auth row exists — password signup stays on /register.
-          create_user: !authExists,
-          data: {
-            spielzeit_parent_invite: true,
-            spielzeit_parent_invite_token: tokenPlain,
-          },
-          email_redirect_to: emailRedirectTo,
-        }),
-      });
-      if (!otpRes.ok) {
-        otpError = { status: otpRes.status };
-        console.error('[parent/send-invite] auth mail failed');
-      }
-    } catch {
-      otpError = { status: 0 };
-      console.error('[parent/send-invite] auth mail failed');
-    }
+    // 1) Preferred: direct invite mail → no auth.users row created by send.
+    const directMail = await sendParentInviteEmail({
+      to: email,
+      acceptUrl,
+    });
 
-    let emailSent = !otpError;
+    let emailSent = false;
     let mailBlocker = null;
-    if (otpError) {
-      mailBlocker = 'supabase_auth_mail_failed';
-    } else {
+    let delivery = null;
+    let authStubCreated = false;
+    let otpError = null;
+
+    if (directMail.ok) {
+      emailSent = true;
+      delivery = `direct_${directMail.provider || 'mail'}`;
       await userClient.rpc('mark_parent_link_invite_sent', {
         p_invite_id: invite.invite_id,
       });
+    } else {
+      // 2) Fallback: Supabase Auth OTP (existing SMTP). Never create_user when a row exists.
+      // For brand-new emails this may create a passwordless stub — only when no mailer.
+      const createUser = !authExists;
+      const emailRedirectTo = hasPassword ? loginRedirect : registerRedirect;
+      try {
+        const otpRes = await fetch(`${String(supabaseUrl).replace(/\/$/, '')}/auth/v1/otp`, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            create_user: createUser,
+            data: {
+              spielzeit_parent_invite: true,
+              spielzeit_parent_invite_token: tokenPlain,
+            },
+            email_redirect_to: emailRedirectTo,
+          }),
+        });
+        if (!otpRes.ok) {
+          otpError = { status: otpRes.status };
+          console.error('[parent/send-invite] auth mail failed');
+        } else {
+          emailSent = true;
+          delivery = 'auth_otp';
+          authStubCreated = createUser;
+          await userClient.rpc('mark_parent_link_invite_sent', {
+            p_invite_id: invite.invite_id,
+          });
+        }
+      } catch {
+        otpError = { status: 0 };
+        console.error('[parent/send-invite] auth mail failed');
+      }
+
+      if (!emailSent) {
+        mailBlocker =
+          directMail.error === 'no_mailer_configured'
+            ? otpError
+              ? 'supabase_auth_mail_failed'
+              : 'no_mailer_configured'
+            : directMail.error || 'mail_failed';
+      }
     }
 
     const response = {
@@ -424,7 +457,10 @@ export default async function handler(req, res) {
       recipient_email_masked: invite.recipient_email_masked || maskEmail(email),
       email_sent: emailSent,
       accept_origin: originRes.origin,
+      accept_path: acceptPath,
       auth_route: hasPassword ? 'login' : 'register',
+      delivery,
+      auth_stub_created: authStubCreated,
       mail_blocker: mailBlocker,
     };
 

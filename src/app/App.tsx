@@ -41,6 +41,7 @@ import { SeasonManagementPage } from '../pages/SeasonManagementPage';
 import { ChampionshipManagementPage } from '../pages/ChampionshipManagementPage';
 import { TeamSchedulePage } from '../pages/TeamSchedulePage';
 import { ParentAccessPage } from '../pages/ParentAccessPage';
+import { ParentAccessPlayerPage } from '../pages/ParentAccessPlayerPage';
 import { JugglingChallengePage } from '../pages/JugglingChallengePage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
@@ -313,6 +314,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="seasons" element={<SeasonManagementPage />} />
           <Route path="championship" element={<ChampionshipManagementPage />} />
           <Route path="parent-access" element={<ParentAccessPage />} />
+          <Route path="parent-access/player/:playerId" element={<ParentAccessPlayerPage />} />
           {/* Legacy: /app/mehr/notifications -> /app/nachrichten */}
           <Route path="notifications" element={<Navigate to="/app/nachrichten" replace />} />
           <Route path="profile" element={<Navigate to="/app/profile" replace />} />

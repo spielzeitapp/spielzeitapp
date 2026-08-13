@@ -76,11 +76,11 @@ assert.ok(profile.includes('TrainerParentAccessHint'));
 assert.ok(!profile.includes('PlayerGuardiansPanel'));
 assert.ok(hint.includes('Zugänge verwalten'));
 assert.ok(hint.includes('/app/mehr/parent-access?player='));
-assert.ok(parentsTab.includes('Fehlt'));
-assert.ok(parentsTab.includes('Offen'));
-assert.ok(parentsTab.includes('Verknüpft'));
+assert.ok(parentsTab.includes('Fehlt') || parentsTab.includes('Eltern fehlen'));
+assert.ok(parentsTab.includes('Offen') || parentsTab.includes('Einladung offen'));
+assert.ok(parentsTab.includes('Verknüpft') || parentsTab.includes('Eltern verknüpft'));
 assert.ok(parentsTab.includes('focusPlayerId'));
-assert.ok(parentsTab.includes('listParentLinkInvitesForPlayer'));
+assert.ok(parentsTab.includes('listParentLinkInvitesForPlayer') || parentsTab.includes('parent-access/player/'));
 assert.ok(guardians.includes('72 Stunden') || guardians.includes('72 Stunden gültig'));
 assert.ok(guardians.includes('inviteBusy'));
 

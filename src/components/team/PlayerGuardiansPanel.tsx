@@ -120,17 +120,18 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
     () => invites.filter((i) => i.state === 'open'),
     [invites],
   );
-  const recentInvites = useMemo(
-    () => invites.filter((i) => i.state === 'open' || i.state === 'used').slice(0, 8),
+  const historyInvites = useMemo(
+    () => invites.filter((i) => i.state !== 'open').slice(0, 12),
     [invites],
   );
+  const [menuParentId, setMenuParentId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
-    if (defaultInviteOpen) return;
-    if (!loading && parents.length === 0 && openInvites.length === 0) {
+    if (defaultInviteOpen) {
       setInviteFormOpen(true);
     }
-  }, [defaultInviteOpen, loading, parents.length, openInvites.length]);
+  }, [defaultInviteOpen]);
 
   const toast = (msg: string) => {
     onToast?.(msg);
@@ -313,10 +314,11 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
         <ul className="mt-2 space-y-2">
           {parents.map((parent) => {
             const masked = maskEmailForDisplay(parent.email);
+            const menuOpen = menuParentId === parent.user_id;
             return (
               <li
                 key={parent.user_id}
-                className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5"
+                className="relative rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -327,52 +329,70 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
                       <p className="mt-0.5 truncate text-[12px] text-white/55">{masked}</p>
                     ) : null}
                   </div>
-                  <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200/90">
-                    Verknüpft
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span className="rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200/90">
+                      Verknüpft
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Aktionen"
+                      aria-expanded={menuOpen}
+                      onClick={() => setMenuParentId(menuOpen ? null : parent.user_id)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-white/70 hover:bg-white/10"
+                    >
+                      •••
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  disabled={busyUserId === parent.user_id}
-                  onClick={() => void handleUnlink(parent)}
-                  className={`mt-2 w-full ${dsSecondaryCtaClass()} !min-h-[40px] !rounded-xl !py-2 !text-[13px] disabled:opacity-50`}
-                >
-                  {busyUserId === parent.user_id ? 'Entferne…' : 'Verknüpfung aufheben'}
-                </button>
+                {menuOpen ? (
+                  <div className="mt-2 rounded-lg border border-white/10 bg-black/60 p-1">
+                    <button
+                      type="button"
+                      disabled={busyUserId === parent.user_id}
+                      onClick={() => {
+                        setMenuParentId(null);
+                        void handleUnlink(parent);
+                      }}
+                      className="w-full rounded-md px-3 py-2 text-left text-[13px] font-semibold text-red-200 hover:bg-red-950/40 disabled:opacity-50"
+                    >
+                      {busyUserId === parent.user_id ? 'Entferne…' : 'Verknüpfung aufheben'}
+                    </button>
+                  </div>
+                ) : null}
               </li>
             );
           })}
         </ul>
       )}
 
-      {recentInvites.length > 0 ? (
-        <ul className="mt-3 space-y-1.5">
-          {recentInvites.map((invite) => {
-            const sentAt = formatDeDateTime(invite.lastSentAt ?? invite.emailedAt ?? invite.createdAt);
-            const expiresAt = formatDeDateTime(invite.expiresAt);
-            return (
-              <li
-                key={invite.id}
-                className="rounded-lg border border-white/[0.08] bg-black/20 px-2.5 py-2"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[12px] font-semibold text-white/90">
-                      {parentInviteStateLabel(invite.state)}
-                      {invite.channel === 'email' ? ' · E-Mail' : ' · Code'}
-                      {invite.recipientEmailMasked ? ` · ${invite.recipientEmailMasked}` : ''}
-                    </p>
-                    {sentAt ? (
-                      <p className="mt-0.5 text-[11px] text-white/45">Gesendet am {sentAt}</p>
-                    ) : null}
-                    {expiresAt && invite.state === 'open' ? (
-                      <p className="text-[11px] text-white/45">Gültig bis {expiresAt}</p>
-                    ) : null}
-                    {invite.state === 'used' ? (
-                      <p className="text-[11px] text-emerald-200/80">Angenommen — nicht erneut anlegen.</p>
-                    ) : null}
-                  </div>
-                  {invite.state === 'open' ? (
+      {openInvites.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-[12px] font-extrabold uppercase tracking-[0.14em] text-sky-300/85">
+            Offene Einladungen
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {openInvites.map((invite) => {
+              const sentAt = formatDeDateTime(invite.lastSentAt ?? invite.emailedAt ?? invite.createdAt);
+              const expiresAt = formatDeDateTime(invite.expiresAt);
+              return (
+                <li
+                  key={invite.id}
+                  className="rounded-lg border border-sky-500/20 bg-sky-950/20 px-2.5 py-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-white/90">
+                        {parentInviteStateLabel(invite.state)}
+                        {invite.channel === 'email' ? ' · E-Mail' : ' · Code'}
+                        {invite.recipientEmailMasked ? ` · ${invite.recipientEmailMasked}` : ''}
+                      </p>
+                      {sentAt ? (
+                        <p className="mt-0.5 text-[11px] text-white/45">Gesendet am {sentAt}</p>
+                      ) : null}
+                      {expiresAt ? (
+                        <p className="text-[11px] text-white/45">Gültig bis {expiresAt}</p>
+                      ) : null}
+                    </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       {invite.channel === 'email' ? (
                         <button
@@ -393,12 +413,47 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
                         Widerrufen
                       </button>
                     </div>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
+      {historyInvites.length > 0 ? (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((v) => !v)}
+            className="text-[12px] font-semibold text-white/55 underline-offset-2 hover:text-white/75 hover:underline"
+          >
+            {historyOpen ? 'Verlauf ausblenden' : 'Verlauf anzeigen'}
+          </button>
+          {historyOpen ? (
+            <ul className="mt-2 space-y-1.5">
+              {historyInvites.map((invite) => {
+                const sentAt = formatDeDateTime(
+                  invite.lastSentAt ?? invite.emailedAt ?? invite.createdAt,
+                );
+                return (
+                  <li
+                    key={invite.id}
+                    className="rounded-lg border border-white/[0.06] bg-black/15 px-2.5 py-2"
+                  >
+                    <p className="text-[12px] font-semibold text-white/80">
+                      {parentInviteStateLabel(invite.state)}
+                      {invite.recipientEmailMasked ? ` · ${invite.recipientEmailMasked}` : ''}
+                    </p>
+                    {sentAt ? (
+                      <p className="mt-0.5 text-[11px] text-white/40">Versand: {sentAt}</p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="mt-3 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3">
@@ -416,7 +471,7 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
         ) : (
           <>
             <p className="text-[12px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
-              Eltern einladen
+              Elternteil einladen
             </p>
             <p className="mt-1 text-[12px] text-white/55">
               Die Einladung ist 72 Stunden gültig und nur mit dieser E-Mail-Adresse verwendbar.
@@ -452,7 +507,6 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
             >
               {inviteBusy ? 'Sende…' : 'Einladung senden'}
             </button>
-            {/* Alias-Text für bestehende Tests / Suchbarkeit */}
             <span className="sr-only">Einladung per E-Mail senden</span>
 
             {inviteError ? (

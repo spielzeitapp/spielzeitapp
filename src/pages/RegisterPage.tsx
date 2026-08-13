@@ -220,7 +220,7 @@ export const RegisterPage: React.FC = () => {
         setNeedsEmailConfirmation(true);
         setMessage({
           type: 'success',
-          text: 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es direkt mit der Einladung weiter — ohne Rollen- oder Mannschaftswahl.',
+          text: 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse, um die Registrierung abzuschließen. Danach kannst du die persönliche Einladung annehmen und dein Kind direkt mit deinem Elternkonto verknüpfen — ohne Rollen- oder Mannschaftswahl.',
         });
         setLoading(false);
         return;
