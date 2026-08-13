@@ -111,6 +111,14 @@ function eventKindLabel(kind: string): string {
   return 'Termin';
 }
 
+/** Tailwind classes for assigned occupancy chips in the week grid. */
+function kindColor(kind: string): string {
+  if (kind === 'match') return 'bg-red-700 text-white';
+  if (kind === 'training') return 'bg-emerald-700 text-white';
+  if (kind === 'tournament') return 'bg-amber-600 text-white';
+  return 'bg-slate-600 text-white';
+}
+
 function eventTitle(e: ClubEvent): string {
   if (e.kind === 'match') {
     const opp = normalizeOefbImportedTeamName(e.opponent);
