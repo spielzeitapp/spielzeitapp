@@ -37,6 +37,9 @@ export type TeamFeedPostDbRow = {
   duration_seconds: number | null;
   created_by?: string | null;
   updated_at?: string | null;
+  /** Optionaler externer http(s)-CTA (LIVE-FEED.1). */
+  cta_url?: string | null;
+  cta_label?: string | null;
 };
 
 export type TeamFeedPostRow = {

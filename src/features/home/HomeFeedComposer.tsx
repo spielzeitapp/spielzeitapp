@@ -1,9 +1,15 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Clapperboard, ImagePlus, Send, Trophy, Video, X } from 'lucide-react';
+import { Camera, Clapperboard, ImagePlus, Link2, Send, Trophy, Video, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import {
+  FEED_CTA_LABEL_FALLBACK,
+  FEED_CTA_LABEL_MAX,
+  sanitizeFeedCtaLabel,
+  validateFeedCtaUrl,
+} from '../../lib/feedCtaLink';
 import { PremiumCard } from '../../ui';
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -57,6 +63,9 @@ export const HomeFeedComposer: React.FC<Props> = ({
   const [draftFile, setDraftFile] = useState<File | null>(null);
   const [draftKind, setDraftKind] = useState<'image' | 'video' | null>(null);
   const [composerExpanded, setComposerExpanded] = useState(false);
+  const [linkEnabled, setLinkEnabled] = useState(false);
+  const [ctaLabel, setCtaLabel] = useState('Livestream ansehen');
+  const [ctaUrl, setCtaUrl] = useState('');
   const progressTimerRef = useRef<number | null>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   const vidInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +91,14 @@ export const HomeFeedComposer: React.FC<Props> = ({
     setError(null);
     setUploadPct(0);
   }, []);
+
+  const resetComposerFields = useCallback(() => {
+    setCaption('');
+    clearDraft();
+    setLinkEnabled(false);
+    setCtaLabel('Livestream ansehen');
+    setCtaUrl('');
+  }, [clearDraft]);
 
   const onPickImage = useCallback(() => {
     setError(null);
@@ -213,6 +230,31 @@ export const HomeFeedComposer: React.FC<Props> = ({
 
       const cap = caption.trim() || (draftKind === 'video' ? 'Neues Video' : 'Neues Foto');
       const dedupeKey = `manual:${crypto.randomUUID()}`;
+
+      let insertCtaUrl: string | null = null;
+      let insertCtaLabel: string | null = null;
+      if (linkEnabled) {
+        const urlRes = validateFeedCtaUrl(ctaUrl);
+        if (!urlRes.ok) {
+          setError(urlRes.error);
+          setBusy(false);
+          setPhase('idle');
+          setUploadPct(0);
+          clearProgressTimer();
+          return;
+        }
+        if (!urlRes.url) {
+          setError('Bitte eine Link-URL eingeben oder „Link hinzufügen“ deaktivieren.');
+          setBusy(false);
+          setPhase('idle');
+          setUploadPct(0);
+          clearProgressTimer();
+          return;
+        }
+        insertCtaUrl = urlRes.url;
+        insertCtaLabel = sanitizeFeedCtaLabel(ctaLabel) ?? FEED_CTA_LABEL_FALLBACK;
+      }
+
       const insertPayload = {
         team_season_id: teamSeasonId,
         team_id: teamId,
@@ -226,6 +268,8 @@ export const HomeFeedComposer: React.FC<Props> = ({
         thumbnail_url: null,
         duration_seconds: null,
         created_by: userId,
+        cta_url: insertCtaUrl,
+        cta_label: insertCtaLabel,
       };
 
       const { data: authSnap } = await supabase.auth.getSession();
@@ -253,8 +297,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
       }
 
       setUploadPct(100);
-      setCaption('');
-      clearDraft();
+      resetComposerFields();
       setComposerExpanded(false);
       onPosted();
     } catch (e) {
@@ -269,12 +312,15 @@ export const HomeFeedComposer: React.FC<Props> = ({
     backendRole,
     busy,
     caption,
-    clearDraft,
     clearProgressTimer,
+    ctaLabel,
+    ctaUrl,
     draftFile,
     draftKind,
+    linkEnabled,
     membershipRole,
     onPosted,
+    resetComposerFields,
     startFakeUploadProgress,
     teamId,
     teamSeasonId,
@@ -411,6 +457,61 @@ export const HomeFeedComposer: React.FC<Props> = ({
               className="w-full resize-none rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-red-500/40 focus:outline-none focus:ring-1 focus:ring-red-500/30 disabled:opacity-50"
             />
           </label>
+
+          <div className="mt-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setLinkEnabled((v) => !v)}
+              className="flex min-h-[40px] w-full touch-manipulation items-center gap-2 text-left disabled:opacity-45"
+              aria-pressed={linkEnabled}
+            >
+              <Link2 className="h-4 w-4 shrink-0 text-red-300" strokeWidth={2} aria-hidden />
+              <span className="flex-1 text-[13px] font-semibold text-white/90">Link hinzufügen</span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                  linkEnabled
+                    ? 'bg-red-600/80 text-white'
+                    : 'bg-white/10 text-white/45'
+                }`}
+              >
+                {linkEnabled ? 'An' : 'Aus'}
+              </span>
+            </button>
+            {linkEnabled ? (
+              <div className="mt-2.5 flex flex-col gap-2 border-t border-white/8 pt-2.5">
+                <label className="block">
+                  <span className="mb-1 block text-[11px] font-medium text-white/45">Button-Text</span>
+                  <input
+                    type="text"
+                    value={ctaLabel}
+                    onChange={(e) => setCtaLabel(e.target.value.slice(0, FEED_CTA_LABEL_MAX))}
+                    disabled={busy}
+                    maxLength={FEED_CTA_LABEL_MAX}
+                    placeholder="Livestream ansehen"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-red-500/40 focus:outline-none focus:ring-1 focus:ring-red-500/30 disabled:opacity-50"
+                    autoComplete="off"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[11px] font-medium text-white/45">Link</span>
+                  <input
+                    type="url"
+                    value={ctaUrl}
+                    onChange={(e) => setCtaUrl(e.target.value)}
+                    disabled={busy}
+                    placeholder="https://…"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-red-500/40 focus:outline-none focus:ring-1 focus:ring-red-500/30 disabled:opacity-50"
+                    autoComplete="off"
+                    inputMode="url"
+                  />
+                </label>
+                <p className="text-[10px] leading-snug text-white/40">
+                  Nur http(s)-Links. Der Link öffnet sich außerhalb der App (z. B. Cloudflare-Player).
+                </p>
+              </div>
+            ) : null}
+          </div>
 
           {busy && phase === 'uploading' ? (
             <div className="mt-3" aria-live="polite">

@@ -16,7 +16,7 @@ import { buildEventStatusMap, isFeedPostVisibleInHomeFeed } from '../lib/feedPos
 import { supabase } from '../lib/supabaseClient';
 
 const FEED_SELECT =
-  'id, team_season_id, team_id, event_id, post_kind, caption, payload, created_at, updated_at, created_by, media_type, media_url, thumbnail_url, duration_seconds';
+  'id, team_season_id, team_id, event_id, post_kind, caption, payload, created_at, updated_at, created_by, media_type, media_url, thumbnail_url, duration_seconds, cta_url, cta_label';
 
 /** Aktive Saison: vollständiger aktueller Feed (kein History-Limit). */
 export const ACTIVE_FEED_LIMIT = 48;
