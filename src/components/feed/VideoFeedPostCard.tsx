@@ -6,6 +6,7 @@ import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
+import { FeedPostCtaButton } from './FeedPostCtaButton';
 import {
   FEED_POST_BODY_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
@@ -312,6 +313,8 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
             <FeedCaption text={post.caption} />
           </div>
         ) : null}
+
+        <FeedPostCtaButton ctaUrl={post.cta_url} ctaLabel={post.cta_label} />
 
         <FeedPostActionsFooter shareHint={shareHint}>
           <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter />

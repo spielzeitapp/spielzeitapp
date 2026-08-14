@@ -49,6 +49,9 @@ function basePost(
     media_url: partial.media_url ?? null,
     thumbnail_url: null,
     duration_seconds: null,
+    created_by: null,
+    cta_url: null,
+    cta_label: null,
   };
 }
 
