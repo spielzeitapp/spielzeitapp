@@ -12,6 +12,9 @@ import {
   fetchTournamentParticipants,
   importTournamentParticipantsBulk,
   ownPlayableTournamentSlots,
+  ourTournamentScheduleSlots,
+  countOwnTournamentMatchesByPhase,
+  isAwaitingFurtherTournamentPhase,
   parseTournamentParticipantImportLines,
   removeTournamentMatchSlot,
   removeTournamentParticipant,
@@ -51,6 +54,7 @@ import {
   markOfficialTournamentSynced,
   syncOfficialTournamentPlan,
 } from '../../lib/tournamentPlanSync';
+import { subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 import { openOfficialTournamentPlanUrl } from '../../lib/tournamentOfficialPlanUrl';
 import {
   buildTournamentCompletionFeedCaption,
@@ -202,7 +206,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [orchestratorReportOpen, setOrchestratorReportOpen] = useState(false);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [syncAgeLabel, setSyncAgeLabel] = useState<string | null>(null);
+  const [planSyncBusy, setPlanSyncBusy] = useState(false);
+  const [planSyncStatus, setPlanSyncStatus] = useState<string | null>(null);
+  const [gamesFilter, setGamesFilter] = useState<'ours' | 'all'>(() => (canManage ? 'ours' : 'all'));
   const finishedOwnCountRef = React.useRef<number | null>(null);
+  const groupStageDoneSyncRef = React.useRef(false);
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const { players: dbPlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId);
@@ -234,6 +242,20 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const existingTeamNames = useMemo(() => participants.map((p) => p.team_name), [participants]);
   const ownSlots = useMemo(() => ownPlayableTournamentSlots(slots), [slots]);
+  const ourScheduleSlots = useMemo(() => ourTournamentScheduleSlots(slots), [slots]);
+  const ownMatchCounts = useMemo(() => countOwnTournamentMatchesByPhase(slots), [slots]);
+  const awaitingFurtherPhase = useMemo(
+    () =>
+      isAwaitingFurtherTournamentPhase({
+        ownSlots,
+        allSlots: slots,
+      }) && !completion.completedAt,
+    [ownSlots, slots, completion.completedAt],
+  );
+  const filteredGamesSlots = useMemo(
+    () => (gamesFilter === 'ours' ? ourScheduleSlots : slots),
+    [gamesFilter, ourScheduleSlots, slots],
+  );
 
   const scrollToTeamAliases = useCallback(() => {
     setActiveTab('admin');
@@ -434,6 +456,60 @@ export const TournamentDetailSections: React.FC<Props> = ({
   slotsRef.current = slots;
   const existingTeamNamesRef = React.useRef(existingTeamNames);
   existingTeamNamesRef.current = existingTeamNames;
+  const ownSlotsRef = React.useRef(ownSlots);
+  ownSlotsRef.current = ownSlots;
+
+  const runForcedPlanSync = useCallback(
+    async (opts?: { reason?: 'post_match' | 'manual' | 'group_done' | 'broadcast' }) => {
+      const planUrl = safeText(officialTournamentUrl);
+      if (!planUrl || completion.completedAt) return;
+      const reason = opts?.reason ?? 'manual';
+      setPlanSyncBusy(true);
+      setPlanSyncStatus(
+        reason === 'group_done'
+          ? 'Nächste Runde wird aktualisiert …'
+          : 'Turnierplan wird aktualisiert …',
+      );
+      try {
+        const result = await syncOfficialTournamentPlan({
+          tournamentEventId,
+          teamSeasonId,
+          tournamentDayIso,
+          location,
+          officialUrl: planUrl,
+          existingTeamNames: existingTeamNamesRef.current,
+          existingSlots: slotsRef.current,
+          force: true,
+        });
+        setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+        if (result.ok) {
+          setPlanSyncStatus('Turnierplan aktualisiert');
+          if (result.changed || reason === 'post_match' || reason === 'group_done' || reason === 'broadcast') {
+            await reload();
+          }
+        } else {
+          setPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
+        }
+      } catch {
+        setPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
+      } finally {
+        setPlanSyncBusy(false);
+        window.setTimeout(() => {
+          setPlanSyncStatus(null);
+          setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+        }, 3500);
+      }
+    },
+    [
+      officialTournamentUrl,
+      completion.completedAt,
+      tournamentEventId,
+      teamSeasonId,
+      tournamentDayIso,
+      location,
+      reload,
+    ],
+  );
 
   useEffect(() => {
     if (!canManage || loading) return;
@@ -504,40 +580,60 @@ export const TournamentDetailSections: React.FC<Props> = ({
     if (!canManage || completion.completedAt) return;
     const planUrl = safeText(officialTournamentUrl);
     if (!planUrl) return;
-    void (async () => {
-      const result = await syncOfficialTournamentPlan({
-        tournamentEventId,
-        teamSeasonId,
-        tournamentDayIso,
-        location,
-        officialUrl: planUrl,
-        existingTeamNames: existingTeamNamesRef.current,
-        existingSlots: slotsRef.current,
-        force: true,
-      });
-      setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
-      if (result.ok && result.changed) await reload();
-    })();
+    void runForcedPlanSync({ reason: 'post_match' });
   }, [
     ownSlots,
     canManage,
     completion.completedAt,
     officialTournamentUrl,
-    tournamentEventId,
-    teamSeasonId,
-    tournamentDayIso,
-    location,
-    reload,
+    runForcedPlanSync,
+  ]);
+
+  /** Extra Sync wenn alle eigenen Gruppenspiele fertig sind (KO prüfen). */
+  useEffect(() => {
+    if (!canManage || completion.completedAt) return;
+    if (!awaitingFurtherPhase) {
+      groupStageDoneSyncRef.current = false;
+      return;
+    }
+    if (groupStageDoneSyncRef.current) return;
+    if (!safeText(officialTournamentUrl)) return;
+    groupStageDoneSyncRef.current = true;
+    void runForcedPlanSync({ reason: 'group_done' });
+  }, [
+    awaitingFurtherPhase,
+    canManage,
+    completion.completedAt,
+    officialTournamentUrl,
+    runForcedPlanSync,
   ]);
 
   useEffect(() => {
+    if (!canManage || completion.completedAt) return;
+    const ownMatchIds = new Set(
+      ownSlotsRef.current
+        .map((slot) => String(slot.match_id ?? '').trim())
+        .filter(Boolean),
+    );
+    return subscribeLiveMatchStateChanged((detail) => {
+      if (detail.status !== 'finished') return;
+      if (!ownMatchIds.has(detail.matchId)) return;
+      void (async () => {
+        await reload();
+        await runForcedPlanSync({ reason: 'broadcast' });
+      })();
+    });
+  }, [canManage, completion.completedAt, reload, runForcedPlanSync, ownSlots]);
+
+  useEffect(() => {
     const tick = () => {
+      if (planSyncBusy) return;
       setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
     };
     tick();
     const interval = window.setInterval(tick, 30_000);
     return () => window.clearInterval(interval);
-  }, [tournamentEventId]);
+  }, [tournamentEventId, planSyncBusy]);
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -695,7 +791,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const orchestratorCanCreateReport = Boolean(orchestratorReportText.trim()) || teamBalance.played > 0;
   const orchestratorCanComplete =
-    canCompleteTournament(teamBalance) && !completion.completedAt && canManage;
+    canCompleteTournament(teamBalance) &&
+    !completion.completedAt &&
+    canManage &&
+    !awaitingFurtherPhase;
 
   const showPremiumFinalCard = shouldShowTournamentPremiumFinalCard(teamBalance, completion);
   const showPremiumAboveTabs = Boolean(completion.completedAt) && showPremiumFinalCard;
@@ -863,7 +962,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
     );
   };
 
-  const slotSections = useMemo(() => groupTournamentSlotsBySection(slots), [slots]);
+  const slotSections = useMemo(
+    () => groupTournamentSlotsBySection(filteredGamesSlots),
+    [filteredGamesSlots],
+  );
 
   const infoRows = useMemo(() => {
     const beginn = formatTimeHHmmDe(tournamentDayIso);
@@ -1021,7 +1123,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
       {quickActions}
 
-      {canManage && syncAgeLabel ? (
+      {canManage && (planSyncBusy || planSyncStatus) ? (
+        <p className="px-0.5 text-[10px] font-medium text-white/45" role="status" aria-live="polite">
+          {planSyncBusy ? planSyncStatus ?? 'Turnierplan wird aktualisiert …' : planSyncStatus}
+        </p>
+      ) : canManage && syncAgeLabel ? (
         <p className="px-0.5 text-[10px] font-medium text-white/40">{syncAgeLabel}</p>
       ) : null}
 
@@ -1035,11 +1141,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
           canCreateReport={orchestratorCanCreateReport}
           canCompleteTournament={orchestratorCanComplete}
           completingTournament={completingTournament}
+          awaitingFurtherPhase={awaitingFurtherPhase}
+          refreshingPlan={planSyncBusy}
           onOpen={onOpenMatchPreparation}
           onAddMatch={canManage ? openMatchModal : undefined}
           onCreateReport={() => setOrchestratorReportOpen(true)}
           onCompleteTournament={handleCompleteTournament}
           onShowOverview={showOrchestratorOverview}
+          onRefreshPlan={() => void runForcedPlanSync({ reason: 'manual' })}
         />
       ) : null}
 
@@ -1112,6 +1221,44 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
       {activeTab === 'games' ? (
         <div className={`flex flex-col ${TC_STACK_GAP}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="inline-flex rounded-full border border-white/12 bg-white/[0.04] p-0.5"
+              role="group"
+              aria-label="Spielplan-Filter"
+            >
+              <button
+                type="button"
+                className={`min-h-[36px] rounded-full px-3 text-[12px] font-semibold touch-manipulation ${
+                  gamesFilter === 'ours'
+                    ? 'bg-white/12 text-white'
+                    : 'text-white/55 hover:text-white/80'
+                }`}
+                onClick={() => setGamesFilter('ours')}
+              >
+                Unsere Spiele
+              </button>
+              <button
+                type="button"
+                className={`min-h-[36px] rounded-full px-3 text-[12px] font-semibold touch-manipulation ${
+                  gamesFilter === 'all'
+                    ? 'bg-white/12 text-white'
+                    : 'text-white/55 hover:text-white/80'
+                }`}
+                onClick={() => setGamesFilter('all')}
+              >
+                Alle Spiele
+              </button>
+            </div>
+            {canManage && ownMatchCounts.total > 0 ? (
+              <p className="text-[11px] text-white/45">
+                {ownMatchCounts.knockout > 0
+                  ? `${ownMatchCounts.total} Spiele insgesamt`
+                  : `${ownMatchCounts.group} Gruppenspiele`}
+              </p>
+            ) : null}
+          </div>
+
           {canManage ? (
             <button type="button" className={addButtonClass} onClick={openMatchModal}>
               <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -1125,11 +1272,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
                 <p className="text-[14px] text-white/55">Lade Turnierplan…</p>
               </div>
             </section>
-          ) : slots.length === 0 ? (
+          ) : filteredGamesSlots.length === 0 ? (
             <section className={TC_CARD}>
               <div className={`${TC_CARD_INNER} text-center py-2`}>
                 <p className={TC_SECTION_LABEL}>Spiele</p>
-                <p className="mt-2 text-[14px] text-white/55">Keine Turnierspiele geplant.</p>
+                <p className="mt-2 text-[14px] text-white/55">
+                  {gamesFilter === 'ours'
+                    ? 'Keine eigenen Turnierspiele gefunden.'
+                    : 'Keine Turnierspiele geplant.'}
+                </p>
               </div>
             </section>
           ) : (

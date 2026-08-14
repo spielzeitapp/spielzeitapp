@@ -5,8 +5,15 @@
 
 import { analyzeTournamentUrl, importTournamentPlanFromAnalysis } from './tournamentPlanImport';
 import { fetchTournamentImportRecognition } from './tournamentPlanImport';
-import type { TournamentMatchSlotView, TournamentParticipant } from './tournamentPlan';
+import {
+  fetchTournamentMatchSlots,
+  fetchTournamentParticipants,
+  type TournamentMatchSlotView,
+  type TournamentParticipant,
+} from './tournamentPlan';
 import { getDateTimePartsInTimeZone, VIENNA_TZ } from './viennaTime';
+import { supabase } from './supabaseClient';
+import { safeOptionalText, safeText } from './safeText';
 
 const SYNC_COOLDOWN_MS = 60 * 1000;
 const lastSyncAtByEvent = new Map<string, number>();
@@ -106,6 +113,70 @@ export async function syncOfficialTournamentPlan(params: {
   }
 }
 
+/**
+ * Nach eigenem Turnierspiel-Ende: TURNIERlive forcen.
+ * Eigene App-Ergebnisse bleiben Source of Truth (Import überschreibt sie nicht).
+ */
+export async function syncOfficialPlanAfterTournamentMatchFinish(
+  matchId: string,
+): Promise<OfficialTournamentSyncResult & { tournamentEventId: string | null }> {
+  const mid = safeText(matchId);
+  if (!mid) {
+    return { ok: false, skipped: true, changed: false, error: null, syncedAt: null, tournamentEventId: null };
+  }
+
+  const { data: link, error: linkErr } = await supabase
+    .from('tournament_matches')
+    .select('tournament_event_id')
+    .eq('match_id', mid)
+    .maybeSingle();
+
+  if (linkErr || !link?.tournament_event_id) {
+    return { ok: false, skipped: true, changed: false, error: null, syncedAt: null, tournamentEventId: null };
+  }
+
+  const tournamentEventId = String(link.tournament_event_id);
+  const { data: eventRow, error: eventErr } = await supabase
+    .from('events')
+    .select('id, team_season_id, starts_at, location, official_tournament_url, kind')
+    .eq('id', tournamentEventId)
+    .maybeSingle();
+
+  if (eventErr || !eventRow || String(eventRow.kind ?? '') !== 'tournament') {
+    return { ok: false, skipped: true, changed: false, error: null, syncedAt: null, tournamentEventId };
+  }
+
+  const officialUrl = safeOptionalText(
+    (eventRow as { official_tournament_url?: string | null }).official_tournament_url,
+  );
+  const teamSeasonId = safeText((eventRow as { team_season_id?: string | null }).team_season_id);
+  const tournamentDayIso =
+    safeOptionalText((eventRow as { starts_at?: string | null }).starts_at) || new Date().toISOString();
+  const location = safeOptionalText((eventRow as { location?: string | null }).location);
+
+  if (!officialUrl || !teamSeasonId) {
+    return { ok: true, skipped: true, changed: false, error: null, syncedAt: null, tournamentEventId };
+  }
+
+  const [slotsRes, participantsRes] = await Promise.all([
+    fetchTournamentMatchSlots(tournamentEventId),
+    fetchTournamentParticipants(tournamentEventId),
+  ]);
+
+  const result = await syncOfficialTournamentPlan({
+    tournamentEventId,
+    teamSeasonId,
+    tournamentDayIso,
+    location,
+    officialUrl,
+    existingTeamNames: (participantsRes.data ?? []).map((p) => p.team_name),
+    existingSlots: slotsRes.data ?? [],
+    force: true,
+  });
+
+  return { ...result, tournamentEventId };
+}
+
 export function markOfficialTournamentSynced(eventId: string): void {
   const id = eventId.trim();
   if (id) lastSyncAtByEvent.set(id, Date.now());
@@ -117,9 +188,10 @@ export function getOfficialTournamentSyncedAt(eventId: string): number | null {
 
 export function formatTournamentPlanSyncAge(syncedAt: number | null, now = Date.now()): string | null {
   if (!syncedAt) return null;
-  const minutes = Math.max(0, Math.floor((now - syncedAt) / 60_000));
-  if (minutes <= 0) return 'Turnierplan aktualisiert gerade';
-  if (minutes === 1) return 'Turnierplan aktualisiert vor 1 Min.';
+  const seconds = Math.max(0, Math.floor((now - syncedAt) / 1000));
+  if (seconds < 45) return 'Turnierplan aktualisiert vor wenigen Sekunden';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes <= 1) return 'Turnierplan aktualisiert vor 1 Min.';
   return `Turnierplan aktualisiert vor ${minutes} Min.`;
 }
 

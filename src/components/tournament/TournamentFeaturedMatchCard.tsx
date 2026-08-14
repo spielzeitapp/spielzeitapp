@@ -39,11 +39,14 @@ type Props = {
   canCreateReport?: boolean;
   canCompleteTournament?: boolean;
   completingTournament?: boolean;
+  awaitingFurtherPhase?: boolean;
+  refreshingPlan?: boolean;
   onOpen: (matchId: string) => void;
   onAddMatch?: () => void;
   onCreateReport?: () => void;
   onCompleteTournament?: () => void;
   onShowOverview?: () => void;
+  onRefreshPlan?: () => void;
 };
 
 function TeamLogoMark({ name }: { name: string }) {
@@ -109,7 +112,9 @@ function renderCta(
     onCreateReport?: () => void;
     onCompleteTournament?: () => void;
     onShowOverview?: () => void;
+    onRefreshPlan?: () => void;
     completingTournament?: boolean;
+    refreshingPlan?: boolean;
     basePath?: '/app' | '/demo';
   },
 ): React.ReactNode {
@@ -156,6 +161,17 @@ function renderCta(
           />
           {cta.label}
         </WorkflowCtaLink>
+      );
+    case 'refresh_plan':
+      return (
+        <WorkflowCtaButton
+          key={cta.kind}
+          variant={cta.variant}
+          disabled={handlers.refreshingPlan}
+          onClick={() => handlers.onRefreshPlan?.()}
+        >
+          {handlers.refreshingPlan ? 'Nächste Runde wird aktualisiert …' : cta.label}
+        </WorkflowCtaButton>
       );
     case 'create_report':
       return (
@@ -225,11 +241,14 @@ export function TournamentFeaturedMatchCard({
   canCreateReport = false,
   canCompleteTournament = false,
   completingTournament = false,
+  awaitingFurtherPhase = false,
+  refreshingPlan = false,
   onOpen,
   onAddMatch,
   onCreateReport,
   onCompleteTournament,
   onShowOverview,
+  onRefreshPlan,
 }: Props) {
   const basePath = useInternalBasePath();
   const focus = useMemo(() => pickOrchestratorFocus(slots), [slots]);
@@ -249,8 +268,17 @@ export function TournamentFeaturedMatchCard({
         tournamentArchived,
         canCreateReport,
         canCompleteTournament,
+        awaitingFurtherPhase,
       }),
-    [slots, canManage, lineupReady, tournamentArchived, canCreateReport, canCompleteTournament],
+    [
+      slots,
+      canManage,
+      lineupReady,
+      tournamentArchived,
+      canCreateReport,
+      canCompleteTournament,
+      awaitingFurtherPhase,
+    ],
   );
 
   useEffect(() => {
@@ -278,7 +306,7 @@ export function TournamentFeaturedMatchCard({
 
   useEffect(() => {
     let cancelled = false;
-    if (!canManage || !focusMatchId || orchestrator.phase === 'live' || orchestrator.phase === 'all_finished') {
+    if (!canManage || !focusMatchId || orchestrator.phase === 'live' || orchestrator.phase === 'all_finished' || orchestrator.phase === 'awaiting_knockout') {
       setLineupReady(false);
       setLineupLoading(false);
       return () => {
@@ -325,7 +353,8 @@ export function TournamentFeaturedMatchCard({
 
   const status = tournamentMatchDisplayStatus(focusSlot);
   const isLive = orchestrator.phase === 'live';
-  const isAllFinished = orchestrator.phase === 'all_finished';
+  const isAllFinished =
+    orchestrator.phase === 'all_finished' || orchestrator.phase === 'awaiting_knockout';
   const timeLabel = formatTournamentKickoffTime(focusSlot.kickoff_at);
   const group = safeOptionalText(focusSlot.group_label);
   const phase = safeOptionalText(focusSlot.phase);
@@ -344,7 +373,7 @@ export function TournamentFeaturedMatchCard({
       : null;
 
   const headerIcon =
-    orchestrator.phase === 'all_finished' ? (
+    orchestrator.phase === 'all_finished' || orchestrator.phase === 'awaiting_knockout' ? (
       <Flag className="h-3 w-3 text-white/55" strokeWidth={2.25} aria-hidden />
     ) : null;
 
@@ -434,7 +463,9 @@ export function TournamentFeaturedMatchCard({
                 onCreateReport,
                 onCompleteTournament,
                 onShowOverview,
+                onRefreshPlan,
                 completingTournament,
+                refreshingPlan,
                 basePath,
               }),
             )}

@@ -179,6 +179,115 @@ export function ownPlayableTournamentSlots<T extends { is_own_team?: boolean | n
   return slots.filter((slot) => isOwnPlayableTournamentSlot(slot));
 }
 
+/** Spielplan-Filter „Unsere Spiele“: eigene Mannschaft (auch noch nicht promotete Official-Slots). */
+export function isOurTournamentScheduleSlot(slot: {
+  is_own_team?: boolean | null;
+  match_id?: string | null;
+}): boolean {
+  if (slot.is_own_team === false) return false;
+  if (slot.is_own_team === true) return true;
+  return Boolean(safeText(slot.match_id));
+}
+
+export function ourTournamentScheduleSlots<T extends { is_own_team?: boolean | null; match_id?: string | null }>(
+  slots: T[],
+): T[] {
+  return slots.filter((slot) => isOurTournamentScheduleSlot(slot));
+}
+
+function normalizeSlotPhase(phase: unknown): string {
+  const raw = String(phase ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  if (!raw) return 'group';
+  if (raw.includes('final') && !raw.includes('semi') && !raw.includes('halb')) return 'final';
+  if (raw.includes('semi') || raw.includes('halb')) return 'semi';
+  if (
+    raw.includes('platz') ||
+    raw.includes('third') ||
+    raw.includes('place_3') ||
+    raw.includes('3rd') ||
+    raw.includes('bronze')
+  ) {
+    return 'placement';
+  }
+  if (raw.includes('ko') || raw.includes('knock')) return 'knockout';
+  if (raw.includes('group') || raw.includes('gruppe') || raw.includes('vorrunde')) return 'group';
+  return raw;
+}
+
+function isKnockoutLikePhase(phase: unknown): boolean {
+  const p = normalizeSlotPhase(phase);
+  return p === 'final' || p === 'semi' || p === 'placement' || p === 'knockout';
+}
+
+function slotIsFinished(slot: { match_status?: string | null; official_status?: string | null }): boolean {
+  const ms = String(slot.match_status ?? '').trim().toLowerCase();
+  if (ms === 'finished' || ms === 'ended' || ms === 'completed') return true;
+  const os = String(slot.official_status ?? '').trim().toLowerCase();
+  return os === 'finished' || os === 'ended' || os === 'completed';
+}
+
+export type OwnTournamentMatchCounts = {
+  group: number;
+  total: number;
+  knockout: number;
+};
+
+/** Kompakte Zählung für Trainer-Übersicht (dynamisch, inkl. späterer KO-Spiele). */
+export function countOwnTournamentMatchesByPhase(
+  slots: Array<{ is_own_team?: boolean | null; match_id?: string | null; phase?: string | null }>,
+): OwnTournamentMatchCounts {
+  const ours = ourTournamentScheduleSlots(slots);
+  let group = 0;
+  let knockout = 0;
+  for (const slot of ours) {
+    if (isKnockoutLikePhase(slot.phase)) knockout += 1;
+    else group += 1;
+  }
+  return { group, knockout, total: ours.length };
+}
+
+/**
+ * Alle eigenen spielbaren Spiele finished, aber nächste Phase (KO) noch nicht sicher da /
+ * noch nicht veröffentlicht → kein vorschneller Turnierabschluss.
+ */
+export function isAwaitingFurtherTournamentPhase(params: {
+  ownSlots: TournamentMatchSlotView[];
+  allSlots: TournamentMatchSlotView[];
+}): boolean {
+  const { ownSlots, allSlots } = params;
+  if (ownSlots.length === 0) return false;
+  const allOwnFinished = ownSlots.every((slot) => slotIsFinished(slot));
+  if (!allOwnFinished) return false;
+
+  const openKnockoutOfficial = allSlots.filter((slot) => {
+    if (!isKnockoutLikePhase(slot.phase)) return false;
+    if (slotIsFinished(slot)) return false;
+    return true;
+  });
+
+  // Offenes KO, an dem wir beteiligt sein könnten oder Teams noch TBD
+  if (
+    openKnockoutOfficial.some(
+      (slot) =>
+        slot.is_own_team !== false ||
+        !safeOptionalText(slot.home_team) ||
+        !safeOptionalText(slot.away_team),
+    )
+  ) {
+    return true;
+  }
+
+  // Nur Gruppenspiele bei uns, noch kein KO-Slot im Plan → warten auf Veröffentlichung
+  const ownOnlyGroup = ownSlots.every((slot) => !isKnockoutLikePhase(slot.phase));
+  const planHasAnyKnockout = allSlots.some((slot) => isKnockoutLikePhase(slot.phase));
+  if (ownOnlyGroup && !planHasAnyKnockout) return true;
+
+  return false;
+}
+
 export function tournamentSlotDisplayTitle(slot: TournamentMatchSlot): string {
   const home = safeOptionalText(slot.home_team);
   const away = safeOptionalText(slot.away_team);

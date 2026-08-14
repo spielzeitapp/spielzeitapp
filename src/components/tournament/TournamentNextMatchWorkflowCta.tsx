@@ -7,6 +7,7 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { formatTournamentKickoffTime } from '../../lib/tournamentPlan';
+import { tournamentPrepareCtaLabel } from '../../lib/tournamentDayOrchestrator';
 import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
@@ -16,6 +17,10 @@ type Props = {
   audience?: 'trainer' | 'audience';
   /** Während aktuelles Spiel noch läuft vs. nach Ende. */
   phase?: 'during_live' | 'after_finish' | 'before_first';
+  /** Optional: manueller Sync-Status / Refresh aus Live-Screen. */
+  planSyncBusy?: boolean;
+  planSyncStatus?: string | null;
+  onRefreshPlan?: () => void;
 };
 
 /** Eine dominante Next-Match-Karte für Live-/Match-Surfaces (Trainer + Eltern/Fans). */
@@ -24,9 +29,12 @@ export function TournamentNextMatchWorkflowCta({
   className = '',
   audience = 'trainer',
   phase = 'after_finish',
+  planSyncBusy = false,
+  planSyncStatus = null,
+  onRefreshPlan,
 }: Props) {
   const basePath = useInternalBasePath();
-  const { nextSlot, tournamentEventId, tournamentTitle } = context;
+  const { nextSlot, tournamentEventId, tournamentTitle, awaitingFurtherPhase } = context;
   const isTrainer = audience === 'trainer';
 
   if (nextSlot) {
@@ -34,14 +42,16 @@ export function TournamentNextMatchWorkflowCta({
     const pitch = String(nextSlot.pitch ?? '').trim();
     const meta = [kickoff ? `${kickoff} Uhr` : null, pitch || null].filter(Boolean).join(' · ');
     const nextLive = (nextSlot.match_status ?? '').toLowerCase() === 'live';
+    const phaseHint = String(nextSlot.phase ?? '').trim();
     const heading =
       phase === 'during_live' ? 'Danach' : phase === 'before_first' ? 'Nächstes Spiel' : 'Nächstes Spiel';
+    const prepareLabel = tournamentPrepareCtaLabel(nextSlot, 1);
     const sub =
       phase === 'after_finish'
         ? isTrainer
           ? nextSlot.has_lineup
             ? 'Aufstellung kann übernommen werden'
-            : 'Nächstes Spiel vorbereiten'
+            : prepareLabel
           : `Weiter geht's um ${kickoff || '—'} Uhr`
         : null;
 
@@ -54,7 +64,7 @@ export function TournamentNextMatchWorkflowCta({
       ctaTo = nextSlot.has_lineup
         ? matchLineupPath(nextSlot.match_id, basePath)
         : matchPreparationPath(nextSlot.match_id, basePath);
-      ctaLabel = phase === 'after_finish' ? 'Nächstes Spiel vorbereiten' : 'Spiel vorbereiten';
+      ctaLabel = phase === 'after_finish' ? prepareLabel : 'Spiel vorbereiten';
     } else if (!isTrainer && nextSlot.match_id) {
       ctaTo = matchLineupPath(nextSlot.match_id, basePath);
       ctaLabel = 'Nächstes Spiel ansehen';
@@ -67,12 +77,20 @@ export function TournamentNextMatchWorkflowCta({
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-red-200/85">
           {heading}
         </p>
+        {phaseHint ? (
+          <p className="mt-0.5 text-[11px] font-medium text-white/55">{phaseHint}</p>
+        ) : null}
         <p className="mt-1 text-[14px] font-bold leading-snug text-white">
           {nextSlot.opponent_name || 'Gegner'}
         </p>
         {meta ? <p className="mt-0.5 text-[12px] text-white/60">{meta}</p> : null}
         {sub ? <p className="mt-1 text-[11px] text-white/50">{sub}</p> : null}
         <p className="mt-1 text-[10px] text-white/40">{tournamentTitle}</p>
+        {planSyncBusy || planSyncStatus ? (
+          <p className="mt-1.5 text-[11px] text-white/50" role="status" aria-live="polite">
+            {planSyncBusy ? planSyncStatus ?? 'Turnierplan wird aktualisiert …' : planSyncStatus}
+          </p>
+        ) : null}
         <Link
           to={ctaTo}
           className={`${dsPrimaryCtaClass()} mt-2.5 flex min-h-[44px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[13px] font-bold`}
@@ -85,11 +103,55 @@ export function TournamentNextMatchWorkflowCta({
 
   if (phase === 'during_live') return null;
 
+  if (awaitingFurtherPhase) {
+    return (
+      <div
+        className={`rounded-2xl border border-white/10 bg-[rgba(18,18,22,0.92)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${className}`}
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/85">
+          Vorrunde beendet
+        </p>
+        <p className="mt-1 text-[14px] font-bold leading-snug text-white">Warte auf nächste Runde</p>
+        <p className="mt-1 text-[12px] leading-snug text-white/55">
+          Der Turnierplan wird auf die nächste Runde geprüft. Sobald Halbfinale oder Platzierung
+          feststeht, erscheint das nächste Spiel automatisch.
+        </p>
+        {planSyncBusy || planSyncStatus ? (
+          <p className="mt-1.5 text-[11px] text-white/50" role="status" aria-live="polite">
+            {planSyncBusy ? planSyncStatus ?? 'Nächste Runde wird aktualisiert …' : planSyncStatus}
+          </p>
+        ) : null}
+        {isTrainer && onRefreshPlan ? (
+          <button
+            type="button"
+            disabled={planSyncBusy}
+            onClick={onRefreshPlan}
+            className={`${dsPrimaryCtaClass()} mt-2.5 flex min-h-[44px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[13px] font-bold disabled:opacity-60`}
+          >
+            {planSyncBusy ? 'Wird aktualisiert …' : 'Turnierplan aktualisieren'}
+          </button>
+        ) : (
+          <Link
+            to={tournamentCenterPath(tournamentEventId, basePath)}
+            className={`${dsSecondaryCtaClass()} mt-2.5 flex min-h-[44px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[13px] font-semibold`}
+          >
+            Zum Turniercenter
+          </Link>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <p className="text-center text-[12px] leading-snug text-white/55">
         {isTrainer ? 'Kein weiteres Turnierspiel geplant.' : 'Kein weiteres Spiel geplant.'}
       </p>
+      {planSyncBusy || planSyncStatus ? (
+        <p className="text-center text-[11px] text-white/50" role="status" aria-live="polite">
+          {planSyncBusy ? planSyncStatus ?? 'Turnierplan wird aktualisiert …' : planSyncStatus}
+        </p>
+      ) : null}
       <Link
         to={tournamentCenterPath(tournamentEventId, basePath)}
         className={`${dsSecondaryCtaClass()} flex min-h-[44px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[13px] font-semibold`}

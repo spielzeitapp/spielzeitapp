@@ -16,6 +16,7 @@ export type TournamentOrchestratorWorkflowPhase =
   | 'prepare'
   | 'lineup_ready'
   | 'live'
+  | 'awaiting_knockout'
   | 'all_finished'
   | 'archived';
 
@@ -25,6 +26,7 @@ export type TournamentOrchestratorCta =
   | { kind: 'open_lineup'; matchId: string; label: string; variant: 'secondary' }
   | { kind: 'start_live'; matchId: string; label: string; variant: 'primary' }
   | { kind: 'go_live'; matchId: string; label: string; variant: 'primary' }
+  | { kind: 'refresh_plan'; label: string; variant: 'primary' }
   | { kind: 'create_report'; label: string; variant: 'secondary' }
   | { kind: 'complete_tournament'; label: string; variant: 'primary' }
   | { kind: 'show_overview'; label: string; variant: 'secondary' };
@@ -103,11 +105,26 @@ export function pickFeaturedTournamentSlotFromOrchestrator(
 }
 
 function knockoutHeaderTitle(slot: TournamentMatchSlotView | null | undefined): string | null {
-  const phase = String(slot?.phase ?? '').toLowerCase();
-  if (phase === 'semifinal' || phase === 'semi') return 'Halbfinale';
-  if (phase === 'final') return 'Finale';
-  if (phase === 'quarterfinal' || phase === 'quarter') return 'Viertelfinale';
-  if (phase === 'placement') return 'Platzierungsspiel';
+  const phase = String(slot?.phase ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  if (!phase) return null;
+  if (phase === 'semifinal' || phase === 'semi' || phase.includes('halb')) return 'Halbfinale';
+  if (phase === 'final' || (phase.includes('final') && !phase.includes('semi') && !phase.includes('halb'))) {
+    return 'Finale';
+  }
+  if (phase === 'quarterfinal' || phase === 'quarter' || phase.includes('viertel')) return 'Viertelfinale';
+  if (
+    phase === 'placement' ||
+    phase.includes('platz') ||
+    phase.includes('third') ||
+    phase.includes('3rd') ||
+    phase.includes('bronze')
+  ) {
+    return 'Platzierung';
+  }
+  if (phase === 'knockout' || phase === 'ko') return 'KO-Spiel';
   return null;
 }
 
@@ -142,6 +159,8 @@ export function resolveTournamentOrchestrator(params: {
   tournamentArchived: boolean;
   canCreateReport: boolean;
   canCompleteTournament: boolean;
+  /** Vorrunde fertig, KO/Platzierung/Finale noch nicht veröffentlicht oder unklar. */
+  awaitingFurtherPhase?: boolean;
 }): TournamentOrchestratorState {
   const focus = pickOrchestratorFocus(params.slots);
 
@@ -193,6 +212,28 @@ export function resolveTournamentOrchestrator(params: {
   }
 
   if (focus.kind === 'last_finished') {
+    if (params.awaitingFurtherPhase) {
+      const ctas: TournamentOrchestratorCta[] = [];
+      if (params.canManage) {
+        ctas.push({
+          kind: 'refresh_plan',
+          label: 'Turnierplan aktualisieren',
+          variant: 'primary',
+        });
+      }
+      return {
+        focus,
+        phase: 'awaiting_knockout',
+        headerTitle: 'Vorrunde beendet',
+        badgeLabel: 'Warte',
+        badgeTone: 'open',
+        ctas,
+        showLineupReadyMark: false,
+        footerHint:
+          'Der Turnierplan wird auf die nächste Runde geprüft. Sobald Halbfinale oder Platzierung feststeht, erscheint das nächste Spiel automatisch.',
+      };
+    }
+
     const ctas: TournamentOrchestratorCta[] = [];
     if (params.canManage) {
       if (params.canCompleteTournament) {

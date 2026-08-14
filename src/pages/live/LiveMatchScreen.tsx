@@ -126,6 +126,7 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
+import { syncOfficialPlanAfterTournamentMatchFinish } from '../../lib/tournamentPlanSync';
 import { broadcastLiveMatchStateChanged, subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
@@ -1489,6 +1490,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [calendarFinalized, setCalendarFinalized] = useState(false);
   const [tournamentNavContext, setTournamentNavContext] =
     useState<TournamentMatchNavigationContext | null>(null);
+  const [tournamentPlanSyncBusy, setTournamentPlanSyncBusy] = useState(false);
+  const [tournamentPlanSyncStatus, setTournamentPlanSyncStatus] = useState<string | null>(null);
   const [goalUndoOffer, setGoalUndoOffer] = useState<{
     eventId: string;
     side: 'home' | 'away';
@@ -2947,6 +2950,7 @@ export const LiveMatchScreen: React.FC = () => {
         status: 'finished',
         reason: 'match_end',
         teamSeasonId: matchRow?.team_season_id ?? null,
+        tournamentEventId: tournamentNavContext?.tournamentEventId ?? null,
       });
       void ensureResultFeedPostForMatch(effectiveMatchId).then((res) => {
         console.info('[resultFeed][LiveMatch] ensureResultFeedPostForMatch', {
@@ -2955,6 +2959,34 @@ export const LiveMatchScreen: React.FC = () => {
         });
         if (!res.ok) console.warn('[resultFeed][LiveMatch] ensure failed', res.error);
       });
+      if (!isDemo) {
+        setTournamentPlanSyncBusy(true);
+        setTournamentPlanSyncStatus('Turnierplan wird aktualisiert …');
+        void (async () => {
+          try {
+            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(effectiveMatchId);
+            if (syncRes.skipped && !syncRes.tournamentEventId) {
+              setTournamentPlanSyncBusy(false);
+              setTournamentPlanSyncStatus(null);
+              return;
+            }
+            if (syncRes.ok) {
+              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+            } else {
+              setTournamentPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
+            }
+            const refreshed = await fetchTournamentMatchNavigationContext(effectiveMatchId, {
+              afterCurrentMatch: true,
+            });
+            if (refreshed) setTournamentNavContext(refreshed);
+          } catch {
+            setTournamentPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
+          } finally {
+            setTournamentPlanSyncBusy(false);
+            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+          }
+        })();
+      }
     }
   };
 
@@ -3473,6 +3505,8 @@ export const LiveMatchScreen: React.FC = () => {
   }, [events]);
 
   const periodScoreLine = useMemo(() => formatPeriodScoresLine(periodScores), [periodScores]);
+  /** Turnierspiele: keine leeren Drittel-/Periodenklammern unter dem Hauptscore. */
+  const showPeriodScoreLine = !tournamentNavContext;
 
   const lastHomeGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'home'), [events]);
   const lastAwayGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'away'), [events]);
@@ -4451,9 +4485,11 @@ export const LiveMatchScreen: React.FC = () => {
                         ) : null}
                       </div>
                     )}
-                    <p className={`mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px] ${SCOREBOARD_NO_SELECT}`}>
-                      <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
-                    </p>
+                    {showPeriodScoreLine ? (
+                      <p className={`mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px] ${SCOREBOARD_NO_SELECT}`}>
+                        <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
@@ -4606,6 +4642,38 @@ export const LiveMatchScreen: React.FC = () => {
                       audience="trainer"
                       phase="after_finish"
                       className="pt-1"
+                      planSyncBusy={tournamentPlanSyncBusy}
+                      planSyncStatus={tournamentPlanSyncStatus}
+                      onRefreshPlan={() => {
+                        setTournamentPlanSyncBusy(true);
+                        setTournamentPlanSyncStatus('Nächste Runde wird aktualisiert …');
+                        void (async () => {
+                          try {
+                            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(
+                              effectiveMatchId,
+                            );
+                            if (syncRes.ok) {
+                              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+                            } else {
+                              setTournamentPlanSyncStatus(
+                                'Aktualisierung fehlgeschlagen — lokal behalten',
+                              );
+                            }
+                            const refreshed = await fetchTournamentMatchNavigationContext(
+                              effectiveMatchId,
+                              { afterCurrentMatch: true },
+                            );
+                            if (refreshed) setTournamentNavContext(refreshed);
+                          } catch {
+                            setTournamentPlanSyncStatus(
+                              'Aktualisierung fehlgeschlagen — lokal behalten',
+                            );
+                          } finally {
+                            setTournamentPlanSyncBusy(false);
+                            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+                          }
+                        })();
+                      }}
                     />
                   ) : null}
                 </div>
@@ -4674,12 +4742,50 @@ export const LiveMatchScreen: React.FC = () => {
                 context={tournamentNavContext}
                 audience={canControlLiveMatch ? 'trainer' : 'audience'}
                 phase={matchIsFinished ? 'after_finish' : hasClockStarted ? 'during_live' : 'before_first'}
+                planSyncBusy={tournamentPlanSyncBusy}
+                planSyncStatus={tournamentPlanSyncStatus}
               />
             ) : matchIsFinished && tournamentNavContext ? (
               <TournamentNextMatchWorkflowCta
                 context={tournamentNavContext}
                 audience={canControlLiveMatch ? 'trainer' : 'audience'}
                 phase="after_finish"
+                planSyncBusy={tournamentPlanSyncBusy}
+                planSyncStatus={tournamentPlanSyncStatus}
+                onRefreshPlan={
+                  canControlLiveMatch
+                    ? () => {
+                        setTournamentPlanSyncBusy(true);
+                        setTournamentPlanSyncStatus('Nächste Runde wird aktualisiert …');
+                        void (async () => {
+                          try {
+                            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(
+                              effectiveMatchId,
+                            );
+                            if (syncRes.ok) {
+                              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+                            } else {
+                              setTournamentPlanSyncStatus(
+                                'Aktualisierung fehlgeschlagen — lokal behalten',
+                              );
+                            }
+                            const refreshed = await fetchTournamentMatchNavigationContext(
+                              effectiveMatchId,
+                              { afterCurrentMatch: true },
+                            );
+                            if (refreshed) setTournamentNavContext(refreshed);
+                          } catch {
+                            setTournamentPlanSyncStatus(
+                              'Aktualisierung fehlgeschlagen — lokal behalten',
+                            );
+                          } finally {
+                            setTournamentPlanSyncBusy(false);
+                            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+                          }
+                        })();
+                      }
+                    : undefined
+                }
               />
             ) : null}
             {canControlLiveMatch ? (
