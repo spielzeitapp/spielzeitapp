@@ -33,10 +33,13 @@ export function isOfficialTournamentSyncActive(params: {
   tournamentArchived?: boolean;
   tournamentDayIso: string;
   hasUnfinishedOwnMatch?: boolean;
+  /** Vorrunde fertig, Finalrunde noch ausstehend — Sync weiterlaufen lassen. */
+  awaitingNextRound?: boolean;
   now?: Date;
 }): boolean {
   if (params.tournamentArchived) return false;
   if (params.hasUnfinishedOwnMatch) return true;
+  if (params.awaitingNextRound) return true;
   return isViennaTournamentDay(params.tournamentDayIso, params.now);
 }
 

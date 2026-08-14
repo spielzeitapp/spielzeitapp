@@ -26,6 +26,7 @@ export type TournamentAssistantActionKind =
   | 'lineup_copy'
   | 'create_report'
   | 'complete_tournament'
+  | 'refresh_plan'
   | 'view_status';
 
 export type TournamentAssistantAction = {
@@ -61,6 +62,8 @@ export type TournamentAssistantInput = {
   canCreateReport: boolean;
   lineupCopyAvailable: boolean;
   targetHasExistingLineup: boolean;
+  /** Vorrunde fertig, nächste Runde noch nicht sicher / veröffentlicht. */
+  awaitingFurtherPhase?: boolean;
 };
 
 function availabilityDone(attendance: TournamentAttendanceSummary): boolean {
@@ -109,6 +112,7 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
     canCreateReport,
     lineupCopyAvailable,
     targetHasExistingLineup,
+    awaitingFurtherPhase = false,
   } = input;
 
   const focus = pickOrchestratorFocus(slots);
@@ -127,6 +131,20 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       primaryLabel: 'Status ansehen',
       action: { kind: 'view_status' },
       priorStepsDone: 6,
+    };
+  }
+
+  if (allFinished && awaitingFurtherPhase) {
+    return {
+      stepNumber: 6,
+      totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
+      title: 'Vorrunde beendet',
+      description:
+        'Die nächste Turnierphase wird aktualisiert. Sobald Halbfinale, Finale oder Platzierungsspiel feststeht, erscheint dein nächstes Spiel automatisch.',
+      detailLines: ['Turnierplan aktualisieren', 'Automatischer Sync läuft weiter'],
+      primaryLabel: 'Turnierplan aktualisieren',
+      action: { kind: 'refresh_plan' },
+      priorStepsDone: 5,
     };
   }
 

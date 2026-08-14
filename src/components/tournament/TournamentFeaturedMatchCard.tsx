@@ -306,7 +306,7 @@ export function TournamentFeaturedMatchCard({
 
   useEffect(() => {
     let cancelled = false;
-    if (!canManage || !focusMatchId || orchestrator.phase === 'live' || orchestrator.phase === 'all_finished' || orchestrator.phase === 'awaiting_knockout') {
+    if (!canManage || !focusMatchId || orchestrator.phase === 'live' || orchestrator.phase === 'all_finished' || orchestrator.phase === 'awaiting_next_round' || orchestrator.phase === 'awaiting_knockout') {
       setLineupReady(false);
       setLineupLoading(false);
       return () => {
@@ -354,7 +354,9 @@ export function TournamentFeaturedMatchCard({
   const status = tournamentMatchDisplayStatus(focusSlot);
   const isLive = orchestrator.phase === 'live';
   const isAllFinished =
-    orchestrator.phase === 'all_finished' || orchestrator.phase === 'awaiting_knockout';
+    orchestrator.phase === 'all_finished' ||
+    orchestrator.phase === 'awaiting_next_round' ||
+    orchestrator.phase === 'awaiting_knockout';
   const timeLabel = formatTournamentKickoffTime(focusSlot.kickoff_at);
   const group = safeOptionalText(focusSlot.group_label);
   const phase = safeOptionalText(focusSlot.phase);
@@ -373,7 +375,9 @@ export function TournamentFeaturedMatchCard({
       : null;
 
   const headerIcon =
-    orchestrator.phase === 'all_finished' || orchestrator.phase === 'awaiting_knockout' ? (
+    orchestrator.phase === 'all_finished' ||
+    orchestrator.phase === 'awaiting_next_round' ||
+    orchestrator.phase === 'awaiting_knockout' ? (
       <Flag className="h-3 w-3 text-white/55" strokeWidth={2.25} aria-hidden />
     ) : null;
 

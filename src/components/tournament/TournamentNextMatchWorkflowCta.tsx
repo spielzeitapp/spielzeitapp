@@ -113,7 +113,7 @@ export function TournamentNextMatchWorkflowCta({
         </p>
         <p className="mt-1 text-[14px] font-bold leading-snug text-white">Warte auf nächste Runde</p>
         <p className="mt-1 text-[12px] leading-snug text-white/55">
-          Der Turnierplan wird auf die nächste Runde geprüft. Sobald Halbfinale oder Platzierung
+          Die nächste Turnierphase wird aktualisiert. Sobald Halbfinale, Finale oder Platzierungsspiel
           feststeht, erscheint das nächste Spiel automatisch.
         </p>
         {planSyncBusy || planSyncStatus ? (

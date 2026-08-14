@@ -212,7 +212,9 @@ function normalizeSlotPhase(phase: unknown): string {
   ) {
     return 'placement';
   }
-  if (raw.includes('ko') || raw.includes('knock')) return 'knockout';
+  if (raw.includes('ko') || raw.includes('knock') || raw.includes('viertel') || raw.includes('quarter')) {
+    return 'knockout';
+  }
   if (raw.includes('group') || raw.includes('gruppe') || raw.includes('vorrunde')) return 'group';
   return raw;
 }
@@ -227,6 +229,40 @@ function slotIsFinished(slot: { match_status?: string | null; official_status?: 
   if (ms === 'finished' || ms === 'ended' || ms === 'completed') return true;
   const os = String(slot.official_status ?? '').trim().toLowerCase();
   return os === 'finished' || os === 'ended' || os === 'completed';
+}
+
+/** Platzhalter / noch nicht aufgelöste Paarungen (TURNIERlive vor Finalrunde). */
+export function looksLikeUnresolvedTournamentTeamName(name: unknown): boolean {
+  const t = safeOptionalText(name);
+  if (!t) return true;
+  const n = t.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (/^(tbd|n\/?a|\?+|-+|–+|—+|null|undefined)$/i.test(n)) return true;
+  if (
+    /gewinner|sieger|verlierer|loser|winner|runner.?up|qualifiant|qualifier|bye\b/i.test(n)
+  ) {
+    return true;
+  }
+  if (/^(1|2|3|4)\.\s*(gruppe|group|platz|place)\b/i.test(n)) return true;
+  if (/^(gruppe|group)\s*[a-d0-9]+\b/i.test(n) && /platz|place|sieger|gewinner|1\.|2\./i.test(n)) {
+    return true;
+  }
+  if (/^(hf|vf|af|sf|f)\s*\d*$/i.test(n)) return true;
+  if (/^(spiel|match)\s*(um\s*)?platz\s*\d+/i.test(n)) return true;
+  return false;
+}
+
+function slotLooksUnresolvedPairing(slot: {
+  home_team?: string | null;
+  away_team?: string | null;
+  opponent_name?: string | null;
+}): boolean {
+  if (looksLikeUnresolvedTournamentTeamName(slot.home_team)) return true;
+  if (looksLikeUnresolvedTournamentTeamName(slot.away_team)) return true;
+  // Official-Slots ohne Teams, nur Opponent-Label
+  if (!safeOptionalText(slot.home_team) && !safeOptionalText(slot.away_team)) {
+    if (looksLikeUnresolvedTournamentTeamName(slot.opponent_name)) return true;
+  }
+  return false;
 }
 
 export type OwnTournamentMatchCounts = {
@@ -250,8 +286,11 @@ export function countOwnTournamentMatchesByPhase(
 }
 
 /**
- * Alle eigenen spielbaren Spiele finished, aber nächste Phase (KO) noch nicht sicher da /
+ * Alle eigenen spielbaren Spiele finished, aber nächste Phase noch nicht sicher /
  * noch nicht veröffentlicht → kein vorschneller Turnierabschluss.
+ *
+ * Konservativ: Nach reiner Vorrunde warten wir, solange Official-KO fehlt,
+ * Platzhalter-Paarungen offen sind oder wir noch beteiligt sein könnten.
  */
 export function isAwaitingFurtherTournamentPhase(params: {
   ownSlots: TournamentMatchSlotView[];
@@ -262,30 +301,43 @@ export function isAwaitingFurtherTournamentPhase(params: {
   const allOwnFinished = ownSlots.every((slot) => slotIsFinished(slot));
   if (!allOwnFinished) return false;
 
-  const openKnockoutOfficial = allSlots.filter((slot) => {
-    if (!isKnockoutLikePhase(slot.phase)) return false;
-    if (slotIsFinished(slot)) return false;
-    return true;
-  });
-
-  // Offenes KO, an dem wir beteiligt sein könnten oder Teams noch TBD
-  if (
-    openKnockoutOfficial.some(
-      (slot) =>
-        slot.is_own_team !== false ||
-        !safeOptionalText(slot.home_team) ||
-        !safeOptionalText(slot.away_team),
-    )
-  ) {
-    return true;
-  }
-
-  // Nur Gruppenspiele bei uns, noch kein KO-Slot im Plan → warten auf Veröffentlichung
   const ownOnlyGroup = ownSlots.every((slot) => !isKnockoutLikePhase(slot.phase));
-  const planHasAnyKnockout = allSlots.some((slot) => isKnockoutLikePhase(slot.phase));
+  const knockoutSlots = allSlots.filter((slot) => isKnockoutLikePhase(slot.phase));
+  const planHasAnyKnockout = knockoutSlots.length > 0;
+
+  const openCouldInvolveUs = (slot: TournamentMatchSlotView): boolean => {
+    if (slotIsFinished(slot)) return false;
+    if (slot.is_own_team === true || isOwnPlayableTournamentSlot(slot)) return true;
+    // Noch nicht aufgelöste Paarungen (1. Gruppe A, Gewinner HF1, …)
+    if (slotLooksUnresolvedPairing(slot)) return true;
+    return false;
+  };
+
+  if (knockoutSlots.some((slot) => openCouldInvolveUs(slot))) return true;
+
+  // Noch gar keine KO-/Finalslots im Plan → nach Vorrunde weiter warten
   if (ownOnlyGroup && !planHasAnyKnockout) return true;
 
+  // Unfertige Official-Slots ohne Gruppe (oft spätere Runden ohne phase-Tag)
+  if (ownOnlyGroup) {
+    const openUngrouped = allSlots.filter((slot) => {
+      if (slotIsFinished(slot)) return false;
+      if (isKnockoutLikePhase(slot.phase)) return false;
+      if (safeOptionalText(slot.group_label)) return false;
+      return openCouldInvolveUs(slot) || slotLooksUnresolvedPairing(slot);
+    });
+    if (openUngrouped.length > 0) return true;
+  }
+
   return false;
+}
+
+/** Alias / Statusname für Orchestrator & UI. */
+export function isAwaitingNextTournamentRound(params: {
+  ownSlots: TournamentMatchSlotView[];
+  allSlots: TournamentMatchSlotView[];
+}): boolean {
+  return isAwaitingFurtherTournamentPhase(params);
 }
 
 export function tournamentSlotDisplayTitle(slot: TournamentMatchSlot): string {

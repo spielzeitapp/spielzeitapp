@@ -523,6 +523,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         tournamentArchived: Boolean(completion.completedAt),
         tournamentDayIso,
         hasUnfinishedOwnMatch,
+        awaitingNextRound: awaitingFurtherPhase,
       })
     ) {
       return;
@@ -570,6 +571,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     reload,
     completion.completedAt,
     ownSlots,
+    awaitingFurtherPhase,
   ]);
 
   useEffect(() => {
@@ -1163,6 +1165,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
           canCompleteTournament={orchestratorCanComplete}
           canCreateReport={orchestratorCanCreateReport}
           completingTournament={completingTournament}
+          awaitingFurtherPhase={awaitingFurtherPhase}
+          refreshingPlan={planSyncBusy}
           ownMatchCount={ownSlots.length}
           totalMatchCount={slots.length}
           onOpenAttendance={scrollToAttendance}
@@ -1172,6 +1176,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           onCreateReport={() => setOrchestratorReportOpen(true)}
           onCompleteTournament={handleCompleteTournament}
           onViewStatus={showOrchestratorOverview}
+          onRefreshPlan={() => void runForcedPlanSync({ reason: 'manual' })}
           onLineupCopied={() => void reload()}
         />
       ) : null}
@@ -1253,7 +1258,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             {canManage && ownMatchCounts.total > 0 ? (
               <p className="text-[11px] text-white/45">
                 {ownMatchCounts.knockout > 0
-                  ? `${ownMatchCounts.total} Spiele insgesamt`
+                  ? `${ownMatchCounts.total} eigene Spiele`
                   : `${ownMatchCounts.group} Gruppenspiele`}
               </p>
             ) : null}

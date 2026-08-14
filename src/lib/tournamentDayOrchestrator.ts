@@ -16,7 +16,8 @@ export type TournamentOrchestratorWorkflowPhase =
   | 'prepare'
   | 'lineup_ready'
   | 'live'
-  | 'awaiting_knockout'
+  | 'awaiting_next_round'
+  | 'awaiting_knockout' // legacy alias — gleiche Semantik wie awaiting_next_round
   | 'all_finished'
   | 'archived';
 
@@ -223,14 +224,14 @@ export function resolveTournamentOrchestrator(params: {
       }
       return {
         focus,
-        phase: 'awaiting_knockout',
+        phase: 'awaiting_next_round',
         headerTitle: 'Vorrunde beendet',
         badgeLabel: 'Warte',
         badgeTone: 'open',
         ctas,
         showLineupReadyMark: false,
         footerHint:
-          'Der Turnierplan wird auf die nächste Runde geprüft. Sobald Halbfinale oder Platzierung feststeht, erscheint das nächste Spiel automatisch.',
+          'Die nächste Turnierphase wird aktualisiert. Sobald Halbfinale, Finale oder Platzierungsspiel feststeht, erscheint dein nächstes Spiel automatisch.',
       };
     }
 

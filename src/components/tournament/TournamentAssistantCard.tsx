@@ -39,6 +39,8 @@ type Props = {
   canCompleteTournament?: boolean;
   canCreateReport?: boolean;
   completingTournament?: boolean;
+  awaitingFurtherPhase?: boolean;
+  refreshingPlan?: boolean;
   ownMatchCount?: number;
   totalMatchCount?: number;
   onOpenAttendance: () => void;
@@ -48,6 +50,7 @@ type Props = {
   onCreateReport: () => void;
   onCompleteTournament: () => void;
   onViewStatus: () => void;
+  onRefreshPlan?: () => void;
   onLineupCopied?: () => void;
 };
 
@@ -126,6 +129,8 @@ export function TournamentAssistantCard({
   canCompleteTournament = false,
   canCreateReport = false,
   completingTournament = false,
+  awaitingFurtherPhase = false,
+  refreshingPlan = false,
   ownMatchCount = 0,
   totalMatchCount = 0,
   onOpenAttendance,
@@ -135,6 +140,7 @@ export function TournamentAssistantCard({
   onCreateReport,
   onCompleteTournament,
   onViewStatus,
+  onRefreshPlan,
   onLineupCopied,
 }: Props) {
   const navigate = useNavigate();
@@ -232,6 +238,7 @@ export function TournamentAssistantCard({
         canCreateReport,
         lineupCopyAvailable,
         targetHasExistingLineup: copyContext?.targetHasExistingLineup ?? false,
+        awaitingFurtherPhase,
       }),
     [
       slots,
@@ -244,6 +251,7 @@ export function TournamentAssistantCard({
       canCreateReport,
       lineupCopyAvailable,
       copyContext,
+      awaitingFurtherPhase,
     ],
   );
 
@@ -355,6 +363,14 @@ export function TournamentAssistantCard({
             label={completingTournament ? 'Wird abgeschlossen…' : label}
             onClick={onCompleteTournament}
             disabled={disabled || completingTournament}
+          />
+        );
+      case 'refresh_plan':
+        return (
+          <PrimaryButton
+            label={refreshingPlan ? 'Nächste Runde wird aktualisiert …' : label}
+            onClick={() => onRefreshPlan?.()}
+            disabled={disabled || refreshingPlan || !onRefreshPlan}
           />
         );
       case 'view_status':
