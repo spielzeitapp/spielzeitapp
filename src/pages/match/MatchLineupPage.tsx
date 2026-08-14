@@ -25,7 +25,11 @@ import {
   writeStoredU11Formation,
   type U11FormationId,
 } from '../../lib/matchFormations';
-import { isMatchSquadEditable } from '../../lib/matchPreparationAccess';
+import {
+  canMutateMatchPreparation,
+  friendlyMatchLineupWriteError,
+  isMatchSquadEditable,
+} from '../../lib/matchPreparationAccess';
 import { supabase } from '../../lib/supabaseClient';
 import type { FieldSlotId } from '../../types/match';
 import { getPositionLabel } from '../../lib/positionLabels';
@@ -54,6 +58,8 @@ import {
 } from '../../lib/premiumDesignSystem';
 import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
+import { normalizeRole } from '../../lib/roles';
 
 type MatchRowLite = {
   id: string;
@@ -110,6 +116,8 @@ export const MatchLineupPage: React.FC = () => {
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
+  const { role: roleFromHook } = useActiveTeamSeason();
+  const canManage = isDemo || canMutateMatchPreparation(normalizeRole(roleFromHook));
   const routeState = (location.state ?? null) as LocationState;
   const selectedFromState = useMemo(
     () => [...new Set((routeState?.selectedPlayers ?? []).map((id) => normalizeId(id)).filter((id): id is string => Boolean(id)))],
@@ -137,10 +145,13 @@ export const MatchLineupPage: React.FC = () => {
   const [lineupViewMode, setLineupViewMode] = useState<'pitch' | 'list'>('pitch');
   const [saveToastFading, setSaveToastFading] = useState(false);
 
-  const lineupEditable = isMatchSquadEditable({
-    status: matchStatus,
-    live_started_at: matchLiveStartedAt,
-  });
+  // Status + Rolle: Eltern/Fans niemals editierbar (auch bei direktem Route-Aufruf).
+  const lineupEditable =
+    canManage &&
+    isMatchSquadEditable({
+      status: matchStatus,
+      live_started_at: matchLiveStartedAt,
+    });
 
   useEffect(() => {
     let cancelled = false;
@@ -444,6 +455,10 @@ export const MatchLineupPage: React.FC = () => {
 
   const saveLineup = async (): Promise<boolean> => {
     if (!matchId) return false;
+    if (!canManage) {
+      setSaveError('Keine Berechtigung zum Speichern der Aufstellung.');
+      return false;
+    }
     if (!lineupEditable) {
       setSaveError('Aufstellung kann in diesem Spielstatus nicht bearbeitet werden.');
       return false;
@@ -463,13 +478,15 @@ export const MatchLineupPage: React.FC = () => {
     const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadIds);
     if (error) {
       setSavingLineup(false);
-      setSaveError(error);
+      setSaveError(friendlyMatchLineupWriteError(error));
+      console.warn('[MatchLineup] save failed', { matchId, error });
       return false;
     }
     const { error: formationErr } = await updateMatchRow(matchId, { u11_formation_id: formationId });
     setSavingLineup(false);
     if (formationErr) {
-      setSaveError(formationErr);
+      setSaveError(friendlyMatchLineupWriteError(formationErr));
+      console.warn('[MatchLineup] formation save failed', { matchId, error: formationErr });
       return false;
     }
     setSaveMsg('Aufstellung gespeichert.');
@@ -499,7 +516,7 @@ export const MatchLineupPage: React.FC = () => {
   };
 
   const onStartLive = async () => {
-    if (!matchId || starterCount < 7) return;
+    if (!matchId || starterCount < 7 || !canManage || !lineupEditable) return;
     setSaveMsg(null);
     setSaveError(null);
     setStartingLive(true);
@@ -546,14 +563,24 @@ export const MatchLineupPage: React.FC = () => {
             ← Zurück
           </button>
           <h1 className="text-lg font-bold">AUFSTELLUNG</h1>
-          <p className="text-sm text-white/70">Bitte zuerst Matchkader in der Match-Vorbereitung auswählen.</p>
-          <button
-            type="button"
-            onClick={() => navigate(`${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
-            className="min-h-[48px] rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500"
-          >
-            Zur Match-Vorbereitung
-          </button>
+          <p className="text-sm text-white/70">
+            {canManage
+              ? 'Bitte zuerst Matchkader in der Match-Vorbereitung auswählen.'
+              : 'Für dieses Spiel ist noch keine Aufstellung veröffentlicht.'}
+          </p>
+          {canManage ? (
+            <button
+              type="button"
+              onClick={() => navigate(`${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
+              className="min-h-[48px] rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500"
+            >
+              Zur Match-Vorbereitung
+            </button>
+          ) : (
+            <Link to={`${basePath}/termine`} className="text-sm font-semibold text-red-300 underline">
+              Zurück zu Termine
+            </Link>
+          )}
           {lineupError ? <p className="text-xs text-red-400">{lineupError}</p> : null}
         </div>
       </div>
@@ -627,27 +654,33 @@ export const MatchLineupPage: React.FC = () => {
 
         <div className="-mx-1 mb-2 shrink-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:mx-0">
           <div className="flex min-h-9 flex-nowrap items-center gap-1.5 px-0.5 pb-0.5">
-            {formationChoices.map((id) => {
-              const active = formationId === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  disabled={!lineupEditable}
-                  onClick={() => {
-                    if (!lineupEditable) return;
-                    setFormationId(id);
-                    if (matchId) {
-                      if (isDemo && demo) demo.setDemoMatchFormation(matchId, id);
-                      else writeStoredU11Formation(matchId, id);
-                    }
-                  }}
-                  className={dsFormationTabClass(active)}
-                >
-                  {id}
-                </button>
-              );
-            })}
+            {canManage
+              ? formationChoices.map((id) => {
+                  const active = formationId === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      disabled={!lineupEditable}
+                      onClick={() => {
+                        if (!lineupEditable) return;
+                        setFormationId(id);
+                        if (matchId) {
+                          if (isDemo && demo) demo.setDemoMatchFormation(matchId, id);
+                          else writeStoredU11Formation(matchId, id);
+                        }
+                      }}
+                      className={dsFormationTabClass(active)}
+                    >
+                      {id}
+                    </button>
+                  );
+                })
+              : (
+                <span className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-bold tabular-nums text-white/80">
+                  Formation {formationId}
+                </span>
+              )}
           </div>
         </div>
 
@@ -857,6 +890,7 @@ export const MatchLineupPage: React.FC = () => {
         )}
       </main>
 
+      {canManage ? (
       <div
         className={dsStickyCtaBarClass()}
         style={{
@@ -892,6 +926,11 @@ export const MatchLineupPage: React.FC = () => {
           </p>
         ) : null}
       </div>
+      ) : (
+        <p className="mx-auto mb-4 max-w-xl px-4 text-center text-[11px] text-white/45">
+          Nur Ansicht – Bearbeitung nur für Trainer.
+        </p>
+      )}
     </div>
   );
 };

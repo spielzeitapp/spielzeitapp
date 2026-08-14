@@ -3,7 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
-import { isMatchSquadEditable } from '../../lib/matchPreparationAccess';
+import {
+  canMutateMatchPreparation,
+  friendlyMatchLineupWriteError,
+  isMatchSquadEditable,
+} from '../../lib/matchPreparationAccess';
 import {
   fetchTournamentEventIdForMatch,
   fetchTournamentSquadPlayerIds,
@@ -41,6 +45,8 @@ import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { getDemoTrainingParticipationPct } from '../../demo/demoPlayers';
 import { dbStatusToTrainingAttendance } from '../../lib/trainingAttendance';
+import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
+import { normalizeRole } from '../../lib/roles';
 
 type MatchRowLite = {
   id: string;
@@ -76,6 +82,8 @@ export const MatchPreparationPage: React.FC = () => {
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
+  const { role: roleFromHook } = useActiveTeamSeason();
+  const canManage = isDemo || canMutateMatchPreparation(normalizeRole(roleFromHook));
   const [matchRow, setMatchRow] = useState<MatchRowLite | null>(null);
   const [matchLoading, setMatchLoading] = useState(true);
   const [matchError, setMatchError] = useState<string | null>(null);
@@ -92,6 +100,14 @@ export const MatchPreparationPage: React.FC = () => {
   const [squadSaveBusy, setSquadSaveBusy] = useState(false);
   const [tournamentSquadIds, setTournamentSquadIds] = useState<string[]>([]);
   const [tournamentEventId, setTournamentEventId] = useState<string | null>(null);
+  const [tournamentContextReady, setTournamentContextReady] = useState(false);
+
+  // Eltern/Fans: Direct-Route Guard → read-only Aufstellung
+  useEffect(() => {
+    if (isDemo || !matchId || matchLoading) return;
+    if (canManage) return;
+    navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(matchId)}`, { replace: true });
+  }, [isDemo, matchId, matchLoading, canManage, navigate, basePath]);
 
   useEffect(() => {
     let cancelled = false;
@@ -188,20 +204,26 @@ export const MatchPreparationPage: React.FC = () => {
     if (!matchId) {
       setTournamentSquadIds([]);
       setTournamentEventId(null);
+      setTournamentContextReady(true);
       return () => {
         cancelled = true;
       };
     }
+    setTournamentContextReady(false);
     void (async () => {
       const eventId = await fetchTournamentEventIdForMatch(matchId);
       if (cancelled) return;
       setTournamentEventId(eventId);
       if (!eventId) {
         setTournamentSquadIds([]);
+        setTournamentContextReady(true);
         return;
       }
       const { data } = await fetchTournamentSquadPlayerIds(eventId);
-      if (!cancelled) setTournamentSquadIds(data);
+      if (!cancelled) {
+        setTournamentSquadIds(data);
+        setTournamentContextReady(true);
+      }
     })();
     return () => {
       cancelled = true;
@@ -303,10 +325,11 @@ export const MatchPreparationPage: React.FC = () => {
 
   const squadEditable = useMemo(
     () =>
-      matchRow
+      canManage &&
+      (matchRow
         ? isMatchSquadEditable({ status: matchRow.status, live_started_at: matchRow.live_started_at })
-        : true,
-    [matchRow],
+        : true),
+    [matchRow, canManage],
   );
 
   const tournamentSquadSet = useMemo(() => new Set(tournamentSquadIds), [tournamentSquadIds]);
@@ -354,7 +377,7 @@ export const MatchPreparationPage: React.FC = () => {
 
   useEffect(() => {
     if (selectionInitialized) return;
-    if (matchLoading || playersLoading || attendanceLoading) return;
+    if (matchLoading || playersLoading || attendanceLoading || !tournamentContextReady) return;
     if (players.length === 0) return;
 
     if (restoredSelectedPlayers.length > 0) {
@@ -363,6 +386,7 @@ export const MatchPreparationPage: React.FC = () => {
       return;
     }
 
+    // Turnierspiel: Turnierkader ist die Basis für ALLE eigenen Spiele (auch Spiel 2+).
     if (tournamentSquadIds.length > 0) {
       setSelectedPlayers(tournamentSquadIds.filter((id) => getAttendance(id) !== 'no'));
       setSelectionInitialized(true);
@@ -391,6 +415,7 @@ export const MatchPreparationPage: React.FC = () => {
     matchLoading,
     playersLoading,
     attendanceLoading,
+    tournamentContextReady,
     players,
     restoredSelectedPlayers,
     attendanceByPlayerId,
@@ -402,6 +427,10 @@ export const MatchPreparationPage: React.FC = () => {
 
   const persistSquadSelection = async (nextSquadIds: string[]): Promise<boolean> => {
     if (!matchId) return false;
+    if (!canManage) {
+      setPersistError('Keine Berechtigung zum Speichern des Kaders.');
+      return false;
+    }
     setPersistError(null);
     setSquadSaveBusy(true);
     if (isDemo && demo) {
@@ -420,7 +449,8 @@ export const MatchPreparationPage: React.FC = () => {
     const { error } = await saveMatchSquadOnly(matchId, nextSquadIds);
     setSquadSaveBusy(false);
     if (error) {
-      setPersistError(error);
+      setPersistError(friendlyMatchLineupWriteError(error));
+      console.warn('[MatchPreparation] squad save failed', { matchId, error });
       return false;
     }
     setRestoredSelectedPlayers(nextSquadIds);
@@ -504,6 +534,10 @@ export const MatchPreparationPage: React.FC = () => {
 
   if (matchLoading) {
     return <div className="min-h-[100dvh] p-4 text-sm text-white/60">Lade Match…</div>;
+  }
+
+  if (!canManage && matchId) {
+    return <div className="min-h-[100dvh] p-4 text-sm text-white/60">Weiterleitung…</div>;
   }
 
   if (matchError || !matchId) {

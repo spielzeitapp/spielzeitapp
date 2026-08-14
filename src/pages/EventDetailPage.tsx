@@ -3592,7 +3592,12 @@ export const EventDetailPage: React.FC = () => {
                   />
                 }
                 onOpenMatchPreparation={(matchId) => {
-                  navigate(`${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}`);
+                  // Eltern/Fans: nur read-only Aufstellung; Trainer: Vorbereitung.
+                  if (canTrainerManageEvent) {
+                    navigate(`${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}`);
+                    return;
+                  }
+                  navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(matchId)}`);
                 }}
                 onOfficialTournamentUrlUpdated={(url) =>
                   setEvent((prev) => (prev ? { ...prev, official_tournament_url: url } : prev))

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Check, ChevronRight, ClipboardList, Loader2 } from 'lucide-react';
 import { fetchLineupForLiveMatch } from '../../lib/liveMatchService';
 import {
@@ -137,6 +137,7 @@ export function TournamentAssistantCard({
   onViewStatus,
   onLineupCopied,
 }: Props) {
+  const navigate = useNavigate();
   const basePath = useInternalBasePath();
   const [lineupReady, setLineupReady] = useState(false);
   const [lineupLoading, setLineupLoading] = useState(false);
@@ -275,6 +276,13 @@ export function TournamentAssistantCard({
 
     setShowReplaceConfirm(false);
     onLineupCopied?.();
+
+    // Sofort sichtbare Aufstellung: nach Übernahme zur Lineup-Seite (Formation/Startelf/Bank).
+    if (mode === 'squad_only') {
+      navigate(matchPreparationPath(targetMatchId, basePath));
+    } else {
+      navigate(matchLineupPath(targetMatchId, basePath));
+    }
   };
 
   const renderSingleAction = (
@@ -350,11 +358,17 @@ export function TournamentAssistantCard({
 
   const renderAction = (action: TournamentAssistantAction) => {
     if (action.kind === 'lineup_copy') {
+      const targetMatchId = action.matchId ?? copyContext?.targetSlot.match_id?.trim() ?? '';
       return (
         <div className="flex flex-col gap-1.5">
-          {showReplaceConfirm || copyContext?.targetHasExistingLineup ? (
+          {showReplaceConfirm ? (
             <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
-              Bestehende Aufstellung wird ersetzt — Tore und Spielereignisse bleiben unberührt.
+              Die bestehende Aufstellung dieses Spiels wird ersetzt. Tore und Spielereignisse bleiben unberührt.
+              Bitte erneut tippen zum Bestätigen.
+            </p>
+          ) : copyContext?.targetHasExistingLineup ? (
+            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
+              Für dieses Spiel gibt es bereits eine Aufstellung. Übernehmen ersetzt sie.
             </p>
           ) : null}
           <PrimaryButton
@@ -372,12 +386,17 @@ export function TournamentAssistantCard({
             onClick={() => void runCopy('bench', showReplaceConfirm)}
             disabled={copyBusy}
           />
-          {action.matchId ? (
+          <GlassButton
+            label="Mit Turnierkader neu aufstellen"
+            onClick={() => void runCopy('squad_only', showReplaceConfirm)}
+            disabled={copyBusy || !tournamentEventId}
+          />
+          {targetMatchId ? (
             <Link
-              to={matchPreparationPath(action.matchId)}
+              to={matchPreparationPath(targetMatchId, basePath)}
               className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
             >
-              Neu aufstellen
+              Manuell vorbereiten
             </Link>
           ) : null}
         </div>
