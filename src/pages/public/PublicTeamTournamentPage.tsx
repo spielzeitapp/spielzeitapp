@@ -13,35 +13,54 @@ function TeamMark({
   name,
   logoUrl,
   highlight,
+  size = 'regular',
 }: {
   name: string;
   logoUrl?: string | null;
   highlight?: boolean;
+  size?: 'featured' | 'regular';
 }) {
   const [failed, setFailed] = useState(false);
   const src = logoUrl || getClubLogo(name) || PLACEHOLDER_LOGO;
+  const featured = size === 'featured';
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
+    <div
+      className={`flex min-w-0 flex-1 flex-col items-center text-center ${
+        featured ? 'gap-2.5' : 'gap-2'
+      }`}
+    >
       <div
-        className={`flex h-14 w-14 items-center justify-center rounded-2xl border bg-white shadow-sm sm:h-16 sm:w-16 ${
-          highlight ? 'border-red-500/40 ring-2 ring-red-500/20' : 'border-slate-200'
-        }`}
+        className={`flex shrink-0 items-center justify-center rounded-2xl border bg-white shadow-sm ${
+          featured
+            ? 'h-[4.375rem] w-[4.375rem] sm:h-20 sm:w-20'
+            : 'h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem]'
+        } ${highlight ? 'border-red-500/40 ring-2 ring-red-500/20' : 'border-slate-200'}`}
       >
         {failed ? (
-          <span className="text-[11px] font-bold text-slate-600">{getTeamInitials(name)}</span>
+          <span
+            className={`font-bold text-slate-600 ${
+              featured ? 'text-[13px] sm:text-[14px]' : 'text-[12px] sm:text-[13px]'
+            }`}
+          >
+            {getTeamInitials(name)}
+          </span>
         ) : (
           <img
             src={src}
             alt=""
-            className="h-10 w-10 object-contain sm:h-11 sm:w-11"
+            className={`object-contain ${
+              featured
+                ? 'h-12 w-12 sm:h-14 sm:w-14'
+                : 'h-11 w-11 sm:h-12 sm:w-12'
+            }`}
             onError={() => setFailed(true)}
           />
         )}
       </div>
       <p
-        className={`line-clamp-2 text-[13px] font-semibold leading-snug sm:text-[14px] ${
-          highlight ? 'text-slate-950' : 'text-slate-700'
-        }`}
+        className={`line-clamp-2 font-semibold leading-snug ${
+          featured ? 'text-[13px] sm:text-[14px]' : 'text-[12px] sm:text-[13px]'
+        } ${highlight ? 'text-slate-950' : 'text-slate-700'}`}
       >
         {name}
       </p>
@@ -84,6 +103,7 @@ function MatchCard({
   ourLogoUrl: string | null;
 }) {
   const scoreReady = match.scoreOur != null && match.scoreOpp != null;
+  const markSize = featured ? 'featured' : 'regular';
   return (
     <article
       className={`rounded-2xl border bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-5 ${
@@ -101,26 +121,50 @@ function MatchCard({
           ) : null}
           <StatusPill status={match.status} label={match.statusLabel} />
         </div>
-        <p className="text-[28px] font-bold tabular-nums leading-none text-slate-950 sm:text-[32px]">
+        <p
+          className={`font-bold tabular-nums leading-none text-slate-950 ${
+            featured ? 'text-[26px] sm:text-[30px]' : 'text-[24px] sm:text-[28px]'
+          }`}
+        >
           {match.kickoffTimeLabel}
         </p>
       </div>
 
-      <div className="flex items-start gap-2 sm:gap-3">
-        <TeamMark name={match.homeName} logoUrl={ourLogoUrl} highlight />
-        <div className="flex w-16 shrink-0 flex-col items-center justify-center pt-3 sm:w-20">
+      <div className={`flex items-start ${featured ? 'gap-2.5 sm:gap-3.5' : 'gap-2 sm:gap-3'}`}>
+        <TeamMark
+          name={match.homeName}
+          logoUrl={match.ourIsHome ? ourLogoUrl : undefined}
+          highlight={match.ourIsHome}
+          size={markSize}
+        />
+        <div
+          className={`flex shrink-0 flex-col items-center justify-center ${
+            featured ? 'w-[4.25rem] pt-4 sm:w-20 sm:pt-5' : 'w-14 pt-3.5 sm:w-16 sm:pt-4'
+          }`}
+        >
           {scoreReady ? (
-            <p className="text-[26px] font-bold tabular-nums text-slate-950 sm:text-[30px]">
+            <p
+              className={`font-bold tabular-nums text-slate-950 ${
+                featured ? 'text-[26px] sm:text-[30px]' : 'text-[22px] sm:text-[26px]'
+              }`}
+            >
               {match.scoreOur}:{match.scoreOpp}
             </p>
           ) : (
-            <p className="text-[18px] font-semibold text-slate-300">–</p>
+            <p className={`font-semibold text-slate-300 ${featured ? 'text-[18px]' : 'text-[16px]'}`}>
+              vs
+            </p>
           )}
         </div>
-        <TeamMark name={match.awayName} />
+        <TeamMark
+          name={match.awayName}
+          logoUrl={!match.ourIsHome ? ourLogoUrl : undefined}
+          highlight={!match.ourIsHome}
+          size={markSize}
+        />
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-slate-500">
+      <div className="mt-3.5 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-slate-500">
         {match.pitch ? <span>Platz: {match.pitch}</span> : null}
         {match.groupLabel ? <span>Gruppe {match.groupLabel}</span> : null}
         {match.phase && match.phase !== 'group' && match.phase !== 'unknown' ? (

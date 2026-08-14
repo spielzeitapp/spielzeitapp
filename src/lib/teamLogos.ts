@@ -81,6 +81,7 @@ function isNsgHeimteamKey(key: string): boolean {
 const LOGO_MAP: Record<string, string> = {
   // NSG Heimteams + SPG Rohrbach (gemeinsames NSG-Gölsental-Wappen)
   'nsg rohrbach': NSG_GOELSENTAL_SLUG,
+  'nsg rohrbach st veit': NSG_GOELSENTAL_SLUG,
   'nsg hainfeld': NSG_GOELSENTAL_SLUG,
   'nsg goelsental': NSG_GOELSENTAL_SLUG,
   'spg rohrbach': NSG_GOELSENTAL_SLUG,
@@ -99,6 +100,10 @@ const LOGO_MAP: Record<string, string> = {
   'ask wilhelmsburg': 'ask-wilhelmsburg',
   'wilhelmsburg ask': 'ask-wilhelmsburg',
   wilhelmsburg: 'ask-wilhelmsburg',
+  // SKU Amstetten (TURNIERlive: „SKU Amstetten“)
+  'sku amstetten': 'sku-amstetten.jpg',
+  'sku ertl glas amstetten': 'sku-amstetten.jpg',
+  'ertl glas amstetten': 'sku-amstetten.jpg',
   // USG / SPG Alpenvorland
   'usg alpenvorland': 'usg-alpenvorland',
   'spg alpenvorland': 'usg-alpenvorland',
@@ -223,7 +228,7 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
 
   const mapped = resolveMappedLogoFile(name);
   if (mapped) {
-    return getLogoUrl(`${mapped}.png`);
+    return getLogoUrl(/\.(png|jpe?g|svg)$/i.test(mapped) ? mapped : `${mapped}.png`);
   }
 
   // Keine geratenen Slug-URLs (/logos/spg-bischofstetten.png) → 404 / falsche Assoziation.
