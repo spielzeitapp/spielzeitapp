@@ -250,42 +250,6 @@ export const MoreHubPage: React.FC = () => {
     };
   }, [isDemo, effectiveRole, user?.id]);
 
-  const [hasLinkedChildren, setHasLinkedChildren] = useState(false);
-  useEffect(() => {
-    if (normalizeRole(effectiveRole) !== 'parent') {
-      setHasLinkedChildren(false);
-      return;
-    }
-    if (!user?.id) {
-      setHasLinkedChildren(false);
-      return;
-    }
-
-    let cancelled = false;
-    void supabase
-      .from('player_guardians')
-      .select('player_id')
-      .eq('user_id', user.id)
-      .limit(1)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.warn('[MoreHubPage] guardian count load failed', error.message ?? error);
-          setHasLinkedChildren(false);
-          return;
-        }
-        setHasLinkedChildren(Array.isArray(data) && data.length > 0);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setHasLinkedChildren(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [effectiveRole, user?.id]);
-
   const [teamAdminOpen, setTeamAdminOpen] = useState(false);
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
   const [hapticOn, setHapticOn] = useState(true);
