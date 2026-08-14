@@ -157,9 +157,8 @@ export async function sendParentEmailInvite(input: {
     const messages: Record<string, string> = {
       Forbidden: 'Keine Berechtigung.',
       invalid_email: 'Bitte eine gültige E-Mail-Adresse eingeben.',
-      parent_invite_origin_ref_mismatch: 'App-Adresse und Datenbank passen nicht zusammen.',
-      parent_invite_unknown_supabase: 'Einladungsversand ist für diese Umgebung nicht konfiguriert.',
-      parent_invite_ambiguous_supabase: 'Einladungsversand ist für diese Umgebung nicht konfiguriert.',
+      parent_invite_refuses_live_domain: 'Versand nur auf Staging erlaubt.',
+      parent_invite_refuses_live_supabase: 'Versand nur mit Staging-Datenbank erlaubt.',
     };
     return {
       ok: false,

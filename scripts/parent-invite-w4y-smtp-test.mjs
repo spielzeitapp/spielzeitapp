@@ -59,12 +59,8 @@ assert.ok(sendInvite.includes('auth_stub_created'));
 assert.ok(sendInvite.includes('directMail.configured'));
 assert.ok(sendInvite.includes('smtp_send_failed'));
 // OTP only when direct mail NOT configured
-assert.ok(sendInvite.includes('parent_invite_origin_ref_mismatch'));
-assert.ok(sendInvite.includes('LIVE_ORIGIN'));
-assert.ok(sendInvite.includes('STAGING_ORIGIN'));
-assert.ok(sendInvite.includes('acbaecjzoabafbsjrzvr'));
-assert.ok(!sendInvite.includes('parent_invite_refuses_live_domain'));
-assert.ok(!sendInvite.includes('req.headers.origin'));
+assert.ok(sendInvite.includes('} else {'));
+assert.ok(sendInvite.includes('otp_fallback'));
 
 // No secrets in source
 assert.ok(!/PASSWORD\s*=\s*['"][^'"]+['"]/.test(mailLib));

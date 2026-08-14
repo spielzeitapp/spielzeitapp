@@ -1,16 +1,25 @@
 import { supabase } from './supabaseClient';
 import {
   fetchTournamentMatchSlots,
+  isAwaitingFurtherTournamentPhase,
+  ownPlayableTournamentSlots,
   pickNextPlannedTournamentSlot,
   type TournamentMatchSlotView,
 } from './tournamentPlan';
 import { eventNotesTitle } from '../components/schedule/scheduleEventViewUtils';
 import { safeOptionalText, safeText } from './safeText';
+import {
+  DEMO_TOURNAMENT_EVENT_ID,
+  getDemoTournamentEventIdForMatch,
+  isDemoTournamentEventId,
+} from '../demo/demoTournamentState';
+import { demoFixtures } from '../demo/demoFixtures';
 
 export type TournamentMatchNavigationContext = {
   tournamentEventId: string;
   tournamentTitle: string;
   nextSlot: TournamentMatchSlotView | null;
+  awaitingFurtherPhase: boolean;
 };
 
 export async function fetchTournamentMatchNavigationContext(
@@ -19,6 +28,24 @@ export async function fetchTournamentMatchNavigationContext(
 ): Promise<TournamentMatchNavigationContext | null> {
   const id = safeText(matchId);
   if (!id) return null;
+
+  const demoTournamentEventId = getDemoTournamentEventIdForMatch(id);
+  if (demoTournamentEventId) {
+    const slotsRes = await fetchTournamentMatchSlots(demoTournamentEventId);
+    const slots = slotsRes.data ?? [];
+    const nextSlot = pickNextPlannedTournamentSlot(slots, {
+      afterMatchId: options?.afterCurrentMatch ? id : null,
+    });
+    return {
+      tournamentEventId: demoTournamentEventId,
+      tournamentTitle: demoFixtures.tournament.name,
+      nextSlot,
+      awaitingFurtherPhase: isAwaitingFurtherTournamentPhase({
+        ownSlots: ownPlayableTournamentSlots(slots),
+        allSlots: slots,
+      }),
+    };
+  }
 
   const { data: link, error: linkError } = await supabase
     .from('tournament_matches')
@@ -40,6 +67,7 @@ export async function fetchTournamentMatchNavigationContext(
   const slotsRes = await fetchTournamentMatchSlots(tournamentEventId);
   if (slotsRes.error) return null;
 
+  const slots = slotsRes.data ?? [];
   const tournamentTitle =
     safeText(
       eventNotesTitle(eventRow.notes as string | null) ??
@@ -47,7 +75,7 @@ export async function fetchTournamentMatchNavigationContext(
         'Turnier',
     ) || 'Turnier';
 
-  const nextSlot = pickNextPlannedTournamentSlot(slotsRes.data ?? [], {
+  const nextSlot = pickNextPlannedTournamentSlot(slots, {
     afterMatchId: options?.afterCurrentMatch ? id : null,
   });
 
@@ -55,9 +83,20 @@ export async function fetchTournamentMatchNavigationContext(
     tournamentEventId,
     tournamentTitle,
     nextSlot,
+    awaitingFurtherPhase: isAwaitingFurtherTournamentPhase({
+      ownSlots: ownPlayableTournamentSlots(slots),
+      allSlots: slots,
+    }),
   };
 }
 
-export function tournamentCenterPath(tournamentEventId: string): string {
-  return `/app/events/${encodeURIComponent(safeText(tournamentEventId))}`;
+export function tournamentCenterPath(
+  tournamentEventId: string,
+  base: '/app' | '/demo' = '/app',
+): string {
+  const id = safeText(tournamentEventId);
+  if (isDemoTournamentEventId(id) || id === DEMO_TOURNAMENT_EVENT_ID) {
+    return `${base}/events/${encodeURIComponent(DEMO_TOURNAMENT_EVENT_ID)}`;
+  }
+  return `${base}/events/${encodeURIComponent(id)}`;
 }

@@ -38,6 +38,7 @@ import {
 import { loadSeasonPlanRows } from '../lib/seasonPlanData';
 import { downloadSeasonPlanPdf } from '../lib/seasonPlanPdf';
 import { normalizeOpponentKey } from '../lib/teamVenues';
+import { formatVisibleMatchEncounter } from '../lib/oefbTeamNameNormalize';
 import { getOurTeamDisplayName, getOurTeamLogoUrl, PLACEHOLDER_LOGO } from '../lib/teamLogos';
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
 import { supabase } from '../lib/supabaseClient';
@@ -761,9 +762,11 @@ export const ChampionshipManagementPage: React.FC = () => {
     ? formatOefbVorgabe(editFixture.source_starts_at ?? editFixture.starts_at)
     : null;
   const editHeaderTitle = editFixture
-    ? editFixture.is_home
-      ? ourTeamName || 'Heim'
-      : editFixture.opponent || 'Gegner'
+    ? formatVisibleMatchEncounter({
+        isHome: editFixture.is_home,
+        ourTeamName,
+        opponentName: editFixture.opponent,
+      }).home
     : '';
   const editHeaderLogo = editFixture
     ? editFixture.is_home

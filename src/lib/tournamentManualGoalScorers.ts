@@ -119,6 +119,10 @@ export async function fetchTournamentCombinedGoalScorers(params: {
   hasMatchEventGoals: boolean;
   error: string | null;
 }> {
+  if (String(params.eventId ?? '').trim() === 'ev-tournament') {
+    return { data: [], hasMatchEventGoals: false, error: null };
+  }
+
   const [matchResult, manualResult] = await Promise.all([
     fetchTournamentGoalScorers(params.matchIds),
     fetchTournamentManualGoalScorers(params.eventId),

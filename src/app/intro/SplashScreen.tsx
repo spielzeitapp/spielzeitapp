@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import spielzeitappSplash from '../../assets/branding/spielzeitapp-splash.png';
+import { readPendingParentEmailInviteFlag, resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
 
 const APP_SPLASH_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
 
@@ -10,16 +11,31 @@ const SPLASH_MS = 1000;
 /**
  * Marken-Splash: schwarzer Hintergrund, zentriertes Splash-Bild.
  * Keine Buttons, keine zusätzlichen Texte.
+ * Demo und App teilen dieselbe Komponente — Zielpfad hängt vom aktuellen Prefixe ab.
+ * Pending Eltern-Einladung überspringt Splash → Accept-Seite.
  */
 export const SplashScreen: React.FC = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isDemo = pathname.startsWith('/demo');
 
   useEffect(() => {
+    if (!isDemo) {
+      const pending = resolvePendingParentInvitePath();
+      if (pending) {
+        window.location.replace(pending);
+        return;
+      }
+      if (readPendingParentEmailInviteFlag()) {
+        window.location.replace('/app/parent-invite');
+        return;
+      }
+    }
     const t = window.setTimeout(() => {
-      navigate('/app/intro/welcome', { replace: true });
+      navigate(isDemo ? '/demo/intro/welcome' : '/app/intro/welcome', { replace: true });
     }, SPLASH_MS);
     return () => window.clearTimeout(t);
-  }, [navigate]);
+  }, [navigate, isDemo]);
 
   return (
     <div

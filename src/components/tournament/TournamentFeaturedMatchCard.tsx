@@ -7,7 +7,7 @@ import {
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
 import { fetchLineupForLiveMatch } from '../../lib/liveMatchService';
-import { getClubLogo, getTeamInitials } from '../../lib/teamLogos';
+import { TournamentClubLogo } from './TournamentClubLogo';
 import {
   formatTournamentLiveClock,
   type TournamentLiveMatchDetails,
@@ -27,6 +27,8 @@ import {
   type TournamentOrchestratorCta,
 } from '../../lib/tournamentDayOrchestrator';
 import { CenterEmptyState } from '../center/CenterEmptyState';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { isDemoTournamentMatchId } from '../../demo/demoTournamentState';
 
 type Props = {
   slots: TournamentMatchSlotView[];
@@ -37,31 +39,18 @@ type Props = {
   canCreateReport?: boolean;
   canCompleteTournament?: boolean;
   completingTournament?: boolean;
+  awaitingFurtherPhase?: boolean;
+  refreshingPlan?: boolean;
   onOpen: (matchId: string) => void;
   onAddMatch?: () => void;
   onCreateReport?: () => void;
   onCompleteTournament?: () => void;
   onShowOverview?: () => void;
+  onRefreshPlan?: () => void;
 };
 
 function TeamLogoMark({ name }: { name: string }) {
-  const [failed, setFailed] = useState(false);
-  const src = getClubLogo(name);
-  if (failed) {
-    return (
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/50 text-[11px] font-bold text-white/80 sm:h-12 sm:w-12">
-        {getTeamInitials(name)}
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt=""
-      className="h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12"
-      onError={() => setFailed(true)}
-    />
-  );
+  return <TournamentClubLogo name={name} size="lg" tone="dark" />;
 }
 
 function WorkflowCtaLink({
@@ -123,9 +112,13 @@ function renderCta(
     onCreateReport?: () => void;
     onCompleteTournament?: () => void;
     onShowOverview?: () => void;
+    onRefreshPlan?: () => void;
     completingTournament?: boolean;
+    refreshingPlan?: boolean;
+    basePath?: '/app' | '/demo';
   },
 ): React.ReactNode {
+  const base = handlers.basePath ?? '/app';
   switch (cta.kind) {
     case 'add_match':
       return (
@@ -135,29 +128,50 @@ function renderCta(
       );
     case 'prepare':
       return (
-        <WorkflowCtaLink key={`${cta.kind}-${cta.matchId}`} to={matchPreparationPath(cta.matchId)} variant={cta.variant}>
+        <WorkflowCtaLink
+          key={`${cta.kind}-${cta.matchId}`}
+          to={matchPreparationPath(cta.matchId, base)}
+          variant={cta.variant}
+        >
           {cta.label}
         </WorkflowCtaLink>
       );
     case 'open_lineup':
       return (
-        <WorkflowCtaLink key={`${cta.kind}-${cta.matchId}`} to={matchLineupPath(cta.matchId)} variant={cta.variant}>
+        <WorkflowCtaLink
+          key={`${cta.kind}-${cta.matchId}`}
+          to={matchLineupPath(cta.matchId, base)}
+          variant={cta.variant}
+        >
           {cta.label}
         </WorkflowCtaLink>
       );
     case 'start_live':
+    case 'go_live':
       return (
-        <WorkflowCtaLink key={`${cta.kind}-${cta.matchId}`} to={liveMatchPath(cta.matchId)} variant={cta.variant}>
-          <Radio className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+        <WorkflowCtaLink
+          key={`${cta.kind}-${cta.matchId}`}
+          to={liveMatchPath(cta.matchId, base)}
+          variant={cta.variant}
+        >
+          <Radio
+            className={`h-3.5 w-3.5${cta.kind === 'go_live' ? ' animate-pulse' : ''}`}
+            strokeWidth={2.25}
+            aria-hidden
+          />
           {cta.label}
         </WorkflowCtaLink>
       );
-    case 'go_live':
+    case 'refresh_plan':
       return (
-        <WorkflowCtaLink key={`${cta.kind}-${cta.matchId}`} to={liveMatchPath(cta.matchId)} variant={cta.variant}>
-          <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
-          {cta.label}
-        </WorkflowCtaLink>
+        <WorkflowCtaButton
+          key={cta.kind}
+          variant={cta.variant}
+          disabled={handlers.refreshingPlan}
+          onClick={() => handlers.onRefreshPlan?.()}
+        >
+          {handlers.refreshingPlan ? 'Nächste Runde wird aktualisiert …' : cta.label}
+        </WorkflowCtaButton>
       );
     case 'create_report':
       return (
@@ -188,6 +202,19 @@ function renderCta(
 }
 
 async function fetchLiveDetailsForMatch(matchId: string): Promise<TournamentLiveMatchDetails | null> {
+  if (isDemoTournamentMatchId(matchId)) {
+    const { getDemoLiveMatchRow } = await import('../../demo/demoLiveRuntime');
+    const row = getDemoLiveMatchRow(matchId);
+    if (!row || (row.status ?? '').toLowerCase() !== 'live') return null;
+    return {
+      scoreHome: Number(row.score_home ?? 0),
+      scoreAway: Number(row.score_away ?? 0),
+      liveElapsedSeconds: Number(row.live_elapsed_seconds ?? 0) || 0,
+      liveIsRunning: Boolean(row.live_is_running),
+      livePeriod: Number(row.live_period ?? 1) || 1,
+    };
+  }
+
   const { data, error } = await supabase
     .from('matches')
     .select('status, score_home, score_away, live_elapsed_seconds, live_is_running, live_period')
@@ -214,12 +241,16 @@ export function TournamentFeaturedMatchCard({
   canCreateReport = false,
   canCompleteTournament = false,
   completingTournament = false,
+  awaitingFurtherPhase = false,
+  refreshingPlan = false,
   onOpen,
   onAddMatch,
   onCreateReport,
   onCompleteTournament,
   onShowOverview,
+  onRefreshPlan,
 }: Props) {
+  const basePath = useInternalBasePath();
   const focus = useMemo(() => pickOrchestratorFocus(slots), [slots]);
   const focusSlot = focus.kind !== 'none' ? focus.slot : null;
   const focusMatchId = focusSlot?.match_id?.trim() ?? '';
@@ -237,13 +268,22 @@ export function TournamentFeaturedMatchCard({
         tournamentArchived,
         canCreateReport,
         canCompleteTournament,
+        awaitingFurtherPhase,
       }),
-    [slots, canManage, lineupReady, tournamentArchived, canCreateReport, canCompleteTournament],
+    [
+      slots,
+      canManage,
+      lineupReady,
+      tournamentArchived,
+      canCreateReport,
+      canCompleteTournament,
+      awaitingFurtherPhase,
+    ],
   );
 
   useEffect(() => {
     let cancelled = false;
-    if (!canManage || !focusMatchId || orchestrator.phase !== 'live') {
+    if (!focusMatchId || orchestrator.phase !== 'live') {
       setLiveDetails(null);
       return () => {
         cancelled = true;
@@ -262,11 +302,11 @@ export function TournamentFeaturedMatchCard({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [canManage, focusMatchId, orchestrator.phase]);
+  }, [focusMatchId, orchestrator.phase]);
 
   useEffect(() => {
     let cancelled = false;
-    if (!canManage || !focusMatchId || orchestrator.phase === 'live' || orchestrator.phase === 'all_finished') {
+    if (!canManage || !focusMatchId || orchestrator.phase === 'live' || orchestrator.phase === 'all_finished' || orchestrator.phase === 'awaiting_next_round' || orchestrator.phase === 'awaiting_knockout') {
       setLineupReady(false);
       setLineupLoading(false);
       return () => {
@@ -313,7 +353,10 @@ export function TournamentFeaturedMatchCard({
 
   const status = tournamentMatchDisplayStatus(focusSlot);
   const isLive = orchestrator.phase === 'live';
-  const isAllFinished = orchestrator.phase === 'all_finished';
+  const isAllFinished =
+    orchestrator.phase === 'all_finished' ||
+    orchestrator.phase === 'awaiting_next_round' ||
+    orchestrator.phase === 'awaiting_knockout';
   const timeLabel = formatTournamentKickoffTime(focusSlot.kickoff_at);
   const group = safeOptionalText(focusSlot.group_label);
   const phase = safeOptionalText(focusSlot.phase);
@@ -332,7 +375,9 @@ export function TournamentFeaturedMatchCard({
       : null;
 
   const headerIcon =
-    orchestrator.phase === 'all_finished' ? (
+    orchestrator.phase === 'all_finished' ||
+    orchestrator.phase === 'awaiting_next_round' ||
+    orchestrator.phase === 'awaiting_knockout' ? (
       <Flag className="h-3 w-3 text-white/55" strokeWidth={2.25} aria-hidden />
     ) : null;
 
@@ -365,7 +410,9 @@ export function TournamentFeaturedMatchCard({
       <div className="relative bg-[rgba(6,4,8,0.98)] px-3 py-3 sm:px-3.5 sm:py-3.5">
         <button
           type="button"
-          onClick={() => onOpen(focusSlot.match_id)}
+          onClick={() => {
+            if (focusMatchId) onOpen(focusMatchId);
+          }}
           className="flex w-full flex-col gap-2.5 text-left touch-manipulation"
         >
           <div className="flex items-center justify-between gap-1.5">
@@ -420,7 +467,10 @@ export function TournamentFeaturedMatchCard({
                 onCreateReport,
                 onCompleteTournament,
                 onShowOverview,
+                onRefreshPlan,
                 completingTournament,
+                refreshingPlan,
+                basePath,
               }),
             )}
             {lineupLoading ? (
@@ -429,7 +479,7 @@ export function TournamentFeaturedMatchCard({
           </div>
         ) : !canManage && isLive ? (
           <div className="mt-2.5 border-t border-white/[0.06] pt-2.5">
-            <WorkflowCtaLink to={liveMatchPath(focusSlot.match_id)} variant="primary">
+            <WorkflowCtaLink to={liveMatchPath(focusMatchId, basePath)} variant="primary">
               <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
               Zum Live-Spiel
             </WorkflowCtaLink>

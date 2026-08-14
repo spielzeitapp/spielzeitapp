@@ -128,7 +128,9 @@ async function fetchHistoricPostsPage(opts: {
 
   const seasonIds = rows.map((r) => r.team_season_id).filter(Boolean);
   const eventStatusById = await fetchEventStatusMapForSeasons(seasonIds);
-  const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date());
+  const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date(), {
+    chronicle: true,
+  });
 
   return {
     posts,

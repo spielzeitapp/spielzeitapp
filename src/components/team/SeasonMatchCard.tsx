@@ -6,6 +6,7 @@ import { seasonMatchCardHref } from '../../lib/seasonMatchStats';
 import { getClubLogo } from '../../lib/teamLogos';
 import { splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   match: SeasonMatchCardData;
@@ -99,7 +100,8 @@ function headerBadge(match: SeasonMatchCardData): string {
 
 export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
   const navigate = useNavigate();
-  const href = seasonMatchCardHref(match.eventId, match.id);
+  const basePath = useInternalBasePath();
+  const href = seasonMatchCardHref(match.eventId, basePath, match.id);
   const clickable = Boolean(href);
 
   const handleClick = () => {

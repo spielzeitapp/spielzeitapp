@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import brandLogoHeader from '../assets/branding/spielzeitapp-header.png';
 import type { ChampionshipFixture } from './championshipFixtures';
+import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import {
   seasonPhaseFilenameSlug,
   seasonPhaseHeaderSuffix,
@@ -191,10 +192,11 @@ export function formatChampionshipEncounter(
   f: ChampionshipFixture,
   ourTeamName: string,
 ): string {
-  const us = (ourTeamName || 'Heim').trim() || 'Heim';
-  const them = (f.opponent || 'Gegner').trim() || 'Gegner';
-  if (f.is_home) return `${us} – ${them}`;
-  return `${them} – ${us}`;
+  return formatVisibleMatchEncounter({
+    isHome: f.is_home,
+    ourTeamName,
+    opponentName: f.opponent,
+  }).line;
 }
 
 function slugify(s: string): string {
@@ -627,13 +629,17 @@ export async function downloadChampionshipSchedulePdf(opts: {
           if (data.column.index !== encounterColIndex) return;
           const f = rows[data.row.index];
           if (!f) return;
-          const oppName = (f.opponent || 'Gegner').trim() || 'Gegner';
+          const enc = formatVisibleMatchEncounter({
+            isHome: f.is_home,
+            ourTeamName,
+            opponentName: f.opponent,
+          });
+          const oppName = enc.opponent;
           const oppLogo = oppLogoCache.get(oppName) || placeholderData;
-          const isHome = f.is_home === true;
-          const homeName = isHome ? ourTeamName : oppName;
-          const awayName = isHome ? oppName : ourTeamName;
-          const homeLogo = isHome ? ourLogoData : oppLogo;
-          const awayLogo = isHome ? oppLogo : ourLogoData;
+          const homeName = enc.home;
+          const awayName = enc.away;
+          const homeLogo = enc.home === enc.ourTeam ? ourLogoData : oppLogo;
+          const awayLogo = enc.away === enc.ourTeam ? ourLogoData : oppLogo;
           drawOefbEncounterCell({
             doc,
             cellX: data.cell.x,

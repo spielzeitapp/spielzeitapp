@@ -32,7 +32,7 @@ function isInternalAppDeepLink(path: string | null | undefined): boolean {
   if (clean === '/login' || clean === '/register' || clean === '/forgot-password') return false;
   if (clean === '/app/parent-invite' || clean.startsWith('/app/parent-invite/')) return false;
   if (clean === '/app') return false;
-  return clean.startsWith('/app/');
+  return clean.startsWith('/app/') || clean.startsWith('/demo/');
 }
 
 /**

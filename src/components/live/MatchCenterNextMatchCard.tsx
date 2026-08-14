@@ -4,6 +4,7 @@ import { Clock, MapPin } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { computeMatchCenterCountdown } from '../../lib/matchCenterUtils';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { getClubLogo, getTeamInitials } from '../../lib/teamLogos';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
@@ -45,9 +46,13 @@ function TeamLogoMark({
 }
 
 export function MatchCenterNextMatchCard({ event, ourTeamName, now }: Props) {
-  const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
-  const homeTeam = event.is_home === false ? opponent : ourTeamName;
-  const awayTeam = event.is_home === false ? ourTeamName : opponent;
+  const enc = formatVisibleMatchEncounter({
+    isHome: event.is_home,
+    ourTeamName,
+    opponentName: event.opponent,
+  });
+  const homeTeam = enc.home;
+  const awayTeam = enc.away;
   const homeLogoUrl = event.is_home === false ? event.opponent_logo_url : null;
   const awayLogoUrl = event.is_home === false ? null : event.opponent_logo_url;
 

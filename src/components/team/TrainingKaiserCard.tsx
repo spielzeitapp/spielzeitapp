@@ -3,6 +3,7 @@ import type { PlayerItem } from '../../hooks/usePlayers';
 import { PlayerSpecialStatusBadges } from '../player/PlayerSpecialStatusBadges';
 import {
   activityRateColorClass,
+  averageQualifiedTeamRatePct,
   getValuableTrainingCount,
   hasTrainingActivityBasis,
   hasTrainingTeamBasis,
@@ -314,6 +315,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
   const restQualified = qualified.slice(3);
   const hasPlayers = qualified.length > 0 || unqualified.length > 0;
   const isOverview = variant === 'overview';
+  const seasonQuotePct = averageQualifiedTeamRatePct(qualified);
 
   const body = (
     <>
@@ -321,7 +323,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
         <>
           <SectionTitle
             as="h2"
-            subtitle="Ø Beteiligung = Dabei / (Dabei + Abwesend). Trainingskaiser bewertet Aktivität: Dabei + LAZ."
+            subtitle="Ø Trainingsbeteiligung = Mittel je Training (Dabei / Dabei+Abwesend). Ø Trainingsquote = Mittel der Spieler-Saisonquoten. Trainingskaiser bewertet Aktivität: Dabei + LAZ."
             subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
             className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
           >
@@ -396,14 +398,20 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                     <span className="mr-1.5" aria-hidden>
                       📊
                     </span>
-                    Ø Trainingsquote{' '}
+                    Ø Aktivität{' '}
                     <span className={cn('tabular-nums', activityRateColorClass(teamAverageActivityPct))}>
                       {teamAverageActivityPct} %
                     </span>
                   </p>
                   <p className="mt-0.5 text-[11px] text-white/50">
-                    Auf Basis von {qualified.length} gewerteten Spielern
+                    Auf Basis von {qualified.length} gewerteten Spielern (Dabei + LAZ + Abwesend)
                   </p>
+                  {seasonQuotePct != null ? (
+                    <p className="mt-1.5 text-[12px] font-medium text-white/70">
+                      Ø Trainingsquote (Saison){' '}
+                      <span className="tabular-nums text-white/90">{seasonQuotePct} %</span>
+                    </p>
+                  ) : null}
                 </GlassCard>
               ) : null}
 

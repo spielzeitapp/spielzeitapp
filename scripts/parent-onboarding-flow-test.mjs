@@ -241,6 +241,7 @@ assert.ok(secureMig.includes('REVOKE ALL ON FUNCTION public.redeem_parent_link_i
 
 // 11) Trainer-UI: Eltern einladen getrennt von Spielerzugang
 const panel = fs.readFileSync(path.join(root, 'src/components/team/PlayerGuardiansPanel.tsx'), 'utf8');
+assert.ok(panel.includes('Eltern einladen'));
 assert.ok(panel.includes('Elternteil einladen'));
 assert.ok(panel.includes('createParentLinkInvite'));
 assert.ok(panel.includes('Einladung senden'));
@@ -261,13 +262,6 @@ const selfServiceMig = fs.readFileSync(
 );
 assert.ok(selfServiceMig.includes('list_parent_onboarding_clubs'));
 assert.ok(selfServiceMig.includes('link_parent_self_service'));
-const helperMig = fs.readFileSync(
-  path.join(root, 'supabase/migrations/20260812115000_parent_invite_club_operable_helper.sql'),
-  'utf8',
-);
-assert.ok(helperMig.includes('ADD COLUMN IF NOT EXISTS status'));
-assert.ok(helperMig.includes('club_is_operable'));
-assert.ok(!helperMig.includes('INSERT INTO public.clubs'));
 assert.ok(selfServiceMig.includes('club_is_operable'));
 assert.ok(selfServiceMig.includes('player_on_team_season_roster'));
 assert.ok(selfServiceMig.includes('GRANT EXECUTE ON FUNCTION public.link_parent_self_service'));

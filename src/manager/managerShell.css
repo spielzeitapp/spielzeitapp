@@ -1,0 +1,130 @@
+/**
+ * Manager-only light theme + full-bleed shell + form controls.
+ * Scoped to `.manager-shell` so mobile App / Demo stay on global dark color-scheme.
+ *
+ * Root cause of narrow “1280px floating” manager chrome:
+ * `#root` in layout.css is `display:flex; justify-content:center` (phone frame).
+ * Without width:100% the manager shell shrink-wraps to content and centers,
+ * leaving dark viewport sides (color-scheme: dark). Dashboard looked wider
+ * because multi-column cards forced a larger intrinsic width.
+ */
+
+/* Full-bleed when any manager shell is mounted (incl. AccessGate). */
+html:has(.manager-shell),
+body:has(.manager-shell) {
+  background-color: #f4f5f7;
+}
+
+#root:has(.manager-shell) {
+  justify-content: stretch;
+  align-items: stretch;
+  width: 100%;
+  max-width: none;
+  background-color: #f4f5f7;
+}
+
+.manager-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-height: 100%;
+  color-scheme: light;
+  --manager-bg: #f4f5f7;
+  --manager-surface: #ffffff;
+  --manager-border: #e5e7eb;
+  --manager-border-strong: #cbd5e1;
+  --manager-text: #0f172a;
+  --manager-muted: #64748b;
+  --manager-accent: #b91c1c;
+  --manager-accent-soft: #fef2f2;
+  --manager-focus-ring: rgba(185, 28, 28, 0.22);
+  background-color: var(--manager-bg);
+  color: var(--manager-text);
+}
+
+/* Content column only — never wrap sidebar+header */
+.manager-shell__content {
+  width: 100%;
+  max-width: 120rem; /* 1920px */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.manager-shell input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+.manager-shell select,
+.manager-shell textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: var(--manager-border);
+  color-scheme: light;
+  caret-color: #0f172a;
+}
+
+.manager-shell input::placeholder,
+.manager-shell textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+.manager-shell input:hover:not(:disabled):not([readonly]),
+.manager-shell select:hover:not(:disabled),
+.manager-shell textarea:hover:not(:disabled):not([readonly]) {
+  border-color: var(--manager-border-strong);
+}
+
+.manager-shell input:focus,
+.manager-shell input:focus-visible,
+.manager-shell select:focus,
+.manager-shell select:focus-visible,
+.manager-shell textarea:focus,
+.manager-shell textarea:focus-visible {
+  outline: none;
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px var(--manager-focus-ring);
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.manager-shell input:disabled,
+.manager-shell select:disabled,
+.manager-shell textarea:disabled,
+.manager-shell input[readonly],
+.manager-shell textarea[readonly] {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  cursor: not-allowed;
+}
+
+.manager-shell input[type='date'],
+.manager-shell input[type='time'],
+.manager-shell input[type='datetime-local'] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  color-scheme: light;
+}
+
+.manager-shell select option,
+.manager-shell select optgroup {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Chrome/Safari Autofill: keep light */
+.manager-shell input:-webkit-autofill,
+.manager-shell input:-webkit-autofill:hover,
+.manager-shell input:-webkit-autofill:focus,
+.manager-shell textarea:-webkit-autofill,
+.manager-shell select:-webkit-autofill {
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
+  box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 99999s ease-out;
+}
+
+.manager-shell ::selection {
+  background: #fecaca;
+  color: #7f1d1d;
+}

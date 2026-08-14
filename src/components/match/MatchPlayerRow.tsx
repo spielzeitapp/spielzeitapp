@@ -33,17 +33,21 @@ export const MatchPlayerRow: React.FC<{
   status?: "open" | "yes" | "no";
   selected?: boolean;
   rightLabel?: string | null;
+  /** Optional z. B. „Training 93 %“ in der Kaderwahl. */
+  metricHint?: string | null;
   onClick?: () => void;
   /** Nur Startaufstellung / Matchday-Setup — Utility-Screens bleiben default. */
   tone?: PremiumPlayerCardTone;
-}> = ({ player, status, selected = false, rightLabel, onClick, tone = "utility" }) => {
+}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility" }) => {
   const number = player.jersey_number ?? player.number ?? null;
   const isMatchday = tone === "matchday";
+  const baseSub = positionSubline(player.position);
+  const subline = metricHint ? `${baseSub} · ${metricHint}` : baseSub;
 
   return (
     <PremiumPlayerCard
       player={player}
-      subline={positionSubline(player.position)}
+      subline={subline}
       density="compact"
       tone={tone}
       active={isMatchday && selected}

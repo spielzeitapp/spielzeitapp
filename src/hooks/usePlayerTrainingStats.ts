@@ -5,9 +5,16 @@ import {
   loadPlayerTrainingStats,
   loadPlayerTrainingStatsAcrossSeasons,
 } from '../lib/trainingStatsLoader';
+import { useDemoMode } from '../demo/DemoContext';
+import { isDemoPlayerId } from '../demo/demoPlayers';
+import {
+  getDemoPastTrainingEvents,
+  getDemoPlayerTrainingStatsFromAttendance,
+} from '../demo/demoTrainingStats';
 
 /**
  * Trainingsbeteiligung: eine Saison oder Career (mehrere team_season_ids).
+ * Demo: aus lokaler Attendance + vergangenen Demo-Trainings (produktive Formel).
  */
 export function usePlayerTrainingStats(
   playerId: string | null,
@@ -15,6 +22,7 @@ export function usePlayerTrainingStats(
   enabled = true,
   options?: { mode?: 'season' | 'career'; careerSeasonIds?: string[] },
 ) {
+  const demo = useDemoMode();
   const mode = options?.mode ?? 'season';
   const careerSeasonIds = options?.careerSeasonIds;
   const [stats, setStats] = useState<TrainingAttendanceStats>(EMPTY_TRAINING_STATS);
@@ -22,6 +30,9 @@ export function usePlayerTrainingStats(
   const [error, setError] = useState<string | null>(null);
 
   const careerKey = (careerSeasonIds ?? []).slice().sort().join(',');
+  const demoAttendanceKey = demo
+    ? demo.attendanceRows.map((r) => `${r.event_id}:${r.player_id}:${r.status}`).join('|')
+    : '';
 
   const load = useCallback(async () => {
     if (!enabled) {
@@ -36,6 +47,19 @@ export function usePlayerTrainingStats(
       setError(null);
       return;
     }
+
+    if (demo || isDemoPlayerId(pid)) {
+      if (demo) {
+        const past = getDemoPastTrainingEvents(demo.data.events);
+        setStats(getDemoPlayerTrainingStatsFromAttendance(pid, past, demo.attendanceRows));
+      } else {
+        setStats(EMPTY_TRAINING_STATS);
+      }
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -51,12 +75,12 @@ export function usePlayerTrainingStats(
         }
       }
     } catch (e) {
-      setStats(EMPTY_TRAINING_STATS);
       setError(e instanceof Error ? e.message : String(e));
+      setStats(EMPTY_TRAINING_STATS);
     } finally {
       setLoading(false);
     }
-  }, [playerId, teamSeasonId, enabled, mode, careerKey]);
+  }, [enabled, playerId, teamSeasonId, mode, careerKey, demo, demoAttendanceKey]);
 
   useEffect(() => {
     void load();

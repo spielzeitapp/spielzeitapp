@@ -1,6 +1,7 @@
 import React from 'react';
 import { getClubLogoUrl } from '../../utils/logoResolver';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
+import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 
@@ -169,18 +170,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     leftName = ourClubName;
     rightName = opponent ?? 'Termin';
   } else {
-    // kind === 'match' – Heim/Auswärts-Logik bleibt erhalten
-    if (isHome === true) {
-      leftName = ourClubName;
-      rightName = opponent ?? 'Gegner';
-    } else if (isHome === false) {
-      leftName = opponent ?? 'Gegner';
-      rightName = ourClubName;
-    } else {
-      // Fallback: unser Team links, Gegner rechts
-      leftName = ourClubName;
-      rightName = opponent ?? 'Gegner';
-    }
+    const enc = formatVisibleMatchEncounter({
+      isHome,
+      ourTeamName: ourClubName,
+      opponentName: opponent,
+    });
+    leftName = enc.home;
+    rightName = enc.away;
   }
 
   const date = startsAt ? new Date(startsAt) : null;

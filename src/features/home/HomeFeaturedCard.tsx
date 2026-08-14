@@ -7,6 +7,7 @@ import { dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
 import { PremiumCard, PremiumEmptyState } from '../../ui';
 import { cn } from '../../ui/lib/cn';
 import { formatCountdownToStartsAt, eventKindLabel } from './homeFeedBuilder';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type HomeFeaturedCardProps = {
   featured:
@@ -18,6 +19,7 @@ type HomeFeaturedCardProps = {
 };
 
 function NextEventHero({ event, now }: { event: EventRow; now: Date }) {
+  const basePath = useInternalBasePath();
   const label = eventKindLabel(event.kind);
   const when = formatDateTimeDeVienna(event.starts_at);
   const place = (event.location ?? event.address ?? '').trim() || '—';
@@ -31,7 +33,7 @@ function NextEventHero({ event, now }: { event: EventRow; now: Date }) {
       <p className="mt-1 text-base text-white/60">{place}</p>
       <p className="mt-4 text-lg font-semibold text-red-400">{countdown}</p>
       <Link
-        to={`/app/events/${event.id}`}
+        to={`${basePath}/events/${event.id}`}
         className={cn(
           dsSecondaryCtaClass(),
           'mt-5 flex min-h-[48px] w-full items-center justify-center border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20',
@@ -44,11 +46,12 @@ function NextEventHero({ event, now }: { event: EventRow; now: Date }) {
 }
 
 export const HomeFeaturedCard: React.FC<HomeFeaturedCardProps> = ({ featured, teamName, now }) => {
+  const basePath = useInternalBasePath();
   if (!featured) {
     return (
       <PremiumEmptyState title="Keine bevorstehenden Termine.">
         <Link
-          to="/app/termine"
+          to={`${basePath}/termine`}
           className={cn(dsSecondaryCtaClass(), 'inline-flex min-h-[48px] items-center justify-center px-5 py-3')}
         >
           Zu den Terminen

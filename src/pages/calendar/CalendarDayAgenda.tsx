@@ -7,6 +7,7 @@ import {
   formatSelectedDayCountLabel,
   toViennaDayKey,
 } from './calendarUtils';
+import { useInternalBasePath } from '../../demo/demoPaths';
 import { CalendarCompactEventCard } from './CalendarCompactEventCard';
 
 type Props = {
@@ -25,6 +26,7 @@ export const CalendarDayAgenda: React.FC<Props> = ({
   onEventClick,
 }) => {
   const navigate = useNavigate();
+  const basePath = useInternalBasePath();
   const selectedKey = toViennaDayKey(selectedDate);
 
   const dayEvents = useMemo(() => {
@@ -39,7 +41,7 @@ export const CalendarDayAgenda: React.FC<Props> = ({
 
   const handleClick = (id: string) => {
     if (onEventClick) onEventClick(id);
-    else navigate(`/app/events/${id}`);
+    else navigate(`${basePath}/events/${id}`);
   };
 
   return (

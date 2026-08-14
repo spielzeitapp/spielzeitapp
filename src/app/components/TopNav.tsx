@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
+import { useDemoMode } from '../../demo/DemoContext';
 
 const publicLinks = [
   { to: '/', label: 'Home' },
@@ -16,12 +17,22 @@ const appLinks = [
   { to: '/app/mehr', label: 'Mehr' },
 ];
 
+const demoLinks = [
+  { to: '/demo/home', label: 'Home' },
+  { to: '/demo/termine', label: 'Termine' },
+  { to: '/demo/live', label: 'Live' },
+  { to: '/demo/team', label: 'Team' },
+  { to: '/demo/mehr', label: 'Mehr' },
+];
+
 export const TopNav: React.FC = () => {
   const { pathname } = useLocation();
   const { role } = useSession();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo) || pathname.startsWith('/demo');
   const isApp = pathname.startsWith('/app');
-  const isAdmin = (role ?? '').toString().toLowerCase() === 'admin';
-  const links = isApp ? appLinks : publicLinks;
+  const isAdmin = !isDemo && (role ?? '').toString().toLowerCase() === 'admin';
+  const links = isDemo ? demoLinks : isApp ? appLinks : publicLinks;
 
   return (
     <nav className="flex sticky top-0 z-40 w-full bg-[rgba(11,11,15,0.9)] border-b border-[var(--border)] backdrop-blur">

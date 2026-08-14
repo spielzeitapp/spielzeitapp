@@ -37,6 +37,7 @@ import {
   SectionTitle,
 } from '../../ui';
 import { cn } from '../../ui/lib/cn';
+import { useDemoMode } from '../../demo/DemoContext';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
 
@@ -63,6 +64,8 @@ function filterVisibleFeedPosts(
 }
 
 export const HomePage: React.FC = () => {
+  const demo = useDemoMode();
+  const isDemoMode = Boolean(demo);
   const {
     selectedTeamSeasonId: sessionTeamSeasonId,
     loading: sessionLoading,
@@ -74,10 +77,21 @@ export const HomePage: React.FC = () => {
   } = useSession();
   /** Home: Lesesaison (Archiv-View) — nicht still auf Active zurückfallen. */
   const { activeTeamSeason, readTeamSeason, readTeamSeasonId, isHistoryReadOnly } = useActiveTeamSeason();
-  const teamSeasonId = readTeamSeasonId ?? sessionTeamSeasonId;
-  const { events, loading: evLoading } = useEvents(teamSeasonId);
+  const teamSeasonId = isDemoMode
+    ? demo!.data.teamSeasonId
+    : (readTeamSeasonId ?? sessionTeamSeasonId);
+  const { events: liveEvents, loading: evLoadingRaw } = useEvents(isDemoMode ? null : teamSeasonId);
+  const events = isDemoMode ? demo!.data.events : liveEvents;
+  const evLoading = isDemoMode ? false : evLoadingRaw;
   const { session } = useAuth();
   const homeLabelParts = useMemo(() => {
+    if (isDemoMode) {
+      return {
+        teamLine: demo!.data.teamName,
+        seasonLine: demo!.data.seasonLabel,
+        full: `${demo!.data.teamName} · ${demo!.data.seasonLabel}`,
+      };
+    }
     const labelSeason = readTeamSeason ?? activeTeamSeason;
     if (!labelSeason) return null;
     return resolveTeamSeasonLabelParts({
@@ -87,17 +101,19 @@ export const HomePage: React.FC = () => {
       seasonName: labelSeason.season?.name,
       status: labelSeason.status,
     });
-  }, [activeTeamSeason, readTeamSeason]);
+  }, [activeTeamSeason, readTeamSeason, isDemoMode, demo]);
   const teamName = homeLabelParts?.teamLine ?? 'Team';
   const seasonLabel = homeLabelParts?.seasonLine && homeLabelParts.seasonLine !== '—'
     ? homeLabelParts.seasonLine
     : '—';
   const teamSeasonLine = homeLabelParts?.full ?? `${teamName} · ${seasonLabel}`;
-  const teamId = String(
-    (readTeamSeason ?? selectedTeamSeason)?.team?.id ??
-      (readTeamSeason ?? selectedTeamSeason)?.team_id ??
-      '',
-  );
+  const teamId = isDemoMode
+    ? demo!.data.teamId
+    : String(
+        (readTeamSeason ?? selectedTeamSeason)?.team?.id ??
+          (readTeamSeason ?? selectedTeamSeason)?.team_id ??
+          '',
+      );
 
   const seasonMetaById = useMemo(() => {
     const map = new Map<string, FeedSeasonDisplayMeta>();
@@ -125,6 +141,10 @@ export const HomePage: React.FC = () => {
   const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    if (FEED_DEMO || isDemoMode) {
+      setMatchStatusById({});
+      return;
+    }
     const matchIds = Array.from(
       new Set((events ?? []).filter((e) => e.match_id).map((e) => e.match_id!)),
     );
@@ -143,7 +163,7 @@ export const HomePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [events]);
+  }, [events, isDemoMode]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
@@ -151,7 +171,7 @@ export const HomePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (FEED_DEMO) {
+    if (FEED_DEMO || isDemoMode) {
       setDisabledMatchdayMatchIds(new Set());
       setDisabledMatchdayLoading(false);
       return;
@@ -175,15 +195,15 @@ export const HomePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [events]);
+  }, [events, isDemoMode]);
 
   const hasMatchEventsToCheck = useMemo(() => {
-    if (FEED_DEMO) return false;
+    if (FEED_DEMO || isDemoMode) return false;
     return (events ?? []).some((e) => e.kind === 'match' && Boolean(e.match_id?.trim()));
-  }, [events]);
+  }, [events, isDemoMode]);
 
   const autoMatchdaySettingsReady =
-    FEED_DEMO || (!evLoading && (!hasMatchEventsToCheck || !disabledMatchdayLoading));
+    FEED_DEMO || isDemoMode || (!evLoading && (!hasMatchEventsToCheck || !disabledMatchdayLoading));
 
   const sportingPickResolved = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
@@ -197,20 +217,26 @@ export const HomePage: React.FC = () => {
       : null;
 
   const {
-    activePosts,
-    historicPosts,
-    loading: teamFeedLoading,
-    ensuring: teamFeedEnsuring,
+    activePosts: liveActivePosts,
+    historicPosts: liveHistoricPosts,
+    loading: teamFeedLoadingRaw,
+    ensuring: teamFeedEnsuringRaw,
     loadingMore: teamFeedLoadingMore,
-    hasMoreHistoric,
+    hasMoreHistoric: hasMoreHistoricLive,
     refetch: refetchFeed,
     loadMoreHistoric,
-  } = useTeamFeedPosts(teamSeasonId, teamId || null, {
+  } = useTeamFeedPosts(isDemoMode ? null : teamSeasonId, isDemoMode ? null : teamId || null, {
     skipEnsures: isHistoryReadOnly,
     chronicleView: isHistoryReadOnly,
   });
+
+  const activePosts = isDemoMode ? demo!.data.feedPosts : liveActivePosts;
+  const historicPosts = isDemoMode ? demo!.data.historicFeedPosts : liveHistoricPosts;
+  const teamFeedLoading = isDemoMode ? false : teamFeedLoadingRaw;
+  const teamFeedEnsuring = isDemoMode ? false : teamFeedEnsuringRaw;
+  const hasMoreHistoric = isDemoMode ? false : hasMoreHistoricLive;
   const staffCanDeleteFeed =
-    !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
+    !isDemoMode && !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
 
   const eventById = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
@@ -219,10 +245,10 @@ export const HomePage: React.FC = () => {
     return m;
   }, [events, now]);
 
-  const loading = sessionLoading || evLoading;
+  const loading = isDemoMode ? false : sessionLoading || evLoading;
   const feedBusy = teamFeedLoading || teamFeedEnsuring;
   const matchSectionReady = !loading && !feedBusy && autoMatchdaySettingsReady;
-  const showContent = teamSeasonId || FEED_DEMO;
+  const showContent = Boolean(teamSeasonId) || FEED_DEMO || isDemoMode;
 
   const spieltagHintPick =
     matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
@@ -316,12 +342,13 @@ export const HomePage: React.FC = () => {
           <div className="min-w-0 space-y-3">
             {teamSeasonId && teamId && !isHistoryReadOnly ? (
               <HomeFeedComposer
-                backendRole={backendRole}
-                membershipRole={membershipRole}
+                backendRole={isDemoMode ? 'trainer' : backendRole}
+                membershipRole={isDemoMode ? 'trainer' : membershipRole}
                 teamSeasonId={teamSeasonId}
                 teamId={teamId}
-                userId={session?.user?.id ?? null}
+                userId={isDemoMode ? 'demo-trainer' : session?.user?.id ?? null}
                 onPosted={() => void refetchFeed()}
+                demoMode={isDemoMode}
               />
             ) : null}
             {isHistoryReadOnly ? (
@@ -392,7 +419,7 @@ export const HomePage: React.FC = () => {
                 description="Für dein Team ist aktuell kein kommendes Spiel eingetragen."
               >
                 <Link
-                  to="/app/termine"
+                  to={isDemoMode ? '/demo/termine' : '/app/termine'}
                   className={cn(
                     dsPrimaryCtaClass(),
                     'mt-2 inline-flex min-h-[48px] items-center justify-center px-6 py-3',

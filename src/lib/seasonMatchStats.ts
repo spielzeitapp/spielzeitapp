@@ -459,12 +459,13 @@ function compareMatchDateDesc(a: SeasonMatchCardData, b: SeasonMatchCardData): n
 /** Zielroute für Saison-Spielkarten — Event-Detail bevorzugt, sonst Match-Detail. */
 export function seasonMatchCardHref(
   eventId: string | null | undefined,
+  base: '/app' | '/demo' = '/app',
   matchId?: string | null,
 ): string | null {
   const eid = (eventId ?? '').trim();
-  if (eid) return `/app/events/${encodeURIComponent(eid)}`;
+  if (eid) return `${base}/events/${encodeURIComponent(eid)}`;
   const mid = (matchId ?? '').trim();
-  if (mid) return `/app/match/${encodeURIComponent(mid)}`;
+  if (mid) return `${base}/match/${encodeURIComponent(mid)}`;
   return null;
 }
 

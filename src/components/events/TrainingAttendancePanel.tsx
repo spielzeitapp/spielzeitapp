@@ -208,6 +208,11 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         size="xs"
                         className="mr-1"
                       />
+                      {(player.status ?? 'active') === 'paused' ? (
+                        <span className="mr-1 shrink-0 rounded-full border border-amber-400/35 bg-amber-500/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-100/95">
+                          Pausiert
+                        </span>
+                      ) : null}
                       <PremiumStatusBadge
                         label={trainingAttendanceLabel(status)}
                         tone={statusTone(status)}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
+import { useInternalBasePath } from '../../demo/demoPaths';
 import { PageShell, SectionTitle } from '../../ui';
 import { cn } from '../../ui/lib/cn';
 
@@ -56,9 +57,10 @@ export function LivePageHeader({
 }
 
 export function LiveScheduleCtaLink({ className }: { className?: string }) {
+  const basePath = useInternalBasePath();
   return (
     <Link
-      to="/app/termine"
+      to={`${basePath}/termine`}
       className={cn(
         dsPrimaryCtaClass(),
         'inline-flex min-h-[48px] touch-manipulation items-center justify-center px-5 py-3',

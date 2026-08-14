@@ -57,6 +57,7 @@ import {
   persistPositionSwap,
   saveMatchEvent,
   updateMatchRow,
+  matchEventDbRowToEngine,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
@@ -125,6 +126,22 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
+import { syncOfficialPlanAfterTournamentMatchFinish } from '../../lib/tournamentPlanSync';
+import { broadcastLiveMatchStateChanged, subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
+import { useDemoMode } from '../../demo/DemoContext';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { getDemoMatchLite } from '../../demo/demoMatchState';
+import { getDemoTournamentEventIdForMatch } from '../../demo/demoTournamentState';
+import {
+  isDemoLiveCalendarFinalized,
+  markDemoLiveCalendarFinalized,
+  getDemoLiveEventRows,
+  getDemoLiveMatchRow,
+} from '../../demo/demoLiveRuntime';
+import {
+  DEMO_TOUR_FINISH_MATCH_EVENT,
+  DEMO_TOUR_FOCUS_PLAYTIME_EVENT,
+} from '../../demo/demoTourActions';
 
 const HOME_FALLBACK = 'Unser Team';
 
@@ -897,6 +914,10 @@ export const LiveMatchScreen: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const matchIdParam = searchParams.get('matchId');
+  /** DEMO.2F: gleicher Screen unter /demo, aber gegen die lokale Runtime statt Supabase. */
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
 
   const [effectiveMatchId, setEffectiveMatchId] = useState<string | null>(null);
   const [matchRow, setMatchRow] = useState<LiveMatchRow | null>(null);
@@ -923,7 +944,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const { selectedTeamSeason, canAccess, backendRole } = useSession();
   const canControlLiveMatch =
-    canAccess('match_admin') || String(backendRole ?? '').trim().toLowerCase() === 'admin';
+    isDemo || canAccess('match_admin') || String(backendRole ?? '').trim().toLowerCase() === 'admin';
 
   useEffect(() => {
     let cancelled = false;
@@ -1010,10 +1031,19 @@ export const LiveMatchScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchIdParam]);
+    // Demo: Session wird im DemoProvider synchron gebootet; Match-ID der Runtime
+    // als Abhängigkeit, falls der erste Fetch vor dem Boot lief.
+  }, [matchIdParam, isDemo ? demo?.liveRuntimeMatchId ?? null : null]);
 
   const teamSeasonForRoster = matchRow?.team_season_id ?? null;
-  const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonForRoster);
+  const {
+    players: dbPlayers,
+    loading: dbPlayersLoading,
+    error: dbPlayersError,
+  } = usePlayers(isDemo ? null : teamSeasonForRoster);
+  const players = isDemo && demo ? demo.players : dbPlayers;
+  const playersLoading = isDemo ? false : dbPlayersLoading;
+  const playersError = isDemo ? null : dbPlayersError;
   const safePlayers = Array.isArray(players) ? players : [];
 
   const roster = useMemo(() => sortRosterByNumber(safePlayers.map(playerItemToRoster)), [safePlayers]);
@@ -1233,7 +1263,8 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!effectiveMatchId) return;
+    // Demo: lokale Runtime, kein Realtime-Kanal.
+    if (!effectiveMatchId || isDemo) return;
     const channel = supabase
       .channel(`live-match-screen-${effectiveMatchId}`)
       .on(
@@ -1295,9 +1326,13 @@ export const LiveMatchScreen: React.FC = () => {
       }
       void supabase.removeChannel(channel);
     };
-  }, [effectiveMatchId, queueLiveMatchRealtimeUpdate]);
+  }, [effectiveMatchId, isDemo, queueLiveMatchRealtimeUpdate]);
 
-  const homeNameRaw = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
+  /** Demo hat keine Session-Team-Saison — Teamname kommt aus den Demo-Fixtures. */
+  const ownTeamName = isDemo
+    ? demo?.data.teamName ?? HOME_FALLBACK
+    : selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
+  const homeNameRaw = ownTeamName;
   const headerOpponent = opponentLabel;
   const sides = useMemo(
     () =>
@@ -1317,6 +1352,20 @@ export const LiveMatchScreen: React.FC = () => {
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+  useEffect(() => {
+    const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
+    if (tab === 'time' || tab === 'statistik' || tab === 'spielzeiten') {
+      setMainTab('time');
+    } else if (tab === 'events' || tab === 'liveticker') {
+      setMainTab('events');
+    } else if (tab === 'lineup' || tab === 'aufstellung') {
+      setMainTab('lineup');
+    } else if (tab === 'overview' || tab === 'uebersicht') {
+      setMainTab('overview');
+    } else if (tab === 'hub') {
+      setMainTab('hub');
+    }
+  }, [searchParams]);
   useEffect(() => {
     if (!canControlLiveMatch && mainTab === 'time') {
       setMainTab('hub');
@@ -1441,6 +1490,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [calendarFinalized, setCalendarFinalized] = useState(false);
   const [tournamentNavContext, setTournamentNavContext] =
     useState<TournamentMatchNavigationContext | null>(null);
+  const [tournamentPlanSyncBusy, setTournamentPlanSyncBusy] = useState(false);
+  const [tournamentPlanSyncStatus, setTournamentPlanSyncStatus] = useState<string | null>(null);
   const [goalUndoOffer, setGoalUndoOffer] = useState<{
     eventId: string;
     side: 'home' | 'away';
@@ -1540,6 +1591,10 @@ export const LiveMatchScreen: React.FC = () => {
       setCalendarFinalized(false);
       return;
     }
+    if (isDemo) {
+      setCalendarFinalized(isDemoLiveCalendarFinalized(effectiveMatchId));
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -1558,10 +1613,11 @@ export const LiveMatchScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [effectiveMatchId, matchRow?.status]);
+  }, [effectiveMatchId, isDemo, matchRow?.status]);
 
   useEffect(() => {
-    if (!effectiveMatchId || !matchIsFinished || !canControlLiveMatch) {
+    // Demo: keine Turnier-Navigation (kein Turnier-Match im Demo-Katalog).
+    if (!effectiveMatchId || isDemo) {
       setTournamentNavContext(null);
       return;
     }
@@ -1574,7 +1630,56 @@ export const LiveMatchScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [effectiveMatchId, matchIsFinished, canControlLiveMatch]);
+  }, [effectiveMatchId, matchIsFinished, matchRow?.status, isDemo]);
+
+  /**
+   * Eltern/Fans: sticky ?matchId= darf nicht auf finished Match 1 bleiben,
+   * wenn bereits Match 2 (eigenes Team) live ist. 8s Poll + Broadcast.
+   */
+  useEffect(() => {
+    if (canControlLiveMatch || isDemo) return;
+    const teamSeasonId =
+      String(selectedTeamSeason?.id ?? '').trim() ||
+      String(matchRow?.team_season_id ?? '').trim();
+    if (!teamSeasonId || !effectiveMatchId) return;
+
+    let cancelled = false;
+    const trySwitchToLive = async () => {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('team_season_id', teamSeasonId)
+        .eq('status', 'live')
+        .order('match_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || error) return;
+      const liveId = data?.id ? String(data.id).trim() : '';
+      if (!liveId || liveId === effectiveMatchId) return;
+      navigate(`${basePath}/live?matchId=${encodeURIComponent(liveId)}`, { replace: true });
+    };
+
+    void trySwitchToLive();
+    const unsub = subscribeLiveMatchStateChanged((detail) => {
+      if (detail.status === 'live' || detail.status === 'finished') {
+        void trySwitchToLive();
+      }
+    });
+    const interval = window.setInterval(() => void trySwitchToLive(), 8_000);
+    return () => {
+      cancelled = true;
+      unsub();
+      window.clearInterval(interval);
+    };
+  }, [
+    canControlLiveMatch,
+    isDemo,
+    selectedTeamSeason?.id,
+    matchRow?.team_season_id,
+    effectiveMatchId,
+    navigate,
+    basePath,
+  ]);
 
   useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
 
@@ -2445,6 +2550,14 @@ export const LiveMatchScreen: React.FC = () => {
             setScoreAway(na);
             void updateMatchRow(mid, { score_home: nh, score_away: na }).then(({ error: rowErr }) => {
               if (rowErr) setSaveError(rowErr);
+              else {
+                broadcastLiveMatchStateChanged({
+                  matchId: mid,
+                  status: 'updated',
+                  reason: 'score',
+                  teamSeasonId: matchRow?.team_season_id ?? null,
+                });
+              }
             });
           });
         }
@@ -2452,7 +2565,7 @@ export const LiveMatchScreen: React.FC = () => {
       });
       return { ok: true, savedId: id };
     },
-    [effectiveMatchId, half, isClockRunning, matchIsFinished, goalBlockedMessage],
+    [effectiveMatchId, half, isClockRunning, matchIsFinished, goalBlockedMessage, matchRow?.team_season_id],
   );
 
   const closeFairPlayExtraSheet = useCallback(() => {
@@ -2674,6 +2787,25 @@ export const LiveMatchScreen: React.FC = () => {
           prev ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: 0 } : null,
         );
         void ensureLiveFeedPostForMatch(effectiveMatchId);
+        // Kalender-Event auf live setzen, damit Eltern/Fans & Schedule sofort „LIVE“ sehen.
+        void supabase
+          .from('events')
+          .update({ status: 'live', updated_at: ts })
+          .eq('match_id', effectiveMatchId)
+          .then(({ error: evErr }) => {
+            if (evErr) {
+              console.warn('[LiveMatch] events.status=live failed', {
+                matchId: effectiveMatchId,
+                error: evErr.message,
+              });
+            }
+          });
+        broadcastLiveMatchStateChanged({
+          matchId: effectiveMatchId,
+          status: 'live',
+          reason: 'kickoff',
+          teamSeasonId: matchRow?.team_season_id ?? null,
+        });
       }
     } else {
       const { ok } = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
@@ -2687,12 +2819,19 @@ export const LiveMatchScreen: React.FC = () => {
         live_elapsed_seconds: frozen,
       });
       if (error) setSaveError(error);
-      else
+      else {
         setMatchRow((prev) =>
           prev
             ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: frozen }
             : null,
         );
+        broadcastLiveMatchStateChanged({
+          matchId: effectiveMatchId,
+          status: 'live',
+          reason: 'resume',
+          teamSeasonId: matchRow?.team_season_id ?? null,
+        });
+      }
     }
   };
 
@@ -2787,6 +2926,8 @@ export const LiveMatchScreen: React.FC = () => {
         events: sortMatchEventsChronologically(events),
         atMatchSecond: atReplay,
         fallbackStartingPlayerIds: startingPlayerIds,
+        beforeFieldIds: startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0),
+        beforeBenchIds: savedBenchPlayerIds,
       });
       if (syncRes.error) {
         setSaveError(syncRes.error);
@@ -2812,6 +2953,13 @@ export const LiveMatchScreen: React.FC = () => {
         score_home: fh,
         score_away: fa,
       });
+      broadcastLiveMatchStateChanged({
+        matchId: effectiveMatchId,
+        status: 'finished',
+        reason: 'match_end',
+        teamSeasonId: matchRow?.team_season_id ?? null,
+        tournamentEventId: tournamentNavContext?.tournamentEventId ?? null,
+      });
       void ensureResultFeedPostForMatch(effectiveMatchId).then((res) => {
         console.info('[resultFeed][LiveMatch] ensureResultFeedPostForMatch', {
           matchId: effectiveMatchId,
@@ -2819,12 +2967,89 @@ export const LiveMatchScreen: React.FC = () => {
         });
         if (!res.ok) console.warn('[resultFeed][LiveMatch] ensure failed', res.error);
       });
+      if (!isDemo) {
+        setTournamentPlanSyncBusy(true);
+        setTournamentPlanSyncStatus('Turnierplan wird aktualisiert …');
+        void (async () => {
+          try {
+            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(effectiveMatchId);
+            if (syncRes.skipped && !syncRes.tournamentEventId) {
+              setTournamentPlanSyncBusy(false);
+              setTournamentPlanSyncStatus(null);
+              return;
+            }
+            if (syncRes.ok) {
+              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+            } else {
+              setTournamentPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
+            }
+            const refreshed = await fetchTournamentMatchNavigationContext(effectiveMatchId, {
+              afterCurrentMatch: true,
+            });
+            if (refreshed) setTournamentNavContext(refreshed);
+          } catch {
+            setTournamentPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
+          } finally {
+            setTournamentPlanSyncBusy(false);
+            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+          }
+        })();
+      }
     }
   };
+
+  /** DEMO.2J: Tour beendet das Spiel lokal — UI mit Runtime synchronisieren. */
+  useEffect(() => {
+    if (!isDemo || !effectiveMatchId) return;
+    const onTourFinish = () => {
+      const row = getDemoLiveMatchRow(effectiveMatchId);
+      if (!row) return;
+      setMatchRow((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: row.status,
+              live_is_running: row.live_is_running,
+              live_elapsed_seconds: row.live_elapsed_seconds,
+              score_home: row.score_home,
+              score_away: row.score_away,
+            }
+          : (row as LiveMatchRow),
+      );
+      setScoreHome(Number(row.score_home ?? 0));
+      setScoreAway(Number(row.score_away ?? 0));
+      const rows = getDemoLiveEventRows(effectiveMatchId);
+      const mapped = rows
+        .map((r) => matchEventDbRowToEngine(r))
+        .filter((e): e is NonNullable<typeof e> => e != null);
+      setEvents(mapped);
+      setMainTab('time');
+    };
+    const onFocusPlaytime = () => {
+      setMainTab('time');
+    };
+    window.addEventListener(DEMO_TOUR_FINISH_MATCH_EVENT, onTourFinish);
+    window.addEventListener(DEMO_TOUR_FOCUS_PLAYTIME_EVENT, onFocusPlaytime);
+    return () => {
+      window.removeEventListener(DEMO_TOUR_FINISH_MATCH_EVENT, onTourFinish);
+      window.removeEventListener(DEMO_TOUR_FOCUS_PLAYTIME_EVENT, onFocusPlaytime);
+    };
+  }, [isDemo, effectiveMatchId]);
 
   /** Nachgelagert: verknüpften Kalender-Termin abschließen (events.status). */
   const finalizeCalendarForMatch = async () => {
     if (!effectiveMatchId || calendarFinalized) return;
+    if (isDemo) {
+      markDemoLiveCalendarFinalized(effectiveMatchId);
+      setCalendarFinalized(true);
+      setSpielAbschlussOpen(false);
+      const eventId =
+        getDemoMatchLite(effectiveMatchId)?.event_id ??
+        getDemoTournamentEventIdForMatch(effectiveMatchId) ??
+        null;
+      navigate(eventId ? `${basePath}/events/${encodeURIComponent(eventId)}` : `${basePath}/termine`);
+      return;
+    }
     const { error } = await supabase
       .from('events')
       .update({ status: 'finished', updated_at: new Date().toISOString() })
@@ -3288,6 +3513,8 @@ export const LiveMatchScreen: React.FC = () => {
   }, [events]);
 
   const periodScoreLine = useMemo(() => formatPeriodScoresLine(periodScores), [periodScores]);
+  /** Turnierspiele: keine leeren Drittel-/Periodenklammern unter dem Hauptscore. */
+  const showPeriodScoreLine = !tournamentNavContext;
 
   const lastHomeGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'home'), [events]);
   const lastAwayGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'away'), [events]);
@@ -3748,8 +3975,8 @@ export const LiveMatchScreen: React.FC = () => {
   }
 
   const ownLogoName =
-    selectedTeamSeason?.team?.name?.trim() && selectedTeamSeason.team.name.trim() !== HOME_FALLBACK
-      ? selectedTeamSeason.team.name.trim()
+    ownTeamName.trim() && ownTeamName.trim() !== HOME_FALLBACK
+      ? ownTeamName.trim()
       : getOurTeamDisplayName();
   const homeLogoSrc = getClubLogo(sides.isOwnTeamHome ? ownLogoName : headerOpponent);
   const awayLogoSrc = getClubLogo(sides.isOwnTeamHome ? headerOpponent : ownLogoName);
@@ -3997,8 +4224,8 @@ export const LiveMatchScreen: React.FC = () => {
     ? (kickoffProfilePlayer.avatar_url ?? '').trim() || null
     : null;
   const kickoffTeamSeasonLabel =
-    selectedTeamSeason?.team?.name?.trim() && selectedTeamSeason.team.name.trim() !== HOME_FALLBACK
-      ? selectedTeamSeason.team.name.trim()
+    ownTeamName.trim() && ownTeamName.trim() !== HOME_FALLBACK
+      ? ownTeamName.trim()
       : getOurTeamDisplayName();
 
   return (
@@ -4014,7 +4241,7 @@ export const LiveMatchScreen: React.FC = () => {
           onClose={() => setKickoffProfilePlayer(null)}
           onEdit={() => {
             setKickoffProfilePlayer(null);
-            navigate('/app/team');
+            navigate(`${basePath}/team`);
           }}
         />
       ) : null}
@@ -4266,9 +4493,11 @@ export const LiveMatchScreen: React.FC = () => {
                         ) : null}
                       </div>
                     )}
-                    <p className={`mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px] ${SCOREBOARD_NO_SELECT}`}>
-                      <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
-                    </p>
+                    {showPeriodScoreLine ? (
+                      <p className={`mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px] ${SCOREBOARD_NO_SELECT}`}>
+                        <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
@@ -4354,7 +4583,7 @@ export const LiveMatchScreen: React.FC = () => {
                 >
                   {!matchIsFinished && effectiveMatchId ? (
                     <Link
-                      to={`/app/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
+                      to={`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
                       className={`flex min-h-[44px] w-full items-center justify-center px-3 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
                     >
                       Vorbereitung bearbeiten
@@ -4415,8 +4644,45 @@ export const LiveMatchScreen: React.FC = () => {
                     {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschließen'}
                   </button>
 
-                  {matchIsFinished && tournamentNavContext ? (
-                    <TournamentNextMatchWorkflowCta context={tournamentNavContext} className="pt-1" />
+                  {matchIsFinished && tournamentNavContext && mainTab !== 'overview' ? (
+                    <TournamentNextMatchWorkflowCta
+                      context={tournamentNavContext}
+                      audience="trainer"
+                      phase="after_finish"
+                      className="pt-1"
+                      planSyncBusy={tournamentPlanSyncBusy}
+                      planSyncStatus={tournamentPlanSyncStatus}
+                      onRefreshPlan={() => {
+                        setTournamentPlanSyncBusy(true);
+                        setTournamentPlanSyncStatus('Nächste Runde wird aktualisiert …');
+                        void (async () => {
+                          try {
+                            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(
+                              effectiveMatchId,
+                            );
+                            if (syncRes.ok) {
+                              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+                            } else {
+                              setTournamentPlanSyncStatus(
+                                'Aktualisierung fehlgeschlagen — lokal behalten',
+                              );
+                            }
+                            const refreshed = await fetchTournamentMatchNavigationContext(
+                              effectiveMatchId,
+                              { afterCurrentMatch: true },
+                            );
+                            if (refreshed) setTournamentNavContext(refreshed);
+                          } catch {
+                            setTournamentPlanSyncStatus(
+                              'Aktualisierung fehlgeschlagen — lokal behalten',
+                            );
+                          } finally {
+                            setTournamentPlanSyncBusy(false);
+                            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+                          }
+                        })();
+                      }}
+                    />
                   ) : null}
                 </div>
               ) : null}
@@ -4479,6 +4745,57 @@ export const LiveMatchScreen: React.FC = () => {
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
+            {tournamentNavContext?.nextSlot ? (
+              <TournamentNextMatchWorkflowCta
+                context={tournamentNavContext}
+                audience={canControlLiveMatch ? 'trainer' : 'audience'}
+                phase={matchIsFinished ? 'after_finish' : hasClockStarted ? 'during_live' : 'before_first'}
+                planSyncBusy={tournamentPlanSyncBusy}
+                planSyncStatus={tournamentPlanSyncStatus}
+              />
+            ) : matchIsFinished && tournamentNavContext ? (
+              <TournamentNextMatchWorkflowCta
+                context={tournamentNavContext}
+                audience={canControlLiveMatch ? 'trainer' : 'audience'}
+                phase="after_finish"
+                planSyncBusy={tournamentPlanSyncBusy}
+                planSyncStatus={tournamentPlanSyncStatus}
+                onRefreshPlan={
+                  canControlLiveMatch
+                    ? () => {
+                        setTournamentPlanSyncBusy(true);
+                        setTournamentPlanSyncStatus('Nächste Runde wird aktualisiert …');
+                        void (async () => {
+                          try {
+                            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(
+                              effectiveMatchId,
+                            );
+                            if (syncRes.ok) {
+                              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+                            } else {
+                              setTournamentPlanSyncStatus(
+                                'Aktualisierung fehlgeschlagen — lokal behalten',
+                              );
+                            }
+                            const refreshed = await fetchTournamentMatchNavigationContext(
+                              effectiveMatchId,
+                              { afterCurrentMatch: true },
+                            );
+                            if (refreshed) setTournamentNavContext(refreshed);
+                          } catch {
+                            setTournamentPlanSyncStatus(
+                              'Aktualisierung fehlgeschlagen — lokal behalten',
+                            );
+                          } finally {
+                            setTournamentPlanSyncBusy(false);
+                            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+                          }
+                        })();
+                      }
+                    : undefined
+                }
+              />
+            ) : null}
             {canControlLiveMatch ? (
               <>
                 <section>
@@ -6347,8 +6664,14 @@ export const LiveMatchScreen: React.FC = () => {
                 Spiel beenden?
               </h3>
               <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
-                Die Uhr stoppt, der Live-Modus endet und der Endstand wird gespeichert. Anschließend kannst du den Kalender-Termin mit{' '}
-                <span className="font-semibold text-white">Spiel abschließen</span> abschließen.
+                {isDemo
+                  ? 'Das Demo-Spiel wird lokal abgeschlossen. Es werden keine echten Daten veröffentlicht. Anschließend kannst du Spielzeiten auswerten.'
+                  : (
+                    <>
+                      Die Uhr stoppt, der Live-Modus endet und der Endstand wird gespeichert. Anschließend kannst du den Kalender-Termin mit{' '}
+                      <span className="font-semibold text-white">Spiel abschließen</span> abschließen.
+                    </>
+                  )}
               </p>
             </div>
             <div

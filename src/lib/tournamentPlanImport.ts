@@ -58,6 +58,7 @@ export type TournamentPlanImportRawMatch = {
   hasResult: boolean;
   homeGoals: number | null;
   awayGoals: number | null;
+  externalMatchId?: string | null;
 };
 
 export type TournamentPlanGroupSummary = {
@@ -1817,6 +1818,7 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
       hasResult: scores.hasResult,
       homeGoals: scores.homeGoals,
       awayGoals: scores.awayGoals,
+      externalMatchId: `mtp-g-${match.homeParticipant ?? ''}-${match.awayParticipant ?? ''}-${kickoffHHmmFromDateTime(match.dateAndTime)}`,
     });
   }
 
@@ -1848,6 +1850,7 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
       hasResult: scores.hasResult,
       homeGoals: scores.homeGoals,
       awayGoals: scores.awayGoals,
+      externalMatchId: `mtp-ko-${match.homeParticipant ?? ''}-${match.awayParticipant ?? ''}-${kickoffHHmmFromDateTime(match.dateAndTime)}`,
     });
   }
 
@@ -2020,6 +2023,26 @@ export function canApplyImportedTournamentResult(slot: {
   return true;
 }
 
+export function classifyPlanMatchSides(
+  match: { homeTeam: string; awayTeam: string },
+  knownNames: string[],
+): { homeOurs: boolean; awayOurs: boolean; isOwn: boolean; opponentName: string | null } {
+  const homeOurs = isTeamAliasMatch(match.homeTeam, knownNames);
+  const awayOurs = isTeamAliasMatch(match.awayTeam, knownNames);
+  const isOwn = homeOurs !== awayOurs;
+  const opponentName = homeOurs && !awayOurs ? match.awayTeam : awayOurs && !homeOurs ? match.homeTeam : null;
+  return { homeOurs, awayOurs, isOwn, opponentName };
+}
+
+export function buildOfficialExternalMatchId(
+  provider: string,
+  match: TournamentPlanImportRawMatch,
+): string {
+  const raw = safeOptionalText(match.externalMatchId);
+  if (raw) return `${provider}:${raw}`;
+  return `${provider}:${match.kickoffTimeHHmm}:${normalizeTeamMatchKey(match.homeTeam)}:${normalizeTeamMatchKey(match.awayTeam)}:${normalizePhaseForDedupe(match.phase) || 'unknown'}`;
+}
+
 export function buildImportMatchesForOwnTeam(
   rawMatches: TournamentPlanImportRawMatch[],
   knownNames: string[],
@@ -2066,14 +2089,21 @@ export async function computeTournamentPlanRefreshPreview(params: {
   analysis: TournamentPlanAnalysis;
   existingTeamNames: string[];
   existingSlots: Array<{
+    id?: string;
     opponent_name: string;
     kickoff_at: string;
     group_label: string | null;
     phase?: string | null;
-    match_id?: string;
+    match_id?: string | null;
     match_status?: string | null;
     score_home?: number;
     score_away?: number;
+    is_own_team?: boolean | null;
+    external_match_id?: string | null;
+    home_team?: string | null;
+    away_team?: string | null;
+    official_home_goals?: number | null;
+    official_away_goals?: number | null;
   }>;
   knownNames?: string[];
 }): Promise<TournamentPlanRefreshPreview> {
@@ -2087,39 +2117,70 @@ export async function computeTournamentPlanRefreshPreview(params: {
     }
   }
 
-  const existingSlotByKey = new Map(
-    params.existingSlots.map((slot) => [
-      buildTournamentMatchDedupeKey({
-        kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
-        opponentName: slot.opponent_name,
-        groupLabel: slot.group_label,
-        phase: slot.phase ?? (safeOptionalText(slot.group_label) ? 'group' : null),
-      }),
-      slot,
-    ]),
-  );
-
   const knownNames = params.knownNames ?? [];
-  const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, knownNames);
+  const provider = params.analysis.provider;
   const resultCounts = countAnalysisMatchResults(params.analysis);
+  const usedSlotIds = new Set<string>();
 
   let newMatches = 0;
   let existingMatches = 0;
   let resultUpdates = 0;
-  for (const match of importMatches) {
-    const existingSlot = existingSlotByKey.get(match.dedupeKey);
-    if (existingSlot) {
-      existingMatches += 1;
-      if (
-        match.hasResult &&
-        match.ourGoals != null &&
-        match.oppGoals != null &&
-        canApplyImportedTournamentResult(existingSlot)
-      ) {
-        resultUpdates += 1;
+
+  for (const match of params.analysis.rawMatches) {
+    const sides = classifyPlanMatchSides(match, knownNames);
+    const externalId = buildOfficialExternalMatchId(provider, match);
+    const existingSlot = params.existingSlots.find((slot) => {
+      if (usedSlotIds.has(slot.id ?? '')) return false;
+      if (slot.external_match_id && slot.external_match_id === externalId) return true;
+      const slotHome = normalizeTeamMatchKey(slot.home_team);
+      const slotAway = normalizeTeamMatchKey(slot.away_team);
+      if (slotHome && slotAway) {
+        return (
+          `${formatTournamentKickoffTime(slot.kickoff_at)}|${slotHome}|${slotAway}` ===
+          `${match.kickoffTimeHHmm}|${normalizeTeamMatchKey(match.homeTeam)}|${normalizeTeamMatchKey(match.awayTeam)}`
+        );
       }
-    } else {
+      if (!sides.opponentName) return false;
+      return (
+        buildTournamentMatchDedupeKey({
+          kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
+          opponentName: slot.opponent_name,
+          groupLabel: slot.group_label,
+          phase: slot.phase ?? (safeOptionalText(slot.group_label) ? 'group' : null),
+        }) ===
+        buildTournamentMatchDedupeKey({
+          kickoffTimeHHmm: match.kickoffTimeHHmm,
+          opponentName: sides.opponentName,
+          groupLabel: match.groupLabel,
+          phase: match.phase,
+        })
+      );
+    });
+    if (existingSlot?.id) usedSlotIds.add(existingSlot.id);
+
+    const existingIsOwn = Boolean(existingSlot?.match_id) && existingSlot?.is_own_team !== false;
+    if (sides.isOwn) {
+      if (existingIsOwn) existingMatches += 1;
+      else newMatches += 1;
+      continue;
+    }
+
+    if (existingIsOwn) {
+      existingMatches += 1;
+      continue;
+    }
+
+    if (!existingSlot) {
       newMatches += 1;
+      continue;
+    }
+
+    existingMatches += 1;
+    if (!match.hasResult) continue;
+    const prevHome = existingSlot.official_home_goals ?? existingSlot.score_home;
+    const prevAway = existingSlot.official_away_goals ?? existingSlot.score_away;
+    if (prevHome !== match.homeGoals || prevAway !== match.awayGoals) {
+      resultUpdates += 1;
     }
   }
 
@@ -2699,6 +2760,16 @@ export async function analyzeTournamentUrl(
 export async function fetchTournamentImportRecognition(
   teamSeasonId: string,
 ): Promise<TournamentImportRecognition> {
+  if (String(teamSeasonId ?? '').startsWith('00000000-demo-')) {
+    const { demoFixtures } = await import('../demo/demoFixtures');
+    const name = demoFixtures.teamName;
+    return {
+      teamSeasonName: name,
+      teamName: name,
+      aliases: [],
+      knownNames: [name],
+    };
+  }
   const { buildTournamentImportRecognition } = await import('./teamSeasonAliases');
   return buildTournamentImportRecognition(teamSeasonId);
 }
@@ -2717,14 +2788,19 @@ export async function importTournamentPlanFromAnalysis(params: {
   analysis: TournamentPlanAnalysis;
   existingTeamNames: string[];
   existingSlots: Array<{
+    id?: string;
     opponent_name: string;
     kickoff_at: string;
     group_label: string | null;
     phase?: string | null;
-    match_id?: string;
+    match_id?: string | null;
     match_status?: string | null;
     score_home?: number;
     score_away?: number;
+    is_own_team?: boolean | null;
+    external_match_id?: string | null;
+    home_team?: string | null;
+    away_team?: string | null;
   }>;
   knownNames?: string[];
 }): Promise<{
@@ -2734,6 +2810,16 @@ export async function importTournamentPlanFromAnalysis(params: {
   updatedResults: number;
   error: string | null;
 }> {
+  if (String(params.tournamentEventId ?? '').trim() === 'ev-tournament') {
+    return {
+      importedTeams: 0,
+      importedMatches: 0,
+      skippedMatches: 0,
+      updatedResults: 0,
+      error: 'Externer Turnierplan-Import ist in der Demo deaktiviert.',
+    };
+  }
+
   const { assertTeamSeasonWritable } = await import('./seasonTransition');
   const writable = await assertTeamSeasonWritable(params.teamSeasonId);
   if (!writable.ok) {
@@ -2748,11 +2834,15 @@ export async function importTournamentPlanFromAnalysis(params: {
 
   const {
     addTournamentParticipant,
-    applyTournamentMatchResultIfEmpty,
+    attachMatchToExistingSlot,
+    convertOfficialSlotToOwnMatch,
     createTournamentMatchSlot,
     formatTournamentKickoffTime,
     normalizeTournamentDbError,
+    updateOwnTournamentSlotSchedule,
+    upsertOfficialTournamentMatch,
   } = await import('./tournamentPlan');
+  const { meetupUtcIsoOnViennaEventDay } = await import('./viennaTime');
 
   const existingTeamKeys = new Set(params.existingTeamNames.map(normalizeTeamMatchKey));
   let importedTeams = 0;
@@ -2780,69 +2870,177 @@ export async function importTournamentPlanFromAnalysis(params: {
   }
 
   const knownNames = params.knownNames ?? [];
-  const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, knownNames);
-  const existingSlotByKey = new Map(
-    params.existingSlots.map((slot) => [
-      buildTournamentMatchDedupeKey({
+  const provider = params.analysis.provider;
+  const usedSlotIds = new Set<string>();
+
+  const findExistingSlot = (
+    match: TournamentPlanImportRawMatch,
+    opponentName: string | null,
+    externalId: string,
+  ) => {
+    const byExternal = params.existingSlots.find(
+      (slot) => slot.external_match_id && slot.external_match_id === externalId && !usedSlotIds.has(slot.id ?? ''),
+    );
+    if (byExternal) return byExternal;
+
+    const homeAwayKey = `${match.kickoffTimeHHmm}|${normalizeTeamMatchKey(match.homeTeam)}|${normalizeTeamMatchKey(match.awayTeam)}`;
+    const bySides = params.existingSlots.find((slot) => {
+      if (usedSlotIds.has(slot.id ?? '')) return false;
+      const slotHome = normalizeTeamMatchKey(slot.home_team);
+      const slotAway = normalizeTeamMatchKey(slot.away_team);
+      if (slotHome && slotAway) {
+        const key = `${formatTournamentKickoffTime(slot.kickoff_at)}|${slotHome}|${slotAway}`;
+        return key === homeAwayKey;
+      }
+      return false;
+    });
+    if (bySides) return bySides;
+
+    if (!opponentName) return undefined;
+    const ownKey = buildTournamentMatchDedupeKey({
+      kickoffTimeHHmm: match.kickoffTimeHHmm,
+      opponentName,
+      groupLabel: match.groupLabel,
+      phase: match.phase,
+    });
+    return params.existingSlots.find((slot) => {
+      if (usedSlotIds.has(slot.id ?? '')) return false;
+      const slotKey = buildTournamentMatchDedupeKey({
         kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
         opponentName: slot.opponent_name,
         groupLabel: slot.group_label,
         phase: slot.phase ?? (safeOptionalText(slot.group_label) ? 'group' : null),
-      }),
-      slot,
-    ]),
-  );
+      });
+      return slotKey === ownKey;
+    });
+  };
 
   let importedMatches = 0;
   let skippedMatches = 0;
   let updatedResults = 0;
 
-  for (const match of importMatches) {
-    const existingSlot = existingSlotByKey.get(match.dedupeKey);
-    if (existingSlot) {
-      skippedMatches += 1;
-      if (
-        match.hasResult &&
-        match.ourGoals != null &&
-        match.oppGoals != null &&
-        existingSlot.match_id &&
-        canApplyImportedTournamentResult(existingSlot)
-      ) {
-        const { applied, error: resultErr } = await applyTournamentMatchResultIfEmpty({
-          matchId: existingSlot.match_id,
-          ourGoals: match.ourGoals,
-          oppGoals: match.oppGoals,
-          currentStatus: existingSlot.match_status,
-          currentScoreHome: existingSlot.score_home,
-          currentScoreAway: existingSlot.score_away,
+  for (const match of params.analysis.rawMatches) {
+    const sides = classifyPlanMatchSides(match, knownNames);
+    const externalId = buildOfficialExternalMatchId(provider, match);
+    const existingSlot = findExistingSlot(match, sides.opponentName, externalId);
+    if (existingSlot?.id) usedSlotIds.add(existingSlot.id);
+
+    const kickoffIso = meetupUtcIsoOnViennaEventDay(params.tournamentDayIso, match.kickoffTimeHHmm);
+    if (!kickoffIso) continue;
+
+    if (sides.isOwn && sides.opponentName) {
+      const existingIsOwn = Boolean(existingSlot?.match_id) && existingSlot?.is_own_team !== false;
+
+      if (existingIsOwn && existingSlot) {
+        skippedMatches += 1;
+        if ((existingSlot.match_status ?? 'upcoming').toLowerCase() === 'upcoming' && existingSlot.id) {
+          await updateOwnTournamentSlotSchedule({
+            slotId: existingSlot.id,
+            kickoffAtIso: kickoffIso,
+            pitch: match.pitch,
+            groupLabel: match.groupLabel,
+            phase: match.phase === 'unknown' ? null : match.phase,
+            homeTeam: match.homeTeam,
+            awayTeam: match.awayTeam,
+            provider,
+            externalMatchId: externalId,
+          });
+        }
+        continue;
+      }
+
+      if (existingSlot?.id && !existingSlot.match_id) {
+        const { error } = await convertOfficialSlotToOwnMatch({
+          slotId: existingSlot.id,
+          teamSeasonId: params.teamSeasonId,
+          tournamentDayIso: params.tournamentDayIso,
+          location: params.location,
+          opponentName: sides.opponentName,
+          kickoffTimeHHmm: match.kickoffTimeHHmm,
+          plannedMinutes: match.plannedMinutes,
+          pitch: match.pitch,
+          homeTeam: match.homeTeam,
+          awayTeam: match.awayTeam,
+          provider,
+          externalMatchId: externalId,
         });
-        if (resultErr) {
+        if (error) {
           return {
             importedTeams,
             importedMatches,
             skippedMatches,
             updatedResults,
-            error: normalizeTournamentDbError(resultErr, null),
+            error: normalizeTournamentDbError(error, null),
           };
         }
-        if (applied) updatedResults += 1;
+        importedMatches += 1;
+        continue;
       }
+
+      const { matchId, slotId, error } = await createTournamentMatchSlot({
+        tournamentEventId: params.tournamentEventId,
+        teamSeasonId: params.teamSeasonId,
+        tournamentDayIso: params.tournamentDayIso,
+        location: params.location,
+        opponentName: sides.opponentName,
+        kickoffTimeHHmm: match.kickoffTimeHHmm,
+        plannedMinutes: match.plannedMinutes,
+        pitch: match.pitch,
+        groupLabel: match.groupLabel,
+        phase: match.phase === 'unknown' ? null : match.phase,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        provider,
+        externalMatchId: externalId,
+      });
+      if (error) {
+        return {
+          importedTeams,
+          importedMatches,
+          skippedMatches,
+          updatedResults,
+          error: normalizeTournamentDbError(error, null),
+        };
+      }
+      if (slotId && matchId) {
+        await attachMatchToExistingSlot({
+          slotId,
+          matchId,
+          opponentName: sides.opponentName,
+          homeTeam: match.homeTeam,
+          awayTeam: match.awayTeam,
+          provider,
+          externalMatchId: externalId,
+        });
+      }
+      importedMatches += 1;
       continue;
     }
 
-    const { matchId, error } = await createTournamentMatchSlot({
+    if (existingSlot?.match_id && existingSlot.is_own_team !== false) {
+      skippedMatches += 1;
+      continue;
+    }
+
+    const officialStatus =
+      match.hasResult && match.homeGoals != null && match.awayGoals != null ? 'finished' : 'upcoming';
+    const { created, updated, error } = await upsertOfficialTournamentMatch({
       tournamentEventId: params.tournamentEventId,
-      teamSeasonId: params.teamSeasonId,
-      tournamentDayIso: params.tournamentDayIso,
-      location: params.location,
-      opponentName: match.opponentName,
-      kickoffTimeHHmm: match.kickoffTimeHHmm,
+      existingSlotId: existingSlot?.id ?? null,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      opponentName: `${match.homeTeam} vs ${match.awayTeam}`,
+      kickoffAtIso: kickoffIso,
       plannedMinutes: match.plannedMinutes,
       pitch: match.pitch,
       groupLabel: match.groupLabel,
       phase: match.phase === 'unknown' ? null : match.phase,
+      provider,
+      externalMatchId: externalId,
+      officialStatus,
+      homeGoals: match.hasResult ? match.homeGoals : null,
+      awayGoals: match.hasResult ? match.awayGoals : null,
     });
-
     if (error) {
       return {
         importedTeams,
@@ -2852,34 +3050,9 @@ export async function importTournamentPlanFromAnalysis(params: {
         error: normalizeTournamentDbError(error, null),
       };
     }
-
-    importedMatches += 1;
-
-    if (
-      match.hasResult &&
-      match.ourGoals != null &&
-      match.oppGoals != null &&
-      matchId
-    ) {
-      const { applied, error: resultErr } = await applyTournamentMatchResultIfEmpty({
-        matchId,
-        ourGoals: match.ourGoals,
-        oppGoals: match.oppGoals,
-        currentStatus: 'upcoming',
-        currentScoreHome: 0,
-        currentScoreAway: 0,
-      });
-      if (resultErr) {
-        return {
-          importedTeams,
-          importedMatches,
-          skippedMatches,
-          updatedResults,
-          error: normalizeTournamentDbError(resultErr, null),
-        };
-      }
-      if (applied) updatedResults += 1;
-    }
+    if (created) importedMatches += 1;
+    else skippedMatches += 1;
+    if (updated && match.hasResult) updatedResults += 1;
   }
 
   return { importedTeams, importedMatches, skippedMatches, updatedResults, error: null };

@@ -16,6 +16,8 @@ export type TournamentOrchestratorWorkflowPhase =
   | 'prepare'
   | 'lineup_ready'
   | 'live'
+  | 'awaiting_next_round'
+  | 'awaiting_knockout' // legacy alias — gleiche Semantik wie awaiting_next_round
   | 'all_finished'
   | 'archived';
 
@@ -25,6 +27,7 @@ export type TournamentOrchestratorCta =
   | { kind: 'open_lineup'; matchId: string; label: string; variant: 'secondary' }
   | { kind: 'start_live'; matchId: string; label: string; variant: 'primary' }
   | { kind: 'go_live'; matchId: string; label: string; variant: 'primary' }
+  | { kind: 'refresh_plan'; label: string; variant: 'primary' }
   | { kind: 'create_report'; label: string; variant: 'secondary' }
   | { kind: 'complete_tournament'; label: string; variant: 'primary' }
   | { kind: 'show_overview'; label: string; variant: 'secondary' };
@@ -102,9 +105,46 @@ export function pickFeaturedTournamentSlotFromOrchestrator(
   return focus.slot;
 }
 
-function prepareLabel(priorFinishedCount: number): string {
+function knockoutHeaderTitle(slot: TournamentMatchSlotView | null | undefined): string | null {
+  const phase = String(slot?.phase ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  if (!phase) return null;
+  if (phase === 'semifinal' || phase === 'semi' || phase.includes('halb')) return 'Halbfinale';
+  if (phase === 'final' || (phase.includes('final') && !phase.includes('semi') && !phase.includes('halb'))) {
+    return 'Finale';
+  }
+  if (phase === 'quarterfinal' || phase === 'quarter' || phase.includes('viertel')) return 'Viertelfinale';
+  if (
+    phase === 'placement' ||
+    phase.includes('platz') ||
+    phase.includes('third') ||
+    phase.includes('3rd') ||
+    phase.includes('bronze')
+  ) {
+    return 'Platzierung';
+  }
+  if (phase === 'knockout' || phase === 'ko') return 'KO-Spiel';
+  return null;
+}
+
+function prepareLabel(slot: TournamentMatchSlotView | null | undefined, priorFinishedCount: number): string {
+  const knockout = knockoutHeaderTitle(slot);
+  if (knockout) return `${knockout} vorbereiten`;
   if (priorFinishedCount === 0) return 'Erstes Spiel vorbereiten';
   return 'Nächstes Spiel vorbereiten';
+}
+
+function nextMatchHeaderTitle(slot: TournamentMatchSlotView | null | undefined, priorFinishedCount: number): string {
+  return knockoutHeaderTitle(slot) ?? (priorFinishedCount === 0 ? 'Erstes Spiel' : 'Nächstes Spiel');
+}
+
+export function tournamentPrepareCtaLabel(
+  slot: TournamentMatchSlotView | null | undefined,
+  priorFinishedCount: number,
+): string {
+  return prepareLabel(slot, priorFinishedCount);
 }
 
 function canPrepareSlot(slot: TournamentMatchSlotView): boolean {
@@ -120,6 +160,8 @@ export function resolveTournamentOrchestrator(params: {
   tournamentArchived: boolean;
   canCreateReport: boolean;
   canCompleteTournament: boolean;
+  /** Vorrunde fertig, KO/Platzierung/Finale noch nicht veröffentlicht oder unklar. */
+  awaitingFurtherPhase?: boolean;
 }): TournamentOrchestratorState {
   const focus = pickOrchestratorFocus(params.slots);
 
@@ -142,7 +184,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'no_matches',
-      headerTitle: 'Nächstes Turnierspiel',
+      headerTitle: 'Nächstes Spiel',
       badgeLabel: 'Offen',
       badgeTone: 'open',
       ctas: params.canManage
@@ -171,6 +213,28 @@ export function resolveTournamentOrchestrator(params: {
   }
 
   if (focus.kind === 'last_finished') {
+    if (params.awaitingFurtherPhase) {
+      const ctas: TournamentOrchestratorCta[] = [];
+      if (params.canManage) {
+        ctas.push({
+          kind: 'refresh_plan',
+          label: 'Turnierplan aktualisieren',
+          variant: 'primary',
+        });
+      }
+      return {
+        focus,
+        phase: 'awaiting_next_round',
+        headerTitle: 'Vorrunde beendet',
+        badgeLabel: 'Warte',
+        badgeTone: 'open',
+        ctas,
+        showLineupReadyMark: false,
+        footerHint:
+          'Die nächste Turnierphase wird aktualisiert. Sobald Halbfinale, Finale oder Platzierungsspiel feststeht, erscheint dein nächstes Spiel automatisch.',
+      };
+    }
+
     const ctas: TournamentOrchestratorCta[] = [];
     if (params.canManage) {
       if (params.canCompleteTournament) {
@@ -182,7 +246,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'all_finished',
-      headerTitle: 'Turnier abschließen',
+      headerTitle: 'Turnier beendet',
       badgeLabel: 'Beendet',
       badgeTone: 'finished',
       ctas,
@@ -196,7 +260,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'prepare',
-      headerTitle: 'Nächstes Turnierspiel',
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
       badgeLabel: display.kind === 'preparation' ? 'Vorbereitung' : 'Geplant',
       badgeTone: display.kind === 'preparation' ? 'open' : 'neutral',
       ctas: [],
@@ -217,18 +281,31 @@ export function resolveTournamentOrchestrator(params: {
     };
   }
 
+  // Bereits gespeicherte Aufstellung → Lineup öffnen (nicht erneut Prep/Kader).
+  if ((slot.has_lineup || params.lineupReady) && matchId && canPrepareSlot(slot)) {
+    return {
+      focus,
+      phase: 'prepare',
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
+      badgeLabel: 'Aufstellung',
+      badgeTone: 'open',
+      ctas: [{ kind: 'open_lineup', matchId, label: 'Aufstellung öffnen', variant: 'primary' }],
+      showLineupReadyMark: Boolean(slot.has_lineup),
+    };
+  }
+
   if (canPrepareSlot(slot) && matchId) {
     return {
       focus,
       phase: 'prepare',
-      headerTitle: prepareLabel(focus.priorFinishedCount),
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
       badgeLabel: slot.has_lineup || slot.has_squad ? 'Vorbereitung' : 'Geplant',
       badgeTone: slot.has_lineup || slot.has_squad ? 'open' : 'neutral',
       ctas: [
         {
           kind: 'prepare',
           matchId,
-          label: prepareLabel(focus.priorFinishedCount),
+          label: prepareLabel(slot, focus.priorFinishedCount),
           variant: 'primary',
         },
       ],
@@ -240,7 +317,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'prepare',
-      headerTitle: 'Nächstes Turnierspiel',
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
       badgeLabel: 'Vorbereitung',
       badgeTone: 'open',
       ctas: [{ kind: 'open_lineup', matchId, label: 'Aufstellung öffnen', variant: 'primary' }],

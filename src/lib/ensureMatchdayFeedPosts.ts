@@ -9,6 +9,7 @@ import {
   dedupeKeyMatchdayTomorrow,
 } from './matchdayFeedCaptions';
 import type { MatchdayFeedPayload } from './matchdayFeedTypes';
+import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import {
   getViennaTodayTomorrowDayKeys,
   toViennaDayKeyFromUtcIso,
@@ -140,21 +141,22 @@ function buildMatchdayPayload(
   teamInfo: { teamId: string; name: string },
   timing: 'today' | 'tomorrow',
 ): MatchdayFeedPayload & { matchday_timing: 'today' | 'tomorrow' } {
-  const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
-  const ourName = teamInfo.name;
-  const isHome = event.is_home !== false;
-  const homeName = isHome ? ourName : opponent;
-  const awayName = isHome ? opponent : ourName;
+  const enc = formatVisibleMatchEncounter({
+    isHome: event.is_home,
+    ourTeamName: teamInfo.name,
+    opponentName: event.opponent,
+    fallbackOur: 'Unser Team',
+  });
   const parsedLoc = splitCombinedLocation(event.location);
   const locationLine =
     (formatFullLocation(parsedLoc.place, event.address || parsedLoc.address || '') || '').trim() ||
     (event.location ?? '').trim();
 
   return {
-    display_home_name: homeName,
-    display_away_name: awayName,
-    our_team_name: ourName,
-    is_home: isHome,
+    display_home_name: enc.home,
+    display_away_name: enc.away,
+    our_team_name: enc.ourTeam,
+    is_home: enc.home === enc.ourTeam,
     opponent_logo_url: event.opponent_logo_url?.trim() || null,
     match_type: event.match_type,
     kickoff_iso: event.starts_at,
@@ -199,19 +201,18 @@ async function insertMatchdayPost(params: {
     return { created: false, skipped: true };
   }
 
-  const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
   const payload = buildMatchdayPayload(event, teamInfo, timing);
   const caption =
     timing === 'today'
       ? buildMatchdayTodayCaption({
-          ourTeamName: teamInfo.name,
-          opponentName: opponent,
+          ourTeamName: payload.our_team_name,
+          opponentName: payload.is_home ? payload.display_away_name : payload.display_home_name,
           startsAtIso: event.starts_at,
           location: event.location ?? '',
           address: event.address ?? undefined,
         })
       : buildMatchdayTomorrowCaption({
-          opponentName: opponent,
+          opponentName: payload.is_home ? payload.display_away_name : payload.display_home_name,
           startsAtIso: event.starts_at,
           location: event.location ?? '',
           address: event.address ?? undefined,

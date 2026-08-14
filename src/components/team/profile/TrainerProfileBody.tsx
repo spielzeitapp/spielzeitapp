@@ -7,7 +7,7 @@ import type { CoachSeasonAchievements, SeasonMatchCardData, SeasonMatchSummary }
 import type { PlayerItem } from '../../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../../hooks/useTeamTrainingSummary';
 import { buildTrainerAchievementHighlights } from '../../../lib/trainerAchievementDisplay';
-import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../../lib/trainingSummaryDisplay';
+import { PARTICIPATION_EXPLICIT_BASIS_SUB, TEAM_PARTICIPATION_TILE_TITLE } from '../../../lib/trainingSummaryDisplay';
 import { ProfileStatTile } from '../ProfileStatTile';
 import { ProfileHighlightTile } from '../ProfileHighlightTile';
 import { TrainerBalanceCard } from './TrainerBalanceCard';
@@ -250,7 +250,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
             />
             <ProfileHighlightTile
               icon={<StatIconTrendingUp />}
-              title="Ø Beteiligung"
+              title={TEAM_PARTICIPATION_TILE_TITLE}
               value={trainingBusy ? '…' : participationLabel}
               sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
             />

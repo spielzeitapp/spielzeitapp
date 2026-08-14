@@ -9,12 +9,14 @@ import { eventNotesTitle } from '../../components/schedule/scheduleEventViewUtil
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { PremiumCard } from '../../ui';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   pick: HomeSportingCardPick;
 };
 
 export const HomeUpcomingTournamentCompact: React.FC<Props> = ({ pick }) => {
+  const basePath = useInternalBasePath();
   const { event, status } = pick;
   const title =
     safeText(
@@ -68,7 +70,7 @@ export const HomeUpcomingTournamentCompact: React.FC<Props> = ({ pick }) => {
     >
       <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-amber-500/10 blur-2xl" />
       <Link
-        to={`/app/events/${event.id}`}
+        to={`${basePath}/events/${event.id}`}
         className="relative flex min-h-[80px] items-stretch gap-3 px-3 py-3.5 pr-2 transition-colors hover:bg-white/[0.02] active:bg-white/[0.04]"
       >
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">

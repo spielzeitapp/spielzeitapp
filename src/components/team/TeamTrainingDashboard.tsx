@@ -11,8 +11,10 @@ import { JugglingChallengeCard } from './JugglingChallengeCard';
 import { TrainingChallengeTypesGrid } from './TrainingChallengeTypesGrid';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
-import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../lib/trainingSummaryDisplay';
+import { PARTICIPATION_EXPLICIT_BASIS_SUB, TEAM_PARTICIPATION_TILE_TITLE } from '../../lib/trainingSummaryDisplay';
 import { GlassCard, PremiumCard, PremiumEmptyState, PremiumTab, PremiumTabTrack, SectionTitle } from '../../ui';
+import { useDemoMode } from '../../demo/DemoContext';
+import { countDemoUpcomingTrainings } from '../../demo/demoTrainingStats';
 
 type TrainingSubTab = 'overview' | 'kaiser' | 'challenge';
 
@@ -30,18 +32,23 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
   onPlayerClick,
   squadMode = 'active_only',
 }) => {
+  const demo = useDemoMode();
   const [subTab, setSubTab] = useState<TrainingSubTab>('overview');
   const [upcomingTrainings, setUpcomingTrainings] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    if (demo) {
+      setUpcomingTrainings(countDemoUpcomingTrainings(demo.data.events));
+      return;
+    }
     void countUpcomingTeamTrainings(teamSeasonId).then((count) => {
       if (!cancelled) setUpcomingTrainings(count);
     });
     return () => {
       cancelled = true;
     };
-  }, [teamSeasonId]);
+  }, [teamSeasonId, demo]);
 
   const {
     ranking,
@@ -90,7 +97,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         />
         <ProfileHighlightTile
           icon={<StatIconTrendingUp />}
-          title="Ø Beteiligung"
+          title={TEAM_PARTICIPATION_TILE_TITLE}
           value={participationLabel}
           sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
         />
@@ -152,10 +159,17 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
                 <p className="text-[12px] text-white/60">
                   {ratedTrainingsCount} gewertete Team-Trainings in dieser Saison.
                   {participationLabel !== 'Noch keine Daten'
-                    ? ` Ø Beteiligung: ${participationLabel}.`
+                    ? ` ${TEAM_PARTICIPATION_TILE_TITLE}: ${participationLabel}.`
                     : ''}
                   {upcomingTrainings > 0 ? ` ${upcomingTrainings} ausständig.` : ''}
                 </p>
+                {demo ? (
+                  <p className="mt-1.5 text-[11px] leading-snug text-white/40">
+                    Hinweis Demo: „Ø Trainingsbeteiligung“ ist session-basiert über gewertete Trainings.
+                    Die persönliche „Trainingsquote“ im Spielerprofil (z. B. Noah 93 %) ist die
+                    individuelle Saisonquote — Fixture-Mittel des Kaders: 83 %.
+                  </p>
+                ) : null}
               </GlassCard>
             ) : null}
           </div>

@@ -4,11 +4,13 @@ import { Share2 } from 'lucide-react';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
+import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { MatchdayPosterCard } from '../../components/feed/MatchdayPosterCard';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -18,11 +20,16 @@ type Props = {
 export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false }) => {
   const { event, status } = pick;
   const [shareHint, setShareHint] = useState<string | null>(null);
-  const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
-  const ourClub = getOurTeamDisplayName();
+  const enc = formatVisibleMatchEncounter({
+    isHome: event.is_home,
+    ourTeamName: getOurTeamDisplayName(),
+    opponentName: event.opponent,
+  });
+  const opponent = enc.opponent;
+  const ourClub = enc.ourTeam;
   const isHome = event.is_home !== false;
-  const homeName = isHome ? ourClub : opponent;
-  const awayName = isHome ? opponent : ourClub;
+  const homeName = enc.home;
+  const awayName = enc.away;
   const homeLogo = isHome
     ? getClubLogo(ourClub)
     : getClubLogo(homeName, { logoUrl: event.opponent_logo_url ?? undefined });
@@ -71,15 +78,17 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const basePath = useInternalBasePath();
 
   const announcementTiming = status === 'today' || status === 'tomorrow' ? status : null;
   const gameHref = reviewPending && event.match_id
-    ? `/app/live?matchId=${encodeURIComponent(event.match_id)}`
+    ? `${basePath}/live?matchId=${encodeURIComponent(event.match_id)}`
     : resolveMatchGameHref({
         matchId: event.match_id,
         eventId: event.id,
         status: event.status ?? 'upcoming',
-        canManage: viewerIsStaff,
+        canManage: viewerIsStaff || basePath === '/demo',
+        basePath,
       });
 
   return (

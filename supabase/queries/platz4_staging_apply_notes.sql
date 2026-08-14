@@ -1,0 +1,20 @@
+-- PLATZ.4 Staging apply checklist (nicht Production).
+-- Migration: supabase/migrations/20260810140000_platz4_field_zone_geometry.sql
+--
+-- Reihenfolge:
+-- 1) PLATZ.3 (20260810120000_platz3_club_facility_schedule.sql) auf Staging verifizieren/anwenden
+-- 2) Preflight: Staging-Projekt-Ref bestätigen (niemals Production)
+-- 3) PLATZ.4 Migration anwenden
+-- 4) Verify:
+--    select column_name from information_schema.columns
+--      where table_name='venue_field_zones'
+--        and column_name in ('zone_code','layout_kind','rect_x','rect_y','rect_w','rect_h');
+--    select proname from pg_proc where proname in
+--      ('ensure_standard_field_zones','field_zone_rects_overlap');
+-- 5) Pro Platz: select public.ensure_standard_field_zones('<field_uuid>');
+--    (nur mit korrekten Vereins-/Anlagen-IDs — keine Namensannahmen)
+-- 6) UI: /manager/platzbelegung — Buchung mit Sportanlage → Platz → Bedarf → Bereich
+-- 7) Szenarien A–G manuell
+--
+-- Kein Force auf Production. Keine Service-Role-Umgehung im Manager-Client.
+-- Bestehende Assignments und Events nicht löschen.

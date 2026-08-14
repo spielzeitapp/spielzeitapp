@@ -11,6 +11,10 @@ import {
   fetchTournamentMatchSlots,
   fetchTournamentParticipants,
   importTournamentParticipantsBulk,
+  ownPlayableTournamentSlots,
+  ourTournamentScheduleSlots,
+  countOwnTournamentMatchesByPhase,
+  isAwaitingFurtherTournamentPhase,
   parseTournamentParticipantImportLines,
   removeTournamentMatchSlot,
   removeTournamentParticipant,
@@ -21,6 +25,7 @@ import {
 } from '../../lib/tournamentPlan';
 import { canCompleteTournament, computeTournamentFinalSummary, shouldShowTournamentPremiumFinalCard } from '../../lib/tournamentFinalSummary';
 import { usePlayers } from '../../hooks/usePlayers';
+import { useDemoMode } from '../../demo/DemoContext';
 import {
   completeTournamentEvent,
   fetchTournamentCompletion,
@@ -30,7 +35,9 @@ import { fetchTournamentCombinedGoalScorers } from '../../lib/tournamentManualGo
 import type { TournamentGoalScorer } from '../../lib/tournamentGoalScorers';
 import {
   computeAllLiveTournamentGroupStandings,
+  computeCombinedTournamentGroupStandings,
   computeTournamentGroupStandings,
+  pickPrimaryTournamentGroupStandings,
   resolveTournamentStandingsBundle,
   type TournamentGroupStandings,
   type TournamentStandingsBundle,
@@ -40,6 +47,15 @@ import {
   fetchTournamentImportRecognition,
   type TournamentPlanImportRawMatch,
 } from '../../lib/tournamentPlanImport';
+import {
+  formatTournamentPlanSyncAge,
+  getOfficialTournamentSyncedAt,
+  isOfficialTournamentSyncActive,
+  markOfficialTournamentSynced,
+  syncOfficialTournamentPlan,
+} from '../../lib/tournamentPlanSync';
+import { subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
+import { openOfficialTournamentPlanUrl } from '../../lib/tournamentOfficialPlanUrl';
 import {
   buildTournamentCompletionFeedCaption,
   buildTournamentCompletionFeedPayload,
@@ -73,7 +89,6 @@ import {
   groupTournamentSlotsBySection,
 } from './tournamentCenterUtils';
 import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
-import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { safeText } from '../../lib/safeText';
 import { resolveTournamentCenterPhase, type TournamentCenterPhase } from '../../lib/tournamentCenterPhase';
@@ -190,7 +205,18 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [completingTournament, setCompletingTournament] = useState(false);
   const [orchestratorReportOpen, setOrchestratorReportOpen] = useState(false);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
-  const { players, loading: playersLoading } = usePlayers(teamSeasonId);
+  const [syncAgeLabel, setSyncAgeLabel] = useState<string | null>(null);
+  const [planSyncBusy, setPlanSyncBusy] = useState(false);
+  const [planSyncStatus, setPlanSyncStatus] = useState<string | null>(null);
+  const [gamesFilter, setGamesFilter] = useState<'ours' | 'all'>(() => (canManage ? 'ours' : 'all'));
+  const [standingsRefreshToken, setStandingsRefreshToken] = useState(0);
+  const finishedOwnCountRef = React.useRef<number | null>(null);
+  const groupStageDoneSyncRef = React.useRef(false);
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const { players: dbPlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId);
+  const players = isDemo && demo ? demo.players : dbPlayers;
+  const playersLoading = isDemo ? false : playersLoadingLive;
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -216,6 +242,21 @@ export const TournamentDetailSections: React.FC<Props> = ({
   }, [toastMessage]);
 
   const existingTeamNames = useMemo(() => participants.map((p) => p.team_name), [participants]);
+  const ownSlots = useMemo(() => ownPlayableTournamentSlots(slots), [slots]);
+  const ourScheduleSlots = useMemo(() => ourTournamentScheduleSlots(slots), [slots]);
+  const ownMatchCounts = useMemo(() => countOwnTournamentMatchesByPhase(slots), [slots]);
+  const awaitingFurtherPhase = useMemo(
+    () =>
+      isAwaitingFurtherTournamentPhase({
+        ownSlots,
+        allSlots: slots,
+      }) && !completion.completedAt,
+    [ownSlots, slots, completion.completedAt],
+  );
+  const filteredGamesSlots = useMemo(
+    () => (gamesFilter === 'ours' ? ourScheduleSlots : slots),
+    [gamesFilter, ourScheduleSlots, slots],
+  );
 
   const scrollToTeamAliases = useCallback(() => {
     setActiveTab('admin');
@@ -240,7 +281,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     [participants, slots],
   );
 
-  const teamBalance = useMemo(() => computeTournamentTeamBalance(slots), [slots]);
+  const teamBalance = useMemo(() => computeTournamentTeamBalance(ownSlots), [ownSlots]);
 
   const finalSummary = useMemo(
     () =>
@@ -256,7 +297,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   );
 
   const reloadGoalScorers = useCallback(async () => {
-    const matchIds = slots.map((slot) => slot.match_id).filter(Boolean);
+    const matchIds = ownSlots.map((slot) => slot.match_id).filter((id): id is string => Boolean(id));
     if (matchIds.length === 0) {
       setGoalScorers([]);
       setHasMatchEventGoals(false);
@@ -272,7 +313,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     setGoalScorers(result.data);
     setHasMatchEventGoals(result.hasMatchEventGoals);
     setGoalScorersLoading(false);
-  }, [slots, tournamentEventId]);
+  }, [ownSlots, tournamentEventId]);
 
   useEffect(() => {
     void reloadGoalScorers();
@@ -410,7 +451,208 @@ export const TournamentDetailSections: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [officialTournamentUrl, teamSeasonId, participants]);
+  }, [officialTournamentUrl, teamSeasonId, participants, standingsRefreshToken]);
+
+  const slotsRef = React.useRef(slots);
+  slotsRef.current = slots;
+  const existingTeamNamesRef = React.useRef(existingTeamNames);
+  existingTeamNamesRef.current = existingTeamNames;
+  const ownSlotsRef = React.useRef(ownSlots);
+  ownSlotsRef.current = ownSlots;
+
+  const runForcedPlanSync = useCallback(
+    async (opts?: { reason?: 'post_match' | 'manual' | 'group_done' | 'broadcast' }) => {
+      const planUrl = safeText(officialTournamentUrl);
+      if (!planUrl || completion.completedAt) return;
+      const reason = opts?.reason ?? 'manual';
+      setPlanSyncBusy(true);
+      setPlanSyncStatus(
+        reason === 'group_done'
+          ? 'Nächste Runde wird aktualisiert …'
+          : 'Turnierplan wird aktualisiert …',
+      );
+      try {
+        const result = await syncOfficialTournamentPlan({
+          tournamentEventId,
+          teamSeasonId,
+          tournamentDayIso,
+          location,
+          officialUrl: planUrl,
+          existingTeamNames: existingTeamNamesRef.current,
+          existingSlots: slotsRef.current,
+          force: true,
+        });
+        setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+        if (result.ok) {
+          setPlanSyncStatus('Turnierplan aktualisiert');
+          if (result.changed || reason === 'post_match' || reason === 'group_done' || reason === 'broadcast') {
+            await reload();
+            // Tabelle/Official-Standings nach jedem Post-Match-Sync neu ziehen.
+            setStandingsRefreshToken((n) => n + 1);
+          }
+        } else {
+          setPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
+        }
+      } catch {
+        setPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
+      } finally {
+        setPlanSyncBusy(false);
+        window.setTimeout(() => {
+          setPlanSyncStatus(null);
+          setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+        }, 3500);
+      }
+    },
+    [
+      officialTournamentUrl,
+      completion.completedAt,
+      tournamentEventId,
+      teamSeasonId,
+      tournamentDayIso,
+      location,
+      reload,
+    ],
+  );
+
+  useEffect(() => {
+    if (!canManage || loading) return;
+    const planUrl = safeText(officialTournamentUrl);
+    if (!planUrl) return;
+    const hasUnfinishedOwnMatch = ownSlots.some(
+      (slot) => (slot.match_status ?? '').toLowerCase() !== 'finished',
+    );
+    if (
+      !isOfficialTournamentSyncActive({
+        tournamentArchived: Boolean(completion.completedAt),
+        tournamentDayIso,
+        hasUnfinishedOwnMatch,
+        awaitingNextRound: awaitingFurtherPhase,
+      })
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      const result = await syncOfficialTournamentPlan({
+        tournamentEventId,
+        teamSeasonId,
+        tournamentDayIso,
+        location,
+        officialUrl: planUrl,
+        existingTeamNames: existingTeamNamesRef.current,
+        existingSlots: slotsRef.current,
+      });
+      if (cancelled) return;
+      setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+      if (!result.ok || result.skipped || !result.changed) return;
+      await reload();
+      setStandingsRefreshToken((n) => n + 1);
+    };
+
+    void run();
+    const interval = window.setInterval(() => void run(), 60_000);
+    const onFocus = () => {
+      if (document.visibilityState === 'hidden') return;
+      void run();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [
+    canManage,
+    loading,
+    officialTournamentUrl,
+    tournamentDayIso,
+    tournamentEventId,
+    teamSeasonId,
+    location,
+    reload,
+    completion.completedAt,
+    ownSlots,
+    awaitingFurtherPhase,
+  ]);
+
+  useEffect(() => {
+    const finished = ownSlots.filter((slot) => (slot.match_status ?? '').toLowerCase() === 'finished').length;
+    const previous = finishedOwnCountRef.current;
+    finishedOwnCountRef.current = finished;
+    if (previous === null || finished <= previous) return;
+    if (!canManage || completion.completedAt) return;
+    const planUrl = safeText(officialTournamentUrl);
+    if (!planUrl) return;
+    void runForcedPlanSync({ reason: 'post_match' });
+  }, [
+    ownSlots,
+    canManage,
+    completion.completedAt,
+    officialTournamentUrl,
+    runForcedPlanSync,
+  ]);
+
+  /** Extra Sync wenn alle eigenen Gruppenspiele fertig sind (KO prüfen). */
+  useEffect(() => {
+    if (!canManage || completion.completedAt) return;
+    if (!awaitingFurtherPhase) {
+      groupStageDoneSyncRef.current = false;
+      return;
+    }
+    if (groupStageDoneSyncRef.current) return;
+    if (!safeText(officialTournamentUrl)) return;
+    groupStageDoneSyncRef.current = true;
+    void runForcedPlanSync({ reason: 'group_done' });
+  }, [
+    awaitingFurtherPhase,
+    canManage,
+    completion.completedAt,
+    officialTournamentUrl,
+    runForcedPlanSync,
+  ]);
+
+  useEffect(() => {
+    if (completion.completedAt) return;
+    const ownMatchIds = new Set(
+      ownSlotsRef.current
+        .map((slot) => String(slot.match_id ?? '').trim())
+        .filter(Boolean),
+    );
+    return subscribeLiveMatchStateChanged((detail) => {
+      if (detail.status !== 'finished') return;
+      const forThisTournament =
+        !detail.tournamentEventId || detail.tournamentEventId === tournamentEventId;
+      if (!forThisTournament) return;
+      if (!ownMatchIds.has(detail.matchId)) return;
+      void (async () => {
+        await reload();
+        setStandingsRefreshToken((n) => n + 1);
+        if (canManage) {
+          await runForcedPlanSync({ reason: 'broadcast' });
+        }
+      })();
+    });
+  }, [
+    canManage,
+    completion.completedAt,
+    reload,
+    runForcedPlanSync,
+    ownSlots,
+    tournamentEventId,
+  ]);
+
+  useEffect(() => {
+    const tick = () => {
+      if (planSyncBusy) return;
+      setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+    };
+    tick();
+    const interval = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(interval);
+  }, [tournamentEventId, planSyncBusy]);
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -439,20 +681,35 @@ export const TournamentDetailSections: React.FC<Props> = ({
     () =>
       computeAllLiveTournamentGroupStandings({
         participants,
+        slots: ownSlots,
+        ourTeamNames,
+      }),
+    [participants, ownSlots, ourTeamNames],
+  );
+
+  const combinedStandings = useMemo(
+    () =>
+      computeCombinedTournamentGroupStandings({
+        participants,
         slots,
         ourTeamNames,
       }),
     [participants, slots, ourTeamNames],
   );
 
-  const standingsBundle = useMemo(
-    (): TournamentStandingsBundle =>
-      resolveTournamentStandingsBundle({
-        imported: groupStandings,
-        liveGroups: liveGroupStandings,
-      }),
-    [groupStandings, liveGroupStandings],
-  );
+  const standingsBundle = useMemo((): TournamentStandingsBundle => {
+    if (combinedStandings.length > 0) {
+      return {
+        source: 'imported',
+        groups: combinedStandings,
+        primaryGroup: pickPrimaryTournamentGroupStandings(combinedStandings),
+      };
+    }
+    return resolveTournamentStandingsBundle({
+      imported: groupStandings,
+      liveGroups: liveGroupStandings,
+    });
+  }, [combinedStandings, groupStandings, liveGroupStandings]);
 
   const standingsLoading = groupStandingsLoading && standingsBundle.source !== 'live';
 
@@ -516,10 +773,16 @@ export const TournamentDetailSections: React.FC<Props> = ({
     window.addEventListener('focus', refreshOnVisible);
     document.addEventListener('visibilitychange', refreshOnVisible);
 
+    const onLiveBroadcast = () => {
+      void reload();
+    };
+    window.addEventListener('spielzeit:live-match-state-changed', onLiveBroadcast);
+
     return () => {
       window.clearInterval(interval);
       window.removeEventListener('focus', refreshOnVisible);
       document.removeEventListener('visibilitychange', refreshOnVisible);
+      window.removeEventListener('spielzeit:live-match-state-changed', onLiveBroadcast);
     };
   }, [tournamentPhase, completion.completedAt, slots, reload]);
 
@@ -547,7 +810,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const orchestratorCanCreateReport = Boolean(orchestratorReportText.trim()) || teamBalance.played > 0;
   const orchestratorCanComplete =
-    canCompleteTournament(teamBalance) && !completion.completedAt && canManage;
+    canCompleteTournament(teamBalance) &&
+    !completion.completedAt &&
+    canManage &&
+    !awaitingFurtherPhase;
 
   const showPremiumFinalCard = shouldShowTournamentPremiumFinalCard(teamBalance, completion);
   const showPremiumAboveTabs = Boolean(completion.completedAt) && showPremiumFinalCard;
@@ -561,13 +827,27 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const overviewSectionOrder = useMemo((): string[] => {
     if (completion.completedAt) {
-      return ['table', 'scorers', 'results', 'info'];
+      return ['results', 'scorers', 'table', 'info'];
+    }
+    if (tournamentPhase === 'day') {
+      return ['results', 'info', 'balance'];
     }
     if (tournamentPhase === 'after') {
-      return ['table', 'scorers', 'results', 'info', 'balance'];
+      return ['results', 'scorers', 'table', 'info', 'balance'];
     }
-    return ['table', 'scorers', 'results', 'info', 'balance'];
+    return ['info'];
   }, [tournamentPhase, completion.completedAt]);
+
+  const showAssistant =
+    canManage &&
+    !completion.completedAt &&
+    (tournamentPhase === 'before' || (tournamentPhase === 'day' && ownSlots.length === 0));
+  const showFeatured =
+    !completion.completedAt &&
+    (!canManage || tournamentPhase === 'day' || tournamentPhase === 'after');
+  const showCompactAboveTabs = tournamentPhase === 'day' && !completion.completedAt;
+
+  const planUrlForFans = safeText(officialTournamentUrl);
 
   const renderOverviewSection = (key: string) => {
     switch (key) {
@@ -604,7 +884,19 @@ export const TournamentDetailSections: React.FC<Props> = ({
       case 'placement':
         return null;
       case 'info':
-        return <TournamentInfoCard key={key} rows={infoRows} notes={tournamentNotes} />;
+        return (
+          <TournamentInfoCard key={key} rows={infoRows} notes={tournamentNotes}>
+            {planUrlForFans ? (
+              <button
+                type="button"
+                onClick={() => openOfficialTournamentPlanUrl(planUrlForFans)}
+                className="mt-1 inline-flex min-h-[32px] items-center justify-center self-start text-[11px] font-semibold text-white/55 underline-offset-2 hover:text-white/80 hover:underline touch-manipulation"
+              >
+                Offiziellen Turnierplan öffnen
+              </button>
+            ) : null}
+          </TournamentInfoCard>
+        );
       default:
         return null;
     }
@@ -617,7 +909,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       <div className={`flex flex-col ${TC_STACK_GAP}`}>
         <TournamentPreparationPanel
           tournamentEventId={tournamentEventId}
-          slots={slots}
+          slots={ownSlots}
           participantCount={participants.length}
           hasOfficialPlanUrl={Boolean(planUrl)}
           attendance={attendanceSummary}
@@ -638,7 +930,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         <TournamentSquadPanel
           tournamentEventId={tournamentEventId}
           teamSeasonId={teamSeasonId}
-          slots={slots}
+          slots={ownSlots}
           loading={loading}
           canManage={canManage}
         />
@@ -657,7 +949,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
               embedded
               workflowRequest={planWorkflowRequest}
               onUrlUpdated={onOfficialTournamentUrlUpdated}
-              onImportComplete={() => void reload()}
+              onImportComplete={() => {
+                markOfficialTournamentSynced(tournamentEventId);
+                void reload();
+              }}
               onScrollToAliases={scrollToTeamAliases}
             />
           </TournamentTrainerAdminSection>
@@ -686,7 +981,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
     );
   };
 
-  const slotSections = useMemo(() => groupTournamentSlotsBySection(slots), [slots]);
+  const slotSections = useMemo(
+    () => groupTournamentSlotsBySection(filteredGamesSlots),
+    [filteredGamesSlots],
+  );
 
   const infoRows = useMemo(() => {
     const beginn = formatTimeHHmmDe(tournamentDayIso);
@@ -844,26 +1142,39 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
       {quickActions}
 
-      <TournamentFeaturedMatchCard
-        slots={slots}
-        ourTeamName={ourTeamName}
-        loading={loading}
-        canManage={canManage}
-        tournamentArchived={Boolean(completion.completedAt)}
-        canCreateReport={orchestratorCanCreateReport}
-        canCompleteTournament={orchestratorCanComplete}
-        completingTournament={completingTournament}
-        onOpen={onOpenMatchPreparation}
-        onAddMatch={canManage ? openMatchModal : undefined}
-        onCreateReport={() => setOrchestratorReportOpen(true)}
-        onCompleteTournament={handleCompleteTournament}
-        onShowOverview={showOrchestratorOverview}
-      />
+      {canManage && (planSyncBusy || planSyncStatus) ? (
+        <p className="px-0.5 text-[10px] font-medium text-white/45" role="status" aria-live="polite">
+          {planSyncBusy ? planSyncStatus ?? 'Turnierplan wird aktualisiert …' : planSyncStatus}
+        </p>
+      ) : canManage && syncAgeLabel ? (
+        <p className="px-0.5 text-[10px] font-medium text-white/40">{syncAgeLabel}</p>
+      ) : null}
 
-      {canManage ? (
+      {showFeatured ? (
+        <TournamentFeaturedMatchCard
+          slots={ownSlots}
+          ourTeamName={ourTeamName}
+          loading={loading}
+          canManage={canManage}
+          tournamentArchived={Boolean(completion.completedAt)}
+          canCreateReport={orchestratorCanCreateReport}
+          canCompleteTournament={orchestratorCanComplete}
+          completingTournament={completingTournament}
+          awaitingFurtherPhase={awaitingFurtherPhase}
+          refreshingPlan={planSyncBusy}
+          onOpen={onOpenMatchPreparation}
+          onAddMatch={canManage ? openMatchModal : undefined}
+          onCreateReport={() => setOrchestratorReportOpen(true)}
+          onCompleteTournament={handleCompleteTournament}
+          onShowOverview={showOrchestratorOverview}
+          onRefreshPlan={() => void runForcedPlanSync({ reason: 'manual' })}
+        />
+      ) : null}
+
+      {showAssistant ? (
         <TournamentAssistantCard
           tournamentEventId={tournamentEventId}
-          slots={slots}
+          slots={ownSlots}
           attendance={attendanceSummary}
           hasOfficialPlanUrl={Boolean(safeText(officialTournamentUrl))}
           loading={loading}
@@ -871,6 +1182,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
           canCompleteTournament={orchestratorCanComplete}
           canCreateReport={orchestratorCanCreateReport}
           completingTournament={completingTournament}
+          awaitingFurtherPhase={awaitingFurtherPhase}
+          refreshingPlan={planSyncBusy}
+          ownMatchCount={ownSlots.length}
+          totalMatchCount={slots.length}
           onOpenAttendance={scrollToAttendance}
           onOpenSquad={scrollToSquad}
           onImportPlan={handleImportPlanFromOverview}
@@ -878,6 +1193,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           onCreateReport={() => setOrchestratorReportOpen(true)}
           onCompleteTournament={handleCompleteTournament}
           onViewStatus={showOrchestratorOverview}
+          onRefreshPlan={() => void runForcedPlanSync({ reason: 'manual' })}
           onLineupCopied={() => void reload()}
         />
       ) : null}
@@ -896,6 +1212,21 @@ export const TournamentDetailSections: React.FC<Props> = ({
         />
       ) : null}
 
+      {showCompactAboveTabs ? (
+        <div className={`flex flex-col ${TC_STACK_GAP}`}>
+          <TournamentGroupPreviewCard
+            bundle={standingsBundle}
+            loading={standingsLoading}
+            onShowFullTable={showFullStandingsTable}
+          />
+          <TournamentScorersOverviewCard
+            scorers={goalScorers}
+            players={players}
+            loading={loading || goalScorersLoading}
+          />
+        </div>
+      ) : null}
+
       <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage={canManage} />
 
       {listError ? (
@@ -912,6 +1243,44 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
       {activeTab === 'games' ? (
         <div className={`flex flex-col ${TC_STACK_GAP}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="inline-flex rounded-full border border-white/12 bg-white/[0.04] p-0.5"
+              role="group"
+              aria-label="Spielplan-Filter"
+            >
+              <button
+                type="button"
+                className={`min-h-[36px] rounded-full px-3 text-[12px] font-semibold touch-manipulation ${
+                  gamesFilter === 'ours'
+                    ? 'bg-white/12 text-white'
+                    : 'text-white/55 hover:text-white/80'
+                }`}
+                onClick={() => setGamesFilter('ours')}
+              >
+                Unsere Spiele
+              </button>
+              <button
+                type="button"
+                className={`min-h-[36px] rounded-full px-3 text-[12px] font-semibold touch-manipulation ${
+                  gamesFilter === 'all'
+                    ? 'bg-white/12 text-white'
+                    : 'text-white/55 hover:text-white/80'
+                }`}
+                onClick={() => setGamesFilter('all')}
+              >
+                Alle Spiele
+              </button>
+            </div>
+            {canManage && ownMatchCounts.total > 0 ? (
+              <p className="text-[11px] text-white/45">
+                {ownMatchCounts.knockout > 0
+                  ? `${ownMatchCounts.total} eigene Spiele`
+                  : `${ownMatchCounts.group} Gruppenspiele`}
+              </p>
+            ) : null}
+          </div>
+
           {canManage ? (
             <button type="button" className={addButtonClass} onClick={openMatchModal}>
               <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -925,11 +1294,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
                 <p className="text-[14px] text-white/55">Lade Turnierplan…</p>
               </div>
             </section>
-          ) : slots.length === 0 ? (
+          ) : filteredGamesSlots.length === 0 ? (
             <section className={TC_CARD}>
               <div className={`${TC_CARD_INNER} text-center py-2`}>
                 <p className={TC_SECTION_LABEL}>Spiele</p>
-                <p className="mt-2 text-[14px] text-white/55">Keine Turnierspiele geplant.</p>
+                <p className="mt-2 text-[14px] text-white/55">
+                  {gamesFilter === 'ours'
+                    ? 'Keine eigenen Turnierspiele gefunden.'
+                    : 'Keine Turnierspiele geplant.'}
+                </p>
               </div>
             </section>
           ) : (
@@ -943,9 +1316,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
                         <TournamentMatchSlotCard
                           slot={slot}
                           canManage={canManage}
-                          isNextUpcoming={slot.id === nextMatchId}
-                          onOpen={() => onOpenMatchPreparation(slot.match_id)}
-                          onDelete={() => void handleRemoveSlot(slot.match_id)}
+                          isNextUpcoming={slot.id === nextMatchId && slot.is_own_team !== false}
+                          onOpen={() => {
+                            if (slot.match_id) onOpenMatchPreparation(slot.match_id);
+                          }}
+                          onDelete={
+                            canManage && slot.match_id && slot.is_own_team !== false
+                              ? () => void handleRemoveSlot(slot.match_id as string)
+                              : undefined
+                          }
                         />
                       </li>
                     ))}

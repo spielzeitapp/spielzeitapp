@@ -3,6 +3,7 @@ import { CalendarDays, Clock3, MapPin } from 'lucide-react';
 import type { NextMatchFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { getClubLogo } from '../../lib/teamLogos';
+import { normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
@@ -26,6 +27,7 @@ import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   post: NextMatchFeedPostRow;
@@ -94,6 +96,8 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
   onFeedPostDeleted,
 }) => {
   const p = post.payload;
+  const displayHomeName = normalizeOefbImportedTeamName(p.display_home_name) || p.display_home_name;
+  const displayAwayName = normalizeOefbImportedTeamName(p.display_away_name) || p.display_away_name;
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
 
@@ -108,24 +112,26 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
   const homeLogoUrl = useMemo(() => {
     if (p.home_logo_url) return p.home_logo_url;
     if (p.is_home) return getClubLogo(p.our_team_name);
-    return getClubLogo(p.display_home_name, { logoUrl: p.opponent_logo_url });
-  }, [p]);
+    return getClubLogo(displayHomeName, { logoUrl: p.opponent_logo_url });
+  }, [p, displayHomeName]);
 
   const awayLogoUrl = useMemo(() => {
     if (p.away_logo_url) return p.away_logo_url;
-    if (p.is_home) return getClubLogo(p.display_away_name, { logoUrl: p.opponent_logo_url });
+    if (p.is_home) return getClubLogo(displayAwayName, { logoUrl: p.opponent_logo_url });
     return getClubLogo(p.our_team_name);
-  }, [p]);
+  }, [p, displayAwayName]);
 
   const venueLabel = useMemo(() => formatFeedVenueShort(p.location) ?? '—', [p.location]);
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const basePath = useInternalBasePath();
   const gameHref = resolveMatchGameHref({
     matchId: p.match_id,
     eventId: p.event_id,
     status: 'upcoming',
-    canManage: viewerIsStaff,
+    canManage: viewerIsStaff || basePath === '/demo',
+    basePath,
   });
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
   const dateLabel = formatKickoffDate(p.kickoff_iso);
@@ -185,18 +191,18 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 pt-0.5">
               <div className="min-w-0 space-y-1.5">
                 <div className="flex justify-center">
-                  <LogoBlock src={homeLogoUrl} alt={`${p.display_home_name} Logo`} />
+                  <LogoBlock src={homeLogoUrl} alt={`${displayHomeName} Logo`} />
                 </div>
-                <FeedClubName fullName={p.display_home_name} variant="compact" className="w-full px-0.5" />
+                <FeedClubName fullName={displayHomeName} variant="compact" className="w-full px-0.5" />
               </div>
               <span className="-skew-x-6 px-1 text-3xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[2.1rem]">
                 VS
               </span>
               <div className="min-w-0 space-y-1.5">
                 <div className="flex justify-center">
-                  <LogoBlock src={awayLogoUrl} alt={`${p.display_away_name} Logo`} />
+                  <LogoBlock src={awayLogoUrl} alt={`${displayAwayName} Logo`} />
                 </div>
-                <FeedClubName fullName={p.display_away_name} variant="compact" className="w-full px-0.5" />
+                <FeedClubName fullName={displayAwayName} variant="compact" className="w-full px-0.5" />
               </div>
             </div>
             <dl className="grid grid-cols-3 gap-1.5 text-center">

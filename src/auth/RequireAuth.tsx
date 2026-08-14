@@ -15,6 +15,11 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedBacke
   const { backendRole } = useSession();
   const location = useLocation();
 
+  // Öffentliche Trainer-Demo: niemals Login erzwingen (auch wenn fälschlich gewrappt).
+  if (location.pathname.startsWith('/demo')) {
+    return <>{children}</>;
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[200px] items-center justify-center text-white/70">

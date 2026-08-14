@@ -24,7 +24,8 @@ export const AppFab: React.FC = () => {
   if (pathname === '/app/events' || pathname.startsWith('/app/events/')) return null;
   if (pathname === '/app/live' || pathname.startsWith('/app/live/')) return null;
   if (pathname === '/app/profile' || pathname.startsWith('/app/mehr')) return null;
-  if (pathname === '/app/match-lineup') return null;
+  if (pathname === '/app/match-lineup' || pathname === '/demo/match-lineup') return null;
+  if (pathname === '/app/match-preparation' || pathname === '/demo/match-preparation') return null;
 
   return (
     <button

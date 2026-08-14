@@ -312,6 +312,19 @@ export const LoginPage: React.FC = () => {
         ) : null}
 
         <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
+          {!isParentInviteFlow ? (
+            <>
+              <Link
+                to="/demo"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-white/10"
+              >
+                Demo ansehen
+              </Link>
+              <p className="text-center text-[11px] text-white/45">
+                U12-Demoteam ohne Login — gleiche App-Oberfläche
+              </p>
+            </>
+          ) : null}
           <Link
             to="/forgot-password"
             className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"

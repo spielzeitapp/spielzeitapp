@@ -45,6 +45,8 @@ type Props = {
   teamId: string;
   userId: string | null;
   onPosted: () => void;
+  /** UI sichtbar, aber keine Supabase-Uploads/Inserts. */
+  demoMode?: boolean;
 };
 
 export const HomeFeedComposer: React.FC<Props> = ({
@@ -54,6 +56,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
   teamId,
   userId,
   onPosted,
+  demoMode = false,
 }) => {
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'uploading' | 'saving'>('idle');
@@ -144,6 +147,10 @@ export const HomeFeedComposer: React.FC<Props> = ({
 
   const publish = useCallback(async () => {
     if (!draftFile || !draftKind || busy) return;
+    if (demoMode) {
+      setError('In der Demo werden Beiträge nicht gespeichert.');
+      return;
+    }
     if (!userId) {
       setError('Bitte neu anmelden, dann erneut versuchen.');
       return;
@@ -315,6 +322,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
     clearProgressTimer,
     ctaLabel,
     ctaUrl,
+    demoMode,
     draftFile,
     draftKind,
     linkEnabled,

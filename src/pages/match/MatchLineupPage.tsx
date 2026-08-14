@@ -16,13 +16,20 @@ import {
 } from '../../lib/liveMatchService';
 import {
   isU11FormationId,
+  isFairPlayFormationId,
   labelForSlotInFormation,
   readStoredU11Formation,
   U11_FORMATION_CHOICES,
+  FAIRPLAY_FORMATION_CHOICES,
   U11_FORMATION_DB_FALLBACK,
   writeStoredU11Formation,
   type U11FormationId,
 } from '../../lib/matchFormations';
+import {
+  canMutateMatchPreparation,
+  friendlyMatchLineupWriteError,
+  isMatchSquadEditable,
+} from '../../lib/matchPreparationAccess';
 import { supabase } from '../../lib/supabaseClient';
 import type { FieldSlotId } from '../../types/match';
 import { getPositionLabel } from '../../lib/positionLabels';
@@ -49,6 +56,10 @@ import {
   DS_JERSEY_STARTER,
   DS_LIST_GAP,
 } from '../../lib/premiumDesignSystem';
+import { useDemoMode } from '../../demo/DemoContext';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
+import { normalizeRole } from '../../lib/roles';
 
 type MatchRowLite = {
   id: string;
@@ -59,6 +70,8 @@ type MatchRowLite = {
 
 type LocationState = {
   selectedPlayers?: string[];
+  formationId?: string;
+  lineupCopiedFromPrevious?: boolean;
 } | null;
 
 function emptySlots(): Record<FieldSlotId, string | null> {
@@ -102,6 +115,11 @@ export const MatchLineupPage: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const matchId = searchParams.get('matchId')?.trim() || null;
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
+  const { role: roleFromHook } = useActiveTeamSeason();
+  const canManage = isDemo || canMutateMatchPreparation(normalizeRole(roleFromHook));
   const routeState = (location.state ?? null) as LocationState;
   const selectedFromState = useMemo(
     () => [...new Set((routeState?.selectedPlayers ?? []).map((id) => normalizeId(id)).filter((id): id is string => Boolean(id)))],
@@ -109,6 +127,8 @@ export const MatchLineupPage: React.FC = () => {
   );
 
   const [matchRow, setMatchRow] = useState<MatchRowLite | null>(null);
+  const [matchStatus, setMatchStatus] = useState<string | null>(null);
+  const [matchLiveStartedAt, setMatchLiveStartedAt] = useState<string | null>(null);
   const [matchLoading, setMatchLoading] = useState(true);
   const [matchError, setMatchError] = useState<string | null>(null);
   const [lineupLoading, setLineupLoading] = useState(true);
@@ -127,6 +147,14 @@ export const MatchLineupPage: React.FC = () => {
   const [lineupViewMode, setLineupViewMode] = useState<'pitch' | 'list'>('pitch');
   const [saveToastFading, setSaveToastFading] = useState(false);
 
+  // Status + Rolle: Eltern/Fans niemals editierbar (auch bei direktem Route-Aufruf).
+  const lineupEditable =
+    canManage &&
+    isMatchSquadEditable({
+      status: matchStatus,
+      live_started_at: matchLiveStartedAt,
+    });
+
   useEffect(() => {
     let cancelled = false;
     if (!matchId) {
@@ -136,30 +164,73 @@ export const MatchLineupPage: React.FC = () => {
         cancelled = true;
       };
     }
+
+    if (isDemo && demo) {
+      const lite = demo.getDemoMatch(matchId);
+      if (!lite) {
+        setMatchRow(null);
+        setMatchStatus(null);
+        setMatchLiveStartedAt(null);
+        setMatchError('Spiel nicht gefunden.');
+        setMatchLoading(false);
+        return () => {
+          cancelled = true;
+        };
+      }
+      setMatchRow({
+        id: lite.id,
+        team_season_id: lite.team_season_id,
+        opponent: lite.opponent,
+        u11_formation_id: lite.u11_formation_id,
+      });
+      setMatchStatus(lite.status);
+      setMatchLiveStartedAt(lite.live_started_at);
+      setMatchError(null);
+      setMatchLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void (async () => {
       setMatchLoading(true);
       setMatchError(null);
       const { data, error } = await supabase
         .from('matches')
-        .select('id, team_season_id, opponent, u11_formation_id')
+        .select('id, team_season_id, opponent, u11_formation_id, status, live_started_at')
         .eq('id', matchId)
         .maybeSingle();
       if (cancelled) return;
       if (error || !data) {
         setMatchRow(null);
+        setMatchStatus(null);
+        setMatchLiveStartedAt(null);
         setMatchError(error?.message ?? 'Spiel nicht gefunden.');
       } else {
-        setMatchRow(data as MatchRowLite);
+        const row = data as MatchRowLite & { status?: string | null; live_started_at?: string | null };
+        setMatchRow({
+          id: row.id,
+          team_season_id: row.team_season_id,
+          opponent: row.opponent,
+          u11_formation_id: row.u11_formation_id,
+        });
+        setMatchStatus(row.status ?? null);
+        setMatchLiveStartedAt(row.live_started_at ?? null);
       }
       setMatchLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [matchId]);
+  }, [matchId, isDemo, demo]);
 
   const teamSeasonId = matchRow?.team_season_id ?? null;
-  const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonId);
+  const { players: livePlayers, loading: playersLoadingLive, error: playersErrorLive } = usePlayers(
+    isDemo ? null : teamSeasonId,
+  );
+  const players = isDemo && demo ? demo.players : livePlayers;
+  const playersLoading = isDemo ? false : playersLoadingLive;
+  const playersError = isDemo ? null : playersErrorLive;
   const playersById = useMemo(() => {
     const map = new Map<string, (typeof players)[number]>();
     for (const p of players) map.set(p.id, p);
@@ -175,6 +246,36 @@ export const MatchLineupPage: React.FC = () => {
         cancelled = true;
       };
     }
+
+    if (isDemo && demo) {
+      const prep = demo.getDemoMatchPrep(matchId);
+      if (!prep) {
+        setLineupError('Spiel nicht gefunden.');
+        setLineupLoading(false);
+        return () => {
+          cancelled = true;
+        };
+      }
+      const initialSlots = emptySlots();
+      let initialSquad =
+        selectedFromState.length > 0 ? selectedFromState : [...prep.squadPlayerIds];
+      const startingFromPrep = LIVE_FIELD_SLOT_ORDER.map((slot) => prep.slots[slot] ?? null);
+      const sanitized = sanitizeLineupToMatchSquad(startingFromPrep, initialSquad);
+      initialSquad = sanitized.squadPlayerIds;
+      for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i += 1) {
+        const pid = sanitized.startingPlayerIds[i] ?? null;
+        initialSlots[LIVE_FIELD_SLOT_ORDER[i]] = pid && pid.length > 0 ? pid : null;
+      }
+      setSlots(initialSlots);
+      setSquadIds(initialSquad);
+      setFormationId(prep.formationId);
+      setLineupError(null);
+      setLineupLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void (async () => {
       setLineupLoading(true);
       setLineupError(null);
@@ -190,6 +291,15 @@ export const MatchLineupPage: React.FC = () => {
         if (initialSquad.length === 0) {
           initialSquad = data.squadPlayerIds.filter((id, idx, arr) => arr.indexOf(id) === idx);
         }
+        // Nach Copy: Squad immer Union aus Feld + Bank + ggf. Navigation-State,
+        // damit sanitize keine Starter gegen leeres Squad streicht.
+        const fieldIds = data.startingPlayerIds
+          .map((id) => String(id ?? '').trim())
+          .filter((id) => id.length > 0);
+        const benchIdsLoaded = data.savedBenchPlayerIds
+          .map((id) => String(id ?? '').trim())
+          .filter((id) => id.length > 0);
+        initialSquad = [...new Set([...initialSquad, ...fieldIds, ...benchIdsLoaded])];
         const sanitized = sanitizeLineupToMatchSquad(data.startingPlayerIds, initialSquad);
         initialSquad = sanitized.squadPlayerIds;
         for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i += 1) {
@@ -206,10 +316,23 @@ export const MatchLineupPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId, selectedFromState, location.key]);
+  }, [matchId, selectedFromState, location.key, isDemo, demo]);
 
   useEffect(() => {
     if (!matchId || !matchRow) return;
+    if (isDemo && demo) {
+      const prep = demo.getDemoMatchPrep(matchId);
+      if (prep) {
+        setFormationId(prep.formationId);
+        return;
+      }
+    }
+    const fromState = routeState?.formationId;
+    if (isU11FormationId(fromState)) {
+      setFormationId(fromState);
+      writeStoredU11Formation(matchId, fromState);
+      return;
+    }
     const fromDb = matchRow.u11_formation_id;
     if (isU11FormationId(fromDb)) {
       setFormationId(fromDb);
@@ -221,7 +344,12 @@ export const MatchLineupPage: React.FC = () => {
       return;
     }
     setFormationId(U11_FORMATION_DB_FALLBACK);
-  }, [matchId, matchRow]);
+  }, [matchId, matchRow, isDemo, demo, routeState?.formationId]);
+
+  useEffect(() => {
+    if (!routeState?.lineupCopiedFromPrevious) return;
+    setSaveMsg('Aufstellung vom letzten Spiel übernommen');
+  }, [routeState?.lineupCopiedFromPrevious, matchId]);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px)');
@@ -239,6 +367,9 @@ export const MatchLineupPage: React.FC = () => {
   }, [selectedBankPlayerId, squadIds]);
 
   useEffect(() => {
+    // Leerer Kader vor dem Lineup-Load darf befüllte Slots nicht ausleeren
+    // (sonst Race: setSlots(seed) + setSquadIds im selben Tick, Clear sieht noch []).
+    if (lineupLoading || squadIds.length === 0) return;
     const squadSet = new Set(squadIds);
     setSlots((prev) => {
       let changed = false;
@@ -252,7 +383,7 @@ export const MatchLineupPage: React.FC = () => {
       }
       return changed ? next : prev;
     });
-  }, [squadIds]);
+  }, [squadIds, lineupLoading]);
 
   useEffect(() => {
     return () => {
@@ -262,16 +393,19 @@ export const MatchLineupPage: React.FC = () => {
 
   /** Erfolgsmeldung: kurzer Toast mit Fade-out, kein permanenter Block. */
   useEffect(() => {
-    if (saveMsg !== 'Aufstellung gespeichert.') {
+    if (
+      saveMsg !== 'Aufstellung gespeichert.' &&
+      saveMsg !== 'Aufstellung vom letzten Spiel übernommen'
+    ) {
       setSaveToastFading(false);
       return;
     }
     setSaveToastFading(false);
-    const fadeAt = window.setTimeout(() => setSaveToastFading(true), 1000);
+    const fadeAt = window.setTimeout(() => setSaveToastFading(true), 1400);
     const clearAt = window.setTimeout(() => {
       setSaveMsg(null);
       setSaveToastFading(false);
-    }, 1500);
+    }, 2000);
     return () => {
       window.clearTimeout(fadeAt);
       window.clearTimeout(clearAt);
@@ -299,12 +433,19 @@ export const MatchLineupPage: React.FC = () => {
 
   const hasSquad = squadIds.length > 0;
 
+  const formationChoices = useMemo(
+    () => (isFairPlayFormationId(formationId) ? [...FAIRPLAY_FORMATION_CHOICES] : [...U11_FORMATION_CHOICES]),
+    [formationId],
+  );
+
   const onTapBankPlayer = (playerId: string) => {
+    if (!lineupEditable) return;
     if (!squadIds.includes(playerId)) return;
     setSelectedBankPlayerId((prev) => (prev === playerId ? null : playerId));
   };
 
   const onTapSlot = (slot: FieldSlotId) => {
+    if (!lineupEditable) return;
     setSaveMsg(null);
     setSaveError(null);
     const wasOccupied = Boolean(slots[slot]);
@@ -339,20 +480,38 @@ export const MatchLineupPage: React.FC = () => {
 
   const saveLineup = async (): Promise<boolean> => {
     if (!matchId) return false;
+    if (!canManage) {
+      setSaveError('Keine Berechtigung zum Speichern der Aufstellung.');
+      return false;
+    }
+    if (!lineupEditable) {
+      setSaveError('Aufstellung kann in diesem Spielstatus nicht bearbeitet werden.');
+      return false;
+    }
     setSaveMsg(null);
     setSaveError(null);
     setSavingLineup(true);
+
+    if (isDemo && demo) {
+      demo.setDemoMatchLineup(matchId, slots, squadIds, formationId);
+      setSavingLineup(false);
+      setSaveMsg('Aufstellung gespeichert.');
+      return true;
+    }
+
     const ordered = LIVE_FIELD_SLOT_ORDER.map((slot) => slots[slot] ?? null);
     const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadIds);
     if (error) {
       setSavingLineup(false);
-      setSaveError(error);
+      setSaveError(friendlyMatchLineupWriteError(error));
+      console.warn('[MatchLineup] save failed', { matchId, error });
       return false;
     }
     const { error: formationErr } = await updateMatchRow(matchId, { u11_formation_id: formationId });
     setSavingLineup(false);
     if (formationErr) {
-      setSaveError(formationErr);
+      setSaveError(friendlyMatchLineupWriteError(formationErr));
+      console.warn('[MatchLineup] formation save failed', { matchId, error: formationErr });
       return false;
     }
     setSaveMsg('Aufstellung gespeichert.');
@@ -365,6 +524,10 @@ export const MatchLineupPage: React.FC = () => {
     const saved = await saveLineup();
     if (!saved) return;
     console.warn('[LINEUP FEED] LINEUP SAVE SUCCESS', { matchId });
+    if (isDemo) {
+      demo?.setDemoMatchPublishedLocal(matchId, true);
+      return;
+    }
     if (typeof triggerLineupFeedPostAfterSave !== 'function') {
       console.warn('[LINEUP FEED] save-trigger missing export');
       return;
@@ -378,7 +541,7 @@ export const MatchLineupPage: React.FC = () => {
   };
 
   const onStartLive = async () => {
-    if (!matchId || starterCount < 7) return;
+    if (!matchId || starterCount < 7 || !canManage || !lineupEditable) return;
     setSaveMsg(null);
     setSaveError(null);
     setStartingLive(true);
@@ -387,11 +550,17 @@ export const MatchLineupPage: React.FC = () => {
     if (!saved) {
       return;
     }
+    if (isDemo) {
+      // Lokale Live-Session aus der gespeicherten Aufstellung aufbauen (Status bleibt „scheduled“ bis Anpfiff).
+      demo?.startDemoLiveMatch(matchId, { slots, squadPlayerIds: squadIds, formationId });
+      navigate(`${basePath}/live?matchId=${encodeURIComponent(matchId)}`);
+      return;
+    }
     void triggerLineupFeedPostAfterSave(matchId);
-    navigate(`/app/live?matchId=${encodeURIComponent(matchId)}`);
+    navigate(`${basePath}/live?matchId=${encodeURIComponent(matchId)}`);
   };
 
-  if (matchLoading || lineupLoading) {
+  if (matchLoading || lineupLoading || playersLoading) {
     return <div className="min-h-[100dvh] p-4 text-sm text-white/60">Lade Aufstellung…</div>;
   }
 
@@ -399,7 +568,7 @@ export const MatchLineupPage: React.FC = () => {
     return (
       <div className="min-h-[100dvh] p-4 text-white">
         <p className="text-sm text-red-400">{matchError ?? 'Ungültiger Aufruf.'}</p>
-        <Link to="/app/termine" className="mt-3 inline-block text-sm font-semibold text-red-300 underline">
+        <Link to={`${basePath}/termine`} className="mt-3 inline-block text-sm font-semibold text-red-300 underline">
           Zurück zu Termine
         </Link>
       </div>
@@ -419,14 +588,24 @@ export const MatchLineupPage: React.FC = () => {
             ← Zurück
           </button>
           <h1 className="text-lg font-bold">AUFSTELLUNG</h1>
-          <p className="text-sm text-white/70">Bitte zuerst Matchkader in der Match-Vorbereitung auswählen.</p>
-          <button
-            type="button"
-            onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
-            className="min-h-[48px] rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500"
-          >
-            Zur Match-Vorbereitung
-          </button>
+          <p className="text-sm text-white/70">
+            {canManage
+              ? 'Bitte zuerst Matchkader in der Match-Vorbereitung auswählen.'
+              : 'Für dieses Spiel ist noch keine Aufstellung veröffentlicht.'}
+          </p>
+          {canManage ? (
+            <button
+              type="button"
+              onClick={() => navigate(`${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
+              className="min-h-[48px] rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500"
+            >
+              Zur Match-Vorbereitung
+            </button>
+          ) : (
+            <Link to={`${basePath}/termine`} className="text-sm font-semibold text-red-300 underline">
+              Zurück zu Termine
+            </Link>
+          )}
           {lineupError ? <p className="text-xs text-red-400">{lineupError}</p> : null}
         </div>
       </div>
@@ -438,7 +617,8 @@ export const MatchLineupPage: React.FC = () => {
       <div className={dsPageAtmosphereClass()} aria-hidden />
       <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
 
-      {saveMsg === 'Aufstellung gespeichert.' ? (
+      {saveMsg === 'Aufstellung gespeichert.' ||
+      saveMsg === 'Aufstellung vom letzten Spiel übernommen' ? (
         <div
           className={[
             'pointer-events-none fixed left-1/2 top-[calc(env(safe-area-inset-top,0px)+4.25rem)] z-[80] w-[min(92vw,20rem)] -translate-x-1/2 rounded-xl border border-white/10 bg-black/80 px-3 py-2 text-center text-xs font-semibold text-emerald-200/95 shadow-lg backdrop-blur-md transition-opacity duration-500 sm:top-[5rem]',
@@ -500,22 +680,33 @@ export const MatchLineupPage: React.FC = () => {
 
         <div className="-mx-1 mb-2 shrink-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:mx-0">
           <div className="flex min-h-9 flex-nowrap items-center gap-1.5 px-0.5 pb-0.5">
-            {U11_FORMATION_CHOICES.map((id) => {
-              const active = formationId === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => {
-                    setFormationId(id);
-                    if (matchId) writeStoredU11Formation(matchId, id);
-                  }}
-                  className={dsFormationTabClass(active)}
-                >
-                  {id}
-                </button>
-              );
-            })}
+            {canManage
+              ? formationChoices.map((id) => {
+                  const active = formationId === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      disabled={!lineupEditable}
+                      onClick={() => {
+                        if (!lineupEditable) return;
+                        setFormationId(id);
+                        if (matchId) {
+                          if (isDemo && demo) demo.setDemoMatchFormation(matchId, id);
+                          else writeStoredU11Formation(matchId, id);
+                        }
+                      }}
+                      className={dsFormationTabClass(active)}
+                    >
+                      {id}
+                    </button>
+                  );
+                })
+              : (
+                <span className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-bold tabular-nums text-white/80">
+                  Formation {formationId}
+                </span>
+              )}
           </div>
         </div>
 
@@ -537,7 +728,7 @@ export const MatchLineupPage: React.FC = () => {
                 <LineupFormationPitch
                   formationId={formationId}
                   slots={slots}
-                  interactive
+                  interactive={lineupEditable}
                   onSlotTap={onTapSlot}
                   selectedBankPlayerId={selectedBankPlayerId}
                   assignFlashSlot={assignFlashSlot}
@@ -725,6 +916,7 @@ export const MatchLineupPage: React.FC = () => {
         )}
       </main>
 
+      {canManage ? (
       <div
         className={dsStickyCtaBarClass()}
         style={{
@@ -735,7 +927,7 @@ export const MatchLineupPage: React.FC = () => {
         <div className="mx-auto flex w-full max-w-xl items-stretch gap-2">
           <button
             type="button"
-            disabled={savingLineup || startingLive}
+            disabled={!lineupEditable || savingLineup || startingLive}
             onClick={() => void onSaveLineupClick()}
             className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-semibold leading-tight ${dsSecondaryCtaClass()}`}
           >
@@ -743,14 +935,28 @@ export const MatchLineupPage: React.FC = () => {
           </button>
           <button
             type="button"
-            disabled={starterCount < 7 || savingLineup || startingLive}
+            disabled={!lineupEditable || starterCount < 7 || savingLineup || startingLive}
             onClick={() => void onStartLive()}
             className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-bold leading-tight ${dsPrimaryCtaClass()}`}
           >
-            {startingLive ? 'Starte…' : 'Zum Liveticker'}
+            {startingLive ? 'Start…' : isDemo ? 'LIVE (Demo)' : 'Spiel starten'}
           </button>
         </div>
+        {!lineupEditable ? (
+          <p className="mx-auto mt-1 max-w-xl text-center text-[11px] text-white/45">
+            Abgeschlossenes Spiel – Aufstellung nur lesbar.
+          </p>
+        ) : isDemo ? (
+          <p className="mx-auto mt-1 max-w-xl text-center text-[11px] text-white/45">
+            Lokal speichern · LIVE ohne Push oder Feed
+          </p>
+        ) : null}
       </div>
+      ) : (
+        <p className="mx-auto mb-4 max-w-xl px-4 text-center text-[11px] text-white/45">
+          Nur Ansicht – Bearbeitung nur für Trainer.
+        </p>
+      )}
     </div>
   );
 };

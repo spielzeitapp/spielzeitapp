@@ -1,7 +1,10 @@
 /**
  * Eine Quelle für Stadion-Heim / Stadion-Auswärts aus Kalender-`events.is_home`.
  * `score_home` / `goal` = Stadion-Heim; `score_away` / `goal_away` = Stadion-Auswärts.
+ * Sichtbare Namen ohne Altersklassenmarkierung „U11“ (Display only).
  */
+
+import { normalizeOefbImportedTeamName } from './oefbTeamNameNormalize';
 
 export type MatchSides = {
   homeTeamName: string;
@@ -14,8 +17,8 @@ export function getMatchSides(params: {
   ownTeamName: string;
   opponentName: string;
 }): MatchSides {
-  const own = (params.ownTeamName || '').trim() || 'Unser Team';
-  const opp = (params.opponentName || '').trim() || 'Gegner';
+  const own = normalizeOefbImportedTeamName(params.ownTeamName) || 'Unser Team';
+  const opp = normalizeOefbImportedTeamName(params.opponentName) || 'Gegner';
   if (params.isHome === true) {
     return { homeTeamName: own, awayTeamName: opp, isOwnTeamHome: true };
   }
@@ -27,7 +30,7 @@ export function getMatchSides(params: {
 
 /** Kurzlabel für Tor-Buttons (+ Kürzel oder erster Wortteil). */
 export function shortTeamGoalLabel(fullName: string): string {
-  const raw = (fullName || '').trim();
+  const raw = normalizeOefbImportedTeamName(fullName) || (fullName || '').trim();
   if (!raw) return '+';
   const tokens = raw.split(/\s+/).filter(Boolean);
   const first = tokens[0] ?? raw;

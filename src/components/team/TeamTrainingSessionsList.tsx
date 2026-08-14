@@ -4,6 +4,7 @@ import type { TrainingSessionParticipation } from '../../lib/teamTrainingPartici
 import { participationPctBadgeClass } from '../../lib/trainingAttendance';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { cn } from '../../ui/lib/cn';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   sessions: TrainingSessionParticipation[];
@@ -31,6 +32,7 @@ export const TeamTrainingSessionsList: React.FC<Props> = ({
   loading = false,
   limit = 6,
 }) => {
+  const basePath = useInternalBasePath();
   const items = useMemo(
     () =>
       [...sessions]
@@ -56,7 +58,7 @@ export const TeamTrainingSessionsList: React.FC<Props> = ({
           return (
             <li key={session.eventId}>
               <Link
-                to={`/app/events/${session.eventId}`}
+                to={`${basePath}/events/${session.eventId}`}
                 className="group flex items-center justify-between gap-3 rounded-xl border border-[rgba(220,38,38,0.14)] bg-[rgba(8,8,10,0.72)] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[rgba(220,38,38,0.32)] hover:bg-[rgba(12,8,10,0.88)] hover:shadow-[0_0_20px_rgba(220,38,38,0.1)]"
               >
                 <div className="min-w-0 flex-1">

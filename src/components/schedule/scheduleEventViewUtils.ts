@@ -1,5 +1,6 @@
 import type { EventRow } from '../../hooks/useEvents';
 import { safeText } from '../../lib/safeText';
+import { formatVisibleMatchEncounter, normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
@@ -114,8 +115,7 @@ export function scheduleLocationLine(ev: EventRow): string {
 /** Titelzeile für kompakte Liste (eine Zeile). */
 export function scheduleCompactPrimaryTitle(ev: EventRow, et: EffectiveEventType, ourClubDisplay: string): string {
   if (et === 'game') {
-    const opp = safeText(ev.opponent) || 'Gegner';
-    return opp;
+    return normalizeOefbImportedTeamName(safeText(ev.opponent) || 'Gegner') || 'Gegner';
   }
   if (et === 'training') return eventNotesTitle(ev.notes) ?? 'Training';
   if (et === 'tournament') return eventNotesTitle(ev.notes) ?? 'Turnier';
@@ -159,9 +159,18 @@ export function gameTeamNames(
   et: EffectiveEventType,
   ourClubDisplay: string,
 ): { left: string; right: string } {
-  const opp = safeText(ev.opponent) || 'Gegner';
-  if (et !== 'game') return { left: ourClubDisplay, right: opp };
-  if (ev.is_home === true) return { left: ourClubDisplay, right: opp };
-  if (ev.is_home === false) return { left: opp, right: ourClubDisplay };
-  return { left: ourClubDisplay, right: opp };
+  if (et !== 'game') {
+    const enc = formatVisibleMatchEncounter({
+      isHome: true,
+      ourTeamName: ourClubDisplay,
+      opponentName: safeText(ev.opponent) || 'Gegner',
+    });
+    return { left: enc.ourTeam, right: enc.opponent };
+  }
+  const enc = formatVisibleMatchEncounter({
+    isHome: ev.is_home,
+    ourTeamName: ourClubDisplay,
+    opponentName: ev.opponent,
+  });
+  return { left: enc.home, right: enc.away };
 }

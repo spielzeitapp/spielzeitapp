@@ -21,6 +21,7 @@ import {
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   tournamentEventId: string;
@@ -75,6 +76,7 @@ function PrimaryCta({
   onAddParticipants,
   onScrollToAttendance,
   onScrollToSquad,
+  basePath = '/app',
 }: {
   action: PreparationPrimaryAction;
   onImportPlan: () => void;
@@ -82,6 +84,7 @@ function PrimaryCta({
   onAddParticipants: () => void;
   onScrollToAttendance: () => void;
   onScrollToSquad: () => void;
+  basePath?: '/app' | '/demo';
 }) {
   if (action.kind === 'ready') {
     return (
@@ -127,27 +130,25 @@ function PrimaryCta({
       );
     case 'prepare_match':
       return (
-        <Link to={matchPreparationPath(action.matchId)} className={primaryClass}>
+        <Link to={matchPreparationPath(action.matchId, basePath)} className={primaryClass}>
           {action.label}
         </Link>
       );
     case 'open_lineup':
       return (
-        <Link to={matchLineupPath(action.matchId)} className={primaryClass}>
+        <Link to={matchLineupPath(action.matchId, basePath)} className={primaryClass}>
           {action.label}
         </Link>
       );
     case 'start_live':
-      return (
-        <Link to={liveMatchPath(action.matchId)} className={primaryClass}>
-          <Radio className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-          {action.label}
-        </Link>
-      );
     case 'live_match':
       return (
-        <Link to={liveMatchPath(action.matchId)} className={primaryClass}>
-          <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
+        <Link to={liveMatchPath(action.matchId, basePath)} className={primaryClass}>
+          <Radio
+            className={`h-3.5 w-3.5${action.kind === 'live_match' ? ' animate-pulse' : ''}`}
+            strokeWidth={2.25}
+            aria-hidden
+          />
           {action.label}
         </Link>
       );
@@ -169,6 +170,7 @@ export function TournamentPreparationPanel({
   onScrollToAttendance,
   onScrollToSquad,
 }: Props) {
+  const basePath = useInternalBasePath();
   const featured = pickFeaturedTournamentSlot(slots);
   const matchId = featured?.match_id?.trim() ?? '';
   const [lineupReady, setLineupReady] = useState(false);
@@ -277,6 +279,7 @@ export function TournamentPreparationPanel({
             onAddParticipants={onAddParticipants}
             onScrollToAttendance={onScrollToAttendance}
             onScrollToSquad={onScrollToSquad}
+            basePath={basePath}
           />
           {lineupLoading ? (
             <p className="mt-1.5 text-center text-[10px] text-white/40">Prüfe Aufstellung…</p>

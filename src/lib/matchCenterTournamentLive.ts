@@ -3,6 +3,7 @@ import type { EventRow } from '../hooks/useEvents';
 import {
   fetchTournamentMatchSlots,
   fetchTournamentParticipants,
+  isOwnPlayableTournamentSlot,
   type TournamentMatchSlotView,
 } from './tournamentPlan';
 import { fetchTournamentCompletion } from './tournamentCompletion';
@@ -59,7 +60,11 @@ export function pickTournamentEventsForLiveScan(events: EventRow[], now: Date): 
 }
 
 export function pickLiveTournamentSlot(slots: TournamentMatchSlotView[]): TournamentMatchSlotView | null {
-  return slots.find((s) => (s.match_status ?? '').toLowerCase() === 'live') ?? null;
+  return (
+    slots.find(
+      (s) => isOwnPlayableTournamentSlot(s) && (s.match_status ?? '').toLowerCase() === 'live',
+    ) ?? null
+  );
 }
 
 async function fetchLiveMatchDetails(matchId: string): Promise<TournamentLiveMatchDetails | null> {
@@ -165,7 +170,7 @@ async function contextFromEventScan(
 
     const slotsRes = await fetchTournamentMatchSlots(tournamentEvent.id);
     const liveSlot = pickLiveTournamentSlot(slotsRes.data ?? []);
-    if (!liveSlot) continue;
+    if (!liveSlot?.match_id) continue;
 
     const liveDetails = await fetchLiveMatchDetails(liveSlot.match_id);
     if (!liveDetails) continue;

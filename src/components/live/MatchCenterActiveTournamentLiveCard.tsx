@@ -74,7 +74,7 @@ export function MatchCenterActiveTournamentLiveCard({ context, ourTeamName }: Pr
     slot.planned_minutes ?? 12,
   );
   const scoreLine = `${liveDetails.scoreHome} : ${liveDetails.scoreAway}`;
-  const liveHref = `/app/live?matchId=${encodeURIComponent(slot.match_id)}`;
+  const liveHref = `/app/live?matchId=${encodeURIComponent(slot.match_id ?? '')}`;
 
   return (
     <article

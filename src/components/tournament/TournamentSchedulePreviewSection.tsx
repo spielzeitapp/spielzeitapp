@@ -89,7 +89,9 @@ export function TournamentSchedulePreviewSection({
                   canManage={canManage}
                   compact
                   isNextUpcoming={slot.id === nextMatchId}
-                  onOpen={() => onOpenMatch(slot.match_id)}
+                  onOpen={() => {
+                    if (slot.match_id) onOpenMatch(slot.match_id);
+                  }}
                 />
               </li>
             ))}

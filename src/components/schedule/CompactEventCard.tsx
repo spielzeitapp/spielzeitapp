@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CalendarDays, MapPin, Trophy } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo } from '../../lib/teamLogos';
+import { normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 import { splitCombinedLocation } from '../../lib/eventLocation';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import type { EffectiveEventType } from './scheduleEventViewUtils';
@@ -195,7 +196,7 @@ export function CompactEventCard({
     if (clickable) onNavigate(ev.id);
   };
 
-  const oppName = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
+  const oppName = normalizeOefbImportedTeamName(ev.opponent ?? 'Gegner') || 'Gegner';
 
   const trainingTitle =
     et === 'training'

@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, CalendarDays, Users, Radio, Grid2x2 } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { normalizeRole } from '../../lib/roles';
+import { useDemoMode } from '../../demo/DemoContext';
 
-const items = [
+const appItems = [
   { to: '/app/home', label: 'Home', icon: Home, end: true },
   { to: '/app/termine', label: 'Termine', icon: CalendarDays },
   { to: '/app/team', label: 'Team', icon: Users, end: true },
@@ -12,15 +13,27 @@ const items = [
   { to: '/app/mehr', label: 'Mehr', icon: Grid2x2 },
 ] as const;
 
+const demoItems = [
+  { to: '/demo/home', label: 'Home', icon: Home, end: true },
+  { to: '/demo/termine', label: 'Termine', icon: CalendarDays },
+  { to: '/demo/team', label: 'Team', icon: Users, end: true },
+  { to: '/demo/live', label: 'Live', icon: Radio },
+  { to: '/demo/mehr', label: 'Mehr', icon: Grid2x2 },
+] as const;
+
 export const TabletSidebar: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
+  const { pathname } = useLocation();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo) || pathname.startsWith('/demo');
   const { effectiveRole } = useSession();
   const termineLabel = normalizeRole(effectiveRole) === 'fan' ? 'Spielplan' : 'Termine';
+  const baseItems = isDemo ? demoItems : appItems;
   const navItems = useMemo(
     () =>
-      items.map((item) =>
-        item.to === '/app/termine' ? { ...item, label: termineLabel } : item,
+      baseItems.map((item) =>
+        item.to.endsWith('/termine') ? { ...item, label: isDemo ? 'Termine' : termineLabel } : item,
       ),
-    [termineLabel],
+    [baseItems, termineLabel, isDemo],
   );
   return (
     <aside className={`hidden lg:block lg:shrink-0 ${compact ? 'lg:w-20' : 'lg:w-64'}`}>
@@ -52,4 +65,3 @@ export const TabletSidebar: React.FC<{ compact?: boolean }> = ({ compact = false
     </aside>
   );
 };
-

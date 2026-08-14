@@ -5,6 +5,7 @@
 import { supabase } from './supabaseClient';
 import { isInternalChampionshipFixture } from './championshipVisibility';
 import { isTournamentEvent, normalizeEventKind } from './eventTypeUtils';
+import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import { safeText } from './safeText';
 import type { SeasonPlanEventKind, SeasonPlanRow } from './seasonPlanPdf';
 
@@ -55,9 +56,11 @@ function formatEncounterTitle(
   ourTeamName: string,
   opponent: string | null | undefined,
 ): string {
-  const us = (ourTeamName || 'Heim').trim() || 'Heim';
-  const them = (opponent || 'Gegner').trim() || 'Gegner';
-  return isHome === true ? `${us} – ${them}` : `${them} – ${us}`;
+  return formatVisibleMatchEncounter({
+    isHome,
+    ourTeamName,
+    opponentName: opponent,
+  }).line;
 }
 
 function tournamentTitle(ev: SeasonPlanEventSource): string {

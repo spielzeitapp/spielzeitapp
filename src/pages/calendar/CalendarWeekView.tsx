@@ -11,6 +11,7 @@ import {
   toViennaDayKey,
 } from './calendarUtils';
 import { getDateTimePartsInTimeZone, VIENNA_TZ } from '../../lib/viennaTime';
+import { useInternalBasePath } from '../../demo/demoPaths';
 import { CalendarDayAgenda } from './CalendarDayAgenda';
 import { CalendarDayStrip } from './CalendarDayStrip';
 import { CalendarPeriodNav } from './CalendarPeriodNav';
@@ -47,6 +48,7 @@ function DesktopWeekTimeGrid({
   onEventClick?: (eventId: string) => void;
 }) {
   const navigate = useNavigate();
+  const basePath = useInternalBasePath();
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -66,7 +68,7 @@ function DesktopWeekTimeGrid({
 
   const handleClick = (id: string) => {
     if (onEventClick) onEventClick(id);
-    else navigate(`/app/events/${id}`);
+    else navigate(`${basePath}/events/${id}`);
   };
 
   return (

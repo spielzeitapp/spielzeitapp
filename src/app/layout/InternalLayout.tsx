@@ -10,28 +10,24 @@ import { useAuth } from '../../auth/AuthProvider';
 import { useSession, normalizeRole as normalizeSessionRole } from '../../auth/useSession';
 import { useSyncPendingProfile } from '../../auth/useSyncPendingProfile';
 import { useSyncProfileFromUserMetadata } from '../../auth/useSyncProfileFromUserMetadata';
-import { supabase } from '../../lib/supabaseClient';
 import { TabletSidebar } from '../components/TabletSidebar';
 import { PushOnboardingPrompt } from '../../components/PushOnboardingPrompt';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/roles';
+import { useDemoMode } from '../../demo/DemoContext';
+import { DemoTourOverlay } from '../../demo/components/DemoTourOverlay';
 import {
   isParentLinkDeferred,
   isParentOnboardingSatisfied,
   isParentRoleChosen,
   userHasPlayerGuardian,
 } from '../../lib/parentChildLink';
-import {
-  hasOpenParentEmailInviteForMe,
-  markPendingParentEmailInvite,
-  readPendingParentEmailInviteFlag,
-  resolvePendingParentInvitePath,
-} from '../../lib/parentLinkInvites';
+import { resolvePendingParentInvitePath, hasOpenParentEmailInviteForMe, markPendingParentEmailInvite, readPendingParentEmailInviteFlag } from '../../lib/parentLinkInvites';
+import { supabase } from '../../lib/supabaseClient';
 
 const ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
   '/app/fan-onboarding',
   '/app/role-choice',
-  '/app/set-password',
   '/app/player-onboarding',
   '/app/player-access',
 ] as const;
@@ -50,31 +46,46 @@ function hasStaffAccess(backendRole: string, memberships: { role?: string | null
 
 /**
  * Layout für den internen Bereich /app/*.
- * Persönliche Eltern-Einladung hat Vorrang vor Splash, Rollenwahl und Kind-Selbstverknüpfung.
+ * Passwort-Seite liegt außerhalb (AuthMinimalLayout).
  */
 export const InternalLayout: React.FC = () => {
   const isTouchLayout = useIsTouchLayout();
   const navigate = useNavigate();
   const location = useLocation();
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo) || location.pathname.startsWith('/demo');
   const { user } = useAuth();
   const { memberships, loading: sessionLoading, backendRole, previewRole } = useSession();
   const [gateChecking, setGateChecking] = useState(true);
-  const isLiveRoute = location.pathname.startsWith('/app/live');
+  const isLiveRoute =
+    location.pathname.startsWith('/app/live') || location.pathname.startsWith('/demo/live');
   const pathClean = location.pathname.replace(/\/+$/, '') || '/';
   const isWideMobileShellRoute =
     pathClean === '/app/home' ||
+    pathClean === '/demo/home' ||
     pathClean === '/app/team' ||
+    pathClean === '/demo/team' ||
+    pathClean.startsWith('/demo/players') ||
     pathClean.startsWith('/app/team/') ||
+    pathClean.startsWith('/demo/team/') ||
     pathClean === '/app/mehr' ||
-    pathClean.startsWith('/app/mehr/');
+    pathClean === '/demo/mehr' ||
+    pathClean.startsWith('/app/mehr/') ||
+    pathClean.startsWith('/demo/mehr/');
 
-  useSyncPendingProfile(user ?? null);
-  useSyncProfileFromUserMetadata(user ?? null);
+  useSyncPendingProfile(isDemo ? null : user ?? null);
+  useSyncProfileFromUserMetadata(isDemo ? null : user ?? null);
 
   useEffect(() => {
+    if (isDemo) {
+      setGateChecking(false);
+      return;
+    }
     let alive = true;
 
     async function gate() {
+      // Persönliche Einladung hat Vorrang vor Rollenwahl UND Kind-Selbstverknüpfung —
+      // auch wenn die aktuelle Route eigentlich onboarding-exempt ist.
       const pendingInvitePath = resolvePendingParentInvitePath();
       const onInvitePage =
         location.pathname === '/app/parent-invite' ||
@@ -122,6 +133,7 @@ export const InternalLayout: React.FC = () => {
       const guardianRes = await userHasPlayerGuardian(user.id);
       const hasGuardian = guardianRes.hasGuardian;
 
+      // Offene E-Mail-Einladung schlägt remembered route / Termine / Onboarding
       if (!hasGuardian && !onInvitePage) {
         const openEmailInvite = await hasOpenParentEmailInviteForMe();
         if (!alive) return;
@@ -133,6 +145,7 @@ export const InternalLayout: React.FC = () => {
         }
       }
 
+      // Frische Metadata (parent_link_deferred), falls Auth-Context noch stale ist
       let gateUser = user;
       try {
         const { data: fresh } = await supabase.auth.getUser();
@@ -144,6 +157,7 @@ export const InternalLayout: React.FC = () => {
 
       if (!alive) return;
 
+      // Bereits verknüpft (z. B. durch Trainer) → Onboarding nicht erzwingen
       if (hasGuardian) {
         setGateChecking(false);
         return;
@@ -213,6 +227,7 @@ export const InternalLayout: React.FC = () => {
       alive = false;
     };
   }, [
+    isDemo,
     location.pathname,
     user,
     sessionLoading,
@@ -223,6 +238,7 @@ export const InternalLayout: React.FC = () => {
   ]);
 
   const blockContent =
+    !isDemo &&
     !isOnboardingExemptPath(location.pathname) &&
     (sessionLoading || gateChecking);
 
@@ -263,8 +279,9 @@ export const InternalLayout: React.FC = () => {
       </div>
 
       <div className="lg:hidden">{isTouchLayout ? <BottomNav /> : null}</div>
-      <div className="lg:hidden">{isTouchLayout ? <AppFab /> : null}</div>
-      <PushOnboardingPrompt />
+      <div className="lg:hidden">{isTouchLayout && !isDemo ? <AppFab /> : null}</div>
+      {isDemo ? <DemoTourOverlay /> : null}
+      {!isDemo ? <PushOnboardingPrompt /> : null}
     </AppBackground>
   );
 };

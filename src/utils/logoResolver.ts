@@ -46,7 +46,7 @@ export function getLogoUrl(slugOrFilename?: string | null): string {
   if (isValidLogoUrl(value) && value.includes('/logos/')) return value;
   if (!value) return SHIELD_PLACEHOLDER;
 
-  const file = value.toLowerCase().endsWith('.png') ? value : `${value}.png`;
+  const file = /\.(png|jpe?g|svg)$/i.test(value) ? value : `${value}.png`;
   return `${BASE}logos/${file}`.replace(/\/{2,}/g, '/');
 }
 

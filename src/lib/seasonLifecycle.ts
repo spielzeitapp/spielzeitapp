@@ -298,7 +298,7 @@ export function formatTeamSeasonCompactSwitcherLabel(
 }
 
 /**
- * Einheitliche Switcher-Logik:
+ * Einheitliche Switcher-Logik (App + Manager):
  * - archived → nur View (Read-only Historie), Active unverändert
  * - active/draft → Active + View (Schreiben nur in nicht-archivierten Saisons)
  */

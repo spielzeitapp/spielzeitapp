@@ -1,0 +1,15 @@
+-- PLATZ.3 Staging apply checklist (nicht Production).
+-- Migration: supabase/migrations/20260810120000_platz3_club_facility_schedule.sql
+--
+-- Vor dem Anwenden auf Staging:
+-- 1) Backup / Snapshot Staging
+-- 2) Migration via supabase db push / SQL Editor ausführen
+-- 3) Verify:
+--    select proname from pg_proc where proname in
+--      ('list_club_facility_schedule_events','can_manage_event_field_assignment');
+-- 4) Als Trainer einer Mannschaft: /manager/platzbelegung zeigt Termine anderer Club-Mannschaften
+-- 5) Fremde Buchung: Speichern/Löschen wird abgelehnt
+-- 6) Membership role=admin: darf fremde Vereinsbuchungen ändern
+-- 7) Cancel eines Events entfernt event_field_assignments
+--
+-- Kein Force auf Production. Keine Service-Role-Umgehung im Manager-Client.

@@ -14,6 +14,7 @@ const PARENT_INVITE_STASH_TTL_MS = 72 * 60 * 60 * 1000;
 
 /**
  * Capture invite token early (Magic Link), before Auth hash processing rewrites the URL.
+ * Supports /app/parent-invite/<token> and ?t= — kept here to avoid circular imports.
  */
 export function captureParentInviteTokenFromUrl(): void {
   if (typeof window === 'undefined') return;
@@ -53,8 +54,10 @@ export function captureParentInviteTokenFromUrl(): void {
   }
 }
 
+/** type=signup|recovery|magiclink aus Hash lesen, bevor detectSessionInUrl die URL leert. */
 captureAuthCallbackTypeFromUrl();
 captureParentInviteTokenFromUrl();
+
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;

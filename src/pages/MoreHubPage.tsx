@@ -1,15 +1,120 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, CalendarRange, ChevronRight, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
-import { canPrepareNextSeason, formatTeamSeasonCompactSwitcherLabel, resolveTeamSeasonSwitcherAction } from '../lib/seasonLifecycle';
+import {
+  canPrepareNextSeason,
+  formatTeamSeasonCompactSwitcherLabel,
+  resolveTeamSeasonSwitcherAction,
+} from '../lib/seasonLifecycle';
 import { canViewParentLinks, normalizeRole } from '../lib/roles';
-import { dsGlassToggleTrack, dsPanelRowClass } from '../lib/premiumDesignSystem';
+import { dsGlassToggleTrack, dsPanelRowClass, dsPrimaryCtaClass, dsSecondaryCtaClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
+import { useDemoMode } from '../demo/DemoContext';
+import { DemoAiDisclosure } from '../demo/components/DemoAiDisclosure';
+import { DEMO_TOUR_STATIONS } from '../demo/demoTourConfig';
+import {
+  canResumeDemoTour,
+  getDemoTourSnapshot,
+  pauseDemoTour,
+  resetDemoTourState,
+  resumeOrStartDemoTour,
+  subscribeDemoTour,
+} from '../demo/demoTourState';
+
+const RESET_CONFIRM =
+  'Demo zurücksetzen? Alle lokalen Änderungen wie Zusagen, Aufstellungen, LIVE-Ereignisse und Ergebnisse werden auf den Ausgangszustand zurückgesetzt.';
+
+function DemoHelpCard(): React.ReactElement {
+  const demo = useDemoMode();
+  const navigate = useNavigate();
+  const [phase, setPhase] = useState(() => getDemoTourSnapshot().phase);
+
+  useEffect(() => subscribeDemoTour(() => setPhase(getDemoTourSnapshot().phase)), []);
+
+  const start = () => {
+    navigate('/demo/tour/what');
+  };
+  const resume = () => {
+    const snap = resumeOrStartDemoTour();
+    const station = DEMO_TOUR_STATIONS[snap.stepIndex];
+    if (station) navigate(station.path);
+  };
+  const exploreFree = () => {
+    pauseDemoTour();
+    navigate('/demo/home');
+  };
+  const reset = () => {
+    if (!demo?.resetAllDemo) return;
+    if (!window.confirm(RESET_CONFIRM)) return;
+    demo.resetAllDemo();
+    resetDemoTourState();
+    navigate('/demo/home', { replace: true });
+  };
+
+  const showResume = canResumeDemoTour(phase);
+
+  return (
+    <PremiumCard variant="subtle" showAmbientGlow={false}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-400/90">Demo-Hilfe</p>
+      <h2 className="mt-1 text-[16px] font-semibold text-white">Rundgang &amp; Zurücksetzen</h2>
+      <p className="mt-1 text-[12px] leading-snug text-white/55">
+        Kein Login erforderlich. Alle Aktionen bleiben lokal in dieser Demo. Tour-Fortschritt und
+        lokale Änderungen bleiben in der Browser-Session erhalten (auch nach Reload).
+      </p>
+      <div className="mt-3 flex flex-col gap-2">
+        {showResume ? (
+          <button
+            type="button"
+            onClick={resume}
+            className={`${dsPrimaryCtaClass()} inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
+          >
+            Geführte Demo fortsetzen
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={start}
+            className={`${dsPrimaryCtaClass()} inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
+          >
+            Geführte Demo starten
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            resetDemoTourState();
+            navigate('/demo/tour/what');
+          }}
+          className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full px-4 text-[12px] font-semibold`}
+        >
+          Rundgang neu starten
+        </button>
+        <button
+          type="button"
+          onClick={exploreFree}
+          className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full px-4 text-[12px] font-semibold`}
+        >
+          Demo frei erkunden
+        </button>
+        <button
+          type="button"
+          onClick={reset}
+          className="inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full border border-red-500/30 px-4 text-[12px] font-semibold text-red-300 hover:bg-red-500/10"
+        >
+          Demo zurücksetzen
+        </button>
+      </div>
+      <div className="mt-3">
+        <DemoAiDisclosure />
+      </div>
+    </PremiumCard>
+  );
+}
 
 const subRowClass = `${dsPanelRowClass()} pl-10`;
 
@@ -24,11 +129,56 @@ function showMehrHubDebugButtons(backendRole: string, effectiveRole: string): bo
   const er = (effectiveRole ?? '').trim().toLowerCase();
   if (br === 'admin') return true;
   if (er === 'trainer') return true;
-  // Erweiterbar: z. B. import.meta.env.DEV && import.meta.env.VITE_SHOW_DEBUG_HUB_BUTTONS === 'true'
   return false;
 }
 
+/** App-Pfad → Demo-Pfad oder null (dann „Noch nicht Teil der Demo“). */
+function demoHrefFor(appPath: string): string | null {
+  // Keine Self-Loops und keine irreführenden Umleitungen für nicht demo-fähige Bereiche.
+  void appPath;
+  return null;
+}
+
+function HubRowLink({
+  to,
+  className,
+  isDemo,
+  children,
+}: {
+  to: string;
+  className: string;
+  isDemo: boolean;
+  children: React.ReactNode;
+}): React.ReactElement {
+  if (!isDemo) {
+    return (
+      <Link to={to} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  const demoTo = demoHrefFor(to);
+  if (demoTo) {
+    return (
+      <Link to={demoTo} className={className} title="Demo-Bereich">
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <div
+      className={`${className} cursor-default opacity-65`}
+      title="Noch nicht Teil der Demo"
+      aria-disabled="true"
+    >
+      {children}
+    </div>
+  );
+}
+
 export const MoreHubPage: React.FC = () => {
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
   const {
     selectedTeamSeason,
     selectedTeamSeasonId,
@@ -36,23 +186,69 @@ export const MoreHubPage: React.FC = () => {
     viewTeamSeasonId,
     setViewTeamSeasonId,
     teamSeasons,
-    effectiveRole,
-    backendRole,
+    effectiveRole: sessionEffectiveRole,
+    backendRole: sessionBackendRole,
     user,
   } = useSession();
+  const effectiveRole = isDemo ? 'trainer' : sessionEffectiveRole;
+  const backendRole = isDemo ? 'trainer' : sessionBackendRole;
   /** Alle Rollen mit >1 Saison: Archiv/Historie muss erreichbar bleiben (nicht nur Trainer). */
-  const canSwitchTeam = (teamSeasons?.length ?? 0) > 1;
+  const canSwitchTeam =
+    !isDemo && (teamSeasons?.length ?? 0) > 1 && normalizeRole(effectiveRole) !== 'parent';
 
-  const showTrainerTools = isTrainerToolsRole(effectiveRole);
+  const showTrainerTools = !isDemo && isTrainerToolsRole(effectiveRole);
   const showSeasonManagement =
-    backendRole === 'admin' ||
-    canPrepareNextSeason(effectiveRole) ||
-    canPrepareNextSeason(backendRole) ||
-    isTrainerToolsRole(effectiveRole);
-  const showPreviewLink = backendRole === 'admin' || backendRole === 'head_coach';
-  const showParentAccessLink = canViewParentLinks(normalizeRole(effectiveRole));
-  const showDebugHubButtons = showMehrHubDebugButtons(backendRole, effectiveRole);
-  const unreadCount = useUnreadCount(user?.id);
+    !isDemo &&
+    (backendRole === 'admin' ||
+      canPrepareNextSeason(effectiveRole) ||
+      canPrepareNextSeason(backendRole) ||
+      isTrainerToolsRole(effectiveRole));
+  const showPreviewLink = !isDemo && (backendRole === 'admin' || backendRole === 'head_coach');
+  const showParentAccessLink = !isDemo && canViewParentLinks(normalizeRole(effectiveRole));
+  /** Push-/Reminder-Debug in der Demo immer aus — keine echten Writes/Pushes. */
+  const showDebugHubButtons = !isDemo && showMehrHubDebugButtons(backendRole, effectiveRole);
+  const unreadCountRaw = useUnreadCount(user?.id);
+  const unreadCount = isDemo ? 0 : unreadCountRaw;
+
+  const [hasLinkedChildren, setHasLinkedChildren] = useState(false);
+  useEffect(() => {
+    if (isDemo) {
+      setHasLinkedChildren(false);
+      return;
+    }
+    if (normalizeRole(effectiveRole) !== 'parent') {
+      setHasLinkedChildren(false);
+      return;
+    }
+    if (!user?.id) {
+      setHasLinkedChildren(false);
+      return;
+    }
+
+    let cancelled = false;
+    void supabase
+      .from('player_guardians')
+      .select('player_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn('[MoreHubPage] guardian count load failed', error.message ?? error);
+          setHasLinkedChildren(false);
+          return;
+        }
+        setHasLinkedChildren(Array.isArray(data) && data.length > 0);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setHasLinkedChildren(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isDemo, effectiveRole, user?.id]);
 
   const [hasLinkedChildren, setHasLinkedChildren] = useState(false);
   useEffect(() => {
@@ -208,18 +404,23 @@ export const MoreHubPage: React.FC = () => {
       <SectionTitle subtitle="Einstellungen und weitere Bereiche">Mehr</SectionTitle>
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
-        <Link to="/app/nachrichten" className={dsPanelRowClass()}>
-          <span className="flex items-center gap-3">
-            <Bell className="h-5 w-5 text-red-400" aria-hidden />
-            <span>Nachrichten</span>
-            {unreadCount > 0 && (
-              <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
+        <HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-red-400" aria-hidden />
+              <span>Nachrichten</span>
+              {unreadCount > 0 && (
+                <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </span>
+            {isDemo ? (
+              <span className="pl-8 text-[11px] font-normal text-white/40">Noch nicht Teil der Demo</span>
+            ) : null}
           </span>
           <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-        </Link>
+        </HubRowLink>
 
         {showSeasonManagement && (
           <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
@@ -243,15 +444,15 @@ export const MoreHubPage: React.FC = () => {
             </button>
             {teamAdminOpen && (
               <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
-                <Link to="/app/mehr/seasons" className={subRowClass}>
+                <HubRowLink to="/app/mehr/seasons" className={subRowClass} isDemo={isDemo}>
                   <span className="flex items-center gap-2">
                     <CalendarRange className="h-4 w-4 text-red-400/90" aria-hidden />
                     Saisonverwaltung
                   </span>
                   <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                </Link>
+                </HubRowLink>
                 {showParentAccessLink ? (
-                  <Link to="/app/mehr/parent-access" className={subRowClass}>
+                  <HubRowLink to="/app/mehr/parent-access" className={subRowClass} isDemo={isDemo}>
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4 shrink-0 text-red-400/90" aria-hidden />
@@ -262,7 +463,7 @@ export const MoreHubPage: React.FC = () => {
                       </span>
                     </span>
                     <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
-                  </Link>
+                  </HubRowLink>
                 ) : null}
               </PremiumCard>
             )}
@@ -293,29 +494,29 @@ export const MoreHubPage: React.FC = () => {
             {trainerToolsOpen && (
               <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
                 <div className="flex flex-col gap-1.5">
-                  <Link to="/app/mehr/trainer/team-push" className={subRowClass}>
+                  <HubRowLink to="/app/mehr/trainer/team-push" className={subRowClass} isDemo={isDemo}>
                     <span>Team-Push</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                  </Link>
-                  <Link to="/app/mehr/trainer/vorlagen" className={subRowClass}>
+                  </HubRowLink>
+                  <HubRowLink to="/app/mehr/trainer/vorlagen" className={subRowClass} isDemo={isDemo}>
                     <span>Vorlagen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                  </Link>
+                  </HubRowLink>
                   {showDebugHubButtons && (
                     <button type="button" onClick={runParentsPushDebug} className={subRowClass}>
                       <span>Direkt-Push Debug</span>
                       <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                     </button>
                   )}
-                  <Link to="/app/mehr/trainer/erinnerungen" className={subRowClass}>
+                  <HubRowLink to="/app/mehr/trainer/erinnerungen" className={subRowClass} isDemo={isDemo}>
                     <span>Erinnerungen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                  </Link>
+                  </HubRowLink>
                   {showPreviewLink && (
-                    <Link to="/app/mehr/trainer/preview" className={subRowClass}>
+                    <HubRowLink to="/app/mehr/trainer/preview" className={subRowClass} isDemo={isDemo}>
                       <span>Ansicht testen als</span>
                       <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                    </Link>
+                    </HubRowLink>
                   )}
                 </div>
               </PremiumCard>
@@ -324,8 +525,13 @@ export const MoreHubPage: React.FC = () => {
         )}
 
         {(effectiveRole === 'parent' ||
-          normalizeRole(effectiveRole) === 'parent') && (
-          <Link to="/app/parent-onboarding?mode=link" className={dsPanelRowClass()}>
+          normalizeRole(effectiveRole) === 'parent' ||
+          normalizeRole(sessionEffectiveRole) === 'parent') && (
+          <HubRowLink
+            to="/app/parent-onboarding?mode=link"
+            className={dsPanelRowClass()}
+            isDemo={isDemo}
+          >
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex items-center gap-3">
                 <Link2 className="h-5 w-5 text-red-400" aria-hidden />
@@ -336,17 +542,24 @@ export const MoreHubPage: React.FC = () => {
               </span>
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-          </Link>
+          </HubRowLink>
         )}
 
-        <Link to="/app/profile" className={dsPanelRowClass()}>
-          <span className="flex items-center gap-3">
-            <Settings className="h-5 w-5 text-red-400" aria-hidden />
-            <span>Einstellungen</span>
+        <HubRowLink to="/app/profile" className={dsPanelRowClass()} isDemo={isDemo}>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex items-center gap-3">
+              <Settings className="h-5 w-5 text-red-400" aria-hidden />
+              <span>Einstellungen</span>
+            </span>
+            {isDemo ? (
+              <span className="pl-8 text-[11px] font-normal text-white/40">Noch nicht Teil der Demo</span>
+            ) : null}
           </span>
           <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-        </Link>
+        </HubRowLink>
       </nav>
+
+      {isDemo ? <DemoHelpCard /> : null}
 
       <PremiumCard variant="subtle" showAmbientGlow={false}>
         <div className="flex items-center justify-between gap-3 text-[16px] font-semibold text-white">

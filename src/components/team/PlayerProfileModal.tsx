@@ -17,6 +17,9 @@ import {
   listPlayerSeasonOptions,
   type PlayerSeasonOption,
 } from "../../lib/stats/playerStatsService";
+import { useDemoMode } from "../../demo/DemoContext";
+import { DEMO_TEAM_SEASON_ID } from "../../demo/demoDataSource";
+import { isDemoPlayerId } from "../../demo/demoPlayers";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
 import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
 import {
@@ -489,8 +492,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onPlayerUpdated,
   initialTab = "overview",
   squadPlayers = [],
+  onGuardiansChanged,
 }) => {
+  const demo = useDemoMode();
   const [profileTab, setProfileTab] = useState<ProfileTab>(initialTab);
+  const [guardianToast, setGuardianToast] = useState<string | null>(null);
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
   const [isInjuredPlayer, setIsInjuredPlayer] = useState(player.is_injured);
   const [lazSaving, setLazSaving] = useState(false);
@@ -519,6 +525,21 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      if (demo || isDemoPlayerId(player.id)) {
+        const sid = (teamSeasonId ?? player.team_season_id ?? DEMO_TEAM_SEASON_ID).trim();
+        if (!cancelled) {
+          setSeasonOptions([
+            {
+              teamSeasonId: sid,
+              label: (teamSeasonLabel ?? "2026/27").trim() || "2026/27",
+              status: "active",
+              seasonName: "2026/27",
+              ageGroup: "U12",
+            },
+          ]);
+        }
+        return;
+      }
       const { data } = await listPlayerSeasonOptions(player.id);
       if (cancelled) return;
       setSeasonOptions(data);
@@ -526,7 +547,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [player.id]);
+  }, [player.id, demo, teamSeasonId, player.team_season_id, teamSeasonLabel]);
 
   const careerSeasonIds = useMemo(
     () => seasonOptions.map((o) => o.teamSeasonId),
@@ -717,6 +738,17 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <ProfileSaveSnackbar visible={saveToastVisible} />
+        {guardianToast ? (
+          <div
+            className="pointer-events-none absolute left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-[60] -translate-x-1/2 px-3"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="rounded-full border border-white/12 bg-[rgba(8,8,12,0.94)] px-4 py-2 text-center text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)]">
+              {guardianToast}
+            </div>
+          </div>
+        ) : null}
         <ProfileCompactHeader
           title="Spielerprofil"
           titleId="player-profile-title"
@@ -785,6 +817,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 onChange={(next) => void handleInjuredPlayerToggle(next)}
               />
             </PlayerSpecialSettingsAccordion>
+          ) : null}
+
+          {/* Staff-only: kompakter Hinweis — volle Verwaltung unter Mehr → Eltern & Spielerzugänge */}
+          {canManage && teamSeasonId && !demo ? (
+            <TrainerParentAccessHint teamSeasonId={teamSeasonId} playerId={player.id} />
           ) : null}
 
           {/* Sticky tabs */}

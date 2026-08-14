@@ -11,6 +11,7 @@ import { buildFeedMatchMetaLine, parseClubDisplayName } from '../../lib/feedClub
 import { FeedClubName } from '../../components/feed/FeedClubName';
 import { FeedMatchMetaLine } from '../../components/feed/feedTypography';
 import { PremiumCard } from '../../ui';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -23,6 +24,7 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({
   teamName,
   reviewPending = false,
 }) => {
+  const basePath = useInternalBasePath();
   const { event, status } = pick;
   const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
   const ourFullName = (teamName ?? getOurTeamDisplayName()).trim() || getOurTeamDisplayName();
@@ -38,8 +40,8 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({
 
   const eventLink =
     reviewPending && event.match_id
-      ? `/app/live?matchId=${encodeURIComponent(event.match_id)}`
-      : `/app/events/${event.id}`;
+      ? `${basePath}/live?matchId=${encodeURIComponent(event.match_id)}`
+      : `${basePath}/events/${event.id}`;
 
   const matchMetaLine = buildFeedMatchMetaLine(ourParts.ageGroup, matchLabel);
 

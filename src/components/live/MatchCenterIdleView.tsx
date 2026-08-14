@@ -24,6 +24,7 @@ import { PremiumEmptyState } from '../../ui';
 import { MatchCenterNextMatchCard } from './MatchCenterNextMatchCard';
 import { MatchCenterTournamentCard } from './MatchCenterTournamentCard';
 import { MatchCenterActiveTournamentLiveCard } from './MatchCenterActiveTournamentLiveCard';
+import { subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 
 type Props = {
   isFan: boolean;
@@ -60,8 +61,14 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
   const [activeLiveLoading, setActiveLiveLoading] = useState(false);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 30_000);
-    return () => window.clearInterval(id);
+    const id = window.setInterval(() => setNow(new Date()), 8_000);
+    const unsub = subscribeLiveMatchStateChanged(() => {
+      setNow(new Date());
+    });
+    return () => {
+      window.clearInterval(id);
+      unsub();
+    };
   }, []);
 
   const nextSporting = useMemo(

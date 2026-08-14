@@ -24,6 +24,7 @@ import {
   FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   post: LiveFeedPostRow;
@@ -54,6 +55,7 @@ export const LiveFeedPostCard: React.FC<Props> = ({
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
+  const basePath = useInternalBasePath();
   const p = post.payload;
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
@@ -68,7 +70,9 @@ export const LiveFeedPostCard: React.FC<Props> = ({
 
   const venueLabel = useMemo(() => formatFeedVenueShort(p.location) ?? '—', [p.location]);
 
-  const deepLink = p.deep_link?.startsWith('/') ? p.deep_link : `/app/live/${p.match_id}`;
+  const deepLink = p.deep_link?.startsWith('/')
+    ? p.deep_link
+    : `${basePath}/live/${p.match_id}`;
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
   const kickoffLabel = formatKickoffTime(p.starts_at);
 

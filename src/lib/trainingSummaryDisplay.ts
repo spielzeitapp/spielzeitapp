@@ -28,8 +28,12 @@ export function formatParticipationLabel(pct: number | null): string {
   return `${pct} %`;
 }
 
-/** Unterzeile Ø Beteiligung (Trainingszentrale). */
-export const PARTICIPATION_EXPLICIT_BASIS_SUB = 'Dabei / (Dabei + Abwesend)';
+/** Unterzeile Ø Trainingsbeteiligung (Trainingszentrale, session-basiert). */
+export const PARTICIPATION_EXPLICIT_BASIS_SUB =
+  'Ø über gewertete Trainings · Dabei / (Dabei + Abwesend)';
+
+/** Kachel-Titel: session-aggregierte Teamkennzahl (nicht Spieler-Saisonquote). */
+export const TEAM_PARTICIPATION_TILE_TITLE = 'Ø Trainingsbeteiligung';
 
 export function resolveKaiserLeader(ranking: TrainingRankingResult): TrainingRankingRow | null {
   return ranking.qualified[0] ?? null;

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { isDemoMatchId } from '../demo/demoLiveRuntime';
 import { fetchMatchById } from './liveMatchService';
 import { getMatchSides } from './matchSides';
 import { getClubLogo } from './teamLogos';
@@ -92,6 +93,8 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     rfLog('ensureResultFeedPostForMatch', { error: 'empty_match_id' });
     return { ok: false, error: 'Keine Match-ID.' };
   }
+  // Demo: kein Feed, kein Push, keine Supabase-Writes.
+  if (isDemoMatchId(mid)) return { ok: true, created: false, reason: 'demo' };
 
   const dedupe_key = dedupeKeyForMatch(mid);
 

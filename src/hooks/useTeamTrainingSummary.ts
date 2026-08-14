@@ -74,7 +74,10 @@ export function useTeamTrainingSummary(
     ranking,
     ratedTrainingsCount: sessionsCount,
     participationPct,
-    participationLabel: formatParticipationLabel(participationPct),
+    participationLabel:
+      rankingLoading && participationPct == null
+        ? '…'
+        : formatParticipationLabel(participationPct),
     kaiserName,
     kaiserSub,
     gaberlKing: gaberlKing?.king ?? null,

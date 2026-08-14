@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { InternalLayout } from './layout/InternalLayout.tsx';
 import { IntroAppOutlet } from './intro/IntroAppOutlet';
@@ -17,6 +17,7 @@ import { TermineLayout } from '../pages/TermineLayout';
 import { MoreLayout } from '../pages/MoreLayout';
 import { MorePage } from '../pages/MorePage';
 import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
+import { ParentInviteAcceptPage } from '../pages/ParentInviteAcceptPage';
 import { FanOnboardingPage } from '../pages/FanOnboardingPage';
 import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
@@ -41,19 +42,64 @@ import { ChampionshipManagementPage } from '../pages/ChampionshipManagementPage'
 import { TeamSchedulePage } from '../pages/TeamSchedulePage';
 import { ParentAccessPage } from '../pages/ParentAccessPage';
 import { ParentAccessPlayerPage } from '../pages/ParentAccessPlayerPage';
-import { ParentInviteAcceptPage } from '../pages/ParentInviteAcceptPage';
-import { AuthMinimalLayout } from './layout/AuthMinimalLayout';
 import { JugglingChallengePage } from '../pages/JugglingChallengePage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { SetPasswordPage } from '../pages/SetPasswordPage';
+import { AuthMinimalLayout } from './layout/AuthMinimalLayout';
 import { AdminLoginPage } from '../pages/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
+import { ManagerLayout } from '../manager/ManagerLayout';
+import { ManagerDashboardPage } from '../manager/ManagerDashboardPage';
+import { ManagerPlatzbelegungPage } from '../manager/ManagerPlatzbelegungPage';
+import { ManagerTrainingLibraryPage } from '../manager/ManagerTrainingLibraryPage';
+import { ManagerTrainingSessionsPage } from '../manager/ManagerTrainingSessionsPage';
+import { ManagerTrainingSessionEditorPage } from '../manager/ManagerTrainingSessionEditorPage';
+import { ManagerTrainingTemplatesPage } from '../manager/ManagerTrainingTemplatesPage';
+import { ManagerTrainingChroniclePage } from '../manager/ManagerTrainingChroniclePage';
+import { ManagerSeasonsPage } from '../manager/ManagerSeasonsPage';
+import { ManagerSeasonRosterPage } from '../manager/ManagerSeasonRosterPage';
+import { ManagerOefbImportPage } from '../manager/ManagerOefbImportPage';
+import { ManagerClubsPage } from '../manager/ManagerClubsPage';
+import { ManagerClubDetailPage } from '../manager/ManagerClubDetailPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
+import { PublicTeamTournamentPage } from '../pages/public/PublicTeamTournamentPage';
+import { DemoLayout } from '../demo/DemoLayout';
+import { DemoEventPage } from '../demo/pages/DemoEventPage';
+import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
+import { DemoTourWhatPage } from '../demo/pages/DemoTourWhatPage';
+import { DemoTourCreateTrainingPage } from '../demo/pages/DemoTourCreateTrainingPage';
+import { DemoTourCreateMatchPage } from '../demo/pages/DemoTourCreateMatchPage';
+import { DemoTourParentRsvpPage } from '../demo/pages/DemoTourParentRsvpPage';
+import { DemoTourChroniclePage } from '../demo/pages/DemoTourChroniclePage';
+import { DemoTourSeasonPage } from '../demo/pages/DemoTourSeasonPage';
+import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
+
+/** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
+function DemoPlayerProfileRedirect(): React.ReactElement {
+  const { playerId } = useParams<{ playerId: string }>();
+  const q = playerId ? `?player=${encodeURIComponent(playerId)}` : '';
+  return <Navigate to={`/demo/team${q}`} replace />;
+}
+
+/** /demo/training → produktive Trainingszentrale (Team-Tab) */
+function DemoTrainingRedirect(): React.ReactElement {
+  return <Navigate to="/demo/team?tab=training" replace />;
+}
+
+/** /demo/match → produktives Match-Center (Heimspiel-Vorbereitung) */
+function DemoMatchRedirect(): React.ReactElement {
+  return (
+    <Navigate
+      to={`/demo/match-preparation?matchId=${encodeURIComponent(DEMO_MATCH_ID_LIVE)}`}
+      replace
+    />
+  );
+}
 
 /** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
 function AppErrorFallback({
@@ -171,6 +217,40 @@ function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
       <Route path="app.html" element={<Navigate to="/app" replace />} />
+      {/* Öffentliche Trainer-Demo – gemeinsamer Einstieg + produktives Layout, kein Login */}
+      <Route path="demo" element={<DemoLayout />}>
+        <Route index element={<Navigate to="intro/splash" replace />} />
+        <Route path="intro/splash" element={<SplashScreen />} />
+        <Route path="intro/welcome" element={<WelcomeScreen />} />
+        <Route element={<InternalLayout />}>
+          <Route path="home" element={<AppHomePage />} />
+          <Route path="termine" element={<TermineLayout />}>
+            <Route index element={<SchedulePage />} />
+            <Route path="calendar" element={<CalendarPage />} />
+          </Route>
+          <Route path="events/:eventId" element={<EventDetailPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
+          <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
+          <Route path="training" element={<DemoTrainingRedirect />} />
+          <Route path="match" element={<DemoMatchRedirect />} />
+          <Route path="match-preparation" element={<MatchPreparationPage />} />
+          <Route path="match-lineup" element={<MatchLineupPage />} />
+          <Route path="event" element={<DemoEventPage />} />
+          <Route path="turnier" element={<DemoTournamentPage />} />
+          <Route path="live" element={<LivePage />} />
+          <Route path="tour/what" element={<DemoTourWhatPage />} />
+          <Route path="tour/create-training" element={<DemoTourCreateTrainingPage />} />
+          <Route path="tour/create-match" element={<DemoTourCreateMatchPage />} />
+          <Route path="tour/parent-training" element={<DemoTourParentRsvpPage />} />
+          <Route path="tour/parent-match" element={<DemoTourParentRsvpPage />} />
+          <Route path="tour/chronicle" element={<DemoTourChroniclePage />} />
+          <Route path="tour/season" element={<DemoTourSeasonPage />} />
+          <Route path="mehr" element={<MoreLayout />}>
+            <Route index element={<MorePage />} />
+          </Route>
+        </Route>
+      </Route>
       {/* Kurz-URLs → interne App */}
       <Route path="/home" element={<Navigate to="/app/termine" replace />} />
       <Route path="/team" element={<Navigate to="/app/team" replace />} />
@@ -178,6 +258,8 @@ function InternalRoutes(): React.ReactElement {
       <Route path="/mehr" element={<Navigate to="/app/mehr" replace />} />
       <Route path="/more" element={<Navigate to="/app/mehr" replace />} />
       <Route path="/" element={<Navigate to="/app" replace />} />
+      {/* TURNIER.1 – öffentliche Team-Turnierseite (ohne Login) */}
+      <Route path="turnier/:publicId" element={<PublicTeamTournamentPage />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
@@ -267,6 +349,30 @@ function InternalRoutes(): React.ReactElement {
           </RequireAuth>
         }
       />
+      <Route
+        path="/manager"
+        element={
+          <RequireAuth>
+            <ManagerLayout />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<ManagerDashboardPage />} />
+        <Route path="dashboard" element={<ManagerDashboardPage />} />
+        <Route path="platzbelegung" element={<ManagerPlatzbelegungPage />} />
+        <Route path="saisons" element={<ManagerSeasonsPage />} />
+        <Route path="saisons/:seasonId/kader" element={<ManagerSeasonRosterPage />} />
+        <Route path="saisons/:seasonId/oefb-import" element={<ManagerOefbImportPage />} />
+        <Route path="vereine" element={<ManagerClubsPage />} />
+        <Route path="vereine/:clubId" element={<ManagerClubDetailPage />} />
+        <Route path="training" element={<Navigate to="/manager/training/einheiten" replace />} />
+        <Route path="training/bibliothek" element={<ManagerTrainingLibraryPage />} />
+        <Route path="training/vorlagen" element={<ManagerTrainingTemplatesPage />} />
+        <Route path="training/chronik" element={<ManagerTrainingChroniclePage />} />
+        <Route path="training/einheiten" element={<ManagerTrainingSessionsPage />} />
+        <Route path="training/einheiten/neu" element={<ManagerTrainingSessionEditorPage />} />
+        <Route path="training/einheiten/:id" element={<ManagerTrainingSessionEditorPage />} />
+      </Route>
     </Routes>
   );
 }
@@ -276,6 +382,38 @@ function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
       <Route path="app.html" element={<Navigate to="/" replace />} />
+      <Route path="demo" element={<DemoLayout />}>
+        <Route index element={<Navigate to="intro/splash" replace />} />
+        <Route path="intro/splash" element={<SplashScreen />} />
+        <Route path="intro/welcome" element={<WelcomeScreen />} />
+        <Route element={<InternalLayout />}>
+          <Route path="home" element={<AppHomePage />} />
+          <Route path="termine" element={<TermineLayout />}>
+            <Route index element={<SchedulePage />} />
+            <Route path="calendar" element={<CalendarPage />} />
+          </Route>
+          <Route path="events/:eventId" element={<EventDetailPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
+          <Route path="training" element={<DemoTrainingRedirect />} />
+          <Route path="match" element={<DemoMatchRedirect />} />
+          <Route path="match-preparation" element={<MatchPreparationPage />} />
+          <Route path="match-lineup" element={<MatchLineupPage />} />
+          <Route path="event" element={<DemoEventPage />} />
+          <Route path="turnier" element={<DemoTournamentPage />} />
+          <Route path="live" element={<LivePage />} />
+          <Route path="tour/what" element={<DemoTourWhatPage />} />
+          <Route path="tour/create-training" element={<DemoTourCreateTrainingPage />} />
+          <Route path="tour/create-match" element={<DemoTourCreateMatchPage />} />
+          <Route path="tour/parent-training" element={<DemoTourParentRsvpPage />} />
+          <Route path="tour/parent-match" element={<DemoTourParentRsvpPage />} />
+          <Route path="tour/chronicle" element={<DemoTourChroniclePage />} />
+          <Route path="tour/season" element={<DemoTourSeasonPage />} />
+          <Route path="mehr" element={<MoreLayout />}>
+            <Route index element={<MorePage />} />
+          </Route>
+        </Route>
+      </Route>
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="schedule" element={<SchedulePage />} />
@@ -284,10 +422,14 @@ function PublicRoutes(): React.ReactElement {
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
       </Route>
+      {/* TURNIER.1 – öffentliche Team-Turnierseite auch auf der Public-Domain */}
+      <Route path="turnier/:publicId" element={<PublicTeamTournamentPage />} />
       <Route path="app" element={<Navigate to="/" replace />} />
       <Route path="app/*" element={<Navigate to="/" replace />} />
       <Route path="/admin" element={<Navigate to="/" replace />} />
       <Route path="/admin/*" element={<Navigate to="/" replace />} />
+      <Route path="/manager" element={<Navigate to="/login" replace />} />
+      <Route path="/manager/*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

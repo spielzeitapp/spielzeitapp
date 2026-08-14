@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Check, ChevronRight, ClipboardList, Loader2 } from 'lucide-react';
 import { fetchLineupForLiveMatch } from '../../lib/liveMatchService';
 import {
@@ -27,6 +27,7 @@ import type { TournamentAttendanceSummary } from '../../lib/tournamentPreparatio
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { TC_CARD, TC_CARD_INNER } from './tournamentCenterStyles';
+import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   tournamentEventId: string;
@@ -38,6 +39,10 @@ type Props = {
   canCompleteTournament?: boolean;
   canCreateReport?: boolean;
   completingTournament?: boolean;
+  awaitingFurtherPhase?: boolean;
+  refreshingPlan?: boolean;
+  ownMatchCount?: number;
+  totalMatchCount?: number;
   onOpenAttendance: () => void;
   onOpenSquad: () => void;
   onImportPlan: () => void;
@@ -45,6 +50,7 @@ type Props = {
   onCreateReport: () => void;
   onCompleteTournament: () => void;
   onViewStatus: () => void;
+  onRefreshPlan?: () => void;
   onLineupCopied?: () => void;
 };
 
@@ -123,6 +129,10 @@ export function TournamentAssistantCard({
   canCompleteTournament = false,
   canCreateReport = false,
   completingTournament = false,
+  awaitingFurtherPhase = false,
+  refreshingPlan = false,
+  ownMatchCount = 0,
+  totalMatchCount = 0,
   onOpenAttendance,
   onOpenSquad,
   onImportPlan,
@@ -130,8 +140,11 @@ export function TournamentAssistantCard({
   onCreateReport,
   onCompleteTournament,
   onViewStatus,
+  onRefreshPlan,
   onLineupCopied,
 }: Props) {
+  const navigate = useNavigate();
+  const basePath = useInternalBasePath();
   const [lineupReady, setLineupReady] = useState(false);
   const [lineupLoading, setLineupLoading] = useState(false);
   const [squadCount, setSquadCount] = useState(0);
@@ -225,6 +238,7 @@ export function TournamentAssistantCard({
         canCreateReport,
         lineupCopyAvailable,
         targetHasExistingLineup: copyContext?.targetHasExistingLineup ?? false,
+        awaitingFurtherPhase,
       }),
     [
       slots,
@@ -237,6 +251,7 @@ export function TournamentAssistantCard({
       canCreateReport,
       lineupCopyAvailable,
       copyContext,
+      awaitingFurtherPhase,
     ],
   );
 
@@ -244,7 +259,10 @@ export function TournamentAssistantCard({
     if (!copyContext) return;
     const sourceMatchId = copyContext.sourceSlot.match_id?.trim() ?? '';
     const targetMatchId = copyContext.targetSlot.match_id?.trim() ?? '';
-    if (!sourceMatchId || !targetMatchId) return;
+    if (!sourceMatchId || !targetMatchId) {
+      setCopyError('Spiel-IDs fehlen.');
+      return;
+    }
 
     if (copyContext.targetHasExistingLineup && !replaceExisting && !showReplaceConfirm) {
       setShowReplaceConfirm(true);
@@ -269,6 +287,18 @@ export function TournamentAssistantCard({
 
     setShowReplaceConfirm(false);
     onLineupCopied?.();
+
+    // Persist verifiziert in copyTournamentLineupBetweenMatches — dann erst UI öffnen.
+    if (mode === 'squad_only') {
+      navigate(matchPreparationPath(targetMatchId, basePath));
+    } else {
+      navigate(matchLineupPath(targetMatchId, basePath), {
+        state: {
+          formationId: result.formationId ?? undefined,
+          lineupCopiedFromPrevious: true,
+        },
+      });
+    }
   };
 
   const renderSingleAction = (
@@ -306,10 +336,10 @@ export function TournamentAssistantCard({
       case 'prepare_match':
         return action.matchId ? (
           primary ? (
-            <PrimaryButton label={label} to={matchPreparationPath(action.matchId)} />
+            <PrimaryButton label={label} to={matchPreparationPath(action.matchId, basePath)} />
           ) : (
             <Link
-              to={matchPreparationPath(action.matchId)}
+              to={matchPreparationPath(action.matchId, basePath)}
               className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
             >
               {label}
@@ -318,12 +348,12 @@ export function TournamentAssistantCard({
         ) : null;
       case 'open_lineup':
         return action.matchId ? (
-          <PrimaryButton label={label} to={matchLineupPath(action.matchId)} />
+          <PrimaryButton label={label} to={matchLineupPath(action.matchId, basePath)} />
         ) : null;
       case 'start_live':
       case 'go_live':
         return action.matchId ? (
-          <PrimaryButton label={label} to={liveMatchPath(action.matchId)} />
+          <PrimaryButton label={label} to={liveMatchPath(action.matchId, basePath)} />
         ) : null;
       case 'create_report':
         return <PrimaryButton label={label} onClick={onCreateReport} disabled={disabled} />;
@@ -335,6 +365,14 @@ export function TournamentAssistantCard({
             disabled={disabled || completingTournament}
           />
         );
+      case 'refresh_plan':
+        return (
+          <PrimaryButton
+            label={refreshingPlan ? 'Nächste Runde wird aktualisiert …' : label}
+            onClick={() => onRefreshPlan?.()}
+            disabled={disabled || refreshingPlan || !onRefreshPlan}
+          />
+        );
       case 'view_status':
         return <PrimaryButton label={label} onClick={onViewStatus} disabled={disabled} />;
       default:
@@ -344,36 +382,56 @@ export function TournamentAssistantCard({
 
   const renderAction = (action: TournamentAssistantAction) => {
     if (action.kind === 'lineup_copy') {
+      const targetMatchId = action.matchId ?? copyContext?.targetSlot.match_id?.trim() ?? '';
       return (
         <div className="flex flex-col gap-1.5">
-          {showReplaceConfirm || copyContext?.targetHasExistingLineup ? (
-            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
-              Bestehende Aufstellung wird ersetzt — Tore und Spielereignisse bleiben unberührt.
+          <p className="rounded-lg border border-purple-500/25 bg-purple-950/25 px-2.5 py-2 text-[12px] font-semibold leading-snug text-purple-50">
+            Letzte Aufstellung übernehmen
+          </p>
+          {copyContext?.sourceOpponentName ? (
+            <p className="text-[11px] leading-snug text-white/60">
+              Spiel gegen {copyContext.sourceOpponentName}
+              {copyContext.sourceStarterCount > 0
+                ? ` · ${copyContext.sourceStarterCount} Startelf`
+                : ''}
             </p>
           ) : null}
+          {showReplaceConfirm ? (
+            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
+              Die bestehende Aufstellung dieses Spiels wird ersetzt. Bitte erneut tippen zum Bestätigen.
+            </p>
+          ) : copyContext?.targetHasExistingLineup ? (
+            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
+              Für dieses Spiel gibt es bereits eine Aufstellung. Übernehmen ersetzt sie.
+            </p>
+          ) : (
+            <p className="text-[11px] leading-snug text-white/55">
+              Formation, Startelf und Bank werden übernommen — ohne erneute Spielerauswahl.
+            </p>
+          )}
           <PrimaryButton
             label={copyBusy ? 'Wird übernommen…' : 'Komplette Aufstellung übernehmen'}
             onClick={() => void runCopy('full', showReplaceConfirm)}
-            disabled={copyBusy}
+            disabled={copyBusy || (copyContext?.sourceStarterCount ?? 0) < 1}
           />
           <GlassButton
-            label="Startelf übernehmen"
+            label="Nur Startelf übernehmen"
             onClick={() => void runCopy('starters', showReplaceConfirm)}
             disabled={copyBusy}
           />
           <GlassButton
-            label="Bank übernehmen"
+            label="Nur Ersatzspieler übernehmen"
             onClick={() => void runCopy('bench', showReplaceConfirm)}
             disabled={copyBusy}
           />
-          <SecondaryButton
-            label="Nur Turnierkader übernehmen"
+          <GlassButton
+            label="Mit Turnierkader neu aufstellen"
             onClick={() => void runCopy('squad_only', showReplaceConfirm)}
-            disabled={copyBusy}
+            disabled={copyBusy || !tournamentEventId}
           />
-          {action.matchId ? (
+          {targetMatchId ? (
             <Link
-              to={matchPreparationPath(action.matchId)}
+              to={matchPreparationPath(targetMatchId, basePath)}
               className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
             >
               Manuell vorbereiten
@@ -423,10 +481,30 @@ export function TournamentAssistantCard({
         <div>
           <h2 className="text-[17px] font-bold leading-snug text-white">{step.title}</h2>
           <p className="mt-1 text-[13px] leading-snug text-white/62">{step.description}</p>
+          {step.stepNumber > 1 ? (
+            <ul className="mt-2 flex list-none flex-col gap-0.5 p-0">
+              {step.stepNumber > 1 ? (
+                <li className="text-[11px] text-emerald-300/85">✓ Verfügbarkeit geklärt</li>
+              ) : null}
+              {step.stepNumber > 2 && squadCount > 0 ? (
+                <li className="text-[11px] text-emerald-300/85">
+                  ✓ {squadCount} Spieler im Turnierkader
+                </li>
+              ) : null}
+              {step.stepNumber > 3 && (hasOfficialPlanUrl || totalMatchCount > 0) ? (
+                <>
+                  <li className="text-[11px] text-emerald-300/85">✓ Turnierplan importiert</li>
+                  <li className="text-[11px] text-white/50">
+                    {ownMatchCount} eigene Spiele · {totalMatchCount} Turnierspiele
+                  </li>
+                </>
+              ) : null}
+            </ul>
+          ) : null}
           {step.detailLines.length > 0 ? (
             <ul className="mt-2 flex list-none flex-col gap-0.5 p-0">
               {step.detailLines.map((line) => (
-                <li key={line} className="text-[11px] text-white/45 before:mr-1.5 before:content-['↓']">
+                <li key={line} className="text-[11px] text-white/45">
                   {line}
                 </li>
               ))}

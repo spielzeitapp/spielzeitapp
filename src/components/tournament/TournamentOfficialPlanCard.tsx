@@ -16,6 +16,7 @@ import {
   computeTournamentPlanRefreshPreview,
   fetchTournamentImportRecognition,
   importTournamentPlanFromAnalysis,
+  isRecognizedTournamentPlanHost,
   TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
   type TournamentImportRecognition,
   type TournamentPlanAnalysis,
@@ -29,6 +30,7 @@ import {
   saveOfficialTournamentPlanUrl,
   validateOfficialTournamentUrl,
 } from '../../lib/tournamentOfficialPlanUrl';
+import { markOfficialTournamentSynced } from '../../lib/tournamentPlanSync';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { TournamentPlanImportSheet } from './TournamentPlanImportSheet';
 import { TournamentPlanRefreshSheet } from './TournamentPlanRefreshSheet';
@@ -161,7 +163,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
       if (qrSaveInFlightRef.current) return;
 
       const validated = validateOfficialTournamentUrl(rawValue);
-      if (!validated.ok) {
+      if (!validated.ok || !isRecognizedTournamentPlanHost(validated.url)) {
         setQrScanError(INVALID_QR_TOURNAMENT_LINK_MESSAGE);
         return;
       }
@@ -253,6 +255,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     }
 
     setImportSheetOpen(false);
+    markOfficialTournamentSynced(tournamentEventId);
     onImportComplete();
 
     if (importedMatches === 0 && importedTeams === 0 && updatedResults === 0) {
@@ -368,6 +371,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     }
 
     setRefreshSheetOpen(false);
+    markOfficialTournamentSynced(tournamentEventId);
     onImportComplete();
 
     if (importedMatches === 0 && importedTeams === 0 && updatedResults === 0) {
@@ -554,9 +558,13 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
               qrSaveInFlightRef.current = false;
             }}
             onScanSuccess={(rawValue) => void handleQrScan(rawValue)}
-            scanError={qrScanError}
-            onScanError={setQrScanError}
             saving={qrSaving}
+            saveError={qrScanError}
+            onEnterLink={() => {
+              setQrScannerOpen(false);
+              setQrScanError(null);
+              openEditor();
+            }}
           />
 
           <TournamentPlanRefreshSheet

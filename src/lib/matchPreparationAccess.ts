@@ -1,16 +1,26 @@
+import { canManageMatches, normalizeRole, type RoleKey } from './roles';
+
 /** Route zur Match-Vorbereitung (Kader, Aufstellung, Feed-Automatisierung). */
-export function matchPreparationPath(matchId: string): string {
-  return `/app/match-preparation?matchId=${encodeURIComponent(matchId.trim())}`;
+export function matchPreparationPath(
+  matchId: string,
+  base: '/app' | '/demo' = '/app',
+): string {
+  return `${base}/match-preparation?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 
 /** Route zur Aufstellungsseite eines Spiels. */
-export function matchLineupPath(matchId: string): string {
-  return `/app/match-lineup?matchId=${encodeURIComponent(matchId.trim())}`;
+export function matchLineupPath(matchId: string, base: '/app' | '/demo' = '/app'): string {
+  return `${base}/match-lineup?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 
 /** Route zum Livespiel. */
-export function liveMatchPath(matchId: string): string {
-  return `/app/live?matchId=${encodeURIComponent(matchId.trim())}`;
+export function liveMatchPath(matchId: string, base: '/app' | '/demo' = '/app'): string {
+  return `${base}/live?matchId=${encodeURIComponent(matchId.trim())}`;
+}
+
+/** Trainer/Admin/Staff darf Match vorbereiten / Aufstellung schreiben. */
+export function canMutateMatchPreparation(role: RoleKey | string | null | undefined): boolean {
+  return canManageMatches(normalizeRole(role));
 }
 
 /** Kader vor Anpfiff bearbeitbar; danach nur noch Live-Wechsel. */
@@ -22,6 +32,16 @@ export function isMatchSquadEditable(params: {
   if (status === 'live' || status === 'finished') return false;
   if (params.live_started_at) return false;
   return true;
+}
+
+/** Nutzerfreundliche Meldung statt roher Supabase/RLS-Texte. */
+export function friendlyMatchLineupWriteError(raw: string | null | undefined): string {
+  const msg = String(raw ?? '').trim();
+  if (!msg) return 'Aufstellung konnte nicht gespeichert werden.';
+  if (/row-level security|rls|permission denied|not allowed/i.test(msg)) {
+    return 'Aufstellung konnte nicht gespeichert werden.';
+  }
+  return msg;
 }
 
 export function isMatchPreparationAccessible(

@@ -5,6 +5,7 @@ import {
 } from '../../lib/tournamentGroupStandings';
 import { formatTournamentGoalDifference } from '../../lib/tournamentPlan';
 import { TC_SECTION_LABEL } from './tournamentCenterStyles';
+import { TournamentClubLogo } from './TournamentClubLogo';
 
 type Props = {
   standings: TournamentGroupStandings;
@@ -40,13 +41,20 @@ export function TournamentStandingsGroupList({
             }`}
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className={`truncate font-semibold text-white ${compact ? 'text-[13px]' : 'text-[14px]'}`}>
-                  {row.rank}. {row.teamName}
-                </p>
-                <p className={`mt-0.5 tabular-nums text-white/50 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
-                  {row.played} Sp. · {row.wins}-{row.draws}-{row.losses}
-                </p>
+              <div className="flex min-w-0 items-start gap-2">
+                <TournamentClubLogo name={row.teamName} size="sm" tone="dark" />
+                <div className="min-w-0">
+                  <p
+                    className={`line-clamp-2 font-semibold leading-snug text-white ${
+                      compact ? 'text-[13px]' : 'text-[14px]'
+                    }`}
+                  >
+                    {row.rank}. {row.teamName}
+                  </p>
+                  <p className={`mt-0.5 tabular-nums text-white/50 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+                    {row.played} Sp. · {row.wins}-{row.draws}-{row.losses}
+                  </p>
+                </div>
               </div>
               <div className="shrink-0 text-right">
                 <p className={`font-bold tabular-nums text-white ${compact ? 'text-[12px]' : 'text-[13px]'}`}>

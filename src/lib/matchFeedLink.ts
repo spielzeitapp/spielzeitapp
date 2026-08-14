@@ -16,31 +16,33 @@ export function resolveMatchGameHref(params: {
   eventId?: string | null;
   status?: MatchGameLinkStatus | null;
   canManage?: boolean;
+  basePath?: '/app' | '/demo';
 }): string {
+  const base = params.basePath ?? '/app';
   const mid = (params.matchId ?? '').trim();
   const eid = (params.eventId ?? '').trim();
   const status = (params.status ?? 'upcoming').toLowerCase();
 
   if (params.canManage !== true) {
-    if (eid) return `/app/events/${encodeURIComponent(eid)}`;
+    if (eid) return `${base}/events/${encodeURIComponent(eid)}`;
     // Ohne Event-Id: sichere Fallbacks, aber nie die Vorbereitung.
-    if (status === 'live' && mid) return `/app/live/${encodeURIComponent(mid)}`;
-    if (FINISHED_STATUSES.has(status) && mid) return `/app/live?matchId=${encodeURIComponent(mid)}`;
-    return '/app/termine';
+    if (status === 'live' && mid) return `${base}/live/${encodeURIComponent(mid)}`;
+    if (FINISHED_STATUSES.has(status) && mid) return `${base}/live?matchId=${encodeURIComponent(mid)}`;
+    return `${base}/termine`;
   }
 
   if (status === 'live') {
-    if (mid) return `/app/live/${encodeURIComponent(mid)}`;
-    return '/app/live';
+    if (mid) return `${base}/live/${encodeURIComponent(mid)}`;
+    return `${base}/live`;
   }
 
   if (FINISHED_STATUSES.has(status)) {
-    if (mid) return `/app/match-preparation?matchId=${encodeURIComponent(mid)}`;
-    if (eid) return `/app/events/${encodeURIComponent(eid)}`;
-    return '/app/termine';
+    if (mid) return `${base}/match-preparation?matchId=${encodeURIComponent(mid)}`;
+    if (eid) return `${base}/events/${encodeURIComponent(eid)}`;
+    return `${base}/termine`;
   }
 
-  if (mid) return `/app/match-preparation?matchId=${encodeURIComponent(mid)}`;
-  if (eid) return `/app/events/${encodeURIComponent(eid)}`;
-  return '/app/termine';
+  if (mid) return `${base}/match-preparation?matchId=${encodeURIComponent(mid)}`;
+  if (eid) return `${base}/events/${encodeURIComponent(eid)}`;
+  return `${base}/termine`;
 }

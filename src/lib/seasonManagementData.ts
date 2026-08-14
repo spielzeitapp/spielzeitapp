@@ -26,12 +26,17 @@ export type SeasonCardModel = {
   seasonPhaseOverrideLabel: string | null;
   teamName: string | null;
   preparedFromLabel: string | null;
+  playerCount?: number;
+  pausedCount?: number;
+  eventCount?: number;
+  archivedAt?: string | null;
 };
 
 export type SeasonManagementSnapshot = {
   teamId: string;
   active: SeasonCardModel | null;
   draft: SeasonCardModel | null;
+  archived: SeasonCardModel[];
   hasDraftForActive: boolean;
 };
 
@@ -43,6 +48,7 @@ type TeamSeasonRow = {
   age_group?: string | null;
   season_phase?: string | null;
   prepared_from_team_season_id?: string | null;
+  archived_at?: string | null;
   teams?: { name?: string | null } | { name?: string | null }[] | null;
   seasons?: { name?: string | null } | { name?: string | null }[] | null;
 };
@@ -78,6 +84,35 @@ function rowToCard(row: TeamSeasonRow, preparedFromLabel: string | null): Season
     seasonPhaseOverrideLabel: seasonPhaseLabelDe(seasonPhase),
     teamName,
     preparedFromLabel,
+    archivedAt: row.archived_at ?? null,
+  };
+}
+
+async function enrichCardCounts(card: SeasonCardModel): Promise<SeasonCardModel> {
+  const [roster, events] = await Promise.all([
+    supabase
+      .from('team_season_players')
+      .select('status, is_active')
+      .eq('team_season_id', card.id)
+      .is('left_at', null),
+    supabase
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('team_season_id', card.id),
+  ]);
+  let playerCount = 0;
+  let pausedCount = 0;
+  for (const r of roster.data ?? []) {
+    const st = String((r as { status?: string }).status ?? 'active').toLowerCase();
+    if (st === 'archived') continue;
+    if (st === 'paused' || (r as { is_active?: boolean }).is_active === false) pausedCount += 1;
+    else playerCount += 1;
+  }
+  return {
+    ...card,
+    playerCount,
+    pausedCount,
+    eventCount: events.count ?? 0,
   };
 }
 
@@ -156,6 +191,7 @@ export async function fetchSeasonManagementSnapshot(
       age_group,
       season_phase,
       prepared_from_team_season_id,
+      archived_at,
       teams ( name ),
       seasons ( name )
     `,
@@ -163,7 +199,7 @@ export async function fetchSeasonManagementSnapshot(
     .eq('team_id', teamId);
 
   let all: TeamSeasonRow[] = [];
-  if (listErr && /season_phase|column|schema cache/i.test(listErr.message)) {
+  if (listErr && /season_phase|archived_at|column|schema cache/i.test(listErr.message)) {
     const fallback = await supabase
       .from('team_seasons')
       .select(
@@ -209,6 +245,10 @@ export async function fetchSeasonManagementSnapshot(
   const draftRow =
     all.find((r) => normalizeTeamSeasonStatus(r.status) === 'draft') ?? null;
 
+  const archivedRows = all
+    .filter((r) => normalizeTeamSeasonStatus(r.status) === 'archived')
+    .sort((a, b) => String(b.archived_at ?? '').localeCompare(String(a.archived_at ?? '')));
+
   let preparedFromLabel: string | null = null;
   if (draftRow?.prepared_from_team_season_id) {
     const src = byId.get(draftRow.prepared_from_team_season_id);
@@ -217,8 +257,14 @@ export async function fetchSeasonManagementSnapshot(
     }
   }
 
-  const active = activeRow ? rowToCard(activeRow, null) : null;
-  const draft = draftRow ? rowToCard(draftRow, preparedFromLabel) : null;
+  let active = activeRow ? rowToCard(activeRow, null) : null;
+  let draft = draftRow ? rowToCard(draftRow, preparedFromLabel) : null;
+  let archived = archivedRows.map((r) => rowToCard(r, null));
+
+  // Counts best effort (Join-Kader)
+  if (active) active = await enrichCardCounts(active);
+  if (draft) draft = await enrichCardCounts(draft);
+  archived = await Promise.all(archived.map((c) => enrichCardCounts(c)));
 
   let hasDraftForActive = Boolean(draft);
   if (active && !hasDraftForActive) {
@@ -230,6 +276,7 @@ export async function fetchSeasonManagementSnapshot(
       teamId,
       active,
       draft,
+      archived,
       hasDraftForActive,
     },
     error: null,

@@ -81,6 +81,7 @@ function isNsgHeimteamKey(key: string): boolean {
 const LOGO_MAP: Record<string, string> = {
   // NSG Heimteams + SPG Rohrbach (gemeinsames NSG-Gölsental-Wappen)
   'nsg rohrbach': NSG_GOELSENTAL_SLUG,
+  'nsg rohrbach st veit': NSG_GOELSENTAL_SLUG,
   'nsg hainfeld': NSG_GOELSENTAL_SLUG,
   'nsg goelsental': NSG_GOELSENTAL_SLUG,
   'spg rohrbach': NSG_GOELSENTAL_SLUG,
@@ -94,11 +95,23 @@ const LOGO_MAP: Record<string, string> = {
   // First Vienna
   'first vienna': 'first-vienna',
   'first vienna fc': 'first-vienna',
+  'fc first vienna': 'first-vienna',
   vienna: 'first-vienna',
   // ASK Wilhelmsburg
   'ask wilhelmsburg': 'ask-wilhelmsburg',
   'wilhelmsburg ask': 'ask-wilhelmsburg',
   wilhelmsburg: 'ask-wilhelmsburg',
+  // SKU Amstetten (TURNIERlive: „SKU Amstetten“)
+  'sku amstetten': 'sku-amstetten.jpg',
+  'sku ertl glas amstetten': 'sku-amstetten.jpg',
+  'ertl glas amstetten': 'sku-amstetten.jpg',
+  // SV Langenrohr (TURNIERlive)
+  'sv langenrohr': 'sv-langenrohr.png',
+  langenrohr: 'sv-langenrohr.png',
+  // SC Wiener Neustadt (TURNIERlive) — Datei: sc-wr-neustadt.png
+  'sc wiener neustadt': 'sc-wr-neustadt.png',
+  'sc wr neustadt': 'sc-wr-neustadt.png',
+  'sc wr.neustadt': 'sc-wr-neustadt.png',
   // USG / SPG Alpenvorland
   'usg alpenvorland': 'usg-alpenvorland',
   'spg alpenvorland': 'usg-alpenvorland',
@@ -120,11 +133,9 @@ const LOGO_MAP: Record<string, string> = {
   // SV Mattersburg
   'sv mattersburg': 'sv-mattersburg',
   mattersburg: 'sv-mattersburg',
-  // Fortuna Wr. Neustadt
+  // Fortuna Wr. Neustadt (eigenes Asset; nicht mit SC Wiener Neustadt vermischen)
   'fortuna wr neustadt': 'fortuna-wr-neustadt',
   'fortuna wiener neustadt': 'fortuna-wr-neustadt',
-  'wr neustadt': 'fortuna-wr-neustadt',
-  'sc wr neustadt': 'fortuna-wr-neustadt',
   // Bestehende Gegner
   'skn st poelten': 'skn-stpoelten-a',
   'skn st.poelten': 'skn-stpoelten-a',
@@ -223,7 +234,7 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
 
   const mapped = resolveMappedLogoFile(name);
   if (mapped) {
-    return getLogoUrl(`${mapped}.png`);
+    return getLogoUrl(/\.(png|jpe?g|svg)$/i.test(mapped) ? mapped : `${mapped}.png`);
   }
 
   // Keine geratenen Slug-URLs (/logos/spg-bischofstetten.png) → 404 / falsche Assoziation.
