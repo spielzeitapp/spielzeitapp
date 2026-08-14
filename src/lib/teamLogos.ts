@@ -101,13 +101,14 @@ const LOGO_MAP: Record<string, string> = {
   'ask wilhelmsburg': 'ask-wilhelmsburg',
   'wilhelmsburg ask': 'ask-wilhelmsburg',
   wilhelmsburg: 'ask-wilhelmsburg',
-  // SKU Amstetten (TURNIERlive: „SKU Amstetten“)
-  'sku amstetten': 'sku-amstetten.jpg',
-  'sku ertl glas amstetten': 'sku-amstetten.jpg',
-  'ertl glas amstetten': 'sku-amstetten.jpg',
-  // SV Langenrohr (TURNIERlive)
-  'sv langenrohr': 'sv-langenrohr.png',
-  langenrohr: 'sv-langenrohr.png',
+  // SKU Amstetten (TURNIERlive: „SKU Amstetten“) — freigestelltes PNG
+  'sku amstetten': 'sku-amstetten.png',
+  'sku ertl glas amstetten': 'sku-amstetten.png',
+  'ertl glas amstetten': 'sku-amstetten.png',
+  amstetten: 'sku-amstetten.png',
+  // SV Langenrohr (TURNIERlive) — freigestellt + Cache-Bust (-v2)
+  'sv langenrohr': 'sv-langenrohr-v2.png',
+  langenrohr: 'sv-langenrohr-v2.png',
   // SC Wiener Neustadt (TURNIERlive) — Datei: sc-wr-neustadt.png
   'sc wiener neustadt': 'sc-wr-neustadt.png',
   'sc wr neustadt': 'sc-wr-neustadt.png',
