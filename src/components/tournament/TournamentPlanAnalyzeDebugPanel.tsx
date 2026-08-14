@@ -3,10 +3,11 @@ import {
   TOURNAMENT_IMPORT_MANUAL_HINT,
   formatEndpointAttemptSummary,
   labelForTournamentPlanAnalyzeSource,
+  labelForTournamentPlanIdSource,
+  labelForTournamentPlanProvider,
   type TournamentPlanAnalyzeDiagnostics,
   type TournamentPlanAnalyzeFailure,
 } from '../../lib/tournamentPlanImport';
-import { labelMeinTurnierplanIdSource } from '../../lib/meinTurnierplanUrl';
 
 type Props = {
   failure: TournamentPlanAnalyzeFailure | null;
@@ -94,6 +95,7 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
               Redirect: {d.finalRedirectUrl}
             </li>
           ) : null}
+          <li>Provider erkannt: {labelForTournamentPlanProvider(d.provider)}</li>
           <li>Link erkannt: {yesNo(d.linkRecognized)}</li>
           <li>
             Turnier-ID erkannt:{' '}
@@ -104,11 +106,18 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
             )}
           </li>
           {d.idDetectionSource ? (
-            <li>ID-Quelle: {labelMeinTurnierplanIdSource(d.idDetectionSource)}</li>
+            <li>ID-Quelle: {labelForTournamentPlanIdSource(d.idDetectionSource, d.provider)}</li>
           ) : null}
-          <li>showit.php erreichbar: {yesNoUnknown(d.showitPageReachable)}</li>
+          {d.finalRedirectUrl ? (
+            <li className="break-all">Redirect-Ziel: {d.finalRedirectUrl}</li>
+          ) : null}
+          {d.provider !== 'tournament-live' ? (
+            <li>showit.php erreichbar: {yesNoUnknown(d.showitPageReachable)}</li>
+          ) : null}
           <li>JSON-API erreichbar: {yesNo(d.apiReachable)}</li>
           <li>Datenquelle: {labelForTournamentPlanAnalyzeSource(d.source)}</li>
+          {d.detectedTeamCount != null ? <li>Anzahl Teams erkannt: {d.detectedTeamCount}</li> : null}
+          {d.detectedMatchCount != null ? <li>Anzahl Spiele erkannt: {d.detectedMatchCount}</li> : null}
           {d.analyzeLastStep ? <li>letzter Schritt: {d.analyzeLastStep}</li> : null}
           {d.analyzeTimedOut != null ? <li>timeout: {yesNo(d.analyzeTimedOut)}</li> : null}
           {d.fallbackStage ? <li>Fallback-Stufe: {d.fallbackStage}</li> : null}
@@ -152,7 +161,7 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
             </li>
           ) : null}
           {d.htmlFallbackException ? <HtmlFallbackExceptionDetails exception={d.htmlFallbackException} /> : null}
-          {d.tournamentName ? <li>Turniername (HTML): {d.tournamentName}</li> : null}
+          {d.tournamentName ? <li>Turniername: {d.tournamentName}</li> : null}
           {d.serverException ? (
             <li className="break-words text-amber-100/85">
               Server-Exception: {d.serverException.name} — {d.serverException.message}

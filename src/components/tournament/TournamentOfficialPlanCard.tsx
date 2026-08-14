@@ -592,6 +592,11 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             }}
             onImport={() => void handleImportConfirm()}
             onAddAlias={scrollToAliases}
+            onRetry={() => void startImport()}
+            onEditLink={() => {
+              setImportSheetOpen(false);
+              openEditor();
+            }}
           />
 
           <Modal

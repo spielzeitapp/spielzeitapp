@@ -29,6 +29,8 @@ import {
   resolveMeinTurnierplanShowitUrl,
   resolveMeinTurnierplanTournamentId,
 } from './meinTurnierplanUrl.js';
+import { isTournamentLiveHost } from './tournamentLiveUrl.js';
+import { analyzeTournamentLiveUrl } from './tournamentLiveAdapter.js';
 
 function buildMeinTurnierplanJsonEndpoints(tournamentId) {
   const id = tournamentId.trim();
@@ -67,6 +69,8 @@ function messageForCode(code) {
       return 'Keine Spiele gefunden.';
     case 'plan_no_longer_provided':
       return 'Turnierplan wird von diesem Link nicht mehr bereitgestellt.';
+    case 'plan_incomplete':
+      return 'Turnier wurde erkannt, der Spielplan konnte aber noch nicht vollständig gelesen werden.';
     case 'parse_failed':
     default:
       return 'Turnierplan konnte nicht analysiert werden.';
@@ -197,7 +201,7 @@ function inferKnockoutPhaseFromMeinTurnierplan(modeMapping, sourceTeam1, sourceT
   return 'unknown';
 }
 
-function parseMeinTurnierplanJson(data) {
+export function parseMeinTurnierplanJson(data) {
   const json = data;
   if (
     !json?.participants ||
@@ -360,6 +364,34 @@ export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
   const trimmed = url.trim();
   if (!trimmed) {
     return buildFailure('id_not_found', null, []);
+  }
+
+  if (isTournamentLiveHost(trimmed)) {
+    const live = await analyzeTournamentLiveUrl(trimmed, fetchImpl);
+    if (live.ok) {
+      return {
+        ok: true,
+        provider: 'tournament-live',
+        extractedId: live.diagnostics.extractedId,
+        attemptedEndpoints: live.diagnostics.attemptedEndpoints,
+        analysis: live.analysis,
+        diagnostics: {
+          ...live.diagnostics,
+          detectedTeamCount: live.analysis.teamCount,
+          detectedMatchCount: live.analysis.matchCount,
+        },
+      };
+    }
+    return {
+      ok: false,
+      provider: 'tournament-live',
+      code: live.failure.code,
+      message: live.failure.message,
+      extractedId: live.failure.extractedId,
+      attemptedEndpoints: live.failure.attemptedEndpoints,
+      httpStatus: live.httpStatus,
+      diagnostics: live.failure.diagnostics,
+    };
   }
 
   if (!isSupportedTournamentPlanHost(trimmed)) {

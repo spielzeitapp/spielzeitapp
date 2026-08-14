@@ -62,6 +62,7 @@ export default async function handler(req, res) {
       message: result.message,
       extractedId: result.extractedId,
       attemptedEndpoints: result.attemptedEndpoints,
+      diagnostics: result.diagnostics,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

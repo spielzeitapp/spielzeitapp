@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { FileDown } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import {
+  buildTournamentPlanImportPreviewSummary,
   countAnalysisMatchResults,
   countOwnTeamMatchesInAnalysis,
   labelForTournamentPlanAnalyzeSource,
@@ -28,6 +29,8 @@ type Props = {
   onClose: () => void;
   onImport: () => void;
   onAddAlias: () => void;
+  onRetry?: () => void;
+  onEditLink?: () => void;
 };
 
 function formatGroupLine(summary: { label: string; teamCount: number }): string {
@@ -48,6 +51,8 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
   onClose,
   onImport,
   onAddAlias,
+  onRetry,
+  onEditLink,
 }) => {
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -56,6 +61,17 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
   const resultCounts = analysis ? countAnalysisMatchResults(analysis) : null;
   const ownMatches =
     analysis && recognition ? listOwnTeamMatchesForImportPreview(analysis, recognition.knownNames) : [];
+  const preview =
+    analysis && recognition
+      ? buildTournamentPlanImportPreviewSummary(analysis, recognition.knownNames)
+      : analysis
+        ? buildTournamentPlanImportPreviewSummary(analysis, [])
+        : null;
+  const showIncompleteActions = Boolean(
+    analyzeFailure &&
+      (analyzeFailure.code === 'plan_incomplete' || analyzeFailure.provider === 'tournament-live') &&
+      analyzeFailure.code !== 'unsupported_host',
+  );
 
   return createPortal(
     <div
@@ -92,9 +108,31 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
                   {error}
                 </p>
               ) : null}
-              <TournamentPlanAnalyzeDebugPanel failure={analyzeFailure} diagnostics={analyzeDiagnostics} />
+              {showIncompleteActions ? (
+                <div className="flex flex-col gap-2">
+                  {onRetry ? (
+                    <AppButton variant="primary" onClick={onRetry} className="w-full">
+                      Erneut versuchen
+                    </AppButton>
+                  ) : null}
+                  {onEditLink ? (
+                    <AppButton variant="secondary" onClick={onEditLink} className="w-full">
+                      QR/Link bearbeiten
+                    </AppButton>
+                  ) : null}
+                  <AppButton variant="secondary" onClick={onClose} className="w-full">
+                    Spiele manuell anlegen
+                  </AppButton>
+                </div>
+              ) : null}
+              <details className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+                <summary className="cursor-pointer text-[12px] text-white/55">Debug (Trainer)</summary>
+                <div className="mt-2">
+                  <TournamentPlanAnalyzeDebugPanel failure={analyzeFailure} diagnostics={analyzeDiagnostics} />
+                </div>
+              </details>
             </>
-          ) : analysis ? (
+          ) : analysis && preview ? (
             <>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[14px] text-white/85">
                 {analyzeDiagnostics?.source ? (
@@ -102,14 +140,25 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
                     Quelle: {labelForTournamentPlanAnalyzeSource(analyzeDiagnostics.source)}
                   </p>
                 ) : null}
-                <p>Teams gefunden: {analysis.teamCount}</p>
+                {preview.tournamentName ? (
+                  <p className="font-medium text-white">{preview.tournamentName}</p>
+                ) : null}
+                <p>Teams erkannt: {preview.teamCount}</p>
+                <p>Spiele erkannt: {preview.matchCount}</p>
+                <p>eigene Mannschaft erkannt: {preview.ownTeamRecognized ? 'ja' : 'nein'}</p>
+                {preview.firstOwnMatch ? (
+                  <p>
+                    erstes eigenes Spiel: {preview.firstOwnMatch.kickoffTimeHHmm} vs.{' '}
+                    {preview.firstOwnMatch.opponentName}
+                  </p>
+                ) : null}
+                {preview.lastPhaseLabel ? <p>letzte erkannte Phase: {preview.lastPhaseLabel}</p> : null}
                 <p>Gruppen gefunden: {analysis.groupCount}</p>
-                <p>Spiele gefunden: {analysis.preliminaryMatchCount}</p>
               </div>
 
-              {analysis.groupSummaries.length > 0 ? (
+              {preview.groups.length > 0 ? (
                 <div className="flex flex-col gap-1 text-[14px] text-white/75">
-                  {analysis.groupSummaries.map((group) => (
+                  {preview.groups.map((group) => (
                     <p key={group.label}>{formatGroupLine(group)}</p>
                   ))}
                 </div>
@@ -147,7 +196,7 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
               disabled={loading || importing || !analysis || Boolean(error)}
               className="w-full sm:w-auto"
             >
-              {importing ? 'Importieren…' : 'Importieren'}
+              {importing ? 'Importieren…' : 'Turnierplan importieren'}
             </AppButton>
           </div>
         </div>
