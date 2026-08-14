@@ -410,25 +410,6 @@ export const WelcomeScreen: React.FC = () => {
                 />
               </PremiumIntroButton>
 
-              <PremiumIntroButton onClick={goDemoExplore}>
-                <span className="welcome-intro-icon-shell relative z-10">
-                  <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
-                </span>
-                <span className="relative z-10 min-w-0 flex-1">
-                  <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                    Demo ansehen
-                  </span>
-                  <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                    U12-Demoteam ohne Login ausprobieren.
-                  </span>
-                </span>
-                <ChevronRight
-                  className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
-                  strokeWidth={2.6}
-                  aria-hidden
-                />
-              </PremiumIntroButton>
-
               <PremiumIntroButton pulseGlow={hasLiveMatch} liveActive={hasLiveMatch} onClick={goLive}>
                 <span className="relative z-10 flex shrink-0 items-center gap-2.5">
                   <span className="welcome-intro-icon-shell">
