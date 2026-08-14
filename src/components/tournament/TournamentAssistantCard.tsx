@@ -285,7 +285,10 @@ export function TournamentAssistantCard({
       navigate(matchPreparationPath(targetMatchId, basePath));
     } else {
       navigate(matchLineupPath(targetMatchId, basePath), {
-        state: result.formationId ? { formationId: result.formationId } : undefined,
+        state: {
+          formationId: result.formationId ?? undefined,
+          lineupCopiedFromPrevious: true,
+        },
       });
     }
   };
@@ -367,8 +370,16 @@ export function TournamentAssistantCard({
       return (
         <div className="flex flex-col gap-1.5">
           <p className="rounded-lg border border-purple-500/25 bg-purple-950/25 px-2.5 py-2 text-[12px] font-semibold leading-snug text-purple-50">
-            Aufstellung vom letzten Spiel übernehmen?
+            Letzte Aufstellung übernehmen
           </p>
+          {copyContext?.sourceOpponentName ? (
+            <p className="text-[11px] leading-snug text-white/60">
+              Spiel gegen {copyContext.sourceOpponentName}
+              {copyContext.sourceStarterCount > 0
+                ? ` · ${copyContext.sourceStarterCount} Startelf`
+                : ''}
+            </p>
+          ) : null}
           {showReplaceConfirm ? (
             <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
               Die bestehende Aufstellung dieses Spiels wird ersetzt. Bitte erneut tippen zum Bestätigen.
@@ -385,7 +396,7 @@ export function TournamentAssistantCard({
           <PrimaryButton
             label={copyBusy ? 'Wird übernommen…' : 'Komplette Aufstellung übernehmen'}
             onClick={() => void runCopy('full', showReplaceConfirm)}
-            disabled={copyBusy}
+            disabled={copyBusy || (copyContext?.sourceStarterCount ?? 0) < 1}
           />
           <GlassButton
             label="Nur Startelf übernehmen"

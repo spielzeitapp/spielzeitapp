@@ -10,6 +10,8 @@ export type LiveMatchStateChangeDetail = {
   matchId: string;
   status: 'live' | 'finished' | 'paused' | 'updated';
   reason?: string;
+  teamSeasonId?: string | null;
+  tournamentEventId?: string | null;
 };
 
 export function broadcastLiveMatchStateChanged(detail: LiveMatchStateChangeDetail): void {

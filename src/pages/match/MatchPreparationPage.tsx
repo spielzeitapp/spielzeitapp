@@ -297,7 +297,10 @@ export const MatchPreparationPage: React.FC = () => {
       return;
     }
     navigate(matchLineupPath(matchId, basePath), {
-      state: result.formationId ? { formationId: result.formationId } : undefined,
+      state: {
+        formationId: result.formationId ?? undefined,
+        lineupCopiedFromPrevious: true,
+      },
     });
   };
 
@@ -675,9 +678,10 @@ export const MatchPreparationPage: React.FC = () => {
         ) : null}
         {canManage && lineupCopyContext && lineupCopyContext.sourceStarterCount > 0 ? (
           <div className="rounded-xl border border-purple-500/30 bg-purple-950/30 px-3 py-3">
-            <p className="text-[13px] font-bold text-purple-50">Aufstellung vom letzten Spiel übernehmen?</p>
+            <p className="text-[13px] font-bold text-purple-50">Letzte Aufstellung übernehmen</p>
             <p className="mt-1 text-[11px] leading-snug text-purple-100/75">
-              Formation, Startelf und Bank werden übernommen — ohne erneute Spielerauswahl.
+              Spiel gegen {lineupCopyContext.sourceOpponentName} · Formation, Startelf und Bank —
+              ohne erneute Spielerauswahl.
             </p>
             {lineupCopyConfirm ? (
               <p className="mt-2 text-[11px] text-amber-100/90">

@@ -1647,6 +1647,8 @@ export async function syncFinalLineupBenchFromEventReplay(params: {
   atMatchSecond?: number;
   beforeFieldIds?: readonly string[];
   beforeBenchIds?: readonly string[];
+  /** Fallback wenn Kickoff-Snapshot leer (z. B. nach Live-Ende). */
+  fallbackStartingPlayerIds?: readonly string[];
 }): Promise<SyncLineupFromReplayResult> {
   const mid = params.matchId?.trim();
   if (!mid) {
@@ -1658,20 +1660,31 @@ export async function syncFinalLineupBenchFromEventReplay(params: {
       ? clampEffectiveMatchSeconds(params.atMatchSecond)
       : resolveReplayAtMatchSecond(params.events, 0);
 
-  const kickoffBase = pickKickoffLineupBaseForReplay(params.kickoffStartingPlayerIds);
+  const kickoffBase = pickKickoffLineupBaseForReplay(
+    params.kickoffStartingPlayerIds,
+    params.fallbackStartingPlayerIds ? [...params.fallbackStartingPlayerIds] : undefined,
+  );
   const replay = replaySubstitutionEventsOnSlots(kickoffBase, params.events, atSec, {
     squadPlayerIds: params.squadPlayerIds,
   });
+
+  const fieldFromFallback = (params.fallbackStartingPlayerIds ?? [])
+    .map((id) => String(id ?? '').trim())
+    .filter(Boolean);
+  const beforeFieldIds =
+    params.beforeFieldIds && params.beforeFieldIds.length > 0
+      ? params.beforeFieldIds
+      : fieldFromFallback;
 
   const dbBenchIds = await fetchMatchBenchPlayerIds(mid);
   const payload = createSafeLineupPersistPayload({
     reason: 'replay_sync',
     slots: replay.slots,
-    beforeFieldIds: params.beforeFieldIds ?? [],
+    beforeFieldIds,
     beforeBenchIds: params.beforeBenchIds ?? dbBenchIds,
     squadPlayerIds: params.squadPlayerIds,
     dbBenchPlayerIds: dbBenchIds,
-    kickoffStartingPlayerIds: params.kickoffStartingPlayerIds,
+    kickoffStartingPlayerIds: kickoffBase,
     events: params.events,
   });
 

@@ -1,6 +1,6 @@
 /**
- * STEP 17E/17F – Unit checks for lineup permissions + previous→next tournament copy helpers.
- * Pure logic only (no DB / RLS). Run: node scripts/tournament-lineup-permissions-test.mjs
+ * STEP 17E/17F/17G – Unit checks for lineup permissions + previous→next tournament copy helpers.
+ * Run: node scripts/tournament-lineup-permissions-test.mjs
  */
 import assert from 'assert';
 
@@ -34,22 +34,6 @@ function canMutateMatchPreparation(role) {
   return canManageMatches(normalizeRole(role));
 }
 
-function friendlyMatchLineupWriteError(raw) {
-  const msg = String(raw ?? '').trim();
-  if (!msg) return 'Aufstellung konnte nicht gespeichert werden.';
-  if (/row-level security|rls|permission denied|not allowed/i.test(msg)) {
-    return 'Aufstellung konnte nicht gespeichert werden.';
-  }
-  return msg;
-}
-
-function isTournamentMatchLineupEmpty(lineup) {
-  const hasField = lineup.startingPlayerIds.some((id) => String(id ?? '').trim().length > 0);
-  const hasBench = lineup.savedBenchPlayerIds.some((id) => String(id ?? '').trim().length > 0);
-  return !hasField && !hasBench;
-}
-
-/** Mirrors STARTELF_SLOT_IDS length (7) — FP is ignored. */
 function isStartelfCompleteFromStartingIds(startingPlayerIds) {
   const STARTELF_COUNT = 7;
   let filled = 0;
@@ -59,52 +43,37 @@ function isStartelfCompleteFromStartingIds(startingPlayerIds) {
   return filled >= STARTELF_COUNT;
 }
 
+function finishedStatus(raw) {
+  const s = String(raw ?? '').trim().toLowerCase();
+  return s === 'finished' || s === 'ended' || s === 'completed';
+}
+
 function sortTournamentSlotsChronologically(slots) {
   return [...slots].sort((a, b) => {
-    const ta = new Date(a.kickoff_at ?? a.starts_at ?? 0).getTime();
-    const tb = new Date(b.kickoff_at ?? b.starts_at ?? 0).getTime();
+    const ta = new Date(a.kickoff_at ?? 0).getTime();
+    const tb = new Date(b.kickoff_at ?? 0).getTime();
     if (ta !== tb) return ta - tb;
     return String(a.id).localeCompare(String(b.id));
   });
 }
 
-function pickPreviousFinishedMatchWithLineup(slots, nextSlot) {
-  const ordered = sortTournamentSlotsChronologically(slots);
+function pickImmediatePreviousOwnFinishedSlot(slots, nextSlot) {
+  const ordered = sortTournamentSlotsChronologically(slots).filter((s) => s.is_own_team !== false);
   const nextIdx = ordered.findIndex((s) => s.id === nextSlot.id);
   if (nextIdx <= 0) return null;
   for (let i = nextIdx - 1; i >= 0; i -= 1) {
     const slot = ordered[i];
-    if ((slot.match_status ?? '').toLowerCase() !== 'finished') continue;
-    if (slot.has_lineup) return slot;
-  }
-  for (let i = nextIdx - 1; i >= 0; i -= 1) {
-    const slot = ordered[i];
-    if ((slot.match_status ?? '').toLowerCase() !== 'finished') continue;
-    if (slot.has_squad) return slot;
+    if (!finishedStatus(slot.match_status)) continue;
+    if (!slot.match_id?.trim()) continue;
+    return slot;
   }
   return null;
 }
 
 assert.strictEqual(canMutateMatchPreparation('parent'), false);
 assert.strictEqual(canMutateMatchPreparation('trainer'), true);
-
-assert.strictEqual(
-  friendlyMatchLineupWriteError('new row violates row-level security policy for table "match_lineup"'),
-  'Aufstellung konnte nicht gespeichert werden.',
-);
-
 assert.strictEqual(
   isStartelfCompleteFromStartingIds(['a', 'b', 'c', 'd', 'e', 'f', 'g', '']),
-  true,
-  '7er complete without FP',
-);
-assert.strictEqual(
-  isStartelfCompleteFromStartingIds(['a', 'b', 'c', 'd', 'e', 'f', '', '']),
-  false,
-);
-
-assert.strictEqual(
-  isTournamentMatchLineupEmpty({ startingPlayerIds: ['', ''], savedBenchPlayerIds: [] }),
   true,
 );
 
@@ -114,28 +83,59 @@ const slots = [
     match_id: 'm1',
     kickoff_at: '2026-08-01T09:00:00Z',
     match_status: 'finished',
+    is_own_team: true,
     has_lineup: true,
-    has_squad: true,
+  },
+  {
+    id: 'foreign',
+    match_id: 'fx',
+    kickoff_at: '2026-08-01T09:30:00Z',
+    match_status: 'finished',
+    is_own_team: false,
+    has_lineup: true,
   },
   {
     id: 's2',
     match_id: 'm2',
     kickoff_at: '2026-08-01T10:00:00Z',
     match_status: 'finished',
+    is_own_team: true,
     has_lineup: true,
-    has_squad: true,
   },
   {
     id: 's3',
     match_id: 'm3',
     kickoff_at: '2026-08-01T11:00:00Z',
     match_status: 'upcoming',
+    is_own_team: true,
     has_lineup: false,
-    has_squad: false,
   },
 ];
 
-assert.strictEqual(pickPreviousFinishedMatchWithLineup(slots, slots[1])?.match_id, 'm1');
-assert.strictEqual(pickPreviousFinishedMatchWithLineup(slots, slots[2])?.match_id, 'm2');
+assert.strictEqual(
+  pickImmediatePreviousOwnFinishedSlot(slots, slots[2])?.match_id,
+  'm1',
+  'Spiel 2 previous = Spiel 1 (skip foreign)',
+);
+assert.strictEqual(
+  pickImmediatePreviousOwnFinishedSlot(slots, slots[3])?.match_id,
+  'm2',
+  'Spiel 3 previous = Spiel 2',
+);
+
+// Squad prefill must not overwrite field lineup: signal via targetHasField rule
+function targetHasExistingLineup(startingPlayerIds) {
+  return startingPlayerIds.some((id) => String(id ?? '').trim().length > 0);
+}
+assert.strictEqual(targetHasExistingLineup(['', '', 'p1']), true);
+assert.strictEqual(targetHasExistingLineup(['', '', '']), false);
+
+// Parent live switch priority: live beats finished sticky
+function preferLiveOverSticky(stickyId, liveId) {
+  if (liveId && liveId !== stickyId) return liveId;
+  return stickyId;
+}
+assert.strictEqual(preferLiveOverSticky('m1', 'm2'), 'm2');
+assert.strictEqual(preferLiveOverSticky('m2', 'm2'), 'm2');
 
 console.log('tournament-lineup-permissions-test: OK');

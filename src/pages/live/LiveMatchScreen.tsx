@@ -126,7 +126,7 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
-import { broadcastLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
+import { broadcastLiveMatchStateChanged, subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { getDemoMatchLite } from '../../demo/demoMatchState';
@@ -1629,6 +1629,55 @@ export const LiveMatchScreen: React.FC = () => {
     };
   }, [effectiveMatchId, matchIsFinished, matchRow?.status, isDemo]);
 
+  /**
+   * Eltern/Fans: sticky ?matchId= darf nicht auf finished Match 1 bleiben,
+   * wenn bereits Match 2 (eigenes Team) live ist. 8s Poll + Broadcast.
+   */
+  useEffect(() => {
+    if (canControlLiveMatch || isDemo) return;
+    const teamSeasonId =
+      String(selectedTeamSeason?.id ?? '').trim() ||
+      String(matchRow?.team_season_id ?? '').trim();
+    if (!teamSeasonId || !effectiveMatchId) return;
+
+    let cancelled = false;
+    const trySwitchToLive = async () => {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('team_season_id', teamSeasonId)
+        .eq('status', 'live')
+        .order('match_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || error) return;
+      const liveId = data?.id ? String(data.id).trim() : '';
+      if (!liveId || liveId === effectiveMatchId) return;
+      navigate(`${basePath}/live?matchId=${encodeURIComponent(liveId)}`, { replace: true });
+    };
+
+    void trySwitchToLive();
+    const unsub = subscribeLiveMatchStateChanged((detail) => {
+      if (detail.status === 'live' || detail.status === 'finished') {
+        void trySwitchToLive();
+      }
+    });
+    const interval = window.setInterval(() => void trySwitchToLive(), 8_000);
+    return () => {
+      cancelled = true;
+      unsub();
+      window.clearInterval(interval);
+    };
+  }, [
+    canControlLiveMatch,
+    isDemo,
+    selectedTeamSeason?.id,
+    matchRow?.team_season_id,
+    effectiveMatchId,
+    navigate,
+    basePath,
+  ]);
+
   useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
 
   useEffect(
@@ -2744,6 +2793,7 @@ export const LiveMatchScreen: React.FC = () => {
           matchId: effectiveMatchId,
           status: 'live',
           reason: 'kickoff',
+          teamSeasonId: matchRow?.team_season_id ?? null,
         });
       }
     } else {
@@ -2768,6 +2818,7 @@ export const LiveMatchScreen: React.FC = () => {
           matchId: effectiveMatchId,
           status: 'live',
           reason: 'resume',
+          teamSeasonId: matchRow?.team_season_id ?? null,
         });
       }
     }
@@ -2864,6 +2915,8 @@ export const LiveMatchScreen: React.FC = () => {
         events: sortMatchEventsChronologically(events),
         atMatchSecond: atReplay,
         fallbackStartingPlayerIds: startingPlayerIds,
+        beforeFieldIds: startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0),
+        beforeBenchIds: savedBenchPlayerIds,
       });
       if (syncRes.error) {
         setSaveError(syncRes.error);
@@ -2893,6 +2946,7 @@ export const LiveMatchScreen: React.FC = () => {
         matchId: effectiveMatchId,
         status: 'finished',
         reason: 'match_end',
+        teamSeasonId: matchRow?.team_season_id ?? null,
       });
       void ensureResultFeedPostForMatch(effectiveMatchId).then((res) => {
         console.info('[resultFeed][LiveMatch] ensureResultFeedPostForMatch', {

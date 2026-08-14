@@ -41,18 +41,47 @@ export const LivePage: React.FC = () => {
   const [tournamentLiveMatchId, setTournamentLiveMatchId] = useState<string | null>(null);
   const [tournamentCheckDone, setTournamentCheckDone] = useState(false);
   const [liveProbeTick, setLiveProbeTick] = useState(0);
+  const [redirectLiveMatchId, setRedirectLiveMatchId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (matchIdParam || isDemo) return;
+    if (isDemo) return;
     const onChanged = () => setLiveProbeTick((n) => n + 1);
     window.addEventListener('spielzeit:live-match-state-changed', onChanged);
-    // Cross-device / anderer Parent-Tab: kurzer Poll bis Live erkannt oder 2 Min.
+    // Auch mit sticky matchId: Parent darf auf neues Live-Match umschalten.
     const interval = window.setInterval(() => setLiveProbeTick((n) => n + 1), 8_000);
     return () => {
       window.removeEventListener('spielzeit:live-match-state-changed', onChanged);
       window.clearInterval(interval);
     };
-  }, [matchIdParam, isDemo]);
+  }, [isDemo]);
+
+  useEffect(() => {
+    if (!matchIdParam || isDemo || !teamSeasonId?.trim()) {
+      setRedirectLiveMatchId(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('team_season_id', teamSeasonId.trim())
+        .eq('status', 'live')
+        .order('match_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const liveId = data?.id ? String(data.id).trim() : '';
+      if (!liveId || liveId === matchIdParam) {
+        setRedirectLiveMatchId(null);
+        return;
+      }
+      setRedirectLiveMatchId(liveId);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [matchIdParam, teamSeasonId, isDemo, liveProbeTick]);
 
   useEffect(() => {
     if (matchIdParam || isDemo) {
@@ -134,6 +163,15 @@ export const LivePage: React.FC = () => {
     }
     demo.startDemoLiveMatch(matchIdParam);
   }, [isDemo, demo, matchIdParam]);
+
+  if (redirectLiveMatchId && redirectLiveMatchId !== matchIdParam) {
+    return (
+      <Navigate
+        to={`${basePath}/live?matchId=${encodeURIComponent(redirectLiveMatchId)}`}
+        replace
+      />
+    );
+  }
 
   if (matchIdParam) {
     return <LiveMatchScreen />;

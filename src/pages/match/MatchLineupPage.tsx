@@ -71,6 +71,7 @@ type MatchRowLite = {
 type LocationState = {
   selectedPlayers?: string[];
   formationId?: string;
+  lineupCopiedFromPrevious?: boolean;
 } | null;
 
 function emptySlots(): Record<FieldSlotId, string | null> {
@@ -346,6 +347,11 @@ export const MatchLineupPage: React.FC = () => {
   }, [matchId, matchRow, isDemo, demo, routeState?.formationId]);
 
   useEffect(() => {
+    if (!routeState?.lineupCopiedFromPrevious) return;
+    setSaveMsg('Aufstellung vom letzten Spiel übernommen');
+  }, [routeState?.lineupCopiedFromPrevious, matchId]);
+
+  useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px)');
     const sync = () => setIsMobile(mq.matches);
     sync();
@@ -387,16 +393,19 @@ export const MatchLineupPage: React.FC = () => {
 
   /** Erfolgsmeldung: kurzer Toast mit Fade-out, kein permanenter Block. */
   useEffect(() => {
-    if (saveMsg !== 'Aufstellung gespeichert.') {
+    if (
+      saveMsg !== 'Aufstellung gespeichert.' &&
+      saveMsg !== 'Aufstellung vom letzten Spiel übernommen'
+    ) {
       setSaveToastFading(false);
       return;
     }
     setSaveToastFading(false);
-    const fadeAt = window.setTimeout(() => setSaveToastFading(true), 1000);
+    const fadeAt = window.setTimeout(() => setSaveToastFading(true), 1400);
     const clearAt = window.setTimeout(() => {
       setSaveMsg(null);
       setSaveToastFading(false);
-    }, 1500);
+    }, 2000);
     return () => {
       window.clearTimeout(fadeAt);
       window.clearTimeout(clearAt);
@@ -608,7 +617,8 @@ export const MatchLineupPage: React.FC = () => {
       <div className={dsPageAtmosphereClass()} aria-hidden />
       <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
 
-      {saveMsg === 'Aufstellung gespeichert.' ? (
+      {saveMsg === 'Aufstellung gespeichert.' ||
+      saveMsg === 'Aufstellung vom letzten Spiel übernommen' ? (
         <div
           className={[
             'pointer-events-none fixed left-1/2 top-[calc(env(safe-area-inset-top,0px)+4.25rem)] z-[80] w-[min(92vw,20rem)] -translate-x-1/2 rounded-xl border border-white/10 bg-black/80 px-3 py-2 text-center text-xs font-semibold text-emerald-200/95 shadow-lg backdrop-blur-md transition-opacity duration-500 sm:top-[5rem]',

@@ -1,6 +1,8 @@
 import {
+  fetchKickoffLineupPlayerIds,
   fetchLineupForLiveMatch,
   fetchMatchById,
+  LIVE_FIELD_SLOT_ORDER,
   replaceMatchLineupAndBench,
   saveMatchSquadOnly,
   updateMatchRow,
@@ -13,10 +15,7 @@ import {
   type U11FormationId,
 } from './matchFormations';
 import { isStartelfCompleteFromStartingIds } from '../pages/MatchDetail/lineupGuards';
-import {
-  pickLastFinishedTournamentSlot,
-  sortTournamentSlotsChronologically,
-} from './tournamentDayOrchestrator';
+import { sortTournamentSlotsChronologically } from './tournamentDayOrchestrator';
 import type { TournamentMatchSlotView } from './tournamentPlan';
 import { fetchTournamentSquadPlayerIds } from './tournamentSquad';
 
@@ -32,8 +31,8 @@ export function isTournamentMatchLineupComplete(lineup: LineupLoadResult): boole
   return isStartelfCompleteFromStartingIds(lineup.startingPlayerIds);
 }
 
-function countFilledStarters(lineup: LineupLoadResult): number {
-  return lineup.startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0).length;
+function countFilledStarters(startingPlayerIds: readonly (string | null | undefined)[]): number {
+  return startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0).length;
 }
 
 function finishedStatus(raw: string | null | undefined): boolean {
@@ -41,30 +40,37 @@ function finishedStatus(raw: string | null | undefined): boolean {
   return s === 'finished' || s === 'ended' || s === 'completed';
 }
 
-/** Letztes beendetes Turnierspiel mit gespeicherter Startelf (relativ zum nächsten offenen Slot). */
-export function pickPreviousFinishedMatchWithLineup(
+function isOwnTournamentSlot(slot: TournamentMatchSlotView): boolean {
+  return slot.is_own_team !== false;
+}
+
+/**
+ * Unmittelbar vorheriges eigenes, beendetes Turnierspiel (chronologisch).
+ * Generisch für Spiel 1→2, 2→3, Gruppe→KO.
+ */
+export function pickImmediatePreviousOwnFinishedSlot(
   slots: TournamentMatchSlotView[],
   nextSlot: TournamentMatchSlotView,
 ): TournamentMatchSlotView | null {
-  const ordered = sortTournamentSlotsChronologically(slots);
+  const ordered = sortTournamentSlotsChronologically(slots).filter(isOwnTournamentSlot);
   const nextIdx = ordered.findIndex((s) => s.id === nextSlot.id);
   if (nextIdx <= 0) return null;
 
   for (let i = nextIdx - 1; i >= 0; i -= 1) {
     const slot = ordered[i];
     if (!finishedStatus(slot.match_status)) continue;
-    if (slot.has_lineup) return slot;
+    if (!slot.match_id?.trim()) continue;
+    return slot;
   }
+  return null;
+}
 
-  for (let i = nextIdx - 1; i >= 0; i -= 1) {
-    const slot = ordered[i];
-    if (!finishedStatus(slot.match_status)) continue;
-    if (slot.has_squad) return slot;
-  }
-
-  const last = pickLastFinishedTournamentSlot(slots);
-  if (!last || last.id === nextSlot.id) return null;
-  return last.has_lineup || last.has_squad ? last : null;
+/** @deprecated Alias — nutzt jetzt immediate previous own finished. */
+export function pickPreviousFinishedMatchWithLineup(
+  slots: TournamentMatchSlotView[],
+  nextSlot: TournamentMatchSlotView,
+): TournamentMatchSlotView | null {
+  return pickImmediatePreviousOwnFinishedSlot(slots, nextSlot);
 }
 
 export type TournamentLineupCopyContext = {
@@ -74,55 +80,80 @@ export type TournamentLineupCopyContext = {
   targetHasExistingLineup: boolean;
   sourceHasCompleteLineup: boolean;
   sourceStarterCount: number;
+  sourceOpponentName: string;
 };
+
+/** Source-Startelf: match_lineup, sonst Kickoff-Snapshot (nach Spielende oft nur Bank in match_lineup). */
+export async function resolveSourceLineupForCopy(
+  sourceMatchId: string,
+): Promise<{ data: LineupLoadResult; starterCount: number; error: string | null }> {
+  const { data, error } = await fetchLineupForLiveMatch(sourceMatchId);
+  if (error) {
+    return {
+      data: { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] },
+      starterCount: 0,
+      error,
+    };
+  }
+
+  let startingPlayerIds = [...data.startingPlayerIds];
+  let starterCount = countFilledStarters(startingPlayerIds);
+
+  if (starterCount < 1) {
+    const kickoff = await fetchKickoffLineupPlayerIds(sourceMatchId);
+    if (kickoff && countFilledStarters(kickoff) > 0) {
+      startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((_, i) => String(kickoff[i] ?? '').trim());
+      starterCount = countFilledStarters(startingPlayerIds);
+    }
+  }
+
+  const starterIds = startingPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean);
+  const bench = data.savedBenchPlayerIds.filter((id) => !starterIds.includes(id));
+  const squadPlayerIds = [...new Set([...data.squadPlayerIds, ...starterIds, ...bench])];
+
+  return {
+    data: {
+      startingPlayerIds,
+      squadPlayerIds,
+      savedBenchPlayerIds: bench.length > 0 ? bench : data.savedBenchPlayerIds,
+    },
+    starterCount,
+    error: null,
+  };
+}
 
 export async function detectTournamentLineupCopyContext(
   slots: TournamentMatchSlotView[],
   targetSlot: TournamentMatchSlotView,
 ): Promise<TournamentLineupCopyContext | null> {
-  const candidates: TournamentMatchSlotView[] = [];
-  const ordered = sortTournamentSlotsChronologically(slots);
-  const nextIdx = ordered.findIndex((s) => s.id === targetSlot.id);
-  if (nextIdx > 0) {
-    for (let i = nextIdx - 1; i >= 0; i -= 1) {
-      const slot = ordered[i];
-      if (!finishedStatus(slot.match_status)) continue;
-      if (!slot.match_id?.trim()) continue;
-      candidates.push(slot);
-    }
-  }
-  if (candidates.length === 0) {
-    const fallback = pickPreviousFinishedMatchWithLineup(slots, targetSlot);
-    if (fallback?.match_id?.trim()) candidates.push(fallback);
-  }
+  const sourceSlot = pickImmediatePreviousOwnFinishedSlot(slots, targetSlot);
+  if (!sourceSlot) return null;
 
+  const sourceMatchId = sourceSlot.match_id?.trim() ?? '';
   const targetMatchId = targetSlot.match_id?.trim() ?? '';
-  if (!targetMatchId || candidates.length === 0) return null;
+  if (!sourceMatchId || !targetMatchId) return null;
 
   const { data: targetLineup, error } = await fetchLineupForLiveMatch(targetMatchId);
   if (error) return null;
 
   const targetLineupEmpty = isTournamentMatchLineupEmpty(targetLineup);
-  const targetHasExistingLineup = !targetLineupEmpty;
+  // Nur Feld belegt = echte Aufstellung; nur Bank/Squad ohne Feld = Copy noch erlaubt.
+  const targetHasField =
+    countFilledStarters(targetLineup.startingPlayerIds) > 0;
+  const targetHasExistingLineup = targetHasField;
 
-  for (const sourceSlot of candidates) {
-    const sourceMatchId = sourceSlot.match_id?.trim() ?? '';
-    if (!sourceMatchId) continue;
-    const { data: sourceLineup, error: sourceErr } = await fetchLineupForLiveMatch(sourceMatchId);
-    if (sourceErr) continue;
-    const starterCount = countFilledStarters(sourceLineup);
-    if (starterCount < 1 && sourceLineup.savedBenchPlayerIds.length === 0) continue;
-    return {
-      sourceSlot,
-      targetSlot,
-      targetLineupEmpty,
-      targetHasExistingLineup,
-      sourceHasCompleteLineup: isTournamentMatchLineupComplete(sourceLineup),
-      sourceStarterCount: starterCount,
-    };
-  }
+  const sourceRes = await resolveSourceLineupForCopy(sourceMatchId);
+  if (sourceRes.error || sourceRes.starterCount < 1) return null;
 
-  return null;
+  return {
+    sourceSlot,
+    targetSlot,
+    targetLineupEmpty,
+    targetHasExistingLineup,
+    sourceHasCompleteLineup: isTournamentMatchLineupComplete(sourceRes.data),
+    sourceStarterCount: sourceRes.starterCount,
+    sourceOpponentName: String(sourceSlot.opponent_name ?? '').trim() || 'Gegner',
+  };
 }
 
 async function resolveSourceFormationId(sourceMatchId: string): Promise<U11FormationId | null> {
@@ -157,7 +188,10 @@ async function verifyCopiedLineup(
   if (mode === 'full' || mode === 'starters') {
     const expectedFilled = expectedStarters.filter((id) => String(id ?? '').trim().length > 0);
     const actualFilled = data.startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0);
-    if (actualFilled.length < expectedFilled.length) {
+    if (expectedFilled.length === 0) {
+      return 'Aufstellung wurde nicht übernommen (keine Startelf).';
+    }
+    if (actualFilled.length < Math.min(7, expectedFilled.length)) {
       return 'Aufstellung wurde nicht vollständig übernommen.';
     }
   }
@@ -187,8 +221,8 @@ export async function copyTournamentLineupBetweenMatches(params: {
   const { data: targetLineup, error: targetErr } = await fetchLineupForLiveMatch(targetMatchId);
   if (targetErr) return { error: targetErr };
 
-  const targetEmpty = isTournamentMatchLineupEmpty(targetLineup);
-  if (!targetEmpty && !params.replaceExisting) {
+  const targetHasField = countFilledStarters(targetLineup.startingPlayerIds) > 0;
+  if (targetHasField && !params.replaceExisting) {
     return { error: 'Aufstellung ist bereits vorhanden.' };
   }
 
@@ -198,17 +232,21 @@ export async function copyTournamentLineupBetweenMatches(params: {
     const squadRes = await fetchTournamentSquadPlayerIds(eventId);
     if (squadRes.error) return { error: squadRes.error };
     if (squadRes.data.length === 0) return { error: 'Kein Turnierkader hinterlegt.' };
+    // Nur wenn Ziel noch keine Feldaufstellung hat — sonst nicht überschreiben.
+    if (targetHasField && !params.replaceExisting) {
+      return { error: 'Bestehende Aufstellung wird nicht überschrieben.' };
+    }
     const saveErr = (await saveMatchSquadOnly(targetMatchId, squadRes.data)).error;
     return { error: saveErr };
   }
 
-  const { data: sourceLineup, error: sourceErr } = await fetchLineupForLiveMatch(sourceMatchId);
-  if (sourceErr) return { error: sourceErr };
+  const sourceRes = await resolveSourceLineupForCopy(sourceMatchId);
+  if (sourceRes.error) return { error: sourceRes.error };
 
-  const starters = [...sourceLineup.startingPlayerIds];
-  const bench = [...sourceLineup.savedBenchPlayerIds];
+  const starters = [...sourceRes.data.startingPlayerIds];
+  const bench = [...sourceRes.data.savedBenchPlayerIds];
   const starterIds = starters.filter((id) => String(id ?? '').trim().length > 0);
-  const fullSquad = [...new Set([...sourceLineup.squadPlayerIds, ...starterIds, ...bench])];
+  const fullSquad = [...new Set([...sourceRes.data.squadPlayerIds, ...starterIds, ...bench])];
 
   if ((params.mode === 'full' || params.mode === 'starters') && starterIds.length === 0) {
     return { error: 'Im vorherigen Spiel ist keine Startelf gespeichert.' };
