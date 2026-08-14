@@ -209,6 +209,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [planSyncBusy, setPlanSyncBusy] = useState(false);
   const [planSyncStatus, setPlanSyncStatus] = useState<string | null>(null);
   const [gamesFilter, setGamesFilter] = useState<'ours' | 'all'>(() => (canManage ? 'ours' : 'all'));
+  const [standingsRefreshToken, setStandingsRefreshToken] = useState(0);
   const finishedOwnCountRef = React.useRef<number | null>(null);
   const groupStageDoneSyncRef = React.useRef(false);
   const demo = useDemoMode();
@@ -450,7 +451,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [officialTournamentUrl, teamSeasonId, participants]);
+  }, [officialTournamentUrl, teamSeasonId, participants, standingsRefreshToken]);
 
   const slotsRef = React.useRef(slots);
   slotsRef.current = slots;
@@ -486,6 +487,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
           setPlanSyncStatus('Turnierplan aktualisiert');
           if (result.changed || reason === 'post_match' || reason === 'group_done' || reason === 'broadcast') {
             await reload();
+            // Tabelle/Official-Standings nach jedem Post-Match-Sync neu ziehen.
+            setStandingsRefreshToken((n) => n + 1);
           }
         } else {
           setPlanSyncStatus('Aktualisierung fehlgeschlagen — lokal behalten');
@@ -544,6 +547,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
       if (!result.ok || result.skipped || !result.changed) return;
       await reload();
+      setStandingsRefreshToken((n) => n + 1);
     };
 
     void run();
@@ -611,7 +615,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   ]);
 
   useEffect(() => {
-    if (!canManage || completion.completedAt) return;
+    if (completion.completedAt) return;
     const ownMatchIds = new Set(
       ownSlotsRef.current
         .map((slot) => String(slot.match_id ?? '').trim())
@@ -619,13 +623,26 @@ export const TournamentDetailSections: React.FC<Props> = ({
     );
     return subscribeLiveMatchStateChanged((detail) => {
       if (detail.status !== 'finished') return;
+      const forThisTournament =
+        !detail.tournamentEventId || detail.tournamentEventId === tournamentEventId;
+      if (!forThisTournament) return;
       if (!ownMatchIds.has(detail.matchId)) return;
       void (async () => {
         await reload();
-        await runForcedPlanSync({ reason: 'broadcast' });
+        setStandingsRefreshToken((n) => n + 1);
+        if (canManage) {
+          await runForcedPlanSync({ reason: 'broadcast' });
+        }
       })();
     });
-  }, [canManage, completion.completedAt, reload, runForcedPlanSync, ownSlots]);
+  }, [
+    canManage,
+    completion.completedAt,
+    reload,
+    runForcedPlanSync,
+    ownSlots,
+    tournamentEventId,
+  ]);
 
   useEffect(() => {
     const tick = () => {

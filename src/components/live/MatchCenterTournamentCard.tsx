@@ -11,7 +11,6 @@ import {
 import {
   type MatchCenterParticipant,
   pickTournamentFirstMatch,
-  pickTournamentTopMatch,
   resolveTournamentCoverUrl,
 } from '../../lib/matchCenterTournamentVisuals';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
@@ -22,10 +21,7 @@ import { safeOptionalText, safeText } from '../../lib/safeText';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
 import { ParticipantLogoChip } from './ParticipantLogoChip';
-import {
-  TournamentFirstMatchPreview,
-  TournamentMatchCenterPoster,
-} from './TournamentMatchCenterPoster';
+import { TournamentFirstMatchPreview } from './TournamentMatchCenterPoster';
 
 type Props = {
   event: EventRow;
@@ -112,7 +108,6 @@ export function MatchCenterTournamentCard({
   }, [carouselTeams]);
 
   const teamsDisplay = teamCount ?? (carouselTeams.length > 0 ? carouselTeams.length : null);
-  const topMatch = pickTournamentTopMatch(slots);
   const firstMatch = pickTournamentFirstMatch(slots);
 
   return (
@@ -193,20 +188,6 @@ export function MatchCenterTournamentCard({
                 />
               ))}
             </div>
-          </div>
-        ) : null}
-
-        {!loadingExtras && topMatch ? (
-          <div className="mt-1">
-            <p className="mb-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">
-              Top-Spiel des Turniers
-            </p>
-            <TournamentMatchCenterPoster
-              slot={topMatch}
-              ourTeamName={ourTeamName}
-              tournamentTitle={title}
-              participantLogoByName={logoByName}
-            />
           </div>
         ) : null}
 
