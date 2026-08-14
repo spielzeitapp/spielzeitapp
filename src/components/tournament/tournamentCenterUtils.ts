@@ -3,6 +3,7 @@ import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisu
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import {
+  isOwnPlayableTournamentSlot,
   tournamentMatchDisplayStatus,
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
@@ -29,9 +30,10 @@ export function formatTournamentDayDate(iso: string): string {
 export function pickFeaturedTournamentSlot(
   slots: TournamentMatchSlotView[],
 ): TournamentMatchSlotView | null {
-  const live = slots.find((s) => (s.match_status ?? '').toLowerCase() === 'live');
+  const own = slots.filter((s) => isOwnPlayableTournamentSlot(s));
+  const live = own.find((s) => (s.match_status ?? '').toLowerCase() === 'live');
   if (live) return live;
-  const open = sortTournamentSlotsChronologically(slots).filter(
+  const open = sortTournamentSlotsChronologically(own).filter(
     (s) => (s.match_status ?? '').toLowerCase() !== 'finished',
   );
   return open[0] ?? null;
@@ -50,10 +52,10 @@ function sortTournamentSlotsChronologically(
 
 export function pickLastFinishedTournamentSlots(
   slots: TournamentMatchSlotView[],
-  limit = 3,
+  limit = 8,
 ): TournamentMatchSlotView[] {
   return slots
-    .filter((s) => (s.match_status ?? '').toLowerCase() === 'finished')
+    .filter((s) => tournamentMatchDisplayStatus(s).kind === 'result')
     .sort((a, b) => new Date(b.kickoff_at).getTime() - new Date(a.kickoff_at).getTime())
     .slice(0, limit);
 }
@@ -67,7 +69,9 @@ export type TournamentSlotSection = {
 function slotSectionLabel(slot: TournamentMatchSlotView): string {
   const phase = safeText(slot.phase).toLowerCase();
   if (phase === 'final') return 'Finale';
-  if (phase === 'semifinal') return 'Halbfinale';
+  if (phase === 'semifinal' || phase === 'semi') return 'Halbfinale';
+  if (phase === 'quarterfinal' || phase === 'quarter') return 'Viertelfinale';
+  if (phase === 'knockout' || phase === 'ko') return 'KO';
   if (phase === 'placement') return 'Platzierung';
   const group = safeOptionalText(slot.group_label);
   if (group) return `Gruppe ${group}`;
@@ -77,7 +81,8 @@ function slotSectionLabel(slot: TournamentMatchSlotView): string {
 function slotSectionSortKey(label: string): number {
   const l = label.toLowerCase();
   if (l.startsWith('gruppe')) return 10;
-  if (l === 'halbfinale') return 20;
+  if (l === 'viertelfinale') return 18;
+  if (l === 'halbfinale' || l === 'ko') return 20;
   if (l === 'platzierung') return 30;
   if (l === 'finale') return 40;
   return 50;

@@ -393,7 +393,9 @@ export function TournamentFeaturedMatchCard({
       <div className="relative bg-[rgba(6,4,8,0.98)] px-3 py-3 sm:px-3.5 sm:py-3.5">
         <button
           type="button"
-          onClick={() => onOpen(focusSlot.match_id)}
+          onClick={() => {
+            if (focusMatchId) onOpen(focusMatchId);
+          }}
           className="flex w-full flex-col gap-2.5 text-left touch-manipulation"
         >
           <div className="flex items-center justify-between gap-1.5">
@@ -458,7 +460,7 @@ export function TournamentFeaturedMatchCard({
           </div>
         ) : !canManage && isLive ? (
           <div className="mt-2.5 border-t border-white/[0.06] pt-2.5">
-            <WorkflowCtaLink to={liveMatchPath(focusSlot.match_id, basePath)} variant="primary">
+            <WorkflowCtaLink to={liveMatchPath(focusMatchId, basePath)} variant="primary">
               <Radio className="h-3.5 w-3.5 animate-pulse" strokeWidth={2.25} aria-hidden />
               Zum Live-Spiel
             </WorkflowCtaLink>

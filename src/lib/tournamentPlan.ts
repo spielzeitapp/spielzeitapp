@@ -54,7 +54,7 @@ export type TournamentParticipant = {
 export type TournamentMatchSlot = {
   id: string;
   tournament_event_id: string;
-  match_id: string;
+  match_id: string | null;
   opponent_name: string;
   kickoff_at: string;
   planned_minutes: number;
@@ -63,6 +63,15 @@ export type TournamentMatchSlot = {
   /** Optional: Migration 20260616120000 — group | placement | semifinal | final | unknown */
   phase?: string | null;
   sort_order: number;
+  home_team?: string | null;
+  away_team?: string | null;
+  is_own_team?: boolean;
+  source?: 'spielzeitapp' | 'official' | string | null;
+  provider?: string | null;
+  external_match_id?: string | null;
+  official_status?: string | null;
+  official_home_goals?: number | null;
+  official_away_goals?: number | null;
 };
 
 export type TournamentMatchSlotView = TournamentMatchSlot & {
@@ -156,6 +165,46 @@ export function computeTournamentTeamBalance(slots: TournamentMatchSlotView[]): 
   };
 }
 
+export function isOwnPlayableTournamentSlot(slot: {
+  is_own_team?: boolean | null;
+  match_id?: string | null;
+}): boolean {
+  if (slot.is_own_team === false) return false;
+  return Boolean(safeText(slot.match_id));
+}
+
+export function ownPlayableTournamentSlots<T extends { is_own_team?: boolean | null; match_id?: string | null }>(
+  slots: T[],
+): T[] {
+  return slots.filter((slot) => isOwnPlayableTournamentSlot(slot));
+}
+
+export function tournamentSlotDisplayTitle(slot: TournamentMatchSlot): string {
+  const home = safeOptionalText(slot.home_team);
+  const away = safeOptionalText(slot.away_team);
+  if (home && away) return `${home} vs ${away}`;
+  return safeText(slot.opponent_name);
+}
+
+/** Ergebniszeile passend zum Titel: bei Fremdspielen Heim:Gast, bei eigenen ggf. gedreht. */
+export function tournamentSlotScoreDisplay(slot: TournamentMatchSlotView): string | null {
+  const st = (slot.match_status ?? '').toLowerCase();
+  if (st !== 'finished' && st !== 'live') return null;
+  const ourOrHome = Number(slot.score_home ?? 0);
+  const oppOrAway = Number(slot.score_away ?? 0);
+  if (!isOwnPlayableTournamentSlot(slot)) {
+    return `${ourOrHome}:${oppOrAway}`;
+  }
+  const home = safeOptionalText(slot.home_team);
+  const away = safeOptionalText(slot.away_team);
+  const opponent = safeText(slot.opponent_name).toLowerCase();
+  if (home && away && opponent) {
+    if (opponent === away.toLowerCase()) return `${ourOrHome}:${oppOrAway}`;
+    if (opponent === home.toLowerCase()) return `${oppOrAway}:${ourOrHome}`;
+  }
+  return `${ourOrHome}:${oppOrAway}`;
+}
+
 export function formatTournamentGoalDifference(diff: number): string {
   if (diff > 0) return `+${diff}`;
   return String(diff);
@@ -170,6 +219,7 @@ export function sortTournamentMatchSlots(slots: TournamentMatchSlotView[]): Tour
 }
 
 export function isTournamentSlotPreparable(slot: TournamentMatchSlotView): boolean {
+  if (!isOwnPlayableTournamentSlot(slot)) return false;
   const st = (slot.match_status ?? '').toLowerCase();
   return st !== 'live' && st !== 'finished';
 }
@@ -213,23 +263,26 @@ export function computeTournamentHeroSummary(
   );
   const groupCount = distinctGroups.size;
   const matchCount = slots.length;
+  const ownSlots = ownPlayableTournamentSlots(slots);
 
-  if (matchCount === 0) {
+  if (ownSlots.length === 0 && matchCount === 0) {
     return { teamCount, groupCount, matchCount, nextMatch: null, allFinished: false };
   }
 
-  const allFinished = slots.every((s) => (s.match_status ?? '').toLowerCase() === 'finished');
+  const allFinished =
+    ownSlots.length > 0 &&
+    ownSlots.every((s) => (s.match_status ?? '').toLowerCase() === 'finished');
   if (allFinished) {
     return { teamCount, groupCount, matchCount, nextMatch: null, allFinished: true };
   }
 
-  const live = slots.find((s) => (s.match_status ?? '').toLowerCase() === 'live');
+  const live = ownSlots.find((s) => (s.match_status ?? '').toLowerCase() === 'live');
   if (live) {
     return { teamCount, groupCount, matchCount, nextMatch: live, allFinished: false };
   }
 
   const nextMatch =
-    slots.find((s) => (s.match_status ?? '').toLowerCase() !== 'finished') ?? null;
+    ownSlots.find((s) => (s.match_status ?? '').toLowerCase() !== 'finished') ?? null;
 
   return { teamCount, groupCount, matchCount, nextMatch, allFinished: false };
 }
@@ -253,12 +306,25 @@ function normalizeParticipantRow(row: TournamentParticipant): TournamentParticip
 }
 
 function normalizeMatchSlotRow(row: TournamentMatchSlot): TournamentMatchSlot {
+  const matchId = safeOptionalText(row.match_id);
   return {
     ...row,
+    match_id: matchId,
     opponent_name: safeText(row.opponent_name),
     pitch: safeOptionalText(row.pitch),
     group_label: safeOptionalText(row.group_label),
     phase: safeOptionalText(row.phase),
+    home_team: safeOptionalText(row.home_team),
+    away_team: safeOptionalText(row.away_team),
+    is_own_team: typeof row.is_own_team === 'boolean' ? row.is_own_team : Boolean(matchId),
+    source: safeOptionalText(row.source) ?? (matchId ? 'spielzeitapp' : 'official'),
+    provider: safeOptionalText(row.provider),
+    external_match_id: safeOptionalText(row.external_match_id),
+    official_status: safeOptionalText(row.official_status),
+    official_home_goals:
+      row.official_home_goals == null ? null : Number(row.official_home_goals),
+    official_away_goals:
+      row.official_away_goals == null ? null : Number(row.official_away_goals),
   };
 }
 
@@ -389,26 +455,54 @@ export async function removeTournamentParticipant(participantId: string): Promis
   return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
 
+const TOURNAMENT_MATCH_SELECT_FULL =
+  'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order, home_team, away_team, is_own_team, source, provider, external_match_id, official_status, home_goals, away_goals';
+const TOURNAMENT_MATCH_SELECT_PHASE =
+  'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order';
+const TOURNAMENT_MATCH_SELECT_BASE =
+  'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, sort_order';
+
+function mapFetchedMatchSlotRow(row: Record<string, unknown>): TournamentMatchSlot {
+  return normalizeMatchSlotRow({
+    id: String(row.id ?? ''),
+    tournament_event_id: String(row.tournament_event_id ?? ''),
+    match_id: (row.match_id as string | null) ?? null,
+    opponent_name: String(row.opponent_name ?? ''),
+    kickoff_at: String(row.kickoff_at ?? ''),
+    planned_minutes: Number(row.planned_minutes ?? TOURNAMENT_DEFAULT_PLANNED_MINUTES),
+    pitch: (row.pitch as string | null) ?? null,
+    group_label: (row.group_label as string | null) ?? null,
+    phase: (row.phase as string | null) ?? null,
+    sort_order: Number(row.sort_order ?? 0),
+    home_team: (row.home_team as string | null) ?? null,
+    away_team: (row.away_team as string | null) ?? null,
+    is_own_team: typeof row.is_own_team === 'boolean' ? row.is_own_team : Boolean(row.match_id),
+    source: (row.source as string | null) ?? null,
+    provider: (row.provider as string | null) ?? null,
+    external_match_id: (row.external_match_id as string | null) ?? null,
+    official_status: (row.official_status as string | null) ?? null,
+    official_home_goals: row.home_goals == null ? null : Number(row.home_goals),
+    official_away_goals: row.away_goals == null ? null : Number(row.away_goals),
+  });
+}
+
 async function enrichTournamentMatchSlots(
   rows: TournamentMatchSlot[],
 ): Promise<TournamentMatchSlotView[]> {
   if (rows.length === 0) return [];
 
-  const matchIds = rows.map((r) => r.match_id);
+  const matchIds = rows.map((r) => r.match_id).filter((id): id is string => Boolean(id));
+  if (matchIds.length === 0) {
+    return rows.map((r) => enrichOfficialOnlySlot(r));
+  }
+
   const { data: matches, error: matchErr } = await supabase
     .from('matches')
     .select('id, status, score_home, score_away')
     .in('id', matchIds);
 
   if (matchErr) {
-    return rows.map((r) => ({
-      ...r,
-      match_status: null,
-      score_home: 0,
-      score_away: 0,
-      has_lineup: false,
-      has_squad: false,
-    }));
+    return rows.map((r) => enrichOfficialOnlySlot(r));
   }
 
   const matchById = new Map(
@@ -435,16 +529,39 @@ async function enrichTournamentMatchSlots(
   }
 
   return rows.map((r) => {
-    const m = matchById.get(r.match_id);
+    const matchId = r.match_id;
+    if (!matchId || r.is_own_team === false) {
+      return enrichOfficialOnlySlot(r);
+    }
+    const m = matchById.get(matchId);
     return {
       ...r,
       match_status: m?.status ?? null,
       score_home: Number(m?.score_home ?? 0),
       score_away: Number(m?.score_away ?? 0),
-      has_lineup: (lineupCounts.get(r.match_id) ?? 0) > 0,
-      has_squad: (benchCounts.get(r.match_id) ?? 0) > 0,
+      has_lineup: (lineupCounts.get(matchId) ?? 0) > 0,
+      has_squad: (benchCounts.get(matchId) ?? 0) > 0,
     };
   });
+}
+
+function enrichOfficialOnlySlot(row: TournamentMatchSlot): TournamentMatchSlotView {
+  const hasOfficialResult = row.official_home_goals != null && row.official_away_goals != null;
+  const officialStatus = (row.official_status ?? '').toLowerCase();
+  const matchStatus =
+    officialStatus === 'live' || officialStatus === 'finished'
+      ? officialStatus
+      : hasOfficialResult
+        ? 'finished'
+        : 'upcoming';
+  return {
+    ...row,
+    match_status: matchStatus,
+    score_home: Number(row.official_home_goals ?? 0),
+    score_away: Number(row.official_away_goals ?? 0),
+    has_lineup: false,
+    has_squad: false,
+  };
 }
 
 export async function fetchTournamentMatchSlots(
@@ -454,28 +571,25 @@ export async function fetchTournamentMatchSlots(
     return { data: getDemoTournamentMatchSlots(tournamentEventId), error: null };
   }
 
-  let res = await supabase
-    .from('tournament_matches')
-    .select('id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order')
-    .eq('tournament_event_id', tournamentEventId)
-    .order('kickoff_at', { ascending: true })
-    .order('sort_order', { ascending: true });
+  const selects = [TOURNAMENT_MATCH_SELECT_FULL, TOURNAMENT_MATCH_SELECT_PHASE, TOURNAMENT_MATCH_SELECT_BASE];
+  let data: Record<string, unknown>[] | null = null;
+  let error: { message?: string; code?: string } | null = null;
 
-  let data = res.data;
-  let error = res.error;
-  if (error && /phase|column/i.test(String(error.message ?? ''))) {
-    const fallback = await supabase
+  for (const columns of selects) {
+    const res = await supabase
       .from('tournament_matches')
-      .select('id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, sort_order')
+      .select(columns)
       .eq('tournament_event_id', tournamentEventId)
       .order('kickoff_at', { ascending: true })
       .order('sort_order', { ascending: true });
-    data = (fallback.data ?? []).map((row) => ({ ...row, phase: null }));
-    error = fallback.error;
+    data = (res.data as Record<string, unknown>[] | null) ?? null;
+    error = res.error;
+    if (!error) break;
+    if (!/column|schema cache|does not exist/i.test(String(error.message ?? ''))) break;
   }
 
-  if (error) return { data: [], error: normalizeTournamentDbError(error.message, error.code) };
-  const rows = ((data ?? []) as TournamentMatchSlot[]).map(normalizeMatchSlotRow);
+  if (error) return { data: [], error: normalizeTournamentDbError(error.message ?? '', error.code) };
+  const rows = (data ?? []).map((row) => mapFetchedMatchSlotRow(row));
   const enriched = await enrichTournamentMatchSlots(rows);
   return { data: enriched, error: null };
 }
@@ -491,6 +605,10 @@ export async function createTournamentMatchSlot(params: {
   pitch?: string | null;
   groupLabel?: string | null;
   phase?: string | null;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
+  provider?: string | null;
+  externalMatchId?: string | null;
 }): Promise<{ slotId: string | null; matchId: string | null; error: string | null }> {
   const opponent = params.opponentName.trim();
   if (!opponent) return { slotId: null, matchId: null, error: 'Gegner fehlt.' };
@@ -564,11 +682,29 @@ export async function createTournamentMatchSlot(params: {
     pitch: safeOptionalText(params.pitch),
     group_label: safeOptionalText(params.groupLabel),
     sort_order: (count ?? 0) + 1,
+    home_team: safeOptionalText(params.homeTeam) ?? null,
+    away_team: safeOptionalText(params.awayTeam) ?? null,
+    is_own_team: true,
+    source: 'spielzeitapp',
+    provider: safeOptionalText(params.provider),
+    external_match_id: safeOptionalText(params.externalMatchId),
   };
   const phaseValue = safeOptionalText(params.phase);
   if (phaseValue) slotRow.phase = phaseValue;
 
   let insertRes = await supabase.from('tournament_matches').insert(slotRow).select('id').single();
+
+  if (insertRes.error && /column|schema cache/i.test(String(insertRes.error.message ?? ''))) {
+    const retryRow = { ...slotRow };
+    delete retryRow.home_team;
+    delete retryRow.away_team;
+    delete retryRow.is_own_team;
+    delete retryRow.source;
+    delete retryRow.provider;
+    delete retryRow.external_match_id;
+    if (/phase/i.test(String(insertRes.error.message ?? ''))) delete retryRow.phase;
+    insertRes = await supabase.from('tournament_matches').insert(retryRow).select('id').single();
+  }
 
   if (insertRes.error && /phase|column/i.test(String(insertRes.error.message ?? '')) && 'phase' in slotRow) {
     delete slotRow.phase;
@@ -595,6 +731,232 @@ export async function removeTournamentMatchSlot(matchId: string): Promise<{ erro
     return { error: ok ? null : 'Spiel nicht gefunden.' };
   }
   const { error } = await supabase.from('matches').delete().eq('id', matchId);
+  return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
+}
+
+function sameNullableInt(a: unknown, b: unknown): boolean {
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  return Number(a) === Number(b);
+}
+
+export async function upsertOfficialTournamentMatch(params: {
+  tournamentEventId: string;
+  existingSlotId?: string | null;
+  homeTeam: string;
+  awayTeam: string;
+  opponentName: string;
+  kickoffAtIso: string;
+  plannedMinutes: number;
+  pitch?: string | null;
+  groupLabel?: string | null;
+  phase?: string | null;
+  provider: string;
+  externalMatchId: string;
+  officialStatus: string | null;
+  homeGoals: number | null;
+  awayGoals: number | null;
+}): Promise<{ slotId: string | null; created: boolean; updated: boolean; error: string | null }> {
+  const homeTeam = params.homeTeam.trim();
+  const awayTeam = params.awayTeam.trim();
+  if (!homeTeam || !awayTeam) {
+    return { slotId: null, created: false, updated: false, error: 'Teams fehlen.' };
+  }
+
+  const planned = Math.max(
+    1,
+    Math.min(120, Math.trunc(params.plannedMinutes || TOURNAMENT_DEFAULT_PLANNED_MINUTES)),
+  );
+  const payload: Record<string, unknown> = {
+    tournament_event_id: params.tournamentEventId,
+    match_id: null,
+    opponent_name: params.opponentName.trim() || `${homeTeam} vs ${awayTeam}`,
+    kickoff_at: params.kickoffAtIso,
+    planned_minutes: planned,
+    pitch: safeOptionalText(params.pitch),
+    group_label: safeOptionalText(params.groupLabel),
+    phase: safeOptionalText(params.phase),
+    home_team: homeTeam,
+    away_team: awayTeam,
+    is_own_team: false,
+    source: 'official',
+    provider: params.provider,
+    external_match_id: params.externalMatchId,
+    official_status: safeOptionalText(params.officialStatus),
+    home_goals: params.homeGoals,
+    away_goals: params.awayGoals,
+  };
+
+  if (params.existingSlotId) {
+    const { data: current } = await supabase
+      .from('tournament_matches')
+      .select('home_team, away_team, kickoff_at, pitch, group_label, phase, official_status, home_goals, away_goals')
+      .eq('id', params.existingSlotId)
+      .maybeSingle();
+    const unchanged =
+      current &&
+      String(current.home_team ?? '') === homeTeam &&
+      String(current.away_team ?? '') === awayTeam &&
+      String(current.kickoff_at ?? '') === params.kickoffAtIso &&
+      String(current.pitch ?? '') === String(payload.pitch ?? '') &&
+      String(current.group_label ?? '') === String(payload.group_label ?? '') &&
+      String(current.phase ?? '') === String(payload.phase ?? '') &&
+      String(current.official_status ?? '') === String(payload.official_status ?? '') &&
+      sameNullableInt(current.home_goals, params.homeGoals) &&
+      sameNullableInt(current.away_goals, params.awayGoals);
+
+    if (unchanged) {
+      return { slotId: params.existingSlotId, created: false, updated: false, error: null };
+    }
+
+    const { error } = await supabase.from('tournament_matches').update(payload).eq('id', params.existingSlotId);
+    if (error) {
+      return {
+        slotId: params.existingSlotId,
+        created: false,
+        updated: false,
+        error: normalizeTournamentDbError(error.message, error.code),
+      };
+    }
+    return { slotId: params.existingSlotId, created: false, updated: true, error: null };
+  }
+
+  const { count } = await supabase
+    .from('tournament_matches')
+    .select('id', { count: 'exact', head: true })
+    .eq('tournament_event_id', params.tournamentEventId);
+  payload.sort_order = (count ?? 0) + 1;
+
+  const { data, error } = await supabase.from('tournament_matches').insert(payload).select('id').single();
+  if (error) {
+    const isUnique =
+      error.code === '23505' || /duplicate|unique/i.test(String(error.message ?? ''));
+    if (isUnique && params.externalMatchId) {
+      const { data: existing } = await supabase
+        .from('tournament_matches')
+        .select('id')
+        .eq('tournament_event_id', params.tournamentEventId)
+        .eq('external_match_id', params.externalMatchId)
+        .maybeSingle();
+      if (existing?.id) {
+        return upsertOfficialTournamentMatch({ ...params, existingSlotId: String(existing.id) });
+      }
+    }
+    return { slotId: null, created: false, updated: false, error: normalizeTournamentDbError(error.message, error.code) };
+  }
+  return {
+    slotId: (data as { id?: string } | null)?.id ?? null,
+    created: true,
+    updated: false,
+    error: null,
+  };
+}
+
+export async function convertOfficialSlotToOwnMatch(params: {
+  slotId: string;
+  teamSeasonId: string;
+  tournamentDayIso: string;
+  location: string | null;
+  opponentName: string;
+  kickoffTimeHHmm: string;
+  plannedMinutes: number;
+  pitch?: string | null;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
+  provider?: string | null;
+  externalMatchId?: string | null;
+}): Promise<{ matchId: string | null; error: string | null }> {
+  const kickoffIso = meetupUtcIsoOnViennaEventDay(params.tournamentDayIso, params.kickoffTimeHHmm);
+  if (!kickoffIso) return { matchId: null, error: 'Ungültige Anstoßzeit.' };
+
+  const kickoff = new Date(kickoffIso);
+  const vienna = getDateTimePartsInTimeZone(kickoff, VIENNA_TZ);
+  const matchDate = vienna
+    ? `${vienna.year}-${String(vienna.month).padStart(2, '0')}-${String(vienna.day).padStart(2, '0')}`
+    : kickoffIso.slice(0, 10);
+  const matchTime = utcIsoToViennaTimeHHmm(kickoffIso);
+  const locationParts = [safeOptionalText(params.location), safeOptionalText(params.pitch)].filter(Boolean);
+
+  const { matchId, error: matchErr } = await upsertMatchForSetup({
+    matchId: null,
+    teamSeasonId: params.teamSeasonId,
+    opponent: params.opponentName.trim(),
+    matchDate,
+    matchTime,
+    locationNote: locationParts.join(' · ') || '',
+  });
+  if (matchErr || !matchId) {
+    return { matchId: null, error: matchErr ? normalizeTournamentDbError(matchErr, null) : 'Spiel konnte nicht angelegt werden.' };
+  }
+
+  const planned = Math.max(1, Math.min(120, Math.trunc(params.plannedMinutes || TOURNAMENT_DEFAULT_PLANNED_MINUTES)));
+  await updateMatchRow(matchId, { planned_match_minutes: planned });
+
+  const { error } = await attachMatchToExistingSlot({
+    slotId: params.slotId,
+    matchId,
+    opponentName: params.opponentName,
+    homeTeam: params.homeTeam,
+    awayTeam: params.awayTeam,
+    provider: params.provider,
+    externalMatchId: params.externalMatchId,
+  });
+  if (error) {
+    await supabase.from('matches').delete().eq('id', matchId);
+    return { matchId: null, error };
+  }
+  return { matchId, error: null };
+}
+
+export async function attachMatchToExistingSlot(params: {
+  slotId: string;
+  matchId: string;
+  opponentName: string;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
+  provider?: string | null;
+  externalMatchId?: string | null;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('tournament_matches')
+    .update({
+      match_id: params.matchId,
+      opponent_name: params.opponentName,
+      is_own_team: true,
+      source: 'spielzeitapp',
+      home_team: safeOptionalText(params.homeTeam),
+      away_team: safeOptionalText(params.awayTeam),
+      provider: safeOptionalText(params.provider),
+      external_match_id: safeOptionalText(params.externalMatchId),
+    })
+    .eq('id', params.slotId);
+  return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
+}
+
+export async function updateOwnTournamentSlotSchedule(params: {
+  slotId: string;
+  kickoffAtIso: string;
+  pitch?: string | null;
+  groupLabel?: string | null;
+  phase?: string | null;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
+  provider?: string | null;
+  externalMatchId?: string | null;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('tournament_matches')
+    .update({
+      kickoff_at: params.kickoffAtIso,
+      pitch: safeOptionalText(params.pitch),
+      group_label: safeOptionalText(params.groupLabel),
+      phase: safeOptionalText(params.phase),
+      home_team: safeOptionalText(params.homeTeam),
+      away_team: safeOptionalText(params.awayTeam),
+      provider: safeOptionalText(params.provider),
+      external_match_id: safeOptionalText(params.externalMatchId),
+    })
+    .eq('id', params.slotId);
   return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
 

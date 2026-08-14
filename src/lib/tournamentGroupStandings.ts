@@ -318,6 +318,113 @@ export function computeAllLiveTournamentGroupStandings(params: {
   return groups;
 }
 
+export function computeCombinedTournamentGroupStandings(params: {
+  participants: TournamentParticipant[];
+  slots: TournamentMatchSlotView[];
+  ourTeamNames: string[];
+}): TournamentGroupStandings[] {
+  if (params.participants.length === 0) return [];
+
+  const groupLabels = new Map<string, string | null>();
+  for (const participant of params.participants) {
+    const key = groupLabelKey(participant.group_label);
+    if (!groupLabels.has(key)) {
+      groupLabels.set(key, safeOptionalText(participant.group_label));
+    }
+  }
+
+  const groups: TournamentGroupStandings[] = [];
+  for (const [, label] of groupLabels) {
+    const standings = computeCombinedStandingsForGroup({
+      participants: params.participants,
+      slots: params.slots,
+      ourTeamNames: params.ourTeamNames,
+      targetGroupLabel: label,
+    });
+    if (standings) groups.push(standings);
+  }
+  groups.sort((a, b) => a.groupLabel.localeCompare(b.groupLabel, 'de', { numeric: true }));
+  return groups;
+}
+
+function computeCombinedStandingsForGroup(params: {
+  participants: TournamentParticipant[];
+  slots: TournamentMatchSlotView[];
+  ourTeamNames: string[];
+  targetGroupLabel: string | null;
+}): TournamentGroupStandings | null {
+  const targetGroupKey = groupLabelKey(params.targetGroupLabel);
+  const groupParticipants = params.participants.filter(
+    (p) => groupLabelKey(p.group_label) === targetGroupKey,
+  );
+  if (groupParticipants.length === 0) return null;
+
+  const keyToTeamName = new Map<string, string>();
+  const stats = new Map<string, MutableStanding>();
+  for (const participant of groupParticipants) {
+    const key = normalizeTeamMatchKey(participant.team_name);
+    keyToTeamName.set(key, participant.team_name);
+    stats.set(key, {
+      teamName: participant.team_name,
+      played: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+    });
+  }
+
+  for (const slot of params.slots) {
+    if (!isGroupStageSlot(slot)) continue;
+    if (groupLabelKey(slot.group_label ?? params.targetGroupLabel) !== targetGroupKey) continue;
+
+    const homeName = safeOptionalText(slot.home_team);
+    const awayName = safeOptionalText(slot.away_team);
+    const isOwn = slot.is_own_team !== false && Boolean(slot.match_id);
+    const ownFinished = isOwn && (slot.match_status ?? '').toLowerCase() === 'finished';
+    const officialFinished =
+      !isOwn &&
+      ((slot.match_status ?? '').toLowerCase() === 'finished' ||
+        (slot.official_home_goals != null && slot.official_away_goals != null));
+
+    let homeGoals: number | null = null;
+    let awayGoals: number | null = null;
+    let resolvedHome = homeName;
+    let resolvedAway = awayName;
+
+    if (ownFinished) {
+      const ourGoals = Number(slot.score_home ?? 0);
+      const oppGoals = Number(slot.score_away ?? 0);
+      if (homeName && isTeamAliasMatch(homeName, params.ourTeamNames)) {
+        homeGoals = ourGoals;
+        awayGoals = oppGoals;
+      } else if (awayName && isTeamAliasMatch(awayName, params.ourTeamNames)) {
+        homeGoals = oppGoals;
+        awayGoals = ourGoals;
+      } else {
+        resolvedHome = params.ourTeamNames[0] ?? null;
+        resolvedAway = slot.opponent_name;
+        homeGoals = ourGoals;
+        awayGoals = oppGoals;
+      }
+    } else if (officialFinished) {
+      homeGoals = Number(slot.official_home_goals ?? slot.score_home ?? 0);
+      awayGoals = Number(slot.official_away_goals ?? slot.score_away ?? 0);
+    } else {
+      continue;
+    }
+
+    if (homeGoals == null || awayGoals == null || !resolvedHome || !resolvedAway) continue;
+    const homeKey = resolveParticipantKey(resolvedHome, keyToTeamName);
+    const awayKey = resolveParticipantKey(resolvedAway, keyToTeamName);
+    if (!homeKey || !awayKey || homeKey === awayKey) continue;
+    applyMatchResult(stats, homeKey, awayKey, homeGoals, awayGoals);
+  }
+
+  return buildStandingsFromStats(stats, params.ourTeamNames, params.targetGroupLabel);
+}
+
 export function pickPrimaryTournamentGroupStandings(
   groups: TournamentGroupStandings[],
 ): TournamentGroupStandings | null {

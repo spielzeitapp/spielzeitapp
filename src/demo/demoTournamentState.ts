@@ -417,7 +417,7 @@ export function getDemoTournamentMatchLite(matchId: string | null | undefined): 
   auto_matchday_feed_enabled: boolean | null;
 } | null {
   const slot = getDemoTournamentSlotByMatchId(matchId);
-  if (!slot) return null;
+  if (!slot?.match_id) return null;
   return {
     id: slot.match_id,
     team_season_id: DEMO_TEAM_SEASON_ID,

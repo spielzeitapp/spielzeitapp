@@ -281,6 +281,7 @@ export function parseTournamentLiveResults(resultsJson, meta = {}) {
         hasResult: scores.hasResult,
         homeGoals: scores.homeGoals,
         awayGoals: scores.awayGoals,
+        externalMatchId: String(match._id ?? match.id ?? `g${match.gameNumber ?? ''}-${kickoffFromItem(match)}-${homeTeam}-${awayTeam}`),
       });
     }
   }

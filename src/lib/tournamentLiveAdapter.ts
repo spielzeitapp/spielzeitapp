@@ -39,6 +39,7 @@ export type TournamentLiveParsedPlan = {
     hasResult: boolean;
     homeGoals: number | null;
     awayGoals: number | null;
+    externalMatchId?: string | null;
   }>;
 };
 
@@ -400,6 +401,7 @@ export function parseTournamentLiveResults(
         hasResult: scores.hasResult,
         homeGoals: scores.homeGoals,
         awayGoals: scores.awayGoals,
+        externalMatchId: String(match._id ?? match.id ?? `g${match.gameNumber ?? ''}-${kickoffFromItem(match)}-${homeTeam}-${awayTeam}`),
       });
     }
   }

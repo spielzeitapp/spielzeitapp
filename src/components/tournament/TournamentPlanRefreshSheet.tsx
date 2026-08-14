@@ -48,9 +48,7 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
   if (!isOpen || typeof document === 'undefined') return null;
 
   const noNewMatches = preview && preview.newMatches === 0 && preview.resultUpdates === 0;
-  const canImport = Boolean(
-    preview && (preview.newMatches > 0 || preview.newTeams > 0 || preview.resultUpdates > 0),
-  );
+  const canImport = Boolean(preview && !error && !loading);
   const ownTeamMatchCount =
     analysis && recognition ? countOwnTeamMatchesInAnalysis(analysis, recognition.knownNames) : 0;
   const ownMatches =
@@ -132,7 +130,7 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
               disabled={loading || importing || !preview || Boolean(error) || !canImport}
               className="w-full sm:w-auto"
             >
-              {importing ? 'Importieren…' : 'Importieren'}
+              {importing ? 'Aktualisieren…' : 'Aktualisieren'}
             </AppButton>
           </div>
         </div>

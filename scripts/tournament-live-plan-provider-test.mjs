@@ -146,6 +146,7 @@ assert(
   !parsedLive?.teams.some((t) => /platz 1/i.test(t.teamName)),
   'KO-Platzhalter werden nicht als Teams übernommen',
 );
+assert(parsedLive?.rawMatches.every((m) => Boolean(m.externalMatchId)), 'Live-Fixture hat externalMatchId');
 assert(parsedLive?.rawMatches.some((m) => m.phase === 'final' && m.homeTeam.startsWith('Platz')), 'Finale bleibt als Spiel erhalten');
 
 const parsedMtp = parseMeinTurnierplanJson(MEIN_TURNIERPLAN_FIXTURE);
@@ -166,8 +167,8 @@ assert(liveAnalyze.ok === true, 'Live-Turnier 38331 analysierbar');
 assert(liveAnalyze.provider === 'tournament-live', 'Provider erkannt: tournament-live');
 assert(liveAnalyze.extractedId === '38331', 'Turnier-ID: 38331');
 assert(Boolean(liveAnalyze.analysis?.tournamentName), `Turniername erkannt (${liveAnalyze.analysis?.tournamentName ?? '—'})`);
-assert((liveAnalyze.analysis?.teamCount ?? 0) > 0, `Teilnehmer erkannt (${liveAnalyze.analysis?.teamCount ?? 0})`);
-assert((liveAnalyze.analysis?.matchCount ?? 0) > 0, `Spiele erkannt (${liveAnalyze.analysis?.matchCount ?? 0})`);
+assert((liveAnalyze.analysis?.teamCount ?? 0) >= 10, `Teilnehmer erkannt (${liveAnalyze.analysis?.teamCount ?? 0})`);
+assert((liveAnalyze.analysis?.matchCount ?? 0) >= 27, `Spiele erkannt (${liveAnalyze.analysis?.matchCount ?? 0})`);
 assert(
   liveAnalyze.analysis?.teams.some((t) => /rohrbach/i.test(t.teamName)),
   'NSG Rohrbach im Live-Turnier vorhanden',
@@ -175,7 +176,11 @@ assert(
 const ownLiveMatches = (liveAnalyze.analysis?.rawMatches ?? []).filter((m) =>
   /rohrbach/i.test(m.homeTeam) || /rohrbach/i.test(m.awayTeam),
 );
-assert(ownLiveMatches.length > 0, `eigene Spiele in Vorschau (${ownLiveMatches.length})`);
+assert(ownLiveMatches.length >= 4, `eigene Spiele in Vorschau (${ownLiveMatches.length})`);
+assert(
+  (liveAnalyze.analysis?.rawMatches ?? []).every((m) => Boolean(m.externalMatchId)),
+  'alle Live-Spiele haben externalMatchId',
+);
 assert(liveAnalyze.ok === true, 'Import möglich (Analyse vollständig)');
 
 if (failed > 0) {

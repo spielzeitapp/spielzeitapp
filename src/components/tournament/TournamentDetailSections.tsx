@@ -11,6 +11,7 @@ import {
   fetchTournamentMatchSlots,
   fetchTournamentParticipants,
   importTournamentParticipantsBulk,
+  ownPlayableTournamentSlots,
   parseTournamentParticipantImportLines,
   removeTournamentMatchSlot,
   removeTournamentParticipant,
@@ -31,7 +32,9 @@ import { fetchTournamentCombinedGoalScorers } from '../../lib/tournamentManualGo
 import type { TournamentGoalScorer } from '../../lib/tournamentGoalScorers';
 import {
   computeAllLiveTournamentGroupStandings,
+  computeCombinedTournamentGroupStandings,
   computeTournamentGroupStandings,
+  pickPrimaryTournamentGroupStandings,
   resolveTournamentStandingsBundle,
   type TournamentGroupStandings,
   type TournamentStandingsBundle,
@@ -41,6 +44,8 @@ import {
   fetchTournamentImportRecognition,
   type TournamentPlanImportRawMatch,
 } from '../../lib/tournamentPlanImport';
+import { isViennaTournamentDay, syncOfficialTournamentPlan } from '../../lib/tournamentPlanSync';
+import { openOfficialTournamentPlanUrl } from '../../lib/tournamentOfficialPlanUrl';
 import {
   buildTournamentCompletionFeedCaption,
   buildTournamentCompletionFeedPayload,
@@ -220,6 +225,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   }, [toastMessage]);
 
   const existingTeamNames = useMemo(() => participants.map((p) => p.team_name), [participants]);
+  const ownSlots = useMemo(() => ownPlayableTournamentSlots(slots), [slots]);
 
   const scrollToTeamAliases = useCallback(() => {
     setActiveTab('admin');
@@ -244,7 +250,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     [participants, slots],
   );
 
-  const teamBalance = useMemo(() => computeTournamentTeamBalance(slots), [slots]);
+  const teamBalance = useMemo(() => computeTournamentTeamBalance(ownSlots), [ownSlots]);
 
   const finalSummary = useMemo(
     () =>
@@ -260,7 +266,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   );
 
   const reloadGoalScorers = useCallback(async () => {
-    const matchIds = slots.map((slot) => slot.match_id).filter(Boolean);
+    const matchIds = ownSlots.map((slot) => slot.match_id).filter((id): id is string => Boolean(id));
     if (matchIds.length === 0) {
       setGoalScorers([]);
       setHasMatchEventGoals(false);
@@ -276,7 +282,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     setGoalScorers(result.data);
     setHasMatchEventGoals(result.hasMatchEventGoals);
     setGoalScorersLoading(false);
-  }, [slots, tournamentEventId]);
+  }, [ownSlots, tournamentEventId]);
 
   useEffect(() => {
     void reloadGoalScorers();
@@ -416,6 +422,55 @@ export const TournamentDetailSections: React.FC<Props> = ({
     };
   }, [officialTournamentUrl, teamSeasonId, participants]);
 
+  const slotsRef = React.useRef(slots);
+  slotsRef.current = slots;
+  const existingTeamNamesRef = React.useRef(existingTeamNames);
+  existingTeamNamesRef.current = existingTeamNames;
+
+  useEffect(() => {
+    if (!canManage || loading) return;
+    const planUrl = safeText(officialTournamentUrl);
+    if (!planUrl) return;
+    if (!isViennaTournamentDay(tournamentDayIso)) return;
+
+    let cancelled = false;
+    const run = async () => {
+      const result = await syncOfficialTournamentPlan({
+        tournamentEventId,
+        teamSeasonId,
+        tournamentDayIso,
+        location,
+        officialUrl: planUrl,
+        existingTeamNames: existingTeamNamesRef.current,
+        existingSlots: slotsRef.current,
+      });
+      if (cancelled || !result.ok || result.skipped || !result.changed) return;
+      await reload();
+    };
+
+    void run();
+    const onFocus = () => {
+      if (document.visibilityState === 'hidden') return;
+      void run();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [
+    canManage,
+    loading,
+    officialTournamentUrl,
+    tournamentDayIso,
+    tournamentEventId,
+    teamSeasonId,
+    location,
+    reload,
+  ]);
+
   useEffect(() => {
     if (!teamSeasonId) {
       setRecognizedTeamNames([]);
@@ -443,20 +498,35 @@ export const TournamentDetailSections: React.FC<Props> = ({
     () =>
       computeAllLiveTournamentGroupStandings({
         participants,
+        slots: ownSlots,
+        ourTeamNames,
+      }),
+    [participants, ownSlots, ourTeamNames],
+  );
+
+  const combinedStandings = useMemo(
+    () =>
+      computeCombinedTournamentGroupStandings({
+        participants,
         slots,
         ourTeamNames,
       }),
     [participants, slots, ourTeamNames],
   );
 
-  const standingsBundle = useMemo(
-    (): TournamentStandingsBundle =>
-      resolveTournamentStandingsBundle({
-        imported: groupStandings,
-        liveGroups: liveGroupStandings,
-      }),
-    [groupStandings, liveGroupStandings],
-  );
+  const standingsBundle = useMemo((): TournamentStandingsBundle => {
+    if (combinedStandings.length > 0) {
+      return {
+        source: 'imported',
+        groups: combinedStandings,
+        primaryGroup: pickPrimaryTournamentGroupStandings(combinedStandings),
+      };
+    }
+    return resolveTournamentStandingsBundle({
+      imported: groupStandings,
+      liveGroups: liveGroupStandings,
+    });
+  }, [combinedStandings, groupStandings, liveGroupStandings]);
 
   const standingsLoading = groupStandingsLoading && standingsBundle.source !== 'live';
 
@@ -573,6 +643,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
     return ['table', 'scorers', 'results', 'info', 'balance'];
   }, [tournamentPhase, completion.completedAt]);
 
+  const planUrlForFans = safeText(officialTournamentUrl);
+
   const renderOverviewSection = (key: string) => {
     switch (key) {
       case 'table':
@@ -608,7 +680,19 @@ export const TournamentDetailSections: React.FC<Props> = ({
       case 'placement':
         return null;
       case 'info':
-        return <TournamentInfoCard key={key} rows={infoRows} notes={tournamentNotes} />;
+        return (
+          <TournamentInfoCard key={key} rows={infoRows} notes={tournamentNotes}>
+            {planUrlForFans ? (
+              <button
+                type="button"
+                onClick={() => openOfficialTournamentPlanUrl(planUrlForFans)}
+                className="mt-1 inline-flex min-h-[32px] items-center justify-center self-start text-[11px] font-semibold text-white/55 underline-offset-2 hover:text-white/80 hover:underline touch-manipulation"
+              >
+                Offiziellen Turnierplan öffnen
+              </button>
+            ) : null}
+          </TournamentInfoCard>
+        );
       default:
         return null;
     }
@@ -621,7 +705,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       <div className={`flex flex-col ${TC_STACK_GAP}`}>
         <TournamentPreparationPanel
           tournamentEventId={tournamentEventId}
-          slots={slots}
+          slots={ownSlots}
           participantCount={participants.length}
           hasOfficialPlanUrl={Boolean(planUrl)}
           attendance={attendanceSummary}
@@ -642,7 +726,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         <TournamentSquadPanel
           tournamentEventId={tournamentEventId}
           teamSeasonId={teamSeasonId}
-          slots={slots}
+          slots={ownSlots}
           loading={loading}
           canManage={canManage}
         />
@@ -849,7 +933,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       {quickActions}
 
       <TournamentFeaturedMatchCard
-        slots={slots}
+        slots={ownSlots}
         ourTeamName={ourTeamName}
         loading={loading}
         canManage={canManage}
@@ -867,7 +951,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       {canManage ? (
         <TournamentAssistantCard
           tournamentEventId={tournamentEventId}
-          slots={slots}
+          slots={ownSlots}
           attendance={attendanceSummary}
           hasOfficialPlanUrl={Boolean(safeText(officialTournamentUrl))}
           loading={loading}
@@ -947,9 +1031,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
                         <TournamentMatchSlotCard
                           slot={slot}
                           canManage={canManage}
-                          isNextUpcoming={slot.id === nextMatchId}
-                          onOpen={() => onOpenMatchPreparation(slot.match_id)}
-                          onDelete={() => void handleRemoveSlot(slot.match_id)}
+                          isNextUpcoming={slot.id === nextMatchId && slot.is_own_team !== false}
+                          onOpen={() => {
+                            if (slot.match_id) onOpenMatchPreparation(slot.match_id);
+                          }}
+                          onDelete={
+                            canManage && slot.match_id && slot.is_own_team !== false
+                              ? () => void handleRemoveSlot(slot.match_id as string)
+                              : undefined
+                          }
                         />
                       </li>
                     ))}

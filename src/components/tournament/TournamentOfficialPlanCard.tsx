@@ -29,6 +29,7 @@ import {
   saveOfficialTournamentPlanUrl,
   validateOfficialTournamentUrl,
 } from '../../lib/tournamentOfficialPlanUrl';
+import { markOfficialTournamentSynced } from '../../lib/tournamentPlanSync';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { TournamentPlanImportSheet } from './TournamentPlanImportSheet';
 import { TournamentPlanRefreshSheet } from './TournamentPlanRefreshSheet';
@@ -253,6 +254,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     }
 
     setImportSheetOpen(false);
+    markOfficialTournamentSynced(tournamentEventId);
     onImportComplete();
 
     if (importedMatches === 0 && importedTeams === 0 && updatedResults === 0) {
@@ -368,6 +370,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     }
 
     setRefreshSheetOpen(false);
+    markOfficialTournamentSynced(tournamentEventId);
     onImportComplete();
 
     if (importedMatches === 0 && importedTeams === 0 && updatedResults === 0) {
