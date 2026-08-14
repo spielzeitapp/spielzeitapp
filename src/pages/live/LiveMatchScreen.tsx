@@ -2550,6 +2550,14 @@ export const LiveMatchScreen: React.FC = () => {
             setScoreAway(na);
             void updateMatchRow(mid, { score_home: nh, score_away: na }).then(({ error: rowErr }) => {
               if (rowErr) setSaveError(rowErr);
+              else {
+                broadcastLiveMatchStateChanged({
+                  matchId: mid,
+                  status: 'updated',
+                  reason: 'score',
+                  teamSeasonId: matchRow?.team_season_id ?? null,
+                });
+              }
             });
           });
         }
@@ -2557,7 +2565,7 @@ export const LiveMatchScreen: React.FC = () => {
       });
       return { ok: true, savedId: id };
     },
-    [effectiveMatchId, half, isClockRunning, matchIsFinished, goalBlockedMessage],
+    [effectiveMatchId, half, isClockRunning, matchIsFinished, goalBlockedMessage, matchRow?.team_season_id],
   );
 
   const closeFairPlayExtraSheet = useCallback(() => {

@@ -13,7 +13,13 @@ import { PastMatchResultCard } from '../components/schedule/PastMatchResultCard'
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { EventHeroCard } from '../components/schedule/EventHeroCard';
 import { ScheduleHeroEventCard } from '../components/schedule/ScheduleHeroEventCard';
+import { ScheduleActiveLiveCard } from '../components/schedule/ScheduleActiveLiveCard';
 import { TrainerStatsMini } from '../components/schedule/TrainerStatsMini';
+import {
+  fetchActiveScheduleLiveMatch,
+  type ScheduleActiveLiveMatch,
+} from '../lib/scheduleActiveLiveMatch';
+import { subscribeLiveMatchStateChanged } from '../lib/liveMatchBroadcast';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePublicTeamSeason } from '../hooks/usePublicTeamSeason';
 import { useEvents, type EventRow } from '../hooks/useEvents';
@@ -58,6 +64,7 @@ import { formatDateTimeDeVienna } from '../lib/notifications/format';
 import { attendanceLazModalButtonClass } from '../lib/attendanceColors';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
+import { safeOptionalText } from '../lib/safeText';
 import { VenuePicker } from '../components/venues/VenuePicker';
 import {
   getVenueById,
@@ -300,6 +307,78 @@ export const SchedulePage: React.FC = () => {
   const canMutateSchedule = canManage && !isDemo;
   const showMeetupForRole = forcePublicView ? true : canSeeMeetup(normalizedUiRole); // Öffentlich: Treffpunkt für alle
   const ourTeamName = isDemo ? demo!.data.teamName : getOurTeamDisplayName();
+
+  /** Tick + Broadcast: Live-Karte ohne Reload nach Anpfiff/Tor/Ende. */
+  const [liveRefreshTick, setLiveRefreshTick] = useState(0);
+  const [activeScheduleLive, setActiveScheduleLive] = useState<ScheduleActiveLiveMatch | null>(null);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setLiveRefreshTick((n) => n + 1);
+    }, 8_000);
+    const unsub = subscribeLiveMatchStateChanged(() => {
+      setLiveRefreshTick((n) => n + 1);
+    });
+    return () => {
+      window.clearInterval(interval);
+      unsub();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!effectiveTeamSeasonId) {
+      setActiveScheduleLive(null);
+      return;
+    }
+
+    if (isDemo) {
+      const runtime = getDemoLiveRuntimeSnapshot();
+      if (!runtime || runtime.status !== 'live') {
+        setActiveScheduleLive(null);
+        return;
+      }
+      const ev = rawEvents.find((e) => e.match_id === runtime.matchId) ?? null;
+      const opponent = safeOptionalText(ev?.opponent) || 'Gegner';
+      const isHome = ev?.is_home !== false;
+      setActiveScheduleLive({
+        matchId: runtime.matchId,
+        kindLabel: ev?.kind === 'tournament' ? 'TURNIERSPIEL' : 'SPIEL',
+        homeTeamName: isHome ? ourTeamName : opponent,
+        awayTeamName: isHome ? opponent : ourTeamName,
+        homeLogoUrl: null,
+        awayLogoUrl: null,
+        scoreHome: Number(runtime.scoreHome ?? 0),
+        scoreAway: Number(runtime.scoreAway ?? 0),
+        kickoffLabel: null,
+        venueLabel: safeOptionalText(ev?.location),
+      });
+      return;
+    }
+
+    let cancelled = false;
+    void fetchActiveScheduleLiveMatch({
+      teamSeasonId: effectiveTeamSeasonId,
+      events: rawEvents,
+      ourTeamName,
+    })
+      .then((live) => {
+        if (!cancelled) setActiveScheduleLive(live);
+      })
+      .catch(() => {
+        if (!cancelled) setActiveScheduleLive(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    effectiveTeamSeasonId,
+    isDemo,
+    ourTeamName,
+    rawEvents,
+    liveRefreshTick,
+    demo?.liveRuntimeVersion,
+  ]);
 
   const [kindFilter, setKindFilter] = useState<KindFilterId>(() =>
     readScheduleFilters({
@@ -1283,15 +1362,21 @@ export const SchedulePage: React.FC = () => {
 
           {!pageLoading && !error && (
             <div className="w-full">
+              {activeScheduleLive ? (
+                <ScheduleActiveLiveCard
+                  live={activeScheduleLive}
+                  liveHref={`${basePath}/live?matchId=${encodeURIComponent(activeScheduleLive.matchId)}`}
+                />
+              ) : null}
               {displayEvents.length === 0 ? (
-                normalizedUiRole === 'fan' && events.length === 0 ? (
+                normalizedUiRole === 'fan' && events.length === 0 && !activeScheduleLive ? (
                   <PremiumEmptyState
                     variant="subtle"
                     title="Noch keine Termine"
                     description="Für dein Team sind noch keine Termine eingetragen."
                     className="py-6"
                   />
-                ) : (
+                ) : !activeScheduleLive ? (
                   <p className="text-sm text-[var(--text-sub)]">
                     {events.length === 0
                       ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
@@ -1307,7 +1392,7 @@ export const SchedulePage: React.FC = () => {
                             ? 'Keine vergangenen Termine für diesen Filter.'
                             : 'Keine Termine für diesen Filter.'}
                   </p>
-                )
+                ) : null
               ) : (
                 <>
                   {heroEvent
