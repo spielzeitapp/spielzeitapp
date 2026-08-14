@@ -40,6 +40,19 @@ export const LivePage: React.FC = () => {
   const [liveMatches, setLiveMatches] = useState<LiveMatchRow[] | null>(null);
   const [tournamentLiveMatchId, setTournamentLiveMatchId] = useState<string | null>(null);
   const [tournamentCheckDone, setTournamentCheckDone] = useState(false);
+  const [liveProbeTick, setLiveProbeTick] = useState(0);
+
+  useEffect(() => {
+    if (matchIdParam || isDemo) return;
+    const onChanged = () => setLiveProbeTick((n) => n + 1);
+    window.addEventListener('spielzeit:live-match-state-changed', onChanged);
+    // Cross-device / anderer Parent-Tab: kurzer Poll bis Live erkannt oder 2 Min.
+    const interval = window.setInterval(() => setLiveProbeTick((n) => n + 1), 8_000);
+    return () => {
+      window.removeEventListener('spielzeit:live-match-state-changed', onChanged);
+      window.clearInterval(interval);
+    };
+  }, [matchIdParam, isDemo]);
 
   useEffect(() => {
     if (matchIdParam || isDemo) {
@@ -106,7 +119,7 @@ export const LivePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchIdParam, teamSeasonId, isDemo]);
+  }, [matchIdParam, teamSeasonId, isDemo, liveProbeTick]);
 
   /** Demo: LIVE-Route mit Match-ID → Session aus Prep booten (Turnier + Meisterschaft). */
   useEffect(() => {

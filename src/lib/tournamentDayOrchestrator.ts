@@ -239,6 +239,19 @@ export function resolveTournamentOrchestrator(params: {
     };
   }
 
+  // Bereits gespeicherte Aufstellung → Lineup öffnen (nicht erneut Prep/Kader).
+  if ((slot.has_lineup || params.lineupReady) && matchId && canPrepareSlot(slot)) {
+    return {
+      focus,
+      phase: 'prepare',
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
+      badgeLabel: 'Aufstellung',
+      badgeTone: 'open',
+      ctas: [{ kind: 'open_lineup', matchId, label: 'Aufstellung öffnen', variant: 'primary' }],
+      showLineupReadyMark: Boolean(slot.has_lineup),
+    };
+  }
+
   if (canPrepareSlot(slot) && matchId) {
     return {
       focus,

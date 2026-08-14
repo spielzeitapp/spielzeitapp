@@ -34,15 +34,19 @@ export function getOnFieldPlayers(
  * - GK muss belegt sein
  * - Mindestanzahl Feldspieler (MIN_FIELD_PLAYERS) muss erreicht sein
  */
-/** 7er-Startelf vollständig (wie MatchLineupPage: 7/7 Slots belegt). */
+/** 7er-Startelf vollständig (wie MatchLineupPage: 7/7 — ohne Fairplay-FP-Slot). */
 export function isStartelfCompleteFromStartingIds(
   startingPlayerIds: readonly (string | null | undefined)[],
 ): boolean {
+  // LIVE_FIELD_SLOT_ORDER enthält FP als 8. Slot; Startelf zählt nur die 7 Kernplätze.
   let filled = 0;
-  for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i++) {
-    if (String(startingPlayerIds[i] ?? '').trim().length > 0) filled++;
+  for (let i = 0; i < STARTELF_SLOT_IDS.length; i++) {
+    const slot = STARTELF_SLOT_IDS[i];
+    const idx = LIVE_FIELD_SLOT_ORDER.indexOf(slot);
+    if (idx < 0) continue;
+    if (String(startingPlayerIds[idx] ?? '').trim().length > 0) filled++;
   }
-  return filled >= LIVE_FIELD_SLOT_ORDER.length;
+  return filled >= STARTELF_SLOT_IDS.length;
 }
 
 export function isStartelfCompleteForLive(match: Match): boolean {

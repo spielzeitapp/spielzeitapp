@@ -658,10 +658,16 @@ export const TournamentDetailSections: React.FC<Props> = ({
     window.addEventListener('focus', refreshOnVisible);
     document.addEventListener('visibilitychange', refreshOnVisible);
 
+    const onLiveBroadcast = () => {
+      void reload();
+    };
+    window.addEventListener('spielzeit:live-match-state-changed', onLiveBroadcast);
+
     return () => {
       window.clearInterval(interval);
       window.removeEventListener('focus', refreshOnVisible);
       document.removeEventListener('visibilitychange', refreshOnVisible);
+      window.removeEventListener('spielzeit:live-match-state-changed', onLiveBroadcast);
     };
   }, [tournamentPhase, completion.completedAt, slots, reload]);
 

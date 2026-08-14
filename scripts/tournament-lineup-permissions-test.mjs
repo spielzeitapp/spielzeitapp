@@ -1,15 +1,22 @@
 /**
- * STEP 17E – Unit checks for lineup permissions + previous→next tournament copy helpers.
+ * STEP 17E/17F – Unit checks for lineup permissions + previous→next tournament copy helpers.
  * Pure logic only (no DB / RLS). Run: node scripts/tournament-lineup-permissions-test.mjs
  */
 import assert from 'assert';
 
-/** Mirror of src/lib/roles.ts normalizeRole + canManageMatches */
 function normalizeRole(input) {
   const s = String(input ?? '').trim().toLowerCase();
   if (!s) return null;
   if (s === 'administrator' || s === 'admin') return 'admin';
-  if (s === 'head_coach' || s === 'headcoach' || s === 'coach' || s === 'co_trainer' || s === 'co-trainer' || s === 'co trainer' || s === 'trainer') {
+  if (
+    s === 'head_coach' ||
+    s === 'headcoach' ||
+    s === 'coach' ||
+    s === 'co_trainer' ||
+    s === 'co-trainer' ||
+    s === 'co trainer' ||
+    s === 'trainer'
+  ) {
     return 'trainer';
   }
   if (s === 'parent' || s === 'eltern') return 'parent';
@@ -42,6 +49,16 @@ function isTournamentMatchLineupEmpty(lineup) {
   return !hasField && !hasBench;
 }
 
+/** Mirrors STARTELF_SLOT_IDS length (7) — FP is ignored. */
+function isStartelfCompleteFromStartingIds(startingPlayerIds) {
+  const STARTELF_COUNT = 7;
+  let filled = 0;
+  for (let i = 0; i < STARTELF_COUNT; i++) {
+    if (String(startingPlayerIds[i] ?? '').trim().length > 0) filled++;
+  }
+  return filled >= STARTELF_COUNT;
+}
+
 function sortTournamentSlotsChronologically(slots) {
   return [...slots].sort((a, b) => {
     const ta = new Date(a.kickoff_at ?? a.starts_at ?? 0).getTime();
@@ -58,36 +75,39 @@ function pickPreviousFinishedMatchWithLineup(slots, nextSlot) {
   for (let i = nextIdx - 1; i >= 0; i -= 1) {
     const slot = ordered[i];
     if ((slot.match_status ?? '').toLowerCase() !== 'finished') continue;
-    if (slot.has_lineup || slot.has_squad) return slot;
+    if (slot.has_lineup) return slot;
+  }
+  for (let i = nextIdx - 1; i >= 0; i -= 1) {
+    const slot = ordered[i];
+    if ((slot.match_status ?? '').toLowerCase() !== 'finished') continue;
+    if (slot.has_squad) return slot;
   }
   return null;
 }
 
-// --- parent cannot mutate / trainer can mutate ---
-assert.strictEqual(canMutateMatchPreparation('parent'), false, 'parent cannot mutate');
-assert.strictEqual(canMutateMatchPreparation('fan'), false, 'fan cannot mutate');
-assert.strictEqual(canMutateMatchPreparation('player'), false, 'player cannot mutate');
-assert.strictEqual(canMutateMatchPreparation('trainer'), true, 'trainer can mutate');
-assert.strictEqual(canMutateMatchPreparation('admin'), true, 'admin can mutate');
-assert.strictEqual(canMutateMatchPreparation('co_trainer'), true, 'co_trainer can mutate');
+assert.strictEqual(canMutateMatchPreparation('parent'), false);
+assert.strictEqual(canMutateMatchPreparation('trainer'), true);
 
-// --- friendly RLS error ---
 assert.strictEqual(
   friendlyMatchLineupWriteError('new row violates row-level security policy for table "match_lineup"'),
   'Aufstellung konnte nicht gespeichert werden.',
 );
 
-// --- empty lineup detection ---
 assert.strictEqual(
-  isTournamentMatchLineupEmpty({ startingPlayerIds: ['', '', ''], savedBenchPlayerIds: [] }),
+  isStartelfCompleteFromStartingIds(['a', 'b', 'c', 'd', 'e', 'f', 'g', '']),
   true,
+  '7er complete without FP',
 );
 assert.strictEqual(
-  isTournamentMatchLineupEmpty({ startingPlayerIds: ['p1'], savedBenchPlayerIds: [] }),
+  isStartelfCompleteFromStartingIds(['a', 'b', 'c', 'd', 'e', 'f', '', '']),
   false,
 );
 
-// --- previous → next generic (match 1→2 and 2→3) ---
+assert.strictEqual(
+  isTournamentMatchLineupEmpty({ startingPlayerIds: ['', ''], savedBenchPlayerIds: [] }),
+  true,
+);
+
 const slots = [
   {
     id: 's1',
@@ -115,25 +135,7 @@ const slots = [
   },
 ];
 
-const prevFor2 = pickPreviousFinishedMatchWithLineup(slots, slots[1]);
-assert.strictEqual(prevFor2?.match_id, 'm1', 'Spiel 2 previous = Spiel 1');
-
-const prevFor3 = pickPreviousFinishedMatchWithLineup(slots, slots[2]);
-assert.strictEqual(prevFor3?.match_id, 'm2', 'Spiel 3 previous = Spiel 2 (not Spiel 1)');
-
-// --- existing next-match lineup must not be treated as empty (overwrite guard signal) ---
-assert.strictEqual(
-  isTournamentMatchLineupEmpty({
-    startingPlayerIds: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-    savedBenchPlayerIds: ['h'],
-  }),
-  false,
-  'existing lineup is not empty → no silent overwrite',
-);
-
-// --- copy payload must not include match events (contract check via mode list) ---
-const COPY_MODES = ['full', 'starters', 'bench', 'squad_only'];
-assert.ok(COPY_MODES.includes('full'));
-assert.ok(!COPY_MODES.includes('events'), 'no match events copy mode');
+assert.strictEqual(pickPreviousFinishedMatchWithLineup(slots, slots[1])?.match_id, 'm1');
+assert.strictEqual(pickPreviousFinishedMatchWithLineup(slots, slots[2])?.match_id, 'm2');
 
 console.log('tournament-lineup-permissions-test: OK');

@@ -255,7 +255,7 @@ export function TournamentFeaturedMatchCard({
 
   useEffect(() => {
     let cancelled = false;
-    if (!canManage || !focusMatchId || orchestrator.phase !== 'live') {
+    if (!focusMatchId || orchestrator.phase !== 'live') {
       setLiveDetails(null);
       return () => {
         cancelled = true;
@@ -274,7 +274,7 @@ export function TournamentFeaturedMatchCard({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [canManage, focusMatchId, orchestrator.phase]);
+  }, [focusMatchId, orchestrator.phase]);
 
   useEffect(() => {
     let cancelled = false;

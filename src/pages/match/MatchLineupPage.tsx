@@ -70,6 +70,7 @@ type MatchRowLite = {
 
 type LocationState = {
   selectedPlayers?: string[];
+  formationId?: string;
 } | null;
 
 function emptySlots(): Record<FieldSlotId, string | null> {
@@ -289,6 +290,15 @@ export const MatchLineupPage: React.FC = () => {
         if (initialSquad.length === 0) {
           initialSquad = data.squadPlayerIds.filter((id, idx, arr) => arr.indexOf(id) === idx);
         }
+        // Nach Copy: Squad immer Union aus Feld + Bank + ggf. Navigation-State,
+        // damit sanitize keine Starter gegen leeres Squad streicht.
+        const fieldIds = data.startingPlayerIds
+          .map((id) => String(id ?? '').trim())
+          .filter((id) => id.length > 0);
+        const benchIdsLoaded = data.savedBenchPlayerIds
+          .map((id) => String(id ?? '').trim())
+          .filter((id) => id.length > 0);
+        initialSquad = [...new Set([...initialSquad, ...fieldIds, ...benchIdsLoaded])];
         const sanitized = sanitizeLineupToMatchSquad(data.startingPlayerIds, initialSquad);
         initialSquad = sanitized.squadPlayerIds;
         for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i += 1) {
@@ -316,6 +326,12 @@ export const MatchLineupPage: React.FC = () => {
         return;
       }
     }
+    const fromState = routeState?.formationId;
+    if (isU11FormationId(fromState)) {
+      setFormationId(fromState);
+      writeStoredU11Formation(matchId, fromState);
+      return;
+    }
     const fromDb = matchRow.u11_formation_id;
     if (isU11FormationId(fromDb)) {
       setFormationId(fromDb);
@@ -327,7 +343,7 @@ export const MatchLineupPage: React.FC = () => {
       return;
     }
     setFormationId(U11_FORMATION_DB_FALLBACK);
-  }, [matchId, matchRow, isDemo, demo]);
+  }, [matchId, matchRow, isDemo, demo, routeState?.formationId]);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px)');

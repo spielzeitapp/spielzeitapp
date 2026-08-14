@@ -251,7 +251,10 @@ export function TournamentAssistantCard({
     if (!copyContext) return;
     const sourceMatchId = copyContext.sourceSlot.match_id?.trim() ?? '';
     const targetMatchId = copyContext.targetSlot.match_id?.trim() ?? '';
-    if (!sourceMatchId || !targetMatchId) return;
+    if (!sourceMatchId || !targetMatchId) {
+      setCopyError('Spiel-IDs fehlen.');
+      return;
+    }
 
     if (copyContext.targetHasExistingLineup && !replaceExisting && !showReplaceConfirm) {
       setShowReplaceConfirm(true);
@@ -277,11 +280,13 @@ export function TournamentAssistantCard({
     setShowReplaceConfirm(false);
     onLineupCopied?.();
 
-    // Sofort sichtbare Aufstellung: nach Übernahme zur Lineup-Seite (Formation/Startelf/Bank).
+    // Persist verifiziert in copyTournamentLineupBetweenMatches — dann erst UI öffnen.
     if (mode === 'squad_only') {
       navigate(matchPreparationPath(targetMatchId, basePath));
     } else {
-      navigate(matchLineupPath(targetMatchId, basePath));
+      navigate(matchLineupPath(targetMatchId, basePath), {
+        state: result.formationId ? { formationId: result.formationId } : undefined,
+      });
     }
   };
 
@@ -361,16 +366,22 @@ export function TournamentAssistantCard({
       const targetMatchId = action.matchId ?? copyContext?.targetSlot.match_id?.trim() ?? '';
       return (
         <div className="flex flex-col gap-1.5">
+          <p className="rounded-lg border border-purple-500/25 bg-purple-950/25 px-2.5 py-2 text-[12px] font-semibold leading-snug text-purple-50">
+            Aufstellung vom letzten Spiel übernehmen?
+          </p>
           {showReplaceConfirm ? (
             <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
-              Die bestehende Aufstellung dieses Spiels wird ersetzt. Tore und Spielereignisse bleiben unberührt.
-              Bitte erneut tippen zum Bestätigen.
+              Die bestehende Aufstellung dieses Spiels wird ersetzt. Bitte erneut tippen zum Bestätigen.
             </p>
           ) : copyContext?.targetHasExistingLineup ? (
             <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
               Für dieses Spiel gibt es bereits eine Aufstellung. Übernehmen ersetzt sie.
             </p>
-          ) : null}
+          ) : (
+            <p className="text-[11px] leading-snug text-white/55">
+              Formation, Startelf und Bank werden übernommen — ohne erneute Spielerauswahl.
+            </p>
+          )}
           <PrimaryButton
             label={copyBusy ? 'Wird übernommen…' : 'Komplette Aufstellung übernehmen'}
             onClick={() => void runCopy('full', showReplaceConfirm)}

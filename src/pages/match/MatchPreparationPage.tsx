@@ -7,12 +7,20 @@ import {
   canMutateMatchPreparation,
   friendlyMatchLineupWriteError,
   isMatchSquadEditable,
+  matchLineupPath,
 } from '../../lib/matchPreparationAccess';
 import {
   fetchTournamentEventIdForMatch,
   fetchTournamentSquadPlayerIds,
   resolveAttendanceEventIdForMatch,
 } from '../../lib/tournamentSquad';
+import { fetchTournamentMatchSlots } from '../../lib/tournamentPlan';
+import {
+  copyTournamentLineupBetweenMatches,
+  detectTournamentLineupCopyContext,
+  type TournamentLineupCopyContext,
+  type TournamentLineupCopyMode,
+} from '../../lib/tournamentLineupCopy';
 import { MinimumPlaytimeMatchSettings } from '../../components/live/MinimumPlaytimeMatchSettings';
 import { MatchdayFeedAutomationSettings } from '../../components/match/MatchdayFeedAutomationSettings';
 import {
@@ -101,6 +109,10 @@ export const MatchPreparationPage: React.FC = () => {
   const [tournamentSquadIds, setTournamentSquadIds] = useState<string[]>([]);
   const [tournamentEventId, setTournamentEventId] = useState<string | null>(null);
   const [tournamentContextReady, setTournamentContextReady] = useState(false);
+  const [lineupCopyContext, setLineupCopyContext] = useState<TournamentLineupCopyContext | null>(null);
+  const [lineupCopyBusy, setLineupCopyBusy] = useState(false);
+  const [lineupCopyError, setLineupCopyError] = useState<string | null>(null);
+  const [lineupCopyConfirm, setLineupCopyConfirm] = useState(false);
 
   // Eltern/Fans: Direct-Route Guard → read-only Aufstellung
   useEffect(() => {
@@ -229,6 +241,65 @@ export const MatchPreparationPage: React.FC = () => {
       cancelled = true;
     };
   }, [matchId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!matchId || !tournamentEventId || !canManage) {
+      setLineupCopyContext(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      const slotsRes = await fetchTournamentMatchSlots(tournamentEventId);
+      if (cancelled || slotsRes.error) return;
+      const target =
+        slotsRes.data.find((s) => (s.match_id ?? '').trim() === matchId) ?? null;
+      if (!target) {
+        setLineupCopyContext(null);
+        return;
+      }
+      const ctx = await detectTournamentLineupCopyContext(slotsRes.data, target);
+      if (!cancelled) setLineupCopyContext(ctx);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [matchId, tournamentEventId, canManage, restoredSelectedPlayers.length]);
+
+  const runPrepLineupCopy = async (mode: TournamentLineupCopyMode) => {
+    if (!lineupCopyContext || !matchId) return;
+    const sourceMatchId = lineupCopyContext.sourceSlot.match_id?.trim() ?? '';
+    if (!sourceMatchId) return;
+    if (lineupCopyContext.targetHasExistingLineup && !lineupCopyConfirm) {
+      setLineupCopyConfirm(true);
+      return;
+    }
+    setLineupCopyBusy(true);
+    setLineupCopyError(null);
+    const result = await copyTournamentLineupBetweenMatches({
+      sourceMatchId,
+      targetMatchId: matchId,
+      mode,
+      tournamentEventId: tournamentEventId ?? undefined,
+      replaceExisting: lineupCopyConfirm || lineupCopyContext.targetHasExistingLineup,
+    });
+    setLineupCopyBusy(false);
+    if (result.error) {
+      setLineupCopyError(result.error);
+      return;
+    }
+    setLineupCopyConfirm(false);
+    if (mode === 'squad_only') {
+      const { data } = await fetchTournamentSquadPlayerIds(tournamentEventId!);
+      setSelectedPlayers(data);
+      setRestoredSelectedPlayers(data);
+      return;
+    }
+    navigate(matchLineupPath(matchId, basePath), {
+      state: result.formationId ? { formationId: result.formationId } : undefined,
+    });
+  };
 
   const teamSeasonId = matchRow?.team_season_id ?? null;
   const { players: livePlayers, loading: playersLoadingLive, error: playersErrorLive } = usePlayers(
@@ -601,6 +672,54 @@ export const MatchPreparationPage: React.FC = () => {
           <p className="rounded-xl border border-purple-500/20 bg-purple-950/20 px-3 py-2 text-xs text-purple-100/90">
             Turnierkader als Vorauswahl — du kannst die Auswahl pro Spiel anpassen.
           </p>
+        ) : null}
+        {canManage && lineupCopyContext && lineupCopyContext.sourceStarterCount > 0 ? (
+          <div className="rounded-xl border border-purple-500/30 bg-purple-950/30 px-3 py-3">
+            <p className="text-[13px] font-bold text-purple-50">Aufstellung vom letzten Spiel übernehmen?</p>
+            <p className="mt-1 text-[11px] leading-snug text-purple-100/75">
+              Formation, Startelf und Bank werden übernommen — ohne erneute Spielerauswahl.
+            </p>
+            {lineupCopyConfirm ? (
+              <p className="mt-2 text-[11px] text-amber-100/90">
+                Bestehende Aufstellung wird ersetzt — erneut tippen zum Bestätigen.
+              </p>
+            ) : null}
+            {lineupCopyError ? <p className="mt-2 text-[11px] text-red-300">{lineupCopyError}</p> : null}
+            <div className="mt-2.5 flex flex-col gap-1.5">
+              <button
+                type="button"
+                disabled={lineupCopyBusy}
+                onClick={() => void runPrepLineupCopy('full')}
+                className={`${dsPrimaryCtaClass()} min-h-[44px] w-full text-[13px] font-bold disabled:opacity-60`}
+              >
+                {lineupCopyBusy ? 'Wird übernommen…' : 'Komplette Aufstellung übernehmen'}
+              </button>
+              <button
+                type="button"
+                disabled={lineupCopyBusy}
+                onClick={() => void runPrepLineupCopy('starters')}
+                className={`${dsSecondaryCtaClass()} min-h-[40px] w-full text-[12px] font-semibold disabled:opacity-60`}
+              >
+                Nur Startelf
+              </button>
+              <button
+                type="button"
+                disabled={lineupCopyBusy}
+                onClick={() => void runPrepLineupCopy('bench')}
+                className={`${dsSecondaryCtaClass()} min-h-[40px] w-full text-[12px] font-semibold disabled:opacity-60`}
+              >
+                Nur Ersatzspieler
+              </button>
+              <button
+                type="button"
+                disabled={lineupCopyBusy || !tournamentEventId}
+                onClick={() => void runPrepLineupCopy('squad_only')}
+                className={`${dsSecondaryCtaClass()} min-h-[40px] w-full text-[12px] font-semibold disabled:opacity-60`}
+              >
+                Mit Turnierkader neu aufstellen
+              </button>
+            </div>
+          </div>
         ) : null}
         <div className="flex flex-wrap gap-1.5">
           {(

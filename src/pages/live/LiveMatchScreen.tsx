@@ -126,6 +126,7 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
+import { broadcastLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { getDemoMatchLite } from '../../demo/demoMatchState';
@@ -1613,7 +1614,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   useEffect(() => {
     // Demo: keine Turnier-Navigation (kein Turnier-Match im Demo-Katalog).
-    if (!effectiveMatchId || !matchIsFinished || !canControlLiveMatch || isDemo) {
+    if (!effectiveMatchId || isDemo) {
       setTournamentNavContext(null);
       return;
     }
@@ -1626,7 +1627,7 @@ export const LiveMatchScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [effectiveMatchId, matchIsFinished, canControlLiveMatch, isDemo]);
+  }, [effectiveMatchId, matchIsFinished, matchRow?.status, isDemo]);
 
   useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
 
@@ -2726,6 +2727,24 @@ export const LiveMatchScreen: React.FC = () => {
           prev ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: 0 } : null,
         );
         void ensureLiveFeedPostForMatch(effectiveMatchId);
+        // Kalender-Event auf live setzen, damit Eltern/Fans & Schedule sofort „LIVE“ sehen.
+        void supabase
+          .from('events')
+          .update({ status: 'live', updated_at: ts })
+          .eq('match_id', effectiveMatchId)
+          .then(({ error: evErr }) => {
+            if (evErr) {
+              console.warn('[LiveMatch] events.status=live failed', {
+                matchId: effectiveMatchId,
+                error: evErr.message,
+              });
+            }
+          });
+        broadcastLiveMatchStateChanged({
+          matchId: effectiveMatchId,
+          status: 'live',
+          reason: 'kickoff',
+        });
       }
     } else {
       const { ok } = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
@@ -2739,12 +2758,18 @@ export const LiveMatchScreen: React.FC = () => {
         live_elapsed_seconds: frozen,
       });
       if (error) setSaveError(error);
-      else
+      else {
         setMatchRow((prev) =>
           prev
             ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: frozen }
             : null,
         );
+        broadcastLiveMatchStateChanged({
+          matchId: effectiveMatchId,
+          status: 'live',
+          reason: 'resume',
+        });
+      }
     }
   };
 
@@ -2863,6 +2888,11 @@ export const LiveMatchScreen: React.FC = () => {
         status: 'finished',
         score_home: fh,
         score_away: fa,
+      });
+      broadcastLiveMatchStateChanged({
+        matchId: effectiveMatchId,
+        status: 'finished',
+        reason: 'match_end',
       });
       void ensureResultFeedPostForMatch(effectiveMatchId).then((res) => {
         console.info('[resultFeed][LiveMatch] ensureResultFeedPostForMatch', {
@@ -4516,8 +4546,13 @@ export const LiveMatchScreen: React.FC = () => {
                     {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschließen'}
                   </button>
 
-                  {matchIsFinished && tournamentNavContext ? (
-                    <TournamentNextMatchWorkflowCta context={tournamentNavContext} className="pt-1" />
+                  {matchIsFinished && tournamentNavContext && mainTab !== 'overview' ? (
+                    <TournamentNextMatchWorkflowCta
+                      context={tournamentNavContext}
+                      audience="trainer"
+                      phase="after_finish"
+                      className="pt-1"
+                    />
                   ) : null}
                 </div>
               ) : null}
@@ -4580,6 +4615,19 @@ export const LiveMatchScreen: React.FC = () => {
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
+            {tournamentNavContext?.nextSlot ? (
+              <TournamentNextMatchWorkflowCta
+                context={tournamentNavContext}
+                audience={canControlLiveMatch ? 'trainer' : 'audience'}
+                phase={matchIsFinished ? 'after_finish' : hasClockStarted ? 'during_live' : 'before_first'}
+              />
+            ) : matchIsFinished && tournamentNavContext ? (
+              <TournamentNextMatchWorkflowCta
+                context={tournamentNavContext}
+                audience={canControlLiveMatch ? 'trainer' : 'audience'}
+                phase="after_finish"
+              />
+            ) : null}
             {canControlLiveMatch ? (
               <>
                 <section>
