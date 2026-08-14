@@ -164,7 +164,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'no_matches',
-      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
+      headerTitle: 'Nächstes Spiel',
       badgeLabel: 'Offen',
       badgeTone: 'open',
       ctas: params.canManage

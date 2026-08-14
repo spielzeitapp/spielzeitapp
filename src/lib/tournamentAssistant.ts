@@ -260,7 +260,7 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       return {
         stepNumber,
         totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-        title: tournamentPrepareCtaLabel(nextSlot, priorFinishedCount),
+        title: tournamentPrepareCtaLabel(nextSlot, priorFinished),
         description: 'Aufstellung vervollständigen, dann Live starten.',
         detailLines: matchSlotDetailLines(nextSlot),
         primaryLabel: 'Aufstellung öffnen',
@@ -273,12 +273,12 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       return {
         stepNumber,
         totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-        title: tournamentPrepareCtaLabel(nextSlot, priorFinishedCount),
+        title: tournamentPrepareCtaLabel(nextSlot, priorFinished),
         description: isFirst
           ? 'Aufstellung, Bank und Positionen für das erste Turnierspiel festlegen.'
           : 'Nächstes Turnierspiel vorbereiten — danach Live starten.',
         detailLines: matchSlotDetailLines(nextSlot),
-        primaryLabel: tournamentPrepareCtaLabel(nextSlot, priorFinishedCount),
+        primaryLabel: tournamentPrepareCtaLabel(nextSlot, priorFinished),
         action: { kind: 'prepare_match', matchId, isFirstMatch: isFirst },
         priorStepsDone: stepNumber - 1,
       };
