@@ -33,7 +33,7 @@ function TeamMark({
         className={`flex shrink-0 items-center justify-center rounded-2xl border bg-white shadow-sm ${
           featured
             ? 'h-[4.375rem] w-[4.375rem] sm:h-20 sm:w-20'
-            : 'h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem]'
+            : 'h-[4.125rem] w-[4.125rem] sm:h-[4.75rem] sm:w-[4.75rem]'
         } ${highlight ? 'border-red-500/40 ring-2 ring-red-500/20' : 'border-slate-200'}`}
       >
         {failed ? (
@@ -51,7 +51,7 @@ function TeamMark({
             className={`object-contain ${
               featured
                 ? 'h-12 w-12 sm:h-14 sm:w-14'
-                : 'h-11 w-11 sm:h-12 sm:w-12'
+                : 'h-12 w-12 sm:h-[3.25rem] sm:w-[3.25rem]'
             }`}
             onError={() => setFailed(true)}
           />
