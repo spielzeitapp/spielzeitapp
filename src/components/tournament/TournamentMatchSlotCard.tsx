@@ -11,8 +11,10 @@ import {
 } from '../../lib/tournamentPlan';
 import { dsStatusChipClass } from '../../lib/premiumDesignSystem';
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
-import { safeOptionalText } from '../../lib/safeText';
+import { safeOptionalText, safeText } from '../../lib/safeText';
+import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { TournamentPrepareButton } from './TournamentNextMatchWorkflowCta';
+import { TournamentClubLogo } from './TournamentClubLogo';
 
 type Props = {
   slot: TournamentMatchSlotView;
@@ -43,6 +45,17 @@ function statusLabel(
   return phase !== 'Turnierspiel' ? phase : 'Geplant';
 }
 
+function slotSideNames(slot: TournamentMatchSlotView): { home: string; away: string } {
+  const home = safeText(slot.home_team);
+  const away = safeText(slot.away_team);
+  if (home && away) return { home, away };
+  const opponent = safeText(slot.opponent_name) || 'Gegner';
+  if (isOwnPlayableTournamentSlot(slot)) {
+    return { home: getOurTeamDisplayName(), away: opponent };
+  }
+  return { home: opponent, away: opponent };
+}
+
 export function TournamentMatchSlotCard({
   slot,
   canManage = false,
@@ -61,6 +74,7 @@ export function TournamentMatchSlotCard({
   const showPrepare =
     canManage && isNextUpcoming && isOwn && isTournamentSlotPreparable(slot) && Boolean(slot.match_id);
   const clickable = isOwn && Boolean(slot.match_id);
+  const sides = slotSideNames(slot);
 
   return (
     <div
@@ -108,17 +122,23 @@ export function TournamentMatchSlotCard({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-[12px] font-medium tabular-nums text-white/55">{timeLabel} Uhr</p>
-              {scoreLine ? (
-                <p className="mt-0.5 text-[18px] font-bold leading-tight text-white">
-                  <span className="tabular-nums">{scoreLine}</span>
-                  <span className="mx-1.5 text-[14px] font-medium text-white/55">vs</span>
-                  <span className="break-words">{title}</span>
-                </p>
-              ) : (
-                <p className="mt-0.5 text-[16px] font-bold leading-snug text-white break-words">
-                  {title}
-                </p>
-              )}
+              <div className="mt-1.5 flex items-center gap-2">
+                <TournamentClubLogo name={sides.home} size="sm" tone="dark" />
+                <span className="text-[11px] font-semibold text-white/35">vs</span>
+                <TournamentClubLogo name={sides.away} size="sm" tone="dark" />
+                <div className="min-w-0 flex-1">
+                  {scoreLine ? (
+                    <p className="text-[16px] font-bold leading-tight text-white">
+                      <span className="tabular-nums">{scoreLine}</span>
+                      <span className="ml-1.5 break-words text-[13px] font-medium text-white/70">{title}</span>
+                    </p>
+                  ) : (
+                    <p className="line-clamp-2 text-[14px] font-bold leading-snug text-white break-words">
+                      {title}
+                    </p>
+                  )}
+                </div>
+              </div>
               {pitch ? <p className="mt-0.5 text-[11px] text-white/45">{pitch}</p> : null}
             </div>
             <span

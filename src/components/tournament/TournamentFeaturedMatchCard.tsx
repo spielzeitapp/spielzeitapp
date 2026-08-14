@@ -7,7 +7,7 @@ import {
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
 import { fetchLineupForLiveMatch } from '../../lib/liveMatchService';
-import { getClubLogo, getTeamInitials } from '../../lib/teamLogos';
+import { TournamentClubLogo } from './TournamentClubLogo';
 import {
   formatTournamentLiveClock,
   type TournamentLiveMatchDetails,
@@ -47,23 +47,7 @@ type Props = {
 };
 
 function TeamLogoMark({ name }: { name: string }) {
-  const [failed, setFailed] = useState(false);
-  const src = getClubLogo(name);
-  if (failed) {
-    return (
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/50 text-[11px] font-bold text-white/80 sm:h-12 sm:w-12">
-        {getTeamInitials(name)}
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt=""
-      className="h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12"
-      onError={() => setFailed(true)}
-    />
-  );
+  return <TournamentClubLogo name={name} size="lg" tone="dark" />;
 }
 
 function WorkflowCtaLink({

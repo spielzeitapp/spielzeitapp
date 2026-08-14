@@ -44,9 +44,9 @@ export function TournamentTeamsTab({ participants, loading = false }: Props) {
             ) : (
               <p className={`${TC_SECTION_LABEL} mb-3`}>Teilnehmer</p>
             )}
-            <ul className="grid grid-cols-3 gap-x-1 gap-y-3 sm:grid-cols-4">
+            <ul className="grid grid-cols-3 gap-x-1.5 gap-y-3.5 sm:grid-cols-4">
               {items.map((p) => {
-                const { club, ageGroup } = splitTeamDisplayName(p.team_name);
+                const { ageGroup } = splitTeamDisplayName(p.team_name);
                 return (
                   <li key={p.id} className="flex flex-col items-center">
                     <ParticipantLogoChip teamName={p.team_name} carousel />
@@ -54,14 +54,7 @@ export function TournamentTeamsTab({ participants, loading = false }: Props) {
                       <span className="mt-0.5 rounded-full border border-white/10 bg-white/[0.04] px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-white/55">
                         {ageGroup}
                       </span>
-                    ) : (
-                      <span
-                        className="mt-0.5 max-w-full truncate px-0.5 text-center text-[9px] text-white/40"
-                        title={club}
-                      >
-                        {club !== p.team_name ? club : '\u00A0'}
-                      </span>
-                    )}
+                    ) : null}
                   </li>
                 );
               })}

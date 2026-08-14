@@ -7,7 +7,8 @@ import {
   type PublicTeamTournamentMatchDto,
   type PublicTeamTournamentPageDto,
 } from '../../lib/publicTeamTournament';
-import { getClubLogo, getOurTeamLogoUrl, getTeamInitials, PLACEHOLDER_LOGO } from '../../lib/teamLogos';
+import { getOurTeamLogoUrl } from '../../lib/teamLogos';
+import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
 function TeamMark({
   name,
@@ -20,8 +21,6 @@ function TeamMark({
   highlight?: boolean;
   size?: 'featured' | 'regular';
 }) {
-  const [failed, setFailed] = useState(false);
-  const src = logoUrl || getClubLogo(name) || PLACEHOLDER_LOGO;
   const featured = size === 'featured';
   return (
     <div
@@ -29,34 +28,12 @@ function TeamMark({
         featured ? 'gap-2.5' : 'gap-2'
       }`}
     >
-      <div
-        className={`flex shrink-0 items-center justify-center rounded-2xl border bg-white shadow-sm ${
-          featured
-            ? 'h-[4.375rem] w-[4.375rem] sm:h-20 sm:w-20'
-            : 'h-[4.125rem] w-[4.125rem] sm:h-[4.75rem] sm:w-[4.75rem]'
-        } ${highlight ? 'border-red-500/40 ring-2 ring-red-500/20' : 'border-slate-200'}`}
-      >
-        {failed ? (
-          <span
-            className={`font-bold text-slate-600 ${
-              featured ? 'text-[13px] sm:text-[14px]' : 'text-[12px] sm:text-[13px]'
-            }`}
-          >
-            {getTeamInitials(name)}
-          </span>
-        ) : (
-          <img
-            src={src}
-            alt=""
-            className={`object-contain ${
-              featured
-                ? 'h-12 w-12 sm:h-14 sm:w-14'
-                : 'h-12 w-12 sm:h-[3.25rem] sm:w-[3.25rem]'
-            }`}
-            onError={() => setFailed(true)}
-          />
-        )}
-      </div>
+      <TournamentClubLogo
+        name={name}
+        logoUrl={logoUrl}
+        size={featured ? 'xl' : 'lg'}
+        tone="light"
+      />
       <p
         className={`line-clamp-2 font-semibold leading-snug ${
           featured ? 'text-[13px] sm:text-[14px]' : 'text-[12px] sm:text-[13px]'
@@ -139,7 +116,7 @@ function MatchCard({
         />
         <div
           className={`flex shrink-0 flex-col items-center justify-center ${
-            featured ? 'w-[4.25rem] pt-4 sm:w-20 sm:pt-5' : 'w-14 pt-3.5 sm:w-16 sm:pt-4'
+            featured ? 'w-[4.25rem] pt-5 sm:w-20 sm:pt-6' : 'w-14 pt-4 sm:w-16 sm:pt-5'
           }`}
         >
           {scoreReady ? (
@@ -182,17 +159,10 @@ function ResultRow({ match, ourLogoUrl }: { match: PublicTeamTournamentMatchDto;
         <p className="text-[18px] font-bold tabular-nums text-slate-900">{match.kickoffTimeLabel}</p>
       </div>
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <img
-          src={ourLogoUrl || getOurTeamLogoUrl()}
-          alt=""
-          className="h-8 w-8 object-contain"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = PLACEHOLDER_LOGO;
-          }}
-        />
+        <TournamentClubLogo name={match.ourTeamName} logoUrl={ourLogoUrl} size="sm" tone="light" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-slate-900">{match.ourTeamName}</p>
-          <p className="truncate text-[13px] text-slate-600">{match.opponentName}</p>
+          <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-slate-900">{match.ourTeamName}</p>
+          <p className="line-clamp-2 text-[13px] leading-snug text-slate-600">{match.opponentName}</p>
         </div>
       </div>
       <p className="shrink-0 text-[20px] font-bold tabular-nums text-slate-950">
@@ -288,9 +258,7 @@ export function PublicTeamTournamentPage(): React.ReactElement {
           <>
             <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <div className="flex items-start gap-3">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50">
-                  <img src={ourLogo} alt="" className="h-10 w-10 object-contain" />
-                </div>
+                <TournamentClubLogo name={page.teamName} logoUrl={ourLogo} size="lg" tone="light" />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
                     {page.ageGroupLabel ? (

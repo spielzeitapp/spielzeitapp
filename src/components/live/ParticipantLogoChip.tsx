@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { getClubLogo, getTeamInitials, hasKnownClubLogo } from '../../lib/teamLogos';
+import React from 'react';
+import { TournamentClubLogo } from '../tournament/TournamentClubLogo';
 import { safeText } from '../../lib/safeText';
 import { isHeimteamParticipant } from '../../lib/matchCenterUtils';
 
@@ -9,21 +9,25 @@ type Props = {
   carousel?: boolean;
 };
 
-const CAROUSEL_LOGO_BOX = 'h-[4.0625rem] w-[4.0625rem] sm:h-[4.375rem] sm:w-[4.375rem]';
-const CAROUSEL_LOGO_IMG = 'h-[3.8125rem] w-[3.8125rem] sm:h-[4.0625rem] sm:w-[4.0625rem]';
-
 const CAROUSEL_SHORT_NAMES: Record<string, string> = {
   'fk austria wien': 'FK Austria',
   'sv ried': 'SV Ried',
   'first vienna fc': 'First Vienna',
+  'fc first vienna': 'First Vienna',
   'first vienna fc 1894': 'First Vienna',
   'first vienna': 'First Vienna',
   'ask wilhelmsburg': 'ASK Wilhelmsburg',
+  'sku amstetten': 'SKU Amstetten',
+  'sv langenrohr': 'SV Langenrohr',
+  'sc wiener neustadt': 'SC Wr. Neustadt',
 };
 
 function shortenClubDisplayName(club: string): string {
   const key = club.trim().toLowerCase();
-  return CAROUSEL_SHORT_NAMES[key] ?? club;
+  if (CAROUSEL_SHORT_NAMES[key]) return CAROUSEL_SHORT_NAMES[key]!;
+  // TURNIERlive: „NSG Rohrbach/St. Veit“ — Name bleibt lesbar in 2 Zeilen
+  if (/nsg\s+rohrbach/i.test(club)) return club;
+  return club;
 }
 
 function splitParticipantDisplayName(name: string): { club: string; ageGroup: string | null } {
@@ -36,41 +40,26 @@ function splitParticipantDisplayName(name: string): { club: string; ageGroup: st
 }
 
 export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Props) {
-  const [failed, setFailed] = useState(false);
   const name = safeText(teamName) || 'Team';
   const { club } = splitParticipantDisplayName(name);
   const displayClub = carousel ? shortenClubDisplayName(club || name) : club || name;
-  const knownLogo = hasKnownClubLogo(name, { logoUrl: safeText(logoUrl) || undefined });
-  const src = knownLogo ? getClubLogo(name, { logoUrl: safeText(logoUrl) || undefined }) : null;
   const heim = isHeimteamParticipant(name);
-  const initials = getTeamInitials(club || name);
-  const showInitials = !knownLogo || failed;
 
-  const widthClass = carousel ? 'w-[5.125rem] sm:w-[5.625rem]' : 'w-[4.75rem]';
-  const boxClass = carousel ? CAROUSEL_LOGO_BOX : 'h-11 w-11';
-  const imgClass = carousel ? CAROUSEL_LOGO_IMG : 'h-8 w-8';
+  const widthClass = carousel ? 'w-[5.75rem] sm:w-[6.25rem]' : 'w-[4.75rem]';
 
   return (
     <div className={`relative flex shrink-0 flex-col items-center ${widthClass}`}>
-      <div className={`flex items-center justify-center ${boxClass}`}>
-        {showInitials ? (
-          <span
-            className={`font-bold text-white/70 ${carousel ? 'text-[14px]' : 'text-[11px]'}`}
-          >
-            {initials}
-          </span>
-        ) : (
-          <img
-            src={src!}
-            alt=""
-            className={`object-contain object-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] ${imgClass}`}
-            onError={() => setFailed(true)}
-          />
-        )}
-      </div>
+      <TournamentClubLogo
+        name={name}
+        logoUrl={safeText(logoUrl) || undefined}
+        size={carousel ? 'lg' : 'md'}
+        tone="dark"
+      />
       <p
-        className={`mt-0.5 w-full text-center leading-tight text-white/90 ${
-          carousel ? 'truncate text-[11px] font-semibold' : 'truncate text-[8px] font-medium'
+        className={`mt-1 w-full text-center leading-tight text-white/90 ${
+          carousel
+            ? 'line-clamp-2 text-[10px] font-semibold sm:text-[11px]'
+            : 'line-clamp-2 text-[8px] font-medium'
         }`}
         title={club || name}
       >
