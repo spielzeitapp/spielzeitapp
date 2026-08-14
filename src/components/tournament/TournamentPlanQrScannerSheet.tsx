@@ -5,6 +5,7 @@ import { AppButton } from '../ui/AppButton';
 import { lockBodyScroll } from '../../lib/bodyScrollLock';
 import {
   getQrCameraErrorMessage,
+  QR_CAMERA_UNAVAILABLE_TITLE,
   QR_SCAN_UNSUPPORTED_MESSAGE,
   requestQrCameraStream,
   resolveQrScanBackend,
@@ -18,6 +19,7 @@ type Props = {
   onScanSuccess: (rawValue: string) => void;
   scanError: string | null;
   onScanError: (message: string | null) => void;
+  onEnterLink?: () => void;
   saving?: boolean;
 };
 
@@ -27,6 +29,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
   onScanSuccess,
   scanError,
   onScanError,
+  onEnterLink,
   saving = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -35,6 +38,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
   const savingRef = useRef(saving);
   const [starting, setStarting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
 
   savingRef.current = saving;
 
@@ -125,7 +129,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
       cancelled = true;
       cleanupCamera();
     };
-  }, [cleanupCamera, isOpen, onScanError, onScanSuccess]);
+  }, [cleanupCamera, isOpen, onScanError, onScanSuccess, retryToken]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -193,9 +197,36 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
           </div>
 
           {displayError ? (
-            <p className="text-[13px] text-red-300/90" role="alert">
-              {displayError}
-            </p>
+            <div className="flex flex-col gap-2" role="alert">
+              <p className="text-[15px] font-semibold text-white">{QR_CAMERA_UNAVAILABLE_TITLE}</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <AppButton
+                  variant="primary"
+                  className="w-full"
+                  disabled={saving || starting}
+                  onClick={() => {
+                    setCameraError(null);
+                    onScanError(null);
+                    setRetryToken((n) => n + 1);
+                  }}
+                >
+                  Kamera erneut versuchen
+                </AppButton>
+                {onEnterLink ? (
+                  <AppButton
+                    variant="secondary"
+                    className="w-full"
+                    disabled={saving}
+                    onClick={() => {
+                      handleClose();
+                      onEnterLink();
+                    }}
+                  >
+                    Link eingeben
+                  </AppButton>
+                ) : null}
+              </div>
+            </div>
           ) : null}
 
           <AppButton variant="secondary" onClick={handleClose} disabled={saving} className="w-full">

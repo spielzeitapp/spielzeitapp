@@ -15,6 +15,7 @@ import {
 import { parseTournamentLiveResults } from '../api/_lib/tournamentLiveAdapter.js';
 
 const LIVE_URL = 'https://go.tournament-live.com/38331';
+const LIVE_MOBILE_URL = 'https://mobile.tournament-live.com/steurergedenkturnier/gedenkturnier2026/all';
 const MTP_URL = 'https://www.meinturnierplan.de/showit.php?id=1h42fr1f04';
 
 let failed = 0;
@@ -119,6 +120,7 @@ function mockMeinTurnierplanFetch(url) {
 
 assert(isTournamentLiveHost(LIVE_URL), 'go.tournament-live.com wird als tournament-live erkannt');
 assert(isTournamentLiveHost('https://mobile.tournament-live.com/steurergedenkturnier/gedenkturnier2026'), 'mobile.tournament-live.com wird erkannt');
+assert(isTournamentLiveHost(LIVE_MOBILE_URL), 'mobile.tournament-live.com /all wird erkannt');
 assert(isTournamentLiveHost('https://turnier.live/38331'), 'turnier.live wird defensiv erkannt');
 assert(!isSupportedTournamentPlanHost(LIVE_URL), 'tournament-live ist kein MeinTurnierplan-Host');
 assert(extractTournamentLiveKeyFromUrl(LIVE_URL).id === '38331', 'Turnier-ID 38331 aus Pfad');
@@ -127,6 +129,11 @@ assert(
     'gedenkturnier2026',
   'Alias aus mobile-URL',
 );
+assert(
+  extractTournamentLiveKeyFromUrl(LIVE_MOBILE_URL).alias === 'gedenkturnier2026',
+  'Alias aus mobile-URL mit /all Trailing-Segment',
+);
+assert(extractTournamentLiveKeyFromUrl(LIVE_MOBILE_URL).pageSlug === 'steurergedenkturnier', 'pageSlug aus mobile-URL mit /all');
 
 assert(isSupportedTournamentPlanHost(MTP_URL), 'MeinTurnierplan-Host weiterhin erkannt');
 assert(!isTournamentLiveHost(MTP_URL), 'MeinTurnierplan ist kein tournament-live-Host');
@@ -182,6 +189,17 @@ assert(
   'alle Live-Spiele haben externalMatchId',
 );
 assert(liveAnalyze.ok === true, 'Import möglich (Analyse vollständig)');
+
+const liveMobileAnalyze = await analyzeTournamentPlanJson(LIVE_MOBILE_URL);
+assert(liveMobileAnalyze.ok === true, 'Mobile-URL /all analysierbar');
+assert(liveMobileAnalyze.provider === 'tournament-live', 'Mobile-URL Provider tournament-live');
+assert((liveMobileAnalyze.analysis?.teamCount ?? 0) >= 10, `Mobile-URL Teilnehmer (${liveMobileAnalyze.analysis?.teamCount ?? 0})`);
+assert((liveMobileAnalyze.analysis?.matchCount ?? 0) >= 27, `Mobile-URL Spiele (${liveMobileAnalyze.analysis?.matchCount ?? 0})`);
+assert(
+  (liveMobileAnalyze.analysis?.rawMatches ?? []).filter((m) => /rohrbach/i.test(m.homeTeam) || /rohrbach/i.test(m.awayTeam))
+    .length >= 4,
+  'Mobile-URL eigene Spiele',
+);
 
 if (failed > 0) {
   console.error(`\n${failed} Test(s) fehlgeschlagen`);

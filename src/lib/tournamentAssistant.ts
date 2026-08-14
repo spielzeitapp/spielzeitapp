@@ -2,8 +2,13 @@ import {
   countFinishedTournamentSlots,
   pickNextOpenTournamentSlot,
   pickOrchestratorFocus,
+  tournamentPrepareCtaLabel,
 } from './tournamentDayOrchestrator';
-import { isTournamentSlotPreparable, type TournamentMatchSlotView } from './tournamentPlan';
+import {
+  formatTournamentKickoffTime,
+  isTournamentSlotPreparable,
+  type TournamentMatchSlotView,
+} from './tournamentPlan';
 import { isMatchPreparationAccessible } from './matchPreparationAccess';
 import type { TournamentAttendanceSummary } from './tournamentPreparationFlow';
 
@@ -66,10 +71,25 @@ function planDone(hasOfficialPlanUrl: boolean, slots: TournamentMatchSlotView[])
   return hasOfficialPlanUrl || slots.length > 0;
 }
 
-function matchPrepSubDetail(slot: TournamentMatchSlotView, lineupReady: boolean): string[] {
-  if (lineupReady) return ['Aufstellung fertig — als Nächstes Live starten.'];
-  if (slot.has_lineup) return ['Startelf vervollständigen', 'Bank und Positionen prüfen'];
-  return ['Aufstellung festlegen', 'Bank wählen', 'Positionen zuweisen'];
+function matchSlotDetailLines(slot: TournamentMatchSlotView): string[] {
+  const timeLabel = formatTournamentKickoffTime(slot.kickoff_at);
+  const pitch = String(slot.pitch ?? '').trim();
+  const phase = String(slot.phase ?? '').toLowerCase();
+  const phaseLabel =
+    phase === 'semifinal' || phase === 'semi'
+      ? 'Halbfinale'
+      : phase === 'final'
+        ? 'Finale'
+        : phase === 'placement'
+          ? 'Platzierung'
+          : null;
+  const lines = [
+    slot.opponent_name ? `Gegner: ${slot.opponent_name}` : '',
+    timeLabel ? `${timeLabel} Uhr` : '',
+    pitch,
+    phaseLabel,
+  ].filter(Boolean);
+  return lines;
 }
 
 /**
@@ -115,8 +135,8 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
     return {
       stepNumber: 7,
       totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-      title: 'Turnier abschließen',
-      description: 'Alle Spiele sind durch — jetzt Abschluss und Bericht.',
+      title: 'Turnier beendet',
+      description: 'Alle eigenen Spiele sind durch — jetzt Abschluss und Bericht.',
       detailLines: lines,
       primaryLabel: canCompleteTournament
         ? 'Turnier abschließen'
@@ -152,10 +172,12 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       return {
         stepNumber: 1,
         totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-        title: 'Verfügbarkeit prüfen',
+        title: 'Verfügbarkeit',
         description: 'Zusagen und Absagen der Spieler für den Turniertag erfassen.',
-        detailLines: [`${attendance.openCount} Spieler ohne Rückmeldung`],
-        primaryLabel: 'Jetzt öffnen',
+        detailLines: [
+          `${attendance.yesCount} zugesagt · ${attendance.openCount} offen · ${attendance.noCount} abgesagt`,
+        ],
+        primaryLabel: 'Verfügbarkeit prüfen',
         action: { kind: 'open_attendance' },
         priorStepsDone: 0,
       };
@@ -165,10 +187,10 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       return {
         stepNumber: 2,
         totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-        title: 'Turnierkader festlegen',
+        title: 'Turnierkader',
         description: 'Spieler für das Turnier auswählen und Turnierkader speichern.',
-        detailLines: ['Nominierte Spieler stehen in allen Turnierspielen zur Verfügung.'],
-        primaryLabel: 'Jetzt öffnen',
+        detailLines: ['Nur Spieler aus dem Team. Verfügbarkeit bleibt sichtbar.'],
+        primaryLabel: 'Turnierkader speichern',
         action: { kind: 'open_squad' },
         priorStepsDone: 1,
       };
@@ -179,12 +201,12 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       return {
         stepNumber: 3,
         totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-        title: 'Turnierplan vorbereiten',
+        title: 'Turnierplan',
         description: 'Turnierplan importieren oder Turnierspiele manuell anlegen.',
-        detailLines: ['Offiziellen Plan verknüpfen oder Spiele einzeln hinzufügen'],
-        primaryLabel: preferImport ? 'Turnierplan importieren' : 'Turnierspiele anlegen',
+        detailLines: ['Offiziellen Plan laden oder Spiele einzeln hinzufügen'],
+        primaryLabel: preferImport ? 'Turnierplan importieren' : 'Spiele manuell anlegen',
         action: preferImport ? { kind: 'import_plan' } : { kind: 'add_match' },
-        secondaryLabel: preferImport ? 'Turnierspiele anlegen' : 'Turnierplan importieren',
+        secondaryLabel: preferImport ? 'Spiele manuell anlegen' : 'Turnierplan importieren',
         secondaryAction: preferImport ? { kind: 'add_match' } : { kind: 'import_plan' },
         priorStepsDone: 2,
       };
@@ -217,7 +239,7 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       return {
         stepNumber: 6,
         totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-        title: 'Aufstellung vom letzten Spiel übernehmen',
+        title: 'Aufstellung übernehmen',
         description: targetHasExistingLineup
           ? 'Soll die bestehende Aufstellung ersetzt werden?'
           : 'Startelf, Bank und Positionen vom letzten Spiel übernehmen — oder neu aufstellen.',
@@ -238,9 +260,9 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       return {
         stepNumber,
         totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-        title: isFirst ? 'Erstes Spiel vorbereiten' : 'Nächstes Spiel vorbereiten',
+        title: tournamentPrepareCtaLabel(nextSlot, priorFinishedCount),
         description: 'Aufstellung vervollständigen, dann Live starten.',
-        detailLines: matchPrepSubDetail(nextSlot, lineupReady),
+        detailLines: matchSlotDetailLines(nextSlot),
         primaryLabel: 'Aufstellung öffnen',
         action: { kind: 'open_lineup', matchId, isFirstMatch: isFirst },
         priorStepsDone: stepNumber - 1,
@@ -251,12 +273,12 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
       return {
         stepNumber,
         totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-        title: isFirst ? 'Erstes Spiel vorbereiten' : 'Nächstes Spiel vorbereiten',
+        title: tournamentPrepareCtaLabel(nextSlot, priorFinishedCount),
         description: isFirst
           ? 'Aufstellung, Bank und Positionen für das erste Turnierspiel festlegen.'
           : 'Nächstes Turnierspiel vorbereiten — danach Live starten.',
-        detailLines: matchPrepSubDetail(nextSlot, lineupReady),
-        primaryLabel: isFirst ? 'Erstes Spiel vorbereiten' : 'Nächstes Spiel vorbereiten',
+        detailLines: matchSlotDetailLines(nextSlot),
+        primaryLabel: tournamentPrepareCtaLabel(nextSlot, priorFinishedCount),
         action: { kind: 'prepare_match', matchId, isFirstMatch: isFirst },
         priorStepsDone: stepNumber - 1,
       };
@@ -268,10 +290,12 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
     return {
       stepNumber: 1,
       totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-      title: 'Verfügbarkeit prüfen',
-      description: 'Zusagen und Absagen der Spieler für den Turniertag erfassen.',
-      detailLines: [`${attendance.openCount} Spieler ohne Rückmeldung`],
-      primaryLabel: 'Jetzt öffnen',
+        title: 'Verfügbarkeit',
+        description: 'Zusagen und Absagen der Spieler für den Turniertag erfassen.',
+        detailLines: [
+          `${attendance.yesCount} zugesagt · ${attendance.openCount} offen · ${attendance.noCount} abgesagt`,
+        ],
+        primaryLabel: 'Verfügbarkeit prüfen',
       action: { kind: 'open_attendance' },
       priorStepsDone: 0,
     };
@@ -281,10 +305,10 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
     return {
       stepNumber: 2,
       totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-      title: 'Turnierkader festlegen',
-      description: 'Spieler für das Turnier auswählen und Turnierkader speichern.',
-      detailLines: ['Nominierte Spieler stehen in allen Turnierspielen zur Verfügung.'],
-      primaryLabel: 'Jetzt öffnen',
+        title: 'Turnierkader',
+        description: 'Spieler für das Turnier auswählen und Turnierkader speichern.',
+        detailLines: ['Nur Spieler aus dem Team. Verfügbarkeit bleibt sichtbar.'],
+        primaryLabel: 'Turnierkader speichern',
       action: { kind: 'open_squad' },
       priorStepsDone: 1,
     };
@@ -295,12 +319,12 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
     return {
       stepNumber: 3,
       totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-      title: 'Turnierplan vorbereiten',
-      description: 'Turnierplan importieren oder Turnierspiele manuell anlegen.',
-      detailLines: ['Offiziellen Plan verknüpfen oder Spiele einzeln hinzufügen'],
-      primaryLabel: preferImport ? 'Turnierplan importieren' : 'Turnierspiele anlegen',
-      action: preferImport ? { kind: 'import_plan' } : { kind: 'add_match' },
-      secondaryLabel: preferImport ? 'Turnierspiele anlegen' : 'Turnierplan importieren',
+        title: 'Turnierplan',
+        description: 'Turnierplan importieren oder Turnierspiele manuell anlegen.',
+        detailLines: ['Offiziellen Plan laden oder Spiele einzeln hinzufügen'],
+        primaryLabel: preferImport ? 'Turnierplan importieren' : 'Spiele manuell anlegen',
+        action: preferImport ? { kind: 'import_plan' } : { kind: 'add_match' },
+        secondaryLabel: preferImport ? 'Spiele manuell anlegen' : 'Turnierplan importieren',
       secondaryAction: preferImport ? { kind: 'add_match' } : { kind: 'import_plan' },
       priorStepsDone: 2,
     };
@@ -309,10 +333,10 @@ export function resolveTournamentAssistantStep(input: TournamentAssistantInput):
   return {
     stepNumber: 4,
     totalSteps: TOURNAMENT_ASSISTANT_TOTAL_STEPS,
-    title: 'Erstes Spiel vorbereiten',
+    title: tournamentPrepareCtaLabel(nextSlot ?? slots[0], priorFinished),
     description: 'Mit der Spielvorbereitung starten.',
-    detailLines: matchPrepSubDetail(slots[0], lineupReady),
-    primaryLabel: 'Erstes Spiel vorbereiten',
+    detailLines: nextSlot ? matchSlotDetailLines(nextSlot) : [],
+    primaryLabel: tournamentPrepareCtaLabel(nextSlot ?? slots[0], priorFinished),
     action: {
       kind: 'prepare_match',
       matchId: nextSlot?.match_id ?? slots[0]?.match_id,

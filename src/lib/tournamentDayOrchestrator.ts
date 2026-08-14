@@ -102,9 +102,31 @@ export function pickFeaturedTournamentSlotFromOrchestrator(
   return focus.slot;
 }
 
-function prepareLabel(priorFinishedCount: number): string {
+function knockoutHeaderTitle(slot: TournamentMatchSlotView | null | undefined): string | null {
+  const phase = String(slot?.phase ?? '').toLowerCase();
+  if (phase === 'semifinal' || phase === 'semi') return 'Halbfinale';
+  if (phase === 'final') return 'Finale';
+  if (phase === 'quarterfinal' || phase === 'quarter') return 'Viertelfinale';
+  if (phase === 'placement') return 'Platzierungsspiel';
+  return null;
+}
+
+function prepareLabel(slot: TournamentMatchSlotView | null | undefined, priorFinishedCount: number): string {
+  const knockout = knockoutHeaderTitle(slot);
+  if (knockout) return `${knockout} vorbereiten`;
   if (priorFinishedCount === 0) return 'Erstes Spiel vorbereiten';
   return 'Nächstes Spiel vorbereiten';
+}
+
+function nextMatchHeaderTitle(slot: TournamentMatchSlotView | null | undefined, priorFinishedCount: number): string {
+  return knockoutHeaderTitle(slot) ?? (priorFinishedCount === 0 ? 'Erstes Spiel' : 'Nächstes Spiel');
+}
+
+export function tournamentPrepareCtaLabel(
+  slot: TournamentMatchSlotView | null | undefined,
+  priorFinishedCount: number,
+): string {
+  return prepareLabel(slot, priorFinishedCount);
 }
 
 function canPrepareSlot(slot: TournamentMatchSlotView): boolean {
@@ -142,7 +164,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'no_matches',
-      headerTitle: 'Nächstes Turnierspiel',
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
       badgeLabel: 'Offen',
       badgeTone: 'open',
       ctas: params.canManage
@@ -182,7 +204,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'all_finished',
-      headerTitle: 'Turnier abschließen',
+      headerTitle: 'Turnier beendet',
       badgeLabel: 'Beendet',
       badgeTone: 'finished',
       ctas,
@@ -196,7 +218,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'prepare',
-      headerTitle: 'Nächstes Turnierspiel',
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
       badgeLabel: display.kind === 'preparation' ? 'Vorbereitung' : 'Geplant',
       badgeTone: display.kind === 'preparation' ? 'open' : 'neutral',
       ctas: [],
@@ -221,14 +243,14 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'prepare',
-      headerTitle: prepareLabel(focus.priorFinishedCount),
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
       badgeLabel: slot.has_lineup || slot.has_squad ? 'Vorbereitung' : 'Geplant',
       badgeTone: slot.has_lineup || slot.has_squad ? 'open' : 'neutral',
       ctas: [
         {
           kind: 'prepare',
           matchId,
-          label: prepareLabel(focus.priorFinishedCount),
+          label: prepareLabel(slot, focus.priorFinishedCount),
           variant: 'primary',
         },
       ],
@@ -240,7 +262,7 @@ export function resolveTournamentOrchestrator(params: {
     return {
       focus,
       phase: 'prepare',
-      headerTitle: 'Nächstes Turnierspiel',
+      headerTitle: nextMatchHeaderTitle(slot, focus.priorFinishedCount),
       badgeLabel: 'Vorbereitung',
       badgeTone: 'open',
       ctas: [{ kind: 'open_lineup', matchId, label: 'Aufstellung öffnen', variant: 'primary' }],

@@ -44,7 +44,13 @@ import {
   fetchTournamentImportRecognition,
   type TournamentPlanImportRawMatch,
 } from '../../lib/tournamentPlanImport';
-import { isViennaTournamentDay, syncOfficialTournamentPlan } from '../../lib/tournamentPlanSync';
+import {
+  formatTournamentPlanSyncAge,
+  getOfficialTournamentSyncedAt,
+  isOfficialTournamentSyncActive,
+  markOfficialTournamentSynced,
+  syncOfficialTournamentPlan,
+} from '../../lib/tournamentPlanSync';
 import { openOfficialTournamentPlanUrl } from '../../lib/tournamentOfficialPlanUrl';
 import {
   buildTournamentCompletionFeedCaption,
@@ -195,6 +201,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [completingTournament, setCompletingTournament] = useState(false);
   const [orchestratorReportOpen, setOrchestratorReportOpen] = useState(false);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [syncAgeLabel, setSyncAgeLabel] = useState<string | null>(null);
+  const finishedOwnCountRef = React.useRef<number | null>(null);
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const { players: dbPlayers, loading: playersLoadingLive } = usePlayers(isDemo ? null : teamSeasonId);
@@ -431,7 +439,18 @@ export const TournamentDetailSections: React.FC<Props> = ({
     if (!canManage || loading) return;
     const planUrl = safeText(officialTournamentUrl);
     if (!planUrl) return;
-    if (!isViennaTournamentDay(tournamentDayIso)) return;
+    const hasUnfinishedOwnMatch = ownSlots.some(
+      (slot) => (slot.match_status ?? '').toLowerCase() !== 'finished',
+    );
+    if (
+      !isOfficialTournamentSyncActive({
+        tournamentArchived: Boolean(completion.completedAt),
+        tournamentDayIso,
+        hasUnfinishedOwnMatch,
+      })
+    ) {
+      return;
+    }
 
     let cancelled = false;
     const run = async () => {
@@ -444,11 +463,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
         existingTeamNames: existingTeamNamesRef.current,
         existingSlots: slotsRef.current,
       });
-      if (cancelled || !result.ok || result.skipped || !result.changed) return;
+      if (cancelled) return;
+      setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+      if (!result.ok || result.skipped || !result.changed) return;
       await reload();
     };
 
     void run();
+    const interval = window.setInterval(() => void run(), 60_000);
     const onFocus = () => {
       if (document.visibilityState === 'hidden') return;
       void run();
@@ -457,6 +479,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     document.addEventListener('visibilitychange', onFocus);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onFocus);
     };
@@ -469,7 +492,52 @@ export const TournamentDetailSections: React.FC<Props> = ({
     teamSeasonId,
     location,
     reload,
+    completion.completedAt,
+    ownSlots,
   ]);
+
+  useEffect(() => {
+    const finished = ownSlots.filter((slot) => (slot.match_status ?? '').toLowerCase() === 'finished').length;
+    const previous = finishedOwnCountRef.current;
+    finishedOwnCountRef.current = finished;
+    if (previous === null || finished <= previous) return;
+    if (!canManage || completion.completedAt) return;
+    const planUrl = safeText(officialTournamentUrl);
+    if (!planUrl) return;
+    void (async () => {
+      const result = await syncOfficialTournamentPlan({
+        tournamentEventId,
+        teamSeasonId,
+        tournamentDayIso,
+        location,
+        officialUrl: planUrl,
+        existingTeamNames: existingTeamNamesRef.current,
+        existingSlots: slotsRef.current,
+        force: true,
+      });
+      setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+      if (result.ok && result.changed) await reload();
+    })();
+  }, [
+    ownSlots,
+    canManage,
+    completion.completedAt,
+    officialTournamentUrl,
+    tournamentEventId,
+    teamSeasonId,
+    tournamentDayIso,
+    location,
+    reload,
+  ]);
+
+  useEffect(() => {
+    const tick = () => {
+      setSyncAgeLabel(formatTournamentPlanSyncAge(getOfficialTournamentSyncedAt(tournamentEventId)));
+    };
+    tick();
+    const interval = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(interval);
+  }, [tournamentEventId]);
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -635,13 +703,25 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const overviewSectionOrder = useMemo((): string[] => {
     if (completion.completedAt) {
-      return ['table', 'scorers', 'results', 'info'];
+      return ['results', 'scorers', 'table', 'info'];
+    }
+    if (tournamentPhase === 'day') {
+      return ['results', 'info', 'balance'];
     }
     if (tournamentPhase === 'after') {
-      return ['table', 'scorers', 'results', 'info', 'balance'];
+      return ['results', 'scorers', 'table', 'info', 'balance'];
     }
-    return ['table', 'scorers', 'results', 'info', 'balance'];
+    return ['info'];
   }, [tournamentPhase, completion.completedAt]);
+
+  const showAssistant =
+    canManage &&
+    !completion.completedAt &&
+    (tournamentPhase === 'before' || (tournamentPhase === 'day' && ownSlots.length === 0));
+  const showFeatured =
+    !completion.completedAt &&
+    (!canManage || tournamentPhase === 'day' || tournamentPhase === 'after');
+  const showCompactAboveTabs = tournamentPhase === 'day' && !completion.completedAt;
 
   const planUrlForFans = safeText(officialTournamentUrl);
 
@@ -745,7 +825,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
               embedded
               workflowRequest={planWorkflowRequest}
               onUrlUpdated={onOfficialTournamentUrlUpdated}
-              onImportComplete={() => void reload()}
+              onImportComplete={() => {
+                markOfficialTournamentSynced(tournamentEventId);
+                void reload();
+              }}
               onScrollToAliases={scrollToTeamAliases}
             />
           </TournamentTrainerAdminSection>
@@ -932,23 +1015,29 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
       {quickActions}
 
-      <TournamentFeaturedMatchCard
-        slots={ownSlots}
-        ourTeamName={ourTeamName}
-        loading={loading}
-        canManage={canManage}
-        tournamentArchived={Boolean(completion.completedAt)}
-        canCreateReport={orchestratorCanCreateReport}
-        canCompleteTournament={orchestratorCanComplete}
-        completingTournament={completingTournament}
-        onOpen={onOpenMatchPreparation}
-        onAddMatch={canManage ? openMatchModal : undefined}
-        onCreateReport={() => setOrchestratorReportOpen(true)}
-        onCompleteTournament={handleCompleteTournament}
-        onShowOverview={showOrchestratorOverview}
-      />
+      {canManage && syncAgeLabel ? (
+        <p className="px-0.5 text-[10px] font-medium text-white/40">{syncAgeLabel}</p>
+      ) : null}
 
-      {canManage ? (
+      {showFeatured ? (
+        <TournamentFeaturedMatchCard
+          slots={ownSlots}
+          ourTeamName={ourTeamName}
+          loading={loading}
+          canManage={canManage}
+          tournamentArchived={Boolean(completion.completedAt)}
+          canCreateReport={orchestratorCanCreateReport}
+          canCompleteTournament={orchestratorCanComplete}
+          completingTournament={completingTournament}
+          onOpen={onOpenMatchPreparation}
+          onAddMatch={canManage ? openMatchModal : undefined}
+          onCreateReport={() => setOrchestratorReportOpen(true)}
+          onCompleteTournament={handleCompleteTournament}
+          onShowOverview={showOrchestratorOverview}
+        />
+      ) : null}
+
+      {showAssistant ? (
         <TournamentAssistantCard
           tournamentEventId={tournamentEventId}
           slots={ownSlots}
@@ -959,6 +1048,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
           canCompleteTournament={orchestratorCanComplete}
           canCreateReport={orchestratorCanCreateReport}
           completingTournament={completingTournament}
+          ownMatchCount={ownSlots.length}
+          totalMatchCount={slots.length}
           onOpenAttendance={scrollToAttendance}
           onOpenSquad={scrollToSquad}
           onImportPlan={handleImportPlanFromOverview}
@@ -982,6 +1073,21 @@ export const TournamentDetailSections: React.FC<Props> = ({
           loading={loading}
           canManage={canManage}
         />
+      ) : null}
+
+      {showCompactAboveTabs ? (
+        <div className={`flex flex-col ${TC_STACK_GAP}`}>
+          <TournamentGroupPreviewCard
+            bundle={standingsBundle}
+            loading={standingsLoading}
+            onShowFullTable={showFullStandingsTable}
+          />
+          <TournamentScorersOverviewCard
+            scorers={goalScorers}
+            players={players}
+            loading={loading || goalScorersLoading}
+          />
+        </div>
       ) : null}
 
       <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage={canManage} />

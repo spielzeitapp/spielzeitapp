@@ -4,10 +4,7 @@ import { FileDown } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import {
   buildTournamentPlanImportPreviewSummary,
-  countAnalysisMatchResults,
   countOwnTeamMatchesInAnalysis,
-  labelForTournamentPlanAnalyzeSource,
-  listOwnTeamMatchesForImportPreview,
   type TournamentImportRecognition,
   type TournamentPlanAnalysis,
   type TournamentPlanAnalyzeDiagnostics,
@@ -15,7 +12,6 @@ import {
 } from '../../lib/tournamentPlanImport';
 import { TournamentImportRecognitionPanel } from './TournamentImportRecognitionPanel';
 import { TournamentPlanAnalyzeDebugPanel } from './TournamentPlanAnalyzeDebugPanel';
-import { TournamentPlanResultPreviewSection } from './TournamentPlanResultPreviewSection';
 
 type Props = {
   isOpen: boolean;
@@ -32,12 +28,6 @@ type Props = {
   onRetry?: () => void;
   onEditLink?: () => void;
 };
-
-function formatGroupLine(summary: { label: string; teamCount: number }): string {
-  const label = summary.label.trim();
-  const prefixed = /^gruppe\s/i.test(label) ? label : `Gruppe ${label}`;
-  return `${prefixed} (${summary.teamCount})`;
-}
 
 export const TournamentPlanImportSheet: React.FC<Props> = ({
   isOpen,
@@ -58,9 +48,6 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
 
   const ownTeamMatchCount =
     analysis && recognition ? countOwnTeamMatchesInAnalysis(analysis, recognition.knownNames) : 0;
-  const resultCounts = analysis ? countAnalysisMatchResults(analysis) : null;
-  const ownMatches =
-    analysis && recognition ? listOwnTeamMatchesForImportPreview(analysis, recognition.knownNames) : [];
   const preview =
     analysis && recognition
       ? buildTournamentPlanImportPreviewSummary(analysis, recognition.knownNames)
@@ -126,7 +113,7 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
                 </div>
               ) : null}
               <details className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
-                <summary className="cursor-pointer text-[12px] text-white/55">Debug (Trainer)</summary>
+                <summary className="cursor-pointer text-[12px] text-white/45">Technische Details</summary>
                 <div className="mt-2">
                   <TournamentPlanAnalyzeDebugPanel failure={analyzeFailure} diagnostics={analyzeDiagnostics} />
                 </div>
@@ -135,54 +122,46 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
           ) : analysis && preview ? (
             <>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[14px] text-white/85">
-                {analyzeDiagnostics?.source ? (
-                  <p className="mb-2 text-[13px] text-emerald-300/85">
-                    Quelle: {labelForTournamentPlanAnalyzeSource(analyzeDiagnostics.source)}
-                  </p>
-                ) : null}
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">Turnierplan erkannt</p>
                 {preview.tournamentName ? (
-                  <p className="font-medium text-white">{preview.tournamentName}</p>
+                  <p className="mt-1 text-[16px] font-bold text-white">{preview.tournamentName}</p>
                 ) : null}
-                <p>Teams erkannt: {preview.teamCount}</p>
-                <p>Spiele erkannt: {preview.matchCount}</p>
-                <p>eigene Mannschaft erkannt: {preview.ownTeamRecognized ? 'ja' : 'nein'}</p>
-                {preview.firstOwnMatch ? (
-                  <p>
-                    erstes eigenes Spiel: {preview.firstOwnMatch.kickoffTimeHHmm} vs.{' '}
-                    {preview.firstOwnMatch.opponentName}
+                <p className="mt-2 text-[14px] text-white/80">
+                  {preview.teamCount} Mannschaften
+                  <span className="text-white/35"> · </span>
+                  {preview.matchCount} Spiele
+                  {ownTeamMatchCount > 0 ? (
+                    <>
+                      <span className="text-white/35"> · </span>
+                      {ownTeamMatchCount} {ownTeamMatchCount === 1 ? 'Spiel' : 'Spiele'} für{' '}
+                      {preview.ownTeamName ?? 'unsere Mannschaft'}
+                    </>
+                  ) : null}
+                </p>
+                {preview.ownTeamRecognized && preview.ownTeamName ? (
+                  <p className="mt-2 text-[13px] font-medium text-emerald-300/90">
+                    Eigene Mannschaft erkannt
+                    <span className="mt-0.5 block text-white/85">
+                      {preview.ownTeamName} ✓
+                    </span>
                   </p>
                 ) : null}
-                {preview.lastPhaseLabel ? <p>letzte erkannte Phase: {preview.lastPhaseLabel}</p> : null}
-                <p>Gruppen gefunden: {analysis.groupCount}</p>
               </div>
-
-              {preview.groups.length > 0 ? (
-                <div className="flex flex-col gap-1 text-[14px] text-white/75">
-                  {preview.groups.map((group) => (
-                    <p key={group.label}>{formatGroupLine(group)}</p>
-                  ))}
-                </div>
-              ) : null}
-
-              <p className="text-[14px] font-medium text-white/90">
-                {analysis.preliminaryMatchCount === 1
-                  ? '1 Vorrundenspiel'
-                  : `${analysis.preliminaryMatchCount} Vorrundenspiele`}
-              </p>
-
-              {resultCounts ? (
-                <TournamentPlanResultPreviewSection
-                  matchesWithResult={resultCounts.withResult}
-                  matchesWithoutResult={resultCounts.withoutResult}
-                  ownMatches={ownMatches}
-                />
-              ) : null}
 
               <TournamentImportRecognitionPanel
                 recognition={recognition}
                 ownMatchCount={ownTeamMatchCount}
                 onAddAlias={onAddAlias}
               />
+
+              {analyzeDiagnostics ? (
+                <details className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+                  <summary className="cursor-pointer text-[12px] text-white/45">Technische Details</summary>
+                  <div className="mt-2">
+                    <TournamentPlanAnalyzeDebugPanel failure={null} diagnostics={analyzeDiagnostics} />
+                  </div>
+                </details>
+              ) : null}
             </>
           ) : null}
 

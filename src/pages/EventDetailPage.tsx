@@ -3581,7 +3581,7 @@ export const EventDetailPage: React.FC = () => {
                             },
                             {
                               key: 'delete',
-                              label: 'Löschen',
+                              label: 'Turnier löschen',
                               icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
                               danger: true,
                               onClick: () => setDeleteConfirmOpen(true),
@@ -4302,7 +4302,7 @@ export const EventDetailPage: React.FC = () => {
         </Modal>
         <Modal
           isOpen={deleteConfirmOpen}
-          title="Termin löschen?"
+          title={isTournament ? 'Turnier wirklich löschen?' : 'Termin löschen?'}
           onClose={() => {
             if (!deletingEvent) setDeleteConfirmOpen(false);
           }}
@@ -4320,14 +4320,15 @@ export const EventDetailPage: React.FC = () => {
                 onClick={() => void handleDeleteEvent()}
                 disabled={deletingEvent}
               >
-                {deletingEvent ? 'Löschen…' : 'Endgültig löschen'}
+                {deletingEvent ? 'Löschen…' : isTournament ? 'Turnier löschen' : 'Endgültig löschen'}
               </AppButton>
             </div>
           }
         >
           <p className="text-[14px] text-white/75">
-            Diesen Termin wirklich löschen? Alle zugehörigen Spielbericht-, Liveticker-, Aufstellungs- und Statistikdaten
-            werden entfernt.
+            {isTournament
+              ? 'Dabei werden Turnierdaten und zugehörige Testspiele entfernt.'
+              : 'Diesen Termin wirklich löschen? Alle zugehörigen Spielbericht-, Liveticker-, Aufstellungs- und Statistikdaten werden entfernt.'}
           </p>
         </Modal>
         <Modal

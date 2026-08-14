@@ -560,6 +560,10 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             scanError={qrScanError}
             onScanError={setQrScanError}
             saving={qrSaving}
+            onEnterLink={() => {
+              setQrScannerOpen(false);
+              openEditor();
+            }}
           />
 
           <TournamentPlanRefreshSheet

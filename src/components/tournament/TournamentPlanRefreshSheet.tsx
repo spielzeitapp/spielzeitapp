@@ -4,8 +4,6 @@ import { RefreshCw } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import {
   countOwnTeamMatchesInAnalysis,
-  labelForTournamentPlanAnalyzeSource,
-  listOwnTeamMatchesForImportPreview,
   type TournamentImportRecognition,
   type TournamentPlanAnalysis,
   type TournamentPlanAnalyzeDiagnostics,
@@ -14,7 +12,6 @@ import {
 } from '../../lib/tournamentPlanImport';
 import { TournamentImportRecognitionPanel } from './TournamentImportRecognitionPanel';
 import { TournamentPlanAnalyzeDebugPanel } from './TournamentPlanAnalyzeDebugPanel';
-import { TournamentPlanResultPreviewSection } from './TournamentPlanResultPreviewSection';
 
 type Props = {
   isOpen: boolean;
@@ -51,8 +48,6 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
   const canImport = Boolean(preview && !error && !loading);
   const ownTeamMatchCount =
     analysis && recognition ? countOwnTeamMatchesInAnalysis(analysis, recognition.knownNames) : 0;
-  const ownMatches =
-    analysis && recognition ? listOwnTeamMatchesForImportPreview(analysis, recognition.knownNames) : [];
 
   return createPortal(
     <div
@@ -89,26 +84,24 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
                   {error}
                 </p>
               ) : null}
-              <TournamentPlanAnalyzeDebugPanel failure={analyzeFailure} diagnostics={analyzeDiagnostics} />
+              <details className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+                <summary className="cursor-pointer text-[12px] text-white/45">Technische Details</summary>
+                <div className="mt-2">
+                  <TournamentPlanAnalyzeDebugPanel failure={analyzeFailure} diagnostics={analyzeDiagnostics} />
+                </div>
+              </details>
             </>
           ) : preview ? (
             <>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[14px] text-white/85">
-                {analyzeDiagnostics?.source ? (
-                  <p className="mb-2 text-[13px] text-emerald-300/85">
-                    Quelle: {labelForTournamentPlanAnalyzeSource(analyzeDiagnostics.source)}
-                  </p>
+                {analysis?.tournamentName ? (
+                  <p className="mb-1 text-[15px] font-bold text-white">{analysis.tournamentName}</p>
                 ) : null}
-                <p>Neue Teams: {preview.newTeams}</p>
+                <p>Neue Mannschaften: {preview.newTeams}</p>
                 <p>Neue Spiele: {preview.newMatches}</p>
                 <p>Bereits vorhanden: {preview.existingMatches}</p>
-                <p>Ergebnisse zum Aktualisieren: {preview.resultUpdates}</p>
+                <p>Neue Ergebnisse: {preview.resultUpdates}</p>
               </div>
-              <TournamentPlanResultPreviewSection
-                matchesWithResult={preview.matchesWithResult}
-                matchesWithoutResult={preview.matchesWithoutResult}
-                ownMatches={ownMatches}
-              />
               {noNewMatches && preview.newTeams === 0 ? (
                 <p className="text-[14px] text-white/70">Keine neuen Spiele oder Ergebnisse gefunden.</p>
               ) : null}
@@ -117,6 +110,14 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
                 ownMatchCount={ownTeamMatchCount}
                 onAddAlias={onAddAlias}
               />
+              {analyzeDiagnostics ? (
+                <details className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+                  <summary className="cursor-pointer text-[12px] text-white/45">Technische Details</summary>
+                  <div className="mt-2">
+                    <TournamentPlanAnalyzeDebugPanel failure={null} diagnostics={analyzeDiagnostics} />
+                  </div>
+                </details>
+              ) : null}
             </>
           ) : null}
 

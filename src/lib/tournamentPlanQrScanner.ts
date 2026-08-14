@@ -42,21 +42,23 @@ export async function requestQrCameraStream(): Promise<MediaStream> {
   });
 }
 
+export const QR_CAMERA_UNAVAILABLE_TITLE = 'Kamera konnte nicht verwendet werden';
+
 export function getQrCameraErrorMessage(error: unknown): string {
   const name = error instanceof DOMException ? error.name : '';
   if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-    return 'Kamera-Zugriff verweigert. Bitte Berechtigung erteilen oder Link manuell eingeben.';
+    return QR_CAMERA_UNAVAILABLE_TITLE;
   }
   if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-    return 'Keine Kamera gefunden. Bitte Link manuell eingeben.';
+    return QR_CAMERA_UNAVAILABLE_TITLE;
   }
   if (name === 'NotReadableError' || name === 'TrackStartError') {
-    return 'Kamera ist gerade nicht verfügbar. Bitte erneut versuchen.';
+    return QR_CAMERA_UNAVAILABLE_TITLE;
   }
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
+  if (error instanceof Error && error.message === QR_SCAN_UNSUPPORTED_MESSAGE) {
+    return QR_CAMERA_UNAVAILABLE_TITLE;
   }
-  return 'Kamera konnte nicht gestartet werden. Bitte Link manuell eingeben.';
+  return QR_CAMERA_UNAVAILABLE_TITLE;
 }
 
 type ScanLoopOptions = {

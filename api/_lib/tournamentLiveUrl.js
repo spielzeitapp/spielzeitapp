@@ -64,9 +64,11 @@ export function extractTournamentLiveKeyFromUrl(rawUrl) {
       }
     }
 
-    if (segments.length >= 2) {
-      const pageSlug = segments[0]?.trim() || null;
-      const alias = segments[1]?.trim() || null;
+    const viewSuffixes = new Set(['all', 'games', 'table', 'plan', 'schedule', 'results', 'info']);
+    const meaningful = segments.filter((segment) => !viewSuffixes.has(String(segment).trim().toLowerCase()));
+    if (meaningful.length >= 2) {
+      const pageSlug = meaningful[0]?.trim() || null;
+      const alias = meaningful[1]?.trim() || null;
       if (pageSlug && alias && !/\.html?$/i.test(alias) && !isPlausibleTournamentLiveKey(pageSlug)) {
         return { id: null, pageSlug, alias, source: 'alias', normalizedUrl };
       }
