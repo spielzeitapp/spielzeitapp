@@ -6,13 +6,15 @@
  *   and only if direct mailer is unavailable.
  * - action=complete_signup: Invite-bound password signup for passwordless stubs
  *   (token + email must match; no open account enumeration).
- * Secrets stay server-side. Invite links forced to Staging origin for develop.
+ * Secrets stay server-side. Invite origin is bound to the Supabase project ref.
+ * Client Host/Origin headers are never trusted.
  */
 import { createClient } from '@supabase/supabase-js';
 import { sendParentInviteEmail } from '../_lib/sendParentInviteEmail.js';
 
 const STAGING_ORIGIN = 'https://app.spielzeitapp.at';
-const LIVE_ORIGIN_RE = /^https:\/\/(www\.)?spielzeitapp\.at$/i;
+const LIVE_ORIGIN = 'https://spielzeitapp.at';
+const STAGING_REF = 'acbaecjzoabafbsjrzvr';
 const LIVE_REF = 'shxugattqatahckhspwk';
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -52,31 +54,52 @@ function isInviteTokenShape(token) {
   return /^[0-9a-f]{48}$/.test(String(token ?? '').trim().toLowerCase());
 }
 
-/**
- * Parent invite links: always canonical Staging origin for this develop flow.
- * Never trust client Origin headers. Never emit localhost or Live.
- */
-function resolveInviteOrigin() {
-  const configured = String(
-    process.env.APP_BASE_URL || process.env.VITE_APP_BASE_URL || '',
-  )
+function normalizeConfiguredOrigin(raw) {
+  return String(raw ?? '')
     .trim()
     .replace(/\/$/, '');
+}
 
-  if (LIVE_ORIGIN_RE.test(configured)) {
-    return { ok: false, error: 'parent_invite_refuses_live_domain' };
-  }
+function isLiveOrigin(origin) {
+  return /^https:\/\/(www\.)?spielzeitapp\.at$/i.test(origin);
+}
 
+function isStagingOrigin(origin) {
+  return /^https:\/\/app\.spielzeitapp\.at$/i.test(origin);
+}
+
+/**
+ * Bind invite links to the Supabase project: Live-Ref → spielzeitapp.at,
+ * Staging-Ref → app.spielzeitapp.at. Cross pairs and unknown DBs are rejected.
+ * Never trust request Host, Origin, or forwarded-host headers.
+ */
+function resolveInviteOrigin() {
   const supabaseUrl = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '');
-  if (supabaseUrl.includes(`${LIVE_REF}.supabase.co`)) {
-    return { ok: false, error: 'parent_invite_refuses_live_supabase' };
+  const isLiveDb = supabaseUrl.includes(`${LIVE_REF}.supabase.co`);
+  const isStagingDb = supabaseUrl.includes(`${STAGING_REF}.supabase.co`);
+  const configured = normalizeConfiguredOrigin(
+    process.env.APP_BASE_URL || process.env.VITE_APP_BASE_URL || '',
+  );
+
+  if (isLiveDb && isStagingDb) {
+    return { ok: false, error: 'parent_invite_ambiguous_supabase' };
   }
 
-  if (/localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]/i.test(configured)) {
+  if (isLiveDb) {
+    if (configured && !isLiveOrigin(configured)) {
+      return { ok: false, error: 'parent_invite_origin_ref_mismatch' };
+    }
+    return { ok: true, origin: LIVE_ORIGIN };
+  }
+
+  if (isStagingDb) {
+    if (configured && !isStagingOrigin(configured)) {
+      return { ok: false, error: 'parent_invite_origin_ref_mismatch' };
+    }
     return { ok: true, origin: STAGING_ORIGIN };
   }
 
-  return { ok: true, origin: STAGING_ORIGIN };
+  return { ok: false, error: 'parent_invite_unknown_supabase' };
 }
 
 function normalizeMembershipRole(roleStr) {
@@ -263,13 +286,6 @@ export default async function handler(req, res) {
         ok: false,
         error: 'Server misconfigured',
         mail_blocker: 'missing_supabase_env',
-      });
-    }
-
-    if (String(supabaseUrl).includes(`${LIVE_REF}.supabase.co`)) {
-      return res.status(403).json({
-        ok: false,
-        error: 'parent_invite_refuses_live_supabase',
       });
     }
 
