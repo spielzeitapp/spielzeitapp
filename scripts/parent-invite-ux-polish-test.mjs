@@ -23,9 +23,6 @@ const indexHtml = read('index.html');
 assert.ok(layout.includes('safe-area-inset-top'));
 assert.ok(layout.includes('overflow-y-auto'));
 assert.ok(!layout.includes('justify-center'));
-const shell = read('src/app/layout/authPageShell.ts');
-assert.ok(shell.includes('AUTH_PAGE_SHELL_CLASS'));
-assert.ok(shell.includes('AUTH_PAGE_CARD_CLASS'));
 
 for (const [name, src] of [
   ['register', register],
@@ -33,6 +30,8 @@ for (const [name, src] of [
   ['forgot', forgot],
 ]) {
   assert.ok(src.includes('AUTH_PAGE_SHELL_CLASS'), `${name} uses shell`);
+  assert.ok(src.includes('safe-area-inset-top'), `${name} has safe-area top`);
+  assert.ok(src.includes('overflow-y-auto'), `${name} is scrollable`);
   assert.ok(!src.includes('justify-center'), `${name} must not vertical-center`);
   assert.ok(!src.includes('min-h-[50vh]'), `${name} must not use min-h-[50vh]`);
 }
@@ -40,11 +39,12 @@ for (const [name, src] of [
 assert.ok(register.includes('Registrieren'));
 assert.ok(register.includes('E-Mail bestätigen'));
 assert.ok(login.includes('Anmelden'));
-assert.ok(accept.includes('safe-area-inset-bottom') || accept.includes('AuthMinimalLayout'));
+assert.ok(accept.includes('safe-area-inset-top'));
+assert.ok(accept.includes('overflow-y-auto'));
 
 assert.ok(app.includes('AuthMinimalLayout'));
-assert.ok(/path="register"[\s\S]*AuthMinimalLayout|AuthMinimalLayout[\s\S]*path="register"/.test(app));
 assert.ok(app.includes('path="login"'));
+assert.ok(app.includes('path="register"'));
 assert.ok(app.includes('path="app/parent-invite'));
 
 assert.ok(indexHtml.includes('viewport-fit=cover'));

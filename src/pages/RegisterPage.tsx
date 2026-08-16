@@ -17,7 +17,11 @@ import {
 import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/parentChildLink';
 import { resolvePostAuthDestination } from '../lib/postAuthDestination';
 import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
-import { AUTH_PAGE_CARD_CLASS, AUTH_PAGE_SHELL_CLASS } from '../app/layout/authPageShell';
+
+const AUTH_PAGE_SHELL_CLASS =
+  'flex min-h-[100dvh] min-h-screen w-full flex-col items-stretch overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))]';
+const AUTH_PAGE_CARD_CLASS =
+  'mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
