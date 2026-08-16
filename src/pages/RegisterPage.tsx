@@ -91,13 +91,13 @@ export const RegisterPage: React.FC = () => {
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
   const pendingInvitePath = resolvePendingParentInvitePath();
   const emailRedirectPath = pendingInvitePath || nextSafe || AUTH_EMAIL_CONFIRM_PATH;
+  const isParentInviteFlow = Boolean(
+    pendingInvitePath || (nextSafe && nextSafe.includes('/app/parent-invite')),
+  );
   const inviteEmailLocked = Boolean(
     (searchParams.get('email') ?? '').trim() ||
       readStashedParentInviteEmail() ||
       (isParentInviteFlow && user?.email),
-  );
-  const isParentInviteFlow = Boolean(
-    pendingInvitePath || (nextSafe && nextSafe.includes('/app/parent-invite')),
   );
 
   const inviteToken = (() => {

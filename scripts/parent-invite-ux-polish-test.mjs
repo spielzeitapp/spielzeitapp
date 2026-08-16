@@ -36,6 +36,10 @@ for (const [name, src] of [
   assert.ok(!src.includes('min-h-[50vh]'), `${name} must not use min-h-[50vh]`);
 }
 
+assert.ok(register.includes('const isParentInviteFlow = Boolean'));
+const inviteFlowIdx = register.indexOf('const isParentInviteFlow = Boolean');
+const lockedIdx = register.indexOf('const inviteEmailLocked = Boolean');
+assert.ok(inviteFlowIdx > 0 && lockedIdx > inviteFlowIdx, 'isParentInviteFlow declared before inviteEmailLocked');
 assert.ok(register.includes('Registrieren'));
 assert.ok(register.includes('E-Mail bestätigen'));
 assert.ok(login.includes('Anmelden'));
