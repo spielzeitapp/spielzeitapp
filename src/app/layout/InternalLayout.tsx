@@ -86,19 +86,36 @@ export const InternalLayout: React.FC = () => {
     async function gate() {
       // Persönliche Einladung hat Vorrang vor Rollenwahl UND Kind-Selbstverknüpfung —
       // auch wenn die aktuelle Route eigentlich onboarding-exempt ist.
+      // Ausnahme: bereits verknüpfte Eltern (Guardian) nicht zurück zur Invite-Seite zwingen.
       const pendingInvitePath = resolvePendingParentInvitePath();
       const onInvitePage =
         location.pathname === '/app/parent-invite' ||
         location.pathname.startsWith('/app/parent-invite/');
-      if (pendingInvitePath && !onInvitePage) {
-        if (alive) setGateChecking(false);
-        window.location.replace(pendingInvitePath);
-        return;
-      }
-      if (!onInvitePage && readPendingParentEmailInviteFlag()) {
-        if (alive) setGateChecking(false);
-        window.location.replace('/app/parent-invite');
-        return;
+      const pendingEmailInvite = !onInvitePage && readPendingParentEmailInviteFlag();
+
+      if ((pendingInvitePath && !onInvitePage) || pendingEmailInvite) {
+        if (sessionLoading) {
+          if (alive) setGateChecking(true);
+          return;
+        }
+        let skipPendingInvite = false;
+        if (user) {
+          const earlyGuardian = await userHasPlayerGuardian(user.id);
+          if (!alive) return;
+          skipPendingInvite = earlyGuardian.hasGuardian === true;
+        }
+        if (!skipPendingInvite) {
+          if (pendingInvitePath && !onInvitePage) {
+            if (alive) setGateChecking(false);
+            window.location.replace(pendingInvitePath);
+            return;
+          }
+          if (pendingEmailInvite) {
+            if (alive) setGateChecking(false);
+            window.location.replace('/app/parent-invite');
+            return;
+          }
+        }
       }
 
       if (isOnboardingExemptPath(location.pathname)) {
