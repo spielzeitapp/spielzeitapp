@@ -23,8 +23,3 @@ export function AuthMinimalLayout({ children }: { children?: React.ReactNode }):
     </AppBackground>
   );
 }
-
-/** Inneres Auth-Karten-Shell ohne Vertical-Centering (Inhalt startet oben, bleibt scrollbar). */
-export const AUTH_PAGE_SHELL_CLASS = 'w-full py-2';
-export const AUTH_PAGE_CARD_CLASS =
-  'w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl';

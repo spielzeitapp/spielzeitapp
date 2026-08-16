@@ -25,7 +25,7 @@ import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/par
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 import { useAuth } from '../auth/AuthProvider';
-import { AUTH_PAGE_CARD_CLASS, AUTH_PAGE_SHELL_CLASS } from '../app/layout/AuthMinimalLayout';
+import { AUTH_PAGE_CARD_CLASS, AUTH_PAGE_SHELL_CLASS } from '../app/layout/authPageShell';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';

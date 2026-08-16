@@ -20,10 +20,12 @@ const layout = read('src/app/layout/AuthMinimalLayout.tsx');
 const mailScript = read('scripts/parent-invite-patch-confirmation-mail.mjs');
 const indexHtml = read('index.html');
 
-assert.ok(layout.includes('AUTH_PAGE_SHELL_CLASS'));
 assert.ok(layout.includes('safe-area-inset-top'));
 assert.ok(layout.includes('overflow-y-auto'));
 assert.ok(!layout.includes('justify-center'));
+const shell = read('src/app/layout/authPageShell.ts');
+assert.ok(shell.includes('AUTH_PAGE_SHELL_CLASS'));
+assert.ok(shell.includes('AUTH_PAGE_CARD_CLASS'));
 
 for (const [name, src] of [
   ['register', register],
