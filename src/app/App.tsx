@@ -260,12 +260,14 @@ function InternalRoutes(): React.ReactElement {
       <Route path="/" element={<Navigate to="/app" replace />} />
       {/* TURNIER.1 – öffentliche Team-Turnierseite (ohne Login) */}
       <Route path="turnier/:publicId" element={<PublicTeamTournamentPage />} />
-      <Route path="login" element={<LoginPage />} />
-      <Route path="register" element={<RegisterPage />} />
-      <Route path="forgot-password" element={<ForgotPasswordPage />} />
+      <Route element={<AuthMinimalLayout />}>
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="app/parent-invite/:token" element={<ParentInviteAcceptPage />} />
+        <Route path="app/parent-invite" element={<ParentInviteAcceptPage />} />
+      </Route>
       <Route path="app/player-access" element={<PlayerAccessRedeemPage />} />
-      <Route path="app/parent-invite/:token" element={<ParentInviteAcceptPage />} />
-      <Route path="app/parent-invite" element={<ParentInviteAcceptPage />} />
       <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
       <Route path="live" element={<LiveShortcutRedirect />} />
       <Route path="app" element={<RequireAuth><IntroAppOutlet /></RequireAuth>}>
@@ -418,6 +420,8 @@ function PublicRoutes(): React.ReactElement {
         <Route path="/" element={<HomePage />} />
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="live" element={<SchedulePage />} />
+      </Route>
+      <Route element={<AuthMinimalLayout />}>
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />

@@ -4,7 +4,8 @@ import { AppBackground } from './AppBackground';
 
 /**
  * Reduziertes Auth-Layout: kein Header, keine Bottom-/Top-Navigation.
- * Für Passwort setzen / ähnliche Auth-Flows auf kleinen Viewports (iPhone, Gmail-WebView).
+ * Oben safe-area + scrollbar (kein Vertical-Centering), damit Safari-Mobile
+ * Überschriften nicht unter der Adressleiste abschneidet.
  */
 export function AuthMinimalLayout({ children }: { children?: React.ReactNode }): React.ReactElement {
   return (
@@ -14,7 +15,7 @@ export function AuthMinimalLayout({ children }: { children?: React.ReactNode }):
         style={{ minHeight: '100dvh' }}
       >
         <main
-          className="flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,env(safe-area-inset-bottom,0px))] pt-[max(1.25rem,env(safe-area-inset-top,0px))]"
+          className="flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))]"
         >
           <div className="mx-auto w-full max-w-[480px]">{children ?? <Outlet />}</div>
         </main>
@@ -22,3 +23,8 @@ export function AuthMinimalLayout({ children }: { children?: React.ReactNode }):
     </AppBackground>
   );
 }
+
+/** Inneres Auth-Karten-Shell ohne Vertical-Centering (Inhalt startet oben, bleibt scrollbar). */
+export const AUTH_PAGE_SHELL_CLASS = 'w-full py-2';
+export const AUTH_PAGE_CARD_CLASS =
+  'w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl';

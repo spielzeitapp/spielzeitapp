@@ -323,7 +323,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
     !preview;
 
   return (
-    <div className="page relative min-h-[60vh] px-4 pt-6">
+    <div className="page relative min-h-0 px-0 pt-0 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
       <div className="mx-auto max-w-[720px]">
         <Card>
           <div className="space-y-4">
