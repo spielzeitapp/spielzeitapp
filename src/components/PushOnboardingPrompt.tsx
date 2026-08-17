@@ -97,7 +97,7 @@ function PushOnboardingSheet({
       <div
         className={[
           'modalOverlay !bg-black/65 !backdrop-blur-[3px]',
-          entered ? 'push-onboarding-overlay-enter' : 'opacity-0',
+          entered ? 'push-onboarding-overlay-enter' : 'pointer-events-none opacity-0',
         ].join(' ')}
         onClick={onRemindLater}
         role="presentation"
@@ -107,7 +107,7 @@ function PushOnboardingSheet({
             'modalSheet push-onboarding-sheet',
             '!flex !max-h-[92vh] !max-w-[420px] !flex-col !overflow-hidden',
             '!rounded-t-[20px] !border-white/[0.08] !bg-[#0A0A0C] !p-0',
-            entered ? 'push-onboarding-sheet-enter' : 'opacity-0',
+            entered ? 'push-onboarding-sheet-enter' : 'pointer-events-none opacity-0',
           ].join(' ')}
           style={{ boxShadow: SHEET_SHADOW }}
           role="dialog"
@@ -275,7 +275,12 @@ export const PushOnboardingPrompt: React.FC = () => {
   );
 
   useEffect(() => {
-    setOpen(shouldShow);
+    if (!shouldShow) {
+      setOpen(false);
+      return;
+    }
+    const t = window.setTimeout(() => setOpen(true), 800);
+    return () => window.clearTimeout(t);
   }, [shouldShow]);
 
   useEffect(() => {
@@ -295,9 +300,9 @@ export const PushOnboardingPrompt: React.FC = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !entered) return;
     return lockBodyScroll();
-  }, [open]);
+  }, [open, entered]);
 
   useEffect(() => {
     if (!open) return;

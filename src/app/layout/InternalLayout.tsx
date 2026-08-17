@@ -93,6 +93,8 @@ export const InternalLayout: React.FC = () => {
   useSyncPendingProfile(isDemo ? null : user ?? null);
   useSyncProfileFromUserMetadata(isDemo ? null : user ?? null);
 
+  const onExemptPath = isOnboardingExemptPath(location.pathname);
+
   useEffect(() => {
     if (isDemo) {
       setGateChecking(false);
@@ -100,6 +102,7 @@ export const InternalLayout: React.FC = () => {
     }
     let alive = true;
     const userId = user?.id ?? null;
+    const pathname = location.pathname;
 
     if (gatePassedUserIdRef.current && gatePassedUserIdRef.current !== userId) {
       gatePassedUserIdRef.current = null;
@@ -111,7 +114,7 @@ export const InternalLayout: React.FC = () => {
     }
 
     // Warm tab switch: already allowed for this user — no loader, no Guardian/Invite/getUser.
-    if (userId && gatePassedUserIdRef.current === userId && isAppShellTabPath(location.pathname)) {
+    if (userId && gatePassedUserIdRef.current === userId && isAppShellTabPath(pathname)) {
       setGateChecking(false);
       return;
     }
@@ -130,8 +133,8 @@ export const InternalLayout: React.FC = () => {
       // Ausnahme: bereits verknüpfte Eltern (Guardian) nicht zurück zur Invite-Seite zwingen.
       const pendingInvitePath = resolvePendingParentInvitePath();
       const onInvitePage =
-        location.pathname === '/app/parent-invite' ||
-        location.pathname.startsWith('/app/parent-invite/');
+        pathname === '/app/parent-invite' ||
+        pathname.startsWith('/app/parent-invite/');
       const pendingEmailInvite = !onInvitePage && readPendingParentEmailInviteFlag();
 
       if ((pendingInvitePath && !onInvitePage) || pendingEmailInvite) {
@@ -159,7 +162,7 @@ export const InternalLayout: React.FC = () => {
         }
       }
 
-      if (isOnboardingExemptPath(location.pathname)) {
+      if (isOnboardingExemptPath(pathname)) {
         if (alive) setGateChecking(false);
         return;
       }
@@ -286,7 +289,7 @@ export const InternalLayout: React.FC = () => {
     };
   }, [
     isDemo,
-    location.pathname,
+    onExemptPath,
     user,
     sessionLoading,
     backendRole,

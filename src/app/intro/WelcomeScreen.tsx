@@ -8,6 +8,7 @@ import {
   resolvePendingParentInvitePath,
 } from '../../lib/parentLinkInvites';
 import { DEMO_TOUR_WHAT_PATH, DEMO_TOUR_WELCOME_BENEFIT, DEMO_TOUR_WELCOME_HEADLINE, DEMO_TOUR_WELCOME_PRIMARY, DEMO_TOUR_WELCOME_PROBLEM } from '../../demo/demoTourConfig';
+import { isStandaloneDisplayMode } from '../../lib/pwaDisplayMode';
 import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg-neu.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
@@ -44,7 +45,7 @@ function PremiumIntroButton({
       type="button"
       onClick={onClick}
       className={[
-        'welcome-intro-cta group relative flex w-full min-h-[40px] items-center gap-2.5 overflow-hidden rounded-xl px-4 py-2 text-left',
+        'welcome-intro-cta group relative z-20 flex w-full min-h-[44px] touch-manipulation items-center gap-2.5 overflow-hidden rounded-xl px-4 py-2 text-left',
         liveActive ? 'welcome-intro-cta--live' : '',
         pulseGlow ? 'welcome-intro-cta--pulse' : '',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
@@ -65,7 +66,8 @@ export const WelcomeScreen: React.FC = () => {
   const iconBase = appIconBase();
   /** Gemeinsamer Einstieg: gleiche Live-Anzeige wie Produktion (nur Lesen). */
   const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: !isDemoWelcome });
-  const [welcomeEntered, setWelcomeEntered] = useState(false);
+  const [welcomeEntered, setWelcomeEntered] = useState(true);
+  const standaloneApp = isStandaloneDisplayMode();
 
   useEffect(() => {
     let raf1 = 0;
@@ -315,15 +317,15 @@ export const WelcomeScreen: React.FC = () => {
             'relative z-10 shrink-0',
             isDemoWelcome
               ? 'min-h-[42vh] max-[390px]:min-h-[36vh] max-[667px]:min-h-[40vh] sm:min-h-[52vh]'
-              : 'min-h-[58vh] max-[667px]:min-h-[54vh] sm:min-h-[60vh]',
+              : 'min-h-[36vh] max-[390px]:min-h-[30vh] max-[667px]:min-h-[34vh] sm:min-h-[42vh]',
           ].join(' ')}
           aria-hidden
         />
 
         <div
           className={[
-            'relative z-10 w-full space-y-[6px] pt-1 transition-[opacity,transform] duration-300 ease-out delay-75 max-[667px]:space-y-[5px]',
-            welcomeEntered ? 'translate-y-0 opacity-100' : 'translate-y-[10px] opacity-0',
+            'relative z-20 w-full space-y-[6px] pt-1 pointer-events-auto transition-[transform] duration-300 ease-out delay-75 max-[667px]:space-y-[5px]',
+            welcomeEntered ? 'translate-y-0' : 'translate-y-[6px]',
           ].join(' ')}
         >
           {isDemoWelcome ? (
@@ -462,6 +464,10 @@ export const WelcomeScreen: React.FC = () => {
               Alle Daten sind fiktiv. Änderungen bleiben nur lokal in dieser Browser-Session. Es werden
               keine Nachrichten oder Benachrichtigungen verschickt.
             </p>
+          ) : standaloneApp ? (
+            <p className="max-w-[320px] text-center text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
+              App-Modus aktiv.
+            </p>
           ) : (
             <div className="flex max-w-[320px] items-start gap-1.5 text-left text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
               <Smartphone
@@ -470,8 +476,8 @@ export const WelcomeScreen: React.FC = () => {
                 aria-hidden
               />
               <p>
-                <span className="font-semibold text-red-500">Tipp:</span> Zum Home-Bildschirm hinzufügen für
-                den vollen App-Modus.
+                <span className="font-semibold text-red-500">Tipp:</span> Teilen → Zum Home-Bildschirm
+                hinzufügen.
               </p>
             </div>
           )}

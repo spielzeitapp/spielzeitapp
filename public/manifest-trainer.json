@@ -2,7 +2,7 @@
   "name": "SpielzeitApp",
   "short_name": "SpielzeitApp",
   "start_url": "/app",
-  "scope": "/app",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#7f1d1d",
   "theme_color": "#7f1d1d",

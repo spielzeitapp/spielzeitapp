@@ -220,9 +220,9 @@ export const HomePage: React.FC = () => {
     activePosts: liveActivePosts,
     historicPosts: liveHistoricPosts,
     loading: teamFeedLoadingRaw,
-    ensuring: teamFeedEnsuringRaw,
     loadingMore: teamFeedLoadingMore,
     hasMoreHistoric: hasMoreHistoricLive,
+    error: teamFeedErrorRaw,
     refetch: refetchFeed,
     loadMoreHistoric,
   } = useTeamFeedPosts(isDemoMode ? null : teamSeasonId, isDemoMode ? null : teamId || null, {
@@ -233,7 +233,7 @@ export const HomePage: React.FC = () => {
   const activePosts = isDemoMode ? demo!.data.feedPosts : liveActivePosts;
   const historicPosts = isDemoMode ? demo!.data.historicFeedPosts : liveHistoricPosts;
   const teamFeedLoading = isDemoMode ? false : teamFeedLoadingRaw;
-  const teamFeedEnsuring = isDemoMode ? false : teamFeedEnsuringRaw;
+  const teamFeedError = isDemoMode ? null : teamFeedErrorRaw;
   const hasMoreHistoric = isDemoMode ? false : hasMoreHistoricLive;
   const staffCanDeleteFeed =
     !isDemoMode && !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
@@ -245,9 +245,10 @@ export const HomePage: React.FC = () => {
     return m;
   }, [events, now]);
 
-  const loading = isDemoMode ? false : sessionLoading || evLoading;
-  const feedBusy = teamFeedLoading || teamFeedEnsuring;
-  const matchSectionReady = !loading && !feedBusy && autoMatchdaySettingsReady;
+  const sessionPending = isDemoMode ? false : sessionLoading;
+  const eventsPending = isDemoMode ? false : evLoading;
+  const feedBusy = teamFeedLoading && activePosts.length === 0 && !teamFeedError;
+  const matchSectionReady = !eventsPending && autoMatchdaySettingsReady;
   const showContent = Boolean(teamSeasonId) || FEED_DEMO || isDemoMode;
 
   const spieltagHintPick =
@@ -297,9 +298,9 @@ export const HomePage: React.FC = () => {
       className="page app-home min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-[max(7rem,calc(5.75rem+env(safe-area-inset-bottom,0px)))] pt-4 sm:px-4 sm:pt-5 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
-      {loading && <p className="text-sm text-white/50">Laden…</p>}
+      {sessionPending && !teamSeasonId && <p className="text-sm text-white/50">Laden…</p>}
 
-      {!loading && !teamSeasonId && !FEED_DEMO && (
+      {!sessionPending && !teamSeasonId && !FEED_DEMO && (
         <PremiumEmptyState
           variant="subtle"
           title={
@@ -332,7 +333,7 @@ export const HomePage: React.FC = () => {
         </PremiumEmptyState>
       )}
 
-      {!loading && showContent && (
+      {showContent && (
         <div className="min-w-0 space-y-2">
           <SectionTitle variant="interactive" as="h2" className="!text-lg sm:!text-xl">
             Matchday Feed
@@ -368,7 +369,18 @@ export const HomePage: React.FC = () => {
               <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
                 Im Feed
               </SectionTitle>
-              {feedBusy ? (
+              {teamFeedError ? (
+                <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
+                  <p className="text-sm text-white/70">{teamFeedError}</p>
+                  <button
+                    type="button"
+                    onClick={() => void refetchFeed()}
+                    className={cn(dsSecondaryCtaClass(), 'inline-flex min-h-[44px] items-center px-4')}
+                  >
+                    Erneut laden
+                  </button>
+                </div>
+              ) : feedBusy ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
               ) : visibleActivePosts.length === 0 ? (
                 <PremiumEmptyState
