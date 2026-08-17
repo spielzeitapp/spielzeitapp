@@ -78,7 +78,7 @@ function NavItem({
           onReclick();
         }
       }}
-      className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-visible px-0.5 pb-1 pt-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2D2D]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+      className="group relative flex min-w-0 flex-1 touch-manipulation flex-col items-center justify-center gap-1 overflow-visible px-0.5 pb-1 pt-0.5 transition-transform duration-75 active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2D2D]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
     >
       {({ isActive }) => (
         <>

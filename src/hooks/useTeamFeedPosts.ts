@@ -22,6 +22,9 @@ const FEED_SELECT =
 export const ACTIVE_FEED_LIMIT = 48;
 /** Chronik: erste Seite älterer Saisons. */
 export const HISTORY_FEED_PAGE_SIZE = 15;
+/** Home darf nicht endlos auf „Feed wird geladen …“ stehen bleiben. */
+export const FEED_LOAD_TIMEOUT_MS = 8000;
+const FEED_LOAD_TIMEOUT_MESSAGE = 'Feed konnte nicht geladen werden. Bitte erneut versuchen.';
 
 function sortChronological(items: ClassifiedFeedPost[]): ClassifiedFeedPost[] {
   return [...items].sort((a, b) => {
@@ -140,42 +143,43 @@ async function fetchHistoricPostsPage(opts: {
   };
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 async function runFeedEnsures(teamSeasonId: string): Promise<void> {
-  try {
-    await ensureMatchdayFeedPostsForSeason(teamSeasonId);
-  } catch (e) {
-    console.warn('[useTeamFeedPosts] ensureMatchdayFeedPostsForSeason failed', e);
-  }
-
-  try {
-    await ensureUpcomingMatchFeedPosts(teamSeasonId);
-  } catch (e) {
-    console.warn('[useTeamFeedPosts] ensureUpcomingMatchFeedPosts failed', e);
-  }
-
-  try {
-    await ensureEventFeedPostsForSeason(teamSeasonId);
-  } catch (e) {
-    console.warn('[useTeamFeedPosts] ensureEventFeedPostsForSeason failed', e);
-  }
-
-  try {
-    await ensureLineupFeedPostsForSeason(teamSeasonId);
-  } catch (e) {
-    console.warn('[useTeamFeedPosts] ensureLineupFeedPostsForSeason failed', e);
-  }
-
-  try {
-    await ensureRecentLiveFeedPostsForSeason(teamSeasonId);
-  } catch (e) {
-    console.warn('[useTeamFeedPosts] ensureRecentLiveFeedPostsForSeason failed', e);
-  }
-
-  try {
-    await ensureRecentResultFeedPostsForSeason(teamSeasonId);
-  } catch (e) {
-    console.warn('[useTeamFeedPosts] ensureRecentResultFeedPostsForSeason failed', e);
-  }
+  await Promise.all([
+    ensureMatchdayFeedPostsForSeason(teamSeasonId).catch((e) => {
+      console.warn('[useTeamFeedPosts] ensureMatchdayFeedPostsForSeason failed', e);
+    }),
+    ensureUpcomingMatchFeedPosts(teamSeasonId).catch((e) => {
+      console.warn('[useTeamFeedPosts] ensureUpcomingMatchFeedPosts failed', e);
+    }),
+    ensureEventFeedPostsForSeason(teamSeasonId).catch((e) => {
+      console.warn('[useTeamFeedPosts] ensureEventFeedPostsForSeason failed', e);
+    }),
+    ensureLineupFeedPostsForSeason(teamSeasonId).catch((e) => {
+      console.warn('[useTeamFeedPosts] ensureLineupFeedPostsForSeason failed', e);
+    }),
+    ensureRecentLiveFeedPostsForSeason(teamSeasonId).catch((e) => {
+      console.warn('[useTeamFeedPosts] ensureRecentLiveFeedPostsForSeason failed', e);
+    }),
+    ensureRecentResultFeedPostsForSeason(teamSeasonId).catch((e) => {
+      console.warn('[useTeamFeedPosts] ensureRecentResultFeedPostsForSeason failed', e);
+    }),
+  ]);
 }
 
 /**
@@ -206,24 +210,23 @@ export function useTeamFeedPosts(
       setHistoricOffset(0);
       setError(null);
       setEnsuring(false);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    setEnsuring(!skipEnsures);
     setError(null);
     try {
       await logMatchdayFeedSeasonContext(teamSeasonId);
-      if (!skipEnsures) {
-        await runFeedEnsures(teamSeasonId);
-      }
-      setEnsuring(false);
-
-      const active = await fetchActiveSeasonPosts({
-        teamSeasonId,
-        teamId,
-        chronicleView,
-      });
+      const active = await withTimeout(
+        fetchActiveSeasonPosts({
+          teamSeasonId,
+          teamId,
+          chronicleView,
+        }),
+        FEED_LOAD_TIMEOUT_MS,
+        FEED_LOAD_TIMEOUT_MESSAGE,
+      );
       console.info('[matchday] (5a) active season feed:', {
         teamSeasonId,
         dbZeilen_roh: active.dbRowCount,
@@ -253,15 +256,32 @@ export function useTeamFeedPosts(
         setHistoricOffset(0);
         setHasMoreHistoric(false);
       }
+      setLoading(false);
+
+      if (!skipEnsures) {
+        setEnsuring(true);
+        try {
+          await runFeedEnsures(teamSeasonId);
+          const refreshed = await fetchActiveSeasonPosts({
+            teamSeasonId,
+            teamId,
+            chronicleView,
+          });
+          setActivePosts(refreshed.posts);
+        } catch (e) {
+          console.warn('[useTeamFeedPosts] deferred ensures failed', e);
+        } finally {
+          setEnsuring(false);
+        }
+      }
     } catch (e) {
       setActivePosts([]);
       setHistoricPosts([]);
       setHasMoreHistoric(false);
       setHistoricOffset(0);
       setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setEnsuring(false);
       setLoading(false);
+      setEnsuring(false);
     }
   }, [teamSeasonId, teamId, skipEnsures, chronicleView]);
 
@@ -307,18 +327,15 @@ export function useTeamFeedPosts(
         return;
       }
       setLoading(true);
-      setEnsuring(!skipEnsures);
       setError(null);
       try {
         await logMatchdayFeedSeasonContext(teamSeasonId);
         if (cancelled) return;
-        if (!skipEnsures) {
-          await runFeedEnsures(teamSeasonId);
-        }
-        if (cancelled) return;
-        setEnsuring(false);
-
-        const active = await fetchActiveSeasonPosts({ teamSeasonId, teamId, chronicleView });
+        const active = await withTimeout(
+          fetchActiveSeasonPosts({ teamSeasonId, teamId, chronicleView }),
+          FEED_LOAD_TIMEOUT_MS,
+          FEED_LOAD_TIMEOUT_MESSAGE,
+        );
         if (cancelled) return;
         setActivePosts(active.posts);
 
@@ -338,6 +355,22 @@ export function useTeamFeedPosts(
           setHistoricOffset(0);
           setHasMoreHistoric(false);
         }
+        if (!cancelled) setLoading(false);
+
+        if (!skipEnsures) {
+          if (!cancelled) setEnsuring(true);
+          try {
+            await runFeedEnsures(teamSeasonId);
+            if (cancelled) return;
+            const refreshed = await fetchActiveSeasonPosts({ teamSeasonId, teamId, chronicleView });
+            if (cancelled) return;
+            setActivePosts(refreshed.posts);
+          } catch (e) {
+            console.warn('[useTeamFeedPosts] deferred ensures failed', e);
+          } finally {
+            if (!cancelled) setEnsuring(false);
+          }
+        }
       } catch (e) {
         if (!cancelled) {
           setActivePosts([]);
@@ -345,9 +378,6 @@ export function useTeamFeedPosts(
           setHasMoreHistoric(false);
           setHistoricOffset(0);
           setError(e instanceof Error ? e.message : String(e));
-        }
-      } finally {
-        if (!cancelled) {
           setEnsuring(false);
           setLoading(false);
         }
