@@ -136,6 +136,10 @@ export const ParentInviteAcceptPage: React.FC = () => {
       }
       // Peek terminal status only when logged out — never overwrite auth preview.
       if (!user && peek.status !== 'ready' && peek.status !== 'error') {
+        if (peek.recipientEmail) {
+          stashParentInviteEmail(peek.recipientEmail);
+          setInviteEmail(peek.recipientEmail);
+        }
         setPreview({
           status: peek.status,
           playerDisplayName: null,
@@ -146,7 +150,9 @@ export const ParentInviteAcceptPage: React.FC = () => {
           message: peek.message,
         });
       }
-      setInviteEmail(readStashedParentInviteEmail());
+      if (!peek.recipientEmail) {
+        setInviteEmail(readStashedParentInviteEmail());
+      }
       setAccountExists(false);
     }
     void loadPeek();
@@ -180,6 +186,10 @@ export const ParentInviteAcceptPage: React.FC = () => {
         const peek = await peekParentLinkInvite(token);
         if (!alive || redeemSuccessRef.current) return;
         if (peek.status !== 'ready' && peek.status !== 'error') {
+          if (peek.recipientEmail) {
+            stashParentInviteEmail(peek.recipientEmail);
+            setInviteEmail(peek.recipientEmail);
+          }
           setPreview({
             status: peek.status,
             playerDisplayName: null,
@@ -410,11 +420,43 @@ export const ParentInviteAcceptPage: React.FC = () => {
 
             {!loading &&
             !authLoading &&
+            !authRoutePending &&
+            !user &&
+            preview?.status === 'already_used' ? (
+              <div className="space-y-3">
+                <p className="text-sm text-[var(--text-sub)]">{preview.message}</p>
+                <Link
+                  to={`/login?${authQuery}`}
+                  className="block rounded-xl bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white"
+                >
+                  Zur Anmeldung
+                </Link>
+              </div>
+            ) : null}
+
+            {!loading &&
+            !authLoading &&
             preview &&
-            ['invalid_token', 'expired', 'revoked', 'already_used', 'error'].includes(
-              preview.status,
-            ) ? (
+            ['invalid_token', 'expired', 'revoked', 'error'].includes(preview.status) ? (
               <p className="text-sm text-[var(--text-sub)]">{preview.message}</p>
+            ) : null}
+
+            {!loading && !authLoading && user && preview?.status === 'already_used' ? (
+              <div className="space-y-3">
+                <p className="text-sm text-[var(--text-sub)]">{preview.message}</p>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => {
+                    clearStashedParentInviteToken();
+                    clearPendingParentEmailInviteFlag();
+                    void clearParentInviteTokenFromUserMetadata();
+                    goHomeWithTeamSeason(null);
+                  }}
+                >
+                  Zur App
+                </Button>
+              </div>
             ) : null}
 
             {!loading && !authLoading && preview?.status === 'already_linked' ? (
