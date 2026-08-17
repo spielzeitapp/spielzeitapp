@@ -25,7 +25,7 @@ export type ParentInviteInfo = {
 };
 
 export type CreateParentInviteResult = {
-  status: 'created' | 'forbidden' | 'invalid_input' | 'invalid_email' | 'player_not_in_team' | 'not_authenticated' | 'error';
+  status: 'created' | 'forbidden' | 'invalid_input' | 'invalid_email' | 'player_not_in_team' | 'not_authenticated' | 'already_linked' | 'error';
   inviteId: string | null;
   tokenPlain: string | null;
   expiresAt: string | null;
@@ -85,6 +85,8 @@ export async function createParentLinkInvite(input: {
       invalid_email: 'Bitte eine gültige E-Mail-Adresse eingeben.',
       player_not_in_team: 'Spieler ist nicht im aktiven Kader.',
       not_authenticated: 'Bitte erneut anmelden.',
+      already_linked:
+        'Dieses Elternkonto ist bereits mit dem Spieler verknüpft. Es ist keine neue Einladung erforderlich.',
     };
     return {
       status: (status as CreateParentInviteResult['status']) || 'error',
@@ -160,6 +162,8 @@ export async function sendParentEmailInvite(input: {
       parent_invite_origin_ref_mismatch: 'App-Adresse und Datenbank passen nicht zusammen.',
       parent_invite_unknown_supabase: 'Einladungsversand ist für diese Umgebung nicht konfiguriert.',
       parent_invite_ambiguous_supabase: 'Einladungsversand ist für diese Umgebung nicht konfiguriert.',
+      already_linked:
+        'Dieses Elternkonto ist bereits mit dem Spieler verknüpft. Es ist keine neue Einladung erforderlich.',
     };
     return {
       ok: false,

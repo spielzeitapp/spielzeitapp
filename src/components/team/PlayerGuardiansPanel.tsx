@@ -158,6 +158,17 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
       setInviteSuccess(null);
       return;
     }
+    const alreadyLinked = parents.some(
+      (parent) => (parent.email ?? '').trim().toLowerCase() === email,
+    );
+    if (alreadyLinked) {
+      const msg =
+        'Dieses Elternkonto ist bereits mit dem Spieler verknüpft. Es ist keine neue Einladung erforderlich.';
+      setInviteError(msg);
+      setInviteSuccess(null);
+      toast(msg);
+      return;
+    }
     setInviteBusy(true);
     setInviteError(null);
     setInviteSuccess(null);
