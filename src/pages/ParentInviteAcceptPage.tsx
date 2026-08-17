@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
@@ -94,8 +94,11 @@ export const ParentInviteAcceptPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** After linked/already_linked redeem: ignore late peek/preview overwrites. */
+  const redeemSuccessRef = useRef(false);
 
   useEffect(() => {
+    if (redeemSuccessRef.current) return;
     const resolved = resolveTokenFromSources({
       pathToken: params.token,
       queryToken: searchParams.get('t'),
@@ -115,13 +118,14 @@ export const ParentInviteAcceptPage: React.FC = () => {
   useEffect(() => {
     let alive = true;
     async function loadPeek() {
+      if (redeemSuccessRef.current) return;
       if (!token) {
         setInviteEmail(readStashedParentInviteEmail() || user?.email?.trim().toLowerCase() || null);
         setAccountExists(false);
         return;
       }
       const peek = await peekParentLinkInvite(token);
-      if (!alive) return;
+      if (!alive || redeemSuccessRef.current) return;
       if (peek.status === 'ready') {
         if (peek.recipientEmail) {
           stashParentInviteEmail(peek.recipientEmail);
@@ -130,7 +134,12 @@ export const ParentInviteAcceptPage: React.FC = () => {
         setAccountExists(peek.accountExists === true);
         return;
       }
-      if (peek.status !== 'ready' && peek.status !== 'error') {
+      // Peek terminal status only when logged out — never overwrite auth preview.
+      if (!user && peek.status !== 'ready' && peek.status !== 'error') {
+        if (peek.recipientEmail) {
+          stashParentInviteEmail(peek.recipientEmail);
+          setInviteEmail(peek.recipientEmail);
+        }
         setPreview({
           status: peek.status,
           playerDisplayName: null,
@@ -141,19 +150,22 @@ export const ParentInviteAcceptPage: React.FC = () => {
           message: peek.message,
         });
       }
-      setInviteEmail(readStashedParentInviteEmail());
+      if (!peek.recipientEmail) {
+        setInviteEmail(readStashedParentInviteEmail());
+      }
       setAccountExists(false);
     }
     void loadPeek();
     return () => {
       alive = false;
     };
-  }, [token, user?.email]);
+  }, [token, user]);
 
   useEffect(() => {
     let alive = true;
 
     async function run() {
+      if (redeemSuccessRef.current) return;
       setLoading(true);
       setError(null);
       setAuthRoutePending(false);
@@ -163,7 +175,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
       }
 
       if (!user) {
-        if (!alive) return;
+        if (!alive || redeemSuccessRef.current) return;
         if (!token) {
           setEmailBoundMode(false);
           setPreview(null);
@@ -172,8 +184,12 @@ export const ParentInviteAcceptPage: React.FC = () => {
         }
 
         const peek = await peekParentLinkInvite(token);
-        if (!alive) return;
+        if (!alive || redeemSuccessRef.current) return;
         if (peek.status !== 'ready' && peek.status !== 'error') {
+          if (peek.recipientEmail) {
+            stashParentInviteEmail(peek.recipientEmail);
+            setInviteEmail(peek.recipientEmail);
+          }
           setPreview({
             status: peek.status,
             playerDisplayName: null,
@@ -224,7 +240,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
       if (token) {
         setEmailBoundMode(false);
         const result = await previewParentLinkInvite(token);
-        if (!alive) return;
+        if (!alive || redeemSuccessRef.current) return;
         setPreview(result);
         setLoading(false);
         return;
@@ -232,7 +248,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
 
       // Kein Plain-Token: offene Einladung über verifizierte Auth-E-Mail laden
       const open = readPendingParentEmailInviteFlag() || (await hasOpenParentEmailInviteForMe());
-      if (!alive) return;
+      if (!alive || redeemSuccessRef.current) return;
       if (!open) {
         setEmailBoundMode(false);
         setPreview(null);
@@ -243,7 +259,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
       markPendingParentEmailInvite();
       setEmailBoundMode(true);
       const result = await previewOpenParentEmailInviteForMe();
-      if (!alive) return;
+      if (!alive || redeemSuccessRef.current) return;
       setPreview(result);
       setLoading(false);
     }
@@ -252,7 +268,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [token, user, authLoading]);
+  }, [token, user, authLoading, navigate]);
 
   const authNext = useMemo(() => {
     if (token && isParentInviteTokenShape(token)) {
@@ -268,7 +284,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
   );
 
   const handleConfirm = async () => {
-    if (confirming) return;
+    if (confirming || redeemSuccessRef.current) return;
     if (!token && !emailBoundMode) return;
     setConfirming(true);
     setError(null);
@@ -296,12 +312,28 @@ export const ParentInviteAcceptPage: React.FC = () => {
       return;
     }
 
-    await persistParentRoleChoice();
-    await clearParentLinkDeferred();
-    await clearParentInviteTokenFromUserMetadata();
+    // Latch immediately so late peek/preview cannot show already_used.
+    redeemSuccessRef.current = true;
     clearStashedParentInviteToken();
     clearPendingParentEmailInviteFlag();
     setPreviewRole('parent');
+
+    // Metadata cleanup must not turn a successful link into "already used".
+    try {
+      await persistParentRoleChoice();
+    } catch {
+      /* ignore */
+    }
+    try {
+      await clearParentLinkDeferred();
+    } catch {
+      /* ignore */
+    }
+    try {
+      await clearParentInviteTokenFromUserMetadata();
+    } catch {
+      /* ignore */
+    }
     try {
       await reloadSessionTeamSeasons(result.teamSeasonId);
     } catch {
@@ -323,7 +355,7 @@ export const ParentInviteAcceptPage: React.FC = () => {
     !preview;
 
   return (
-    <div className="page relative min-h-[60vh] px-4 pt-6">
+    <div className="page relative min-h-[100dvh] overflow-y-auto overscroll-y-contain px-4 pt-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))]">
       <div className="mx-auto max-w-[720px]">
         <Card>
           <div className="space-y-4">
@@ -388,11 +420,43 @@ export const ParentInviteAcceptPage: React.FC = () => {
 
             {!loading &&
             !authLoading &&
+            !authRoutePending &&
+            !user &&
+            preview?.status === 'already_used' ? (
+              <div className="space-y-3">
+                <p className="text-sm text-[var(--text-sub)]">{preview.message}</p>
+                <Link
+                  to={`/login?${authQuery}`}
+                  className="block rounded-xl bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white"
+                >
+                  Zur Anmeldung
+                </Link>
+              </div>
+            ) : null}
+
+            {!loading &&
+            !authLoading &&
             preview &&
-            ['invalid_token', 'expired', 'revoked', 'already_used', 'error'].includes(
-              preview.status,
-            ) ? (
+            ['invalid_token', 'expired', 'revoked', 'error'].includes(preview.status) ? (
               <p className="text-sm text-[var(--text-sub)]">{preview.message}</p>
+            ) : null}
+
+            {!loading && !authLoading && user && preview?.status === 'already_used' ? (
+              <div className="space-y-3">
+                <p className="text-sm text-[var(--text-sub)]">{preview.message}</p>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => {
+                    clearStashedParentInviteToken();
+                    clearPendingParentEmailInviteFlag();
+                    void clearParentInviteTokenFromUserMetadata();
+                    goHomeWithTeamSeason(null);
+                  }}
+                >
+                  Zur App
+                </Button>
+              </div>
             ) : null}
 
             {!loading && !authLoading && preview?.status === 'already_linked' ? (

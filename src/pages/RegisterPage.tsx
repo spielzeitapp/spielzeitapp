@@ -18,6 +18,11 @@ import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/par
 import { resolvePostAuthDestination } from '../lib/postAuthDestination';
 import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 
+const AUTH_PAGE_SHELL_CLASS =
+  'flex min-h-[100dvh] min-h-screen w-full flex-col items-stretch overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))]';
+const AUTH_PAGE_CARD_CLASS =
+  'mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl';
+
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
@@ -86,13 +91,13 @@ export const RegisterPage: React.FC = () => {
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
   const pendingInvitePath = resolvePendingParentInvitePath();
   const emailRedirectPath = pendingInvitePath || nextSafe || AUTH_EMAIL_CONFIRM_PATH;
+  const isParentInviteFlow = Boolean(
+    pendingInvitePath || (nextSafe && nextSafe.includes('/app/parent-invite')),
+  );
   const inviteEmailLocked = Boolean(
     (searchParams.get('email') ?? '').trim() ||
       readStashedParentInviteEmail() ||
       (isParentInviteFlow && user?.email),
-  );
-  const isParentInviteFlow = Boolean(
-    pendingInvitePath || (nextSafe && nextSafe.includes('/app/parent-invite')),
   );
 
   const inviteToken = (() => {
@@ -284,8 +289,8 @@ export const RegisterPage: React.FC = () => {
 
   if (needsEmailConfirmation) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
+      <div className={AUTH_PAGE_SHELL_CLASS}>
+        <div className={AUTH_PAGE_CARD_CLASS}>
           <h1 className="text-xl font-semibold text-white">E-Mail bestätigen</h1>
           <p className="mt-2 text-sm text-white/70">
             {isParentInviteFlow
@@ -311,15 +316,15 @@ export const RegisterPage: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
+      <div className={AUTH_PAGE_SHELL_CLASS}>
         <p className="text-sm text-white/60">Laden…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
+    <div className={AUTH_PAGE_SHELL_CLASS}>
+      <div className={AUTH_PAGE_CARD_CLASS}>
         <h1 className="text-xl font-semibold text-white">
           {hasInviteSession ? 'Konto vervollständigen' : 'Registrieren'}
         </h1>

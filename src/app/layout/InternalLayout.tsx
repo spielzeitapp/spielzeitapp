@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppBackground } from './AppBackground';
 import { Header } from './Header';
@@ -44,6 +44,19 @@ function hasStaffAccess(backendRole: string, memberships: { role?: string | null
   return memberships.some((m) => canManageMatches(normalizeRoleKey(m.role)));
 }
 
+/** Bottom-Nav-Tabs: nach bestandener Session-Gate-Prüfung kein erneuter Loader. */
+function isAppShellTabPath(pathname: string): boolean {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  const prefixes = [
+    '/app/home',
+    '/app/termine',
+    '/app/team',
+    '/app/live',
+    '/app/mehr',
+  ] as const;
+  return prefixes.some((p) => clean === p || clean.startsWith(`${p}/`));
+}
+
 /**
  * Layout für den internen Bereich /app/*.
  * Passwort-Seite liegt außerhalb (AuthMinimalLayout).
@@ -57,6 +70,10 @@ export const InternalLayout: React.FC = () => {
   const { user } = useAuth();
   const { memberships, loading: sessionLoading, backendRole, previewRole } = useSession();
   const [gateChecking, setGateChecking] = useState(true);
+  /** user.id whose invite/onboarding gate already allowed the app shell (render). */
+  const [gatePassedUserId, setGatePassedUserId] = useState<string | null>(null);
+  /** Same cache for effect skip — reset on logout / user switch without extra effect loops. */
+  const gatePassedUserIdRef = useRef<string | null>(null);
   const isLiveRoute =
     location.pathname.startsWith('/app/live') || location.pathname.startsWith('/demo/live');
   const pathClean = location.pathname.replace(/\/+$/, '') || '/';
@@ -82,23 +99,64 @@ export const InternalLayout: React.FC = () => {
       return;
     }
     let alive = true;
+    const userId = user?.id ?? null;
+
+    if (gatePassedUserIdRef.current && gatePassedUserIdRef.current !== userId) {
+      gatePassedUserIdRef.current = null;
+      setGatePassedUserId(null);
+    }
+    if (!userId) {
+      gatePassedUserIdRef.current = null;
+      if (gatePassedUserId) setGatePassedUserId(null);
+    }
+
+    // Warm tab switch: already allowed for this user — no loader, no Guardian/Invite/getUser.
+    if (userId && gatePassedUserIdRef.current === userId && isAppShellTabPath(location.pathname)) {
+      setGateChecking(false);
+      return;
+    }
+
+    const allowAppShell = () => {
+      if (userId) {
+        gatePassedUserIdRef.current = userId;
+        setGatePassedUserId(userId);
+      }
+      setGateChecking(false);
+    };
 
     async function gate() {
       // Persönliche Einladung hat Vorrang vor Rollenwahl UND Kind-Selbstverknüpfung —
       // auch wenn die aktuelle Route eigentlich onboarding-exempt ist.
+      // Ausnahme: bereits verknüpfte Eltern (Guardian) nicht zurück zur Invite-Seite zwingen.
       const pendingInvitePath = resolvePendingParentInvitePath();
       const onInvitePage =
         location.pathname === '/app/parent-invite' ||
         location.pathname.startsWith('/app/parent-invite/');
-      if (pendingInvitePath && !onInvitePage) {
-        if (alive) setGateChecking(false);
-        window.location.replace(pendingInvitePath);
-        return;
-      }
-      if (!onInvitePage && readPendingParentEmailInviteFlag()) {
-        if (alive) setGateChecking(false);
-        window.location.replace('/app/parent-invite');
-        return;
+      const pendingEmailInvite = !onInvitePage && readPendingParentEmailInviteFlag();
+
+      if ((pendingInvitePath && !onInvitePage) || pendingEmailInvite) {
+        if (sessionLoading) {
+          if (alive) setGateChecking(true);
+          return;
+        }
+        let skipPendingInvite = false;
+        if (user) {
+          const earlyGuardian = await userHasPlayerGuardian(user.id);
+          if (!alive) return;
+          skipPendingInvite = earlyGuardian.hasGuardian === true;
+        }
+        if (!skipPendingInvite) {
+          if (pendingInvitePath && !onInvitePage) {
+            if (alive) setGateChecking(false);
+            window.location.replace(pendingInvitePath);
+            return;
+          }
+          if (pendingEmailInvite) {
+            if (alive) setGateChecking(false);
+            window.location.replace('/app/parent-invite');
+            return;
+          }
+        }
       }
 
       if (isOnboardingExemptPath(location.pathname)) {
@@ -115,7 +173,7 @@ export const InternalLayout: React.FC = () => {
 
       const membershipList = memberships ?? [];
       if (hasStaffAccess(backendRole, membershipList)) {
-        if (alive) setGateChecking(false);
+        if (alive) allowAppShell();
         return;
       }
 
@@ -159,12 +217,12 @@ export const InternalLayout: React.FC = () => {
 
       // Bereits verknüpft (z. B. durch Trainer) → Onboarding nicht erzwingen
       if (hasGuardian) {
-        setGateChecking(false);
+        allowAppShell();
         return;
       }
 
       if (hasFanMembership) {
-        setGateChecking(false);
+        allowAppShell();
         return;
       }
 
@@ -185,7 +243,7 @@ export const InternalLayout: React.FC = () => {
         return;
       }
       if (hasPlayerMembership) {
-        setGateChecking(false);
+        allowAppShell();
         return;
       }
 
@@ -205,7 +263,7 @@ export const InternalLayout: React.FC = () => {
       }
 
       if (parentSat.complete && (deferred || hasParentMembership || preview === 'parent')) {
-        setGateChecking(false);
+        allowAppShell();
         return;
       }
 
@@ -215,7 +273,7 @@ export const InternalLayout: React.FC = () => {
         return;
       }
 
-      setGateChecking(false);
+      allowAppShell();
     }
 
     gate().catch((e) => {
@@ -237,9 +295,11 @@ export const InternalLayout: React.FC = () => {
     navigate,
   ]);
 
+  const gatePassedForUser = Boolean(user?.id && gatePassedUserId === user.id);
   const blockContent =
     !isDemo &&
     !isOnboardingExemptPath(location.pathname) &&
+    !gatePassedForUser &&
     (sessionLoading || gateChecking);
 
   return (

@@ -26,6 +26,11 @@ import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 import { useAuth } from '../auth/AuthProvider';
 
+const AUTH_PAGE_SHELL_CLASS =
+  'flex min-h-[100dvh] min-h-screen w-full flex-col items-stretch overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))]';
+const AUTH_PAGE_CARD_CLASS =
+  'mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl';
+
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
@@ -153,7 +158,7 @@ export const LoginPage: React.FC = () => {
 
   if (showPlayerLogin) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
+      <div className={AUTH_PAGE_SHELL_CLASS}>
         <PlayerLoginPanel onBack={() => setShowPlayerLogin(false)} />
       </div>
     );
@@ -211,8 +216,8 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
+    <div className={AUTH_PAGE_SHELL_CLASS}>
+      <div className={AUTH_PAGE_CARD_CLASS}>
         <h1 className="text-xl font-semibold text-white">Anmelden</h1>
         <p className="mt-1 text-sm text-white/60">
           {showInviteConfirmedHint
