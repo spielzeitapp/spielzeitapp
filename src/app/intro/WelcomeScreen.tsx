@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, Compass, PlayCircle, Smartphone, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
@@ -66,20 +66,7 @@ export const WelcomeScreen: React.FC = () => {
   const iconBase = appIconBase();
   /** Gemeinsamer Einstieg: gleiche Live-Anzeige wie Produktion (nur Lesen). */
   const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: !isDemoWelcome });
-  const [welcomeEntered, setWelcomeEntered] = useState(true);
   const standaloneApp = isStandaloneDisplayMode();
-
-  useEffect(() => {
-    let raf1 = 0;
-    let raf2 = 0;
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setWelcomeEntered(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, []);
 
   /** „Zur App“ — Pending Invite hat Vorrang vor Home. */
   const goHome = () => {
@@ -112,13 +99,7 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   return (
-    <div
-      className="welcome-screen fixed inset-0 z-[90] overflow-x-hidden overflow-y-auto overscroll-y-contain bg-black text-white [-webkit-overflow-scrolling:touch]"
-      style={{
-        paddingTop: 'max(0.375rem, env(safe-area-inset-top, 0px))',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
-      }}
-    >
+    <div className="welcome-screen fixed inset-0 z-[90] flex flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain bg-black text-white [-webkit-overflow-scrolling:touch]">
       <style>{`
         .welcome-intro-cta {
           background: linear-gradient(180deg, rgba(42, 0, 0, 0.78) 0%, rgba(18, 0, 0, 0.84) 100%);
@@ -300,34 +281,30 @@ export const WelcomeScreen: React.FC = () => {
         }
       `}</style>
 
-      {/* Inhalt + Hero: min-height 100dvh, wächst mit Text/CTAs — Bild deckt die volle Scrollhöhe ab */}
-      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5">
+      <div
+        className="relative mx-auto grid h-full min-h-[100dvh] w-full max-w-md grid-rows-[minmax(10rem,1fr)_auto_auto] px-5"
+        style={{
+          paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+        }}
+      >
         <img
           src={welcomeHeroBg}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full min-h-full w-full object-cover object-[50%_46%] max-[667px]:object-[50%_44%]"
+          className="pointer-events-none absolute inset-0 h-full min-h-full w-full object-cover object-center"
           decoding="async"
           fetchPriority="high"
           aria-hidden
         />
-
-        {/* Freier Bereich — Branding + Personengruppe im Hero-Bild */}
         <div
-          className={[
-            'relative z-10 shrink-0',
-            isDemoWelcome
-              ? 'min-h-[42vh] max-[390px]:min-h-[36vh] max-[667px]:min-h-[40vh] sm:min-h-[52vh]'
-              : 'min-h-[36vh] max-[390px]:min-h-[30vh] max-[667px]:min-h-[34vh] sm:min-h-[42vh]',
-          ].join(' ')}
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-black/80 via-black/35 to-transparent"
           aria-hidden
         />
 
-        <div
-          className={[
-            'relative z-20 w-full space-y-[6px] pt-1 pointer-events-auto transition-[transform] duration-300 ease-out delay-75 max-[667px]:space-y-[5px]',
-            welcomeEntered ? 'translate-y-0' : 'translate-y-[6px]',
-          ].join(' ')}
-        >
+        {/* Hero oben: Branding + Personengruppe. 1fr füllt den Zwischenraum. */}
+        <div className="relative z-10 min-h-[10rem]" aria-hidden />
+
+        <div className="relative z-20 w-full space-y-[6px] pointer-events-auto max-[667px]:space-y-[5px]">
           {isDemoWelcome ? (
             <>
               <div className="mb-1 px-0.5">
@@ -451,9 +428,29 @@ export const WelcomeScreen: React.FC = () => {
               </PremiumIntroButton>
             </>
           )}
+
+          {!isDemoWelcome ? (
+            standaloneApp ? (
+              <p className="px-0.5 pt-1 text-center text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
+                App-Modus aktiv.
+              </p>
+            ) : (
+              <div className="flex items-start gap-1.5 px-0.5 pt-1 text-left text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
+                <Smartphone
+                  className="mt-px h-3.5 w-3.5 shrink-0 text-zinc-300 sm:mt-0.5 sm:h-4 sm:w-4"
+                  strokeWidth={2.15}
+                  aria-hidden
+                />
+                <p>
+                  <span className="font-semibold text-red-500">Tipp:</span> Teilen → Zum Home-Bildschirm
+                  hinzufügen.
+                </p>
+              </div>
+            )
+          ) : null}
         </div>
 
-        <footer className="relative z-10 mt-2.5 flex shrink-0 flex-col items-center gap-1 px-1 pb-2 max-[667px]:mt-2 max-[667px]:gap-0.5">
+        <footer className="relative z-10 mt-2.5 flex shrink-0 flex-col items-center gap-1 px-1 pb-1 max-[667px]:mt-2 max-[667px]:gap-0.5">
           <div className="flex w-full max-w-[320px] items-center gap-2">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/14 to-white/5" />
             <Trophy className="h-3.5 w-3.5 shrink-0 text-red-500/80 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
@@ -464,23 +461,7 @@ export const WelcomeScreen: React.FC = () => {
               Alle Daten sind fiktiv. Änderungen bleiben nur lokal in dieser Browser-Session. Es werden
               keine Nachrichten oder Benachrichtigungen verschickt.
             </p>
-          ) : standaloneApp ? (
-            <p className="max-w-[320px] text-center text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
-              App-Modus aktiv.
-            </p>
-          ) : (
-            <div className="flex max-w-[320px] items-start gap-1.5 text-left text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
-              <Smartphone
-                className="mt-px h-3.5 w-3.5 shrink-0 text-zinc-300 sm:mt-0.5 sm:h-4 sm:w-4"
-                strokeWidth={2.15}
-                aria-hidden
-              />
-              <p>
-                <span className="font-semibold text-red-500">Tipp:</span> Teilen → Zum Home-Bildschirm
-                hinzufügen.
-              </p>
-            </div>
-          )}
+          ) : null}
         </footer>
       </div>
     </div>

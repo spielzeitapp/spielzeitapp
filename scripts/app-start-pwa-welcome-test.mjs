@@ -21,11 +21,13 @@ const publicManifest = JSON.parse(fs.readFileSync(path.join(root, 'public/manife
 
 assert.ok(welcome.includes('Zur App'), 'Safari/PWA CTA label');
 assert.ok(welcome.includes('PremiumIntroButton onClick={goHome}'), 'Zur App always wired');
-assert.ok(!welcome.includes("useState(false)"), 'CTA not hidden until rAF');
-assert.ok(welcome.includes('useState(true)'), 'Welcome content visible on first paint');
+assert.ok(!welcome.includes('requestAnimationFrame'), 'CTA not gated on rAF');
 assert.ok(!welcome.includes('opacity-0'), 'no invisible CTA layer');
 assert.ok(welcome.includes('pointer-events-auto'), 'CTA stack receives taps');
 assert.ok(welcome.includes('touch-manipulation'), 'iOS tap delay avoided');
+assert.ok(welcome.includes('grid-rows-[minmax(10rem,1fr)_auto_auto]'), 'hero 1fr, CTAs bottom');
+assert.ok(!welcome.includes('58vh'), 'no fixed 58vh spacer');
+assert.ok(welcome.includes('min-h-[100dvh]'), 'full viewport column');
 assert.ok(welcome.includes('isStandaloneDisplayMode'), 'standalone vs Safari');
 assert.ok(welcome.includes('Teilen → Zum Home-Bildschirm'), 'iOS install copy');
 assert.ok(welcome.includes('App-Modus aktiv'), 'standalone does not fake install');

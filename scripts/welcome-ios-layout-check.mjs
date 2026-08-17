@@ -17,8 +17,12 @@ const sourceChecks = [
     'no overflow-y-hidden on welcome root',
     !/className="welcome-screen[^"]*overflow-y-hidden/.test(src),
   ],
-  ['safe-area + 100px', src.includes('calc(env(safe-area-inset-bottom, 0px) + 100px)')],
+  ['safe-area top', src.includes('env(safe-area-inset-top, 0px)')],
+  ['safe-area bottom', src.includes('env(safe-area-inset-bottom, 0px)')],
   ['min-h 100dvh', src.includes('min-h-[100dvh]')],
+  ['grid 1fr spacer', src.includes('grid-rows-[minmax(10rem,1fr)_auto_auto]')],
+  ['cta bottom auto row', src.includes('_auto_auto]')],
+  ['no 58vh spacer', !src.includes('58vh')],
   ['no max-h 100dvh clip', !src.includes('max-h-[100dvh]')],
   ['scroll touch', src.includes('-webkit-overflow-scrolling:touch') || src.includes('[-webkit-overflow-scrolling:touch]')],
 ];
@@ -43,10 +47,10 @@ html,body{margin:0;background:#000;color:#fff}
 .welcome-screen{position:fixed;inset:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;
 -webkit-overflow-scrolling:touch;padding-top:max(0.375rem, env(safe-area-inset-top, 0px));
 padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 100px);background:#000}
-.inner{position:relative;margin:0 auto;display:flex;flex-direction:column;min-height:100dvh;width:100%;max-width:28rem;padding:0 1.25rem}
+.inner{position:relative;margin:0 auto;display:grid;grid-template-rows:minmax(10rem,1fr) auto auto;min-height:100dvh;height:100%;width:100%;max-width:28rem;padding:max(0.5rem, env(safe-area-inset-top, 0px)) 1.25rem max(1rem, env(safe-area-inset-bottom, 0px));box-sizing:border-box}
 .bg{position:absolute;inset:0;min-height:100%;width:100%;background:linear-gradient(180deg,#3a0000,#111)}
-.spacer{position:relative;z-index:10;flex-shrink:0;min-height:42vh}
-.cta{position:relative;z-index:10;display:flex;flex-direction:column;gap:6px}
+.spacer{position:relative;z-index:10;min-height:10rem}
+.cta{position:relative;z-index:10;display:flex;flex-direction:column;gap:6px;pointer-events:auto}
 button{min-height:56px;width:100%;border-radius:12px;border:1px solid rgba(255,0,0,.25);background:rgba(42,0,0,.78);color:#fff;font-size:16px;font-weight:700}
 footer{position:relative;z-index:10;margin-top:10px;padding-bottom:8px;font-size:11px;opacity:.7}
 </style></head><body>
@@ -101,8 +105,7 @@ for (const vp of VIEWPORTS) {
   const ok =
     metrics.overflowY === 'auto' &&
     metrics.primaryClickable &&
-    metrics.secondaryVisible &&
-    parseFloat(metrics.paddingBottom) >= 100;
+    metrics.secondaryVisible;
   if (!ok) {
     console.error('FAIL', vp.name, metrics);
     failed += 1;
