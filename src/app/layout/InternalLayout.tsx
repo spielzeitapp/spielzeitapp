@@ -314,7 +314,7 @@ export const InternalLayout: React.FC = () => {
         <main
           className={`app__content appMain pt-[var(--app-header-offset)] ${
             isTouchLayout
-              ? 'pb-[max(10rem,calc(7.5rem+env(safe-area-inset-bottom,0px)))] lg:pb-24'
+              ? 'pb-[calc(5.75rem+max(8px,env(safe-area-inset-bottom,0px)))] lg:pb-24'
               : 'pb-24'
           }`}
         >
