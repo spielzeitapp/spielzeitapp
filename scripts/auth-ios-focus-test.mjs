@@ -25,9 +25,9 @@ for (const [name, src] of [
   assert.ok(!/setTimeout[\s\S]{0,80}focus/i.test(src), `${name}: no delayed focus`);
 }
 
-assert.ok(login.includes('IOS_DEFER_KEYBOARD_INPUT_PROPS'), 'login defers iOS keyboard');
-assert.ok(register.includes('IOS_DEFER_KEYBOARD_INPUT_PROPS'), 'register defers iOS keyboard');
-assert.ok(forgot.includes('IOS_DEFER_KEYBOARD_INPUT_PROPS'), 'forgot defers iOS keyboard');
+assert.ok(!login.includes('IOS_DEFER_KEYBOARD_INPUT_PROPS'), 'login no readOnly defer trick');
+assert.ok(!register.includes('IOS_DEFER_KEYBOARD_INPUT_PROPS'), 'register no readOnly defer trick');
+assert.ok(!forgot.includes('IOS_DEFER_KEYBOARD_INPUT_PROPS'), 'forgot no readOnly defer trick');
 
 assert.ok(login.includes('login-email-display'), 'login locked email is static');
 assert.ok(login.includes('lockedEmailDisplayClass'), 'login locked email styling');
