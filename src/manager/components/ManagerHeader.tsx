@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { ArrowLeftRight, LogOut } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { useProfile, getDisplayFirstName, profileDisplayName } from '../../auth/useProfile';
 import { useSession, type SessionTeamSeasonItem } from '../../auth/useSession';
@@ -12,6 +12,7 @@ import {
   isSeasonArchived,
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
+import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { ManagerMenuButton } from './ManagerSidebar';
 
 type Props = {
@@ -53,7 +54,19 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
     backendRole,
     loading: sessionLoading,
   } = useSession();
+  const {
+    contextTeamSeasons,
+    canSwitchMode,
+    isTrainerMode,
+    isAdministrationMode,
+    switchToAdministration,
+    switchToTrainer,
+    adminSwitchButtonLabel,
+    workMode,
+  } = useManagerWorkMode();
   const { profile } = useProfile(authUser?.id);
+
+  const headerTeamSeasons = contextTeamSeasons.length > 0 ? contextTeamSeasons : teamSeasons;
 
   const displayName =
     getDisplayFirstName(profile) ??
@@ -89,7 +102,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
       setViewTeamSeasonId(null);
       return;
     }
-    const ts = teamSeasons.find((row) => row.id === id);
+    const ts = headerTeamSeasons.find((row) => row.id === id);
     if (!ts) return;
     const action = resolveTeamSeasonSwitcherAction(ts.status);
     if (action === 'select-work') {
@@ -104,7 +117,13 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
     navigate('/login', { replace: true });
   };
 
-  const roleHint = (membershipRole || backendRole || '').trim();
+  const roleHint = isTrainerMode
+    ? (membershipRole || 'trainer').trim()
+    : isAdministrationMode && workMode === 'platform_admin'
+      ? 'Plattformadmin'
+      : isAdministrationMode
+        ? 'Vereinsadmin'
+        : (membershipRole || backendRole || '').trim();
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md">
@@ -119,7 +138,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          {teamSeasons.length > 1 ? (
+          {headerTeamSeasons.length > 1 ? (
             <label className="hidden min-w-0 sm:block">
               <span className="sr-only">Team und Saison wählen</span>
               <select
@@ -127,13 +146,30 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
                 onChange={(e) => onContextChange(e.target.value)}
                 className="max-w-[14rem] truncate rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-800 shadow-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 lg:max-w-[18rem]"
               >
-                {teamSeasons.map((ts) => (
+                {headerTeamSeasons.map((ts) => (
                   <option key={ts.id} value={ts.id}>
                     {labelForTeamSeason(ts)}
                   </option>
                 ))}
               </select>
             </label>
+          ) : null}
+
+          {canSwitchMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (isTrainerMode) switchToAdministration();
+                else switchToTrainer();
+              }}
+              className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:inline-flex"
+              title={isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
+              <span className="max-w-[9rem] truncate">
+                {isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}
+              </span>
+            </button>
           ) : null}
 
           <div className="hidden text-right md:block">
@@ -155,7 +191,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         </div>
       </div>
 
-      {teamSeasons.length > 1 ? (
+      {headerTeamSeasons.length > 1 ? (
         <div className="border-t border-slate-100 px-3 py-2 sm:hidden">
           <select
             value={selectValue}
@@ -163,12 +199,39 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-800"
             aria-label="Team und Saison wählen"
           >
-            {teamSeasons.map((ts) => (
+            {headerTeamSeasons.map((ts) => (
               <option key={ts.id} value={ts.id}>
                 {labelForTeamSeason(ts)}
               </option>
             ))}
           </select>
+          {canSwitchMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (isTrainerMode) switchToAdministration();
+                else switchToTrainer();
+              }}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-700"
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
+              {isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}
+            </button>
+          ) : null}
+        </div>
+      ) : canSwitchMode ? (
+        <div className="border-t border-slate-100 px-3 py-2 sm:hidden">
+          <button
+            type="button"
+            onClick={() => {
+              if (isTrainerMode) switchToAdministration();
+              else switchToTrainer();
+            }}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-700"
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
+            {isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}
+          </button>
         </div>
       ) : null}
     </header>

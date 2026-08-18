@@ -14,8 +14,13 @@ import {
 import { listRoster, type RosterPlayer } from '../lib/rosterService';
 import { supabase } from '../lib/supabaseClient';
 
-function canAccess(effectiveRole: string, backendRole: string): boolean {
-  if ((backendRole ?? '').trim().toLowerCase() === 'admin') return true;
+import { useManagerWorkMode } from './ManagerWorkModeContext';
+import type { ManagerWorkMode } from './managerWorkMode';
+
+function canAccess(effectiveRole: string, backendRole: string, workMode: ManagerWorkMode): boolean {
+  if (workMode === 'platform_admin' && (backendRole ?? '').trim().toLowerCase() === 'admin') {
+    return true;
+  }
   if (canPrepareNextSeason(effectiveRole) || canPrepareNextSeason(backendRole)) return true;
   const r = (effectiveRole ?? '').trim().toLowerCase();
   return r === 'trainer' || r === 'co_trainer' || r === 'head_coach';
@@ -24,7 +29,8 @@ function canAccess(effectiveRole: string, backendRole: string): boolean {
 export function ManagerSeasonRosterPage(): React.ReactElement {
   const { seasonId } = useParams<{ seasonId: string }>();
   const { effectiveRole, backendRole, setViewTeamSeasonId } = useSession();
-  const allowed = canAccess(effectiveRole, backendRole);
+  const { workMode } = useManagerWorkMode();
+  const allowed = canAccess(effectiveRole, backendRole, workMode);
 
   const [meta, setMeta] = useState<{
     displayName: string;

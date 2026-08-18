@@ -11,11 +11,15 @@ export type ManagerNavItem = {
   status: 'ready' | 'planned';
   /** Nur Plattformadmin (user_roles.admin) – kein neues Rechte-Modul. */
   platformAdminOnly?: boolean;
+  /** In Trainer-Arbeitsmodus ausblenden (z. B. Sportanlagen-Verwaltung). */
+  hideInTrainerMode?: boolean;
 };
 
 export type ManagerNavSection = {
   id: string;
   label: string;
+  /** Ganze Sektion in Trainer-Arbeitsmodus ausblenden. */
+  hideInTrainerMode?: boolean;
   items: ManagerNavItem[];
 };
 
@@ -61,6 +65,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
   {
     id: 'club',
     label: 'Verein',
+    hideInTrainerMode: true,
     items: [
       {
         id: 'clubs',
@@ -70,7 +75,13 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
         platformAdminOnly: true,
       },
       { id: 'equipment', label: 'Ausrüstung & Teamshop', status: 'planned' },
-      { id: 'facilities', label: 'Sportanlagen', to: '/manager/platzbelegung?tab=facilities', status: 'ready' },
+      {
+        id: 'facilities',
+        label: 'Sportanlagen',
+        to: '/manager/platzbelegung?tab=facilities',
+        status: 'ready',
+        hideInTrainerMode: true,
+      },
       { id: 'permissions', label: 'Berechtigungen', status: 'planned' },
     ],
   },

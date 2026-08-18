@@ -2,9 +2,9 @@ import React, { useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Menu, X } from 'lucide-react';
 import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
-import { useSession } from '../../auth/useSession';
-import { isPlatformAdminRole } from '../../lib/platformClubAdmin';
 import { MANAGER_NAV_SECTIONS } from '../managerNav';
+import { navItemVisibleForWorkMode } from '../managerWorkMode';
+import { useManagerWorkMode } from '../ManagerWorkModeContext';
 
 type Props = {
   open: boolean;
@@ -41,8 +41,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
     onClose();
   }, [onClose]);
   const location = useLocation();
-  const { backendRole } = useSession();
-  const platformAdmin = isPlatformAdminRole(backendRole);
+  const { workMode } = useManagerWorkMode();
 
   useEffect(() => {
     if (!open) return;
@@ -92,14 +91,14 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
         </div>
 
         <p className="px-4 pt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-red-700/90">
-          Manager
+          {workMode === 'trainer' ? 'Trainer' : workMode === 'platform_admin' ? 'Plattform' : 'Verein'}
         </p>
 
         <nav className="mt-2 flex-1 overflow-y-auto px-2 pb-4">
-          {MANAGER_NAV_SECTIONS.map((section) => {
-            const items = section.items.filter(
-              (item) => !item.platformAdminOnly || platformAdmin,
-            );
+          {MANAGER_NAV_SECTIONS.filter(
+            (section) => !(workMode === 'trainer' && section.hideInTrainerMode),
+          ).map((section) => {
+            const items = section.items.filter((item) => navItemVisibleForWorkMode(item, workMode));
             if (items.length === 0) return null;
             return (
             <div key={section.id} className="mb-4">
