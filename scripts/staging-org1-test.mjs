@@ -45,7 +45,13 @@ assert.ok(client.includes('adminListGrantableVenues'));
 
 assert.ok(detail.includes('Struktur &amp; Freigaben') || detail.includes('Struktur & Freigaben'));
 assert.ok(detail.includes('adminCreateTeam'));
-assert.ok(detail.includes('adminSetTeamSeasonVenueGrant'));
+assert.ok(detail.includes('ManagerClubVenueGrantsPanel') || detail.includes('Freigegebene Anlagen und Plätze'));
+assert.ok(detail.includes('Anlagenkatalog / zugeordnete Anlagen'));
+assert.ok(!detail.includes('Anlagen (club_id)'));
+const grantsPanel = read('src/manager/ManagerClubVenueGrantsPanel.tsx');
+assert.ok(grantsPanel.includes('adminSetTeamSeasonVenueGrant'));
+assert.ok(grantsPanel.includes('countFutureAssignmentsForVenueGrant'));
+assert.ok(client.includes('adminSetTeamSeasonVenueGrant'));
 assert.ok(detail.includes('Trainer zuordnen'));
 assert.ok(!detail.includes('Mich zuordnen'));
 assert.ok(detail.includes('adminAssignClubAdmin') || client.includes('adminAssignClubAdmin'));

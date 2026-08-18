@@ -296,6 +296,111 @@ export function isTrainingVenueAllowedClient(
   return allowedVenueIds.includes(venueId);
 }
 
+export type GroupedVenueGrant = {
+  venueId: string;
+  venueName: string;
+  training: boolean;
+  homeMatch: boolean;
+};
+
+export function groupVenueGrantsByVenue(
+  links: ReadonlyArray<{
+    venue_id: string;
+    purpose?: VenuePurpose | null;
+    is_active: boolean;
+    venue?: { name?: string | null } | null;
+  }>,
+): GroupedVenueGrant[] {
+  const byId = new Map<string, GroupedVenueGrant>();
+  for (const link of links) {
+    if (!link.is_active || !link.venue_id) continue;
+    const current = byId.get(link.venue_id) ?? {
+      venueId: link.venue_id,
+      venueName: (link.venue?.name ?? '').trim() || 'Anlage',
+      training: false,
+      homeMatch: false,
+    };
+    if ((link.venue?.name ?? '').trim()) current.venueName = String(link.venue?.name).trim();
+    if (link.purpose === 'home_match') current.homeMatch = true;
+    else current.training = true;
+    byId.set(link.venue_id, current);
+  }
+  return Array.from(byId.values()).sort((a, b) => a.venueName.localeCompare(b.venueName, 'de'));
+}
+
+export function venuesAvailableForPurposeGrant<T extends { id: string }>(
+  catalog: readonly T[],
+  grouped: readonly GroupedVenueGrant[],
+  purpose: VenuePurpose,
+): T[] {
+  const taken = new Set(
+    grouped
+      .filter((g) => (purpose === 'home_match' ? g.homeMatch : g.training))
+      .map((g) => g.venueId),
+  );
+  return catalog.filter((v) => !taken.has(v.id));
+}
+
+export function assignmentUsesVenueGrantPurpose(
+  event: { kind?: string | null; is_home?: boolean | null },
+  purpose: VenuePurpose,
+): boolean {
+  const kind = String(event.kind ?? '').trim().toLowerCase();
+  if (purpose === 'home_match') return kind === 'match' && event.is_home === true;
+  return kind === 'training' || (kind !== 'match' && kind !== 'game');
+}
+
+/** Zukünftige interne Belegungen, die diesen Venue-Grant noch nutzen. */
+export async function countFutureAssignmentsForVenueGrant(opts: {
+  teamSeasonId: string;
+  venueId: string;
+  purpose: VenuePurpose;
+}): Promise<{ count: number; error: string | null }> {
+  if (!opts.teamSeasonId || !opts.venueId) return { count: 0, error: null };
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('event_field_assignments')
+    .select('id, starts_at, events!inner(team_season_id, kind, is_home)')
+    .eq('venue_id', opts.venueId)
+    .gte('starts_at', nowIso);
+  if (error) {
+    if (isMigrationPending(error.message) || /relationship|schema cache/i.test(error.message)) {
+      return countFutureAssignmentsForVenueGrantLegacy(opts, nowIso);
+    }
+    return { count: 0, error: error.message };
+  }
+  const rows = (data ?? []) as Array<{
+    events?: { team_season_id?: string; kind?: string | null; is_home?: boolean | null } | Array<{
+      team_season_id?: string;
+      kind?: string | null;
+      is_home?: boolean | null;
+    }>;
+  }>;
+  const count = rows.filter((row) => {
+    const ev = Array.isArray(row.events) ? row.events[0] : row.events;
+    if (!ev || String(ev.team_season_id ?? '') !== opts.teamSeasonId) return false;
+    return assignmentUsesVenueGrantPurpose(ev, opts.purpose);
+  }).length;
+  return { count, error: null };
+}
+
+async function countFutureAssignmentsForVenueGrantLegacy(
+  opts: { teamSeasonId: string; venueId: string; purpose: VenuePurpose },
+  nowIso: string,
+): Promise<{ count: number; error: string | null }> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, kind, is_home, venue_id, starts_at')
+    .eq('team_season_id', opts.teamSeasonId)
+    .eq('venue_id', opts.venueId)
+    .gte('starts_at', nowIso);
+  if (error) return { count: 0, error: error.message };
+  const count = ((data ?? []) as Array<{ kind?: string | null; is_home?: boolean | null }>).filter((ev) =>
+    assignmentUsesVenueGrantPurpose(ev, opts.purpose),
+  ).length;
+  return { count, error: null };
+}
+
 /** Serverseitige Grant-Prüfung (RPC). Keine clientseitige Allowlist, keine Venue-IDs. */
 export async function assertVenuePurposeAllowed(
   teamSeasonId: string,

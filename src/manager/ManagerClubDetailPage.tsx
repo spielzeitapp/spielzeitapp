@@ -12,7 +12,6 @@ import {
   adminEnsureTeamSeason,
   adminListGrantableVenues,
   adminLookupUserByEmail,
-  adminSetTeamSeasonVenueGrant,
   archivePlatformClub,
   deleteEmptyPlatformClub,
   getPlatformClub,
@@ -27,6 +26,7 @@ import {
   formatClubTeamOptionLabel,
   formatTeamSeasonContextLabel,
 } from '../lib/seasonLifecycle';
+import { ManagerClubVenueGrantsPanel } from './ManagerClubVenueGrantsPanel';
 
 function seasonContextLabel(s: ClubDetail['team_seasons'][number]): string {
   return formatTeamSeasonContextLabel(
@@ -82,8 +82,6 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [trainerEmail, setTrainerEmail] = useState('');
   const [trainerLookup, setTrainerLookup] = useState<AdminUserLookup | null>(null);
   const [grantTeamSeasonId, setGrantTeamSeasonId] = useState('');
-  const [grantVenueId, setGrantVenueId] = useState('');
-  const [grantPurpose, setGrantPurpose] = useState<'training' | 'home_match'>('training');
   const [grantableVenues, setGrantableVenues] = useState<GrantableVenue[]>([]);
 
   const reload = useCallback(async () => {
@@ -354,12 +352,15 @@ export function ManagerClubDetailPage(): React.ReactElement {
               )}
             </section>
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <h2 className="text-[16px] font-semibold text-slate-900">Anlagen (club_id)</h2>
+              <h2 className="text-[16px] font-semibold text-slate-900">
+                Anlagenkatalog / zugeordnete Anlagen
+              </h2>
               <p className="mt-1 text-[12px] text-slate-500">
-                Vorhandene Anlagen werden nicht übertragen oder dupliziert.
+                Diese Liste zeigt vorhandene Anlagen. Für Trainer auswählbar sind nur die unten für
+                die Mannschaft/Saison freigegebenen Anlagen.
               </p>
               {detail.venues.length === 0 ? (
-                <p className="mt-2 text-[13px] text-slate-600">Keine Anlagen mit diesem club_id.</p>
+                <p className="mt-2 text-[13px] text-slate-600">Keine Anlagen diesem Verein zugeordnet.</p>
               ) : (
                 <ul className="mt-2 space-y-1 text-[13px] text-slate-800">
                   {detail.venues.map((v) => (
@@ -589,72 +590,23 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   Trainer zuordnen
                 </button>
               </form>
-
-              <form
-                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!grantTeamSeasonId || !grantVenueId) return;
-                  void run(async () => {
-                    const res = await adminSetTeamSeasonVenueGrant({
-                      teamSeasonId: grantTeamSeasonId,
-                      venueId: grantVenueId,
-                      purpose: grantPurpose,
-                      isActive: true,
-                    });
-                    return { error: res.error };
-                  }, 'Anlagenfreigabe gespeichert (Eigentümer unverändert).');
-                }}
-              >
-                <p className="text-[13px] font-semibold text-slate-800">Anlagenfreigabe</p>
-                <p className="text-[12px] text-slate-500">
-                  Bestehende Anlage freigeben (training / home_match). Keine Duplikate, kein
-                  Eigentumswechsel.
-                </p>
-                <select
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  value={grantTeamSeasonId}
-                  onChange={(e) => setGrantTeamSeasonId(e.target.value)}
-                >
-                  <option value="">Saison wählen…</option>
-                  {detail.team_seasons.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {seasonContextLabel(s)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  value={grantVenueId}
-                  onChange={(e) => setGrantVenueId(e.target.value)}
-                >
-                  <option value="">Anlage wählen…</option>
-                  {grantableVenues.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} ({v.club_name})
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  value={grantPurpose}
-                  onChange={(e) =>
-                    setGrantPurpose(e.target.value === 'home_match' ? 'home_match' : 'training')
-                  }
-                >
-                  <option value="training">training</option>
-                  <option value="home_match">home_match</option>
-                </select>
-                <button
-                  type="submit"
-                  disabled={busy || !grantTeamSeasonId || !grantVenueId}
-                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
-                >
-                  Freigabe speichern
-                </button>
-              </form>
             </div>
           </section>
+
+          <ManagerClubVenueGrantsPanel
+            teamSeasons={detail.team_seasons.map((s) => ({
+              id: s.id,
+              label: seasonContextLabel(s),
+            }))}
+            selectedTeamSeasonId={grantTeamSeasonId}
+            onSelectTeamSeason={setGrantTeamSeasonId}
+            grantableVenues={grantableVenues}
+            busy={busy}
+            onBusyError={(err, ok) => {
+              setError(err);
+              setSuccess(ok ?? null);
+            }}
+          />
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <h2 className="text-[16px] font-semibold text-slate-900">Aktionen</h2>
