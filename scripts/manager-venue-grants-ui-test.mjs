@@ -74,13 +74,12 @@ assert.ok(fieldsRohrbach.includes('Trainingsplatz'));
 const catalog = [
   { id: rohrbach, name: 'Sportplatz Rohrbach' },
   { id: stveit, name: 'Sportplatz St. Veit' },
-  { id: 'kirnberg', name: 'Kirnberg' },
 ];
 assert.deepStrictEqual(
   venuesAvailableForPurposeGrant(catalog, grouped, 'training').map((v) => v.id),
-  ['kirnberg'],
+  [],
 );
-assert.deepStrictEqual(venuesAvailableForPurposeGrant(catalog, grouped, 'training').length, 1);
+assert.deepStrictEqual(venuesAvailableForPurposeGrant(catalog, grouped, 'training').length, 0);
 
 assert.strictEqual(assignmentUsesVenueGrantPurpose({ kind: 'training' }, 'training'), true);
 assert.strictEqual(assignmentUsesVenueGrantPurpose({ kind: 'match', is_home: true }, 'home_match'), true);
@@ -110,6 +109,7 @@ assert.ok(panel.includes('venuesAvailableForPurposeGrant'));
 assert.ok(panel.includes('Training entziehen'));
 assert.ok(panel.includes('Heimspiel entziehen'));
 assert.ok(panel.includes('Weitere Anlage freigeben'));
+assert.ok(panel.includes('Keine weitere eingerichtete Anlage verfügbar.'));
 assert.ok(!/ec1ba01f|ec5f02b6|9c7a8741/.test(panel));
 
 const helpers = read('src/lib/teamSeasonTrainingVenues.ts');
