@@ -93,12 +93,31 @@ export type CreateFacilityOccupancyResult =
       rolledBack?: boolean;
     };
 
+type AttendanceMode = 'opt_in' | 'opt_out';
+
 function buildNotes(title: string, note?: string | null): string | null {
   const t = title.trim();
   const n = (note ?? '').trim();
   if (!t && !n) return null;
   if (t && n) return `${t}\n${n}`;
   return t || n || null;
+}
+
+/**
+ * Platzbelegungen folgen denselben erlaubten Attendance-Werten wie reguläre Termine.
+ * CreateEventModal startet für Training/Heimspiel/Turnier/Event ebenfalls mit opt_in.
+ */
+export function getOccupancyAttendanceMode(_kind: OccupancyKindForm): AttendanceMode {
+  return 'opt_in';
+}
+
+function toUserFacingCreateError(message: string | null | undefined): string {
+  const raw = String(message ?? '').trim();
+  if (!raw) return 'Termin konnte nicht angelegt werden.';
+  if (/events_attendance_mode_check|attendance_mode/i.test(raw)) {
+    return 'Termin konnte nicht angelegt werden. Bitte erneut versuchen.';
+  }
+  return raw;
 }
 
 /**
@@ -158,7 +177,7 @@ export async function createFacilityOccupancy(
     starts_at: input.startsAtIso,
     meeting_at: null,
     status: 'upcoming',
-    attendance_mode: 'optional',
+    attendance_mode: getOccupancyAttendanceMode(input.kind),
     created_by: input.createdByUserId,
   };
   if (notes) payload.notes = notes;
@@ -171,7 +190,10 @@ export async function createFacilityOccupancy(
     .maybeSingle();
 
   if (insertErr || !inserted?.id) {
-    return { ok: false, error: insertErr?.message ?? 'Termin konnte nicht angelegt werden.' };
+    return {
+      ok: false,
+      error: toUserFacingCreateError(insertErr?.message),
+    };
   }
 
   const eventId = String(inserted.id);
