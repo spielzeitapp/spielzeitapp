@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react';
 import { useSession } from '../auth/useSession';
+import { useManagerWorkMode } from './ManagerWorkModeContext';
 import {
   createVenue,
   formatVenueAddressLine,
@@ -163,18 +164,25 @@ function blockCanEdit(
  * Manager STEP 2: Sportanlagen, Plätze und Wochen-Platzbelegung.
  */
 export function ManagerPlatzbelegungPage(): React.ReactElement {
-  const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason, memberships, backendRole } =
-    useSession();
+  const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason, memberships } = useSession();
+  const { usesExpandedAdminCapabilities, isTrainerMode } = useManagerWorkMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
-  const isPlatformAdmin = normalizeRole(backendRole) === 'admin';
+  const isPlatformAdmin = usesExpandedAdminCapabilities;
 
-  const tab: TabId = searchParams.get('tab') === 'facilities' ? 'facilities' : 'calendar';
+  const tab: TabId =
+    !isTrainerMode && searchParams.get('tab') === 'facilities' ? 'facilities' : 'calendar';
   const setTab = (next: TabId) => {
-    if (next === 'facilities') setSearchParams({ tab: 'facilities' });
+    if (next === 'facilities' && !isTrainerMode) setSearchParams({ tab: 'facilities' });
     else setSearchParams({});
   };
+
+  useEffect(() => {
+    if (isTrainerMode && searchParams.get('tab') === 'facilities') {
+      setSearchParams({});
+    }
+  }, [isTrainerMode, searchParams, setSearchParams]);
   const [clubId, setClubId] = useState<string | null>(null);
   const [clubError, setClubError] = useState<string | null>(null);
   const [clubTeamSeasonIds, setClubTeamSeasonIds] = useState<string[]>([]);
@@ -230,22 +238,29 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     setClubError(null);
     const seasonsRes = await listClubTeamSeasonIds(clubRes.clubId);
     setClubTeamSeasonIds(seasonsRes.data);
-    const vRes = await listVenuesForClub(clubRes.clubId, { includeInactive: true });
-    if (vRes.error) setMetaError(vRes.error);
 
-    // PLATZ.6: freigegebene Anlagen (Training + Heimspiel) einmischen — z. B. Rohrbach für NSG/U12
     const [trainAllow, homeAllow] = await Promise.all([
       listAllowedVenueRowsForPurpose(teamSeasonId, 'training'),
       listAllowedVenueRowsForPurpose(teamSeasonId, 'home_match'),
     ]);
-    const byId = new Map<string, VenueRow>();
-    for (const v of vRes.data) byId.set(v.id, v);
-    for (const v of [...trainAllow.data, ...homeAllow.data]) {
-      if (!byId.has(v.id)) byId.set(v.id, v);
+
+    let mergedVenues: VenueRow[];
+    if (isTrainerMode) {
+      const byId = new Map<string, VenueRow>();
+      for (const v of [...trainAllow.data, ...homeAllow.data]) {
+        if (v.is_active !== false) byId.set(v.id, v);
+      }
+      mergedVenues = Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    } else {
+      const vRes = await listVenuesForClub(clubRes.clubId, { includeInactive: true });
+      if (vRes.error) setMetaError(vRes.error);
+      const byId = new Map<string, VenueRow>();
+      for (const v of vRes.data) byId.set(v.id, v);
+      for (const v of [...trainAllow.data, ...homeAllow.data]) {
+        if (!byId.has(v.id)) byId.set(v.id, v);
+      }
+      mergedVenues = Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
     }
-    const mergedVenues = Array.from(byId.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, 'de'),
-    );
     setVenues(mergedVenues);
 
     const activeVenues = mergedVenues.filter((v) => v.is_active);
@@ -263,7 +278,7 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     setFields(allFields);
     setZonesByField(zoneMap);
     setLoadingMeta(false);
-  }, [teamSeasonId]);
+  }, [teamSeasonId, isTrainerMode]);
 
   const reloadWeek = useCallback(async () => {
     if (!clubId) {
@@ -564,16 +579,18 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
             >
               Wochenkalender
             </button>
-            <button
-              type="button"
-              onClick={() => setTab('facilities')}
-              className={[
-                'rounded-full px-3 py-1.5 text-[12px] font-semibold',
-                tab === 'facilities' ? 'bg-red-700 text-white' : 'text-slate-600 hover:bg-slate-50',
-              ].join(' ')}
-            >
-              Sportanlagen
-            </button>
+            {!isTrainerMode ? (
+              <button
+                type="button"
+                onClick={() => setTab('facilities')}
+                className={[
+                  'rounded-full px-3 py-1.5 text-[12px] font-semibold',
+                  tab === 'facilities' ? 'bg-red-700 text-white' : 'text-slate-600 hover:bg-slate-50',
+                ].join(' ')}
+              >
+                Sportanlagen
+              </button>
+            ) : null}
           </div>
         </div>
       </header>

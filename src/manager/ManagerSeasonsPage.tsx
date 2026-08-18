@@ -25,9 +25,13 @@ import {
 } from '../lib/seasonTransition';
 import { SeasonTransitionWizard } from '../components/season/SeasonTransitionWizard';
 import { ManagerTrainingVenuesPanel } from './ManagerTrainingVenuesPanel';
+import { useManagerWorkMode } from './ManagerWorkModeContext';
+import type { ManagerWorkMode } from './managerWorkMode';
 
-function canAccess(effectiveRole: string, backendRole: string): boolean {
-  if ((backendRole ?? '').trim().toLowerCase() === 'admin') return true;
+function canAccess(effectiveRole: string, backendRole: string, workMode: ManagerWorkMode): boolean {
+  if (workMode === 'platform_admin' && (backendRole ?? '').trim().toLowerCase() === 'admin') {
+    return true;
+  }
   if (canPrepareNextSeason(effectiveRole) || canPrepareNextSeason(backendRole)) return true;
   const r = (effectiveRole ?? '').trim().toLowerCase();
   return r === 'trainer' || r === 'co_trainer' || r === 'head_coach';
@@ -95,7 +99,8 @@ export function ManagerSeasonsPage(): React.ReactElement {
     setSelectedTeamSeasonId,
     setViewTeamSeasonId,
   } = useSession();
-  const allowed = canAccess(effectiveRole, backendRole);
+  const { workMode, isTrainerMode } = useManagerWorkMode();
+  const allowed = canAccess(effectiveRole, backendRole, workMode);
 
   const [snapshot, setSnapshot] = useState<SeasonManagementSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -291,11 +296,13 @@ export function ManagerSeasonsPage(): React.ReactElement {
             STEP 5: ÖFB-Spielplan mit Vorschau in diese Saison importieren — Dubletten und geschützte
             Termine werden erkannt.
           </p>
+          {!isTrainerMode ? (
           <ManagerTrainingVenuesPanel
             teamSeasonId={active.id}
             effectiveRole={effectiveRole}
             backendRole={backendRole}
           />
+          ) : null}
         </section>
           ) : null}
 

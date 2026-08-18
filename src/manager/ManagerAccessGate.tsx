@@ -1,7 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
 import { canAccessManager } from './canAccessManager';
+import {
+  filterTrainerStaffTeamSeasonIds,
+  hasTrainerStaffMembership,
+  resolveAvailableWorkModes,
+  resolveEffectiveWorkMode,
+} from './managerWorkMode';
 
 type Props = {
   children: React.ReactNode;
@@ -33,7 +40,28 @@ function GatePanel({
  * Saison-Hinweise erscheinen im Dashboard (nicht als Block).
  */
 export function ManagerAccessGate({ children }: Props): React.ReactElement {
+  const { user: authUser } = useAuth();
   const { loading, memberships, backendRole, teamSeasons } = useSession();
+
+  const membershipInputs = memberships.map((m) => ({
+    team_season_id: m.team_season_id,
+    role: m.role,
+  }));
+
+  const availableModes = resolveAvailableWorkModes({
+    backendRole,
+    memberships: membershipInputs,
+  });
+
+  const effectiveMode = resolveEffectiveWorkMode({
+    userId: authUser?.id,
+    backendRole,
+    memberships: membershipInputs,
+  });
+
+  const trainerSeasonIds = filterTrainerStaffTeamSeasonIds(membershipInputs);
+  const hasTrainerContext =
+    hasTrainerStaffMembership(membershipInputs) && trainerSeasonIds.length > 0;
 
   if (loading) {
     return (
@@ -69,10 +97,39 @@ export function ManagerAccessGate({ children }: Props): React.ReactElement {
     );
   }
 
-  // Plattformadmin (user_roles.admin) darf den Manager auch ohne Team-Kontext nutzen
-  // (z. B. Vereinsverwaltung) – keine neue Rechtearchitektur.
-  const backendKey = String(backendRole ?? '').trim().toLowerCase();
-  if (backendKey !== 'admin' && (memberships.length === 0 || teamSeasons.length === 0)) {
+  const platformAdminModeAvailable = availableModes.includes('platform_admin');
+
+  if (effectiveMode === 'trainer' && !hasTrainerContext) {
+    return (
+      <GatePanel
+        title="Keine Mannschaft zugeordnet"
+        body="Deinem Konto ist noch keine Trainer-Mannschaftssaison zugeordnet. Bitte schließe die Teamzuordnung in der App ab oder kontaktiere einen Administrator."
+        actions={
+          platformAdminModeAvailable ? (
+            <Link
+              to="/manager/vereine"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white hover:bg-red-800"
+            >
+              Zur Plattformverwaltung
+            </Link>
+          ) : (
+            <Link
+              to="/app/role-choice"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white hover:bg-red-800"
+            >
+              Zur App
+            </Link>
+          )
+        }
+      />
+    );
+  }
+
+  if (
+    effectiveMode !== 'platform_admin' &&
+    !platformAdminModeAvailable &&
+    (memberships.length === 0 || teamSeasons.length === 0)
+  ) {
     return (
       <GatePanel
         title="Keine Mannschaft zugeordnet"
