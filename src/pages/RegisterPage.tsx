@@ -26,6 +26,23 @@ const AUTH_PAGE_CARD_CLASS =
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
+const lockedEmailDisplayClass =
+  'flex h-12 w-full items-center rounded-xl border border-white/15 bg-white/5 px-4 text-white select-none [user-select:none]';
+
+/** iOS Safari/PWA: avoid keyboard on load; first user tap unlocks the field. */
+function unlockIosInput(
+  e: React.FocusEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>,
+) {
+  const el = e.currentTarget;
+  if (el.readOnly) el.readOnly = false;
+}
+
+const IOS_DEFER_KEYBOARD_INPUT_PROPS = {
+  readOnly: true,
+  onFocus: unlockIosInput,
+  onTouchStart: unlockIosInput,
+} as const;
+
 const MIN_PASSWORD_LENGTH = 6;
 
 async function completeInviteSignup(input: {
@@ -336,7 +353,7 @@ export const RegisterPage: React.FC = () => {
             : 'Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.'}
         </p>
 
-        <form onSubmit={handleRegister} className="mt-6 space-y-4">
+        <form onSubmit={handleRegister} className="mt-6 space-y-4" autoComplete={isParentInviteFlow ? 'off' : 'on'}>
           <div>
             <label htmlFor="reg-first-name" className="mb-1 block text-sm font-medium text-white/80">
               Vorname
@@ -350,6 +367,7 @@ export const RegisterPage: React.FC = () => {
               required
               autoComplete="given-name"
               className={inputClass}
+              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
           <div>
@@ -365,26 +383,33 @@ export const RegisterPage: React.FC = () => {
               required
               autoComplete="family-name"
               className={inputClass}
+              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
           <div>
-            <label htmlFor="reg-email" className="mb-1 block text-sm font-medium text-white/80">
+            <label
+              htmlFor={inviteEmailLocked ? 'reg-email-display' : 'reg-email'}
+              className="mb-1 block text-sm font-medium text-white/80"
+            >
               E-Mail
             </label>
-            <input
-              id="reg-email"
-              type="email"
-              value={email}
-              onChange={(e) => {
-                if (inviteEmailLocked) return;
-                setEmail(e.target.value.trim().toLowerCase());
-              }}
-              placeholder="name@beispiel.de"
-              required
-              readOnly={inviteEmailLocked}
-              autoComplete="email"
-              className={inputClass}
-            />
+            {inviteEmailLocked ? (
+              <p id="reg-email-display" className={lockedEmailDisplayClass} aria-readonly="true">
+                {email}
+              </p>
+            ) : (
+              <input
+                id="reg-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value.trim().toLowerCase())}
+                placeholder="name@beispiel.de"
+                required
+                autoComplete="email"
+                className={inputClass}
+                {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
+              />
+            )}
             {inviteEmailLocked ? (
               <p className="mt-1 text-xs text-white/50">
                 Diese Einladung ist an diese E-Mail-Adresse gebunden.
@@ -405,6 +430,7 @@ export const RegisterPage: React.FC = () => {
               required
               autoComplete="new-password"
               className={inputClass}
+              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
           <div>
@@ -421,6 +447,7 @@ export const RegisterPage: React.FC = () => {
               required
               autoComplete="new-password"
               className={inputClass}
+              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
 

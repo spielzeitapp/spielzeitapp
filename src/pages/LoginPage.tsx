@@ -34,6 +34,23 @@ const AUTH_PAGE_CARD_CLASS =
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
+const lockedEmailDisplayClass =
+  'flex h-12 w-full items-center rounded-xl border border-white/15 bg-white/5 px-4 text-white select-none [user-select:none]';
+
+/** iOS Safari/PWA: avoid keyboard on load; first user tap unlocks the field. */
+function unlockIosInput(
+  e: React.FocusEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>,
+) {
+  const el = e.currentTarget;
+  if (el.readOnly) el.readOnly = false;
+}
+
+const IOS_DEFER_KEYBOARD_INPUT_PROPS = {
+  readOnly: true,
+  onFocus: unlockIosInput,
+  onTouchStart: unlockIosInput,
+} as const;
+
 function stashTokenIfValid(raw: string | null | undefined): string | null {
   const token = normalizeParentInviteToken(raw ?? '');
   if (!isParentInviteTokenShape(token)) return null;
@@ -230,29 +247,34 @@ export const LoginPage: React.FC = () => {
         <form
           onSubmit={handleSubmit}
           className="mt-6 space-y-4"
-          autoComplete={inviteEmailLocked ? 'on' : 'on'}
+          autoComplete={isParentInviteFlow ? 'off' : 'on'}
         >
           <div>
-            <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-white/80">
+            <label
+              htmlFor={inviteEmailLocked ? 'login-email-display' : 'login-email'}
+              className="mb-1 block text-sm font-medium text-white/80"
+            >
               E-Mail
             </label>
-            <input
-              id="login-email"
-              type="email"
-              name={inviteEmailLocked ? 'invite-email' : 'email'}
-              value={email}
-              onChange={(e) => {
-                if (inviteEmailLocked) return;
-                setEmail(e.target.value.trim().toLowerCase());
-              }}
-              placeholder="name@beispiel.de"
-              required
-              readOnly={inviteEmailLocked}
-              // Safari: locked invite email must not be overwritten by another saved account.
-              autoComplete={inviteEmailLocked ? 'off' : 'username'}
-              inputMode="email"
-              className={inputClass}
-            />
+            {inviteEmailLocked ? (
+              <p id="login-email-display" className={lockedEmailDisplayClass} aria-readonly="true">
+                {email}
+              </p>
+            ) : (
+              <input
+                id="login-email"
+                type="email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value.trim().toLowerCase())}
+                placeholder="name@beispiel.de"
+                required
+                autoComplete="username"
+                inputMode="email"
+                className={inputClass}
+                {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
+              />
+            )}
             {inviteEmailLocked ? (
               <p className="mt-1 text-xs text-white/50">
                 Diese Einladung ist an diese E-Mail-Adresse gebunden.
@@ -273,6 +295,7 @@ export const LoginPage: React.FC = () => {
                 placeholder="••••••••"
                 autoComplete="current-password"
                 className={inputClass}
+                {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
               />
               <button
                 type="button"
