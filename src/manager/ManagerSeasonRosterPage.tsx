@@ -5,7 +5,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
-import { canPrepareNextSeason, getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
+import {
+  canPrepareNextSeason,
+  formatTeamSeasonContextLabel,
+  getSeasonStatusLabel,
+  isSeasonArchived,
+} from '../lib/seasonLifecycle';
 import { listRoster, type RosterPlayer } from '../lib/rosterService';
 import { supabase } from '../lib/supabaseClient';
 
@@ -66,8 +71,13 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
       const team = Array.isArray(ts.teams) ? ts.teams[0] : ts.teams;
       const season = Array.isArray(ts.seasons) ? ts.seasons[0] : ts.seasons;
       const displayName =
-        String(ts.display_name ?? '').trim() ||
-        [team?.name, season?.name].filter(Boolean).join(' · ') ||
+        formatTeamSeasonContextLabel({
+          displayName: String(ts.display_name ?? '').trim() || null,
+          ageGroup: ts.age_group ? String(ts.age_group) : null,
+          teamName: team?.name ? String(team.name) : null,
+          seasonName: season?.name ? String(season.name) : null,
+          status: String(ts.status ?? 'active'),
+        }) ||
         'Saison';
       setMeta({
         displayName,

@@ -6,7 +6,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
-import { canPrepareNextSeason, getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
+import {
+  canPrepareNextSeason,
+  formatTeamSeasonContextLabel,
+  getSeasonStatusLabel,
+  isSeasonArchived,
+} from '../lib/seasonLifecycle';
 import {
   DEFAULT_OEFB_SCHEDULE_URL,
   fetchOefbScheduleFixtures,
@@ -143,8 +148,13 @@ export function ManagerOefbImportPage(): React.ReactElement {
     const season = Array.isArray(ts.seasons) ? ts.seasons[0] : ts.seasons;
     const teamName = team?.name ? String(team.name) : null;
     const displayName =
-      String(ts.display_name ?? '').trim() ||
-      [teamName, season?.name].filter(Boolean).join(' · ') ||
+      formatTeamSeasonContextLabel({
+        displayName: String(ts.display_name ?? '').trim() || null,
+        ageGroup: ts.age_group ? String(ts.age_group) : null,
+        teamName,
+        seasonName: season?.name ? String(season.name) : null,
+        status,
+      }) ||
       'Saison';
     const status = String(ts.status ?? 'active');
     setMeta({

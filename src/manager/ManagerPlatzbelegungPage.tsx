@@ -61,6 +61,7 @@ import { normalizeRole } from '../lib/roles';
 import { occupancyPurposeForKind, type OccupancyKindForm } from '../lib/createFacilityOccupancy';
 import { supabase } from '../lib/supabaseClient';
 import { locationTextFromVenue } from '../lib/venues';
+import { formatTeamSeasonContextLabel } from '../lib/seasonLifecycle';
 import {
   addDays,
   formatWeekRangeLabel,
@@ -137,7 +138,15 @@ function eventTitle(e: ClubEvent): string {
 }
 
 function eventTeamLabel(b: ScheduleBlock): string {
-  const base = [b.event.age_group, b.event.team_name].filter(Boolean).join(' · ') || 'Mannschaft';
+  const base =
+    formatTeamSeasonContextLabel(
+      {
+        ageGroup: b.event.age_group,
+        teamName: b.event.team_name,
+        seasonName: null,
+      },
+      { includeSeason: false },
+    ) || 'Mannschaft';
   if (b.orgName) return `${base} · ${b.orgName}`;
   return base;
 }
@@ -380,7 +389,15 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     const map = new Map<string, string>();
     for (const e of events) {
       if (!map.has(e.team_season_id)) {
-        const label = [e.age_group, e.team_name].filter(Boolean).join(' · ') || 'Mannschaft';
+        const label =
+          formatTeamSeasonContextLabel(
+            {
+              ageGroup: e.age_group,
+              teamName: e.team_name,
+              seasonName: null,
+            },
+            { includeSeason: false },
+          ) || 'Mannschaft';
         map.set(e.team_season_id, label);
       }
     }
@@ -391,9 +408,13 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     const map = new Map<string, string>(teamFilterOptions);
     if (teamSeasonId && contextSeason) {
       const label =
-        [contextSeason.age_group, contextSeason.display_name || contextSeason.team?.name]
-          .filter(Boolean)
-          .join(' · ') || 'Aktuelle Mannschaft';
+        formatTeamSeasonContextLabel({
+          displayName: contextSeason.display_name,
+          ageGroup: contextSeason.age_group,
+          teamName: contextSeason.team?.name,
+          seasonName: contextSeason.season?.name,
+          status: contextSeason.status,
+        }) || 'Aktuelle Mannschaft';
       map.set(teamSeasonId, label);
     }
     for (const m of memberships) {
@@ -403,7 +424,10 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
       const ts = (m as { team_seasons?: { team?: { name?: string }; season?: { name?: string } } })
         .team_seasons;
       const label =
-        [ts?.team?.name, ts?.season?.name].filter(Boolean).join(' · ') || 'Mannschaft';
+        formatTeamSeasonContextLabel({
+          teamName: ts?.team?.name,
+          seasonName: ts?.season?.name,
+        }) || 'Mannschaft';
       map.set(id, label);
     }
     if (isPlatformAdmin) {

@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { useProfile, getDisplayFirstName, profileDisplayName } from '../../auth/useProfile';
 import { useSession, type SessionTeamSeasonItem } from '../../auth/useSession';
 import {
+  formatTeamSeasonContextLabel,
   formatTeamSeasonCompactSwitcherLabel,
   getSeasonStatusLabel,
   isSeasonActive,
@@ -63,17 +64,21 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const contextLine = useMemo(() => {
     if (!contextSeason) return sessionLoading ? 'Kontext wird geladen…' : 'Kein Team ausgewählt';
-    const club = (contextSeason.team?.name ?? '').trim() || 'Verein';
-    const age =
-      (contextSeason.age_group ?? '').trim() ||
-      (contextSeason.display_name ?? '').trim() ||
-      'Mannschaft';
-    const season = (contextSeason.season?.name ?? '').trim() || 'Saison';
     const status = getSeasonStatusLabel(contextSeason.status);
     const archived = isSeasonArchived(contextSeason.status);
+    const base = formatTeamSeasonContextLabel(
+      {
+        displayName: contextSeason.display_name,
+        ageGroup: contextSeason.age_group,
+        teamName: contextSeason.team?.name,
+        seasonName: contextSeason.season?.name,
+        status: contextSeason.status,
+      },
+      { includeSeason: true },
+    );
     return archived
-      ? `${club} · ${age} · ${season} (${status})`
-      : `${club} · ${age} · ${season}`;
+      ? `${base} (${status})`
+      : base;
   }, [contextSeason, sessionLoading]);
 
   const selectValue = viewTeamSeasonId ?? selectedTeamSeasonId ?? '';
