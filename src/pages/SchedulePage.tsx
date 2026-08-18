@@ -67,8 +67,20 @@ import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocatio
 import { safeOptionalText } from '../lib/safeText';
 import { VenuePicker } from '../components/venues/VenuePicker';
 import {
+  TrainingFacilityFields,
+  type TrainingFacilitySelection,
+} from '../components/venues/TrainingFacilityFields';
+import {
+  defaultEventEndsAt,
+  deleteEventFieldAssignment,
+  getAssignmentForEvent,
+  upsertEventFieldAssignment,
+  type EventFieldAssignmentRow,
+} from '../lib/eventFieldAssignments';
+import {
   getVenueById,
   locationTextFromVenue,
+  resolveClubIdForTeamSeason,
   type VenueRow,
 } from '../lib/venues';
 import { trainingScheduleCardCounts } from '../lib/trainingAttendance';
@@ -413,6 +425,12 @@ export const SchedulePage: React.FC = () => {
   const [editLocation, setEditLocation] = useState('');
   const [editLocationAddress, setEditLocationAddress] = useState('');
   const [editVenue, setEditVenue] = useState<VenueRow | null>(null);
+  const [editFacilitySelection, setEditFacilitySelection] = useState<TrainingFacilitySelection>({
+    fieldId: null,
+    zoneId: null,
+  });
+  const [editAssignment, setEditAssignment] = useState<EventFieldAssignmentRow | null>(null);
+  const [editUseExternalLocation, setEditUseExternalLocation] = useState(false);
   const [editMeetupAt, setEditMeetupAt] = useState('');
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
   const [editSeriesScope, setEditSeriesScope] = useState<SeriesEditScope>('single');
@@ -463,11 +481,28 @@ export const SchedulePage: React.FC = () => {
     setEditLocation(parsedLocation.place);
     setEditLocationAddress(parsedLocation.address);
     setEditVenue(null);
+    setEditFacilitySelection({ fieldId: null, zoneId: null });
+    setEditAssignment(null);
+    setEditUseExternalLocation(false);
     setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meeting_at ?? ''));
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
     setEditSeriesScope('single');
     setEditError(null);
     setEditModalOpen(true);
+    void getAssignmentForEvent(e.id).then((assignmentRes) => {
+      if (assignmentRes.error) {
+        setEditError(assignmentRes.error);
+        return;
+      }
+      setEditAssignment(assignmentRes.data);
+      setEditFacilitySelection({
+        fieldId: assignmentRes.data?.field_id ?? null,
+        zoneId: assignmentRes.data?.zone_id ?? null,
+      });
+      if ((e.kind === 'training' || (e.kind === 'match' && e.is_home === true)) && !assignmentRes.data && !e.venue_id) {
+        setEditUseExternalLocation(true);
+      }
+    });
     if (e.venue_id) {
       void getVenueById(e.venue_id).then((v) => {
         setEditVenue(v.data);
@@ -654,6 +689,9 @@ export const SchedulePage: React.FC = () => {
     setEditLocation('');
     setEditLocationAddress('');
     setEditVenue(null);
+    setEditFacilitySelection({ fieldId: null, zoneId: null });
+    setEditAssignment(null);
+    setEditUseExternalLocation(false);
     setEditMeetupAt('');
     setEditSeriesScope('single');
     setEditError(null);
@@ -678,6 +716,24 @@ export const SchedulePage: React.FC = () => {
     const startsAt = parseViennaDateTimeLocalToUtcIso((editDateTime ?? '').trim());
     if (!startsAt) {
       setEditError('Ungültiges Datumsformat.');
+      setSavingEdit(false);
+      return;
+    }
+    const supportsInternalAssignment =
+      editEvent.kind === 'training' || (editEvent.kind === 'match' && editEvent.is_home === true);
+    const needsInternalAssignment = supportsInternalAssignment && !editUseExternalLocation;
+    if (needsInternalAssignment && editSeriesScope !== 'single') {
+      setEditError('Platzzuordnungen bitte als Einzeltermin bearbeiten.');
+      setSavingEdit(false);
+      return;
+    }
+    if (needsInternalAssignment && !editVenue?.id) {
+      setEditError('Bitte eine freigegebene Sportanlage auswählen.');
+      setSavingEdit(false);
+      return;
+    }
+    if (needsInternalAssignment && !editFacilitySelection.fieldId) {
+      setEditError('Bitte einen konkreten Platz auswählen.');
       setSavingEdit(false);
       return;
     }
@@ -792,6 +848,62 @@ export const SchedulePage: React.FC = () => {
       setEditError(eventErr.message);
       setSavingEdit(false);
       return;
+    }
+
+    if (supportsInternalAssignment && editSeriesScope === 'single') {
+      const previousPayload: Record<string, unknown> = {
+        starts_at: editEvent.starts_at,
+        meeting_at: editEvent.meeting_at,
+        location: editEvent.location,
+        venue_id: editEvent.venue_id ?? null,
+        opponent: eff === 'game' ? editEvent.opponent : null,
+      };
+      if (eff !== 'game') {
+        previousPayload.notes = editEvent.notes ?? null;
+      }
+      if (editEvent.kind === 'training') {
+        previousPayload.training_absence_deadline_disabled = editEvent.training_absence_deadline_disabled ?? null;
+      }
+      if (editUseExternalLocation) {
+        if (editAssignment?.id) {
+          const deleteRes = await deleteEventFieldAssignment(editAssignment.id);
+          if (!deleteRes.ok) {
+            await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+            setEditError(deleteRes.error ?? 'Platzzuordnung konnte nicht entfernt werden.');
+            setSavingEdit(false);
+            return;
+          }
+        }
+      } else {
+        const clubRes = await resolveClubIdForTeamSeason(editEvent.team_season_id);
+        if (!clubRes.clubId) {
+          await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+          setEditError('Club zur Team-Saison konnte nicht aufgelöst werden.');
+          setSavingEdit(false);
+          return;
+        }
+        const assignRes = await upsertEventFieldAssignment({
+          clubId: clubRes.clubId,
+          eventId: editEvent.id,
+          venueId: editVenue!.id,
+          fieldId: editFacilitySelection.fieldId!,
+          zoneId: editFacilitySelection.zoneId,
+          startsAt,
+          endsAt: defaultEventEndsAt({
+            startsAtIso: startsAt,
+            kind: editEvent.kind,
+            type: editEvent.type,
+            notes: (fullPayload.notes as string | null | undefined) ?? editEvent.notes ?? null,
+          }),
+          existingId: editAssignment?.id ?? null,
+        });
+        if (assignRes.error) {
+          await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+          setEditError(assignRes.error);
+          setSavingEdit(false);
+          return;
+        }
+      }
     }
 
     // MVP: Automatische Nachricht + Push bei relevanter Termin-Aenderung
@@ -1934,10 +2046,32 @@ export const SchedulePage: React.FC = () => {
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)] disabled:opacity-50"
             />
           </div>
+          {editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true) ? (
+            <label className="flex items-start gap-2 text-sm text-[var(--text-main)] cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 rounded border-[var(--glass-border)]"
+                checked={editUseExternalLocation}
+                disabled={Boolean(editEvent?.series_id && editSeriesScope !== 'single')}
+                onChange={(e) => {
+                  setEditUseExternalLocation(e.target.checked);
+                  setEditFacilitySelection({ fieldId: null, zoneId: null });
+                  if (e.target.checked) setEditVenue(null);
+                }}
+              />
+              <span>
+                Externer Ort - keine Platzreservierung. Ohne interne Platzzuordnung und ohne
+                Cross-Org-Konfliktpruefung.
+              </span>
+            </label>
+          ) : null}
           <VenuePicker
             teamSeasonId={editEvent?.team_season_id ?? null}
             venueId={editVenue?.id ?? null}
-            onVenueChange={(v) => setEditVenue(v)}
+            onVenueChange={(v) => {
+              setEditVenue(v);
+              setEditFacilitySelection({ fieldId: null, zoneId: null });
+            }}
             locationName={editLocation}
             locationAddress={editLocationAddress}
             onLocationNameChange={setEditLocation}
@@ -1950,10 +2084,37 @@ export const SchedulePage: React.FC = () => {
                   }
                 : null
             }
+            purpose={
+              editUseExternalLocation
+                ? 'general'
+                : editEvent?.kind === 'training'
+                  ? 'training'
+                  : editEvent?.kind === 'match' && editEvent.is_home === true
+                    ? 'home_match'
+                    : 'general'
+            }
             labelClass="block text-sm font-medium text-[var(--text-main)] mb-1"
             inputClass="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
-            disabled={savingEdit}
+            disabled={savingEdit || Boolean(editEvent?.series_id && editSeriesScope !== 'single' && (editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true)))}
           />
+          {(editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true)) &&
+          !editUseExternalLocation ? (
+            <>
+              {Boolean(editEvent?.series_id && editSeriesScope !== 'single') ? (
+                <p className="text-xs text-[var(--text-sub)]">
+                  Platzzuordnungen bitte als Einzeltermin bearbeiten.
+                </p>
+              ) : null}
+              <TrainingFacilityFields
+                venueId={editVenue?.id ?? null}
+                value={editFacilitySelection}
+                onChange={setEditFacilitySelection}
+                labelClass="block text-sm font-medium text-[var(--text-main)] mb-1"
+                inputClass="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+                disabled={savingEdit || Boolean(editEvent?.series_id && editSeriesScope !== 'single')}
+              />
+            </>
+          ) : null}
           <div>
             <label htmlFor="edit-meetup_at" className="block text-sm font-medium text-[var(--text-main)] mb-1">
               Treffpunkt (optional)

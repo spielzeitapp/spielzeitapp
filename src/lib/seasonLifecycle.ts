@@ -257,6 +257,36 @@ export function resolveTeamSeasonLabelParts(input: TeamSeasonLabelInput): TeamSe
   return { full, teamLine, seasonLine: season || '—' };
 }
 
+/**
+ * Kontext-Label für aktive Arbeitskontexte:
+ * Club/Mannschaft zuerst, dann Altersklasse, dann Saison.
+ * Beispiel: „SPG Rohrbach · U12 · 2026/27“
+ */
+export function formatTeamSeasonContextLabel(
+  input: TeamSeasonLabelInput,
+  opts?: { markArchived?: boolean; includeSeason?: boolean },
+): string {
+  const parts = resolveTeamSeasonLabelParts(input);
+  const age =
+    (input.ageGroup ?? '').trim() ||
+    resolveCurrentAgeGroup({
+      ageGroup: input.ageGroup,
+      teamName: input.teamName,
+      displayName: input.displayName,
+    }) ||
+    '';
+  const club =
+    clubNameWithoutAgeGroup(input.teamName) ||
+    parts.teamLine.replace(/\bU\d{1,2}\b/gi, '').replace(/\s+/g, ' ').trim() ||
+    parts.teamLine;
+  const season = opts?.includeSeason === false ? '' : (input.seasonName ?? '').trim() || parts.seasonLine;
+  const core = [club, age, season && season !== '—' ? season : ''].filter(Boolean).join(' · ') || parts.full;
+  if (opts?.markArchived && isSeasonArchived(input.status)) {
+    return `${core} · Archiv`;
+  }
+  return core;
+}
+
 export function formatTeamSeasonDisplayLabel(
   input: TeamSeasonLabelInput,
   opts?: { markArchived?: boolean },

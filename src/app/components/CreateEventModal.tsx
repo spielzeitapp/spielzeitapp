@@ -126,10 +126,11 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 }) => {
   const [form, setForm] = useState<CreateEventFormValues>(defaultForm);
   const [selectedVenue, setSelectedVenue] = useState<VenueRow | null>(null);
-  const [trainingFacility, setTrainingFacility] = useState<TrainingFacilitySelection>({
+  const [facilitySelection, setFacilitySelection] = useState<TrainingFacilitySelection>({
     fieldId: null,
     zoneId: null,
   });
+  const [useExternalLocation, setUseExternalLocation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [eventTypeLocal, setEventTypeLocal] = useState<
@@ -147,6 +148,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const resetForm = () => {
     setForm(defaultForm);
     setSelectedVenue(null);
+    setFacilitySelection({ fieldId: null, zoneId: null });
+    setUseExternalLocation(false);
     setError(null);
   };
 
@@ -188,6 +191,17 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       !titleVal
     ) {
       setError('Titel ist Pflicht.');
+      return;
+    }
+    const needsInternalAssignment =
+      !useExternalLocation &&
+      (eventTypeLocal === 'training' || (eventTypeLocal === 'game' && form.is_home));
+    if (needsInternalAssignment && !selectedVenue?.id) {
+      setError('Bitte eine freigegebene Sportanlage auswählen.');
+      return;
+    }
+    if (needsInternalAssignment && !facilitySelection.fieldId) {
+      setError('Bitte einen konkreten Platz auswählen.');
       return;
     }
     setError(null);
@@ -325,9 +339,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
 
       if (
-        eventTypeLocal === 'training' &&
+        !useExternalLocation &&
+        (eventTypeLocal === 'training' || (eventTypeLocal === 'game' && form.is_home)) &&
         selectedVenue?.id &&
-        trainingFacility.fieldId &&
+        facilitySelection.fieldId &&
         Array.isArray(insertedRows) &&
         insertedRows.length > 0
       ) {
@@ -344,8 +359,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               clubId: clubRes.clubId,
               eventId: ev.id,
               venueId: selectedVenue.id,
-              fieldId: trainingFacility.fieldId,
-              zoneId: trainingFacility.zoneId,
+              fieldId: facilitySelection.fieldId,
+              zoneId: facilitySelection.zoneId,
               startsAt: ev.starts_at,
               endsAt,
             });
@@ -380,6 +395,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   const inputClass = EVENT_FORM_INPUT_CLASS;
   const labelClass = EVENT_FORM_LABEL_CLASS;
+  const canUseInternalAssignment =
+    eventTypeLocal === 'training' || (eventTypeLocal === 'game' && form.is_home);
 
   return (
     <Modal
@@ -574,7 +591,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           venueId={selectedVenue?.id ?? null}
           onVenueChange={(v) => {
             setSelectedVenue(v);
-            setTrainingFacility({ fieldId: null, zoneId: null });
+            setFacilitySelection({ fieldId: null, zoneId: null });
           }}
           locationName={form.location}
           locationAddress={form.location_address}
@@ -586,7 +603,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               : null
           }
           purpose={
-            eventTypeLocal === 'training'
+            useExternalLocation
+              ? 'general'
+              : eventTypeLocal === 'training'
               ? 'training'
               : eventTypeLocal === 'game' && form.is_home
                 ? 'home_match'
@@ -596,11 +615,29 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           inputClass={inputClass}
           disabled={creating}
         />
-        {eventTypeLocal === 'training' ? (
+        {canUseInternalAssignment ? (
+          <label className="flex items-start gap-2 text-sm text-[var(--text-main)] cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 rounded border-[var(--glass-border)]"
+              checked={useExternalLocation}
+              onChange={(e) => {
+                setUseExternalLocation(e.target.checked);
+                setFacilitySelection({ fieldId: null, zoneId: null });
+                if (e.target.checked) setSelectedVenue(null);
+              }}
+            />
+            <span>
+              Externer Ort - keine Platzreservierung. Ohne interne Platzzuordnung und ohne
+              Cross-Org-Konfliktpruefung.
+            </span>
+          </label>
+        ) : null}
+        {canUseInternalAssignment && !useExternalLocation ? (
           <TrainingFacilityFields
             venueId={selectedVenue?.id ?? null}
-            value={trainingFacility}
-            onChange={setTrainingFacility}
+            value={facilitySelection}
+            onChange={setFacilitySelection}
             labelClass={labelClass}
             inputClass={inputClass}
             disabled={creating}

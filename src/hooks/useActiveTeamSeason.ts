@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useSession } from '../auth/useSession';
 import {
+  formatTeamSeasonContextLabel,
   formatTeamSeasonDisplayLabel,
   isSeasonArchived,
   resolveTeamSeasonLabelParts,
@@ -42,7 +43,15 @@ export function useActiveTeamSeason() {
     });
   }, [readTeamSeason]);
 
-  const teamLabel = labelParts?.full ?? null;
+  const teamLabel = readTeamSeason
+    ? formatTeamSeasonContextLabel({
+        displayName: readTeamSeason.display_name,
+        ageGroup: readTeamSeason.age_group,
+        teamName: readTeamSeason.team?.name,
+        seasonName: readTeamSeason.season?.name,
+        status: readTeamSeason.status,
+      })
+    : (labelParts?.full ?? null);
   const teamLine = labelParts?.teamLine ?? null;
   const seasonLine = labelParts?.seasonLine ?? null;
 
@@ -76,7 +85,7 @@ export function useActiveTeamSeason() {
     isHistoryReadOnly,
     softLockMessage: isHistoryReadOnly ? SEASON_SOFT_LOCK_MESSAGE : null,
     teamLabelWithStatus: readTeamSeason
-      ? formatTeamSeasonDisplayLabel(
+      ? formatTeamSeasonContextLabel(
           {
             displayName: readTeamSeason.display_name,
             ageGroup: readTeamSeason.age_group,

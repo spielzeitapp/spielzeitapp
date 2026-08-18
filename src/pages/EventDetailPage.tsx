@@ -133,12 +133,24 @@ import {
   resolveEventMapsCoords,
 } from '../lib/mapsNavigation';
 import {
+  defaultEventEndsAt,
+  deleteEventFieldAssignment,
+  getAssignmentForEvent,
+  upsertEventFieldAssignment,
+  type EventFieldAssignmentRow,
+} from '../lib/eventFieldAssignments';
+import {
   getVenueById,
   locationTextFromVenue,
+  resolveClubIdForTeamSeason,
   venueMapsOpts,
   type VenueRow,
 } from '../lib/venues';
 import { VenuePicker } from '../components/venues/VenuePicker';
+import {
+  TrainingFacilityFields,
+  type TrainingFacilitySelection,
+} from '../components/venues/TrainingFacilityFields';
 import {
   meetupUtcIsoOnViennaEventDay,
   parseViennaDateTimeLocalToUtcIso,
@@ -405,6 +417,12 @@ export const EventDetailPage: React.FC = () => {
   const [editLocation, setEditLocation] = useState('');
   const [editLocationAddress, setEditLocationAddress] = useState('');
   const [editVenue, setEditVenue] = useState<VenueRow | null>(null);
+  const [editFacilitySelection, setEditFacilitySelection] = useState<TrainingFacilitySelection>({
+    fieldId: null,
+    zoneId: null,
+  });
+  const [editAssignment, setEditAssignment] = useState<EventFieldAssignmentRow | null>(null);
+  const [editUseExternalLocation, setEditUseExternalLocation] = useState(false);
   const [linkedVenue, setLinkedVenue] = useState<VenueRow | null>(null);
   const [editMeetupAt, setEditMeetupAt] = useState('');
   const [editDetails, setEditDetails] = useState('');
@@ -1368,8 +1386,24 @@ export const EventDetailPage: React.FC = () => {
     setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meeting_at ?? ''));
     setEditDetails(noteFields.details);
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
+    setEditFacilitySelection({ fieldId: null, zoneId: null });
+    setEditAssignment(null);
+    setEditUseExternalLocation(false);
     setEditError(null);
     setEditModalOpen(true);
+    const assignmentRes = await getAssignmentForEvent(e.id);
+    if (assignmentRes.error) {
+      setEditError(assignmentRes.error);
+      return;
+    }
+    setEditAssignment(assignmentRes.data);
+    setEditFacilitySelection({
+      fieldId: assignmentRes.data?.field_id ?? null,
+      zoneId: assignmentRes.data?.zone_id ?? null,
+    });
+    if ((e.kind === 'training' || (e.kind === 'match' && e.is_home === true)) && !assignmentRes.data && !e.venue_id) {
+      setEditUseExternalLocation(true);
+    }
     if (e.venue_id) {
       const v = await getVenueById(e.venue_id);
       setEditVenue(v.data);
@@ -1399,6 +1433,9 @@ export const EventDetailPage: React.FC = () => {
     setEditLocation('');
     setEditLocationAddress('');
     setEditVenue(null);
+    setEditFacilitySelection({ fieldId: null, zoneId: null });
+    setEditAssignment(null);
+    setEditUseExternalLocation(false);
     setEditMeetupAt('');
     setEditDetails('');
     setEditError(null);
@@ -1420,6 +1457,17 @@ export const EventDetailPage: React.FC = () => {
     const startsAt = parseViennaDateTimeLocalToUtcIso((editDateTime ?? '').trim());
     if (!startsAt) {
       setEditError('Ungültiges Datumsformat.');
+      return;
+    }
+    const needsInternalAssignment =
+      !editUseExternalLocation &&
+      (editEvent.kind === 'training' || (editEvent.kind === 'match' && editEvent.is_home === true));
+    if (needsInternalAssignment && !editVenue?.id) {
+      setEditError('Bitte eine freigegebene Sportanlage auswählen.');
+      return;
+    }
+    if (needsInternalAssignment && !editFacilitySelection.fieldId) {
+      setEditError('Bitte einen konkreten Platz auswählen.');
       return;
     }
     setSavingEdit(true);
@@ -1507,6 +1555,66 @@ export const EventDetailPage: React.FC = () => {
       return;
     }
 
+    if (editEvent.kind === 'training' || (editEvent.kind === 'match' && editEvent.is_home === true)) {
+      const notesForEndsAt =
+        editEvent.kind === 'training' || editEvent.kind === 'event' || editEvent.kind === 'tournament'
+          ? (payload.notes as string | null | undefined) ?? editEvent.notes ?? null
+          : editEvent.notes ?? null;
+      const previousPayload: Record<string, unknown> = {
+        starts_at: editEvent.starts_at,
+        meeting_at: editEvent.meeting_at,
+        location: editEvent.location,
+        venue_id: editEvent.venue_id ?? null,
+        opponent: editEvent.opponent,
+      };
+      if (editEvent.kind === 'event' || editEvent.kind === 'training' || editEvent.kind === 'tournament') {
+        previousPayload.notes = editEvent.notes ?? null;
+      }
+      if (editEvent.kind === 'training') {
+        previousPayload.training_absence_deadline_disabled = editEvent.training_absence_deadline_disabled ?? null;
+      }
+      if (editUseExternalLocation) {
+        if (editAssignment?.id) {
+          const deleteRes = await deleteEventFieldAssignment(editAssignment.id);
+          if (!deleteRes.ok) {
+            await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+            setEditError(deleteRes.error ?? 'Platzzuordnung konnte nicht entfernt werden.');
+            setSavingEdit(false);
+            return;
+          }
+        }
+      } else {
+        const clubRes = await resolveClubIdForTeamSeason(editEvent.team_season_id);
+        if (!clubRes.clubId) {
+          await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+          setEditError('Club zur Team-Saison konnte nicht aufgelöst werden.');
+          setSavingEdit(false);
+          return;
+        }
+        const assignRes = await upsertEventFieldAssignment({
+          clubId: clubRes.clubId,
+          eventId: editEvent.id,
+          venueId: editVenue!.id,
+          fieldId: editFacilitySelection.fieldId!,
+          zoneId: editFacilitySelection.zoneId,
+          startsAt,
+          endsAt: defaultEventEndsAt({
+            startsAtIso: startsAt,
+            kind: editEvent.kind,
+            type: editEvent.type,
+            notes: notesForEndsAt,
+          }),
+          existingId: editAssignment?.id ?? null,
+        });
+        if (assignRes.error) {
+          await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+          setEditError(assignRes.error);
+          setSavingEdit(false);
+          return;
+        }
+      }
+    }
+
     const wasPublishedChampionship =
       String(editEvent.fixture_status ?? '').toLowerCase() === 'published';
     if (wasPublishedChampionship) {
@@ -1536,7 +1644,7 @@ export const EventDetailPage: React.FC = () => {
     setSavingEdit(false);
     closeEditModal();
     await loadEvent();
-  }, [editDetails, editEndTime, editEvent, editSheetEventType, editDateTime, editLocation, editLocationAddress, editVenue, editMeetupAt, editOpponent, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent, isDemo]);
+  }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent, isDemo]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
@@ -4450,10 +4558,31 @@ export const EventDetailPage: React.FC = () => {
 
             <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Ort</p>
+              {editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true) ? (
+                <label className="mb-3 flex cursor-pointer items-start gap-2 text-sm text-[var(--text-main)]">
+                  <input
+                    type="checkbox"
+                    className="mt-1 rounded border-[var(--glass-border)]"
+                    checked={editUseExternalLocation}
+                    onChange={(e) => {
+                      setEditUseExternalLocation(e.target.checked);
+                      setEditFacilitySelection({ fieldId: null, zoneId: null });
+                      if (e.target.checked) setEditVenue(null);
+                    }}
+                  />
+                  <span>
+                    Externer Ort - keine Platzreservierung. Ohne interne Platzzuordnung und ohne
+                    Cross-Org-Konfliktpruefung.
+                  </span>
+                </label>
+              ) : null}
               <VenuePicker
                 teamSeasonId={editEvent?.team_season_id ?? null}
                 venueId={editVenue?.id ?? null}
-                onVenueChange={(v) => setEditVenue(v)}
+                onVenueChange={(v) => {
+                  setEditVenue(v);
+                  setEditFacilitySelection({ fieldId: null, zoneId: null });
+                }}
                 locationName={editLocation}
                 locationAddress={editLocationAddress}
                 onLocationNameChange={setEditLocation}
@@ -4467,7 +4596,9 @@ export const EventDetailPage: React.FC = () => {
                     : null
                 }
                 purpose={
-                  editEvent?.kind === 'training'
+                  editUseExternalLocation
+                    ? 'general'
+                    : editEvent?.kind === 'training'
                     ? 'training'
                     : editEvent?.kind === 'match' && editEvent.is_home === true
                       ? 'home_match'
@@ -4477,6 +4608,19 @@ export const EventDetailPage: React.FC = () => {
                 inputClass="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
                 disabled={savingEdit}
               />
+              {(editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true)) &&
+              !editUseExternalLocation ? (
+                <div className="mt-3">
+                  <TrainingFacilityFields
+                    venueId={editVenue?.id ?? null}
+                    value={editFacilitySelection}
+                    onChange={setEditFacilitySelection}
+                    labelClass="mb-1 block text-sm font-medium text-[var(--text-main)]"
+                    inputClass="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                    disabled={savingEdit}
+                  />
+                </div>
+              ) : null}
             </section>
 
             <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
