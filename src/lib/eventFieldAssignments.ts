@@ -3,6 +3,10 @@
  */
 
 import { supabase } from './supabaseClient';
+import {
+  assertVenuePurposeAllowed,
+  type VenuePurpose,
+} from './teamSeasonTrainingVenues';
 import { resolveEndAtFromNotes } from '../pages/calendar/calendarUtils';
 import type { EventKind } from './eventTypeUtils';
 import { normalizeEventKind } from './eventTypeUtils';
@@ -145,9 +149,19 @@ export async function upsertEventFieldAssignment(input: {
   startsAt: string;
   endsAt: string;
   existingId?: string | null;
+  /** Pflicht für Training/Heimspiel: serverseitige Grant-RPC bleibt maßgeblich. */
+  grantCheck?: { teamSeasonId: string; purpose: VenuePurpose } | null;
 }): Promise<{ data: EventFieldAssignmentRow | null; error: string | null; conflicts?: EventFieldAssignmentConflict[] }> {
   if (new Date(input.endsAt).getTime() <= new Date(input.startsAt).getTime()) {
     return { data: null, error: 'Ende muss nach Beginn liegen.' };
+  }
+  if (input.grantCheck?.teamSeasonId && input.grantCheck.purpose) {
+    const granted = await assertVenuePurposeAllowed(
+      input.grantCheck.teamSeasonId,
+      input.venueId,
+      input.grantCheck.purpose,
+    );
+    if (!granted.ok) return { data: null, error: granted.error };
   }
 
   const conflictRes = await findAssignmentConflicts({

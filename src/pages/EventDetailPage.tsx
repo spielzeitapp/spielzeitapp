@@ -1472,9 +1472,10 @@ export const EventDetailPage: React.FC = () => {
     }
     setSavingEdit(true);
     setEditError(null);
-    const locationVal = editVenue
-      ? locationTextFromVenue(editVenue)
-      : combineLocationParts(editLocation, editLocationAddress);
+    const locationVal =
+      editUseExternalLocation || !editVenue
+        ? combineLocationParts(editLocation, editLocationAddress)
+        : locationTextFromVenue(editVenue);
     const meetupRaw = (editMeetupAt ?? '').trim();
     const meetingAt = meetupRaw ? meetupUtcIsoOnViennaEventDay(startsAt, meetupRaw) : null;
 
@@ -1482,7 +1483,7 @@ export const EventDetailPage: React.FC = () => {
       starts_at: startsAt,
       meeting_at: meetingAt,
       location: locationVal,
-      venue_id: editVenue?.id ?? null,
+      venue_id: editUseExternalLocation ? null : editVenue?.id ?? null,
       opponent: (editOpponent ?? '').trim() || null,
     };
     if (editEvent.kind === 'event') {
@@ -1605,6 +1606,10 @@ export const EventDetailPage: React.FC = () => {
             notes: notesForEndsAt,
           }),
           existingId: editAssignment?.id ?? null,
+          grantCheck: {
+            teamSeasonId: editEvent.team_season_id,
+            purpose: editEvent.kind === 'training' ? 'training' : 'home_match',
+          },
         });
         if (assignRes.error) {
           await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
@@ -4570,10 +4575,7 @@ export const EventDetailPage: React.FC = () => {
                       if (e.target.checked) setEditVenue(null);
                     }}
                   />
-                  <span>
-                    Externer Ort - keine Platzreservierung. Ohne interne Platzzuordnung und ohne
-                    Cross-Org-Konfliktpruefung.
-                  </span>
+                  <span>Externer Ort – keine interne Platzreservierung</span>
                 </label>
               ) : null}
               <VenuePicker
@@ -4596,13 +4598,18 @@ export const EventDetailPage: React.FC = () => {
                     : null
                 }
                 purpose={
-                  editUseExternalLocation
-                    ? 'general'
-                    : editEvent?.kind === 'training'
+                  editEvent?.kind === 'training'
                     ? 'training'
                     : editEvent?.kind === 'match' && editEvent.is_home === true
                       ? 'home_match'
                       : 'general'
+                }
+                exclusiveExternal={
+                  Boolean(
+                    (editEvent?.kind === 'training' ||
+                      (editEvent?.kind === 'match' && editEvent.is_home === true)) &&
+                      editUseExternalLocation,
+                  )
                 }
                 labelClass="mb-1 block text-sm font-medium text-[var(--text-main)]"
                 inputClass="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"

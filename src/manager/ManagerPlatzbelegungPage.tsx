@@ -1497,7 +1497,7 @@ function AssignModal(props: {
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [trainingVenues, setTrainingVenues] = useState<VenueRow[] | null>(null);
+  const [trainingVenues, setTrainingVenues] = useState<VenueRow[]>([]);
   const [trainingVenueHint, setTrainingVenueHint] = useState<string | null>(null);
   const [titleDraft, setTitleDraft] = useState(() => {
     const noteTitle = (props.event.notes ?? '').split('\n')[0]?.trim() || '';
@@ -1522,22 +1522,16 @@ function AssignModal(props: {
     void (async () => {
       const res = await listAllowedVenueRowsForPurpose(props.event.team_season_id, venuePurpose);
       if (cancelled) return;
-      const byId = new Map<string, VenueRow>();
-      for (const v of props.venues) {
-        if (v.is_active !== false) byId.set(v.id, v);
-      }
-      for (const v of res.data) {
-        if (v.is_active !== false) byId.set(v.id, v);
-      }
-      setTrainingVenues(Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, 'de')));
-      if (res.emptyReason === 'none_assigned' && byId.size === 0) {
+      const granted = res.data.filter((v) => v.is_active !== false);
+      setTrainingVenues(granted);
+      if (res.emptyReason === 'migration') {
+        setTrainingVenueHint('Anlagen-Zuordnung noch nicht verfügbar.');
+      } else if (granted.length === 0) {
         setTrainingVenueHint(
           venuePurpose === 'home_match'
             ? 'Keine Anlage mit Freigabe „Heimspiel“ verfügbar.'
             : 'Für diese Mannschaft ist noch keine Trainingsanlage freigegeben.',
         );
-      } else if (res.emptyReason === 'migration') {
-        setTrainingVenueHint('Anlagen-Zuordnung noch nicht verfügbar.');
       } else {
         setTrainingVenueHint(null);
       }
@@ -1545,7 +1539,7 @@ function AssignModal(props: {
     return () => {
       cancelled = true;
     };
-  }, [venuePurpose, props.event.team_season_id, props.venues]);
+  }, [venuePurpose, props.event.team_season_id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1583,7 +1577,7 @@ function AssignModal(props: {
     };
   }, [props.event, props.venues, props.zonesByField]);
 
-  const pickerVenues = trainingVenues ?? props.venues;
+  const pickerVenues = trainingVenues;
   const fieldsForVenue = props.fields.filter((f) => f.venue_id === venueId && f.is_active !== false);
   const zoneRows = fieldId ? props.zonesByField[fieldId] ?? [] : [];
   const zoneGeoms = zoneRows.map(zoneRowToGeometry);
@@ -1757,6 +1751,10 @@ function AssignModal(props: {
       startsAt,
       endsAt,
       existingId: existing?.id ?? null,
+      grantCheck: {
+        teamSeasonId: props.event.team_season_id,
+        purpose: venuePurpose,
+      },
     });
     if (res.error) {
       setSaving(false);

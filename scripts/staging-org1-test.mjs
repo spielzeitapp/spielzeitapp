@@ -46,7 +46,9 @@ assert.ok(client.includes('adminListGrantableVenues'));
 assert.ok(detail.includes('Struktur &amp; Freigaben') || detail.includes('Struktur & Freigaben'));
 assert.ok(detail.includes('adminCreateTeam'));
 assert.ok(detail.includes('adminSetTeamSeasonVenueGrant'));
-assert.ok(detail.includes('Mich zuordnen'));
+assert.ok(detail.includes('Trainer zuordnen'));
+assert.ok(!detail.includes('Mich zuordnen'));
+assert.ok(detail.includes('adminAssignClubAdmin') || client.includes('adminAssignClubAdmin'));
 assert.ok(!detail.includes('@jb-harmonikas') && !detail.includes('ddb3105e'));
 
 assert.ok(dto.includes('team_name') || dto.includes('org_name') || platz6.includes('org_name'));

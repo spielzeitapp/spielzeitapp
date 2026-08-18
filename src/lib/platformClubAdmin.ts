@@ -237,6 +237,37 @@ export async function adminAssignTeamSeasonStaff(input: {
   return { data: (data ?? null) as Record<string, unknown> | null, error: null };
 }
 
+export type AdminUserLookup = {
+  status: string;
+  user_id?: string;
+  email?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  is_platform_admin?: boolean;
+};
+
+export async function adminLookupUserByEmail(
+  email: string,
+): Promise<{ data: AdminUserLookup | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('admin_lookup_user_by_email', {
+    p_email: email,
+  });
+  if (error) return { data: null, error: rpcErrorMessage(error) };
+  return { data: (data ?? null) as AdminUserLookup | null, error: null };
+}
+
+export async function adminAssignClubAdmin(input: {
+  clubId: string;
+  userId: string;
+}): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('admin_assign_club_admin', {
+    p_club_id: input.clubId,
+    p_user_id: input.userId,
+  });
+  if (error) return { data: null, error: rpcErrorMessage(error) };
+  return { data: (data ?? null) as Record<string, unknown> | null, error: null };
+}
+
 export async function adminSetTeamSeasonVenueGrant(input: {
   teamSeasonId: string;
   venueId: string;

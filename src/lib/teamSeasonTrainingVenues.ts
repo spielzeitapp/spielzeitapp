@@ -295,3 +295,30 @@ export function isTrainingVenueAllowedClient(
   if (!venueId) return false;
   return allowedVenueIds.includes(venueId);
 }
+
+/** Serverseitige Grant-Prüfung (RPC). Keine clientseitige Allowlist, keine Venue-IDs. */
+export async function assertVenuePurposeAllowed(
+  teamSeasonId: string,
+  venueId: string,
+  purpose: VenuePurpose,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!teamSeasonId || !venueId) {
+    return { ok: false, error: 'Sportanlage und Mannschaftssaison sind Pflicht.' };
+  }
+  const { data, error } = await supabase.rpc('is_venue_purpose_allowed_for_team_season', {
+    p_team_season_id: teamSeasonId,
+    p_venue_id: venueId,
+    p_purpose: purpose,
+  });
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+  if (data === true) return { ok: true };
+  return {
+    ok: false,
+    error:
+      purpose === 'home_match'
+        ? 'Diese Anlage ist für Heimspiele nicht freigegeben.'
+        : 'Diese Anlage ist für Training nicht freigegeben.',
+  };
+}

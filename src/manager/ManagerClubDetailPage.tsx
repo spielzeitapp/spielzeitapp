@@ -6,10 +6,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import {
+  adminAssignClubAdmin,
   adminAssignTeamSeasonStaff,
   adminCreateTeam,
   adminEnsureTeamSeason,
   adminListGrantableVenues,
+  adminLookupUserByEmail,
   adminSetTeamSeasonVenueGrant,
   archivePlatformClub,
   deleteEmptyPlatformClub,
@@ -17,16 +19,45 @@ import {
   isPlatformAdminRole,
   restorePlatformClub,
   updatePlatformClub,
+  type AdminUserLookup,
   type ClubDetail,
   type GrantableVenue,
 } from '../lib/platformClubAdmin';
-import { useAuth } from '../auth/AuthProvider';
+import {
+  formatClubTeamOptionLabel,
+  formatTeamSeasonContextLabel,
+} from '../lib/seasonLifecycle';
+
+function seasonContextLabel(s: ClubDetail['team_seasons'][number]): string {
+  return formatTeamSeasonContextLabel(
+    {
+      teamName: s.team_name,
+      seasonName: s.season_name,
+      ageGroup: s.age_group,
+      status: s.status,
+    },
+    { markArchived: true },
+  );
+}
+
+function staffRoleLabel(role: string): string {
+  const r = String(role ?? '').trim().toLowerCase();
+  if (r === 'admin') return 'Vereinsadmin';
+  if (r === 'head_coach' || r === 'head') return 'Cheftrainer';
+  if (r === 'co_trainer') return 'Co-Trainer';
+  if (r === 'trainer') return 'Trainer';
+  return role;
+}
+
+function lookupDisplayName(u: AdminUserLookup): string {
+  const name = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+  return name || 'Benutzer gefunden';
+}
 
 export function ManagerClubDetailPage(): React.ReactElement {
   const { clubId = '' } = useParams();
   const navigate = useNavigate();
   const { backendRole, loading: sessionLoading } = useSession();
-  const { user: authUser } = useAuth();
   const allowed = isPlatformAdminRole(backendRole);
 
   const [detail, setDetail] = useState<ClubDetail | null>(null);
@@ -45,6 +76,11 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [seasonTeamId, setSeasonTeamId] = useState('');
   const [seasonName, setSeasonName] = useState('2026/27');
   const [staffTeamSeasonId, setStaffTeamSeasonId] = useState('');
+  const [staffRole, setStaffRole] = useState<'trainer' | 'co_trainer' | 'head_coach'>('head_coach');
+  const [clubAdminEmail, setClubAdminEmail] = useState('');
+  const [clubAdminLookup, setClubAdminLookup] = useState<AdminUserLookup | null>(null);
+  const [trainerEmail, setTrainerEmail] = useState('');
+  const [trainerLookup, setTrainerLookup] = useState<AdminUserLookup | null>(null);
   const [grantTeamSeasonId, setGrantTeamSeasonId] = useState('');
   const [grantVenueId, setGrantVenueId] = useState('');
   const [grantPurpose, setGrantPurpose] = useState<'training' | 'home_match'>('training');
@@ -137,6 +173,38 @@ export function ManagerClubDetailPage(): React.ReactElement {
       return;
     }
     navigate('/manager/vereine', { replace: true });
+  }
+
+  async function lookupClubAdmin() {
+    setError(null);
+    setSuccess(null);
+    setClubAdminLookup(null);
+    const res = await adminLookupUserByEmail(clubAdminEmail);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    if (!res.data || res.data.status === 'not_found' || !res.data.user_id) {
+      setError('Kein Benutzer mit dieser E-Mail gefunden.');
+      return;
+    }
+    setClubAdminLookup(res.data);
+  }
+
+  async function lookupTrainer() {
+    setError(null);
+    setSuccess(null);
+    setTrainerLookup(null);
+    const res = await adminLookupUserByEmail(trainerEmail);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    if (!res.data || res.data.status === 'not_found' || !res.data.user_id) {
+      setError('Kein Benutzer mit dieser E-Mail gefunden.');
+      return;
+    }
+    setTrainerLookup(res.data);
   }
 
   const deps = detail?.dependencies;
@@ -249,7 +317,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
               ) : (
                 <ul className="mt-2 space-y-1 text-[13px] text-slate-800">
                   {detail.teams.map((t) => (
-                    <li key={t.id}>{t.name}</li>
+                    <li key={t.id}>{formatClubTeamOptionLabel(t.name)}</li>
                   ))}
                 </ul>
               )}
@@ -261,11 +329,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
               ) : (
                 <ul className="mt-2 space-y-1 text-[13px] text-slate-800">
                   {detail.team_seasons.map((s) => (
-                    <li key={s.id}>
-                      {s.team_name}
-                      {s.season_name ? ` · ${s.season_name}` : ''}
-                      {s.age_group ? ` · ${s.age_group}` : ''} ({s.status})
-                    </li>
+                    <li key={s.id}>{seasonContextLabel(s)}</li>
                   ))}
                 </ul>
               )}
@@ -283,7 +347,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   {detail.staff.map((s) => (
                     <li key={s.user_id}>
                       {[s.first_name, s.last_name].filter(Boolean).join(' ') || 'Unbekannt'}
-                      {s.roles?.length ? ` · ${s.roles.join(', ')}` : ''}
+                      {s.roles?.length ? ` · ${s.roles.map(staffRoleLabel).join(', ')}` : ''}
                     </li>
                   ))}
                 </ul>
@@ -309,7 +373,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <h2 className="text-[16px] font-semibold text-slate-900">Struktur &amp; Freigaben</h2>
             <p className="mt-1 text-[12px] text-slate-500">
-              Plattformadmin-Werkzeuge für Mannschaft, Saison, Vereinsadmin (Staff) und
+              Plattformadmin-Werkzeuge für Mannschaft, Saison, Vereinsadmin, Trainer und
               Anlagenfreigaben ohne Eigentumsübertragung.
             </p>
 
@@ -376,7 +440,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   <option value="">Mannschaft wählen…</option>
                   {detail.teams.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {t.name}
+                      {formatClubTeamOptionLabel(t.name)}
                     </option>
                   ))}
                 </select>
@@ -399,21 +463,73 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!staffTeamSeasonId || !authUser?.id) return;
+                  if (!clubId || !clubAdminLookup?.user_id) return;
                   void run(async () => {
-                    const res = await adminAssignTeamSeasonStaff({
-                      teamSeasonId: staffTeamSeasonId,
-                      userId: authUser.id,
-                      role: 'head_coach',
+                    const res = await adminAssignClubAdmin({
+                      clubId,
+                      userId: clubAdminLookup.user_id!,
                     });
                     return { error: res.error };
-                  }, 'Dich als Vereinsadmin (head_coach) zugeordnet.');
+                  }, 'Vereinsadmin zugeordnet.');
                 }}
               >
                 <p className="text-[13px] font-semibold text-slate-800">Vereinsadmin zuordnen</p>
                 <p className="text-[12px] text-slate-500">
-                  Ordnet dich (aktuelle Session) als head_coach der gewählten Saison zu. Keine
-                  E-Mail-Hardcodes.
+                  Vergibt die Vereinsadminrolle für diesen Verein. Keine Team-Saison, keine
+                  Trainerrolle, keine Plattformadminrolle.
+                </p>
+                <input
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  placeholder="E-Mail des Benutzers"
+                  type="email"
+                  value={clubAdminEmail}
+                  onChange={(e) => {
+                    setClubAdminEmail(e.target.value);
+                    setClubAdminLookup(null);
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={busy || !clubAdminEmail.trim()}
+                  onClick={() => void lookupClubAdmin()}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
+                >
+                  Benutzer suchen
+                </button>
+                {clubAdminLookup?.user_id ? (
+                  <p className="text-[12px] text-slate-700">
+                    {lookupDisplayName(clubAdminLookup)}
+                    {clubAdminLookup.is_platform_admin ? ' · bereits Plattformadmin' : ''}
+                  </p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={busy || !clubAdminLookup?.user_id}
+                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                >
+                  Vereinsadmin zuordnen
+                </button>
+              </form>
+
+              <form
+                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!staffTeamSeasonId || !trainerLookup?.user_id) return;
+                  void run(async () => {
+                    const res = await adminAssignTeamSeasonStaff({
+                      teamSeasonId: staffTeamSeasonId,
+                      userId: trainerLookup.user_id!,
+                      role: staffRole,
+                    });
+                    return { error: res.error };
+                  }, 'Trainer der Mannschaft zugeordnet.');
+                }}
+              >
+                <p className="text-[13px] font-semibold text-slate-800">Trainer einer Mannschaft zuordnen</p>
+                <p className="text-[12px] text-slate-500">
+                  Ordnet den gesuchten Benutzer als Trainer, Co-Trainer oder Cheftrainer der
+                  gewählten Team-Saison zu. Das ist keine Vereinsadminrolle.
                 </p>
                 <select
                   className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
@@ -423,17 +539,54 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   <option value="">Saison wählen…</option>
                   {detail.team_seasons.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.team_name}
-                      {s.season_name ? ` · ${s.season_name}` : ''} ({s.status})
+                      {seasonContextLabel(s)}
                     </option>
                   ))}
                 </select>
+                <select
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  value={staffRole}
+                  onChange={(e) =>
+                    setStaffRole(
+                      e.target.value === 'co_trainer'
+                        ? 'co_trainer'
+                        : e.target.value === 'trainer'
+                          ? 'trainer'
+                          : 'head_coach',
+                    )
+                  }
+                >
+                  <option value="head_coach">Cheftrainer</option>
+                  <option value="trainer">Trainer</option>
+                  <option value="co_trainer">Co-Trainer</option>
+                </select>
+                <input
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  placeholder="E-Mail des Benutzers"
+                  type="email"
+                  value={trainerEmail}
+                  onChange={(e) => {
+                    setTrainerEmail(e.target.value);
+                    setTrainerLookup(null);
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={busy || !trainerEmail.trim()}
+                  onClick={() => void lookupTrainer()}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
+                >
+                  Benutzer suchen
+                </button>
+                {trainerLookup?.user_id ? (
+                  <p className="text-[12px] text-slate-700">{lookupDisplayName(trainerLookup)}</p>
+                ) : null}
                 <button
                   type="submit"
-                  disabled={busy || !staffTeamSeasonId || !authUser?.id}
+                  disabled={busy || !staffTeamSeasonId || !trainerLookup?.user_id}
                   className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
                 >
-                  Mich zuordnen
+                  Trainer zuordnen
                 </button>
               </form>
 
@@ -466,8 +619,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   <option value="">Saison wählen…</option>
                   {detail.team_seasons.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.team_name}
-                      {s.season_name ? ` · ${s.season_name}` : ''}
+                      {seasonContextLabel(s)}
                     </option>
                   ))}
                 </select>

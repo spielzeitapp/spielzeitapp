@@ -141,6 +141,14 @@ assert.ok(!isDuplicateClubName(['NSG Gölsental'], 'USC Rohrbach'));
   const client = readFileSync(join(root, 'src/lib/platformClubAdmin.ts'), 'utf8');
   assert.ok(client.includes("rpc('admin_create_club'"));
   assert.ok(client.includes("rpc('admin_delete_empty_club'"));
+  assert.ok(client.includes("rpc('admin_assign_club_admin'"));
+  assert.ok(client.includes("rpc('admin_lookup_user_by_email'"));
+  const clubAdminSql = readFileSync(
+    join(root, 'supabase/migrations/20260818140100_admin_org1_club_admin_assign.sql'),
+    'utf8',
+  );
+  assert.ok(clubAdminSql.includes('is_platform_admin()'));
+  assert.ok(!clubAdminSql.includes('admin_set_platform_admin'));
   assert.ok(!client.includes('@'));
   assert.ok(!/ddb3105e/i.test(client));
 }
