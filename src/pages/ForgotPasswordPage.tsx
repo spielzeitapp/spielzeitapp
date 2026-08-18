@@ -12,20 +12,6 @@ const AUTH_PAGE_CARD_CLASS =
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
-/** iOS Safari/PWA: avoid keyboard on load; first user tap unlocks the field. */
-function unlockIosInput(
-  e: React.FocusEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>,
-) {
-  const el = e.currentTarget;
-  if (el.readOnly) el.readOnly = false;
-}
-
-const IOS_DEFER_KEYBOARD_INPUT_PROPS = {
-  readOnly: true,
-  onFocus: unlockIosInput,
-  onTouchStart: unlockIosInput,
-} as const;
-
 /**
  * Dedicated page for "Forgot password": enter email, Supabase sends reset link.
  * Link leads to /app/set-password where user sets the new password.
@@ -79,8 +65,8 @@ export const ForgotPasswordPage: React.FC = () => {
               placeholder="name@beispiel.de"
               required
               autoComplete="email"
+              inputMode="email"
               className={inputClass}
-              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
           {message && (

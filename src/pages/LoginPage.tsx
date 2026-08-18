@@ -37,20 +37,6 @@ const inputClass =
 const lockedEmailDisplayClass =
   'flex h-12 w-full items-center rounded-xl border border-white/15 bg-white/5 px-4 text-white select-none [user-select:none]';
 
-/** iOS Safari/PWA: avoid keyboard on load; first user tap unlocks the field. */
-function unlockIosInput(
-  e: React.FocusEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>,
-) {
-  const el = e.currentTarget;
-  if (el.readOnly) el.readOnly = false;
-}
-
-const IOS_DEFER_KEYBOARD_INPUT_PROPS = {
-  readOnly: true,
-  onFocus: unlockIosInput,
-  onTouchStart: unlockIosInput,
-} as const;
-
 function stashTokenIfValid(raw: string | null | undefined): string | null {
   const token = normalizeParentInviteToken(raw ?? '');
   if (!isParentInviteTokenShape(token)) return null;
@@ -244,11 +230,7 @@ export const LoginPage: React.FC = () => {
               : 'E-Mail und Passwort eingeben'}
         </p>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mt-6 space-y-4"
-          autoComplete={isParentInviteFlow ? 'off' : 'on'}
-        >
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label
               htmlFor={inviteEmailLocked ? 'login-email-display' : 'login-email'}
@@ -269,10 +251,9 @@ export const LoginPage: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value.trim().toLowerCase())}
                 placeholder="name@beispiel.de"
                 required
-                autoComplete="username"
+                autoComplete="email"
                 inputMode="email"
                 className={inputClass}
-                {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
               />
             )}
             {inviteEmailLocked ? (
@@ -295,7 +276,6 @@ export const LoginPage: React.FC = () => {
                 placeholder="••••••••"
                 autoComplete="current-password"
                 className={inputClass}
-                {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
               />
               <button
                 type="button"

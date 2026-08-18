@@ -29,20 +29,6 @@ const inputClass =
 const lockedEmailDisplayClass =
   'flex h-12 w-full items-center rounded-xl border border-white/15 bg-white/5 px-4 text-white select-none [user-select:none]';
 
-/** iOS Safari/PWA: avoid keyboard on load; first user tap unlocks the field. */
-function unlockIosInput(
-  e: React.FocusEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>,
-) {
-  const el = e.currentTarget;
-  if (el.readOnly) el.readOnly = false;
-}
-
-const IOS_DEFER_KEYBOARD_INPUT_PROPS = {
-  readOnly: true,
-  onFocus: unlockIosInput,
-  onTouchStart: unlockIosInput,
-} as const;
-
 const MIN_PASSWORD_LENGTH = 6;
 
 async function completeInviteSignup(input: {
@@ -353,7 +339,7 @@ export const RegisterPage: React.FC = () => {
             : 'Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.'}
         </p>
 
-        <form onSubmit={handleRegister} className="mt-6 space-y-4" autoComplete={isParentInviteFlow ? 'off' : 'on'}>
+        <form onSubmit={handleRegister} className="mt-6 space-y-4">
           <div>
             <label htmlFor="reg-first-name" className="mb-1 block text-sm font-medium text-white/80">
               Vorname
@@ -367,7 +353,6 @@ export const RegisterPage: React.FC = () => {
               required
               autoComplete="given-name"
               className={inputClass}
-              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
           <div>
@@ -383,7 +368,6 @@ export const RegisterPage: React.FC = () => {
               required
               autoComplete="family-name"
               className={inputClass}
-              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
           <div>
@@ -407,7 +391,6 @@ export const RegisterPage: React.FC = () => {
                 required
                 autoComplete="email"
                 className={inputClass}
-                {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
               />
             )}
             {inviteEmailLocked ? (
@@ -430,7 +413,6 @@ export const RegisterPage: React.FC = () => {
               required
               autoComplete="new-password"
               className={inputClass}
-              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
           <div>
@@ -447,7 +429,6 @@ export const RegisterPage: React.FC = () => {
               required
               autoComplete="new-password"
               className={inputClass}
-              {...IOS_DEFER_KEYBOARD_INPUT_PROPS}
             />
           </div>
 
