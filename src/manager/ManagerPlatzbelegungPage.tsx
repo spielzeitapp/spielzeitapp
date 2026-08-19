@@ -1,8 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react';
+import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
+import {
+  readStoredViewMode,
+  writeStoredViewMode,
+  type PlatzViewMode,
+  dayKeyToViennaMs,
+  STATUS_LABELS,
+  computeFieldSlotStatus,
+} from './platz/availabilityHelpers';
+import { PlatzDayTimelineView, type DayTimelineBlock } from './platz/PlatzDayTimelineView';
+import { OccupancyDetailPanel } from './platz/OccupancyDetailPanel';
+import { PlatzWeekOverview } from './platz/PlatzWeekOverview';
+import { PlatzMonthOverview } from './platz/PlatzMonthOverview';
 import {
   createVenue,
   formatVenueAddressLine,
@@ -192,7 +205,15 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
 
+  const { user } = useAuth();
+  const [viewMode, setViewModeRaw] = useState<PlatzViewMode>(() => readStoredViewMode(user?.id));
+  const setViewMode = useCallback((m: PlatzViewMode) => {
+    setViewModeRaw(m);
+    writeStoredViewMode(user?.id, m);
+  }, [user?.id]);
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
+  const [dayAnchor, setDayAnchor] = useState(() => new Date());
+  const [monthAnchor, setMonthAnchor] = useState(() => new Date());
   const [filterVenueId, setFilterVenueId] = useState<string>('');
   const [filterFieldId, setFilterFieldId] = useState<string>('');
   const [filterTeamSeasonId, setFilterTeamSeasonId] = useState<string>('');
@@ -205,10 +226,14 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   const [loadingWeek, setLoadingWeek] = useState(false);
   const [weekError, setWeekError] = useState<string | null>(null);
   const [selectedDayKey, setSelectedDayKey] = useState(() => toViennaDayKey(new Date()));
+  const [detailBlock, setDetailBlock] = useState<DayTimelineBlock | null>(null);
 
   const [assignEvent, setAssignEvent] = useState<ClubEvent | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createDayKey, setCreateDayKey] = useState<string | null>(null);
+  const [createInitialHour, setCreateInitialHour] = useState<number | undefined>();
+  const [createInitialVenueId, setCreateInitialVenueId] = useState<string | undefined>();
+  const [createInitialFieldId, setCreateInitialFieldId] = useState<string | undefined>();
   const [toast, setToast] = useState<string | null>(null);
 
   const weekStart = useMemo(() => startOfWeekMonday(weekAnchor), [weekAnchor]);
@@ -484,10 +509,57 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     [isPlatformAdmin, clubTeamSeasonIds, teamSeasonId, memberships],
   );
 
-  const openCreate = (dayKey?: string | null) => {
+  const openCreate = (dayKey?: string | null, hour?: number, venueId?: string, fieldId?: string) => {
     setCreateDayKey(dayKey ?? selectedDayKey);
+    setCreateInitialHour(hour);
+    setCreateInitialVenueId(venueId);
+    setCreateInitialFieldId(fieldId);
     setCreateOpen(true);
   };
+
+  const dayTimelineBlocks = useMemo((): DayTimelineBlock[] => {
+    return filteredBlocks
+      .filter((b) => b.assignment)
+      .map((b) => {
+        const a = b.assignment!;
+        const zone = a.zone_id
+          ? (zonesByField[a.field_id] ?? []).find((z) => z.id === a.zone_id)
+          : null;
+        return {
+          id: a.id,
+          fieldId: a.field_id,
+          zoneId: a.zone_id,
+          startsAtMs: new Date(b.startsAt).getTime(),
+          endsAtMs: new Date(b.endsAt).getTime(),
+          label: eventTitle(b.event),
+          teamLabel: eventTeamLabel(b),
+          kindLabel: eventKindLabel(b.event.kind),
+          timeLabel: `${formatHm(b.startsAt)}–${formatHm(b.endsAt)}`,
+          zoneLabel: zone?.name ?? 'Gesamter Platz',
+          canEdit: blockCanEdit(b, canManageEvent),
+          isSharedForeign: Boolean(b.isSharedForeign),
+        };
+      });
+  }, [filteredBlocks, zonesByField, canManageEvent]);
+
+  const handleSelectBlock = useCallback((block: DayTimelineBlock) => {
+    setDetailBlock(block);
+  }, []);
+
+  const handleCreateForSlot = useCallback((dayKey: string, hour: number, venueId: string, fieldId: string) => {
+    openCreate(dayKey, hour, venueId, fieldId);
+  }, []);
+
+  const handleSwitchToDay = useCallback((dayKey: string) => {
+    setViewMode('day');
+    const [y, m, d] = dayKey.split('-').map(Number);
+    if (y && m && d) {
+      const anchor = new Date(y, m - 1, d, 12, 0, 0);
+      setDayAnchor(anchor);
+      setWeekAnchor(anchor);
+    }
+    setSelectedDayKey(dayKey);
+  }, [setViewMode]);
 
   const assignmentCandidates = useMemo((): FieldConflictCandidate[] => {
     const eventById = new Map(events.map((e) => [e.id, e]));
@@ -568,6 +640,23 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
               Belegung anlegen
             </button>
           ) : null}
+          {tab === 'calendar' ? (
+            <div className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+              {(['day', 'week', 'month'] as PlatzViewMode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setViewMode(m)}
+                  className={[
+                    'rounded-full px-3 py-1.5 text-[12px] font-semibold',
+                    viewMode === m ? 'bg-red-700 text-white' : 'text-slate-600 hover:bg-slate-50',
+                  ].join(' ')}
+                >
+                  {m === 'day' ? 'Tag' : m === 'week' ? 'Woche' : 'Monat'}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
             <button
               type="button"
@@ -577,7 +666,7 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
                 tab === 'calendar' ? 'bg-red-700 text-white' : 'text-slate-600 hover:bg-slate-50',
               ].join(' ')}
             >
-              Wochenkalender
+              Kalender
             </button>
             {!isTrainerMode ? (
               <button
@@ -612,47 +701,164 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
       ) : null}
 
       {tab === 'calendar' ? (
-        <CalendarPanel
-          loading={loadingMeta || loadingWeek}
-          weekError={weekError}
-          weekLabel={weekLabel}
-          weekDays={weekDays}
-          todayKey={todayKey}
-          selectedDayKey={selectedDayKey}
-          onSelectDay={setSelectedDayKey}
-          blocksByDay={blocksByDay}
-          venues={activeVenues}
-          fields={fields}
-          zonesByField={zonesByField}
-          filterVenueId={filterVenueId}
-          filterFieldId={filterFieldId}
-          filterTeamSeasonId={filterTeamSeasonId}
-          filterKind={filterKind}
-          teamFilterOptions={teamFilterOptions}
-          fieldsForFilter={fieldsForFilter}
-          onFilterVenue={(id) => {
-            setFilterVenueId(id);
-            setFilterFieldId('');
-          }}
-          onFilterField={setFilterFieldId}
-          onFilterTeam={setFilterTeamSeasonId}
-          onFilterKind={setFilterKind}
-          onPrev={() => setWeekAnchor((d) => addDays(d, -7))}
-          onNext={() => setWeekAnchor((d) => addDays(d, 7))}
-          onToday={() => {
-            const now = new Date();
-            setWeekAnchor(now);
-            setSelectedDayKey(toViennaDayKey(now));
-          }}
-          onOpenAssign={setAssignEvent}
-          onCreateForDay={(dayKey) => openCreate(dayKey)}
-          canCreate={createTeamOptions.some(([id]) => canCreateForTeamSeason(id))}
-          canManageEvent={canManageEvent}
-          assignmentCandidates={assignmentCandidates}
-          hasVenues={activeVenues.length > 0}
-          hasFields={fields.some((f) => f.is_active)}
-          onGoFacilities={() => setTab('facilities')}
-        />
+        <>
+          {/* Navigation bar for all views */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (viewMode === 'day') setDayAnchor((d) => addDays(d, -1));
+                  else if (viewMode === 'week') setWeekAnchor((d) => addDays(d, -7));
+                  else setMonthAnchor((d) => { const p = getDateTimePartsInTimeZone(d, VIENNA_TZ); if (!p) return d; return new Date(p.year, p.month - 2, 1, 12); });
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50"
+                aria-label="Zurück"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const now = new Date();
+                  setWeekAnchor(now);
+                  setDayAnchor(now);
+                  setMonthAnchor(now);
+                  setSelectedDayKey(toViennaDayKey(now));
+                }}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Heute
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (viewMode === 'day') setDayAnchor((d) => addDays(d, 1));
+                  else if (viewMode === 'week') setWeekAnchor((d) => addDays(d, 7));
+                  else setMonthAnchor((d) => { const p = getDateTimePartsInTimeZone(d, VIENNA_TZ); if (!p) return d; return new Date(p.year, p.month, 1, 12); });
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50"
+                aria-label="Weiter"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <span className="text-[14px] font-semibold text-slate-800">
+                {viewMode === 'day'
+                  ? new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(dayAnchor)
+                  : viewMode === 'week'
+                    ? weekLabel
+                    : new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, month: 'long', year: 'numeric' }).format(monthAnchor)}
+              </span>
+            </div>
+          </div>
+
+          {viewMode === 'day' ? (
+            <PlatzDayTimelineView
+              dayKey={toViennaDayKey(dayAnchor)}
+              venues={activeVenues}
+              fields={fields}
+              zonesByField={zonesByField}
+              candidates={assignmentCandidates}
+              blocks={dayTimelineBlocks}
+              canCreate={createTeamOptions.some(([id]) => canCreateForTeamSeason(id))}
+              onSelectBlock={handleSelectBlock}
+              onCreateForSlot={handleCreateForSlot}
+            />
+          ) : viewMode === 'month' ? (
+            <PlatzMonthOverview
+              monthAnchor={monthAnchor}
+              fields={fields}
+              zonesByField={zonesByField}
+              candidates={assignmentCandidates}
+              todayKey={todayKey}
+              onSwitchToDay={handleSwitchToDay}
+            />
+          ) : (
+            <>
+              <PlatzWeekOverview
+                weekDays={weekDays}
+                todayKey={todayKey}
+                venues={activeVenues}
+                fields={fields}
+                zonesByField={zonesByField}
+                candidates={assignmentCandidates}
+                blocks={dayTimelineBlocks}
+                onSwitchToDay={handleSwitchToDay}
+                onSelectBlock={handleSelectBlock}
+              />
+              <CalendarPanel
+                loading={loadingMeta || loadingWeek}
+                weekError={weekError}
+                weekLabel={weekLabel}
+                weekDays={weekDays}
+                todayKey={todayKey}
+                selectedDayKey={selectedDayKey}
+                onSelectDay={setSelectedDayKey}
+                blocksByDay={blocksByDay}
+                venues={activeVenues}
+                fields={fields}
+                zonesByField={zonesByField}
+                filterVenueId={filterVenueId}
+                filterFieldId={filterFieldId}
+                filterTeamSeasonId={filterTeamSeasonId}
+                filterKind={filterKind}
+                teamFilterOptions={teamFilterOptions}
+                fieldsForFilter={fieldsForFilter}
+                onFilterVenue={(id) => {
+                  setFilterVenueId(id);
+                  setFilterFieldId('');
+                }}
+                onFilterField={setFilterFieldId}
+                onFilterTeam={setFilterTeamSeasonId}
+                onFilterKind={setFilterKind}
+                onPrev={() => setWeekAnchor((d) => addDays(d, -7))}
+                onNext={() => setWeekAnchor((d) => addDays(d, 7))}
+                onToday={() => {
+                  const now = new Date();
+                  setWeekAnchor(now);
+                  setSelectedDayKey(toViennaDayKey(now));
+                }}
+                onOpenAssign={setAssignEvent}
+                onCreateForDay={(dayKey) => openCreate(dayKey)}
+                canCreate={createTeamOptions.some(([id]) => canCreateForTeamSeason(id))}
+                canManageEvent={canManageEvent}
+                assignmentCandidates={assignmentCandidates}
+                hasVenues={activeVenues.length > 0}
+                hasFields={fields.some((f) => f.is_active)}
+                onGoFacilities={() => setTab('facilities')}
+              />
+            </>
+          )}
+
+          {detailBlock ? (
+            <OccupancyDetailPanel
+              block={detailBlock}
+              venueName={(() => {
+                const a = assignments.find((x) => x.id === detailBlock.id);
+                const v = a ? venues.find((x) => x.id === a.venue_id) : null;
+                return v?.name ?? '—';
+              })()}
+              fieldName={fields.find((f) => f.id === detailBlock.fieldId)?.name ?? '—'}
+              dayLabel={new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(detailBlock.startsAtMs))}
+              fieldStatus={(() => {
+                const zoneMetas = (zonesByField[detailBlock.fieldId] ?? []).map((z) => {
+                  const geom = zoneRowToGeometry(z);
+                  return { id: z.id, name: z.name, blocksEntireField: z.blocks_entire_field || geom.layoutKind === 'entire', isActive: z.is_active, zone: geom, layoutKind: geom.layoutKind, rect: geom.rect };
+                });
+                return computeFieldSlotStatus(detailBlock.fieldId, detailBlock.startsAtMs, detailBlock.endsAtMs, assignmentCandidates, zoneMetas);
+              })()}
+              freeZoneNames={[]}
+              onClose={() => setDetailBlock(null)}
+              onOpenAssign={() => {
+                const ev = events.find((e) => {
+                  const a = assignments.find((x) => x.id === detailBlock.id);
+                  return a && e.id === a.event_id;
+                });
+                if (ev) { setDetailBlock(null); setAssignEvent(ev); }
+              }}
+            />
+          ) : null}
+        </>
       ) : (
         <FacilitiesPanel
           clubId={clubId}
@@ -678,13 +884,22 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
           fields={fields.filter((f) => f.is_active)}
           zonesByField={zonesByField}
           initialDayKey={createDayKey}
+          initialHour={createInitialHour}
+          initialVenueId={createInitialVenueId}
+          initialFieldId={createInitialFieldId}
           onClose={() => {
             setCreateOpen(false);
             setCreateDayKey(null);
+            setCreateInitialHour(undefined);
+            setCreateInitialVenueId(undefined);
+            setCreateInitialFieldId(undefined);
           }}
           onCreated={async () => {
             setCreateOpen(false);
             setCreateDayKey(null);
+            setCreateInitialHour(undefined);
+            setCreateInitialVenueId(undefined);
+            setCreateInitialFieldId(undefined);
             showToast('Belegung gespeichert.');
             await reloadWeek();
           }}

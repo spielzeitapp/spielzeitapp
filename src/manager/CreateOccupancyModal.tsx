@@ -62,6 +62,10 @@ export type CreateOccupancyModalProps = {
   zonesByField: Record<string, VenueFieldZoneRow[]>;
   /** Vienna day key YYYY-MM-DD */
   initialDayKey?: string | null;
+  /** PLATZ-UX.1: pre-fill from timeline slot click */
+  initialHour?: number;
+  initialVenueId?: string;
+  initialFieldId?: string;
   onClose: () => void;
   onCreated: () => Promise<void>;
 };
@@ -79,14 +83,23 @@ export function CreateOccupancyModal(props: CreateOccupancyModalProps): React.Re
   const [title, setTitle] = useState('Training');
   const [startLocal, setStartLocal] = useState(() => {
     const key = props.initialDayKey || new Date().toISOString().slice(0, 10);
+    if (props.initialHour != null) {
+      const h = String(props.initialHour).padStart(2, '0');
+      return `${key}T${h}:00`;
+    }
     return defaultStartEndForDay(key).start;
   });
   const [endLocal, setEndLocal] = useState(() => {
     const key = props.initialDayKey || new Date().toISOString().slice(0, 10);
+    if (props.initialHour != null) {
+      const endH = Math.min(props.initialHour + 1, 23);
+      const h = String(endH).padStart(2, '0');
+      return `${key}T${h}:30`;
+    }
     return defaultStartEndForDay(key).end;
   });
-  const [venueId, setVenueId] = useState('');
-  const [fieldId, setFieldId] = useState('');
+  const [venueId, setVenueId] = useState(props.initialVenueId ?? '');
+  const [fieldId, setFieldId] = useState(props.initialFieldId ?? '');
   const [demand, setDemand] = useState<FieldSplitDemand>('entire');
   const [zoneId, setZoneId] = useState('');
   const [note, setNote] = useState('');
