@@ -518,6 +518,48 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     setCreateOpen(true);
   };
 
+  const handleSelectBlock = useCallback((block: DayTimelineBlock) => {
+    setDetailBlock(block);
+  }, []);
+
+  const handleCreateForSlot = useCallback((dayKey: string, hour: number, venueId: string, fieldId: string) => {
+    openCreate(dayKey, hour, venueId, fieldId);
+  }, []);
+
+  const handleSwitchToDay = useCallback((dayKey: string) => {
+    setViewMode('day');
+    const [y, m, d] = dayKey.split('-').map(Number);
+    if (y && m && d) {
+      const anchor = new Date(y, m - 1, d, 12, 0, 0);
+      setDayAnchor(anchor);
+      setWeekAnchor(anchor);
+    }
+    setSelectedDayKey(dayKey);
+  }, [setViewMode]);
+
+  const assignmentCandidates = useMemo((): FieldConflictCandidate[] => {
+    const eventById = new Map(events.map((e) => [e.id, e]));
+    return assignments.map((a) => {
+      const zone = a.zone_id ? (zonesByField[a.field_id] ?? []).find((z) => z.id === a.zone_id) : null;
+      const geom = zone ? zoneRowToGeometry(zone) : null;
+      const ev = eventById.get(a.event_id);
+      const label = ev
+        ? [ev.age_group, ev.team_name].filter(Boolean).join(' ') || 'Mannschaft'
+        : 'Mannschaft';
+      return {
+        id: a.id,
+        fieldId: a.field_id,
+        zoneId: a.zone_id,
+        blocksEntireField: !a.zone_id || Boolean(zone?.blocks_entire_field) || geom?.layoutKind === 'entire',
+        startsAtMs: new Date(a.starts_at).getTime(),
+        endsAtMs: new Date(a.ends_at).getTime(),
+        eventId: a.event_id,
+        zone: geom,
+        label,
+      };
+    });
+  }, [assignments, zonesByField, events]);
+
   const dayTimelineBlocks = useMemo((): DayTimelineBlock[] => {
     return filteredBlocks
       .filter((b) => b.assignment)
@@ -562,48 +604,6 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
         };
       });
   }, [filteredBlocks, zonesByField, canManageEvent, assignmentCandidates]);
-
-  const handleSelectBlock = useCallback((block: DayTimelineBlock) => {
-    setDetailBlock(block);
-  }, []);
-
-  const handleCreateForSlot = useCallback((dayKey: string, hour: number, venueId: string, fieldId: string) => {
-    openCreate(dayKey, hour, venueId, fieldId);
-  }, []);
-
-  const handleSwitchToDay = useCallback((dayKey: string) => {
-    setViewMode('day');
-    const [y, m, d] = dayKey.split('-').map(Number);
-    if (y && m && d) {
-      const anchor = new Date(y, m - 1, d, 12, 0, 0);
-      setDayAnchor(anchor);
-      setWeekAnchor(anchor);
-    }
-    setSelectedDayKey(dayKey);
-  }, [setViewMode]);
-
-  const assignmentCandidates = useMemo((): FieldConflictCandidate[] => {
-    const eventById = new Map(events.map((e) => [e.id, e]));
-    return assignments.map((a) => {
-      const zone = a.zone_id ? (zonesByField[a.field_id] ?? []).find((z) => z.id === a.zone_id) : null;
-      const geom = zone ? zoneRowToGeometry(zone) : null;
-      const ev = eventById.get(a.event_id);
-      const label = ev
-        ? [ev.age_group, ev.team_name].filter(Boolean).join(' ') || 'Mannschaft'
-        : 'Mannschaft';
-      return {
-        id: a.id,
-        fieldId: a.field_id,
-        zoneId: a.zone_id,
-        blocksEntireField: !a.zone_id || Boolean(zone?.blocks_entire_field) || geom?.layoutKind === 'entire',
-        startsAtMs: new Date(a.starts_at).getTime(),
-        endsAtMs: new Date(a.ends_at).getTime(),
-        eventId: a.event_id,
-        zone: geom,
-        label,
-      };
-    });
-  }, [assignments, zonesByField, events]);
 
   const blocksByDay = useMemo(() => {
     const m = new Map<string, ScheduleBlock[]>();
