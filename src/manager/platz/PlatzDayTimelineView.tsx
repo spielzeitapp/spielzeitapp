@@ -2,7 +2,7 @@
  * PLATZ-UX.1 – Tagesansicht: horizontale Zeitachse mit Platzzeilen pro Venue.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Plus, Lock } from 'lucide-react';
 import type { VenueRow } from '../../lib/venues';
 import type { VenueFieldRow, VenueFieldZoneRow } from '../../lib/venueFields';
 import { zoneRowToGeometry } from '../../lib/venueFields';
@@ -202,11 +202,7 @@ function FieldTimelineRow(props: {
             }}
             tabIndex={slot.status === 'free' && props.canCreate ? 0 : -1}
           >
-            {slot.status !== 'free' && slot.occupancies.length > 0 && slot.startMinute === 0 ? (
-              <span className="flex items-center gap-0.5 px-0.5 text-[9px]">
-                {statusIcon(slot.status)}
-              </span>
-            ) : null}
+            {/* Status shown via overlay blocks, not slot icons */}
           </button>
         );
       })}
@@ -260,7 +256,7 @@ function FieldTimelineRow(props: {
                   {block.timeLabel} · {block.kindLabel}
                 </span>
                 <span className="truncate text-[9px] text-slate-600 leading-tight">
-                  {block.teamLabel || 'Andere Mannschaft'}{block.isSharedForeign ? ' 🔒' : ''}
+                  {block.teamLabel || 'Andere Mannschaft'}
                 </span>
                 <span className="truncate text-[9px] text-slate-500 leading-tight">
                   {block.zoneLabel}
@@ -268,15 +264,23 @@ function FieldTimelineRow(props: {
                 <span className={`truncate text-[9px] font-semibold leading-tight ${spatial.status === 'full' ? 'text-red-700' : spatial.status === 'partial' ? 'text-amber-700' : 'text-emerald-700'}`}>
                   {spatial.fractionLabel}
                 </span>
+                {!block.canEdit ? (
+                  <span className="flex items-center gap-0.5 text-[8px] text-slate-400">
+                    <Lock className="h-2.5 w-2.5" /> Nur ansehen
+                  </span>
+                ) : null}
               </div>
             ) : (
               <div className="min-w-0 flex flex-col justify-center">
                 <span className="truncate text-[9px] font-semibold text-slate-800 leading-tight">
+                  {block.timeLabel}
+                </span>
+                <span className="truncate text-[8px] text-slate-600 leading-tight">
                   {block.teamLabel || 'Andere Mannschaft'}
                 </span>
-                <span className={`truncate text-[8px] font-semibold ${spatial.status === 'full' ? 'text-red-700' : spatial.status === 'partial' ? 'text-amber-700' : 'text-emerald-700'}`}>
-                  {spatial.fractionLabel}
-                </span>
+                {!block.canEdit ? (
+                  <Lock className="h-2.5 w-2.5 text-slate-400" />
+                ) : null}
               </div>
             )}
           </button>
