@@ -168,18 +168,19 @@ export function PlatzWeekOverview(props: Props): React.ReactElement {
                           {statusIcon(peak, 'h-2.5 w-2.5')}
                           <span className="text-[9px] text-slate-400">{STATUS_LABELS[peak]}</span>
                         </div>
-                        {dayBlocks.slice(0, 3).map((b) => (
+                        {dayBlocks.slice(0, 2).map((b) => (
                           <div
                             key={b.id}
                             className="mb-0.5 flex items-center gap-1 text-[10px] leading-tight text-slate-700 cursor-pointer"
                             onClick={(e) => { e.stopPropagation(); props.onSelectBlock(b); }}
+                            title={`${b.timeLabel} · ${b.teamLabel || 'Andere Mannschaft'} · ${b.kindLabel}${b.spatial.status === 'partial' ? ` · ${b.spatial.fractionLabel}` : ''}`}
                           >
                             <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${blockSpatialDot(b)}`} />
-                            <span className="truncate">{b.timeLabel}{b.spatial.status === 'partial' ? ` · ${b.spatial.fractionLabel}` : ''}</span>
+                            <span className="truncate">{b.timeLabel} · {b.teamLabel || 'Andere Mannschaft'}</span>
                           </div>
                         ))}
-                        {dayBlocks.length > 3 ? (
-                          <p className="text-[9px] text-slate-400">+{dayBlocks.length - 3} weitere</p>
+                        {dayBlocks.length > 2 ? (
+                          <p className="text-[9px] text-slate-400">+ {dayBlocks.length - 2} weitere</p>
                         ) : null}
                       </button>
                     );
@@ -240,18 +241,22 @@ export function PlatzWeekOverview(props: Props): React.ReactElement {
                     <p className="pl-5 text-[11px] text-slate-400">Keine Belegungen</p>
                   ) : (
                     <ul className="pl-5 space-y-1">
-                      {dayBlocks.map((b) => (
+                      {dayBlocks.slice(0, 4).map((b) => (
                         <li key={b.id}>
                           <button
                             type="button"
                             onClick={() => props.onSelectBlock(b)}
                             className="flex items-center gap-1.5 text-[11px] text-slate-700 hover:text-red-700"
+                            title={`${b.timeLabel} · ${b.teamLabel || 'Andere Mannschaft'} · ${b.kindLabel} · ${b.spatial.fractionLabel}`}
                           >
                             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${blockSpatialDot(b)}`} />
-                            <span>{b.timeLabel} · {b.kindLabel}{b.spatial.status === 'partial' ? ` · ${b.spatial.fractionLabel}` : b.spatial.status === 'full' ? ' · Belegt' : ''}</span>
+                            <span className="truncate">{b.timeLabel} · {b.teamLabel || 'Andere Mannschaft'} · {b.kindLabel}{b.spatial.status === 'partial' ? ` · ${b.spatial.fractionLabel}` : ''}</span>
                           </button>
                         </li>
                       ))}
+                      {dayBlocks.length > 4 ? (
+                        <li className="text-[10px] text-slate-400">+ {dayBlocks.length - 4} weitere</li>
+                      ) : null}
                     </ul>
                   )}
                 </div>

@@ -260,16 +260,24 @@ function FieldTimelineRow(props: {
                   {block.timeLabel} · {block.kindLabel}
                 </span>
                 <span className="truncate text-[9px] text-slate-600 leading-tight">
-                  {block.teamLabel}
+                  {block.teamLabel || 'Andere Mannschaft'}{block.isSharedForeign ? ' 🔒' : ''}
+                </span>
+                <span className="truncate text-[9px] text-slate-500 leading-tight">
+                  {block.zoneLabel}
                 </span>
                 <span className={`truncate text-[9px] font-semibold leading-tight ${spatial.status === 'full' ? 'text-red-700' : spatial.status === 'partial' ? 'text-amber-700' : 'text-emerald-700'}`}>
                   {spatial.fractionLabel}
                 </span>
               </div>
             ) : (
-              <span className={`truncate text-[9px] font-semibold ${spatial.status === 'full' ? 'text-red-700' : spatial.status === 'partial' ? 'text-amber-700' : 'text-emerald-700'}`}>
-                {spatial.fractionLabel}
-              </span>
+              <div className="min-w-0 flex flex-col justify-center">
+                <span className="truncate text-[9px] font-semibold text-slate-800 leading-tight">
+                  {block.teamLabel || 'Andere Mannschaft'}
+                </span>
+                <span className={`truncate text-[8px] font-semibold ${spatial.status === 'full' ? 'text-red-700' : spatial.status === 'partial' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {spatial.fractionLabel}
+                </span>
+              </div>
             )}
           </button>
         );
