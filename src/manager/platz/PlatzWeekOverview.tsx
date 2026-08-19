@@ -48,7 +48,12 @@ function peakStatusForFieldDay(
   candidates: FieldConflictCandidate[],
   zoneMetas: ZoneMeta[],
 ): SlotStatus {
-  const slots = computeFieldDaySlots(fieldId, dayKey, candidates, zoneMetas);
+  const slots = computeFieldDaySlots({
+    fieldId,
+    dayKey,
+    candidates,
+    zones: zoneMetas,
+  });
   let hasFull = false;
   let hasPartial = false;
   for (const s of slots) {
