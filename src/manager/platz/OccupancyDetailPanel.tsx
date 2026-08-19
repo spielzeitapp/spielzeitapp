@@ -72,7 +72,7 @@ export function OccupancyDetailPanel(props: Props): React.ReactElement {
 
           {/* Main info */}
           <div className="space-y-2 text-[13px]">
-            <Row label="Mannschaft" value={block.teamLabel} />
+            <Row label="Mannschaft" value={block.teamLabel || 'Andere Mannschaft'} />
             <Row label="Datum" value={props.dayLabel} />
             <Row label="Zeitraum" value={block.timeLabel} />
             <Row label="Sportanlage" value={props.venueName} />
