@@ -211,8 +211,16 @@ export function FacilityFieldPitch(props: Props): React.ReactElement {
           const rect = resolveZoneRect(z) ?? { x: 0, y: 0, w: 1, h: 1 };
           const box = rectToSvg(rect, pad, W, H);
           const selected = selectedZoneId === (z.id ?? null) || (demand === 'entire' && !selectedZoneId && z.blocksEntireField);
-          const occupied = occByZone.has(z.id ?? '__entire__') || (z.blocksEntireField && occByZone.has('__entire__'));
-          if (occupied && !selected) return null;
+          const occupiedByOther = occByZone.has(z.id ?? '__entire__') || (z.blocksEntireField && occByZone.has('__entire__'));
+          if (occupiedByOther && !selected) return null;
+
+          const fillColor = selected
+            ? 'rgba(220,38,38,0.65)' // Spielzeit-Red for selected
+            : occupiedByOther
+              ? 'rgba(100,100,100,0.5)'
+              : 'rgba(34,197,94,0.55)'; // green for available
+          const strokeColor = selected ? '#dc2626' : occupiedByOther ? '#6b7280' : '#16a34a';
+
           return (
             <g key={`sel-${z.zoneCode ?? z.id ?? z.name}`}>
               <rect
@@ -220,26 +228,60 @@ export function FacilityFieldPitch(props: Props): React.ReactElement {
                 y={box.y + 2}
                 width={Math.max(0, box.width - 4)}
                 height={Math.max(0, box.height - 4)}
-                fill={selected ? 'rgba(248,250,252,0.28)' : 'rgba(255,255,255,0.08)'}
-                stroke={selected ? '#fef2f2' : 'rgba(248,250,252,0.55)'}
-                strokeWidth={selected ? 2.5 : 1.25}
-                strokeDasharray={selected ? undefined : '5 4'}
+                fill={fillColor}
+                stroke={strokeColor}
+                strokeWidth={selected ? 3 : 1.5}
                 rx={3}
                 className={!disabled && onSelectZone ? 'cursor-pointer' : undefined}
+                tabIndex={!disabled && onSelectZone ? 0 : undefined}
+                role="button"
+                aria-label={`${z.name}${selected ? ' – Ausgewählt' : occupiedByOther ? ' – Belegt' : ' – Verfügbar'}`}
+                aria-pressed={selected}
                 onClick={() => {
                   if (disabled || !onSelectZone) return;
                   onSelectZone(z.id ?? null);
                 }}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && !disabled && onSelectZone) {
+                    e.preventDefault();
+                    onSelectZone(z.id ?? null);
+                  }
+                }}
               />
-              {!occupied ? (
+              {/* Checkmark for selected */}
+              {selected ? (
                 <text
                   x={box.x + box.width / 2}
-                  y={box.y + box.height / 2}
+                  y={box.y + box.height / 2 - 6}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill="rgba(255,255,255,0.92)"
-                  fontSize={10}
-                  fontWeight={600}
+                  fill="#fff"
+                  fontSize={18}
+                  fontWeight={700}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  ✓
+                </text>
+              ) : null}
+              <text
+                x={box.x + box.width / 2}
+                y={box.y + box.height / 2 + (selected ? 10 : 0)}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#fff"
+                fontSize={10}
+                fontWeight={600}
+                style={{ pointerEvents: 'none', textShadow: '0 1px 2px rgba(0,0,0,.5)' }}
+              >
+                {selected ? 'Ausgewählt' : z.name}
+              </text>
+              {!selected ? (
+                <text
+                  x={box.x + box.width / 2}
+                  y={box.y + box.height / 2 + 14}
+                  textAnchor="middle"
+                  fill="rgba(255,255,255,0.8)"
+                  fontSize={8}
                   style={{ pointerEvents: 'none' }}
                 >
                   {z.name}
@@ -272,7 +314,11 @@ export function FacilityFieldPitch(props: Props): React.ReactElement {
         </div>
       ) : null}
 
-      {demand !== 'entire' ? (
+      {demand !== 'entire' && selectedZoneId ? (
+        <p className="text-center text-sm font-semibold text-red-700">
+          {selectable.find((z) => z.id === selectedZoneId)?.name ?? selectedZoneId} wird belegt
+        </p>
+      ) : demand !== 'entire' ? (
         <p className="text-center text-[11px] text-slate-500">
           Platzbedarf {SPLIT_DEMAND_SHORT[demand]} — Bereich auf dem Spielfeld tippen
         </p>
