@@ -791,64 +791,23 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
               fields={fields}
               zonesByField={zonesByField}
               candidates={assignmentCandidates}
+              blocks={dayTimelineBlocks}
               todayKey={todayKey}
               onSwitchToDay={handleSwitchToDay}
+              onSelectBlock={handleSelectBlock}
             />
           ) : (
-            <>
-              <PlatzWeekOverview
-                weekDays={weekDays}
-                todayKey={todayKey}
-                venues={activeVenues}
-                fields={fields}
-                zonesByField={zonesByField}
-                candidates={assignmentCandidates}
-                blocks={dayTimelineBlocks}
-                onSwitchToDay={handleSwitchToDay}
-                onSelectBlock={handleSelectBlock}
-              />
-              <CalendarPanel
-                loading={loadingMeta || loadingWeek}
-                weekError={weekError}
-                weekLabel={weekLabel}
-                weekDays={weekDays}
-                todayKey={todayKey}
-                selectedDayKey={selectedDayKey}
-                onSelectDay={setSelectedDayKey}
-                blocksByDay={blocksByDay}
-                venues={activeVenues}
-                fields={fields}
-                zonesByField={zonesByField}
-                filterVenueId={filterVenueId}
-                filterFieldId={filterFieldId}
-                filterTeamSeasonId={filterTeamSeasonId}
-                filterKind={filterKind}
-                teamFilterOptions={teamFilterOptions}
-                fieldsForFilter={fieldsForFilter}
-                onFilterVenue={(id) => {
-                  setFilterVenueId(id);
-                  setFilterFieldId('');
-                }}
-                onFilterField={setFilterFieldId}
-                onFilterTeam={setFilterTeamSeasonId}
-                onFilterKind={setFilterKind}
-                onPrev={() => setWeekAnchor((d) => addDays(d, -7))}
-                onNext={() => setWeekAnchor((d) => addDays(d, 7))}
-                onToday={() => {
-                  const now = new Date();
-                  setWeekAnchor(now);
-                  setSelectedDayKey(toViennaDayKey(now));
-                }}
-                onOpenAssign={setAssignEvent}
-                onCreateForDay={(dayKey) => openCreate(dayKey)}
-                canCreate={createTeamOptions.some(([id]) => canCreateForTeamSeason(id))}
-                canManageEvent={canManageEvent}
-                assignmentCandidates={assignmentCandidates}
-                hasVenues={activeVenues.length > 0}
-                hasFields={fields.some((f) => f.is_active)}
-                onGoFacilities={() => setTab('facilities')}
-              />
-            </>
+            <PlatzWeekOverview
+              weekDays={weekDays}
+              todayKey={todayKey}
+              venues={activeVenues}
+              fields={fields}
+              zonesByField={zonesByField}
+              candidates={assignmentCandidates}
+              blocks={dayTimelineBlocks}
+              onSwitchToDay={handleSwitchToDay}
+              onSelectBlock={handleSelectBlock}
+            />
           )}
 
           {detailBlock ? (
