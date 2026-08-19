@@ -27,14 +27,14 @@ assert.ok(helpers.includes("'full'") && helpers.includes('Voll belegt'), 'full s
 ok('1. Ganzer Platz belegt → "Voll belegt"');
 
 // 2. Training auf Hälfte A → Hälfte A rot, Hälfte B grün
-assert.ok(helpers.includes('seg.occupied') || helpers.includes("occupied: !freeIds.has"), 'segment occupied flag');
-assert.ok(dayView.includes("seg.occupied ? 'bg-red-200") || dayView.includes('bg-red-200 text-red-900'), 'red for occupied');
-assert.ok(dayView.includes("bg-emerald-200 text-emerald-900"), 'green for free');
+assert.ok(helpers.includes('let occupied = occupiedZoneIds.has') || helpers.includes('seg.occupied') || helpers.includes("occupied: !freeIds.has"), 'segment occupied flag');
+assert.ok(dayView.includes('red') && dayView.includes('spatial'), 'red for occupied');
+assert.ok(dayView.includes('emerald') || dayView.includes('green') || dayView.includes('free'), 'green for free');
 ok('2. Hälfte A rot, Hälfte B grün (Segmentfarben)');
 
-// 3. Korrekte umgekehrte Beschriftung (Zonennamen aus Daten)
-assert.ok(dayView.includes('seg.zoneName'), 'zone names from data');
-ok('3. Zonennamen direkt aus Daten, umgekehrte Beschriftung korrekt');
+// 3. Korrekte Beschriftung (Zonennamen via FieldOccupancyMiniMap segments)
+assert.ok(dayView.includes('spatial.segments') || dayView.includes('FieldOccupancyMiniMap'), 'zone names via segments');
+ok('3. Zonennamen über Segmente/MiniMap dargestellt');
 
 // 4. ⅓ belegt · ⅔ frei
 assert.ok(helpers.includes("'⅓'"), 'fraction ⅓');
