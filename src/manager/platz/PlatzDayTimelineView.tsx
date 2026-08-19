@@ -12,10 +12,13 @@ import { getDateTimePartsInTimeZone, VIENNA_TZ } from '../../lib/viennaTime';
 import {
   computeFieldDaySlots,
   computeVenueDaySummary,
+  computeBlockSpatialInfo,
   STATUS_LABELS,
   dayKeyToViennaMs,
   type SlotStatus,
   type TimeSlot,
+  type BlockSpatialInfo,
+  type ZoneSegment,
 } from './availabilityHelpers';
 
 export type DayTimelineBlock = {
@@ -31,6 +34,8 @@ export type DayTimelineBlock = {
   zoneLabel: string;
   canEdit: boolean;
   isSharedForeign: boolean;
+  /** PLATZ-UX.1A: spatial occupancy info computed from all concurrent candidates */
+  spatial: BlockSpatialInfo;
 };
 
 type Props = {
@@ -69,11 +74,18 @@ function statusBorder(status: SlotStatus): string {
   return 'border-red-200';
 }
 
-function blockKindColor(kindLabel: string): string {
-  if (kindLabel === 'Spiel') return 'bg-red-700 text-white';
-  if (kindLabel === 'Training') return 'bg-emerald-700 text-white';
-  if (kindLabel === 'Turnier') return 'bg-amber-600 text-white';
-  return 'bg-slate-600 text-white';
+function spatialBlockBorder(spatial: BlockSpatialInfo): string {
+  if (spatial.geometryUnclear) return 'border-2 border-amber-400 border-dashed';
+  if (spatial.status === 'full') return 'border border-red-300';
+  if (spatial.status === 'partial') return 'border-2 border-amber-400';
+  return 'border border-emerald-300';
+}
+
+function spatialBlockBg(spatial: BlockSpatialInfo): string {
+  if (spatial.geometryUnclear) return 'bg-amber-50';
+  if (spatial.status === 'full') return 'bg-red-100';
+  if (spatial.status === 'partial') return 'bg-amber-50';
+  return 'bg-emerald-50';
 }
 
 function buildZoneMetas(zones: VenueFieldZoneRow[]): ZoneMeta[] {
@@ -198,7 +210,7 @@ function FieldTimelineRow(props: {
         );
       })}
 
-      {/* Occupancy blocks overlay */}
+      {/* Occupancy blocks overlay — colored by spatial status, not event kind */}
       {fieldBlocks.map((block) => {
         const blockStartMin = (() => {
           const p = getDateTimePartsInTimeZone(new Date(block.startsAtMs), VIENNA_TZ);
@@ -214,19 +226,42 @@ function FieldTimelineRow(props: {
         const leftPct = ((clampedStart - startMin) / totalMinutes) * 100;
         const widthPct = ((clampedEnd - clampedStart) / totalMinutes) * 100;
 
+        const { spatial } = block;
+        const hasSegments = spatial.segments.length > 0 && spatial.status === 'partial';
+
         return (
           <button
             key={block.id}
             type="button"
             onClick={() => props.onSelectBlock(block)}
-            className={`absolute top-1 bottom-1 z-10 flex items-center overflow-hidden rounded px-1.5 text-[10px] font-semibold leading-tight shadow-sm ${blockKindColor(block.kindLabel)} ${block.isSharedForeign ? 'opacity-80' : ''}`}
+            className={`absolute top-1 bottom-1 z-10 flex flex-col overflow-hidden rounded shadow-sm ${spatialBlockBorder(spatial)} ${spatialBlockBg(spatial)} ${block.isSharedForeign ? 'opacity-80' : ''}`}
             style={{ left: `${leftPct}%`, width: `${Math.max(widthPct, 2)}%` }}
-            title={`${block.timeLabel} · ${block.kindLabel} · ${block.teamLabel} · ${block.zoneLabel}${block.isSharedForeign ? ' · Fremd' : ''}${!block.canEdit ? ' · Nur ansehen' : ''}`}
-            aria-label={`${block.timeLabel} ${block.kindLabel} ${block.teamLabel}`}
+            title={`${block.timeLabel} · ${block.kindLabel} · ${block.teamLabel} · ${spatial.fractionLabel}${block.isSharedForeign ? ' · Fremd' : ''}${!block.canEdit ? ' · Nur ansehen' : ''}`}
+            aria-label={spatial.accessibleLabel}
           >
-            <span className="truncate">
-              {block.timeLabel} · {block.label}
-            </span>
+            {/* Vertical zone segments */}
+            {hasSegments ? (
+              <div className="flex flex-col flex-1 min-h-0 w-full">
+                {spatial.segments.map((seg) => (
+                  <div
+                    key={seg.zoneId}
+                    className={`flex-1 flex items-center px-1 text-[8px] font-semibold leading-none ${seg.occupied ? 'bg-red-200 text-red-900' : 'bg-emerald-200 text-emerald-900'}`}
+                  >
+                    <span className="truncate">{seg.zoneName}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={`flex-1 flex items-center px-1.5 ${spatial.status === 'full' ? 'bg-red-200' : spatial.geometryUnclear ? 'bg-amber-100' : ''}`}>
+                {/* single-color fill for full or unclear */}
+              </div>
+            )}
+            {/* Text overlay */}
+            <div className="absolute inset-0 flex items-center px-1.5">
+              <span className={`truncate text-[10px] font-semibold leading-tight ${spatial.status === 'full' ? 'text-red-900' : spatial.status === 'partial' ? 'text-amber-900' : 'text-emerald-900'}`}>
+                {block.kindLabel} · {spatial.fractionLabel}
+              </span>
+            </div>
           </button>
         );
       })}
