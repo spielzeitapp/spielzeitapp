@@ -20,6 +20,7 @@ import {
   type BlockSpatialInfo,
   type ZoneSegment,
 } from './availabilityHelpers';
+import { FieldOccupancyMiniMap } from './FieldOccupancyMiniMap';
 
 export type DayTimelineBlock = {
   id: string;
@@ -63,9 +64,9 @@ function statusIcon(status: SlotStatus): React.ReactNode {
 }
 
 function statusBg(status: SlotStatus): string {
-  if (status === 'free') return 'bg-emerald-50 hover:bg-emerald-100';
-  if (status === 'partial') return 'bg-amber-50';
-  return 'bg-red-50';
+  if (status === 'free') return 'bg-white hover:bg-slate-50';
+  if (status === 'partial') return 'bg-amber-50/40';
+  return 'bg-red-50/40';
 }
 
 function statusBorder(status: SlotStatus): string {
@@ -175,7 +176,7 @@ function FieldTimelineRow(props: {
   const fieldBlocks = props.blocks.filter((b) => b.fieldId === props.field.id);
 
   return (
-    <div className="group relative border-b border-slate-100 last:border-b-0" style={{ minHeight: 48 }}>
+    <div className="group relative border-b border-slate-100 last:border-b-0" style={{ minHeight: 64 }}>
       {/* Slot backgrounds */}
       {props.slots.map((slot) => {
         const leftPct = ((slot.startHour * 60 + slot.startMinute - startMin) / totalMinutes) * 100;
@@ -210,7 +211,7 @@ function FieldTimelineRow(props: {
         );
       })}
 
-      {/* Occupancy blocks overlay — colored by spatial status, not event kind */}
+      {/* Occupancy blocks overlay — mini-pitch + spatial status */}
       {fieldBlocks.map((block) => {
         const blockStartMin = (() => {
           const p = getDateTimePartsInTimeZone(new Date(block.startsAtMs), VIENNA_TZ);
@@ -225,43 +226,51 @@ function FieldTimelineRow(props: {
         if (clampedEnd <= clampedStart) return null;
         const leftPct = ((clampedStart - startMin) / totalMinutes) * 100;
         const widthPct = ((clampedEnd - clampedStart) / totalMinutes) * 100;
+        const isWide = widthPct > 8;
 
         const { spatial } = block;
-        const hasSegments = spatial.segments.length > 0 && spatial.status === 'partial';
 
         return (
           <button
             key={block.id}
             type="button"
             onClick={() => props.onSelectBlock(block)}
-            className={`absolute top-1 bottom-1 z-10 flex flex-col overflow-hidden rounded shadow-sm ${spatialBlockBorder(spatial)} ${spatialBlockBg(spatial)} ${block.isSharedForeign ? 'opacity-80' : ''}`}
+            className={`absolute top-1 bottom-1 z-10 flex items-center gap-1.5 overflow-hidden rounded-lg px-1.5 shadow-sm ${spatialBlockBorder(spatial)} ${spatialBlockBg(spatial)} ${block.isSharedForeign ? 'opacity-80' : ''}`}
             style={{ left: `${leftPct}%`, width: `${Math.max(widthPct, 2)}%` }}
             title={`${block.timeLabel} · ${block.kindLabel} · ${block.teamLabel} · ${spatial.fractionLabel}${block.isSharedForeign ? ' · Fremd' : ''}${!block.canEdit ? ' · Nur ansehen' : ''}`}
             aria-label={spatial.accessibleLabel}
           >
-            {/* Vertical zone segments */}
-            {hasSegments ? (
-              <div className="flex flex-col flex-1 min-h-0 w-full">
-                {spatial.segments.map((seg) => (
-                  <div
-                    key={seg.zoneId}
-                    className={`flex-1 flex items-center px-1 text-[8px] font-semibold leading-none ${seg.occupied ? 'bg-red-200 text-red-900' : 'bg-emerald-200 text-emerald-900'}`}
-                  >
-                    <span className="truncate">{seg.zoneName}</span>
-                  </div>
-                ))}
+            {/* Mini pitch */}
+            {spatial.segments.length > 0 ? (
+              <FieldOccupancyMiniMap
+                segments={spatial.segments}
+                className="h-[36px] w-[52px] shrink-0"
+              />
+            ) : spatial.geometryUnclear ? (
+              <div className="h-[36px] w-[52px] shrink-0 rounded border border-dashed border-amber-400 bg-amber-100 flex items-center justify-center">
+                <span className="text-[8px] text-amber-700">?</span>
+              </div>
+            ) : spatial.status === 'full' ? (
+              <div className="h-[36px] w-[52px] shrink-0 rounded bg-red-300 border border-red-400" />
+            ) : null}
+            {/* Text */}
+            {isWide ? (
+              <div className="min-w-0 flex flex-col justify-center">
+                <span className="truncate text-[10px] font-semibold text-slate-800 leading-tight">
+                  {block.timeLabel} · {block.kindLabel}
+                </span>
+                <span className="truncate text-[9px] text-slate-600 leading-tight">
+                  {block.teamLabel}
+                </span>
+                <span className={`truncate text-[9px] font-semibold leading-tight ${spatial.status === 'full' ? 'text-red-700' : spatial.status === 'partial' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {spatial.fractionLabel}
+                </span>
               </div>
             ) : (
-              <div className={`flex-1 flex items-center px-1.5 ${spatial.status === 'full' ? 'bg-red-200' : spatial.geometryUnclear ? 'bg-amber-100' : ''}`}>
-                {/* single-color fill for full or unclear */}
-              </div>
-            )}
-            {/* Text overlay */}
-            <div className="absolute inset-0 flex items-center px-1.5">
-              <span className={`truncate text-[10px] font-semibold leading-tight ${spatial.status === 'full' ? 'text-red-900' : spatial.status === 'partial' ? 'text-amber-900' : 'text-emerald-900'}`}>
-                {block.kindLabel} · {spatial.fractionLabel}
+              <span className={`truncate text-[9px] font-semibold ${spatial.status === 'full' ? 'text-red-700' : spatial.status === 'partial' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                {spatial.fractionLabel}
               </span>
-            </div>
+            )}
           </button>
         );
       })}

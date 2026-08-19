@@ -3,7 +3,8 @@
  */
 import React from 'react';
 import { X, ExternalLink, Edit3, Eye } from 'lucide-react';
-import { STATUS_LABELS, type SlotStatus } from './availabilityHelpers';
+import { STATUS_LABELS, type SlotStatus, type ZoneSegment } from './availabilityHelpers';
+import { FieldOccupancyMiniMap } from './FieldOccupancyMiniMap';
 import type { DayTimelineBlock } from './PlatzDayTimelineView';
 
 type Props = {
@@ -78,6 +79,20 @@ export function OccupancyDetailPanel(props: Props): React.ReactElement {
             <Row label="Platz" value={props.fieldName} />
             <Row label="Teilfläche" value={block.zoneLabel} />
           </div>
+
+          {/* Mini pitch visualization */}
+          {block.spatial.segments.length > 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+              <FieldOccupancyMiniMap
+                segments={block.spatial.segments}
+                className="h-[80px] w-full"
+                showLabels
+              />
+              <p className="mt-1.5 text-center text-[12px] font-semibold text-slate-700">
+                {block.spatial.fractionLabel}
+              </p>
+            </div>
+          ) : null}
 
           {/* Status */}
           <div className="flex items-center gap-2">

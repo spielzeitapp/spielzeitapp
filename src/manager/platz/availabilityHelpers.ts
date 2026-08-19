@@ -11,6 +11,11 @@ import {
   type ZoneMeta,
 } from '../../lib/fieldScheduleConflicts';
 import {
+  inferDemandFromZone,
+  type FieldLayoutKind,
+  type NormalizedRect,
+} from '../../lib/fieldZoneGeometry';
+import {
   getDateTimePartsInTimeZone,
   VIENNA_TZ,
   zonedWallTimeToUtcMillis,
@@ -258,6 +263,7 @@ export type ZoneSegment = {
   zoneId: string;
   zoneName: string;
   occupied: boolean;
+  rect: NormalizedRect | null;
 };
 
 export type BlockSpatialInfo = {
@@ -270,8 +276,27 @@ export type BlockSpatialInfo = {
 };
 
 /**
+ * Determine the relevant split system (layoutKind) for the occupied candidates.
+ * Only sibling zones of that system are counted — not all zones on the field.
+ */
+function determineSplitSystem(
+  fieldCandidates: readonly FieldConflictCandidate[],
+  allZones: readonly ZoneMeta[],
+): FieldLayoutKind | null {
+  for (const c of fieldCandidates) {
+    if (!c.zoneId || c.blocksEntireField) continue;
+    const zone = allZones.find((z) => z.id === c.zoneId);
+    if (!zone) continue;
+    const geom = zone.zone ?? { layoutKind: zone.layoutKind ?? 'named', blocksEntireField: zone.blocksEntireField, name: zone.name, rect: zone.rect ?? null };
+    const demand = inferDemandFromZone(geom);
+    if (demand === 'half' || demand === 'third' || demand === 'quarter') return demand;
+  }
+  return null;
+}
+
+/**
  * Compute spatial info for a specific field during a time interval.
- * Returns segments (which zones are occupied/free), fraction label, and status.
+ * Uses only sibling zones of the active split system for fraction calculation.
  */
 export function computeBlockSpatialInfo(opts: {
   fieldId: string;
@@ -300,30 +325,29 @@ export function computeBlockSpatialInfo(opts: {
 
   // Check if any candidate blocks the entire field
   if (fieldCandidates.some((c) => c.blocksEntireField || c.zoneId == null)) {
-    const allZones = opts.zones.filter((z) => !z.blocksEntireField && z.isActive !== false);
+    const splitKind = determineSplitSystem(fieldCandidates, opts.zones);
+    const displayZones = splitKind
+      ? opts.zones.filter((z) => z.layoutKind === splitKind && !z.blocksEntireField && z.isActive !== false)
+      : opts.zones.filter((z) => !z.blocksEntireField && z.isActive !== false);
     return {
       status: 'full',
-      segments: allZones.map((z) => ({ zoneId: z.id, zoneName: z.name, occupied: true })),
+      segments: displayZones.map((z) => ({ zoneId: z.id, zoneName: z.name, occupied: true, rect: z.rect ?? null })),
       fractionLabel: 'Voll belegt',
-      accessibleLabel: buildAccessibleLabel('full', [], allZones.map((z) => z.name), opts),
+      accessibleLabel: buildAccessibleLabel('full', [], displayZones.map((z) => z.name), opts),
       geometryUnclear: false,
     };
   }
 
-  // Compute free zones
-  const suggestion = suggestFreeZones({
-    fieldId: opts.fieldId,
-    startsAtMs: opts.startsAtMs,
-    endsAtMs: opts.endsAtMs,
-    zones: opts.zones,
-    existing: fieldCandidates,
-  });
+  // Determine the split system from the occupied candidates
+  const splitKind = determineSplitSystem(fieldCandidates, opts.zones);
 
-  const activeZones = opts.zones.filter((z) => !z.blocksEntireField && z.isActive !== false);
+  // Only count sibling zones of the same split system
+  const siblingZones = splitKind
+    ? opts.zones.filter((z) => z.layoutKind === splitKind && !z.blocksEntireField && z.isActive !== false)
+    : opts.zones.filter((z) => !z.blocksEntireField && z.isActive !== false);
 
-  // Geometry unclear fallback: if there are candidates with zone IDs but no
-  // matching zone metadata, we can't determine spatial layout
-  if (activeZones.length === 0 && fieldCandidates.length > 0) {
+  // Geometry unclear fallback
+  if (siblingZones.length === 0 && fieldCandidates.length > 0) {
     return {
       status: 'partial',
       segments: [],
@@ -333,12 +357,29 @@ export function computeBlockSpatialInfo(opts: {
     };
   }
 
-  const freeIds = new Set(suggestion.freeZones.map((z) => z.id));
-  const segments: ZoneSegment[] = activeZones.map((z) => ({
-    zoneId: z.id,
-    zoneName: z.name,
-    occupied: !freeIds.has(z.id),
-  }));
+  // Determine which sibling zones are occupied
+  const occupiedZoneIds = new Set<string>();
+  for (const c of fieldCandidates) {
+    if (c.zoneId) occupiedZoneIds.add(c.zoneId);
+  }
+
+  // For spatial overlap detection: a sibling zone is occupied if any candidate
+  // spatially overlaps it (handles cross-system assignments)
+  const segments: ZoneSegment[] = siblingZones.map((z) => {
+    let occupied = occupiedZoneIds.has(z.id);
+    if (!occupied && z.rect) {
+      // Check spatial overlap with any occupied candidate's zone
+      for (const c of fieldCandidates) {
+        if (!c.zone?.rect) continue;
+        const cRect = c.zone.rect;
+        const zRect = z.rect;
+        // rectsOverlap inline (avoid import cycle)
+        const overlaps = !(zRect.x + zRect.w <= cRect.x || cRect.x + cRect.w <= zRect.x || zRect.y + zRect.h <= cRect.y || cRect.y + cRect.h <= zRect.y);
+        if (overlaps) { occupied = true; break; }
+      }
+    }
+    return { zoneId: z.id, zoneName: z.name, occupied, rect: z.rect ?? null };
+  });
 
   const totalCount = segments.length;
   const occupiedCount = segments.filter((s) => s.occupied).length;
