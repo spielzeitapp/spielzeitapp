@@ -84,14 +84,18 @@ export function PlatzMonthOverview(props: Props): React.ReactElement {
   const dayKeys = useMemo(() => getDaysInMonth(props.monthAnchor), [props.monthAnchor]);
   const leadingBlanks = useMemo(() => (dayKeys[0] ? firstDayOfWeek(dayKeys[0]) : 0), [dayKeys]);
 
+  const fieldsArr = props.fields ?? [];
+  const blocksArr = props.blocks ?? [];
+  const candidates = props.candidates ?? [];
+
   const activeFields = useMemo(
-    () => props.fields.filter((f) => f.is_active),
-    [props.fields],
+    () => fieldsArr.filter((f) => f.is_active),
+    [fieldsArr],
   );
 
   const blocksByDay = useMemo(() => {
     const map = new Map<string, DayTimelineBlock[]>();
-    for (const b of props.blocks) {
+    for (const b of blocksArr) {
       const dk = blockDayKey(b);
       if (!dk) continue;
       const list = map.get(dk) ?? [];
@@ -99,7 +103,7 @@ export function PlatzMonthOverview(props: Props): React.ReactElement {
       map.set(dk, list);
     }
     return map;
-  }, [props.blocks]);
+  }, [blocksArr]);
 
   const daySummaries = useMemo(() => {
     const merged = new Map<string, { count: number; peak: SlotStatus }>();
@@ -110,7 +114,7 @@ export function PlatzMonthOverview(props: Props): React.ReactElement {
       const summaries = computeFieldMonthSummary({
         fieldId: f.id,
         dayKeys,
-        candidates: props.candidates,
+        candidates,
         zones: zoneMetas,
       });
       for (const s of summaries) {
@@ -122,7 +126,7 @@ export function PlatzMonthOverview(props: Props): React.ReactElement {
       }
     }
     return merged;
-  }, [dayKeys, activeFields, props.candidates, props.zonesByField]);
+  }, [dayKeys, activeFields, candidates, props.zonesByField]);
 
   const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
