@@ -22,6 +22,8 @@ import {
   resolveAvailableWorkModes,
   resolveDefaultWorkMode,
   resolveEffectiveWorkMode,
+  resolveTrainerTeamSeasonId,
+  writeStoredTrainerTeamSeasonId,
   writeStoredWorkMode,
   workModeHomePath,
   type ManagerWorkMode,
@@ -36,6 +38,8 @@ type ManagerWorkModeContextValue = {
   usesExpandedAdminCapabilities: boolean;
   /** Team-Saisons für Header/Switcher im aktuellen Modus. */
   contextTeamSeasons: SessionTeamSeasonItem[];
+  /** Trainer-Team-Saison im Trainermodus setzen (speichert benutzerspezifisch). */
+  selectTrainerTeamSeasonId: (teamSeasonId: string) => void;
   setWorkMode: (mode: ManagerWorkMode, opts?: { navigate?: boolean }) => void;
   switchToAdministration: () => void;
   switchToTrainer: () => void;
@@ -51,7 +55,14 @@ export function ManagerWorkModeProvider({
 }): React.ReactElement {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
-  const { backendRole, memberships, teamSeasons, loading, setSelectedTeamSeasonId } = useSession();
+  const {
+    backendRole,
+    memberships,
+    teamSeasons,
+    loading,
+    setSelectedTeamSeasonId,
+    selectedTeamSeasonId,
+  } = useSession();
 
   const membershipInputs = useMemo(
     () =>
@@ -86,16 +97,72 @@ export function ManagerWorkModeProvider({
     );
   }, [loading, authUser?.id, backendRole, membershipInputs]);
 
+  const trainerSeasonIds = useMemo(
+    () => new Set(filterTrainerStaffTeamSeasonIds(membershipInputs)),
+    [membershipInputs],
+  );
+
+  const trainerTeamSeasons = useMemo(
+    () => teamSeasons.filter((ts) => trainerSeasonIds.has(ts.id)),
+    [teamSeasons, trainerSeasonIds],
+  );
+
+  const contextTeamSeasons = useMemo(() => {
+    if (isTrainerWorkMode(workMode)) return trainerTeamSeasons;
+    return teamSeasons;
+  }, [workMode, teamSeasons, trainerTeamSeasons]);
+
+  const applyTrainerTeamSeason = useCallback(
+    (opts?: { force?: boolean }) => {
+      if (!isTrainerWorkMode(workMode) && !opts?.force) return;
+      const nextId = resolveTrainerTeamSeasonId({
+        userId: authUser?.id,
+        trainerTeamSeasons,
+      });
+      if (!nextId) return;
+      const validTrainer = trainerSeasonIds.has(nextId);
+      if (!validTrainer) return;
+      if (selectedTeamSeasonId === nextId && !opts?.force) return;
+      setSelectedTeamSeasonId(nextId);
+      writeStoredTrainerTeamSeasonId(authUser?.id, nextId);
+    },
+    [
+      workMode,
+      authUser?.id,
+      trainerTeamSeasons,
+      trainerSeasonIds,
+      selectedTeamSeasonId,
+      setSelectedTeamSeasonId,
+    ],
+  );
+
   const setWorkMode = useCallback(
     (mode: ManagerWorkMode, opts?: { navigate?: boolean }) => {
       if (!availableModes.includes(mode)) return;
       setWorkModeState(mode);
       if (authUser?.id) writeStoredWorkMode(authUser.id, mode);
+      if (mode === 'trainer') {
+        const nextId = resolveTrainerTeamSeasonId({
+          userId: authUser?.id,
+          trainerTeamSeasons,
+        });
+        if (nextId && trainerSeasonIds.has(nextId)) {
+          setSelectedTeamSeasonId(nextId);
+          writeStoredTrainerTeamSeasonId(authUser?.id, nextId);
+        }
+      }
       if (opts?.navigate !== false) {
         navigate(workModeHomePath(mode), { replace: true });
       }
     },
-    [availableModes, authUser?.id, navigate],
+    [
+      availableModes,
+      authUser?.id,
+      navigate,
+      trainerTeamSeasons,
+      trainerSeasonIds,
+      setSelectedTeamSeasonId,
+    ],
   );
 
   const switchToAdministration = useCallback(() => {
@@ -109,26 +176,36 @@ export function ManagerWorkModeProvider({
   }, [availableModes, setWorkMode]);
 
   const switchToTrainer = useCallback(() => {
-    if (availableModes.includes('trainer')) setWorkMode('trainer');
+    if (!availableModes.includes('trainer')) return;
+    setWorkMode('trainer');
   }, [availableModes, setWorkMode]);
 
-  const trainerSeasonIds = useMemo(
-    () => new Set(filterTrainerStaffTeamSeasonIds(membershipInputs)),
-    [membershipInputs],
-  );
-
-  const contextTeamSeasons = useMemo(() => {
-    if (isTrainerWorkMode(workMode)) {
-      return teamSeasons.filter((ts) => trainerSeasonIds.has(ts.id));
-    }
-    return teamSeasons;
-  }, [workMode, teamSeasons, trainerSeasonIds]);
-
   useEffect(() => {
-    if (!isTrainerWorkMode(workMode) || contextTeamSeasons.length === 0) return;
-    const active = contextTeamSeasons.find((ts) => ts.status === 'active') ?? contextTeamSeasons[0];
-    if (active?.id) setSelectedTeamSeasonId(active.id);
-  }, [workMode, contextTeamSeasons, setSelectedTeamSeasonId]);
+    if (!isTrainerWorkMode(workMode) || trainerTeamSeasons.length === 0) return;
+    const currentValid =
+      selectedTeamSeasonId && trainerSeasonIds.has(selectedTeamSeasonId);
+    if (!currentValid) {
+      applyTrainerTeamSeason({ force: true });
+      return;
+    }
+    writeStoredTrainerTeamSeasonId(authUser?.id, selectedTeamSeasonId);
+  }, [
+    workMode,
+    trainerTeamSeasons,
+    trainerSeasonIds,
+    selectedTeamSeasonId,
+    authUser?.id,
+    applyTrainerTeamSeason,
+  ]);
+
+  const selectTrainerTeamSeasonId = useCallback(
+    (teamSeasonId: string) => {
+      if (!trainerSeasonIds.has(teamSeasonId)) return;
+      setSelectedTeamSeasonId(teamSeasonId);
+      writeStoredTrainerTeamSeasonId(authUser?.id, teamSeasonId);
+    },
+    [trainerSeasonIds, setSelectedTeamSeasonId, authUser?.id],
+  );
 
   const adminSwitchButtonLabel = useMemo(() => {
     if (availableModes.includes('platform_admin')) return adminSwitchLabel('platform_admin');
@@ -149,6 +226,7 @@ export function ManagerWorkModeProvider({
         membershipInputs,
       ),
       contextTeamSeasons,
+      selectTrainerTeamSeasonId,
       setWorkMode,
       switchToAdministration,
       switchToTrainer,
@@ -160,6 +238,7 @@ export function ManagerWorkModeProvider({
       backendRole,
       membershipInputs,
       contextTeamSeasons,
+      selectTrainerTeamSeasonId,
       setWorkMode,
       switchToAdministration,
       switchToTrainer,

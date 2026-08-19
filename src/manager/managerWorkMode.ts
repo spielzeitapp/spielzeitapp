@@ -4,10 +4,12 @@
  */
 
 import { normalizeRole } from '../lib/roles';
+import { isSeasonActive, isSeasonArchived } from '../lib/seasonLifecycle';
 
 export type ManagerWorkMode = 'trainer' | 'platform_admin' | 'club_admin';
 
 export const MANAGER_WORK_MODE_STORAGE_KEY = 'spielzeit_manager_work_mode';
+export const MANAGER_TRAINER_TEAM_SEASON_STORAGE_KEY = 'spielzeit_manager_trainer_team_season';
 
 export type ManagerWorkModeMembership = {
   team_season_id: string;
@@ -112,6 +114,66 @@ export function isAdministrationWorkMode(mode: ManagerWorkMode): boolean {
   return mode === 'platform_admin' || mode === 'club_admin';
 }
 
+function trainerTeamSeasonStorageKey(userId: string): string {
+  return `${MANAGER_TRAINER_TEAM_SEASON_STORAGE_KEY}:${userId}`;
+}
+
+export function readStoredTrainerTeamSeasonId(userId: string | null | undefined): string | null {
+  if (!userId) return null;
+  try {
+    const raw = window.localStorage.getItem(trainerTeamSeasonStorageKey(userId));
+    return raw?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeStoredTrainerTeamSeasonId(
+  userId: string | null | undefined,
+  teamSeasonId: string | null | undefined,
+): void {
+  if (!userId) return;
+  try {
+    const id = String(teamSeasonId ?? '').trim();
+    if (!id) {
+      window.localStorage.removeItem(trainerTeamSeasonStorageKey(userId));
+      return;
+    }
+    window.localStorage.setItem(trainerTeamSeasonStorageKey(userId), id);
+  } catch {
+    // ignore
+  }
+}
+
+/** Trainer-Team-Saison wählen: gespeichert → aktiv → einzige gültige. */
+export function resolveTrainerTeamSeasonId(opts: {
+  userId: string | null | undefined;
+  trainerTeamSeasons: readonly { id: string; status?: string | null }[];
+}): string | null {
+  const seasons = opts.trainerTeamSeasons.filter((ts) => Boolean(ts.id));
+  if (seasons.length === 0) return null;
+
+  const validIds = new Set(seasons.map((ts) => ts.id));
+  const stored = readStoredTrainerTeamSeasonId(opts.userId);
+  if (stored && validIds.has(stored)) return stored;
+
+  const active = seasons.filter(
+    (ts) => isSeasonActive(ts.status) && !isSeasonArchived(ts.status),
+  );
+  if (active.length === 1) return active[0]!.id;
+  if (active.length > 1) return active[0]!.id;
+
+  return seasons[0]!.id;
+}
+
+/** Membership-Rolle darf nicht durch Session-Normalisierung verfälscht werden. */
+export function isTrainerStaffMembershipRoleRaw(role: string | null | undefined): boolean {
+  const r = String(role ?? '')
+    .trim()
+    .toLowerCase();
+  return TRAINER_STAFF_ROLES.has(r);
+}
+
 /** Team-Saisons mit Trainer-Staff-Rolle (Trainer-Arbeitskontext). */
 export function filterTrainerStaffTeamSeasonIds(
   memberships: readonly ManagerWorkModeMembership[],
@@ -119,7 +181,8 @@ export function filterTrainerStaffTeamSeasonIds(
   const ids = new Set<string>();
   for (const m of memberships) {
     if (!m.team_season_id) continue;
-    if (isTrainerStaffMembershipRole(m.role)) ids.add(m.team_season_id);
+    if (isTrainerStaffMembershipRoleRaw(m.role)) ids.add(m.team_season_id);
+    else if (isTrainerStaffMembershipRole(m.role)) ids.add(m.team_season_id);
   }
   return [...ids];
 }

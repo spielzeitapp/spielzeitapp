@@ -100,19 +100,8 @@ BEGIN
     WHERE id = v_ts;
   END IF;
 
-  -- Johannes as USC head_coach (Vereinsadmin-Äquivalent auf Team-Saison)
-  IF EXISTS (
-    SELECT 1 FROM public.memberships
-    WHERE user_id = v_admin AND team_season_id = v_ts
-  ) THEN
-    UPDATE public.memberships
-    SET role = 'head_coach'
-    WHERE user_id = v_admin AND team_season_id = v_ts
-      AND lower(role::text) NOT IN ('head_coach', 'head');
-  ELSE
-    INSERT INTO public.memberships (user_id, team_season_id, role)
-    VALUES (v_admin, v_ts, 'head_coach');
-  END IF;
+  -- TRAINER-MODE.1A: Keine automatische Trainer-Staff-Zuordnung für Plattformadmin auf TEST-USC.
+  -- Plattform-/Vereinszugriff erfolgt über user_roles bzw. club_admins, nicht über memberships.
 
   -- Venue grants: Rohrbach training + home_match only (not St.Veit)
   INSERT INTO public.team_season_training_venues (team_season_id, venue_id, purpose, is_active, sort_order)

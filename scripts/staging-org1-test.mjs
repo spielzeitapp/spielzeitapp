@@ -26,6 +26,8 @@ assert.ok(migration.includes('is_platform_admin()'));
 assert.ok(!migration.includes('INSERT INTO public.venues'));
 
 assert.ok(apply.includes("U13 TEST USC Rohrbach"));
+assert.ok(!apply.includes('Johannes as USC head_coach'));
+assert.ok(apply.includes('TRAINER-MODE.1A'));
 assert.ok(apply.includes('home_match'));
 assert.ok(apply.includes('training'));
 assert.ok(apply.includes("ec1ba01f-cc58-4c91-b524-463b510ca339"));
