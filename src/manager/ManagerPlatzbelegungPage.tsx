@@ -11,6 +11,7 @@ import {
   dayKeyToViennaMs,
   STATUS_LABELS,
   computeFieldSlotStatus,
+  computeBlockSpatialInfo,
 } from './platz/availabilityHelpers';
 import { PlatzDayTimelineView, type DayTimelineBlock } from './platz/PlatzDayTimelineView';
 import { OccupancyDetailPanel } from './platz/OccupancyDetailPanel';
@@ -525,22 +526,42 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
         const zone = a.zone_id
           ? (zonesByField[a.field_id] ?? []).find((z) => z.id === a.zone_id)
           : null;
+        const startsAtMs = new Date(b.startsAt).getTime();
+        const endsAtMs = new Date(b.endsAt).getTime();
+        const fieldZones = (zonesByField[a.field_id] ?? []).map((z) => {
+          const geom = zoneRowToGeometry(z);
+          return { id: z.id, name: z.name, blocksEntireField: z.blocks_entire_field || geom.layoutKind === 'entire', isActive: z.is_active, zone: geom, layoutKind: geom.layoutKind, rect: geom.rect };
+        });
+        const kindLabel = eventKindLabel(b.event.kind);
+        const teamLabel = eventTeamLabel(b);
+        const timeLabel = `${formatHm(b.startsAt)}–${formatHm(b.endsAt)}`;
+        const spatial = computeBlockSpatialInfo({
+          fieldId: a.field_id,
+          startsAtMs,
+          endsAtMs,
+          candidates: assignmentCandidates,
+          zones: fieldZones,
+          blockLabel: kindLabel,
+          teamLabel,
+          timeLabel,
+        });
         return {
           id: a.id,
           fieldId: a.field_id,
           zoneId: a.zone_id,
-          startsAtMs: new Date(b.startsAt).getTime(),
-          endsAtMs: new Date(b.endsAt).getTime(),
+          startsAtMs,
+          endsAtMs,
           label: eventTitle(b.event),
-          teamLabel: eventTeamLabel(b),
-          kindLabel: eventKindLabel(b.event.kind),
-          timeLabel: `${formatHm(b.startsAt)}–${formatHm(b.endsAt)}`,
+          teamLabel,
+          kindLabel,
+          timeLabel,
           zoneLabel: zone?.name ?? 'Gesamter Platz',
           canEdit: blockCanEdit(b, canManageEvent),
           isSharedForeign: Boolean(b.isSharedForeign),
+          spatial,
         };
       });
-  }, [filteredBlocks, zonesByField, canManageEvent]);
+  }, [filteredBlocks, zonesByField, canManageEvent, assignmentCandidates]);
 
   const handleSelectBlock = useCallback((block: DayTimelineBlock) => {
     setDetailBlock(block);

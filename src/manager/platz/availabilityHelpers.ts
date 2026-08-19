@@ -252,6 +252,153 @@ export const STATUS_LABELS: Record<SlotStatus, string> = {
   full: 'Belegt',
 };
 
+// ─── PLATZ-UX.1A: Teilflächen-Segmente und Bruchtext ───
+
+export type ZoneSegment = {
+  zoneId: string;
+  zoneName: string;
+  occupied: boolean;
+};
+
+export type BlockSpatialInfo = {
+  status: SlotStatus;
+  segments: ZoneSegment[];
+  fractionLabel: string;
+  accessibleLabel: string;
+  /** true when geometry is unclear and we show a safe fallback */
+  geometryUnclear: boolean;
+};
+
+/**
+ * Compute spatial info for a specific field during a time interval.
+ * Returns segments (which zones are occupied/free), fraction label, and status.
+ */
+export function computeBlockSpatialInfo(opts: {
+  fieldId: string;
+  startsAtMs: number;
+  endsAtMs: number;
+  candidates: readonly FieldConflictCandidate[];
+  zones: readonly ZoneMeta[];
+  blockLabel?: string;
+  teamLabel?: string;
+  timeLabel?: string;
+}): BlockSpatialInfo {
+  const fieldCandidates = opts.candidates.filter(
+    (c) => c.fieldId === opts.fieldId &&
+      intervalsOverlapHalfOpen(opts.startsAtMs, opts.endsAtMs, c.startsAtMs, c.endsAtMs),
+  );
+
+  if (fieldCandidates.length === 0) {
+    return {
+      status: 'free',
+      segments: [],
+      fractionLabel: 'Frei',
+      accessibleLabel: 'Frei',
+      geometryUnclear: false,
+    };
+  }
+
+  // Check if any candidate blocks the entire field
+  if (fieldCandidates.some((c) => c.blocksEntireField || c.zoneId == null)) {
+    const allZones = opts.zones.filter((z) => !z.blocksEntireField && z.isActive !== false);
+    return {
+      status: 'full',
+      segments: allZones.map((z) => ({ zoneId: z.id, zoneName: z.name, occupied: true })),
+      fractionLabel: 'Voll belegt',
+      accessibleLabel: buildAccessibleLabel('full', [], allZones.map((z) => z.name), opts),
+      geometryUnclear: false,
+    };
+  }
+
+  // Compute free zones
+  const suggestion = suggestFreeZones({
+    fieldId: opts.fieldId,
+    startsAtMs: opts.startsAtMs,
+    endsAtMs: opts.endsAtMs,
+    zones: opts.zones,
+    existing: fieldCandidates,
+  });
+
+  const activeZones = opts.zones.filter((z) => !z.blocksEntireField && z.isActive !== false);
+
+  // Geometry unclear fallback: if there are candidates with zone IDs but no
+  // matching zone metadata, we can't determine spatial layout
+  if (activeZones.length === 0 && fieldCandidates.length > 0) {
+    return {
+      status: 'partial',
+      segments: [],
+      fractionLabel: 'Teilbelegt – Details öffnen',
+      accessibleLabel: 'Teilbelegt, Geometrie unklar',
+      geometryUnclear: true,
+    };
+  }
+
+  const freeIds = new Set(suggestion.freeZones.map((z) => z.id));
+  const segments: ZoneSegment[] = activeZones.map((z) => ({
+    zoneId: z.id,
+    zoneName: z.name,
+    occupied: !freeIds.has(z.id),
+  }));
+
+  const totalCount = segments.length;
+  const occupiedCount = segments.filter((s) => s.occupied).length;
+  const freeCount = totalCount - occupiedCount;
+
+  let status: SlotStatus;
+  if (occupiedCount === 0) status = 'free';
+  else if (freeCount === 0) status = 'full';
+  else status = 'partial';
+
+  const fractionLabel = buildFractionLabel(occupiedCount, freeCount, totalCount);
+  const occupiedNames = segments.filter((s) => s.occupied).map((s) => s.zoneName);
+  const freeNames = segments.filter((s) => !s.occupied).map((s) => s.zoneName);
+  const accessibleLabel = buildAccessibleLabel(status, freeNames, occupiedNames, opts);
+
+  return { status, segments, fractionLabel, accessibleLabel, geometryUnclear: false };
+}
+
+function buildFractionLabel(occupied: number, free: number, total: number): string {
+  if (occupied === 0) return 'Frei';
+  if (free === 0) return 'Voll belegt';
+  const oFrac = fractionText(occupied, total);
+  const fFrac = fractionText(free, total);
+  return `${oFrac} belegt · ${fFrac} frei`;
+}
+
+function fractionText(n: number, total: number): string {
+  if (total === 2) return n === 1 ? '½' : `${n}/${total}`;
+  if (total === 3) {
+    if (n === 1) return '⅓';
+    if (n === 2) return '⅔';
+  }
+  if (total === 4) {
+    if (n === 1) return '¼';
+    if (n === 2) return '½';
+    if (n === 3) return '¾';
+  }
+  return `${n}/${total}`;
+}
+
+function buildAccessibleLabel(
+  status: SlotStatus,
+  freeNames: string[],
+  occupiedNames: string[],
+  opts: { blockLabel?: string; teamLabel?: string; timeLabel?: string },
+): string {
+  const parts: string[] = [];
+  if (opts.blockLabel && opts.teamLabel) parts.push(`${opts.blockLabel} ${opts.teamLabel}`);
+  if (opts.timeLabel) parts.push(opts.timeLabel);
+  if (status === 'full') {
+    parts.push('Voll belegt');
+  } else if (status === 'partial') {
+    if (occupiedNames.length) parts.push(`${occupiedNames.join(', ')} belegt`);
+    if (freeNames.length) parts.push(`${freeNames.join(', ')} frei`);
+  } else {
+    parts.push('Frei');
+  }
+  return parts.join(', ');
+}
+
 export function readStoredViewMode(userId: string | null | undefined): PlatzViewMode {
   if (!userId) return 'day';
   try {

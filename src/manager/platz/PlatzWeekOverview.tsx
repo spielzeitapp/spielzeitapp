@@ -40,11 +40,10 @@ function statusBgSubtle(status: SlotStatus): string {
   return 'bg-red-50/50';
 }
 
-function blockKindDot(kindLabel: string): string {
-  if (kindLabel === 'Spiel') return 'bg-red-600';
-  if (kindLabel === 'Training') return 'bg-emerald-600';
-  if (kindLabel === 'Turnier') return 'bg-amber-500';
-  return 'bg-slate-500';
+function blockSpatialDot(block: { spatial: { status: import('./availabilityHelpers').SlotStatus } }): string {
+  if (block.spatial.status === 'full') return 'bg-red-600';
+  if (block.spatial.status === 'partial') return 'bg-amber-500';
+  return 'bg-emerald-600';
 }
 
 function buildZoneMetas(zones: VenueFieldZoneRow[]): ZoneMeta[] {
@@ -175,8 +174,8 @@ export function PlatzWeekOverview(props: Props): React.ReactElement {
                             className="mb-0.5 flex items-center gap-1 text-[10px] leading-tight text-slate-700 cursor-pointer"
                             onClick={(e) => { e.stopPropagation(); props.onSelectBlock(b); }}
                           >
-                            <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${blockKindDot(b.kindLabel)}`} />
-                            <span className="truncate">{b.timeLabel}</span>
+                            <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${blockSpatialDot(b)}`} />
+                            <span className="truncate">{b.timeLabel}{b.spatial.status === 'partial' ? ` · ${b.spatial.fractionLabel}` : ''}</span>
                           </div>
                         ))}
                         {dayBlocks.length > 3 ? (
@@ -248,8 +247,8 @@ export function PlatzWeekOverview(props: Props): React.ReactElement {
                             onClick={() => props.onSelectBlock(b)}
                             className="flex items-center gap-1.5 text-[11px] text-slate-700 hover:text-red-700"
                           >
-                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${blockKindDot(b.kindLabel)}`} />
-                            <span>{b.timeLabel} · {b.kindLabel} · {b.teamLabel}</span>
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${blockSpatialDot(b)}`} />
+                            <span>{b.timeLabel} · {b.kindLabel}{b.spatial.status === 'partial' ? ` · ${b.spatial.fractionLabel}` : b.spatial.status === 'full' ? ' · Belegt' : ''}</span>
                           </button>
                         </li>
                       ))}
