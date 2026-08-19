@@ -173,7 +173,7 @@ function FieldTimelineRow(props: {
   const totalMinutes = (props.rangeEndHour - props.rangeStartHour) * 60;
   const startMin = props.rangeStartHour * 60;
 
-  const fieldBlocks = props.blocks.filter((b) => b.fieldId === props.field.id);
+  const fieldBlocks = (props.blocks ?? []).filter((b) => b.fieldId === props.field.id);
 
   return (
     <div className="group relative border-b border-slate-100 last:border-b-0" style={{ minHeight: 64 }}>
@@ -328,8 +328,8 @@ export function PlatzDayTimelineView(props: Props): React.ReactElement {
   }, []);
 
   const venueGroups = useMemo(() => {
-    const activeFields = props.fields.filter((f) => f.is_active);
-    return props.venues
+    const activeFields = (props.fields ?? []).filter((f) => f.is_active);
+    return (props.venues ?? [])
       .filter((v) => v.is_active)
       .map((v) => ({
         venue: v,
