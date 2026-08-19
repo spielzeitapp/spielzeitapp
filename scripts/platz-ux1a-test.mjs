@@ -108,4 +108,15 @@ ok('18. TRAINER-MODE.1/1A: wird separat geprüft');
 // 19. Typecheck und Build grün (Build wurde vor dem Test bestätigt)
 ok('19. Build: bestätigt vor Test-Lauf');
 
-console.log(`\n✅ ${passed}/19 Tests bestanden.\n`);
+// 20. TDZ-Regressionstest: dayTimelineBlocks darf nicht vor assignmentCandidates deklariert sein
+const dayTimelineBlocksLine = page.split('\n').findIndex(l => l.includes('const dayTimelineBlocks = useMemo'));
+const assignmentCandidatesLine = page.split('\n').findIndex(l => l.includes('const assignmentCandidates = useMemo'));
+assert.ok(dayTimelineBlocksLine > -1, 'dayTimelineBlocks found');
+assert.ok(assignmentCandidatesLine > -1, 'assignmentCandidates found');
+assert.ok(
+  dayTimelineBlocksLine > assignmentCandidatesLine,
+  `dayTimelineBlocks (line ${dayTimelineBlocksLine + 1}) must be declared AFTER assignmentCandidates (line ${assignmentCandidatesLine + 1}) to avoid TDZ ReferenceError`,
+);
+ok('20. TDZ-Regression: dayTimelineBlocks nach assignmentCandidates deklariert');
+
+console.log(`\n✅ ${passed}/20 Tests bestanden.\n`);
