@@ -3,6 +3,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { uploadStorageObject } from './storageUpload';
 import type { ExerciseDifficulty, ExerciseFocus, TrainingPhase } from './trainingPhases';
 import { isTrainingPhase } from './trainingPhases';
 
@@ -25,13 +26,16 @@ export type TrainingExerciseRow = {
   variations: string | null;
   image_path: string | null;
   source_type: string;
+  source_reference: string | null;
   is_active: boolean;
   created_at?: string | null;
   updated_at?: string | null;
 };
 
 const SELECT =
-  'id, club_id, team_id, title, description, focus, suitable_phases, age_group, duration_minutes, player_count_min, player_count_max, difficulty, materials, organization, coaching_points, variations, image_path, source_type, is_active, created_at, updated_at';
+  'id, club_id, team_id, title, description, focus, suitable_phases, age_group, duration_minutes, player_count_min, player_count_max, difficulty, materials, organization, coaching_points, variations, image_path, source_type, source_reference, is_active, created_at, updated_at';
+
+export const TRAINING_EXERCISE_MEDIA_BUCKET = 'training-exercise-media';
 
 function nullIfEmpty(s: string | null | undefined): string | null {
   const t = String(s ?? '').trim();
@@ -64,6 +68,7 @@ function mapRow(raw: Record<string, unknown>): TrainingExerciseRow {
     variations: (raw.variations as string | null) ?? null,
     image_path: (raw.image_path as string | null) ?? null,
     source_type: String(raw.source_type ?? 'club'),
+    source_reference: (raw.source_reference as string | null) ?? null,
     is_active: raw.is_active !== false,
     created_at: (raw.created_at as string | null) ?? null,
     updated_at: (raw.updated_at as string | null) ?? null,
@@ -122,6 +127,8 @@ export type TrainingExerciseInput = {
   coachingPoints?: string | null;
   variations?: string | null;
   imagePath?: string | null;
+  sourceType?: 'club' | 'import';
+  sourceReference?: string | null;
 };
 
 function validateInput(input: TrainingExerciseInput): string | null {
@@ -157,7 +164,8 @@ export async function createTrainingExercise(
     coaching_points: nullIfEmpty(input.coachingPoints),
     variations: nullIfEmpty(input.variations),
     image_path: nullIfEmpty(input.imagePath),
-    source_type: 'club',
+    source_type: input.sourceType ?? 'club',
+    source_reference: nullIfEmpty(input.sourceReference),
     is_active: true,
   };
   const { data, error } = await supabase.from('training_exercises').insert(payload).select(SELECT).maybeSingle();
@@ -189,6 +197,8 @@ export async function updateTrainingExercise(
   if (patch.coachingPoints !== undefined) payload.coaching_points = nullIfEmpty(patch.coachingPoints);
   if (patch.variations !== undefined) payload.variations = nullIfEmpty(patch.variations);
   if (patch.imagePath !== undefined) payload.image_path = nullIfEmpty(patch.imagePath);
+  if (patch.sourceType !== undefined) payload.source_type = patch.sourceType;
+  if (patch.sourceReference !== undefined) payload.source_reference = nullIfEmpty(patch.sourceReference);
   if (patch.isActive !== undefined) payload.is_active = patch.isActive;
 
   if (payload.title !== undefined && !String(payload.title).trim()) {
@@ -203,6 +213,30 @@ export async function updateTrainingExercise(
     .maybeSingle();
   if (error) return { data: null, error: error.message };
   return { data: data ? mapRow(data as Record<string, unknown>) : null, error: null };
+}
+
+export async function uploadTrainingExerciseSketch(
+  clubId: string,
+  sketch: Blob,
+): Promise<{ path: string | null; error: string | null }> {
+  const objectId = crypto.randomUUID();
+  const path = `${clubId}/imports/${objectId}.webp`;
+  const { error } = await uploadStorageObject(TRAINING_EXERCISE_MEDIA_BUCKET, path, sketch, {
+    contentType: 'image/webp',
+    cacheControl: '86400',
+  });
+  return error ? { path: null, error: error.message } : { path, error: null };
+}
+
+export async function removeTrainingExerciseSketch(path: string): Promise<void> {
+  await supabase.storage.from(TRAINING_EXERCISE_MEDIA_BUCKET).remove([path]);
+}
+
+export async function getTrainingExerciseSketchUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(TRAINING_EXERCISE_MEDIA_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+  return error ? null : data.signedUrl;
 }
 
 export async function archiveTrainingExercise(

@@ -2,19 +2,23 @@
  * STEP 3A: Übungsbibliothek – Liste, Filter, Anlegen/Bearbeiten.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { FileUp, Plus, Search } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 import {
   archiveTrainingExercise,
   countExerciseUsage,
   createTrainingExercise,
+  getTrainingExerciseSketchUrl,
   listTrainingExercises,
+  removeTrainingExerciseSketch,
   updateTrainingExercise,
+  uploadTrainingExerciseSketch,
   type TrainingExerciseRow,
 } from '../lib/trainingExercises';
+import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
 import {
   EXERCISE_DIFFICULTY_LABELS,
   EXERCISE_FOCUS_LABELS,
@@ -39,6 +43,7 @@ type FormState = {
   organization: string;
   coachingPoints: string;
   variations: string;
+  sourceReference: string;
 };
 
 const emptyForm = (): FormState => ({
@@ -55,6 +60,7 @@ const emptyForm = (): FormState => ({
   organization: '',
   coachingPoints: '',
   variations: '',
+  sourceReference: '',
 });
 
 function formFromRow(row: TrainingExerciseRow): FormState {
@@ -72,6 +78,7 @@ function formFromRow(row: TrainingExerciseRow): FormState {
     organization: row.organization ?? '',
     coachingPoints: row.coaching_points ?? '',
     variations: row.variations ?? '',
+    sourceReference: row.source_reference ?? '',
   };
 }
 
@@ -97,6 +104,10 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [pendingSketch, setPendingSketch] = useState<Blob | null>(null);
+  const [pendingSketchUrl, setPendingSketchUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
     if (!teamSeasonId) {
@@ -130,6 +141,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     return () => window.clearTimeout(t);
   }, [toast]);
 
+  useEffect(
+    () => () => {
+      if (pendingSketchUrl) URL.revokeObjectURL(pendingSketchUrl);
+    },
+    [pendingSketchUrl],
+  );
+
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     const age = ageFilter.trim().toLowerCase();
@@ -150,6 +168,8 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm());
+    setPendingSketch(null);
+    setPendingSketchUrl(null);
     setFormError(null);
     setEditorOpen(true);
   };
@@ -157,8 +177,29 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const openEdit = (row: TrainingExerciseRow) => {
     setEditing(row);
     setForm(formFromRow(row));
+    setPendingSketch(null);
+    setPendingSketchUrl(null);
     setFormError(null);
     setEditorOpen(true);
+  };
+
+  const importPdf = async (file: File) => {
+    setImporting(true);
+    setError(null);
+    try {
+      const draft = await analyzeTrainingExercisePdf(file);
+      setEditing(null);
+      setForm((current) => ({ ...current, ...draft, difficulty: 'medium' }));
+      setPendingSketch(draft.sketch);
+      setPendingSketchUrl(draft.sketch ? URL.createObjectURL(draft.sketch) : null);
+      setFormError(null);
+      setEditorOpen(true);
+    } catch (cause) {
+      setToast(cause instanceof Error ? cause.message : 'PDF konnte nicht analysiert werden.');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const togglePhase = (phase: TrainingPhase) => {
@@ -173,6 +214,16 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     if (!clubId) return;
     setSaving(true);
     setFormError(null);
+    let uploadedPath: string | null = null;
+    if (!editing && pendingSketch) {
+      const upload = await uploadTrainingExerciseSketch(clubId, pendingSketch);
+      if (upload.error || !upload.path) {
+        setSaving(false);
+        setFormError(`Skizze konnte nicht gespeichert werden: ${upload.error ?? 'Unbekannter Fehler'}`);
+        return;
+      }
+      uploadedPath = upload.path;
+    }
     const payload = {
       clubId,
       title: form.title,
@@ -188,17 +239,25 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       organization: form.organization,
       coachingPoints: form.coachingPoints,
       variations: form.variations,
+      imagePath: editing?.image_path ?? uploadedPath,
+      sourceType: (form.sourceReference ? 'import' : editing?.source_type === 'import' ? 'import' : 'club') as
+        | 'club'
+        | 'import',
+      sourceReference: form.sourceReference,
     };
     const res = editing
       ? await updateTrainingExercise(editing.id, payload)
       : await createTrainingExercise(payload);
     setSaving(false);
     if (res.error || !res.data) {
+      if (uploadedPath) await removeTrainingExerciseSketch(uploadedPath);
       setFormError(res.error ?? 'Speichern fehlgeschlagen.');
       return;
     }
     setEditorOpen(false);
-    setToast(editing ? 'Übung aktualisiert.' : 'Übung angelegt.');
+    setPendingSketch(null);
+    setPendingSketchUrl(null);
+    setToast(editing ? 'Übung aktualisiert.' : form.sourceReference ? 'PDF-Übung importiert.' : 'Übung angelegt.');
     await reload();
   };
 
@@ -228,14 +287,35 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             Vereinsübungen für Trainingseinheiten · {filtered.length} von {rows.length}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white hover:bg-red-800"
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          Neue Übung
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void importPdf(file);
+            }}
+          />
+          <button
+            type="button"
+            disabled={importing || !clubId}
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            <FileUp className="h-4 w-4" aria-hidden />
+            {importing ? 'PDF wird gelesen…' : 'PDF importieren'}
+          </button>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white hover:bg-red-800"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Neue Übung
+          </button>
+        </div>
       </header>
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6">
@@ -323,9 +403,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               key={row.id}
               className="flex flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
             >
-              <div className="mb-3 flex h-28 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-[12px] font-semibold uppercase tracking-wide text-slate-400">
-                Übung
-              </div>
+              <TrainingExerciseImage path={row.image_path} title={row.title} />
               <h2 className="text-[15px] font-semibold text-slate-900">{row.title}</h2>
               <p className="mt-1 text-[12px] text-slate-500">
                 {EXERCISE_FOCUS_LABELS[row.focus] ?? row.focus} · {row.duration_minutes} Min.
@@ -376,9 +454,24 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             aria-labelledby="exercise-editor-title"
           >
             <h2 id="exercise-editor-title" className="text-[16px] font-semibold text-slate-900">
-              {editing ? 'Übung bearbeiten' : 'Neue Übung'}
+              {editing ? 'Übung bearbeiten' : form.sourceReference ? 'PDF-Import prüfen' : 'Neue Übung'}
             </h2>
+            {!editing && form.sourceReference ? (
+              <p className="mt-1 text-[12px] text-amber-700">
+                Vorschlag aus der PDF: Bitte alle Angaben und besonders die Trainingsphase prüfen.
+              </p>
+            ) : null}
             <div className="mt-3 space-y-3">
+              {pendingSketchUrl ? (
+                <div>
+                  <span className="text-[12px] font-medium text-slate-600">Erkannte Skizze</span>
+                  <img
+                    src={pendingSketchUrl}
+                    alt="Aus der PDF extrahierte Übungsskizze"
+                    className="mt-1 max-h-52 w-full rounded-xl border border-slate-200 bg-white object-contain"
+                  />
+                </div>
+              ) : null}
               <Field label="Titel *">
                 <input
                   value={form.title}
@@ -510,6 +603,16 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
                 />
               </Field>
+              {form.sourceReference ? (
+                <Field label="Quelle">
+                  <textarea
+                    value={form.sourceReference}
+                    onChange={(e) => setForm((f) => ({ ...f, sourceReference: e.target.value }))}
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+                  />
+                </Field>
+              ) : null}
               {formError ? <p className="text-[13px] text-red-700">{formError}</p> : null}
             </div>
             <div className="mt-4 flex flex-wrap justify-end gap-2">
@@ -538,6 +641,38 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
           {toast}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function TrainingExerciseImage({ path, title }: { path: string | null; title: string }): React.ReactElement {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setUrl(null);
+    if (path) {
+      void getTrainingExerciseSketchUrl(path).then((nextUrl) => {
+        if (active) setUrl(nextUrl);
+      });
+    }
+    return () => {
+      active = false;
+    };
+  }, [path]);
+
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={`Skizze: ${title}`}
+        className="mb-3 h-28 w-full rounded-xl border border-slate-100 bg-white object-contain"
+      />
+    );
+  }
+  return (
+    <div className="mb-3 flex h-28 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-[12px] font-semibold uppercase tracking-wide text-slate-400">
+      Übung
     </div>
   );
 }
