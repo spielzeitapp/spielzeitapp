@@ -12,6 +12,8 @@ import {
 } from '../lib/seasonLifecycle';
 import { canViewParentLinks, normalizeRole } from '../lib/roles';
 import { dsGlassToggleTrack, dsPanelRowClass, dsPrimaryCtaClass, dsSecondaryCtaClass } from '../lib/premiumDesignSystem';
+import { canAccessManager } from '../manager/canAccessManager';
+import { isPlatformAdminBackendRole } from '../manager/managerWorkMode';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
 import { useDemoMode } from '../demo/DemoContext';
@@ -188,6 +190,7 @@ export const MoreHubPage: React.FC = () => {
     teamSeasons,
     effectiveRole: sessionEffectiveRole,
     backendRole: sessionBackendRole,
+    memberships,
     user,
   } = useSession();
   const effectiveRole = isDemo ? 'trainer' : sessionEffectiveRole;
@@ -203,7 +206,9 @@ export const MoreHubPage: React.FC = () => {
       canPrepareNextSeason(effectiveRole) ||
       canPrepareNextSeason(backendRole) ||
       isTrainerToolsRole(effectiveRole));
-  const showPreviewLink = !isDemo && (backendRole === 'admin' || backendRole === 'head_coach');
+  /** Rollen-Vorschau: nur echte Plattformadmin-Rolle aus user_roles, nie Preview/Membership. */
+  const showPreviewLink = !isDemo && isPlatformAdminBackendRole(backendRole);
+  const showManagerLink = !isDemo && canAccessManager(backendRole, memberships ?? []);
   const showParentAccessLink = !isDemo && canViewParentLinks(normalizeRole(effectiveRole));
   /** Push-/Reminder-Debug in der Demo immer aus — keine echten Writes/Pushes. */
   const showDebugHubButtons = !isDemo && showMehrHubDebugButtons(backendRole, effectiveRole);
@@ -476,10 +481,26 @@ export const MoreHubPage: React.FC = () => {
                     <span>Erinnerungen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                   </HubRowLink>
+                  {showManagerLink && (
+                    <HubRowLink to="/manager" className={subRowClass} isDemo={isDemo}>
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span>Spielzeit Manager öffnen</span>
+                        <span className="text-[11px] font-normal leading-snug text-white/45">
+                          Bestehende Anmeldung bleibt erhalten
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
+                    </HubRowLink>
+                  )}
                   {showPreviewLink && (
                     <HubRowLink to="/app/mehr/trainer/preview" className={subRowClass} isDemo={isDemo}>
-                      <span>Ansicht testen als</span>
-                      <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span>Rollen-Vorschau (nur Plattformadmin)</span>
+                        <span className="text-[11px] font-normal leading-snug text-white/45">
+                          Ändert nur die Darstellung, nicht deine Berechtigungen.
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
                     </HubRowLink>
                   )}
                 </div>

@@ -2,6 +2,7 @@ import React, { ChangeEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { PREVIEW_ROLE_STORAGE_KEY, useSession } from '../auth/useSession';
 import { Card, CardTitle } from '../app/components/ui/Card';
+import { isPlatformAdminBackendRole } from '../manager/managerWorkMode';
 
 const PREVIEW_ROLE_OPTIONS = ['fan', 'parent', 'player', 'trainer', 'co_trainer', 'head_coach', 'admin'] as const;
 
@@ -15,14 +16,11 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
 };
 
-function showPreviewTools(backendRole: string): boolean {
-  return backendRole === 'admin' || backendRole === 'head_coach';
-}
-
 export const TrainerPreviewPage: React.FC = () => {
   const { backendRole, effectiveRole, previewRole, setPreviewRole } = useSession();
 
-  if (!showPreviewTools(backendRole)) {
+  // Nur echte Plattformadmin-Rolle aus user_roles — nie Preview/Membership.
+  if (!isPlatformAdminBackendRole(backendRole)) {
     return <Navigate to="/app/mehr" replace />;
   }
 
@@ -50,8 +48,8 @@ export const TrainerPreviewPage: React.FC = () => {
       }}
     >
       <div className="mx-auto max-w-[560px] space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-white">Ansicht testen als</h1>
-        <p className="text-sm text-white/60">Rollen-Vorschau (Trainer-Tools)</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Rollen-Vorschau (nur Plattformadmin)</h1>
+        <p className="text-sm text-white/60">Ändert nur die Darstellung, nicht deine Berechtigungen.</p>
         <Card className="text-white shadow-lg shadow-black/20">
           <CardTitle className="text-lg">Vorschau</CardTitle>
           <p className="mt-1 text-xs text-white/55">
