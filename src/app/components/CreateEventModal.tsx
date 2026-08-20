@@ -217,9 +217,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
       const startDate = new Date(firstStartUtcIso);
 
-      const locationVal = selectedVenue
-        ? locationTextFromVenue(selectedVenue)
-        : combineLocationParts(form.location, form.location_address);
+      const locationVal =
+        useExternalLocation || !selectedVenue
+          ? combineLocationParts(form.location, form.location_address)
+          : locationTextFromVenue(selectedVenue);
 
       const eventKind = eventKindFromFormType(eventTypeLocal);
       const eventType = normalizeEventTypeField(eventKind, eventKind);
@@ -296,7 +297,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
           location: locationVal,
-          venue_id: selectedVenue?.id ?? null,
+          venue_id: useExternalLocation ? null : selectedVenue?.id ?? null,
           starts_at: d.toISOString(),
           meeting_at: meetupIsoForStart(d),
           status: 'upcoming',
@@ -355,6 +356,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               type: ev.type,
               notes: ev.notes,
             });
+            const assignmentPurpose =
+              eventTypeLocal === 'training'
+                ? ('training' as const)
+                : ('home_match' as const);
             const assignRes = await upsertEventFieldAssignment({
               clubId: clubRes.clubId,
               eventId: ev.id,
@@ -363,6 +368,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               zoneId: facilitySelection.zoneId,
               startsAt: ev.starts_at,
               endsAt,
+              grantCheck: { teamSeasonId, purpose: assignmentPurpose },
             });
             if (assignRes.error) {
               setError(
@@ -603,14 +609,13 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               : null
           }
           purpose={
-            useExternalLocation
-              ? 'general'
-              : eventTypeLocal === 'training'
+            eventTypeLocal === 'training'
               ? 'training'
               : eventTypeLocal === 'game' && form.is_home
                 ? 'home_match'
                 : 'general'
           }
+          exclusiveExternal={canUseInternalAssignment && useExternalLocation}
           labelClass={labelClass}
           inputClass={inputClass}
           disabled={creating}
@@ -627,10 +632,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 if (e.target.checked) setSelectedVenue(null);
               }}
             />
-            <span>
-              Externer Ort - keine Platzreservierung. Ohne interne Platzzuordnung und ohne
-              Cross-Org-Konfliktpruefung.
-            </span>
+            <span>Externer Ort – keine interne Platzreservierung</span>
           </label>
         ) : null}
         {canUseInternalAssignment && !useExternalLocation ? (

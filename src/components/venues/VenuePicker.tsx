@@ -57,9 +57,14 @@ type Props = {
    * CTA „+ Spielort hinzufügen“ öffnet erst das Create-Form.
    */
   compactEmptyState?: boolean;
+  /**
+   * Exklusiver Freitext-Ort: keine interne Venue-/Field-Auswahl.
+   * Nur zusammen mit Training/Heimspiel-Checkbox „Externer Ort“.
+   */
+  exclusiveExternal?: boolean;
 };
 
-type FormMode = 'closed' | 'create' | 'edit';
+export const EXTERNAL_LOCATION_HINT = 'Externer Ort – keine interne Platzreservierung';
 
 type VenueFormDraft = {
   name: string;
@@ -103,6 +108,7 @@ export function VenuePicker({
   inputClass = 'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white focus:border-red-500/45 focus:outline-none',
   disabled = false,
   compactEmptyState = false,
+  exclusiveExternal = false,
 }: Props): React.ReactElement {
   const [clubId, setClubId] = useState<string | null>(null);
   const [teamId, setTeamId] = useState<string | null>(null);
@@ -153,7 +159,7 @@ export function VenuePicker({
         source: 'catalog',
       });
     }
-    if (resolvedSelected && !byId.has(resolvedSelected.id)) {
+    if (resolvedSelected && !byId.has(resolvedSelected.id) && !isAllowlistPurpose) {
       byId.set(resolvedSelected.id, {
         ...resolvedSelected,
         link_id: null,
@@ -201,6 +207,13 @@ export function VenuePicker({
   };
 
   const reload = async (opts?: { skipAutoSelect?: boolean }) => {
+    if (exclusiveExternal) {
+      setPreferred([]);
+      setCatalog([]);
+      setTrainingEmptyReason(null);
+      setLoading(false);
+      return;
+    }
     if (!teamSeasonId) {
       setPreferred([]);
       setCatalog([]);
@@ -221,47 +234,39 @@ export function VenuePicker({
       return;
     }
 
-    if (isAllowlistPurpose || (purpose === 'general' && isMatchHome)) {
-      const allowPurpose = isHomeMatchPurpose
-        ? 'home_match'
-        : isTrainingPurpose
-          ? 'training'
-          : 'home_match';
-      // Bei purpose=general + Heim: home_match-Allowlist bevorzugen, wenn vorhanden.
-      if (purpose === 'general' && isMatchHome) {
-        const homeAllowed = await listAllowedVenueRowsForPurpose(teamSeasonId, 'home_match');
-        if (homeAllowed.data.length > 0) {
-          setCatalog(homeAllowed.data);
-          setPreferred([]);
-          setTrainingEmptyReason(homeAllowed.emptyReason);
-          setLoading(false);
-          if (opts?.skipAutoSelect) return;
-          const autoKey = `home_match:${teamSeasonId}`;
-          if (!venueId && homeAllowed.data.length >= 1 && autoSelectedForKey.current !== autoKey) {
-            autoSelectedForKey.current = autoKey;
-            const first = homeAllowed.data[0];
-            onVenueChange(first);
-            onLocationNameChange(first.name);
-            onLocationAddressChange(addressLine(first));
-          }
-          return;
-        }
-        // Keine Heimspiel-Freigaben → bisheriges Club-/Team-Verhalten
-        setTrainingEmptyReason(null);
-      } else {
-        const allowed =
-          allowPurpose === 'training'
-            ? await listAllowedTrainingVenueRows(teamSeasonId)
-            : await listAllowedVenueRowsForPurpose(teamSeasonId, 'home_match');
-        setCatalog(allowed.data);
+    if (isAllowlistPurpose) {
+      const allowed =
+        isTrainingPurpose
+          ? await listAllowedTrainingVenueRows(teamSeasonId)
+          : await listAllowedVenueRowsForPurpose(teamSeasonId, 'home_match');
+      setCatalog(allowed.data);
+      setPreferred([]);
+      setTrainingEmptyReason(allowed.emptyReason);
+      setLoading(false);
+      if (opts?.skipAutoSelect) return;
+      const autoKey = `${isTrainingPurpose ? 'training' : 'home_match'}:${teamSeasonId}`;
+      if (allowed.data.length >= 1 && !venueId && autoSelectedForKey.current !== autoKey) {
+        autoSelectedForKey.current = autoKey;
+        const first = allowed.data[0];
+        onVenueChange(first);
+        onLocationNameChange(first.name);
+        onLocationAddressChange(addressLine(first));
+      }
+      return;
+    }
+
+    if (purpose === 'general' && isMatchHome) {
+      const homeAllowed = await listAllowedVenueRowsForPurpose(teamSeasonId, 'home_match');
+      if (homeAllowed.data.length > 0) {
+        setCatalog(homeAllowed.data);
         setPreferred([]);
-        setTrainingEmptyReason(allowed.emptyReason);
+        setTrainingEmptyReason(homeAllowed.emptyReason);
         setLoading(false);
         if (opts?.skipAutoSelect) return;
-        const autoKey = `${allowPurpose}:${teamSeasonId}`;
-        if (allowed.data.length >= 1 && !venueId && autoSelectedForKey.current !== autoKey) {
+        const autoKey = `home_match:${teamSeasonId}`;
+        if (!venueId && homeAllowed.data.length >= 1 && autoSelectedForKey.current !== autoKey) {
           autoSelectedForKey.current = autoKey;
-          const first = allowed.data[0];
+          const first = homeAllowed.data[0];
           onVenueChange(first);
           onLocationNameChange(first.name);
           onLocationAddressChange(addressLine(first));
@@ -313,7 +318,7 @@ export function VenuePicker({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on context change
-  }, [teamSeasonId, isMatchHome, isMatchAway, opponentName, purpose, isAllowlistPurpose]);
+  }, [teamSeasonId, isMatchHome, isMatchAway, opponentName, purpose, isAllowlistPurpose, exclusiveExternal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -586,6 +591,42 @@ export function VenuePicker({
 
   return (
     <div className="min-w-0 max-w-full space-y-3 overflow-x-hidden">
+      {exclusiveExternal ? (
+        <>
+          <p className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+            {EXTERNAL_LOCATION_HINT}
+          </p>
+          <div>
+            <label htmlFor="venue-external-name" className={labelClass}>
+              Ortsname
+            </label>
+            <input
+              id="venue-external-name"
+              type="text"
+              className={inputClass}
+              disabled={disabled}
+              value={locationName}
+              onChange={(e) => onLocationNameChange(e.target.value)}
+              placeholder="z. B. Turnhalle Nachbarort"
+            />
+          </div>
+          <div>
+            <label htmlFor="venue-external-address" className={labelClass}>
+              Adresse (optional)
+            </label>
+            <input
+              id="venue-external-address"
+              type="text"
+              className={inputClass}
+              disabled={disabled}
+              value={locationAddress}
+              onChange={(e) => onLocationAddressChange(e.target.value)}
+              placeholder="z. B. Musterstraße 1, 3163 Rohrbach"
+            />
+          </div>
+        </>
+      ) : (
+        <>
       <div>
         <label htmlFor="venue-picker-select" className={labelClass}>
           {isAllowlistPurpose ? allowlistPurposeLabel : 'Spielort'}
@@ -864,6 +905,8 @@ export function VenuePicker({
           </div>
         </div>
       ) : null}
+        </>
+      )}
     </div>
   );
 }

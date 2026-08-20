@@ -43,6 +43,8 @@ assert.ok(
 // 3) Purpose grants
 assert.ok(createLib.includes("kind === 'match' ? 'home_match' : 'training'"));
 assert.ok(createLib.includes('listAllowedVenueRowsForPurpose'));
+assert.ok(createLib.includes('assertVenuePurposeAllowed'));
+assert.ok(createLib.includes('void opts.clubVenues'));
 assert.ok(modal.includes("occupancyPurposeForKind(kind)"));
 assert.ok(modal.includes('Heimspiel'));
 assert.ok(modal.includes('Training'));

@@ -737,9 +737,10 @@ export const SchedulePage: React.FC = () => {
       setSavingEdit(false);
       return;
     }
-    const locationVal = editVenue
-      ? locationTextFromVenue(editVenue)
-      : combineLocationParts(editLocation, editLocationAddress);
+    const locationVal =
+      editUseExternalLocation || !editVenue
+        ? combineLocationParts(editLocation, editLocationAddress)
+        : locationTextFromVenue(editVenue);
     let meetingAt: string | null = null;
     const meetupRaw = (editMeetupAt ?? '').trim();
     if (meetupRaw) {
@@ -755,7 +756,7 @@ export const SchedulePage: React.FC = () => {
       starts_at: startsAt,
       meeting_at: meetingAt,
       location: locationVal,
-      venue_id: editVenue?.id ?? null,
+      venue_id: editUseExternalLocation ? null : editVenue?.id ?? null,
     };
     if (eff === 'game') {
       fullPayload.opponent = opponent || null;
@@ -772,7 +773,7 @@ export const SchedulePage: React.FC = () => {
 
     const sharedPayload: Record<string, unknown> = {
       location: locationVal,
-      venue_id: editVenue?.id ?? null,
+      venue_id: editUseExternalLocation ? null : editVenue?.id ?? null,
     };
     if (eff === 'game') {
       sharedPayload.opponent = opponent || null;
@@ -896,6 +897,10 @@ export const SchedulePage: React.FC = () => {
             notes: (fullPayload.notes as string | null | undefined) ?? editEvent.notes ?? null,
           }),
           existingId: editAssignment?.id ?? null,
+          grantCheck: {
+            teamSeasonId: editEvent.team_season_id,
+            purpose: editEvent.kind === 'training' ? 'training' : 'home_match',
+          },
         });
         if (assignRes.error) {
           await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
@@ -2059,10 +2064,7 @@ export const SchedulePage: React.FC = () => {
                   if (e.target.checked) setEditVenue(null);
                 }}
               />
-              <span>
-                Externer Ort - keine Platzreservierung. Ohne interne Platzzuordnung und ohne
-                Cross-Org-Konfliktpruefung.
-              </span>
+              <span>Externer Ort – keine interne Platzreservierung</span>
             </label>
           ) : null}
           <VenuePicker
@@ -2085,13 +2087,18 @@ export const SchedulePage: React.FC = () => {
                 : null
             }
             purpose={
-              editUseExternalLocation
-                ? 'general'
-                : editEvent?.kind === 'training'
-                  ? 'training'
-                  : editEvent?.kind === 'match' && editEvent.is_home === true
-                    ? 'home_match'
-                    : 'general'
+              editEvent?.kind === 'training'
+                ? 'training'
+                : editEvent?.kind === 'match' && editEvent.is_home === true
+                  ? 'home_match'
+                  : 'general'
+            }
+            exclusiveExternal={
+              Boolean(
+                (editEvent?.kind === 'training' ||
+                  (editEvent?.kind === 'match' && editEvent.is_home === true)) &&
+                  editUseExternalLocation,
+              )
             }
             labelClass="block text-sm font-medium text-[var(--text-main)] mb-1"
             inputClass="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"

@@ -14,6 +14,7 @@ import {
 } from './eventFieldAssignments';
 import { locationTextFromVenue, type VenueRow } from './venues';
 import {
+  assertVenuePurposeAllowed,
   listAllowedVenueRowsForPurpose,
   type VenuePurpose,
 } from './teamSeasonTrainingVenues';
@@ -31,22 +32,22 @@ export function formKindToEventKind(kind: OccupancyKindForm): EventKind {
   return eventKindFromFormType('event');
 }
 
-/** Venues: Club-eigene aktiv + Grant für purpose (z. B. USC → Rohrbach). */
+/**
+ * Nur Anlagen mit gültigem Grant der Team-Saison (training | home_match).
+ * Kein Club-Katalog-Fallback, keine Namensfilter, keine hart codierten IDs.
+ */
 export async function listVenuesForOccupancyCreate(opts: {
   clubId: string;
   teamSeasonId: string;
   purpose: VenuePurpose;
-  clubVenues: readonly VenueRow[];
+  clubVenues?: readonly VenueRow[];
 }): Promise<VenueRow[]> {
+  void opts.clubId;
+  void opts.clubVenues;
   const allowed = await listAllowedVenueRowsForPurpose(opts.teamSeasonId, opts.purpose);
-  const byId = new Map<string, VenueRow>();
-  for (const v of opts.clubVenues) {
-    if (v.is_active !== false && v.club_id === opts.clubId) byId.set(v.id, v);
-  }
-  for (const v of allowed.data) {
-    if (v.is_active !== false) byId.set(v.id, v);
-  }
-  return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  return allowed.data
+    .filter((v) => v.is_active !== false)
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 }
 
 export async function checkOccupancyConflicts(input: {
@@ -138,6 +139,12 @@ export async function createFacilityOccupancy(
     return { ok: false, error: writable.message ?? 'Saison ist nicht beschreibbar.' };
   }
 
+  const purpose = occupancyPurposeForKind(input.kind);
+  const granted = await assertVenuePurposeAllowed(input.teamSeasonId, input.venue.id, purpose);
+  if (!granted.ok) {
+    return { ok: false, error: granted.error };
+  }
+
   const conflictCheck = await checkOccupancyConflicts({
     clubId: input.clubId,
     fieldId: input.fieldId,
@@ -205,6 +212,7 @@ export async function createFacilityOccupancy(
     zoneId: input.zoneId,
     startsAt: input.startsAtIso,
     endsAt: input.endsAtIso,
+    grantCheck: { teamSeasonId: input.teamSeasonId, purpose },
   });
 
   if (assignRes.error || !assignRes.data) {

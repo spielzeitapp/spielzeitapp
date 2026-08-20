@@ -214,6 +214,11 @@ export function clubNameWithoutAgeGroup(teamName: string | null | undefined): st
   return club || trimmed;
 }
 
+/** Team-Dropdown ohne Saison: sichtbarer Clubname, keine historische Altersklasse im Stammnamen. */
+export function formatClubTeamOptionLabel(teamName: string | null | undefined): string {
+  return clubNameWithoutAgeGroup(teamName) || String(teamName ?? '').trim() || 'Mannschaft';
+}
+
 /**
  * Einheitliches Saison-Label.
  * 1) team_seasons.display_name

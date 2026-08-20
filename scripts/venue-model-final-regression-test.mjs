@@ -28,8 +28,10 @@ assert.ok(managerFacility.includes('formatTeamSeasonContextLabel'), 'manager fac
 
 assert.ok(createModal.includes("eventTypeLocal === 'game' && form.is_home"), 'home match assignment missing in create modal');
 assert.ok(createModal.includes('useExternalLocation'), 'external location toggle missing in create modal');
+assert.ok(createModal.includes('exclusiveExternal'), 'external mode must hide catalog picker');
 assert.ok(createModal.includes('TrainingFacilityFields'), 'facility picker missing in create modal');
 assert.ok(createModal.includes('upsertEventFieldAssignment'), 'create modal must write assignments');
+assert.ok(createModal.includes('grantCheck'), 'create modal must grant-check assignments');
 
 for (const src of [eventDetail, schedulePage]) {
   assert.ok(src.includes('getAssignmentForEvent'), 'edit path must load assignment');
@@ -37,6 +39,8 @@ for (const src of [eventDetail, schedulePage]) {
   assert.ok(src.includes('deleteEventFieldAssignment'), 'edit path must remove assignment');
   assert.ok(src.includes('TrainingFacilityFields'), 'edit path must offer field selection');
   assert.ok(src.includes('editUseExternalLocation'), 'edit path must support external location');
+  assert.ok(src.includes('exclusiveExternal'), 'edit path must keep internal/external exclusive');
+  assert.ok(src.includes('grantCheck'), 'edit path must grant-check assignments');
 }
 
 assert.ok(stagingScript.includes("const STAGING_REF = 'acbaecjzoabafbsjrzvr'"), 'staging ref guard missing');
