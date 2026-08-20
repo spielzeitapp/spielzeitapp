@@ -3,6 +3,7 @@ import {
   ensureOpponentCatalogEntry,
   resolveClubIdFromTeamSeason,
   setOpponentCatalogLogo,
+  syncOpponentLogoToTeamSeasonMatches,
 } from './opponentCatalog';
 import {
   getClubLogo,
@@ -576,27 +577,13 @@ export async function setOpponentLogoForSeason(opts: {
     }
   }
 
-  const listed = await listChampionshipFixtures(opts.teamSeasonId);
-  if (listed.error) return { updated: 0, error: listed.error };
-
-  const ids = listed.data
-    .filter((f) => normalizeOpponentKey(f.opponent) === key)
-    .map((f) => f.id);
-  if (ids.length === 0) return { updated: 0, error: null };
-
-  let { error } = await supabase
-    .from('events')
-    .update({ opponent_logo_url: opts.logoUrl })
-    .in('id', ids);
-  if (error && isMissingLogoColumnError(error.message)) {
-    return {
-      updated: 0,
-      error:
-        'Spalte opponent_logo_url fehlt. Bitte Migration 20260802190001_events_opponent_logo_ensure.sql ausführen.',
-    };
-  }
-  if (error) return { updated: 0, error: error.message };
-  return { updated: ids.length, error: null };
+  const synced = await syncOpponentLogoToTeamSeasonMatches({
+    teamSeasonId: opts.teamSeasonId,
+    opponentName: opts.opponentName,
+    logoUrl: opts.logoUrl,
+  });
+  if (synced.error) return { updated: 0, error: synced.error };
+  return { updated: synced.updated, error: null };
 }
 
 export function championshipCounts(fixtures: ChampionshipFixture[]): {
