@@ -266,18 +266,22 @@ export function ManagerClubVenueGrantsPanel(props: Props): React.ReactElement {
           <option value="training">Training</option>
           <option value="home_match">Heimspiel</option>
         </select>
-        <select
-          className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-          value={addVenueId}
-          onChange={(e) => setAddVenueId(e.target.value)}
-        >
-          <option value="">Anlage wählen…</option>
-          {addable.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name} ({v.club_name})
-            </option>
-          ))}
-        </select>
+        {addable.length === 0 ? (
+          <p className="text-[13px] text-slate-600">Keine weitere eingerichtete Anlage verfügbar.</p>
+        ) : (
+          <select
+            className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+            value={addVenueId}
+            onChange={(e) => setAddVenueId(e.target.value)}
+          >
+            <option value="">Anlage wählen…</option>
+            {addable.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name} ({v.club_name})
+              </option>
+            ))}
+          </select>
+        )}
         <button
           type="submit"
           disabled={disabled || !addVenueId}

@@ -360,8 +360,28 @@ export async function listClubEventsInRange(
   };
 }
 
-/** Alle Team-Saison-IDs eines Clubs (für Client-Rechte / Filter). */
+/** Sichtbare Team-Saison-IDs eines Clubs (serverseitig gefiltert per RPC). */
 export async function listClubTeamSeasonIds(
+  clubId: string,
+): Promise<{ data: string[]; error: string | null }> {
+  const { data, error } = await supabase.rpc('list_club_team_season_ids', {
+    p_club_id: clubId,
+  });
+  if (error) {
+    if (/list_club_team_season_ids|42883|does not exist|schema cache/i.test(error.message)) {
+      return listClubTeamSeasonIdsLegacy(clubId);
+    }
+    return { data: [], error: error.message };
+  }
+  const rows = Array.isArray(data) ? data : [];
+  return {
+    data: rows.map((id) => String(id)).filter(Boolean),
+    error: null,
+  };
+}
+
+/** Fallback bis Migration auf Staging/Live angewendet ist. */
+async function listClubTeamSeasonIdsLegacy(
   clubId: string,
 ): Promise<{ data: string[]; error: string | null }> {
   const { data: teams, error: tErr } = await supabase.from('teams').select('id').eq('club_id', clubId);
