@@ -6,6 +6,27 @@ import { MANAGER_NAV_SECTIONS } from '../managerNav';
 import { navItemVisibleForWorkMode } from '../managerWorkMode';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 
+/** Bestehende mobile App-Startseite (ohne Logout). */
+export const MANAGER_TO_APP_HOME_PATH = '/app/home';
+
+function appHomeIconSrc(): string {
+  const b = import.meta.env.BASE_URL || '/';
+  const base = b.endsWith('/') ? b : `${b}/`;
+  return `${base}icons/home-ball.png`;
+}
+
+export function AppHomeIcon({ className }: { className?: string }): React.ReactElement {
+  return (
+    <img
+      src={appHomeIconSrc()}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={className ?? 'h-5 w-5 shrink-0 object-contain'}
+    />
+  );
+}
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -71,7 +92,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
         ].join(' ')}
         aria-label="Manager-Navigation"
       >
-        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 px-4">
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 px-4 pt-[env(safe-area-inset-top)] lg:pt-0">
           <Link to="/manager" className="flex min-w-0 items-center gap-2" onClick={closeOnNav}>
             <img
               src={spielzeitappHeader}
@@ -82,12 +103,24 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
           </Link>
           <button
             type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 lg:hidden"
+            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 lg:hidden"
             onClick={onClose}
             aria-label="Menü schließen"
           >
             <X className="h-5 w-5" strokeWidth={2} aria-hidden />
           </button>
+        </div>
+
+        {/* Mobile: klarer App-Wechsel ganz oben */}
+        <div className="border-b border-slate-200 p-3 lg:hidden">
+          <Link
+            to={MANAGER_TO_APP_HOME_PATH}
+            onClick={closeOnNav}
+            className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] font-semibold text-red-800 hover:bg-red-100"
+          >
+            <AppHomeIcon className="h-5 w-5 shrink-0 object-contain" />
+            Zur SpielzeitApp
+          </Link>
         </div>
 
         <p className="px-4 pt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-red-700/90">
@@ -154,13 +187,14 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
           })}
         </nav>
 
-        <div className="shrink-0 space-y-1 border-t border-slate-200 p-3">
+        <div className="hidden shrink-0 space-y-1 border-t border-slate-200 p-3 lg:block">
           <Link
-            to="/app/home"
+            to={MANAGER_TO_APP_HOME_PATH}
             onClick={closeOnNav}
-            className="flex w-full min-h-[40px] items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+            className="flex w-full min-h-[40px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900"
           >
-            Zur mobilen App
+            <AppHomeIcon className="h-4 w-4 shrink-0 object-contain" />
+            Zur SpielzeitApp
           </Link>
         </div>
       </aside>
@@ -173,7 +207,7 @@ export function ManagerMenuButton({ onClick }: { onClick: () => void }): React.R
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden"
+      className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden"
       aria-label="Menü öffnen"
     >
       <Menu className="h-5 w-5" strokeWidth={2} aria-hidden />
