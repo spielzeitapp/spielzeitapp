@@ -63,6 +63,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
     switchToTrainer,
     adminSwitchButtonLabel,
     workMode,
+    selectTrainerTeamSeasonId,
   } = useManagerWorkMode();
   const { profile } = useProfile(authUser?.id);
 
@@ -104,6 +105,16 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
     }
     const ts = headerTeamSeasons.find((row) => row.id === id);
     if (!ts) return;
+    if (isTrainerMode) {
+      selectTrainerTeamSeasonId(id);
+      const action = resolveTeamSeasonSwitcherAction(ts.status);
+      if (action === 'select-work') {
+        setSelectedTeamSeasonId(id);
+      } else {
+        setViewTeamSeasonId(id);
+      }
+      return;
+    }
     const action = resolveTeamSeasonSwitcherAction(ts.status);
     if (action === 'select-work') {
       setSelectedTeamSeasonId(id);
