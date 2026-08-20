@@ -12,6 +12,7 @@ import {
   formatTournamentLiveClock,
   type TournamentLiveMatchDetails,
 } from '../../lib/matchCenterTournamentLive';
+import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
 import {
   liveMatchPath,
   matchLineupPath,
@@ -364,12 +365,16 @@ export function TournamentFeaturedMatchCard({
     orchestrator.phase === 'awaiting_next_round' ||
     orchestrator.phase === 'awaiting_knockout';
   const timeLabel = formatTournamentKickoffTime(focusSlot.kickoff_at);
-  const group = safeOptionalText(focusSlot.group_label);
-  const phase = safeOptionalText(focusSlot.phase);
   const pitch = safeOptionalText(focusSlot.pitch);
   const opponent = safeText(focusSlot.opponent_name) || 'Gegner';
   const ourTeam = safeText(ourTeamName) || 'Unser Team';
-  const phaseLabel = phase ? phase : group ? `Gruppe ${group}` : null;
+  const phaseLabel = tournamentPhaseDisplayLabel(focusSlot.phase, focusSlot.group_label);
+  const phaseMeta =
+    phaseLabel && phaseLabel !== 'Turnierspiel' && phaseLabel !== 'Gruppenspiel'
+      ? phaseLabel
+      : safeOptionalText(focusSlot.group_label)
+        ? `Gruppe ${safeText(focusSlot.group_label)}`
+        : null;
 
   const scoreHome = isLive && liveDetails ? liveDetails.scoreHome : focusSlot.score_home;
   const scoreAway = isLive && liveDetails ? liveDetails.scoreAway : focusSlot.score_away;
@@ -454,7 +459,7 @@ export function TournamentFeaturedMatchCard({
                 <Clock className="h-3 w-3 shrink-0 text-red-400/75" strokeWidth={2} aria-hidden />
                 {timeLabel} Uhr
               </span>
-              {phaseLabel ? <span className="text-white/45">· {phaseLabel}</span> : null}
+              {phaseMeta ? <span className="text-white/45">· {phaseMeta}</span> : null}
               {pitch ? <span className="text-white/45">· {pitch}</span> : null}
             </div>
           ) : (

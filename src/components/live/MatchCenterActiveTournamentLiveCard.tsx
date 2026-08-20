@@ -83,7 +83,7 @@ export function MatchCenterActiveTournamentLiveCard({ context, ourTeamName }: Pr
       <div className="border-b border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.06)] px-3.5 py-2.5 sm:px-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-300/90">
-            Aktuelles Turnierspiel LIVE
+            Live · Turnierspiel
           </p>
           <span className="inline-flex items-center gap-1 rounded-full border border-red-500/45 bg-red-950/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-100">
             <Radio className="h-3 w-3 animate-pulse" strokeWidth={2.5} aria-hidden />

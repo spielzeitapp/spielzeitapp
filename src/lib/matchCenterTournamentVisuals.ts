@@ -57,19 +57,43 @@ function normalizePhase(phase: unknown): string {
   if (!p) return '';
   if (p === 'final' || p === 'finale' || p.includes('finalspiel')) return 'final';
   if (p === 'semifinal' || p === 'halbfinale') return 'semifinal';
-  if (p === 'placement' || p.includes('platz 3') || p.includes('platzierung')) return 'placement';
+  if (
+    p === 'placement' ||
+    /spiel\s+um\s+platz/.test(p) ||
+    /platz\s*\d+/.test(p) ||
+    p.includes('platzierung')
+  ) {
+    return 'placement';
+  }
   if (p === 'group' || p === 'gruppe' || p === 'vorrunde') return 'group';
   return p;
+}
+
+/** „Spiel um Platz 7“ aus Provider-Titel oder group_label (ohne Hardcode Platz 3). */
+export function tournamentPlacementTitleFromLabel(label: string | null | undefined): string | null {
+  const raw = safeText(label).replace(/\s+/g, ' ').trim();
+  if (!raw) return null;
+  const spielUm = raw.match(/spiel\s+um\s+platz\s*(\d+)/i);
+  if (spielUm?.[1]) return `Spiel um Platz ${spielUm[1]}`;
+  const platzOnly = raw.match(/^platz\s*(\d+)\b/i);
+  if (platzOnly?.[1]) return `Spiel um Platz ${platzOnly[1]}`;
+  if (/^\d+$/.test(raw)) return `Spiel um Platz ${raw}`;
+  return null;
 }
 
 export function tournamentPhaseDisplayLabel(
   phase: string | null | undefined,
   groupLabel: string | null | undefined,
 ): string {
+  const fromLabel = tournamentPlacementTitleFromLabel(groupLabel);
+  if (fromLabel) return fromLabel;
+  const fromPhase = tournamentPlacementTitleFromLabel(phase);
+  if (fromPhase) return fromPhase;
+
   const p = normalizePhase(phase);
   if (p === 'final') return 'Finale';
   if (p === 'semifinal') return 'Halbfinale';
-  if (p === 'placement') return 'Spiel um Platz 3';
+  if (p === 'placement') return 'Platzierungsspiel';
   const group = safeText(groupLabel);
   if (group) return `Gruppe ${group}`;
   if (p === 'group') return 'Gruppenspiel';

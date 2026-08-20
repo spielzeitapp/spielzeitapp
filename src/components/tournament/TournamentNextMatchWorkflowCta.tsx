@@ -113,31 +113,30 @@ export function TournamentNextMatchWorkflowCta({
         </p>
         <p className="mt-1 text-[14px] font-bold leading-snug text-white">Warte auf nächste Runde</p>
         <p className="mt-1 text-[12px] leading-snug text-white/55">
-          Die nächste Turnierphase wird aktualisiert. Sobald Halbfinale, Finale oder Platzierungsspiel
-          feststeht, erscheint das nächste Spiel automatisch.
+          Der Turnierplan wird automatisch aktualisiert. Sobald Halbfinale, Finale oder
+          Platzierungsspiel feststeht, erscheint das nächste Spiel automatisch.
         </p>
         {planSyncBusy || planSyncStatus ? (
           <p className="mt-1.5 text-[11px] text-white/50" role="status" aria-live="polite">
             {planSyncBusy ? planSyncStatus ?? 'Nächste Runde wird aktualisiert …' : planSyncStatus}
           </p>
         ) : null}
+        <Link
+          to={tournamentCenterPath(tournamentEventId, basePath)}
+          className={`${dsPrimaryCtaClass()} mt-2.5 flex min-h-[44px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[13px] font-bold`}
+        >
+          Turnier öffnen
+        </Link>
         {isTrainer && onRefreshPlan ? (
           <button
             type="button"
             disabled={planSyncBusy}
             onClick={onRefreshPlan}
-            className={`${dsPrimaryCtaClass()} mt-2.5 flex min-h-[44px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[13px] font-bold disabled:opacity-60`}
+            className={`${dsSecondaryCtaClass()} mt-2 flex min-h-[44px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[13px] font-semibold disabled:opacity-60`}
           >
-            {planSyncBusy ? 'Wird aktualisiert …' : 'Turnierplan aktualisieren'}
+            {planSyncBusy ? 'Wird aktualisiert …' : 'Jetzt aktualisieren'}
           </button>
-        ) : (
-          <Link
-            to={tournamentCenterPath(tournamentEventId, basePath)}
-            className={`${dsSecondaryCtaClass()} mt-2.5 flex min-h-[44px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[13px] font-semibold`}
-          >
-            Zum Turniercenter
-          </Link>
-        )}
+        ) : null}
       </div>
     );
   }

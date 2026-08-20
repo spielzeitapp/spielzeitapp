@@ -213,6 +213,7 @@ for (const c of scoreCases) {
   const m = koParsed?.rawMatches?.[0];
   assert(m?.externalMatchId === '6a8058a4692051001ab86046', 'provider _id is externalMatchId');
   assert(m?.phase === 'placement', 'placement phase from Platz label');
+  assert(m?.groupLabel === 'Spiel um Platz 7', 'placement title persisted in groupLabel');
   assert(m?.kickoffTimeHHmm === '13:27', 'kickoff 13:27');
   assert(m?.pitch === 'Platz 2', 'pitch Platz 2');
   assert(m?.homeGoals === 1 && m?.awayGoals === 2, 'placement score 1:2');
@@ -356,6 +357,10 @@ try {
   assert(place7?.kickoffTimeHHmm === '13:27', 'real kickoff 13:27');
   assert(place7?.pitch === 'Platz 2', 'real pitch 2');
   assert(place7?.phase === 'placement', 'real phase placement');
+  assert(
+    /spiel um platz 7/i.test(String(place7?.groupLabel ?? '')),
+    'real placement title in groupLabel',
+  );
   assert(place7?.hasResult === true && place7?.homeGoals === 1 && place7?.awayGoals === 2, 'real 1:2');
 
   // Reconstruct Gruppe 1 table from parsed group matches

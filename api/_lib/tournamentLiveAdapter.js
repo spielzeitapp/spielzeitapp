@@ -212,6 +212,21 @@ function groupLabelFromItem(item) {
   return null;
 }
 
+function koDisplayLabelFromItem(block, match, phase) {
+  if (phase === 'group') return null;
+  const candidates = [match.title, block.title, block.parentTitle];
+  for (const c of candidates) {
+    const t = String(c ?? '')
+      .trim()
+      .replace(/\s+/g, ' ');
+    if (!t) continue;
+    if (/spiel\s+um\s+platz\s*\d+/i.test(t) || /^platz\s*\d+\b/i.test(t)) return t;
+    if (phase === 'semifinal' && /halbfinale/i.test(t)) return 'Halbfinale';
+    if (phase === 'final' && /finale/i.test(t) && !/halb|platz/i.test(t)) return 'Finale';
+  }
+  return null;
+}
+
 function clampMinutes(value, fallback) {
   const n = Math.trunc(Number(value) || fallback);
   return Math.max(1, Math.min(120, n || fallback));
@@ -289,7 +304,7 @@ export function parseTournamentLiveResults(resultsJson, meta = {}) {
       rawMatches.push({
         homeTeam,
         awayTeam,
-        groupLabel: phase === 'group' ? label : null,
+        groupLabel: phase === 'group' ? label : koDisplayLabelFromItem(block, match, phase),
         phase,
         kickoffTimeHHmm: kickoffFromItem(match),
         plannedMinutes: phase === 'group' ? groupMinutes : koMinutes,

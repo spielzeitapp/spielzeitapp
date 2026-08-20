@@ -1221,11 +1221,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
             loading={standingsLoading}
             onShowFullTable={showFullStandingsTable}
           />
-          <TournamentScorersOverviewCard
-            scorers={goalScorers}
-            players={players}
-            loading={loading || goalScorersLoading}
-          />
         </div>
       ) : null}
 

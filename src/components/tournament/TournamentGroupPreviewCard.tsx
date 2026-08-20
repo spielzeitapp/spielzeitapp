@@ -51,7 +51,7 @@ export function TournamentGroupPreviewCard({ bundle, loading = false, onShowFull
               </p>
             ) : null}
             {sourceHint ? (
-              <p className="text-[10px] leading-snug text-white/42">{sourceHint}</p>
+              <p className="text-[10px] leading-snug text-white/35">{sourceHint}</p>
             ) : null}
             <TournamentStandingsGroupList
               standings={primary}

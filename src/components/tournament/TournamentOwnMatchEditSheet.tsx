@@ -99,8 +99,8 @@ export function TournamentOwnMatchEditSheet({
   return (
     <Modal open={open} onClose={busy ? () => undefined : onClose} title="Spiel bearbeiten">
       <div className="space-y-3 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
-        <p className="text-xs text-white/55">
-          Notfall-Korrektur für Trainer. Official-Verknüpfung bleibt erhalten.
+        <p className="text-xs leading-snug text-white/55">
+          Nur verwenden, wenn der offizielle Turnierplan noch nicht aktuell ist.
         </p>
         <label className="block text-xs text-white/70">
           Gegner
@@ -136,7 +136,7 @@ export function TournamentOwnMatchEditSheet({
             value={phase}
             onChange={(e) => setPhase(e.target.value)}
             disabled={busy || !canEdit}
-            placeholder="z. B. placement"
+            placeholder="z. B. Spiel um Platz 7"
           />
         </label>
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
