@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftRight, LogOut } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { useProfile, getDisplayFirstName, profileDisplayName } from '../../auth/useProfile';
@@ -13,7 +13,7 @@ import {
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
-import { ManagerMenuButton } from './ManagerSidebar';
+import { AppHomeIcon, MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
 
 type Props = {
   onOpenSidebar: () => void;
@@ -137,8 +137,8 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         : (membershipRole || backendRole || '').trim();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md">
-      <div className="flex items-center gap-3 px-3 py-3 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
+    <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md pt-[env(safe-area-inset-top)]">
+      <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
         <div className="min-w-0 flex-1">
@@ -148,7 +148,17 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
           <p className="truncate text-[15px] font-semibold text-slate-900 sm:text-[16px]">{contextLine}</p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+          <Link
+            to={MANAGER_TO_APP_HOME_PATH}
+            className="inline-flex h-11 min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 text-[12px] font-semibold text-red-800 shadow-sm hover:bg-red-100 lg:hidden"
+            aria-label="Zur SpielzeitApp"
+            title="Zur SpielzeitApp"
+          >
+            <AppHomeIcon className="h-4 w-4 shrink-0 object-contain" />
+            <span className="hidden min-[380px]:inline">Zur App</span>
+          </Link>
+
           {headerTeamSeasons.length > 1 ? (
             <label className="hidden min-w-0 sm:block">
               <span className="sr-only">Team und Saison wählen</span>
