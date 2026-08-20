@@ -300,12 +300,13 @@ function extractScores(item: LiveScheduleItem): {
   homeGoals: number | null;
   awayGoals: number | null;
 } {
-  // TURNIERlive real payload uses assignment1ScoredGoals / assignment2ScoredGoals.
+  // TURNIERlive: assignment*ScoredGoals is the live source of truth (0 is valid).
+  // Keep result/score/goals as fallbacks for other payload shapes.
   const home = parseGoal(
-    item.result1 ?? item.score1 ?? item.goals1 ?? item.assignment1ScoredGoals,
+    item.assignment1ScoredGoals ?? item.result1 ?? item.score1 ?? item.goals1,
   );
   const away = parseGoal(
-    item.result2 ?? item.score2 ?? item.goals2 ?? item.assignment2ScoredGoals,
+    item.assignment2ScoredGoals ?? item.result2 ?? item.score2 ?? item.goals2,
   );
   if (home == null || away == null) {
     return { hasResult: false, homeGoals: null, awayGoals: null };

@@ -182,11 +182,12 @@ function parseGoal(value) {
 }
 
 function extractScores(item) {
+  // TURNIERlive: assignment*ScoredGoals first (0 is valid).
   const home = parseGoal(
-    item.result1 ?? item.score1 ?? item.goals1 ?? item.assignment1ScoredGoals,
+    item.assignment1ScoredGoals ?? item.result1 ?? item.score1 ?? item.goals1,
   );
   const away = parseGoal(
-    item.result2 ?? item.score2 ?? item.goals2 ?? item.assignment2ScoredGoals,
+    item.assignment2ScoredGoals ?? item.result2 ?? item.score2 ?? item.goals2,
   );
   if (home == null || away == null) {
     return { hasResult: false, homeGoals: null, awayGoals: null };
