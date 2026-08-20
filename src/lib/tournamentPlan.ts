@@ -18,6 +18,13 @@ import {
   removeDemoTournamentMatchSlot,
   removeDemoTournamentParticipant,
 } from '../demo/demoTournamentState';
+import {
+  looksLikeUnresolvedTournamentTeamName,
+  slotLooksUnresolvedPairing,
+} from './tournamentUnresolvedTeam';
+
+export { looksLikeUnresolvedTournamentTeamName, slotLooksUnresolvedPairing };
+
 /** Standard-Spieldauer für Turnierspiele (Kurzturnier). */
 export const TOURNAMENT_DEFAULT_PLANNED_MINUTES = 12;
 
@@ -229,40 +236,6 @@ function slotIsFinished(slot: { match_status?: string | null; official_status?: 
   if (ms === 'finished' || ms === 'ended' || ms === 'completed') return true;
   const os = String(slot.official_status ?? '').trim().toLowerCase();
   return os === 'finished' || os === 'ended' || os === 'completed';
-}
-
-/** Platzhalter / noch nicht aufgelöste Paarungen (TURNIERlive vor Finalrunde). */
-export function looksLikeUnresolvedTournamentTeamName(name: unknown): boolean {
-  const t = safeOptionalText(name);
-  if (!t) return true;
-  const n = t.toLowerCase().replace(/\s+/g, ' ').trim();
-  if (/^(tbd|n\/?a|\?+|-+|–+|—+|null|undefined)$/i.test(n)) return true;
-  if (
-    /gewinner|sieger|verlierer|loser|winner|runner.?up|qualifiant|qualifier|bye\b/i.test(n)
-  ) {
-    return true;
-  }
-  if (/^(1|2|3|4)\.\s*(gruppe|group|platz|place)\b/i.test(n)) return true;
-  if (/^(gruppe|group)\s*[a-d0-9]+\b/i.test(n) && /platz|place|sieger|gewinner|1\.|2\./i.test(n)) {
-    return true;
-  }
-  if (/^(hf|vf|af|sf|f)\s*\d*$/i.test(n)) return true;
-  if (/^(spiel|match)\s*(um\s*)?platz\s*\d+/i.test(n)) return true;
-  return false;
-}
-
-function slotLooksUnresolvedPairing(slot: {
-  home_team?: string | null;
-  away_team?: string | null;
-  opponent_name?: string | null;
-}): boolean {
-  if (looksLikeUnresolvedTournamentTeamName(slot.home_team)) return true;
-  if (looksLikeUnresolvedTournamentTeamName(slot.away_team)) return true;
-  // Official-Slots ohne Teams, nur Opponent-Label
-  if (!safeOptionalText(slot.home_team) && !safeOptionalText(slot.away_team)) {
-    if (looksLikeUnresolvedTournamentTeamName(slot.opponent_name)) return true;
-  }
-  return false;
 }
 
 export type OwnTournamentMatchCounts = {
@@ -1102,22 +1075,24 @@ export async function updateOwnTournamentSlotSchedule(params: {
   phase?: string | null;
   homeTeam?: string | null;
   awayTeam?: string | null;
+  opponentName?: string | null;
   provider?: string | null;
   externalMatchId?: string | null;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('tournament_matches')
-    .update({
-      kickoff_at: params.kickoffAtIso,
-      pitch: safeOptionalText(params.pitch),
-      group_label: safeOptionalText(params.groupLabel),
-      phase: safeOptionalText(params.phase),
-      home_team: safeOptionalText(params.homeTeam),
-      away_team: safeOptionalText(params.awayTeam),
-      provider: safeOptionalText(params.provider),
-      external_match_id: safeOptionalText(params.externalMatchId),
-    })
-    .eq('id', params.slotId);
+  const payload: Record<string, unknown> = {
+    kickoff_at: params.kickoffAtIso,
+    pitch: safeOptionalText(params.pitch),
+    group_label: safeOptionalText(params.groupLabel),
+    phase: safeOptionalText(params.phase),
+    home_team: safeOptionalText(params.homeTeam),
+    away_team: safeOptionalText(params.awayTeam),
+    provider: safeOptionalText(params.provider),
+    external_match_id: safeOptionalText(params.externalMatchId),
+  };
+  const opponentName = safeOptionalText(params.opponentName);
+  if (opponentName) payload.opponent_name = opponentName;
+
+  const { error } = await supabase.from('tournament_matches').update(payload).eq('id', params.slotId);
   return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
 

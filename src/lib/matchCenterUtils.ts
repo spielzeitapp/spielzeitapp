@@ -64,6 +64,41 @@ export function pickNextSportingEvent(events: EventRow[], now: Date): EventRow |
   return upcoming[0] ?? null;
 }
 
+function isSameViennaCalendarDay(isoA: string, isoB: Date): boolean {
+  const fmt = (d: Date) =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Vienna',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+  const dayA = fmt(new Date(isoA));
+  const dayB = fmt(isoB);
+  return dayA === dayB && dayA !== 'Invalid Date';
+}
+
+/**
+ * Aktives Turnier HEUTE (oder kürzlich gestartet), auch wenn starts_at schon vorbei ist.
+ * Verhindert, dass ein Meisterschaftsspiel in Wochen den Live-Tab übernimmt.
+ */
+export function pickActiveTournamentDayEvent(events: EventRow[], now: Date): EventRow | null {
+  const nowMs = now.getTime();
+  const candidates = events
+    .filter((e) => {
+      if (e.kind !== 'tournament') return false;
+      if (!isEventPubliclyVisible(e)) return false;
+      if (isCanceledOrFinished(e)) return false;
+      if (!e.starts_at?.trim()) return false;
+      const startMs = new Date(e.starts_at).getTime();
+      if (Number.isNaN(startMs)) return false;
+      if (isSameViennaCalendarDay(e.starts_at, now)) return true;
+      const hoursSinceStart = (nowMs - startMs) / 3_600_000;
+      return startMs <= nowMs && hoursSinceStart <= 36;
+    })
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  return candidates[0] ?? null;
+}
+
 export function computeMatchCenterCountdown(
   startsAtIso: string | null | undefined,
   now: Date,

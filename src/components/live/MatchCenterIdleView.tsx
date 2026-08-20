@@ -5,6 +5,9 @@ import {
   fetchTournamentMatchSlots,
   fetchTournamentParticipants,
   computeTournamentHeroSummary,
+  isAwaitingNextTournamentRound,
+  isOwnPlayableTournamentSlot,
+  ourTournamentScheduleSlots,
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
 import { fetchTournamentCompletion } from '../../lib/tournamentCompletion';
@@ -17,7 +20,10 @@ import {
   type MatchCenterParticipant,
   type TournamentParticipantRow,
 } from '../../lib/matchCenterTournamentVisuals';
-import { pickNextSportingEvent } from '../../lib/matchCenterUtils';
+import {
+  pickActiveTournamentDayEvent,
+  pickNextSportingEvent,
+} from '../../lib/matchCenterUtils';
 import { resolveTeamSeasonLabelParts } from '../../lib/seasonLifecycle';
 import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from './LivePremiumShell';
 import { PremiumEmptyState } from '../../ui';
@@ -25,6 +31,7 @@ import { MatchCenterNextMatchCard } from './MatchCenterNextMatchCard';
 import { MatchCenterTournamentCard } from './MatchCenterTournamentCard';
 import { MatchCenterActiveTournamentLiveCard } from './MatchCenterActiveTournamentLiveCard';
 import { subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
+import { pickNextOpenTournamentSlot } from '../../lib/tournamentDayOrchestrator';
 
 type Props = {
   isFan: boolean;
@@ -71,12 +78,19 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     };
   }, []);
 
-  const nextSporting = useMemo(
-    () => (eventsLoading || activeLiveContext ? null : pickNextSportingEvent(events, now)),
+  const activeTournamentDay = useMemo(
+    () => (eventsLoading || activeLiveContext ? null : pickActiveTournamentDayEvent(events, now)),
     [events, eventsLoading, activeLiveContext, now],
   );
+
+  const nextSporting = useMemo(() => {
+    if (eventsLoading || activeLiveContext || activeTournamentDay) return null;
+    return pickNextSportingEvent(events, now);
+  }, [events, eventsLoading, activeLiveContext, activeTournamentDay, now]);
+
   const nextMatch = nextSporting?.kind === 'match' ? nextSporting : null;
   const nextTournament = nextSporting?.kind === 'tournament' ? nextSporting : null;
+  const featuredTournament = activeTournamentDay ?? nextTournament;
 
   useEffect(() => {
     if (!teamSeasonId || eventsLoading) {
@@ -113,7 +127,7 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
   }, [teamSeasonId, events, eventsLoading, now, prioritizedLiveMatchId]);
 
   useEffect(() => {
-    if (!nextTournament) {
+    if (!featuredTournament) {
       setParticipants([]);
       setSlots([]);
       setTeamCount(null);
@@ -128,9 +142,9 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
 
     void (async () => {
       const [participantsRes, slotsRes, completionRes] = await Promise.all([
-        fetchTournamentParticipants(nextTournament.id),
-        fetchTournamentMatchSlots(nextTournament.id),
-        fetchTournamentCompletion(nextTournament.id),
+        fetchTournamentParticipants(featuredTournament.id),
+        fetchTournamentMatchSlots(featuredTournament.id),
+        fetchTournamentCompletion(featuredTournament.id),
       ]);
       if (cancelled) return;
 
@@ -159,7 +173,30 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     return () => {
       cancelled = true;
     };
-  }, [nextTournament?.id]);
+  }, [featuredTournament?.id]);
+
+  const ownSlots = useMemo(() => ourTournamentScheduleSlots(slots), [slots]);
+  const awaitingNext = useMemo(
+    () =>
+      Boolean(activeTournamentDay) &&
+      !tournamentCompleted &&
+      isAwaitingNextTournamentRound({ ownSlots, allSlots: slots }),
+    [activeTournamentDay, tournamentCompleted, ownSlots, slots],
+  );
+  const nextOwnSlot = useMemo(() => {
+    if (!activeTournamentDay || tournamentCompleted || awaitingNext) return null;
+    return pickNextOpenTournamentSlot(ownSlots.filter(isOwnPlayableTournamentSlot));
+  }, [activeTournamentDay, tournamentCompleted, awaitingNext, ownSlots]);
+
+  const liveDayMode = activeTournamentDay
+    ? awaitingNext
+      ? 'awaiting_next_round'
+      : nextOwnSlot
+        ? 'next_own_match'
+        : tournamentCompleted
+          ? 'completed'
+          : 'active'
+    : 'upcoming';
 
   const subtitle = isFan
     ? 'Sobald dein Team live spielt, erscheint der Liveticker hier.'
@@ -182,12 +219,20 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     );
   }
 
-  if (nextTournament) {
+  if (featuredTournament && !tournamentCompleted) {
+    const headerSubtitle =
+      liveDayMode === 'awaiting_next_round'
+        ? 'Vorrunde beendet — warte auf nächstes Spiel'
+        : liveDayMode === 'next_own_match'
+          ? 'Nächstes Turnierspiel'
+          : activeTournamentDay
+            ? 'Aktives Turnier'
+            : 'Nächstes Turnier';
     return (
       <LivePremiumShell matchCenter>
-        <LivePageHeader title="Match Center" subtitle="Nächstes Turnier" />
+        <LivePageHeader title="Match Center" subtitle={headerSubtitle} />
         <MatchCenterTournamentCard
-          event={nextTournament}
+          event={featuredTournament}
           ourTeamName={teamName}
           now={now}
           teamCount={teamCount}
@@ -196,6 +241,9 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
           slots={slots}
           tournamentCompleted={tournamentCompleted}
           loadingExtras={tournamentExtrasLoading}
+          liveDayMode={liveDayMode}
+          nextOwnSlot={nextOwnSlot}
+          isFan={isFan}
         />
       </LivePremiumShell>
     );

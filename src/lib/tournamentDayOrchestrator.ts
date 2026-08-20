@@ -231,7 +231,7 @@ export function resolveTournamentOrchestrator(params: {
         ctas,
         showLineupReadyMark: false,
         footerHint:
-          'Die nächste Turnierphase wird aktualisiert. Sobald Halbfinale, Finale oder Platzierungsspiel feststeht, erscheint dein nächstes Spiel automatisch.',
+          'Die nächste Turnierphase wird aktualisiert. Sobald das nächste Spiel feststeht, erscheint es automatisch.',
       };
     }
 

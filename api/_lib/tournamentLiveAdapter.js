@@ -149,10 +149,21 @@ function extractJsonCandidatesFromHtml(html) {
 }
 
 function isPlaceholderAssignment(name) {
-  const n = String(name ?? '').trim();
+  const n = String(name ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
   if (!n) return true;
+  if (/^(tbd|n\/?a|\?+|-+|–+|—+)$/i.test(n)) return true;
+  if (/gewinner|sieger|verlierer|loser|winner|runner.?up|bye\b/i.test(n)) return true;
+  if (/^(1|2|3|4|5|6|7|8)\.\s*(gruppe|group|platz|place)\b/i.test(n)) return true;
+  if (/^p\s*[1-8]\b/i.test(n)) return true;
+  if (/^(gruppe|group)\s*[a-d0-9]+\b/i.test(n) && /platz|place|sieger|gewinner|[1-4]\./i.test(n)) {
+    return true;
+  }
+  if (/^(hf|vf|af|sf|f)\s*\d*$/i.test(n)) return true;
+  if (/^(spiel|match)\s*(um\s*)?platz\s*\d+/i.test(n)) return true;
   if (/^platz\s+\d+/i.test(n)) return true;
-  if (/sieger|verlierer|gewinner|winner|loser|bye/i.test(n)) return true;
   return false;
 }
 
@@ -171,8 +182,12 @@ function parseGoal(value) {
 }
 
 function extractScores(item) {
-  const home = parseGoal(item.result1 ?? item.score1 ?? item.goals1);
-  const away = parseGoal(item.result2 ?? item.score2 ?? item.goals2);
+  const home = parseGoal(
+    item.result1 ?? item.score1 ?? item.goals1 ?? item.assignment1ScoredGoals,
+  );
+  const away = parseGoal(
+    item.result2 ?? item.score2 ?? item.goals2 ?? item.assignment2ScoredGoals,
+  );
   if (home == null || away == null) {
     return { hasResult: false, homeGoals: null, awayGoals: null };
   }
@@ -281,7 +296,11 @@ export function parseTournamentLiveResults(resultsJson, meta = {}) {
         hasResult: scores.hasResult,
         homeGoals: scores.homeGoals,
         awayGoals: scores.awayGoals,
-        externalMatchId: String(match._id ?? match.id ?? `g${match.gameNumber ?? ''}-${kickoffFromItem(match)}-${homeTeam}-${awayTeam}`),
+        externalMatchId: String(
+          match._id ??
+            match.id ??
+            `g${match.gameNumber ?? ''}|${kickoffFromItem(match)}|${field || 'x'}|${phase}`,
+        ),
       });
     }
   }

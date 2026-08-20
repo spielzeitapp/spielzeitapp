@@ -103,6 +103,9 @@ type LiveScheduleItem = {
   score2?: string | number | null;
   goals1?: string | number | null;
   goals2?: string | number | null;
+  /** Real TURNIERlive results payload (not result1/result2). */
+  assignment1ScoredGoals?: string | number | null;
+  assignment2ScoredGoals?: string | number | null;
 };
 
 type LiveResultItem = {
@@ -262,10 +265,19 @@ function extractJsonCandidatesFromHtml(html: string): unknown[] {
 }
 
 function isPlaceholderAssignment(name: string): boolean {
-  const n = name.trim();
+  // Keep in sync with tournamentUnresolvedTeam — avoid importing React/supabase graph into API path.
+  const n = name.trim().toLowerCase().replace(/\s+/g, ' ');
   if (!n) return true;
+  if (/^(tbd|n\/?a|\?+|-+|–+|—+)$/i.test(n)) return true;
+  if (/gewinner|sieger|verlierer|loser|winner|runner.?up|bye\b/i.test(n)) return true;
+  if (/^(1|2|3|4|5|6|7|8)\.\s*(gruppe|group|platz|place)\b/i.test(n)) return true;
+  if (/^p\s*[1-8]\b/i.test(n)) return true;
+  if (/^(gruppe|group)\s*[a-d0-9]+\b/i.test(n) && /platz|place|sieger|gewinner|[1-4]\./i.test(n)) {
+    return true;
+  }
+  if (/^(hf|vf|af|sf|f)\s*\d*$/i.test(n)) return true;
+  if (/^(spiel|match)\s*(um\s*)?platz\s*\d+/i.test(n)) return true;
   if (/^platz\s+\d+/i.test(n)) return true;
-  if (/sieger|verlierer|gewinner|winner|loser|bye/i.test(n)) return true;
   return false;
 }
 
@@ -288,8 +300,13 @@ function extractScores(item: LiveScheduleItem): {
   homeGoals: number | null;
   awayGoals: number | null;
 } {
-  const home = parseGoal(item.result1 ?? item.score1 ?? item.goals1);
-  const away = parseGoal(item.result2 ?? item.score2 ?? item.goals2);
+  // TURNIERlive real payload uses assignment1ScoredGoals / assignment2ScoredGoals.
+  const home = parseGoal(
+    item.result1 ?? item.score1 ?? item.goals1 ?? item.assignment1ScoredGoals,
+  );
+  const away = parseGoal(
+    item.result2 ?? item.score2 ?? item.goals2 ?? item.assignment2ScoredGoals,
+  );
   if (home == null || away == null) {
     return { hasResult: false, homeGoals: null, awayGoals: null };
   }
@@ -401,7 +418,13 @@ export function parseTournamentLiveResults(
         hasResult: scores.hasResult,
         homeGoals: scores.homeGoals,
         awayGoals: scores.awayGoals,
-        externalMatchId: String(match._id ?? match.id ?? `g${match.gameNumber ?? ''}-${kickoffFromItem(match)}-${homeTeam}-${awayTeam}`),
+        // Prefer stable provider _id. Fallback must NOT include team names
+        // (placeholder → concrete would otherwise change identity and create duplicates).
+        externalMatchId: String(
+          match._id ??
+            match.id ??
+            `g${match.gameNumber ?? ''}|${kickoffFromItem(match)}|${field || 'x'}|${phase}`,
+        ),
       });
     }
   }

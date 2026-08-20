@@ -103,7 +103,10 @@ export async function syncOfficialTournamentPlan(params: {
     }
 
     const changed =
-      result.importedTeams > 0 || result.importedMatches > 0 || result.updatedResults > 0;
+      result.importedTeams > 0 ||
+      result.importedMatches > 0 ||
+      result.updatedResults > 0 ||
+      Boolean(params.force);
     return { ok: true, skipped: false, changed, error: null, syncedAt: lastSyncAtByEvent.get(eventId) ?? null };
   } catch (err) {
     return {
