@@ -2839,4 +2839,3 @@ COMMIT;
 -- team_venues erhalten, keine Club-Admin-RPCs angelegt.
 -- Danach in Cursor: „Production-SQL erfolgreich – FINAL LIVE GO“
 -- =============================================================================
-
