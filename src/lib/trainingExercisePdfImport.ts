@@ -5,6 +5,9 @@ import type { ExerciseFocus, TrainingPhase } from './trainingPhases';
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
 async function loadPdfJs() {
+  if (typeof document === 'undefined') {
+    return import('pdfjs-dist/legacy/build/pdf.mjs');
+  }
   const pdfjs = await import('pdfjs-dist');
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   return pdfjs;
@@ -14,6 +17,13 @@ type TextToken = {
   text: string;
   x: number;
   y: number;
+  width: number;
+};
+
+type PdfPageData = {
+  page: PDFPageProxy;
+  tokens: TextToken[];
+  lines: string[];
   width: number;
 };
 
@@ -67,8 +77,31 @@ function textBetween(lines: string[], start: RegExp, end: RegExp): string {
   return normalize(collected.filter((line) => !/Niederösterreichischer Fußballverband/i.test(line)).join(' '));
 }
 
+function compactHeading(value: string): string {
+  return normalize(value).replace(/\s+/g, '').replace(/[·:]/g, '').toLowerCase();
+}
+
+function textAfterHeading(
+  lines: string[],
+  startHeading: string,
+  endHeadings: string[],
+): string {
+  const start = compactHeading(startHeading);
+  const ends = endHeadings.map(compactHeading);
+  const startIndex = lines.findIndex((line) => compactHeading(line) === start);
+  if (startIndex < 0) return '';
+  const collected: string[] = [];
+  for (let index = startIndex + 1; index < lines.length; index += 1) {
+    const compact = compactHeading(lines[index]);
+    if (ends.some((heading) => compact === heading || compact.startsWith(heading))) break;
+    if (/^AI FOOTBALL COACH/i.test(lines[index]) || /^Seite\s+\d/i.test(lines[index])) break;
+    collected.push(lines[index]);
+  }
+  return normalize(collected.join(' '));
+}
+
 function materialSummary(tokens: TextToken[]): string {
-  const labels = ['Bälle', 'Überzieher', 'Scheiben', 'Hütchen', 'Stangen', 'Tor 5 X 2 M', 'Tor 7,32 X 2,44 M'];
+  const labels = ['Bälle', 'Überzieher', 'Scheiben', 'Hütchen', 'Ringe', 'Stangen', 'Tor 5 X 2 M', 'Tor 7,32 X 2,44 M'];
   const values = labels.flatMap((label) => {
     const token = tokens.find((candidate) => normalize(candidate.text).toLowerCase() === label.toLowerCase());
     if (!token) return [];
@@ -103,6 +136,7 @@ async function extractSketch(
   tokens: TextToken[],
   pageWidth: number,
 ): Promise<Blob | null> {
+  if (typeof document === 'undefined') return null;
   const descriptionHeader = tokens.find((token) => /Beschreibung/i.test(token.text));
   const coachingHeader = tokens.find((token) => /Coachingpunkte/i.test(token.text));
   if (!descriptionHeader || !coachingHeader || descriptionHeader.y <= coachingHeader.y) return null;
@@ -137,6 +171,47 @@ async function extractSketch(
   return canvasToBlob(crop);
 }
 
+async function extractCoachTemplateSketch(page: PDFPageProxy): Promise<Blob | null> {
+  if (typeof document === 'undefined') return null;
+  const scale = 2;
+  const viewport = page.getViewport({ scale });
+  const rendered = document.createElement('canvas');
+  rendered.width = Math.ceil(viewport.width);
+  rendered.height = Math.ceil(viewport.height);
+  const context = rendered.getContext('2d');
+  if (!context) return null;
+  await page.render({ canvas: rendered, canvasContext: context, viewport }).promise;
+
+  // AI-Football-Coach-Vorlage: Spielfeldskizze zwischen Schwerpunktbox und Ablaufblock.
+  const sourceX = Math.floor(rendered.width * 0.075);
+  const sourceY = Math.floor(rendered.height * 0.345);
+  const sourceWidth = Math.floor(rendered.width * 0.85);
+  const sourceHeight = Math.floor(rendered.height * 0.4);
+  const crop = document.createElement('canvas');
+  crop.width = sourceWidth;
+  crop.height = sourceHeight;
+  const cropContext = crop.getContext('2d');
+  if (!cropContext) return null;
+  cropContext.fillStyle = '#ffffff';
+  cropContext.fillRect(0, 0, crop.width, crop.height);
+  cropContext.drawImage(rendered, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  return canvasToBlob(crop);
+}
+
+function phaseFromText(text: string): TrainingPhase[] {
+  const compact = compactHeading(text);
+  if (compact.includes('aufwärmen')) return ['AW'];
+  if (compact.includes('schlussteil') || compact.includes('abschluss')) return ['AK'];
+  return ['HT1'];
+}
+
+function playerCountFromTitle(title: string): { min: string; max: string } {
+  const match = title.match(/(\d+)\s*vs\s*(\d+)(?:\s*\+\s*(\d+))?/i);
+  if (!match) return { min: '', max: '' };
+  const total = Number(match[1]) + Number(match[2]) + Number(match[3] ?? 0);
+  return { min: String(total), max: String(total) };
+}
+
 export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedExerciseDraft> {
   if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
     throw new Error('Bitte eine PDF-Datei auswählen.');
@@ -149,9 +224,9 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
   const pdf = await documentTask.promise;
   if (pdf.numPages < 1) throw new Error('Die PDF enthält keine lesbare Seite.');
 
-  let selectedPage = await pdf.getPage(1);
-  let selectedTokens: TextToken[] = [];
-  let selectedLines: string[] = [];
+  const metadata = await pdf.getMetadata().catch(() => null);
+  const info = metadata?.info as { Author?: string; CreationDate?: string; Title?: string } | undefined;
+  const pages: PdfPageData[] = [];
   const documentLines: string[] = [];
   for (let pageNumber = 1; pageNumber <= Math.min(pdf.numPages, 12); pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
@@ -162,38 +237,81 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     });
     const lines = linesFromTokens(tokens);
     documentLines.push(...lines);
-    if (lines.some((line) => /Beschreibung/i.test(line)) && lines.some((line) => /Coachingpunkte/i.test(line))) {
-      selectedPage = page;
-      selectedTokens = tokens;
-      selectedLines = lines;
-      break;
-    }
+    pages.push({ page, tokens, lines, width: page.getViewport({ scale: 1 }).width });
   }
-  if (!selectedTokens.length) {
-    throw new Error('Keine einzelne Übung mit „Beschreibung“ und „Coachingpunkte“ erkannt.');
-  }
-
-  const viewport = selectedPage.getViewport({ scale: 1 });
-  const fullText = selectedLines.join('\n');
   const sourceText = documentLines.join('\n');
-  const leftLines = linesFromTokens(selectedTokens, 28, viewport.width * 0.53);
-  const rightLines = linesFromTokens(selectedTokens, viewport.width * 0.58, viewport.width - 20);
+  const cardPage = pages.find(
+    (candidate) =>
+      candidate.lines.some((line) => /Beschreibung/i.test(line)) &&
+      candidate.lines.some((line) => /Coachingpunkte/i.test(line)),
+  );
+  const coachOverviewPage = pages.find((candidate) =>
+    candidate.lines.some((line) => compactHeading(line).includes('ablauf&beschreibung')),
+  );
+  const coachDetailPage = pages.find(
+    (candidate) =>
+      candidate.lines.some((line) => compactHeading(line) === 'ablauf') &&
+      candidate.lines.some((line) => compactHeading(line) === 'coachingpunkte'),
+  );
 
-  const title = firstMatch(fullText, /[„“\"]([^„“\"\n]{2,80})[„“\"]/);
-  const theme = firstMatch(fullText, /Thema:\s*([^\n]+)/i).split(/Altersbereich:/i)[0].trim();
-  const ageGroup = firstMatch(fullText, /Altersbereich:\s*([^\n]+)/i).split(/Spieler/i)[0].trim();
-  const players = fullText.match(/Spieler[_\s-]*innenanzahl:\s*(\d+)\s*[-–]\s*(\d+)/i);
-  const load = firstMatch(fullText, /Belastung:\s*([^\n]+)/i).split(/Material:/i)[0].trim();
-  const field = firstMatch(fullText, /Feldgröße:\s*([^\n]+)/i);
-  const description = textBetween(leftLines, /Beschreibung/i, /Coachingpunkte/i);
-  const coachingPoints = textBetween(leftLines, /Coachingpunkte/i, /Video QR|Videolink/i);
-  const variations = textBetween(rightLines, /Variation/i, /Video QR|Videolink/i);
-  const links = Array.from(fullText.matchAll(/https?:\/\/\S+/g), (match) => match[0].replace(/[),.;]+$/, ''));
+  let title = '';
+  let theme = '';
+  let ageGroup = '';
+  let description = '';
+  let coachingPoints = '';
+  let variations = '';
+  let organization = '';
+  let materials = '';
+  let suitablePhases: TrainingPhase[] = ['HT1'];
+  let playerCountMin = '';
+  let playerCountMax = '';
+  let sketch: Blob | null = null;
 
-  const materials = materialSummary(selectedTokens);
+  if (cardPage) {
+    const fullText = cardPage.lines.join('\n');
+    const leftLines = linesFromTokens(cardPage.tokens, 20, cardPage.width * 0.53);
+    const rightLines = linesFromTokens(cardPage.tokens, cardPage.width * 0.58, cardPage.width - 20);
+    const players = fullText.match(/Spieler[_\s-]*innenanzahl:\s*(\d+)\s*[-–]\s*(\d+)/i);
+    const load = firstMatch(fullText, /Belastung:\s*([^\n]+)/i).split(/Material:/i)[0].trim();
+    const field = firstMatch(fullText, /Feldgröße:\s*([^\n]+)/i);
+    title = firstMatch(fullText, /[„“\"]([^„“\"\n]{2,80})[„“\"]/);
+    theme = firstMatch(fullText, /Thema:\s*([^\n]+)/i).split(/Altersbereich:/i)[0].trim();
+    ageGroup = firstMatch(fullText, /Altersbereich:\s*([^\n]+)/i).split(/Spieler/i)[0].trim();
+    description = textBetween(leftLines, /Beschreibung/i, /Coachingpunkte/i);
+    coachingPoints = textBetween(leftLines, /Coachingpunkte/i, /Video QR|Videolink/i);
+    variations = textBetween(rightLines, /Variation/i, /Video QR|Videolink/i);
+    organization = [field ? `Feld: ${field}` : '', load ? `Belastung: ${load}` : ''].filter(Boolean).join('\n');
+    materials = materialSummary(cardPage.tokens);
+    playerCountMin = players?.[1] ?? '';
+    playerCountMax = players?.[2] ?? '';
+    sketch = await extractSketch(cardPage.page, cardPage.tokens, cardPage.width);
+  } else if (coachOverviewPage && coachDetailPage) {
+    title = normalize(info?.Title ?? '') || file.name.replace(/\.pdf$/i, '');
+    const categoryLine = coachOverviewPage.lines.find((line) => /Spielaufbau|Ballbesitzspiel/i.test(line)) ?? '';
+    theme = firstMatch(categoryLine, /(.+?)(?=Alle Altersklassen|U\d+)/i) || categoryLine;
+    const ageLine = coachOverviewPage.lines.find((line) => /Alle Altersklassen|U\d+/i.test(line)) ?? '';
+    ageGroup = /Alle Altersklassen/i.test(ageLine)
+      ? 'Alle Altersklassen'
+      : firstMatch(ageLine, /(U\d+(?:\s*[-–]\s*U\d+)?)/i);
+    organization = textAfterHeading(coachOverviewPage.lines, 'Organisation', ['Ablauf']);
+    description = textAfterHeading(coachDetailPage.lines, 'Ablauf', ['Coachingpunkte']);
+    coachingPoints = textAfterHeading(coachDetailPage.lines, 'Coachingpunkte', ['Variationen']);
+    variations = textAfterHeading(coachDetailPage.lines, 'Variationen', []);
+    suitablePhases = phaseFromText(sourceText);
+    const count = playerCountFromTitle(title);
+    playerCountMin = count.min;
+    playerCountMax = count.max;
+    const genericMaterials = [
+      /Ersatzbälle|Ball\b/i.test(sourceText) ? 'Bälle' : '',
+      /markieren/i.test(sourceText) ? 'Hütchen' : '',
+      /Großtor/i.test(sourceText) ? '2 Großtore' : '',
+      /Mannschaft/i.test(sourceText) ? 'Überzieher' : '',
+    ].filter(Boolean);
+    materials = genericMaterials.join(', ');
+    sketch = await extractCoachTemplateSketch(coachOverviewPage.page);
+  }
 
-  const metadata = await pdf.getMetadata().catch(() => null);
-  const info = metadata?.info as { Author?: string; CreationDate?: string } | undefined;
+  const links = Array.from(sourceText.matchAll(/https?:\/\/\S+/g), (match) => match[0].replace(/[),.;]+$/, ''));
   const published = firstMatch(sourceText, /veröffentlicht am\s*(\d{2}\.\d{2}\.\d{4})/i);
   const formNumber = firstMatch(sourceText, /Trainingsform\s*(\d+)/i);
   const sourceParts = [
@@ -202,7 +320,6 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     info?.Author ? `Autor: ${info.Author}` : '',
   ].filter(Boolean);
 
-  const sketch = await extractSketch(selectedPage, selectedTokens, viewport.width);
   await documentTask.destroy();
 
   if (!title || !description) {
@@ -213,13 +330,13 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     title,
     description,
     focus: inferFocus(title, theme, description),
-    suitablePhases: ['HT1'],
+    suitablePhases,
     ageGroup,
     durationMinutes: 15,
-    playerCountMin: players?.[1] ?? '',
-    playerCountMax: players?.[2] ?? '',
+    playerCountMin,
+    playerCountMax,
     materials,
-    organization: [field ? `Feld: ${field}` : '', load ? `Belastung: ${load}` : ''].filter(Boolean).join('\n'),
+    organization,
     coachingPoints,
     variations: [variations, ...links.map((link) => `Video: ${link}`)].filter(Boolean).join('\n'),
     sourceReference: sourceParts.join(' · '),

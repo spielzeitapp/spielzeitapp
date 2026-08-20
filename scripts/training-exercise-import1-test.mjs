@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { createServer } from 'vite';
 
 const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -22,22 +22,34 @@ assert.match(storage, /source_type: input\.sourceType \?\? 'club'/);
 assert.match(migration, /'training-exercise-media'[\s\S]*false,/);
 assert.match(migration, /can_manage_club_venues/);
 
-const samplePath = process.env.TRAINING_IMPORT_SAMPLE_PDF;
-if (samplePath) {
-  const data = new Uint8Array(fs.readFileSync(samplePath));
-  const pdf = await pdfjs.getDocument({ data, disableWorker: true }).promise;
-  const pages = [];
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    const pageProxy = await pdf.getPage(pageNumber);
-    const content = await pageProxy.getTextContent();
-    pages.push(content.items.flatMap((item) => ('str' in item ? [item.str] : [])).join(' '));
+const samplePaths = process.argv.slice(2);
+if (samplePaths.length) {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
+  try {
+    const { analyzeTrainingExercisePdf } = await vite.ssrLoadModule('/src/lib/trainingExercisePdfImport.ts');
+    for (const samplePath of samplePaths) {
+      const bytes = fs.readFileSync(samplePath);
+      const file = new File([bytes], path.basename(samplePath), { type: 'application/pdf' });
+      const draft = await analyzeTrainingExercisePdf(file);
+      assert.ok(draft.title.length >= 3, `${path.basename(samplePath)}: title`);
+      assert.ok(draft.description.length >= 20, `${path.basename(samplePath)}: description`);
+      assert.ok(draft.coachingPoints.length >= 10, `${path.basename(samplePath)}: coaching points`);
+      if (/Karteikarte 17/.test(samplePath)) {
+        assert.equal(draft.title, 'schneller & weiter');
+        assert.equal(draft.playerCountMin, '10');
+        assert.match(draft.materials, /Ringe: 2\s*-\s*4/);
+      }
+      if (/5vs5\+3/.test(samplePath)) {
+        assert.match(draft.title, /5vs5 \+ 3/);
+        assert.equal(draft.suitablePhases[0], 'AK');
+        assert.equal(draft.playerCountMin, '13');
+        assert.match(draft.organization, /20 x 25 Meter/);
+        assert.match(draft.variations, /10 Ballkontakte/);
+      }
+    }
+  } finally {
+    await vite.close();
   }
-  const text = pages.join('\n').replace(/\s+/g, ' ');
-  assert.match(text, /1\. Kontakt/);
-  assert.match(text, /Beschreibung/);
-  assert.match(text, /Coachingpunkte/);
-  assert.match(text, /Spieler_innenanzahl:\s*4\s*-\s*20/);
-  assert.match(text, /youtu\.be\/O8ZUBbX0WJg/);
 }
 
-console.log(`training-exercise-import1: ok${samplePath ? ' (inkl. Beispiel-PDF)' : ''}`);
+console.log(`training-exercise-import1: ok${samplePaths.length ? ` (inkl. ${samplePaths.length} Beispiel-PDFs)` : ''}`);
