@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from './ui/Button';
 import { Modal } from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
@@ -23,7 +23,10 @@ import {
   EventTimeField,
   EVENT_FORM_INPUT_CLASS,
   EVENT_FORM_LABEL_CLASS,
+  OpponentLogoField,
 } from '../../components/events';
+import { ensureOpponentCatalogEntry } from '../../lib/opponentCatalog';
+import { isPlaceholderLogoUrl } from '../../lib/teamLogos';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -40,6 +43,7 @@ function sanitizeEventsInsertRow(row: Record<string, unknown>): Record<string, u
   const nullableStringKeys = new Set([
     'location',
     'opponent',
+    'opponent_logo_url',
     'notes',
     'meeting_at',
     'created_by',
@@ -132,6 +136,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   });
   const [useExternalLocation, setUseExternalLocation] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [opponentLogoUrl, setOpponentLogoUrl] = useState<string | null>(null);
+  const [clubId, setClubId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [eventTypeLocal, setEventTypeLocal] = useState<
     'game' | 'training' | 'event' | 'other' | 'tournament'
@@ -151,7 +158,28 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     setFacilitySelection({ fieldId: null, zoneId: null });
     setUseExternalLocation(false);
     setError(null);
+    setLogoUploadError(null);
+    setOpponentLogoUrl(null);
   };
+
+  const onOpponentLogoUrlChange = useCallback((url: string | null) => {
+    setOpponentLogoUrl(url);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || !teamSeasonId) {
+      setClubId(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const res = await resolveClubIdForTeamSeason(teamSeasonId);
+      if (!cancelled) setClubId(res.clubId);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, teamSeasonId]);
 
   const handleClose = () => {
     resetForm();
@@ -304,6 +332,13 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           attendance_mode: form.participation_mode,
           created_by: user?.id ?? null,
         };
+        if (eventTypeLocal === 'game') {
+          const logo =
+            opponentLogoUrl && !isPlaceholderLogoUrl(opponentLogoUrl)
+              ? opponentLogoUrl.trim()
+              : null;
+          payload.opponent_logo_url = logo;
+        }
         if (notesVal) payload.notes = notesVal;
         return sanitizeEventsInsertRow(payload);
       };
@@ -325,18 +360,46 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         .insert(rows)
         .select('*');
 
-      if (eventErr) {
-        const pe = eventErr as { message: string; details?: string; hint?: string; code?: string };
+      let insertError = eventErr;
+      let finalInserted = insertedRows;
+      if (insertError && /opponent_logo_url|column|schema cache/i.test(insertError.message)) {
+        const rowsWithoutLogo = rows.map((row) => {
+          const { opponent_logo_url: _ignored, ...rest } = row;
+          return rest;
+        });
+        const retry = await supabase.from('events').insert(rowsWithoutLogo).select('*');
+        insertError = retry.error;
+        finalInserted = retry.data;
+      }
+
+      if (insertError) {
+        const pe = insertError as { message: string; details?: string; hint?: string; code?: string };
         console.error('[reminderPipeline] events.insert failed', {
           message: pe.message,
           details: pe.details,
           hint: pe.hint,
           code: pe.code,
-          raw: eventErr,
+          raw: insertError,
         });
-        setError(eventErr.message);
+        setError(insertError.message);
         setCreating(false);
         return;
+      }
+
+      if (
+        eventTypeLocal === 'game' &&
+        opponentVal &&
+        clubId
+      ) {
+        const logo =
+          opponentLogoUrl && !isPlaceholderLogoUrl(opponentLogoUrl)
+            ? opponentLogoUrl.trim()
+            : null;
+        await ensureOpponentCatalogEntry({
+          clubId,
+          displayName: opponentVal,
+          logoUrl: logo,
+        });
       }
 
       if (
@@ -344,12 +407,12 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         (eventTypeLocal === 'training' || (eventTypeLocal === 'game' && form.is_home)) &&
         selectedVenue?.id &&
         facilitySelection.fieldId &&
-        Array.isArray(insertedRows) &&
-        insertedRows.length > 0
+        Array.isArray(finalInserted) &&
+        finalInserted.length > 0
       ) {
         const clubRes = await resolveClubIdForTeamSeason(teamSeasonId);
         if (clubRes.clubId) {
-          for (const ev of insertedRows as Array<{ id: string; starts_at: string; kind?: string; type?: string; notes?: string | null }>) {
+          for (const ev of finalInserted as Array<{ id: string; starts_at: string; kind?: string; type?: string; notes?: string | null }>) {
             const endsAt = defaultEventEndsAt({
               startsAtIso: ev.starts_at,
               kind: ev.kind ?? 'training',
@@ -382,8 +445,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
 
       console.log('[reminderPipeline] events.insert ok', {
-        rowCount: Array.isArray(insertedRows) ? insertedRows.length : 0,
-        ids: Array.isArray(insertedRows) ? insertedRows.map((r: { id?: string }) => r.id).filter(Boolean) : [],
+        rowCount: Array.isArray(finalInserted) ? finalInserted.length : 0,
+        ids: Array.isArray(finalInserted) ? finalInserted.map((r: { id?: string }) => r.id).filter(Boolean) : [],
       });
 
       // Kein Sofort-Push beim Anlegen: Erinnerungen laufen nur über notification_jobs + send-reminders
@@ -475,6 +538,19 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 placeholder="z. B. Team XY"
               />
             </div>
+            <OpponentLogoField
+              opponentName={form.opponent}
+              clubId={clubId}
+              logoUrl={opponentLogoUrl}
+              onLogoUrlChange={onOpponentLogoUrlChange}
+              disabled={creating}
+              onUploadError={setLogoUploadError}
+            />
+            {logoUploadError ? (
+              <p className="text-sm text-red-400" role="alert">
+                {logoUploadError}
+              </p>
+            ) : null}
             <div>
               <span className={labelClass}>Heim / Auswärts</span>
               <div className="flex gap-4 mt-1">

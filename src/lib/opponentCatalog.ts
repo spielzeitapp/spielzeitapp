@@ -175,6 +175,66 @@ export function resolveDisplayOpponentLogo(opts: {
   return getClubLogo(String(opts.opponent ?? '')) || PLACEHOLDER_LOGO;
 }
 
+/** Max. Dateigröße entspricht Bucket `opponent-logos` (2 MB). */
+export const OPPONENT_LOGO_MAX_BYTES = 2 * 1024 * 1024;
+
+const OPPONENT_LOGO_MIME = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+  'image/gif',
+]);
+
+export async function lookupOpponentCatalogLogo(
+  clubId: string,
+  opponentName: string,
+): Promise<string | null> {
+  const map = await fetchOpponentCatalogLogoMap(clubId, [opponentName]);
+  const key = normalizeOpponentKey(opponentName);
+  return map.get(key) ?? null;
+}
+
+/**
+ * Schreibt logo_url auf alle Match-Events der Team-Saison mit gleichem opponent_key
+ * (trim + lower-case, sichtbare Schreibweise bleibt am Event).
+ */
+export async function syncOpponentLogoToTeamSeasonMatches(opts: {
+  teamSeasonId: string;
+  opponentName: string;
+  logoUrl: string | null;
+}): Promise<{ updated: number; error: string | null }> {
+  const key = normalizeOpponentKey(opts.opponentName);
+  if (!key || !opts.teamSeasonId) return { updated: 0, error: null };
+
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, opponent')
+    .eq('team_season_id', opts.teamSeasonId)
+    .eq('kind', 'match');
+  if (error) {
+    if (/opponent_logo_url|column|schema cache/i.test(error.message)) {
+      return { updated: 0, error: null };
+    }
+    return { updated: 0, error: error.message };
+  }
+
+  const ids = (data ?? [])
+    .filter((row) => normalizeOpponentKey((row as { opponent?: string | null }).opponent) === key)
+    .map((row) => String((row as { id: string }).id));
+  if (ids.length === 0) return { updated: 0, error: null };
+
+  let { error: updErr } = await supabase
+    .from('events')
+    .update({ opponent_logo_url: opts.logoUrl })
+    .in('id', ids);
+  if (updErr && /opponent_logo_url|column|schema cache/i.test(updErr.message)) {
+    return { updated: 0, error: null };
+  }
+  if (updErr) return { updated: 0, error: updErr.message };
+  return { updated: ids.length, error: null };
+}
+
 export async function uploadOpponentLogoFile(opts: {
   clubId: string;
   opponentName: string;
@@ -182,6 +242,14 @@ export async function uploadOpponentLogoFile(opts: {
 }): Promise<{ publicUrl: string | null; error: string | null }> {
   const key = normalizeOpponentKey(opts.opponentName);
   if (!opts.clubId || !key) return { publicUrl: null, error: 'Gegner oder Club fehlt.' };
+
+  const mime = String(opts.file.type || '').toLowerCase();
+  if (mime && !OPPONENT_LOGO_MIME.has(mime)) {
+    return { publicUrl: null, error: 'Nur PNG, JPG, WebP oder GIF sind erlaubt.' };
+  }
+  if (opts.file.size > OPPONENT_LOGO_MAX_BYTES) {
+    return { publicUrl: null, error: 'Logo darf maximal 2 MB groß sein.' };
+  }
 
   const ext =
     opts.file.type === 'image/png'

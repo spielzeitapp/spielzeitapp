@@ -29,7 +29,9 @@ import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { assertTeamSeasonWritable, getTeamSeasonWritableState } from '../lib/seasonTransition';
 import { safeOptionalText, safeText } from '../lib/safeText';
-import { getClubLogo, getOurTeamDisplayName, getOurTeamLogoUrl } from '../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName, getOurTeamLogoUrl, isPlaceholderLogoUrl } from '../lib/teamLogos';
+import { setOpponentLogoForSeason } from '../lib/championshipFixtures';
+import { OpponentLogoField } from '../components/events';
 import {
   formatVisibleMatchEncounter,
   normalizeOefbImportedTeamName,
@@ -174,6 +176,7 @@ type EventDbRow = {
   attendance_mode: string | null;
   notes: string | null;
   match_id: string | null;
+  opponent_logo_url?: string | null;
   /** Optional: offizieller externer Turnierplan (Migration 20260615120000) */
   official_tournament_url?: string | null;
   fixture_status?: string | null;
@@ -183,7 +186,7 @@ type EventDbRow = {
 };
 
 const EVENTS_SELECT =
-  'id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, fixture_status, created_by, created_at, updated_at';
+  'id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, starts_at, meeting_at, status, attendance_mode, notes, match_id, opponent_logo_url, official_tournament_url, fixture_status, created_by, created_at, updated_at';
 
 
 function getDomainEventLabel(event: EventRow): string {
@@ -339,6 +342,7 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
     attendance_mode: (r.attendance_mode === 'opt_out' ? 'opt_out' : 'opt_in') as 'opt_in' | 'opt_out',
     notes: r.notes ?? null,
     match_id: r.match_id ?? null,
+    opponent_logo_url: r.opponent_logo_url ?? null,
     official_tournament_url: r.official_tournament_url ?? null,
     training_absence_deadline_disabled: null,
     fixture_status: (r.fixture_status === 'open' ||
@@ -410,6 +414,9 @@ export const EventDetailPage: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<EventRow | null>(null);
   const [editOpponent, setEditOpponent] = useState('');
+  const [editOpponentLogoUrl, setEditOpponentLogoUrl] = useState<string | null>(null);
+  const [editClubId, setEditClubId] = useState<string | null>(null);
+  const [editLogoUploadError, setEditLogoUploadError] = useState<string | null>(null);
   const [editSheetEventType, setEditSheetEventType] = useState<'event' | 'other'>('event');
   const [editTitle, setEditTitle] = useState('');
   const [editDateTime, setEditDateTime] = useState('');
@@ -625,6 +632,14 @@ export const EventDetailPage: React.FC = () => {
     if (err && /venue_id|column/i.test(String(err.message ?? ''))) {
       select =
         'id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, created_by, created_at, updated_at';
+      const retry = await supabase.from('events').select(select).eq('id', eventId).maybeSingle();
+      data = retry.data;
+      err = retry.error;
+    }
+
+    if (err && /opponent_logo_url|column|schema cache/i.test(String(err.message ?? ''))) {
+      select =
+        'id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, fixture_status, created_by, created_at, updated_at';
       const retry = await supabase.from('events').select(select).eq('id', eventId).maybeSingle();
       data = retry.data;
       err = retry.error;
@@ -1368,6 +1383,10 @@ export const EventDetailPage: React.FC = () => {
     [eventId, canTrainerManageEvent, loadEventAttendance, isDemo, demo],
   );
 
+  const onEditOpponentLogoUrlChange = useCallback((url: string | null) => {
+    setEditOpponentLogoUrl(url);
+  }, []);
+
   const openEditModal = useCallback(async (e: EventRow) => {
     if (isDemo) {
       alert('In der Demo nicht verfügbar');
@@ -1377,6 +1396,13 @@ export const EventDetailPage: React.FC = () => {
     const noteFields = parseEditableNotes(e.notes);
     setEditEvent(e);
     setEditOpponent(e.opponent ?? '');
+    setEditOpponentLogoUrl(
+      e.opponent_logo_url && !isPlaceholderLogoUrl(e.opponent_logo_url)
+        ? e.opponent_logo_url
+        : null,
+    );
+    setEditLogoUploadError(null);
+    setEditClubId(null);
     setEditSheetEventType((e.type === 'other' ? 'other' : 'event') as 'event' | 'other');
     setEditTitle(noteFields.title);
     setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
@@ -1391,6 +1417,9 @@ export const EventDetailPage: React.FC = () => {
     setEditUseExternalLocation(false);
     setEditError(null);
     setEditModalOpen(true);
+    void resolveClubIdForTeamSeason(e.team_season_id).then((res) => {
+      setEditClubId(res.clubId);
+    });
     const assignmentRes = await getAssignmentForEvent(e.id);
     if (assignmentRes.error) {
       setEditError(assignmentRes.error);
@@ -1426,6 +1455,9 @@ export const EventDetailPage: React.FC = () => {
     setEditModalOpen(false);
     setEditEvent(null);
     setEditOpponent('');
+    setEditOpponentLogoUrl(null);
+    setEditClubId(null);
+    setEditLogoUploadError(null);
     setEditSheetEventType('event');
     setEditTitle('');
     setEditDateTime('');
@@ -1486,6 +1518,13 @@ export const EventDetailPage: React.FC = () => {
       venue_id: editUseExternalLocation ? null : editVenue?.id ?? null,
       opponent: (editOpponent ?? '').trim() || null,
     };
+    if (editEvent.kind === 'match') {
+      const logo =
+        editOpponentLogoUrl && !isPlaceholderLogoUrl(editOpponentLogoUrl)
+          ? editOpponentLogoUrl.trim()
+          : null;
+      payload.opponent_logo_url = logo;
+    }
     if (editEvent.kind === 'event') {
       payload.type = editSheetEventType;
       const notesParts: string[] = [];
@@ -1550,10 +1589,32 @@ export const EventDetailPage: React.FC = () => {
       error = retryVenue.error;
     }
 
+    if (error && /opponent_logo_url|column|schema cache/i.test(String(error.message ?? ''))) {
+      const { opponent_logo_url: _ignoredLogo, ...withoutLogo } = payload;
+      const retryLogo = await supabase.from('events').update(withoutLogo).eq('id', editEvent.id);
+      error = retryLogo.error;
+    }
+
     if (error) {
       setEditError(error.message ?? 'Speichern fehlgeschlagen.');
       setSavingEdit(false);
       return;
+    }
+
+    if (editEvent.kind === 'match') {
+      const logo =
+        editOpponentLogoUrl && !isPlaceholderLogoUrl(editOpponentLogoUrl)
+          ? editOpponentLogoUrl.trim()
+          : null;
+      const oppName = (editOpponent ?? '').trim() || editEvent.opponent || '';
+      if (oppName) {
+        await setOpponentLogoForSeason({
+          teamSeasonId: editEvent.team_season_id,
+          opponentName: oppName,
+          logoUrl: logo,
+        });
+      }
+      setOpponentLogo(logo ?? '');
     }
 
     if (editEvent.kind === 'training' || (editEvent.kind === 'match' && editEvent.is_home === true)) {
@@ -1649,7 +1710,7 @@ export const EventDetailPage: React.FC = () => {
     setSavingEdit(false);
     closeEditModal();
     await loadEvent();
-  }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent, isDemo]);
+  }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent, isDemo]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
@@ -4483,6 +4544,23 @@ export const EventDetailPage: React.FC = () => {
                     }
                     className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
                   />
+                  {editEvent?.kind === 'match' ? (
+                    <div className="mt-3">
+                      <OpponentLogoField
+                        opponentName={editOpponent}
+                        clubId={editClubId}
+                        logoUrl={editOpponentLogoUrl}
+                        onLogoUrlChange={onEditOpponentLogoUrlChange}
+                        disabled={savingEdit}
+                        onUploadError={setEditLogoUploadError}
+                      />
+                      {editLogoUploadError ? (
+                        <p className="mt-1 text-[12px] text-red-300" role="alert">
+                          {editLogoUploadError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {editEvent?.kind !== 'match' ? (
                     <p className="mt-1 text-xs text-white/50">Steuert die Überschrift auf der Termine-Karte.</p>
                   ) : null}
