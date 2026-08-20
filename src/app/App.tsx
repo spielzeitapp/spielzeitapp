@@ -32,6 +32,7 @@ import { TrainerProfilePage } from '../pages/TrainerProfilePage';
 import { TablePage } from '../pages/TablePage';
 import { NotificationsPage } from '../pages/NotificationsPage';
 import { ProfilePage } from '../pages/ProfilePage';
+import { AppPlatzbelegungPage } from '../pages/AppPlatzbelegungPage';
 import { TrainerTeamPushPage } from '../pages/TrainerTeamPushPage';
 import { TrainerTemplatesPage } from '../pages/TrainerTemplatesPage';
 import { TrainerRemindersPage } from '../pages/TrainerRemindersPage';
@@ -277,6 +278,7 @@ function InternalRoutes(): React.ReactElement {
         </Route>
         <Route element={<InternalLayout />}>
         <Route path="home" element={<AppHomePage />} />
+        <Route path="platzbelegung" element={<AppPlatzbelegungPage />} />
         <Route path="termine" element={<TermineLayout />}>
           <Route index element={<SchedulePage />} />
           <Route path="calendar" element={<CalendarPage />} />

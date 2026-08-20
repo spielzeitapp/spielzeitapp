@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CalendarRange, ChevronRight, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
+import { Bell, CalendarDays, CalendarRange, ChevronRight, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -11,6 +11,7 @@ import {
   resolveTeamSeasonSwitcherAction,
 } from '../lib/seasonLifecycle';
 import { canViewParentLinks, normalizeRole } from '../lib/roles';
+import { canSeeAppPlatzbelegung } from '../lib/appPlatzAccess';
 import { dsGlassToggleTrack, dsPanelRowClass, dsPrimaryCtaClass, dsSecondaryCtaClass } from '../lib/premiumDesignSystem';
 import { canAccessManager } from '../manager/canAccessManager';
 import { isPlatformAdminBackendRole } from '../manager/managerWorkMode';
@@ -200,6 +201,12 @@ export const MoreHubPage: React.FC = () => {
     !isDemo && (teamSeasons?.length ?? 0) > 1 && normalizeRole(effectiveRole) !== 'parent';
 
   const showTrainerTools = !isDemo && isTrainerToolsRole(effectiveRole);
+  const showPlatzbelegung = !isDemo && canSeeAppPlatzbelegung({
+    effectiveRole,
+    backendRole,
+    memberships: memberships ?? [],
+  });
+  const showTrainerToolsSection = showTrainerTools || showPlatzbelegung;
   const showSeasonManagement =
     !isDemo &&
     (backendRole === 'admin' ||
@@ -439,7 +446,7 @@ export const MoreHubPage: React.FC = () => {
           </div>
         )}
 
-        {showTrainerTools && (
+        {showTrainerToolsSection && (
           <div className="space-y-1.5 pt-1 md:col-span-2 lg:col-span-3">
             <button
               type="button"
@@ -463,6 +470,22 @@ export const MoreHubPage: React.FC = () => {
             {trainerToolsOpen && (
               <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
                 <div className="flex flex-col gap-1.5">
+                  {showPlatzbelegung ? (
+                    <HubRowLink to="/app/platzbelegung" className={subRowClass} isDemo={isDemo}>
+                      <span className="flex min-w-0 items-start gap-2">
+                        <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden />
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span>Platzbelegung</span>
+                          <span className="text-[11px] font-normal leading-snug text-white/45">
+                            Freie Plätze und Belegungen prüfen
+                          </span>
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
+                    </HubRowLink>
+                  ) : null}
+                  {showTrainerTools ? (
+                    <>
                   <HubRowLink to="/app/mehr/trainer/team-push" className={subRowClass} isDemo={isDemo}>
                     <span>Team-Push</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
@@ -481,6 +504,8 @@ export const MoreHubPage: React.FC = () => {
                     <span>Erinnerungen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                   </HubRowLink>
+                    </>
+                  ) : null}
                   {showManagerLink && (
                     <HubRowLink to="/manager" className={subRowClass} isDemo={isDemo}>
                       <span className="flex min-w-0 flex-col gap-0.5">
