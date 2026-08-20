@@ -1,254 +1,14 @@
 -- =============================================================================
--- DEPRECATED – NICHT MEHR VERWENDEN
--- Ersetzt durch:
---   1) supabase/queries/prod_trainer_venue_platz_preflight_only.sql
---   2) supabase/queries/prod_trainer_venue_platz_apply_only.sql
--- Der kombinierte Ablauf brach auf Production am Field-Guard ab und mischte
--- Preflight mit Writes. Bitte nur die beiden neuen Dateien nutzen.
--- =============================================================================
-
--- =============================================================================
--- PRODUCTION APPLY: Trainer + Multi-Venue + Platz-UX
+-- PRODUCTION APPLY-ONLY: Trainer + Multi-Venue + Platz-UX
 -- Projekt: spielzeitapp-nsg / shxugattqatahckhspwk
--- Domain:  https://spielzeitapp.at
 --
--- MANUELL im Supabase SQL Editor des LIVE-Projekts ausführen.
--- Kein Token, kein CLI-Apply, keine automatische Ausführung aus Cursor.
+-- VORAUSSETZUNG: Zuerst prod_trainer_venue_platz_preflight_only.sql ausführen
+-- und READY prüfen. Diese Datei enthält KEINE Preflight-SELECTs.
 --
--- Enthält:
---   A) Read-only Preflight (SELECT; optional fehlende Tabellen → kein 42P01)
---   B–G) Transaktion mit harten Guards, Basismigrationen, Legacy-Übernahme,
---        U12-Grants, Sicherheitsmigrationen, Postflight
---
--- NICHT enthalten:
---   - 20260818140000 / 20260818140100
---   - admin_assign_club_admin / Club-Admin-Zuordnungs-RPCs
---   - Staging-/TEST-USC-/Johannes-Testdaten
---   - Löschung von Events, Assignments, team_venues oder Venue-Eigentum
---
--- EMPFOHLENER ABLAUF:
---   1) Nur Abschnitt A ausführen und Treffer prüfen (U12=1, Venues=1/1)
---   2) Danach Abschnitt B–G (BEGIN…COMMIT) ausführen
--- Bei Fehler in B–G: ROLLBACK der gesamten Transaktion.
+-- Inhalt: BEGIN … COMMIT (Schema + Field/Zone-Seed + Grants + Postflight)
+-- Bei Fehler: vollständiger Rollback.
+-- NICHT den alten kombinierten prod_trainer_venue_platz_apply.sql verwenden.
 -- =============================================================================
-
--- #############################################################################
--- A. READ-ONLY PREFLIGHT
--- #############################################################################
-
--- A1) Schema-Fingerprint
-SELECT
-  current_database() AS db,
-  to_regclass('public.venues') IS NOT NULL AS has_venues,
-  to_regclass('public.venue_fields') IS NOT NULL AS has_venue_fields,
-  to_regclass('public.venue_field_zones') IS NOT NULL AS has_venue_field_zones,
-  to_regclass('public.event_field_assignments') IS NOT NULL AS has_assignments,
-  to_regclass('public.team_venues') IS NOT NULL AS has_team_venues,
-  to_regclass('public.team_season_training_venues') IS NOT NULL AS has_team_season_training_venues,
-  to_regclass('public.team_season_home_defaults') IS NOT NULL AS has_home_defaults,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'list_club_facility_schedule_events') AS has_platz3_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'ensure_standard_field_zones') AS has_platz4_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'is_training_venue_allowed_for_team_season') AS has_platz5_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'list_shared_venue_occupancy') AS has_platz6_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'is_venue_purpose_allowed_for_team_season') AS has_purpose_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'find_event_field_assignment_conflicts') AS has_conflict_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'admin_set_team_season_venue_grant') AS has_grant_set_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'admin_list_grantable_venues') AS has_grant_list_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'venue_has_active_field') AS has_active_field_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'list_club_team_season_ids') AS has_list_club_ts_rpc,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'can_manage_team_season_training_venues') AS has_can_manage_grants,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'is_platform_admin') AS has_is_platform_admin,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'is_admin') AS has_is_admin,
-  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'admin_assign_club_admin') AS has_club_admin_rpc,
-  EXISTS (
-    SELECT 1 FROM pg_type t
-    JOIN pg_enum e ON e.enumtypid = t.oid
-    WHERE t.typname = 'membership_role' AND e.enumlabel = 'admin'
-  ) AS has_membership_role_admin,
-  EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'venue_field_zones' AND column_name = 'rect_x'
-  ) AS has_zone_geometry_cols,
-  EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'team_season_training_venues' AND column_name = 'purpose'
-  ) AS has_grant_purpose_col;
-
--- A2) Aktive SPG-/NSG-Rohrbach-U12-Saison 2026/27 (muss genau 1 Treffer sein)
-SELECT
-  ts.id AS team_season_id,
-  ts.status,
-  ts.display_name,
-  ts.age_group,
-  t.id AS team_id,
-  t.name AS team_name,
-  c.id AS club_id,
-  c.name AS club_name,
-  s.id AS season_id,
-  s.name AS season_name
-FROM public.team_seasons ts
-JOIN public.teams t ON t.id = ts.team_id
-JOIN public.clubs c ON c.id = t.club_id
-JOIN public.seasons s ON s.id = ts.season_id
-WHERE ts.status = 'active'
-  AND (
-    coalesce(ts.age_group, '') ILIKE 'U12%'
-    OR t.name ILIKE '%U12%'
-    OR coalesce(ts.display_name, '') ILIKE '%U12%'
-  )
-  AND (
-    c.name ILIKE '%Rohrbach%'
-    OR c.name ILIKE '%NSG%'
-    OR c.name ILIKE '%SPG%'
-    OR c.name ILIKE '%Gölsental%'
-    OR c.name ILIKE '%Goelsental%'
-  )
-  AND (
-    s.name ILIKE '%2026/27%'
-    OR s.name ILIKE '%2026%'
-    OR s.name ILIKE '%26/27%'
-  )
-ORDER BY c.name, t.name, s.name;
-
--- A3) Venues Rohrbach / St. Veit
-SELECT v.id, v.name, v.is_active, v.club_id, c.name AS club_name
-FROM public.venues v
-JOIN public.clubs c ON c.id = v.club_id
-WHERE v.name ILIKE '%Rohrbach%'
-   OR v.name ILIKE '%St.%Veit%'
-   OR v.name ILIKE '%St Veit%'
-ORDER BY v.name, c.name;
-
--- A4) Aktive Fields + Zonen
-SELECT
-  v.name AS venue_name,
-  vf.id AS field_id,
-  vf.name AS field_name,
-  vf.is_active,
-  count(z.id) FILTER (WHERE z.is_active IS TRUE)::int AS active_zones
-FROM public.venues v
-JOIN public.venue_fields vf ON vf.venue_id = v.id
-LEFT JOIN public.venue_field_zones z ON z.field_id = vf.id
-WHERE v.name ILIKE '%Rohrbach%'
-   OR v.name ILIKE '%St.%Veit%'
-   OR v.name ILIKE '%St Veit%'
-GROUP BY v.name, vf.id, vf.name, vf.is_active
-ORDER BY v.name, vf.name;
-
--- A5) Event-/Assignment-Zähler (Baseline)
-SELECT
-  (SELECT count(*)::bigint FROM public.events) AS events_total,
-  (SELECT count(*)::bigint FROM public.event_field_assignments) AS assignments_total;
-
--- A6) Legacy team_venues (dynamisch → kein 42P01 wenn Tabelle fehlt)
-DO $$
-DECLARE
-  n int := 0;
-  r record;
-BEGIN
-  IF to_regclass('public.team_venues') IS NULL THEN
-    RAISE NOTICE 'A6: public.team_venues fehlt';
-    RETURN;
-  END IF;
-  EXECUTE 'SELECT count(*)::int FROM public.team_venues WHERE team_id IS NOT NULL' INTO n;
-  RAISE NOTICE 'A6: team_venues team_rows=%', n;
-  FOR r IN EXECUTE $q$
-    SELECT tv.id::text AS id, c.name AS club_name, t.name AS team_name, v.name AS venue_name, tv.is_default
-    FROM public.team_venues tv
-    JOIN public.clubs c ON c.id = tv.club_id
-    LEFT JOIN public.teams t ON t.id = tv.team_id
-    JOIN public.venues v ON v.id = tv.venue_id
-    WHERE tv.team_id IS NOT NULL
-    ORDER BY c.name, t.name, v.name
-  $q$
-  LOOP
-    RAISE NOTICE 'A6 row: club=% team=% venue=% default=% id=%',
-      r.club_name, r.team_name, r.venue_name, r.is_default, r.id;
-  END LOOP;
-END $$;
-
--- A7) Bestehende saisonbezogene Grants (dynamisch → kein 42P01)
-DO $$
-DECLARE
-  n int := 0;
-BEGIN
-  IF to_regclass('public.team_season_training_venues') IS NULL THEN
-    RAISE NOTICE 'A7: public.team_season_training_venues fehlt (erwartet vor Apply)';
-    RETURN;
-  END IF;
-  EXECUTE 'SELECT count(*)::int FROM public.team_season_training_venues' INTO n;
-  RAISE NOTICE 'A7: existing_grant_rows=%', n;
-END $$;
-
--- A8) Dubletten-Checks
-SELECT 'venues_rohrbach' AS check_name, count(*)::int AS n
-FROM public.venues WHERE name ILIKE '%Rohrbach%'
-UNION ALL
-SELECT 'venues_st_veit', count(*)::int
-FROM public.venues WHERE name ILIKE '%St.%Veit%' OR name ILIKE '%St Veit%'
-UNION ALL
-SELECT 'u12_active_seasons_rohrbach_nsg_spg', count(*)::int
-FROM public.team_seasons ts
-JOIN public.teams t ON t.id = ts.team_id
-JOIN public.clubs c ON c.id = t.club_id
-JOIN public.seasons s ON s.id = ts.season_id
-WHERE ts.status = 'active'
-  AND (coalesce(ts.age_group,'') ILIKE 'U12%' OR t.name ILIKE '%U12%' OR coalesce(ts.display_name,'') ILIKE '%U12%')
-  AND (c.name ILIKE '%Rohrbach%' OR c.name ILIKE '%NSG%' OR c.name ILIKE '%SPG%' OR c.name ILIKE '%Gölsental%' OR c.name ILIKE '%Goelsental%')
-  AND (s.name ILIKE '%2026%' OR s.name ILIKE '%26/27%');
-
--- A9) RPC-/Trigger-/Policy-Stichprobe
-SELECT p.proname
-FROM pg_proc p
-JOIN pg_namespace n ON n.oid = p.pronamespace
-WHERE n.nspname = 'public'
-  AND p.proname IN (
-    'can_manage_event_field_assignment',
-    'list_club_facility_schedule_events',
-    'ensure_standard_field_zones',
-    'field_zone_rects_overlap',
-    'is_training_venue_allowed_for_team_season',
-    'is_venue_purpose_allowed_for_team_season',
-    'list_shared_venue_occupancy',
-    'find_event_field_assignment_conflicts',
-    'admin_set_team_season_venue_grant',
-    'admin_list_grantable_venues',
-    'venue_has_active_field',
-    'list_club_team_season_ids',
-    'can_manage_team_season_training_venues',
-    'is_platform_admin',
-    'admin_assign_club_admin'
-  )
-ORDER BY p.proname;
-
-SELECT tgname
-FROM pg_trigger
-WHERE NOT tgisinternal
-  AND tgname IN (
-    'trg_validate_training_field_assignment',
-    'trg_validate_training_event_venue',
-    'trg_events_sync_field_assignment',
-    'trg_team_season_training_venues_updated_at'
-  )
-ORDER BY tgname;
-
--- pg_policies: Spalte heißt policyname (View), nicht der interne Name aus pg_policy
-SELECT policyname, tablename
-FROM pg_policies
-WHERE schemaname = 'public'
-  AND tablename IN (
-    'team_season_training_venues',
-    'event_field_assignments',
-    'venues',
-    'venue_fields',
-    'venue_field_zones',
-    'team_seasons'
-  )
-ORDER BY tablename, policyname;
-
--- #############################################################################
--- B–G. TRANSAKTION
--- #############################################################################
 
 BEGIN;
 
@@ -331,12 +91,8 @@ BEGIN
   WHERE (v.name ILIKE '%St.%Veit%' OR v.name ILIKE '%St Veit%')
     AND vf.is_active IS TRUE;
 
-  IF v_rohrbach_fields < 1 THEN
-    RAISE EXCEPTION 'GUARD: Rohrbach hat keinen aktiven Platz (venue_fields)';
-  END IF;
-  IF v_stveit_fields < 1 THEN
-    RAISE EXCEPTION 'GUARD: St. Veit hat keinen aktiven Platz (venue_fields)';
-  END IF;
+  RAISE NOTICE 'GUARD INFO: Rohrbach aktive Fields vor Seed=%; St.Veit=% (Seed folgt nach Schema)',
+    v_rohrbach_fields, v_stveit_fields;
 
   IF to_regclass('public.team_venues') IS NOT NULL THEN
     SELECT count(*)::int INTO v_ambiguous_legacy
@@ -2455,16 +2211,138 @@ COMMENT ON POLICY team_seasons_select ON public.team_seasons IS
   'Lesen nur für Plattformadmin, Saison-Mitglied oder Vereinsadmin des Clubs.';
 
 -- ---------------------------------------------------------------------------
--- C1. Standardzonen für Rohrbach + St. Veit (ohne Auth-Gate, idempotent)
--- Orientierung gemäß PLATZ.5.1 (Halb/Drittel quer). Keine Event-/Assignment-Änderung.
+
+-- ---------------------------------------------------------------------------
+-- C0b. Fehlende venue_fields Rohrbach / St. Veit (insert-only, idempotent)
+-- Staging-Quelle: supabase/queries/platz5_staging_seed.sql
+-- Inaktive Namens-Treffer werden NICHT reaktiviert → STOPP
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_rohrbach uuid;
+  v_stveit uuid;
+  v_club_rh uuid;
+  v_club_sv uuid;
+  v_created int := 0;
+  v_active_n int;
+  v_inactive_n int;
+BEGIN
+  SELECT v.id, v.club_id INTO v_rohrbach, v_club_rh
+  FROM public.venues v
+  WHERE v.name ILIKE '%Rohrbach%' AND coalesce(v.is_active, true);
+
+  SELECT v.id, v.club_id INTO v_stveit, v_club_sv
+  FROM public.venues v
+  WHERE (v.name ILIKE '%St.%Veit%' OR v.name ILIKE '%St Veit%')
+    AND coalesce(v.is_active, true);
+
+  IF v_rohrbach IS NULL OR v_stveit IS NULL THEN
+    RAISE EXCEPTION 'FIELD-SEED: Rohrbach/St.Veit Venue nicht eindeutig';
+  END IF;
+
+  -- Rohrbach: Hauptplatz/Matchplatz
+  SELECT count(*)::int INTO v_active_n FROM public.venue_fields vf
+  WHERE vf.venue_id = v_rohrbach AND vf.is_active IS TRUE
+    AND lower(btrim(vf.name)) IN ('hauptplatz/matchplatz', 'hauptplatz', 'matchplatz');
+  SELECT count(*)::int INTO v_inactive_n FROM public.venue_fields vf
+  WHERE vf.venue_id = v_rohrbach AND vf.is_active IS NOT TRUE
+    AND lower(btrim(vf.name)) IN ('hauptplatz/matchplatz', 'hauptplatz', 'matchplatz');
+  IF v_active_n > 1 THEN
+    RAISE EXCEPTION 'FIELD-SEED: Rohrbach Hauptplatz mehrdeutig aktiv (n=%)', v_active_n;
+  ELSIF v_active_n = 0 AND v_inactive_n > 0 THEN
+    RAISE EXCEPTION 'FIELD-SEED: Rohrbach Hauptplatz existiert inaktiv – nicht automatisch reaktiviert';
+  ELSIF v_active_n = 0 THEN
+    INSERT INTO public.venue_fields (venue_id, club_id, name, field_type, sort_order, is_active)
+    VALUES (v_rohrbach, v_club_rh, 'Hauptplatz/Matchplatz', 'main', 0, true);
+    v_created := v_created + 1;
+  END IF;
+
+  -- Rohrbach: Trainingsplatz
+  SELECT count(*)::int INTO v_active_n FROM public.venue_fields vf
+  WHERE vf.venue_id = v_rohrbach AND vf.is_active IS TRUE
+    AND lower(btrim(vf.name)) = 'trainingsplatz';
+  SELECT count(*)::int INTO v_inactive_n FROM public.venue_fields vf
+  WHERE vf.venue_id = v_rohrbach AND vf.is_active IS NOT TRUE
+    AND lower(btrim(vf.name)) = 'trainingsplatz';
+  IF v_active_n > 1 THEN
+    RAISE EXCEPTION 'FIELD-SEED: Rohrbach Trainingsplatz mehrdeutig aktiv (n=%)', v_active_n;
+  ELSIF v_active_n = 0 AND v_inactive_n > 0 THEN
+    RAISE EXCEPTION 'FIELD-SEED: Rohrbach Trainingsplatz existiert inaktiv – nicht automatisch reaktiviert';
+  ELSIF v_active_n = 0 THEN
+    INSERT INTO public.venue_fields (venue_id, club_id, name, field_type, sort_order, is_active)
+    VALUES (v_rohrbach, v_club_rh, 'Trainingsplatz', 'training', 10, true);
+    v_created := v_created + 1;
+  END IF;
+
+  -- St. Veit: Hauptplatz
+  SELECT count(*)::int INTO v_active_n FROM public.venue_fields vf
+  WHERE vf.venue_id = v_stveit AND vf.is_active IS TRUE
+    AND lower(btrim(vf.name)) = 'hauptplatz';
+  SELECT count(*)::int INTO v_inactive_n FROM public.venue_fields vf
+  WHERE vf.venue_id = v_stveit AND vf.is_active IS NOT TRUE
+    AND lower(btrim(vf.name)) = 'hauptplatz';
+  IF v_active_n > 1 THEN
+    RAISE EXCEPTION 'FIELD-SEED: St.Veit Hauptplatz mehrdeutig aktiv (n=%)', v_active_n;
+  ELSIF v_active_n = 0 AND v_inactive_n > 0 THEN
+    RAISE EXCEPTION 'FIELD-SEED: St.Veit Hauptplatz existiert inaktiv – nicht automatisch reaktiviert';
+  ELSIF v_active_n = 0 THEN
+    INSERT INTO public.venue_fields (venue_id, club_id, name, field_type, sort_order, is_active)
+    VALUES (v_stveit, v_club_sv, 'Hauptplatz', 'main', 0, true);
+    v_created := v_created + 1;
+  END IF;
+
+  -- St. Veit: Kleiner Nebenplatz
+  SELECT count(*)::int INTO v_active_n FROM public.venue_fields vf
+  WHERE vf.venue_id = v_stveit AND vf.is_active IS TRUE
+    AND lower(btrim(vf.name)) IN ('kleiner nebenplatz', 'nebenplatz');
+  SELECT count(*)::int INTO v_inactive_n FROM public.venue_fields vf
+  WHERE vf.venue_id = v_stveit AND vf.is_active IS NOT TRUE
+    AND lower(btrim(vf.name)) IN ('kleiner nebenplatz', 'nebenplatz');
+  IF v_active_n > 1 THEN
+    RAISE EXCEPTION 'FIELD-SEED: St.Veit Nebenplatz mehrdeutig aktiv (n=%)', v_active_n;
+  ELSIF v_active_n = 0 AND v_inactive_n > 0 THEN
+    RAISE EXCEPTION 'FIELD-SEED: St.Veit Nebenplatz existiert inaktiv – nicht automatisch reaktiviert';
+  ELSIF v_active_n = 0 THEN
+    INSERT INTO public.venue_fields (venue_id, club_id, name, field_type, sort_order, is_active)
+    VALUES (v_stveit, v_club_sv, 'Kleiner Nebenplatz', 'small', 10, true);
+    v_created := v_created + 1;
+  END IF;
+
+  IF (
+    SELECT count(DISTINCT lower(btrim(vf.name)))::int FROM public.venue_fields vf
+    WHERE vf.venue_id = v_rohrbach AND vf.is_active IS TRUE
+      AND lower(btrim(vf.name)) IN ('hauptplatz/matchplatz', 'hauptplatz', 'matchplatz', 'trainingsplatz')
+  ) < 2 THEN
+    RAISE EXCEPTION 'FIELD-SEED: Rohrbach nach Seed ohne 2 erwartete aktive Plätze';
+  END IF;
+  IF (
+    SELECT count(DISTINCT
+      CASE
+        WHEN lower(btrim(vf.name)) = 'hauptplatz' THEN 'hauptplatz'
+        WHEN lower(btrim(vf.name)) IN ('kleiner nebenplatz', 'nebenplatz') THEN 'nebenplatz'
+      END
+    )::int
+    FROM public.venue_fields vf
+    WHERE vf.venue_id = v_stveit AND vf.is_active IS TRUE
+      AND lower(btrim(vf.name)) IN ('hauptplatz', 'kleiner nebenplatz', 'nebenplatz')
+  ) < 2 THEN
+    RAISE EXCEPTION 'FIELD-SEED: St.Veit nach Seed ohne 2 erwartete aktive Plätze';
+  END IF;
+
+  RAISE NOTICE 'FIELD-SEED OK: % neue Fields angelegt', v_created;
+END $$;
+
+
+-- ---------------------------------------------------------------------------
+-- C1. Standardzonen für Rohrbach + St. Veit (INSERT-ONLY, keine Updates)
+-- Vorhandene Zonen (per zone_code oder Name) bleiben unverändert.
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
   r_field record;
   r record;
-  v_existing_id uuid;
-  v_club_id uuid;
-  v_upserted int := 0;
+  v_exists boolean;
+  v_inserted int := 0;
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
@@ -2484,7 +2362,6 @@ BEGIN
         OR v.name ILIKE '%St Veit%'
       )
   LOOP
-    v_club_id := r_field.club_id;
     FOR r IN
       SELECT * FROM (VALUES
         ('entire',    'Ganzer Platz', 'entire',  true,  0,  0::numeric, 0::numeric, 1::numeric, 1::numeric),
@@ -2499,50 +2376,35 @@ BEGIN
         ('quarter_d', 'Viertel D',    'quarter', false, 33, 0.5::numeric, 0.5::numeric, 0.5::numeric, 0.5::numeric)
       ) AS t(code, zname, kind, blocks, sord, rx, ry, rw, rh)
     LOOP
-      SELECT z.id INTO v_existing_id
-      FROM public.venue_field_zones z
-      WHERE z.field_id = r_field.field_id
-        AND z.is_active
-        AND (
-          lower(btrim(COALESCE(z.zone_code, ''))) = lower(r.code)
-          OR lower(btrim(z.name)) = lower(r.zname)
-        )
-      ORDER BY CASE WHEN lower(btrim(COALESCE(z.zone_code, ''))) = lower(r.code) THEN 0 ELSE 1 END
-      LIMIT 1;
+      SELECT EXISTS (
+        SELECT 1 FROM public.venue_field_zones z
+        WHERE z.field_id = r_field.field_id
+          AND z.is_active
+          AND (
+            lower(btrim(COALESCE(z.zone_code, ''))) = lower(r.code)
+            OR lower(btrim(z.name)) = lower(r.zname)
+          )
+      ) INTO v_exists;
 
-      IF v_existing_id IS NOT NULL THEN
-        UPDATE public.venue_field_zones z
-        SET
-          name = r.zname,
-          zone_code = r.code,
-          blocks_entire_field = r.blocks,
-          sort_order = r.sord,
-          layout_kind = r.kind,
-          rect_x = r.rx,
-          rect_y = r.ry,
-          rect_w = r.rw,
-          rect_h = r.rh,
-          is_active = true,
-          updated_at = now()
-        WHERE z.id = v_existing_id;
-      ELSE
-        INSERT INTO public.venue_field_zones (
-          field_id, club_id, name, blocks_entire_field, sort_order, is_active,
-          zone_code, layout_kind, rect_x, rect_y, rect_w, rect_h
-        )
-        VALUES (
-          r_field.field_id, v_club_id, r.zname, r.blocks, r.sord, true,
-          r.code, r.kind, r.rx, r.ry, r.rw, r.rh
-        );
+      IF v_exists THEN
+        CONTINUE; -- vorhanden: nicht überschreiben
       END IF;
-      v_upserted := v_upserted + 1;
+
+      INSERT INTO public.venue_field_zones (
+        field_id, club_id, name, blocks_entire_field, sort_order, is_active,
+        zone_code, layout_kind, rect_x, rect_y, rect_w, rect_h
+      )
+      VALUES (
+        r_field.field_id, r_field.club_id, r.zname, r.blocks, r.sord, true,
+        r.code, r.kind, r.rx, r.ry, r.rw, r.rh
+      );
+      v_inserted := v_inserted + 1;
     END LOOP;
   END LOOP;
 
-  RAISE NOTICE 'ZONE-SEED: % Standardzonen-Upserts für Rohrbach/St.Veit', v_upserted;
+  RAISE NOTICE 'ZONE-SEED: % neue Standardzonen eingefügt (bestehende unverändert)', v_inserted;
 END $$;
 
--- ---------------------------------------------------------------------------
 -- D. LEGACY-ÜBERNAHME team_venues → team_season_training_venues
 -- - nichts löschen; team_venues bleibt
 -- - nur teambezogene Zeilen mit genau einer aktiven Team-Saison
@@ -2843,9 +2705,3 @@ ORDER BY proname;
 SELECT pg_notify('pgrst', 'reload schema');
 
 COMMIT;
-
--- =============================================================================
--- ENDE. Bei Erfolg: Events/Assignments unverändert, 4 U12-Grants aktiv,
--- team_venues erhalten, keine Club-Admin-RPCs angelegt.
--- Danach in Cursor: „Production-SQL erfolgreich – FINAL LIVE GO“
--- =============================================================================
