@@ -2,7 +2,7 @@
  * STEP 3A: Trainingseinheit-Editor (Desktop/Tablet) + mobile Trainingsansicht.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import { useEvents } from '../hooks/useEvents';
@@ -26,6 +26,7 @@ import { listTrainingExercises, type TrainingExerciseRow } from '../lib/training
 import {
   TRAINING_PHASES,
   TRAINING_PHASE_LABELS,
+  TRAINING_PHASE_SHORT,
   TRAINING_SESSION_STATUS_LABELS,
   type TrainingPhase,
   type TrainingSessionStatus,
@@ -63,6 +64,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [searchParams] = useSearchParams();
   const eventFromQuery = searchParams.get('event');
   const startsFromQuery = searchParams.get('starts');
+  const exerciseFromQuery = searchParams.get('exercise');
   const navigate = useNavigate();
 
   const { user, selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
@@ -93,6 +95,9 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [pickerPhase, setPickerPhase] = useState<TrainingPhase | null>(null);
   const [pickerQuery, setPickerQuery] = useState('');
   const [library, setLibrary] = useState<TrainingExerciseRow[]>([]);
+  const [requestedExercise, setRequestedExercise] = useState<TrainingExerciseRow | null>(null);
+  const [requestedExerciseLoading, setRequestedExerciseLoading] = useState(false);
+  const handledExerciseQueryRef = useRef<string | null>(null);
   const [mobileExerciseId, setMobileExerciseId] = useState<string | null>(null);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
@@ -229,6 +234,37 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   }, [reload]);
 
   useEffect(() => {
+    if (!isNew || !exerciseFromQuery || !teamSeasonId) return;
+    if (handledExerciseQueryRef.current === exerciseFromQuery) return;
+    handledExerciseQueryRef.current = exerciseFromQuery;
+    let cancelled = false;
+    setRequestedExerciseLoading(true);
+    setError(null);
+    void (async () => {
+      const clubRes = await resolveClubIdForTeamSeason(teamSeasonId);
+      if (!clubRes.clubId || cancelled) {
+        if (!cancelled) {
+          setError(clubRes.error ?? 'Kein Verein.');
+          setRequestedExerciseLoading(false);
+        }
+        return;
+      }
+      const res = await listTrainingExercises(clubRes.clubId);
+      if (cancelled) return;
+      const exercise = res.data.find((candidate) => candidate.id === exerciseFromQuery) ?? null;
+      if (!exercise) {
+        setError(res.error ?? 'Die ausgewählte Übung wurde nicht gefunden.');
+      } else {
+        setRequestedExercise(exercise);
+      }
+      setRequestedExerciseLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [exerciseFromQuery, isNew, teamSeasonId]);
+
+  useEffect(() => {
     if (!pickerPhase || !teamSeasonId) return;
     let cancelled = false;
     (async () => {
@@ -238,15 +274,20 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
       if (cancelled) return;
       const q = pickerQuery.trim().toLowerCase();
       setLibrary(
-        res.data.filter((ex) => {
-          if (!ex.suitable_phases.includes(pickerPhase)) return false;
-          if (!q) return true;
-          return (
-            ex.title.toLowerCase().includes(q) ||
-            (ex.focus ?? '').toLowerCase().includes(q) ||
-            (ex.description ?? '').toLowerCase().includes(q)
-          );
-        }),
+        res.data
+          .filter((ex) => {
+            if (!q) return true;
+            return (
+              ex.title.toLowerCase().includes(q) ||
+              (ex.focus ?? '').toLowerCase().includes(q) ||
+              (ex.description ?? '').toLowerCase().includes(q)
+            );
+          })
+          .sort((a, b) => {
+            const aRecommended = a.suitable_phases.includes(pickerPhase) ? 1 : 0;
+            const bRecommended = b.suitable_phases.includes(pickerPhase) ? 1 : 0;
+            return bRecommended - aRecommended || a.title.localeCompare(b.title, 'de');
+          }),
       );
     })();
     return () => {
@@ -349,11 +390,17 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     if (res.error) setError(res.error);
     else {
       setExerciseMap((m) => ({ ...m, [ex.id]: ex }));
+      if (res.data) setItems((current) => [...current, res.data!]);
       setPickerPhase(null);
-      await reload();
+      setRequestedExercise(null);
       setSuccess('Übung hinzugefügt.');
     }
     setSaving(false);
+  }
+
+  function cancelRequestedExercise() {
+    setRequestedExercise(null);
+    navigate('/manager/training/einheiten/neu', { replace: true });
   }
 
   async function moveItem(item: TrainingSessionExerciseRow, dir: -1 | 1) {
@@ -922,6 +969,11 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                         <span className="text-[12px] text-slate-500">
                           {ex.focus} · {ex.duration_minutes} Min.
                         </span>
+                        <span className="mt-0.5 block text-[11px] text-slate-400">
+                          {ex.suitable_phases.includes(pickerPhase)
+                            ? 'Für diese Phase empfohlen'
+                            : `Empfohlen: ${ex.suitable_phases.join(', ')}`}
+                        </span>
                       </span>
                       <span className="text-[12px] font-semibold text-red-700">Hinzufügen</span>
                     </button>
@@ -929,6 +981,68 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                 ))
               )}
             </ul>
+          </div>
+        </div>
+      ) : null}
+
+      {requestedExercise || requestedExerciseLoading ? (
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/40 p-4 sm:items-center">
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl sm:p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="requested-exercise-title"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-red-700">
+                  Zur Trainingseinheit
+                </p>
+                <h3 id="requested-exercise-title" className="mt-1 text-lg font-semibold text-slate-900">
+                  {requestedExerciseLoading ? 'Übung wird geladen…' : requestedExercise?.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={cancelRequestedExercise}
+                className="text-[13px] text-slate-600 disabled:opacity-50"
+              >
+                Abbrechen
+              </button>
+            </div>
+            {requestedExercise ? (
+              <>
+                <p className="mt-3 text-[13px] text-slate-600">
+                  In welchen Abschnitt möchtest du diese Übung einfügen?
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {TRAINING_PHASES.map((phase) => {
+                    const recommended = requestedExercise.suitable_phases.includes(phase);
+                    return (
+                      <button
+                        key={phase}
+                        type="button"
+                        disabled={saving}
+                        onClick={() => void addExercise(requestedExercise, phase)}
+                        className={`min-h-[58px] rounded-xl border px-3 py-2 text-left disabled:opacity-50 ${
+                          recommended
+                            ? 'border-red-200 bg-red-50 text-red-900'
+                            : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="block text-[13px] font-semibold">
+                          {TRAINING_PHASE_LABELS[phase]}
+                        </span>
+                        <span className="text-[11px] opacity-70">
+                          {recommended ? 'Empfohlen' : TRAINING_PHASE_SHORT[phase]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}
