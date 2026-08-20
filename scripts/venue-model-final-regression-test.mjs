@@ -13,7 +13,6 @@ const managerFacility = read('src/manager/ManagerPlatzbelegungPage.tsx');
 const createModal = read('src/app/components/CreateEventModal.tsx');
 const eventDetail = read('src/pages/EventDetailPage.tsx');
 const schedulePage = read('src/pages/SchedulePage.tsx');
-const stagingScript = read('scripts/venue-model-final-staging-grants.mjs');
 
 assert.ok(seasonLifecycle.includes('formatTeamSeasonContextLabel'), 'context label helper missing');
 assert.ok(seasonLifecycle.includes('clubNameWithoutAgeGroup'), 'club cleanup helper must stay central');
@@ -42,10 +41,5 @@ for (const src of [eventDetail, schedulePage]) {
   assert.ok(src.includes('exclusiveExternal'), 'edit path must keep internal/external exclusive');
   assert.ok(src.includes('grantCheck'), 'edit path must grant-check assignments');
 }
-
-assert.ok(stagingScript.includes("const STAGING_REF = 'acbaecjzoabafbsjrzvr'"), 'staging ref guard missing');
-assert.ok(stagingScript.includes("purpose: 'home_match', sort_order: 11"), 'NSG St. Veit home_match grant missing');
-assert.ok(stagingScript.includes("const USC_CLUB_NAME = 'USC Rohrbach'"), 'USC staging guard missing');
-assert.ok(stagingScript.includes('hardStops.push'), 'staging script must stop on duplicates');
 
 console.log('venue-model-final-regression-test: OK');

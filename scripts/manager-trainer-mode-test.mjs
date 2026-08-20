@@ -127,14 +127,14 @@ const platformOnly = resolveAvailableWorkModes({ backendRole: 'admin', membershi
 assert.deepStrictEqual(platformOnly, ['platform_admin']);
 assert.strictEqual(resolveDefaultWorkMode(platformOnly), 'platform_admin');
 
-// 8 Johannes mit beiden Rollen kann wechseln
-const johannes = resolveAvailableWorkModes({
+// 8 Dual-Role: Plattformadmin + Trainer-Staff kann wechseln
+const dualRole = resolveAvailableWorkModes({
   backendRole: 'admin',
   memberships: [{ team_season_id: 'ts-u12', role: 'trainer' }],
 });
-assert.ok(johannes.includes('trainer'));
-assert.ok(johannes.includes('platform_admin'));
-assert.strictEqual(johannes.length, 2);
+assert.ok(dualRole.includes('trainer'));
+assert.ok(dualRole.includes('platform_admin'));
+assert.strictEqual(dualRole.length, 2);
 
 // 9 Plattformadmin ohne Trainer-Staff erzeugt keine Trainer-Team-Saison
 const platformAdminOnlyTrainerIds = filterTrainerStaffTeamSeasonIds([]);
