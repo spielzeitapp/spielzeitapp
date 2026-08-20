@@ -10,7 +10,6 @@ import {
   adminCreateTeam,
   adminEnsureTeamSeason,
   adminListGrantableVenues,
-  adminSetTeamSeasonVenueGrant,
   archivePlatformClub,
   deleteEmptyPlatformClub,
   getPlatformClub,
@@ -21,6 +20,7 @@ import {
   type GrantableVenue,
 } from '../lib/platformClubAdmin';
 import { useAuth } from '../auth/AuthProvider';
+import { ManagerClubVenueGrantsPanel } from './ManagerClubVenueGrantsPanel';
 
 export function ManagerClubDetailPage(): React.ReactElement {
   const { clubId = '' } = useParams();
@@ -46,8 +46,6 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [seasonName, setSeasonName] = useState('2026/27');
   const [staffTeamSeasonId, setStaffTeamSeasonId] = useState('');
   const [grantTeamSeasonId, setGrantTeamSeasonId] = useState('');
-  const [grantVenueId, setGrantVenueId] = useState('');
-  const [grantPurpose, setGrantPurpose] = useState<'training' | 'home_match'>('training');
   const [grantableVenues, setGrantableVenues] = useState<GrantableVenue[]>([]);
 
   const reload = useCallback(async () => {
@@ -290,12 +288,15 @@ export function ManagerClubDetailPage(): React.ReactElement {
               )}
             </section>
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <h2 className="text-[16px] font-semibold text-slate-900">Anlagen (club_id)</h2>
+              <h2 className="text-[16px] font-semibold text-slate-900">
+                Anlagenkatalog / zugeordnete Anlagen
+              </h2>
               <p className="mt-1 text-[12px] text-slate-500">
-                Vorhandene Anlagen werden nicht übertragen oder dupliziert.
+                Diese Liste zeigt vorhandene Anlagen. Für Trainer auswählbar sind nur die unten für
+                die Mannschaft/Saison freigegebenen Anlagen.
               </p>
               {detail.venues.length === 0 ? (
-                <p className="mt-2 text-[13px] text-slate-600">Keine Anlagen mit diesem club_id.</p>
+                <p className="mt-2 text-[13px] text-slate-600">Keine Anlagen diesem Verein zugeordnet.</p>
               ) : (
                 <ul className="mt-2 space-y-1 text-[13px] text-slate-800">
                   {detail.venues.map((v) => (
@@ -309,8 +310,8 @@ export function ManagerClubDetailPage(): React.ReactElement {
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <h2 className="text-[16px] font-semibold text-slate-900">Struktur &amp; Freigaben</h2>
             <p className="mt-1 text-[12px] text-slate-500">
-              Plattformadmin-Werkzeuge für Mannschaft, Saison, Vereinsadmin (Staff) und
-              Anlagenfreigaben ohne Eigentumsübertragung.
+              Plattformadmin-Werkzeuge für Mannschaft, Saison, Trainer und Anlagenfreigaben ohne
+              Eigentumsübertragung.
             </p>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -407,13 +408,13 @@ export function ManagerClubDetailPage(): React.ReactElement {
                       role: 'head_coach',
                     });
                     return { error: res.error };
-                  }, 'Dich als Vereinsadmin (head_coach) zugeordnet.');
+                  }, 'Dich als Trainer (head_coach) zugeordnet.');
                 }}
               >
-                <p className="text-[13px] font-semibold text-slate-800">Vereinsadmin zuordnen</p>
+                <p className="text-[13px] font-semibold text-slate-800">Trainer zuordnen</p>
                 <p className="text-[12px] text-slate-500">
                   Ordnet dich (aktuelle Session) als head_coach der gewählten Saison zu. Keine
-                  E-Mail-Hardcodes.
+                  E-Mail-Hardcodes. Das ist keine Vereinsadminrolle.
                 </p>
                 <select
                   className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
@@ -436,71 +437,23 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   Mich zuordnen
                 </button>
               </form>
+            </div>
 
-              <form
-                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!grantTeamSeasonId || !grantVenueId) return;
-                  void run(async () => {
-                    const res = await adminSetTeamSeasonVenueGrant({
-                      teamSeasonId: grantTeamSeasonId,
-                      venueId: grantVenueId,
-                      purpose: grantPurpose,
-                      isActive: true,
-                    });
-                    return { error: res.error };
-                  }, 'Anlagenfreigabe gespeichert (Eigentümer unverändert).');
+            <div className="mt-4">
+              <ManagerClubVenueGrantsPanel
+                teamSeasons={detail.team_seasons.map((s) => ({
+                  id: s.id,
+                  label: `${s.team_name}${s.season_name ? ` · ${s.season_name}` : ''}`,
+                }))}
+                selectedTeamSeasonId={grantTeamSeasonId}
+                onSelectTeamSeason={setGrantTeamSeasonId}
+                grantableVenues={grantableVenues}
+                busy={busy}
+                onBusyError={(err, ok) => {
+                  setError(err);
+                  setSuccess(ok ?? null);
                 }}
-              >
-                <p className="text-[13px] font-semibold text-slate-800">Anlagenfreigabe</p>
-                <p className="text-[12px] text-slate-500">
-                  Bestehende Anlage freigeben (training / home_match). Keine Duplikate, kein
-                  Eigentumswechsel.
-                </p>
-                <select
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  value={grantTeamSeasonId}
-                  onChange={(e) => setGrantTeamSeasonId(e.target.value)}
-                >
-                  <option value="">Saison wählen…</option>
-                  {detail.team_seasons.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.team_name}
-                      {s.season_name ? ` · ${s.season_name}` : ''}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  value={grantVenueId}
-                  onChange={(e) => setGrantVenueId(e.target.value)}
-                >
-                  <option value="">Anlage wählen…</option>
-                  {grantableVenues.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} ({v.club_name})
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  value={grantPurpose}
-                  onChange={(e) =>
-                    setGrantPurpose(e.target.value === 'home_match' ? 'home_match' : 'training')
-                  }
-                >
-                  <option value="training">training</option>
-                  <option value="home_match">home_match</option>
-                </select>
-                <button
-                  type="submit"
-                  disabled={busy || !grantTeamSeasonId || !grantVenueId}
-                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
-                >
-                  Freigabe speichern
-                </button>
-              </form>
+              />
             </div>
           </section>
 

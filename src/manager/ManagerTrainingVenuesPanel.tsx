@@ -11,7 +11,6 @@ import {
   type TeamSeasonTrainingVenueRow,
   type VenuePurpose,
 } from '../lib/teamSeasonTrainingVenues';
-import { canPrepareNextSeason } from '../lib/seasonLifecycle';
 
 type LinkRow = TeamSeasonTrainingVenueRow & { venue: VenueRow | null };
 
@@ -27,8 +26,6 @@ export function ManagerTrainingVenuesPanel(props: {
 }): React.ReactElement {
   const canManage =
     (props.backendRole ?? '').trim().toLowerCase() === 'admin' ||
-    canPrepareNextSeason(props.effectiveRole) ||
-    canPrepareNextSeason(props.backendRole) ||
     (props.effectiveRole ?? '').trim().toLowerCase() === 'admin';
 
   const [links, setLinks] = useState<LinkRow[]>([]);
@@ -215,7 +212,7 @@ export function ManagerTrainingVenuesPanel(props: {
         </div>
       ) : (
         <p className="mt-3 text-[11px] text-slate-400">
-          Trainer sehen die Freigaben, Änderungen nur durch Jugendleiter/Vereinsadmin.
+          Trainer sehen die Freigaben. Änderungen nur durch Vereinsadmin oder Plattformadmin.
         </p>
       )}
     </section>
