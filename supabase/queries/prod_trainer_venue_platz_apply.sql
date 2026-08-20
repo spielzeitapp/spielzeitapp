@@ -223,7 +223,8 @@ WHERE NOT tgisinternal
   )
 ORDER BY tgname;
 
-SELECT polname, tablename
+-- pg_policies: Spalte heißt policyname (View), nicht der interne Name aus pg_policy
+SELECT policyname, tablename
 FROM pg_policies
 WHERE schemaname = 'public'
   AND tablename IN (
@@ -234,7 +235,7 @@ WHERE schemaname = 'public'
     'venue_field_zones',
     'team_seasons'
   )
-ORDER BY tablename, polname;
+ORDER BY tablename, policyname;
 
 -- #############################################################################
 -- B–G. TRANSAKTION
