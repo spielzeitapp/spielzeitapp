@@ -22,7 +22,11 @@ import {
   type AppPlatzDayPayload,
 } from '../lib/appPlatzDayData';
 import { zoneRowToGeometry } from '../lib/venueFields';
-import type { ZoneMeta } from '../lib/fieldScheduleConflicts';
+import {
+  canManageFacilityAssignmentForEvent,
+  type ZoneMeta,
+} from '../lib/fieldScheduleConflicts';
+import { canManageMatches, normalizeRole } from '../lib/roles';
 import {
   computeFieldDaySlots,
   computeVenueDaySummary,
@@ -34,6 +38,10 @@ import { FieldOccupancyMiniMap } from '../manager/platz/FieldOccupancyMiniMap';
 import { addDays, toViennaDayKey } from '../pages/calendar/calendarUtils';
 import { Modal } from '../app/ui/Modal';
 import { formatTeamSeasonContextLabel } from '../lib/seasonLifecycle';
+import {
+  AppCreateOccupancyModal,
+  type AppCreateOccupancyPrefill,
+} from '../components/platz/AppCreateOccupancyModal';
 
 const RANGE_START = 8;
 const RANGE_END = 22;
@@ -111,6 +119,7 @@ export const AppPlatzbelegungPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expandedVenueIds, setExpandedVenueIds] = useState<Set<string>>(() => new Set());
   const [detail, setDetail] = useState<AppPlatzDayBlock | null>(null);
+  const [createPrefill, setCreatePrefill] = useState<AppCreateOccupancyPrefill | null>(null);
   const [freeHint, setFreeHint] = useState<string | null>(null);
 
   const todayKey = toViennaDayKey(new Date());
@@ -126,6 +135,41 @@ export const AppPlatzbelegungPage: React.FC = () => {
       }) || 'Mannschaft'
     );
   }, [contextSeason]);
+
+  const canCreateOccupancy = useMemo(() => {
+    if (!activeTeamSeasonId) return false;
+    const er = normalizeRole(effectiveRole);
+    const br = normalizeRole(backendRole);
+    const isAdmin = br === 'admin' || er === 'admin' || normalizeIsAdmin(backendRole);
+    if (!isAdmin && !canManageMatches(er) && !canManageMatches(br)) return false;
+    if (isAdmin) return true;
+    return canManageFacilityAssignmentForEvent({
+      eventTeamSeasonId: activeTeamSeasonId,
+      memberships: (memberships ?? [])
+        .filter((m) => m.team_season_id)
+        .map((m) => ({
+          team_season_id: String(m.team_season_id),
+          role: String(m.role ?? ''),
+        })),
+      clubTeamSeasonIds: payload?.clubTeamSeasonIds ?? [activeTeamSeasonId],
+    });
+  }, [activeTeamSeasonId, effectiveRole, backendRole, memberships, payload?.clubTeamSeasonIds]);
+
+  const openFreeSlot = useCallback(
+    (opts: { startMs: number; venueId: string; fieldId: string }) => {
+      if (canCreateOccupancy) {
+        setCreatePrefill({
+          dayKey,
+          startMs: opts.startMs,
+          venueId: opts.venueId,
+          fieldId: opts.fieldId,
+        });
+        return;
+      }
+      setFreeHint('Dieser Zeitraum ist frei.');
+    },
+    [canCreateOccupancy, dayKey],
+  );
 
   const reload = useCallback(async () => {
     if (!activeTeamSeasonId) {
@@ -388,10 +432,16 @@ export const AppPlatzbelegungPage: React.FC = () => {
                                     <button
                                       key={`${slot.startMs}`}
                                       type="button"
-                                      title="Frei"
+                                      title="Frei – Belegung anlegen"
                                       className="absolute top-1 bottom-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25"
                                       style={{ left: `${left}%`, width: `${width}%` }}
-                                      onClick={() => setFreeHint('Dieser Zeitraum ist frei.')}
+                                      onClick={() =>
+                                        openFreeSlot({
+                                          startMs: slot.startMs,
+                                          venueId: venue.id,
+                                          fieldId: field.id,
+                                        })
+                                      }
                                     />
                                   );
                                 })}
@@ -529,10 +579,25 @@ export const AppPlatzbelegungPage: React.FC = () => {
 
       <Modal isOpen={Boolean(freeHint)} title="Freier Zeitraum" onClose={() => setFreeHint(null)}>
         <p className="text-sm text-white/80">{freeHint}</p>
-        <p className="mt-2 text-[12px] text-white/45">
-          Anlegen aus freien Zeiten kommt in einem späteren Schritt.
-        </p>
       </Modal>
+
+      {createPrefill && payload?.clubId && activeTeamSeasonId ? (
+        <AppCreateOccupancyModal
+          open={Boolean(createPrefill)}
+          clubId={payload.clubId}
+          teamSeasonId={activeTeamSeasonId}
+          teamLabel={teamLabel}
+          canCreate={canCreateOccupancy}
+          fields={fields}
+          zonesByField={zonesByField}
+          prefill={createPrefill}
+          onClose={() => setCreatePrefill(null)}
+          onCreated={async () => {
+            setCreatePrefill(null);
+            await reload();
+          }}
+        />
+      ) : null}
     </div>
   );
 };
