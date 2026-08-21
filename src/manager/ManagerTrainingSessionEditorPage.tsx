@@ -38,6 +38,7 @@ import { ManagerTrainingAttendanceReadOnly } from './ManagerTrainingAttendanceRe
 import { ManagerTrainingDocumentationPanel } from './ManagerTrainingDocumentationPanel';
 import { updateExerciseReview } from '../lib/trainingSessionOps';
 import { TRAINING_EXERCISE_REVIEW_LABELS, type TrainingExerciseReviewStatus } from '../lib/trainingPhases';
+import { downloadTrainingSessionWord } from '../lib/trainingSessionWordExport';
 
 function formatWhen(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -102,6 +103,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [confirmUnlink, setConfirmUnlink] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const [docMode, setDocMode] = useState(false);
+  const [exportingWord, setExportingWord] = useState(false);
 
   const totalMinutes = useMemo(
     () => items.reduce((sum, it) => sum + (it.duration_minutes || 0), 0),
@@ -403,6 +405,39 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     navigate('/manager/training/einheiten/neu', { replace: true });
   }
 
+  async function exportWord() {
+    if (!session || items.length === 0) {
+      setError('Bitte zuerst mindestens eine Übung zur Einheit hinzufügen.');
+      return;
+    }
+    setExportingWord(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const metadata = (user?.user_metadata ?? {}) as Record<string, unknown>;
+      const trainerName =
+        String(metadata.full_name ?? metadata.name ?? '').trim() || user?.email?.split('@')[0] || '';
+      const teamName =
+        (contextSeason?.display_name ?? '').trim() ||
+        (contextSeason?.age_group ?? '').trim() ||
+        contextSeason?.team?.name ||
+        '';
+      await downloadTrainingSessionWord({
+        session,
+        items,
+        exerciseMap,
+        trainerName,
+        teamName,
+        dateIso: eventMeta?.starts_at ?? session.created_at ?? null,
+      });
+      setSuccess('Word-Datei wurde erstellt.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Word-Export fehlgeschlagen.');
+    } finally {
+      setExportingWord(false);
+    }
+  }
+
   async function moveItem(item: TrainingSessionExerciseRow, dir: -1 | 1) {
     const list = byPhase[item.phase];
     const idx = list.findIndex((x) => x.id === item.id);
@@ -497,6 +532,16 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
             >
               Einheit kopieren
+            </button>
+          ) : null}
+          {session?.id ? (
+            <button
+              type="button"
+              disabled={exportingWord || saving || items.length === 0}
+              onClick={() => void exportWord()}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
+            >
+              {exportingWord ? 'Word wird erstellt…' : 'Word exportieren'}
             </button>
           ) : null}
           {session?.id && session.record_type === 'session' && (eventPastOrNow || session.status === 'completed') ? (
