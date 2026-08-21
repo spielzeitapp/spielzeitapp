@@ -10,7 +10,7 @@ import { getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
 import './managerShell.css';
 
 /**
- * Shell für alle /manager-Seiten: volle Fensterbreite, helle Sidebar, breite Arbeitsfläche.
+ * Shell für alle /manager-Seiten: volle Fensterbreite, dunkle Navigation, helle Arbeitsfläche.
  * max-width gilt nur für den Content — nie für Sidebar+Header gemeinsam.
  */
 export function ManagerLayout(): React.ReactElement {
