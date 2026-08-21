@@ -393,7 +393,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   }
 
   async function openPlanChange() {
-    if (!session?.id || !eventId || !teamSeasonId) return;
+    if (!eventId || !teamSeasonId) return;
     setPlanChangeLoading(true);
     setError(null);
     const [sessionResult, clubResult] = await Promise.all([
@@ -418,7 +418,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     setReplacementPlans(
       sessionResult.data.filter(
         (candidate) =>
-          candidate.id !== session.id &&
+          candidate.id !== session?.id &&
           candidate.record_type !== 'template' &&
           (candidate.status === 'ready' || candidate.status === 'completed'),
       ),
@@ -623,14 +623,18 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               Einheit kopieren
             </button>
           ) : null}
-          {session?.id && eventId && status !== 'completed' && status !== 'archived' ? (
+          {eventId && status !== 'completed' && status !== 'archived' ? (
             <button
               type="button"
               disabled={saving || planChangeLoading || seasonArchived}
               onClick={() => void openPlanChange()}
               className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
             >
-              {planChangeLoading ? 'Pläne werden geladen…' : 'Plan wechseln'}
+              {planChangeLoading
+                ? 'Pläne werden geladen…'
+                : session?.id
+                  ? 'Plan wechseln'
+                  : 'Plan oder Vorlage auswählen'}
             </button>
           ) : null}
           {session?.id ? (
@@ -1251,7 +1255,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
         />
       ) : null}
 
-      {session && planChangeOpen ? (
+      {planChangeOpen ? (
         <ManagerTrainingPlanPickerDialog
           event={linkedTrainingEvent}
           savedPlans={replacementPlans}
