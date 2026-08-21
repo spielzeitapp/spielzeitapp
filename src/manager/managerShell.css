@@ -128,3 +128,29 @@ body:has(.manager-shell) {
   background: #fecaca;
   color: #7f1d1d;
 }
+
+/* Schwarze Manager-Kopfzeile: überschreibt bewusst die global hellen Formfelder. */
+.manager-shell select.manager-header-select {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+  color-scheme: dark;
+}
+
+.manager-shell select.manager-header-select:hover,
+.manager-shell select.manager-header-select:focus,
+.manager-shell select.manager-header-select:focus-visible {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.8) !important;
+  color: #ffffff !important;
+}
+
+.manager-shell select.manager-header-select option {
+  background: #111111;
+  color: #ffffff;
+}
+
+.manager-sidebar-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-width: thin;
+}

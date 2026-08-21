@@ -137,21 +137,19 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         : (membershipRole || backendRole || '').trim();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md pt-[env(safe-area-inset-top)]">
-      <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3 lg:px-8 xl:px-10 2xl:px-12">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#090909]/[0.98] text-white backdrop-blur-md pt-[env(safe-area-inset-top)]">
+      <div className="flex min-h-[72px] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-            Arbeitskontext
-          </p>
-          <p className="truncate text-[15px] font-semibold text-slate-900 sm:text-[16px]">{contextLine}</p>
+          <p className="truncate text-[18px] font-bold tracking-tight text-white sm:text-[20px]">Manager</p>
+          <p className="truncate text-[11px] text-white/45 sm:hidden">{contextLine}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <Link
             to={MANAGER_TO_APP_HOME_PATH}
-            className="inline-flex h-11 min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 text-[12px] font-semibold text-red-800 shadow-sm hover:bg-red-100 lg:hidden"
+            className="inline-flex h-11 min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 text-[12px] font-semibold text-white shadow-sm hover:bg-white/10 lg:hidden"
             aria-label="Zur SpielzeitApp"
             title="Zur SpielzeitApp"
           >
@@ -165,7 +163,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
               <select
                 value={selectValue}
                 onChange={(e) => onContextChange(e.target.value)}
-                className="max-w-[14rem] truncate rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-800 shadow-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 lg:max-w-[18rem]"
+                className="manager-header-select max-w-[14rem] truncate rounded-xl border border-white/20 bg-white/5 px-3 py-2.5 text-[12px] font-semibold text-white shadow-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 lg:max-w-[20rem]"
               >
                 {headerTeamSeasons.map((ts) => (
                   <option key={ts.id} value={ts.id}>
@@ -174,6 +172,10 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
                 ))}
               </select>
             </label>
+          ) : contextSeason ? (
+            <div className="hidden max-w-[20rem] truncate rounded-xl border border-white/20 bg-white/5 px-3 py-2.5 text-[12px] font-semibold text-white sm:block">
+              {contextLine}
+            </div>
           ) : null}
 
           {canSwitchMode ? (
@@ -183,7 +185,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
                 if (isTrainerMode) switchToAdministration();
                 else switchToTrainer();
               }}
-              className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:inline-flex"
+              className="hidden items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-[11px] font-semibold text-white/80 shadow-sm hover:bg-white/10 sm:inline-flex"
               title={isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}
             >
               <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
@@ -194,16 +196,24 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
           ) : null}
 
           <div className="hidden text-right md:block">
-            <p className="truncate text-[13px] font-semibold text-slate-800">{displayName}</p>
+            <p className="truncate text-[13px] font-semibold text-white">{displayName}</p>
             {roleHint ? (
-              <p className="truncate text-[11px] capitalize text-slate-400">{roleHint.replace(/_/g, ' ')}</p>
+              <p className="truncate text-[11px] capitalize text-white/45">{roleHint.replace(/_/g, ' ')}</p>
             ) : null}
+          </div>
+
+          <div
+            className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-red-600 text-[14px] font-bold text-white shadow-sm sm:flex"
+            aria-hidden
+            title={displayName}
+          >
+            {displayName.trim().charAt(0).toUpperCase() || 'T'}
           </div>
 
           <button
             type="button"
             onClick={() => void onLogout()}
-            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:px-3"
+            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 text-[12px] font-semibold text-white/80 shadow-sm hover:bg-white/10 hover:text-white sm:px-3"
             title="Abmelden"
           >
             <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden />
@@ -213,11 +223,11 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
       </div>
 
       {headerTeamSeasons.length > 1 ? (
-        <div className="border-t border-slate-100 px-3 py-2 sm:hidden">
+        <div className="border-t border-white/10 px-3 py-2 sm:hidden">
           <select
             value={selectValue}
             onChange={(e) => onContextChange(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-800"
+            className="manager-header-select w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-[12px] font-medium text-white"
             aria-label="Team und Saison wählen"
           >
             {headerTeamSeasons.map((ts) => (
@@ -233,7 +243,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
                 if (isTrainerMode) switchToAdministration();
                 else switchToTrainer();
               }}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-700"
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-[12px] font-semibold text-white/80"
             >
               <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
               {isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}
@@ -241,14 +251,14 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
           ) : null}
         </div>
       ) : canSwitchMode ? (
-        <div className="border-t border-slate-100 px-3 py-2 sm:hidden">
+        <div className="border-t border-white/10 px-3 py-2 sm:hidden">
           <button
             type="button"
             onClick={() => {
               if (isTrainerMode) switchToAdministration();
               else switchToTrainer();
             }}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-700"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-[12px] font-semibold text-white/80"
           >
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
             {isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}
