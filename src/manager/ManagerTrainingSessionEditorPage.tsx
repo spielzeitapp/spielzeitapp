@@ -332,7 +332,11 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     return created.data.id;
   }
 
-  async function saveMeta() {
+  async function saveMeta(nextStatus: TrainingSessionStatus = status) {
+    if (nextStatus === 'ready' && items.length === 0) {
+      setError('Für eine fertige Planung muss mindestens eine Übung enthalten sein.');
+      return;
+    }
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -345,12 +349,19 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
       title: title.trim() || 'Trainingseinheit',
       objective: objective.trim() || null,
       notes: notes.trim() || null,
-      status,
+      status: nextStatus,
       plannedDurationMinutes: totalMinutes || null,
     });
     if (res.error) setError(res.error);
     else {
-      setSuccess('Gespeichert.');
+      setStatus(nextStatus);
+      setSuccess(
+        nextStatus === 'ready'
+          ? 'Planung fertiggestellt. Der Termin wird in der Übersicht grün angezeigt.'
+          : nextStatus === 'draft'
+            ? 'Entwurf gespeichert.'
+            : 'Gespeichert.',
+      );
       setDirty(false);
       if (res.data) setSession(res.data);
     }
@@ -553,14 +564,32 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               Training dokumentieren
             </a>
           ) : null}
-          <button
-            type="button"
-            disabled={saving || seasonArchived || status === 'completed'}
-            onClick={() => void saveMeta()}
-            className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50"
-          >
-            {saving ? 'Speichern…' : 'Speichern'}
-          </button>
+          {status === 'draft' ? (
+            <button
+              type="button"
+              disabled={saving || seasonArchived}
+              onClick={() => void saveMeta('draft')}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
+            >
+              {saving ? 'Speichern…' : 'Entwurf speichern'}
+            </button>
+          ) : null}
+          {status !== 'completed' && status !== 'archived' ? (
+            <button
+              type="button"
+              disabled={saving || seasonArchived || (status === 'draft' && items.length === 0)}
+              onClick={() => void saveMeta(status === 'draft' ? 'ready' : status)}
+              className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50"
+            >
+              {saving
+                ? 'Speichern…'
+                : status === 'draft'
+                  ? eventId
+                    ? 'Planung fertigstellen'
+                    : 'Als fertigen Plan speichern'
+                  : 'Änderungen speichern'}
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -618,6 +647,9 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               ) : null}
               <option value="archived">{TRAINING_SESSION_STATUS_LABELS.archived}</option>
             </select>
+            <span className="mt-1 block text-[11px] font-normal text-slate-500">
+              Entwurf bleibt gelb. „Planung fertigstellen“ setzt den Termin auf grün.
+            </span>
           </label>
           <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
             <p className="text-[11px] font-semibold uppercase text-slate-400">Gesamtdauer</p>
