@@ -24,7 +24,11 @@ import {
   type TrainingSessionExerciseRow,
   type TrainingSessionRow,
 } from '../lib/trainingSessions';
-import { listTrainingExercises, type TrainingExerciseRow } from '../lib/trainingExercises';
+import {
+  getTrainingExerciseSketchUrl,
+  listTrainingExercises,
+  type TrainingExerciseRow,
+} from '../lib/trainingExercises';
 import {
   TRAINING_PHASES,
   TRAINING_PHASE_LABELS,
@@ -103,6 +107,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [requestedExerciseLoading, setRequestedExerciseLoading] = useState(false);
   const handledExerciseQueryRef = useRef<string | null>(null);
   const [mobileExerciseId, setMobileExerciseId] = useState<string | null>(null);
+  const [mobileSketchUrls, setMobileSketchUrls] = useState<Record<string, string | null>>({});
   const [confirmUnlink, setConfirmUnlink] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const [docMode, setDocMode] = useState(false);
@@ -241,6 +246,28 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    let active = true;
+    const exercisesWithSketch = Object.values(exerciseMap).filter((exercise) => exercise.image_path);
+    if (exercisesWithSketch.length === 0) {
+      setMobileSketchUrls({});
+      return () => {
+        active = false;
+      };
+    }
+    void Promise.all(
+      exercisesWithSketch.map(async (exercise) => [
+        exercise.id,
+        await getTrainingExerciseSketchUrl(exercise.image_path!),
+      ] as const),
+    ).then((entries) => {
+      if (active) setMobileSketchUrls(Object.fromEntries(entries));
+    });
+    return () => {
+      active = false;
+    };
+  }, [exerciseMap]);
 
   useEffect(() => {
     if (!isNew || !exerciseFromQuery || !teamSeasonId) return;
@@ -614,6 +641,16 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
           >
             Zurück
           </Link>
+          {session?.id ? (
+            <button
+              type="button"
+              disabled={items.length === 0}
+              onClick={() => setMobileExerciseId(mobileItems[0]?.id ?? null)}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50 md:hidden"
+            >
+              Training ansehen
+            </button>
+          ) : null}
           {session?.id ? (
             <button
               type="button"
@@ -1035,6 +1072,23 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                   </p>
                   <h2 className="mt-1 text-xl font-semibold text-slate-900">{ex?.title}</h2>
                   <p className="mt-1 text-[14px] text-slate-600">{it.duration_minutes} Minuten</p>
+                  {ex?.image_path && mobileSketchUrls[ex.id] ? (
+                    <figure className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                      <img
+                        src={mobileSketchUrls[ex.id] ?? undefined}
+                        alt={`Skizze: ${ex.title}`}
+                        className="max-h-[34vh] w-full rounded-xl bg-white object-contain"
+                      />
+                    </figure>
+                  ) : ex?.image_path ? (
+                    <div className="mt-4 flex min-h-40 items-center justify-center rounded-2xl bg-slate-100 text-[13px] text-slate-500">
+                      Skizze wird geladen…
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-xl border border-dashed border-slate-200 px-3 py-3 text-[13px] text-slate-500">
+                      Für diese Übung ist noch keine Skizze hinterlegt.
+                    </div>
+                  )}
                   {ex?.organization ? (
                     <section className="mt-4">
                       <h3 className="text-[12px] font-semibold text-slate-500">Aufbau</h3>

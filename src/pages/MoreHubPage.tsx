@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, CalendarRange, ChevronRight, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
+import { Bell, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -486,6 +486,20 @@ export const MoreHubPage: React.FC = () => {
                   ) : null}
                   {showTrainerTools ? (
                     <>
+                  {showManagerLink ? (
+                    <HubRowLink to="/manager/training/einheiten" className={subRowClass} isDemo={isDemo}>
+                      <span className="flex min-w-0 items-start gap-2">
+                        <Dumbbell className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden />
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span>Trainingsplanung</span>
+                          <span className="text-[11px] font-normal leading-snug text-white/45">
+                            Pläne ansehen oder ein Training vorbereiten
+                          </span>
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
+                    </HubRowLink>
+                  ) : null}
                   <HubRowLink to="/app/mehr/trainer/team-push" className={subRowClass} isDemo={isDemo}>
                     <span>Team-Push</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
