@@ -11,18 +11,21 @@ import {
   X,
 } from 'lucide-react';
 import type { EventRow } from '../hooks/useEvents';
-import { copyTrainingSession } from '../lib/trainingSessionOps';
+import { copyTrainingSession, replaceTrainingSessionFromSource } from '../lib/trainingSessionOps';
 import type { TrainingSessionRow } from '../lib/trainingSessions';
 import { VIENNA_TZ } from '../lib/viennaTime';
 
 type PickerMode = 'start' | 'templates' | 'plans';
 
 type Props = {
-  event: EventRow | null;
+  event: Pick<EventRow, 'id' | 'starts_at'> | null;
   savedPlans: TrainingSessionRow[];
   templates: TrainingSessionRow[];
   lastSession: TrainingSessionRow | null;
+  replaceTarget?: TrainingSessionRow | null;
+  userId?: string | null;
   onClose: () => void;
+  onReplaced?: (session: TrainingSessionRow) => void;
 };
 
 function formatEvent(iso: string): string {
@@ -49,7 +52,10 @@ export function ManagerTrainingPlanPickerDialog({
   savedPlans,
   templates,
   lastSession,
+  replaceTarget = null,
+  userId = null,
   onClose,
+  onReplaced,
 }: Props): React.ReactElement | null {
   const navigate = useNavigate();
   const [mode, setMode] = useState<PickerMode>('start');
@@ -65,31 +71,46 @@ export function ManagerTrainingPlanPickerDialog({
 
   const sortedPlans = useMemo(
     () =>
-      [...savedPlans].sort((a, b) =>
-        String(b.updated_at ?? b.created_at ?? '').localeCompare(String(a.updated_at ?? a.created_at ?? '')),
-      ),
-    [savedPlans],
+      [...savedPlans]
+        .filter((plan) => plan.id !== replaceTarget?.id)
+        .sort((a, b) =>
+          String(b.updated_at ?? b.created_at ?? '').localeCompare(String(a.updated_at ?? a.created_at ?? '')),
+        ),
+    [replaceTarget?.id, savedPlans],
   );
 
   if (!event) return null;
 
   const usePlan = async (source: TrainingSessionRow) => {
     if (busyId) return;
+    if (
+      replaceTarget &&
+      !window.confirm(
+        `Den aktuellen Plan „${replaceTarget.title}“ durch „${cleanTitle(source)}“ ersetzen?\n\nTermin, Platz und Beteiligung bleiben erhalten. Der bisherige Plan wird im Archiv gesichert.`,
+      )
+    ) return;
     setBusyId(source.id);
     setError(null);
-    const result = await copyTrainingSession({
-      sourceId: source.id,
-      mode: 'event',
-      eventId: event.id,
-      title: cleanTitle(source) || 'Trainingseinheit',
-    });
+    const result = replaceTarget
+      ? await replaceTrainingSessionFromSource({
+          targetId: replaceTarget.id,
+          sourceId: source.id,
+          userId,
+        })
+      : await copyTrainingSession({
+          sourceId: source.id,
+          mode: 'event',
+          eventId: event.id,
+          title: cleanTitle(source) || 'Trainingseinheit',
+        });
     setBusyId(null);
     if (result.error || !result.data) {
       setError(result.error ?? 'Der Trainingsplan konnte nicht übernommen werden.');
       return;
     }
     onClose();
-    navigate(`/manager/training/einheiten/${encodeURIComponent(result.data.id)}`);
+    if (replaceTarget) onReplaced?.(result.data);
+    else navigate(`/manager/training/einheiten/${encodeURIComponent(result.data.id)}`);
   };
 
   const startOptions = [
@@ -120,7 +141,7 @@ export function ManagerTrainingPlanPickerDialog({
       disabled: !lastSession,
       onClick: () => lastSession && void usePlan(lastSession),
     },
-    {
+    ...(!replaceTarget ? [{
       id: 'new',
       title: 'Neue Einheit erstellen',
       description: 'Eine leere Trainingseinheit zusammenstellen',
@@ -132,7 +153,7 @@ export function ManagerTrainingPlanPickerDialog({
           `/manager/training/einheiten/neu?event=${encodeURIComponent(event.id)}&starts=${encodeURIComponent(event.starts_at)}`,
         );
       },
-    },
+    }] : []),
   ];
 
   const selectionRows = mode === 'templates' ? templates : sortedPlans;
@@ -167,12 +188,20 @@ export function ManagerTrainingPlanPickerDialog({
             ) : null}
             <div>
               <h2 id="training-plan-picker-title" className="text-[18px] font-bold text-slate-950">
-                {mode === 'start' ? `Training für ${formatEvent(event.starts_at)} planen` : selectionTitle}
+                {mode === 'start'
+                  ? replaceTarget
+                    ? `Plan für ${formatEvent(event.starts_at)} wechseln`
+                    : `Training für ${formatEvent(event.starts_at)} planen`
+                  : selectionTitle}
               </h2>
               <p className="mt-0.5 text-[13px] text-slate-500">
                 {mode === 'start'
-                  ? 'Wie möchtest du dieses Training planen?'
-                  : 'Der Plan wird als bearbeitbare Kopie für diesen Termin angelegt.'}
+                  ? replaceTarget
+                    ? 'Welchen Plan möchtest du stattdessen verwenden?'
+                    : 'Wie möchtest du dieses Training planen?'
+                  : replaceTarget
+                    ? 'Der ausgewählte Inhalt ersetzt den aktuellen Plan.'
+                    : 'Der Plan wird als bearbeitbare Kopie für diesen Termin angelegt.'}
               </p>
             </div>
           </div>
@@ -270,7 +299,9 @@ export function ManagerTrainingPlanPickerDialog({
 
           <div className="mt-4 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-[12px] text-slate-600">
             <ClipboardCopy className="h-4 w-4 shrink-0" aria-hidden />
-            Der ursprüngliche Plan bleibt unverändert. Du bearbeitest eine Kopie für diesen Termin.
+            {replaceTarget
+              ? 'Termin, Platz und Beteiligung bleiben erhalten. Der bisherige Plan wird im Archiv gesichert.'
+              : 'Der ursprüngliche Plan bleibt unverändert. Du bearbeitest eine Kopie für diesen Termin.'}
           </div>
         </div>
       </div>
