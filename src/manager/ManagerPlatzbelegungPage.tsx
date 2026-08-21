@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
@@ -181,6 +181,14 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason, memberships } = useSession();
   const { usesExpandedAdminCapabilities, isTrainerMode } = useManagerWorkMode();
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedDate = searchParams.get('date');
+  const requestedEventId = searchParams.get('event');
+  const requestedAnchor = useMemo(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate ?? '')) return new Date();
+    const [year, month, day] = requestedDate!.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }, [requestedDate]);
+  const openedRequestedEventRef = useRef<string | null>(null);
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
   const isPlatformAdmin = usesExpandedAdminCapabilities;
@@ -212,9 +220,9 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
     setViewModeRaw(m);
     writeStoredViewMode(user?.id, m);
   }, [user?.id]);
-  const [weekAnchor, setWeekAnchor] = useState(() => new Date());
-  const [dayAnchor, setDayAnchor] = useState(() => new Date());
-  const [monthAnchor, setMonthAnchor] = useState(() => new Date());
+  const [weekAnchor, setWeekAnchor] = useState(() => requestedAnchor);
+  const [dayAnchor, setDayAnchor] = useState(() => requestedAnchor);
+  const [monthAnchor, setMonthAnchor] = useState(() => requestedAnchor);
   const [filterVenueId, setFilterVenueId] = useState<string>('');
   const [filterFieldId, setFilterFieldId] = useState<string>('');
   const [filterTeamSeasonId, setFilterTeamSeasonId] = useState<string>('');
@@ -226,7 +234,7 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   >(() => new Map());
   const [loadingWeek, setLoadingWeek] = useState(false);
   const [weekError, setWeekError] = useState<string | null>(null);
-  const [selectedDayKey, setSelectedDayKey] = useState(() => toViennaDayKey(new Date()));
+  const [selectedDayKey, setSelectedDayKey] = useState(() => toViennaDayKey(requestedAnchor));
   const [detailBlock, setDetailBlock] = useState<DayTimelineBlock | null>(null);
 
   const [assignEvent, setAssignEvent] = useState<ClubEvent | null>(null);
@@ -521,6 +529,15 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
   const handleSelectBlock = useCallback((block: DayTimelineBlock) => {
     setDetailBlock(block);
   }, []);
+
+  useEffect(() => {
+    if (!requestedEventId || openedRequestedEventRef.current === requestedEventId || loadingMeta) return;
+    const requestedEvent = events.find((event) => event.id === requestedEventId);
+    if (!requestedEvent) return;
+    openedRequestedEventRef.current = requestedEventId;
+    setViewMode('day');
+    setAssignEvent(requestedEvent);
+  }, [events, loadingMeta, requestedEventId, setViewMode]);
 
   const handleCreateForSlot = useCallback((dayKey: string, hour: number, venueId: string, fieldId: string) => {
     openCreate(dayKey, hour, venueId, fieldId);

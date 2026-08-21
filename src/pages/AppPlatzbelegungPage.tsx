@@ -3,7 +3,7 @@
  * Daten: Grants + Shared Occupancy + availabilityHelpers / MiniMap.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ChevronDown,
   ChevronLeft,
@@ -103,6 +103,7 @@ function blockWidthPct(startsAtMs: number, endsAtMs: number, dayKey: string): nu
 
 export const AppPlatzbelegungPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { effectiveRole, backendRole, memberships } = useSession();
   const { activeTeamSeasonId, activeTeamSeason, readTeamSeason } = useActiveTeamSeason();
   const contextSeason = readTeamSeason ?? activeTeamSeason;
@@ -113,7 +114,10 @@ export const AppPlatzbelegungPage: React.FC = () => {
     memberships: memberships ?? [],
   });
 
-  const [dayKey, setDayKey] = useState(() => toViennaDayKey(new Date()));
+  const requestedDayKey = searchParams.get('date');
+  const [dayKey, setDayKey] = useState(() =>
+    /^\d{4}-\d{2}-\d{2}$/.test(requestedDayKey ?? '') ? requestedDayKey! : toViennaDayKey(new Date()),
+  );
   const [payload, setPayload] = useState<AppPlatzDayPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

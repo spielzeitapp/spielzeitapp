@@ -73,6 +73,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const eventFromQuery = searchParams.get('event');
   const startsFromQuery = searchParams.get('starts');
   const exerciseFromQuery = searchParams.get('exercise');
+  const viewFromQuery = searchParams.get('view');
   const navigate = useNavigate();
 
   const { user, selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
@@ -106,6 +107,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [requestedExercise, setRequestedExercise] = useState<TrainingExerciseRow | null>(null);
   const [requestedExerciseLoading, setRequestedExerciseLoading] = useState(false);
   const handledExerciseQueryRef = useRef<string | null>(null);
+  const openedTrainingViewRef = useRef(false);
   const [mobileExerciseId, setMobileExerciseId] = useState<string | null>(null);
   const [mobileSketchUrls, setMobileSketchUrls] = useState<Record<string, string | null>>({});
   const [confirmUnlink, setConfirmUnlink] = useState(false);
@@ -582,6 +584,12 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const mobileIndex = mobileExerciseId
     ? mobileItems.findIndex((x) => x.id === mobileExerciseId)
     : -1;
+
+  useEffect(() => {
+    if (viewFromQuery !== 'training' || openedTrainingViewRef.current || mobileItems.length === 0) return;
+    openedTrainingViewRef.current = true;
+    setMobileExerciseId(mobileItems[0].id);
+  }, [mobileItems, viewFromQuery]);
 
   const trainingEvents = useMemo(
     () =>
