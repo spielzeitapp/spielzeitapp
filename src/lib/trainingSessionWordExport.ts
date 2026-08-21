@@ -23,7 +23,9 @@ const XML_HEADER = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 const WORD_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const PAGE_SIZE = '<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>';
 const PAGE_MARGIN = '<w:pgMar w:top="500" w:right="500" w:bottom="500" w:left="500" w:header="240" w:footer="240" w:gutter="0"/>';
-const TABLE_WIDTHS = [4700, 4200, 2400, 4300] as const;
+// Breite wie in der U12-Trainerkurs-Vorlage: Die Skizzen erhalten bewusst
+// fast die halbe Seite und werden als 2x2-Raster dargestellt.
+const TABLE_WIDTHS = [3600, 7000, 2000, 3000] as const;
 
 function xml(value: unknown): string {
   return String(value ?? '')
@@ -67,17 +69,28 @@ function exerciseHeading(entry: WordExercise): string {
   return paragraph(
     run(`${phase} · ${entry.exercise.title} · ${entry.item.duration_minutes} Min.`, {
       bold: true,
-      size: 15,
+      size: 13,
       color: '17365D',
     }),
-    { after: 20, keepNext: true },
+    { after: 10, keepNext: true },
+  );
+}
+
+function compactPhaseHeading(entry: WordExercise): string {
+  return paragraph(
+    run(`${TRAINING_PHASE_SHORT[entry.item.phase]} (${entry.item.duration_minutes} Min.)`, {
+      bold: true,
+      size: 13,
+      color: '17365D',
+    }),
+    { after: 10, keepNext: true },
   );
 }
 
 function labeledText(label: string, value: string | null | undefined): string {
   const text = clean(value);
-  return paragraph(`${run(`${label}: `, { bold: true, size: 14 })}${run(text, { size: 14 })}`, {
-    after: 35,
+  return paragraph(`${run(`${label}: `, { bold: true, size: 12 })}${run(text, { size: 12 })}`, {
+    after: 15,
   });
 }
 
@@ -88,8 +101,8 @@ function cell(content: string, width: number, options?: { fill?: string; center?
 }
 
 function imageDrawing(relationshipId: string, drawingId: number, title: string): string {
-  const cx = 3370000;
-  const cy = 1300000;
+  const cx = 2200000;
+  const cy = 1375000;
   return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${drawingId}" name="Skizze ${drawingId}" descr="${xml(
     title,
   )}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${drawingId}" name="${xml(
@@ -97,35 +110,18 @@ function imageDrawing(relationshipId: string, drawingId: number, title: string):
   )}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${relationshipId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
 }
 
-function organizationBlock(entry: WordExercise, index: number): string {
-  const heading = exerciseHeading(entry);
-  const sketch = entry.image
-    ? paragraph(imageDrawing(`rIdImage${index + 1}`, index + 1, entry.exercise.title), {
-        after: 15,
-        align: 'center',
-      })
-    : paragraph(run('Keine Skizze hinterlegt', { size: 13, color: '777777' }), {
-        after: 15,
-        align: 'center',
-      });
-  const organization = entry.exercise.organization
-    ? labeledText('Aufbau', entry.exercise.organization)
-    : '';
-  return `${heading}${sketch}${organization}`;
-}
-
 function contentBlock(entry: WordExercise): string {
   const notes = entry.item.coach_notes
     ? labeledText('Trainerhinweis', entry.item.coach_notes)
     : '';
-  return `${exerciseHeading(entry)}${paragraph(run(clean(entry.exercise.description), { size: 14 }), {
-    after: 35,
+  return `${exerciseHeading(entry)}${paragraph(run(clean(entry.exercise.description), { size: 12 }), {
+    after: 20,
   })}${notes}`;
 }
 
 function materialBlock(entry: WordExercise): string {
-  return `${exerciseHeading(entry)}${paragraph(run(clean(entry.exercise.materials), { size: 14 }), {
-    after: 45,
+  return `${compactPhaseHeading(entry)}${paragraph(run(clean(entry.exercise.materials), { size: 12 }), {
+    after: 20,
   })}`;
 }
 
@@ -133,9 +129,45 @@ function coachingBlock(entry: WordExercise): string {
   const variations = entry.exercise.variations
     ? labeledText('Variation', entry.exercise.variations)
     : '';
-  return `${exerciseHeading(entry)}${paragraph(run(clean(entry.exercise.coaching_points), { size: 14 }), {
-    after: 25,
+  return `${compactPhaseHeading(entry)}${paragraph(run(clean(entry.exercise.coaching_points), { size: 12 }), {
+    after: 15,
   })}${variations}`;
+}
+
+function organizationGrid(entries: WordExercise[], startIndex: number): string {
+  const cellWidth = TABLE_WIDTHS[1] / 2;
+  const rows: string[] = [];
+  for (let index = 0; index < entries.length; index += 2) {
+    const rowEntries = entries.slice(index, index + 2);
+    while (rowEntries.length < 2) rowEntries.push(null as unknown as WordExercise);
+    rows.push(
+      `<w:tr><w:trPr><w:cantSplit/></w:trPr>${rowEntries
+        .map((entry, offset) => {
+          if (!entry) return cell(paragraph('', { after: 0 }), cellWidth);
+          const drawingIndex = startIndex + index + offset;
+          const heading = paragraph(
+            run(`${TRAINING_PHASE_SHORT[entry.item.phase]} · ${entry.exercise.title}`, {
+              bold: true,
+              size: 12,
+              color: '17365D',
+            }),
+            { after: 8, align: 'center', keepNext: true },
+          );
+          const sketch = entry.image
+            ? paragraph(imageDrawing(`rIdImage${drawingIndex + 1}`, drawingIndex + 1, entry.exercise.title), {
+                after: 0,
+                align: 'center',
+              })
+            : paragraph(run('Keine Skizze hinterlegt', { size: 11, color: '777777' }), {
+                after: 0,
+                align: 'center',
+              });
+          return cell(`${heading}${sketch}`, cellWidth);
+        })
+        .join('')}</w:tr>`,
+    );
+  }
+  return `<w:tbl><w:tblPr><w:tblW w:w="${TABLE_WIDTHS[1]}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="single" w:sz="3" w:color="D8DEE8"/><w:insideV w:val="single" w:sz="3" w:color="D8DEE8"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${cellWidth}"/><w:gridCol w:w="${cellWidth}"/></w:tblGrid>${rows.join('')}</w:tbl>`;
 }
 
 function headerTable(input: TrainingSessionWordInput, pageNumber: number, pageCount: number): string {
@@ -185,11 +217,11 @@ function exerciseTable(entries: WordExercise[], startIndex: number): string {
     )
     .join('')}</w:tr>`;
   const content = entries.map(contentBlock).join('');
-  const organization = entries.map((entry, index) => organizationBlock(entry, startIndex + index)).join('');
+  const organization = organizationGrid(entries, startIndex);
   const materials = entries.map(materialBlock).join('');
   const coaching = entries.map(coachingBlock).join('');
   const bodyRow = `<w:tr><w:trPr><w:cantSplit/></w:trPr>${cell(content, TABLE_WIDTHS[0])}${cell(
-    organization,
+    `${organization}${paragraph('', { after: 0 })}`,
     TABLE_WIDTHS[1],
   )}${cell(materials, TABLE_WIDTHS[2])}${cell(coaching, TABLE_WIDTHS[3])}</w:tr>`;
   return `<w:tbl><w:tblPr><w:tblW w:w="15600" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="single" w:sz="6" w:color="333333"/><w:left w:val="single" w:sz="6" w:color="333333"/><w:bottom w:val="single" w:sz="6" w:color="333333"/><w:right w:val="single" w:sz="6" w:color="333333"/><w:insideH w:val="single" w:sz="4" w:color="777777"/><w:insideV w:val="single" w:sz="4" w:color="777777"/></w:tblBorders></w:tblPr><w:tblGrid>${TABLE_WIDTHS.map(
@@ -209,7 +241,7 @@ async function blobToPng(blob: Blob): Promise<Uint8Array | null> {
       image.src = objectUrl;
     });
     const targetWidth = 1200;
-    const targetHeight = Math.round((targetWidth * 1300000) / 3370000);
+    const targetHeight = 750;
     const scale = Math.min(
       targetWidth / Math.max(1, image.naturalWidth),
       targetHeight / Math.max(1, image.naturalHeight),
@@ -283,10 +315,10 @@ export async function buildTrainingSessionWord(input: TrainingSessionWordInput):
   if (!entries.length) throw new Error('Die Übungen konnten nicht geladen werden.');
 
   const groups: WordExercise[][] = [];
-  for (let index = 0; index < entries.length; index += 3) groups.push(entries.slice(index, index + 3));
+  for (let index = 0; index < entries.length; index += 4) groups.push(entries.slice(index, index + 4));
   const body = groups
     .map((group, pageIndex) => {
-      const startIndex = pageIndex * 3;
+      const startIndex = pageIndex * 4;
       const page = `${headerTable(input, pageIndex + 1, groups.length)}${exerciseTable(group, startIndex)}`;
       return pageIndex < groups.length - 1
         ? `${page}${paragraph('<w:r><w:br w:type="page"/></w:r>', { after: 0 })}`
