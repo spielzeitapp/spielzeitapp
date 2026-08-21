@@ -3802,6 +3802,7 @@ export const EventDetailPage: React.FC = () => {
                 status={event.status}
                 trainingTitle={eventCompactTitle}
                 trainingTopics={eventDetailsPrimary}
+                trainingLocation={event.location}
                 canManage={canTrainerManageEvent}
                 canViewHistory={canTrainerViewEvent && !seasonWritable}
                 trainerAttendanceSection={trainingTrainerAttendanceSection}

@@ -1,7 +1,10 @@
-import React, { useMemo } from 'react';
-import { Dumbbell, Radio } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Check, Dumbbell, MapPin, Radio } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
+import { getAssignmentForEvent } from '../../lib/eventFieldAssignments';
+import { getTrainingSessionByEvent, type TrainingSessionRow } from '../../lib/trainingSessions';
 import { resolveTrainingCenterPhase, type TrainingCenterPhase } from '../../lib/trainingCenterPhase';
 import { safeText } from '../../lib/safeText';
 import { dsStatusChipClass } from '../../lib/premiumDesignSystem';
@@ -20,6 +23,7 @@ type Props = {
   status?: string | null;
   trainingTitle: string;
   trainingTopics?: string | null;
+  trainingLocation?: string | null;
   /** Writes (Bearbeiten, Feed schreiben, Attendance ändern). */
   canManage: boolean;
   /** Archiv-Lesen: Teilnehmer/Stats/Kaiser ohne Writes. */
@@ -30,11 +34,13 @@ type Props = {
 };
 
 export function TrainingDetailSections({
+  eventId,
   teamSeasonId,
   startsAtIso,
   status = null,
   trainingTitle,
   trainingTopics = null,
+  trainingLocation = null,
   canManage,
   canViewHistory = false,
   trainerAttendanceSection = null,
@@ -80,7 +86,7 @@ export function TrainingDetailSections({
       ];
     }
     if (canManage) {
-      return ['availability', 'topics', 'challenges', 'feed', 'participants', 'stats', 'admin'];
+      return ['preparation', 'availability', 'topics', 'challenges', 'feed', 'participants', 'stats', 'admin'];
     }
     return ['topics', 'feed'];
   }, [trainingPhase, canManage, canViewHistory]);
@@ -89,6 +95,16 @@ export function TrainingDetailSections({
 
   const renderSection = (key: string) => {
     switch (key) {
+      case 'preparation':
+        if (!canManage) return null;
+        return (
+          <TrainingPreparationCard
+            key={key}
+            eventId={eventId}
+            startsAtIso={startsAtIso}
+            location={trainingLocation}
+          />
+        );
       case 'live':
         return (
           <section key={key} className={EC_CARD}>
@@ -223,5 +239,102 @@ export function TrainingDetailSections({
     <div className={`flex min-w-0 flex-col overflow-x-hidden ${EC_STACK_GAP}`}>
       {overviewSectionOrder.map((sectionKey) => renderSection(sectionKey))}
     </div>
+  );
+}
+
+function dayKeyFromIso(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Vienna',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return '';
+  }
+}
+
+function TrainingPreparationCard({
+  eventId,
+  startsAtIso,
+  location,
+}: {
+  eventId: string;
+  startsAtIso: string;
+  location: string | null;
+}): React.ReactElement {
+  const [plan, setPlan] = useState<TrainingSessionRow | null>(null);
+  const [hasAssignment, setHasAssignment] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    void Promise.all([getTrainingSessionByEvent(eventId), getAssignmentForEvent(eventId)]).then(
+      ([planResult, assignmentResult]) => {
+        if (!active) return;
+        setPlan(planResult.data);
+        setHasAssignment(Boolean(assignmentResult.data));
+        setLoading(false);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [eventId]);
+
+  const dateKey = dayKeyFromIso(startsAtIso);
+  const planReady = plan?.status === 'ready';
+  const planHref = plan
+    ? `/manager/training/einheiten/${encodeURIComponent(plan.id)}${planReady ? '?view=training' : ''}`
+    : `/manager/training/einheiten/neu?event=${encodeURIComponent(eventId)}&starts=${encodeURIComponent(startsAtIso)}`;
+  const placeHref = hasAssignment
+    ? `/app/platzbelegung?date=${encodeURIComponent(dateKey)}&event=${encodeURIComponent(eventId)}`
+    : `/manager/platzbelegung?date=${encodeURIComponent(dateKey)}&event=${encodeURIComponent(eventId)}`;
+
+  return (
+    <section className={EC_CARD}>
+      <div className={EC_CARD_INNER}>
+        <p className={EC_SECTION_LABEL}>Trainingsvorbereitung</p>
+        {loading ? (
+          <p className="mt-2 text-[12px] text-white/55">Plan und Platz werden geladen…</p>
+        ) : (
+          <div className="mt-2 grid gap-2">
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Trainingsplan</p>
+                  <p className={`mt-1 text-[13px] font-bold ${planReady ? 'text-emerald-300' : plan ? 'text-amber-200' : 'text-red-300'}`}>
+                    {planReady ? '✓ Planung fertig' : plan ? 'In Bearbeitung' : 'Noch nicht geplant'}
+                  </p>
+                  {plan ? <p className="mt-0.5 truncate text-[11px] text-white/55">{plan.title} · {plan.planned_duration_minutes ?? 0} Min.</p> : null}
+                </div>
+                {planReady ? <Check className="h-5 w-5 shrink-0 text-emerald-300" aria-hidden /> : <Dumbbell className="h-5 w-5 shrink-0 text-red-300" aria-hidden />}
+              </div>
+              <Link to={planHref} className={`mt-2 inline-flex min-h-[42px] w-full items-center justify-center rounded-xl px-3 text-[12px] font-bold ${planReady ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40' : plan ? 'bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/35' : 'bg-red-600 text-white'}`}>
+                {planReady ? 'Trainingsplan ansehen' : plan ? 'Plan weiterbearbeiten' : 'Training planen'}
+              </Link>
+            </div>
+
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Trainingsplatz</p>
+                  <p className={`mt-1 text-[13px] font-bold ${hasAssignment ? 'text-emerald-300' : 'text-red-300'}`}>
+                    {hasAssignment ? '✓ Platz zugeordnet' : 'Noch kein Platz zugeordnet'}
+                  </p>
+                  {hasAssignment && location ? <p className="mt-0.5 truncate text-[11px] text-white/55">{location}</p> : null}
+                </div>
+                <MapPin className={`h-5 w-5 shrink-0 ${hasAssignment ? 'text-emerald-300' : 'text-red-300'}`} aria-hidden />
+              </div>
+              <Link to={placeHref} className={`mt-2 inline-flex min-h-[42px] w-full items-center justify-center rounded-xl px-3 text-[12px] font-bold ${hasAssignment ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/35' : 'bg-red-600 text-white'}`}>
+                {hasAssignment ? 'Platzbelegung ansehen' : 'Platz zuordnen'}
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
