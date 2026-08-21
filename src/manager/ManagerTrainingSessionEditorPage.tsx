@@ -12,8 +12,10 @@ import { getAssignmentForEvent } from '../lib/eventFieldAssignments';
 import { listVenueFields, listFieldZones } from '../lib/venueFields';
 import {
   addExerciseToSession,
+  archiveTrainingSession,
   createTrainingSession,
   getTrainingSession,
+  listTrainingSessionsForSeason,
   listSessionExercises,
   removeExerciseFromSession,
   unlinkSessionFromEvent,
@@ -34,9 +36,10 @@ import {
 import { isSeasonArchived } from '../lib/seasonLifecycle';
 import { VIENNA_TZ } from '../lib/viennaTime';
 import { ManagerTrainingCopyDialog } from './ManagerTrainingCopyDialog';
+import { ManagerTrainingPlanPickerDialog } from './ManagerTrainingPlanPickerDialog';
 import { ManagerTrainingAttendanceReadOnly } from './ManagerTrainingAttendanceReadOnly';
 import { ManagerTrainingDocumentationPanel } from './ManagerTrainingDocumentationPanel';
-import { updateExerciseReview } from '../lib/trainingSessionOps';
+import { listTrainingTemplates, updateExerciseReview } from '../lib/trainingSessionOps';
 import { TRAINING_EXERCISE_REVIEW_LABELS, type TrainingExerciseReviewStatus } from '../lib/trainingPhases';
 import { downloadTrainingSessionWord } from '../lib/trainingSessionWordExport';
 
@@ -104,6 +107,10 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [copyOpen, setCopyOpen] = useState(false);
   const [docMode, setDocMode] = useState(false);
   const [exportingWord, setExportingWord] = useState(false);
+  const [planChangeOpen, setPlanChangeOpen] = useState(false);
+  const [planChangeLoading, setPlanChangeLoading] = useState(false);
+  const [replacementPlans, setReplacementPlans] = useState<TrainingSessionRow[]>([]);
+  const [replacementTemplates, setReplacementTemplates] = useState<TrainingSessionRow[]>([]);
 
   const totalMinutes = useMemo(
     () => items.reduce((sum, it) => sum + (it.duration_minutes || 0), 0),
@@ -385,6 +392,59 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     setSaving(false);
   }
 
+  async function openPlanChange() {
+    if (!session?.id || !eventId || !teamSeasonId) return;
+    setPlanChangeLoading(true);
+    setError(null);
+    const [sessionResult, clubResult] = await Promise.all([
+      listTrainingSessionsForSeason(teamSeasonId),
+      resolveClubIdForTeamSeason(teamSeasonId),
+    ]);
+    if (sessionResult.error) {
+      setError(sessionResult.error);
+      setPlanChangeLoading(false);
+      return;
+    }
+    let templates: TrainingSessionRow[] = [];
+    if (clubResult.clubId) {
+      const templateResult = await listTrainingTemplates({ clubId: clubResult.clubId });
+      if (templateResult.error) {
+        setError(templateResult.error);
+        setPlanChangeLoading(false);
+        return;
+      }
+      templates = templateResult.data;
+    }
+    setReplacementPlans(
+      sessionResult.data.filter(
+        (candidate) =>
+          candidate.id !== session.id &&
+          candidate.record_type !== 'template' &&
+          (candidate.status === 'ready' || candidate.status === 'completed'),
+      ),
+    );
+    setReplacementTemplates(templates);
+    setPlanChangeOpen(true);
+    setPlanChangeLoading(false);
+  }
+
+  async function archiveCurrentPlan() {
+    if (!session?.id) return;
+    const warning = eventId
+      ? 'Der Plan wird vom Trainingstermin entfernt und im Archiv abgelegt. Der Termin selbst bleibt bestehen. Fortfahren?'
+      : 'Diesen Plan im Archiv ablegen?';
+    if (!window.confirm(warning)) return;
+    setSaving(true);
+    setError(null);
+    const result = await archiveTrainingSession(session.id, user?.id ?? null);
+    setSaving(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    navigate('/manager/training/einheiten');
+  }
+
   async function addExercise(ex: TrainingExerciseRow, phase: TrainingPhase) {
     setSaving(true);
     setError(null);
@@ -509,6 +569,24 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     return new Date(eventMeta.starts_at).getTime() <= Date.now() + 30 * 60 * 1000;
   }, [eventMeta?.starts_at]);
 
+  const linkedTrainingEvent = useMemo(() => {
+    if (!eventId) return null;
+    const knownEvent = trainingEvents.find((candidate) => candidate.id === eventId);
+    if (knownEvent) return { id: knownEvent.id, starts_at: knownEvent.starts_at };
+    if (eventMeta?.starts_at) return { id: eventId, starts_at: eventMeta.starts_at };
+    return null;
+  }, [eventId, eventMeta?.starts_at, trainingEvents]);
+
+  const replacementLastSession = useMemo(
+    () =>
+      [...replacementPlans].sort((a, b) =>
+        String(b.completed_at ?? b.updated_at ?? b.created_at ?? '').localeCompare(
+          String(a.completed_at ?? a.updated_at ?? a.created_at ?? ''),
+        ),
+      )[0] ?? null,
+    [replacementPlans],
+  );
+
   if (loading) {
     return <p className="text-[13px] text-slate-400">Einheit wird geladen…</p>;
   }
@@ -543,6 +621,16 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
             >
               Einheit kopieren
+            </button>
+          ) : null}
+          {session?.id && eventId && status !== 'completed' && status !== 'archived' ? (
+            <button
+              type="button"
+              disabled={saving || planChangeLoading || seasonArchived}
+              onClick={() => void openPlanChange()}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
+            >
+              {planChangeLoading ? 'Pläne werden geladen…' : 'Plan wechseln'}
             </button>
           ) : null}
           {session?.id ? (
@@ -589,6 +677,34 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                     : 'Als fertigen Plan speichern'
                   : 'Änderungen speichern'}
             </button>
+          ) : null}
+          {session?.id && status !== 'completed' ? (
+            <details className="relative">
+              <summary className="inline-flex min-h-[40px] cursor-pointer list-none items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800">
+                Mehr
+              </summary>
+              <div className="absolute right-0 z-20 mt-2 min-w-[190px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                {status === 'archived' ? (
+                  <button
+                    type="button"
+                    disabled={saving || seasonArchived}
+                    onClick={() => void saveMeta('draft')}
+                    className="w-full rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Wiederherstellen
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={saving || seasonArchived}
+                    onClick={() => void archiveCurrentPlan()}
+                    className="w-full rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Archivieren
+                  </button>
+                )}
+              </div>
+            </details>
           ) : null}
         </div>
       </header>
@@ -637,7 +753,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                 setStatus(e.target.value as TrainingSessionStatus);
                 setDirty(true);
               }}
-              disabled={status === 'completed'}
+              disabled={status === 'completed' || status === 'archived'}
               className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px] disabled:bg-slate-50"
             >
               <option value="draft">{TRAINING_SESSION_STATUS_LABELS.draft}</option>
@@ -645,7 +761,9 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               {status === 'completed' ? (
                 <option value="completed">{TRAINING_SESSION_STATUS_LABELS.completed}</option>
               ) : null}
-              <option value="archived">{TRAINING_SESSION_STATUS_LABELS.archived}</option>
+              {status === 'archived' ? (
+                <option value="archived">{TRAINING_SESSION_STATUS_LABELS.archived}</option>
+              ) : null}
             </select>
             <span className="mt-1 block text-[11px] font-normal text-slate-500">
               Entwurf bleibt gelb. „Planung fertigstellen“ setzt den Termin auf grün.
@@ -1130,6 +1248,30 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
           session={session}
           trainingEvents={trainingEvents}
           onClose={() => setCopyOpen(false)}
+        />
+      ) : null}
+
+      {session && planChangeOpen ? (
+        <ManagerTrainingPlanPickerDialog
+          event={linkedTrainingEvent}
+          savedPlans={replacementPlans}
+          templates={replacementTemplates}
+          lastSession={replacementLastSession}
+          replaceTarget={session}
+          userId={user?.id ?? null}
+          onClose={() => setPlanChangeOpen(false)}
+          onReplaced={(updated) => {
+            setSession(updated);
+            setTitle(updated.title);
+            setObjective(updated.objective ?? '');
+            setNotes(updated.notes ?? '');
+            setStatus('draft');
+            setDirty(false);
+            setSuccess(
+              'Plan ersetzt. Termin, Platz und Beteiligung wurden beibehalten. Bitte prüfen und Planung fertigstellen.',
+            );
+            void reload();
+          }}
         />
       ) : null}
     </div>

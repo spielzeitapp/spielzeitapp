@@ -111,6 +111,10 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
     () => sessions.filter((session) => session.status === 'ready' && session.record_type !== 'template'),
     [sessions],
   );
+  const archivedPlans = useMemo(
+    () => sessions.filter((session) => session.status === 'archived' && session.record_type !== 'template'),
+    [sessions],
+  );
   const lastSession = useMemo(
     () =>
       [...sessions]
@@ -134,7 +138,7 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
     setLoadingSessions(true);
     setError(null);
     const [sessionResult, clubResult] = await Promise.all([
-      listTrainingSessionsForSeason(teamSeasonId),
+      listTrainingSessionsForSeason(teamSeasonId, { includeArchived: true }),
       resolveClubIdForTeamSeason(teamSeasonId),
     ]);
     if (sessionResult.error) setError(sessionResult.error);
@@ -292,7 +296,9 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
         </section>
       ) : null}
 
-      {!loading && mainTab === 'plans' ? <MyPlans drafts={drafts} readyPlans={readyPlans} /> : null}
+      {!loading && mainTab === 'plans' ? (
+        <MyPlans drafts={drafts} readyPlans={readyPlans} archivedPlans={archivedPlans} />
+      ) : null}
 
       <ManagerTrainingPlanPickerDialog event={planningEvent} savedPlans={readyPlans} templates={templates} lastSession={lastSession} onClose={() => setPlanningEvent(null)} />
     </div>
@@ -336,8 +342,8 @@ function TrainingListRow({ event, session, fieldLabel, onPlan }: { event: EventR
   </div>;
 }
 
-function MyPlans({ drafts, readyPlans }: { drafts: TrainingSessionRow[]; readyPlans: TrainingSessionRow[] }): React.ReactElement {
-  return <div className="grid gap-5 xl:grid-cols-2"><PlanSection title="Fertige Pläne" description="Sofort für einen Trainingstermin verwendbar" rows={readyPlans} empty="Noch keine fertigen Pläne vorhanden." /><PlanSection title="Entwürfe ohne Termin" description="Noch nicht fertiggestellte Trainingseinheiten" rows={drafts} empty="Keine offenen Entwürfe vorhanden." /></div>;
+function MyPlans({ drafts, readyPlans, archivedPlans }: { drafts: TrainingSessionRow[]; readyPlans: TrainingSessionRow[]; archivedPlans: TrainingSessionRow[] }): React.ReactElement {
+  return <div className="space-y-5"><div className="grid gap-5 xl:grid-cols-2"><PlanSection title="Fertige Pläne" description="Sofort für einen Trainingstermin verwendbar" rows={readyPlans} empty="Noch keine fertigen Pläne vorhanden." /><PlanSection title="Entwürfe ohne Termin" description="Noch nicht fertiggestellte Trainingseinheiten" rows={drafts} empty="Keine offenen Entwürfe vorhanden." /></div><details className="rounded-2xl border border-slate-200 bg-white shadow-sm"><summary className="cursor-pointer list-none px-4 py-4 text-[14px] font-semibold text-slate-800">Archiv ({archivedPlans.length}) <span className="ml-1 text-[12px] font-normal text-slate-500">– alte oder ersetzte Pläne</span></summary><div className="border-t border-slate-100 p-4"><PlanSection title="Archivierte Pläne" description="Ausgeblendete Pläne können geöffnet und wiederhergestellt werden" rows={archivedPlans} empty="Das Archiv ist leer." /></div></details></div>;
 }
 
 function PlanSection({ title, description, rows, empty }: { title: string; description: string; rows: TrainingSessionRow[]; empty: string }): React.ReactElement {

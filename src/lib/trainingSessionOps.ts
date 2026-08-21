@@ -16,6 +16,7 @@ import {
   createTrainingSession,
   getTrainingSession,
   listSessionExercises,
+  removeExerciseFromSession,
   updateSessionExercise,
   updateTrainingSession,
   type TrainingSessionExerciseRow,
@@ -50,6 +51,30 @@ async function cloneExercises(
       coachNotes: item.coach_notes,
     });
     if (res.error) return { ok: false, error: res.error };
+  }
+  return { ok: true, error: null };
+}
+
+async function replaceExerciseItems(
+  targetSessionId: string,
+  items: TrainingSessionExerciseRow[],
+): Promise<{ ok: boolean; error: string | null }> {
+  const current = await listSessionExercises(targetSessionId);
+  if (current.error) return { ok: false, error: current.error };
+  for (const item of current.data) {
+    const removed = await removeExerciseFromSession(item.id, targetSessionId);
+    if (removed.error) return { ok: false, error: removed.error };
+  }
+  for (const item of items) {
+    const added = await addExerciseToSession({
+      sessionId: targetSessionId,
+      exerciseId: item.exercise_id,
+      phase: item.phase,
+      durationMinutes: item.duration_minutes,
+      sortOrder: item.sort_order,
+      coachNotes: item.coach_notes,
+    });
+    if (added.error) return { ok: false, error: added.error };
   }
   return { ok: true, error: null };
 }
@@ -122,6 +147,113 @@ export async function copyTrainingSession(input: {
 
   const refreshed = await getTrainingSession(created.data.id);
   return { data: refreshed.data ?? created.data, error: refreshed.error };
+}
+
+/**
+ * Ersetzt den Inhalt eines bereits mit einem Termin verknüpften Plans.
+ * Termin/Platz/Beteiligung bleiben über dieselbe Ziel-Session erhalten.
+ * Vorher wird eine archivierte, terminlose Sicherung des alten Plans angelegt.
+ */
+export async function replaceTrainingSessionFromSource(input: {
+  targetId: string;
+  sourceId: string;
+  userId?: string | null;
+}): Promise<{
+  data: TrainingSessionRow | null;
+  backupId: string | null;
+  error: string | null;
+}> {
+  if (input.targetId === input.sourceId) {
+    return { data: null, backupId: null, error: 'Bitte einen anderen Trainingsplan auswählen.' };
+  }
+  const [targetResult, sourceResult] = await Promise.all([
+    getTrainingSession(input.targetId),
+    getTrainingSession(input.sourceId),
+  ]);
+  if (targetResult.error || !targetResult.data) {
+    return { data: null, backupId: null, error: targetResult.error ?? 'Aktueller Plan nicht gefunden.' };
+  }
+  if (sourceResult.error || !sourceResult.data) {
+    return { data: null, backupId: null, error: sourceResult.error ?? 'Ausgewählter Plan nicht gefunden.' };
+  }
+  const target = targetResult.data;
+  const source = sourceResult.data;
+  if (!target.event_id) {
+    return { data: null, backupId: null, error: 'Der aktuelle Plan ist mit keinem Trainingstermin verbunden.' };
+  }
+  if (target.status === 'completed') {
+    return { data: null, backupId: null, error: 'Ein durchgeführtes Training kann nicht mehr ersetzt werden.' };
+  }
+
+  const [oldItemsResult, sourceItemsResult] = await Promise.all([
+    listSessionExercises(target.id),
+    listSessionExercises(source.id),
+  ]);
+  if (oldItemsResult.error) return { data: null, backupId: null, error: oldItemsResult.error };
+  if (sourceItemsResult.error) return { data: null, backupId: null, error: sourceItemsResult.error };
+
+  const backup = await copyTrainingSession({
+    sourceId: target.id,
+    mode: 'draft',
+    title: `Archiv: ${target.title}`,
+  });
+  if (backup.error || !backup.data) {
+    return {
+      data: null,
+      backupId: null,
+      error: backup.error ?? 'Die Sicherung des bisherigen Plans konnte nicht erstellt werden.',
+    };
+  }
+  const archivedBackup = await updateTrainingSession(backup.data.id, {
+    status: 'archived',
+    eventId: null,
+    archivedAt: new Date().toISOString(),
+    archivedBy: input.userId ?? null,
+  });
+  if (archivedBackup.error) {
+    return { data: null, backupId: backup.data.id, error: archivedBackup.error };
+  }
+
+  const replaced = await replaceExerciseItems(target.id, sourceItemsResult.data);
+  if (replaced.error) {
+    await replaceExerciseItems(target.id, oldItemsResult.data);
+    return {
+      data: null,
+      backupId: backup.data.id,
+      error: `${replaced.error} Der bisherige Plan wurde im Archiv gesichert.`,
+    };
+  }
+
+  const cleanSourceTitle = source.title.replace(/^Vorlage:\s*/i, '').trim() || source.title;
+  const updated = await updateTrainingSession(target.id, {
+    title: cleanSourceTitle,
+    objective: source.objective,
+    notes: source.notes,
+    status: 'draft',
+    focus: source.focus,
+    ageGroup: source.age_group,
+    plannedDurationMinutes:
+      source.planned_duration_minutes ??
+      sourceItemsResult.data.reduce((sum, item) => sum + (item.duration_minutes || 0), 0),
+  });
+  if (updated.error || !updated.data) {
+    await replaceExerciseItems(target.id, oldItemsResult.data);
+    await updateTrainingSession(target.id, {
+      title: target.title,
+      objective: target.objective,
+      notes: target.notes,
+      status: target.status,
+      focus: target.focus,
+      ageGroup: target.age_group,
+      plannedDurationMinutes: target.planned_duration_minutes,
+    });
+    return {
+      data: null,
+      backupId: backup.data.id,
+      error: updated.error ?? 'Der Plan konnte nicht ersetzt werden.',
+    };
+  }
+  return { data: updated.data, backupId: backup.data.id, error: null };
 }
 
 /** Speichert eine bestehende Einheit als Vorlage (ohne Termin/Nachbereitung). */
