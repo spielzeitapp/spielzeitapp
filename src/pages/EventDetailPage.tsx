@@ -3619,7 +3619,7 @@ export const EventDetailPage: React.FC = () => {
       style={{ background: '#000000' }}
     >
       <div
-        className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 sm:px-4 ${
+        className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden ${isTraining ? 'px-0 sm:px-4' : 'px-2 sm:px-4'} ${
           isTournament || isTraining
             ? 'gap-2.5 py-2.5 pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))]'
             : isAudienceMatchDetail

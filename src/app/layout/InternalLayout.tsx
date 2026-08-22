@@ -88,7 +88,9 @@ export const InternalLayout: React.FC = () => {
     pathClean === '/app/mehr' ||
     pathClean === '/demo/mehr' ||
     pathClean.startsWith('/app/mehr/') ||
-    pathClean.startsWith('/demo/mehr/');
+    pathClean.startsWith('/demo/mehr/') ||
+    pathClean.startsWith('/app/events/') ||
+    pathClean.startsWith('/demo/events/');
 
   useSyncPendingProfile(isDemo ? null : user ?? null);
   useSyncProfileFromUserMetadata(isDemo ? null : user ?? null);

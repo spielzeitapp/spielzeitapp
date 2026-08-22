@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, ClipboardList, Dumbbell, MapPin, Megaphone, Radio, Trophy, Users } from 'lucide-react';
+import { BarChart3, Check, ChevronDown, ClipboardList, Dumbbell, MapPin, Megaphone, Radio, Trophy, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
@@ -13,7 +13,6 @@ import { JugglingChallengeCard } from '../team/JugglingChallengeCard';
 import { TrainingKaiserCard } from '../team/TrainingKaiserCard';
 import { CenterAdminAccordion, CenterAdminSection } from '../center/CenterAdminAccordion';
 import { CenterCollapsibleSection } from '../center/CenterCollapsibleSection';
-import { CenterEmptyState } from '../center/CenterEmptyState';
 import { EC_CARD, EC_CARD_INNER, EC_SECTION_LABEL, EC_STACK_GAP } from '../center/eventCenterStyles';
 
 type Props = {
@@ -136,27 +135,7 @@ export function TrainingDetailSections({
         );
       case 'topics':
         if (!topicsText) {
-          if (!canManage && !canViewHistory) return null;
-          return (
-            <CenterCollapsibleSection
-              key={key}
-              title="Trainingsthemen"
-              icon={<ClipboardList aria-hidden />}
-              prominent
-              defaultExpanded={false}
-            >
-              <CenterEmptyState
-                embedded
-                icon={Dumbbell}
-                title="Keine Trainingsthemen"
-                description={
-                  canManage
-                    ? 'Trage Schwerpunkte und Übungen beim Bearbeiten des Trainings ein.'
-                    : 'Für dieses historische Training sind keine Themen hinterlegt.'
-                }
-              />
-            </CenterCollapsibleSection>
-          );
+          return null;
         }
         return (
           <CenterCollapsibleSection key={key} title="Trainingsthemen" icon={<ClipboardList aria-hidden />} prominent defaultExpanded={trainingPhase === 'before'}>
@@ -202,7 +181,10 @@ export function TrainingDetailSections({
         return (
           <section key={key} className={EC_CARD}>
             <div className={EC_CARD_INNER}>
-              <p className={EC_SECTION_LABEL}>Trainingsstatistik</p>
+              <div className="flex min-h-[40px] items-center gap-2">
+                <BarChart3 className="h-[18px] w-[18px] shrink-0 text-red-400/80" strokeWidth={2.25} aria-hidden />
+                <h2 className="text-[14px] font-semibold text-white/90">Trainingsstatistik</h2>
+              </div>
               <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                 <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
                   <p className="text-[9px] uppercase tracking-wide text-white/42">Bewertete Trainings</p>
@@ -277,6 +259,7 @@ function TrainingPreparationCard({
   const [plan, setPlan] = useState<TrainingSessionRow | null>(null);
   const [hasAssignment, setHasAssignment] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -314,14 +297,22 @@ function TrainingPreparationCard({
   return (
     <section className={EC_CARD}>
       <div className={EC_CARD_INNER}>
-        <div className="flex min-h-[40px] items-center gap-2">
-          <ClipboardList className="h-[18px] w-[18px] shrink-0 text-red-400/80" strokeWidth={2.25} aria-hidden />
-          <h2 className="text-[14px] font-semibold text-white/90">Trainingsvorbereitung</h2>
-        </div>
-        {loading ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+          className="flex min-h-[40px] w-full items-center justify-between gap-2 text-left touch-manipulation"
+        >
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <ClipboardList className="h-[18px] w-[18px] shrink-0 text-red-400/80" strokeWidth={2.25} aria-hidden />
+            <span className="text-[14px] font-semibold text-white/90">Trainingsvorbereitung</span>
+          </span>
+          <ChevronDown className={`h-[18px] w-[18px] shrink-0 text-white/55 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} strokeWidth={2.25} aria-hidden />
+        </button>
+        {!expanded ? null : loading ? (
           <p className="mt-2 text-[12px] text-white/55">Plan und Platz werden geladen…</p>
         ) : (
-          <div className="mt-1 grid gap-2">
+          <div className="mt-2 grid gap-2 border-t border-white/[0.06] pt-2">
             <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
