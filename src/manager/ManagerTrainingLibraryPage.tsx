@@ -4,7 +4,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileUp, Plus, Search } from 'lucide-react';
+import { FileUp, ImagePlus, Plus, Search, Trash2 } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 import {
@@ -107,7 +107,10 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [importing, setImporting] = useState(false);
   const [pendingSketch, setPendingSketch] = useState<Blob | null>(null);
   const [pendingSketchUrl, setPendingSketchUrl] = useState<string | null>(null);
+  const [currentSketchUrl, setCurrentSketchUrl] = useState<string | null>(null);
+  const [removeCurrentSketch, setRemoveCurrentSketch] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sketchInputRef = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
     if (!teamSeasonId) {
@@ -170,6 +173,8 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setForm(emptyForm());
     setPendingSketch(null);
     setPendingSketchUrl(null);
+    setCurrentSketchUrl(null);
+    setRemoveCurrentSketch(false);
     setFormError(null);
     setEditorOpen(true);
   };
@@ -179,8 +184,35 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setForm(formFromRow(row));
     setPendingSketch(null);
     setPendingSketchUrl(null);
+    setCurrentSketchUrl(null);
+    setRemoveCurrentSketch(false);
     setFormError(null);
     setEditorOpen(true);
+    if (row.image_path) {
+      void getTrainingExerciseSketchUrl(row.image_path).then((url) => setCurrentSketchUrl(url));
+    }
+  };
+
+  const selectSketch = async (file: File) => {
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+      setFormError('Bitte ein PNG-, JPG- oder WebP-Bild auswählen.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setFormError('Das Bild darf höchstens 10 MB groß sein.');
+      return;
+    }
+    try {
+      const sketch = await imageFileToWebp(file);
+      setPendingSketch(sketch);
+      setPendingSketchUrl(URL.createObjectURL(sketch));
+      setRemoveCurrentSketch(false);
+      setFormError(null);
+    } catch {
+      setFormError('Das Bild konnte nicht verarbeitet werden.');
+    } finally {
+      if (sketchInputRef.current) sketchInputRef.current.value = '';
+    }
   };
 
   const importPdf = async (file: File) => {
@@ -192,6 +224,8 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       setForm((current) => ({ ...current, ...draft, difficulty: 'medium' }));
       setPendingSketch(draft.sketch);
       setPendingSketchUrl(draft.sketch ? URL.createObjectURL(draft.sketch) : null);
+      setCurrentSketchUrl(null);
+      setRemoveCurrentSketch(false);
       setFormError(null);
       setEditorOpen(true);
     } catch (cause) {
@@ -215,7 +249,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setSaving(true);
     setFormError(null);
     let uploadedPath: string | null = null;
-    if (!editing && pendingSketch) {
+    if (pendingSketch) {
       const upload = await uploadTrainingExerciseSketch(clubId, pendingSketch);
       if (upload.error || !upload.path) {
         setSaving(false);
@@ -239,7 +273,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       organization: form.organization,
       coachingPoints: form.coachingPoints,
       variations: form.variations,
-      imagePath: editing?.image_path ?? uploadedPath,
+      imagePath: uploadedPath ?? (removeCurrentSketch ? null : editing?.image_path ?? null),
       sourceType: (form.sourceReference ? 'import' : editing?.source_type === 'import' ? 'import' : 'club') as
         | 'club'
         | 'import',
@@ -254,9 +288,14 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       setFormError(res.error ?? 'Speichern fehlgeschlagen.');
       return;
     }
+    if (editing?.image_path && (uploadedPath || removeCurrentSketch)) {
+      await removeTrainingExerciseSketch(editing.image_path);
+    }
     setEditorOpen(false);
     setPendingSketch(null);
     setPendingSketchUrl(null);
+    setCurrentSketchUrl(null);
+    setRemoveCurrentSketch(false);
     setToast(editing ? 'Übung aktualisiert.' : form.sourceReference ? 'PDF-Übung importiert.' : 'Übung angelegt.');
     await reload();
   };
@@ -462,16 +501,59 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               </p>
             ) : null}
             <div className="mt-3 space-y-3">
-              {pendingSketchUrl ? (
-                <div>
-                  <span className="text-[12px] font-medium text-slate-600">Erkannte Skizze</span>
-                  <img
-                    src={pendingSketchUrl}
-                    alt="Aus der PDF extrahierte Übungsskizze"
-                    className="mt-1 max-h-52 w-full rounded-xl border border-slate-200 bg-white object-contain"
-                  />
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[12px] font-semibold text-slate-700">Skizze / Bild</span>
+                  <span className="text-[11px] text-slate-400">PNG, JPG oder WebP · max. 10 MB</span>
                 </div>
-              ) : null}
+                {pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch) ? (
+                  <img
+                    src={pendingSketchUrl ?? currentSketchUrl ?? ''}
+                    alt="Vorschau der Übungsskizze"
+                    className="mt-2 max-h-52 w-full rounded-xl border border-slate-200 bg-white object-contain"
+                  />
+                ) : (
+                  <div className="mt-2 flex h-28 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-[12px] text-slate-400">
+                    Noch keine Skizze hinterlegt
+                  </div>
+                )}
+                <input
+                  ref={sketchInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void selectSketch(file);
+                  }}
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => sketchInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <ImagePlus className="h-4 w-4" aria-hidden />
+                    {pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch)
+                      ? 'Bild austauschen'
+                      : 'Bild hochladen'}
+                  </button>
+                  {pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch) ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingSketch(null);
+                        setPendingSketchUrl(null);
+                        setRemoveCurrentSketch(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                      Bild entfernen
+                    </button>
+                  ) : null}
+                </div>
+              </div>
               <Field label="Titel *">
                 <input
                   value={form.title}
@@ -684,4 +766,33 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </label>
   );
+}
+
+async function imageFileToWebp(file: File): Promise<Blob> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const next = new Image();
+      next.onload = () => resolve(next);
+      next.onerror = () => reject(new Error('Bild konnte nicht geladen werden.'));
+      next.src = objectUrl;
+    });
+    const maxEdge = 2400;
+    const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
+    if (!blob) throw new Error('Bild konnte nicht konvertiert werden.');
+    return blob;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
