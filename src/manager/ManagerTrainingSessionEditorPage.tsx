@@ -46,6 +46,7 @@ import { ManagerTrainingDocumentationPanel } from './ManagerTrainingDocumentatio
 import { listTrainingTemplates, updateExerciseReview } from '../lib/trainingSessionOps';
 import { TRAINING_EXERCISE_REVIEW_LABELS, type TrainingExerciseReviewStatus } from '../lib/trainingPhases';
 import { downloadTrainingSessionWord } from '../lib/trainingSessionWordExport';
+import { createTrainingSessionHandoutHtml } from '../lib/trainingSessionHandout';
 
 function formatWhen(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -115,6 +116,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [copyOpen, setCopyOpen] = useState(false);
   const [docMode, setDocMode] = useState(false);
   const [exportingWord, setExportingWord] = useState(false);
+  const [exportingHandout, setExportingHandout] = useState(false);
   const [planChangeOpen, setPlanChangeOpen] = useState(false);
   const [planChangeLoading, setPlanChangeLoading] = useState(false);
   const [replacementPlans, setReplacementPlans] = useState<TrainingSessionRow[]>([]);
@@ -539,6 +541,56 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     }
   }
 
+  async function printHandout() {
+    if (!session || items.length === 0) {
+      setError('Bitte zuerst mindestens eine Übung zur Einheit hinzufügen.');
+      return;
+    }
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      setError('Das Handout konnte nicht geöffnet werden. Bitte Pop-ups für diese Seite erlauben.');
+      return;
+    }
+    printWindow.document.write('<p style="font-family:Arial;padding:24px">A4-Handout wird erstellt…</p>');
+    setExportingHandout(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const sketchEntries = await Promise.all(
+        Object.values(exerciseMap).map(async (exercise) => [
+          exercise.id,
+          exercise.image_path ? await getTrainingExerciseSketchUrl(exercise.image_path) : null,
+        ] as const),
+      );
+      const metadata = (user?.user_metadata ?? {}) as Record<string, unknown>;
+      const trainerName =
+        String(metadata.full_name ?? metadata.name ?? '').trim() || user?.email?.split('@')[0] || '';
+      const teamName =
+        (contextSeason?.display_name ?? '').trim() ||
+        (contextSeason?.age_group ?? '').trim() ||
+        contextSeason?.team?.name ||
+        '';
+      const html = createTrainingSessionHandoutHtml({
+        session,
+        items,
+        exerciseMap,
+        sketchUrls: Object.fromEntries(sketchEntries),
+        trainerName,
+        teamName,
+        dateIso: eventMeta?.starts_at ?? session.created_at ?? null,
+      });
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      setSuccess('A4-Handout wurde geöffnet.');
+    } catch (err) {
+      printWindow.close();
+      setError(err instanceof Error ? err.message : 'A4-Handout konnte nicht erstellt werden.');
+    } finally {
+      setExportingHandout(false);
+    }
+  }
+
   async function moveItem(item: TrainingSessionExerciseRow, dir: -1 | 1) {
     const list = byPhase[item.phase];
     const idx = list.findIndex((x) => x.id === item.id);
@@ -700,6 +752,16 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
             >
               {exportingWord ? 'Word wird erstellt…' : 'Word exportieren'}
+            </button>
+          ) : null}
+          {session?.id ? (
+            <button
+              type="button"
+              disabled={exportingHandout || saving || items.length === 0}
+              onClick={() => void printHandout()}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
+            >
+              {exportingHandout ? 'Handout wird erstellt…' : 'A4-Handout drucken'}
             </button>
           ) : null}
           {session?.id && session.record_type === 'session' && (eventPastOrNow || session.status === 'completed') ? (
