@@ -286,9 +286,17 @@ function TrainingPreparationCard({
 
   const dateKey = dayKeyFromIso(startsAtIso);
   const planReady = plan?.status === 'ready';
+  const returnTo = `/app/events/${encodeURIComponent(eventId)}`;
   const planHref = plan
-    ? `/manager/training/einheiten/${encodeURIComponent(plan.id)}${planReady ? '?view=training' : ''}`
-    : `/manager/training/einheiten/neu?event=${encodeURIComponent(eventId)}&starts=${encodeURIComponent(startsAtIso)}`;
+    ? `/manager/training/einheiten/${encodeURIComponent(plan.id)}?${new URLSearchParams({
+        ...(planReady ? { view: 'training' } : {}),
+        returnTo,
+      }).toString()}`
+    : `/manager/training/einheiten/neu?${new URLSearchParams({
+        event: eventId,
+        starts: startsAtIso,
+        returnTo,
+      }).toString()}`;
   const placeHref = hasAssignment
     ? `/app/platzbelegung?date=${encodeURIComponent(dateKey)}&event=${encodeURIComponent(eventId)}`
     : `/manager/platzbelegung?date=${encodeURIComponent(dateKey)}&event=${encodeURIComponent(eventId)}`;

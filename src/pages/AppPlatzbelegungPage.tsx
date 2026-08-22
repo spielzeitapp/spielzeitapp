@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ChevronDown,
+  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
@@ -104,6 +105,7 @@ function blockWidthPct(startsAtMs: number, endsAtMs: number, dayKey: string): nu
 export const AppPlatzbelegungPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const sourceEventId = searchParams.get('event');
   const { effectiveRole, backendRole, memberships } = useSession();
   const { activeTeamSeasonId, activeTeamSeason, readTeamSeason } = useActiveTeamSeason();
   const contextSeason = readTeamSeason ?? activeTeamSeason;
@@ -251,6 +253,16 @@ export const AppPlatzbelegungPage: React.FC = () => {
     >
       <div className="mx-auto max-w-[640px] space-y-4">
         <header className="space-y-2">
+          {sourceEventId ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/app/events/${encodeURIComponent(sourceEventId)}`)}
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 text-[12px] font-semibold text-white"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              Trainingscenter
+            </button>
+          ) : null}
           <h1 className="text-2xl font-bold tracking-tight text-white">Platzbelegung</h1>
           <p className="truncate text-[13px] text-white/55">{teamLabel}</p>
 
