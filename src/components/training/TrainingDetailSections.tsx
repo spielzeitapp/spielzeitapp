@@ -86,6 +86,23 @@ export function TrainingDetailSections({
   }, [trainingPhase, canManage, canViewHistory]);
 
   const topicsText = safeText(trainingTopics);
+  const seasonPlayersWithBasis = useMemo(
+    () => [...ranking.qualified, ...ranking.unqualified].filter((row) => row.stats.present + row.stats.absent > 0),
+    [ranking.qualified, ranking.unqualified],
+  );
+  const seasonPlayersAtOrAbove50 = useMemo(
+    () => seasonPlayersWithBasis.filter((row) => row.stats.teamRatePct >= 50).length,
+    [seasonPlayersWithBasis],
+  );
+  const seasonAveragePresent = useMemo(() => {
+    if (ranking.sessionParticipations.length === 0) return null;
+    const total = ranking.sessionParticipations.reduce((sum, session) => sum + session.counts.present, 0);
+    return total / ranking.sessionParticipations.length;
+  }, [ranking.sessionParticipations]);
+  const seasonAveragePresentLabel =
+    seasonAveragePresent == null
+      ? '—'
+      : new Intl.NumberFormat('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(seasonAveragePresent);
 
   const renderSection = (key: string) => {
     switch (key) {
@@ -167,15 +184,26 @@ export function TrainingDetailSections({
       case 'stats':
         if (!canViewStaffReadouts) return null;
         return (
-          <CenterCollapsibleSection key={key} title="Trainingsstatistik" icon={<BarChart3 aria-hidden />} prominent defaultExpanded={false}>
+          <CenterCollapsibleSection key={key} title="Saisonstatistik" icon={<BarChart3 aria-hidden />} prominent defaultExpanded={false}>
+            <p className="mb-2 text-[11px] text-white/48">Gesamte aktuelle Saison · aktiver Kader</p>
             <div className="grid grid-cols-2 gap-1.5">
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
-                <p className="text-[9px] uppercase tracking-wide text-white/42">Bewertete Trainings</p>
+                <p className="text-[9px] uppercase tracking-wide text-white/42">Trainings ausgewertet</p>
                 <p className="text-[16px] font-bold text-white">{ratedTrainingsCount}</p>
               </div>
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
-                <p className="text-[9px] uppercase tracking-wide text-white/42">Beteiligung</p>
+                <p className="text-[9px] uppercase tracking-wide text-white/42">Team-Beteiligung</p>
                 <p className="text-[16px] font-bold text-white">{participationLabel}</p>
+              </div>
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
+                <p className="text-[9px] uppercase tracking-wide text-white/42">Spieler ab 50 %</p>
+                <p className="text-[16px] font-bold text-white">
+                  {rankingLoading ? '…' : `${seasonPlayersAtOrAbove50} / ${seasonPlayersWithBasis.length}`}
+                </p>
+              </div>
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
+                <p className="text-[9px] uppercase tracking-wide text-white/42">Ø anwesend</p>
+                <p className="text-[16px] font-bold text-white">{rankingLoading ? '…' : seasonAveragePresentLabel}</p>
               </div>
             </div>
           </CenterCollapsibleSection>
