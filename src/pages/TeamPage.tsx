@@ -12,7 +12,7 @@ import {
   PremiumTabTrack,
   SectionTitle,
 } from "../ui";
-import { Camera } from "lucide-react";
+import { ArrowLeft, Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
@@ -143,6 +143,13 @@ export const TeamPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const returnToTrainingEvent = useMemo(() => {
+    const target = searchParams.get("returnTo");
+    if (!target) return null;
+    return target.startsWith("/app/events/") || target.startsWith("/demo/events/")
+      ? target
+      : null;
+  }, [searchParams]);
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
@@ -1276,26 +1283,39 @@ export const TeamPage: React.FC = () => {
       ) : null}
 
       {activeTab === "training" ? (
-        teamSeasonId == null && !tsLoading ? (
-          <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
-            <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="py-6" />
-          </PremiumCard>
-        ) : canViewTrainingKaiser && teamSeasonId != null ? (
-          <TeamTrainingDashboard
-            players={trainingRosterPlayers}
-            teamSeasonId={teamSeasonId}
-            squadMode="active_only"
-            onPlayerClick={(player) => {
-              openPlayerProfile(player, "training");
-            }}
-          />
-        ) : teamSeasonId != null ? (
-          <TeamTrainingPublicOverview
-            players={trainingRosterPlayers}
-            teamSeasonId={teamSeasonId}
-            squadMode="active_only"
-          />
-        ) : null
+        <>
+          {returnToTrainingEvent ? (
+            <button
+              type="button"
+              onClick={() => navigate(returnToTrainingEvent)}
+              className="mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-[13px] font-bold text-red-100 transition-colors hover:bg-red-500/15"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              Zurück zum Trainingstermin
+            </button>
+          ) : null}
+
+          {teamSeasonId == null && !tsLoading ? (
+            <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
+              <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="py-6" />
+            </PremiumCard>
+          ) : canViewTrainingKaiser && teamSeasonId != null ? (
+            <TeamTrainingDashboard
+              players={trainingRosterPlayers}
+              teamSeasonId={teamSeasonId}
+              squadMode="active_only"
+              onPlayerClick={(player) => {
+                openPlayerProfile(player, "training");
+              }}
+            />
+          ) : teamSeasonId != null ? (
+            <TeamTrainingPublicOverview
+              players={trainingRosterPlayers}
+              teamSeasonId={teamSeasonId}
+              squadMode="active_only"
+            />
+          ) : null}
+        </>
       ) : null}
 
       {activeTab === "matches" ? (
@@ -1363,4 +1383,3 @@ export const TeamPage: React.FC = () => {
     </>
   );
 };
-
