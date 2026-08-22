@@ -88,9 +88,11 @@ export function TrainingDetailSections({
   }, [trainingPhase, canManage, canViewHistory]);
 
   const topicsText = safeText(trainingTopics);
-  const teamTrainingHref = location.pathname.startsWith('/demo/')
-    ? '/demo/team?tab=training'
-    : '/app/team?tab=training';
+  const teamTrainingBasePath = location.pathname.startsWith('/demo/') ? '/demo/team' : '/app/team';
+  const teamTrainingHref = `${teamTrainingBasePath}?${new URLSearchParams({
+    tab: 'training',
+    returnTo: `${location.pathname}${location.search}`,
+  }).toString()}`;
 
   const renderSection = (key: string) => {
     switch (key) {
