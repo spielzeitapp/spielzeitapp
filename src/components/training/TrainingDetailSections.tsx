@@ -79,6 +79,7 @@ export function TrainingDetailSections({
         ...(canManage ? ['preparation'] : []),
         'participants',
         'challenges',
+        'stats',
         ...(canManage ? ['topics'] : []),
       ];
     }
