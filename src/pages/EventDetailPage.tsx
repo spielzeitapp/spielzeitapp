@@ -3790,8 +3790,6 @@ export const EventDetailPage: React.FC = () => {
             />
             <CenterQuickActionBar
               onAddToCalendar={() => void handleAddSingleEventToCalendar()}
-              onNavigate={handleStartNavigation}
-              showNavigation={canStartNavigation}
               onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
               onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
             />
@@ -3807,15 +3805,6 @@ export const EventDetailPage: React.FC = () => {
                 canManage={canTrainerManageEvent}
                 canViewHistory={canTrainerViewEvent && !seasonWritable}
                 trainerAttendanceSection={trainingTrainerAttendanceSection}
-                trainerFeedSection={
-                  canTrainerManageEvent ? (
-                    <EventFeedCommunicationSection
-                      event={event}
-                      userId={sessionUser?.id ?? null}
-                      embedded
-                    />
-                  ) : null
-                }
               />
             ) : null}
           </>

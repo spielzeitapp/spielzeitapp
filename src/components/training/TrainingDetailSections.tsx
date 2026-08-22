@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, ChevronDown, ClipboardList, Dumbbell, MapPin, Megaphone, Radio, Trophy, Users } from 'lucide-react';
+import { BarChart3, Check, ChevronDown, ClipboardList, Dumbbell, MapPin, Radio, Trophy, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
@@ -27,7 +27,6 @@ type Props = {
   /** Archiv-Lesen: Teilnehmer/Stats/Kaiser ohne Writes. */
   canViewHistory?: boolean;
   trainerAttendanceSection?: React.ReactNode;
-  trainerFeedSection?: React.ReactNode;
 };
 
 export function TrainingDetailSections({
@@ -41,7 +40,6 @@ export function TrainingDetailSections({
   canManage,
   canViewHistory = false,
   trainerAttendanceSection = null,
-  trainerFeedSection = null,
 }: Props) {
   const canViewStaffReadouts = canManage || canViewHistory;
   /** Saisonweite Stats/Kaiser: immer active-only. Event-Teilnehmer kommen separat aus EventDetail. */
@@ -70,7 +68,7 @@ export function TrainingDetailSections({
         'stats',
         'kaiser',
         'challenges',
-        ...(canManage ? ['topics', 'feed'] : canViewHistory ? ['topics'] : ['feed']),
+        ...(canManage || canViewHistory ? ['topics'] : []),
       ];
     }
     if (trainingPhase === 'during') {
@@ -78,13 +76,13 @@ export function TrainingDetailSections({
         'live',
         'participants',
         'challenges',
-        ...(canManage ? ['topics', 'feed'] : ['feed']),
+        ...(canManage ? ['topics'] : []),
       ];
     }
     if (canManage) {
-      return ['preparation', 'availability', 'topics', 'challenges', 'feed', 'participants', 'stats'];
+      return ['preparation', 'availability', 'topics', 'challenges', 'participants', 'stats'];
     }
-    return ['topics', 'feed'];
+    return ['topics'];
   }, [trainingPhase, canManage, canViewHistory]);
 
   const topicsText = safeText(trainingTopics);
@@ -146,13 +144,6 @@ export function TrainingDetailSections({
               <JugglingChallengeCard variant="teaser" awards={jugglingAwards} loading={jugglingLoading} />
               <TrainingChallengeTypesGrid variant="teaser" />
             </div>
-          </CenterCollapsibleSection>
-        );
-      case 'feed':
-        if (!canManage || !trainerFeedSection) return null;
-        return (
-          <CenterCollapsibleSection key={key} title="Feed & Kommunikation" icon={<Megaphone aria-hidden />} prominent defaultExpanded={false}>
-            {trainerFeedSection}
           </CenterCollapsibleSection>
         );
       case 'participants':
