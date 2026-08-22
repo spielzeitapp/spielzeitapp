@@ -74,6 +74,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const startsFromQuery = searchParams.get('starts');
   const exerciseFromQuery = searchParams.get('exercise');
   const viewFromQuery = searchParams.get('view');
+  const returnToFromQuery = searchParams.get('returnTo');
   const navigate = useNavigate();
 
   const { user, selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
@@ -585,6 +586,15 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     ? mobileItems.findIndex((x) => x.id === mobileExerciseId)
     : -1;
 
+  const safeReturnTo = returnToFromQuery?.startsWith('/app/events/') ? returnToFromQuery : null;
+  const closeTrainingView = () => {
+    if (safeReturnTo) {
+      navigate(safeReturnTo);
+      return;
+    }
+    setMobileExerciseId(null);
+  };
+
   useEffect(() => {
     if (viewFromQuery !== 'training' || openedTrainingViewRef.current || mobileItems.length === 0) return;
     openedTrainingViewRef.current = true;
@@ -644,10 +654,10 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/manager/training/einheiten"
+            to={safeReturnTo ?? '/manager/training/einheiten'}
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
           >
-            Zurück
+            {safeReturnTo ? 'Zum Trainingscenter' : 'Zurück'}
           </Link>
           {session?.id ? (
             <button
@@ -1062,13 +1072,13 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
             const ex = exerciseMap[it.exercise_id];
             return (
               <>
-                <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-slate-200 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
                   <button
                     type="button"
-                    onClick={() => setMobileExerciseId(null)}
+                    onClick={closeTrainingView}
                     className="text-[14px] font-semibold text-red-700"
                   >
-                    Schließen
+                    {safeReturnTo ? '← Trainingscenter' : 'Schließen'}
                   </button>
                   <span className="text-[12px] text-slate-500">
                     {mobileIndex + 1} / {mobileItems.length}

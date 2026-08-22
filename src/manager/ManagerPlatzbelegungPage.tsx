@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
@@ -668,6 +668,14 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {requestedEventId ? (
+            <Link
+              to={`/app/events/${encodeURIComponent(requestedEventId)}`}
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
+            >
+              Zum Trainingscenter
+            </Link>
+          ) : null}
           {tab === 'calendar' && createTeamOptions.some(([id]) => canCreateForTeamSeason(id)) ? (
             <button
               type="button"
