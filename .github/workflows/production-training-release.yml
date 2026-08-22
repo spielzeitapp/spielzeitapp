@@ -1,0 +1,82 @@
+name: Production training release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-training-release.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-training-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Verify and publish isolated training package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout production
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Configure release identity
+        run: |
+          git config user.name "spielzeitapp-release"
+          git config user.email "release@spielzeitapp.at"
+
+      - name: Fetch verified training commits
+        run: git fetch origin develop
+
+      - name: Apply isolated training package
+        run: |
+          git cherry-pick \
+            9aaa2a3e \
+            dc105a07 \
+            68fac89f \
+            0a4bf285 \
+            0e42a456 \
+            357b9172 \
+            e054589b \
+            d8c33b08 \
+            a092c562 \
+            5b2a7e63 \
+            8c20aa88 \
+            6eb1449f \
+            4900ea13 \
+            a265fc37 \
+            5ac6f6a4 \
+            d154b45d \
+            1d96310a \
+            b91c078d \
+            3443c1ae \
+            23a55dbf \
+            a17b50d5 \
+            a2b1ad60 \
+            a6b6ed84 \
+            154d0860 \
+            09ccb64f \
+            8e8b8ad1
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify training flows
+        run: |
+          node scripts/training-exercise-import1-test.mjs
+          node scripts/training-session-add-exercise-test.mjs
+          node scripts/training-session-word-export-test.mjs
+
+      - name: Verify TypeScript and production build
+        run: |
+          npx tsc --noEmit
+          npm run build
+
+      - name: Publish to production branch
+        run: git push origin HEAD:main
