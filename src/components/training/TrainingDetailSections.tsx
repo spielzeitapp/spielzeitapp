@@ -179,24 +179,18 @@ export function TrainingDetailSections({
       case 'stats':
         if (!canViewStaffReadouts) return null;
         return (
-          <section key={key} className={EC_CARD}>
-            <div className={EC_CARD_INNER}>
-              <div className="flex min-h-[40px] items-center gap-2">
-                <BarChart3 className="h-[18px] w-[18px] shrink-0 text-red-400/80" strokeWidth={2.25} aria-hidden />
-                <h2 className="text-[14px] font-semibold text-white/90">Trainingsstatistik</h2>
+          <CenterCollapsibleSection key={key} title="Trainingsstatistik" icon={<BarChart3 aria-hidden />} prominent defaultExpanded={false}>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
+                <p className="text-[9px] uppercase tracking-wide text-white/42">Bewertete Trainings</p>
+                <p className="text-[16px] font-bold text-white">{ratedTrainingsCount}</p>
               </div>
-              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
-                  <p className="text-[9px] uppercase tracking-wide text-white/42">Bewertete Trainings</p>
-                  <p className="text-[16px] font-bold text-white">{ratedTrainingsCount}</p>
-                </div>
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
-                  <p className="text-[9px] uppercase tracking-wide text-white/42">Beteiligung</p>
-                  <p className="text-[16px] font-bold text-white">{participationLabel}</p>
-                </div>
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
+                <p className="text-[9px] uppercase tracking-wide text-white/42">Beteiligung</p>
+                <p className="text-[16px] font-bold text-white">{participationLabel}</p>
               </div>
             </div>
-          </section>
+          </CenterCollapsibleSection>
         );
       case 'kaiser':
         if (!canViewStaffReadouts) return null;
@@ -218,7 +212,7 @@ export function TrainingDetailSections({
         return (
           <CenterAdminAccordion key={key} prominent>
             {trainerActions ? (
-              <CenterAdminSection title="Training bearbeiten">{trainerActions}</CenterAdminSection>
+              <CenterAdminSection title="Weitere Aktionen">{trainerActions}</CenterAdminSection>
             ) : null}
           </CenterAdminAccordion>
         );

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { CalendarPlus, MapPin, Share2 } from 'lucide-react';
+import { CalendarPlus, MapPin, Pencil, Share2 } from 'lucide-react';
 
 type Props = {
   onAddToCalendar: () => void;
   onNavigate?: () => void;
   showNavigation?: boolean;
   onShare?: () => Promise<boolean>;
+  onEdit?: () => void;
 };
 
 export function CenterQuickActionBar({
@@ -13,6 +14,7 @@ export function CenterQuickActionBar({
   onNavigate,
   showNavigation = false,
   onShare,
+  onEdit,
 }: Props) {
   const [shareHint, setShareHint] = useState<string | null>(null);
 
@@ -35,6 +37,7 @@ export function CenterQuickActionBar({
           <ActionChip icon={MapPin} label="Navigation" onClick={onNavigate} />
         ) : null}
         {onShare ? <ActionChip icon={Share2} label="Teilen" onClick={() => void handleShare()} /> : null}
+        {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten" onClick={onEdit} /> : null}
       </div>
       {shareHint ? (
         <span

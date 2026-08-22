@@ -3793,6 +3793,7 @@ export const EventDetailPage: React.FC = () => {
               onNavigate={handleStartNavigation}
               showNavigation={canStartNavigation}
               onShare={() => shareEventCenter('Trainingscenter', eventCompactTitle)}
+              onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
             />
             {event.team_season_id ? (
               <TrainingDetailSections
@@ -3822,12 +3823,6 @@ export const EventDetailPage: React.FC = () => {
                     rows={[
                       ...(canTrainerManageEvent
                         ? [
-                            {
-                              key: 'edit',
-                              label: 'Bearbeiten',
-                              icon: <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                              onClick: () => openEditModal(event),
-                            },
                             {
                               key: 'delete',
                               label: 'Löschen',
