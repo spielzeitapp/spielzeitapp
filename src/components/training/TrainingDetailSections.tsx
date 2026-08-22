@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Dumbbell, MapPin, Radio } from 'lucide-react';
+import { Check, ClipboardList, Dumbbell, MapPin, Megaphone, Radio, Trophy, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
@@ -127,7 +127,8 @@ export function TrainingDetailSections({
           <CenterCollapsibleSection
             key={key}
             title="Verfügbarkeit"
-            icon="👥"
+            icon={<Users aria-hidden />}
+            prominent
             defaultExpanded={trainingPhase === 'before'}
           >
             {trainerAttendanceSection}
@@ -137,26 +138,34 @@ export function TrainingDetailSections({
         if (!topicsText) {
           if (!canManage && !canViewHistory) return null;
           return (
-            <CenterEmptyState
+            <CenterCollapsibleSection
               key={key}
-              icon={Dumbbell}
-              title="Keine Trainingsthemen"
-              description={
-                canManage
-                  ? 'Trage Schwerpunkte und Übungen beim Bearbeiten des Trainings ein.'
-                  : 'Für dieses historische Training sind keine Themen hinterlegt.'
-              }
-            />
+              title="Trainingsthemen"
+              icon={<ClipboardList aria-hidden />}
+              prominent
+              defaultExpanded={false}
+            >
+              <CenterEmptyState
+                embedded
+                icon={Dumbbell}
+                title="Keine Trainingsthemen"
+                description={
+                  canManage
+                    ? 'Trage Schwerpunkte und Übungen beim Bearbeiten des Trainings ein.'
+                    : 'Für dieses historische Training sind keine Themen hinterlegt.'
+                }
+              />
+            </CenterCollapsibleSection>
           );
         }
         return (
-          <CenterCollapsibleSection key={key} title="Trainingsthemen" icon="📋" defaultExpanded={trainingPhase === 'before'}>
+          <CenterCollapsibleSection key={key} title="Trainingsthemen" icon={<ClipboardList aria-hidden />} prominent defaultExpanded={trainingPhase === 'before'}>
             <p className="text-[12px] leading-snug text-white/75 whitespace-pre-wrap">{topicsText}</p>
           </CenterCollapsibleSection>
         );
       case 'challenges':
         return (
-          <CenterCollapsibleSection key={key} title="Challenges" icon="🏆" defaultExpanded={false}>
+          <CenterCollapsibleSection key={key} title="Challenges" icon={<Trophy aria-hidden />} prominent defaultExpanded={false}>
             <div className="flex flex-col gap-2">
               <JugglingChallengeCard variant="teaser" awards={jugglingAwards} loading={jugglingLoading} />
               <TrainingChallengeTypesGrid variant="teaser" />
@@ -166,7 +175,7 @@ export function TrainingDetailSections({
       case 'feed':
         if (!canManage || !trainerFeedSection) return null;
         return (
-          <CenterCollapsibleSection key={key} title="Feed & Kommunikation" icon="📢" defaultExpanded={false}>
+          <CenterCollapsibleSection key={key} title="Feed & Kommunikation" icon={<Megaphone aria-hidden />} prominent defaultExpanded={false}>
             {trainerFeedSection}
           </CenterCollapsibleSection>
         );
@@ -176,7 +185,8 @@ export function TrainingDetailSections({
           <CenterCollapsibleSection
             key={key}
             title={canViewHistory && !canManage ? 'Trainingsteilnehmer (Archiv)' : 'Trainingsteilnehmer'}
-            icon="👥"
+            icon={<Users aria-hidden />}
+            prominent
             defaultExpanded={trainingPhase !== 'before' || canViewHistory}
           >
             {canViewHistory && !canManage ? (
