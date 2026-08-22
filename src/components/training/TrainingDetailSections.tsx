@@ -80,7 +80,7 @@ export function TrainingDetailSections({
       ];
     }
     if (canManage) {
-      return ['preparation', 'availability', 'topics', 'challenges', 'participants', 'stats'];
+      return ['preparation', 'availability', 'topics', 'challenges', 'stats'];
     }
     return ['topics'];
   }, [trainingPhase, canManage, canViewHistory]);
