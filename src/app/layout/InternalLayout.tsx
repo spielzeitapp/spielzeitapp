@@ -322,11 +322,13 @@ export const InternalLayout: React.FC = () => {
         >
           <div
             className={`mx-auto w-full min-w-0 ${
-              isLiveRoute
-                ? 'max-w-none px-2 md:px-3 lg:px-4'
-                : isWideMobileShellRoute
-                  ? 'max-w-none px-0 md:max-w-[96rem] md:px-6 lg:px-8'
-                  : 'max-w-[96rem] px-3 md:px-6 lg:px-8'
+              isTouchLayout
+                ? 'max-w-none px-0'
+                : isLiveRoute
+                  ? 'max-w-none px-2 md:px-3 lg:px-4'
+                  : isWideMobileShellRoute
+                    ? 'max-w-none px-0 md:max-w-[96rem] md:px-6 lg:px-8'
+                    : 'max-w-[96rem] px-3 md:px-6 lg:px-8'
             }`}
           >
             <div className="lg:flex lg:items-start lg:gap-6">
