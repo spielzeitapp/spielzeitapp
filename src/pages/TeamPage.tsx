@@ -25,7 +25,6 @@ import {
   createRosterPlayer,
   updateRosterPlayerSeasonFields,
 } from "../lib/rosterService";
-import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
 import { uploadStorageObject } from "../lib/storageUpload";
@@ -33,7 +32,7 @@ import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
-import { PlayerCard } from "../components/team/PlayerCard";
+import { TeamSquadShowcase } from "../components/team/TeamSquadShowcase";
 import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
@@ -47,6 +46,7 @@ import { useDemoMode } from "../demo/DemoContext";
 import { useInternalBasePath } from "../demo/demoPaths";
 import { buildDemoSeasonMatchBoard } from "../demo/demoMatchState";
 import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
+import { useAvailabilityPermissions } from "../hooks/useAvailabilityPermissions";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -848,6 +848,27 @@ export const TeamPage: React.FC = () => {
     () => players.filter((p) => (p.status ?? "active") === "paused").length,
     [players]
   );
+  const { myAttendancePlayerIds } = useAvailabilityPermissions({
+    role: roleNormalized,
+    teamSeasonId,
+    viewOnlyPlayer: false,
+  });
+  const ownPlayerIds = useMemo(() => {
+    if (isDemo) return new Set(["p08"]);
+    return new Set(myAttendancePlayerIds);
+  }, [isDemo, myAttendancePlayerIds]);
+  const showcasePlayers = useMemo(() => {
+    const own = new Set(ownPlayerIds);
+    return [...sortedPlayers].sort((a, b) => {
+      const aOwn = own.has(a.id) ? 1 : 0;
+      const bOwn = own.has(b.id) ? 1 : 0;
+      if (aOwn !== bOwn) return bOwn - aOwn;
+      // Für die Staging-Abnahme bleibt Daniel Baumann als bekannte Testkarte vorne.
+      const aDaniel = /daniel\s+baumann/i.test(`${a.first_name ?? ""} ${a.last_name ?? ""}`) ? 1 : 0;
+      const bDaniel = /daniel\s+baumann/i.test(`${b.first_name ?? ""} ${b.last_name ?? ""}`) ? 1 : 0;
+      return bDaniel - aDaniel;
+    });
+  }, [sortedPlayers, ownPlayerIds]);
 
   if (searchParams.get("tab") === "parents") {
     return <Navigate to={isDemo ? `${basePath}/team` : "/app/mehr/parent-access"} replace />;
@@ -1115,8 +1136,8 @@ export const TeamPage: React.FC = () => {
       {activeTab === "squad" ? (
       <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
         <div className="flex items-center justify-between gap-2">
-          <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
-            Kader
+          <SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
+            Unser Team
           </SectionTitle>
           {teamSeasonId != null && canManagePlayers && !plLoading ? (
             <PremiumButton type="button" variant="interactive" onClick={() => openCreateForm()} className="!min-h-[40px] shrink-0 !px-3 !py-2 !text-sm">
@@ -1174,54 +1195,11 @@ export const TeamPage: React.FC = () => {
                   </PremiumTabTrack>
                 </div>
               ) : null}
-            <ul className="mt-3 w-full space-y-1.5 pb-8">
-              {sortedPlayers.map((p) => (
-                <li key={p.id} className="w-full">
-                  <div className="space-y-1">
-                    <PlayerCard
-                      player={{
-                        id: p.id,
-                        first_name: p.first_name,
-                        last_name: p.last_name,
-                        display_name: p.display_name,
-                        position: getPositionLabel(p.position) || p.position,
-                        jersey_number: p.jersey_number,
-                        photo_url: readOptionalPhotoUrl(p),
-                        is_injured: p.is_injured,
-                        is_laz_player: p.is_laz_player,
-                      }}
-                      onClick={() => openPlayerProfile(p)}
-                    />
-                    <div className="flex items-center justify-between px-2">
-                      {(p.status ?? "active") === "paused" ? (
-                        <span className="rounded-full border border-amber-400/35 bg-amber-900/30 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
-                          Pausiert
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-emerald-400/30 bg-emerald-900/25 px-2 py-0.5 text-[11px] font-semibold text-emerald-200">
-                          Aktiv
-                        </span>
-                      )}
-                      {canManagePlayers ? (
-                        <button
-                          type="button"
-                          disabled={deletingId !== null || saving}
-                          onClick={() =>
-                            void handleSetPlayerStatus(
-                              p.id,
-                              (p.status ?? "active") === "paused" ? "active" : "paused"
-                            )
-                          }
-                          className="rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-white/80 hover:bg-white/[0.08] disabled:opacity-50"
-                        >
-                          {(p.status ?? "active") === "paused" ? "Wieder aktivieren" : "Pausieren"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+              <TeamSquadShowcase
+                players={showcasePlayers}
+                ownPlayerIds={ownPlayerIds}
+                onPlayerClick={openPlayerProfile}
+              />
             </>
           )}
         </div>
