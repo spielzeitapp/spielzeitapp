@@ -314,9 +314,9 @@ function TrainingPreparationCard({
   return (
     <section className={EC_CARD}>
       <div className={EC_CARD_INNER}>
-        <div className="flex min-h-[46px] items-center gap-2.5">
-          <ClipboardList className="h-5 w-5 shrink-0 text-red-400/80" strokeWidth={2.25} aria-hidden />
-          <h2 className="text-[15px] font-bold tracking-tight text-white/90">Trainingsvorbereitung</h2>
+        <div className="flex min-h-[40px] items-center gap-2">
+          <ClipboardList className="h-[18px] w-[18px] shrink-0 text-red-400/80" strokeWidth={2.25} aria-hidden />
+          <h2 className="text-[14px] font-semibold text-white/90">Trainingsvorbereitung</h2>
         </div>
         {loading ? (
           <p className="mt-2 text-[12px] text-white/55">Plan und Platz werden geladen…</p>
