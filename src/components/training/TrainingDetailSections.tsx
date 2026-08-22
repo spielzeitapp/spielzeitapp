@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, Check, ChevronDown, ClipboardList, Dumbbell, MapPin, Radio, Trophy, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
 import { getAssignmentForEvent } from '../../lib/eventFieldAssignments';
@@ -11,6 +11,7 @@ import { dsStatusChipClass } from '../../lib/premiumDesignSystem';
 import { TrainingChallengeTypesGrid } from '../team/TrainingChallengeTypesGrid';
 import { JugglingChallengeCard } from '../team/JugglingChallengeCard';
 import { TrainingKaiserCard } from '../team/TrainingKaiserCard';
+import { TrainingOverviewHero } from '../team/TrainingOverviewHero';
 import { CenterCollapsibleSection } from '../center/CenterCollapsibleSection';
 import { EC_CARD, EC_CARD_INNER, EC_SECTION_LABEL, EC_STACK_GAP } from '../center/eventCenterStyles';
 
@@ -41,6 +42,7 @@ export function TrainingDetailSections({
   canViewHistory = false,
   trainerAttendanceSection = null,
 }: Props) {
+  const location = useLocation();
   const canViewStaffReadouts = canManage || canViewHistory;
   /** Saisonweite Stats/Kaiser: immer active-only. Event-Teilnehmer kommen separat aus EventDetail. */
   const { players } = usePlayers(teamSeasonId, { mode: 'active' });
@@ -86,23 +88,9 @@ export function TrainingDetailSections({
   }, [trainingPhase, canManage, canViewHistory]);
 
   const topicsText = safeText(trainingTopics);
-  const seasonPlayersWithBasis = useMemo(
-    () => [...ranking.qualified, ...ranking.unqualified].filter((row) => row.stats.present + row.stats.absent > 0),
-    [ranking.qualified, ranking.unqualified],
-  );
-  const seasonPlayersAtOrAbove50 = useMemo(
-    () => seasonPlayersWithBasis.filter((row) => row.stats.teamRatePct >= 50).length,
-    [seasonPlayersWithBasis],
-  );
-  const seasonAveragePresent = useMemo(() => {
-    if (ranking.sessionParticipations.length === 0) return null;
-    const total = ranking.sessionParticipations.reduce((sum, session) => sum + session.counts.present, 0);
-    return total / ranking.sessionParticipations.length;
-  }, [ranking.sessionParticipations]);
-  const seasonAveragePresentLabel =
-    seasonAveragePresent == null
-      ? '—'
-      : new Intl.NumberFormat('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(seasonAveragePresent);
+  const teamTrainingHref = location.pathname.startsWith('/demo/')
+    ? '/demo/team?tab=training'
+    : '/app/team?tab=training';
 
   const renderSection = (key: string) => {
     switch (key) {
@@ -185,27 +173,18 @@ export function TrainingDetailSections({
         if (!canViewStaffReadouts) return null;
         return (
           <CenterCollapsibleSection key={key} title="Saisonstatistik" icon={<BarChart3 aria-hidden />} prominent defaultExpanded={false}>
-            <p className="mb-2 text-[11px] text-white/48">Gesamte aktuelle Saison · aktiver Kader</p>
-            <div className="grid grid-cols-2 gap-1.5">
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
-                <p className="text-[9px] uppercase tracking-wide text-white/42">Trainings ausgewertet</p>
-                <p className="text-[16px] font-bold text-white">{ratedTrainingsCount}</p>
-              </div>
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
-                <p className="text-[9px] uppercase tracking-wide text-white/42">Team-Beteiligung</p>
-                <p className="text-[16px] font-bold text-white">{participationLabel}</p>
-              </div>
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
-                <p className="text-[9px] uppercase tracking-wide text-white/42">Spieler ab 50 %</p>
-                <p className="text-[16px] font-bold text-white">
-                  {rankingLoading ? '…' : `${seasonPlayersAtOrAbove50} / ${seasonPlayersWithBasis.length}`}
-                </p>
-              </div>
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
-                <p className="text-[9px] uppercase tracking-wide text-white/42">Ø anwesend</p>
-                <p className="text-[16px] font-bold text-white">{rankingLoading ? '…' : seasonAveragePresentLabel}</p>
-              </div>
-            </div>
+            <TrainingOverviewHero
+              sessionsCount={ratedTrainingsCount}
+              participationLabel={rankingLoading ? '…' : participationLabel}
+              sessions={ranking.sessionParticipations}
+              loading={rankingLoading}
+            />
+            <Link
+              to={teamTrainingHref}
+              className="mt-2.5 flex min-h-11 w-full items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-[13px] font-bold text-red-100 transition-colors hover:bg-red-500/15"
+            >
+              Gesamte Saisonstatistik ansehen
+            </Link>
           </CenterCollapsibleSection>
         );
       case 'kaiser':
