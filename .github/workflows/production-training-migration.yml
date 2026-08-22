@@ -1,0 +1,176 @@
+name: Production training migration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-training-migration.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-training-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Verify project and apply training migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: shxugattqatahckhspwk
+      EXPECTED_PROJECT_NAME: spielzeitapp-nsg
+      MIGRATION_VERSION: "20260820193000"
+    steps:
+      - name: Validate secret
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+      - name: Verify production project and migrate
+        shell: bash
+        run: |
+          node <<'NODE'
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const version = process.env.MIGRATION_VERSION;
+          const base = "https://api.supabase.com/v1";
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || "GET"} ${path} failed (${response.status}): ${body.slice(0, 500)}`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: "POST",
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          const project = await request(`/projects/${ref}`);
+          if (project.id !== ref || project.name !== expectedName) {
+            throw new Error(
+              `Project guard failed. Expected ${expectedName} (${ref}), got ${project.name} (${project.id}).`
+            );
+          }
+          console.log(`Project verified: ${project.name} (${project.id})`);
+
+          const migration = `
+          ALTER TABLE public.training_exercises
+            ADD COLUMN IF NOT EXISTS source_reference text;
+
+          COMMENT ON COLUMN public.training_exercises.source_reference IS
+            'Freie Quellenangabe für importierte Übungen (Dokument, Datum, Autor).';
+
+          INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+          VALUES (
+            'training-exercise-media',
+            'training-exercise-media',
+            false,
+            8388608,
+            ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            public = EXCLUDED.public,
+            file_size_limit = EXCLUDED.file_size_limit,
+            allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+          DROP POLICY IF EXISTS "training_exercise_media_select_managers" ON storage.objects;
+          CREATE POLICY "training_exercise_media_select_managers"
+            ON storage.objects FOR SELECT TO authenticated
+            USING (
+              bucket_id = 'training-exercise-media'
+              AND split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+              AND public.can_manage_club_venues(split_part(name, '/', 1)::uuid)
+            );
+
+          DROP POLICY IF EXISTS "training_exercise_media_insert_managers" ON storage.objects;
+          CREATE POLICY "training_exercise_media_insert_managers"
+            ON storage.objects FOR INSERT TO authenticated
+            WITH CHECK (
+              bucket_id = 'training-exercise-media'
+              AND split_part(name, '/', 2) = 'imports'
+              AND split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+              AND public.can_manage_club_venues(split_part(name, '/', 1)::uuid)
+            );
+
+          DROP POLICY IF EXISTS "training_exercise_media_delete_managers" ON storage.objects;
+          CREATE POLICY "training_exercise_media_delete_managers"
+            ON storage.objects FOR DELETE TO authenticated
+            USING (
+              bucket_id = 'training-exercise-media'
+              AND split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+              AND public.can_manage_club_venues(split_part(name, '/', 1)::uuid)
+            );
+
+          SELECT pg_notify('pgrst', 'reload schema');
+          `;
+
+          await query(migration);
+          console.log(`Migration ${version} applied.`);
+
+          const verification = await query(`
+            DO $verify$
+            DECLARE policy_count integer;
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'training_exercises'
+                  AND column_name = 'source_reference'
+                  AND data_type = 'text'
+              ) THEN
+                RAISE EXCEPTION 'source_reference column verification failed';
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM storage.buckets
+                WHERE id = 'training-exercise-media'
+                  AND public = false
+                  AND file_size_limit = 8388608
+                  AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+              ) THEN
+                RAISE EXCEPTION 'training-exercise-media bucket verification failed';
+              END IF;
+
+              SELECT count(*) INTO policy_count
+              FROM pg_policies
+              WHERE schemaname = 'storage'
+                AND tablename = 'objects'
+                AND policyname IN (
+                  'training_exercise_media_select_managers',
+                  'training_exercise_media_insert_managers',
+                  'training_exercise_media_delete_managers'
+                );
+
+              IF policy_count <> 3 THEN
+                RAISE EXCEPTION 'storage policy verification failed: % of 3 found', policy_count;
+              END IF;
+            END
+            $verify$;
+
+            SELECT
+              'training migration verified' AS status,
+              current_database() AS database_name;
+          `);
+          console.log("Verification:", JSON.stringify(verification));
+          NODE
