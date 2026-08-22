@@ -234,7 +234,7 @@ export function TrainingDetailSections({
       case 'admin':
         if (!canManage) return null;
         return (
-          <CenterAdminAccordion key={key}>
+          <CenterAdminAccordion key={key} prominent>
             {trainerActions ? (
               <CenterAdminSection title="Training bearbeiten">{trainerActions}</CenterAdminSection>
             ) : null}
@@ -314,11 +314,14 @@ function TrainingPreparationCard({
   return (
     <section className={EC_CARD}>
       <div className={EC_CARD_INNER}>
-        <p className={EC_SECTION_LABEL}>Trainingsvorbereitung</p>
+        <div className="flex min-h-[46px] items-center gap-2.5">
+          <ClipboardList className="h-5 w-5 shrink-0 text-red-400/80" strokeWidth={2.25} aria-hidden />
+          <h2 className="text-[15px] font-bold tracking-tight text-white/90">Trainingsvorbereitung</h2>
+        </div>
         {loading ? (
           <p className="mt-2 text-[12px] text-white/55">Plan und Platz werden geladen…</p>
         ) : (
-          <div className="mt-2 grid gap-2">
+          <div className="mt-1 grid gap-2">
             <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
