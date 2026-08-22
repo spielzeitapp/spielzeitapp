@@ -3792,8 +3792,8 @@ export const EventDetailPage: React.FC = () => {
               onAddToCalendar={() => void handleAddSingleEventToCalendar()}
               onNavigate={handleStartNavigation}
               showNavigation={canStartNavigation}
-              onShare={() => shareEventCenter('Trainingscenter', eventCompactTitle)}
               onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
+              onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
             />
             {event.team_season_id ? (
               <TrainingDetailSections
@@ -3815,25 +3815,6 @@ export const EventDetailPage: React.FC = () => {
                       embedded
                     />
                   ) : null
-                }
-                trainerActions={
-                  <ScheduleEventActionsPanel
-                    className="mt-0 w-full"
-                    aria-label="Training bearbeiten"
-                    rows={[
-                      ...(canTrainerManageEvent
-                        ? [
-                            {
-                              key: 'delete',
-                              label: 'Löschen',
-                              icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                              danger: true,
-                              onClick: () => setDeleteConfirmOpen(true),
-                            },
-                          ]
-                        : []),
-                    ]}
-                  />
                 }
               />
             ) : null}
@@ -4477,7 +4458,7 @@ export const EventDetailPage: React.FC = () => {
         </Modal>
         <Modal
           isOpen={deleteConfirmOpen}
-          title={isTournament ? 'Turnier wirklich löschen?' : 'Termin löschen?'}
+          title={isTournament ? 'Turnier wirklich löschen?' : isTraining ? 'Trainingstermin wirklich löschen?' : 'Termin löschen?'}
           onClose={() => {
             if (!deletingEvent) setDeleteConfirmOpen(false);
           }}
@@ -4495,7 +4476,7 @@ export const EventDetailPage: React.FC = () => {
                 onClick={() => void handleDeleteEvent()}
                 disabled={deletingEvent}
               >
-                {deletingEvent ? 'Löschen…' : isTournament ? 'Turnier löschen' : 'Endgültig löschen'}
+                {deletingEvent ? 'Löschen…' : isTournament ? 'Turnier löschen' : isTraining ? 'Trainingstermin löschen' : 'Endgültig löschen'}
               </AppButton>
             </div>
           }
@@ -4503,7 +4484,9 @@ export const EventDetailPage: React.FC = () => {
           <p className="text-[14px] text-white/75">
             {isTournament
               ? 'Dabei werden Turnierdaten und zugehörige Testspiele entfernt.'
-              : 'Diesen Termin wirklich löschen? Alle zugehörigen Spielbericht-, Liveticker-, Aufstellungs- und Statistikdaten werden entfernt.'}
+              : isTraining
+                ? 'Diesen Trainingstermin wirklich löschen? Die Verknüpfung zur Trainingsplanung und alle zugehörigen Termindaten werden entfernt.'
+                : 'Diesen Termin wirklich löschen? Alle zugehörigen Spielbericht-, Liveticker-, Aufstellungs- und Statistikdaten werden entfernt.'}
           </p>
         </Modal>
         <Modal

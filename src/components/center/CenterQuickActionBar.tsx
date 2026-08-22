@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarPlus, MapPin, Pencil, Share2 } from 'lucide-react';
+import { CalendarPlus, MapPin, Pencil, Share2, Trash2 } from 'lucide-react';
 
 type Props = {
   onAddToCalendar: () => void;
@@ -7,6 +7,7 @@ type Props = {
   showNavigation?: boolean;
   onShare?: () => Promise<boolean>;
   onEdit?: () => void;
+  onDelete?: () => void;
 };
 
 export function CenterQuickActionBar({
@@ -15,6 +16,7 @@ export function CenterQuickActionBar({
   showNavigation = false,
   onShare,
   onEdit,
+  onDelete,
 }: Props) {
   const [shareHint, setShareHint] = useState<string | null>(null);
 
@@ -38,6 +40,7 @@ export function CenterQuickActionBar({
         ) : null}
         {onShare ? <ActionChip icon={Share2} label="Teilen" onClick={() => void handleShare()} /> : null}
         {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten" onClick={onEdit} /> : null}
+        {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={onDelete} danger /> : null}
       </div>
       {shareHint ? (
         <span
@@ -55,18 +58,20 @@ function ActionChip({
   icon: Icon,
   label,
   onClick,
+  danger = false,
 }: {
   icon: typeof CalendarPlus;
   label: string;
   onClick: () => void;
+  danger?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex min-h-[34px] shrink-0 items-center gap-1.5 rounded-full border border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.05)] px-3 py-1.5 text-[11px] font-semibold text-white/88 touch-manipulation transition hover:border-[rgba(255,71,71,0.3)] hover:bg-[rgba(255,71,71,0.1)] active:scale-[0.98]"
+      className={`inline-flex min-h-[34px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold touch-manipulation transition active:scale-[0.98] ${danger ? 'border border-red-400/35 bg-red-950/35 text-red-200 hover:bg-red-900/45' : 'border border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.05)] text-white/88 hover:border-[rgba(255,71,71,0.3)] hover:bg-[rgba(255,71,71,0.1)]'}`}
     >
-      <Icon className="h-3.5 w-3.5 shrink-0 text-red-300/85" strokeWidth={2.25} aria-hidden />
+      <Icon className={`h-3.5 w-3.5 shrink-0 ${danger ? 'text-red-300' : 'text-red-300/85'}`} strokeWidth={2.25} aria-hidden />
       {label}
     </button>
   );
