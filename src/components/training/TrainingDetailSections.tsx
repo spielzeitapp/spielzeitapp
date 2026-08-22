@@ -11,7 +11,6 @@ import { dsStatusChipClass } from '../../lib/premiumDesignSystem';
 import { TrainingChallengeTypesGrid } from '../team/TrainingChallengeTypesGrid';
 import { JugglingChallengeCard } from '../team/JugglingChallengeCard';
 import { TrainingKaiserCard } from '../team/TrainingKaiserCard';
-import { CenterAdminAccordion, CenterAdminSection } from '../center/CenterAdminAccordion';
 import { CenterCollapsibleSection } from '../center/CenterCollapsibleSection';
 import { EC_CARD, EC_CARD_INNER, EC_SECTION_LABEL, EC_STACK_GAP } from '../center/eventCenterStyles';
 
@@ -29,7 +28,6 @@ type Props = {
   canViewHistory?: boolean;
   trainerAttendanceSection?: React.ReactNode;
   trainerFeedSection?: React.ReactNode;
-  trainerActions?: React.ReactNode;
 };
 
 export function TrainingDetailSections({
@@ -44,7 +42,6 @@ export function TrainingDetailSections({
   canViewHistory = false,
   trainerAttendanceSection = null,
   trainerFeedSection = null,
-  trainerActions = null,
 }: Props) {
   const canViewStaffReadouts = canManage || canViewHistory;
   /** Saisonweite Stats/Kaiser: immer active-only. Event-Teilnehmer kommen separat aus EventDetail. */
@@ -73,7 +70,7 @@ export function TrainingDetailSections({
         'stats',
         'kaiser',
         'challenges',
-        ...(canManage ? ['topics', 'feed', 'admin'] : canViewHistory ? ['topics'] : ['feed']),
+        ...(canManage ? ['topics', 'feed'] : canViewHistory ? ['topics'] : ['feed']),
       ];
     }
     if (trainingPhase === 'during') {
@@ -81,11 +78,11 @@ export function TrainingDetailSections({
         'live',
         'participants',
         'challenges',
-        ...(canManage ? ['topics', 'feed', 'admin'] : ['feed']),
+        ...(canManage ? ['topics', 'feed'] : ['feed']),
       ];
     }
     if (canManage) {
-      return ['preparation', 'availability', 'topics', 'challenges', 'feed', 'participants', 'stats', 'admin'];
+      return ['preparation', 'availability', 'topics', 'challenges', 'feed', 'participants', 'stats'];
     }
     return ['topics', 'feed'];
   }, [trainingPhase, canManage, canViewHistory]);
@@ -206,15 +203,6 @@ export function TrainingDetailSections({
               error={rankingError}
             />
           </div>
-        );
-      case 'admin':
-        if (!canManage) return null;
-        return (
-          <CenterAdminAccordion key={key} prominent>
-            {trainerActions ? (
-              <CenterAdminSection title="Weitere Aktionen">{trainerActions}</CenterAdminSection>
-            ) : null}
-          </CenterAdminAccordion>
         );
       default:
         return null;
