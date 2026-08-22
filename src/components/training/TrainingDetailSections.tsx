@@ -125,7 +125,7 @@ export function TrainingDetailSections({
         return (
           <CenterCollapsibleSection
             key={key}
-            title="Verfügbarkeit"
+            title="Teilnehmer"
             icon={<Users aria-hidden />}
             prominent
             defaultExpanded={trainingPhase === 'before'}
@@ -156,7 +156,7 @@ export function TrainingDetailSections({
         return (
           <CenterCollapsibleSection
             key={key}
-            title={canViewHistory && !canManage ? 'Trainingsteilnehmer (Archiv)' : 'Trainingsteilnehmer'}
+            title={canViewHistory && !canManage ? 'Teilnehmer (Archiv)' : 'Teilnehmer'}
             icon={<Users aria-hidden />}
             prominent
             defaultExpanded={trainingPhase !== 'before' || canViewHistory}
