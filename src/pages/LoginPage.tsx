@@ -345,7 +345,7 @@ export const LoginPage: React.FC = () => {
         ) : null}
 
         <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
-          {!isParentInviteFlow ? (
+          {!isParentInviteFlow && window.location.hostname !== 'spielzeitapp.at' ? (
             <>
               <Link
                 to="/demo"
