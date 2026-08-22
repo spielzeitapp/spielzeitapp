@@ -76,6 +76,7 @@ export function TrainingDetailSections({
     if (trainingPhase === 'during') {
       return [
         'live',
+        ...(canManage ? ['preparation'] : []),
         'participants',
         'challenges',
         ...(canManage ? ['topics'] : []),
