@@ -1,22 +1,25 @@
 /**
- * STEP 3A: Übungsbibliothek – Liste, Filter, Anlegen/Bearbeiten.
+ * Übungsbibliothek – Karten, Suche/Filter, Detail, Anlegen/Bearbeiten, Skizzen-Upload.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileUp, ImagePlus, Plus, Search, Trash2 } from 'lucide-react';
+import { FileUp, ImagePlus, Plus, Search, Trash2, X } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 import {
   archiveTrainingExercise,
   countExerciseUsage,
   createTrainingExercise,
+  formatPlayerCountRange,
   getTrainingExerciseSketchUrl,
   listTrainingExercises,
   removeTrainingExerciseSketch,
+  TRAINING_EXERCISE_SKETCH_MAX_BYTES,
   updateTrainingExercise,
   uploadTrainingExerciseSketch,
   type TrainingExerciseRow,
+  type TrainingExerciseVisibility,
 } from '../lib/trainingExercises';
 import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
 import {
@@ -44,6 +47,7 @@ type FormState = {
   coachingPoints: string;
   variations: string;
   sourceReference: string;
+  visibility: TrainingExerciseVisibility;
 };
 
 const emptyForm = (): FormState => ({
@@ -61,6 +65,7 @@ const emptyForm = (): FormState => ({
   coachingPoints: '',
   variations: '',
   sourceReference: '',
+  visibility: 'club',
 });
 
 function formFromRow(row: TrainingExerciseRow): FormState {
@@ -79,6 +84,7 @@ function formFromRow(row: TrainingExerciseRow): FormState {
     coachingPoints: row.coaching_points ?? '',
     variations: row.variations ?? '',
     sourceReference: row.source_reference ?? '',
+    visibility: row.visibility === 'private' ? 'private' : 'club',
   };
 }
 
@@ -99,12 +105,14 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [ageFilter, setAgeFilter] = useState('');
   const [durationMax, setDurationMax] = useState('');
 
+  const [detail, setDetail] = useState<TrainingExerciseRow | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<TrainingExerciseRow | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [sketchProcessing, setSketchProcessing] = useState(false);
   const [pendingSketch, setPendingSketch] = useState<Blob | null>(null);
   const [pendingSketchUrl, setPendingSketchUrl] = useState<string | null>(null);
   const [currentSketchUrl, setCurrentSketchUrl] = useState<string | null>(null);
@@ -157,7 +165,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     const maxMin = durationMax.trim() ? Number(durationMax) : null;
     return rows.filter((r) => {
       if (query) {
-        const hay = `${r.title} ${r.description ?? ''} ${r.materials ?? ''}`.toLowerCase();
+        const hay = `${r.title} ${r.description ?? ''} ${r.materials ?? ''} ${r.organization ?? ''}`.toLowerCase();
         if (!hay.includes(query)) return false;
       }
       if (phaseFilter && !r.suitable_phases.includes(phaseFilter as TrainingPhase)) return false;
@@ -168,24 +176,30 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     });
   }, [rows, q, phaseFilter, focusFilter, ageFilter, durationMax]);
 
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm());
+  const resetSketchState = () => {
     setPendingSketch(null);
-    setPendingSketchUrl(null);
+    setPendingSketchUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setCurrentSketchUrl(null);
     setRemoveCurrentSketch(false);
+  };
+
+  const openCreate = () => {
+    setDetail(null);
+    setEditing(null);
+    setForm(emptyForm());
+    resetSketchState();
     setFormError(null);
     setEditorOpen(true);
   };
 
   const openEdit = (row: TrainingExerciseRow) => {
+    setDetail(null);
     setEditing(row);
     setForm(formFromRow(row));
-    setPendingSketch(null);
-    setPendingSketchUrl(null);
-    setCurrentSketchUrl(null);
-    setRemoveCurrentSketch(false);
+    resetSketchState();
     setFormError(null);
     setEditorOpen(true);
     if (row.image_path) {
@@ -193,26 +207,45 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     }
   };
 
+  const openDetail = (row: TrainingExerciseRow) => {
+    setDetail(row);
+  };
+
   const selectSketch = async (file: File) => {
     if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
       setFormError('Bitte ein PNG-, JPG- oder WebP-Bild auswählen.');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setFormError('Das Bild darf höchstens 10 MB groß sein.');
+    if (file.size > TRAINING_EXERCISE_SKETCH_MAX_BYTES) {
+      setFormError('Das Bild darf höchstens 8 MB groß sein.');
       return;
     }
+    setSketchProcessing(true);
+    setFormError(null);
     try {
       const sketch = await imageFileToWebp(file);
+      setPendingSketchUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(sketch);
+      });
       setPendingSketch(sketch);
-      setPendingSketchUrl(URL.createObjectURL(sketch));
       setRemoveCurrentSketch(false);
-      setFormError(null);
     } catch {
       setFormError('Das Bild konnte nicht verarbeitet werden.');
     } finally {
+      setSketchProcessing(false);
       if (sketchInputRef.current) sketchInputRef.current.value = '';
     }
+  };
+
+  const removeSketchWithConfirm = () => {
+    if (!window.confirm('Skizze wirklich entfernen? Die Änderung wird beim Speichern übernommen.')) return;
+    setPendingSketch(null);
+    setPendingSketchUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setRemoveCurrentSketch(true);
   };
 
   const importPdf = async (file: File) => {
@@ -220,10 +253,19 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setError(null);
     try {
       const draft = await analyzeTrainingExercisePdf(file);
+      setDetail(null);
       setEditing(null);
-      setForm((current) => ({ ...current, ...draft, difficulty: 'medium' }));
+      setForm((current) => ({
+        ...current,
+        ...draft,
+        difficulty: 'medium',
+        visibility: 'club',
+      }));
       setPendingSketch(draft.sketch);
-      setPendingSketchUrl(draft.sketch ? URL.createObjectURL(draft.sketch) : null);
+      setPendingSketchUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return draft.sketch ? URL.createObjectURL(draft.sketch) : null;
+      });
       setCurrentSketchUrl(null);
       setRemoveCurrentSketch(false);
       setFormError(null);
@@ -248,17 +290,8 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     if (!clubId) return;
     setSaving(true);
     setFormError(null);
-    let uploadedPath: string | null = null;
-    if (pendingSketch) {
-      const upload = await uploadTrainingExerciseSketch(clubId, pendingSketch);
-      if (upload.error || !upload.path) {
-        setSaving(false);
-        setFormError(`Skizze konnte nicht gespeichert werden: ${upload.error ?? 'Unbekannter Fehler'}`);
-        return;
-      }
-      uploadedPath = upload.path;
-    }
-    const payload = {
+
+    const basePayload = {
       clubId,
       title: form.title,
       description: form.description,
@@ -273,29 +306,69 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       organization: form.organization,
       coachingPoints: form.coachingPoints,
       variations: form.variations,
-      imagePath: uploadedPath ?? (removeCurrentSketch ? null : editing?.image_path ?? null),
       sourceType: (form.sourceReference ? 'import' : editing?.source_type === 'import' ? 'import' : 'club') as
         | 'club'
         | 'import',
       sourceReference: form.sourceReference,
+      visibility: form.visibility,
     };
-    const res = editing
-      ? await updateTrainingExercise(editing.id, payload)
-      : await createTrainingExercise(payload);
-    setSaving(false);
-    if (res.error || !res.data) {
-      if (uploadedPath) await removeTrainingExerciseSketch(uploadedPath);
-      setFormError(res.error ?? 'Speichern fehlgeschlagen.');
+
+    // Zuerst Stammdaten speichern (ohne neuen Upload), damit exercise_id für Storage-Pfad verfügbar ist.
+    const initialImagePath = removeCurrentSketch ? null : editing?.image_path ?? null;
+    const saveRes = editing
+      ? await updateTrainingExercise(editing.id, {
+          ...basePayload,
+          imagePath: pendingSketch ? editing.image_path : initialImagePath,
+        })
+      : await createTrainingExercise({
+          ...basePayload,
+          imagePath: null,
+        });
+
+    if (saveRes.error || !saveRes.data) {
+      setSaving(false);
+      setFormError(saveRes.error ?? 'Speichern fehlgeschlagen.');
       return;
     }
-    if (editing?.image_path && (uploadedPath || removeCurrentSketch)) {
-      await removeTrainingExerciseSketch(editing.image_path);
+
+    const saved = saveRes.data;
+    let uploadedPath: string | null = null;
+    const previousPath = editing?.image_path ?? null;
+
+    if (pendingSketch) {
+      const upload = await uploadTrainingExerciseSketch(clubId, pendingSketch, saved.id);
+      if (upload.error || !upload.path) {
+        setSaving(false);
+        setFormError(
+          `Übung gespeichert, Skizze fehlgeschlagen: ${upload.error ?? 'Unbekannter Fehler'}. Bitte Skizze erneut hochladen.`,
+        );
+        setEditing(saved);
+        setDetail(null);
+        await reload();
+        return;
+      }
+      uploadedPath = upload.path;
+      const imageUpdate = await updateTrainingExercise(saved.id, { imagePath: uploadedPath });
+      if (imageUpdate.error || !imageUpdate.data) {
+        await removeTrainingExerciseSketch(uploadedPath);
+        setSaving(false);
+        setFormError(
+          `Übung gespeichert, Skizzen-Pfad fehlgeschlagen: ${imageUpdate.error ?? 'Unbekannter Fehler'}.`,
+        );
+        setEditing(saved);
+        await reload();
+        return;
+      }
+      if (previousPath && previousPath !== uploadedPath) {
+        await removeTrainingExerciseSketch(previousPath);
+      }
+    } else if (removeCurrentSketch && previousPath) {
+      await removeTrainingExerciseSketch(previousPath);
     }
+
+    setSaving(false);
     setEditorOpen(false);
-    setPendingSketch(null);
-    setPendingSketchUrl(null);
-    setCurrentSketchUrl(null);
-    setRemoveCurrentSketch(false);
+    resetSketchState();
     setToast(editing ? 'Übung aktualisiert.' : form.sourceReference ? 'PDF-Übung importiert.' : 'Übung angelegt.');
     await reload();
   };
@@ -312,14 +385,18 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       setToast(res.error);
       return;
     }
+    setDetail(null);
     setToast('Übung archiviert.');
     await reload();
   };
 
+  const hasSketchPreview = Boolean(pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch));
+  const sketchButtonLabel = hasSketchPreview ? 'Skizze ersetzen' : 'Skizze hochladen';
+
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Sport</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Übungsbibliothek</h1>
           <p className="mt-1 text-[14px] text-slate-500">
@@ -371,7 +448,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
           value={phaseFilter}
           onChange={(e) => setPhaseFilter(e.target.value)}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px]"
-          aria-label="Phase filtern"
+          aria-label="Trainingsphase filtern"
         >
           <option value="">Alle Phasen</option>
           {TRAINING_PHASES.map((p) => (
@@ -420,7 +497,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
           <p className="text-[14px] font-medium text-slate-700">
             {rows.length === 0 ? 'Noch keine Übungen vorhanden.' : 'Keine passenden Suchergebnisse.'}
           </p>
-          <p className="mt-1 text-[13px] text-slate-450 text-slate-500">
+          <p className="mt-1 text-[13px] text-slate-500">
             {rows.length === 0
               ? 'Lege die erste Vereinsübung an – oder importiere später den eigenen Katalog.'
               : 'Filter zurücksetzen oder andere Suche versuchen.'}
@@ -437,52 +514,69 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
         </div>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {filtered.map((row) => (
-            <li
-              key={row.id}
-              className="flex flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
-            >
-              <TrainingExerciseImage path={row.image_path} title={row.title} />
-              <h2 className="text-[15px] font-semibold text-slate-900">{row.title}</h2>
-              <p className="mt-1 text-[12px] text-slate-500">
-                {EXERCISE_FOCUS_LABELS[row.focus] ?? row.focus} · {row.duration_minutes} Min.
-                {row.age_group ? ` · ${row.age_group}` : ''}
-              </p>
-              <p className="mt-1 text-[11px] text-slate-400">
-                Phasen: {row.suitable_phases.join(', ')}
-                {row.player_count_min != null || row.player_count_max != null
-                  ? ` · ${row.player_count_min ?? '?'}–${row.player_count_max ?? '?'} Spieler`
-                  : ''}
-              </p>
-              {row.materials ? (
-                <p className="mt-2 line-clamp-2 text-[12px] text-slate-600">Material: {row.materials}</p>
-              ) : null}
-              <div className="mt-auto flex flex-wrap gap-2 pt-3">
+          {filtered.map((row) => {
+            const players = formatPlayerCountRange(row.player_count_min, row.player_count_max);
+            return (
+              <li
+                key={row.id}
+                className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+              >
                 <button
                   type="button"
-                  onClick={() => openEdit(row)}
-                  className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                  onClick={() => openDetail(row)}
+                  className="flex flex-1 flex-col p-3 text-left touch-manipulation sm:p-4"
                 >
-                  Bearbeiten
+                  <TrainingExerciseImage path={row.image_path} title={row.title} large={false} />
+                  <h2 className="mt-3 text-[15px] font-semibold leading-snug text-slate-900">{row.title}</h2>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <MetaChip>{EXERCISE_FOCUS_LABELS[row.focus] ?? row.focus}</MetaChip>
+                    {row.suitable_phases.map((p) => (
+                      <MetaChip key={p}>{TRAINING_PHASE_LABELS[p] ?? p}</MetaChip>
+                    ))}
+                    {row.visibility === 'private' ? <MetaChip tone="private">Privat</MetaChip> : null}
+                  </div>
+                  <p className="mt-2 text-[12px] text-slate-500">
+                    {row.duration_minutes} Min.
+                    {players ? ` · ${players}` : ''}
+                    {row.age_group ? ` · ${row.age_group}` : ''}
+                  </p>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void archive(row)}
-                  className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:bg-slate-50"
-                >
-                  Archivieren
-                </button>
-                <Link
-                  to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(row.id)}`}
-                  className="rounded-full bg-red-700/10 px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-700/15"
-                >
-                  Zur Einheit
-                </Link>
-              </div>
-            </li>
-          ))}
+                <div className="flex flex-wrap gap-2 border-t border-slate-100 px-3 py-2.5 sm:px-4">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(row)}
+                    className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Bearbeiten
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void archive(row)}
+                    className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:bg-slate-50"
+                  >
+                    Archivieren
+                  </button>
+                  <Link
+                    to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(row.id)}`}
+                    className="rounded-full bg-red-700/10 px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-700/15"
+                  >
+                    Zur Einheit
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
+
+      {detail ? (
+        <DetailModal
+          row={detail}
+          onClose={() => setDetail(null)}
+          onEdit={() => openEdit(detail)}
+          onArchive={() => void archive(detail)}
+        />
+      ) : null}
 
       {editorOpen ? (
         <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 sm:items-center">
@@ -497,20 +591,25 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             </h2>
             {!editing && form.sourceReference ? (
               <p className="mt-1 text-[12px] text-amber-700">
-                Vorschlag aus der PDF: Bitte alle Angaben und besonders die Trainingsphase prüfen.
+                Vorschlag aus der PDF: Bitte alle Angaben und besonders die Trainingsphase prüfen. Die erkannte
+                Skizze kannst du durch eine eigene Datei ersetzen.
               </p>
             ) : null}
             <div className="mt-3 space-y-3">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[12px] font-semibold text-slate-700">Skizze / Bild</span>
-                  <span className="text-[11px] text-slate-400">PNG, JPG oder WebP · max. 10 MB</span>
+                  <span className="text-[11px] text-slate-400">PNG, JPG oder WebP · max. 8 MB</span>
                 </div>
-                {pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch) ? (
+                {sketchProcessing ? (
+                  <div className="mt-2 flex h-40 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-[12px] text-slate-500">
+                    Skizze wird verarbeitet…
+                  </div>
+                ) : hasSketchPreview ? (
                   <img
                     src={pendingSketchUrl ?? currentSketchUrl ?? ''}
                     alt="Vorschau der Übungsskizze"
-                    className="mt-2 max-h-52 w-full rounded-xl border border-slate-200 bg-white object-contain"
+                    className="mt-2 max-h-56 w-full rounded-xl border border-slate-200 bg-white object-contain"
                   />
                 ) : (
                   <div className="mt-2 flex h-28 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-[12px] text-slate-400">
@@ -530,26 +629,22 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button
                     type="button"
+                    disabled={sketchProcessing || saving}
                     onClick={() => sketchInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                    className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                   >
                     <ImagePlus className="h-4 w-4" aria-hidden />
-                    {pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch)
-                      ? 'Bild austauschen'
-                      : 'Bild hochladen'}
+                    {sketchButtonLabel}
                   </button>
-                  {pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch) ? (
+                  {hasSketchPreview ? (
                     <button
                       type="button"
-                      onClick={() => {
-                        setPendingSketch(null);
-                        setPendingSketchUrl(null);
-                        setRemoveCurrentSketch(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50"
+                      disabled={sketchProcessing || saving}
+                      onClick={removeSketchWithConfirm}
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" aria-hidden />
-                      Bild entfernen
+                      Skizze entfernen
                     </button>
                   ) : null}
                 </div>
@@ -569,7 +664,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
                 />
               </Field>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Field label="Schwerpunkt *">
                   <select
                     value={form.focus}
@@ -613,13 +708,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                           on ? 'bg-red-700 text-white' : 'border border-slate-200 text-slate-600',
                         ].join(' ')}
                       >
-                        {p}
+                        {TRAINING_PHASE_LABELS[p]}
                       </button>
                     );
                   })}
                 </div>
               </Field>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <Field label="Dauer (Min) *">
                   <input
                     type="number"
@@ -653,6 +748,24 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   placeholder="z. B. U10–U12"
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
                 />
+              </Field>
+              <Field label="Freigabe">
+                <select
+                  value={form.visibility}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      visibility: e.target.value === 'private' ? 'private' : 'club',
+                    }))
+                  }
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+                >
+                  <option value="club">Verein (Trainer des Vereins)</option>
+                  <option value="private">Nur für mich (privat)</option>
+                </select>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Private Übungen werden nicht für andere Vereinstrainer freigegeben.
+                </p>
               </Field>
               <Field label="Material">
                 <input
@@ -700,16 +813,19 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             <div className="mt-4 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setEditorOpen(false)}
-                className="rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700"
+                onClick={() => {
+                  setEditorOpen(false);
+                  resetSketchState();
+                }}
+                className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700"
               >
                 Abbrechen
               </button>
               <button
                 type="button"
-                disabled={saving}
+                disabled={saving || sketchProcessing}
                 onClick={() => void save()}
-                className="rounded-full bg-red-700 px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
+                className="min-h-[40px] rounded-full bg-red-700 px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
               >
                 {saving ? 'Speichern…' : 'Speichern'}
               </button>
@@ -719,7 +835,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       ) : null}
 
       {toast ? (
-        <div className="fixed bottom-4 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-[13px] text-white shadow-lg">
+        <div className="fixed bottom-4 left-1/2 z-[90] max-w-[min(92vw,28rem)] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-center text-[13px] text-white shadow-lg">
           {toast}
         </div>
       ) : null}
@@ -727,15 +843,145 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   );
 }
 
-function TrainingExerciseImage({ path, title }: { path: string | null; title: string }): React.ReactElement {
+function DetailModal({
+  row,
+  onClose,
+  onEdit,
+  onArchive,
+}: {
+  row: TrainingExerciseRow;
+  onClose: () => void;
+  onEdit: () => void;
+  onArchive: () => void;
+}): React.ReactElement {
+  const players = formatPlayerCountRange(row.player_count_min, row.player_count_max);
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 sm:items-center">
+      <div
+        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-5"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exercise-detail-title"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Übung</p>
+            <h2 id="exercise-detail-title" className="text-[18px] font-semibold text-slate-900">
+              {row.title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Schließen"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-3">
+          <TrainingExerciseImage path={row.image_path} title={row.title} large />
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <MetaChip>{EXERCISE_FOCUS_LABELS[row.focus] ?? row.focus}</MetaChip>
+          {row.suitable_phases.map((p) => (
+            <MetaChip key={p}>{TRAINING_PHASE_LABELS[p] ?? p}</MetaChip>
+          ))}
+          <MetaChip>{row.duration_minutes} Min.</MetaChip>
+          {players ? <MetaChip>{players}</MetaChip> : null}
+          {row.age_group ? <MetaChip>{row.age_group}</MetaChip> : null}
+          {row.visibility === 'private' ? <MetaChip tone="private">Privat</MetaChip> : <MetaChip>Verein</MetaChip>}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          <DetailBlock label="Kurzbeschreibung" value={row.description} />
+          <DetailBlock label="Organisation / Aufbau" value={row.organization} />
+          <DetailBlock label="Material" value={row.materials} />
+          <DetailBlock label="Coachingpunkte" value={row.coaching_points} />
+          <DetailBlock label="Variationen" value={row.variations} />
+          {row.source_reference ? <DetailBlock label="Quelle" value={row.source_reference} /> : null}
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Bearbeiten
+          </button>
+          <button
+            type="button"
+            onClick={onArchive}
+            className="min-h-[40px] rounded-full px-4 py-2 text-[13px] font-semibold text-slate-500 hover:bg-slate-50"
+          >
+            Archivieren
+          </button>
+          <Link
+            to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(row.id)}`}
+            className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 py-2 text-[13px] font-semibold text-white hover:bg-red-800"
+          >
+            Zur Einheit
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailBlock({ label, value }: { label: string; value: string | null | undefined }): React.ReactElement | null {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  return (
+    <section>
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">{label}</h3>
+      <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-slate-700">{text}</p>
+    </section>
+  );
+}
+
+function MetaChip({
+  children,
+  tone = 'default',
+}: {
+  children: React.ReactNode;
+  tone?: 'default' | 'private';
+}): React.ReactElement {
+  return (
+    <span
+      className={[
+        'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold',
+        tone === 'private' ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-600',
+      ].join(' ')}
+    >
+      {children}
+    </span>
+  );
+}
+
+function TrainingExerciseImage({
+  path,
+  title,
+  large = false,
+}: {
+  path: string | null;
+  title: string;
+  large?: boolean;
+}): React.ReactElement {
   const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(path));
 
   useEffect(() => {
     let active = true;
     setUrl(null);
+    setLoading(Boolean(path));
     if (path) {
       void getTrainingExerciseSketchUrl(path).then((nextUrl) => {
-        if (active) setUrl(nextUrl);
+        if (!active) return;
+        setUrl(nextUrl);
+        setLoading(false);
       });
     }
     return () => {
@@ -743,18 +989,31 @@ function TrainingExerciseImage({ path, title }: { path: string | null; title: st
     };
   }, [path]);
 
+  const boxClass = large
+    ? 'flex min-h-[220px] w-full items-center justify-center rounded-xl border border-slate-100 bg-slate-50 sm:min-h-[280px]'
+    : 'flex h-36 w-full items-center justify-center rounded-xl border border-slate-100 bg-slate-50 sm:h-40';
+
+  if (loading) {
+    return <div className={`${boxClass} text-[12px] text-slate-400`}>Skizze wird geladen…</div>;
+  }
+
   if (url) {
     return (
       <img
         src={url}
         alt={`Skizze: ${title}`}
-        className="mb-3 h-28 w-full rounded-xl border border-slate-100 bg-white object-contain"
+        className={
+          large
+            ? 'max-h-[320px] w-full rounded-xl border border-slate-100 bg-white object-contain'
+            : 'h-36 w-full rounded-xl border border-slate-100 bg-white object-contain sm:h-40'
+        }
       />
     );
   }
+
   return (
-    <div className="mb-3 flex h-28 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-[12px] font-semibold uppercase tracking-wide text-slate-400">
-      Übung
+    <div className={`${boxClass} bg-gradient-to-br from-slate-100 to-slate-200 text-[12px] font-semibold uppercase tracking-wide text-slate-400`}>
+      Keine Skizze
     </div>
   );
 }
