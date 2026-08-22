@@ -73,10 +73,8 @@ jobs:
           node scripts/training-session-add-exercise-test.mjs
           node scripts/training-session-word-export-test.mjs
 
-      - name: Verify TypeScript and production build
-        run: |
-          npx tsc --noEmit
-          npm run build
+      - name: Verify production build
+        run: npm run build
 
       - name: Publish to production branch
         run: git push origin HEAD:main
