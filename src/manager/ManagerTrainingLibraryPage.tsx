@@ -4,7 +4,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { FileUp, ImagePlus, Plus, Search, Trash2, X } from 'lucide-react';
+import { FileUp, ImagePlus, Plus, RotateCw, Search, Trash2, X } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 import {
@@ -135,13 +135,20 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [selectingId, setSelectingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
-  const [sketchProcessing, setSketchProcessing] = useState(false);
+  const [sketchProcessing] = useState(false);
   const [pendingSketch, setPendingSketch] = useState<Blob | null>(null);
   const [pendingSketchUrl, setPendingSketchUrl] = useState<string | null>(null);
   const [currentSketchUrl, setCurrentSketchUrl] = useState<string | null>(null);
   const [removeCurrentSketch, setRemoveCurrentSketch] = useState(false);
+  const [cropSource, setCropSource] = useState<{ url: string; owned: boolean } | null>(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropX, setCropX] = useState(0);
+  const [cropY, setCropY] = useState(0);
+  const [cropRotation, setCropRotation] = useState(0);
+  const [cropSaving, setCropSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
+  const cropCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const reload = useCallback(async () => {
     if (!teamSeasonId) {
@@ -185,6 +192,22 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     },
     [pendingSketchUrl],
   );
+
+  useEffect(() => {
+    if (!cropSource || !cropCanvasRef.current) return;
+    let active = true;
+    void renderExerciseCrop(cropCanvasRef.current, cropSource.url, {
+      zoom: cropZoom,
+      x: cropX,
+      y: cropY,
+      rotation: cropRotation,
+    }).catch(() => {
+      if (active) setFormError('Die Zuschneidevorschau konnte nicht geladen werden.');
+    });
+    return () => {
+      active = false;
+    };
+  }, [cropRotation, cropSource, cropX, cropY, cropZoom]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -238,6 +261,23 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setDetail(row);
   };
 
+  const closeCrop = () => {
+    setCropSource((current) => {
+      if (current?.owned) URL.revokeObjectURL(current.url);
+      return null;
+    });
+    setCropSaving(false);
+  };
+
+  const openCrop = (url: string, owned = false) => {
+    setFormError(null);
+    setCropZoom(1);
+    setCropX(0);
+    setCropY(0);
+    setCropRotation(0);
+    setCropSource({ url, owned });
+  };
+
   const selectSketch = async (file: File) => {
     if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
       setFormError('Bitte ein PNG-, JPG- oder WebP-Bild auswählen.');
@@ -247,21 +287,34 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       setFormError('Das Bild darf höchstens 8 MB groß sein.');
       return;
     }
-    setSketchProcessing(true);
+    if (cropSource?.owned) URL.revokeObjectURL(cropSource.url);
+    openCrop(URL.createObjectURL(file), true);
+    if (sketchInputRef.current) sketchInputRef.current.value = '';
+  };
+
+  const applyCrop = async (useOriginal = false) => {
+    if (!cropSource) return;
+    setCropSaving(true);
     setFormError(null);
     try {
-      const sketch = await imageFileToWebp(file);
+      const sketch = useOriginal
+        ? await imageUrlToWebp(cropSource.url)
+        : await cropExerciseImageToWebp(cropSource.url, {
+            zoom: cropZoom,
+            x: cropX,
+            y: cropY,
+            rotation: cropRotation,
+          });
       setPendingSketchUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return URL.createObjectURL(sketch);
       });
       setPendingSketch(sketch);
       setRemoveCurrentSketch(false);
+      closeCrop();
     } catch {
-      setFormError('Das Bild konnte nicht verarbeitet werden.');
-    } finally {
-      setSketchProcessing(false);
-      if (sketchInputRef.current) sketchInputRef.current.value = '';
+      setCropSaving(false);
+      setFormError('Die Skizze konnte nicht zugeschnitten werden.');
     }
   };
 
@@ -794,15 +847,28 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     {sketchButtonLabel}
                   </button>
                   {hasSketchPreview ? (
-                    <button
-                      type="button"
-                      disabled={sketchProcessing || saving}
-                      onClick={removeSketchWithConfirm}
-                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                      Skizze entfernen
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        disabled={sketchProcessing || saving}
+                        onClick={() => {
+                          const url = pendingSketchUrl ?? currentSketchUrl;
+                          if (url) openCrop(url);
+                        }}
+                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        Skizze zuschneiden
+                      </button>
+                      <button
+                        type="button"
+                        disabled={sketchProcessing || saving}
+                        onClick={removeSketchWithConfirm}
+                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden />
+                        Skizze entfernen
+                      </button>
+                    </>
                   ) : null}
                 </div>
               </div>
@@ -991,12 +1057,122 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
         </div>
       ) : null}
 
+      {cropSource ? (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-3 sm:items-center">
+          <div
+            className="max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl sm:p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exercise-crop-title"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 id="exercise-crop-title" className="text-[17px] font-semibold text-slate-900">
+                  Skizze zuschneiden
+                </h2>
+                <p className="mt-0.5 text-[12px] text-slate-500">
+                  Einheitliches 4:3-Format für Bibliothek, Word und A4-Handout
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={cropSaving}
+                onClick={closeCrop}
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                aria-label="Zuschneiden schließen"
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+
+            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              <canvas
+                ref={cropCanvasRef}
+                width={800}
+                height={600}
+                className="aspect-[4/3] w-full bg-white object-contain"
+                aria-label="Vorschau des 4:3-Zuschnitts"
+              />
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <CropRange label="Zoom" min={100} max={250} value={Math.round(cropZoom * 100)} onChange={(value) => setCropZoom(value / 100)} suffix=" %" />
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  disabled={cropSaving}
+                  onClick={() => setCropRotation((value) => (value + 90) % 360)}
+                  className="inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <RotateCw className="h-4 w-4" aria-hidden />
+                  90° drehen
+                </button>
+              </div>
+              <CropRange label="Horizontal verschieben" min={-100} max={100} value={cropX} onChange={setCropX} />
+              <CropRange label="Vertikal verschieben" min={-100} max={100} value={cropY} onChange={setCropY} />
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                disabled={cropSaving}
+                onClick={() => void applyCrop(true)}
+                className="min-h-[42px] rounded-full border border-slate-200 px-4 text-[13px] font-semibold text-slate-700 disabled:opacity-50"
+              >
+                Original verwenden
+              </button>
+              <button
+                type="button"
+                disabled={cropSaving}
+                onClick={() => void applyCrop(false)}
+                className="min-h-[42px] rounded-full bg-red-700 px-5 text-[13px] font-semibold text-white hover:bg-red-800 disabled:opacity-50"
+              >
+                {cropSaving ? 'Wird verarbeitet…' : 'Zuschnitt übernehmen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {toast ? (
         <div className="fixed bottom-4 left-1/2 z-[90] max-w-[min(92vw,28rem)] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-center text-[13px] text-white shadow-lg">
           {toast}
         </div>
       ) : null}
     </div>
+  );
+}
+
+function CropRange({
+  label,
+  min,
+  max,
+  value,
+  onChange,
+  suffix = '',
+}: {
+  label: string;
+  min: number;
+  max: number;
+  value: number;
+  onChange: (value: number) => void;
+  suffix?: string;
+}): React.ReactElement {
+  return (
+    <label className="block">
+      <span className="flex items-center justify-between gap-2 text-[12px] font-medium text-slate-600">
+        <span>{label}</span>
+        <span className="tabular-nums text-slate-400">{value}{suffix}</span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-2 w-full accent-red-700"
+      />
+    </label>
   );
 }
 
@@ -1009,31 +1185,77 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-async function imageFileToWebp(file: File): Promise<Blob> {
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const next = new Image();
-      next.onload = () => resolve(next);
-      next.onerror = () => reject(new Error('Bild konnte nicht geladen werden.'));
-      next.src = objectUrl;
-    });
-    const maxEdge = 2400;
-    const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
-    const width = Math.max(1, Math.round(image.naturalWidth * scale));
-    const height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, width, height);
-    context.drawImage(image, 0, 0, width, height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
-    if (!blob) throw new Error('Bild konnte nicht konvertiert werden.');
-    return blob;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
+type ExerciseCropOptions = { zoom: number; x: number; y: number; rotation: number };
+
+async function loadCropImage(url: string): Promise<HTMLImageElement> {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Bild konnte nicht geladen werden.'));
+    image.src = url;
+  });
 }
+
+function rotatedImageCanvas(image: HTMLImageElement, rotation: number): HTMLCanvasElement {
+  const normalized = ((rotation % 360) + 360) % 360;
+  const swap = normalized === 90 || normalized === 270;
+  const canvas = document.createElement('canvas');
+  canvas.width = swap ? image.naturalHeight : image.naturalWidth;
+  canvas.height = swap ? image.naturalWidth : image.naturalHeight;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
+  context.translate(canvas.width / 2, canvas.height / 2);
+  context.rotate((normalized * Math.PI) / 180);
+  context.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+  return canvas;
+}
+
+async function renderExerciseCrop(
+  canvas: HTMLCanvasElement,
+  url: string,
+  options: ExerciseCropOptions,
+): Promise<void> {
+  const image = await loadCropImage(url);
+  const rotated = rotatedImageCanvas(image, options.rotation);
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
+  const scale = Math.max(canvas.width / rotated.width, canvas.height / rotated.height) * options.zoom;
+  const width = rotated.width * scale;
+  const height = rotated.height * scale;
+  const overflowX = Math.max(0, width - canvas.width);
+  const overflowY = Math.max(0, height - canvas.height);
+  const left = (canvas.width - width) / 2 - (options.x / 100) * (overflowX / 2);
+  const top = (canvas.height - height) / 2 - (options.y / 100) * (overflowY / 2);
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(rotated, left, top, width, height);
+}
+
+async function cropExerciseImageToWebp(url: string, options: ExerciseCropOptions): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1600;
+  canvas.height = 1200;
+  await renderExerciseCrop(canvas, url, options);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
+  if (!blob) throw new Error('Bild konnte nicht konvertiert werden.');
+  return blob;
+}
+
+async function imageUrlToWebp(url: string): Promise<Blob> {
+  const image = await loadCropImage(url);
+  const maxEdge = 2400;
+  const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
+  if (!blob) throw new Error('Bild konnte nicht konvertiert werden.');
+  return blob;
+}
+
