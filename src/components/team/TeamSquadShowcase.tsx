@@ -41,12 +41,11 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
     if (!slider) return;
     const cards = Array.from(slider.querySelectorAll<HTMLElement>("[data-showcase-card]"));
     if (cards.length === 0) return;
-    const sliderCenter = slider.scrollLeft + slider.clientWidth / 2;
+    const leadingEdge = slider.scrollLeft + 12;
     let closestIndex = 0;
     let closestDistance = Number.POSITIVE_INFINITY;
     cards.forEach((card, index) => {
-      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-      const distance = Math.abs(cardCenter - sliderCenter);
+      const distance = Math.abs(card.offsetLeft - leadingEdge);
       if (distance < closestDistance) {
         closestIndex = index;
         closestDistance = distance;
