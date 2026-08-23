@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { FileUp, ImagePlus, Plus, Search, Trash2, X } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
@@ -22,6 +22,7 @@ import {
   type TrainingExerciseVisibility,
 } from '../lib/trainingExercises';
 import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
+import { addExerciseToSession, updateSessionExercise } from '../lib/trainingSessions';
 import {
   EXERCISE_DIFFICULTY_LABELS,
   EXERCISE_FOCUS_LABELS,
@@ -92,9 +93,26 @@ function formFromRow(row: TrainingExerciseRow): FormState {
 }
 
 export function ManagerTrainingLibraryPage(): React.ReactElement {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
+
+  const selectionSessionId = searchParams.get('session');
+  const selectionPhaseValue = searchParams.get('phase');
+  const selectionPhase = TRAINING_PHASES.includes(selectionPhaseValue as TrainingPhase)
+    ? (selectionPhaseValue as TrainingPhase)
+    : null;
+  const replaceItemId = searchParams.get('replace');
+  const requestedReturnTo = searchParams.get('returnTo');
+  const returnTo =
+    requestedReturnTo?.startsWith('/manager/training/einheiten/')
+      ? requestedReturnTo
+      : selectionSessionId
+        ? `/manager/training/einheiten/${selectionSessionId}`
+        : null;
+  const selectionMode = Boolean(selectionSessionId && selectionPhase && returnTo);
 
   const [clubId, setClubId] = useState<string | null>(null);
   const [rows, setRows] = useState<TrainingExerciseRow[]>([]);
@@ -103,7 +121,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [toast, setToast] = useState<string | null>(null);
 
   const [q, setQ] = useState('');
-  const [phaseFilter, setPhaseFilter] = useState<string>('');
+  const [phaseFilter, setPhaseFilter] = useState<string>(selectionPhase ?? '');
   const [focusFilter, setFocusFilter] = useState<string>('');
   const [ageFilter, setAgeFilter] = useState('');
   const [durationMax, setDurationMax] = useState('');
@@ -113,6 +131,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [editing, setEditing] = useState<TrainingExerciseRow | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [selectingId, setSelectingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [sketchProcessing, setSketchProcessing] = useState(false);
@@ -148,6 +167,10 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (selectionPhase) setPhaseFilter(selectionPhase);
+  }, [selectionPhase]);
 
   useEffect(() => {
     if (!toast) return;
@@ -376,6 +399,29 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     await reload();
   };
 
+  const selectForSession = async (row: TrainingExerciseRow) => {
+    if (!selectionMode || !selectionSessionId || !selectionPhase || !returnTo) return;
+    setSelectingId(row.id);
+    setError(null);
+
+    const result = replaceItemId
+      ? await updateSessionExercise(replaceItemId, { exerciseId: row.id })
+      : await addExerciseToSession({
+          sessionId: selectionSessionId,
+          exerciseId: row.id,
+          phase: selectionPhase,
+          durationMinutes: row.duration_minutes,
+        });
+
+    if (result.error) {
+      setError(result.error);
+      setSelectingId(null);
+      return;
+    }
+
+    navigate(returnTo, { replace: true });
+  };
+
   const archive = async (row: TrainingExerciseRow) => {
     const usage = await countExerciseUsage(row.id);
     const msg =
@@ -436,6 +482,26 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
           </button>
         </div>
       </header>
+
+      {selectionMode && selectionPhase && returnTo ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <div>
+            <p className="text-[14px] font-semibold text-red-900">
+              {replaceItemId ? 'Übung austauschen' : 'Übung auswählen'} · {TRAINING_PHASE_LABELS[selectionPhase]}
+            </p>
+            <p className="mt-0.5 text-[12px] text-red-800">
+              Passende Übungen sind vorgefiltert. Öffne „Ansehen“ für Details oder übernimm die Übung direkt.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(returnTo)}
+            className="min-h-[40px] rounded-full border border-red-200 bg-white px-4 py-2 text-[13px] font-semibold text-red-800 hover:bg-red-100"
+          >
+            Zurück zur Planung
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6">
         <label className="relative sm:col-span-2 lg:col-span-2 xl:col-span-2">
@@ -547,26 +613,52 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   </p>
                 </button>
                 <div className="flex flex-wrap gap-2 border-t border-slate-100 px-3 py-2.5 sm:px-4">
-                  <button
-                    type="button"
-                    onClick={() => openEdit(row)}
-                    className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    Bearbeiten
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void archive(row)}
-                    className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:bg-slate-50"
-                  >
-                    Archivieren
-                  </button>
-                  <Link
-                    to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(row.id)}`}
-                    className="rounded-full bg-red-700/10 px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-700/15"
-                  >
-                    Zur Einheit
-                  </Link>
+                  {selectionMode ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openDetail(row)}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Ansehen
+                      </button>
+                      <button
+                        type="button"
+                        disabled={selectingId === row.id}
+                        onClick={() => void selectForSession(row)}
+                        className="rounded-full bg-red-700 px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+                      >
+                        {selectingId === row.id
+                          ? 'Wird übernommen…'
+                          : replaceItemId
+                            ? 'Austauschen'
+                            : 'Auswählen'}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(row)}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Bearbeiten
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void archive(row)}
+                        className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:bg-slate-50"
+                      >
+                        Archivieren
+                      </button>
+                      <Link
+                        to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(row.id)}`}
+                        className="rounded-full bg-red-700/10 px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-700/15"
+                      >
+                        Zur Einheit
+                      </Link>
+                    </>
+                  )}
                 </div>
               </li>
             );
@@ -579,28 +671,52 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
           row={detail}
           onClose={() => setDetail(null)}
           footer={
-            <>
-              <button
-                type="button"
-                onClick={() => openEdit(detail)}
-                className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Bearbeiten
-              </button>
-              <button
-                type="button"
-                onClick={() => void archive(detail)}
-                className="min-h-[40px] rounded-full px-4 py-2 text-[13px] font-semibold text-slate-500 hover:bg-slate-50"
-              >
-                Archivieren
-              </button>
-              <Link
-                to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(detail.id)}`}
-                className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 py-2 text-[13px] font-semibold text-white hover:bg-red-800"
-              >
-                Zur Einheit
-              </Link>
-            </>
+            selectionMode ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setDetail(null)}
+                  className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Zurück
+                </button>
+                <button
+                  type="button"
+                  disabled={selectingId === detail.id}
+                  onClick={() => void selectForSession(detail)}
+                  className="min-h-[40px] rounded-full bg-red-700 px-4 py-2 text-[13px] font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+                >
+                  {selectingId === detail.id
+                    ? 'Wird übernommen…'
+                    : replaceItemId
+                      ? 'Diese Übung austauschen'
+                      : 'Diese Übung auswählen'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => openEdit(detail)}
+                  className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Bearbeiten
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void archive(detail)}
+                  className="min-h-[40px] rounded-full px-4 py-2 text-[13px] font-semibold text-slate-500 hover:bg-slate-50"
+                >
+                  Archivieren
+                </button>
+                <Link
+                  to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(detail.id)}`}
+                  className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 py-2 text-[13px] font-semibold text-white hover:bg-red-800"
+                >
+                  Zur Einheit
+                </Link>
+              </>
+            )
           }
         />
       ) : null}
