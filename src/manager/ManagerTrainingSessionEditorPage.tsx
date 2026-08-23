@@ -105,11 +105,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [status, setStatus] = useState<TrainingSessionStatus>('draft');
   const [eventId, setEventId] = useState<string | null>(eventFromQuery);
 
-  const [pickerPhase, setPickerPhase] = useState<TrainingPhase | null>(null);
-  const [replaceItemId, setReplaceItemId] = useState<string | null>(null);
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
-  const [pickerQuery, setPickerQuery] = useState('');
-  const [library, setLibrary] = useState<TrainingExerciseRow[]>([]);
   const [requestedExercise, setRequestedExercise] = useState<TrainingExerciseRow | null>(null);
   const [requestedExerciseLoading, setRequestedExerciseLoading] = useState(false);
   const handledExerciseQueryRef = useRef<string | null>(null);
@@ -309,37 +305,6 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     };
   }, [exerciseFromQuery, isNew, teamSeasonId]);
 
-  useEffect(() => {
-    if (!pickerPhase || !teamSeasonId) return;
-    let cancelled = false;
-    (async () => {
-      const clubRes = await resolveClubIdForTeamSeason(teamSeasonId);
-      if (!clubRes.clubId || cancelled) return;
-      const res = await listTrainingExercises(clubRes.clubId);
-      if (cancelled) return;
-      const q = pickerQuery.trim().toLowerCase();
-      setLibrary(
-        res.data
-          .filter((ex) => {
-            if (!q) return true;
-            return (
-              ex.title.toLowerCase().includes(q) ||
-              (ex.focus ?? '').toLowerCase().includes(q) ||
-              (ex.description ?? '').toLowerCase().includes(q)
-            );
-          })
-          .sort((a, b) => {
-            const aRecommended = a.suitable_phases.includes(pickerPhase) ? 1 : 0;
-            const bRecommended = b.suitable_phases.includes(pickerPhase) ? 1 : 0;
-            return bRecommended - aRecommended || a.title.localeCompare(b.title, 'de');
-          }),
-      );
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [pickerPhase, pickerQuery, teamSeasonId]);
-
   async function ensureSessionId(): Promise<string | null> {
     if (session?.id) return session.id;
     if (!teamSeasonId) {
@@ -500,45 +465,38 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     else {
       setExerciseMap((m) => ({ ...m, [ex.id]: ex }));
       if (res.data) setItems((current) => [...current, res.data!]);
-      setPickerPhase(null);
-      setReplaceItemId(null);
       setRequestedExercise(null);
       setSuccess('Übung hinzugefügt.');
     }
     setSaving(false);
   }
 
-  async function replaceExercise(itemId: string, ex: TrainingExerciseRow) {
+  async function openExerciseLibrary(
+    phase: TrainingPhase,
+    replaceItemId?: string,
+  ): Promise<void> {
     setSaving(true);
     setError(null);
-    const res = await updateSessionExercise(itemId, { exerciseId: ex.id });
-    if (res.error) setError(res.error);
-    else {
-      setExerciseMap((m) => ({ ...m, [ex.id]: ex }));
-      await reload();
-      setPickerPhase(null);
-      setReplaceItemId(null);
-      setSuccess('Übung ausgetauscht.');
-    }
+    const sid = await ensureSessionId();
     setSaving(false);
+    if (!sid) return;
+
+    const returnTo = `/manager/training/einheiten/${sid}`;
+    const params = new URLSearchParams({
+      session: sid,
+      phase,
+      returnTo,
+    });
+    if (replaceItemId) params.set('replace', replaceItemId);
+    navigate(`/manager/training/bibliothek?${params.toString()}`);
   }
 
   function openPickerForPhase(phase: TrainingPhase) {
-    setReplaceItemId(null);
-    setPickerPhase(phase);
-    setPickerQuery('');
+    void openExerciseLibrary(phase);
   }
 
   function openReplacePicker(item: TrainingSessionExerciseRow) {
-    setReplaceItemId(item.id);
-    setPickerPhase(item.phase);
-    setPickerQuery('');
-  }
-
-  function closeExercisePicker() {
-    setPickerPhase(null);
-    setReplaceItemId(null);
-    setPickerQuery('');
+    void openExerciseLibrary(item.phase, item.id);
   }
 
   function cancelRequestedExercise() {
@@ -1274,71 +1232,6 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
           />
         );
       })() : null}
-
-      {pickerPhase ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center">
-          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <h3 className="font-semibold text-slate-900">
-                {replaceItemId
-                  ? 'Übung austauschen'
-                  : `Übung für ${TRAINING_PHASE_LABELS[pickerPhase]}`}
-              </h3>
-              <button type="button" onClick={closeExercisePicker} className="text-[13px] text-slate-600">
-                Schließen
-              </button>
-            </div>
-            <div className="border-b border-slate-100 px-4 py-2">
-              <input
-                value={pickerQuery}
-                onChange={(e) => setPickerQuery(e.target.value)}
-                placeholder="Suchen…"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px]"
-              />
-            </div>
-            <ul className="max-h-[50vh] overflow-y-auto p-2">
-              {library.length === 0 ? (
-                <li className="px-3 py-6 text-center text-[13px] text-slate-400">
-                  Keine passenden Übungen.{' '}
-                  <Link to="/manager/training/bibliothek" className="text-red-700">
-                    Bibliothek
-                  </Link>
-                </li>
-              ) : (
-                library.map((ex) => (
-                  <li key={ex.id}>
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() =>
-                        void (replaceItemId
-                          ? replaceExercise(replaceItemId, ex)
-                          : addExercise(ex, pickerPhase))
-                      }
-                      className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-left hover:bg-slate-50"
-                    >
-                      <span>
-                        <span className="block font-semibold text-slate-900">{ex.title}</span>
-                        <span className="text-[12px] text-slate-500">
-                          {ex.focus} · {ex.duration_minutes} Min.
-                        </span>
-                        <span className="mt-0.5 block text-[11px] text-slate-400">
-                          {ex.suitable_phases.includes(pickerPhase)
-                            ? 'Für diese Phase empfohlen'
-                            : `Empfohlen: ${ex.suitable_phases.join(', ')}`}
-                        </span>
-                      </span>
-                      <span className="text-[12px] font-semibold text-red-700">
-                        {replaceItemId ? 'Austauschen' : 'Hinzufügen'}
-                      </span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-        </div>
-      ) : null}
 
       {requestedExercise || requestedExerciseLoading ? (
         <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/40 p-4 sm:items-center">
