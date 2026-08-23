@@ -73,7 +73,7 @@ export function TrainingExerciseDetailModal({
         </div>
 
         <div className="mt-3">
-          <TrainingExerciseImage path={row.image_path} title={row.title} large />
+          <TrainingExerciseImage path={row.image_path} title={row.title} variant="detail" />
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">

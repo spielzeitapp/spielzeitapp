@@ -27,10 +27,23 @@ assert.doesNotMatch(
 assert.match(library, /TrainingExerciseDetailModal/, 'library uses shared detail modal');
 assert.doesNotMatch(library, /function DetailModal\(/, 'library no longer defines a duplicate detail modal');
 
-assert.match(card, /TrainingExerciseImage/, 'card shows sketch preview');
-assert.match(card, /onView/, 'card exposes view action');
-assert.match(card, /onReplace/, 'card exposes replace action');
-assert.match(card, /Trainerhinweise/, 'coach notes section exists');
+assert.match(card, /variant="session-card"/, 'card uses large session-card sketch variant');
+assert.match(card, /md:grid-cols-\[minmax\(280px,340px\)_minmax\(0,1fr\)\]/, 'desktop card uses sketch + content grid');
+assert.match(card, /pb-\[max\(0\.75rem,env\(safe-area-inset-bottom\)\)\]/, 'mobile actions respect safe area');
+assert.match(card, /grid-cols-3/, 'mobile actions fit in one row without overflow');
+
+const image = fs.readFileSync('src/components/training/TrainingExerciseImage.tsx', 'utf8');
+assert.match(image, /variant\?: TrainingExerciseImageVariant/, 'image component supports variants');
+assert.match(image, /'session-card'/, 'session-card variant defined');
+assert.match(image, /aspect-video/, 'session-card uses wide aspect ratio on mobile');
+assert.match(image, /min-h-\[210px\]/, 'session-card has minimum visible height');
+assert.match(image, /min-w-\[280px\]/, 'session-card desktop preview is wide enough');
+assert.match(image, /'library'/, 'library variant defined');
+assert.match(image, /'detail'/, 'detail variant defined');
+assert.match(image, /object-contain/, 'all variants use object-contain');
+
+assert.match(library, /variant="library"/, 'library uses library image variant');
+assert.match(detail, /variant="detail"/, 'detail modal uses detail image variant');
 
 assert.match(detail, /Organisation \/ Aufbau/, 'detail shows organization');
 assert.match(detail, /Ablauf/, 'detail shows flow section');

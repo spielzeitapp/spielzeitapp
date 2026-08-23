@@ -23,6 +23,58 @@ type Props = {
   readOnly?: boolean;
 };
 
+const actionButtonClass =
+  'inline-flex min-h-[44px] min-w-0 flex-1 items-center justify-center rounded-xl px-2 text-[13px] font-semibold touch-manipulation sm:px-3';
+
+function ActionButtons({
+  onView,
+  onReplace,
+  onRemove,
+  saving,
+  readOnly,
+  layout = 'row',
+}: {
+  onView: () => void;
+  onReplace: () => void;
+  onRemove: () => void;
+  saving: boolean;
+  readOnly: boolean;
+  layout?: 'row' | 'stack';
+}): React.ReactElement {
+  const stack = layout === 'stack';
+  return (
+    <div className={stack ? 'flex min-w-0 flex-col gap-2' : 'grid min-w-0 grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-2'}>
+      <button
+        type="button"
+        onClick={onView}
+        className={`${actionButtonClass} border border-slate-200 bg-white text-slate-800 ${stack ? 'w-full' : ''}`}
+      >
+        Ansehen
+      </button>
+      {!readOnly ? (
+        <>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onReplace}
+            className={`${actionButtonClass} border border-slate-200 bg-white text-slate-800 disabled:opacity-50 ${stack ? 'w-full' : ''}`}
+          >
+            Austauschen
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onRemove}
+            className={`${actionButtonClass} text-red-700 hover:bg-red-50 disabled:opacity-50 ${stack ? 'w-full' : ''}`}
+          >
+            Entfernen
+          </button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export function TrainingSessionExerciseCard({
   item,
   exercise,
@@ -45,46 +97,43 @@ export function TrainingSessionExerciseCard({
     : null;
   const phaseLabel = TRAINING_PHASE_LABELS[item.phase as TrainingPhase] ?? item.phase;
   const notes = String(item.coach_notes ?? '').trim();
+  const title = exercise?.title ?? 'Übung';
 
   return (
-    <article className="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/80">
-      <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-start sm:gap-4">
+    <article className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="min-w-0 md:grid md:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(148px,176px)]">
         <button
           type="button"
           onClick={onView}
-          className="shrink-0 self-start touch-manipulation"
-          aria-label={`${exercise?.title ?? 'Übung'} ansehen`}
+          className="block w-full min-w-0 touch-manipulation p-3 pb-0 md:p-4 md:pb-4"
+          aria-label={`${title} ansehen`}
         >
           <TrainingExerciseImage
             path={exercise?.image_path ?? null}
-            title={exercise?.title ?? 'Übung'}
+            title={title}
             url={sketchUrl}
-            compact
+            variant="session-card"
           />
         </button>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="text-[15px] font-semibold leading-snug text-slate-900">
-                {exercise?.title ?? 'Übung'}
-              </h3>
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {exercise ? (
-                  <TrainingExerciseMetaChip>
-                    {EXERCISE_FOCUS_LABELS[exercise.focus] ?? exercise.focus}
-                  </TrainingExerciseMetaChip>
-                ) : null}
-                <TrainingExerciseMetaChip tone="phase">{phaseLabel}</TrainingExerciseMetaChip>
-                {players ? <TrainingExerciseMetaChip>{players}</TrainingExerciseMetaChip> : null}
-                <TrainingExerciseMetaChip>{item.duration_minutes} Min.</TrainingExerciseMetaChip>
-              </div>
+        <div className="min-w-0 flex flex-col gap-3 p-4 pt-3 md:border-l md:border-slate-100 md:pt-4">
+          <div className="min-w-0">
+            <h3 className="text-[18px] font-semibold leading-snug text-slate-900 md:text-[17px]">{title}</h3>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {exercise ? (
+                <TrainingExerciseMetaChip>
+                  {EXERCISE_FOCUS_LABELS[exercise.focus] ?? exercise.focus}
+                </TrainingExerciseMetaChip>
+              ) : null}
+              <TrainingExerciseMetaChip tone="phase">{phaseLabel}</TrainingExerciseMetaChip>
+              {players ? <TrainingExerciseMetaChip>{players}</TrainingExerciseMetaChip> : null}
+              <TrainingExerciseMetaChip>{item.duration_minutes} Min.</TrainingExerciseMetaChip>
             </div>
           </div>
 
           {!readOnly ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <label className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] text-slate-600">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <label className="inline-flex min-h-[44px] min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-[12px] font-medium text-slate-600">
                 Dauer
                 <input
                   type="number"
@@ -92,16 +141,16 @@ export function TrainingSessionExerciseCard({
                   max={300}
                   value={item.duration_minutes}
                   onChange={(e) => onDurationChange(Number(e.target.value))}
-                  className="w-14 rounded-md border border-slate-200 px-2 py-1 text-[13px] font-semibold text-slate-900"
+                  className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[13px] font-semibold text-slate-900"
                 />
                 Min.
               </label>
-              <div className="flex flex-wrap gap-1.5 sm:ml-auto">
+              <div className="flex gap-1.5 lg:hidden">
                 <button
                   type="button"
                   disabled={!canMoveUp || saving}
                   onClick={onMoveUp}
-                  className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-[12px] disabled:opacity-40"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-200 bg-white text-[14px] font-semibold disabled:opacity-40"
                   aria-label="Nach oben"
                 >
                   ↑
@@ -110,7 +159,7 @@ export function TrainingSessionExerciseCard({
                   type="button"
                   disabled={!canMoveDown || saving}
                   onClick={onMoveDown}
-                  className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-[12px] disabled:opacity-40"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-200 bg-white text-[14px] font-semibold disabled:opacity-40"
                   aria-label="Nach unten"
                 >
                   ↓
@@ -120,7 +169,7 @@ export function TrainingSessionExerciseCard({
           ) : null}
 
           {notes || !readOnly ? (
-            <div className="mt-3 rounded-lg border border-slate-200/80 bg-white">
+            <div className="min-w-0 rounded-xl border border-slate-200/80 bg-slate-50/60">
               <button
                 type="button"
                 onClick={() => setNotesOpen((open) => !open)}
@@ -144,10 +193,12 @@ export function TrainingSessionExerciseCard({
                         onBlur={(e) => onNotesChange(e.target.value)}
                         rows={2}
                         placeholder="Hinweise für diese Einheit…"
-                        className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[13px] text-slate-800"
+                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[13px] text-slate-800"
                       />
                       {!notes ? (
-                        <p className="mt-1 text-[12px] text-slate-400">Optional – z. B. Anpassungen für diese Einheit.</p>
+                        <p className="mt-1 text-[12px] text-slate-400">
+                          Optional – z. B. Anpassungen für diese Einheit.
+                        </p>
                       ) : null}
                     </>
                   )}
@@ -160,36 +211,52 @@ export function TrainingSessionExerciseCard({
             </div>
           ) : null}
         </div>
+
+        <div className="hidden min-w-0 flex-col justify-between gap-3 border-l border-slate-100 p-4 lg:flex">
+          {!readOnly ? (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Reihenfolge</span>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  disabled={!canMoveUp || saving}
+                  onClick={onMoveUp}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 bg-white text-[13px] font-semibold disabled:opacity-40"
+                  aria-label="Nach oben"
+                >
+                  ↑ Hoch
+                </button>
+                <button
+                  type="button"
+                  disabled={!canMoveDown || saving}
+                  onClick={onMoveDown}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 bg-white text-[13px] font-semibold disabled:opacity-40"
+                  aria-label="Nach unten"
+                >
+                  ↓ Runter
+                </button>
+              </div>
+            </div>
+          ) : null}
+          <ActionButtons
+            onView={onView}
+            onReplace={onReplace}
+            onRemove={onRemove}
+            saving={saving}
+            readOnly={readOnly}
+            layout="stack"
+          />
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-t border-slate-200/70 bg-white px-3 py-2.5">
-        <button
-          type="button"
-          onClick={onView}
-          className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-slate-200 px-3 text-[13px] font-semibold text-slate-800 sm:flex-none sm:px-4"
-        >
-          Ansehen
-        </button>
-        {!readOnly ? (
-          <>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={onReplace}
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-slate-200 px-3 text-[13px] font-semibold text-slate-800 sm:flex-none sm:px-4 disabled:opacity-50"
-            >
-              Austauschen
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={onRemove}
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl px-3 text-[13px] font-semibold text-red-700 hover:bg-red-50 sm:flex-none sm:px-4 disabled:opacity-50"
-            >
-              Entfernen
-            </button>
-          </>
-        ) : null}
+      <div className="border-t border-slate-100 bg-slate-50/40 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
+        <ActionButtons
+          onView={onView}
+          onReplace={onReplace}
+          onRemove={onRemove}
+          saving={saving}
+          readOnly={readOnly}
+        />
       </div>
     </article>
   );

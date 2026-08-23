@@ -529,7 +529,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   onClick={() => openDetail(row)}
                   className="flex flex-1 flex-col p-3 text-left touch-manipulation sm:p-4"
                 >
-                  <TrainingExerciseImage path={row.image_path} title={row.title} large={false} />
+                  <TrainingExerciseImage path={row.image_path} title={row.title} variant="library" />
                   <h2 className="mt-3 text-[15px] font-semibold leading-snug text-slate-900">{row.title}</h2>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <TrainingExerciseMetaChip>{EXERCISE_FOCUS_LABELS[row.focus] ?? row.focus}</TrainingExerciseMetaChip>
