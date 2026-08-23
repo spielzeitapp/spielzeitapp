@@ -47,6 +47,8 @@ import { listTrainingTemplates, updateExerciseReview } from '../lib/trainingSess
 import { TRAINING_EXERCISE_REVIEW_LABELS, type TrainingExerciseReviewStatus } from '../lib/trainingPhases';
 import { downloadTrainingSessionWord } from '../lib/trainingSessionWordExport';
 import { createTrainingSessionHandoutHtml } from '../lib/trainingSessionHandout';
+import { TrainingExerciseDetailModal } from '../components/training/TrainingExerciseDetailModal';
+import { TrainingSessionExerciseCard } from '../components/training/TrainingSessionExerciseCard';
 
 function formatWhen(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -75,6 +77,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const startsFromQuery = searchParams.get('starts');
   const exerciseFromQuery = searchParams.get('exercise');
   const viewFromQuery = searchParams.get('view');
+  const exerciseItemFromQuery = searchParams.get('exerciseItem');
   const returnToFromQuery = searchParams.get('returnTo');
   const navigate = useNavigate();
 
@@ -103,9 +106,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [status, setStatus] = useState<TrainingSessionStatus>('draft');
   const [eventId, setEventId] = useState<string | null>(eventFromQuery);
 
-  const [pickerPhase, setPickerPhase] = useState<TrainingPhase | null>(null);
-  const [pickerQuery, setPickerQuery] = useState('');
-  const [library, setLibrary] = useState<TrainingExerciseRow[]>([]);
+  const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [requestedExercise, setRequestedExercise] = useState<TrainingExerciseRow | null>(null);
   const [requestedExerciseLoading, setRequestedExerciseLoading] = useState(false);
   const handledExerciseQueryRef = useRef<string | null>(null);
@@ -305,37 +306,6 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     };
   }, [exerciseFromQuery, isNew, teamSeasonId]);
 
-  useEffect(() => {
-    if (!pickerPhase || !teamSeasonId) return;
-    let cancelled = false;
-    (async () => {
-      const clubRes = await resolveClubIdForTeamSeason(teamSeasonId);
-      if (!clubRes.clubId || cancelled) return;
-      const res = await listTrainingExercises(clubRes.clubId);
-      if (cancelled) return;
-      const q = pickerQuery.trim().toLowerCase();
-      setLibrary(
-        res.data
-          .filter((ex) => {
-            if (!q) return true;
-            return (
-              ex.title.toLowerCase().includes(q) ||
-              (ex.focus ?? '').toLowerCase().includes(q) ||
-              (ex.description ?? '').toLowerCase().includes(q)
-            );
-          })
-          .sort((a, b) => {
-            const aRecommended = a.suitable_phases.includes(pickerPhase) ? 1 : 0;
-            const bRecommended = b.suitable_phases.includes(pickerPhase) ? 1 : 0;
-            return bRecommended - aRecommended || a.title.localeCompare(b.title, 'de');
-          }),
-      );
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [pickerPhase, pickerQuery, teamSeasonId]);
-
   async function ensureSessionId(): Promise<string | null> {
     if (session?.id) return session.id;
     if (!teamSeasonId) {
@@ -496,11 +466,38 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     else {
       setExerciseMap((m) => ({ ...m, [ex.id]: ex }));
       if (res.data) setItems((current) => [...current, res.data!]);
-      setPickerPhase(null);
       setRequestedExercise(null);
       setSuccess('Übung hinzugefügt.');
     }
     setSaving(false);
+  }
+
+  async function openExerciseLibrary(
+    phase: TrainingPhase,
+    replaceItemId?: string,
+  ): Promise<void> {
+    setSaving(true);
+    setError(null);
+    const sid = await ensureSessionId();
+    setSaving(false);
+    if (!sid) return;
+
+    const returnTo = `/manager/training/einheiten/${sid}`;
+    const params = new URLSearchParams({
+      session: sid,
+      phase,
+      returnTo,
+    });
+    if (replaceItemId) params.set('replace', replaceItemId);
+    navigate(`/manager/training/bibliothek?${params.toString()}`);
+  }
+
+  function openPickerForPhase(phase: TrainingPhase) {
+    void openExerciseLibrary(phase);
+  }
+
+  function openReplacePicker(item: TrainingSessionExerciseRow) {
+    void openExerciseLibrary(item.phase, item.id);
   }
 
   function cancelRequestedExercise() {
@@ -647,11 +644,32 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     setMobileExerciseId(null);
   };
 
+  const openQuickReplace = (item: TrainingSessionExerciseRow) => {
+    if (!session?.id || seasonArchived) return;
+    const trainingViewParams = new URLSearchParams({
+      view: 'training',
+      exerciseItem: item.id,
+      ...(safeReturnTo ? { returnTo: safeReturnTo } : {}),
+    });
+    const libraryReturnTo = `/manager/training/einheiten/${session.id}?${trainingViewParams.toString()}`;
+    const libraryParams = new URLSearchParams({
+      session: session.id,
+      phase: item.phase,
+      replace: item.id,
+      quick: '1',
+      returnTo: libraryReturnTo,
+    });
+    navigate(`/manager/training/bibliothek?${libraryParams.toString()}`);
+  };
+
   useEffect(() => {
     if (viewFromQuery !== 'training' || openedTrainingViewRef.current || mobileItems.length === 0) return;
     openedTrainingViewRef.current = true;
-    setMobileExerciseId(mobileItems[0].id);
-  }, [mobileItems, viewFromQuery]);
+    const requestedItem = exerciseItemFromQuery
+      ? mobileItems.find((item) => item.id === exerciseItemFromQuery)
+      : null;
+    setMobileExerciseId(requestedItem?.id ?? mobileItems[0].id);
+  }, [exerciseItemFromQuery, mobileItems, viewFromQuery]);
 
   const trainingEvents = useMemo(
     () =>
@@ -716,7 +734,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               type="button"
               disabled={items.length === 0}
               onClick={() => setMobileExerciseId(mobileItems[0]?.id ?? null)}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50 md:hidden"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
             >
               Training ansehen
             </button>
@@ -991,7 +1009,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
         />
       ) : null}
 
-      <div className="hidden space-y-4 md:block">
+      <div className="space-y-4">
         {TRAINING_PHASES.map((phase) => {
           const list = byPhase[phase];
           const sub = list.reduce((s, it) => s + it.duration_minutes, 0);
@@ -1008,7 +1026,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                 <button
                   type="button"
                   disabled={seasonArchived}
-                  onClick={() => setPickerPhase(phase)}
+                  onClick={() => openPickerForPhase(phase)}
                   className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-800 hover:bg-slate-50"
                 >
                   Übung hinzufügen
@@ -1017,66 +1035,27 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               {list.length === 0 ? (
                 <p className="text-[13px] text-slate-400">Noch keine Übungen in dieser Phase.</p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {list.map((it, idx) => {
                     const ex = exerciseMap[it.exercise_id];
                     return (
-                      <li key={it.id} className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-slate-900">{ex?.title ?? 'Übung'}</p>
-                            <p className="text-[12px] text-slate-500">{ex?.focus ?? ''}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              disabled={idx === 0 || saving}
-                              onClick={() => void moveItem(it, -1)}
-                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[12px] disabled:opacity-40"
-                              aria-label="Nach oben"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              type="button"
-                              disabled={idx >= list.length - 1 || saving}
-                              onClick={() => void moveItem(it, 1)}
-                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[12px] disabled:opacity-40"
-                              aria-label="Nach unten"
-                            >
-                              ↓
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void removeItem(it)}
-                              className="rounded-lg px-2 py-1 text-[12px] text-red-700"
-                            >
-                              Entfernen
-                            </button>
-                          </div>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-3">
-                          <label className="text-[12px] text-slate-600">
-                            Dauer (Min.)
-                            <input
-                              type="number"
-                              min={1}
-                              max={300}
-                              value={it.duration_minutes}
-                              onChange={(e) => void changeDuration(it, Number(e.target.value))}
-                              className="ml-2 w-16 rounded-lg border border-slate-200 px-2 py-1"
-                            />
-                          </label>
-                        </div>
-                        <label className="mt-2 block text-[12px] text-slate-600">
-                          Trainerhinweise
-                          <textarea
-                            defaultValue={it.coach_notes ?? ''}
-                            onBlur={(e) => void changeNotes(it, e.target.value)}
-                            rows={2}
-                            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[13px]"
-                          />
-                        </label>
+                      <li key={it.id}>
+                        <TrainingSessionExerciseCard
+                          item={it}
+                          exercise={ex}
+                          sketchUrl={ex ? mobileSketchUrls[ex.id] : null}
+                          onView={() => setDetailItemId(it.id)}
+                          onReplace={() => openReplacePicker(it)}
+                          onRemove={() => void removeItem(it)}
+                          onDurationChange={(minutes) => void changeDuration(it, minutes)}
+                          onNotesChange={(text) => void changeNotes(it, text)}
+                          onMoveUp={() => void moveItem(it, -1)}
+                          onMoveDown={() => void moveItem(it, 1)}
+                          canMoveUp={idx > 0}
+                          canMoveDown={idx < list.length - 1}
+                          saving={saving}
+                          readOnly={seasonArchived}
+                        />
                       </li>
                     );
                   })}
@@ -1128,7 +1107,8 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
       </div>
 
       {mobileExerciseId && mobileIndex >= 0 ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white md:hidden">
+        <div className="fixed inset-0 z-50 flex flex-col bg-white sm:bg-slate-900/30 sm:p-4">
+          <div className="flex min-h-0 flex-1 flex-col bg-white sm:mx-auto sm:max-w-3xl sm:rounded-2xl sm:shadow-xl">
           {(() => {
             const it = mobileItems[mobileIndex];
             const ex = exerciseMap[it.exercise_id];
@@ -1151,7 +1131,17 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                     {TRAINING_PHASE_LABELS[it.phase]}
                   </p>
                   <h2 className="mt-1 text-xl font-semibold text-slate-900">{ex?.title}</h2>
-                  <p className="mt-1 text-[14px] text-slate-600">{it.duration_minutes} Minuten</p>
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[14px] text-slate-600">{it.duration_minutes} Minuten</p>
+                    <button
+                      type="button"
+                      disabled={saving || seasonArchived}
+                      onClick={() => openQuickReplace(it)}
+                      className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-red-200 bg-red-50 px-4 text-[13px] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      Übung austauschen
+                    </button>
+                  </div>
                   {ex?.image_path && mobileSketchUrls[ex.id] ? (
                     <figure className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
                       <img
@@ -1258,65 +1248,22 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               </>
             );
           })()}
-        </div>
-      ) : null}
-
-      {pickerPhase ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center">
-          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <h3 className="font-semibold text-slate-900">
-                Übung für {TRAINING_PHASE_LABELS[pickerPhase]}
-              </h3>
-              <button type="button" onClick={() => setPickerPhase(null)} className="text-[13px] text-slate-600">
-                Schließen
-              </button>
-            </div>
-            <div className="border-b border-slate-100 px-4 py-2">
-              <input
-                value={pickerQuery}
-                onChange={(e) => setPickerQuery(e.target.value)}
-                placeholder="Suchen…"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px]"
-              />
-            </div>
-            <ul className="max-h-[50vh] overflow-y-auto p-2">
-              {library.length === 0 ? (
-                <li className="px-3 py-6 text-center text-[13px] text-slate-400">
-                  Keine passenden Übungen.{' '}
-                  <Link to="/manager/training/bibliothek" className="text-red-700">
-                    Bibliothek
-                  </Link>
-                </li>
-              ) : (
-                library.map((ex) => (
-                  <li key={ex.id}>
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => void addExercise(ex, pickerPhase)}
-                      className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-left hover:bg-slate-50"
-                    >
-                      <span>
-                        <span className="block font-semibold text-slate-900">{ex.title}</span>
-                        <span className="text-[12px] text-slate-500">
-                          {ex.focus} · {ex.duration_minutes} Min.
-                        </span>
-                        <span className="mt-0.5 block text-[11px] text-slate-400">
-                          {ex.suitable_phases.includes(pickerPhase)
-                            ? 'Für diese Phase empfohlen'
-                            : `Empfohlen: ${ex.suitable_phases.join(', ')}`}
-                        </span>
-                      </span>
-                      <span className="text-[12px] font-semibold text-red-700">Hinzufügen</span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
           </div>
         </div>
       ) : null}
+
+      {detailItemId ? (() => {
+        const detailItem = items.find((x) => x.id === detailItemId);
+        const detailExercise = detailItem ? exerciseMap[detailItem.exercise_id] : undefined;
+        if (!detailItem || !detailExercise) return null;
+        return (
+          <TrainingExerciseDetailModal
+            row={detailExercise}
+            phaseLabel={TRAINING_PHASE_LABELS[detailItem.phase]}
+            onClose={() => setDetailItemId(null)}
+          />
+        );
+      })() : null}
 
       {requestedExercise || requestedExerciseLoading ? (
         <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/40 p-4 sm:items-center">
