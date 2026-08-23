@@ -105,6 +105,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     ? (selectionPhaseValue as TrainingPhase)
     : null;
   const replaceItemId = searchParams.get('replace');
+  const quickReplace = searchParams.get('quick') === '1';
   const requestedReturnTo = searchParams.get('returnTo');
   const returnTo =
     requestedReturnTo?.startsWith('/manager/training/einheiten/')
@@ -405,7 +406,20 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setError(null);
 
     const result = replaceItemId
-      ? await updateSessionExercise(replaceItemId, { exerciseId: row.id })
+      ? await updateSessionExercise(
+          replaceItemId,
+          quickReplace
+            ? {
+                exerciseId: row.id,
+                coachNotes: null,
+                wasCompleted: null,
+                actualDurationMinutes: null,
+                reviewStatus: null,
+                reviewNotes: null,
+                repeatRecommended: false,
+              }
+            : { exerciseId: row.id },
+        )
       : await addExerciseToSession({
           sessionId: selectionSessionId,
           exerciseId: row.id,
@@ -487,7 +501,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
           <div>
             <p className="text-[14px] font-semibold text-red-900">
-              {replaceItemId ? 'Übung austauschen' : 'Übung auswählen'} · {TRAINING_PHASE_LABELS[selectionPhase]}
+              {quickReplace ? 'Schnelltausch' : replaceItemId ? 'Übung austauschen' : 'Übung auswählen'} · {TRAINING_PHASE_LABELS[selectionPhase]}
             </p>
             <p className="mt-0.5 text-[12px] text-red-800">
               Passende Übungen sind vorgefiltert. Öffne „Ansehen“ für Details oder übernimm die Übung direkt.
