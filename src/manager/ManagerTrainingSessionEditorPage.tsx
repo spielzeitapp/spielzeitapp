@@ -47,6 +47,8 @@ import { listTrainingTemplates, updateExerciseReview } from '../lib/trainingSess
 import { TRAINING_EXERCISE_REVIEW_LABELS, type TrainingExerciseReviewStatus } from '../lib/trainingPhases';
 import { downloadTrainingSessionWord } from '../lib/trainingSessionWordExport';
 import { createTrainingSessionHandoutHtml } from '../lib/trainingSessionHandout';
+import { TrainingExerciseDetailModal } from '../components/training/TrainingExerciseDetailModal';
+import { TrainingSessionExerciseCard } from '../components/training/TrainingSessionExerciseCard';
 
 function formatWhen(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -104,6 +106,8 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [eventId, setEventId] = useState<string | null>(eventFromQuery);
 
   const [pickerPhase, setPickerPhase] = useState<TrainingPhase | null>(null);
+  const [replaceItemId, setReplaceItemId] = useState<string | null>(null);
+  const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [pickerQuery, setPickerQuery] = useState('');
   const [library, setLibrary] = useState<TrainingExerciseRow[]>([]);
   const [requestedExercise, setRequestedExercise] = useState<TrainingExerciseRow | null>(null);
@@ -497,10 +501,44 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
       setExerciseMap((m) => ({ ...m, [ex.id]: ex }));
       if (res.data) setItems((current) => [...current, res.data!]);
       setPickerPhase(null);
+      setReplaceItemId(null);
       setRequestedExercise(null);
       setSuccess('Übung hinzugefügt.');
     }
     setSaving(false);
+  }
+
+  async function replaceExercise(itemId: string, ex: TrainingExerciseRow) {
+    setSaving(true);
+    setError(null);
+    const res = await updateSessionExercise(itemId, { exerciseId: ex.id });
+    if (res.error) setError(res.error);
+    else {
+      setExerciseMap((m) => ({ ...m, [ex.id]: ex }));
+      await reload();
+      setPickerPhase(null);
+      setReplaceItemId(null);
+      setSuccess('Übung ausgetauscht.');
+    }
+    setSaving(false);
+  }
+
+  function openPickerForPhase(phase: TrainingPhase) {
+    setReplaceItemId(null);
+    setPickerPhase(phase);
+    setPickerQuery('');
+  }
+
+  function openReplacePicker(item: TrainingSessionExerciseRow) {
+    setReplaceItemId(item.id);
+    setPickerPhase(item.phase);
+    setPickerQuery('');
+  }
+
+  function closeExercisePicker() {
+    setPickerPhase(null);
+    setReplaceItemId(null);
+    setPickerQuery('');
   }
 
   function cancelRequestedExercise() {
@@ -716,7 +754,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               type="button"
               disabled={items.length === 0}
               onClick={() => setMobileExerciseId(mobileItems[0]?.id ?? null)}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50 md:hidden"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
             >
               Training ansehen
             </button>
@@ -991,7 +1029,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
         />
       ) : null}
 
-      <div className="hidden space-y-4 md:block">
+      <div className="space-y-4">
         {TRAINING_PHASES.map((phase) => {
           const list = byPhase[phase];
           const sub = list.reduce((s, it) => s + it.duration_minutes, 0);
@@ -1008,7 +1046,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                 <button
                   type="button"
                   disabled={seasonArchived}
-                  onClick={() => setPickerPhase(phase)}
+                  onClick={() => openPickerForPhase(phase)}
                   className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-800 hover:bg-slate-50"
                 >
                   Übung hinzufügen
@@ -1017,66 +1055,27 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               {list.length === 0 ? (
                 <p className="text-[13px] text-slate-400">Noch keine Übungen in dieser Phase.</p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {list.map((it, idx) => {
                     const ex = exerciseMap[it.exercise_id];
                     return (
-                      <li key={it.id} className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-slate-900">{ex?.title ?? 'Übung'}</p>
-                            <p className="text-[12px] text-slate-500">{ex?.focus ?? ''}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              disabled={idx === 0 || saving}
-                              onClick={() => void moveItem(it, -1)}
-                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[12px] disabled:opacity-40"
-                              aria-label="Nach oben"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              type="button"
-                              disabled={idx >= list.length - 1 || saving}
-                              onClick={() => void moveItem(it, 1)}
-                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[12px] disabled:opacity-40"
-                              aria-label="Nach unten"
-                            >
-                              ↓
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void removeItem(it)}
-                              className="rounded-lg px-2 py-1 text-[12px] text-red-700"
-                            >
-                              Entfernen
-                            </button>
-                          </div>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-3">
-                          <label className="text-[12px] text-slate-600">
-                            Dauer (Min.)
-                            <input
-                              type="number"
-                              min={1}
-                              max={300}
-                              value={it.duration_minutes}
-                              onChange={(e) => void changeDuration(it, Number(e.target.value))}
-                              className="ml-2 w-16 rounded-lg border border-slate-200 px-2 py-1"
-                            />
-                          </label>
-                        </div>
-                        <label className="mt-2 block text-[12px] text-slate-600">
-                          Trainerhinweise
-                          <textarea
-                            defaultValue={it.coach_notes ?? ''}
-                            onBlur={(e) => void changeNotes(it, e.target.value)}
-                            rows={2}
-                            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[13px]"
-                          />
-                        </label>
+                      <li key={it.id}>
+                        <TrainingSessionExerciseCard
+                          item={it}
+                          exercise={ex}
+                          sketchUrl={ex ? mobileSketchUrls[ex.id] : null}
+                          onView={() => setDetailItemId(it.id)}
+                          onReplace={() => openReplacePicker(it)}
+                          onRemove={() => void removeItem(it)}
+                          onDurationChange={(minutes) => void changeDuration(it, minutes)}
+                          onNotesChange={(text) => void changeNotes(it, text)}
+                          onMoveUp={() => void moveItem(it, -1)}
+                          onMoveDown={() => void moveItem(it, 1)}
+                          canMoveUp={idx > 0}
+                          canMoveDown={idx < list.length - 1}
+                          saving={saving}
+                          readOnly={seasonArchived}
+                        />
                       </li>
                     );
                   })}
@@ -1128,7 +1127,8 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
       </div>
 
       {mobileExerciseId && mobileIndex >= 0 ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white md:hidden">
+        <div className="fixed inset-0 z-50 flex flex-col bg-white sm:bg-slate-900/30 sm:p-4">
+          <div className="flex min-h-0 flex-1 flex-col bg-white sm:mx-auto sm:max-w-3xl sm:rounded-2xl sm:shadow-xl">
           {(() => {
             const it = mobileItems[mobileIndex];
             const ex = exerciseMap[it.exercise_id];
@@ -1258,17 +1258,33 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
               </>
             );
           })()}
+          </div>
         </div>
       ) : null}
+
+      {detailItemId ? (() => {
+        const detailItem = items.find((x) => x.id === detailItemId);
+        const detailExercise = detailItem ? exerciseMap[detailItem.exercise_id] : undefined;
+        if (!detailItem || !detailExercise) return null;
+        return (
+          <TrainingExerciseDetailModal
+            row={detailExercise}
+            phaseLabel={TRAINING_PHASE_LABELS[detailItem.phase]}
+            onClose={() => setDetailItemId(null)}
+          />
+        );
+      })() : null}
 
       {pickerPhase ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center">
           <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
               <h3 className="font-semibold text-slate-900">
-                Übung für {TRAINING_PHASE_LABELS[pickerPhase]}
+                {replaceItemId
+                  ? 'Übung austauschen'
+                  : `Übung für ${TRAINING_PHASE_LABELS[pickerPhase]}`}
               </h3>
-              <button type="button" onClick={() => setPickerPhase(null)} className="text-[13px] text-slate-600">
+              <button type="button" onClick={closeExercisePicker} className="text-[13px] text-slate-600">
                 Schließen
               </button>
             </div>
@@ -1294,7 +1310,11 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                     <button
                       type="button"
                       disabled={saving}
-                      onClick={() => void addExercise(ex, pickerPhase)}
+                      onClick={() =>
+                        void (replaceItemId
+                          ? replaceExercise(replaceItemId, ex)
+                          : addExercise(ex, pickerPhase))
+                      }
                       className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-left hover:bg-slate-50"
                     >
                       <span>
@@ -1308,7 +1328,9 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                             : `Empfohlen: ${ex.suitable_phases.join(', ')}`}
                         </span>
                       </span>
-                      <span className="text-[12px] font-semibold text-red-700">Hinzufügen</span>
+                      <span className="text-[12px] font-semibold text-red-700">
+                        {replaceItemId ? 'Austauschen' : 'Hinzufügen'}
+                      </span>
                     </button>
                   </li>
                 ))

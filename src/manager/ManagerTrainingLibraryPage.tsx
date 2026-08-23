@@ -31,6 +31,9 @@ import {
   type ExerciseFocus,
   type TrainingPhase,
 } from '../lib/trainingPhases';
+import { TrainingExerciseDetailModal } from '../components/training/TrainingExerciseDetailModal';
+import { TrainingExerciseImage } from '../components/training/TrainingExerciseImage';
+import { TrainingExerciseMetaChip } from '../components/training/TrainingExerciseMetaChip';
 
 type FormState = {
   title: string;
@@ -529,11 +532,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   <TrainingExerciseImage path={row.image_path} title={row.title} large={false} />
                   <h2 className="mt-3 text-[15px] font-semibold leading-snug text-slate-900">{row.title}</h2>
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    <MetaChip>{EXERCISE_FOCUS_LABELS[row.focus] ?? row.focus}</MetaChip>
+                    <TrainingExerciseMetaChip>{EXERCISE_FOCUS_LABELS[row.focus] ?? row.focus}</TrainingExerciseMetaChip>
                     {row.suitable_phases.map((p) => (
-                      <MetaChip key={p}>{TRAINING_PHASE_LABELS[p] ?? p}</MetaChip>
+                      <TrainingExerciseMetaChip key={p}>{TRAINING_PHASE_LABELS[p] ?? p}</TrainingExerciseMetaChip>
                     ))}
-                    {row.visibility === 'private' ? <MetaChip tone="private">Privat</MetaChip> : null}
+                    {row.visibility === 'private' ? (
+                      <TrainingExerciseMetaChip tone="private">Privat</TrainingExerciseMetaChip>
+                    ) : null}
                   </div>
                   <p className="mt-2 text-[12px] text-slate-500">
                     {row.duration_minutes} Min.
@@ -570,11 +575,33 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       )}
 
       {detail ? (
-        <DetailModal
+        <TrainingExerciseDetailModal
           row={detail}
           onClose={() => setDetail(null)}
-          onEdit={() => openEdit(detail)}
-          onArchive={() => void archive(detail)}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => openEdit(detail)}
+                className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Bearbeiten
+              </button>
+              <button
+                type="button"
+                onClick={() => void archive(detail)}
+                className="min-h-[40px] rounded-full px-4 py-2 text-[13px] font-semibold text-slate-500 hover:bg-slate-50"
+              >
+                Archivieren
+              </button>
+              <Link
+                to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(detail.id)}`}
+                className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 py-2 text-[13px] font-semibold text-white hover:bg-red-800"
+              >
+                Zur Einheit
+              </Link>
+            </>
+          }
         />
       ) : null}
 
@@ -839,181 +866,6 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
           {toast}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function DetailModal({
-  row,
-  onClose,
-  onEdit,
-  onArchive,
-}: {
-  row: TrainingExerciseRow;
-  onClose: () => void;
-  onEdit: () => void;
-  onArchive: () => void;
-}): React.ReactElement {
-  const players = formatPlayerCountRange(row.player_count_min, row.player_count_max);
-  return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 sm:items-center">
-      <div
-        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-5"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="exercise-detail-title"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Übung</p>
-            <h2 id="exercise-detail-title" className="text-[18px] font-semibold text-slate-900">
-              {row.title}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Schließen"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="mt-3">
-          <TrainingExerciseImage path={row.image_path} title={row.title} large />
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <MetaChip>{EXERCISE_FOCUS_LABELS[row.focus] ?? row.focus}</MetaChip>
-          {row.suitable_phases.map((p) => (
-            <MetaChip key={p}>{TRAINING_PHASE_LABELS[p] ?? p}</MetaChip>
-          ))}
-          <MetaChip>{row.duration_minutes} Min.</MetaChip>
-          {players ? <MetaChip>{players}</MetaChip> : null}
-          {row.age_group ? <MetaChip>{row.age_group}</MetaChip> : null}
-          {row.visibility === 'private' ? <MetaChip tone="private">Privat</MetaChip> : <MetaChip>Verein</MetaChip>}
-        </div>
-
-        <div className="mt-4 space-y-3">
-          <DetailBlock label="Kurzbeschreibung" value={row.description} />
-          <DetailBlock label="Organisation / Aufbau" value={row.organization} />
-          <DetailBlock label="Material" value={row.materials} />
-          <DetailBlock label="Coachingpunkte" value={row.coaching_points} />
-          <DetailBlock label="Variationen" value={row.variations} />
-          {row.source_reference ? <DetailBlock label="Quelle" value={row.source_reference} /> : null}
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            Bearbeiten
-          </button>
-          <button
-            type="button"
-            onClick={onArchive}
-            className="min-h-[40px] rounded-full px-4 py-2 text-[13px] font-semibold text-slate-500 hover:bg-slate-50"
-          >
-            Archivieren
-          </button>
-          <Link
-            to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(row.id)}`}
-            className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 py-2 text-[13px] font-semibold text-white hover:bg-red-800"
-          >
-            Zur Einheit
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DetailBlock({ label, value }: { label: string; value: string | null | undefined }): React.ReactElement | null {
-  const text = String(value ?? '').trim();
-  if (!text) return null;
-  return (
-    <section>
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">{label}</h3>
-      <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-slate-700">{text}</p>
-    </section>
-  );
-}
-
-function MetaChip({
-  children,
-  tone = 'default',
-}: {
-  children: React.ReactNode;
-  tone?: 'default' | 'private';
-}): React.ReactElement {
-  return (
-    <span
-      className={[
-        'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold',
-        tone === 'private' ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-600',
-      ].join(' ')}
-    >
-      {children}
-    </span>
-  );
-}
-
-function TrainingExerciseImage({
-  path,
-  title,
-  large = false,
-}: {
-  path: string | null;
-  title: string;
-  large?: boolean;
-}): React.ReactElement {
-  const [url, setUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(Boolean(path));
-
-  useEffect(() => {
-    let active = true;
-    setUrl(null);
-    setLoading(Boolean(path));
-    if (path) {
-      void getTrainingExerciseSketchUrl(path).then((nextUrl) => {
-        if (!active) return;
-        setUrl(nextUrl);
-        setLoading(false);
-      });
-    }
-    return () => {
-      active = false;
-    };
-  }, [path]);
-
-  const boxClass = large
-    ? 'flex min-h-[220px] w-full items-center justify-center rounded-xl border border-slate-100 bg-slate-50 sm:min-h-[280px]'
-    : 'flex h-36 w-full items-center justify-center rounded-xl border border-slate-100 bg-slate-50 sm:h-40';
-
-  if (loading) {
-    return <div className={`${boxClass} text-[12px] text-slate-400`}>Skizze wird geladen…</div>;
-  }
-
-  if (url) {
-    return (
-      <img
-        src={url}
-        alt={`Skizze: ${title}`}
-        className={
-          large
-            ? 'max-h-[320px] w-full rounded-xl border border-slate-100 bg-white object-contain'
-            : 'h-36 w-full rounded-xl border border-slate-100 bg-white object-contain sm:h-40'
-        }
-      />
-    );
-  }
-
-  return (
-    <div className={`${boxClass} bg-gradient-to-br from-slate-100 to-slate-200 text-[12px] font-semibold uppercase tracking-wide text-slate-400`}>
-      Keine Skizze
     </div>
   );
 }
