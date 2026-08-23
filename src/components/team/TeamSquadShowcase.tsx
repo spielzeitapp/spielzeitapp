@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { premiumPlayerDisplayName } from "../../lib/premiumPlayerCard";
@@ -9,23 +9,79 @@ type Props = {
   onPlayerClick: (player: PlayerItem) => void;
 };
 
-function playerImage(player: PlayerItem): string {
-  return (player.cutout_url ?? player.avatar_url ?? "").trim() || "/avatars/player-placeholder.png";
+const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
+
+function isDanielBaumann(player: PlayerItem): boolean {
+  return /daniel\s+baumann/i.test(
+    `${player.first_name ?? ""} ${player.last_name ?? ""} ${player.display_name ?? ""}`,
+  );
+}
+
+function playerMedia(player: PlayerItem): { src: string; isCutout: boolean } {
+  const cutout = (player.cutout_url ?? "").trim();
+  if (cutout) return { src: cutout, isCutout: true };
+  const avatar = (player.avatar_url ?? "").trim();
+  if (avatar) return { src: avatar, isCutout: false };
+  // Bereits vorhandenes Testmotiv; wird nur verwendet, wenn Daniel noch kein Profilbild hat.
+  if (isDanielBaumann(player)) return { src: "/avatars/Dani Trans.png", isCutout: false };
+  return { src: PLAYER_PLACEHOLDER, isCutout: false };
 }
 
 export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPlayerClick }) => {
+  const sliderRef = useRef<HTMLDivElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveIndex(0);
+    sliderRef.current?.scrollTo({ left: 0 });
+  }, [players]);
+
+  const updateActiveCard = () => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+    const cards = Array.from(slider.querySelectorAll<HTMLElement>("[data-showcase-card]"));
+    if (cards.length === 0) return;
+    const sliderCenter = slider.scrollLeft + slider.clientWidth / 2;
+    let closestIndex = 0;
+    let closestDistance = Number.POSITIVE_INFINITY;
+    cards.forEach((card, index) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const distance = Math.abs(cardCenter - sliderCenter);
+      if (distance < closestDistance) {
+        closestIndex = index;
+        closestDistance = distance;
+      }
+    });
+    setActiveIndex(closestIndex);
+  };
+
+  const scrollToCard = (index: number) => {
+    const slider = sliderRef.current;
+    const card = slider?.querySelectorAll<HTMLElement>("[data-showcase-card]")[index];
+    if (!slider || !card) return;
+    slider.scrollTo({ left: Math.max(0, card.offsetLeft - 12), behavior: "smooth" });
+    setActiveIndex(index);
+  };
+
   return (
     <div className="mt-3">
-      <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-5 sm:px-5">
+      <div
+        ref={sliderRef}
+        onScroll={updateActiveCard}
+        className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-5 sm:px-5"
+        aria-label="Spieler-Karussell"
+      >
         {players.map((player) => {
           const ownPlayer = ownPlayerIds.has(player.id);
           const number = player.jersey_number;
+          const media = playerMedia(player);
           return (
             <button
               key={`showcase-${player.id}`}
+              data-showcase-card
               type="button"
               onClick={() => onPlayerClick(player)}
-              className="group relative aspect-[4/5] w-[66vw] max-w-[250px] shrink-0 snap-center overflow-hidden rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171719_0%,#080809_52%,#20090b_100%)] text-left shadow-[0_14px_38px_rgba(0,0,0,0.42)] transition active:scale-[0.985] sm:w-[230px]"
+              className="group relative aspect-[4/5] w-[74vw] max-w-[278px] shrink-0 snap-start overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(145deg,#171719_0%,#080809_52%,#20090b_100%)] text-left shadow-[0_14px_38px_rgba(0,0,0,0.42)] transition active:scale-[0.985] sm:w-[250px]"
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(220,38,38,0.25),transparent_46%)]" aria-hidden />
               <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(239,68,68,0.15)_15px,transparent_16px)]" aria-hidden />
@@ -40,16 +96,22 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
                 </span>
               ) : null}
               <img
-                src={playerImage(player)}
+                src={media.src}
                 alt=""
-                className="absolute inset-x-0 bottom-0 h-[92%] w-full object-contain object-bottom transition duration-300 group-hover:scale-[1.02]"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = PLAYER_PLACEHOLDER;
+                }}
+                className={`absolute inset-x-0 bottom-0 h-[93%] w-full object-bottom transition duration-300 group-hover:scale-[1.02] ${
+                  media.isCutout ? "object-contain" : "object-cover"
+                }`}
               />
               <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
               <div className="absolute inset-x-0 bottom-0 z-10 p-4">
-                <p className="truncate text-[22px] font-black uppercase leading-none tracking-tight text-white">
+                <p className="truncate text-[26px] font-black uppercase leading-none tracking-tight text-white">
                   {premiumPlayerDisplayName(player)}
                 </p>
-                <p className="mt-1.5 text-[12px] font-bold uppercase tracking-[0.16em] text-white/55">
+                <p className="mt-2 text-[13px] font-black uppercase tracking-[0.16em] text-red-400">
                   {number != null ? `Nr. ${number}` : "Spieler"}
                 </p>
               </div>
@@ -58,9 +120,27 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
         })}
       </div>
 
-      <ul className="mt-1 space-y-2">
+      {players.length > 1 ? (
+        <div className="mb-4 mt-0 flex justify-center gap-1.5" aria-label="Spieler auswählen">
+          {players.map((player, index) => (
+            <button
+              key={`showcase-dot-${player.id}`}
+              type="button"
+              onClick={() => scrollToCard(index)}
+              className={`h-2 rounded-full transition-all ${
+                activeIndex === index ? "w-5 bg-red-500" : "w-2 bg-white/25 hover:bg-white/45"
+              }`}
+              aria-label={`${premiumPlayerDisplayName(player)} anzeigen`}
+              aria-current={activeIndex === index ? "true" : undefined}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <ul className="space-y-2">
         {players.map((player) => {
           const number = player.jersey_number;
+          const media = playerMedia(player);
           return (
             <li key={`row-${player.id}`}>
               <button
@@ -69,7 +149,15 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
                 className="flex min-h-[76px] w-full items-center overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(100deg,rgba(28,28,31,0.96),rgba(10,10,12,0.98))] px-3 text-left shadow-[0_8px_24px_rgba(0,0,0,0.22)] transition hover:border-red-500/30 hover:bg-white/[0.06] active:scale-[0.99]"
               >
                 <div className="relative -mb-3 mr-3 h-[76px] w-[66px] shrink-0 self-end overflow-hidden">
-                  <img src={playerImage(player)} alt="" className="h-full w-full object-contain object-bottom" />
+                  <img
+                    src={media.src}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = PLAYER_PLACEHOLDER;
+                    }}
+                    className={`h-full w-full object-bottom ${media.isCutout ? "object-contain" : "object-cover"}`}
+                  />
                 </div>
                 <span className="w-14 shrink-0 border-l border-white/10 pl-3 text-[28px] font-black leading-none text-white">
                   {number ?? "–"}
