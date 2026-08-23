@@ -77,6 +77,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const startsFromQuery = searchParams.get('starts');
   const exerciseFromQuery = searchParams.get('exercise');
   const viewFromQuery = searchParams.get('view');
+  const exerciseItemFromQuery = searchParams.get('exerciseItem');
   const returnToFromQuery = searchParams.get('returnTo');
   const navigate = useNavigate();
 
@@ -643,11 +644,32 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     setMobileExerciseId(null);
   };
 
+  const openQuickReplace = (item: TrainingSessionExerciseRow) => {
+    if (!session?.id || seasonArchived) return;
+    const trainingViewParams = new URLSearchParams({
+      view: 'training',
+      exerciseItem: item.id,
+      ...(safeReturnTo ? { returnTo: safeReturnTo } : {}),
+    });
+    const libraryReturnTo = `/manager/training/einheiten/${session.id}?${trainingViewParams.toString()}`;
+    const libraryParams = new URLSearchParams({
+      session: session.id,
+      phase: item.phase,
+      replace: item.id,
+      quick: '1',
+      returnTo: libraryReturnTo,
+    });
+    navigate(`/manager/training/bibliothek?${libraryParams.toString()}`);
+  };
+
   useEffect(() => {
     if (viewFromQuery !== 'training' || openedTrainingViewRef.current || mobileItems.length === 0) return;
     openedTrainingViewRef.current = true;
-    setMobileExerciseId(mobileItems[0].id);
-  }, [mobileItems, viewFromQuery]);
+    const requestedItem = exerciseItemFromQuery
+      ? mobileItems.find((item) => item.id === exerciseItemFromQuery)
+      : null;
+    setMobileExerciseId(requestedItem?.id ?? mobileItems[0].id);
+  }, [exerciseItemFromQuery, mobileItems, viewFromQuery]);
 
   const trainingEvents = useMemo(
     () =>
@@ -1109,7 +1131,17 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                     {TRAINING_PHASE_LABELS[it.phase]}
                   </p>
                   <h2 className="mt-1 text-xl font-semibold text-slate-900">{ex?.title}</h2>
-                  <p className="mt-1 text-[14px] text-slate-600">{it.duration_minutes} Minuten</p>
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[14px] text-slate-600">{it.duration_minutes} Minuten</p>
+                    <button
+                      type="button"
+                      disabled={saving || seasonArchived}
+                      onClick={() => openQuickReplace(it)}
+                      className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-red-200 bg-red-50 px-4 text-[13px] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      Übung austauschen
+                    </button>
+                  </div>
                   {ex?.image_path && mobileSketchUrls[ex.id] ? (
                     <figure className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
                       <img
