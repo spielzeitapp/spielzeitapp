@@ -548,6 +548,7 @@ export async function addExerciseToSession(input: {
 export async function updateSessionExercise(
   id: string,
   patch: {
+    exerciseId?: string;
     phase?: TrainingPhase;
     sortOrder?: number;
     durationMinutes?: number;
@@ -560,6 +561,7 @@ export async function updateSessionExercise(
   },
 ): Promise<{ data: TrainingSessionExerciseRow | null; error: string | null }> {
   const payload: Record<string, unknown> = {};
+  if (patch.exerciseId !== undefined) payload.exercise_id = patch.exerciseId;
   if (patch.phase !== undefined) payload.phase = patch.phase;
   if (patch.sortOrder !== undefined) payload.sort_order = patch.sortOrder;
   if (patch.durationMinutes !== undefined) payload.duration_minutes = patch.durationMinutes;
