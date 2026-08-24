@@ -9,12 +9,15 @@ export type TrainingExamPdfSession = {
   exerciseMap: Record<string, TrainingExerciseRow>;
   eventDateIso?: string | null;
   sketchUrls?: Record<string, string | null>;
+  examFocus: string;
+  examTeamName: string;
+  examDateIso: string | null;
+  examNumber: number;
 };
 
 export type TrainingExamPdfInput = {
   sessions: TrainingExamPdfSession[];
   trainerName: string;
-  teamName: string;
   version?: number;
 };
 
@@ -60,12 +63,43 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
-function limitedLines(pdf: jsPDF, value: string, width: number, maxLines: number): string[] {
-  const lines = pdf.splitTextToSize(clean(value), width) as string[];
-  if (lines.length <= maxLines) return lines;
-  const clipped = lines.slice(0, maxLines);
-  clipped[maxLines - 1] = `${clipped[maxLines - 1].replace(/[.…\s]+$/, '')}…`;
-  return clipped;
+function drawFittedText(
+  pdf: jsPDF,
+  value: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  options: { maxFontSize: number; minFontSize: number; lineHeightFactor?: number },
+): void {
+  const lineHeightFactor = options.lineHeightFactor ?? 1.08;
+  const text = clean(value);
+  if (!text) return;
+  let fontSize = options.maxFontSize;
+  let lines: string[] = [];
+  while (fontSize >= options.minFontSize) {
+    pdf.setFontSize(fontSize);
+    lines = pdf.splitTextToSize(text, width) as string[];
+    const lineHeightMm = fontSize * 0.352778 * lineHeightFactor;
+    if (lines.length * lineHeightMm <= height) break;
+    fontSize = Math.round((fontSize - 0.2) * 10) / 10;
+  }
+  pdf.setFontSize(Math.max(fontSize, options.minFontSize));
+  const lineHeightMm = Math.max(fontSize, options.minFontSize) * 0.352778 * lineHeightFactor;
+  const maxLines = Math.max(1, Math.floor(height / lineHeightMm));
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines[maxLines - 1] = `${lines[maxLines - 1].replace(/[.…\\s]+$/, '')}…`;
+  }
+  pdf.text(lines, x, y, { lineHeightFactor, maxWidth: width });
+}
+
+function withoutVideoLines(value: unknown): string {
+  return clean(value)
+    .split('\n')
+    .filter((line) => !/^video\s*:/i.test(line.trim()) && !/https?:\\/\\/(?:www\\.)?(?:youtube\\.com|youtu\\.be)/i.test(line))
+    .join('\n')
+    .trim();
 }
 
 async function imageUrlToJpegData(url: string): Promise<{ data: string; width: number; height: number } | null> {
@@ -138,7 +172,7 @@ async function drawPhase(
     );
     if (clean(exercise.materials)) materialParts.push(clean(exercise.materials));
     coachingParts.push(
-      [clean(exercise.coaching_points), clean(exercise.variations) ? `Variation: ${clean(exercise.variations)}` : '']
+      [withoutVideoLines(exercise.coaching_points), withoutVideoLines(exercise.variations) ? `Variation: ${withoutVideoLines(exercise.variations)}` : '']
         .filter(Boolean)
         .join('\n'),
     );
@@ -146,19 +180,20 @@ async function drawPhase(
 
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(5.8);
-  pdf.text(limitedLines(pdf, contentParts.join('\n\n'), CONTENT_WIDTH, 14), CONTENT_X, top + 4.8, {
-    lineHeightFactor: 1.12,
-    maxWidth: CONTENT_WIDTH,
+  drawFittedText(pdf, contentParts.join('\n\n'), CONTENT_X, top + 4.2, CONTENT_WIDTH, PHASE_HEIGHT - 5.5, {
+    maxFontSize: 6.4,
+    minFontSize: 4.6,
+    lineHeightFactor: 1.08,
   });
-  pdf.setFontSize(5.5);
-  pdf.text(limitedLines(pdf, materialParts.join('\n'), MATERIAL_WIDTH, 15), MATERIAL_X, top + 4.2, {
-    lineHeightFactor: 1.12,
-    maxWidth: MATERIAL_WIDTH,
+  drawFittedText(pdf, materialParts.join('\n'), MATERIAL_X, top + 4, MATERIAL_WIDTH, PHASE_HEIGHT - 5.2, {
+    maxFontSize: 5.9,
+    minFontSize: 4.4,
+    lineHeightFactor: 1.06,
   });
-  pdf.text(limitedLines(pdf, coachingParts.join('\n\n'), COACHING_WIDTH, 16), COACHING_X, top + 4.2, {
-    lineHeightFactor: 1.1,
-    maxWidth: COACHING_WIDTH,
+  drawFittedText(pdf, coachingParts.join('\n\n'), COACHING_X, top + 4, COACHING_WIDTH, PHASE_HEIGHT - 5.2, {
+    maxFontSize: 5.9,
+    minFontSize: 4.4,
+    lineHeightFactor: 1.06,
   });
 
   const imageItems = items
@@ -194,14 +229,26 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
 
     pdf.setTextColor(15, 15, 15);
     pdf.setFont('helvetica', 'bold');
+    drawFittedText(pdf, entry.examFocus, 84.5, 38.1, 132, 4.2, {
+      maxFontSize: 9.2,
+      minFontSize: 7,
+      lineHeightFactor: 1,
+    });
     pdf.setFontSize(9.2);
-    pdf.text(clean(entry.session.objective) || clean(entry.session.title), 84.5, 38.1, { maxWidth: 132 });
-    pdf.text(String(index + 1), 252, 38.1);
+    pdf.text(String(entry.examNumber || index + 1), 252, 38.1);
     pdf.setFont('helvetica', 'normal');
+    drawFittedText(pdf, input.trainerName, 28, 43.6, 70, 4, {
+      maxFontSize: 8.5,
+      minFontSize: 6.5,
+      lineHeightFactor: 1,
+    });
+    drawFittedText(pdf, entry.examTeamName, 143, 43.6, 42, 4, {
+      maxFontSize: 8.5,
+      minFontSize: 6.2,
+      lineHeightFactor: 1,
+    });
     pdf.setFontSize(8.5);
-    pdf.text(clean(input.trainerName), 28, 43.6, { maxWidth: 70 });
-    pdf.text(clean(input.teamName), 143, 43.6, { maxWidth: 42 });
-    pdf.text(formatDate(entry.eventDateIso ?? entry.session.created_at), 216, 43.6, { maxWidth: 35 });
+    pdf.text(formatDate(entry.examDateIso ?? entry.eventDateIso ?? entry.session.created_at), 216, 43.6, { maxWidth: 35 });
 
     for (let phaseIndex = 0; phaseIndex < PHASES.length; phaseIndex += 1) {
       await drawPhase(pdf, entry, PHASES[phaseIndex], phaseIndex);
@@ -210,8 +257,10 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
   return pdf.output('blob');
 }
 
-export function trainingExamPdfFilename(version: number, draft = false): string {
-  const suffix = draft ? 'VORSCHAU' : `V${String(version).padStart(2, '0')}`;
+export function trainingExamPdfFilename(version: number, draft = false, pageCount = 10): string {
+  const suffix = draft
+    ? `TEST_${String(pageCount).padStart(2, '0')}-Einheiten`
+    : `V${String(version).padStart(2, '0')}`;
   return `OeFB-D-Dokumentation_${suffix}.pdf`;
 }
 
