@@ -89,7 +89,7 @@ function drawFittedText(
   const maxLines = Math.max(1, Math.floor(height / lineHeightMm));
   if (lines.length > maxLines) {
     lines = lines.slice(0, maxLines);
-    lines[maxLines - 1] = `${lines[maxLines - 1].replace(/[.…\\s]+$/, '')}…`;
+    lines[maxLines - 1] = `${lines[maxLines - 1].replace(/[.…\s]+$/, '')}…`;
   }
   pdf.text(lines, x, y, { lineHeightFactor, maxWidth: width });
 }
@@ -97,7 +97,7 @@ function drawFittedText(
 function withoutVideoLines(value: unknown): string {
   return clean(value)
     .split('\n')
-    .filter((line) => !/^video\s*:/i.test(line.trim()) && !/https?:\\/\\/(?:www\\.)?(?:youtube\\.com|youtu\\.be)/i.test(line))
+    .filter((line) => !/^video\s*:/i.test(line.trim()) && !/https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)/i.test(line))
     .join('\n')
     .trim();
 }
