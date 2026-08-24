@@ -63,6 +63,24 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
+function wrapTextLines(pdf: jsPDF, value: string, width: number): string[] {
+  return value.split('\n').flatMap((paragraph) => {
+    const normalized = paragraph.trim();
+    if (!normalized) return [''];
+    const wrapped = pdf.splitTextToSize(normalized, width) as string[];
+    return wrapped.length > 0 ? wrapped : [''];
+  });
+}
+
+function ellipsizeLine(pdf: jsPDF, value: string, width: number): string {
+  const suffix = '…';
+  let fitted = value.replace(/[.…\s]+$/, '');
+  while (fitted && pdf.getTextWidth(`${fitted}${suffix}`) > width) {
+    fitted = fitted.slice(0, -1).trimEnd();
+  }
+  return `${fitted}${suffix}`;
+}
+
 function drawFittedText(
   pdf: jsPDF,
   value: string,
@@ -72,26 +90,38 @@ function drawFittedText(
   height: number,
   options: { maxFontSize: number; minFontSize: number; lineHeightFactor?: number },
 ): void {
-  const lineHeightFactor = options.lineHeightFactor ?? 1.08;
+  const lineHeightFactor = options.lineHeightFactor ?? 1.14;
   const text = clean(value);
   if (!text) return;
+
   let fontSize = options.maxFontSize;
+  let lineHeightMm = 0;
+  let maxLines = 1;
   let lines: string[] = [];
-  while (fontSize >= options.minFontSize) {
+
+  while (true) {
     pdf.setFontSize(fontSize);
-    lines = pdf.splitTextToSize(text, width) as string[];
-    const lineHeightMm = fontSize * 0.352778 * lineHeightFactor;
-    if (lines.length * lineHeightMm <= height) break;
-    fontSize = Math.round((fontSize - 0.2) * 10) / 10;
+    lineHeightMm = fontSize * 0.352778 * lineHeightFactor;
+    maxLines = Math.max(1, Math.floor(height / lineHeightMm));
+    lines = wrapTextLines(pdf, text, width);
+
+    if (lines.length <= maxLines || fontSize <= options.minFontSize) break;
+    fontSize = Math.max(options.minFontSize, Math.round((fontSize - 0.2) * 10) / 10);
   }
-  pdf.setFontSize(Math.max(fontSize, options.minFontSize));
-  const lineHeightMm = Math.max(fontSize, options.minFontSize) * 0.352778 * lineHeightFactor;
-  const maxLines = Math.max(1, Math.floor(height / lineHeightMm));
-  if (lines.length > maxLines) {
-    lines = lines.slice(0, maxLines);
-    lines[maxLines - 1] = `${lines[maxLines - 1].replace(/[.…\s]+$/, '')}…`;
+
+  pdf.setFontSize(fontSize);
+  const truncated = lines.length > maxLines;
+  const visibleLines = lines.slice(0, maxLines);
+  if (truncated && visibleLines.length > 0) {
+    visibleLines[visibleLines.length - 1] = ellipsizeLine(pdf, visibleLines[visibleLines.length - 1], width);
   }
-  pdf.text(lines, x, y, { lineHeightFactor, maxWidth: width });
+
+  visibleLines.forEach((line, index) => {
+    const baseline = y + index * lineHeightMm;
+    if (baseline <= y + height) {
+      pdf.text(line, x, baseline, { maxWidth: width });
+    }
+  });
 }
 
 function withoutVideoLines(value: unknown): string {
@@ -181,19 +211,19 @@ async function drawPhase(
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
   drawFittedText(pdf, contentParts.join('\n\n'), CONTENT_X, top + 4.2, CONTENT_WIDTH, PHASE_HEIGHT - 5.5, {
-    maxFontSize: 6.4,
-    minFontSize: 4.6,
-    lineHeightFactor: 1.08,
+    maxFontSize: 6.5,
+    minFontSize: 5.5,
+    lineHeightFactor: 1.15,
   });
   drawFittedText(pdf, materialParts.join('\n'), MATERIAL_X, top + 4, MATERIAL_WIDTH, PHASE_HEIGHT - 5.2, {
-    maxFontSize: 5.9,
-    minFontSize: 4.4,
-    lineHeightFactor: 1.06,
+    maxFontSize: 6.1,
+    minFontSize: 5.5,
+    lineHeightFactor: 1.12,
   });
   drawFittedText(pdf, coachingParts.join('\n\n'), COACHING_X, top + 4, COACHING_WIDTH, PHASE_HEIGHT - 5.2, {
-    maxFontSize: 5.9,
-    minFontSize: 4.4,
-    lineHeightFactor: 1.06,
+    maxFontSize: 6.1,
+    minFontSize: 5.5,
+    lineHeightFactor: 1.12,
   });
 
   const imageItems = items
