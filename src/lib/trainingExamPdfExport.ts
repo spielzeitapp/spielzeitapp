@@ -210,7 +210,7 @@ async function drawPhase(
 
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
-  drawFittedText(pdf, contentParts.join('\n\n'), CONTENT_X, top + 4.2, CONTENT_WIDTH, PHASE_HEIGHT - 5.5, {
+  drawFittedText(pdf, contentParts.join('\n\n'), CONTENT_X, top + 7.2, CONTENT_WIDTH, PHASE_HEIGHT - 8.5, {
     maxFontSize: 6.5,
     minFontSize: 5.5,
     lineHeightFactor: 1.15,
