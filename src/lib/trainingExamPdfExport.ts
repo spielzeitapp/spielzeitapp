@@ -19,16 +19,17 @@ export type TrainingExamPdfInput = {
 };
 
 const PHASES: TrainingPhase[] = ['AW', 'HT1', 'HT2', 'AK'];
-const PHASE_TOP = 56.5;
-const PHASE_HEIGHT = 36.7;
-const CONTENT_X = 16.5;
-const CONTENT_WIDTH = 66;
-const SKETCH_X = 87.4;
-const SKETCH_WIDTH = 96.5;
-const MATERIAL_X = 188.5;
-const MATERIAL_WIDTH = 37;
-const COACHING_X = 229.5;
-const COACHING_WIDTH = 51.5;
+// Exakte Nutzflächen der unveränderten NÖFV-ÖFB-D-Diplom-Seite (A4 quer).
+const PHASE_TOP = 49.8;
+const PHASE_HEIGHT = 32.8;
+const CONTENT_X = 14.8;
+const CONTENT_WIDTH = 58.2;
+const SKETCH_X = 76.8;
+const SKETCH_WIDTH = 86.2;
+const MATERIAL_X = 166.8;
+const MATERIAL_WIDTH = 32;
+const COACHING_X = 202.3;
+const COACHING_WIDTH = 60;
 
 let backgroundCache: string | null = null;
 
@@ -145,17 +146,17 @@ async function drawPhase(
 
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(6.4);
-  pdf.text(limitedLines(pdf, contentParts.join('\n\n'), CONTENT_WIDTH, 15), CONTENT_X, top + 5.5, {
+  pdf.setFontSize(5.8);
+  pdf.text(limitedLines(pdf, contentParts.join('\n\n'), CONTENT_WIDTH, 14), CONTENT_X, top + 4.8, {
     lineHeightFactor: 1.12,
     maxWidth: CONTENT_WIDTH,
   });
-  pdf.setFontSize(6.1);
-  pdf.text(limitedLines(pdf, materialParts.join('\n'), MATERIAL_WIDTH, 16), MATERIAL_X, top + 4.5, {
+  pdf.setFontSize(5.5);
+  pdf.text(limitedLines(pdf, materialParts.join('\n'), MATERIAL_WIDTH, 15), MATERIAL_X, top + 4.2, {
     lineHeightFactor: 1.12,
     maxWidth: MATERIAL_WIDTH,
   });
-  pdf.text(limitedLines(pdf, coachingParts.join('\n\n'), COACHING_WIDTH, 17), COACHING_X, top + 4.5, {
+  pdf.text(limitedLines(pdf, coachingParts.join('\n\n'), COACHING_WIDTH, 16), COACHING_X, top + 4.2, {
     lineHeightFactor: 1.1,
     maxWidth: COACHING_WIDTH,
   });
@@ -164,7 +165,7 @@ async function drawPhase(
     .map((item) => ({ item, url: entry.sketchUrls?.[item.exercise_id] ?? null }))
     .filter((candidate): candidate is { item: TrainingSessionExerciseRow; url: string } => Boolean(candidate.url));
   if (imageItems.length === 0) {
-    pdf.setFontSize(7);
+    pdf.setFontSize(6.5);
     pdf.setTextColor(130, 130, 130);
     pdf.text('Keine Skizze', SKETCH_X + SKETCH_WIDTH / 2, top + PHASE_HEIGHT / 2, { align: 'center' });
     return;
@@ -193,14 +194,14 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
 
     pdf.setTextColor(15, 15, 15);
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10.5);
-    pdf.text(clean(entry.session.objective) || clean(entry.session.title), 89, 42.3, { maxWidth: 145 });
-    pdf.text(String(index + 1), 263, 42.3);
+    pdf.setFontSize(9.2);
+    pdf.text(clean(entry.session.objective) || clean(entry.session.title), 84.5, 38.1, { maxWidth: 132 });
+    pdf.text(String(index + 1), 252, 38.1);
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9.5);
-    pdf.text(clean(input.trainerName), 31, 49.4, { maxWidth: 76 });
-    pdf.text(clean(input.teamName), 154, 49.4, { maxWidth: 50 });
-    pdf.text(formatDate(entry.eventDateIso ?? entry.session.created_at), 235, 49.4, { maxWidth: 37 });
+    pdf.setFontSize(8.5);
+    pdf.text(clean(input.trainerName), 28, 43.6, { maxWidth: 70 });
+    pdf.text(clean(input.teamName), 143, 43.6, { maxWidth: 42 });
+    pdf.text(formatDate(entry.eventDateIso ?? entry.session.created_at), 216, 43.6, { maxWidth: 35 });
 
     for (let phaseIndex = 0; phaseIndex < PHASES.length; phaseIndex += 1) {
       await drawPhase(pdf, entry, PHASES[phaseIndex], phaseIndex);
