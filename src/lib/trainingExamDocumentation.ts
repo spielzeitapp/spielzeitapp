@@ -12,6 +12,7 @@ export type TrainingExamDocumentationRow = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  trainer_name: string;
 };
 
 export type TrainingExamDocumentationItemRow = {
@@ -20,6 +21,9 @@ export type TrainingExamDocumentationItemRow = {
   training_session_id: string;
   sort_order: number;
   created_at: string;
+  focus_override: string | null;
+  team_name_override: string | null;
+  training_date_override: string | null;
 };
 
 export type TrainingExamDocumentationBundle = {
@@ -28,8 +32,8 @@ export type TrainingExamDocumentationBundle = {
 };
 
 const DOCUMENT_SELECT =
-  'id, club_id, team_season_id, title, required_units, deadline, export_version, last_exported_at, created_by, created_at, updated_at';
-const ITEM_SELECT = 'id, documentation_id, training_session_id, sort_order, created_at';
+  'id, club_id, team_season_id, title, required_units, deadline, export_version, last_exported_at, created_by, created_at, updated_at, trainer_name';
+const ITEM_SELECT = 'id, documentation_id, training_session_id, sort_order, created_at, focus_override, team_name_override, training_date_override';
 
 function mapDocument(raw: Record<string, unknown>): TrainingExamDocumentationRow {
   return {
@@ -44,6 +48,7 @@ function mapDocument(raw: Record<string, unknown>): TrainingExamDocumentationRow
     created_by: String(raw.created_by),
     created_at: String(raw.created_at),
     updated_at: String(raw.updated_at),
+    trainer_name: String(raw.trainer_name ?? ''),
   };
 }
 
@@ -54,6 +59,9 @@ function mapItem(raw: Record<string, unknown>): TrainingExamDocumentationItemRow
     training_session_id: String(raw.training_session_id),
     sort_order: Number(raw.sort_order) || 0,
     created_at: String(raw.created_at),
+    focus_override: (raw.focus_override as string | null) ?? null,
+    team_name_override: (raw.team_name_override as string | null) ?? null,
+    training_date_override: (raw.training_date_override as string | null) ?? null,
   };
 }
 
@@ -120,6 +128,39 @@ export async function addTrainingExamSession(
     .select(ITEM_SELECT)
     .single();
   if (result.error) return { data: null, error: result.error.message };
+  return { data: mapItem(result.data as Record<string, unknown>), error: null };
+}
+
+export async function updateTrainingExamTrainerName(
+  documentationId: string,
+  trainerName: string,
+): Promise<{ error: string | null }> {
+  const result = await supabase
+    .from('training_exam_documentations')
+    .update({ trainer_name: trainerName.trim(), updated_at: new Date().toISOString() })
+    .eq('id', documentationId);
+  return { error: result.error?.message ?? null };
+}
+
+export async function updateTrainingExamSessionMetadata(
+  itemId: string,
+  values: {
+    focusOverride: string | null;
+    teamNameOverride: string | null;
+    trainingDateOverride: string | null;
+  },
+): Promise<{ data: TrainingExamDocumentationItemRow | null; error: string | null }> {
+  const result = await supabase
+    .from('training_exam_documentation_items')
+    .update({
+      focus_override: values.focusOverride?.trim() || null,
+      team_name_override: values.teamNameOverride?.trim() || null,
+      training_date_override: values.trainingDateOverride || null,
+    })
+    .eq('id', itemId)
+    .select(ITEM_SELECT)
+    .single();
+  if (result.error || !result.data) return { data: null, error: result.error?.message ?? 'Prüfungsangaben konnten nicht gespeichert werden.' };
   return { data: mapItem(result.data as Record<string, unknown>), error: null };
 }
 

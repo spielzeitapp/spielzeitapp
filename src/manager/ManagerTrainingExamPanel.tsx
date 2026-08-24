@@ -9,6 +9,8 @@ import {
   markTrainingExamExported,
   removeTrainingExamSession,
   reorderTrainingExamSessions,
+  updateTrainingExamSessionMetadata,
+  updateTrainingExamTrainerName,
   type TrainingExamDocumentationBundle,
   type TrainingExamDocumentationItemRow,
 } from '../lib/trainingExamDocumentation';
@@ -42,6 +44,13 @@ function formatDate(value: string | null | undefined): string {
   }
 }
 
+function dateInputValue(value: string | null | undefined): string {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value).slice(0, 10);
+  return parsed.toISOString().slice(0, 10);
+}
+
 function inspectSession(items: TrainingSessionExerciseRow[]): SessionDetails {
   const exerciseMap: Record<string, TrainingExerciseRow> = {};
   for (const item of items) {
@@ -68,7 +77,6 @@ function inspectSession(items: TrainingSessionExerciseRow[]): SessionDetails {
 export function ManagerTrainingExamPanel({
   sessions,
   teamSeasonId,
-  seasonArchived,
 }: {
   sessions: TrainingSessionRow[];
   teamSeasonId: string | null | undefined;
@@ -86,6 +94,12 @@ export function ManagerTrainingExamPanel({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const metadata = (user?.user_metadata ?? {}) as Record<string, unknown>;
+  const defaultTrainerName =
+    String(metadata.full_name ?? metadata.name ?? '').trim() || user?.email?.split('@')[0] || '';
+  const defaultTeamName =
+    String(contextSeason?.display_name ?? contextSeason?.age_group ?? contextSeason?.team?.name ?? '').trim();
+
   const sessionById = useMemo(
     () => Object.fromEntries(sessions.map((session) => [session.id, session])),
     [sessions],
@@ -99,7 +113,6 @@ export function ManagerTrainingExamPanel({
     const selected = new Set(selectedItems.map((item) => item.training_session_id));
     return sessions
       .filter((session) => session.record_type !== 'template')
-      .filter((session) => session.status !== 'archived')
       .filter((session) => !selected.has(session.id))
       .sort((left, right) => String(right.updated_at ?? '').localeCompare(String(left.updated_at ?? '')));
   }, [selectedItems, sessions]);
@@ -243,6 +256,54 @@ export function ManagerTrainingExamPanel({
     setBundle({ ...bundle, items: reordered.data });
   }
 
+  function updateItemLocal(itemId: string, patch: Partial<TrainingExamDocumentationItemRow>) {
+    setBundle((current) =>
+      current
+        ? {
+            ...current,
+            items: current.items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+          }
+        : current,
+    );
+  }
+
+  async function saveItemMetadata(itemId: string) {
+    const current = bundle?.items.find((item) => item.id === itemId);
+    if (!current) return;
+    setSaving(true);
+    setError(null);
+    const result = await updateTrainingExamSessionMetadata(itemId, {
+      focusOverride: current.focus_override,
+      teamNameOverride: current.team_name_override,
+      trainingDateOverride: current.training_date_override,
+    });
+    setSaving(false);
+    if (result.error || !result.data) {
+      setError(result.error ?? 'Prüfungsangaben konnten nicht gespeichert werden.');
+      return;
+    }
+    updateItemLocal(itemId, result.data);
+    setSuccess('Prüfungsangaben gespeichert.');
+  }
+
+  async function saveTrainerName() {
+    if (!bundle) return;
+    const trainerName = bundle.documentation.trainer_name.trim() || defaultTrainerName;
+    setSaving(true);
+    setError(null);
+    const result = await updateTrainingExamTrainerName(bundle.documentation.id, trainerName);
+    setSaving(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setBundle({
+      ...bundle,
+      documentation: { ...bundle.documentation, trainer_name: trainerName },
+    });
+    setSuccess('Trainername gespeichert.');
+  }
+
   async function buildPdfEntries(): Promise<TrainingExamPdfSession[]> {
     const result: TrainingExamPdfSession[] = [];
     for (const item of selectedItems) {
@@ -261,6 +322,12 @@ export function ManagerTrainingExamPanel({
         exerciseMap: sessionDetails.exerciseMap,
         eventDateIso: session.event_id ? eventDates[session.event_id] ?? null : session.created_at,
         sketchUrls: Object.fromEntries(sketchEntries),
+        examFocus: item.focus_override?.trim() || session.objective?.trim() || session.title,
+        examTeamName: item.team_name_override?.trim() || defaultTeamName,
+        examDateIso:
+          item.training_date_override ??
+          (session.event_id ? eventDates[session.event_id] ?? null : session.created_at),
+        examNumber: item.sort_order + 1,
       });
     }
     return result;
@@ -268,10 +335,6 @@ export function ManagerTrainingExamPanel({
 
   async function exportPdf(mode: 'preview' | 'download') {
     if (!bundle || selectedItems.length === 0) return;
-    if (mode === 'download' && selectedItems.length !== bundle.documentation.required_units) {
-      setError(`Für die finale PDF müssen genau ${bundle.documentation.required_units} Einheiten ausgewählt sein.`);
-      return;
-    }
     const previewWindow = mode === 'preview' ? window.open('', '_blank') : null;
     if (mode === 'preview' && !previewWindow) {
       setError('PDF-Vorschau wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
@@ -282,16 +345,11 @@ export function ManagerTrainingExamPanel({
     setError(null);
     setSuccess(null);
     try {
-      const metadata = (user?.user_metadata ?? {}) as Record<string, unknown>;
-      const trainerName =
-        String(metadata.full_name ?? metadata.name ?? '').trim() || user?.email?.split('@')[0] || '';
-      const teamName =
-        String(contextSeason?.display_name ?? contextSeason?.age_group ?? contextSeason?.team?.name ?? '').trim();
+      const trainerName = bundle.documentation.trainer_name.trim() || defaultTrainerName;
       const entries = await buildPdfEntries();
       const blob = await createTrainingExamPdf({
         sessions: entries,
         trainerName,
-        teamName,
         version: bundle.documentation.export_version + 1,
       });
       if (mode === 'preview' && previewWindow) {
@@ -299,21 +357,30 @@ export function ManagerTrainingExamPanel({
         previewWindow.location.href = url;
         window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
       } else {
-        const marked = await markTrainingExamExported(
-          bundle.documentation.id,
-          bundle.documentation.export_version,
-        );
-        if (marked.error) throw new Error(marked.error);
-        downloadBlob(blob, trainingExamPdfFilename(marked.version));
-        setBundle({
-          ...bundle,
-          documentation: {
-            ...bundle.documentation,
-            export_version: marked.version,
-            last_exported_at: marked.exportedAt,
-          },
-        });
-        setSuccess(`PDF-Version ${marked.version} wurde erstellt.`);
+        const isFinal = selectedItems.length === bundle.documentation.required_units;
+        if (isFinal) {
+          const marked = await markTrainingExamExported(
+            bundle.documentation.id,
+            bundle.documentation.export_version,
+          );
+          if (marked.error) throw new Error(marked.error);
+          downloadBlob(blob, trainingExamPdfFilename(marked.version, false, selectedItems.length));
+          setBundle({
+            ...bundle,
+            documentation: {
+              ...bundle.documentation,
+              export_version: marked.version,
+              last_exported_at: marked.exportedAt,
+            },
+          });
+          setSuccess(`Finale PDF-Version ${marked.version} mit ${selectedItems.length} Einheiten wurde erstellt.`);
+        } else {
+          downloadBlob(
+            blob,
+            trainingExamPdfFilename(bundle.documentation.export_version + 1, true, selectedItems.length),
+          );
+          setSuccess(`Test-PDF mit ${selectedItems.length} ${selectedItems.length === 1 ? 'Einheit' : 'Einheiten'} wurde erstellt.`);
+        }
       }
     } catch (cause) {
       previewWindow?.close();
@@ -363,6 +430,28 @@ export function ManagerTrainingExamPanel({
         </div>
       </div>
 
+      {bundle ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <label className="block text-[12px] font-bold text-slate-700" htmlFor="exam-trainer-name">
+            Trainername für alle PDF-Seiten
+          </label>
+          <input
+            id="exam-trainer-name"
+            value={bundle.documentation.trainer_name || defaultTrainerName}
+            onChange={(event) =>
+              setBundle({
+                ...bundle,
+                documentation: { ...bundle.documentation, trainer_name: event.target.value },
+              })
+            }
+            onBlur={() => void saveTrainerName()}
+            placeholder="z. B. Johannes Baumann"
+            className="mt-2 min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3 text-[14px] text-slate-950 sm:max-w-md"
+          />
+          <p className="mt-2 text-[11px] text-slate-500">Änderungen werden beim Verlassen des Feldes gespeichert.</p>
+        </div>
+      ) : null}
+
       {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">{error}</div> : null}
       {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">{success}</div> : null}
       {changedSinceExport > 0 ? (
@@ -377,7 +466,7 @@ export function ManagerTrainingExamPanel({
             <select
               value={candidateId}
               onChange={(event) => setCandidateId(event.target.value)}
-              disabled={saving || seasonArchived || selectedItems.length >= required}
+              disabled={saving || selectedItems.length >= required}
               className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900"
             >
               <option value="">Trainingseinheit auswählen…</option>
@@ -390,7 +479,7 @@ export function ManagerTrainingExamPanel({
             <button
               type="button"
               onClick={() => void addCandidate()}
-              disabled={!candidateId || saving || seasonArchived || selectedItems.length >= required}
+              disabled={!candidateId || saving || selectedItems.length >= required}
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
@@ -448,8 +537,40 @@ export function ManagerTrainingExamPanel({
                   <Link to={`/manager/training/einheiten/${session.id}`} className="inline-flex min-h-[40px] items-center rounded-xl border border-slate-200 px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Bearbeiten</Link>
                   <button type="button" onClick={() => void moveItem(index, -1)} disabled={index === 0 || saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 disabled:opacity-30" aria-label="Nach oben"><ArrowUp className="h-4 w-4" aria-hidden /></button>
                   <button type="button" onClick={() => void moveItem(index, 1)} disabled={index === selectedItems.length - 1 || saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 disabled:opacity-30" aria-label="Nach unten"><ArrowDown className="h-4 w-4" aria-hidden /></button>
-                  <button type="button" onClick={() => void removeItem(item)} disabled={saving || seasonArchived} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-600 disabled:opacity-30" aria-label="Aus Dokumentation entfernen"><Trash2 className="h-4 w-4" aria-hidden /></button>
+                  <button type="button" onClick={() => void removeItem(item)} disabled={saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-600 disabled:opacity-30" aria-label="Aus Dokumentation entfernen"><Trash2 className="h-4 w-4" aria-hidden /></button>
                 </div>
+              </div>
+              <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 md:grid-cols-3">
+                <label className="text-[11px] font-bold text-slate-600">
+                  Schwerpunkt
+                  <input
+                    value={item.focus_override ?? session.objective ?? session.title}
+                    onChange={(event) => updateItemLocal(item.id, { focus_override: event.target.value })}
+                    onBlur={() => void saveItemMetadata(item.id)}
+                    className="mt-1 min-h-[42px] w-full rounded-xl border border-slate-200 px-3 text-[13px] font-normal text-slate-950"
+                    placeholder="z. B. Ballkontrolle und Passspiel"
+                  />
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">
+                  Mannschaft
+                  <input
+                    value={item.team_name_override ?? defaultTeamName}
+                    onChange={(event) => updateItemLocal(item.id, { team_name_override: event.target.value })}
+                    onBlur={() => void saveItemMetadata(item.id)}
+                    className="mt-1 min-h-[42px] w-full rounded-xl border border-slate-200 px-3 text-[13px] font-normal text-slate-950"
+                    placeholder="z. B. U11 SPG Rohrbach"
+                  />
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">
+                  Trainingsdatum
+                  <input
+                    type="date"
+                    value={item.training_date_override ?? dateInputValue(session.event_id ? eventDates[session.event_id] : session.created_at)}
+                    onChange={(event) => updateItemLocal(item.id, { training_date_override: event.target.value || null })}
+                    onBlur={() => void saveItemMetadata(item.id)}
+                    className="mt-1 min-h-[42px] w-full rounded-xl border border-slate-200 px-3 text-[13px] font-normal text-slate-950"
+                  />
+                </label>
               </div>
             </article>
           );
@@ -460,16 +581,20 @@ export function ManagerTrainingExamPanel({
         <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-[12px] text-slate-600">
             <CheckCircle2 className={`h-5 w-5 ${selectedItems.length === required ? 'text-emerald-600' : 'text-slate-400'}`} aria-hidden />
-            {selectedItems.length === required ? '10 Einheiten ausgewählt – finale PDF möglich.' : `${required - selectedItems.length} Einheiten fehlen noch.`}
+            {selectedItems.length === required
+              ? '10 Einheiten ausgewählt – finale Einreichungs-PDF möglich.'
+              : `Test-PDF mit ${selectedItems.length} ${selectedItems.length === 1 ? 'Einheit' : 'Einheiten'} möglich · ${required - selectedItems.length} fehlen bis zur Abgabe.`}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button type="button" onClick={() => void exportPdf('preview')} disabled={Boolean(exporting)} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50">
               {exporting === 'preview' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
               PDF-Vorschau
             </button>
-            <button type="button" onClick={() => void exportPdf('download')} disabled={Boolean(exporting) || selectedItems.length !== required} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" onClick={() => void exportPdf('download')} disabled={Boolean(exporting)} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
               {exporting === 'download' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileDown className="h-4 w-4" aria-hidden />}
-              Gesamtdokumentation herunterladen
+              {selectedItems.length === required
+                ? 'Gesamtdokumentation herunterladen'
+                : `Test-PDF herunterladen (${selectedItems.length} ${selectedItems.length === 1 ? 'Seite' : 'Seiten'})`}
             </button>
           </div>
         </div>
