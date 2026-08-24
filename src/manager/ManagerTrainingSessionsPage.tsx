@@ -16,9 +16,10 @@ import { listFieldZones, listVenueFields } from '../lib/venueFields';
 import { listVenuesForClub, resolveClubIdForTeamSeason } from '../lib/venues';
 import { VIENNA_TZ } from '../lib/viennaTime';
 import { ManagerTrainingPlanPickerDialog } from './ManagerTrainingPlanPickerDialog';
+import { ManagerTrainingExamPanel } from './ManagerTrainingExamPanel';
 
 type FieldLabelMap = Record<string, string>;
-type MainTab = 'dates' | 'plans';
+type MainTab = 'dates' | 'plans' | 'exam';
 type CalendarView = 'week' | 'month' | 'list';
 type PlanFilter = 'all' | 'open' | 'ready';
 
@@ -261,6 +262,7 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
       <nav className="flex gap-6 overflow-x-auto border-b border-slate-200" aria-label="Trainingsplanung Bereiche">
         <button type="button" onClick={() => setMainTab('dates')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'dates' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Trainingstermine</button>
         <button type="button" onClick={() => setMainTab('plans')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'plans' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Meine Pläne</button>
+        <button type="button" onClick={() => setMainTab('exam')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'exam' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Trainerprüfung</button>
         <Link to="/manager/training/vorlagen" className="inline-flex min-h-[44px] items-center whitespace-nowrap border-b-2 border-transparent px-1 text-[13px] font-semibold text-slate-500 hover:text-slate-900">Vorlagen</Link>
         <Link to="/manager/training/chronik" className="inline-flex min-h-[44px] items-center whitespace-nowrap border-b-2 border-transparent px-1 text-[13px] font-semibold text-slate-500 hover:text-slate-900">Chronik</Link>
       </nav>
@@ -298,6 +300,10 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
 
       {!loading && mainTab === 'plans' ? (
         <MyPlans drafts={drafts} readyPlans={readyPlans} archivedPlans={archivedPlans} />
+      ) : null}
+
+      {!loading && mainTab === 'exam' ? (
+        <ManagerTrainingExamPanel sessions={sessions} teamSeasonId={teamSeasonId} seasonArchived={seasonArchived} />
       ) : null}
 
       <ManagerTrainingPlanPickerDialog event={planningEvent} savedPlans={readyPlans} templates={templates} lastSession={lastSession} onClose={() => setPlanningEvent(null)} />

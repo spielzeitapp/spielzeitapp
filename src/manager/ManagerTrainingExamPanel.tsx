@@ -1,0 +1,479 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, CheckCircle2, Eye, FileDown, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useSession } from '../auth/useSession';
+import { supabase } from '../lib/supabaseClient';
+import {
+  addTrainingExamSession,
+  getOrCreateTrainingExamDocumentation,
+  markTrainingExamExported,
+  removeTrainingExamSession,
+  reorderTrainingExamSessions,
+  type TrainingExamDocumentationBundle,
+  type TrainingExamDocumentationItemRow,
+} from '../lib/trainingExamDocumentation';
+import {
+  createTrainingExamPdf,
+  downloadBlob,
+  trainingExamPdfFilename,
+  type TrainingExamPdfSession,
+} from '../lib/trainingExamPdfExport';
+import { getTrainingExerciseSketchUrl, type TrainingExerciseRow } from '../lib/trainingExercises';
+import { listSessionExercises, type TrainingSessionExerciseRow, type TrainingSessionRow } from '../lib/trainingSessions';
+import { TRAINING_PHASES, type TrainingPhase } from '../lib/trainingPhases';
+import { resolveClubIdForTeamSeason } from '../lib/venues';
+
+type SessionDetails = {
+  items: TrainingSessionExerciseRow[];
+  exerciseMap: Record<string, TrainingExerciseRow>;
+  missing: string[];
+};
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  try {
+    return new Intl.DateTimeFormat('de-AT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date(value));
+  } catch {
+    return '—';
+  }
+}
+
+function inspectSession(items: TrainingSessionExerciseRow[]): SessionDetails {
+  const exerciseMap: Record<string, TrainingExerciseRow> = {};
+  for (const item of items) {
+    if (item.exercise) exerciseMap[item.exercise_id] = item.exercise;
+  }
+  const missing: string[] = [];
+  for (const phase of TRAINING_PHASES) {
+    if (!items.some((item) => item.phase === phase)) missing.push(`${phase} fehlt`);
+  }
+  for (const item of items) {
+    const exercise = exerciseMap[item.exercise_id];
+    if (!exercise) {
+      missing.push('Übungsdaten fehlen');
+      continue;
+    }
+    if (!exercise.image_path) missing.push(`Skizze fehlt: ${exercise.title}`);
+    if (!String(exercise.organization ?? '').trim()) missing.push(`Aufbau fehlt: ${exercise.title}`);
+    if (!String(exercise.materials ?? '').trim()) missing.push(`Geräte fehlen: ${exercise.title}`);
+    if (!String(exercise.coaching_points ?? '').trim()) missing.push(`Coachingpunkte fehlen: ${exercise.title}`);
+  }
+  return { items, exerciseMap, missing: [...new Set(missing)] };
+}
+
+export function ManagerTrainingExamPanel({
+  sessions,
+  teamSeasonId,
+  seasonArchived,
+}: {
+  sessions: TrainingSessionRow[];
+  teamSeasonId: string | null | undefined;
+  seasonArchived: boolean;
+}): React.ReactElement {
+  const { user, selectedTeamSeason, viewTeamSeason } = useSession();
+  const contextSeason = viewTeamSeason ?? selectedTeamSeason;
+  const [bundle, setBundle] = useState<TrainingExamDocumentationBundle | null>(null);
+  const [details, setDetails] = useState<Record<string, SessionDetails>>({});
+  const [eventDates, setEventDates] = useState<Record<string, string>>({});
+  const [candidateId, setCandidateId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState<'preview' | 'download' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const sessionById = useMemo(
+    () => Object.fromEntries(sessions.map((session) => [session.id, session])),
+    [sessions],
+  );
+  const selectedItems = useMemo(() => bundle?.items ?? [], [bundle?.items]);
+  const selectedSessions = useMemo(
+    () => selectedItems.map((item) => sessionById[item.training_session_id]).filter(Boolean),
+    [selectedItems, sessionById],
+  );
+  const candidates = useMemo(() => {
+    const selected = new Set(selectedItems.map((item) => item.training_session_id));
+    return sessions
+      .filter((session) => session.record_type !== 'template')
+      .filter((session) => session.status !== 'archived')
+      .filter((session) => !selected.has(session.id))
+      .sort((left, right) => String(right.updated_at ?? '').localeCompare(String(left.updated_at ?? '')));
+  }, [selectedItems, sessions]);
+
+  const load = useCallback(async () => {
+    if (!teamSeasonId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const club = await resolveClubIdForTeamSeason(teamSeasonId);
+    if (!club.clubId) {
+      setError(club.error ?? 'Verein konnte nicht ermittelt werden.');
+      setLoading(false);
+      return;
+    }
+    const result = await getOrCreateTrainingExamDocumentation({
+      clubId: club.clubId,
+      teamSeasonId,
+      deadline: '2026-09-07',
+    });
+    if (result.error || !result.data) {
+      setError(
+        result.error?.includes('training_exam_')
+          ? 'Die Trainerprüfungs-Migration ist auf dieser Umgebung noch nicht angewendet.'
+          : result.error ?? 'Dokumentation konnte nicht geladen werden.',
+      );
+      setBundle(null);
+      setLoading(false);
+      return;
+    }
+    setBundle(result.data);
+    setLoading(false);
+  }, [teamSeasonId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    let active = true;
+    const ids = selectedItems.map((item) => item.training_session_id);
+    if (ids.length === 0) {
+      setDetails({});
+      return () => {
+        active = false;
+      };
+    }
+    void Promise.all(
+      ids.map(async (sessionId) => {
+        const result = await listSessionExercises(sessionId);
+        return [sessionId, inspectSession(result.data)] as const;
+      }),
+    ).then((entries) => {
+      if (active) setDetails(Object.fromEntries(entries));
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedItems]);
+
+  useEffect(() => {
+    let active = true;
+    const eventIds = selectedSessions.map((session) => session.event_id).filter((id): id is string => Boolean(id));
+    if (eventIds.length === 0) {
+      setEventDates({});
+      return () => {
+        active = false;
+      };
+    }
+    void supabase
+      .from('events')
+      .select('id, starts_at')
+      .in('id', eventIds)
+      .then(({ data }) => {
+        if (active) {
+          setEventDates(Object.fromEntries((data ?? []).map((row) => [String(row.id), String(row.starts_at)])));
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedSessions]);
+
+  async function addCandidate() {
+    if (!bundle || !candidateId) return;
+    if (bundle.items.length >= bundle.documentation.required_units) {
+      setError(`Es können höchstens ${bundle.documentation.required_units} Einheiten ausgewählt werden.`);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    const result = await addTrainingExamSession(bundle.documentation.id, candidateId, bundle.items.length);
+    setSaving(false);
+    if (result.error || !result.data) {
+      setError(result.error ?? 'Einheit konnte nicht hinzugefügt werden.');
+      return;
+    }
+    setBundle({ ...bundle, items: [...bundle.items, result.data] });
+    setCandidateId('');
+    setSuccess('Trainingseinheit zur Prüfungsdokumentation hinzugefügt.');
+  }
+
+  async function removeItem(item: TrainingExamDocumentationItemRow) {
+    if (!bundle || !window.confirm('Diese Einheit aus der Prüfungsdokumentation entfernen? Die Trainingseinheit selbst bleibt erhalten.')) return;
+    setSaving(true);
+    setError(null);
+    const removed = await removeTrainingExamSession(item.id);
+    if (removed.error) {
+      setSaving(false);
+      setError(removed.error);
+      return;
+    }
+    const remaining = bundle.items.filter((candidate) => candidate.id !== item.id);
+    const reordered = await reorderTrainingExamSessions(bundle.documentation.id, remaining);
+    setSaving(false);
+    if (reordered.error) {
+      setError(reordered.error);
+      void load();
+      return;
+    }
+    setBundle({ ...bundle, items: reordered.data });
+  }
+
+  async function moveItem(index: number, direction: -1 | 1) {
+    if (!bundle) return;
+    const target = index + direction;
+    if (target < 0 || target >= bundle.items.length) return;
+    const next = [...bundle.items];
+    [next[index], next[target]] = [next[target], next[index]];
+    setSaving(true);
+    setError(null);
+    const reordered = await reorderTrainingExamSessions(bundle.documentation.id, next);
+    setSaving(false);
+    if (reordered.error) {
+      setError(reordered.error);
+      return;
+    }
+    setBundle({ ...bundle, items: reordered.data });
+  }
+
+  async function buildPdfEntries(): Promise<TrainingExamPdfSession[]> {
+    const result: TrainingExamPdfSession[] = [];
+    for (const item of selectedItems) {
+      const session = sessionById[item.training_session_id];
+      if (!session) continue;
+      const sessionDetails = details[session.id] ?? inspectSession((await listSessionExercises(session.id)).data);
+      const sketchEntries = await Promise.all(
+        Object.values(sessionDetails.exerciseMap).map(async (exercise) => [
+          exercise.id,
+          exercise.image_path ? await getTrainingExerciseSketchUrl(exercise.image_path) : null,
+        ] as const),
+      );
+      result.push({
+        session,
+        items: sessionDetails.items,
+        exerciseMap: sessionDetails.exerciseMap,
+        eventDateIso: session.event_id ? eventDates[session.event_id] ?? null : session.created_at,
+        sketchUrls: Object.fromEntries(sketchEntries),
+      });
+    }
+    return result;
+  }
+
+  async function exportPdf(mode: 'preview' | 'download') {
+    if (!bundle || selectedItems.length === 0) return;
+    if (mode === 'download' && selectedItems.length !== bundle.documentation.required_units) {
+      setError(`Für die finale PDF müssen genau ${bundle.documentation.required_units} Einheiten ausgewählt sein.`);
+      return;
+    }
+    const previewWindow = mode === 'preview' ? window.open('', '_blank') : null;
+    if (mode === 'preview' && !previewWindow) {
+      setError('PDF-Vorschau wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
+      return;
+    }
+    if (previewWindow) previewWindow.document.write('<p style="font-family:Arial;padding:24px">Prüfungs-PDF wird erstellt…</p>');
+    setExporting(mode);
+    setError(null);
+    setSuccess(null);
+    try {
+      const metadata = (user?.user_metadata ?? {}) as Record<string, unknown>;
+      const trainerName =
+        String(metadata.full_name ?? metadata.name ?? '').trim() || user?.email?.split('@')[0] || '';
+      const teamName =
+        String(contextSeason?.display_name ?? contextSeason?.age_group ?? contextSeason?.team?.name ?? '').trim();
+      const entries = await buildPdfEntries();
+      const blob = await createTrainingExamPdf({
+        sessions: entries,
+        trainerName,
+        teamName,
+        version: bundle.documentation.export_version + 1,
+      });
+      if (mode === 'preview' && previewWindow) {
+        const url = URL.createObjectURL(blob);
+        previewWindow.location.href = url;
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } else {
+        const marked = await markTrainingExamExported(
+          bundle.documentation.id,
+          bundle.documentation.export_version,
+        );
+        if (marked.error) throw new Error(marked.error);
+        downloadBlob(blob, trainingExamPdfFilename(marked.version));
+        setBundle({
+          ...bundle,
+          documentation: {
+            ...bundle.documentation,
+            export_version: marked.version,
+            last_exported_at: marked.exportedAt,
+          },
+        });
+        setSuccess(`PDF-Version ${marked.version} wurde erstellt.`);
+      }
+    } catch (cause) {
+      previewWindow?.close();
+      setError(cause instanceof Error ? cause.message : 'PDF konnte nicht erstellt werden.');
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  if (loading) return <p className="text-[13px] text-slate-500">Trainerprüfungs-Dokumentation wird geladen…</p>;
+  if (!teamSeasonId) return <p className="text-[13px] text-slate-500">Bitte zuerst eine Mannschaft und Saison auswählen.</p>;
+
+  const required = bundle?.documentation.required_units ?? 10;
+  const completeCount = selectedItems.filter((item) => (details[item.training_session_id]?.missing.length ?? 1) === 0).length;
+  const changedSinceExport = bundle?.documentation.last_exported_at
+    ? selectedSessions.filter(
+        (session) => new Date(session.updated_at ?? session.created_at ?? 0).getTime() > new Date(bundle.documentation.last_exported_at!).getTime(),
+      ).length
+    : 0;
+
+  return (
+    <section className="space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.05)] sm:p-6">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-600">ÖFB-D-Diplom</p>
+            <h2 className="mt-1 text-2xl font-bold text-slate-950">Trainerprüfungs-Dokumentation</h2>
+            <p className="mt-2 max-w-3xl text-[13px] leading-6 text-slate-600">
+              Wähle und sortiere deine zehn Trainingseinheiten. Die Einheiten bleiben vollständig bearbeitbar;
+              Vorschau und Download werden immer neu aus dem aktuellen Stand erzeugt.
+            </p>
+          </div>
+          <div className="grid min-w-[260px] grid-cols-2 gap-2">
+            <div className="rounded-xl bg-slate-50 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Fortschritt</p>
+              <p className="mt-1 text-xl font-bold text-slate-950">{selectedItems.length} von {required}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Prüfbereit</p>
+              <p className="mt-1 text-xl font-bold text-slate-950">{completeCount}</p>
+            </div>
+            <div className="col-span-2 rounded-xl border border-red-100 bg-red-50 p-3 text-[12px] text-red-900">
+              Abgabetermin: <strong>{formatDate(bundle?.documentation.deadline)}</strong>
+              {bundle?.documentation.export_version ? ` · letzte PDF: V${bundle.documentation.export_version}` : ' · noch kein finaler Export'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">{error}</div> : null}
+      {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">{success}</div> : null}
+      {changedSinceExport > 0 ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+          {changedSinceExport} {changedSinceExport === 1 ? 'Einheit wurde' : 'Einheiten wurden'} seit dem letzten Export geändert. Bitte PDF neu erzeugen.
+        </div>
+      ) : null}
+
+      {bundle ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <select
+              value={candidateId}
+              onChange={(event) => setCandidateId(event.target.value)}
+              disabled={saving || seasonArchived || selectedItems.length >= required}
+              className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900"
+            >
+              <option value="">Trainingseinheit auswählen…</option>
+              {candidates.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {session.title} · {session.planned_duration_minutes ?? 0} Min. · {session.status === 'ready' ? 'fertig' : session.status}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => void addCandidate()}
+              disabled={!candidateId || saving || seasonArchived || selectedItems.length >= required}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+              Hinzufügen
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="space-y-3">
+        {selectedItems.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-[13px] text-slate-500">
+            Noch keine Einheit ausgewählt. Füge deine erste fertige Trainingseinheit hinzu.
+          </div>
+        ) : null}
+        {selectedItems.map((item, index) => {
+          const session = sessionById[item.training_session_id];
+          if (!session) return null;
+          const sessionDetails = details[session.id];
+          const missing = sessionDetails?.missing ?? ['Prüfung wird geladen'];
+          const ready = missing.length === 0;
+          const changed = Boolean(
+            bundle?.documentation.last_exported_at &&
+              new Date(session.updated_at ?? session.created_at ?? 0).getTime() >
+                new Date(bundle.documentation.last_exported_at).getTime(),
+          );
+          const phases = new Set((sessionDetails?.items ?? []).map((exercise) => exercise.phase as TrainingPhase));
+          return (
+            <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-lg font-bold text-white">
+                  {index + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-[16px] font-bold text-slate-950">{session.title}</h3>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${ready ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>
+                      {ready ? 'Prüfbereit' : `${missing.length} Hinweise`}
+                    </span>
+                    {changed ? <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700">Seit Export geändert</span> : null}
+                  </div>
+                  <p className="mt-1 text-[12px] text-slate-500">
+                    {session.planned_duration_minutes ?? 0} Min. · {formatDate(session.event_id ? eventDates[session.event_id] : session.created_at)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {TRAINING_PHASES.map((phase) => (
+                      <span key={phase} className={`rounded-full px-2 py-1 text-[10px] font-semibold ${phases.has(phase) ? 'bg-slate-100 text-slate-700' : 'bg-red-50 text-red-700'}`}>
+                        {phase}{phases.has(phase) ? ' ✓' : ' fehlt'}
+                      </span>
+                    ))}
+                  </div>
+                  {!ready && sessionDetails ? <p className="mt-2 text-[11px] leading-5 text-amber-800">{missing.slice(0, 4).join(' · ')}{missing.length > 4 ? ` · +${missing.length - 4} weitere` : ''}</p> : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link to={`/manager/training/einheiten/${session.id}`} className="inline-flex min-h-[40px] items-center rounded-xl border border-slate-200 px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Bearbeiten</Link>
+                  <button type="button" onClick={() => void moveItem(index, -1)} disabled={index === 0 || saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 disabled:opacity-30" aria-label="Nach oben"><ArrowUp className="h-4 w-4" aria-hidden /></button>
+                  <button type="button" onClick={() => void moveItem(index, 1)} disabled={index === selectedItems.length - 1 || saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 disabled:opacity-30" aria-label="Nach unten"><ArrowDown className="h-4 w-4" aria-hidden /></button>
+                  <button type="button" onClick={() => void removeItem(item)} disabled={saving || seasonArchived} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-600 disabled:opacity-30" aria-label="Aus Dokumentation entfernen"><Trash2 className="h-4 w-4" aria-hidden /></button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {bundle && selectedItems.length > 0 ? (
+        <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-[12px] text-slate-600">
+            <CheckCircle2 className={`h-5 w-5 ${selectedItems.length === required ? 'text-emerald-600' : 'text-slate-400'}`} aria-hidden />
+            {selectedItems.length === required ? '10 Einheiten ausgewählt – finale PDF möglich.' : `${required - selectedItems.length} Einheiten fehlen noch.`}
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="button" onClick={() => void exportPdf('preview')} disabled={Boolean(exporting)} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50">
+              {exporting === 'preview' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+              PDF-Vorschau
+            </button>
+            <button type="button" onClick={() => void exportPdf('download')} disabled={Boolean(exporting) || selectedItems.length !== required} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
+              {exporting === 'download' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileDown className="h-4 w-4" aria-hidden />}
+              Gesamtdokumentation herunterladen
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
