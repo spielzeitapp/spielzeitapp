@@ -39,12 +39,22 @@ function splitThoughts(value: unknown): string[] {
     .replace(/\bu\.\s*a\./gi, 'unter anderem')
     .replace(/\bggf\./gi, 'gegebenenfalls');
   if (!text) return [];
-  return text
+  const parts = text
     .split(/\n+|\s+[–—]\s+|(?<=[.!?;])\s+(?=[A-ZÄÖÜ0-9])/)
     .flatMap((part) => part.split(/\s*;\s*/))
     .map(withoutBullet)
     .map((part) => part.replace(/[.;,\s]+$/, '').trim())
     .filter((part) => part.length >= 3 && !/^video\s*:/i.test(part));
+  const merged: string[] = [];
+  for (const part of parts) {
+    const previous = merged.at(-1);
+    if (previous && (previous.match(/\(/g)?.length ?? 0) > (previous.match(/\)/g)?.length ?? 0)) {
+      merged[merged.length - 1] = `${previous}; ${part}`;
+    } else {
+      merged.push(part);
+    }
+  }
+  return merged;
 }
 
 function phraseWithin(value: string, max: number): string {
@@ -67,6 +77,9 @@ function phraseWithin(value: string, max: number): string {
       ? wordBoundary
       : max;
   let shortened = slice.slice(0, boundary).replace(/[….,;:\s]+$/, '').trim();
+  if ((shortened.match(/\(/g)?.length ?? 0) > (shortened.match(/\)/g)?.length ?? 0)) {
+    shortened = shortened.slice(0, shortened.lastIndexOf('(')).trim();
+  }
   while (/\b(?:und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i.test(shortened)) {
     shortened = shortened.replace(/\s+\S+$/, '').trim();
   }
@@ -95,6 +108,25 @@ function bullets(items: string[], limit: number, maxItems: number, maxItemLength
   return result.join('\n');
 }
 
+function labeledContent(organization: string[], description: string[]): string {
+  const candidates = [
+    { label: 'Aufbau', value: organization[0] },
+    { label: 'Start', value: description[0] },
+    { label: 'Ablauf', value: description[1] },
+    { label: 'Wechsel', value: description[2] },
+  ].filter((candidate): candidate is { label: string; value: string } => Boolean(candidate.value));
+  const result: string[] = [];
+  for (const candidate of candidates) {
+    const used = result.join('\n').length + (result.length ? 1 : 0);
+    const remaining = TRAINING_SHORT_TEXT_LIMITS.content - used;
+    const prefix = `${candidate.label}: `;
+    if (remaining <= prefix.length + 12) break;
+    const value = phraseWithin(candidate.value, Math.min(88, remaining - prefix.length));
+    if (value) result.push(`${prefix}${value}`);
+  }
+  return result.join('\n');
+}
+
 function compactMaterials(value: unknown): string {
   const parts = clean(value)
     .split(/\n|,|;/)
@@ -117,20 +149,14 @@ function compactMaterials(value: unknown): string {
 export function createTrainingExerciseShortText(
   input: TrainingExerciseShortTextInput,
 ): TrainingExerciseShortText {
-  const organization = splitThoughts(input.organization).map((item, index) =>
-    index === 0 && !/^aufbau\s*:/i.test(item) ? `Aufbau: ${item}` : item,
-  );
+  const organization = splitThoughts(input.organization).map((item) => item.replace(/^aufbau\s*:\s*/i, ''));
+  const description = splitThoughts(input.description);
   const coachingPoints = splitThoughts(input.coachingPoints);
   const variations = splitThoughts(input.variations).map((item) => `Variation: ${item}`);
   const coachingItems = variations.length > 0
     ? [...coachingPoints.slice(0, 3), variations[0]]
     : coachingPoints.slice(0, 4);
-  const content = bullets(
-    [...organization.slice(0, 1), ...splitThoughts(input.description)],
-    TRAINING_SHORT_TEXT_LIMITS.content,
-    4,
-    88,
-  );
+  const content = labeledContent(organization, description);
   const coaching = bullets(
     coachingItems,
     TRAINING_SHORT_TEXT_LIMITS.coaching,
@@ -142,6 +168,25 @@ export function createTrainingExerciseShortText(
     content,
     materials: compactMaterials(input.materials),
     coaching,
+  };
+}
+
+export function createTrainingExerciseOriginalText(
+  input: TrainingExerciseShortTextInput,
+): TrainingExerciseShortText {
+  const organization = clean(input.organization).replace(/^aufbau\s*:\s*/i, '');
+  const description = clean(input.description).replace(/^ablauf\s*:\s*/i, '');
+  const variations = clean(input.variations).replace(/^variationen?\s*:\s*/i, '');
+  return {
+    content: [
+      organization ? `Aufbau: ${organization}` : '',
+      description ? `Ablauf: ${description}` : '',
+    ].filter(Boolean).join('\n'),
+    materials: clean(input.materials),
+    coaching: [
+      clean(input.coachingPoints),
+      variations ? `Variationen: ${variations}` : '',
+    ].filter(Boolean).join('\n'),
   };
 }
 

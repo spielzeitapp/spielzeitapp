@@ -3,7 +3,7 @@ import type { TrainingExerciseRow } from './trainingExercises';
 import type { TrainingSessionExerciseRow, TrainingSessionRow } from './trainingSessions';
 import type { TrainingPhase } from './trainingPhases';
 import type { TrainingExamPhaseTextOverrides } from './trainingExamDocumentation';
-import { resolveTrainingExerciseShortText } from './trainingExerciseShortText';
+import { createTrainingExerciseOriginalText, resolveTrainingExerciseShortText } from './trainingExerciseShortText';
 
 export type TrainingExamPdfSession = {
   session: TrainingSessionRow;
@@ -103,10 +103,10 @@ function drawFittedText(
   width: number,
   height: number,
   options: { maxFontSize: number; minFontSize: number; lineHeightFactor?: number },
-): void {
+): { usedHeight: number; lineCount: number } {
   const lineHeightFactor = options.lineHeightFactor ?? 1.14;
   const text = clean(value);
-  if (!text) return;
+  if (!text) return { usedHeight: 0, lineCount: 0 };
 
   let fontSize = options.maxFontSize;
   let lineHeightMm = 0;
@@ -133,6 +133,15 @@ function drawFittedText(
       pdf.text(line.text, x + line.offsetX, baseline);
     }
   });
+  return { usedHeight: visibleLines.length * lineHeightMm, lineCount: visibleLines.length };
+}
+
+function withoutContentBullets(value: unknown): string {
+  return clean(value)
+    .split('\n')
+    .map((line) => line.replace(/^•\s*/, '').trim())
+    .join('\n')
+    .trim();
 }
 
 function withoutVideoLines(value: unknown): string {
@@ -218,6 +227,9 @@ async function drawPhase(
   const detailParts: string[] = [];
   const materialParts: string[] = [];
   const coachingParts: string[] = [];
+  const originalDetailParts: string[] = [];
+  const originalMaterialParts: string[] = [];
+  const originalCoachingParts: string[] = [];
   for (const item of items) {
     const exercise = entry.exerciseMap[item.exercise_id] ?? item.exercise ?? null;
     if (!exercise) continue;
@@ -231,21 +243,46 @@ async function drawPhase(
       shortMaterials: exercise.short_materials,
       shortCoaching: exercise.short_coaching,
     });
+    const originalText = createTrainingExerciseOriginalText({
+      description: exercise.description,
+      organization: exercise.organization,
+      materials: exercise.materials,
+      coachingPoints: exercise.coaching_points,
+      variations: exercise.variations,
+    });
     titleParts.push(clean(exercise.title));
     if (shortText.content) detailParts.push(shortText.content);
     if (shortText.materials) materialParts.push(shortText.materials);
     if (shortText.coaching) coachingParts.push(withoutVideoLines(shortText.coaching));
+    if (originalText.content) originalDetailParts.push(originalText.content);
+    if (originalText.materials) originalMaterialParts.push(originalText.materials);
+    if (originalText.coaching) originalCoachingParts.push(withoutVideoLines(originalText.coaching));
   }
 
   const override = entry.phaseTextOverrides?.[phase];
-  const contentText = typeof override?.content === 'string' ? override.content : detailParts.join('\n\n');
-  const materialsText = typeof override?.materials === 'string' ? override.materials : materialParts.join('\n');
-  const coachingText = typeof override?.coaching === 'string' ? override.coaching : coachingParts.join('\n\n');
+  const useOriginal = override?.useOriginal === true;
+  const contentText = withoutContentBullets(
+    useOriginal
+      ? originalDetailParts.join('\n\n')
+      : typeof override?.content === 'string'
+        ? override.content
+        : detailParts.join('\n\n'),
+  );
+  const materialsText = useOriginal
+    ? originalMaterialParts.join('\n')
+    : typeof override?.materials === 'string'
+      ? override.materials
+      : materialParts.join('\n');
+  const coachingText = useOriginal
+    ? originalCoachingParts.join('\n\n')
+    : typeof override?.coaching === 'string'
+      ? override.coaching
+      : coachingParts.join('\n\n');
 
   drawPhaseLabel(pdf, phase, CONTENT_X + 1.3, top + 3.1);
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'bold');
-  drawFittedText(
+  const titleMetrics = drawFittedText(
     pdf,
     titleParts.join(' / '),
     CONTENT_X + 1.3,
@@ -259,7 +296,8 @@ async function drawPhase(
     },
   );
   pdf.setFont('helvetica', 'normal');
-  drawFittedText(pdf, contentText, CONTENT_X + 1.3, top + 12, CONTENT_WIDTH - 2.4, PHASE_HEIGHT - 13, {
+  const contentY = top + 6.7 + titleMetrics.usedHeight + 1.1;
+  drawFittedText(pdf, contentText, CONTENT_X + 1.3, contentY, CONTENT_WIDTH - 2.4, top + PHASE_HEIGHT - contentY - 1, {
     maxFontSize: 6.5,
     minFontSize: 5.8,
     lineHeightFactor: 1.14,

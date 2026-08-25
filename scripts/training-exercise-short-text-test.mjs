@@ -16,7 +16,10 @@ try {
     variations: 'Mit maximal zwei Kontakten spielen.',
   });
 
-  assert.match(result.content, /^• Aufbau:/);
+  assert.match(result.content, /^Aufbau:/);
+  assert.match(result.content, /^Start:/m);
+  assert.match(result.content, /^Ablauf:/m);
+  assert.ok(!/^•/m.test(result.content));
   assert.match(result.content, /Spieler A passt zu Spieler B/);
   assert.match(result.coaching, /^• Offene Stellung/m);
   assert.match(result.coaching, /Variation:/);

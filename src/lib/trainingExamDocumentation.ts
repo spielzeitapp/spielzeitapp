@@ -5,6 +5,7 @@ export type TrainingExamPhaseText = {
   content?: string;
   materials?: string;
   coaching?: string;
+  useOriginal?: boolean;
 };
 
 export type TrainingExamPhaseTextOverrides = Partial<Record<TrainingPhase, TrainingExamPhaseText>>;
@@ -58,6 +59,7 @@ function mapPhaseTextOverrides(raw: unknown): TrainingExamPhaseTextOverrides {
       ...(typeof fields.content === 'string' ? { content: fields.content } : {}),
       ...(typeof fields.materials === 'string' ? { materials: fields.materials } : {}),
       ...(typeof fields.coaching === 'string' ? { coaching: fields.coaching } : {}),
+      ...(typeof fields.useOriginal === 'boolean' ? { useOriginal: fields.useOriginal } : {}),
     };
   }
   return result;
