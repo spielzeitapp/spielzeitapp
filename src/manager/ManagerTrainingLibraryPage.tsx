@@ -169,6 +169,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [cropX, setCropX] = useState(0);
   const [cropY, setCropY] = useState(0);
   const [cropRotation, setCropRotation] = useState(0);
+  const [cropReplaceGrass, setCropReplaceGrass] = useState(false);
+  const [cropWhiteStrength, setCropWhiteStrength] = useState(55);
+  const [cropGrassCompare, setCropGrassCompare] = useState<'original' | 'grass'>('grass');
   const [cropSaving, setCropSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
@@ -221,18 +224,21 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   useEffect(() => {
     if (!cropSource || !cropCanvasRef.current) return;
     let active = true;
+    const showGrass = cropReplaceGrass && cropGrassCompare === 'grass';
     void renderExerciseCrop(cropCanvasRef.current, cropSource.url, {
       zoom: cropZoom,
       x: cropX,
       y: cropY,
       rotation: cropRotation,
+      replaceWhiteWithGrass: showGrass,
+      whiteStrength: cropWhiteStrength,
     }).catch(() => {
       if (active) setFormError('Die Zuschneidevorschau konnte nicht geladen werden.');
     });
     return () => {
       active = false;
     };
-  }, [cropRotation, cropSource, cropX, cropY, cropZoom]);
+  }, [cropGrassCompare, cropReplaceGrass, cropRotation, cropSource, cropWhiteStrength, cropX, cropY, cropZoom]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -311,6 +317,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setCropX(0);
     setCropY(0);
     setCropRotation(0);
+    setCropReplaceGrass(false);
+    setCropWhiteStrength(55);
+    setCropGrassCompare('grass');
     setCropSource({ url, owned });
   };
 
@@ -340,6 +349,8 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             x: cropX,
             y: cropY,
             rotation: cropRotation,
+            replaceWhiteWithGrass: cropReplaceGrass,
+            whiteStrength: cropWhiteStrength,
           });
       setPendingSketchUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -1199,11 +1210,68 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               />
             </div>
 
+            <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+              <label className="flex min-h-[44px] cursor-pointer items-center justify-between gap-3">
+                <span className="text-[13px] font-semibold text-slate-800">
+                  Weißen Hintergrund durch Rasen ersetzen
+                </span>
+                <input
+                  type="checkbox"
+                  checked={cropReplaceGrass}
+                  disabled={cropSaving}
+                  onChange={(e) => setCropReplaceGrass(e.target.checked)}
+                  className="h-5 w-5 rounded border-slate-300 text-red-700 focus:ring-red-600"
+                />
+              </label>
+              {cropReplaceGrass ? (
+                <>
+                  <CropRange
+                    label="Weiß-Erkennung"
+                    min={0}
+                    max={100}
+                    value={cropWhiteStrength}
+                    onChange={setCropWhiteStrength}
+                    suffix=" %"
+                  />
+                  <p className="text-[11px] leading-4 text-slate-500">
+                    Höhere Werte entfernen auch hellgraue Flächen. Linien und Symbole bleiben erhalten.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2" role="group" aria-label="Vergleich Hintergrund">
+                    <button
+                      type="button"
+                      disabled={cropSaving}
+                      onClick={() => setCropGrassCompare('original')}
+                      className={`min-h-[40px] rounded-xl px-3 text-[13px] font-semibold disabled:opacity-50 ${
+                        cropGrassCompare === 'original'
+                          ? 'bg-slate-900 text-white'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      Original
+                    </button>
+                    <button
+                      type="button"
+                      disabled={cropSaving}
+                      onClick={() => setCropGrassCompare('grass')}
+                      className={`min-h-[40px] rounded-xl px-3 text-[13px] font-semibold disabled:opacity-50 ${
+                        cropGrassCompare === 'grass'
+                          ? 'bg-slate-900 text-white'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      Mit Rasen
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
                 <CropRange label="Bildgröße / Zoom" min={40} max={250} value={Math.round(cropZoom * 100)} onChange={(value) => setCropZoom(value / 100)} suffix=" %" />
                 <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                  Unter 100 % wird das ganze Bild kleiner und mit weißem Rand eingepasst.
+                  Unter 100 % wird das ganze Bild kleiner und mit{' '}
+                  {cropReplaceGrass ? 'Rasenrand' : 'weißem Rand'} eingepasst.
                 </p>
               </div>
               <div className="flex items-end">
@@ -1335,7 +1403,14 @@ function ShortTextField({
   );
 }
 
-type ExerciseCropOptions = { zoom: number; x: number; y: number; rotation: number };
+type ExerciseCropOptions = {
+  zoom: number;
+  x: number;
+  y: number;
+  rotation: number;
+  replaceWhiteWithGrass?: boolean;
+  whiteStrength?: number;
+};
 
 async function loadCropImage(url: string): Promise<HTMLImageElement> {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -1361,6 +1436,41 @@ function rotatedImageCanvas(image: HTMLImageElement, rotation: number): HTMLCanv
   return canvas;
 }
 
+function drawTrainingGrass(context: CanvasRenderingContext2D, width: number, height: number): void {
+  const stripeCount = 8;
+  const colors = ['#66ad55', '#80bd6f'] as const;
+  const stripeHeight = height / stripeCount;
+  for (let index = 0; index < stripeCount; index += 1) {
+    context.fillStyle = colors[index % 2];
+    const top = Math.floor(index * stripeHeight);
+    const bottom = Math.floor((index + 1) * stripeHeight);
+    context.fillRect(0, top, width, Math.max(1, bottom - top));
+  }
+}
+
+function removeWhiteBackground(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  strength: number,
+): void {
+  const clamped = Math.max(0, Math.min(100, strength));
+  const threshold = 252 - Math.round((clamped / 100) * 57);
+  const imageData = context.getImageData(0, 0, width, height);
+  const { data } = imageData;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    if (r >= threshold && g >= threshold && b >= threshold && max - min <= 22) {
+      data[i + 3] = 0;
+    }
+  }
+  context.putImageData(imageData, 0, 0);
+}
+
 async function renderExerciseCrop(
   canvas: HTMLCanvasElement,
   url: string,
@@ -1377,6 +1487,21 @@ async function renderExerciseCrop(
   const overflowY = Math.max(0, height - canvas.height);
   const left = (canvas.width - width) / 2 - (options.x / 100) * (overflowX / 2);
   const top = (canvas.height - height) / 2 - (options.y / 100) * (overflowY / 2);
+
+  if (options.replaceWhiteWithGrass) {
+    const layer = document.createElement('canvas');
+    layer.width = canvas.width;
+    layer.height = canvas.height;
+    const layerContext = layer.getContext('2d', { willReadFrequently: true });
+    if (!layerContext) throw new Error('Bildverarbeitung nicht verfügbar.');
+    layerContext.clearRect(0, 0, layer.width, layer.height);
+    layerContext.drawImage(rotated, left, top, width, height);
+    removeWhiteBackground(layerContext, layer.width, layer.height, options.whiteStrength ?? 55);
+    drawTrainingGrass(context, canvas.width, canvas.height);
+    context.drawImage(layer, 0, 0);
+    return;
+  }
+
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.drawImage(rotated, left, top, width, height);

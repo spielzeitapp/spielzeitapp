@@ -42,4 +42,15 @@ assert.match(page, /canvas\.width = 1600/);
 assert.match(page, /canvas\.height = 1200/);
 assert.match(page, /fillStyle = '#ffffff'/);
 
+// Local white-to-grass background unification in crop dialog
+assert.match(page, /Weißen Hintergrund durch Rasen ersetzen/);
+assert.match(page, /function removeWhiteBackground/);
+assert.match(page, /function drawTrainingGrass/);
+assert.match(page, />\s*Original\s*</);
+assert.match(page, />\s*Mit Rasen\s*</);
+assert.match(page, /threshold = 252 - Math\.round\(\(clamped \/ 100\) \* 57\)/);
+assert.match(page, /#66ad55/);
+assert.match(page, /#80bd6f/);
+assert.match(page, /replaceWhiteWithGrass/);
+
 console.log('training-library-sketch-ux: ok');
