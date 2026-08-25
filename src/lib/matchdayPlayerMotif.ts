@@ -8,8 +8,25 @@ export type MatchdayPlayerMotif = {
   playerId: string | null;
   imageUrl: string;
   playerName: string | null;
-  source: 'event_override' | 'roster_rotation';
+  source: 'event_override' | 'roster_rotation' | 'demo_fallback';
 };
+
+/**
+ * Neutrale, fiktive Übergangsmotive. Sie werden ausschließlich verwendet,
+ * wenn im aktiven Kader kein einziger freigestellter Spieler vorhanden ist.
+ */
+export const MATCHDAY_DEMO_PLAYER_CANDIDATES: MatchdayPlayerMotifCandidate[] = [
+  {
+    playerId: 'demo-matchday-player-01',
+    imageUrl: '/feed/demo-matchday-player-01.webp',
+    playerName: 'Demo-Spieler 1',
+  },
+  {
+    playerId: 'demo-matchday-player-02',
+    imageUrl: '/feed/test-player-daniel.PNG',
+    playerName: 'Demo-Spieler 2',
+  },
+];
 
 function stableHash(value: string): number {
   let hash = 2166136261;
@@ -45,6 +62,7 @@ export function chooseMatchdayPlayerMotif(params: {
   eventId: string;
   candidates: MatchdayPlayerMotifCandidate[];
   previousPlayerId?: string | null;
+  source?: 'roster_rotation' | 'demo_fallback';
 }): MatchdayPlayerMotif | null {
   const all = normalizedCandidates(params.candidates);
   if (all.length === 0) return null;
@@ -59,7 +77,7 @@ export function chooseMatchdayPlayerMotif(params: {
     playerId: selected.playerId,
     imageUrl: selected.imageUrl,
     playerName: selected.playerName?.trim() || null,
-    source: 'roster_rotation',
+    source: params.source ?? 'roster_rotation',
   };
 }
 

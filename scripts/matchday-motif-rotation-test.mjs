@@ -11,7 +11,11 @@ const transpiled = ts.transpileModule(motifSource, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const generatedModule = `data:text/javascript;base64,${Buffer.from(transpiled).toString('base64')}`;
-const { chooseMatchdayPlayerMotif, eventOverrideMatchdayMotif } = await import(generatedModule);
+const {
+  MATCHDAY_DEMO_PLAYER_CANDIDATES,
+  chooseMatchdayPlayerMotif,
+  eventOverrideMatchdayMotif,
+} = await import(generatedModule);
 
 const candidates = [
   { playerId: 'p01', imageUrl: 'https://img/p01.png', playerName: 'Spieler 1' },
@@ -39,9 +43,34 @@ const only = chooseMatchdayPlayerMotif({
 assert.equal(only.playerId, 'p01', 'single available motif remains usable');
 assert.equal(eventOverrideMatchdayMotif('  https://img/manual.png  ').source, 'event_override');
 
+const demoFirst = chooseMatchdayPlayerMotif({
+  eventId: 'demo-event-1',
+  candidates: MATCHDAY_DEMO_PLAYER_CANDIDATES,
+  source: 'demo_fallback',
+});
+const demoNext = chooseMatchdayPlayerMotif({
+  eventId: 'demo-event-2',
+  candidates: MATCHDAY_DEMO_PLAYER_CANDIDATES,
+  previousPlayerId: demoFirst.playerId,
+  source: 'demo_fallback',
+});
+assert.equal(demoFirst.source, 'demo_fallback');
+assert.notEqual(demoNext.playerId, demoFirst.playerId, 'demo fallback rotates without repetition');
+assert.ok(
+  MATCHDAY_DEMO_PLAYER_CANDIDATES.every((candidate) => candidate.imageUrl.startsWith('/feed/')),
+  'demo fallback uses bundled feed assets',
+);
+for (const candidate of MATCHDAY_DEMO_PLAYER_CANDIDATES) {
+  assert.ok(
+    fs.existsSync(path.join(root, 'public', candidate.imageUrl.replace(/^\//, ''))),
+    `demo fallback asset exists: ${candidate.imageUrl}`,
+  );
+}
+
 const ensureSource = fs.readFileSync(path.join(root, 'src/lib/ensureMatchdayFeedPosts.ts'), 'utf8');
 const cardSource = fs.readFileSync(path.join(root, 'src/components/feed/MatchdayFeedPostCard.tsx'), 'utf8');
 assert.ok(ensureSource.includes('resolveMatchdayPlayerMotif(event)'), 'autopost resolves player motif');
 assert.ok(ensureSource.includes('loadExistingEventMotif(event.id)'), 'today/tomorrow reuse same motif');
+assert.ok(ensureSource.includes('MATCHDAY_DEMO_PLAYER_CANDIDATES'), 'autopost has demo fallback');
 assert.ok(cardSource.includes('playerImageUrl={p.matchday_player_image_url}'), 'feed poster receives motif');
 console.log('matchday-motif-rotation-test: OK');

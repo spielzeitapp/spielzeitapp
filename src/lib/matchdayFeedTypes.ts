@@ -23,7 +23,7 @@ export type MatchdayFeedPayload = {
   matchday_player_id?: string | null;
   matchday_player_image_url?: string | null;
   matchday_player_name?: string | null;
-  matchday_motif_source?: 'event_override' | 'roster_rotation';
+  matchday_motif_source?: 'event_override' | 'roster_rotation' | 'demo_fallback';
 };
 
 /** Rohzeile aus Supabase (inkl. optionaler Medien-Felder). */
@@ -186,7 +186,9 @@ export function parseMatchdayPayload(raw: unknown): MatchdayFeedPayload | null {
     matchday_player_name:
       typeof p.matchday_player_name === 'string' ? p.matchday_player_name : null,
     matchday_motif_source:
-      p.matchday_motif_source === 'event_override' || p.matchday_motif_source === 'roster_rotation'
+      p.matchday_motif_source === 'event_override' ||
+      p.matchday_motif_source === 'roster_rotation' ||
+      p.matchday_motif_source === 'demo_fallback'
         ? p.matchday_motif_source
         : undefined,
   };

@@ -13,6 +13,7 @@ import { listRoster } from './rosterService';
 import {
   chooseMatchdayPlayerMotif,
   eventOverrideMatchdayMotif,
+  MATCHDAY_DEMO_PLAYER_CANDIDATES,
   type MatchdayPlayerMotif,
 } from './matchdayPlayerMotif';
 import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
@@ -191,9 +192,12 @@ function motifFromPayload(raw: unknown): MatchdayPlayerMotif | null {
     ? payload.matchday_player_image_url.trim()
     : '';
   if (!imageUrl) return null;
-  const source = payload.matchday_motif_source === 'event_override'
-    ? 'event_override'
-    : 'roster_rotation';
+  const source =
+    payload.matchday_motif_source === 'event_override'
+      ? 'event_override'
+      : payload.matchday_motif_source === 'demo_fallback'
+        ? 'demo_fallback'
+        : 'roster_rotation';
   return {
     playerId:
       typeof payload.matchday_player_id === 'string' && payload.matchday_player_id.trim()
@@ -253,9 +257,8 @@ async function resolveMatchdayPlayerMotif(event: EventRowLite): Promise<Matchday
   const roster = await listRoster(event.team_season_id, 'active');
   if (roster.error) {
     mdLog('motif roster unavailable', { eventId: event.id, error: roster.error });
-    return null;
   }
-  const candidates = roster.data
+  const rosterCandidates = roster.data
     .filter((player) => Boolean(player.cutout_url?.trim()))
     .map((player) => ({
       playerId: player.id,
@@ -263,7 +266,22 @@ async function resolveMatchdayPlayerMotif(event: EventRowLite): Promise<Matchday
       playerName: player.display_name,
     }));
   const previousPlayerId = await loadPreviousMatchdayPlayerId(event.team_season_id, event.id);
-  return chooseMatchdayPlayerMotif({ eventId: event.id, candidates, previousPlayerId });
+  if (rosterCandidates.length > 0) {
+    return chooseMatchdayPlayerMotif({
+      eventId: event.id,
+      candidates: rosterCandidates,
+      previousPlayerId,
+      source: 'roster_rotation',
+    });
+  }
+
+  mdLog('motif demo fallback', { eventId: event.id, previousPlayerId });
+  return chooseMatchdayPlayerMotif({
+    eventId: event.id,
+    candidates: MATCHDAY_DEMO_PLAYER_CANDIDATES,
+    previousPlayerId,
+    source: 'demo_fallback',
+  });
 }
 
 async function insertMatchdayPost(params: {
