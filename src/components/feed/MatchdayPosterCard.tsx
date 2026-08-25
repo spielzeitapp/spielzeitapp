@@ -28,6 +28,8 @@ export type MatchdayPosterCardProps = {
   announcementTiming?: MatchdayAnnouncementTiming | null;
   /** Kompaktere Höhe für Home / kleine Screens (iPhone SE). */
   compact?: boolean;
+  /** Beim Autopost fixiertes, freigestelltes Spielermotiv. */
+  playerImageUrl?: string | null;
 };
 
 function heroKickoffDisplay(
@@ -64,6 +66,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
       matchType,
       announcementTiming = null,
       compact = false,
+      playerImageUrl = null,
     },
     ref,
   ) {
@@ -121,6 +124,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
           showAnpfiffLabel={status === 'today' && !showStatusBadge}
           statusBadge={showStatusBadge ? statusBadge : null}
           compact={compact}
+          playerImageUrl={playerImageUrl}
         />
       </div>
     );

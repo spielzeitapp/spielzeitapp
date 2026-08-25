@@ -324,6 +324,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           awayScore={scores?.away ?? null}
           matchType={p.match_type}
           announcementTiming={announcementTiming}
+          playerImageUrl={p.matchday_player_image_url}
         />
 
         {post.caption?.trim() ? (

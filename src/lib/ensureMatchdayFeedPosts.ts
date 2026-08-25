@@ -9,6 +9,12 @@ import {
   dedupeKeyMatchdayTomorrow,
 } from './matchdayFeedCaptions';
 import type { MatchdayFeedPayload } from './matchdayFeedTypes';
+import { listRoster } from './rosterService';
+import {
+  chooseMatchdayPlayerMotif,
+  eventOverrideMatchdayMotif,
+  type MatchdayPlayerMotif,
+} from './matchdayPlayerMotif';
 import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import {
   getViennaTodayTomorrowDayKeys,
@@ -39,6 +45,7 @@ type EventRowLite = {
   match_type: string | null;
   match_id: string | null;
   opponent_logo_url: string | null;
+  player_image_url?: string | null;
   fixture_status?: string | null;
 };
 
@@ -140,6 +147,7 @@ function buildMatchdayPayload(
   event: EventRowLite,
   teamInfo: { teamId: string; name: string },
   timing: 'today' | 'tomorrow',
+  motif: MatchdayPlayerMotif | null,
 ): MatchdayFeedPayload & { matchday_timing: 'today' | 'tomorrow' } {
   const enc = formatVisibleMatchEncounter({
     isHome: event.is_home,
@@ -169,7 +177,93 @@ function buildMatchdayPayload(
       ? `/app/match/${event.match_id.trim()}`
       : `/app/events/${event.id}`,
     matchday_timing: timing,
+    matchday_player_id: motif?.playerId ?? null,
+    matchday_player_image_url: motif?.imageUrl ?? null,
+    matchday_player_name: motif?.playerName ?? null,
+    matchday_motif_source: motif?.source,
   };
+}
+
+function motifFromPayload(raw: unknown): MatchdayPlayerMotif | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const payload = raw as Record<string, unknown>;
+  const imageUrl = typeof payload.matchday_player_image_url === 'string'
+    ? payload.matchday_player_image_url.trim()
+    : '';
+  if (!imageUrl) return null;
+  const source = payload.matchday_motif_source === 'event_override'
+    ? 'event_override'
+    : 'roster_rotation';
+  return {
+    playerId:
+      typeof payload.matchday_player_id === 'string' && payload.matchday_player_id.trim()
+        ? payload.matchday_player_id.trim()
+        : null,
+    imageUrl,
+    playerName:
+      typeof payload.matchday_player_name === 'string' && payload.matchday_player_name.trim()
+        ? payload.matchday_player_name.trim()
+        : null,
+    source,
+  };
+}
+
+async function loadExistingEventMotif(eventId: string): Promise<MatchdayPlayerMotif | null> {
+  const { data } = await supabase
+    .from('team_feed_posts')
+    .select('payload')
+    .eq('event_id', eventId)
+    .in('post_kind', ['matchday_today_auto', 'matchday_tomorrow_auto'])
+    .order('created_at', { ascending: true })
+    .limit(2);
+  for (const row of (data ?? []) as Array<{ payload?: unknown }>) {
+    const motif = motifFromPayload(row.payload);
+    if (motif) return motif;
+  }
+  return null;
+}
+
+async function loadPreviousMatchdayPlayerId(
+  teamSeasonId: string,
+  eventId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('team_feed_posts')
+    .select('event_id, payload')
+    .eq('team_season_id', teamSeasonId)
+    .in('post_kind', ['matchday_today_auto', 'matchday_tomorrow_auto'])
+    .order('created_at', { ascending: false })
+    .limit(12);
+  for (const row of (data ?? []) as Array<{ event_id?: string | null; payload?: unknown }>) {
+    if (row.event_id === eventId) continue;
+    const motif = motifFromPayload(row.payload);
+    if (motif?.playerId) return motif.playerId;
+  }
+  return null;
+}
+
+async function resolveMatchdayPlayerMotif(event: EventRowLite): Promise<MatchdayPlayerMotif | null> {
+  const override = eventOverrideMatchdayMotif(event.player_image_url ?? '');
+  if (override) return override;
+
+  // Morgen-/Heute-Post desselben Spiels behalten bewusst das identische Motiv.
+  const existing = await loadExistingEventMotif(event.id);
+  if (existing) return existing;
+
+  const roster = await listRoster(event.team_season_id, 'active');
+  if (roster.error) {
+    mdLog('motif roster unavailable', { eventId: event.id, error: roster.error });
+    return null;
+  }
+  const candidates = roster.data
+    .filter((player) => Boolean(player.cutout_url?.trim()))
+    .map((player) => ({
+      playerId: player.id,
+      imageUrl: player.cutout_url!.trim(),
+      playerName: player.display_name,
+    }));
+  const previousPlayerId = await loadPreviousMatchdayPlayerId(event.team_season_id, event.id);
+  return chooseMatchdayPlayerMotif({ eventId: event.id, candidates, previousPlayerId });
 }
 
 async function insertMatchdayPost(params: {
@@ -201,7 +295,8 @@ async function insertMatchdayPost(params: {
     return { created: false, skipped: true };
   }
 
-  const payload = buildMatchdayPayload(event, teamInfo, timing);
+  const motif = await resolveMatchdayPlayerMotif(event);
+  const payload = buildMatchdayPayload(event, teamInfo, timing, motif);
   const caption =
     timing === 'today'
       ? buildMatchdayTodayCaption({
@@ -241,7 +336,13 @@ async function insertMatchdayPost(params: {
     return { created: false, error: insErr.message };
   }
 
-  mdLog('created', { eventId: event.id, timing, dedupe_key });
+  mdLog('created', {
+    eventId: event.id,
+    timing,
+    dedupe_key,
+    motifPlayerId: motif?.playerId ?? null,
+    motifSource: motif?.source ?? null,
+  });
   return { created: true };
 }
 
@@ -339,7 +440,7 @@ export async function ensureMatchdayFeedPostsForSeason(
   let mdRes = await supabase
     .from('events')
     .select(
-      'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id, fixture_status',
+      'id, team_season_id, kind, type, status, opponent, is_home, location, address, starts_at, meeting_at, match_type, match_id, opponent_logo_url, player_image_url, fixture_status',
     )
     .eq('team_season_id', sid)
     .not('status', 'in', '(canceled,finished)');
@@ -348,7 +449,7 @@ export async function ensureMatchdayFeedPostsForSeason(
     mdRes = await supabase
       .from('events')
       .select(
-        'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id',
+        'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id, opponent_logo_url, player_image_url',
       )
       .eq('team_season_id', sid)
       .not('status', 'in', '(canceled,finished)');
