@@ -32,7 +32,12 @@ function withoutBullet(value: string): string {
 }
 
 function splitThoughts(value: unknown): string[] {
-  const text = clean(value);
+  const text = clean(value)
+    .replace(/\bz\.\s*B\./gi, 'zum Beispiel')
+    .replace(/\bca\./gi, 'etwa')
+    .replace(/\bbzw\./gi, 'beziehungsweise')
+    .replace(/\bu\.\s*a\./gi, 'unter anderem')
+    .replace(/\bggf\./gi, 'gegebenenfalls');
   if (!text) return [];
   return text
     .split(/\n+|\s+[–—]\s+|(?<=[.!?;])\s+(?=[A-ZÄÖÜ0-9])/)
@@ -51,12 +56,17 @@ function phraseWithin(value: string, max: number): string {
     slice.lastIndexOf('. '),
     slice.lastIndexOf('; '),
     slice.lastIndexOf(', '),
+    slice.lastIndexOf(': '),
     slice.lastIndexOf(' – '),
     slice.lastIndexOf(' - '),
   );
   const wordBoundary = slice.lastIndexOf(' ');
-  const boundary = phraseBoundary > max * 0.55 ? phraseBoundary : wordBoundary;
-  let shortened = slice.slice(0, boundary > max * 0.55 ? boundary : max).replace(/[….,;:\s]+$/, '').trim();
+  const boundary = phraseBoundary > max * 0.25
+    ? phraseBoundary
+    : wordBoundary > max * 0.55
+      ? wordBoundary
+      : max;
+  let shortened = slice.slice(0, boundary).replace(/[….,;:\s]+$/, '').trim();
   while (/\b(?:und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i.test(shortened)) {
     shortened = shortened.replace(/\s+\S+$/, '').trim();
   }

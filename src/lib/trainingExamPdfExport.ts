@@ -68,12 +68,30 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
-function wrapTextLines(pdf: jsPDF, value: string, width: number): string[] {
+type WrappedTextLine = {
+  text: string;
+  offsetX: number;
+  hasBullet?: boolean;
+};
+
+const BULLET_INDENT = 3.2;
+
+function wrapTextLines(pdf: jsPDF, value: string, width: number): WrappedTextLine[] {
   return value.split('\n').flatMap((paragraph) => {
     const normalized = paragraph.trim();
-    if (!normalized) return [''];
+    if (!normalized) return [{ text: '', offsetX: 0 }];
+    const bulletMatch = normalized.match(/^•\s*(.*)$/);
+    if (bulletMatch) {
+      const wrapped = pdf.splitTextToSize(bulletMatch[1], Math.max(1, width - BULLET_INDENT)) as string[];
+      const lines = wrapped.length > 0 ? wrapped : [''];
+      return lines.map((text, index) => ({
+        text,
+        offsetX: BULLET_INDENT,
+        hasBullet: index === 0,
+      }));
+    }
     const wrapped = pdf.splitTextToSize(normalized, width) as string[];
-    return wrapped.length > 0 ? wrapped : [''];
+    return (wrapped.length > 0 ? wrapped : ['']).map((text) => ({ text, offsetX: 0 }));
   });
 }
 
@@ -93,7 +111,7 @@ function drawFittedText(
   let fontSize = options.maxFontSize;
   let lineHeightMm = 0;
   let maxLines = 1;
-  let lines: string[] = [];
+  let lines: WrappedTextLine[] = [];
 
   while (true) {
     pdf.setFontSize(fontSize);
@@ -111,7 +129,8 @@ function drawFittedText(
   visibleLines.forEach((line, index) => {
     const baseline = y + index * lineHeightMm;
     if (baseline <= y + height) {
-      pdf.text(line, x, baseline, { maxWidth: width });
+      if (line.hasBullet) pdf.text('•', x, baseline);
+      pdf.text(line.text, x + line.offsetX, baseline);
     }
   });
 }
@@ -234,15 +253,15 @@ async function drawPhase(
     CONTENT_WIDTH - 2.4,
     5.4,
     {
-      maxFontSize: 6.6,
-      minFontSize: 5.5,
+      maxFontSize: 7,
+      minFontSize: 6,
       lineHeightFactor: 1.08,
     },
   );
   pdf.setFont('helvetica', 'normal');
   drawFittedText(pdf, contentText, CONTENT_X + 1.3, top + 12, CONTENT_WIDTH - 2.4, PHASE_HEIGHT - 13, {
-    maxFontSize: 6.1,
-    minFontSize: 5.5,
+    maxFontSize: 6.5,
+    minFontSize: 5.8,
     lineHeightFactor: 1.14,
   });
 
@@ -250,8 +269,8 @@ async function drawPhase(
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
   drawFittedText(pdf, materialsText, MATERIAL_X + 1.2, top + 6.5, MATERIAL_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
-    maxFontSize: 6.1,
-    minFontSize: 5.5,
+    maxFontSize: 6.4,
+    minFontSize: 5.8,
     lineHeightFactor: 1.12,
   });
 
@@ -259,8 +278,8 @@ async function drawPhase(
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
   drawFittedText(pdf, coachingText, COACHING_X + 1.2, top + 6.5, COACHING_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
-    maxFontSize: 6.1,
-    minFontSize: 5.5,
+    maxFontSize: 6.4,
+    minFontSize: 5.8,
     lineHeightFactor: 1.12,
   });
 

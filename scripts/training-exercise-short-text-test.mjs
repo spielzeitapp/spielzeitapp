@@ -27,6 +27,25 @@ try {
   assert.ok(!/https?:\/\//.test(`${result.content}${result.coaching}`));
   assert.ok(!/…|\.\.\./.test(`${result.content}${result.materials}${result.coaching}`));
   assert.deepEqual(TRAINING_SHORT_TEXT_LIMITS, { content: 270, materials: 100, coaching: 250 });
+
+  const realistic = createTrainingExerciseShortText({
+    organization: 'Ein ca. 15 x 30 Meter großes Spielfeld mit zwei Toren aufbauen.',
+    description:
+      'Spieler B startet die Aktion, indem er von der Markierungsscheibe in Richtung Spieler A zwischen die Dummies läuft. B erhält ein Zuspiel von A, welches er zwischen den Dummies direkt wieder zurückspielt.',
+    materials: 'Bälle, Hütchen, zwei Tore',
+    coachingPoints:
+      'Die Mannschaften treten im Wettkampf gegeneinander an: Welches Team erzielt in einem Zeitabschnitt die meisten Treffer? Nach dem Pass sofort freilaufen.',
+    variations: 'Die Positionen B und C an den Dummies einfach ohne Ball besetzen.',
+  });
+
+  assert.match(realistic.content, /Aufbau: Ein etwa 15 x 30 Meter/);
+  assert.match(realistic.content, /Spieler B startet die Aktion/);
+  for (const line of `${realistic.content}\n${realistic.coaching}`.split('\n').filter(Boolean)) {
+    assert.doesNotMatch(
+      line,
+      /\b(?:und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i,
+    );
+  }
 } finally {
   await vite.close();
 }
