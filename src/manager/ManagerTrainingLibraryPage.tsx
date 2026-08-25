@@ -4,7 +4,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { FileUp, ImagePlus, Plus, RotateCw, Search, Trash2, X } from 'lucide-react';
+import { FileUp, ImagePlus, Plus, RotateCw, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 import {
@@ -26,6 +26,7 @@ import {
   createTrainingExerciseShortText,
   TRAINING_SHORT_TEXT_LIMITS,
 } from '../lib/trainingExerciseShortText';
+import { createTrainingExerciseAiShortText } from '../lib/trainingExerciseAiShortText';
 import { addExerciseToSession, updateSessionExercise } from '../lib/trainingSessions';
 import {
   EXERCISE_DIFFICULTY_LABELS,
@@ -158,6 +159,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [saving, setSaving] = useState(false);
   const [selectingId, setSelectingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [shorteningWithAi, setShorteningWithAi] = useState(false);
   const [importing, setImporting] = useState(false);
   const [sketchProcessing] = useState(false);
   const [pendingSketch, setPendingSketch] = useState<Blob | null>(null);
@@ -427,6 +429,32 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       shortMaterials: generated.materials,
       shortCoaching: generated.coaching,
     }));
+  };
+
+  const generateAiShortText = async () => {
+    if (!clubId || shorteningWithAi) return;
+    setShorteningWithAi(true);
+    setFormError(null);
+    const result = await createTrainingExerciseAiShortText(clubId, {
+      description: form.description,
+      organization: form.organization,
+      materials: form.materials,
+      coachingPoints: form.coachingPoints,
+      variations: form.variations,
+    });
+    setShorteningWithAi(false);
+    if (!result.data) {
+      setFormError(result.error ?? 'KI-Kurzfassung fehlgeschlagen.');
+      return;
+    }
+    const generated = result.data;
+    setForm((current) => ({
+      ...current,
+      shortContent: generated.content,
+      shortMaterials: generated.materials,
+      shortCoaching: generated.coaching,
+    }));
+    setToast('KI-Kurzfassung erstellt – bitte prüfen und anschließend speichern.');
   };
 
   const save = async () => {
@@ -1099,14 +1127,26 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       Verständliche Stichpunkte für den Platz. Der ausführliche Originaltext oben bleibt erhalten.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={generateShortText}
-                    className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-50"
-                  >
-                    <RotateCw className="h-3.5 w-3.5" aria-hidden />
-                    Neu vorschlagen
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void generateAiShortText()}
+                      disabled={shorteningWithAi}
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      <Sparkles className={`h-3.5 w-3.5 ${shorteningWithAi ? 'animate-pulse' : ''}`} aria-hidden />
+                      {shorteningWithAi ? 'KI kürzt…' : 'Mit KI kürzen'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={generateShortText}
+                      disabled={shorteningWithAi}
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-50 disabled:opacity-60"
+                    >
+                      <RotateCw className="h-3.5 w-3.5" aria-hidden />
+                      Neu vorschlagen (ohne KI)
+                    </button>
+                  </div>
                 </div>
                 <div className="mt-3 space-y-3">
                   <ShortTextField
