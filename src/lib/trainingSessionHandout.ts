@@ -2,6 +2,7 @@ import type { TrainingExerciseRow } from './trainingExercises';
 import type { TrainingSessionExerciseRow, TrainingSessionRow } from './trainingSessions';
 import { TRAINING_PHASE_LABELS, TRAINING_PHASES } from './trainingPhases';
 import { VIENNA_TZ } from './viennaTime';
+import { resolveTrainingExerciseShortText } from './trainingExerciseShortText';
 
 type HandoutInput = {
   session: TrainingSessionRow;
@@ -48,9 +49,21 @@ function renderExercise(
   exercise: TrainingExerciseRow | undefined,
   sketchUrl: string | null | undefined,
 ): string {
-  const description = compact(exercise?.description ?? exercise?.organization, 310);
-  const materials = compact(exercise?.materials, 145);
-  const coaching = compact(exercise?.coaching_points, 235);
+  const shortText = exercise
+    ? resolveTrainingExerciseShortText({
+        description: exercise.description,
+        organization: exercise.organization,
+        materials: exercise.materials,
+        coachingPoints: exercise.coaching_points,
+        variations: exercise.variations,
+        shortContent: exercise.short_content,
+        shortMaterials: exercise.short_materials,
+        shortCoaching: exercise.short_coaching,
+      })
+    : { content: '', materials: '', coaching: '' };
+  const description = shortText.content;
+  const materials = shortText.materials;
+  const coaching = shortText.coaching;
   const notes = compact(item.coach_notes, 120);
   return `
     <article class="exercise">
@@ -123,7 +136,7 @@ export function createTrainingSessionHandoutHtml(input: HandoutInput): string {
     .details { min-height: 0; overflow: hidden; }
     section { margin: 0 0 1.6mm; }
     h3 { margin: 0 0 .5mm; color: #4b5563; font-size: 7pt; line-height: 1.1; text-transform: uppercase; letter-spacing: .04em; }
-    p { margin: 0; font-size: 7.3pt; line-height: 1.18; overflow-wrap: anywhere; }
+    p { margin: 0; white-space: pre-line; font-size: 7.3pt; line-height: 1.18; overflow-wrap: anywhere; }
     @page { size: A4 landscape; margin: 0; }
     @media print {
       body { background: white; }

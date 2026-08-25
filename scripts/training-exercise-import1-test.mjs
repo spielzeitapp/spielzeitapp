@@ -14,6 +14,9 @@ const migrationPdf = read('supabase/migrations/20260820193000_training_exercise_
 const migrationVisibility = read(
   'supabase/migrations/20260822220000_training_exercise_visibility_and_sketch_paths.sql',
 );
+const migrationShortText = read(
+  'supabase/migrations/20260825143000_training_exercise_short_texts.sql',
+);
 
 assert.match(page, /PDF importieren/);
 assert.match(page, /PDF-Import prüfen/);
@@ -27,20 +30,27 @@ assert.match(page, /DetailModal|exercise-detail-title/);
 assert.match(page, /Organisation \/ Aufbau/);
 assert.match(page, /Coachingpunkte/);
 assert.match(page, /Variationen/);
+assert.match(page, /Kurzfassung für Handout &amp; Trainer-PDF/);
+assert.match(page, /Neu vorschlagen/);
 assert.match(page, /Nur für mich \(privat\)/);
 assert.match(page, /Schwerpunkt filtern|Trainingsphase filtern/);
 assert.match(parser, /file\.arrayBuffer\(\)/, 'PDF muss lokal im Browser gelesen werden');
 assert.doesNotMatch(parser, /fetch\(/, 'Original-PDF darf nicht an einen Analyse-Service gesendet werden');
 assert.match(parser, /MAX_PDF_BYTES = 15 \* 1024 \* 1024/);
+assert.match(parser, /createTrainingExerciseShortText/);
 assert.match(storage, /source_type: input\.sourceType \?\? 'club'/);
 assert.match(storage, /TRAINING_EXERCISE_SKETCH_MAX_BYTES = 8 \* 1024 \* 1024/);
 assert.match(storage, /\$\{clubId\}\/exercises\/\$\{exerciseId\}/);
 assert.match(storage, /visibility/);
+assert.match(storage, /short_content/);
 assert.match(migrationPdf, /'training-exercise-media'[\s\S]*false,/);
 assert.match(migrationPdf, /can_manage_club_venues/);
 assert.match(migrationVisibility, /visibility IN \('club', 'private'\)/);
 assert.match(migrationVisibility, /split_part\(name, '\/', 2\) IN \('imports', 'exercises'\)/);
 assert.match(migrationVisibility, /created_by = auth\.uid\(\)/);
+assert.match(migrationShortText, /short_content text NULL/);
+assert.match(migrationShortText, /short_materials text NULL/);
+assert.match(migrationShortText, /short_coaching text NULL/);
 
 const samplePaths = process.argv.slice(2);
 if (samplePaths.length) {

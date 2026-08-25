@@ -22,6 +22,10 @@ import {
   type TrainingExerciseVisibility,
 } from '../lib/trainingExercises';
 import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
+import {
+  createTrainingExerciseShortText,
+  TRAINING_SHORT_TEXT_LIMITS,
+} from '../lib/trainingExerciseShortText';
 import { addExerciseToSession, updateSessionExercise } from '../lib/trainingSessions';
 import {
   EXERCISE_DIFFICULTY_LABELS,
@@ -50,6 +54,9 @@ type FormState = {
   organization: string;
   coachingPoints: string;
   variations: string;
+  shortContent: string;
+  shortMaterials: string;
+  shortCoaching: string;
   sourceReference: string;
   visibility: TrainingExerciseVisibility;
 };
@@ -68,11 +75,21 @@ const emptyForm = (): FormState => ({
   organization: '',
   coachingPoints: '',
   variations: '',
+  shortContent: '',
+  shortMaterials: '',
+  shortCoaching: '',
   sourceReference: '',
   visibility: 'club',
 });
 
 function formFromRow(row: TrainingExerciseRow): FormState {
+  const suggestedShortText = createTrainingExerciseShortText({
+    description: row.description,
+    organization: row.organization,
+    materials: row.materials,
+    coachingPoints: row.coaching_points,
+    variations: row.variations,
+  });
   return {
     title: row.title,
     description: row.description ?? '',
@@ -87,6 +104,9 @@ function formFromRow(row: TrainingExerciseRow): FormState {
     organization: row.organization ?? '',
     coachingPoints: row.coaching_points ?? '',
     variations: row.variations ?? '',
+    shortContent: row.short_content ?? suggestedShortText.content,
+    shortMaterials: row.short_materials ?? suggestedShortText.materials,
+    shortCoaching: row.short_coaching ?? suggestedShortText.coaching,
     sourceReference: row.source_reference ?? '',
     visibility: row.visibility === 'private' ? 'private' : 'club',
   };
@@ -366,6 +386,22 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     });
   };
 
+  const generateShortText = () => {
+    const generated = createTrainingExerciseShortText({
+      description: form.description,
+      organization: form.organization,
+      materials: form.materials,
+      coachingPoints: form.coachingPoints,
+      variations: form.variations,
+    });
+    setForm((current) => ({
+      ...current,
+      shortContent: generated.content,
+      shortMaterials: generated.materials,
+      shortCoaching: generated.coaching,
+    }));
+  };
+
   const save = async () => {
     if (!clubId) return;
     setSaving(true);
@@ -386,6 +422,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       organization: form.organization,
       coachingPoints: form.coachingPoints,
       variations: form.variations,
+      shortContent: form.shortContent,
+      shortMaterials: form.shortMaterials,
+      shortCoaching: form.shortCoaching,
       sourceType: (form.sourceReference ? 'import' : editing?.source_type === 'import' ? 'import' : 'club') as
         | 'club'
         | 'import',
@@ -1021,6 +1060,49 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
                 />
               </Field>
+              <section className="rounded-xl border border-red-100 bg-red-50/50 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-[13px] font-semibold text-slate-900">
+                      Kurzfassung für Handout &amp; Trainer-PDF
+                    </h3>
+                    <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                      Verständliche Stichpunkte für den Platz. Der ausführliche Originaltext oben bleibt erhalten.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={generateShortText}
+                    className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-50"
+                  >
+                    <RotateCw className="h-3.5 w-3.5" aria-hidden />
+                    Neu vorschlagen
+                  </button>
+                </div>
+                <div className="mt-3 space-y-3">
+                  <ShortTextField
+                    label="Aufbau & Ablauf"
+                    value={form.shortContent}
+                    max={TRAINING_SHORT_TEXT_LIMITS.content}
+                    rows={5}
+                    onChange={(value) => setForm((current) => ({ ...current, shortContent: value }))}
+                  />
+                  <ShortTextField
+                    label="Geräte"
+                    value={form.shortMaterials}
+                    max={TRAINING_SHORT_TEXT_LIMITS.materials}
+                    rows={2}
+                    onChange={(value) => setForm((current) => ({ ...current, shortMaterials: value }))}
+                  />
+                  <ShortTextField
+                    label="Coachingpunkte"
+                    value={form.shortCoaching}
+                    max={TRAINING_SHORT_TEXT_LIMITS.coaching}
+                    rows={5}
+                    onChange={(value) => setForm((current) => ({ ...current, shortCoaching: value }))}
+                  />
+                </div>
+              </section>
               {form.sourceReference ? (
                 <Field label="Quelle">
                   <textarea
@@ -1185,6 +1267,47 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function ShortTextField({
+  label,
+  value,
+  max,
+  rows,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  max: number;
+  rows: number;
+  onChange: (value: string) => void;
+}): React.ReactElement {
+  const length = value.length;
+  const fit = length <= max ? 'Passt' : length <= Math.round(max * 1.15) ? 'Knapp' : 'Zu lang';
+  const fitClass =
+    fit === 'Passt'
+      ? 'bg-emerald-50 text-emerald-700'
+      : fit === 'Knapp'
+        ? 'bg-amber-50 text-amber-800'
+        : 'bg-red-100 text-red-800';
+  return (
+    <label className="block">
+      <span className="flex items-center justify-between gap-2 text-[12px] font-medium text-slate-600">
+        <span>{label}</span>
+        <span className="flex items-center gap-2 text-[10px]">
+          <span className="tabular-nums text-slate-400">{length}/{max}</span>
+          <span className={`rounded-full px-2 py-0.5 font-bold ${fitClass}`}>{fit}</span>
+        </span>
+      </span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={rows}
+        placeholder="• Kurzer, verständlicher Stichpunkt"
+        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] leading-5"
+      />
+    </label>
+  );
+}
+
 type ExerciseCropOptions = { zoom: number; x: number; y: number; rotation: number };
 
 async function loadCropImage(url: string): Promise<HTMLImageElement> {
@@ -1258,4 +1381,3 @@ async function imageUrlToWebp(url: string): Promise<Blob> {
   if (!blob) throw new Error('Bild konnte nicht konvertiert werden.');
   return blob;
 }
-

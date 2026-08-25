@@ -44,6 +44,7 @@ const checks = [
   [phaseTextMigration.includes('phase_text_overrides jsonb'), 'Migration für phasenweise Prüfungstexte fehlt'],
   [data.includes('phase_text_overrides'), 'Persistenz der Prüfungstexte fehlt'],
   [pdf.includes('phaseTextOverrides'), 'PDF nutzt Prüfungstexte nicht'],
+  [pdf.includes('resolveTrainingExerciseShortText'), 'PDF nutzt die verständliche Bibliotheks-Kurzfassung nicht'],
   [pdf.includes('drawFittedText'), 'Dynamische Textanpassung fehlt'],
   [pdf.includes('const PHASE_GAP = 1.3'), 'Gleichmäßiger Phasenabstand fehlt'],
   [pdf.includes('drawPhaseLabel'), 'Neu ausgerichtete Phasenlabels fehlen'],

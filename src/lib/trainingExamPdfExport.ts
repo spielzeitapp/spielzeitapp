@@ -3,6 +3,7 @@ import type { TrainingExerciseRow } from './trainingExercises';
 import type { TrainingSessionExerciseRow, TrainingSessionRow } from './trainingSessions';
 import type { TrainingPhase } from './trainingPhases';
 import type { TrainingExamPhaseTextOverrides } from './trainingExamDocumentation';
+import { resolveTrainingExerciseShortText } from './trainingExerciseShortText';
 
 export type TrainingExamPdfSession = {
   session: TrainingSessionRow;
@@ -214,18 +215,20 @@ async function drawPhase(
   for (const item of items) {
     const exercise = entry.exerciseMap[item.exercise_id] ?? item.exercise ?? null;
     if (!exercise) continue;
+    const shortText = resolveTrainingExerciseShortText({
+      description: exercise.description,
+      organization: exercise.organization,
+      materials: exercise.materials,
+      coachingPoints: exercise.coaching_points,
+      variations: exercise.variations,
+      shortContent: exercise.short_content,
+      shortMaterials: exercise.short_materials,
+      shortCoaching: exercise.short_coaching,
+    });
     titleParts.push(clean(exercise.title));
-    detailParts.push(
-      [clean(exercise.description), clean(exercise.organization) ? `Aufbau: ${clean(exercise.organization)}` : '']
-        .filter(Boolean)
-        .join('\n'),
-    );
-    if (clean(exercise.materials)) materialParts.push(clean(exercise.materials));
-    coachingParts.push(
-      [withoutVideoLines(exercise.coaching_points), withoutVideoLines(exercise.variations) ? `Variation: ${withoutVideoLines(exercise.variations)}` : '']
-        .filter(Boolean)
-        .join('\n'),
-    );
+    if (shortText.content) detailParts.push(shortText.content);
+    if (shortText.materials) materialParts.push(shortText.materials);
+    if (shortText.coaching) coachingParts.push(withoutVideoLines(shortText.coaching));
   }
 
   const override = entry.phaseTextOverrides?.[phase];

@@ -24,6 +24,7 @@ import {
 import { getTrainingExerciseSketchUrl, type TrainingExerciseRow } from '../lib/trainingExercises';
 import { listSessionExercises, type TrainingSessionExerciseRow, type TrainingSessionRow } from '../lib/trainingSessions';
 import { TRAINING_PHASES, type TrainingPhase } from '../lib/trainingPhases';
+import { resolveTrainingExerciseShortText } from '../lib/trainingExerciseShortText';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 
 type SessionDetails = {
@@ -97,17 +98,19 @@ function defaultPhaseText(details: SessionDetails | undefined, phase: TrainingPh
   for (const item of phaseItems) {
     const exercise = details?.exerciseMap[item.exercise_id] ?? item.exercise ?? null;
     if (!exercise) continue;
-    content.push(
-      [cleanExamText(exercise.description), cleanExamText(exercise.organization) ? `Aufbau: ${cleanExamText(exercise.organization)}` : '']
-        .filter(Boolean)
-        .join('\n'),
-    );
-    if (cleanExamText(exercise.materials)) materials.push(cleanExamText(exercise.materials));
-    coaching.push(
-      [withoutExamVideo(exercise.coaching_points), withoutExamVideo(exercise.variations) ? `Variation: ${withoutExamVideo(exercise.variations)}` : '']
-        .filter(Boolean)
-        .join('\n'),
-    );
+    const shortText = resolveTrainingExerciseShortText({
+      description: exercise.description,
+      organization: exercise.organization,
+      materials: exercise.materials,
+      coachingPoints: exercise.coaching_points,
+      variations: exercise.variations,
+      shortContent: exercise.short_content,
+      shortMaterials: exercise.short_materials,
+      shortCoaching: exercise.short_coaching,
+    });
+    if (shortText.content) content.push(shortText.content);
+    if (shortText.materials) materials.push(shortText.materials);
+    if (shortText.coaching) coaching.push(withoutExamVideo(shortText.coaching));
   }
   return {
     content: content.filter(Boolean).join('\n\n'),
