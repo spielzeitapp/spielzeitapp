@@ -8,11 +8,8 @@ assert.match(library, /einheiten\/neu\?exercise=/, 'library forwards the selecte
 assert.match(editor, /searchParams\.get\('exercise'\)/, 'editor reads the selected exercise');
 assert.match(editor, /In welchen Abschnitt möchtest du diese Übung einfügen\?/, 'phase choice is shown');
 assert.match(editor, /addExercise\(requestedExercise, phase\)/, 'selected exercise is added to chosen phase');
-assert.doesNotMatch(
-  editor,
-  /if \(!ex\.suitable_phases\.includes\(pickerPhase\)\) return false/,
-  'recommended phases do not hide exercises from the picker',
-);
-assert.match(editor, /Für diese Phase empfohlen/, 'recommended exercises remain clearly marked');
+assert.match(library, /selectionPhase/, 'library receives the requested training phase');
+assert.match(library, /Passende Übungen sind vorgefiltert/, 'matching exercises are clearly prefiltered');
+assert.match(library, /selectForSession\(row\)/, 'library adds the chosen exercise to the session');
 
 console.log('training-session-add-exercise: ok');

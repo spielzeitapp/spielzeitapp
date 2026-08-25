@@ -126,6 +126,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     : null;
   const replaceItemId = searchParams.get('replace');
   const quickReplace = searchParams.get('quick') === '1';
+  const editExerciseId = searchParams.get('edit');
   const requestedReturnTo = searchParams.get('returnTo');
   const returnTo =
     requestedReturnTo?.startsWith('/manager/training/einheiten/')
@@ -133,6 +134,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       : selectionSessionId
         ? `/manager/training/einheiten/${selectionSessionId}`
         : null;
+  const editReturnTo = requestedReturnTo?.startsWith('/manager/training/einheiten/')
+    ? requestedReturnTo
+    : null;
   const selectionMode = Boolean(selectionSessionId && selectionPhase && returnTo);
 
   const [clubId, setClubId] = useState<string | null>(null);
@@ -169,6 +173,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
   const cropCanvasRef = useRef<HTMLCanvasElement>(null);
+  const openedRequestedEditorRef = useRef<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!teamSeasonId) {
@@ -276,6 +281,17 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       void getTrainingExerciseSketchUrl(row.image_path).then((url) => setCurrentSketchUrl(url));
     }
   };
+
+  useEffect(() => {
+    if (!editExerciseId || loading || openedRequestedEditorRef.current === editExerciseId) return;
+    openedRequestedEditorRef.current = editExerciseId;
+    const row = rows.find((candidate) => candidate.id === editExerciseId);
+    if (!row) {
+      setToast('Die gewählte Übung wurde nicht gefunden.');
+      return;
+    }
+    openEdit(row);
+  }, [editExerciseId, loading, rows]);
 
   const openDetail = (row: TrainingExerciseRow) => {
     setDetail(row);
@@ -404,6 +420,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
 
   const save = async () => {
     if (!clubId) return;
+    const returnAfterSave = editing?.id === editExerciseId ? editReturnTo : null;
     setSaving(true);
     setFormError(null);
 
@@ -490,6 +507,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     resetSketchState();
     setToast(editing ? 'Übung aktualisiert.' : form.sourceReference ? 'PDF-Übung importiert.' : 'Übung angelegt.');
     await reload();
+    if (returnAfterSave) navigate(returnAfterSave);
   };
 
   const selectForSession = async (row: TrainingExerciseRow) => {
@@ -1119,6 +1137,10 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               <button
                 type="button"
                 onClick={() => {
+                  if (editing?.id === editExerciseId && editReturnTo) {
+                    navigate(editReturnTo);
+                    return;
+                  }
                   setEditorOpen(false);
                   resetSketchState();
                 }}
