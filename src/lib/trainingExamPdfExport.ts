@@ -25,6 +25,9 @@ const PHASES: TrainingPhase[] = ['AW', 'HT1', 'HT2', 'AK'];
 // Exakte Nutzflächen der unveränderten NÖFV-ÖFB-D-Diplom-Seite (A4 quer).
 const PHASE_TOP = 49.8;
 const PHASE_HEIGHT = 32.8;
+// Die Phasenlabels sind in der unveränderten Hintergrundvorlage ungleichmäßig verteilt.
+const CONTENT_PHASE_TOPS = [49.8, 86, 122.2, 167.4] as const;
+const CONTENT_TABLE_BOTTOM = 180.8;
 const CONTENT_X = 14.8;
 const CONTENT_WIDTH = 58.2;
 const SKETCH_X = 76.8;
@@ -185,6 +188,8 @@ async function drawPhase(
 ): Promise<void> {
   const items = phaseItems(entry, phase);
   const top = PHASE_TOP + index * PHASE_HEIGHT;
+  const contentTop = CONTENT_PHASE_TOPS[index];
+  const contentBottom = CONTENT_PHASE_TOPS[index + 1] ?? CONTENT_TABLE_BOTTOM;
   if (items.length === 0) return;
 
   const contentParts: string[] = [];
@@ -210,11 +215,19 @@ async function drawPhase(
 
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
-  drawFittedText(pdf, contentParts.join('\n\n'), CONTENT_X, top + 7.2, CONTENT_WIDTH, PHASE_HEIGHT - 8.5, {
-    maxFontSize: 6.5,
-    minFontSize: 5.5,
-    lineHeightFactor: 1.15,
-  });
+  drawFittedText(
+    pdf,
+    contentParts.join('\n\n'),
+    CONTENT_X,
+    contentTop + 7.2,
+    CONTENT_WIDTH,
+    Math.max(3.5, contentBottom - contentTop - 8.5),
+    {
+      maxFontSize: 6.5,
+      minFontSize: 5.5,
+      lineHeightFactor: 1.15,
+    },
+  );
   drawFittedText(pdf, materialParts.join('\n'), MATERIAL_X, top + 4, MATERIAL_WIDTH, PHASE_HEIGHT - 5.2, {
     maxFontSize: 6.1,
     minFontSize: 5.5,
