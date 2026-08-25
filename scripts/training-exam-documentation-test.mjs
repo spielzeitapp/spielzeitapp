@@ -12,6 +12,10 @@ const editableMigration = fs.readFileSync(
   'supabase/migrations/20260824223000_training_exam_editable_pdf_fields.sql',
   'utf8',
 );
+const phaseTextMigration = fs.readFileSync(
+  'supabase/migrations/20260825120000_training_exam_phase_text_overrides.sql',
+  'utf8',
+);
 
 const checks = [
   [sessions.includes("setMainTab('exam')"), 'Trainerprüfung-Tab fehlt'],
@@ -23,6 +27,9 @@ const checks = [
   [panel.includes('Trainingsdatum'), 'Datumsfeld fehlt'],
   [panel.includes('Mannschaft'), 'Mannschaftsfeld fehlt'],
   [panel.includes('Schwerpunkt'), 'Schwerpunktfeld fehlt'],
+  [panel.includes('PDF-Prüfungstexte kürzen'), 'Editor für kurze Prüfungstexte fehlt'],
+  [panel.includes('Originaltext verwenden'), 'Rückkehr zum Bibliothekstext fehlt'],
+  [panel.includes('Zu lang'), 'Längenwarnung für Prüfungstexte fehlt'],
   [panel.includes('Seit Export geändert'), 'Änderungshinweis fehlt'],
   [pdf.includes('/templates/oefbd-training-blank-page.png.b64'), 'Originalvorlage fehlt'],
   [pdf.includes("const PHASES: TrainingPhase[] = ['AW', 'HT1', 'HT2', 'AK']"), 'Phasen fehlen'],
@@ -34,7 +41,16 @@ const checks = [
   [editableMigration.includes('focus_override'), 'Schwerpunkt-Migration fehlt'],
   [editableMigration.includes('team_name_override'), 'Mannschaft-Migration fehlt'],
   [editableMigration.includes('training_date_override'), 'Datums-Migration fehlt'],
+  [phaseTextMigration.includes('phase_text_overrides jsonb'), 'Migration für phasenweise Prüfungstexte fehlt'],
+  [data.includes('phase_text_overrides'), 'Persistenz der Prüfungstexte fehlt'],
+  [pdf.includes('phaseTextOverrides'), 'PDF nutzt Prüfungstexte nicht'],
   [pdf.includes('drawFittedText'), 'Dynamische Textanpassung fehlt'],
+  [pdf.includes('const PHASE_GAP = 1.3'), 'Gleichmäßiger Phasenabstand fehlt'],
+  [pdf.includes('drawPhaseLabel'), 'Neu ausgerichtete Phasenlabels fehlen'],
+  [pdf.includes('drawSketchPhaseBadge'), 'Phasenkennzeichnung an Skizzen fehlt'],
+  [pdf.includes('separatorY'), 'Zeilengleiche Phasentrennung fehlt'],
+  [!pdf.includes('CONTENT_PHASE_TOPS'), 'Alte ungleiche Inhaltspositionen sind noch aktiv'],
+  [!pdf.includes("exercise.title} (${item.duration_minutes} Min.)"), 'Minuten stehen noch automatisch im PDF-Titel'],
 ];
 
 for (const [ok, message] of checks) {

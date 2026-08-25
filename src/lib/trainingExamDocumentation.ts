@@ -1,4 +1,13 @@
 import { supabase } from './supabaseClient';
+import type { TrainingPhase } from './trainingPhases';
+
+export type TrainingExamPhaseText = {
+  content?: string;
+  materials?: string;
+  coaching?: string;
+};
+
+export type TrainingExamPhaseTextOverrides = Partial<Record<TrainingPhase, TrainingExamPhaseText>>;
 
 export type TrainingExamDocumentationRow = {
   id: string;
@@ -24,6 +33,8 @@ export type TrainingExamDocumentationItemRow = {
   focus_override: string | null;
   team_name_override: string | null;
   training_date_override: string | null;
+  phase_text_overrides: TrainingExamPhaseTextOverrides;
+  updated_at: string;
 };
 
 export type TrainingExamDocumentationBundle = {
@@ -33,7 +44,24 @@ export type TrainingExamDocumentationBundle = {
 
 const DOCUMENT_SELECT =
   'id, club_id, team_season_id, title, required_units, deadline, export_version, last_exported_at, created_by, created_at, updated_at, trainer_name';
-const ITEM_SELECT = 'id, documentation_id, training_session_id, sort_order, created_at, focus_override, team_name_override, training_date_override';
+const ITEM_SELECT = 'id, documentation_id, training_session_id, sort_order, created_at, updated_at, focus_override, team_name_override, training_date_override, phase_text_overrides';
+
+function mapPhaseTextOverrides(raw: unknown): TrainingExamPhaseTextOverrides {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const source = raw as Record<string, unknown>;
+  const result: TrainingExamPhaseTextOverrides = {};
+  for (const phase of ['AW', 'HT1', 'HT2', 'AK'] as TrainingPhase[]) {
+    const value = source[phase];
+    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+    const fields = value as Record<string, unknown>;
+    result[phase] = {
+      ...(typeof fields.content === 'string' ? { content: fields.content } : {}),
+      ...(typeof fields.materials === 'string' ? { materials: fields.materials } : {}),
+      ...(typeof fields.coaching === 'string' ? { coaching: fields.coaching } : {}),
+    };
+  }
+  return result;
+}
 
 function mapDocument(raw: Record<string, unknown>): TrainingExamDocumentationRow {
   return {
@@ -62,6 +90,8 @@ function mapItem(raw: Record<string, unknown>): TrainingExamDocumentationItemRow
     focus_override: (raw.focus_override as string | null) ?? null,
     team_name_override: (raw.team_name_override as string | null) ?? null,
     training_date_override: (raw.training_date_override as string | null) ?? null,
+    phase_text_overrides: mapPhaseTextOverrides(raw.phase_text_overrides),
+    updated_at: String(raw.updated_at ?? raw.created_at),
   };
 }
 
@@ -148,6 +178,7 @@ export async function updateTrainingExamSessionMetadata(
     focusOverride: string | null;
     teamNameOverride: string | null;
     trainingDateOverride: string | null;
+    phaseTextOverrides: TrainingExamPhaseTextOverrides;
   },
 ): Promise<{ data: TrainingExamDocumentationItemRow | null; error: string | null }> {
   const result = await supabase
@@ -156,6 +187,8 @@ export async function updateTrainingExamSessionMetadata(
       focus_override: values.focusOverride?.trim() || null,
       team_name_override: values.teamNameOverride?.trim() || null,
       training_date_override: values.trainingDateOverride || null,
+      phase_text_overrides: values.phaseTextOverrides,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', itemId)
     .select(ITEM_SELECT)

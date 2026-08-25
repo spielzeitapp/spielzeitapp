@@ -13,6 +13,7 @@ import {
   updateTrainingExamTrainerName,
   type TrainingExamDocumentationBundle,
   type TrainingExamDocumentationItemRow,
+  type TrainingExamPhaseText,
 } from '../lib/trainingExamDocumentation';
 import {
   createTrainingExamPdf,
@@ -72,6 +73,53 @@ function inspectSession(items: TrainingSessionExerciseRow[]): SessionDetails {
     if (!String(exercise.coaching_points ?? '').trim()) missing.push(`Coachingpunkte fehlen: ${exercise.title}`);
   }
   return { items, exerciseMap, missing: [...new Set(missing)] };
+}
+
+function cleanExamText(value: unknown): string {
+  return String(value ?? '').replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ').trim();
+}
+
+function withoutExamVideo(value: unknown): string {
+  return cleanExamText(value)
+    .split('\n')
+    .filter((line) => !/^video\s*:/i.test(line.trim()) && !/https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)/i.test(line))
+    .join('\n')
+    .trim();
+}
+
+function defaultPhaseText(details: SessionDetails | undefined, phase: TrainingPhase): Required<TrainingExamPhaseText> {
+  const content: string[] = [];
+  const materials: string[] = [];
+  const coaching: string[] = [];
+  const phaseItems = (details?.items ?? [])
+    .filter((item) => item.phase === phase)
+    .sort((left, right) => left.sort_order - right.sort_order);
+  for (const item of phaseItems) {
+    const exercise = details?.exerciseMap[item.exercise_id] ?? item.exercise ?? null;
+    if (!exercise) continue;
+    content.push(
+      [cleanExamText(exercise.description), cleanExamText(exercise.organization) ? `Aufbau: ${cleanExamText(exercise.organization)}` : '']
+        .filter(Boolean)
+        .join('\n'),
+    );
+    if (cleanExamText(exercise.materials)) materials.push(cleanExamText(exercise.materials));
+    coaching.push(
+      [withoutExamVideo(exercise.coaching_points), withoutExamVideo(exercise.variations) ? `Variation: ${withoutExamVideo(exercise.variations)}` : '']
+        .filter(Boolean)
+        .join('\n'),
+    );
+  }
+  return {
+    content: content.filter(Boolean).join('\n\n'),
+    materials: materials.filter(Boolean).join('\n'),
+    coaching: coaching.filter(Boolean).join('\n\n'),
+  };
+}
+
+function textFitLabel(length: number, recommended: number): { label: string; className: string } {
+  if (length <= recommended) return { label: 'Passt', className: 'bg-emerald-50 text-emerald-700' };
+  if (length <= Math.round(recommended * 1.2)) return { label: 'Knapp', className: 'bg-amber-50 text-amber-800' };
+  return { label: 'Zu lang', className: 'bg-red-50 text-red-700' };
 }
 
 export function ManagerTrainingExamPanel({
@@ -267,7 +315,34 @@ export function ManagerTrainingExamPanel({
     );
   }
 
-  async function saveItemMetadata(itemId: string) {
+  function updatePhaseText(
+    item: TrainingExamDocumentationItemRow,
+    phase: TrainingPhase,
+    field: keyof TrainingExamPhaseText,
+    value: string,
+  ) {
+    updateItemLocal(item.id, {
+      phase_text_overrides: {
+        ...item.phase_text_overrides,
+        [phase]: {
+          ...item.phase_text_overrides[phase],
+          [field]: value,
+        },
+      },
+    });
+  }
+
+  function resetPhaseText(item: TrainingExamDocumentationItemRow, phase: TrainingPhase) {
+    const next = { ...item.phase_text_overrides };
+    delete next[phase];
+    updateItemLocal(item.id, { phase_text_overrides: next });
+    void saveItemMetadata(item.id, next);
+  }
+
+  async function saveItemMetadata(
+    itemId: string,
+    phaseTextOverrides?: TrainingExamDocumentationItemRow['phase_text_overrides'],
+  ) {
     const current = bundle?.items.find((item) => item.id === itemId);
     if (!current) return;
     setSaving(true);
@@ -276,6 +351,7 @@ export function ManagerTrainingExamPanel({
       focusOverride: current.focus_override,
       teamNameOverride: current.team_name_override,
       trainingDateOverride: current.training_date_override,
+      phaseTextOverrides: phaseTextOverrides ?? current.phase_text_overrides,
     });
     setSaving(false);
     if (result.error || !result.data) {
@@ -328,6 +404,7 @@ export function ManagerTrainingExamPanel({
           item.training_date_override ??
           (session.event_id ? eventDates[session.event_id] ?? null : session.created_at),
         examNumber: item.sort_order + 1,
+        phaseTextOverrides: item.phase_text_overrides,
       });
     }
     return result;
@@ -396,9 +473,13 @@ export function ManagerTrainingExamPanel({
   const required = bundle?.documentation.required_units ?? 10;
   const completeCount = selectedItems.filter((item) => (details[item.training_session_id]?.missing.length ?? 1) === 0).length;
   const changedSinceExport = bundle?.documentation.last_exported_at
-    ? selectedSessions.filter(
-        (session) => new Date(session.updated_at ?? session.created_at ?? 0).getTime() > new Date(bundle.documentation.last_exported_at!).getTime(),
-      ).length
+    ? selectedItems.filter((item) => {
+        const session = sessionById[item.training_session_id];
+        return Math.max(
+          new Date(session?.updated_at ?? session?.created_at ?? 0).getTime(),
+          new Date(item.updated_at ?? item.created_at ?? 0).getTime(),
+        ) > new Date(bundle.documentation.last_exported_at!).getTime();
+      }).length
     : 0;
 
   return (
@@ -503,7 +584,10 @@ export function ManagerTrainingExamPanel({
           const ready = missing.length === 0;
           const changed = Boolean(
             bundle?.documentation.last_exported_at &&
-              new Date(session.updated_at ?? session.created_at ?? 0).getTime() >
+              Math.max(
+                new Date(session.updated_at ?? session.created_at ?? 0).getTime(),
+                new Date(item.updated_at ?? item.created_at ?? 0).getTime(),
+              ) >
                 new Date(bundle.documentation.last_exported_at).getTime(),
           );
           const phases = new Set((sessionDetails?.items ?? []).map((exercise) => exercise.phase as TrainingPhase));
@@ -572,6 +656,91 @@ export function ManagerTrainingExamPanel({
                   />
                 </label>
               </div>
+              <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70">
+                <summary className="cursor-pointer list-none px-4 py-3 text-[13px] font-bold text-slate-900 marker:hidden">
+                  PDF-Prüfungstexte kürzen
+                  <span className="ml-2 text-[11px] font-normal text-slate-500">Nur für diese Prüfungsseite</span>
+                </summary>
+                <div className="space-y-3 border-t border-slate-200 p-3 sm:p-4">
+                  <p className="text-[12px] leading-5 text-slate-600">
+                    Die Übungsbibliothek bleibt unverändert. Ohne eigene Eingabe wird automatisch der ausführliche Originaltext verwendet.
+                  </p>
+                  {TRAINING_PHASES.map((phase) => {
+                    const defaults = defaultPhaseText(sessionDetails, phase);
+                    const overrides = item.phase_text_overrides[phase] ?? {};
+                    const values = {
+                      content: typeof overrides.content === 'string' ? overrides.content : defaults.content,
+                      materials: typeof overrides.materials === 'string' ? overrides.materials : defaults.materials,
+                      coaching: typeof overrides.coaching === 'string' ? overrides.coaching : defaults.coaching,
+                    };
+                    const contentFit = textFitLabel(values.content.length, 390);
+                    const materialsFit = textFitLabel(values.materials.length, 135);
+                    const coachingFit = textFitLabel(values.coaching.length, 340);
+                    return (
+                      <section key={phase} className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h4 className="inline-flex h-7 min-w-11 items-center justify-center rounded-lg bg-red-600 px-2 text-[12px] font-bold text-white">
+                            {phase}
+                          </h4>
+                          {item.phase_text_overrides[phase] ? (
+                            <button
+                              type="button"
+                              onClick={() => resetPhaseText(item, phase)}
+                              className="text-[11px] font-semibold text-slate-500 hover:text-slate-900"
+                            >
+                              Originaltext verwenden
+                            </button>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-3 xl:grid-cols-[1.2fr_0.7fr_1.1fr]">
+                          <label className="text-[11px] font-bold text-slate-600">
+                            Inhalt / Ablauf
+                            <textarea
+                              value={values.content}
+                              onChange={(event) => updatePhaseText(item, phase, 'content', event.target.value)}
+                              onBlur={() => void saveItemMetadata(item.id)}
+                              rows={5}
+                              className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-[13px] font-normal leading-5 text-slate-950"
+                            />
+                            <span className="mt-1 flex items-center justify-between gap-2 font-normal">
+                              <span className="text-slate-400">{values.content.length} Zeichen</span>
+                              <span className={`rounded-full px-2 py-0.5 font-bold ${contentFit.className}`}>{contentFit.label}</span>
+                            </span>
+                          </label>
+                          <label className="text-[11px] font-bold text-slate-600">
+                            Geräte
+                            <textarea
+                              value={values.materials}
+                              onChange={(event) => updatePhaseText(item, phase, 'materials', event.target.value)}
+                              onBlur={() => void saveItemMetadata(item.id)}
+                              rows={5}
+                              className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-[13px] font-normal leading-5 text-slate-950"
+                            />
+                            <span className="mt-1 flex items-center justify-between gap-2 font-normal">
+                              <span className="text-slate-400">{values.materials.length} Zeichen</span>
+                              <span className={`rounded-full px-2 py-0.5 font-bold ${materialsFit.className}`}>{materialsFit.label}</span>
+                            </span>
+                          </label>
+                          <label className="text-[11px] font-bold text-slate-600">
+                            Coachingpunkte
+                            <textarea
+                              value={values.coaching}
+                              onChange={(event) => updatePhaseText(item, phase, 'coaching', event.target.value)}
+                              onBlur={() => void saveItemMetadata(item.id)}
+                              rows={5}
+                              className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-[13px] font-normal leading-5 text-slate-950"
+                            />
+                            <span className="mt-1 flex items-center justify-between gap-2 font-normal">
+                              <span className="text-slate-400">{values.coaching.length} Zeichen</span>
+                              <span className={`rounded-full px-2 py-0.5 font-bold ${coachingFit.className}`}>{coachingFit.label}</span>
+                            </span>
+                          </label>
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </details>
             </article>
           );
         })}

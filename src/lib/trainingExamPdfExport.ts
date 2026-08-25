@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import type { TrainingExerciseRow } from './trainingExercises';
 import type { TrainingSessionExerciseRow, TrainingSessionRow } from './trainingSessions';
 import type { TrainingPhase } from './trainingPhases';
+import type { TrainingExamPhaseTextOverrides } from './trainingExamDocumentation';
 
 export type TrainingExamPdfSession = {
   session: TrainingSessionRow;
@@ -13,6 +14,7 @@ export type TrainingExamPdfSession = {
   examTeamName: string;
   examDateIso: string | null;
   examNumber: number;
+  phaseTextOverrides?: TrainingExamPhaseTextOverrides;
 };
 
 export type TrainingExamPdfInput = {
@@ -23,11 +25,10 @@ export type TrainingExamPdfInput = {
 
 const PHASES: TrainingPhase[] = ['AW', 'HT1', 'HT2', 'AK'];
 // Exakte Nutzflächen der unveränderten NÖFV-ÖFB-D-Diplom-Seite (A4 quer).
-const PHASE_TOP = 49.8;
-const PHASE_HEIGHT = 32.8;
-// Die Phasenlabels sind in der unveränderten Hintergrundvorlage ungleichmäßig verteilt.
-const CONTENT_PHASE_TOPS = [49.8, 86, 122.2, 167.4] as const;
+const PHASE_TOP = 50.4;
+const PHASE_GAP = 1.3;
 const CONTENT_TABLE_BOTTOM = 180.8;
+const PHASE_HEIGHT = (180 - PHASE_TOP - PHASE_GAP * 3) / 4;
 const CONTENT_X = 14.8;
 const CONTENT_WIDTH = 58.2;
 const SKETCH_X = 76.8;
@@ -174,6 +175,22 @@ function drawContainedImage(
   pdf.addImage(image.data, 'JPEG', x + (width - drawnWidth) / 2, y + (height - drawnHeight) / 2, drawnWidth, drawnHeight, undefined, 'FAST');
 }
 
+function drawPhaseLabel(pdf: jsPDF, phase: TrainingPhase, x: number, y: number): void {
+  pdf.setTextColor(185, 28, 28);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(6.2);
+  pdf.text(phase, x, y);
+}
+
+function drawSketchPhaseBadge(pdf: jsPDF, phase: TrainingPhase, x: number, y: number): void {
+  pdf.setFillColor(198, 28, 28);
+  pdf.roundedRect(x, y, 12.5, 5.2, 1.5, 1.5, 'F');
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(6.8);
+  pdf.text(phase, x + 6.25, y + 3.55, { align: 'center' });
+}
+
 function phaseItems(entry: TrainingExamPdfSession, phase: TrainingPhase): TrainingSessionExerciseRow[] {
   return entry.items
     .filter((item) => item.phase === phase)
@@ -187,23 +204,21 @@ async function drawPhase(
   index: number,
 ): Promise<void> {
   const items = phaseItems(entry, phase);
-  const top = PHASE_TOP + index * PHASE_HEIGHT;
-  const contentTop = CONTENT_PHASE_TOPS[index];
-  const contentBottom = CONTENT_PHASE_TOPS[index + 1] ?? CONTENT_TABLE_BOTTOM;
+  const top = PHASE_TOP + index * (PHASE_HEIGHT + PHASE_GAP);
   if (items.length === 0) return;
 
-  const contentParts: string[] = [];
+  const titleParts: string[] = [];
+  const detailParts: string[] = [];
   const materialParts: string[] = [];
   const coachingParts: string[] = [];
   for (const item of items) {
     const exercise = entry.exerciseMap[item.exercise_id] ?? item.exercise ?? null;
     if (!exercise) continue;
-    contentParts.push(
-      [
-        `${exercise.title} (${item.duration_minutes} Min.)`,
-        clean(exercise.description),
-        clean(exercise.organization) ? `Aufbau: ${clean(exercise.organization)}` : '',
-      ].filter(Boolean).join('\n'),
+    titleParts.push(clean(exercise.title));
+    detailParts.push(
+      [clean(exercise.description), clean(exercise.organization) ? `Aufbau: ${clean(exercise.organization)}` : '']
+        .filter(Boolean)
+        .join('\n'),
     );
     if (clean(exercise.materials)) materialParts.push(clean(exercise.materials));
     coachingParts.push(
@@ -213,27 +228,47 @@ async function drawPhase(
     );
   }
 
+  const override = entry.phaseTextOverrides?.[phase];
+  const contentText = typeof override?.content === 'string' ? override.content : detailParts.join('\n\n');
+  const materialsText = typeof override?.materials === 'string' ? override.materials : materialParts.join('\n');
+  const coachingText = typeof override?.coaching === 'string' ? override.coaching : coachingParts.join('\n\n');
+
+  drawPhaseLabel(pdf, phase, CONTENT_X + 1.3, top + 3.1);
   pdf.setTextColor(20, 20, 20);
-  pdf.setFont('helvetica', 'normal');
+  pdf.setFont('helvetica', 'bold');
   drawFittedText(
     pdf,
-    contentParts.join('\n\n'),
-    CONTENT_X,
-    contentTop + 7.2,
-    CONTENT_WIDTH,
-    Math.max(3.5, contentBottom - contentTop - 8.5),
+    titleParts.join(' / '),
+    CONTENT_X + 1.3,
+    top + 6.7,
+    CONTENT_WIDTH - 2.4,
+    5.4,
     {
-      maxFontSize: 6.5,
+      maxFontSize: 6.6,
       minFontSize: 5.5,
-      lineHeightFactor: 1.15,
+      lineHeightFactor: 1.08,
     },
   );
-  drawFittedText(pdf, materialParts.join('\n'), MATERIAL_X, top + 4, MATERIAL_WIDTH, PHASE_HEIGHT - 5.2, {
+  pdf.setFont('helvetica', 'normal');
+  drawFittedText(pdf, contentText, CONTENT_X + 1.3, top + 12, CONTENT_WIDTH - 2.4, PHASE_HEIGHT - 13, {
+    maxFontSize: 6.1,
+    minFontSize: 5.5,
+    lineHeightFactor: 1.14,
+  });
+
+  drawPhaseLabel(pdf, phase, MATERIAL_X + 1.2, top + 3.1);
+  pdf.setTextColor(20, 20, 20);
+  pdf.setFont('helvetica', 'normal');
+  drawFittedText(pdf, materialsText, MATERIAL_X + 1.2, top + 6.5, MATERIAL_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
     maxFontSize: 6.1,
     minFontSize: 5.5,
     lineHeightFactor: 1.12,
   });
-  drawFittedText(pdf, coachingParts.join('\n\n'), COACHING_X, top + 4, COACHING_WIDTH, PHASE_HEIGHT - 5.2, {
+
+  drawPhaseLabel(pdf, phase, COACHING_X + 1.2, top + 3.1);
+  pdf.setTextColor(20, 20, 20);
+  pdf.setFont('helvetica', 'normal');
+  drawFittedText(pdf, coachingText, COACHING_X + 1.2, top + 6.5, COACHING_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
     maxFontSize: 6.1,
     minFontSize: 5.5,
     lineHeightFactor: 1.12,
@@ -246,6 +281,7 @@ async function drawPhase(
     pdf.setFontSize(6.5);
     pdf.setTextColor(130, 130, 130);
     pdf.text('Keine Skizze', SKETCH_X + SKETCH_WIDTH / 2, top + PHASE_HEIGHT / 2, { align: 'center' });
+    drawSketchPhaseBadge(pdf, phase, SKETCH_X + 1.5, top + 1.5);
     return;
   }
   const images = (await Promise.all(imageItems.slice(0, 2).map((candidate) => imageUrlToJpegData(candidate.url)))).filter(
@@ -258,6 +294,7 @@ async function drawPhase(
     drawContainedImage(pdf, images[0], SKETCH_X + 1, top + 1, half, PHASE_HEIGHT - 2);
     drawContainedImage(pdf, images[1], SKETCH_X + 2 + half, top + 1, half, PHASE_HEIGHT - 2);
   }
+  drawSketchPhaseBadge(pdf, phase, SKETCH_X + 1.5, top + 1.5);
 }
 
 export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promise<Blob> {
@@ -269,6 +306,18 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
     if (index > 0) pdf.addPage('a4', 'landscape');
     const entry = input.sessions[index];
     pdf.addImage(background, 'PNG', 0, 0, 297, 210, 'oefbd-original', 'FAST');
+
+    // Die offizielle Vorlage bleibt als Hintergrund erhalten. Ihre historisch
+    // ungleich platzierten Phasenlabels werden im Inhaltsfeld neutral abgedeckt
+    // und anschließend zeilengleich mit Skizze, Geräten und Coaching neu gesetzt.
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(CONTENT_X + 0.2, PHASE_TOP - 0.1, CONTENT_WIDTH - 0.4, CONTENT_TABLE_BOTTOM - PHASE_TOP, 'F');
+    pdf.setDrawColor(209, 213, 219);
+    pdf.setLineWidth(0.15);
+    for (let phaseIndex = 1; phaseIndex < PHASES.length; phaseIndex += 1) {
+      const separatorY = PHASE_TOP + phaseIndex * PHASE_HEIGHT + (phaseIndex - 0.5) * PHASE_GAP;
+      pdf.line(CONTENT_X, separatorY, COACHING_X + COACHING_WIDTH, separatorY);
+    }
 
     pdf.setTextColor(15, 15, 15);
     pdf.setFont('helvetica', 'bold');
