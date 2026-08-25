@@ -13,7 +13,7 @@ export type TrainingExerciseShortText = {
 };
 
 export const TRAINING_SHORT_TEXT_LIMITS = {
-  content: 270,
+  content: 300,
   materials: 100,
   coaching: 250,
 } as const;

@@ -29,7 +29,7 @@ try {
   assert.ok(result.coaching.length <= TRAINING_SHORT_TEXT_LIMITS.coaching);
   assert.ok(!/https?:\/\//.test(`${result.content}${result.coaching}`));
   assert.ok(!/…|\.\.\./.test(`${result.content}${result.materials}${result.coaching}`));
-  assert.deepEqual(TRAINING_SHORT_TEXT_LIMITS, { content: 270, materials: 100, coaching: 250 });
+  assert.deepEqual(TRAINING_SHORT_TEXT_LIMITS, { content: 300, materials: 100, coaching: 250 });
 
   const realistic = createTrainingExerciseShortText({
     organization: 'Ein ca. 15 x 30 Meter großes Spielfeld mit zwei Toren aufbauen.',
