@@ -25,6 +25,8 @@ try {
   assert.ok(result.materials.length <= TRAINING_SHORT_TEXT_LIMITS.materials);
   assert.ok(result.coaching.length <= TRAINING_SHORT_TEXT_LIMITS.coaching);
   assert.ok(!/https?:\/\//.test(`${result.content}${result.coaching}`));
+  assert.ok(!/…|\.\.\./.test(`${result.content}${result.materials}${result.coaching}`));
+  assert.deepEqual(TRAINING_SHORT_TEXT_LIMITS, { content: 270, materials: 100, coaching: 250 });
 } finally {
   await vite.close();
 }

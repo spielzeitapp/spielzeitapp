@@ -13,9 +13,9 @@ export type TrainingExerciseShortText = {
 };
 
 export const TRAINING_SHORT_TEXT_LIMITS = {
-  content: 390,
-  materials: 135,
-  coaching: 330,
+  content: 270,
+  materials: 100,
+  coaching: 250,
 } as const;
 
 function clean(value: unknown): string {
@@ -42,11 +42,25 @@ function splitThoughts(value: unknown): string[] {
     .filter((part) => part.length >= 3 && !/^video\s*:/i.test(part));
 }
 
-function sentenceWithin(value: string, max: number): string {
-  if (value.length <= max) return value;
-  const slice = value.slice(0, max + 1);
-  const boundary = Math.max(slice.lastIndexOf(', '), slice.lastIndexOf(' '));
-  return `${slice.slice(0, boundary > max * 0.55 ? boundary : max).trimEnd()}…`;
+function phraseWithin(value: string, max: number): string {
+  const normalized = value.replace(/[….,;:\s]+$/, '').trim();
+  if (normalized.length <= max) return normalized;
+
+  const slice = normalized.slice(0, max + 1);
+  const phraseBoundary = Math.max(
+    slice.lastIndexOf('. '),
+    slice.lastIndexOf('; '),
+    slice.lastIndexOf(', '),
+    slice.lastIndexOf(' – '),
+    slice.lastIndexOf(' - '),
+  );
+  const wordBoundary = slice.lastIndexOf(' ');
+  const boundary = phraseBoundary > max * 0.55 ? phraseBoundary : wordBoundary;
+  let shortened = slice.slice(0, boundary > max * 0.55 ? boundary : max).replace(/[….,;:\s]+$/, '').trim();
+  while (/\b(?:und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i.test(shortened)) {
+    shortened = shortened.replace(/\s+\S+$/, '').trim();
+  }
+  return shortened;
 }
 
 function unique(items: string[]): string[] {
@@ -59,13 +73,13 @@ function unique(items: string[]): string[] {
   });
 }
 
-function bullets(items: string[], limit: number, maxItems: number): string {
+function bullets(items: string[], limit: number, maxItems: number, maxItemLength: number): string {
   const result: string[] = [];
   for (const original of unique(items)) {
     if (result.length >= maxItems) break;
     const remaining = limit - result.join('\n').length - (result.length ? 1 : 0);
     if (remaining < 18) break;
-    const item = sentenceWithin(original, Math.min(remaining - 2, 125));
+    const item = phraseWithin(original, Math.min(remaining - 2, maxItemLength));
     if (item) result.push(`• ${item}`);
   }
   return result.join('\n');
@@ -77,7 +91,13 @@ function compactMaterials(value: unknown): string {
     .map(withoutBullet)
     .map((part) => part.trim())
     .filter(Boolean);
-  return sentenceWithin(unique(parts).join(', '), TRAINING_SHORT_TEXT_LIMITS.materials);
+  const result: string[] = [];
+  for (const part of unique(parts)) {
+    const candidate = [...result, part].join(', ');
+    if (candidate.length > TRAINING_SHORT_TEXT_LIMITS.materials) break;
+    result.push(part);
+  }
+  return result.join(', ') || phraseWithin(parts[0] ?? '', TRAINING_SHORT_TEXT_LIMITS.materials);
 }
 
 /**
@@ -90,15 +110,22 @@ export function createTrainingExerciseShortText(
   const organization = splitThoughts(input.organization).map((item, index) =>
     index === 0 && !/^aufbau\s*:/i.test(item) ? `Aufbau: ${item}` : item,
   );
+  const coachingPoints = splitThoughts(input.coachingPoints);
+  const variations = splitThoughts(input.variations).map((item) => `Variation: ${item}`);
+  const coachingItems = variations.length > 0
+    ? [...coachingPoints.slice(0, 3), variations[0]]
+    : coachingPoints.slice(0, 4);
   const content = bullets(
     [...organization.slice(0, 1), ...splitThoughts(input.description)],
     TRAINING_SHORT_TEXT_LIMITS.content,
-    5,
+    4,
+    88,
   );
   const coaching = bullets(
-    [...splitThoughts(input.coachingPoints), ...splitThoughts(input.variations).map((item) => `Variation: ${item}`)],
+    coachingItems,
     TRAINING_SHORT_TEXT_LIMITS.coaching,
-    5,
+    4,
+    78,
   );
 
   return {

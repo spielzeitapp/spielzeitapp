@@ -46,6 +46,8 @@ const checks = [
   [pdf.includes('phaseTextOverrides'), 'PDF nutzt Prüfungstexte nicht'],
   [pdf.includes('resolveTrainingExerciseShortText'), 'PDF nutzt die verständliche Bibliotheks-Kurzfassung nicht'],
   [pdf.includes('drawFittedText'), 'Dynamische Textanpassung fehlt'],
+  [!pdf.includes('ellipsizeLine'), 'PDF fügt weiterhin Auslassungspunkte ein'],
+  [panel.includes('TRAINING_SHORT_TEXT_LIMITS.content'), 'PDF-Editor nutzt nicht das zentrale Inhaltslimit'],
   [pdf.includes('const PHASE_GAP = 1.3'), 'Gleichmäßiger Phasenabstand fehlt'],
   [pdf.includes('drawPhaseLabel'), 'Neu ausgerichtete Phasenlabels fehlen'],
   [pdf.includes('drawSketchPhaseBadge'), 'Phasenkennzeichnung an Skizzen fehlt'],

@@ -1200,7 +1200,12 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <CropRange label="Zoom" min={100} max={250} value={Math.round(cropZoom * 100)} onChange={(value) => setCropZoom(value / 100)} suffix=" %" />
+              <div>
+                <CropRange label="Bildgröße / Zoom" min={40} max={250} value={Math.round(cropZoom * 100)} onChange={(value) => setCropZoom(value / 100)} suffix=" %" />
+                <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                  Unter 100 % wird das ganze Bild kleiner und mit weißem Rand eingepasst.
+                </p>
+              </div>
               <div className="flex items-end">
                 <button
                   type="button"

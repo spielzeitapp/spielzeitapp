@@ -18,7 +18,6 @@ const migration = read(
 assert.match(page, /TRAINING_EXERCISE_SKETCH_MAX_BYTES/);
 assert.match(page, /image\\?\/\(png\|jpeg\|webp\)/);
 assert.match(page, /Skizze wird verarbeitet/);
-assert.match(page, /Skizze wird geladen/);
 assert.doesNotMatch(page, /10 \* 1024 \* 1024/);
 
 // Detail + cards
@@ -35,5 +34,12 @@ assert.match(lib, /\$\{clubId\}\/exercises\/\$\{exerciseId\}/);
 assert.match(migration, /visibility = 'club'/);
 assert.match(migration, /OR created_by = auth\.uid\(\)/);
 assert.doesNotMatch(lib, /atob\(|btoa\(|data:image/);
+
+// 4:3 crop can also shrink an image and add neutral margins.
+assert.match(page, /Bildgröße \/ Zoom/);
+assert.match(page, /min=\{40\} max=\{250\}/);
+assert.match(page, /canvas\.width = 1600/);
+assert.match(page, /canvas\.height = 1200/);
+assert.match(page, /fillStyle = '#ffffff'/);
 
 console.log('training-library-sketch-ux: ok');

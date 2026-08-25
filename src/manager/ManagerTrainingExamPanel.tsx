@@ -24,7 +24,7 @@ import {
 import { getTrainingExerciseSketchUrl, type TrainingExerciseRow } from '../lib/trainingExercises';
 import { listSessionExercises, type TrainingSessionExerciseRow, type TrainingSessionRow } from '../lib/trainingSessions';
 import { TRAINING_PHASES, type TrainingPhase } from '../lib/trainingPhases';
-import { resolveTrainingExerciseShortText } from '../lib/trainingExerciseShortText';
+import { resolveTrainingExerciseShortText, TRAINING_SHORT_TEXT_LIMITS } from '../lib/trainingExerciseShortText';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 
 type SessionDetails = {
@@ -666,7 +666,7 @@ export function ManagerTrainingExamPanel({
                 </summary>
                 <div className="space-y-3 border-t border-slate-200 p-3 sm:p-4">
                   <p className="text-[12px] leading-5 text-slate-600">
-                    Die Übungsbibliothek bleibt unverändert. Ohne eigene Eingabe wird automatisch der ausführliche Originaltext verwendet.
+                    Die Übungsbibliothek bleibt unverändert. Ohne eigene Eingabe wird automatisch die gespeicherte oder vorgeschlagene Kurzfassung verwendet.
                   </p>
                   {TRAINING_PHASES.map((phase) => {
                     const defaults = defaultPhaseText(sessionDetails, phase);
@@ -676,9 +676,9 @@ export function ManagerTrainingExamPanel({
                       materials: typeof overrides.materials === 'string' ? overrides.materials : defaults.materials,
                       coaching: typeof overrides.coaching === 'string' ? overrides.coaching : defaults.coaching,
                     };
-                    const contentFit = textFitLabel(values.content.length, 390);
-                    const materialsFit = textFitLabel(values.materials.length, 135);
-                    const coachingFit = textFitLabel(values.coaching.length, 340);
+                    const contentFit = textFitLabel(values.content.length, TRAINING_SHORT_TEXT_LIMITS.content);
+                    const materialsFit = textFitLabel(values.materials.length, TRAINING_SHORT_TEXT_LIMITS.materials);
+                    const coachingFit = textFitLabel(values.coaching.length, TRAINING_SHORT_TEXT_LIMITS.coaching);
                     return (
                       <section key={phase} className="rounded-xl border border-slate-200 bg-white p-3">
                         <div className="mb-3 flex items-center justify-between gap-3">

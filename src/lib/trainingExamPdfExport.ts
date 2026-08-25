@@ -77,15 +77,6 @@ function wrapTextLines(pdf: jsPDF, value: string, width: number): string[] {
   });
 }
 
-function ellipsizeLine(pdf: jsPDF, value: string, width: number): string {
-  const suffix = '…';
-  let fitted = value.replace(/[.…\s]+$/, '');
-  while (fitted && pdf.getTextWidth(`${fitted}${suffix}`) > width) {
-    fitted = fitted.slice(0, -1).trimEnd();
-  }
-  return `${fitted}${suffix}`;
-}
-
 function drawFittedText(
   pdf: jsPDF,
   value: string,
@@ -115,11 +106,7 @@ function drawFittedText(
   }
 
   pdf.setFontSize(fontSize);
-  const truncated = lines.length > maxLines;
   const visibleLines = lines.slice(0, maxLines);
-  if (truncated && visibleLines.length > 0) {
-    visibleLines[visibleLines.length - 1] = ellipsizeLine(pdf, visibleLines[visibleLines.length - 1], width);
-  }
 
   visibleLines.forEach((line, index) => {
     const baseline = y + index * lineHeightMm;
