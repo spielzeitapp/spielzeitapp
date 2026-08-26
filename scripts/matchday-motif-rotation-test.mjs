@@ -72,5 +72,8 @@ const cardSource = fs.readFileSync(path.join(root, 'src/components/feed/Matchday
 assert.ok(ensureSource.includes('resolveMatchdayPlayerMotif(event)'), 'autopost resolves player motif');
 assert.ok(ensureSource.includes('loadExistingEventMotif(event.id)'), 'today/tomorrow reuse same motif');
 assert.ok(ensureSource.includes('MATCHDAY_DEMO_PLAYER_CANDIDATES'), 'autopost has demo fallback');
-assert.ok(cardSource.includes('playerImageUrl={p.matchday_player_image_url}'), 'feed poster receives motif');
+assert.ok(
+  cardSource.includes('playerImageUrl={posterPlayerImageUrl}'),
+  'feed poster receives stored motif or legacy demo fallback',
+);
 console.log('matchday-motif-rotation-test: OK');
