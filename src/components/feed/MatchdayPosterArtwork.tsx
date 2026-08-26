@@ -1,76 +1,22 @@
 import React from 'react';
 import { Clock, MapPin, Trophy } from 'lucide-react';
-import { FeedClubName } from './FeedClubName';
-import { FeedPremiumBadge } from './feedTypography';
 
 const PLACEHOLDER =
   (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '') + '/logos/placeholder-shield-a.png';
 
-/** Primäres Poster-Asset — Datei unter public/feed/ ablegen, gleicher Name. */
-export const MATCHDAY_POSTER_BG_ASSET = 'feed/matchday-stadium-smoke-bg.png';
-
-/** Fallback bis das dedizierte Poster-PNG vorliegt. */
-export const MATCHDAY_POSTER_BG_FALLBACK = 'intro/welcome-hero.png';
-
-function posterAssetUrl(path: string): string {
-  const base = import.meta.env.BASE_URL || '/';
-  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
-}
-
-export const MATCHDAY_POSTER_BG_URL = posterAssetUrl(MATCHDAY_POSTER_BG_ASSET);
-export const MATCHDAY_POSTER_BG_FALLBACK_URL = posterAssetUrl(MATCHDAY_POSTER_BG_FALLBACK);
-
-export type MatchdayPosterArtworkProps = {
-  statusLabel: string;
-  title: string;
-  homeTeamName: string;
-  awayTeamName: string;
-  homeLogoUrl: string;
-  awayLogoUrl: string;
-  kickoffTime: string;
-  meetingTime?: string | null;
-  location?: string | null;
-  competitionLabel?: string | null;
-  isHomeGame?: boolean;
-  hashtag?: string;
-  /**
-   * Future:
-   * playerImageUrl will later use player profile cutouts
-   * for matchday, lineup, goal and MVP posters
-   */
-  playerImageUrl?: string | null;
-  /** LIVE/Endstand: ersetzt die Anpfiff-Zeile */
-  heroOverride?: { main: string; suffix?: string | null; livePulse?: boolean };
-  showAnpfiffLabel?: boolean;
-  statusBadge?: string | null;
-  compact?: boolean;
-};
-
-const TITLE_SHADOW =
-  '0 0 40px rgba(220,38,38,0.28), 0 4px 22px rgba(0,0,0,0.88), 0 2px 0 rgba(0,0,0,0.55), 2px 2px 8px rgba(0,0,0,0.45)';
-const KICKOFF_SHADOW =
-  '0 3px 24px rgba(0,0,0,0.88), 0 0 40px rgba(220,38,38,0.18), 1px 1px 0 rgba(0,0,0,0.4)';
-const VS_LIGHTNING =
-  'linear-gradient(180deg, transparent 0%, rgba(248,113,113,0.22) 12%, rgba(220,38,38,0.95) 50%, rgba(248,113,113,0.22) 88%, transparent 100%)';
-
-const LOGO_GLOW = 'drop-shadow(0 0 20px rgba(220,38,38,0.28))';
-
-function PosterLogo({ src, alt, compact }: { src: string; alt: string; compact?: boolean }) {
+function PosterLogo({ src, alt }: { src: string; alt: string }) {
   const [imgSrc, setImgSrc] = React.useState(src || PLACEHOLDER);
+
   React.useEffect(() => {
     setImgSrc(src || PLACEHOLDER);
   }, [src]);
-
-  const img = compact
-    ? 'h-[5.75rem] w-[5.75rem] sm:h-[6.75rem] sm:w-[6.75rem]'
-    : 'h-[6.5rem] w-[6.5rem] sm:h-[7.75rem] sm:w-[7.75rem]';
 
   return (
     <img
       src={imgSrc}
       alt={alt}
-      className={`shrink-0 object-contain ${img}`}
-      style={{ filter: LOGO_GLOW }}
+      className="h-[4.35rem] w-[4.35rem] shrink-0 object-contain sm:h-[5.15rem] sm:w-[5.15rem]"
+      style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.72))' }}
       loading="lazy"
       onError={() => {
         if (!imgSrc.endsWith('/logos/placeholder-shield-a.png')) setImgSrc(PLACEHOLDER);
@@ -79,9 +25,6 @@ function PosterLogo({ src, alt, compact }: { src: string; alt: string; compact?:
   );
 }
 
-const PLAYER_GLOW = 'drop-shadow(0 0 28px rgba(220,38,38,0.38))';
-
-/** Player Layer — optional, zwischen Background und Content. */
 function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
   const [failed, setFailed] = React.useState(false);
 
@@ -92,15 +35,13 @@ function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
   if (failed) return null;
 
   return (
-    <div
-      className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-[inherit]"
-      aria-hidden
-    >
+    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-[inherit]" aria-hidden>
+      <div className="absolute bottom-[-6%] right-[-18%] h-[69%] w-[88%] rounded-full bg-red-700/20 blur-3xl" />
       <img
         src={playerImageUrl}
         alt=""
-        className="absolute bottom-0 right-0 max-h-[60%] w-auto max-w-[50%] object-contain object-bottom object-right"
-        style={{ filter: PLAYER_GLOW }}
+        className="absolute bottom-0 right-[-3%] h-[68%] w-[61%] object-contain object-bottom object-right sm:right-0 sm:h-[70%]"
+        style={{ filter: 'drop-shadow(-12px 8px 24px rgba(0,0,0,0.9)) drop-shadow(0 0 22px rgba(185,28,28,0.34))' }}
         loading="lazy"
         onError={() => setFailed(true)}
       />
@@ -108,116 +49,60 @@ function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
   );
 }
 
-/** Asset-first: fixes Stadium/Smoke/Grunge-PNG, nur leichte Lesbarkeits-Overlays. */
-function PosterAssetBackground() {
-  const [bgSrc, setBgSrc] = React.useState(MATCHDAY_POSTER_BG_URL);
-
+function GraphicBackground() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]" aria-hidden>
-      <img
-        src={bgSrc}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover object-center"
-        onError={() => {
-          if (bgSrc !== MATCHDAY_POSTER_BG_FALLBACK_URL) setBgSrc(MATCHDAY_POSTER_BG_FALLBACK_URL);
-        }}
-      />
-      <div className="absolute inset-0 bg-black/14" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/42 via-black/8 to-black/48" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_45%,transparent_40%,rgba(0,0,0,0.22)_100%)]" />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] bg-[#050505]" aria-hidden>
+      <div className="absolute inset-y-0 right-0 w-[72%] bg-[radial-gradient(ellipse_90%_68%_at_90%_55%,rgba(185,28,28,0.60)_0%,rgba(127,29,29,0.24)_38%,transparent_72%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(0,0,0,0.98)_0%,rgba(5,5,5,0.96)_44%,rgba(35,4,4,0.72)_100%)]" />
+      <div className="absolute inset-y-0 right-0 w-[70%] bg-[radial-gradient(ellipse_75%_48%_at_88%_58%,rgba(220,38,38,0.32),transparent_72%)]" />
+      <div className="absolute -right-[22%] top-[6%] h-[54%] w-[82%] rounded-[50%] border border-red-600/20" />
+      <div className="absolute -right-[18%] top-[10%] h-[48%] w-[76%] rounded-[50%] border border-red-600/15" />
+      <div className="absolute -right-[14%] top-[14%] h-[42%] w-[70%] rounded-[50%] border border-red-600/10" />
+      <div className="absolute inset-0 opacity-[0.16] [background-image:repeating-linear-gradient(118deg,transparent_0,transparent_18px,rgba(239,68,68,0.12)_19px,transparent_20px)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_80%_at_50%_42%,transparent_42%,rgba(0,0,0,0.58)_100%)]" />
     </div>
   );
 }
 
-function formatKickoffHero(kickoffTime: string): { main: string; suffix: string | null } {
-  const time = kickoffTime.replace(/\s*uhr\s*$/i, '').trim() || '—';
-  return { main: time, suffix: 'UHR' };
+function splitCompetitionLabel(label: string | null): { ageGroup: string | null; competition: string | null } {
+  if (!label) return { ageGroup: null, competition: null };
+  const parts = label.split('·').map((part) => part.trim()).filter(Boolean);
+  const ageGroup = parts.find((part) => /^U\d+/i.test(part)) ?? null;
+  const competition = parts.filter((part) => part !== ageGroup).join(' · ') || null;
+  return { ageGroup, competition };
 }
 
-function VsLightningDivider({ tall }: { tall?: boolean }) {
+function TeamMark({ name, logoUrl }: { name: string; logoUrl: string }) {
   return (
-    <div
-      className={tall ? 'h-12 w-[3px] sm:h-[4.5rem]' : 'h-11 w-[3px] sm:h-14'}
-      style={{ background: VS_LIGHTNING, boxShadow: '0 0 22px rgba(220,38,38,0.68)' }}
-      aria-hidden
-    />
-  );
-}
-
-/** Dezente Lightning-/Brush-Textur hinter VS für Duell-Fokus. */
-function VsDuellMark() {
-  return (
-    <div className="relative flex shrink-0 flex-col items-center justify-center self-stretch px-1 sm:px-1.5">
-      <div
-        className="pointer-events-none absolute inset-y-0 left-1/2 z-0 w-[3px] -translate-x-1/2"
-        style={{ background: VS_LIGHTNING, boxShadow: '0 0 28px rgba(220,38,38,0.72)' }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[3.25rem] w-[3.25rem] -translate-x-1/2 -translate-y-1/2 sm:h-[3.75rem] sm:w-[3.75rem]"
-        style={{
-          background:
-            'radial-gradient(ellipse 72% 88% at 50% 50%, rgba(220,38,38,0.38) 0%, rgba(127,29,29,0.18) 42%, transparent 72%)',
-          filter: 'blur(1px)',
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[2.5rem] w-[4.5rem] -translate-x-1/2 -translate-y-1/2 rotate-[-8deg] opacity-75 sm:w-[5rem]"
-        style={{
-          background:
-            'linear-gradient(98deg, transparent 4%, rgba(248,113,113,0.12) 18%, rgba(255,255,255,0.14) 48%, rgba(248,113,113,0.12) 78%, transparent 96%)',
-          maskImage: 'radial-gradient(ellipse 88% 68% at 50% 50%, black 28%, transparent 100%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 88% 68% at 50% 50%, black 28%, transparent 100%)',
-        }}
-        aria-hidden
-      />
-      <div className="relative z-[1] flex flex-col items-center">
-        <VsLightningDivider />
-        <span
-          className="my-1 text-[clamp(1.65rem,9.5vw,2.15rem)] font-black uppercase leading-none tracking-[0.04em] text-white sm:my-1.5"
-          style={{
-            textShadow:
-              '0 0 22px rgba(255,255,255,0.28), 0 0 36px rgba(220,38,38,0.62), 0 4px 18px rgba(0,0,0,0.82)',
-          }}
-        >
-          VS
-        </span>
-        <VsLightningDivider />
-      </div>
-    </div>
-  );
-}
-
-function PosterMetaColumn({
-  icon: Icon,
-  label,
-  value,
-  align,
-}: {
-  icon: typeof Clock;
-  label: string;
-  value: string;
-  align: 'left' | 'right';
-}) {
-  return (
-    <div className={`min-w-0 ${align === 'right' ? 'text-right' : 'text-left'}`}>
-      <div
-        className={`mb-0.5 flex items-center gap-0.5 text-[9.5px] font-bold uppercase tracking-[0.13em] text-red-400/95 sm:text-[10.5px] ${
-          align === 'right' ? 'justify-end' : 'justify-start'
-        }`}
-      >
-        <Icon className="h-3.5 w-3.5 shrink-0 sm:h-[14px] sm:w-[14px]" strokeWidth={2.5} aria-hidden />
-        <span>{label}</span>
-      </div>
-      <p
-        className="line-clamp-3 break-words text-[10.5px] font-semibold leading-[1.35] text-white/84 sm:text-[11.5px]"
-      >
-        {value}
+    <div className="flex min-w-0 flex-1 flex-col items-center">
+      <PosterLogo src={logoUrl} alt={name} />
+      <p className="mt-1 line-clamp-2 min-h-[2.25rem] w-full break-words text-center text-[clamp(0.72rem,3.6vw,0.95rem)] font-black uppercase leading-[1.04] tracking-[-0.01em] text-white">
+        {name}
       </p>
     </div>
   );
 }
+
+export type MatchdayPosterArtworkProps = {
+  statusLabel: string;
+  title: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeLogoUrl: string;
+  awayLogoUrl: string;
+  kickoffTime: string;
+  matchDate?: string | null;
+  meetingTime?: string | null;
+  location?: string | null;
+  competitionLabel?: string | null;
+  isHomeGame?: boolean;
+  hashtag?: string;
+  playerImageUrl?: string | null;
+  heroOverride?: { main: string; suffix?: string | null; livePulse?: boolean };
+  showAnpfiffLabel?: boolean;
+  statusBadge?: string | null;
+  compact?: boolean;
+};
 
 export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPosterArtworkProps>(
   function MatchdayPosterArtwork(
@@ -229,222 +114,107 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
       homeLogoUrl,
       awayLogoUrl,
       kickoffTime,
+      matchDate = null,
       meetingTime = null,
       location = null,
       competitionLabel = null,
       isHomeGame,
       hashtag = '#GEMEINSAMEINTEAM',
-      heroOverride,
-      showAnpfiffLabel = true,
-      statusBadge = null,
-      compact = false,
       playerImageUrl = null,
+      heroOverride,
+      statusBadge = null,
     },
     ref,
   ) {
     const playerUrl = playerImageUrl?.trim() || null;
-    const parsedKickoff = formatKickoffHero(kickoffTime);
-    const kickoff = heroOverride ?? {
-      main: parsedKickoff.main,
-      suffix: parsedKickoff.suffix,
-      livePulse: false,
-    };
-    const venueLine = isHomeGame === true ? 'Heimspiel' : isHomeGame === false ? 'Auswärtsspiel' : null;
-    const padX = compact ? 'px-2' : 'px-2 sm:px-2.5';
-    const padY = compact ? 'py-3 pb-4' : 'py-3.5 pb-4.5 sm:py-4 sm:pb-5.5';
-    const showMetaRow = Boolean(meetingTime) || Boolean(location && location !== '—');
-
-    const titleClass = compact
-      ? 'mx-auto w-full max-w-[92%] px-0.5 text-[clamp(1.95rem,12.2vw,2.8rem)] font-black uppercase leading-[0.84] tracking-[0.045em]'
-      : 'mx-auto w-full max-w-[92%] px-0.5 text-[clamp(2.1rem,12.9vw,3.15rem)] font-black uppercase leading-[0.82] tracking-[0.055em]';
-
-    const kickoffClass = compact
-      ? 'text-[clamp(2.35rem,13.5vw,3.15rem)]'
-      : 'text-[clamp(2.55rem,14.5vw,3.55rem)]';
+    const kickoff = kickoffTime.replace(/\s*uhr\s*$/i, '').trim() || '—';
+    const venueLine = isHomeGame === true ? 'HEIMSPIEL' : isHomeGame === false ? 'AUSWÄRTSSPIEL' : null;
+    const { ageGroup, competition } = splitCompetitionLabel(competitionLabel);
+    const cleanHashtag = hashtag.replace(/^#/, '');
+    const teamSuffix = cleanHashtag.toUpperCase().endsWith('EINTEAM') ? 'EINTEAM' : '';
+    const teamPrefix = teamSuffix ? cleanHashtag.slice(0, -teamSuffix.length) : cleanHashtag;
 
     return (
-      <div
-        ref={ref}
-        className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit]"
-      >
-        {/* Background Layer */}
-        <div className="absolute inset-0 z-0">
-          <PosterAssetBackground />
-        </div>
-
-        {/* Player Layer */}
+      <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white">
+        <GraphicBackground />
         {playerUrl ? <PosterPlayerLayer playerImageUrl={playerUrl} /> : null}
 
-        {/* Content Layer */}
-        <div
-          className={`relative z-[2] flex h-full min-h-0 flex-col items-center justify-between text-center ${padX} ${padY}`}
-        >
-          {/* Kopf */}
-          <div className="w-full shrink-0 space-y-0.5 sm:space-y-1">
-            <p className="text-[6px] font-semibold uppercase tracking-[0.34em] text-red-200/82 sm:text-[7px] sm:tracking-[0.38em]">
+        <div className="relative z-[2] flex h-full flex-col px-[6%] pb-[4.5%] pt-[4.5%]">
+          <header className="shrink-0">
+            <p className="mb-1 text-[clamp(0.38rem,1.9vw,0.55rem)] font-bold uppercase tracking-[0.36em] text-white/64">
               {statusLabel}
             </p>
             <h2
-              className={`${titleClass} text-white [paint-order:stroke_fill]`}
-              style={{
-                textShadow: TITLE_SHADOW,
-                WebkitTextStroke: '0.6px rgba(0,0,0,0.42)',
-              }}
+              className="whitespace-nowrap text-[clamp(3.1rem,17.2vw,5.15rem)] font-black uppercase leading-[0.78] tracking-[-0.055em] text-white"
+              style={{ textShadow: '0 6px 24px rgba(0,0,0,0.82)' }}
             >
               {title}
             </h2>
-            <div
-              className="mx-auto mt-0.5 h-[3px] w-[min(78%,14rem)] rounded-full opacity-95"
-              style={{
-                background:
-                  'linear-gradient(90deg, transparent 0%, rgba(127,29,29,0.35) 8%, rgba(220,38,38,0.82) 50%, rgba(127,29,29,0.35) 92%, transparent 100%)',
-                boxShadow: '0 0 14px rgba(220,38,38,0.42)',
-              }}
-              aria-hidden
-            />
-            {venueLine ? (
-              <p className="pt-0.5 text-[7px] font-medium uppercase tracking-[0.18em] text-white/48 sm:text-[8px]">
-                {venueLine}
-              </p>
-            ) : null}
-            {competitionLabel ? (
-              <div className="flex justify-center pt-0.5">
-                <FeedPremiumBadge className="max-w-[94%] !min-h-[20px] gap-1 px-2 py-0.5 text-[7px] sm:max-w-full sm:gap-1.5 sm:px-2.5 sm:text-[8px]">
-                  <Trophy className="h-2.5 w-2.5 shrink-0 text-amber-400/95 sm:h-3 sm:w-3" strokeWidth={2.25} aria-hidden />
-                  {competitionLabel.split('·').map((part, i) => (
-                    <React.Fragment key={`${part}-${i}`}>
-                      {i > 0 ? <span className="text-red-300/45" aria-hidden>·</span> : null}
-                      <span className={/^U\d/i.test(part.trim()) ? 'font-bold tracking-wide' : 'tracking-[0.02em]'}>
-                        {part.trim()}
-                      </span>
-                    </React.Fragment>
-                  ))}
-                </FeedPremiumBadge>
-              </div>
-            ) : null}
-          </div>
-
-          {/* Duell */}
-          <div className="flex w-full shrink-0 items-center justify-between gap-0">
-            <div className="flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5">
-              <PosterLogo src={homeLogoUrl} alt={homeTeamName} compact={compact} />
-              <FeedClubName fullName={homeTeamName} variant="posterArtwork" className="w-full px-0.5" />
-            </div>
-
-            <VsDuellMark />
-
-            <div className="flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5">
-              <PosterLogo src={awayLogoUrl} alt={awayTeamName} compact={compact} />
-              <FeedClubName fullName={awayTeamName} variant="posterArtwork" className="w-full px-0.5" />
-            </div>
-          </div>
-
-          {/* Anpfiff */}
-          <div className="w-full shrink-0 px-0.5">
-            {showAnpfiffLabel && !heroOverride ? (
-              <div className="mb-1 flex items-center justify-center gap-1.5">
-                <Clock className="h-3 w-3 text-red-400/95 sm:h-[14px] sm:w-[14px]" strokeWidth={2.5} aria-hidden />
-                <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-red-100/95 sm:text-[10px]">
-                  Anpfiff
-                </p>
-              </div>
-            ) : null}
-            {heroOverride ? (
-              <p
-                className={
-                  kickoff.livePulse
-                    ? `${kickoffClass} font-black uppercase leading-[0.92] tracking-[0.03em] text-red-300 motion-safe:animate-pulse`
-                    : `${kickoffClass} font-extrabold tabular-nums leading-[0.92] tracking-tight text-white`
-                }
-                style={{ textShadow: KICKOFF_SHADOW }}
-              >
-                {kickoff.main}
-              </p>
-            ) : (
-              <div className="flex items-baseline justify-center gap-1 sm:gap-1.5">
-                <span
-                  className={`${kickoffClass} font-extrabold tabular-nums leading-none tracking-tight text-white`}
-                  style={{ textShadow: KICKOFF_SHADOW }}
-                >
-                  {kickoff.main}
+            <div className="mt-2 flex items-center gap-3">
+              <div className="h-[3px] flex-1 bg-red-600" />
+              {ageGroup ? (
+                <span className="text-[clamp(1.55rem,7.5vw,2.25rem)] font-black uppercase leading-none tracking-[-0.04em] text-red-600">
+                  {ageGroup}
                 </span>
-                {kickoff.suffix ? (
-                  <span className="text-[0.34em] font-black uppercase tracking-[0.14em] text-white/78 sm:tracking-[0.18em]">
-                    {kickoff.suffix}
-                  </span>
-                ) : null}
-              </div>
-            )}
-            {kickoff.suffix && heroOverride ? (
-              <p className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.28em] text-white/42 sm:text-[8px]">
-                {kickoff.suffix}
-              </p>
-            ) : null}
-          </div>
-
-          {/* Fuß */}
-          <div className="w-full shrink-0">
-            {showMetaRow ? (
-              <div
-                className={`grid w-full gap-x-2 gap-y-1 px-0.5 ${
-                  meetingTime && location && location !== '—' ? 'grid-cols-2' : 'grid-cols-1'
-                }`}
-              >
-                {meetingTime ? (
-                  <PosterMetaColumn icon={Clock} label="Treffpunkt" value={meetingTime} align="left" />
-                ) : null}
-                {location && location !== '—' ? (
-                  <PosterMetaColumn
-                    icon={MapPin}
-                    label="Ort"
-                    value={location}
-                    align={meetingTime ? 'right' : 'left'}
-                  />
-                ) : null}
-              </div>
-            ) : null}
-
-            {statusBadge ? (
-              <div
-                className={`${showMetaRow ? 'mt-1.5' : ''} ${
-                  kickoff.livePulse
-                    ? 'mx-auto inline-flex min-h-[1.5rem] max-w-full items-center justify-center rounded-full border border-red-500/28 bg-black/32 px-2.5 py-0.5 text-[6px] font-bold uppercase tracking-[0.12em] text-white sm:text-[7px] [animation-duration:1.5s] motion-safe:animate-pulse'
-                    : 'mx-auto inline-flex min-h-[1.5rem] max-w-full items-center justify-center rounded-full border border-red-500/22 bg-black/28 px-2.5 py-0.5 text-[6px] font-bold uppercase tracking-[0.14em] text-white/82 sm:text-[7px]'
-                }`}
-              >
-                <span className="truncate">{statusBadge}</span>
-              </div>
-            ) : null}
-
-            <div className="mt-3 max-w-full px-1 pb-2 sm:mt-3.5 sm:pb-2.5">
-              <span
-                className="relative inline-block max-w-full break-words text-[16px] font-black uppercase tracking-[0.2em] text-red-400 sm:text-[19px] sm:tracking-[0.24em]"
-                style={{
-                  textShadow:
-                    '0 0 42px rgba(220,38,38,0.72), 0 0 22px rgba(248,113,113,0.52), 0 2px 16px rgba(0,0,0,0.58)',
-                }}
-              >
-                {hashtag}
-                <span
-                  className="absolute -bottom-1.5 left-[4%] right-[4%] h-[3px] rounded-full"
-                  style={{
-                    background:
-                      'linear-gradient(90deg, transparent 0%, rgba(127,29,29,0.4) 6%, rgba(248,113,113,0.95) 50%, rgba(127,29,29,0.4) 94%, transparent 100%)',
-                    boxShadow: '0 0 16px rgba(220,38,38,0.55), 0 2px 8px rgba(185,28,28,0.35)',
-                  }}
-                  aria-hidden
-                />
-                <span
-                  className="absolute -bottom-2.5 left-[18%] right-[18%] h-[1px] rounded-full opacity-70"
-                  style={{
-                    background:
-                      'linear-gradient(90deg, transparent, rgba(220,38,38,0.65), transparent)',
-                  }}
-                  aria-hidden
-                />
-              </span>
+              ) : null}
+              <div className="h-[3px] flex-1 bg-red-600" />
             </div>
+          </header>
+
+          <div className="mt-[4%] flex w-[58%] shrink-0 items-start gap-2">
+            <TeamMark name={homeTeamName} logoUrl={homeLogoUrl} />
+            <div className="flex w-9 shrink-0 flex-col items-center pt-5 sm:w-11">
+              <div className="h-8 w-[2px] rotate-[28deg] bg-red-600" />
+              <span className="my-0.5 text-[clamp(1.3rem,6.5vw,1.9rem)] font-black uppercase leading-none text-red-600">VS</span>
+              <div className="h-8 w-[2px] rotate-[28deg] bg-red-600" />
+            </div>
+            <TeamMark name={awayTeamName} logoUrl={awayLogoUrl} />
           </div>
+
+          <div className="mt-auto mb-[13%] w-[48%] space-y-2.5 sm:space-y-3">
+            {competition ? (
+              <div className="flex items-center gap-1.5 text-[clamp(0.46rem,2.2vw,0.62rem)] font-bold uppercase tracking-[0.11em] text-white/64">
+                <Trophy className="h-3 w-3 shrink-0 text-red-500" strokeWidth={2.5} aria-hidden />
+                <span className="truncate">{competition}</span>
+              </div>
+            ) : null}
+            {venueLine ? <p className="text-[clamp(0.52rem,2.5vw,0.7rem)] font-black tracking-[0.15em] text-red-500">{venueLine}</p> : null}
+            {matchDate ? (
+              <div className="border-y-2 border-red-600 py-1.5">
+                <p className="text-[clamp(1.15rem,6.2vw,1.7rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">{matchDate}</p>
+              </div>
+            ) : null}
+            <div className={matchDate ? '' : 'border-y-2 border-red-600 py-1.5'}>
+              <p className="flex items-baseline gap-1 text-[clamp(1.25rem,6.5vw,1.8rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">
+                {heroOverride?.main ?? kickoff}
+                <span className="text-[0.42em] tracking-[0.04em] text-white/76">{heroOverride?.suffix ?? 'UHR'}</span>
+              </p>
+            </div>
+            {location && location !== '—' ? (
+              <div>
+                <div className="mb-0.5 flex items-center gap-1 text-[clamp(0.45rem,2.1vw,0.6rem)] font-black uppercase tracking-[0.16em] text-red-500">
+                  <MapPin className="h-3 w-3" strokeWidth={2.5} aria-hidden /> ORT
+                </div>
+                <p className="line-clamp-3 text-[clamp(0.68rem,3.4vw,0.92rem)] font-black uppercase leading-[1.08] text-white">{location}</p>
+              </div>
+            ) : null}
+            {meetingTime ? (
+              <div className="flex items-center gap-1 text-[clamp(0.45rem,2.1vw,0.6rem)] font-bold uppercase tracking-[0.11em] text-white/62">
+                <Clock className="h-3 w-3 text-red-500" strokeWidth={2.5} aria-hidden /> Treffpunkt {meetingTime}
+              </div>
+            ) : null}
+            {statusBadge ? <p className="font-black uppercase tracking-[0.16em] text-red-400">{statusBadge}</p> : null}
+          </div>
+
+          <footer className="absolute inset-x-[4%] bottom-[3.2%] z-[3]">
+            <p
+              className="whitespace-nowrap text-center text-[clamp(1.48rem,7.8vw,2.3rem)] font-black italic uppercase leading-none tracking-[-0.045em]"
+              style={{ textShadow: '0 4px 14px rgba(0,0,0,0.95)' }}
+            >
+              <span className="text-white">#{teamPrefix}</span><span className="text-red-600">{teamSuffix}</span>
+            </p>
+            <div className="mt-1.5 h-[3px] w-full bg-gradient-to-r from-transparent via-red-600 to-transparent" />
+          </footer>
         </div>
       </div>
     );
