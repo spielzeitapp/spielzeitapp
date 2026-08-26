@@ -142,6 +142,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     const kickoff = kickoffTime.replace(/\s*uhr\s*$/i, '').trim() || '—';
     const venueLine = isHomeGame === true ? 'HEIMSPIEL' : isHomeGame === false ? 'AUSWÄRTSSPIEL' : null;
     const { ageGroup, competition } = splitCompetitionLabel(competitionLabel);
+    const heroSuffix = heroOverride ? heroOverride.suffix : 'UHR';
     const cleanHashtag = hashtag.replace(/^#/, '');
     const teamSuffix = cleanHashtag.toUpperCase().endsWith('EINTEAM') ? 'EINTEAM' : '';
     const teamPrefix = teamSuffix ? cleanHashtag.slice(0, -teamSuffix.length) : cleanHashtag;
@@ -199,7 +200,9 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             <div className={matchDate ? '' : 'border-y-2 border-red-600 py-1.5'}>
               <p className="flex items-baseline gap-1 text-[clamp(1.25rem,6.5vw,1.8rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">
                 {heroOverride?.main ?? kickoff}
-                <span className="text-[0.42em] tracking-[0.04em] text-white/76">{heroOverride?.suffix ?? 'UHR'}</span>
+                {heroSuffix ? (
+                  <span className="text-[0.42em] tracking-[0.04em] text-white/76">{heroSuffix}</span>
+                ) : null}
               </p>
             </div>
             {location && location !== '—' ? (
