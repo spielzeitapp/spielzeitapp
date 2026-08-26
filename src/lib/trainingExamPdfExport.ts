@@ -26,29 +26,30 @@ export type TrainingExamPdfInput = {
 
 const PHASES: TrainingPhase[] = ['AW', 'HT1', 'HT2', 'AK'];
 // Exakte Nutzflächen der unveränderten NÖFV-ÖFB-D-Diplom-Seite (A4 quer).
-const TABLE_HEADER_TOP = 45.4;
-const PHASE_TOP = 50.4;
+const TABLE_HEADER_TOP = 44.8;
+const PHASE_TOP = 49.5;
 const PHASE_GAP = 1.3;
 const CONTENT_TABLE_BOTTOM = 205;
 const PHASE_HEIGHT = (CONTENT_TABLE_BOTTOM - PHASE_TOP - PHASE_GAP * 3) / 4;
-const TABLE_LEFT = 14.8;
-const TABLE_RIGHT = 262.3;
-const CONTENT_X = 14.8;
-const CONTENT_WIDTH = 79.2;
+const TABLE_LEFT = 12.7;
+const TABLE_RIGHT = 264.5;
+const CONTENT_X = TABLE_LEFT;
+const CONTENT_WIDTH = 92;
 const SKETCH_COLUMN_X = CONTENT_X + CONTENT_WIDTH;
-const SKETCH_COLUMN_WIDTH = 73.2;
-const SKETCH_X = SKETCH_COLUMN_X + 3.8;
-const SKETCH_WIDTH = SKETCH_COLUMN_WIDTH - 3.8;
+const SKETCH_COLUMN_WIDTH = 68;
+const SKETCH_X = SKETCH_COLUMN_X + 2.2;
+const SKETCH_WIDTH = SKETCH_COLUMN_WIDTH - 2.2;
 const MATERIAL_COLUMN_X = SKETCH_COLUMN_X + SKETCH_COLUMN_WIDTH;
-const MATERIAL_X = MATERIAL_COLUMN_X + 3.8;
-const MATERIAL_WIDTH = 27.8;
-const COACHING_COLUMN_X = 198.8;
-const COACHING_X = 202.3;
-const COACHING_WIDTH = 60;
+const COACHING_COLUMN_X = MATERIAL_COLUMN_X + 25.6;
+const MATERIAL_X = MATERIAL_COLUMN_X + 1.7;
+const MATERIAL_WIDTH = COACHING_COLUMN_X - MATERIAL_X - 1.4;
+const COACHING_X = COACHING_COLUMN_X + 1.7;
+const COACHING_WIDTH = TABLE_RIGHT - COACHING_X - 1.7;
 const TITLE_X_OFFSET = 9;
 const TITLE_Y_OFFSET = 3.5;
 const TITLE_HEIGHT = 5.4;
 const CONTENT_Y_OFFSET = 7.6;
+const TITLE_CONTENT_GAP = 0.6;
 
 export type TrainingExamTextFit = 'fit' | 'tight' | 'too-long';
 
@@ -187,17 +188,21 @@ export function measureTrainingExamPhaseTextFit(input: {
     lineHeightFactor: 1.08,
   });
   pdf.setFont('helvetica', 'normal');
-  const contentMetrics = drawFittedText(pdf, input.content, 0, 0, CONTENT_WIDTH - 2.4, PHASE_HEIGHT - CONTENT_Y_OFFSET - 1, {
+  const contentTopOffset = Math.max(
+    CONTENT_Y_OFFSET,
+    TITLE_Y_OFFSET + titleMetrics.usedHeight + TITLE_CONTENT_GAP,
+  );
+  const contentMetrics = drawFittedText(pdf, input.content, 0, 0, CONTENT_WIDTH - 3, PHASE_HEIGHT - contentTopOffset - 1, {
     maxFontSize: 7,
     minFontSize: 6.5,
     lineHeightFactor: 1.03,
   });
-  const materialsMetrics = drawFittedText(pdf, input.materials, 0, 0, MATERIAL_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
+  const materialsMetrics = drawFittedText(pdf, input.materials, 0, 0, MATERIAL_WIDTH, PHASE_HEIGHT - 7.4, {
     maxFontSize: 7,
     minFontSize: 6.5,
     lineHeightFactor: 1.12,
   });
-  const coachingMetrics = drawFittedText(pdf, input.coaching, 0, 0, COACHING_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
+  const coachingMetrics = drawFittedText(pdf, input.coaching, 0, 0, COACHING_WIDTH, PHASE_HEIGHT - 7.4, {
     maxFontSize: 7,
     minFontSize: 6.5,
     lineHeightFactor: 1.12,
@@ -211,7 +216,15 @@ export function measureTrainingExamPhaseTextFit(input: {
 
 function drawAdjustedTable(pdf: jsPDF): void {
   pdf.setFillColor(255, 255, 255);
-  pdf.rect(TABLE_LEFT, TABLE_HEADER_TOP, TABLE_RIGHT - TABLE_LEFT, CONTENT_TABLE_BOTTOM - TABLE_HEADER_TOP, 'F');
+  // Die alten Vorlagenlinien werden etwas überdeckt und anschließend exakt neu
+  // gezeichnet. So bleiben keine doppelten Rahmen an den Außenkanten sichtbar.
+  pdf.rect(
+    TABLE_LEFT - 0.5,
+    TABLE_HEADER_TOP - 0.35,
+    TABLE_RIGHT - TABLE_LEFT + 1,
+    CONTENT_TABLE_BOTTOM - TABLE_HEADER_TOP + 0.7,
+    'F',
+  );
   pdf.setDrawColor(70, 70, 70);
   pdf.setLineWidth(0.15);
   pdf.rect(TABLE_LEFT, TABLE_HEADER_TOP, TABLE_RIGHT - TABLE_LEFT, CONTENT_TABLE_BOTTOM - TABLE_HEADER_TOP);
@@ -222,10 +235,11 @@ function drawAdjustedTable(pdf: jsPDF): void {
   pdf.setTextColor(15, 15, 15);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(8);
-  pdf.text('Inhalte', CONTENT_X + CONTENT_WIDTH / 2, 49, { align: 'center' });
-  pdf.text('Organisation (Skizzen)', SKETCH_COLUMN_X + SKETCH_COLUMN_WIDTH / 2, 49, { align: 'center' });
-  pdf.text('Geräte', MATERIAL_COLUMN_X + (COACHING_COLUMN_X - MATERIAL_COLUMN_X) / 2, 49, { align: 'center' });
-  pdf.text('Coachingpunkte', COACHING_COLUMN_X + (TABLE_RIGHT - COACHING_COLUMN_X) / 2, 49, { align: 'center' });
+  const tableHeaderBaseline = TABLE_HEADER_TOP + 3.55;
+  pdf.text('Inhalte', CONTENT_X + CONTENT_WIDTH / 2, tableHeaderBaseline, { align: 'center' });
+  pdf.text('Organisation (Skizzen)', SKETCH_COLUMN_X + SKETCH_COLUMN_WIDTH / 2, tableHeaderBaseline, { align: 'center' });
+  pdf.text('Geräte', MATERIAL_COLUMN_X + (COACHING_COLUMN_X - MATERIAL_COLUMN_X) / 2, tableHeaderBaseline, { align: 'center' });
+  pdf.text('Coachingpunkte', COACHING_COLUMN_X + (TABLE_RIGHT - COACHING_COLUMN_X) / 2, tableHeaderBaseline, { align: 'center' });
   pdf.setDrawColor(209, 213, 219);
   for (let phaseIndex = 1; phaseIndex < PHASES.length; phaseIndex += 1) {
     const separatorY = PHASE_TOP + phaseIndex * PHASE_HEIGHT + (phaseIndex - 0.5) * PHASE_GAP;
@@ -395,8 +409,11 @@ async function drawPhase(
     },
   );
   pdf.setFont('helvetica', 'normal');
-  const contentY = top + CONTENT_Y_OFFSET;
-  const contentMetrics = drawFittedText(pdf, contentText, CONTENT_X + 1.3, contentY, CONTENT_WIDTH - 2.4, top + PHASE_HEIGHT - contentY - 1, {
+  const contentY = top + Math.max(
+    CONTENT_Y_OFFSET,
+    TITLE_Y_OFFSET + titleMetrics.usedHeight + TITLE_CONTENT_GAP,
+  );
+  const contentMetrics = drawFittedText(pdf, contentText, CONTENT_X + 1.5, contentY, CONTENT_WIDTH - 3, top + PHASE_HEIGHT - contentY - 1, {
     maxFontSize: 7,
     minFontSize: 6.5,
     lineHeightFactor: 1.03,
@@ -405,7 +422,7 @@ async function drawPhase(
   drawPhaseLabel(pdf, phase, MATERIAL_X + 1.2, top + 3.1);
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
-  const materialsMetrics = drawFittedText(pdf, materialsText, MATERIAL_X + 1.2, top + 6.5, MATERIAL_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
+  const materialsMetrics = drawFittedText(pdf, materialsText, MATERIAL_X, top + 6.5, MATERIAL_WIDTH, PHASE_HEIGHT - 7.4, {
     maxFontSize: 7,
     minFontSize: 6.5,
     lineHeightFactor: 1.12,
@@ -414,7 +431,7 @@ async function drawPhase(
   drawPhaseLabel(pdf, phase, COACHING_X + 1.2, top + 3.1);
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
-  const coachingMetrics = drawFittedText(pdf, coachingText, COACHING_X + 1.2, top + 6.5, COACHING_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
+  const coachingMetrics = drawFittedText(pdf, coachingText, COACHING_X, top + 6.5, COACHING_WIDTH, PHASE_HEIGHT - 7.4, {
     maxFontSize: 7,
     minFontSize: 6.5,
     lineHeightFactor: 1.12,
