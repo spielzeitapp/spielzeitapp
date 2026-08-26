@@ -504,7 +504,9 @@ export function trainingExamPdfFilename(version: number, draft = false, pageCoun
   const suffix = draft
     ? `TEST_${String(pageCount).padStart(2, '0')}-Einheiten`
     : `V${String(version).padStart(2, '0')}`;
-  return `OeFB-D-Dokumentation_${suffix}.pdf`;
+  const now = new Date();
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return `${date}_OeFB-D-Dokumentation_${suffix}.pdf`;
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

@@ -21,9 +21,10 @@ try {
   assert.match(result.content, /^Variation 1:/m);
   assert.ok(!/^•/m.test(result.content));
   assert.match(result.content, /Spieler A passt zu Spieler B/);
-  assert.match(result.coaching, /^• Offene Stellung/m);
+  assert.match(result.content, /Anschließend wechseln beide Spieler ihre Position/);
+  assert.match(result.coaching, /^Offene Stellung/m);
   assert.doesNotMatch(result.coaching, /Variation/i);
-  assert.equal((result.materials.match(/8 Bälle/g) ?? []).length, 1);
+  assert.equal(result.materials, '8 Bälle, 12 Hütchen, 8 Bälle, 2 Tore');
   assert.ok(result.content.length <= TRAINING_SHORT_TEXT_LIMITS.content);
   assert.ok(result.materials.length <= TRAINING_SHORT_TEXT_LIMITS.materials);
   assert.ok(result.coaching.length <= TRAINING_SHORT_TEXT_LIMITS.coaching);
@@ -54,8 +55,24 @@ try {
     variations: 'Die Positionen B und C an den Dummies einfach ohne Ball besetzen.',
   });
 
-  assert.match(realistic.content, /Aufbau: Ein etwa 15 x 30 Meter/);
+  assert.match(realistic.content, /Aufbau: Ein ca\. 15 x 30 Meter/);
   assert.match(realistic.content, /Spieler B startet die Aktion/);
+
+  const oversized = createTrainingExerciseShortText({
+    organization: 'Ein großes Feld mit zwei Toren und vier Außenspielern aufbauen. '.repeat(4),
+    description: 'Die Spieler kombinieren zielstrebig, wechseln Positionen und schließen anschließend auf das Tor ab. '.repeat(12),
+    materials: 'Bälle, Hütchen, Tore',
+    coachingPoints: 'Offene Stellung einnehmen. Erster Kontakt in Spielrichtung.',
+    variations: 'Kontakte begrenzen; Feld verkleinern; Neutrale Spieler einsetzen',
+  });
+  assert.ok(oversized.content.length <= TRAINING_SHORT_TEXT_LIMITS.content);
+  assert.ok(oversized.content.length < createTrainingExerciseOriginalText({
+    organization: 'Ein großes Feld mit zwei Toren und vier Außenspielern aufbauen. '.repeat(4),
+    description: 'Die Spieler kombinieren zielstrebig, wechseln Positionen und schließen anschließend auf das Tor ab. '.repeat(12),
+    materials: 'Bälle, Hütchen, Tore',
+    coachingPoints: 'Offene Stellung einnehmen. Erster Kontakt in Spielrichtung.',
+    variations: 'Kontakte begrenzen; Feld verkleinern; Neutrale Spieler einsetzen',
+  }).content.length);
   for (const line of `${realistic.content}\n${realistic.coaching}`.split('\n').filter(Boolean)) {
     assert.doesNotMatch(
       line,

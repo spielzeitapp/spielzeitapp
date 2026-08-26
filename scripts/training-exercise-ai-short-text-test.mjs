@@ -7,9 +7,12 @@ const [page, client, edge] = await Promise.all([
   readFile(new URL('../supabase/functions/shorten-training-exercise/index.ts', import.meta.url), 'utf8'),
 ]);
 
-assert.match(page, /Mit KI kürzen/);
-assert.match(page, /Neu vorschlagen \(ohne KI\)/);
+assert.match(page, /Prüfen & bei Bedarf KI kürzen/);
+assert.match(page, /Prüfen &amp; übernehmen \(ohne KI\)/);
 assert.match(page, /createTrainingExerciseAiShortText/);
+assert.match(page, /originalTextFitsPdf/);
+assert.match(page, /Es wurde keine KI verwendet/);
+assert.match(page, /pdfFit={shortTextPdfFit\.content}/);
 assert.match(client, /supabase\.functions\.invoke<AiShortTextResponse>/);
 assert.match(client, /shorten-training-exercise/);
 assert.match(edge, /OPENAI_API_KEY/);

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, CheckCircle2, Eye, FileDown, Loader2, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Eye, FileDown, Loader2, Plus, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import { supabase } from '../lib/supabaseClient';
@@ -201,11 +201,19 @@ export function ManagerTrainingExamPanel({
     () => Object.fromEntries(sessions.map((session) => [session.id, session])),
     [sessions],
   );
-  const selectedItems = useMemo(() => bundle?.items ?? [], [bundle?.items]);
-  const selectedSessions = useMemo(
-    () => selectedItems.map((item) => sessionById[item.training_session_id]).filter(Boolean),
-    [selectedItems, sessionById],
-  );
+  const selectedItems = useMemo(() => [...(bundle?.items ?? [])].sort((left, right) => {
+    const leftSession = sessionById[left.training_session_id];
+    const rightSession = sessionById[right.training_session_id];
+    const leftDate = left.training_date_override
+      ?? (leftSession?.event_id ? eventDates[leftSession.event_id] : null)
+      ?? leftSession?.created_at
+      ?? '';
+    const rightDate = right.training_date_override
+      ?? (rightSession?.event_id ? eventDates[rightSession.event_id] : null)
+      ?? rightSession?.created_at
+      ?? '';
+    return leftDate.localeCompare(rightDate) || left.sort_order - right.sort_order;
+  }), [bundle?.items, eventDates, sessionById]);
   const candidates = useMemo(() => {
     const selected = new Set(selectedItems.map((item) => item.training_session_id));
     return sessions
@@ -274,7 +282,7 @@ export function ManagerTrainingExamPanel({
 
   useEffect(() => {
     let active = true;
-    const eventIds = selectedSessions.map((session) => session.event_id).filter((id): id is string => Boolean(id));
+    const eventIds = sessions.map((session) => session.event_id).filter((id): id is string => Boolean(id));
     if (eventIds.length === 0) {
       setEventDates({});
       return () => {
@@ -293,7 +301,7 @@ export function ManagerTrainingExamPanel({
     return () => {
       active = false;
     };
-  }, [selectedSessions]);
+  }, [sessions]);
 
   async function addCandidate() {
     if (!bundle || !candidateId) return;
@@ -331,23 +339,6 @@ export function ManagerTrainingExamPanel({
     if (reordered.error) {
       setError(reordered.error);
       void load();
-      return;
-    }
-    setBundle({ ...bundle, items: reordered.data });
-  }
-
-  async function moveItem(index: number, direction: -1 | 1) {
-    if (!bundle) return;
-    const target = index + direction;
-    if (target < 0 || target >= bundle.items.length) return;
-    const next = [...bundle.items];
-    [next[index], next[target]] = [next[target], next[index]];
-    setSaving(true);
-    setError(null);
-    const reordered = await reorderTrainingExamSessions(bundle.documentation.id, next);
-    setSaving(false);
-    if (reordered.error) {
-      setError(reordered.error);
       return;
     }
     setBundle({ ...bundle, items: reordered.data });
@@ -445,7 +436,7 @@ export function ManagerTrainingExamPanel({
 
   async function buildPdfEntries(): Promise<TrainingExamPdfSession[]> {
     const result: TrainingExamPdfSession[] = [];
-    for (const item of selectedItems) {
+    for (const [index, item] of selectedItems.entries()) {
       const session = sessionById[item.training_session_id];
       if (!session) continue;
       const sessionDetails = details[session.id] ?? inspectSession((await listSessionExercises(session.id)).data);
@@ -466,7 +457,7 @@ export function ManagerTrainingExamPanel({
         examDateIso:
           item.training_date_override ??
           (session.event_id ? eventDates[session.event_id] ?? null : session.created_at),
-        examNumber: item.sort_order + 1,
+        examNumber: index + 1,
         phaseTextOverrides: item.phase_text_overrides,
       });
     }
@@ -553,7 +544,7 @@ export function ManagerTrainingExamPanel({
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-600">ÖFB-D-Diplom</p>
             <h2 className="mt-1 text-2xl font-bold text-slate-950">Trainerprüfungs-Dokumentation</h2>
             <p className="mt-2 max-w-3xl text-[13px] leading-6 text-slate-600">
-              Wähle und sortiere deine zehn Trainingseinheiten. Die Einheiten bleiben vollständig bearbeitbar;
+              Wähle deine zehn Trainingseinheiten. Sie werden automatisch nach Trainingsdatum sortiert und bleiben vollständig bearbeitbar;
               Vorschau und Download werden immer neu aus dem aktuellen Stand erzeugt.
             </p>
           </div>
@@ -616,7 +607,7 @@ export function ManagerTrainingExamPanel({
               <option value="">Trainingseinheit auswählen…</option>
               {candidates.map((session) => (
                 <option key={session.id} value={session.id}>
-                  {session.title} · {session.planned_duration_minutes ?? 0} Min. · {session.status === 'ready' ? 'fertig' : session.status}
+                  {formatDate(session.event_id ? eventDates[session.event_id] : session.created_at)} · {session.title} · {session.planned_duration_minutes ?? 0} Min. · {session.status === 'ready' ? 'fertig' : session.status}
                 </option>
               ))}
             </select>
@@ -681,9 +672,7 @@ export function ManagerTrainingExamPanel({
                   {!ready && sessionDetails ? <p className="mt-2 text-[11px] leading-5 text-amber-800">{missing.slice(0, 4).join(' · ')}{missing.length > 4 ? ` · +${missing.length - 4} weitere` : ''}</p> : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link to={`/manager/training/einheiten/${session.id}`} className="inline-flex min-h-[40px] items-center rounded-xl border border-slate-200 px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Bearbeiten</Link>
-                  <button type="button" onClick={() => void moveItem(index, -1)} disabled={index === 0 || saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 disabled:opacity-30" aria-label="Nach oben"><ArrowUp className="h-4 w-4" aria-hidden /></button>
-                  <button type="button" onClick={() => void moveItem(index, 1)} disabled={index === selectedItems.length - 1 || saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 disabled:opacity-30" aria-label="Nach unten"><ArrowDown className="h-4 w-4" aria-hidden /></button>
+                  <Link to={`/manager/training/einheiten/${session.id}?returnTo=${encodeURIComponent('/manager/training/einheiten?tab=exam')}`} className="inline-flex min-h-[40px] items-center rounded-xl border border-slate-200 px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Bearbeiten</Link>
                   <button type="button" onClick={() => void removeItem(item)} disabled={saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-600 disabled:opacity-30" aria-label="Aus Dokumentation entfernen"><Trash2 className="h-4 w-4" aria-hidden /></button>
                 </div>
               </div>

@@ -18,13 +18,17 @@ const phaseTextMigration = fs.readFileSync(
 );
 
 const checks = [
-  [sessions.includes("setMainTab('exam')"), 'Trainerprüfung-Tab fehlt'],
+  [sessions.includes("selectMainTab('exam')"), 'Trainerprüfung-Tab fehlt'],
+  [sessions.includes("requestedTab === 'exam'"), 'Direkter Rücksprung zur Trainerprüfung fehlt'],
   [sessions.includes('<ManagerTrainingExamPanel'), 'Trainerprüfung-Panel fehlt'],
   [panel.includes('PDF-Vorschau'), 'Vorschau-Aktion fehlt'],
   [panel.includes('Gesamtdokumentation herunterladen'), 'Sammeldownload fehlt'],
   [panel.includes('Test-PDF herunterladen'), 'Teil-Download fehlt'],
   [panel.includes('Trainername für alle PDF-Seiten'), 'Trainername-Feld fehlt'],
   [panel.includes('Trainingsdatum'), 'Datumsfeld fehlt'],
+  [panel.includes('automatisch nach Trainingsdatum sortiert'), 'Automatische Datumssortierung fehlt'],
+  [panel.includes('for (const [index, item] of selectedItems.entries())'), 'PDF-Nummerierung folgt nicht der Datumssortierung'],
+  [panel.includes("returnTo=${encodeURIComponent('/manager/training/einheiten?tab=exam')}"), 'Bearbeiten-Rücksprung zur Trainerprüfung fehlt'],
   [panel.includes('Mannschaft'), 'Mannschaftsfeld fehlt'],
   [panel.includes('Schwerpunkt'), 'Schwerpunktfeld fehlt'],
   [panel.includes('PDF-Prüfungstexte auswählen'), 'Auswahl für PDF-Prüfungstexte fehlt'],
@@ -68,6 +72,7 @@ const checks = [
   [pdf.includes('drawPhaseLabel'), 'Neu ausgerichtete Phasenlabels fehlen'],
   [pdf.includes('drawSketchPhaseBadge'), 'Phasenkennzeichnung an Skizzen fehlt'],
   [pdf.includes('separatorY'), 'Zeilengleiche Phasentrennung fehlt'],
+  [pdf.includes('`${date}_OeFB-D-Dokumentation_${suffix}.pdf`'), 'PDF-Dateiname enthält kein Erstellungsdatum'],
   [!pdf.includes('CONTENT_PHASE_TOPS'), 'Alte ungleiche Inhaltspositionen sind noch aktiv'],
   [!pdf.includes("exercise.title} (${item.duration_minutes} Min.)"), 'Minuten stehen noch automatisch im PDF-Titel'],
 ];

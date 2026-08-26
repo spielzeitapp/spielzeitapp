@@ -636,6 +636,9 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     : -1;
 
   const safeReturnTo = returnToFromQuery?.startsWith('/app/events/') ? returnToFromQuery : null;
+  const safeManagerReturnTo = returnToFromQuery === '/manager/training/einheiten?tab=exam'
+    ? returnToFromQuery
+    : null;
 
   const openExerciseEditor = (item: TrainingSessionExerciseRow, returnToTrainingView = false) => {
     if (!session?.id || seasonArchived) return;
@@ -744,10 +747,10 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            to={safeReturnTo ?? '/manager/training/einheiten'}
+            to={safeManagerReturnTo ?? safeReturnTo ?? '/manager/training/einheiten'}
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
           >
-            {safeReturnTo ? 'Zum Trainingscenter' : 'Zurück'}
+            {safeManagerReturnTo ? 'Zur Trainerprüfung' : safeReturnTo ? 'Zum Trainingscenter' : 'Zurück'}
           </Link>
           {session?.id ? (
             <button

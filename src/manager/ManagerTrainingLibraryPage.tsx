@@ -23,10 +23,14 @@ import {
 } from '../lib/trainingExercises';
 import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
 import {
-  createTrainingExerciseShortText,
+  createCompactTrainingExerciseShortText,
+  createTrainingExerciseOriginalText,
   TRAINING_SHORT_TEXT_LIMITS,
+  type TrainingExerciseShortText,
+  type TrainingExerciseShortTextInput,
 } from '../lib/trainingExerciseShortText';
 import { createTrainingExerciseAiShortText } from '../lib/trainingExerciseAiShortText';
+import { measureTrainingExamPhaseTextFit, type TrainingExamTextFit } from '../lib/trainingExamPdfExport';
 import { addExerciseToSession, updateSessionExercise } from '../lib/trainingSessions';
 import {
   EXERCISE_DIFFICULTY_LABELS,
@@ -84,7 +88,7 @@ const emptyForm = (): FormState => ({
 });
 
 function formFromRow(row: TrainingExerciseRow): FormState {
-  const suggestedShortText = createTrainingExerciseShortText({
+  const suggestedShortText = preferredShortTextForPdf(row.title, {
     description: row.description,
     organization: row.organization,
     materials: row.materials,
@@ -111,6 +115,26 @@ function formFromRow(row: TrainingExerciseRow): FormState {
     sourceReference: row.source_reference ?? '',
     visibility: row.visibility === 'private' ? 'private' : 'club',
   };
+}
+
+function originalTextFitsPdf(title: string, text: TrainingExerciseShortText): boolean {
+  if (
+    text.content.length > TRAINING_SHORT_TEXT_LIMITS.content
+    || text.materials.length > TRAINING_SHORT_TEXT_LIMITS.materials
+    || text.coaching.length > TRAINING_SHORT_TEXT_LIMITS.coaching
+  ) return false;
+  const fit = measureTrainingExamPhaseTextFit({ title, ...text });
+  return !Object.values(fit).includes('too-long');
+}
+
+function preferredShortTextForPdf(
+  title: string,
+  input: TrainingExerciseShortTextInput,
+): TrainingExerciseShortText {
+  const original = createTrainingExerciseOriginalText(input);
+  return originalTextFitsPdf(title, original)
+    ? original
+    : createCompactTrainingExerciseShortText(input);
 }
 
 export function ManagerTrainingLibraryPage(): React.ReactElement {
@@ -416,7 +440,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   };
 
   const generateShortText = () => {
-    const generated = createTrainingExerciseShortText({
+    const generated = preferredShortTextForPdf(form.title, {
       description: form.description,
       organization: form.organization,
       materials: form.materials,
@@ -432,16 +456,30 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   };
 
   const generateAiShortText = async () => {
-    if (!clubId || shorteningWithAi) return;
-    setShorteningWithAi(true);
-    setFormError(null);
-    const result = await createTrainingExerciseAiShortText(clubId, {
+    if (shorteningWithAi) return;
+    const input = {
       description: form.description,
       organization: form.organization,
       materials: form.materials,
       coachingPoints: form.coachingPoints,
       variations: form.variations,
-    });
+    };
+    const original = createTrainingExerciseOriginalText(input);
+    if (originalTextFitsPdf(form.title, original)) {
+      setForm((current) => ({
+        ...current,
+        shortContent: original.content,
+        shortMaterials: original.materials,
+        shortCoaching: original.coaching,
+      }));
+      setFormError(null);
+      setToast('Der vollständige Text passt. Es wurde keine KI verwendet.');
+      return;
+    }
+    if (!clubId) return;
+    setShorteningWithAi(true);
+    setFormError(null);
+    const result = await createTrainingExerciseAiShortText(clubId, input);
     setShorteningWithAi(false);
     if (!result.data) {
       setFormError(result.error ?? 'KI-Kurzfassung fehlgeschlagen.');
@@ -604,6 +642,12 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
 
   const hasSketchPreview = Boolean(pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch));
   const sketchButtonLabel = hasSketchPreview ? 'Skizze ersetzen' : 'Skizze hochladen';
+  const shortTextPdfFit = measureTrainingExamPhaseTextFit({
+    title: form.title,
+    content: form.shortContent,
+    materials: form.shortMaterials,
+    coaching: form.shortCoaching,
+  });
 
   return (
     <div className="space-y-5">
@@ -1125,6 +1169,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     </h3>
                     <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
                       Bis zu 700 Zeichen für Aufbau, verständlichen Ablauf und höchstens drei Variationen. Coachingpunkte bleiben getrennt. Der ausführliche Originaltext oben bleibt erhalten.
+                      {' '}Der Volltext wird zuerst geprüft; KI wird nur verwendet, wenn er nicht passt.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -1135,7 +1180,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
                     >
                       <Sparkles className={`h-3.5 w-3.5 ${shorteningWithAi ? 'animate-pulse' : ''}`} aria-hidden />
-                      {shorteningWithAi ? 'KI kürzt…' : 'Mit KI kürzen'}
+                      {shorteningWithAi ? 'KI kürzt…' : 'Prüfen & bei Bedarf KI kürzen'}
                     </button>
                     <button
                       type="button"
@@ -1144,7 +1189,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-50 disabled:opacity-60"
                     >
                       <RotateCw className="h-3.5 w-3.5" aria-hidden />
-                      Neu vorschlagen (ohne KI)
+                      Prüfen &amp; übernehmen (ohne KI)
                     </button>
                   </div>
                 </div>
@@ -1154,6 +1199,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     value={form.shortContent}
                     max={TRAINING_SHORT_TEXT_LIMITS.content}
                     rows={5}
+                    pdfFit={shortTextPdfFit.content}
                     onChange={(value) => setForm((current) => ({ ...current, shortContent: value }))}
                   />
                   <ShortTextField
@@ -1161,6 +1207,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     value={form.shortMaterials}
                     max={TRAINING_SHORT_TEXT_LIMITS.materials}
                     rows={2}
+                    pdfFit={shortTextPdfFit.materials}
                     onChange={(value) => setForm((current) => ({ ...current, shortMaterials: value }))}
                   />
                   <ShortTextField
@@ -1168,6 +1215,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     value={form.shortCoaching}
                     max={TRAINING_SHORT_TEXT_LIMITS.coaching}
                     rows={5}
+                    pdfFit={shortTextPdfFit.coaching}
                     onChange={(value) => setForm((current) => ({ ...current, shortCoaching: value }))}
                   />
                 </div>
@@ -1407,16 +1455,22 @@ function ShortTextField({
   value,
   max,
   rows,
+  pdfFit,
   onChange,
 }: {
   label: string;
   value: string;
   max: number;
   rows: number;
+  pdfFit: TrainingExamTextFit;
   onChange: (value: string) => void;
 }): React.ReactElement {
   const length = value.length;
-  const fit = length <= max ? 'Passt' : length <= Math.round(max * 1.15) ? 'Knapp' : 'Zu lang';
+  const fit = length > max || pdfFit === 'too-long'
+    ? 'Zu lang'
+    : pdfFit === 'tight'
+      ? 'Knapp'
+      : 'Passt';
   const fitClass =
     fit === 'Passt'
       ? 'bg-emerald-50 text-emerald-700'

@@ -171,7 +171,7 @@ function compactMaterials(value: unknown): string {
  * Erstellt einen kompakten, aber weiterhin verständlichen Trainer-Spickzettel.
  * Der ausführliche Ursprungstext wird dabei nicht verändert.
  */
-export function createTrainingExerciseShortText(
+export function createCompactTrainingExerciseShortText(
   input: TrainingExerciseShortTextInput,
 ): TrainingExerciseShortText {
   const organization = splitThoughts(input.organization).map((item) => item.replace(/^aufbau\s*:\s*/i, ''));
@@ -191,6 +191,24 @@ export function createTrainingExerciseShortText(
     materials: compactMaterials(input.materials),
     coaching,
   };
+}
+
+/**
+ * Übernimmt den vollständigen Text, solange alle zentralen Feldgrenzen eingehalten
+ * werden. Erst bei einem Überlauf wird ohne KI kompakt zusammengefasst.
+ */
+export function createTrainingExerciseShortText(
+  input: TrainingExerciseShortTextInput,
+): TrainingExerciseShortText {
+  const original = createTrainingExerciseOriginalText(input);
+  if (
+    original.content.length <= TRAINING_SHORT_TEXT_LIMITS.content
+    && original.materials.length <= TRAINING_SHORT_TEXT_LIMITS.materials
+    && original.coaching.length <= TRAINING_SHORT_TEXT_LIMITS.coaching
+  ) {
+    return original;
+  }
+  return createCompactTrainingExerciseShortText(input);
 }
 
 export function createTrainingExerciseOriginalText(
