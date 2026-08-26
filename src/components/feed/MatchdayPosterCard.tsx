@@ -8,7 +8,6 @@ const SHELL_SHADOW =
   '0 0 0 1px rgba(220, 38, 38, 0.12), 0 28px 56px -16px rgba(0, 0, 0, 0.85), 0 0 80px -28px rgba(220, 38, 38, 0.22)';
 
 export type MatchdayPosterVisualStatus = 'today' | 'live' | 'finished';
-
 export type MatchdayAnnouncementTiming = 'today' | 'tomorrow';
 
 export type MatchdayPosterCardProps = {
@@ -17,6 +16,7 @@ export type MatchdayPosterCardProps = {
   homeLogoUrl: string;
   awayLogoUrl: string;
   kickoffTime: string;
+  matchDate?: string | null;
   meetingTime: string | null;
   locationLine: string;
   venueLabel: string;
@@ -24,11 +24,8 @@ export type MatchdayPosterCardProps = {
   homeScore?: number | null;
   awayScore?: number | null;
   matchType?: string | null;
-  /** Auto-Feed Heute/Morgen — emotionale Headline (nicht bei LIVE/Endstand). */
   announcementTiming?: MatchdayAnnouncementTiming | null;
-  /** Kompaktere Höhe für Home / kleine Screens (iPhone SE). */
   compact?: boolean;
-  /** Beim Autopost fixiertes, freigestelltes Spielermotiv. */
   playerImageUrl?: string | null;
 };
 
@@ -57,6 +54,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
       homeLogoUrl,
       awayLogoUrl,
       kickoffTime,
+      matchDate = null,
       meetingTime,
       locationLine,
       venueLabel,
@@ -72,13 +70,9 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
   ) {
     const typeLabel = getMatchTypeLabel(matchType ?? undefined);
     const showAnnouncement = announcementTiming && status === 'today';
-    const competitionLabel = buildFeedMatchMetaLine(
-      pickFeedAgeGroup(homeTeamName, awayTeamName),
-      typeLabel,
-    );
+    const competitionLabel = buildFeedMatchMetaLine(pickFeedAgeGroup(homeTeamName, awayTeamName), typeLabel);
     const heroKickoff = heroKickoffDisplay(kickoffTime, status, homeScore, awayScore);
     const isHomeGame = venueLabel.toLowerCase().includes('heim');
-
     const statusLabel =
       showAnnouncement && announcementTiming === 'tomorrow'
         ? 'MORGEN IST SPIELTAG'
@@ -89,17 +83,15 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
             : status === 'finished'
               ? 'ENDSTAND'
               : 'MATCHDAY';
-
     const showStatusBadge = status === 'live' || status === 'finished';
-    let statusBadge: string | null = null;
-    if (status === 'live') statusBadge = 'LIVE';
-    else if (status === 'finished') {
-      const hs = homeScore != null ? homeScore : null;
-      const aws = awayScore != null ? awayScore : null;
-      statusBadge = hs != null && aws != null ? `ENDSTAND ${hs}:${aws}` : 'ENDSTAND';
-    }
-
-    const useHeroOverride = status === 'live' || status === 'finished';
+    const statusBadge =
+      status === 'live'
+        ? 'LIVE'
+        : status === 'finished'
+          ? homeScore != null && awayScore != null
+            ? `ENDSTAND ${homeScore}:${awayScore}`
+            : 'ENDSTAND'
+          : null;
 
     return (
       <div
@@ -115,13 +107,13 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
           homeLogoUrl={homeLogoUrl}
           awayLogoUrl={awayLogoUrl}
           kickoffTime={kickoffTime}
+          matchDate={matchDate}
           meetingTime={meetingTime}
           location={locationLine}
           competitionLabel={competitionLabel}
           isHomeGame={isHomeGame}
           hashtag={FEED_HASHTAG}
-          heroOverride={useHeroOverride ? heroKickoff : undefined}
-          showAnpfiffLabel={status === 'today' && !showStatusBadge}
+          heroOverride={showStatusBadge ? heroKickoff : undefined}
           statusBadge={showStatusBadge ? statusBadge : null}
           compact={compact}
           playerImageUrl={playerImageUrl}
