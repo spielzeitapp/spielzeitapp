@@ -60,7 +60,10 @@ function outputText(payload: Record<string, unknown>): string {
   return '';
 }
 
-function validResult(value: unknown): value is ShortText {
+function validResult(
+  value: unknown,
+  source: { organisation?: string; ablauf?: string },
+): value is ShortText {
   if (!value || typeof value !== 'object') return false;
   const result = value as Partial<ShortText>;
   return (
@@ -70,6 +73,9 @@ function validResult(value: unknown): value is ShortText {
     result.materials.length <= LIMITS.materials &&
     typeof result.coaching === 'string' &&
     result.coaching.length <= LIMITS.coaching &&
+    (!source.organisation || /(?:^|\n)Aufbau:/i.test(result.content)) &&
+    (!source.ablauf || /(?:^|\n)Ablauf:/i.test(result.content)) &&
+    !/\bVariationen?\b/i.test(result.coaching) &&
     !/…|\.\.\./.test(`${result.content}${result.materials}${result.coaching}`)
   );
 }
@@ -127,9 +133,11 @@ serve(async (req) => {
         instructions: [
           'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
           'Bewahre die fachliche Bedeutung. Erfinde keine Details.',
-          'content: höchstens 300 Zeichen insgesamt. Nutze kurze vollständige Zeilen mit den passenden Bezeichnungen Aufbau:, Start:, Ablauf: und Wechsel:.',
+          'content: höchstens 300 Zeichen insgesamt, in dieser Reihenfolge: Aufbau:, Ablauf: und optional Variation 1: bis höchstens Variation 3:.',
+          'Ablauf stammt aus ablauf (dem Feld Kurzbeschreibung) und hat höchste Priorität. Bewahre die entscheidenden Spielregeln, Aktionen sowie Wechsel nach Tor oder Ballverlust.',
+          'Aufbau enthält nur die nötige Feldorganisation. Nenne bis zu drei Variationen nur, wenn danach noch genug Platz für einen verständlichen Ablauf bleibt.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
-          'coaching: höchstens 250 Zeichen, zwei bis vier klare Aufzählungspunkte mit dem Zeichen •. Eine wichtige Variation darf enthalten sein.',
+          'coaching: höchstens 250 Zeichen, zwei bis vier klare Aufzählungspunkte mit dem Zeichen •. Verwende ausschließlich coachingpunkte und niemals Variationen.',
           'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
           'Dauer und Spielerzahl nur nennen, wenn sie zum Verständnis zwingend erforderlich sind.',
           'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
@@ -171,7 +179,7 @@ serve(async (req) => {
       return json({ error: 'Die KI-Antwort konnte nicht verarbeitet werden.' }, 502);
     }
 
-    if (!validResult(result)) {
+    if (!validResult(result, source)) {
       return json({ error: 'Die KI-Kurzfassung hält die vorgegebenen Textlängen nicht ein.' }, 502);
     }
     return json(result);
