@@ -371,9 +371,9 @@ export function ManagerTrainingExamPanel({
 
   function resetPhaseText(item: TrainingExamDocumentationItemRow, phase: TrainingPhase) {
     const next = { ...item.phase_text_overrides };
-    const useOriginal = next[phase]?.useOriginal === true;
-    if (useOriginal) next[phase] = { useOriginal: true };
-    else delete next[phase];
+    const useOriginal = next[phase]?.useOriginal !== false;
+    if (useOriginal) delete next[phase];
+    else next[phase] = { useOriginal: false };
     updateItemLocal(item.id, { phase_text_overrides: next });
     void saveItemMetadata(item.id, next);
   }
@@ -709,12 +709,12 @@ export function ManagerTrainingExamPanel({
               </div>
               <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70">
                 <summary className="cursor-pointer list-none px-4 py-3 text-[13px] font-bold text-slate-900 marker:hidden">
-                  PDF-Prüfungstexte kürzen
+                  PDF-Prüfungstexte auswählen
                   <span className="ml-2 text-[11px] font-normal text-slate-500">Nur für diese Prüfungsseite</span>
                 </summary>
                 <div className="space-y-3 border-t border-slate-200 p-3 sm:p-4">
                   <p className="text-[12px] leading-5 text-slate-600">
-                    Die Übungsbibliothek bleibt unverändert. Ohne eigene Eingabe wird automatisch die gespeicherte oder vorgeschlagene Kurzfassung verwendet.
+                    Standard ist immer der Originaltext aus der Übung. Eine gespeicherte Kurzfassung wird nur verwendet, wenn du sie für die jeweilige Phase bewusst auswählst.
                   </p>
                   {TRAINING_PHASES.map((phase) => {
                     const defaults = defaultPhaseText(sessionDetails, phase);
@@ -725,7 +725,7 @@ export function ManagerTrainingExamPanel({
                       materials: typeof overrides.materials === 'string' ? overrides.materials : defaults.materials,
                       coaching: typeof overrides.coaching === 'string' ? overrides.coaching : defaults.coaching,
                     };
-                    const useOriginal = overrides.useOriginal === true;
+                    const useOriginal = overrides.useOriginal !== false;
                     const values = useOriginal ? originals : shortValues;
                     const hasCustomShortText = ['content', 'materials', 'coaching'].some(
                       (field) => typeof overrides[field as 'content' | 'materials' | 'coaching'] === 'string',
@@ -769,8 +769,8 @@ export function ManagerTrainingExamPanel({
                         </div>
                         <p className="mb-3 text-[11px] leading-4 text-slate-500">
                           {useOriginal
-                            ? 'Für die PDF wird der ausführliche Originaltext verwendet. Deine Kurzfassung bleibt gespeichert.'
-                            : 'Für die PDF wird die kompakte Fassung verwendet und kann hier angepasst werden.'}
+                            ? 'Für die PDF wird der ausführliche Originaltext verwendet. Ist er zu lang, erhältst du vor dem Export einen Hinweis. Deine Kurzfassung bleibt gespeichert.'
+                            : 'Für die PDF wird bewusst die kompakte Fassung verwendet und kann hier angepasst werden.'}
                         </p>
                         <div className="grid gap-3 xl:grid-cols-[1.2fr_0.7fr_1.1fr]">
                           <label className="text-[11px] font-bold text-slate-600">

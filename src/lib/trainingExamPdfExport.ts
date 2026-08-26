@@ -103,10 +103,10 @@ function drawFittedText(
   width: number,
   height: number,
   options: { maxFontSize: number; minFontSize: number; lineHeightFactor?: number },
-): { usedHeight: number; lineCount: number } {
+): { usedHeight: number; lineCount: number; truncated: boolean } {
   const lineHeightFactor = options.lineHeightFactor ?? 1.14;
   const text = clean(value);
-  if (!text) return { usedHeight: 0, lineCount: 0 };
+  if (!text) return { usedHeight: 0, lineCount: 0, truncated: false };
 
   let fontSize = options.maxFontSize;
   let lineHeightMm = 0;
@@ -133,7 +133,11 @@ function drawFittedText(
       pdf.text(line.text, x + line.offsetX, baseline);
     }
   });
-  return { usedHeight: visibleLines.length * lineHeightMm, lineCount: visibleLines.length };
+  return {
+    usedHeight: visibleLines.length * lineHeightMm,
+    lineCount: visibleLines.length,
+    truncated: lines.length > visibleLines.length,
+  };
 }
 
 function withoutContentBullets(value: unknown): string {
@@ -260,7 +264,9 @@ async function drawPhase(
   }
 
   const override = entry.phaseTextOverrides?.[phase];
-  const useOriginal = override?.useOriginal === true;
+  // Missing mode is intentionally the original. A short version is only used
+  // after the trainer explicitly selects it for this phase.
+  const useOriginal = override?.useOriginal !== false;
   const contentText = withoutContentBullets(
     useOriginal
       ? originalDetailParts.join('\n\n')
@@ -297,7 +303,7 @@ async function drawPhase(
   );
   pdf.setFont('helvetica', 'normal');
   const contentY = top + 6.7 + titleMetrics.usedHeight + 1.1;
-  drawFittedText(pdf, contentText, CONTENT_X + 1.3, contentY, CONTENT_WIDTH - 2.4, top + PHASE_HEIGHT - contentY - 1, {
+  const contentMetrics = drawFittedText(pdf, contentText, CONTENT_X + 1.3, contentY, CONTENT_WIDTH - 2.4, top + PHASE_HEIGHT - contentY - 1, {
     maxFontSize: 6.5,
     minFontSize: 5.8,
     lineHeightFactor: 1.14,
@@ -306,7 +312,7 @@ async function drawPhase(
   drawPhaseLabel(pdf, phase, MATERIAL_X + 1.2, top + 3.1);
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
-  drawFittedText(pdf, materialsText, MATERIAL_X + 1.2, top + 6.5, MATERIAL_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
+  const materialsMetrics = drawFittedText(pdf, materialsText, MATERIAL_X + 1.2, top + 6.5, MATERIAL_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
     maxFontSize: 6.4,
     minFontSize: 5.8,
     lineHeightFactor: 1.12,
@@ -315,11 +321,23 @@ async function drawPhase(
   drawPhaseLabel(pdf, phase, COACHING_X + 1.2, top + 3.1);
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
-  drawFittedText(pdf, coachingText, COACHING_X + 1.2, top + 6.5, COACHING_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
+  const coachingMetrics = drawFittedText(pdf, coachingText, COACHING_X + 1.2, top + 6.5, COACHING_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
     maxFontSize: 6.4,
     minFontSize: 5.8,
     lineHeightFactor: 1.12,
   });
+
+  if (useOriginal && (contentMetrics.truncated || materialsMetrics.truncated || coachingMetrics.truncated)) {
+    const fields = [
+      contentMetrics.truncated ? 'Inhalt/Ablauf' : '',
+      materialsMetrics.truncated ? 'Geräte' : '',
+      coachingMetrics.truncated ? 'Coachingpunkte' : '',
+    ].filter(Boolean).join(', ');
+    throw new Error(
+      `Der Originaltext für ${phase} ist in ${fields} zu lang für die offizielle PDF-Vorlage. `
+      + `Wähle für ${phase} bewusst „Kurzfassung“ oder kürze den Originaltext in der Übung.`,
+    );
+  }
 
   const imageItems = items
     .map((item) => ({ item, url: entry.sketchUrls?.[item.exercise_id] ?? null }))
