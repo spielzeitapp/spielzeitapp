@@ -16,6 +16,7 @@ export type MatchdayPosterCardProps = {
   homeLogoUrl: string;
   awayLogoUrl: string;
   kickoffTime: string;
+  ageGroup?: string | null;
   matchDate?: string | null;
   meetingTime: string | null;
   locationLine: string;
@@ -54,6 +55,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
       homeLogoUrl,
       awayLogoUrl,
       kickoffTime,
+      ageGroup = null,
       matchDate = null,
       meetingTime,
       locationLine,
@@ -70,7 +72,10 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
   ) {
     const typeLabel = getMatchTypeLabel(matchType ?? undefined);
     const showAnnouncement = announcementTiming && status === 'today';
-    const competitionLabel = buildFeedMatchMetaLine(pickFeedAgeGroup(homeTeamName, awayTeamName), typeLabel);
+    const competitionLabel = buildFeedMatchMetaLine(
+      ageGroup?.trim() || pickFeedAgeGroup(homeTeamName, awayTeamName),
+      typeLabel,
+    );
     const heroKickoff = heroKickoffDisplay(kickoffTime, status, homeScore, awayScore);
     const isHomeGame = venueLabel.toLowerCase().includes('heim');
     const statusLabel =
