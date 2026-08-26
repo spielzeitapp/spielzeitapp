@@ -3,7 +3,7 @@ import { createServer } from 'vite';
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
 try {
-  const { createTrainingExerciseShortText, TRAINING_SHORT_TEXT_LIMITS } = await vite.ssrLoadModule(
+  const { createTrainingExerciseShortText, createTrainingExerciseOriginalText, TRAINING_SHORT_TEXT_LIMITS } = await vite.ssrLoadModule(
     '/src/lib/trainingExerciseShortText.ts',
   );
   const result = createTrainingExerciseShortText({
@@ -17,12 +17,12 @@ try {
   });
 
   assert.match(result.content, /^Aufbau:/);
-  assert.match(result.content, /^Start:/m);
   assert.match(result.content, /^Ablauf:/m);
+  assert.match(result.content, /^Variation 1:/m);
   assert.ok(!/^•/m.test(result.content));
   assert.match(result.content, /Spieler A passt zu Spieler B/);
   assert.match(result.coaching, /^• Offene Stellung/m);
-  assert.match(result.coaching, /Variation:/);
+  assert.doesNotMatch(result.coaching, /Variation/i);
   assert.equal((result.materials.match(/8 Bälle/g) ?? []).length, 1);
   assert.ok(result.content.length <= TRAINING_SHORT_TEXT_LIMITS.content);
   assert.ok(result.materials.length <= TRAINING_SHORT_TEXT_LIMITS.materials);
@@ -30,6 +30,19 @@ try {
   assert.ok(!/https?:\/\//.test(`${result.content}${result.coaching}`));
   assert.ok(!/…|\.\.\./.test(`${result.content}${result.materials}${result.coaching}`));
   assert.deepEqual(TRAINING_SHORT_TEXT_LIMITS, { content: 300, materials: 100, coaching: 250 });
+
+  const original = createTrainingExerciseOriginalText({
+    description: 'Die Mannschaft greift auf das Großtor an. Nach Tor oder Ballverlust wechselt die Spielrichtung.',
+    organization: 'Doppelten Strafraum markieren.',
+    materials: 'Bälle, Hütchen',
+    coachingPoints: 'Schnell umschalten. Zielstrebig abschließen.',
+    variations: 'Kontakte begrenzen; Feld verkleinern; Neutrale Spieler einsetzen; Tore doppelt zählen',
+  });
+  assert.match(original.content, /^Aufbau:/m);
+  assert.match(original.content, /^Ablauf:/m);
+  assert.equal((original.content.match(/^Variation \d:/gm) ?? []).length, 3);
+  assert.doesNotMatch(original.coaching, /Variation/i);
+  assert.match(original.coaching, /Schnell umschalten/);
 
   const realistic = createTrainingExerciseShortText({
     organization: 'Ein ca. 15 x 30 Meter großes Spielfeld mit zwei Toren aufbauen.',
