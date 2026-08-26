@@ -4,6 +4,18 @@ import { Clock, MapPin, Trophy } from 'lucide-react';
 const PLACEHOLDER =
   (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '') + '/logos/placeholder-shield-a.png';
 
+/** Legacy-Exports für weitere Poster; die neue Spieltag-Grafik selbst nutzt kein Stadionbild mehr. */
+export const MATCHDAY_POSTER_BG_ASSET = 'feed/matchday-stadium-smoke-bg.png';
+export const MATCHDAY_POSTER_BG_FALLBACK = 'intro/welcome-hero.png';
+
+function posterAssetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL || '/';
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
+
+export const MATCHDAY_POSTER_BG_URL = posterAssetUrl(MATCHDAY_POSTER_BG_ASSET);
+export const MATCHDAY_POSTER_BG_FALLBACK_URL = posterAssetUrl(MATCHDAY_POSTER_BG_FALLBACK);
+
 function PosterLogo({ src, alt }: { src: string; alt: string }) {
   const [imgSrc, setImgSrc] = React.useState(src || PLACEHOLDER);
 
