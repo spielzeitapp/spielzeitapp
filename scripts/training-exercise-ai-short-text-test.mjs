@@ -24,10 +24,9 @@ assert.match(edge, /Variation \${index \+ 1}/);
 assert.match(edge, /content: 300/);
 assert.match(edge, /materials: 100/);
 assert.match(edge, /coaching: 250/);
-assert.match(edge, /Ablauf stammt aus ablauf \(dem Feld Kurzbeschreibung\)/);
-assert.match(edge, /höchstens Variation 3/);
-assert.match(edge, /ausschließlich coachingpunkte und niemals Variationen/);
-assert.match(edge, /Ablauf stammt aus ablauf \(dem Feld Kurzbeschreibung\)/);
+assert.match(edge, /flow: höchstens 190 Zeichen aus ablauf/);
+assert.match(edge, /variations: höchstens drei kurze Einträge/);
+assert.match(edge, /coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte/);
 assert.match(page, /Inhalte: Aufbau, Ablauf & Variationen/);
 assert.doesNotMatch(edge, /SUPABASE_SERVICE_ROLE_KEY/);
 
