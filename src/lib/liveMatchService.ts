@@ -825,6 +825,41 @@ export async function deleteMatchEventById(eventId: string): Promise<{ error: st
   return { error: null };
 }
 
+/** Korrigiert ausschließlich den zugeordneten Spieler eines bereits erfassten Tor-Events. */
+export async function updateGoalScorer(
+  eventId: string,
+  playerId: string,
+): Promise<{ error: string | null }> {
+  const id = eventId.trim();
+  const pid = playerId.trim();
+  if (!id) return { error: 'Keine Ereignis-ID.' };
+  if (!pid) return { error: 'Bitte einen Torschützen auswählen.' };
+  if (isDemoMatchEventId(id)) {
+    return { error: 'Demo-Ereignisse können nicht nachträglich bearbeitet werden.' };
+  }
+
+  const { data: evRow, error: loadErr } = await supabase
+    .from('match_events')
+    .select('match_id, type')
+    .eq('id', id)
+    .maybeSingle();
+  if (loadErr) return { error: loadErr.message };
+  const row = evRow as { match_id?: string; type?: string } | null;
+  if (!row?.match_id) return { error: 'Tor-Ereignis wurde nicht gefunden.' };
+  if (row.type !== 'goal' && row.type !== 'goal_away') {
+    return { error: 'Nur bei Toren kann der Torschütze geändert werden.' };
+  }
+
+  const writable = await assertMatchTeamSeasonWritable(row.match_id);
+  if (!writable.ok) return { error: writable.message };
+  const { error } = await supabase.from('match_events').update({ player_id: pid }).eq('id', id);
+  if (error) {
+    console.error('[liveMatchService] updateGoalScorer', error);
+    return { error: error.message };
+  }
+  return { error: null };
+}
+
 export async function saveMatchEvents(
   payloads: InsertMatchEventPayload[],
 ): Promise<{ ids: string[]; error: string | null }> {

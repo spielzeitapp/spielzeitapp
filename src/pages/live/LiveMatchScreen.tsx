@@ -56,6 +56,7 @@ import {
   syncFinalLineupBenchFromEventReplay,
   persistPositionSwap,
   saveMatchEvent,
+  updateGoalScorer,
   updateMatchRow,
   matchEventDbRowToEngine,
   type LiveMatchRow,
@@ -1482,6 +1483,9 @@ export const LiveMatchScreen: React.FC = () => {
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [awayGoalModalOpen, setAwayGoalModalOpen] = useState(false);
   const [awayGoalPickId, setAwayGoalPickId] = useState<string>('');
+  const [editingGoalEvent, setEditingGoalEvent] = useState<MatchEngineEvent | null>(null);
+  const [editingGoalScorerId, setEditingGoalScorerId] = useState('');
+  const [editingGoalSaving, setEditingGoalSaving] = useState(false);
   const [pauseConfirmOpen, setPauseConfirmOpen] = useState(false);
   const [pauseConfirmSaving, setPauseConfirmSaving] = useState(false);
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
@@ -3863,8 +3867,35 @@ export const LiveMatchScreen: React.FC = () => {
     }
 
     const ev = row.items[0];
+    const canEditGoal =
+      canControlLiveMatch &&
+      !calendarFinalized &&
+      (ev.type === 'goal' || ev.type === 'goal_away');
+    const openGoalEdit = () => {
+      setEditingGoalEvent(ev);
+      setEditingGoalScorerId(ev.playerId ?? '');
+      setEditingGoalSaving(false);
+      setSaveError(null);
+    };
     return (
-      <div key={row.key} className="w-full min-w-0">
+      <div
+        key={row.key}
+        className={`w-full min-w-0 ${canEditGoal ? 'cursor-pointer rounded-xl focus-within:ring-2 focus-within:ring-red-500/70' : ''}`}
+        onClick={canEditGoal ? openGoalEdit : undefined}
+        onKeyDown={
+          canEditGoal
+            ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openGoalEdit();
+                }
+              }
+            : undefined
+        }
+        role={canEditGoal ? 'button' : undefined}
+        tabIndex={canEditGoal ? 0 : undefined}
+        aria-label={canEditGoal ? `${eventLabel(ev)} bearbeiten` : undefined}
+      >
         {renderTimelineRow(ev, 0, 1, true, true, spectatorView, true)}
       </div>
     );
@@ -6593,6 +6624,88 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         </div>
       )}
+
+      {editingGoalEvent && (editingGoalEvent.type === 'goal' || editingGoalEvent.type === 'goal_away') ? (
+        <div
+          className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/75 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => {
+            if (!editingGoalSaving) setEditingGoalEvent(null);
+          }}
+        >
+          <div
+            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#141414] px-4 pb-8 pt-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="goal-edit-title"
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+            <h3 id="goal-edit-title" className="text-center text-lg font-bold">Torschütze ändern</h3>
+            <p className="mt-1 text-center text-sm text-white/50">
+              {formatMinute(editingGoalEvent.timestamp)} · Tor{' '}
+              {editingGoalEvent.type === 'goal' ? stadiumHomeDisplay : stadiumAwayDisplay}
+            </p>
+
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-bold uppercase text-red-400/90">Kader</p>
+              <div className="flex flex-wrap gap-2">
+                {roster.map((player) => (
+                  <button
+                    key={player.id}
+                    type="button"
+                    disabled={editingGoalSaving}
+                    onClick={() => setEditingGoalScorerId(player.id)}
+                    className={`min-h-[48px] min-w-[100px] flex-1 rounded-xl px-3 py-2 text-sm font-bold ${
+                      editingGoalScorerId === player.id
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white/10 text-white active:bg-white/20'
+                    }`}
+                  >
+                    {player.number || '–'} {player.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={!editingGoalScorerId || editingGoalSaving}
+              onClick={async () => {
+                if (!editingGoalScorerId || editingGoalSaving) return;
+                setEditingGoalSaving(true);
+                setSaveError(null);
+                const { error } = await updateGoalScorer(editingGoalEvent.id, editingGoalScorerId);
+                if (error) {
+                  setSaveError(error);
+                  setEditingGoalSaving(false);
+                  return;
+                }
+                setEvents((previous) =>
+                  previous.map((event) =>
+                    event.id === editingGoalEvent.id
+                      ? { ...event, playerId: editingGoalScorerId }
+                      : event,
+                  ),
+                );
+                setEditingGoalEvent(null);
+                setEditingGoalSaving(false);
+              }}
+              className="mt-6 flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-red-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+            >
+              {editingGoalSaving ? 'Wird gespeichert…' : 'Änderung speichern'}
+            </button>
+            <button
+              type="button"
+              disabled={editingGoalSaving}
+              onClick={() => setEditingGoalEvent(null)}
+              className="mt-3 min-h-[48px] w-full rounded-2xl border border-white/15 text-base font-semibold text-white/80 disabled:opacity-40"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {pauseConfirmOpen && (
         <div
