@@ -1121,10 +1121,10 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h3 className="text-[13px] font-semibold text-slate-900">
-                      Kurzfassung für Handout &amp; Trainer-PDF
+                      Kurzfassung für Handout &amp; optionale Trainer-PDF
                     </h3>
                     <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                      Verständliche Stichpunkte für den Platz. Der ausführliche Originaltext oben bleibt erhalten.
+                      Inhalte: Aufbau, Ablauf und höchstens drei Variationen. Coachingpunkte bleiben getrennt. Der ausführliche Originaltext oben bleibt erhalten.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -1150,7 +1150,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                 </div>
                 <div className="mt-3 space-y-3">
                   <ShortTextField
-                    label="Aufbau & Ablauf"
+                    label="Inhalte: Aufbau, Ablauf & Variationen"
                     value={form.shortContent}
                     max={TRAINING_SHORT_TEXT_LIMITS.content}
                     rows={5}
