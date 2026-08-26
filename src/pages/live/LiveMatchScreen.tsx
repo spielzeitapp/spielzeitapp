@@ -1505,6 +1505,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [goalUndoToastClosing, setGoalUndoToastClosing] = useState(false);
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const resultFeedRefreshAttemptRef = useRef<string | null>(null);
   const liveScrollRef = useRef<HTMLDivElement>(null);
   const liveHubScrollRef = useRef<HTMLElement>(null);
 
@@ -1519,6 +1520,20 @@ export const LiveMatchScreen: React.FC = () => {
     // Defensiv: alle hängenden Locks lösen (body + html), z. B. nach Sheet-Races.
     forceReleaseBodyScrollLocks();
   }, []);
+
+  /** Repariert auch bereits bestehende Ergebnis-Posts, wenn ein Trainer das beendete Spiel erneut öffnet. */
+  useEffect(() => {
+    const mid = effectiveMatchId?.trim() ?? '';
+    if (!mid || isDemo || !canControlLiveMatch || matchRow?.status !== 'finished') return;
+    if (resultFeedRefreshAttemptRef.current === mid) return;
+    resultFeedRefreshAttemptRef.current = mid;
+    void ensureResultFeedPostForMatch(mid).then((result) => {
+      if (!result.ok) {
+        console.warn('[resultFeed][LiveMatch] refresh existing post failed', result.error);
+        resultFeedRefreshAttemptRef.current = null;
+      }
+    });
+  }, [effectiveMatchId, isDemo, canControlLiveMatch, matchRow?.status]);
 
   const stabilizeLiveHubAfterFairPlay = useCallback(() => {
     releaseLiveBodyScrollLock();
@@ -6688,6 +6703,15 @@ export const LiveMatchScreen: React.FC = () => {
                       : event,
                   ),
                 );
+                if (effectiveMatchId) {
+                  const feedResult = await ensureResultFeedPostForMatch(effectiveMatchId);
+                  if (!feedResult.ok) {
+                    setSaveError(`Torschütze geändert, Feed konnte nicht aktualisiert werden: ${feedResult.error}`);
+                    setEditingGoalEvent(null);
+                    setEditingGoalSaving(false);
+                    return;
+                  }
+                }
                 setEditingGoalEvent(null);
                 setEditingGoalSaving(false);
               }}
