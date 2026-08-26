@@ -161,6 +161,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   const meetingTime = p.meeting_iso ? formatMeetupTimeOnlyDe(p.meeting_iso) : null;
   const kickoffTime = formatKickoff(p.kickoff_iso);
   const matchDate = formatMatchDate(p.kickoff_iso);
+  const posterAgeGroup = teamLabel.match(/\bU\d+\b/i)?.[0]?.toUpperCase() ?? null;
   const posterPlayerImageUrl =
     p.matchday_player_image_url?.trim() || legacyDemoPlayerImage(p.event_id);
 
@@ -340,6 +341,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           homeLogoUrl={homeLogoUrl}
           awayLogoUrl={awayLogoUrl}
           kickoffTime={kickoffTime}
+          ageGroup={posterAgeGroup}
           matchDate={matchDate}
           meetingTime={meetingTime}
           locationLine={locationLine}
