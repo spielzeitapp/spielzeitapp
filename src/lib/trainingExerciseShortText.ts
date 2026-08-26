@@ -57,6 +57,18 @@ function splitThoughts(value: unknown): string[] {
   return merged;
 }
 
+function splitVariations(value: unknown): string[] {
+  const text = clean(value).replace(/^variationen?\s*:\s*/i, '');
+  if (!text) return [];
+  return unique(
+    text
+      .split(/\n+|\s*;\s*/)
+      .map(withoutBullet)
+      .map((part) => part.trim())
+      .filter((part) => part.length >= 3 && !/^video\s*:/i.test(part)),
+  ).slice(0, 3);
+}
+
 function phraseWithin(value: string, max: number): string {
   const normalized = value.replace(/[….,;:\s]+$/, '').trim();
   if (normalized.length <= max) return normalized;
@@ -108,25 +120,38 @@ function bullets(items: string[], limit: number, maxItems: number, maxItemLength
   return result.join('\n');
 }
 
-function labeledContent(organization: string[], description: string[]): string {
-  const candidates = [
-    { label: 'Aufbau', value: organization[0] },
-    { label: 'Start', value: description[0] },
-    { label: 'Ablauf', value: description[1] },
-    { label: 'Wechsel', value: description[2] },
-  ].filter((candidate): candidate is { label: string; value: string } => Boolean(candidate.value));
+function labeledContent(
+  organization: string[],
+  description: string[],
+  variations: string[],
+): string {
   const result: string[] = [];
-  for (const candidate of candidates) {
+  const append = (label: string, value: string, maxLength: number): boolean => {
+    if (!value) return false;
     const used = result.join('\n').length + (result.length ? 1 : 0);
     const remaining = TRAINING_SHORT_TEXT_LIMITS.content - used;
-    const prefix = `${candidate.label}: `;
-    if (remaining <= prefix.length + 12) break;
-    const value = phraseWithin(candidate.value, Math.min(88, remaining - prefix.length));
-    if (value) result.push(`${prefix}${value}`);
-  }
+    const prefix = `${label}: `;
+    if (remaining <= prefix.length + 12) return false;
+    const shortened = phraseWithin(value, Math.min(maxLength, remaining - prefix.length));
+    if (!shortened) return false;
+    result.push(`${prefix}${shortened}`);
+    return true;
+  };
+
+  append('Aufbau', organization.join('. '), 62);
+  const remainingBeforeAblauf =
+    TRAINING_SHORT_TEXT_LIMITS.content - result.join('\n').length - (result.length ? 1 : 0);
+  const variationReserve = variations.length > 0 ? 54 : 0;
+  append(
+    'Ablauf',
+    description.join('. '),
+    Math.max(80, Math.min(185, remainingBeforeAblauf - 'Ablauf: '.length - variationReserve)),
+  );
+  variations.slice(0, 3).forEach((variation, index) => {
+    append(`Variation ${index + 1}`, variation, 58);
+  });
   return result.join('\n');
 }
-
 function compactMaterials(value: unknown): string {
   const parts = clean(value)
     .split(/\n|,|;/)
@@ -152,13 +177,10 @@ export function createTrainingExerciseShortText(
   const organization = splitThoughts(input.organization).map((item) => item.replace(/^aufbau\s*:\s*/i, ''));
   const description = splitThoughts(input.description);
   const coachingPoints = splitThoughts(input.coachingPoints);
-  const variations = splitThoughts(input.variations).map((item) => `Variation: ${item}`);
-  const coachingItems = variations.length > 0
-    ? [...coachingPoints.slice(0, 3), variations[0]]
-    : coachingPoints.slice(0, 4);
-  const content = labeledContent(organization, description);
+  const variations = splitVariations(input.variations);
+  const content = labeledContent(organization, description, variations);
   const coaching = bullets(
-    coachingItems,
+    coachingPoints,
     TRAINING_SHORT_TEXT_LIMITS.coaching,
     4,
     78,
@@ -176,17 +198,15 @@ export function createTrainingExerciseOriginalText(
 ): TrainingExerciseShortText {
   const organization = clean(input.organization).replace(/^aufbau\s*:\s*/i, '');
   const description = clean(input.description).replace(/^ablauf\s*:\s*/i, '');
-  const variations = clean(input.variations).replace(/^variationen?\s*:\s*/i, '');
+  const variations = splitVariations(input.variations);
   return {
     content: [
       organization ? `Aufbau: ${organization}` : '',
       description ? `Ablauf: ${description}` : '',
+      ...variations.map((variation, index) => `Variation ${index + 1}: ${variation}`),
     ].filter(Boolean).join('\n'),
     materials: clean(input.materials),
-    coaching: [
-      clean(input.coachingPoints),
-      variations ? `Variationen: ${variations}` : '',
-    ].filter(Boolean).join('\n'),
+    coaching: clean(input.coachingPoints),
   };
 }
 
