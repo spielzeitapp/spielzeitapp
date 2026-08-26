@@ -22,6 +22,14 @@ type RequestBody = {
   input?: SourceInput;
 };
 
+type AiShortText = {
+  setup: string;
+  flow: string;
+  variations: string[];
+  materials: string;
+  coachingPoints: string[];
+};
+
 type ShortText = {
   content: string;
   materials: string;
@@ -60,24 +68,66 @@ function outputText(payload: Record<string, unknown>): string {
   return '';
 }
 
-function validResult(
-  value: unknown,
-  source: { organisation?: string; ablauf?: string },
-): value is ShortText {
-  if (!value || typeof value !== 'object') return false;
-  const result = value as Partial<ShortText>;
-  return (
-    typeof result.content === 'string' &&
-    result.content.length <= LIMITS.content &&
-    typeof result.materials === 'string' &&
-    result.materials.length <= LIMITS.materials &&
-    typeof result.coaching === 'string' &&
-    result.coaching.length <= LIMITS.coaching &&
-    (!source.organisation || /(?:^|\n)Aufbau:/i.test(result.content)) &&
-    (!source.ablauf || /(?:^|\n)Ablauf:/i.test(result.content)) &&
-    !/\bVariationen?\b/i.test(result.coaching) &&
-    !/…|\.\.\./.test(`${result.content}${result.materials}${result.coaching}`)
-  );
+function cleanOutput(value: string): string {
+  return value
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/…|\.\.\./g, '.')
+    .replace(/\r\n?/g, '\n')
+    .trim();
+}
+
+function appendWithinLimit(base: string, line: string, limit: number): string {
+  if (!line) return base;
+  const next = base ? `${base}\n${line}` : line;
+  return next.length <= limit ? next : base;
+}
+
+function normaliseResult(value: unknown): ShortText | null {
+  if (!value || typeof value !== 'object') return null;
+  const result = value as Partial<AiShortText>;
+  if (
+    typeof result.setup !== 'string' ||
+    typeof result.flow !== 'string' ||
+    !Array.isArray(result.variations) ||
+    !result.variations.every((item) => typeof item === 'string') ||
+    typeof result.materials !== 'string' ||
+    !Array.isArray(result.coachingPoints) ||
+    !result.coachingPoints.every((item) => typeof item === 'string')
+  ) {
+    return null;
+  }
+
+  let content = '';
+  const setup = cleanOutput(result.setup);
+  const flow = cleanOutput(result.flow);
+  if (setup) content = appendWithinLimit(content, `Aufbau: ${setup}`, LIMITS.content);
+  if (flow) content = appendWithinLimit(content, `Ablauf: ${flow}`, LIMITS.content);
+  for (const [index, variation] of result.variations.slice(0, 3).entries()) {
+    content = appendWithinLimit(
+      content,
+      `Variation ${index + 1}: ${cleanOutput(variation)}`,
+      LIMITS.content,
+    );
+  }
+
+  let coaching = '';
+  for (const point of result.coachingPoints.slice(0, 4)) {
+    const cleaned = cleanOutput(point);
+    if (!cleaned || /\bVariationen?\b/i.test(cleaned)) continue;
+    coaching = appendWithinLimit(coaching, `• ${cleaned.replace(/^•\s*/, '')}`, LIMITS.coaching);
+  }
+
+  const materials = cleanOutput(result.materials);
+  if (
+    !content ||
+    content.length > LIMITS.content ||
+    materials.length > LIMITS.materials ||
+    coaching.length > LIMITS.coaching
+  ) {
+    return null;
+  }
+
+  return { content, materials, coaching };
 }
 
 serve(async (req) => {
@@ -133,16 +183,18 @@ serve(async (req) => {
         instructions: [
           'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
           'Bewahre die fachliche Bedeutung. Erfinde keine Details.',
-          'content: höchstens 300 Zeichen insgesamt, in dieser Reihenfolge: Aufbau:, Ablauf: und optional Variation 1: bis höchstens Variation 3:.',
-          'Ablauf stammt aus ablauf (dem Feld Kurzbeschreibung) und hat höchste Priorität. Bewahre die entscheidenden Spielregeln, Aktionen sowie Wechsel nach Tor oder Ballverlust.',
-          'Aufbau enthält nur die nötige Feldorganisation. Nenne bis zu drei Variationen nur, wenn danach noch genug Platz für einen verständlichen Ablauf bleibt.',
+          'Gib setup, flow, variations, materials und coachingPoints getrennt zurück.',
+          'setup: höchstens 70 Zeichen und nur die nötige Feldorganisation aus organisation.',
+          'flow: höchstens 190 Zeichen aus ablauf (dem Feld Kurzbeschreibung). Bewahre vorrangig die entscheidenden Spielregeln, Aktionen sowie Wechsel nach Tor oder Ballverlust.',
+          'variations: höchstens drei kurze Einträge aus variationen. Sie werden nur ergänzt, wenn nach Aufbau und Ablauf noch Platz bleibt.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
-          'coaching: höchstens 250 Zeichen, zwei bis vier klare Aufzählungspunkte mit dem Zeichen •. Verwende ausschließlich coachingpunkte und niemals Variationen.',
+          'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
           'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
           'Dauer und Spielerzahl nur nennen, wenn sie zum Verständnis zwingend erforderlich sind.',
           'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
         ].join('\n'),
         input: JSON.stringify(source),
+        store: false,
         text: {
           format: {
             type: 'json_schema',
@@ -152,11 +204,22 @@ serve(async (req) => {
               type: 'object',
               additionalProperties: false,
               properties: {
-                content: { type: 'string', maxLength: LIMITS.content },
+                setup: { type: 'string', maxLength: 70 },
+                flow: { type: 'string', maxLength: 190 },
+                variations: {
+                  type: 'array',
+                  maxItems: 3,
+                  items: { type: 'string', maxLength: 60 },
+                },
                 materials: { type: 'string', maxLength: LIMITS.materials },
-                coaching: { type: 'string', maxLength: LIMITS.coaching },
+                coachingPoints: {
+                  type: 'array',
+                  minItems: 0,
+                  maxItems: 4,
+                  items: { type: 'string', maxLength: 100 },
+                },
               },
-              required: ['content', 'materials', 'coaching'],
+              required: ['setup', 'flow', 'variations', 'materials', 'coachingPoints'],
             },
           },
         },
@@ -179,10 +242,15 @@ serve(async (req) => {
       return json({ error: 'Die KI-Antwort konnte nicht verarbeitet werden.' }, 502);
     }
 
-    if (!validResult(result, source)) {
-      return json({ error: 'Die KI-Kurzfassung hält die vorgegebenen Textlängen nicht ein.' }, 502);
+    const normalised = normaliseResult(result);
+    if (!normalised) {
+      console.error(
+        '[shorten-training-exercise] Structured output could not be normalised',
+        JSON.stringify(result).slice(0, 1_000),
+      );
+      return json({ error: 'Die KI-Kurzfassung konnte nicht passend zusammengesetzt werden.' }, 502);
     }
-    return json(result);
+    return json(normalised);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[shorten-training-exercise]', message);
