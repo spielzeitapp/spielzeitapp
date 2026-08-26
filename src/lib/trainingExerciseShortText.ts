@@ -13,7 +13,7 @@ export type TrainingExerciseShortText = {
 };
 
 export const TRAINING_SHORT_TEXT_LIMITS = {
-  content: 300,
+  content: 700,
   materials: 100,
   coaching: 250,
 } as const;
@@ -138,17 +138,17 @@ function labeledContent(
     return true;
   };
 
-  append('Aufbau', organization.join('. '), 62);
+  append('Aufbau', organization.join('. '), 130);
   const remainingBeforeAblauf =
     TRAINING_SHORT_TEXT_LIMITS.content - result.join('\n').length - (result.length ? 1 : 0);
-  const variationReserve = variations.length > 0 ? 54 : 0;
+  const variationReserve = variations.length > 0 ? 110 : 0;
   append(
     'Ablauf',
     description.join('. '),
-    Math.max(80, Math.min(185, remainingBeforeAblauf - 'Ablauf: '.length - variationReserve)),
+    Math.max(180, Math.min(430, remainingBeforeAblauf - 'Ablauf: '.length - variationReserve)),
   );
   variations.slice(0, 3).forEach((variation, index) => {
-    append(`Variation ${index + 1}`, variation, 58);
+    append(`Variation ${index + 1}`, variation, 100);
   });
   return result.join('\n');
 }

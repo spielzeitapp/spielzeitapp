@@ -29,7 +29,7 @@ try {
   assert.ok(result.coaching.length <= TRAINING_SHORT_TEXT_LIMITS.coaching);
   assert.ok(!/https?:\/\//.test(`${result.content}${result.coaching}`));
   assert.ok(!/…|\.\.\./.test(`${result.content}${result.materials}${result.coaching}`));
-  assert.deepEqual(TRAINING_SHORT_TEXT_LIMITS, { content: 300, materials: 100, coaching: 250 });
+  assert.deepEqual(TRAINING_SHORT_TEXT_LIMITS, { content: 700, materials: 100, coaching: 250 });
 
   const original = createTrainingExerciseOriginalText({
     description: 'Die Mannschaft greift auf das Großtor an. Nach Tor oder Ballverlust wechselt die Spielrichtung.',

@@ -18,8 +18,10 @@ import {
 import {
   createTrainingExamPdf,
   downloadBlob,
+  measureTrainingExamPhaseTextFit,
   trainingExamPdfFilename,
   type TrainingExamPdfSession,
+  type TrainingExamTextFit,
 } from '../lib/trainingExamPdfExport';
 import { getTrainingExerciseSketchUrl, type TrainingExerciseRow } from '../lib/trainingExercises';
 import { listSessionExercises, type TrainingSessionExerciseRow, type TrainingSessionRow } from '../lib/trainingSessions';
@@ -27,7 +29,6 @@ import { TRAINING_PHASES, type TrainingPhase } from '../lib/trainingPhases';
 import {
   createTrainingExerciseOriginalText,
   resolveTrainingExerciseShortText,
-  TRAINING_SHORT_TEXT_LIMITS,
 } from '../lib/trainingExerciseShortText';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 
@@ -153,9 +154,20 @@ function originalPhaseText(details: SessionDetails | undefined, phase: TrainingP
   };
 }
 
-function textFitLabel(length: number, recommended: number): { label: string; className: string } {
-  if (length <= recommended) return { label: 'Passt', className: 'bg-emerald-50 text-emerald-700' };
-  if (length <= Math.round(recommended * 1.2)) return { label: 'Knapp', className: 'bg-amber-50 text-amber-800' };
+function phaseTitle(details: SessionDetails | undefined, phase: TrainingPhase): string {
+  return (details?.items ?? [])
+    .filter((item) => item.phase === phase)
+    .sort((left, right) => left.sort_order - right.sort_order)
+    .map((item) => details?.exerciseMap[item.exercise_id] ?? item.exercise ?? null)
+    .filter((exercise): exercise is TrainingExerciseRow => Boolean(exercise))
+    .map((exercise) => exercise.title.trim())
+    .filter(Boolean)
+    .join(' / ');
+}
+
+function textFitLabel(fit: TrainingExamTextFit): { label: string; className: string } {
+  if (fit === 'fit') return { label: 'Passt', className: 'bg-emerald-50 text-emerald-700' };
+  if (fit === 'tight') return { label: 'Knapp', className: 'bg-amber-50 text-amber-800' };
   return { label: 'Zu lang', className: 'bg-red-50 text-red-700' };
 }
 
@@ -730,9 +742,15 @@ export function ManagerTrainingExamPanel({
                     const hasCustomShortText = ['content', 'materials', 'coaching'].some(
                       (field) => typeof overrides[field as 'content' | 'materials' | 'coaching'] === 'string',
                     );
-                    const contentFit = textFitLabel(values.content.length, TRAINING_SHORT_TEXT_LIMITS.content);
-                    const materialsFit = textFitLabel(values.materials.length, TRAINING_SHORT_TEXT_LIMITS.materials);
-                    const coachingFit = textFitLabel(values.coaching.length, TRAINING_SHORT_TEXT_LIMITS.coaching);
+                    const measuredFit = measureTrainingExamPhaseTextFit({
+                      title: phaseTitle(sessionDetails, phase),
+                      content: values.content,
+                      materials: values.materials,
+                      coaching: values.coaching,
+                    });
+                    const contentFit = textFitLabel(measuredFit.content);
+                    const materialsFit = textFitLabel(measuredFit.materials);
+                    const coachingFit = textFitLabel(measuredFit.coaching);
                     return (
                       <section key={phase} className="rounded-xl border border-slate-200 bg-white p-3">
                         <div className="mb-3 flex items-center justify-between gap-3">
@@ -769,8 +787,8 @@ export function ManagerTrainingExamPanel({
                         </div>
                         <p className="mb-3 text-[11px] leading-4 text-slate-500">
                           {useOriginal
-                            ? 'Für die PDF wird der ausführliche Originaltext verwendet. Ist er zu lang, erhältst du vor dem Export einen Hinweis. Deine Kurzfassung bleibt gespeichert.'
-                            : 'Für die PDF wird bewusst die kompakte Fassung verwendet und kann hier angepasst werden.'}
+                            ? 'Für die PDF wird der ausführliche Originaltext verwendet. Die Anzeige prüft die tatsächlich umgebrochenen PDF-Zeilen. Deine Kurzfassung bleibt gespeichert.'
+                            : 'Für die PDF wird bewusst die kompakte Fassung verwendet. Passt, Knapp und Zu lang werden anhand der tatsächlichen PDF-Zeilen berechnet.'}
                         </p>
                         <div className="grid gap-3 xl:grid-cols-[1.2fr_0.7fr_1.1fr]">
                           <label className="text-[11px] font-bold text-slate-600">

@@ -26,18 +26,37 @@ export type TrainingExamPdfInput = {
 
 const PHASES: TrainingPhase[] = ['AW', 'HT1', 'HT2', 'AK'];
 // Exakte Nutzflächen der unveränderten NÖFV-ÖFB-D-Diplom-Seite (A4 quer).
+const TABLE_HEADER_TOP = 45.4;
 const PHASE_TOP = 50.4;
 const PHASE_GAP = 1.3;
-const CONTENT_TABLE_BOTTOM = 180.8;
-const PHASE_HEIGHT = (180 - PHASE_TOP - PHASE_GAP * 3) / 4;
+const CONTENT_TABLE_BOTTOM = 205;
+const PHASE_HEIGHT = (CONTENT_TABLE_BOTTOM - PHASE_TOP - PHASE_GAP * 3) / 4;
+const TABLE_LEFT = 14.8;
+const TABLE_RIGHT = 262.3;
 const CONTENT_X = 14.8;
-const CONTENT_WIDTH = 58.2;
-const SKETCH_X = 76.8;
-const SKETCH_WIDTH = 86.2;
-const MATERIAL_X = 166.8;
-const MATERIAL_WIDTH = 32;
+const CONTENT_WIDTH = 79.2;
+const SKETCH_COLUMN_X = CONTENT_X + CONTENT_WIDTH;
+const SKETCH_COLUMN_WIDTH = 73.2;
+const SKETCH_X = SKETCH_COLUMN_X + 3.8;
+const SKETCH_WIDTH = SKETCH_COLUMN_WIDTH - 3.8;
+const MATERIAL_COLUMN_X = SKETCH_COLUMN_X + SKETCH_COLUMN_WIDTH;
+const MATERIAL_X = MATERIAL_COLUMN_X + 3.8;
+const MATERIAL_WIDTH = 27.8;
+const COACHING_COLUMN_X = 198.8;
 const COACHING_X = 202.3;
 const COACHING_WIDTH = 60;
+const TITLE_X_OFFSET = 9;
+const TITLE_Y_OFFSET = 3.5;
+const TITLE_HEIGHT = 5.4;
+const CONTENT_Y_OFFSET = 7.6;
+
+export type TrainingExamTextFit = 'fit' | 'tight' | 'too-long';
+
+export type TrainingExamPhaseTextFit = {
+  content: TrainingExamTextFit;
+  materials: TrainingExamTextFit;
+  coaching: TrainingExamTextFit;
+};
 
 let backgroundCache: string | null = null;
 
@@ -103,10 +122,10 @@ function drawFittedText(
   width: number,
   height: number,
   options: { maxFontSize: number; minFontSize: number; lineHeightFactor?: number },
-): { usedHeight: number; lineCount: number; truncated: boolean } {
+): { usedHeight: number; lineCount: number; maxLines: number; fontSize: number; truncated: boolean } {
   const lineHeightFactor = options.lineHeightFactor ?? 1.14;
   const text = clean(value);
-  if (!text) return { usedHeight: 0, lineCount: 0, truncated: false };
+  if (!text) return { usedHeight: 0, lineCount: 0, maxLines: 1, fontSize: options.maxFontSize, truncated: false };
 
   let fontSize = options.maxFontSize;
   let lineHeightMm = 0;
@@ -136,8 +155,82 @@ function drawFittedText(
   return {
     usedHeight: visibleLines.length * lineHeightMm,
     lineCount: visibleLines.length,
+    maxLines,
+    fontSize,
     truncated: lines.length > visibleLines.length,
   };
+}
+
+function fitStatus(
+  metrics: ReturnType<typeof drawFittedText>,
+  maxFontSize: number,
+): TrainingExamTextFit {
+  if (metrics.truncated) return 'too-long';
+  if (metrics.fontSize < maxFontSize || metrics.lineCount >= Math.max(1, Math.floor(metrics.maxLines * 0.86))) {
+    return 'tight';
+  }
+  return 'fit';
+}
+
+/** Misst dieselben umgebrochenen Zeilen, die später in die PDF gezeichnet werden. */
+export function measureTrainingExamPhaseTextFit(input: {
+  title: string;
+  content: string;
+  materials: string;
+  coaching: string;
+}): TrainingExamPhaseTextFit {
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  pdf.setFont('helvetica', 'bold');
+  const titleMetrics = drawFittedText(pdf, input.title, 0, 0, CONTENT_WIDTH - TITLE_X_OFFSET - 1.2, TITLE_HEIGHT, {
+    maxFontSize: 7,
+    minFontSize: 6.5,
+    lineHeightFactor: 1.08,
+  });
+  pdf.setFont('helvetica', 'normal');
+  const contentMetrics = drawFittedText(pdf, input.content, 0, 0, CONTENT_WIDTH - 2.4, PHASE_HEIGHT - CONTENT_Y_OFFSET - 1, {
+    maxFontSize: 7,
+    minFontSize: 6.5,
+    lineHeightFactor: 1.03,
+  });
+  const materialsMetrics = drawFittedText(pdf, input.materials, 0, 0, MATERIAL_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
+    maxFontSize: 7,
+    minFontSize: 6.5,
+    lineHeightFactor: 1.12,
+  });
+  const coachingMetrics = drawFittedText(pdf, input.coaching, 0, 0, COACHING_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
+    maxFontSize: 7,
+    minFontSize: 6.5,
+    lineHeightFactor: 1.12,
+  });
+  return {
+    content: titleMetrics.truncated ? 'too-long' : fitStatus(contentMetrics, 7),
+    materials: fitStatus(materialsMetrics, 7),
+    coaching: fitStatus(coachingMetrics, 7),
+  };
+}
+
+function drawAdjustedTable(pdf: jsPDF): void {
+  pdf.setFillColor(255, 255, 255);
+  pdf.rect(TABLE_LEFT, TABLE_HEADER_TOP, TABLE_RIGHT - TABLE_LEFT, CONTENT_TABLE_BOTTOM - TABLE_HEADER_TOP, 'F');
+  pdf.setDrawColor(70, 70, 70);
+  pdf.setLineWidth(0.15);
+  pdf.rect(TABLE_LEFT, TABLE_HEADER_TOP, TABLE_RIGHT - TABLE_LEFT, CONTENT_TABLE_BOTTOM - TABLE_HEADER_TOP);
+  pdf.line(TABLE_LEFT, PHASE_TOP, TABLE_RIGHT, PHASE_TOP);
+  [SKETCH_COLUMN_X, MATERIAL_COLUMN_X, COACHING_COLUMN_X].forEach((x) => {
+    pdf.line(x, TABLE_HEADER_TOP, x, CONTENT_TABLE_BOTTOM);
+  });
+  pdf.setTextColor(15, 15, 15);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(8);
+  pdf.text('Inhalte', CONTENT_X + CONTENT_WIDTH / 2, 49, { align: 'center' });
+  pdf.text('Organisation (Skizzen)', SKETCH_COLUMN_X + SKETCH_COLUMN_WIDTH / 2, 49, { align: 'center' });
+  pdf.text('Geräte', MATERIAL_COLUMN_X + (COACHING_COLUMN_X - MATERIAL_COLUMN_X) / 2, 49, { align: 'center' });
+  pdf.text('Coachingpunkte', COACHING_COLUMN_X + (TABLE_RIGHT - COACHING_COLUMN_X) / 2, 49, { align: 'center' });
+  pdf.setDrawColor(209, 213, 219);
+  for (let phaseIndex = 1; phaseIndex < PHASES.length; phaseIndex += 1) {
+    const separatorY = PHASE_TOP + phaseIndex * PHASE_HEIGHT + (phaseIndex - 0.5) * PHASE_GAP;
+    pdf.line(TABLE_LEFT, separatorY, TABLE_RIGHT, separatorY);
+  }
 }
 
 function withoutContentBullets(value: unknown): string {
@@ -291,30 +384,30 @@ async function drawPhase(
   const titleMetrics = drawFittedText(
     pdf,
     titleParts.join(' / '),
-    CONTENT_X + 1.3,
-    top + 6.7,
-    CONTENT_WIDTH - 2.4,
-    5.4,
+    CONTENT_X + TITLE_X_OFFSET,
+    top + TITLE_Y_OFFSET,
+    CONTENT_WIDTH - TITLE_X_OFFSET - 1.2,
+    TITLE_HEIGHT,
     {
       maxFontSize: 7,
-      minFontSize: 6,
+      minFontSize: 6.5,
       lineHeightFactor: 1.08,
     },
   );
   pdf.setFont('helvetica', 'normal');
-  const contentY = top + 6.7 + titleMetrics.usedHeight + 1.1;
+  const contentY = top + CONTENT_Y_OFFSET;
   const contentMetrics = drawFittedText(pdf, contentText, CONTENT_X + 1.3, contentY, CONTENT_WIDTH - 2.4, top + PHASE_HEIGHT - contentY - 1, {
-    maxFontSize: 6.5,
-    minFontSize: 5.8,
-    lineHeightFactor: 1.14,
+    maxFontSize: 7,
+    minFontSize: 6.5,
+    lineHeightFactor: 1.03,
   });
 
   drawPhaseLabel(pdf, phase, MATERIAL_X + 1.2, top + 3.1);
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
   const materialsMetrics = drawFittedText(pdf, materialsText, MATERIAL_X + 1.2, top + 6.5, MATERIAL_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
-    maxFontSize: 6.4,
-    minFontSize: 5.8,
+    maxFontSize: 7,
+    minFontSize: 6.5,
     lineHeightFactor: 1.12,
   });
 
@@ -322,20 +415,21 @@ async function drawPhase(
   pdf.setTextColor(20, 20, 20);
   pdf.setFont('helvetica', 'normal');
   const coachingMetrics = drawFittedText(pdf, coachingText, COACHING_X + 1.2, top + 6.5, COACHING_WIDTH - 2.2, PHASE_HEIGHT - 7.4, {
-    maxFontSize: 6.4,
-    minFontSize: 5.8,
+    maxFontSize: 7,
+    minFontSize: 6.5,
     lineHeightFactor: 1.12,
   });
 
-  if (useOriginal && (contentMetrics.truncated || materialsMetrics.truncated || coachingMetrics.truncated)) {
+  if (titleMetrics.truncated || contentMetrics.truncated || materialsMetrics.truncated || coachingMetrics.truncated) {
     const fields = [
+      titleMetrics.truncated ? 'Titel' : '',
       contentMetrics.truncated ? 'Inhalt/Ablauf' : '',
       materialsMetrics.truncated ? 'Geräte' : '',
       coachingMetrics.truncated ? 'Coachingpunkte' : '',
     ].filter(Boolean).join(', ');
     throw new Error(
-      `Der Originaltext für ${phase} ist in ${fields} zu lang für die offizielle PDF-Vorlage. `
-      + `Wähle für ${phase} bewusst „Kurzfassung“ oder kürze den Originaltext in der Übung.`,
+      `${useOriginal ? 'Der Originaltext' : 'Die Kurzfassung'} für ${phase} ist in ${fields} zu lang für die offizielle PDF-Vorlage. `
+      + `${useOriginal ? `Wähle für ${phase} bewusst „Kurzfassung“ oder kürze den Originaltext in der Übung.` : 'Kürze den markierten Text vollständig; die PDF schneidet niemals mitten im Satz ab.'}`,
     );
   }
 
@@ -372,17 +466,9 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
     const entry = input.sessions[index];
     pdf.addImage(background, 'PNG', 0, 0, 297, 210, 'oefbd-original', 'FAST');
 
-    // Die offizielle Vorlage bleibt als Hintergrund erhalten. Ihre historisch
-    // ungleich platzierten Phasenlabels werden im Inhaltsfeld neutral abgedeckt
-    // und anschließend zeilengleich mit Skizze, Geräten und Coaching neu gesetzt.
-    pdf.setFillColor(255, 255, 255);
-    pdf.rect(CONTENT_X + 0.2, PHASE_TOP - 0.1, CONTENT_WIDTH - 0.4, CONTENT_TABLE_BOTTOM - PHASE_TOP, 'F');
-    pdf.setDrawColor(209, 213, 219);
-    pdf.setLineWidth(0.15);
-    for (let phaseIndex = 1; phaseIndex < PHASES.length; phaseIndex += 1) {
-      const separatorY = PHASE_TOP + phaseIndex * PHASE_HEIGHT + (phaseIndex - 0.5) * PHASE_GAP;
-      pdf.line(CONTENT_X, separatorY, COACHING_X + COACHING_WIDTH, separatorY);
-    }
+    // Logo und Kopffelder der offiziellen Vorlage bleiben pixelgenau erhalten.
+    // Nur die darunterliegende Übungstabelle wird breiter bzw. bis 205 mm verlängert.
+    drawAdjustedTable(pdf);
 
     pdf.setTextColor(15, 15, 15);
     pdf.setFont('helvetica', 'bold');

@@ -1124,7 +1124,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       Kurzfassung für Handout &amp; optionale Trainer-PDF
                     </h3>
                     <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                      Inhalte: Aufbau, Ablauf und höchstens drei Variationen. Coachingpunkte bleiben getrennt. Der ausführliche Originaltext oben bleibt erhalten.
+                      Bis zu 700 Zeichen für Aufbau, verständlichen Ablauf und höchstens drei Variationen. Coachingpunkte bleiben getrennt. Der ausführliche Originaltext oben bleibt erhalten.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">

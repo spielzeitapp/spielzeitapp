@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LIMITS = { content: 300, materials: 100, coaching: 250 } as const;
+const LIMITS = { content: 700, materials: 100, coaching: 250 } as const;
 const MAX_SOURCE_LENGTH = 8_000;
 
 type SourceInput = {
@@ -184,9 +184,9 @@ serve(async (req) => {
           'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
           'Bewahre die fachliche Bedeutung. Erfinde keine Details.',
           'Gib setup, flow, variations, materials und coachingPoints getrennt zurück.',
-          'setup: höchstens 70 Zeichen und nur die nötige Feldorganisation aus organisation.',
-          'flow: höchstens 190 Zeichen aus ablauf (dem Feld Kurzbeschreibung). Bewahre vorrangig die entscheidenden Spielregeln, Aktionen sowie Wechsel nach Tor oder Ballverlust.',
-          'variations: höchstens drei kurze Einträge aus variationen. Sie werden nur ergänzt, wenn nach Aufbau und Ablauf noch Platz bleibt.',
+          'setup: höchstens 130 Zeichen und nur die nötige Feldorganisation aus organisation.',
+          'flow: höchstens 430 Zeichen aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, entscheidende Spielregeln, Aktionen, Positionswechsel sowie Wechsel nach Tor oder Ballverlust.',
+          'variations: höchstens drei kurze Einträge aus variationen. Ergänze mindestens die wichtigste Variation, wenn eine vorhanden ist; weitere nur, wenn nach Aufbau und Ablauf noch Platz bleibt.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
           'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
           'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
@@ -204,12 +204,12 @@ serve(async (req) => {
               type: 'object',
               additionalProperties: false,
               properties: {
-                setup: { type: 'string', maxLength: 70 },
-                flow: { type: 'string', maxLength: 190 },
+                setup: { type: 'string', maxLength: 130 },
+                flow: { type: 'string', maxLength: 430 },
                 variations: {
                   type: 'array',
                   maxItems: 3,
-                  items: { type: 'string', maxLength: 60 },
+                  items: { type: 'string', maxLength: 100 },
                 },
                 materials: { type: 'string', maxLength: LIMITS.materials },
                 coachingPoints: {
