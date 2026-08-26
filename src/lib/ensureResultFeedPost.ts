@@ -128,7 +128,8 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
   rfLog('dedupe check', { dedupe_key, exists: !!existing?.id, selectError: exErr?.message ?? null });
 
   if (exErr) return { ok: false, error: exErr.message };
-  if (existing?.id) return { ok: true, created: false, reason: 'already_exists' };
+  // Ein vorhandener Ergebnis-Post wird weiter unten über das RPC aktualisiert.
+  // So bleiben Torschützenkorrekturen nach dem Schlusspfiff auch im Feed synchron.
 
   const teamInfo = await resolveTeamForSeason(match.team_season_id);
   rfLog('team resolved', {
