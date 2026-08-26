@@ -37,15 +37,18 @@ const CONTENT_X = TABLE_LEFT;
 const CONTENT_WIDTH = 92;
 const SKETCH_COLUMN_X = CONTENT_X + CONTENT_WIDTH;
 const SKETCH_COLUMN_WIDTH = 68;
-const SKETCH_X = SKETCH_COLUMN_X + 2.2;
-const SKETCH_WIDTH = SKETCH_COLUMN_WIDTH - 2.2;
+// Eigener linker Bereich fuer das Phasenschild. Dadurch liegt AW/HT1/HT2/AK
+// wie in der bewaehrten Vorlage neben und niemals ueber der Skizze.
+const SKETCH_BADGE_X = SKETCH_COLUMN_X + 3.5;
+const SKETCH_X = SKETCH_COLUMN_X + 17;
+const SKETCH_WIDTH = SKETCH_COLUMN_WIDTH - 18.5;
 const MATERIAL_COLUMN_X = SKETCH_COLUMN_X + SKETCH_COLUMN_WIDTH;
 const COACHING_COLUMN_X = MATERIAL_COLUMN_X + 25.6;
 const MATERIAL_X = MATERIAL_COLUMN_X + 1.7;
 const MATERIAL_WIDTH = COACHING_COLUMN_X - MATERIAL_X - 1.4;
 const COACHING_X = COACHING_COLUMN_X + 1.7;
 const COACHING_WIDTH = TABLE_RIGHT - COACHING_X - 1.7;
-const TITLE_X_OFFSET = 9;
+const TITLE_X_OFFSET = 10.5;
 const TITLE_Y_OFFSET = 3.5;
 const TITLE_HEIGHT = 5.4;
 const CONTENT_Y_OFFSET = 7.6;
@@ -225,10 +228,13 @@ function drawAdjustedTable(pdf: jsPDF): void {
     CONTENT_TABLE_BOTTOM - TABLE_HEADER_TOP + 0.7,
     'F',
   );
-  pdf.setDrawColor(70, 70, 70);
-  pdf.setLineWidth(0.15);
+  // Die Vorlage wird oft ausgedruckt oder fotografiert. 0,15 mm wirkte dabei
+  // zu blass; 0,25 mm entspricht rund 0,7 pt und bleibt dennoch unaufdringlich.
+  pdf.setDrawColor(90, 90, 90);
+  pdf.setLineWidth(0.25);
   pdf.rect(TABLE_LEFT, TABLE_HEADER_TOP, TABLE_RIGHT - TABLE_LEFT, CONTENT_TABLE_BOTTOM - TABLE_HEADER_TOP);
   pdf.line(TABLE_LEFT, PHASE_TOP, TABLE_RIGHT, PHASE_TOP);
+  pdf.setLineWidth(0.2);
   [SKETCH_COLUMN_X, MATERIAL_COLUMN_X, COACHING_COLUMN_X].forEach((x) => {
     pdf.line(x, TABLE_HEADER_TOP, x, CONTENT_TABLE_BOTTOM);
   });
@@ -240,7 +246,8 @@ function drawAdjustedTable(pdf: jsPDF): void {
   pdf.text('Organisation (Skizzen)', SKETCH_COLUMN_X + SKETCH_COLUMN_WIDTH / 2, tableHeaderBaseline, { align: 'center' });
   pdf.text('Geräte', MATERIAL_COLUMN_X + (COACHING_COLUMN_X - MATERIAL_COLUMN_X) / 2, tableHeaderBaseline, { align: 'center' });
   pdf.text('Coachingpunkte', COACHING_COLUMN_X + (TABLE_RIGHT - COACHING_COLUMN_X) / 2, tableHeaderBaseline, { align: 'center' });
-  pdf.setDrawColor(209, 213, 219);
+  pdf.setDrawColor(105, 105, 105);
+  pdf.setLineWidth(0.21);
   for (let phaseIndex = 1; phaseIndex < PHASES.length; phaseIndex += 1) {
     const separatorY = PHASE_TOP + phaseIndex * PHASE_HEIGHT + (phaseIndex - 0.5) * PHASE_GAP;
     pdf.line(TABLE_LEFT, separatorY, TABLE_RIGHT, separatorY);
@@ -305,7 +312,7 @@ function drawContainedImage(
 function drawPhaseLabel(pdf: jsPDF, phase: TrainingPhase, x: number, y: number): void {
   pdf.setTextColor(185, 28, 28);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(6.2);
+  pdf.setFontSize(7.4);
   pdf.text(phase, x, y);
 }
 
@@ -457,7 +464,7 @@ async function drawPhase(
     pdf.setFontSize(6.5);
     pdf.setTextColor(130, 130, 130);
     pdf.text('Keine Skizze', SKETCH_X + SKETCH_WIDTH / 2, top + PHASE_HEIGHT / 2, { align: 'center' });
-    drawSketchPhaseBadge(pdf, phase, SKETCH_X + 1.5, top + 1.5);
+    drawSketchPhaseBadge(pdf, phase, SKETCH_BADGE_X, top + 1.5);
     return;
   }
   const images = (await Promise.all(imageItems.slice(0, 2).map((candidate) => imageUrlToJpegData(candidate.url)))).filter(
@@ -470,7 +477,7 @@ async function drawPhase(
     drawContainedImage(pdf, images[0], SKETCH_X + 1, top + 1, half, PHASE_HEIGHT - 2);
     drawContainedImage(pdf, images[1], SKETCH_X + 2 + half, top + 1, half, PHASE_HEIGHT - 2);
   }
-  drawSketchPhaseBadge(pdf, phase, SKETCH_X + 1.5, top + 1.5);
+  drawSketchPhaseBadge(pdf, phase, SKETCH_BADGE_X, top + 1.5);
 }
 
 export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promise<Blob> {
