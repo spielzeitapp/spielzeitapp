@@ -8,13 +8,18 @@ Die Prüfung ist übungsunabhängig:
 1. Aus Organisation, Ablauf und Variationen wird eine dynamische Liste unverzichtbarer Fakten extrahiert.
 2. Die Kurzfassung wird unter Einhaltung dieser Fakten und des verfügbaren Zeichenbudgets erstellt.
 3. Eine separate KI-Prüfung vergleicht die Kurzfassung direkt mit dem vollständigen Original und nutzt die Faktenliste nur als zusätzliche Prüfhilfe.
-4. Jede vorhandene Variation wird separat gekürzt und anschließend inhaltlich sowie in ihrer ursprünglichen Reihenfolge gegen das Original geprüft. Neue Variationen werden nicht erzeugt.
+4. Eine feste Zahlenprüfung vergleicht Mengen und Maße zusammen mit ihrem Bezugswort. So wird beispielsweise „4–6 Spieler“ gegen „2 Spieler“ abgelehnt, auch wenn das Sprachmodell den Widerspruch übersieht.
+5. Jede vorhandene Variation wird separat gekürzt und anschließend inhaltlich sowie in ihrer ursprünglichen Reihenfolge gegen das Original geprüft. Neue Variationen werden nicht erzeugt.
 
 Die zulässigen Längen für Ablauf und Variationen werden für jede Übung aus dem gemeinsamen
 760-Zeichen-Budget berechnet und direkt im strukturierten KI-Ausgabeformat erzwungen.
 
 Dadurch funktionieren Pass-, Technik-, Torschuss-, Koordinations- und Spielformen ohne fest
 programmierte Regeln für einzelne Übungen.
+
+Jede erfolgreiche Kurzfassung bleibt ein bearbeitbarer KI-Entwurf. Die App fordert den
+Trainer deshalb ausdrücklich auf, Zahlen, Rollen, Reihenfolge und Variationen vor dem
+Speichern noch einmal mit dem Original zu vergleichen.
 
 ## Secrets
 

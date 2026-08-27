@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [page, client, edge] = await Promise.all([
+const [page, client, edge, numericGuard] = await Promise.all([
   readFile(new URL('../src/manager/ManagerTrainingLibraryPage.tsx', import.meta.url), 'utf8'),
   readFile(new URL('../src/lib/trainingExerciseAiShortText.ts', import.meta.url), 'utf8'),
   readFile(new URL('../supabase/functions/shorten-training-exercise/index.ts', import.meta.url), 'utf8'),
+  readFile(new URL('../supabase/functions/shorten-training-exercise/numericFactGuard.ts', import.meta.url), 'utf8'),
 ]);
 
 assert.match(page, /Prüfen & bei Bedarf KI kürzen/);
@@ -62,6 +63,8 @@ assert.match(edge, /\? 140/);
 assert.match(edge, /: 110/);
 assert.match(edge, /zusammen höchstens \$\{LIMITS\.content\} Zeichen/);
 assert.match(edge, /truncatedSentenceEndings/);
+assert.match(edge, /numericFactContradictions/);
+assert.match(edge, /Ändere zum Beispiel niemals 4–6 Spieler in 2 Spieler/);
 assert.match(edge, /Keine Wörter abkürzen oder abschneiden/);
 assert.match(edge, /previousDraft/);
 assert.match(edge, /const flowTarget = Math\.max\(300/);
@@ -91,6 +94,11 @@ assert.match(edge, /coachingPoints: zwei bis vier kurze Einträge ausschließlic
 assert.match(page, /Inhalte: Aufbau, Ablauf & Variationen/);
 assert.match(page, /KI-Versuch abgelehnt:/);
 assert.match(page, /KI-Entwurf prüfen:/);
+assert.match(page, /KI-Kurzfassungen sind Entwürfe/);
+assert.match(page, /besonders Spieleranzahl, Maße, Rollen, Reihenfolge und Variationen/);
+assert.match(numericGuard, /export function extractQuantityFacts/);
+assert.match(numericGuard, /export function numericFactContradictions/);
+assert.match(numericGuard, /Zahlenwiderspruch bei/);
 assert.match(client, /warnings: string\[\]/);
 assert.match(edge, /Returning best reviewable summary/);
 assert.match(edge, /needsReview: true/);

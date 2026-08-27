@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { numericFactContradictions } from './numericFactGuard.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -312,6 +313,12 @@ function normalisationIssues(value: unknown, expectedVariationCount: number, sou
     issues.push(`Keine Wörter abkürzen oder abschneiden: ${suspiciousEndings.join(', ')}`);
   }
 
+  const numericContradictions = numericFactContradictions(
+    sourceCorpus,
+    [setup, flow, ...variations].join('\n'),
+  );
+  issues.push(...numericContradictions);
+
   const contentLines = [
     setup ? `Aufbau: ${setup}` : '',
     flow ? `Ablauf: ${flow}` : '',
@@ -524,6 +531,7 @@ serve(async (req) => {
         [
           'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
           'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
+          'Jede Zahl, Spannweite und Mengenangabe muss beim gleichen Bezugswort wie im Original bleiben. Ändere zum Beispiel niemals 4–6 Spieler in 2 Spieler.',
           'Jeder Eintrag aus mustKeepFacts muss semantisch eindeutig im zugehörigen Bereich setup, flow oder variations enthalten sein.',
           'Gib nur setup, flow, variations, materials und coachingPoints getrennt zurück.',
           `setup: höchstens ${setupGenerationLimit} Zeichen inklusive Satzzeichen und nur die nötige Feldorganisation.`,
@@ -619,6 +627,7 @@ serve(async (req) => {
           'Trage in missingFacts ausschließlich tatsächlich fehlende Einträge aus mustKeepFacts oder eine vollständig fehlende Originalvariation ein.',
           'Prüfe jede Variation einzeln. Eine kürzere Formulierung ist ausdrücklich erlaubt; nur eine fehlende Pflichtbedingung, neue Regel oder zusammengelegte Variation ist abzulehnen.',
           'Trage erfundene, vertauschte oder widersprüchliche Aussagen knapp in contradictions ein.',
+          'Vergleiche Zahlen und Spannweiten ausdrücklich mit ihrem Bezugswort. Eine im Original vorkommende andere Zahl für einen anderen Gegenstand rechtfertigt keine Änderung.',
           'Lehne die Kurzfassung nicht wegen weggelassener Beispiele, Erklärungen, Wiederholungen, Stilfragen oder nicht priorisierter Details ab.',
           'Prüfe nicht Stil, Zeichenzahl, Material oder Coachingpunkte.',
         ],

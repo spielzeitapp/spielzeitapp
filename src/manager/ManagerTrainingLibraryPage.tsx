@@ -518,7 +518,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       setShortTextWarning(`KI-Entwurf übernommen. Bitte prüfen und bei Bedarf ergänzen: ${result.warnings.join(' · ')}`);
       setToast('Bester KI-Entwurf übernommen – bitte die Hinweise prüfen.');
     } else {
-      setShortTextWarning(null);
+      setShortTextWarning('Bitte vor dem Speichern mit dem Original vergleichen – besonders Spieleranzahl, Maße, Rollen, Reihenfolge und Variationen.');
       setToast('KI-Kurzfassung erstellt – bitte prüfen und anschließend speichern.');
     }
   };
@@ -1203,6 +1203,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     </h3>
                     <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
                       Zuerst wird hier der vollständige Originaltext aus Aufbau, Ablauf und Variationen angezeigt. Ist er länger als 760 Zeichen, kann er manuell oder mit KI gekürzt werden. Coachingpunkte bleiben getrennt. Nur eine erfolgreich geprüfte KI-Kurzfassung ersetzt das Original.
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium leading-4 text-amber-800">
+                      KI-Kurzfassungen sind Entwürfe. Bitte Zahlen, Spieleranzahl, Rollen, Reihenfolge und Variationen vor dem Speichern mit dem Original kontrollieren.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
