@@ -389,12 +389,14 @@ serve(async (req) => {
       [
         'Du analysierst eine beliebige Fußballübung und extrahierst ihre unverzichtbaren Fakten.',
         'Nenne nur Tatsachen, die ausdrücklich im Original stehen. Erfinde oder interpretiere nichts hinzu.',
+        'Die Faktenliste ist eine Priorisierung für eine Kurzfassung mit insgesamt 760 Zeichen. Nicht jeder Satz und nicht jedes Beispiel aus dem Original ist eine Pflichtinformation.',
         'setupFacts enthält höchstens sechs notwendige Fakten zum räumlichen oder materiellen Aufbau.',
-        'flowFacts enthält höchstens zwanzig atomare Pflichtfakten für die praktische Durchführung.',
+        'flowFacts enthält höchstens zwanzig atomare Pflichtfakten, die für die praktische Durchführung wirklich unverzichtbar sind.',
         'Erfasse jede ausdrücklich genannte Rolle, Farbe, Position, Reihenfolge, Lauf- und Passaktion, Kontaktzahl, Spielfortsetzung, Wertung, Seiten-, Positions- und Aufgabenänderung sowie jede erlaubte oder verbotene Aktion.',
         'Bedingungen wie „nach Tor“, „bei Ausball“ oder „nach Ballgewinn“ sind jeweils eigene Pflichtfakten und dürfen nicht weggelassen oder zusammengezogen werden.',
         'Fasse nur sprachlich zusammen. Ursache, Zeitpunkt, Reihenfolge, Zuständigkeit und Zuordnung müssen vollständig erhalten bleiben.',
-        'variationFacts enthält höchstens sechzehn atomare Pflichtfakten aus den Variationen. Jede genannte Variation und jede ihrer Bedingungen muss erfasst werden.',
+        'variationFacts enthält höchstens sechzehn atomare Pflichtfakten aus den Variationen. Jede genannte Variation und ihre spielentscheidenden Bedingungen müssen erfasst werden.',
+        'Redundanzen, Begründungen, Beispiele und rein sprachliche Details dürfen entfallen. Wähle nur Fakten, deren Weglassen die Durchführung oder Regelwirkung verändern würde.',
         'Material und Coachingpunkte gehören nicht in diese Faktenliste.',
       ],
       { organisation: source.organisation, ablauf: source.ablauf, variationen: variations },
@@ -439,7 +441,7 @@ serve(async (req) => {
 
     const flowTarget = Math.max(180, flowLimit - 35);
     let correctionNotes: string[] = [];
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       const generationResponse = await structuredAiCall(
         openAiKey,
         model,
@@ -528,14 +530,15 @@ serve(async (req) => {
         model,
         'training_exercise_fact_verification',
         [
-          'Du prüfst eine Kurzfassung einer beliebigen Fußballübung unabhängig gegen Original und Pflichtfakten.',
+          'Du prüfst eine Kurzfassung einer beliebigen Fußballübung gegen die priorisierten Pflichtfakten.',
           'Akzeptiere sinngetreue Kurzformen, Synonyme, Abkürzungen und andere grammatikalische Formulierungen.',
-          'Vergleiche die Kurzfassung Satz für Satz direkt mit dem vollständigen Original. Die Faktenliste ist nur eine zusätzliche Prüfhilfe und kann selbst unvollständig sein.',
-          'valid ist nur wahr, wenn alle wesentlichen Aufbau-, Ablauf- und Variationsangaben aus dem Original sowie alle mustKeepFacts semantisch eindeutig enthalten sind und die Kurzfassung dem Original nirgends widerspricht.',
-          'Prüfe ausdrücklich Rollen und Farben, Positionen, Reihenfolge, Kontaktzahlen, Bedingungen, Neustarts nach allen genannten Ereignissen sowie Seiten-, Positions- und Aufgabenwechsel.',
-          'Trage jede im Original vorhandene, aber in der Kurzfassung fehlende Pflichtangabe wörtlich oder knapp in missingFacts ein, auch wenn sie nicht in mustKeepFacts steht.',
-          'Prüfe jede Variation einzeln und in der ursprünglichen Reihenfolge. Eine kürzere Formulierung ist erlaubt, eine fehlende Bedingung, neue Regel oder zusammengelegte Variation nicht.',
+          'mustKeepFacts ist die verbindliche Liste der Informationen, die in der Kurzfassung erhalten bleiben müssen.',
+          'Das vollständige Original dient nur dazu, Widersprüche oder erfundene Angaben zu erkennen. Details aus dem Original, die nicht in mustKeepFacts stehen, dürfen bewusst entfallen und sind kein Ablehnungsgrund.',
+          'valid ist wahr, wenn alle mustKeepFacts semantisch eindeutig enthalten sind, jede Originalvariation in derselben Reihenfolge vertreten ist und die Kurzfassung dem Original nicht widerspricht.',
+          'Trage in missingFacts ausschließlich tatsächlich fehlende Einträge aus mustKeepFacts oder eine vollständig fehlende Originalvariation ein.',
+          'Prüfe jede Variation einzeln. Eine kürzere Formulierung ist ausdrücklich erlaubt; nur eine fehlende Pflichtbedingung, neue Regel oder zusammengelegte Variation ist abzulehnen.',
           'Trage erfundene, vertauschte oder widersprüchliche Aussagen knapp in contradictions ein.',
+          'Lehne die Kurzfassung nicht wegen weggelassener Beispiele, Erklärungen, Wiederholungen, Stilfragen oder nicht priorisierter Details ab.',
           'Prüfe nicht Stil, Zeichenzahl, Material oder Coachingpunkte.',
         ],
         {
