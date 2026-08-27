@@ -434,7 +434,11 @@ serve(async (req) => {
     // actual combined 760-character limit is checked after generation. Fixed
     // per-section reservations previously forced useful flow rules and the
     // third variation into fragments even when the total still had space.
-    const variationItemLimit = 110;
+    const variationItemLimit = variationCount <= 1
+      ? 220
+      : variationCount === 2
+        ? 140
+        : 110;
     const flowLimit = 500;
     // Keep one character free so completeSentenceEnding can add a missing final
     // punctuation mark without exceeding the actual PDF field limits.
