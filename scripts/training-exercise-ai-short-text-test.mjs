@@ -8,7 +8,7 @@ const [page, client, edge] = await Promise.all([
 ]);
 
 assert.match(page, /Prüfen & bei Bedarf KI kürzen/);
-assert.match(page, /Prüfen &amp; übernehmen \(ohne KI\)/);
+assert.match(page, /Original neu übernehmen/);
 assert.match(page, /createTrainingExerciseAiShortText/);
 assert.match(page, /originalTextFitsPdf/);
 assert.match(page, /Es wurde keine KI verwendet/);
@@ -75,7 +75,9 @@ assert.match(edge, /variations: \{/);
 assert.match(edge, /coachingPoints: zwei bis vier kurze Einträge ausschließlich aus den ursprünglichen Coachingpunkten/);
 assert.match(page, /Inhalte: Aufbau, Ablauf & Variationen/);
 assert.match(page, /KI-Versuch abgelehnt:/);
-assert.match(page, /Die bisherige Kurzfassung bleibt unverändert angezeigt/);
+assert.match(page, /Der vollständige Originaltext bleibt unverändert angezeigt/);
+assert.match(page, /shortContent: originalText\.content/);
+assert.doesNotMatch(page, /shortContent: row\.short_content \?\?/);
 assert.doesNotMatch(edge, /SUPABASE_SERVICE_ROLE_KEY/);
 
 console.log('training-exercise-ai-short-text: ok');
