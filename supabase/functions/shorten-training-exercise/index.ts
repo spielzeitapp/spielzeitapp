@@ -25,7 +25,6 @@ type RequestBody = {
 type AiShortText = {
   setup: string;
   flow: string;
-  variations: string[];
   materials: string;
   coachingPoints: string[];
 };
@@ -90,14 +89,35 @@ function appendWithinLimit(base: string, line: string, limit: number): string {
   return next.length <= limit ? next : base;
 }
 
-function normaliseResult(value: unknown): ShortText | null {
+function originalVariations(value: unknown): string[] {
+  const raw = sourceText(value);
+  if (!raw) return [];
+
+  const labelled = [...raw.matchAll(
+    /(?:^|\n|\s)(?:Variation|Variante)\s*\d+\s*:\s*([\s\S]*?)(?=(?:\n|\s)(?:Variation|Variante)\s*\d+\s*:|$)/gi,
+  )].map((match) => match[1]);
+  const candidates = labelled.length > 0
+    ? labelled
+    : raw
+      .replace(/^Variationen?\s*:\s*/i, '')
+      .split(/\n+|\s*;\s*/);
+
+  return candidates
+    .map((variation) => cleanOutput(variation)
+      .replace(/^[-•]\s*/, '')
+      .replace(/^(?:Variation|Variante)\s*\d*\s*:\s*/i, '')
+      .replace(/\s+/g, ' '))
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((variation) => /[.!?]$/.test(variation) ? variation : `${variation}.`);
+}
+
+function normaliseResult(value: unknown, sourceVariationText: unknown): ShortText | null {
   if (!value || typeof value !== 'object') return null;
   const result = value as Partial<AiShortText>;
   if (
     typeof result.setup !== 'string' ||
     typeof result.flow !== 'string' ||
-    !Array.isArray(result.variations) ||
-    !result.variations.every((item) => typeof item === 'string') ||
     typeof result.materials !== 'string' ||
     !Array.isArray(result.coachingPoints) ||
     !result.coachingPoints.every((item) => typeof item === 'string')
@@ -108,15 +128,13 @@ function normaliseResult(value: unknown): ShortText | null {
   let content = '';
   const setup = cleanOutput(result.setup);
   const flow = cleanOutput(result.flow);
-  const variations = result.variations.slice(0, 3).map((variation) => cleanOutput(variation));
   if (
     (setup && !hasCompleteSentence(setup))
     || (flow && !hasCompleteSentence(flow))
-    || variations.some((variation) => variation && !hasCompleteSentence(variation))
   ) return null;
   if (setup) content = appendWithinLimit(content, `Aufbau: ${setup}`, LIMITS.content);
   if (flow) content = appendWithinLimit(content, `Ablauf: ${flow}`, LIMITS.content);
-  for (const [index, variation] of variations.entries()) {
+  for (const [index, variation] of originalVariations(sourceVariationText).entries()) {
     content = appendWithinLimit(
       content,
       `Variation ${index + 1}: ${variation}`,
@@ -197,15 +215,16 @@ serve(async (req) => {
           model,
           instructions: [
             'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
-            'Bewahre die fachliche Bedeutung. Erfinde keine Details.',
-            'Gib setup, flow, variations, materials und coachingPoints getrennt zurück.',
-            'setup: höchstens 120 Zeichen und nur die nötige Feldorganisation aus organisation.',
-            `${attempt > 0 ? 'flow: höchstens 320 Zeichen' : 'flow: höchstens 360 Zeichen'} aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, entscheidende Spielregeln, Aktionen, Positionswechsel sowie Wechsel nach Tor oder Ballverlust.`,
-            'variations: höchstens drei Einträge mit jeweils maximal 90 Zeichen aus variationen. Ergänze mindestens die wichtigste Variation, wenn eine vorhanden ist; weitere nur, wenn nach Aufbau und Ablauf noch Platz bleibt.',
+            'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
+            'Gib nur setup, flow, materials und coachingPoints getrennt zurück. Variationen werden unverändert aus dem Original übernommen und dürfen nicht von dir ausgegeben werden.',
+            'setup: höchstens 110 Zeichen und nur die nötige Feldorganisation aus organisation.',
+            `${attempt > 0 ? 'flow: höchstens 340 Zeichen' : 'flow: höchstens 370 Zeichen'} aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, Spielrichtung, Aktionen, Reihenfolge sowie Aufgaben- und Positionswechsel.`,
+            'Unterscheide Balleroberung und Ballverlust exakt. Vertausche niemals, welches Team verteidigt, den Ball gewinnt, zuerst zum Anspieler passen muss oder danach angreift.',
+            'Wenn im Original vorhanden, müssen Kontaktbegrenzungen, die Sperre des Anspielers nach dem Einspielen, der sofortige neue Ball nach Tor oder Ausball und der Aufgabenwechsel nach dem Durchgang im Ablauf stehen.',
             'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
             'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
             'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
-            'Jeder Text in setup, flow und variations muss mit einem vollständigen Satz und einem Punkt, Fragezeichen oder Rufzeichen enden.',
+            'Jeder Text in setup und flow muss mit einem vollständigen Satz und einem Punkt, Fragezeichen oder Rufzeichen enden.',
             attempt > 0 ? 'Die erste Antwort war unvollständig. Formuliere alle Sätze diesmal kürzer und grammatikalisch vollständig.' : '',
             'Dauer und Spielerzahl nur nennen, wenn sie zum Verständnis zwingend erforderlich sind.',
             'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
@@ -222,12 +241,7 @@ serve(async (req) => {
                 additionalProperties: false,
                 properties: {
                   setup: { type: 'string', maxLength: 120 },
-                  flow: { type: 'string', maxLength: 360 },
-                  variations: {
-                    type: 'array',
-                    maxItems: 3,
-                    items: { type: 'string', maxLength: 90 },
-                  },
+                  flow: { type: 'string', maxLength: 400 },
                   materials: { type: 'string', maxLength: LIMITS.materials },
                   coachingPoints: {
                     type: 'array',
@@ -236,7 +250,7 @@ serve(async (req) => {
                     items: { type: 'string', maxLength: 100 },
                   },
                 },
-                required: ['setup', 'flow', 'variations', 'materials', 'coachingPoints'],
+                required: ['setup', 'flow', 'materials', 'coachingPoints'],
               },
             },
           },
@@ -259,7 +273,7 @@ serve(async (req) => {
         continue;
       }
 
-      const normalised = normaliseResult(result);
+      const normalised = normaliseResult(result, input.variations);
       if (normalised) return json(normalised);
       console.error(
         '[shorten-training-exercise] Structured output could not be normalised',
