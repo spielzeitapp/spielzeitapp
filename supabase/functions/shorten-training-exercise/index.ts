@@ -112,6 +112,71 @@ function originalVariations(value: unknown): string[] {
     .map((variation) => /[.!?]$/.test(variation) ? variation : `${variation}.`);
 }
 
+type RequiredRule = {
+  label: string;
+  source: RegExp;
+  result: RegExp;
+};
+
+const REQUIRED_FLOW_RULES: RequiredRule[] = [
+  {
+    label: 'Spiel ohne Abseits',
+    source: /\bohne\s+abseits\b/i,
+    result: /\bohne\s+abseits\b/i,
+  },
+  {
+    label: 'Anspieler darf nach dem Einspielen nicht mehr angespielt werden',
+    source: /darf\s+danach\s+nicht\s+mehr\s+angespielt\s+werden|danach\s+nicht\s+mehr\s+anspielbar/i,
+    result: /darf\s+danach\s+nicht\s+mehr\s+angespielt\s+werden|danach\s+(?:nicht\s+mehr\s+anspielbar|gesperrt)|ist\s+danach\s+gesperrt/i,
+  },
+  {
+    label: 'Anspieler hat zwei Kontakte',
+    source: /anspieler[\s\S]{0,100}(?:zwei|2)\s+kontakte|(?:zwei|2)\s+kontakte[\s\S]{0,100}anspieler/i,
+    result: /anspieler[\s\S]{0,100}(?:zwei|2)\s+kontakte|(?:zwei|2)\s+kontakte[\s\S]{0,100}anspieler/i,
+  },
+  {
+    label: 'Wandspieler spielen direkt',
+    source: /wandspieler[\s\S]{0,80}\bdirekt\w*|\bdirekt\w*[\s\S]{0,80}wandspieler/i,
+    result: /wandspieler[\s\S]{0,80}\bdirekt\w*|\bdirekt\w*[\s\S]{0,80}wandspieler/i,
+  },
+  {
+    label: 'Nach Tor oder Ausball sofort neuer Ball',
+    source: /tor[\s\S]{0,50}ausball|ausball[\s\S]{0,50}tor/i,
+    result: /(?=[\s\S]*\btor\b)(?=[\s\S]*\baus(?:ball)?\b)(?=[\s\S]*\bsofort\b)(?=[\s\S]*\bneu\w*\s+ball\b)/i,
+  },
+  {
+    label: 'Nach Balleroberung zuerst zum Anspieler passen',
+    source: /(?:erobert|ballgewinn|balleroberung)[\s\S]{0,180}(?:erst|zuerst)[\s\S]{0,80}anspieler/i,
+    result: /(?:erobert|gewinnt|ballgewinn|balleroberung)[\s\S]{0,140}(?:erst|zuerst)[\s\S]{0,60}anspieler/i,
+  },
+  {
+    label: 'Nach dem Zuspiel Spielrichtung wechseln und angreifen',
+    source: /spielrichtung[\s\S]{0,100}(?:angreif|angriff)|(?:angreif|angriff)[\s\S]{0,100}spielrichtung/i,
+    result: /(?:spielrichtung|richtungswechsel|richtung\s+wechsel)[\s\S]{0,100}(?:angreif|angriff)|(?:angreif|angriff)[\s\S]{0,100}(?:spielrichtung|richtungswechsel|richtung\s+wechsel)/i,
+  },
+  {
+    label: 'Aufgaben nach jedem Durchgang tauschen',
+    source: /nach\s+jedem\s+durchgang[\s\S]{0,80}(?:wechsel|tausch)/i,
+    result: /nach\s+jedem\s+durchgang[\s\S]{0,80}(?:wechsel|tausch)|(?:wechsel|tausch)[\s\S]{0,80}nach\s+jedem\s+durchgang/i,
+  },
+];
+
+function missingRequiredRules(sourceValue: unknown, resultValue: string): string[] {
+  const source = sourceText(sourceValue);
+  const result = cleanOutput(resultValue);
+  const missing = REQUIRED_FLOW_RULES
+    .filter((rule) => rule.source.test(source) && !rule.result.test(result))
+    .map((rule) => rule.label);
+
+  for (const color of ['Rot', 'Blau', 'Grün', 'Gelb']) {
+    if (source.toLocaleLowerCase('de-AT').includes(color.toLocaleLowerCase('de-AT'))
+      && !result.toLocaleLowerCase('de-AT').includes(color.toLocaleLowerCase('de-AT'))) {
+      missing.push(`Rolle/Farbe ${color}`);
+    }
+  }
+  return missing;
+}
+
 function normaliseResult(value: unknown, sourceVariationText: unknown): ShortText | null {
   if (!value || typeof value !== 'object') return null;
   const result = value as Partial<AiShortText>;
@@ -204,7 +269,12 @@ serve(async (req) => {
     };
     if (!Object.values(source).some(Boolean)) return json({ error: 'Kein Übungstext zum Kürzen vorhanden.' }, 400);
 
+    const variationBudget = originalVariations(input.variations)
+      .reduce((total, variation, index) => total + variation.length + `Variation ${index + 1}: `.length + 1, 0);
+    const flowLimit = Math.max(340, Math.min(500, LIMITS.content - 140 - variationBudget));
+    let missingRules: string[] = [];
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      const attemptFlowLimit = Math.max(320, flowLimit - (attempt > 0 ? 20 : 0));
       const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
@@ -218,14 +288,18 @@ serve(async (req) => {
             'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
             'Gib nur setup, flow, materials und coachingPoints getrennt zurück. Variationen werden unverändert aus dem Original übernommen und dürfen nicht von dir ausgegeben werden.',
             'setup: höchstens 110 Zeichen und nur die nötige Feldorganisation aus organisation.',
-            `${attempt > 0 ? 'flow: höchstens 340 Zeichen' : 'flow: höchstens 370 Zeichen'} aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, Spielrichtung, Aktionen, Reihenfolge sowie Aufgaben- und Positionswechsel.`,
+            `flow: höchstens ${attemptFlowLimit} Zeichen aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, Spielrichtung, Aktionen, Reihenfolge sowie Aufgaben- und Positionswechsel.`,
             'Unterscheide Balleroberung und Ballverlust exakt. Vertausche niemals, welches Team verteidigt, den Ball gewinnt, zuerst zum Anspieler passen muss oder danach angreift.',
             'Wenn im Original vorhanden, müssen Kontaktbegrenzungen, die Sperre des Anspielers nach dem Einspielen, der sofortige neue Ball nach Tor oder Ausball und der Aufgabenwechsel nach dem Durchgang im Ablauf stehen.',
             'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
             'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
             'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
+            'Formuliere grammatikalisch korrekt und eindeutig. Schreibe zum Beispiel „Erobert Rot den Ball“ und nicht „Ball erobert Rot“.',
             'Jeder Text in setup und flow muss mit einem vollständigen Satz und einem Punkt, Fragezeichen oder Rufzeichen enden.',
             attempt > 0 ? 'Die erste Antwort war unvollständig. Formuliere alle Sätze diesmal kürzer und grammatikalisch vollständig.' : '',
+            attempt > 0 && missingRules.length > 0
+              ? `Diese Pflichtangaben fehlten oder waren falsch und müssen diesmal ausdrücklich enthalten sein: ${missingRules.join('; ')}.`
+              : '',
             'Dauer und Spielerzahl nur nennen, wenn sie zum Verständnis zwingend erforderlich sind.',
             'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
           ].join('\n'),
@@ -241,7 +315,7 @@ serve(async (req) => {
                 additionalProperties: false,
                 properties: {
                   setup: { type: 'string', maxLength: 120 },
-                  flow: { type: 'string', maxLength: 400 },
+                  flow: { type: 'string', maxLength: 520 },
                   materials: { type: 'string', maxLength: LIMITS.materials },
                   coachingPoints: {
                     type: 'array',
@@ -274,14 +348,18 @@ serve(async (req) => {
       }
 
       const normalised = normaliseResult(result, input.variations);
-      if (normalised) return json(normalised);
+      missingRules = normalised
+        ? missingRequiredRules(source.ablauf, normalised.content)
+        : [];
+      if (normalised && missingRules.length === 0) return json(normalised);
       console.error(
         '[shorten-training-exercise] Structured output could not be normalised',
         { attempt: attempt + 1 },
+        { missingRules },
         JSON.stringify(result).slice(0, 1_000),
       );
     }
-    return json({ error: 'Die KI-Kurzfassung enthielt auch nach einem zweiten Versuch unvollständige Sätze.' }, 502);
+    return json({ error: 'Die KI-Kurzfassung enthielt auch nach einem zweiten Versuch nicht alle Pflichtregeln.' }, 502);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[shorten-training-exercise]', message);
