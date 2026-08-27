@@ -11,7 +11,7 @@ Die Prüfung ist übungsunabhängig:
 4. Jede vorhandene Variation wird separat gekürzt und anschließend inhaltlich sowie in ihrer ursprünglichen Reihenfolge gegen das Original geprüft. Neue Variationen werden nicht erzeugt.
 
 Die zulässigen Längen für Ablauf und Variationen werden für jede Übung aus dem gemeinsamen
-700-Zeichen-Budget berechnet und direkt im strukturierten KI-Ausgabeformat erzwungen.
+760-Zeichen-Budget berechnet und direkt im strukturierten KI-Ausgabeformat erzwungen.
 
 Dadurch funktionieren Pass-, Technik-, Torschuss-, Koordinations- und Spielformen ohne fest
 programmierte Regeln für einzelne Übungen.

@@ -40,7 +40,7 @@ assert.match(edge, /for \(let attempt = 0; attempt < 2; attempt \+= 1\)/);
 assert.match(page, /hasCompleteTrainingExerciseShortContent/);
 assert.match(page, /Die PDF-Kurzfassung enthält einen unvollständigen Satz/);
 assert.match(edge, /Variation \${index \+ 1}/);
-assert.match(edge, /content: 700/);
+assert.match(edge, /content: 760/);
 assert.match(edge, /materials: 100/);
 assert.match(edge, /coaching: 250/);
 assert.match(edge, /const flowLimit = Math\.min\(500, LIMITS\.content - reservedSetupBudget - variationBudget\)/);

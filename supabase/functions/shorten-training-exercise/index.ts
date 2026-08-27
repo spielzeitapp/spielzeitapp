@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LIMITS = { content: 700, materials: 100, coaching: 250 } as const;
+const LIMITS = { content: 760, materials: 100, coaching: 250 } as const;
 const MAX_SOURCE_LENGTH = 8_000;
 
 type SourceInput = {
