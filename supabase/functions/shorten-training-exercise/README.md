@@ -7,8 +7,8 @@ Die Prüfung ist übungsunabhängig:
 
 1. Aus Organisation und Ablauf wird eine dynamische Liste unverzichtbarer Fakten extrahiert.
 2. Die Kurzfassung wird unter Einhaltung dieser Fakten und des verfügbaren Zeichenbudgets erstellt.
-3. Eine separate KI-Prüfung vergleicht Kurzfassung, Faktenliste und Original auf Auslassungen oder Widersprüche.
-4. Variationen werden nicht neu formuliert, sondern ausschließlich aus dem Original übernommen.
+3. Eine separate KI-Prüfung vergleicht die Kurzfassung direkt mit dem vollständigen Original und nutzt die Faktenliste nur als zusätzliche Prüfhilfe.
+4. Variationen werden nicht neu formuliert, sondern vollständig aus dem Original übernommen; ihr Platz wird vor der Kürzung reserviert.
 
 Dadurch funktionieren Pass-, Technik-, Torschuss-, Koordinations- und Spielformen ohne fest
 programmierte Regeln für einzelne Übungen.

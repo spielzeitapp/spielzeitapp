@@ -179,8 +179,8 @@ function stringList(value: unknown, maxItems: number): string[] | null {
 function normaliseChecklist(value: unknown): FactChecklist | null {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Partial<FactChecklist>;
-  const setupFacts = stringList(candidate.setupFacts, 4);
-  const flowFacts = stringList(candidate.flowFacts, 12);
+  const setupFacts = stringList(candidate.setupFacts, 6);
+  const flowFacts = stringList(candidate.flowFacts, 20);
   if (!setupFacts || !flowFacts) return null;
   return { setupFacts, flowFacts };
 }
@@ -188,8 +188,8 @@ function normaliseChecklist(value: unknown): FactChecklist | null {
 function normaliseVerification(value: unknown): FactVerification | null {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Partial<FactVerification>;
-  const missingFacts = stringList(candidate.missingFacts, 16);
-  const contradictions = stringList(candidate.contradictions, 10);
+  const missingFacts = stringList(candidate.missingFacts, 24);
+  const contradictions = stringList(candidate.contradictions, 16);
   if (typeof candidate.valid !== 'boolean' || !missingFacts || !contradictions) return null;
   return { valid: candidate.valid, missingFacts, contradictions };
 }
@@ -218,11 +218,9 @@ function normaliseResult(value: unknown, sourceVariationText: unknown): ShortTex
   if (flow) content = appendWithinLimit(content, `Ablauf: ${flow}`, LIMITS.content);
   if ((setup && !content.includes('Aufbau:')) || (flow && !content.includes('Ablauf:'))) return null;
   for (const [index, variation] of originalVariations(sourceVariationText).entries()) {
-    content = appendWithinLimit(
-      content,
-      `Variation ${index + 1}: ${variation}`,
-      LIMITS.content,
-    );
+    const next = appendWithinLimit(content, `Variation ${index + 1}: ${variation}`, LIMITS.content);
+    if (next === content) return null;
+    content = next;
   }
 
   let coaching = '';
@@ -293,9 +291,14 @@ serve(async (req) => {
       coachingpunkte: source.coachingpunkte,
     };
 
-    const variationBudget = originalVariations(input.variations)
+    const variations = originalVariations(input.variations);
+    const variationBudget = variations
       .reduce((total, variation, index) => total + variation.length + `Variation ${index + 1}: `.length + 1, 0);
-    const flowLimit = Math.max(340, Math.min(500, LIMITS.content - 140 - variationBudget));
+    const reservedSetupBudget = 'Aufbau: '.length + 120 + 1 + 'Ablauf: '.length;
+    const flowLimit = Math.min(500, LIMITS.content - reservedSetupBudget - variationBudget);
+    if (flowLimit < 220) {
+      return json({ error: 'Aufbau, Ablauf und Variationen passen nicht vollständig in 700 Zeichen. Bitte den Originaltext oder die Variationen kürzen.' });
+    }
     const checklistResponse = await structuredAiCall(
       openAiKey,
       model,
@@ -303,10 +306,11 @@ serve(async (req) => {
       [
         'Du analysierst eine beliebige Fußballübung und extrahierst ihre unverzichtbaren Fakten.',
         'Nenne nur Tatsachen, die ausdrücklich im Original stehen. Erfinde oder interpretiere nichts hinzu.',
-        'setupFacts enthält höchstens vier notwendige Fakten zum räumlichen oder materiellen Aufbau.',
-        'flowFacts enthält höchstens zwölf atomare Pflichtfakten für die praktische Durchführung.',
-        'Berücksichtige abhängig von der jeweiligen Übung insbesondere Rollen, Reihenfolge, Lauf- und Passwege, Kontaktzahlen, Spielfortsetzungen, Wertung, Seiten-, Positions- und Aufgabenwechsel sowie erlaubte oder verbotene Aktionen.',
-        'Fasse zusammengehörige Details knapp zusammen, ohne Ursache, Reihenfolge oder Zuständigkeit zu verändern.',
+        'setupFacts enthält höchstens sechs notwendige Fakten zum räumlichen oder materiellen Aufbau.',
+        'flowFacts enthält höchstens zwanzig atomare Pflichtfakten für die praktische Durchführung.',
+        'Erfasse jede ausdrücklich genannte Rolle, Farbe, Position, Reihenfolge, Lauf- und Passaktion, Kontaktzahl, Spielfortsetzung, Wertung, Seiten-, Positions- und Aufgabenänderung sowie jede erlaubte oder verbotene Aktion.',
+        'Bedingungen wie „nach Tor“, „bei Ausball“ oder „nach Ballgewinn“ sind jeweils eigene Pflichtfakten und dürfen nicht weggelassen oder zusammengezogen werden.',
+        'Fasse nur sprachlich zusammen. Ursache, Zeitpunkt, Reihenfolge, Zuständigkeit und Zuordnung müssen vollständig erhalten bleiben.',
         'Material, Coachingpunkte und Variationen gehören nicht in diese Faktenliste.',
       ],
       { organisation: source.organisation, ablauf: source.ablauf },
@@ -317,13 +321,13 @@ serve(async (req) => {
           setupFacts: {
             type: 'array',
             minItems: 0,
-            maxItems: 4,
+            maxItems: 6,
             items: { type: 'string', maxLength: 160 },
           },
           flowFacts: {
             type: 'array',
             minItems: 0,
-            maxItems: 12,
+            maxItems: 20,
             items: { type: 'string', maxLength: 180 },
           },
         },
@@ -339,7 +343,7 @@ serve(async (req) => {
       return json({ error: 'Die KI konnte die Pflichtinformationen dieser Übung nicht sicher bestimmen.' });
     }
 
-    const flowTarget = Math.max(300, flowLimit - 45);
+    const flowTarget = Math.max(180, flowLimit - 35);
     let correctionNotes: string[] = [];
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const generationResponse = await structuredAiCall(
@@ -405,8 +409,10 @@ serve(async (req) => {
         [
           'Du prüfst eine Kurzfassung einer beliebigen Fußballübung unabhängig gegen Original und Pflichtfakten.',
           'Akzeptiere sinngetreue Kurzformen, Synonyme, Abkürzungen und andere grammatikalische Formulierungen.',
-          'valid ist nur wahr, wenn alle mustKeepFacts semantisch eindeutig enthalten sind und die Kurzfassung dem Original nirgends widerspricht.',
-          'Trage fehlende Pflichtfakten wörtlich oder knapp in missingFacts ein.',
+          'Vergleiche die Kurzfassung Satz für Satz direkt mit dem vollständigen Original. Die Faktenliste ist nur eine zusätzliche Prüfhilfe und kann selbst unvollständig sein.',
+          'valid ist nur wahr, wenn alle wesentlichen Aufbau- und Ablaufangaben aus dem Original sowie alle mustKeepFacts semantisch eindeutig enthalten sind und die Kurzfassung dem Original nirgends widerspricht.',
+          'Prüfe ausdrücklich Rollen und Farben, Positionen, Reihenfolge, Kontaktzahlen, Bedingungen, Neustarts nach allen genannten Ereignissen sowie Seiten-, Positions- und Aufgabenwechsel.',
+          'Trage jede im Original vorhandene, aber in der Kurzfassung fehlende Pflichtangabe wörtlich oder knapp in missingFacts ein, auch wenn sie nicht in mustKeepFacts steht.',
           'Trage erfundene, vertauschte oder widersprüchliche Aussagen knapp in contradictions ein.',
           'Prüfe nicht Stil, Zeichenzahl, Material, Coachingpunkte oder Variationen.',
         ],
@@ -423,13 +429,13 @@ serve(async (req) => {
             missingFacts: {
               type: 'array',
               minItems: 0,
-              maxItems: 16,
+              maxItems: 24,
               items: { type: 'string', maxLength: 180 },
             },
             contradictions: {
               type: 'array',
               minItems: 0,
-              maxItems: 10,
+              maxItems: 16,
               items: { type: 'string', maxLength: 180 },
             },
           },
