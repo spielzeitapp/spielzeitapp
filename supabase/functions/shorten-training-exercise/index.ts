@@ -450,7 +450,7 @@ serve(async (req) => {
           'Jeder Eintrag aus mustKeepFacts muss semantisch eindeutig im zugehörigen Bereich setup, flow oder variations enthalten sein.',
           'Gib nur setup, flow, variations, materials und coachingPoints getrennt zurück.',
           `setup: höchstens ${setupGenerationLimit} Zeichen inklusive Satzzeichen und nur die nötige Feldorganisation.`,
-          `flow: Ziel sind etwa ${flowTarget} Zeichen, die absolute Höchstgrenze ist ${flowLimit} Zeichen. Beende den letzten Satz deutlich vor der Höchstgrenze.`,
+          `flow: Ziel sind etwa ${flowTarget} Zeichen, höchstens ${flowGenerationLimit} Zeichen inklusive Satzzeichen. Beende den letzten Satz deutlich vor der Höchstgrenze.`,
           `variations: genau ${variationCount} kurze Einträge in derselben Reihenfolge wie im Original; jeder höchstens ${variationGenerationLimit} Zeichen inklusive Satzzeichen. Bewahre alle Bedingungen, erfinde nichts und lasse keine Originalvariation weg.`,
           'Nutze kurze, grammatikalisch vollständige Sätze und übliche Fußballbegriffe. Rollen, Reihenfolge, Zuständigkeiten und Wechsel müssen eindeutig bleiben.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
