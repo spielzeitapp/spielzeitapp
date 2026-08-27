@@ -58,11 +58,48 @@ function isRealScorerName(name: string): boolean {
   return n.length > 0 && n !== '—' && n !== '–';
 }
 
-function formatScorerMinuteBadge(minuteLabel: string): string {
+function formatScorerMinute(minuteLabel: string): string {
   const t = minuteLabel.trim();
   const m = /^(\d+(?:\+\d+)?)/.exec(t);
-  if (m) return `[${m[1]}']`;
+  if (m) return `${m[1]}′`;
   return t;
+}
+
+type GroupedScorer = {
+  playerName: string;
+  goalCount: number;
+  minutes: string[];
+};
+
+function groupScorersByPlayer(
+  scorers: ResultFeedPostRow['payload']['scorers'],
+): GroupedScorer[] {
+  const groups = new Map<string, GroupedScorer>();
+
+  scorers.forEach((scorer) => {
+    if (!isRealScorerName(scorer.player_name)) return;
+
+    const playerName = scorer.player_name.trim().replace(/\s+/g, ' ');
+    const key = playerName.toLocaleLowerCase('de-AT');
+    const existing = groups.get(key);
+    const minute = isSensibleScorerMinute(scorer.minute_label)
+      ? formatScorerMinute(scorer.minute_label)
+      : null;
+
+    if (existing) {
+      existing.goalCount += 1;
+      if (minute) existing.minutes.push(minute);
+      return;
+    }
+
+    groups.set(key, {
+      playerName,
+      goalCount: 1,
+      minutes: minute ? [minute] : [],
+    });
+  });
+
+  return Array.from(groups.values());
 }
 
 type ResultVisualState = 'win' | 'draw' | 'loss';
@@ -140,10 +177,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   const venueLabel = useMemo(() => formatFeedVenueShort(p.location), [p.location]);
   const captionTrim = post.caption?.trim() ?? '';
 
-  const filteredScorers = useMemo(
-    () => p.scorers.filter((s) => isRealScorerName(s.player_name)),
-    [p.scorers],
-  );
+  const groupedScorers = useMemo(() => groupScorersByPlayer(p.scorers), [p.scorers]);
 
   const presentation = resultPresentation(p.result_state);
 
@@ -262,32 +296,35 @@ export const ResultFeedPostCard: React.FC<Props> = ({
               </div>
             ) : null}
 
-            {filteredScorers.length > 0 ? (
+            {groupedScorers.length > 0 ? (
               <div className="rounded-2xl border border-[rgba(255,71,71,0.14)] bg-black/35 px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-3 sm:py-3">
                 <FeedSectionHeader icon="⚽" label="Torschützen" />
-                <ul className="space-y-1.5">
-                  {filteredScorers.map((s, i) => {
-                    const minOk = isSensibleScorerMinute(s.minute_label);
-                    const minShown = minOk ? formatScorerMinuteBadge(s.minute_label) : null;
-                    return (
-                      <li
-                        key={`${s.player_name}-${i}`}
-                        className="flex min-w-0 items-center gap-2 rounded-lg bg-white/[0.03] px-2 py-1.5 sm:px-2.5"
-                      >
-                        {minShown ? (
-                          <span className="inline-flex shrink-0 rounded-full border border-red-500/40 bg-red-950/70 px-2 py-0.5 text-[10px] font-bold tabular-nums leading-none text-red-100 sm:text-[11px]">
-                            {minShown}
+                <ul className="space-y-1">
+                  {groupedScorers.map((scorer) => (
+                    <li
+                      key={scorer.playerName.toLocaleLowerCase('de-AT')}
+                      className="flex min-w-0 items-start gap-2 rounded-lg bg-white/[0.03] px-2 py-1.5 sm:px-2.5"
+                    >
+                      <span className="mt-0.5 shrink-0 text-[11px] leading-none opacity-90" aria-hidden>
+                        ⚽
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-baseline justify-between gap-2">
+                          <span className="min-w-0 break-words text-[13px] font-semibold leading-snug text-white sm:text-[14px]">
+                            {scorer.playerName}
                           </span>
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-red-200/85 sm:text-[11px]">
+                            {scorer.goalCount} {scorer.goalCount === 1 ? 'Tor' : 'Tore'}
+                          </span>
+                        </div>
+                        {scorer.minutes.length > 0 ? (
+                          <p className="mt-0.5 text-[10px] font-semibold tabular-nums leading-snug text-white/55 sm:text-[11px]">
+                            {scorer.minutes.join(' · ')}
+                          </p>
                         ) : null}
-                        <span className="shrink-0 text-[11px] leading-none opacity-90" aria-hidden>
-                          ⚽
-                        </span>
-                        <span className="min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug text-white sm:text-[14px]">
-                          {s.player_name.trim()}
-                        </span>
-                      </li>
-                    );
-                  })}
+                      </div>
+                    </li>
+                  ))}
                 </ul>
               </div>
             ) : null}
