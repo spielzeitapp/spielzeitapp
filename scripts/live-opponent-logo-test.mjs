@@ -23,3 +23,4 @@ assert.match(
 );
 
 console.log('live opponent logo regression checks passed');
+
