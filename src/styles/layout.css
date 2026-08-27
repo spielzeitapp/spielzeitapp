@@ -199,3 +199,8 @@ body {
 .live-page-safe-scroll {
   padding-bottom: var(--app-bottomnav-pad);
 }
+
+/* Korrektur-Sheets besitzen eigene, Safe-Area-feste Aktionen. */
+body[data-live-edit-dialog-open] [data-app-bottom-nav] {
+  display: none;
+}

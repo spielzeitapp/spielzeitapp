@@ -8,6 +8,8 @@ import { fileURLToPath } from 'url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const screen = fs.readFileSync(path.join(root, 'src/pages/live/LiveMatchScreen.tsx'), 'utf8');
+const bottomNav = fs.readFileSync(path.join(root, 'src/app/components/BottomNav.tsx'), 'utf8');
+const layoutCss = fs.readFileSync(path.join(root, 'src/styles/layout.css'), 'utf8');
 
 const elevatedEditOverlays = screen.match(
   /fixed inset-0 z-\[10020\] flex min-h-dvh flex-col justify-end[^\"]*pt-\[var\(--app-header-offset\)\]/g,
@@ -34,6 +36,27 @@ assert.ok(
 assert.ok(
   screen.includes('shrink-0 border-t border-white/10 bg-black/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-3'),
   'edit actions must stay in a safe-area-aware fixed footer',
+);
+assert.ok(bottomNav.includes('data-app-bottom-nav'), 'the global BottomNav must expose a precise hide target');
+assert.ok(
+  screen.includes("document.body.toggleAttribute('data-live-edit-dialog-open', liveEditDialogOpen)"),
+  'opening either live correction sheet must mark the document',
+);
+assert.ok(
+  screen.includes("document.body.removeAttribute('data-live-edit-dialog-open')"),
+  'the live correction marker must always be cleaned up',
+);
+assert.ok(
+  layoutCss.includes('body[data-live-edit-dialog-open] [data-app-bottom-nav]'),
+  'the global BottomNav must be hidden while a correction sheet owns the action area',
+);
+assert.ok(
+  /onClick=\{\(\) => setEditingGoalEvent\(null\)\}[\s\S]{0,500}Zurück zum Livespiel/.test(screen),
+  'the goal correction sheet must offer a visible return action without saving',
+);
+assert.ok(
+  /onClick=\{\(\) => setEditingSubstitutionEvent\(null\)\}[\s\S]{0,500}Zurück zum Livespiel/.test(screen),
+  'the substitution correction sheet must offer a visible return action without saving',
 );
 
 assert.ok(
