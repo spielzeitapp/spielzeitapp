@@ -23,7 +23,6 @@ import {
 } from '../lib/trainingExercises';
 import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
 import {
-  createCompactTrainingExerciseShortText,
   createTrainingExerciseOriginalText,
   hasCompleteTrainingExerciseShortContent,
   TRAINING_SHORT_TEXT_LIMITS,
@@ -89,7 +88,7 @@ const emptyForm = (): FormState => ({
 });
 
 function formFromRow(row: TrainingExerciseRow): FormState {
-  const suggestedShortText = preferredShortTextForPdf(row.title, {
+  const originalText = createTrainingExerciseOriginalText({
     description: row.description,
     organization: row.organization,
     materials: row.materials,
@@ -110,9 +109,12 @@ function formFromRow(row: TrainingExerciseRow): FormState {
     organization: row.organization ?? '',
     coachingPoints: row.coaching_points ?? '',
     variations: row.variations ?? '',
-    shortContent: row.short_content ?? suggestedShortText.content,
-    shortMaterials: row.short_materials ?? suggestedShortText.materials,
-    shortCoaching: row.short_coaching ?? suggestedShortText.coaching,
+    // Der rote Bereich startet bewusst immer mit den unveränderten Originalfeldern.
+    // Eine gespeicherte Alt-Kurzfassung darf den Ausgangstext für einen neuen
+    // Prüfvorgang nicht verdecken.
+    shortContent: originalText.content,
+    shortMaterials: originalText.materials,
+    shortCoaching: originalText.coaching,
     sourceReference: row.source_reference ?? '',
     visibility: row.visibility === 'private' ? 'private' : 'club',
   };
@@ -126,16 +128,6 @@ function originalTextFitsPdf(title: string, text: TrainingExerciseShortText): bo
   ) return false;
   const fit = measureTrainingExamPhaseTextFit({ title, ...text });
   return !Object.values(fit).includes('too-long');
-}
-
-function preferredShortTextForPdf(
-  title: string,
-  input: TrainingExerciseShortTextInput,
-): TrainingExerciseShortText {
-  const original = createTrainingExerciseOriginalText(input);
-  return originalTextFitsPdf(title, original)
-    ? original
-    : createCompactTrainingExerciseShortText(input);
 }
 
 export function ManagerTrainingLibraryPage(): React.ReactElement {
@@ -410,6 +402,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setError(null);
     try {
       const draft = await analyzeTrainingExercisePdf(file);
+      const originalText = createTrainingExerciseOriginalText({
+        description: draft.description,
+        organization: draft.organization,
+        materials: draft.materials,
+        coachingPoints: draft.coachingPoints,
+        variations: draft.variations,
+      });
       setDetail(null);
       setEditing(null);
       setForm((current) => ({
@@ -417,6 +416,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
         ...draft,
         difficulty: 'medium',
         visibility: 'club',
+        shortContent: originalText.content,
+        shortMaterials: originalText.materials,
+        shortCoaching: originalText.coaching,
       }));
       setPendingSketch(draft.sketch);
       setPendingSketchUrl((prev) => {
@@ -444,7 +446,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   };
 
   const generateShortText = () => {
-    const generated = preferredShortTextForPdf(form.title, {
+    const original = createTrainingExerciseOriginalText({
       description: form.description,
       organization: form.organization,
       materials: form.materials,
@@ -453,11 +455,12 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     });
     setForm((current) => ({
       ...current,
-      shortContent: generated.content,
-      shortMaterials: generated.materials,
-      shortCoaching: generated.coaching,
+      shortContent: original.content,
+      shortMaterials: original.materials,
+      shortCoaching: original.coaching,
     }));
     setShortTextError(null);
+    setToast('Originaltext übernommen. Zu lange Felder können jetzt manuell oder mit KI gekürzt werden.');
   };
 
   const generateAiShortText = async () => {
@@ -470,13 +473,16 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       variations: form.variations,
     };
     const original = createTrainingExerciseOriginalText(input);
+    // Vor jedem KI-Versuch ist der sichtbare und gespeicherte Ausgangspunkt
+    // eindeutig der Originaltext. Nur ein erfolgreich geprüftes KI-Ergebnis
+    // darf diese Felder anschließend ersetzen.
+    setForm((current) => ({
+      ...current,
+      shortContent: original.content,
+      shortMaterials: original.materials,
+      shortCoaching: original.coaching,
+    }));
     if (originalTextFitsPdf(form.title, original)) {
-      setForm((current) => ({
-        ...current,
-        shortContent: original.content,
-        shortMaterials: original.materials,
-        shortCoaching: original.coaching,
-      }));
       setFormError(null);
       setShortTextError(null);
       setToast('Der vollständige Text passt. Es wurde keine KI verwendet.');
@@ -490,7 +496,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setShorteningWithAi(false);
     if (!result.data) {
       const message = result.error ?? 'KI-Kurzfassung fehlgeschlagen.';
-      setShortTextError(`${message} Die bisherige Kurzfassung bleibt unverändert angezeigt.`);
+      setShortTextError(`${message} Der vollständige Originaltext bleibt unverändert angezeigt.`);
       return;
     }
     const generated = result.data;
@@ -1183,8 +1189,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       Kurzfassung für Handout &amp; optionale Trainer-PDF
                     </h3>
                     <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                      Bis zu 760 Zeichen für Aufbau, verständlichen Ablauf und höchstens drei Variationen. Coachingpunkte bleiben getrennt. Der ausführliche Originaltext oben bleibt erhalten.
-                      {' '}Der Volltext wird zuerst geprüft; KI wird nur verwendet, wenn er nicht passt.
+                      Zuerst wird hier der vollständige Originaltext aus Aufbau, Ablauf und Variationen angezeigt. Ist er länger als 760 Zeichen, kann er manuell oder mit KI gekürzt werden. Coachingpunkte bleiben getrennt. Nur eine erfolgreich geprüfte KI-Kurzfassung ersetzt das Original.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -1204,7 +1209,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-50 disabled:opacity-60"
                     >
                       <RotateCw className="h-3.5 w-3.5" aria-hidden />
-                      Prüfen &amp; übernehmen (ohne KI)
+                      Original neu übernehmen
                     </button>
                   </div>
                 </div>
