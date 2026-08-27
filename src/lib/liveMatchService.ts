@@ -860,6 +860,48 @@ export async function updateGoalScorer(
   return { error: null };
 }
 
+/** Korrigiert die Spieler eines atomar gespeicherten Wechsel-Events. */
+export async function updateSubstitutionPlayers(
+  eventId: string,
+  outgoingPlayerId: string,
+  incomingPlayerId: string,
+): Promise<{ error: string | null }> {
+  const id = eventId.trim();
+  const outId = outgoingPlayerId.trim();
+  const inId = incomingPlayerId.trim();
+  if (!id) return { error: 'Keine Ereignis-ID.' };
+  if (!outId) return { error: 'Bitte den auswechselnden Spieler auswählen.' };
+  if (!inId) return { error: 'Bitte den einwechselnden Spieler auswählen.' };
+  if (outId === inId) return { error: 'Raus und Rein müssen unterschiedliche Spieler sein.' };
+  if (isDemoMatchEventId(id)) {
+    return { error: 'Demo-Ereignisse können nicht nachträglich bearbeitet werden.' };
+  }
+
+  const { data: evRow, error: loadErr } = await supabase
+    .from('match_events')
+    .select('match_id, type')
+    .eq('id', id)
+    .maybeSingle();
+  if (loadErr) return { error: loadErr.message };
+  const row = evRow as { match_id?: string; type?: string } | null;
+  if (!row?.match_id) return { error: 'Wechsel-Ereignis wurde nicht gefunden.' };
+  if (row.type !== 'substitution') {
+    return { error: 'Nur vollständig gespeicherte Wechsel können bearbeitet werden.' };
+  }
+
+  const writable = await assertMatchTeamSeasonWritable(row.match_id);
+  if (!writable.ok) return { error: writable.message };
+  const { error } = await supabase
+    .from('match_events')
+    .update({ player_id: outId, payload: { player_in_id: inId } })
+    .eq('id', id);
+  if (error) {
+    console.error('[liveMatchService] updateSubstitutionPlayers', error);
+    return { error: error.message };
+  }
+  return { error: null };
+}
+
 export async function saveMatchEvents(
   payloads: InsertMatchEventPayload[],
 ): Promise<{ ids: string[]; error: string | null }> {
