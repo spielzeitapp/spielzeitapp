@@ -194,6 +194,36 @@ function normaliseVerification(value: unknown): FactVerification | null {
   return { valid: candidate.valid, missingFacts, contradictions };
 }
 
+function normalisationIssues(value: unknown, sourceVariationText: unknown): string[] {
+  if (!value || typeof value !== 'object') return ['Die Antwort hat nicht das erwartete Format'];
+  const result = value as Partial<AiShortText>;
+  const issues: string[] = [];
+  if (typeof result.setup !== 'string') issues.push('Der Aufbau fehlt');
+  if (typeof result.flow !== 'string') issues.push('Der Ablauf fehlt');
+  if (typeof result.materials !== 'string') issues.push('Die Geräteliste fehlt');
+  if (!Array.isArray(result.coachingPoints) || !result.coachingPoints.every((item) => typeof item === 'string')) {
+    issues.push('Die Coachingpunkte haben nicht das erwartete Format');
+  }
+  if (issues.length > 0) return issues;
+
+  const setup = cleanOutput(result.setup as string);
+  const flow = cleanOutput(result.flow as string);
+  if (setup && !hasCompleteSentence(setup)) issues.push('Aufbau mit einem vollständigen Satz abschließen');
+  if (flow && !hasCompleteSentence(flow)) issues.push('Ablauf mit einem vollständigen Satz abschließen');
+
+  const contentLines = [
+    setup ? `Aufbau: ${setup}` : '',
+    flow ? `Ablauf: ${flow}` : '',
+    ...originalVariations(sourceVariationText).map((variation, index) => `Variation ${index + 1}: ${variation}`),
+  ].filter(Boolean);
+  const contentLength = contentLines.join('\n').length;
+  if (contentLength > LIMITS.content) {
+    issues.push(`Aufbau und Ablauf um mindestens ${contentLength - LIMITS.content + 15} Zeichen kürzen`);
+  }
+  if ((result.materials as string).length > LIMITS.materials) issues.push('Geräteliste kürzen');
+  return issues;
+}
+
 function normaliseResult(value: unknown, sourceVariationText: unknown): ShortText | null {
   if (!value || typeof value !== 'object') return null;
   const result = value as Partial<AiShortText>;
@@ -375,8 +405,8 @@ serve(async (req) => {
           type: 'object',
           additionalProperties: false,
           properties: {
-            setup: { type: 'string', maxLength: 120 },
-            flow: { type: 'string', maxLength: 520 },
+            setup: { type: 'string', maxLength: 110 },
+            flow: { type: 'string', maxLength: flowLimit },
             materials: { type: 'string', maxLength: LIMITS.materials },
             coachingPoints: {
               type: 'array',
@@ -392,13 +422,26 @@ serve(async (req) => {
         return json({ error: 'Die KI konnte momentan keine Kurzfassung erstellen.' }, 502);
       }
 
-      const normalised = normaliseResult(generationResponse.value, input.variations);
       const candidate = generationResponse.value && typeof generationResponse.value === 'object'
         ? generationResponse.value as Partial<AiShortText>
         : null;
+      const formatIssues = normalisationIssues(generationResponse.value, input.variations);
+      const normalised = formatIssues.length === 0
+        ? normaliseResult(generationResponse.value, input.variations)
+        : null;
       if (!normalised || !candidate || typeof candidate.setup !== 'string' || typeof candidate.flow !== 'string') {
-        correctionNotes = ['Aufbau und Ablauf vollständig innerhalb des Zeichenlimits formulieren'];
-        console.error('[shorten-training-exercise] Generated summary could not be normalised', { attempt: attempt + 1 });
+        correctionNotes = formatIssues.length > 0
+          ? formatIssues
+          : ['Aufbau und Ablauf vollständig innerhalb des Zeichenlimits formulieren'];
+        console.error(
+          '[shorten-training-exercise] Generated summary could not be normalised',
+          {
+            attempt: attempt + 1,
+            correctionNotes,
+            flowLimit,
+            variationCount: variations.length,
+          },
+        );
         continue;
       }
 

@@ -10,6 +10,9 @@ Die Prüfung ist übungsunabhängig:
 3. Eine separate KI-Prüfung vergleicht die Kurzfassung direkt mit dem vollständigen Original und nutzt die Faktenliste nur als zusätzliche Prüfhilfe.
 4. Variationen werden nicht neu formuliert, sondern vollständig aus dem Original übernommen; ihr Platz wird vor der Kürzung reserviert.
 
+Die zulässige Ablauflänge wird für jede Übung aus dem verbleibenden Platz nach Aufbau und
+Variationen berechnet und direkt im strukturierten KI-Ausgabeformat erzwungen.
+
 Dadurch funktionieren Pass-, Technik-, Torschuss-, Koordinations- und Spielformen ohne fest
 programmierte Regeln für einzelne Übungen.
 
