@@ -377,6 +377,11 @@ serve(async (req) => {
     );
     const reservedSetupBudget = 'Aufbau: '.length + setupLimit + 1 + 'Ablauf: '.length;
     const flowLimit = Math.min(500, LIMITS.content - reservedSetupBudget - variationBudget);
+    // Keep one character free so completeSentenceEnding can add a missing final
+    // punctuation mark without exceeding the actual PDF field limits.
+    const setupGenerationLimit = Math.max(1, setupLimit - 1);
+    const flowGenerationLimit = Math.max(1, flowLimit - 1);
+    const variationGenerationLimit = Math.max(1, variationItemLimit - 1);
     const checklistResponse = await structuredAiCall(
       openAiKey,
       model,
@@ -444,9 +449,9 @@ serve(async (req) => {
           'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
           'Jeder Eintrag aus mustKeepFacts muss semantisch eindeutig im zugehörigen Bereich setup, flow oder variations enthalten sein.',
           'Gib nur setup, flow, variations, materials und coachingPoints getrennt zurück.',
-          `setup: höchstens ${setupLimit} Zeichen und nur die nötige Feldorganisation.`,
+          `setup: höchstens ${setupGenerationLimit} Zeichen inklusive Satzzeichen und nur die nötige Feldorganisation.`,
           `flow: Ziel sind etwa ${flowTarget} Zeichen, die absolute Höchstgrenze ist ${flowLimit} Zeichen. Beende den letzten Satz deutlich vor der Höchstgrenze.`,
-          `variations: genau ${variationCount} kurze Einträge in derselben Reihenfolge wie im Original; jeder höchstens ${variationItemLimit} Zeichen. Bewahre alle Bedingungen, erfinde nichts und lasse keine Originalvariation weg.`,
+          `variations: genau ${variationCount} kurze Einträge in derselben Reihenfolge wie im Original; jeder höchstens ${variationGenerationLimit} Zeichen inklusive Satzzeichen. Bewahre alle Bedingungen, erfinde nichts und lasse keine Originalvariation weg.`,
           'Nutze kurze, grammatikalisch vollständige Sätze und übliche Fußballbegriffe. Rollen, Reihenfolge, Zuständigkeiten und Wechsel müssen eindeutig bleiben.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
           'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus den ursprünglichen Coachingpunkten.',
@@ -465,13 +470,13 @@ serve(async (req) => {
           type: 'object',
           additionalProperties: false,
           properties: {
-            setup: { type: 'string', maxLength: setupLimit },
-            flow: { type: 'string', maxLength: flowLimit },
+            setup: { type: 'string', maxLength: setupGenerationLimit },
+            flow: { type: 'string', maxLength: flowGenerationLimit },
             variations: {
               type: 'array',
               minItems: variationCount,
               maxItems: variationCount,
-              items: { type: 'string', maxLength: variationItemLimit },
+              items: { type: 'string', maxLength: variationGenerationLimit },
             },
             materials: { type: 'string', maxLength: LIMITS.materials },
             coachingPoints: {
