@@ -442,21 +442,32 @@ serve(async (req) => {
     // per-section reservations previously forced useful flow rules and the
     // third variation into fragments even when the total still had space.
     const variationItemLimit = variationCount <= 1
-      ? 220
+      ? 175
       : variationCount === 2
-        ? 140
-        : 110;
+        ? 100
+        : 70;
     const flowLimit = 500;
     // Keep one character free so completeSentenceEnding can add a missing final
     // punctuation mark without exceeding the actual PDF field limits.
     const setupGenerationLimit = Math.max(1, setupLimit - 1);
-    const flowGenerationLimit = Math.max(1, flowLimit - 1);
     const variationGenerationLimit = Math.max(1, variationItemLimit - 1);
+    // Reserve the exact labels and line breaks used by normaliseResult. The
+    // section maxima can therefore never add up to more than 760 characters,
+    // even when every generated field uses its complete schema allowance.
+    const contentLabelOverhead = 17 + variationCount * 14;
+    const flowSectionLimit = Math.max(
+      1,
+      Math.min(
+        flowLimit,
+        LIMITS.content - setupLimit - variationCount * variationItemLimit - contentLabelOverhead,
+      ),
+    );
+    const flowGenerationLimit = Math.max(1, flowSectionLimit - 1);
     // A checklist with twenty separate flow facts cannot reliably fit into a
     // 300–500 character flow field. Derive the checklist size from the real
     // text budget and let closely related rules form one compact fact.
     const maxSetupFacts = 4;
-    const maxFlowFacts = Math.max(6, Math.min(10, Math.floor(flowLimit / 42)));
+    const maxFlowFacts = Math.max(6, Math.min(10, Math.floor(flowSectionLimit / 42)));
     const maxVariationFacts = variationCount === 1
       ? 2
       : Math.max(variationCount, Math.min(6, variationCount * 2));
@@ -468,7 +479,7 @@ serve(async (req) => {
         'Du analysierst eine beliebige Fußballübung und extrahierst ihre unverzichtbaren Fakten.',
         'Nenne nur Tatsachen, die ausdrücklich im Original stehen. Erfinde oder interpretiere nichts hinzu.',
         'Die Faktenliste ist eine Priorisierung für eine Kurzfassung mit insgesamt 760 Zeichen. Nicht jeder Satz und nicht jedes Beispiel aus dem Original ist eine Pflichtinformation.',
-        `Die spätere Kurzfassung hat für den Aufbau höchstens ${setupLimit} und für den Ablauf höchstens ${flowLimit} Zeichen. Die Pflichtfakten müssen gemeinsam realistisch in diesen Platz passen.`,
+        `Die spätere Kurzfassung hat für den Aufbau höchstens ${setupLimit} und für den Ablauf höchstens ${flowSectionLimit} Zeichen. Die Pflichtfakten müssen gemeinsam realistisch in diesen Platz passen.`,
         `setupFacts enthält höchstens ${maxSetupFacts} notwendige Fakten zum räumlichen oder materiellen Aufbau. Verbinde zusammengehörige Angaben wie Feld, Tor und Torhüter in einem Fakt.`,
         `flowFacts enthält höchstens ${maxFlowFacts} kompakte Pflichtfakten, die für die praktische Durchführung wirklich unverzichtbar sind.`,
         'Erfasse jede ausdrücklich genannte Rolle, Farbe, Position, Reihenfolge, Lauf- und Passaktion, Kontaktzahl, Spielfortsetzung, Wertung, Seiten-, Positions- und Aufgabenänderung sowie jede erlaubte oder verbotene Aktion.',
@@ -519,7 +530,7 @@ serve(async (req) => {
       return json({ error: 'Die KI konnte die Pflichtinformationen dieser Übung nicht sicher bestimmen.' });
     }
 
-    const flowTarget = Math.max(300, Math.min(470, flowLimit - variationCount * 12));
+    const flowTarget = Math.max(300, Math.min(430, flowGenerationLimit - 20));
     let correctionNotes: string[] = [];
     let bestCandidate: BestCandidate | null = null;
     let previousDraft: Partial<AiShortText> | null = null;
@@ -585,7 +596,7 @@ serve(async (req) => {
       const generatedValue = normaliseGeneratedSentenceEndings(
         generationResponse.value,
         setupLimit,
-        flowLimit,
+        flowSectionLimit,
         variationItemLimit,
       );
       const candidate = generatedValue && typeof generatedValue === 'object'
@@ -606,7 +617,7 @@ serve(async (req) => {
           {
             attempt: attempt + 1,
             correctionNotes,
-            flowLimit,
+            flowLimit: flowSectionLimit,
             variationCount,
             variationItemLimit,
           },
@@ -702,7 +713,7 @@ serve(async (req) => {
             flow: checklist.flowFacts.length,
             variations: checklist.variationFacts.length,
           },
-          characterBudget: { setupLimit, flowLimit, variationItemLimit },
+          characterBudget: { setupLimit, flowLimit: flowSectionLimit, variationItemLimit },
         },
       );
     }
