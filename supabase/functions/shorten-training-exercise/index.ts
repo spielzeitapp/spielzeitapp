@@ -234,15 +234,12 @@ function originalVariations(value: unknown): string[] {
   const labelled = [...raw.matchAll(
     /(?:^|\n|\s)(?:Variation|Variante)\s*\d+\s*:\s*([\s\S]*?)(?=(?:\n|\s)(?:Variation|Variante)\s*\d+\s*:|$)/gi,
   )].map((match) => match[1]);
-  const unlabelled = raw
-    .replace(/^Variationen?\s*:\s*/i, '')
-    .split(/\n+|\s*;\s*/)
-    .filter(Boolean);
+  const unlabelled = raw.replace(/^Variationen?\s*:\s*/i, '');
   const candidates = labelled.length > 0
     ? labelled
-    : unlabelled.length > 1
-      ? unlabelled
-      : unlabelled.flatMap((variation) => variation.split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ0-9])/));
+    // Unnumbered prose often describes one coherent progression over several
+    // sentences. Splitting it creates fake variations and loses the order.
+    : [unlabelled];
 
   return candidates
     .map((variation) => cleanOutput(variation)
@@ -449,10 +446,9 @@ serve(async (req) => {
     // text budget and let closely related rules form one compact fact.
     const maxSetupFacts = 4;
     const maxFlowFacts = Math.max(6, Math.min(10, Math.floor(flowLimit / 42)));
-    const maxVariationFacts = Math.max(
-      variationCount,
-      Math.min(9, variationCount * 3),
-    );
+    const maxVariationFacts = variationCount === 1
+      ? 2
+      : Math.max(variationCount, Math.min(6, variationCount * 2));
     const checklistResponse = await structuredAiCall(
       openAiKey,
       model,
@@ -467,7 +463,8 @@ serve(async (req) => {
         'Erfasse jede ausdrücklich genannte Rolle, Farbe, Position, Reihenfolge, Lauf- und Passaktion, Kontaktzahl, Spielfortsetzung, Wertung, Seiten-, Positions- und Aufgabenänderung sowie jede erlaubte oder verbotene Aktion.',
         'Eng zusammengehörige Bedingungen dürfen in einem Fakt kombiniert werden, zum Beispiel „Nach Tor oder Ausball sofort neuer Ball“. Ursache, Zeitpunkt und Wirkung müssen dabei erhalten bleiben.',
         'Fasse nur sprachlich zusammen. Ursache, Zeitpunkt, Reihenfolge, Zuständigkeit und Zuordnung müssen vollständig erhalten bleiben.',
-        `variationFacts enthält höchstens ${maxVariationFacts} kompakte Pflichtfakten aus den Variationen. Jede genannte Variation und ihre spielentscheidenden Bedingungen müssen erfasst werden.`,
+        `variationFacts enthält höchstens ${maxVariationFacts} kompakte Pflichtfakten aus den Variationen. Nummerierte Variationen bleiben getrennt. Ein langer, nicht nummerierter Variationstext gilt als eine optionale Variation; wähle daraus nur die wichtigste zusammenhängende und praktisch ausführbare Variante.`,
+        'Der verständliche Grundablauf hat immer Vorrang vor Variationen. Reduziere optionale Varianten, bevor ein notwendiger Ablauffakt entfällt.',
         'Redundanzen, Begründungen, Beispiele und rein sprachliche Details dürfen entfallen. Wähle nur Fakten, deren Weglassen die Durchführung oder Regelwirkung verändern würde.',
         'Material und Coachingpunkte gehören nicht in diese Faktenliste.',
       ],
@@ -529,6 +526,7 @@ serve(async (req) => {
           `flow: Ziel sind etwa ${flowTarget} Zeichen, höchstens ${flowGenerationLimit} Zeichen inklusive Satzzeichen. Beende den letzten Satz deutlich vor der Höchstgrenze.`,
           `variations: genau ${variationCount} kurze Einträge in derselben Reihenfolge wie im Original; jeder höchstens ${variationGenerationLimit} Zeichen inklusive Satzzeichen. Bewahre alle Bedingungen, erfinde nichts und lasse keine Originalvariation weg.`,
           `Aufbau, Ablauf und alle beschrifteten Variationen dürfen zusammen höchstens ${LIMITS.content} Zeichen haben. Nutze freie Zeichen flexibel für die Pflichtfakten.`,
+          'Der Ablauf hat höchste Priorität. Wenn der Platz knapp wird, kürze zuerst optionale Variationsdetails; bei einem langen nicht nummerierten Variationstext genügt eine wichtige, zusammenhängende Variation.',
           'Nutze kurze, grammatikalisch vollständige Sätze und übliche Fußballbegriffe. Rollen, Reihenfolge, Zuständigkeiten und Wechsel müssen eindeutig bleiben.',
           'Kürze ganze Formulierungen, aber niemals einzelne Wörter. Verwende keine Wortfragmente, weichen Trennzeichen oder erfundenen Abkürzungen.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
