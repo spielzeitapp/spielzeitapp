@@ -1625,13 +1625,17 @@ export const SchedulePage: React.FC = () => {
                             : undefined;
                         const opponentLogo = ev.opponent_logo_url ?? null;
                         if (et === 'game') {
+                          const heroSectionLabel =
+                            isFinishedMatch || matchReviewPending
+                              ? 'Letztes Spiel'
+                              : heroLabelForEffectiveType(et);
                           return (
                             <div
                               key={ev.id}
                               className="mb-3 -mx-1 w-[calc(100%+0.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
                               {...publicWrap}
                             >
-                              <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
+                              <EventHeroCard label={heroSectionLabel} footer={heroCardFooter}>
                                 <MatchCardLigaportal
                                   className="w-full max-w-full !px-2.5 !py-2 sm:!px-3 sm:!py-2.5"
                                   scheduleNextMatchHero

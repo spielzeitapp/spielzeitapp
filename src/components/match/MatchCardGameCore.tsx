@@ -185,7 +185,7 @@ export function MatchCardKickoffBlock({
   const timeClass = hero
     ? 'mt-3 text-[2.75rem] sm:text-[3.35rem] font-black leading-none tracking-tight text-white tabular-nums drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]'
     : compactScheduleHero
-      ? 'mt-0.5 text-[38px] font-extrabold leading-none text-white tabular-nums drop-shadow-[0_2px_12px_rgba(185,60,75,0.18)]'
+      ? 'mt-0.5 whitespace-nowrap text-[34px] font-extrabold leading-none text-white tabular-nums drop-shadow-[0_2px_12px_rgba(185,60,75,0.18)] min-[390px]:text-[38px]'
       : 'mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums';
 
   return (
@@ -388,7 +388,13 @@ export function MatchCardGameCore({
           }`}
         >
           <MatchCardKickoffBlock
-            timeDisplay={isMatch && showScore ? `${homeScore} : ${awayScore}` : timeDisplay}
+            timeDisplay={
+              isMatch && showScore
+                ? compactTeamLayout
+                  ? `${homeScore}:${awayScore}`
+                  : `${homeScore} : ${awayScore}`
+                : timeDisplay
+            }
             showUhr={kickoffShowUhr ?? (!isMatch || !showScore)}
             location={kickoffLocation}
             headerLabel={kickoffHeaderLabel ?? 'ANPFIFF'}
