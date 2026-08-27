@@ -177,6 +177,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [selectingId, setSelectingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [shortTextError, setShortTextError] = useState<string | null>(null);
+  const [shortTextWarning, setShortTextWarning] = useState<string | null>(null);
   const [shorteningWithAi, setShorteningWithAi] = useState(false);
   const [importing, setImporting] = useState(false);
   const [sketchProcessing] = useState(false);
@@ -294,6 +295,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     resetSketchState();
     setFormError(null);
     setShortTextError(null);
+    setShortTextWarning(null);
     setEditorOpen(true);
   };
 
@@ -304,6 +306,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     resetSketchState();
     setFormError(null);
     setShortTextError(null);
+    setShortTextWarning(null);
     setEditorOpen(true);
     if (row.image_path) {
       void getTrainingExerciseSketchUrl(row.image_path).then((url) => setCurrentSketchUrl(url));
@@ -460,6 +463,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       shortCoaching: original.coaching,
     }));
     setShortTextError(null);
+    setShortTextWarning(null);
     setToast('Originaltext übernommen. Zu lange Felder können jetzt manuell oder mit KI gekürzt werden.');
   };
 
@@ -485,6 +489,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     if (originalTextFitsPdf(form.title, original)) {
       setFormError(null);
       setShortTextError(null);
+      setShortTextWarning(null);
       setToast('Der vollständige Text passt. Es wurde keine KI verwendet.');
       return;
     }
@@ -492,11 +497,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setShorteningWithAi(true);
     setFormError(null);
     setShortTextError(null);
+    setShortTextWarning(null);
     const result = await createTrainingExerciseAiShortText(clubId, input);
     setShorteningWithAi(false);
     if (!result.data) {
       const message = result.error ?? 'KI-Kurzfassung fehlgeschlagen.';
       setShortTextError(`${message} Der vollständige Originaltext bleibt unverändert angezeigt.`);
+      setShortTextWarning(null);
       return;
     }
     const generated = result.data;
@@ -507,7 +514,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       shortCoaching: generated.coaching,
     }));
     setShortTextError(null);
-    setToast('KI-Kurzfassung erstellt – bitte prüfen und anschließend speichern.');
+    if (result.warnings.length > 0) {
+      setShortTextWarning(`KI-Entwurf übernommen. Bitte prüfen und bei Bedarf ergänzen: ${result.warnings.join(' · ')}`);
+      setToast('Bester KI-Entwurf übernommen – bitte die Hinweise prüfen.');
+    } else {
+      setShortTextWarning(null);
+      setToast('KI-Kurzfassung erstellt – bitte prüfen und anschließend speichern.');
+    }
   };
 
   const save = async () => {
@@ -1216,6 +1229,11 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                 {shortTextError ? (
                   <p className="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2 text-[12px] font-medium leading-5 text-red-800" role="alert">
                     <strong>KI-Versuch abgelehnt:</strong> {shortTextError}
+                  </p>
+                ) : null}
+                {shortTextWarning ? (
+                  <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-5 text-amber-900" role="status">
+                    <strong>KI-Entwurf prüfen:</strong> {shortTextWarning}
                   </p>
                 ) : null}
                 <div className="mt-3 space-y-3">

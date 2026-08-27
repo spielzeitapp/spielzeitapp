@@ -7,6 +7,8 @@ import {
 
 type AiShortTextResponse = Partial<TrainingExerciseShortText> & {
   error?: string;
+  needsReview?: boolean;
+  warnings?: unknown;
 };
 
 function isValidShortText(value: AiShortTextResponse): value is TrainingExerciseShortText {
@@ -27,7 +29,7 @@ function isValidShortText(value: AiShortTextResponse): value is TrainingExercise
 export async function createTrainingExerciseAiShortText(
   clubId: string,
   input: TrainingExerciseShortTextInput,
-): Promise<{ data: TrainingExerciseShortText | null; error: string | null }> {
+): Promise<{ data: TrainingExerciseShortText | null; error: string | null; warnings: string[] }> {
   const { data, error } = await supabase.functions.invoke<AiShortTextResponse>(
     'shorten-training-exercise',
     { body: { clubId, input } },
@@ -37,12 +39,17 @@ export async function createTrainingExerciseAiShortText(
     return {
       data: null,
       error: 'Die KI-Kurzfassung ist momentan nicht verfügbar. Bitte später erneut versuchen.',
+      warnings: [],
     };
   }
-  if (data?.error) return { data: null, error: data.error };
+  if (data?.error) return { data: null, error: data.error, warnings: [] };
   if (!data || !isValidShortText(data)) {
-    return { data: null, error: 'Die KI-Antwort hatte ein ungültiges Format.' };
+    return { data: null, error: 'Die KI-Antwort hatte ein ungültiges Format.', warnings: [] };
   }
+
+  const warnings = Array.isArray(data.warnings)
+    ? data.warnings.filter((item): item is string => typeof item === 'string').slice(0, 8)
+    : [];
 
   return {
     data: {
@@ -51,5 +58,6 @@ export async function createTrainingExerciseAiShortText(
       coaching: data.coaching.trim(),
     },
     error: null,
+    warnings,
   };
 }

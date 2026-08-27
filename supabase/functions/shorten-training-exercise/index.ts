@@ -48,6 +48,11 @@ type ShortText = {
   coaching: string;
 };
 
+type BestCandidate = {
+  text: ShortText;
+  missingFacts: string[];
+};
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -198,11 +203,15 @@ function originalVariations(value: unknown): string[] {
   const labelled = [...raw.matchAll(
     /(?:^|\n|\s)(?:Variation|Variante)\s*\d+\s*:\s*([\s\S]*?)(?=(?:\n|\s)(?:Variation|Variante)\s*\d+\s*:|$)/gi,
   )].map((match) => match[1]);
+  const unlabelled = raw
+    .replace(/^Variationen?\s*:\s*/i, '')
+    .split(/\n+|\s*;\s*/)
+    .filter(Boolean);
   const candidates = labelled.length > 0
     ? labelled
-    : raw
-      .replace(/^Variationen?\s*:\s*/i, '')
-      .split(/\n+|\s*;\s*/);
+    : unlabelled.length > 1
+      ? unlabelled
+      : unlabelled.flatMap((variation) => variation.split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ0-9])/));
 
   return candidates
     .map((variation) => cleanOutput(variation)
@@ -468,6 +477,7 @@ serve(async (req) => {
 
     const flowTarget = Math.max(180, flowLimit - 35);
     let correctionNotes: string[] = [];
+    let bestCandidate: BestCandidate | null = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const generationResponse = await structuredAiCall(
         openAiKey,
@@ -605,6 +615,23 @@ serve(async (req) => {
         return json(normalised);
       }
 
+      // Keep the most complete contradiction-free draft. Football exercise
+      // summaries are reviewed by the trainer before saving; returning the
+      // best transparent draft is more useful than discarding every result.
+      if (
+        verification
+        && verification.contradictions.length === 0
+        && (
+          !bestCandidate
+          || verification.missingFacts.length < bestCandidate.missingFacts.length
+        )
+      ) {
+        bestCandidate = {
+          text: normalised,
+          missingFacts: verification.missingFacts,
+        };
+      }
+
       correctionNotes = verification
         ? [...verification.missingFacts, ...verification.contradictions]
         : ['Die unabhängige Faktenprüfung konnte nicht abgeschlossen werden'];
@@ -621,6 +648,17 @@ serve(async (req) => {
           characterBudget: { setupLimit, flowLimit, variationItemLimit },
         },
       );
+    }
+    if (bestCandidate) {
+      console.warn(
+        '[shorten-training-exercise] Returning best reviewable summary',
+        { missingFacts: bestCandidate.missingFacts },
+      );
+      return json({
+        ...bestCandidate.text,
+        needsReview: true,
+        warnings: bestCandidate.missingFacts,
+      });
     }
     return json({ error: 'Die KI war erreichbar, konnte aber keine gegen das Original geprüfte Kurzfassung erstellen.' });
   } catch (error) {
