@@ -25,6 +25,7 @@ type RequestBody = {
 type AiShortText = {
   setup: string;
   flow: string;
+  variations: string[];
   materials: string;
   coachingPoints: string[];
 };
@@ -32,6 +33,7 @@ type AiShortText = {
 type FactChecklist = {
   setupFacts: string[];
   flowFacts: string[];
+  variationFacts: string[];
 };
 
 type FactVerification = {
@@ -181,8 +183,9 @@ function normaliseChecklist(value: unknown): FactChecklist | null {
   const candidate = value as Partial<FactChecklist>;
   const setupFacts = stringList(candidate.setupFacts, 6);
   const flowFacts = stringList(candidate.flowFacts, 20);
-  if (!setupFacts || !flowFacts) return null;
-  return { setupFacts, flowFacts };
+  const variationFacts = stringList(candidate.variationFacts, 16);
+  if (!setupFacts || !flowFacts || !variationFacts) return null;
+  return { setupFacts, flowFacts, variationFacts };
 }
 
 function normaliseVerification(value: unknown): FactVerification | null {
@@ -194,12 +197,17 @@ function normaliseVerification(value: unknown): FactVerification | null {
   return { valid: candidate.valid, missingFacts, contradictions };
 }
 
-function normalisationIssues(value: unknown, sourceVariationText: unknown): string[] {
+function normalisationIssues(value: unknown, expectedVariationCount: number): string[] {
   if (!value || typeof value !== 'object') return ['Die Antwort hat nicht das erwartete Format'];
   const result = value as Partial<AiShortText>;
   const issues: string[] = [];
   if (typeof result.setup !== 'string') issues.push('Der Aufbau fehlt');
   if (typeof result.flow !== 'string') issues.push('Der Ablauf fehlt');
+  if (!Array.isArray(result.variations) || !result.variations.every((item) => typeof item === 'string')) {
+    issues.push('Die Variationen haben nicht das erwartete Format');
+  } else if (result.variations.length !== expectedVariationCount) {
+    issues.push(`Genau ${expectedVariationCount} Variationen in der ursprünglichen Reihenfolge ausgeben`);
+  }
   if (typeof result.materials !== 'string') issues.push('Die Geräteliste fehlt');
   if (!Array.isArray(result.coachingPoints) || !result.coachingPoints.every((item) => typeof item === 'string')) {
     issues.push('Die Coachingpunkte haben nicht das erwartete Format');
@@ -208,13 +216,19 @@ function normalisationIssues(value: unknown, sourceVariationText: unknown): stri
 
   const setup = cleanOutput(result.setup as string);
   const flow = cleanOutput(result.flow as string);
+  const variations = (result.variations as string[]).map((variation) => cleanOutput(variation));
   if (setup && !hasCompleteSentence(setup)) issues.push('Aufbau mit einem vollständigen Satz abschließen');
   if (flow && !hasCompleteSentence(flow)) issues.push('Ablauf mit einem vollständigen Satz abschließen');
+  variations.forEach((variation, index) => {
+    if (!variation || !hasCompleteSentence(variation)) {
+      issues.push(`Variation ${index + 1} mit einem vollständigen Satz abschließen`);
+    }
+  });
 
   const contentLines = [
     setup ? `Aufbau: ${setup}` : '',
     flow ? `Ablauf: ${flow}` : '',
-    ...originalVariations(sourceVariationText).map((variation, index) => `Variation ${index + 1}: ${variation}`),
+    ...variations.map((variation, index) => `Variation ${index + 1}: ${variation}`),
   ].filter(Boolean);
   const contentLength = contentLines.join('\n').length;
   if (contentLength > LIMITS.content) {
@@ -224,12 +238,14 @@ function normalisationIssues(value: unknown, sourceVariationText: unknown): stri
   return issues;
 }
 
-function normaliseResult(value: unknown, sourceVariationText: unknown): ShortText | null {
+function normaliseResult(value: unknown): ShortText | null {
   if (!value || typeof value !== 'object') return null;
   const result = value as Partial<AiShortText>;
   if (
     typeof result.setup !== 'string' ||
     typeof result.flow !== 'string' ||
+    !Array.isArray(result.variations) ||
+    !result.variations.every((item) => typeof item === 'string') ||
     typeof result.materials !== 'string' ||
     !Array.isArray(result.coachingPoints) ||
     !result.coachingPoints.every((item) => typeof item === 'string')
@@ -240,14 +256,16 @@ function normaliseResult(value: unknown, sourceVariationText: unknown): ShortTex
   let content = '';
   const setup = cleanOutput(result.setup);
   const flow = cleanOutput(result.flow);
+  const variations = result.variations.map((variation) => cleanOutput(variation));
   if (
     (setup && !hasCompleteSentence(setup))
     || (flow && !hasCompleteSentence(flow))
+    || variations.some((variation) => !variation || !hasCompleteSentence(variation))
   ) return null;
   if (setup) content = appendWithinLimit(content, `Aufbau: ${setup}`, LIMITS.content);
   if (flow) content = appendWithinLimit(content, `Ablauf: ${flow}`, LIMITS.content);
   if ((setup && !content.includes('Aufbau:')) || (flow && !content.includes('Ablauf:'))) return null;
-  for (const [index, variation] of originalVariations(sourceVariationText).entries()) {
+  for (const [index, variation] of variations.entries()) {
     const next = appendWithinLimit(content, `Variation ${index + 1}: ${variation}`, LIMITS.content);
     if (next === content) return null;
     content = next;
@@ -317,18 +335,21 @@ serve(async (req) => {
     const aiSource = {
       organisation: source.organisation,
       ablauf: source.ablauf,
+      variationen: source.variationen,
       geraete: source.geraete,
       coachingpunkte: source.coachingpunkte,
     };
 
     const variations = originalVariations(input.variations);
-    const variationBudget = variations
-      .reduce((total, variation, index) => total + variation.length + `Variation ${index + 1}: `.length + 1, 0);
-    const reservedSetupBudget = 'Aufbau: '.length + 120 + 1 + 'Ablauf: '.length;
+    const variationCount = variations.length;
+    const setupLimit = 90;
+    const variationItemLimit = variationCount === 1 ? 110 : variationCount === 2 ? 100 : 65;
+    const variationBudget = variations.reduce(
+      (total, _variation, index) => total + variationItemLimit + `Variation ${index + 1}: `.length + 1,
+      0,
+    );
+    const reservedSetupBudget = 'Aufbau: '.length + setupLimit + 1 + 'Ablauf: '.length;
     const flowLimit = Math.min(500, LIMITS.content - reservedSetupBudget - variationBudget);
-    if (flowLimit < 220) {
-      return json({ error: 'Aufbau, Ablauf und Variationen passen nicht vollständig in 700 Zeichen. Bitte den Originaltext oder die Variationen kürzen.' });
-    }
     const checklistResponse = await structuredAiCall(
       openAiKey,
       model,
@@ -341,9 +362,10 @@ serve(async (req) => {
         'Erfasse jede ausdrücklich genannte Rolle, Farbe, Position, Reihenfolge, Lauf- und Passaktion, Kontaktzahl, Spielfortsetzung, Wertung, Seiten-, Positions- und Aufgabenänderung sowie jede erlaubte oder verbotene Aktion.',
         'Bedingungen wie „nach Tor“, „bei Ausball“ oder „nach Ballgewinn“ sind jeweils eigene Pflichtfakten und dürfen nicht weggelassen oder zusammengezogen werden.',
         'Fasse nur sprachlich zusammen. Ursache, Zeitpunkt, Reihenfolge, Zuständigkeit und Zuordnung müssen vollständig erhalten bleiben.',
-        'Material, Coachingpunkte und Variationen gehören nicht in diese Faktenliste.',
+        'variationFacts enthält höchstens sechzehn atomare Pflichtfakten aus den Variationen. Jede genannte Variation und jede ihrer Bedingungen muss erfasst werden.',
+        'Material und Coachingpunkte gehören nicht in diese Faktenliste.',
       ],
-      { organisation: source.organisation, ablauf: source.ablauf },
+      { organisation: source.organisation, ablauf: source.ablauf, variationen: variations },
       {
         type: 'object',
         additionalProperties: false,
@@ -360,15 +382,25 @@ serve(async (req) => {
             maxItems: 20,
             items: { type: 'string', maxLength: 180 },
           },
+          variationFacts: {
+            type: 'array',
+            minItems: 0,
+            maxItems: 16,
+            items: { type: 'string', maxLength: 180 },
+          },
         },
-        required: ['setupFacts', 'flowFacts'],
+        required: ['setupFacts', 'flowFacts', 'variationFacts'],
       },
     );
     if (checklistResponse.apiError) {
       return json({ error: 'Die KI konnte momentan keine Kurzfassung erstellen.' }, 502);
     }
     const checklist = normaliseChecklist(checklistResponse.value);
-    if (!checklist || (source.ablauf && checklist.flowFacts.length === 0)) {
+    if (
+      !checklist
+      || (source.ablauf && checklist.flowFacts.length === 0)
+      || (variationCount > 0 && checklist.variationFacts.length === 0)
+    ) {
       console.error('[shorten-training-exercise] Dynamic fact checklist was invalid');
       return json({ error: 'Die KI konnte die Pflichtinformationen dieser Übung nicht sicher bestimmen.' });
     }
@@ -383,15 +415,16 @@ serve(async (req) => {
         [
           'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
           'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
-          'Jeder Eintrag aus mustKeepFacts muss semantisch eindeutig in setup beziehungsweise flow enthalten sein.',
-          'Gib nur setup, flow, materials und coachingPoints getrennt zurück. Variationen werden unverändert aus dem Original übernommen und dürfen nicht von dir ausgegeben werden.',
-          'setup: höchstens 110 Zeichen und nur die nötige Feldorganisation.',
+          'Jeder Eintrag aus mustKeepFacts muss semantisch eindeutig im zugehörigen Bereich setup, flow oder variations enthalten sein.',
+          'Gib nur setup, flow, variations, materials und coachingPoints getrennt zurück.',
+          `setup: höchstens ${setupLimit} Zeichen und nur die nötige Feldorganisation.`,
           `flow: Ziel sind etwa ${flowTarget} Zeichen, die absolute Höchstgrenze ist ${flowLimit} Zeichen. Beende den letzten Satz deutlich vor der Höchstgrenze.`,
+          `variations: genau ${variationCount} kurze Einträge in derselben Reihenfolge wie im Original; jeder höchstens ${variationItemLimit} Zeichen. Bewahre alle Bedingungen, erfinde nichts und lasse keine Originalvariation weg.`,
           'Nutze kurze, grammatikalisch vollständige Sätze und übliche Fußballbegriffe. Rollen, Reihenfolge, Zuständigkeiten und Wechsel müssen eindeutig bleiben.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
           'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus den ursprünglichen Coachingpunkten.',
           'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs und keine Quellenangaben.',
-          'Jeder Text in setup und flow muss mit Punkt, Fragezeichen oder Rufzeichen enden.',
+          'Jeder Text in setup, flow und variations muss mit Punkt, Fragezeichen oder Rufzeichen enden.',
           correctionNotes.length > 0
             ? `Die unabhängige Prüfung beanstandete zuvor: ${correctionNotes.join('; ')}. Korrigiere genau diese Punkte.`
             : '',
@@ -405,8 +438,14 @@ serve(async (req) => {
           type: 'object',
           additionalProperties: false,
           properties: {
-            setup: { type: 'string', maxLength: 110 },
+            setup: { type: 'string', maxLength: setupLimit },
             flow: { type: 'string', maxLength: flowLimit },
+            variations: {
+              type: 'array',
+              minItems: variationCount,
+              maxItems: variationCount,
+              items: { type: 'string', maxLength: variationItemLimit },
+            },
             materials: { type: 'string', maxLength: LIMITS.materials },
             coachingPoints: {
               type: 'array',
@@ -415,7 +454,7 @@ serve(async (req) => {
               items: { type: 'string', maxLength: 100 },
             },
           },
-          required: ['setup', 'flow', 'materials', 'coachingPoints'],
+          required: ['setup', 'flow', 'variations', 'materials', 'coachingPoints'],
         },
       );
       if (generationResponse.apiError) {
@@ -425,9 +464,9 @@ serve(async (req) => {
       const candidate = generationResponse.value && typeof generationResponse.value === 'object'
         ? generationResponse.value as Partial<AiShortText>
         : null;
-      const formatIssues = normalisationIssues(generationResponse.value, input.variations);
+      const formatIssues = normalisationIssues(generationResponse.value, variationCount);
       const normalised = formatIssues.length === 0
-        ? normaliseResult(generationResponse.value, input.variations)
+        ? normaliseResult(generationResponse.value)
         : null;
       if (!normalised || !candidate || typeof candidate.setup !== 'string' || typeof candidate.flow !== 'string') {
         correctionNotes = formatIssues.length > 0
@@ -439,7 +478,8 @@ serve(async (req) => {
             attempt: attempt + 1,
             correctionNotes,
             flowLimit,
-            variationCount: variations.length,
+            variationCount,
+            variationItemLimit,
           },
         );
         continue;
@@ -453,16 +493,17 @@ serve(async (req) => {
           'Du prüfst eine Kurzfassung einer beliebigen Fußballübung unabhängig gegen Original und Pflichtfakten.',
           'Akzeptiere sinngetreue Kurzformen, Synonyme, Abkürzungen und andere grammatikalische Formulierungen.',
           'Vergleiche die Kurzfassung Satz für Satz direkt mit dem vollständigen Original. Die Faktenliste ist nur eine zusätzliche Prüfhilfe und kann selbst unvollständig sein.',
-          'valid ist nur wahr, wenn alle wesentlichen Aufbau- und Ablaufangaben aus dem Original sowie alle mustKeepFacts semantisch eindeutig enthalten sind und die Kurzfassung dem Original nirgends widerspricht.',
+          'valid ist nur wahr, wenn alle wesentlichen Aufbau-, Ablauf- und Variationsangaben aus dem Original sowie alle mustKeepFacts semantisch eindeutig enthalten sind und die Kurzfassung dem Original nirgends widerspricht.',
           'Prüfe ausdrücklich Rollen und Farben, Positionen, Reihenfolge, Kontaktzahlen, Bedingungen, Neustarts nach allen genannten Ereignissen sowie Seiten-, Positions- und Aufgabenwechsel.',
           'Trage jede im Original vorhandene, aber in der Kurzfassung fehlende Pflichtangabe wörtlich oder knapp in missingFacts ein, auch wenn sie nicht in mustKeepFacts steht.',
+          'Prüfe jede Variation einzeln und in der ursprünglichen Reihenfolge. Eine kürzere Formulierung ist erlaubt, eine fehlende Bedingung, neue Regel oder zusammengelegte Variation nicht.',
           'Trage erfundene, vertauschte oder widersprüchliche Aussagen knapp in contradictions ein.',
-          'Prüfe nicht Stil, Zeichenzahl, Material, Coachingpunkte oder Variationen.',
+          'Prüfe nicht Stil, Zeichenzahl, Material oder Coachingpunkte.',
         ],
         {
-          source: { organisation: source.organisation, ablauf: source.ablauf },
+          source: { organisation: source.organisation, ablauf: source.ablauf, variations },
           mustKeepFacts: checklist,
-          candidate: { setup: candidate.setup, flow: candidate.flow },
+          candidate: { setup: candidate.setup, flow: candidate.flow, variations: candidate.variations },
         },
         {
           type: 'object',
