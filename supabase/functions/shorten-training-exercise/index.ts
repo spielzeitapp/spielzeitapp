@@ -145,8 +145,25 @@ function completeSentenceEnding(value: string, maxLength: number): string {
   const normalized = cleanOutput(value).replace(/\s+/g, ' ');
   if (!normalized || hasCompleteSentence(normalized)) return normalized;
   const withoutEnding = normalized.replace(/[,:;]+$/, '').trimEnd();
-  if (!withoutEnding || DANGLING_SENTENCE_END.test(withoutEnding)) return normalized;
-  return withoutEnding.length < maxLength ? `${withoutEnding}.` : normalized;
+  if (withoutEnding && !DANGLING_SENTENCE_END.test(withoutEnding) && withoutEnding.length < maxLength) {
+    return `${withoutEnding}.`;
+  }
+
+  // If the model used the available budget for an unfinished final sentence,
+  // keep the preceding complete sentences. Fact verification can then request
+  // any indispensable information that was removed from the fragment.
+  const beforeTrailingEnding = normalized.replace(/[.!?]+$/, '').trimEnd();
+  const lastBoundary = Math.max(
+    beforeTrailingEnding.lastIndexOf('.'),
+    beforeTrailingEnding.lastIndexOf('!'),
+    beforeTrailingEnding.lastIndexOf('?'),
+  );
+  if (lastBoundary >= 0) {
+    const completePrefix = beforeTrailingEnding.slice(0, lastBoundary + 1).trim();
+    if (hasCompleteSentence(completePrefix)) return completePrefix;
+  }
+
+  return normalized;
 }
 
 function normaliseGeneratedSentenceEndings(value: unknown, setupLimit: number, flowLimit: number, variationItemLimit: number): unknown {
