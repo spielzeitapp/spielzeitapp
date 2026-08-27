@@ -184,6 +184,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [saving, setSaving] = useState(false);
   const [selectingId, setSelectingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [shortTextError, setShortTextError] = useState<string | null>(null);
   const [shorteningWithAi, setShorteningWithAi] = useState(false);
   const [importing, setImporting] = useState(false);
   const [sketchProcessing] = useState(false);
@@ -300,6 +301,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setForm(emptyForm());
     resetSketchState();
     setFormError(null);
+    setShortTextError(null);
     setEditorOpen(true);
   };
 
@@ -309,6 +311,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setForm(formFromRow(row));
     resetSketchState();
     setFormError(null);
+    setShortTextError(null);
     setEditorOpen(true);
     if (row.image_path) {
       void getTrainingExerciseSketchUrl(row.image_path).then((url) => setCurrentSketchUrl(url));
@@ -454,6 +457,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       shortMaterials: generated.materials,
       shortCoaching: generated.coaching,
     }));
+    setShortTextError(null);
   };
 
   const generateAiShortText = async () => {
@@ -474,16 +478,19 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
         shortCoaching: original.coaching,
       }));
       setFormError(null);
+      setShortTextError(null);
       setToast('Der vollständige Text passt. Es wurde keine KI verwendet.');
       return;
     }
     if (!clubId) return;
     setShorteningWithAi(true);
     setFormError(null);
+    setShortTextError(null);
     const result = await createTrainingExerciseAiShortText(clubId, input);
     setShorteningWithAi(false);
     if (!result.data) {
-      setFormError(result.error ?? 'KI-Kurzfassung fehlgeschlagen.');
+      const message = result.error ?? 'KI-Kurzfassung fehlgeschlagen.';
+      setShortTextError(`${message} Die bisherige Kurzfassung bleibt unverändert angezeigt.`);
       return;
     }
     const generated = result.data;
@@ -493,6 +500,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       shortMaterials: generated.materials,
       shortCoaching: generated.coaching,
     }));
+    setShortTextError(null);
     setToast('KI-Kurzfassung erstellt – bitte prüfen und anschließend speichern.');
   };
 
@@ -1200,6 +1208,11 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     </button>
                   </div>
                 </div>
+                {shortTextError ? (
+                  <p className="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2 text-[12px] font-medium leading-5 text-red-800" role="alert">
+                    <strong>KI-Versuch abgelehnt:</strong> {shortTextError}
+                  </p>
+                ) : null}
                 <div className="mt-3 space-y-3">
                   <ShortTextField
                     label="Inhalte: Aufbau, Ablauf & Variationen"

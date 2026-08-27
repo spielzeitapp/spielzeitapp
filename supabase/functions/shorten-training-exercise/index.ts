@@ -273,8 +273,8 @@ serve(async (req) => {
       .reduce((total, variation, index) => total + variation.length + `Variation ${index + 1}: `.length + 1, 0);
     const flowLimit = Math.max(340, Math.min(500, LIMITS.content - 140 - variationBudget));
     let missingRules: string[] = [];
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const attemptFlowLimit = Math.max(320, flowLimit - (attempt > 0 ? 20 : 0));
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const flowTarget = Math.max(300, flowLimit - 45);
       const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
@@ -288,7 +288,7 @@ serve(async (req) => {
             'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
             'Gib nur setup, flow, materials und coachingPoints getrennt zurück. Variationen werden unverändert aus dem Original übernommen und dürfen nicht von dir ausgegeben werden.',
             'setup: höchstens 110 Zeichen und nur die nötige Feldorganisation aus organisation.',
-            `flow: höchstens ${attemptFlowLimit} Zeichen aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, Spielrichtung, Aktionen, Reihenfolge sowie Aufgaben- und Positionswechsel.`,
+            `flow: Ziel sind etwa ${flowTarget} Zeichen, die absolute Höchstgrenze ist ${flowLimit} Zeichen. Beende den letzten Satz deutlich vor der Höchstgrenze. Bewahre Spieler- und Farbrollen, Spielrichtung, Aktionen, Reihenfolge sowie Aufgaben- und Positionswechsel.`,
             'Unterscheide Balleroberung und Ballverlust exakt. Vertausche niemals, welches Team verteidigt, den Ball gewinnt, zuerst zum Anspieler passen muss oder danach angreift.',
             'Wenn im Original vorhanden, müssen Kontaktbegrenzungen, die Sperre des Anspielers nach dem Einspielen, der sofortige neue Ball nach Tor oder Ausball und der Aufgabenwechsel nach dem Durchgang im Ablauf stehen.',
             'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
@@ -296,7 +296,7 @@ serve(async (req) => {
             'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
             'Formuliere grammatikalisch korrekt und eindeutig. Schreibe zum Beispiel „Erobert Rot den Ball“ und nicht „Ball erobert Rot“.',
             'Jeder Text in setup und flow muss mit einem vollständigen Satz und einem Punkt, Fragezeichen oder Rufzeichen enden.',
-            attempt > 0 ? 'Die erste Antwort war unvollständig. Formuliere alle Sätze diesmal kürzer und grammatikalisch vollständig.' : '',
+            attempt > 0 ? 'Die vorherige Antwort war unvollständig. Formuliere alle Sätze diesmal kürzer und grammatikalisch vollständig.' : '',
             attempt > 0 && missingRules.length > 0
               ? `Diese Pflichtangaben fehlten oder waren falsch und müssen diesmal ausdrücklich enthalten sein: ${missingRules.join('; ')}.`
               : '',
@@ -348,9 +348,13 @@ serve(async (req) => {
       }
 
       const normalised = normaliseResult(result, input.variations);
-      missingRules = normalised
-        ? missingRequiredRules(source.ablauf, normalised.content)
-        : [];
+      const rawFlow = result && typeof result === 'object' && typeof (result as Partial<AiShortText>).flow === 'string'
+        ? (result as Partial<AiShortText>).flow ?? ''
+        : '';
+      missingRules = missingRequiredRules(source.ablauf, rawFlow);
+      if (rawFlow && !hasCompleteSentence(cleanOutput(rawFlow))) {
+        missingRules.unshift('Ablauf mit einem vollständigen Satz abschließen');
+      }
       if (normalised && missingRules.length === 0) return json(normalised);
       console.error(
         '[shorten-training-exercise] Structured output could not be normalised',
@@ -359,7 +363,7 @@ serve(async (req) => {
         JSON.stringify(result).slice(0, 1_000),
       );
     }
-    return json({ error: 'Die KI-Kurzfassung enthielt auch nach einem zweiten Versuch nicht alle Pflichtregeln.' }, 502);
+    return json({ error: 'Die KI-Kurzfassung enthielt auch nach drei Versuchen nicht alle Pflichtregeln.' }, 502);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[shorten-training-exercise]', message);
