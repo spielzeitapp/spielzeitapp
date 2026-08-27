@@ -8,7 +8,7 @@ Originaltexte werden weder verändert noch gespeichert.
 In Supabase unter **Edge Functions → Secrets** setzen:
 
 - `OPENAI_API_KEY`
-- optional `OPENAI_SHORTEN_MODEL` (Standard: `gpt-4.1-mini`)
+- optional `OPENAI_SHORTEN_MODEL` (Standard: `gpt-4.1`)
 
 ## Deployment (Staging)
 

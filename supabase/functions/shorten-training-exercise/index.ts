@@ -127,7 +127,7 @@ const REQUIRED_FLOW_RULES: RequiredRule[] = [
   {
     label: 'Anspieler darf nach dem Einspielen nicht mehr angespielt werden',
     source: /darf\s+danach\s+nicht\s+mehr\s+angespielt\s+werden|danach\s+nicht\s+mehr\s+anspielbar/i,
-    result: /darf\s+danach\s+nicht\s+mehr\s+angespielt\s+werden|danach\s+(?:nicht\s+mehr\s+anspielbar|gesperrt)|ist\s+danach\s+gesperrt/i,
+    result: /anspieler[\s\S]{0,100}(?:darf\s+)?(?:danach\s+)?nicht\s+mehr\s+angespielt\s+werden|danach\s+(?:nicht\s+mehr\s+anspielbar|gesperrt)|ist\s+danach\s+gesperrt/i,
   },
   {
     label: 'Anspieler hat zwei Kontakte',
@@ -147,7 +147,7 @@ const REQUIRED_FLOW_RULES: RequiredRule[] = [
   {
     label: 'Nach Balleroberung zuerst zum Anspieler passen',
     source: /(?:erobert|ballgewinn|balleroberung)[\s\S]{0,180}(?:erst|zuerst)[\s\S]{0,80}anspieler/i,
-    result: /(?:erobert|gewinnt|ballgewinn|balleroberung)[\s\S]{0,140}(?:erst|zuerst)[\s\S]{0,60}anspieler/i,
+    result: /(?:erobert|gewinnt|ballgewinn|balleroberung)[\s\S]{0,140}(?:passt|passen)[\s\S]{0,60}anspieler/i,
   },
   {
     label: 'Nach dem Zuspiel Spielrichtung wechseln und angreifen',
@@ -238,7 +238,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseAnon = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
     const openAiKey = (Deno.env.get('OPENAI_API_KEY') ?? '').trim();
-    const model = (Deno.env.get('OPENAI_SHORTEN_MODEL') ?? 'gpt-4.1-mini').trim();
+    const model = (Deno.env.get('OPENAI_SHORTEN_MODEL') ?? 'gpt-4.1').trim();
 
     if (!supabaseUrl || !supabaseAnon) return json({ error: 'Supabase ist nicht vollständig konfiguriert.' }, 500);
     if (!openAiKey) return json({ error: 'Die KI-Kurzfassung ist noch nicht konfiguriert.' }, 503);
@@ -268,11 +268,17 @@ serve(async (req) => {
       variationen: sourceText(input.variations),
     };
     if (!Object.values(source).some(Boolean)) return json({ error: 'Kein Übungstext zum Kürzen vorhanden.' }, 400);
+    const aiSource = {
+      organisation: source.organisation,
+      ablauf: source.ablauf,
+      geraete: source.geraete,
+      coachingpunkte: source.coachingpunkte,
+    };
 
     const variationBudget = originalVariations(input.variations)
       .reduce((total, variation, index) => total + variation.length + `Variation ${index + 1}: `.length + 1, 0);
     const flowLimit = Math.max(340, Math.min(500, LIMITS.content - 140 - variationBudget));
-    let missingRules: string[] = [];
+    let missingRules = missingRequiredRules(source.ablauf, '');
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const flowTarget = Math.max(300, flowLimit - 45);
       const response = await fetch('https://api.openai.com/v1/responses', {
@@ -297,13 +303,13 @@ serve(async (req) => {
             'Formuliere grammatikalisch korrekt und eindeutig. Schreibe zum Beispiel „Erobert Rot den Ball“ und nicht „Ball erobert Rot“.',
             'Jeder Text in setup und flow muss mit einem vollständigen Satz und einem Punkt, Fragezeichen oder Rufzeichen enden.',
             attempt > 0 ? 'Die vorherige Antwort war unvollständig. Formuliere alle Sätze diesmal kürzer und grammatikalisch vollständig.' : '',
-            attempt > 0 && missingRules.length > 0
-              ? `Diese Pflichtangaben fehlten oder waren falsch und müssen diesmal ausdrücklich enthalten sein: ${missingRules.join('; ')}.`
+            missingRules.length > 0
+              ? `Diese Pflichtangaben müssen ausdrücklich und eindeutig enthalten sein: ${missingRules.join('; ')}.`
               : '',
             'Dauer und Spielerzahl nur nennen, wenn sie zum Verständnis zwingend erforderlich sind.',
             'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
           ].join('\n'),
-          input: JSON.stringify(source),
+          input: JSON.stringify(aiSource),
           store: false,
           text: {
             format: {
@@ -363,7 +369,7 @@ serve(async (req) => {
         JSON.stringify(result).slice(0, 1_000),
       );
     }
-    return json({ error: 'Die KI-Kurzfassung enthielt auch nach drei Versuchen nicht alle Pflichtregeln.' }, 502);
+    return json({ error: 'Die KI war erreichbar, konnte aber auch nach drei Versuchen keine vollständige Kurzfassung erstellen.' });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[shorten-training-exercise]', message);
