@@ -74,6 +74,8 @@ try {
   assert.ok(hasCompleteTrainingExerciseShortContent(oversized.content));
   assert.ok(!hasCompleteTrainingExerciseShortContent('Ablauf: Verteidiger bleibt'));
   assert.ok(!hasCompleteTrainingExerciseShortContent('Ablauf: Wandspieler nur.'));
+  assert.ok(hasCompleteTrainingExerciseShortContent('Ablauf: Der Verteidiger bleibt.'));
+  assert.ok(hasCompleteTrainingExerciseShortContent('Ablauf: Die Wandspieler dürfen nur direkt spielen.'));
   assert.ok(hasCompleteTrainingExerciseShortContent('Ablauf: Der Verteidiger bleibt an der Linie.'));
   assert.ok(oversized.content.length < createTrainingExerciseOriginalText({
     organization: 'Ein großes Feld mit zwei Toren und vier Außenspielern aufbauen. '.repeat(4),

@@ -76,7 +76,7 @@ function cleanOutput(value: string): string {
     .trim();
 }
 
-const DANGLING_SENTENCE_END = /\b(?:nur|sowie|beziehungsweise|und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|bleibt|spielen|spielt|dürfen|darf|müssen|muss|soll|sollen|kann|können|wird|werden)$/i;
+const DANGLING_SENTENCE_END = /\b(?:nur|sowie|beziehungsweise|und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i;
 
 function hasCompleteSentence(value: string): boolean {
   const normalized = value.trim();
@@ -199,9 +199,9 @@ serve(async (req) => {
             'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
             'Bewahre die fachliche Bedeutung. Erfinde keine Details.',
             'Gib setup, flow, variations, materials und coachingPoints getrennt zurück.',
-            'setup: höchstens 130 Zeichen und nur die nötige Feldorganisation aus organisation.',
-            'flow: höchstens 430 Zeichen aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, entscheidende Spielregeln, Aktionen, Positionswechsel sowie Wechsel nach Tor oder Ballverlust.',
-            'variations: höchstens drei kurze Einträge aus variationen. Ergänze mindestens die wichtigste Variation, wenn eine vorhanden ist; weitere nur, wenn nach Aufbau und Ablauf noch Platz bleibt.',
+            'setup: höchstens 120 Zeichen und nur die nötige Feldorganisation aus organisation.',
+            `${attempt > 0 ? 'flow: höchstens 320 Zeichen' : 'flow: höchstens 360 Zeichen'} aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, entscheidende Spielregeln, Aktionen, Positionswechsel sowie Wechsel nach Tor oder Ballverlust.`,
+            'variations: höchstens drei Einträge mit jeweils maximal 90 Zeichen aus variationen. Ergänze mindestens die wichtigste Variation, wenn eine vorhanden ist; weitere nur, wenn nach Aufbau und Ablauf noch Platz bleibt.',
             'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
             'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
             'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
@@ -221,12 +221,12 @@ serve(async (req) => {
                 type: 'object',
                 additionalProperties: false,
                 properties: {
-                  setup: { type: 'string', maxLength: 130 },
-                  flow: { type: 'string', maxLength: 430 },
+                  setup: { type: 'string', maxLength: 120 },
+                  flow: { type: 'string', maxLength: 360 },
                   variations: {
                     type: 'array',
                     maxItems: 3,
-                    items: { type: 'string', maxLength: 100 },
+                    items: { type: 'string', maxLength: 90 },
                   },
                   materials: { type: 'string', maxLength: LIMITS.materials },
                   coachingPoints: {

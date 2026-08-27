@@ -31,7 +31,7 @@ function withoutBullet(value: string): string {
   return value.replace(/^\s*(?:[-–—•*]|\d+[.)])\s*/, '').trim();
 }
 
-const DANGLING_SENTENCE_END = /\b(?:nur|sowie|beziehungsweise|und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|bleibt|spielen|spielt|dürfen|darf|müssen|muss|soll|sollen|kann|können|wird|werden)$/i;
+const DANGLING_SENTENCE_END = /\b(?:nur|sowie|beziehungsweise|und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i;
 
 function completeSentence(value: string): string {
   const normalized = value.replace(/[…,;:\s]+$/, '').trim();
