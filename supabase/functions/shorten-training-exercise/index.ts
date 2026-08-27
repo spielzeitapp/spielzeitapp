@@ -134,6 +134,7 @@ function cleanOutput(value: string): string {
   return value
     .replace(/https?:\/\/\S+/gi, '')
     .replace(/…|\.\.\./g, '.')
+    .replace(/\u00ad/g, '')
     .replace(/\r\n?/g, '\n')
     .trim();
 }
@@ -188,6 +189,36 @@ function normaliseGeneratedSentenceEndings(value: unknown, setupLimit: number, f
         : variation)
       : result.variations,
   };
+}
+
+function normalizedWords(value: string): string[] {
+  return cleanOutput(value)
+    .toLocaleLowerCase('de-AT')
+    .match(/[a-zäöüß]+/g) ?? [];
+}
+
+function truncatedSentenceEndings(value: string, sourceCorpus: string): string[] {
+  const sourceWords = new Set(normalizedWords(sourceCorpus));
+  const validShortEndings = new Set(['an', 'ab', 'aus']);
+  const candidateWords = cleanOutput(value)
+    .split(/[.!?]+/)
+    .map((sentence) => normalizedWords(sentence).at(-1))
+    .filter((token): token is string => Boolean(token));
+  const suspicious: string[] = [];
+
+  for (const token of candidateWords) {
+    if (sourceWords.has(token) || validShortEndings.has(token)) continue;
+    const isVeryShortFragment = token.length <= 2;
+    const isLongSourcePrefix = token.length >= 10
+      && [...sourceWords].some((sourceWord) => (
+        sourceWord.length >= token.length + 2
+        && sourceWord.length <= token.length + 5
+        && sourceWord.startsWith(token)
+      ));
+    if (isVeryShortFragment || isLongSourcePrefix) suspicious.push(token);
+  }
+
+  return [...new Set(suspicious)];
 }
 
 function appendWithinLimit(base: string, line: string, limit: number): string {
@@ -250,7 +281,7 @@ function normaliseVerification(value: unknown): FactVerification | null {
   return { valid: candidate.valid, missingFacts, contradictions };
 }
 
-function normalisationIssues(value: unknown, expectedVariationCount: number): string[] {
+function normalisationIssues(value: unknown, expectedVariationCount: number, sourceCorpus: string): string[] {
   if (!value || typeof value !== 'object') return ['Die Antwort hat nicht das erwartete Format'];
   const result = value as Partial<AiShortText>;
   const issues: string[] = [];
@@ -277,6 +308,12 @@ function normalisationIssues(value: unknown, expectedVariationCount: number): st
       issues.push(`Variation ${index + 1} mit einem vollständigen Satz abschließen`);
     }
   });
+
+  const suspiciousEndings = [setup, flow, ...variations]
+    .flatMap((text) => truncatedSentenceEndings(text, sourceCorpus));
+  if (suspiciousEndings.length > 0) {
+    issues.push(`Keine Wörter abkürzen oder abschneiden: ${suspiciousEndings.join(', ')}`);
+  }
 
   const contentLines = [
     setup ? `Aufbau: ${setup}` : '',
@@ -396,13 +433,12 @@ serve(async (req) => {
     const variations = originalVariations(input.variations);
     const variationCount = variations.length;
     const setupLimit = 90;
-    const variationItemLimit = variationCount === 1 ? 110 : variationCount === 2 ? 100 : 65;
-    const variationBudget = variations.reduce(
-      (total, _variation, index) => total + variationItemLimit + `Variation ${index + 1}: `.length + 1,
-      0,
-    );
-    const reservedSetupBudget = 'Aufbau: '.length + setupLimit + 1 + 'Ablauf: '.length;
-    const flowLimit = Math.min(500, LIMITS.content - reservedSetupBudget - variationBudget);
+    // Give every section enough room to formulate complete sentences. The
+    // actual combined 760-character limit is checked after generation. Fixed
+    // per-section reservations previously forced useful flow rules and the
+    // third variation into fragments even when the total still had space.
+    const variationItemLimit = 110;
+    const flowLimit = 500;
     // Keep one character free so completeSentenceEnding can add a missing final
     // punctuation mark without exceeding the actual PDF field limits.
     const setupGenerationLimit = Math.max(1, setupLimit - 1);
@@ -412,7 +448,7 @@ serve(async (req) => {
     // 300–500 character flow field. Derive the checklist size from the real
     // text budget and let closely related rules form one compact fact.
     const maxSetupFacts = 4;
-    const maxFlowFacts = Math.max(6, Math.min(12, Math.floor(flowLimit / 34)));
+    const maxFlowFacts = Math.max(6, Math.min(10, Math.floor(flowLimit / 42)));
     const maxVariationFacts = Math.max(
       variationCount,
       Math.min(9, variationCount * 3),
@@ -475,9 +511,10 @@ serve(async (req) => {
       return json({ error: 'Die KI konnte die Pflichtinformationen dieser Übung nicht sicher bestimmen.' });
     }
 
-    const flowTarget = Math.max(180, flowLimit - 35);
+    const flowTarget = Math.max(300, Math.min(470, flowLimit - variationCount * 12));
     let correctionNotes: string[] = [];
     let bestCandidate: BestCandidate | null = null;
+    let previousDraft: Partial<AiShortText> | null = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const generationResponse = await structuredAiCall(
         openAiKey,
@@ -491,7 +528,9 @@ serve(async (req) => {
           `setup: höchstens ${setupGenerationLimit} Zeichen inklusive Satzzeichen und nur die nötige Feldorganisation.`,
           `flow: Ziel sind etwa ${flowTarget} Zeichen, höchstens ${flowGenerationLimit} Zeichen inklusive Satzzeichen. Beende den letzten Satz deutlich vor der Höchstgrenze.`,
           `variations: genau ${variationCount} kurze Einträge in derselben Reihenfolge wie im Original; jeder höchstens ${variationGenerationLimit} Zeichen inklusive Satzzeichen. Bewahre alle Bedingungen, erfinde nichts und lasse keine Originalvariation weg.`,
+          `Aufbau, Ablauf und alle beschrifteten Variationen dürfen zusammen höchstens ${LIMITS.content} Zeichen haben. Nutze freie Zeichen flexibel für die Pflichtfakten.`,
           'Nutze kurze, grammatikalisch vollständige Sätze und übliche Fußballbegriffe. Rollen, Reihenfolge, Zuständigkeiten und Wechsel müssen eindeutig bleiben.',
+          'Kürze ganze Formulierungen, aber niemals einzelne Wörter. Verwende keine Wortfragmente, weichen Trennzeichen oder erfundenen Abkürzungen.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
           'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus den ursprünglichen Coachingpunkten.',
           'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs und keine Quellenangaben.',
@@ -504,6 +543,7 @@ serve(async (req) => {
         {
           source: aiSource,
           mustKeepFacts: checklist,
+          previousDraft,
         },
         {
           type: 'object',
@@ -541,7 +581,9 @@ serve(async (req) => {
       const candidate = generatedValue && typeof generatedValue === 'object'
         ? generatedValue as Partial<AiShortText>
         : null;
-      const formatIssues = normalisationIssues(generatedValue, variationCount);
+      if (candidate) previousDraft = candidate;
+      const sourceCorpus = [source.organisation, source.ablauf, source.variationen].join('\n');
+      const formatIssues = normalisationIssues(generatedValue, variationCount, sourceCorpus);
       const normalised = formatIssues.length === 0
         ? normaliseResult(generatedValue)
         : null;
@@ -624,6 +666,10 @@ serve(async (req) => {
         && (
           !bestCandidate
           || verification.missingFacts.length < bestCandidate.missingFacts.length
+          || (
+            verification.missingFacts.length === bestCandidate.missingFacts.length
+            && normalised.content.length > bestCandidate.text.content.length
+          )
         )
       ) {
         bestCandidate = {
