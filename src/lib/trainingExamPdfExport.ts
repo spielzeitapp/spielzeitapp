@@ -33,6 +33,9 @@ const CONTENT_TABLE_BOTTOM = 205;
 const PHASE_HEIGHT = (CONTENT_TABLE_BOTTOM - PHASE_TOP - PHASE_GAP * 3) / 4;
 const TABLE_LEFT = 12.7;
 const TABLE_RIGHT = 280.2;
+const ORIGINAL_HEADER_RIGHT = 264.5;
+const HEADER_TOP = 28.45;
+const HEADER_SEPARATOR_Y = [33.7, 39.62, 44.8];
 const CONTENT_X = TABLE_LEFT;
 const CONTENT_WIDTH = 101;
 const SKETCH_COLUMN_X = CONTENT_X + CONTENT_WIDTH;
@@ -53,6 +56,7 @@ const TITLE_Y_OFFSET = 3.5;
 const TITLE_HEIGHT = 5.4;
 const CONTENT_Y_OFFSET = 7.6;
 const TITLE_CONTENT_GAP = 0.6;
+const PHASE_GREEN: [number, number, number] = [38, 124, 70];
 
 export type TrainingExamTextFit = 'fit' | 'tight' | 'too-long';
 
@@ -254,6 +258,26 @@ function drawAdjustedTable(pdf: jsPDF): void {
   }
 }
 
+function drawAdjustedHeader(pdf: jsPDF): void {
+  // Der Rasterhintergrund endet rechts bei 264,5 mm. Die Kopftabelle wird bis
+  // zur gleichen Außenkante wie die verbreiterte Übungstabelle verlängert.
+  pdf.setFillColor(255, 255, 255);
+  pdf.rect(
+    ORIGINAL_HEADER_RIGHT - 0.4,
+    HEADER_TOP - 0.35,
+    TABLE_RIGHT - ORIGINAL_HEADER_RIGHT + 0.9,
+    TABLE_HEADER_TOP - HEADER_TOP + 0.7,
+    'F',
+  );
+  pdf.setDrawColor(90, 90, 90);
+  pdf.setLineWidth(0.25);
+  pdf.line(ORIGINAL_HEADER_RIGHT - 0.15, HEADER_TOP, TABLE_RIGHT, HEADER_TOP);
+  HEADER_SEPARATOR_Y.forEach((y) => {
+    pdf.line(ORIGINAL_HEADER_RIGHT - 0.15, y, TABLE_RIGHT, y);
+  });
+  pdf.line(TABLE_RIGHT, HEADER_TOP, TABLE_RIGHT, TABLE_HEADER_TOP);
+}
+
 function withoutContentBullets(value: unknown): string {
   return clean(value)
     .split('\n')
@@ -310,14 +334,14 @@ function drawContainedImage(
 }
 
 function drawPhaseLabel(pdf: jsPDF, phase: TrainingPhase, x: number, y: number): void {
-  pdf.setTextColor(185, 28, 28);
+  pdf.setTextColor(...PHASE_GREEN);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(7.4);
   pdf.text(phase, x, y);
 }
 
 function drawSketchPhaseBadge(pdf: jsPDF, phase: TrainingPhase, x: number, y: number): void {
-  pdf.setFillColor(198, 28, 28);
+  pdf.setFillColor(...PHASE_GREEN);
   pdf.roundedRect(x, y, 12.5, 5.2, 1.5, 1.5, 'F');
   pdf.setTextColor(255, 255, 255);
   pdf.setFont('helvetica', 'bold');
@@ -490,8 +514,9 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
     const entry = input.sessions[index];
     pdf.addImage(background, 'PNG', 0, 0, 297, 210, 'oefbd-original', 'FAST');
 
-    // Logo und Kopffelder der offiziellen Vorlage bleiben pixelgenau erhalten.
-    // Nur die darunterliegende Übungstabelle wird breiter bzw. bis 205 mm verlängert.
+    // Logo und Inhalte der offiziellen Kopffelder bleiben erhalten. Die rechte
+    // Außenlinie von Kopf und Übungstabelle wird gemeinsam verbreitert.
+    drawAdjustedHeader(pdf);
     drawAdjustedTable(pdf);
 
     pdf.setTextColor(15, 15, 15);

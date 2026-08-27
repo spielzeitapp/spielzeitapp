@@ -141,6 +141,33 @@ function hasCompleteSentence(value: string): boolean {
   return !DANGLING_SENTENCE_END.test(normalized.replace(/[.!?]+$/, '').trim());
 }
 
+function completeSentenceEnding(value: string, maxLength: number): string {
+  const normalized = cleanOutput(value).replace(/\s+/g, ' ');
+  if (!normalized || hasCompleteSentence(normalized)) return normalized;
+  const withoutEnding = normalized.replace(/[,:;]+$/, '').trimEnd();
+  if (!withoutEnding || DANGLING_SENTENCE_END.test(withoutEnding)) return normalized;
+  return withoutEnding.length < maxLength ? `${withoutEnding}.` : normalized;
+}
+
+function normaliseGeneratedSentenceEndings(value: unknown, setupLimit: number, flowLimit: number, variationItemLimit: number): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const result = value as Partial<AiShortText>;
+  return {
+    ...result,
+    setup: typeof result.setup === 'string'
+      ? completeSentenceEnding(result.setup, setupLimit)
+      : result.setup,
+    flow: typeof result.flow === 'string'
+      ? completeSentenceEnding(result.flow, flowLimit)
+      : result.flow,
+    variations: Array.isArray(result.variations)
+      ? result.variations.map((variation) => typeof variation === 'string'
+        ? completeSentenceEnding(variation, variationItemLimit)
+        : variation)
+      : result.variations,
+  };
+}
+
 function appendWithinLimit(base: string, line: string, limit: number): string {
   if (!line) return base;
   const next = base ? `${base}\n${line}` : line;
@@ -461,12 +488,18 @@ serve(async (req) => {
         return json({ error: 'Die KI konnte momentan keine Kurzfassung erstellen.' }, 502);
       }
 
-      const candidate = generationResponse.value && typeof generationResponse.value === 'object'
-        ? generationResponse.value as Partial<AiShortText>
+      const generatedValue = normaliseGeneratedSentenceEndings(
+        generationResponse.value,
+        setupLimit,
+        flowLimit,
+        variationItemLimit,
+      );
+      const candidate = generatedValue && typeof generatedValue === 'object'
+        ? generatedValue as Partial<AiShortText>
         : null;
-      const formatIssues = normalisationIssues(generationResponse.value, variationCount);
+      const formatIssues = normalisationIssues(generatedValue, variationCount);
       const normalised = formatIssues.length === 0
-        ? normaliseResult(generationResponse.value)
+        ? normaliseResult(generatedValue)
         : null;
       if (!normalised || !candidate || typeof candidate.setup !== 'string' || typeof candidate.flow !== 'string') {
         correctionNotes = formatIssues.length > 0
