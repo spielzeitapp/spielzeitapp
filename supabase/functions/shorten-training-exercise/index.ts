@@ -399,6 +399,15 @@ serve(async (req) => {
     const setupGenerationLimit = Math.max(1, setupLimit - 1);
     const flowGenerationLimit = Math.max(1, flowLimit - 1);
     const variationGenerationLimit = Math.max(1, variationItemLimit - 1);
+    // A checklist with twenty separate flow facts cannot reliably fit into a
+    // 300–500 character flow field. Derive the checklist size from the real
+    // text budget and let closely related rules form one compact fact.
+    const maxSetupFacts = 4;
+    const maxFlowFacts = Math.max(6, Math.min(12, Math.floor(flowLimit / 34)));
+    const maxVariationFacts = Math.max(
+      variationCount,
+      Math.min(9, variationCount * 3),
+    );
     const checklistResponse = await structuredAiCall(
       openAiKey,
       model,
@@ -407,12 +416,13 @@ serve(async (req) => {
         'Du analysierst eine beliebige Fußballübung und extrahierst ihre unverzichtbaren Fakten.',
         'Nenne nur Tatsachen, die ausdrücklich im Original stehen. Erfinde oder interpretiere nichts hinzu.',
         'Die Faktenliste ist eine Priorisierung für eine Kurzfassung mit insgesamt 760 Zeichen. Nicht jeder Satz und nicht jedes Beispiel aus dem Original ist eine Pflichtinformation.',
-        'setupFacts enthält höchstens sechs notwendige Fakten zum räumlichen oder materiellen Aufbau.',
-        'flowFacts enthält höchstens zwanzig atomare Pflichtfakten, die für die praktische Durchführung wirklich unverzichtbar sind.',
+        `Die spätere Kurzfassung hat für den Aufbau höchstens ${setupLimit} und für den Ablauf höchstens ${flowLimit} Zeichen. Die Pflichtfakten müssen gemeinsam realistisch in diesen Platz passen.`,
+        `setupFacts enthält höchstens ${maxSetupFacts} notwendige Fakten zum räumlichen oder materiellen Aufbau. Verbinde zusammengehörige Angaben wie Feld, Tor und Torhüter in einem Fakt.`,
+        `flowFacts enthält höchstens ${maxFlowFacts} kompakte Pflichtfakten, die für die praktische Durchführung wirklich unverzichtbar sind.`,
         'Erfasse jede ausdrücklich genannte Rolle, Farbe, Position, Reihenfolge, Lauf- und Passaktion, Kontaktzahl, Spielfortsetzung, Wertung, Seiten-, Positions- und Aufgabenänderung sowie jede erlaubte oder verbotene Aktion.',
-        'Bedingungen wie „nach Tor“, „bei Ausball“ oder „nach Ballgewinn“ sind jeweils eigene Pflichtfakten und dürfen nicht weggelassen oder zusammengezogen werden.',
+        'Eng zusammengehörige Bedingungen dürfen in einem Fakt kombiniert werden, zum Beispiel „Nach Tor oder Ausball sofort neuer Ball“. Ursache, Zeitpunkt und Wirkung müssen dabei erhalten bleiben.',
         'Fasse nur sprachlich zusammen. Ursache, Zeitpunkt, Reihenfolge, Zuständigkeit und Zuordnung müssen vollständig erhalten bleiben.',
-        'variationFacts enthält höchstens sechzehn atomare Pflichtfakten aus den Variationen. Jede genannte Variation und ihre spielentscheidenden Bedingungen müssen erfasst werden.',
+        `variationFacts enthält höchstens ${maxVariationFacts} kompakte Pflichtfakten aus den Variationen. Jede genannte Variation und ihre spielentscheidenden Bedingungen müssen erfasst werden.`,
         'Redundanzen, Begründungen, Beispiele und rein sprachliche Details dürfen entfallen. Wähle nur Fakten, deren Weglassen die Durchführung oder Regelwirkung verändern würde.',
         'Material und Coachingpunkte gehören nicht in diese Faktenliste.',
       ],
@@ -424,19 +434,19 @@ serve(async (req) => {
           setupFacts: {
             type: 'array',
             minItems: 0,
-            maxItems: 6,
+            maxItems: maxSetupFacts,
             items: { type: 'string', maxLength: 160 },
           },
           flowFacts: {
             type: 'array',
             minItems: 0,
-            maxItems: 20,
+            maxItems: maxFlowFacts,
             items: { type: 'string', maxLength: 180 },
           },
           variationFacts: {
             type: 'array',
             minItems: 0,
-            maxItems: 16,
+            maxItems: maxVariationFacts,
             items: { type: 'string', maxLength: 180 },
           },
         },
@@ -588,7 +598,10 @@ serve(async (req) => {
         return json({ error: 'Die KI konnte die Kurzfassung momentan nicht abschließend prüfen.' }, 502);
       }
       const verification = normaliseVerification(verificationResponse.value);
-      if (verification?.valid && verification.missingFacts.length === 0 && verification.contradictions.length === 0) {
+      // The concrete issue lists are authoritative. Some model responses set
+      // valid=false even though both lists are empty; rejecting those results
+      // only repeats the same already-correct summary three times.
+      if (verification && verification.missingFacts.length === 0 && verification.contradictions.length === 0) {
         return json(normalised);
       }
 
@@ -597,7 +610,16 @@ serve(async (req) => {
         : ['Die unabhängige Faktenprüfung konnte nicht abgeschlossen werden'];
       console.error(
         '[shorten-training-exercise] Dynamic fact verification rejected summary',
-        { attempt: attempt + 1, correctionNotes },
+        {
+          attempt: attempt + 1,
+          correctionNotes,
+          factBudget: {
+            setup: checklist.setupFacts.length,
+            flow: checklist.flowFacts.length,
+            variations: checklist.variationFacts.length,
+          },
+          characterBudget: { setupLimit, flowLimit, variationItemLimit },
+        },
       );
     }
     return json({ error: 'Die KI war erreichbar, konnte aber keine gegen das Original geprüfte Kurzfassung erstellen.' });
