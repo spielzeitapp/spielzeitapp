@@ -29,6 +29,17 @@ type AiShortText = {
   coachingPoints: string[];
 };
 
+type FactChecklist = {
+  setupFacts: string[];
+  flowFacts: string[];
+};
+
+type FactVerification = {
+  valid: boolean;
+  missingFacts: string[];
+  contradictions: string[];
+};
+
 type ShortText = {
   content: string;
   materials: string;
@@ -65,6 +76,51 @@ function outputText(payload: Record<string, unknown>): string {
     }
   }
   return '';
+}
+
+async function structuredAiCall(
+  openAiKey: string,
+  model: string,
+  name: string,
+  instructions: string[],
+  input: unknown,
+  schema: Record<string, unknown>,
+): Promise<{ value: unknown | null; apiError: boolean }> {
+  const response = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${openAiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      instructions: instructions.filter(Boolean).join('\n'),
+      input: JSON.stringify(input),
+      store: false,
+      text: {
+        format: {
+          type: 'json_schema',
+          name,
+          strict: true,
+          schema,
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    console.error(`[shorten-training-exercise] OpenAI error (${name})`, response.status, detail);
+    return { value: null, apiError: true };
+  }
+
+  const payload = (await response.json()) as Record<string, unknown>;
+  try {
+    return { value: JSON.parse(outputText(payload)), apiError: false };
+  } catch {
+    console.error(`[shorten-training-exercise] Invalid structured output (${name})`);
+    return { value: null, apiError: false };
+  }
 }
 
 function cleanOutput(value: string): string {
@@ -112,69 +168,30 @@ function originalVariations(value: unknown): string[] {
     .map((variation) => /[.!?]$/.test(variation) ? variation : `${variation}.`);
 }
 
-type RequiredRule = {
-  label: string;
-  source: RegExp;
-  result: RegExp;
-};
+function stringList(value: unknown, maxItems: number): string[] | null {
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return null;
+  return value
+    .map((item) => cleanOutput(item).replace(/\s+/g, ' '))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
 
-const REQUIRED_FLOW_RULES: RequiredRule[] = [
-  {
-    label: 'Spiel ohne Abseits',
-    source: /\b(?:ohne|kein(?:e[nrms]?))\s+abseits\b/i,
-    result: /\b(?:ohne|kein(?:e[nrms]?))\s+abseits\b/i,
-  },
-  {
-    label: 'Anspieler darf nach dem Einspielen nicht mehr angespielt werden',
-    source: /darf\s+danach\s+nicht\s+mehr\s+angespielt\s+werden|danach\s+nicht\s+mehr\s+anspielbar/i,
-    result: /(?:darf\s+)?(?:danach|anschließend)?\s*nicht\s+mehr\s+angespielt\s+werden|(?:danach|anschließend)?\s*(?:nicht\s+mehr\s+anspielbar|gesperrt)/i,
-  },
-  {
-    label: 'Anspieler hat zwei Kontakte',
-    source: /anspieler[\s\S]{0,100}(?:zwei|2)\s+kontakte|(?:zwei|2)\s+kontakte[\s\S]{0,100}anspieler/i,
-    result: /anspieler[\s\S]{0,180}(?:zwei|2)\s+kontakte|(?:zwei|2)\s+kontakte[\s\S]{0,180}anspieler/i,
-  },
-  {
-    label: 'Wandspieler spielen direkt',
-    source: /wandspieler[\s\S]{0,80}\bdirekt\w*|\bdirekt\w*[\s\S]{0,80}wandspieler/i,
-    result: /wandspieler[\s\S]{0,80}\bdirekt\w*|\bdirekt\w*[\s\S]{0,80}wandspieler/i,
-  },
-  {
-    label: 'Nach Tor oder Ausball sofort neuer Ball',
-    source: /tor[\s\S]{0,50}ausball|ausball[\s\S]{0,50}tor/i,
-    result: /(?=[\s\S]*\btor\b)(?=[\s\S]*\baus(?:ball)?\b)(?=[\s\S]*\bsofort\b)(?=[\s\S]*(?:\b(?:neu\w*|nächste\w*)\s+ball\b|\bneu\s+ein\w*))/i,
-  },
-  {
-    label: 'Nach Balleroberung zuerst zum Anspieler passen',
-    source: /(?:erobert|ballgewinn|balleroberung)[\s\S]{0,180}(?:erst|zuerst)[\s\S]{0,80}anspieler/i,
-    result: /(?:erobert|gewinnt|ballgewinn|balleroberung)[\s\S]{0,180}\bpass\w*[\s\S]{0,80}anspieler/i,
-  },
-  {
-    label: 'Nach dem Zuspiel Spielrichtung wechseln und angreifen',
-    source: /spielrichtung[\s\S]{0,100}(?:angreif|angriff)|(?:angreif|angriff)[\s\S]{0,100}spielrichtung/i,
-    result: /(?:spielrichtung|richtungswechsel|richtung\s+wechsel)[\s\S]{0,120}(?:angreif|angriff)|(?:angreif|angriff)[\s\S]{0,120}(?:spielrichtung|richtungswechsel|richtung\s+wechsel)|(?:wechsel\w*)[\s\S]{0,60}(?:auf|in\s+den)\s+angriff/i,
-  },
-  {
-    label: 'Aufgaben nach jedem Durchgang tauschen',
-    source: /nach\s+jedem\s+durchgang[\s\S]{0,80}(?:wechsel|tausch)/i,
-    result: /nach\s+jedem\s+durchgang[\s\S]{0,80}(?:wechsel|tausch)|(?:wechsel|tausch)[\s\S]{0,80}nach\s+jedem\s+durchgang/i,
-  },
-];
+function normaliseChecklist(value: unknown): FactChecklist | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Partial<FactChecklist>;
+  const setupFacts = stringList(candidate.setupFacts, 4);
+  const flowFacts = stringList(candidate.flowFacts, 12);
+  if (!setupFacts || !flowFacts) return null;
+  return { setupFacts, flowFacts };
+}
 
-function missingRequiredRules(sourceValue: unknown, resultValue: string): string[] {
-  const source = sourceText(sourceValue);
-  const result = cleanOutput(resultValue);
-  const missing = REQUIRED_FLOW_RULES
-    .filter((rule) => rule.source.test(source) && !rule.result.test(result))
-    .map((rule) => rule.label);
-
-  for (const color of ['Rot', 'Blau', 'Grün', 'Gelb']) {
-    if (source.toLocaleLowerCase('de-AT').includes(color.toLocaleLowerCase('de-AT'))
-      && !result.toLocaleLowerCase('de-AT').includes(color.toLocaleLowerCase('de-AT'))) {
-      missing.push(`Rolle/Farbe ${color}`);
-    }
-  }
-  return missing;
+function normaliseVerification(value: unknown): FactVerification | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Partial<FactVerification>;
+  const missingFacts = stringList(candidate.missingFacts, 16);
+  const contradictions = stringList(candidate.contradictions, 10);
+  if (typeof candidate.valid !== 'boolean' || !missingFacts || !contradictions) return null;
+  return { valid: candidate.valid, missingFacts, contradictions };
 }
 
 function normaliseResult(value: unknown, sourceVariationText: unknown): ShortText | null {
@@ -199,6 +216,7 @@ function normaliseResult(value: unknown, sourceVariationText: unknown): ShortTex
   ) return null;
   if (setup) content = appendWithinLimit(content, `Aufbau: ${setup}`, LIMITS.content);
   if (flow) content = appendWithinLimit(content, `Ablauf: ${flow}`, LIMITS.content);
+  if ((setup && !content.includes('Aufbau:')) || (flow && !content.includes('Ablauf:'))) return null;
   for (const [index, variation] of originalVariations(sourceVariationText).entries()) {
     content = appendWithinLimit(
       content,
@@ -278,99 +296,163 @@ serve(async (req) => {
     const variationBudget = originalVariations(input.variations)
       .reduce((total, variation, index) => total + variation.length + `Variation ${index + 1}: `.length + 1, 0);
     const flowLimit = Math.max(340, Math.min(500, LIMITS.content - 140 - variationBudget));
-    let missingRules = missingRequiredRules(source.ablauf, '');
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const flowTarget = Math.max(300, flowLimit - 45);
-      const response = await fetch('https://api.openai.com/v1/responses', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${openAiKey}`,
-          'Content-Type': 'application/json',
+    const checklistResponse = await structuredAiCall(
+      openAiKey,
+      model,
+      'training_exercise_fact_checklist',
+      [
+        'Du analysierst eine beliebige Fußballübung und extrahierst ihre unverzichtbaren Fakten.',
+        'Nenne nur Tatsachen, die ausdrücklich im Original stehen. Erfinde oder interpretiere nichts hinzu.',
+        'setupFacts enthält höchstens vier notwendige Fakten zum räumlichen oder materiellen Aufbau.',
+        'flowFacts enthält höchstens zwölf atomare Pflichtfakten für die praktische Durchführung.',
+        'Berücksichtige abhängig von der jeweiligen Übung insbesondere Rollen, Reihenfolge, Lauf- und Passwege, Kontaktzahlen, Spielfortsetzungen, Wertung, Seiten-, Positions- und Aufgabenwechsel sowie erlaubte oder verbotene Aktionen.',
+        'Fasse zusammengehörige Details knapp zusammen, ohne Ursache, Reihenfolge oder Zuständigkeit zu verändern.',
+        'Material, Coachingpunkte und Variationen gehören nicht in diese Faktenliste.',
+      ],
+      { organisation: source.organisation, ablauf: source.ablauf },
+      {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          setupFacts: {
+            type: 'array',
+            minItems: 0,
+            maxItems: 4,
+            items: { type: 'string', maxLength: 160 },
+          },
+          flowFacts: {
+            type: 'array',
+            minItems: 0,
+            maxItems: 12,
+            items: { type: 'string', maxLength: 180 },
+          },
         },
-        body: JSON.stringify({
-          model,
-          instructions: [
-            'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
-            'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
-            'Gib nur setup, flow, materials und coachingPoints getrennt zurück. Variationen werden unverändert aus dem Original übernommen und dürfen nicht von dir ausgegeben werden.',
-            'setup: höchstens 110 Zeichen und nur die nötige Feldorganisation aus organisation.',
-            `flow: Ziel sind etwa ${flowTarget} Zeichen, die absolute Höchstgrenze ist ${flowLimit} Zeichen. Beende den letzten Satz deutlich vor der Höchstgrenze. Bewahre Spieler- und Farbrollen, Spielrichtung, Aktionen, Reihenfolge sowie Aufgaben- und Positionswechsel.`,
-            'Unterscheide Balleroberung und Ballverlust exakt. Vertausche niemals, welches Team verteidigt, den Ball gewinnt, zuerst zum Anspieler passen muss oder danach angreift.',
-            'Wenn im Original vorhanden, müssen Kontaktbegrenzungen, die Sperre des Anspielers nach dem Einspielen, der sofortige neue Ball nach Tor oder Ausball und der Aufgabenwechsel nach dem Durchgang im Ablauf stehen.',
-            'Nutze für Pflichtregeln eindeutige Kurzformen wie „ohne Abseits“, „2 Kontakte“, „sofort neuer Ball nach Tor/Aus“, „erst zum Anspieler passen“ und „Aufgaben nach jedem Durchgang tauschen“.',
-            'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
-            'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
-            'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
-            'Formuliere grammatikalisch korrekt und eindeutig. Schreibe zum Beispiel „Erobert Rot den Ball“ und nicht „Ball erobert Rot“.',
-            'Jeder Text in setup und flow muss mit einem vollständigen Satz und einem Punkt, Fragezeichen oder Rufzeichen enden.',
-            attempt > 0 ? 'Die vorherige Antwort war unvollständig. Formuliere alle Sätze diesmal kürzer und grammatikalisch vollständig.' : '',
-            missingRules.length > 0
-              ? `Diese Pflichtangaben müssen ausdrücklich und eindeutig enthalten sein: ${missingRules.join('; ')}.`
-              : '',
-            'Dauer und Spielerzahl nur nennen, wenn sie zum Verständnis zwingend erforderlich sind.',
-            'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
-          ].join('\n'),
-          input: JSON.stringify(aiSource),
-          store: false,
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'training_exercise_short_text',
-              strict: true,
-              schema: {
-                type: 'object',
-                additionalProperties: false,
-                properties: {
-                  setup: { type: 'string', maxLength: 120 },
-                  flow: { type: 'string', maxLength: 520 },
-                  materials: { type: 'string', maxLength: LIMITS.materials },
-                  coachingPoints: {
-                    type: 'array',
-                    minItems: 0,
-                    maxItems: 4,
-                    items: { type: 'string', maxLength: 100 },
-                  },
-                },
-                required: ['setup', 'flow', 'materials', 'coachingPoints'],
-              },
+        required: ['setupFacts', 'flowFacts'],
+      },
+    );
+    if (checklistResponse.apiError) {
+      return json({ error: 'Die KI konnte momentan keine Kurzfassung erstellen.' }, 502);
+    }
+    const checklist = normaliseChecklist(checklistResponse.value);
+    if (!checklist || (source.ablauf && checklist.flowFacts.length === 0)) {
+      console.error('[shorten-training-exercise] Dynamic fact checklist was invalid');
+      return json({ error: 'Die KI konnte die Pflichtinformationen dieser Übung nicht sicher bestimmen.' });
+    }
+
+    const flowTarget = Math.max(300, flowLimit - 45);
+    let correctionNotes: string[] = [];
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const generationResponse = await structuredAiCall(
+        openAiKey,
+        model,
+        'training_exercise_short_text',
+        [
+          'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
+          'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
+          'Jeder Eintrag aus mustKeepFacts muss semantisch eindeutig in setup beziehungsweise flow enthalten sein.',
+          'Gib nur setup, flow, materials und coachingPoints getrennt zurück. Variationen werden unverändert aus dem Original übernommen und dürfen nicht von dir ausgegeben werden.',
+          'setup: höchstens 110 Zeichen und nur die nötige Feldorganisation.',
+          `flow: Ziel sind etwa ${flowTarget} Zeichen, die absolute Höchstgrenze ist ${flowLimit} Zeichen. Beende den letzten Satz deutlich vor der Höchstgrenze.`,
+          'Nutze kurze, grammatikalisch vollständige Sätze und übliche Fußballbegriffe. Rollen, Reihenfolge, Zuständigkeiten und Wechsel müssen eindeutig bleiben.',
+          'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
+          'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus den ursprünglichen Coachingpunkten.',
+          'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs und keine Quellenangaben.',
+          'Jeder Text in setup und flow muss mit Punkt, Fragezeichen oder Rufzeichen enden.',
+          correctionNotes.length > 0
+            ? `Die unabhängige Prüfung beanstandete zuvor: ${correctionNotes.join('; ')}. Korrigiere genau diese Punkte.`
+            : '',
+          'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
+        ],
+        {
+          source: aiSource,
+          mustKeepFacts: checklist,
+        },
+        {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            setup: { type: 'string', maxLength: 120 },
+            flow: { type: 'string', maxLength: 520 },
+            materials: { type: 'string', maxLength: LIMITS.materials },
+            coachingPoints: {
+              type: 'array',
+              minItems: 0,
+              maxItems: 4,
+              items: { type: 'string', maxLength: 100 },
             },
           },
-        }),
-      });
-
-      if (!response.ok) {
-        const detail = (await response.text()).slice(0, 500);
-        console.error('[shorten-training-exercise] OpenAI error', response.status, detail);
+          required: ['setup', 'flow', 'materials', 'coachingPoints'],
+        },
+      );
+      if (generationResponse.apiError) {
         return json({ error: 'Die KI konnte momentan keine Kurzfassung erstellen.' }, 502);
       }
 
-      const payload = (await response.json()) as Record<string, unknown>;
-      const raw = outputText(payload);
-      let result: unknown;
-      try {
-        result = JSON.parse(raw);
-      } catch {
-        console.error('[shorten-training-exercise] Invalid structured output', { attempt: attempt + 1 });
+      const normalised = normaliseResult(generationResponse.value, input.variations);
+      const candidate = generationResponse.value && typeof generationResponse.value === 'object'
+        ? generationResponse.value as Partial<AiShortText>
+        : null;
+      if (!normalised || !candidate || typeof candidate.setup !== 'string' || typeof candidate.flow !== 'string') {
+        correctionNotes = ['Aufbau und Ablauf vollständig innerhalb des Zeichenlimits formulieren'];
+        console.error('[shorten-training-exercise] Generated summary could not be normalised', { attempt: attempt + 1 });
         continue;
       }
 
-      const normalised = normaliseResult(result, input.variations);
-      const rawFlow = result && typeof result === 'object' && typeof (result as Partial<AiShortText>).flow === 'string'
-        ? (result as Partial<AiShortText>).flow ?? ''
-        : '';
-      missingRules = missingRequiredRules(source.ablauf, rawFlow);
-      if (rawFlow && !hasCompleteSentence(cleanOutput(rawFlow))) {
-        missingRules.unshift('Ablauf mit einem vollständigen Satz abschließen');
+      const verificationResponse = await structuredAiCall(
+        openAiKey,
+        model,
+        'training_exercise_fact_verification',
+        [
+          'Du prüfst eine Kurzfassung einer beliebigen Fußballübung unabhängig gegen Original und Pflichtfakten.',
+          'Akzeptiere sinngetreue Kurzformen, Synonyme, Abkürzungen und andere grammatikalische Formulierungen.',
+          'valid ist nur wahr, wenn alle mustKeepFacts semantisch eindeutig enthalten sind und die Kurzfassung dem Original nirgends widerspricht.',
+          'Trage fehlende Pflichtfakten wörtlich oder knapp in missingFacts ein.',
+          'Trage erfundene, vertauschte oder widersprüchliche Aussagen knapp in contradictions ein.',
+          'Prüfe nicht Stil, Zeichenzahl, Material, Coachingpunkte oder Variationen.',
+        ],
+        {
+          source: { organisation: source.organisation, ablauf: source.ablauf },
+          mustKeepFacts: checklist,
+          candidate: { setup: candidate.setup, flow: candidate.flow },
+        },
+        {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            valid: { type: 'boolean' },
+            missingFacts: {
+              type: 'array',
+              minItems: 0,
+              maxItems: 16,
+              items: { type: 'string', maxLength: 180 },
+            },
+            contradictions: {
+              type: 'array',
+              minItems: 0,
+              maxItems: 10,
+              items: { type: 'string', maxLength: 180 },
+            },
+          },
+          required: ['valid', 'missingFacts', 'contradictions'],
+        },
+      );
+      if (verificationResponse.apiError) {
+        return json({ error: 'Die KI konnte die Kurzfassung momentan nicht abschließend prüfen.' }, 502);
       }
-      if (normalised && missingRules.length === 0) return json(normalised);
+      const verification = normaliseVerification(verificationResponse.value);
+      if (verification?.valid && verification.missingFacts.length === 0 && verification.contradictions.length === 0) {
+        return json(normalised);
+      }
+
+      correctionNotes = verification
+        ? [...verification.missingFacts, ...verification.contradictions]
+        : ['Die unabhängige Faktenprüfung konnte nicht abgeschlossen werden'];
       console.error(
-        '[shorten-training-exercise] Structured output could not be normalised',
-        { attempt: attempt + 1 },
-        { missingRules },
-        JSON.stringify(result).slice(0, 1_000),
+        '[shorten-training-exercise] Dynamic fact verification rejected summary',
+        { attempt: attempt + 1, correctionNotes },
       );
     }
-    return json({ error: 'Die KI war erreichbar, konnte aber auch nach drei Versuchen keine vollständige Kurzfassung erstellen.' });
+    return json({ error: 'Die KI war erreichbar, konnte aber keine gegen das Original geprüfte Kurzfassung erstellen.' });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[shorten-training-exercise]', message);

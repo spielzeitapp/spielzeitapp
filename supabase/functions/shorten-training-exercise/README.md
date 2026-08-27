@@ -3,6 +3,16 @@
 Die Edge Function erstellt ausschließlich bearbeitbare Kurzfassungen. Die ausführlichen
 Originaltexte werden weder verändert noch gespeichert.
 
+Die Prüfung ist übungsunabhängig:
+
+1. Aus Organisation und Ablauf wird eine dynamische Liste unverzichtbarer Fakten extrahiert.
+2. Die Kurzfassung wird unter Einhaltung dieser Fakten und des verfügbaren Zeichenbudgets erstellt.
+3. Eine separate KI-Prüfung vergleicht Kurzfassung, Faktenliste und Original auf Auslassungen oder Widersprüche.
+4. Variationen werden nicht neu formuliert, sondern ausschließlich aus dem Original übernommen.
+
+Dadurch funktionieren Pass-, Technik-, Torschuss-, Koordinations- und Spielformen ohne fest
+programmierte Regeln für einzelne Übungen.
+
 ## Secrets
 
 In Supabase unter **Edge Functions → Secrets** setzen:
