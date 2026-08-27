@@ -25,6 +25,7 @@ import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
 import {
   createCompactTrainingExerciseShortText,
   createTrainingExerciseOriginalText,
+  hasCompleteTrainingExerciseShortContent,
   TRAINING_SHORT_TEXT_LIMITS,
   type TrainingExerciseShortText,
   type TrainingExerciseShortTextInput,
@@ -497,6 +498,12 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
 
   const save = async () => {
     if (!clubId) return;
+    if (form.shortContent.trim() && !hasCompleteTrainingExerciseShortContent(form.shortContent)) {
+      setFormError(
+        'Die PDF-Kurzfassung enthält einen unvollständigen Satz. Bitte neu erzeugen oder Aufbau, Ablauf und Variationen mit vollständigen Sätzen abschließen.',
+      );
+      return;
+    }
     const returnAfterSave = editing?.id === editExerciseId ? editReturnTo : null;
     setSaving(true);
     setFormError(null);

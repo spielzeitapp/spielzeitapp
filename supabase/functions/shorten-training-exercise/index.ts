@@ -76,6 +76,14 @@ function cleanOutput(value: string): string {
     .trim();
 }
 
+const DANGLING_SENTENCE_END = /\b(?:nur|sowie|beziehungsweise|und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|bleibt|spielen|spielt|dürfen|darf|müssen|muss|soll|sollen|kann|können|wird|werden)$/i;
+
+function hasCompleteSentence(value: string): boolean {
+  const normalized = value.trim();
+  if (!/[.!?]$/.test(normalized) || /…|\.\.\.$/.test(normalized)) return false;
+  return !DANGLING_SENTENCE_END.test(normalized.replace(/[.!?]+$/, '').trim());
+}
+
 function appendWithinLimit(base: string, line: string, limit: number): string {
   if (!line) return base;
   const next = base ? `${base}\n${line}` : line;
@@ -100,12 +108,18 @@ function normaliseResult(value: unknown): ShortText | null {
   let content = '';
   const setup = cleanOutput(result.setup);
   const flow = cleanOutput(result.flow);
+  const variations = result.variations.slice(0, 3).map((variation) => cleanOutput(variation));
+  if (
+    (setup && !hasCompleteSentence(setup))
+    || (flow && !hasCompleteSentence(flow))
+    || variations.some((variation) => variation && !hasCompleteSentence(variation))
+  ) return null;
   if (setup) content = appendWithinLimit(content, `Aufbau: ${setup}`, LIMITS.content);
   if (flow) content = appendWithinLimit(content, `Ablauf: ${flow}`, LIMITS.content);
-  for (const [index, variation] of result.variations.slice(0, 3).entries()) {
+  for (const [index, variation] of variations.entries()) {
     content = appendWithinLimit(
       content,
-      `Variation ${index + 1}: ${cleanOutput(variation)}`,
+      `Variation ${index + 1}: ${variation}`,
       LIMITS.content,
     );
   }
@@ -172,85 +186,88 @@ serve(async (req) => {
     };
     if (!Object.values(source).some(Boolean)) return json({ error: 'Kein Übungstext zum Kürzen vorhanden.' }, 400);
 
-    const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${openAiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        instructions: [
-          'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
-          'Bewahre die fachliche Bedeutung. Erfinde keine Details.',
-          'Gib setup, flow, variations, materials und coachingPoints getrennt zurück.',
-          'setup: höchstens 130 Zeichen und nur die nötige Feldorganisation aus organisation.',
-          'flow: höchstens 430 Zeichen aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, entscheidende Spielregeln, Aktionen, Positionswechsel sowie Wechsel nach Tor oder Ballverlust.',
-          'variations: höchstens drei kurze Einträge aus variationen. Ergänze mindestens die wichtigste Variation, wenn eine vorhanden ist; weitere nur, wenn nach Aufbau und Ablauf noch Platz bleibt.',
-          'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
-          'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
-          'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
-          'Dauer und Spielerzahl nur nennen, wenn sie zum Verständnis zwingend erforderlich sind.',
-          'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
-        ].join('\n'),
-        input: JSON.stringify(source),
-        store: false,
-        text: {
-          format: {
-            type: 'json_schema',
-            name: 'training_exercise_short_text',
-            strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              properties: {
-                setup: { type: 'string', maxLength: 130 },
-                flow: { type: 'string', maxLength: 430 },
-                variations: {
-                  type: 'array',
-                  maxItems: 3,
-                  items: { type: 'string', maxLength: 100 },
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${openAiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          instructions: [
+            'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
+            'Bewahre die fachliche Bedeutung. Erfinde keine Details.',
+            'Gib setup, flow, variations, materials und coachingPoints getrennt zurück.',
+            'setup: höchstens 130 Zeichen und nur die nötige Feldorganisation aus organisation.',
+            'flow: höchstens 430 Zeichen aus ablauf (dem Feld Kurzbeschreibung). Bewahre Spieler- und Farbrollen, entscheidende Spielregeln, Aktionen, Positionswechsel sowie Wechsel nach Tor oder Ballverlust.',
+            'variations: höchstens drei kurze Einträge aus variationen. Ergänze mindestens die wichtigste Variation, wenn eine vorhanden ist; weitere nur, wenn nach Aufbau und Ablauf noch Platz bleibt.',
+            'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
+            'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
+            'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',
+            'Jeder Text in setup, flow und variations muss mit einem vollständigen Satz und einem Punkt, Fragezeichen oder Rufzeichen enden.',
+            attempt > 0 ? 'Die erste Antwort war unvollständig. Formuliere alle Sätze diesmal kürzer und grammatikalisch vollständig.' : '',
+            'Dauer und Spielerzahl nur nennen, wenn sie zum Verständnis zwingend erforderlich sind.',
+            'Die Übung muss allein anhand der Kurzfassung und der Skizze praktisch durchführbar sein.',
+          ].join('\n'),
+          input: JSON.stringify(source),
+          store: false,
+          text: {
+            format: {
+              type: 'json_schema',
+              name: 'training_exercise_short_text',
+              strict: true,
+              schema: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  setup: { type: 'string', maxLength: 130 },
+                  flow: { type: 'string', maxLength: 430 },
+                  variations: {
+                    type: 'array',
+                    maxItems: 3,
+                    items: { type: 'string', maxLength: 100 },
+                  },
+                  materials: { type: 'string', maxLength: LIMITS.materials },
+                  coachingPoints: {
+                    type: 'array',
+                    minItems: 0,
+                    maxItems: 4,
+                    items: { type: 'string', maxLength: 100 },
+                  },
                 },
-                materials: { type: 'string', maxLength: LIMITS.materials },
-                coachingPoints: {
-                  type: 'array',
-                  minItems: 0,
-                  maxItems: 4,
-                  items: { type: 'string', maxLength: 100 },
-                },
+                required: ['setup', 'flow', 'variations', 'materials', 'coachingPoints'],
               },
-              required: ['setup', 'flow', 'variations', 'materials', 'coachingPoints'],
             },
           },
-        },
-      }),
-    });
+        }),
+      });
 
-    if (!response.ok) {
-      const detail = (await response.text()).slice(0, 500);
-      console.error('[shorten-training-exercise] OpenAI error', response.status, detail);
-      return json({ error: 'Die KI konnte momentan keine Kurzfassung erstellen.' }, 502);
-    }
+      if (!response.ok) {
+        const detail = (await response.text()).slice(0, 500);
+        console.error('[shorten-training-exercise] OpenAI error', response.status, detail);
+        return json({ error: 'Die KI konnte momentan keine Kurzfassung erstellen.' }, 502);
+      }
 
-    const payload = (await response.json()) as Record<string, unknown>;
-    const raw = outputText(payload);
-    let result: unknown;
-    try {
-      result = JSON.parse(raw);
-    } catch {
-      console.error('[shorten-training-exercise] Invalid structured output');
-      return json({ error: 'Die KI-Antwort konnte nicht verarbeitet werden.' }, 502);
-    }
+      const payload = (await response.json()) as Record<string, unknown>;
+      const raw = outputText(payload);
+      let result: unknown;
+      try {
+        result = JSON.parse(raw);
+      } catch {
+        console.error('[shorten-training-exercise] Invalid structured output', { attempt: attempt + 1 });
+        continue;
+      }
 
-    const normalised = normaliseResult(result);
-    if (!normalised) {
+      const normalised = normaliseResult(result);
+      if (normalised) return json(normalised);
       console.error(
         '[shorten-training-exercise] Structured output could not be normalised',
+        { attempt: attempt + 1 },
         JSON.stringify(result).slice(0, 1_000),
       );
-      return json({ error: 'Die KI-Kurzfassung konnte nicht passend zusammengesetzt werden.' }, 502);
     }
-    return json(normalised);
+    return json({ error: 'Die KI-Kurzfassung enthielt auch nach einem zweiten Versuch unvollständige Sätze.' }, 502);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[shorten-training-exercise]', message);

@@ -3,7 +3,12 @@ import { createServer } from 'vite';
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
 try {
-  const { createTrainingExerciseShortText, createTrainingExerciseOriginalText, TRAINING_SHORT_TEXT_LIMITS } = await vite.ssrLoadModule(
+  const {
+    createTrainingExerciseShortText,
+    createTrainingExerciseOriginalText,
+    hasCompleteTrainingExerciseShortContent,
+    TRAINING_SHORT_TEXT_LIMITS,
+  } = await vite.ssrLoadModule(
     '/src/lib/trainingExerciseShortText.ts',
   );
   const result = createTrainingExerciseShortText({
@@ -66,6 +71,10 @@ try {
     variations: 'Kontakte begrenzen; Feld verkleinern; Neutrale Spieler einsetzen',
   });
   assert.ok(oversized.content.length <= TRAINING_SHORT_TEXT_LIMITS.content);
+  assert.ok(hasCompleteTrainingExerciseShortContent(oversized.content));
+  assert.ok(!hasCompleteTrainingExerciseShortContent('Ablauf: Verteidiger bleibt'));
+  assert.ok(!hasCompleteTrainingExerciseShortContent('Ablauf: Wandspieler nur.'));
+  assert.ok(hasCompleteTrainingExerciseShortContent('Ablauf: Der Verteidiger bleibt an der Linie.'));
   assert.ok(oversized.content.length < createTrainingExerciseOriginalText({
     organization: 'Ein großes Feld mit zwei Toren und vier Außenspielern aufbauen. '.repeat(4),
     description: 'Die Spieler kombinieren zielstrebig, wechseln Positionen und schließen anschließend auf das Tor ab. '.repeat(12),
@@ -78,6 +87,9 @@ try {
       line,
       /\b(?:und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i,
     );
+  }
+  for (const line of oversized.content.split('\n').filter(Boolean)) {
+    assert.match(line, /[.!?]$/);
   }
 } finally {
   await vite.close();

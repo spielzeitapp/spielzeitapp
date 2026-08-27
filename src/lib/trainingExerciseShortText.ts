@@ -31,6 +31,30 @@ function withoutBullet(value: string): string {
   return value.replace(/^\s*(?:[-–—•*]|\d+[.)])\s*/, '').trim();
 }
 
+const DANGLING_SENTENCE_END = /\b(?:nur|sowie|beziehungsweise|und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|bleibt|spielen|spielt|dürfen|darf|müssen|muss|soll|sollen|kann|können|wird|werden)$/i;
+
+function completeSentence(value: string): string {
+  const normalized = value.replace(/[…,;:\s]+$/, '').trim();
+  if (!normalized || /…|\.\.\.$/.test(normalized)) return '';
+  return /[.!?]$/.test(normalized) ? normalized : `${normalized}.`;
+}
+
+function isCompleteSentence(value: string): boolean {
+  const normalized = value.trim();
+  if (!/[.!?]$/.test(normalized) || /…|\.\.\.$/.test(normalized)) return false;
+  const withoutPunctuation = normalized.replace(/[.!?]+$/, '').trim();
+  return withoutPunctuation.length >= 3 && !DANGLING_SENTENCE_END.test(withoutPunctuation);
+}
+
+/** Prüft die gespeicherte PDF-Kurzfassung auf vollstaendige Inhaltszeilen. */
+export function hasCompleteTrainingExerciseShortContent(value: unknown): boolean {
+  const lines = clean(value).split('\n').map((line) => line.trim()).filter(Boolean);
+  return lines.length > 0 && lines.every((line) => {
+    const body = line.replace(/^(?:Aufbau|Ablauf|Variation\s+\d+)\s*:\s*/i, '').trim();
+    return isCompleteSentence(body);
+  });
+}
+
 function splitThoughts(value: unknown): string[] {
   const text = clean(value)
     .replace(/\bz\.\s*B\./gi, 'zum Beispiel')
@@ -98,6 +122,27 @@ function phraseWithin(value: string, max: number): string {
   return shortened;
 }
 
+function completeThoughtsWithin(items: string[], max: number): string {
+  let result = '';
+  for (const item of unique(items)) {
+    const sentence = completeSentence(item);
+    if (!sentence) continue;
+    const candidate = result ? `${result} ${sentence}` : sentence;
+    if (candidate.length > max) break;
+    result = candidate;
+  }
+  if (result) return result;
+
+  // Nur wenn schon der erste Gedanke laenger als das gesamte Feld ist, wird
+  // auf eine Phrase zurueckgefallen. Auch diese endet sichtbar als Satz und
+  // darf nicht mit einem typischen Anschlusswort enden.
+  let shortened = phraseWithin(items[0] ?? '', Math.max(1, max - 1));
+  while (DANGLING_SENTENCE_END.test(shortened)) {
+    shortened = shortened.replace(/\s+\S+$/, '').trim();
+  }
+  return completeSentence(shortened);
+}
+
 function unique(items: string[]): string[] {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -132,7 +177,10 @@ function labeledContent(
     const remaining = TRAINING_SHORT_TEXT_LIMITS.content - used;
     const prefix = `${label}: `;
     if (remaining <= prefix.length + 12) return false;
-    const shortened = phraseWithin(value, Math.min(maxLength, remaining - prefix.length));
+    const shortened = completeThoughtsWithin(
+      splitThoughts(value),
+      Math.min(maxLength, remaining - prefix.length),
+    );
     if (!shortened) return false;
     result.push(`${prefix}${shortened}`);
     return true;
@@ -219,9 +267,9 @@ export function createTrainingExerciseOriginalText(
   const variations = splitVariations(input.variations);
   return {
     content: [
-      organization ? `Aufbau: ${organization}` : '',
-      description ? `Ablauf: ${description}` : '',
-      ...variations.map((variation, index) => `Variation ${index + 1}: ${variation}`),
+      organization ? `Aufbau: ${completeSentence(organization)}` : '',
+      description ? `Ablauf: ${completeSentence(description)}` : '',
+      ...variations.map((variation, index) => `Variation ${index + 1}: ${completeSentence(variation)}`),
     ].filter(Boolean).join('\n'),
     materials: clean(input.materials),
     coaching: clean(input.coachingPoints),
