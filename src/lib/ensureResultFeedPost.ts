@@ -74,6 +74,7 @@ type EventRowLite = {
   location: string | null;
   match_type: string | null;
   opponent: string | null;
+  opponent_logo_url: string | null;
 };
 
 type RpcResultRow = {
@@ -144,7 +145,7 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
 
   const { data: evRaw, error: evErr } = await supabase
     .from('events')
-    .select('id, is_home, starts_at, meeting_at, location, match_type, opponent')
+    .select('id, is_home, starts_at, meeting_at, location, match_type, opponent, opponent_logo_url')
     .eq('match_id', mid)
     .maybeSingle();
 
@@ -183,8 +184,13 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
   if (ourScore > oppScore) result_state = 'win';
   else if (ourScore < oppScore) result_state = 'loss';
 
-  const home_logo_url = getClubLogo(sides.homeTeamName);
-  const away_logo_url = getClubLogo(sides.awayTeamName);
+  const opponentLogoUrl = ev.opponent_logo_url?.trim() || null;
+  const home_logo_url = sides.isOwnTeamHome
+    ? getClubLogo(sides.homeTeamName, { ourTeam: true })
+    : getClubLogo(sides.homeTeamName, { logoUrl: opponentLogoUrl });
+  const away_logo_url = sides.isOwnTeamHome
+    ? getClubLogo(sides.awayTeamName, { logoUrl: opponentLogoUrl })
+    : getClubLogo(sides.awayTeamName, { ourTeam: true });
 
   const locParsed = splitCombinedLocation(ev.location ?? match.location ?? null);
   const location =
