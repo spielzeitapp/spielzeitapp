@@ -121,18 +121,18 @@ type RequiredRule = {
 const REQUIRED_FLOW_RULES: RequiredRule[] = [
   {
     label: 'Spiel ohne Abseits',
-    source: /\bohne\s+abseits\b/i,
-    result: /\bohne\s+abseits\b/i,
+    source: /\b(?:ohne|kein(?:e[nrms]?))\s+abseits\b/i,
+    result: /\b(?:ohne|kein(?:e[nrms]?))\s+abseits\b/i,
   },
   {
     label: 'Anspieler darf nach dem Einspielen nicht mehr angespielt werden',
     source: /darf\s+danach\s+nicht\s+mehr\s+angespielt\s+werden|danach\s+nicht\s+mehr\s+anspielbar/i,
-    result: /anspieler[\s\S]{0,100}(?:darf\s+)?(?:danach\s+)?nicht\s+mehr\s+angespielt\s+werden|danach\s+(?:nicht\s+mehr\s+anspielbar|gesperrt)|ist\s+danach\s+gesperrt/i,
+    result: /(?:darf\s+)?(?:danach|anschließend)?\s*nicht\s+mehr\s+angespielt\s+werden|(?:danach|anschließend)?\s*(?:nicht\s+mehr\s+anspielbar|gesperrt)/i,
   },
   {
     label: 'Anspieler hat zwei Kontakte',
     source: /anspieler[\s\S]{0,100}(?:zwei|2)\s+kontakte|(?:zwei|2)\s+kontakte[\s\S]{0,100}anspieler/i,
-    result: /anspieler[\s\S]{0,100}(?:zwei|2)\s+kontakte|(?:zwei|2)\s+kontakte[\s\S]{0,100}anspieler/i,
+    result: /anspieler[\s\S]{0,180}(?:zwei|2)\s+kontakte|(?:zwei|2)\s+kontakte[\s\S]{0,180}anspieler/i,
   },
   {
     label: 'Wandspieler spielen direkt',
@@ -142,17 +142,17 @@ const REQUIRED_FLOW_RULES: RequiredRule[] = [
   {
     label: 'Nach Tor oder Ausball sofort neuer Ball',
     source: /tor[\s\S]{0,50}ausball|ausball[\s\S]{0,50}tor/i,
-    result: /(?=[\s\S]*\btor\b)(?=[\s\S]*\baus(?:ball)?\b)(?=[\s\S]*\bsofort\b)(?=[\s\S]*\bneu\w*\s+ball\b)/i,
+    result: /(?=[\s\S]*\btor\b)(?=[\s\S]*\baus(?:ball)?\b)(?=[\s\S]*\bsofort\b)(?=[\s\S]*(?:\b(?:neu\w*|nächste\w*)\s+ball\b|\bneu\s+ein\w*))/i,
   },
   {
     label: 'Nach Balleroberung zuerst zum Anspieler passen',
     source: /(?:erobert|ballgewinn|balleroberung)[\s\S]{0,180}(?:erst|zuerst)[\s\S]{0,80}anspieler/i,
-    result: /(?:erobert|gewinnt|ballgewinn|balleroberung)[\s\S]{0,140}(?:passt|passen)[\s\S]{0,60}anspieler/i,
+    result: /(?:erobert|gewinnt|ballgewinn|balleroberung)[\s\S]{0,180}\bpass\w*[\s\S]{0,80}anspieler/i,
   },
   {
     label: 'Nach dem Zuspiel Spielrichtung wechseln und angreifen',
     source: /spielrichtung[\s\S]{0,100}(?:angreif|angriff)|(?:angreif|angriff)[\s\S]{0,100}spielrichtung/i,
-    result: /(?:spielrichtung|richtungswechsel|richtung\s+wechsel)[\s\S]{0,100}(?:angreif|angriff)|(?:angreif|angriff)[\s\S]{0,100}(?:spielrichtung|richtungswechsel|richtung\s+wechsel)/i,
+    result: /(?:spielrichtung|richtungswechsel|richtung\s+wechsel)[\s\S]{0,120}(?:angreif|angriff)|(?:angreif|angriff)[\s\S]{0,120}(?:spielrichtung|richtungswechsel|richtung\s+wechsel)|(?:wechsel\w*)[\s\S]{0,60}(?:auf|in\s+den)\s+angriff/i,
   },
   {
     label: 'Aufgaben nach jedem Durchgang tauschen',
@@ -297,6 +297,7 @@ serve(async (req) => {
             `flow: Ziel sind etwa ${flowTarget} Zeichen, die absolute Höchstgrenze ist ${flowLimit} Zeichen. Beende den letzten Satz deutlich vor der Höchstgrenze. Bewahre Spieler- und Farbrollen, Spielrichtung, Aktionen, Reihenfolge sowie Aufgaben- und Positionswechsel.`,
             'Unterscheide Balleroberung und Ballverlust exakt. Vertausche niemals, welches Team verteidigt, den Ball gewinnt, zuerst zum Anspieler passen muss oder danach angreift.',
             'Wenn im Original vorhanden, müssen Kontaktbegrenzungen, die Sperre des Anspielers nach dem Einspielen, der sofortige neue Ball nach Tor oder Ausball und der Aufgabenwechsel nach dem Durchgang im Ablauf stehen.',
+            'Nutze für Pflichtregeln eindeutige Kurzformen wie „ohne Abseits“, „2 Kontakte“, „sofort neuer Ball nach Tor/Aus“, „erst zum Anspieler passen“ und „Aufgaben nach jedem Durchgang tauschen“.',
             'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
             'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus coachingpunkte und niemals aus variationen.',
             'Keine Auslassungspunkte, keine abgebrochenen Sätze, keine URLs, keine Quellenangaben.',

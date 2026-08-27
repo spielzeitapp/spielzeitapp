@@ -43,8 +43,10 @@ assert.match(edge, /Variationen werden unverändert aus dem Original übernommen
 assert.match(edge, /Unterscheide Balleroberung und Ballverlust exakt/);
 assert.match(edge, /Kontaktbegrenzungen, die Sperre des Anspielers/);
 assert.match(edge, /Spiel ohne Abseits/);
+assert.match(edge, /kein\(\?:e\[nrms\]\?\)/);
 assert.match(edge, /Anspieler darf nach dem Einspielen nicht mehr angespielt werden/);
 assert.match(edge, /Nach Balleroberung zuerst zum Anspieler passen/);
+assert.match(edge, /eindeutige Kurzformen wie „ohne Abseits“/);
 assert.match(edge, /Diese Pflichtangaben müssen ausdrücklich und eindeutig enthalten sein/);
 assert.match(edge, /Die KI war erreichbar, konnte aber auch nach drei Versuchen keine vollständige Kurzfassung erstellen/);
 assert.match(edge, /Ablauf mit einem vollständigen Satz abschließen/);
