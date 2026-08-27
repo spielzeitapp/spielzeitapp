@@ -1,503 +1,7352 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×O{×tèµ©hºÚn¶X§zÍZ[\Ü™XXİÈ\ÙPØ[˜XÚË\ÙQY™™Xİ\ÙSY[[Ë\ÙT™Y‹\ÙTİ]HHœ›ÛH	Ü™XXİ	ÎÂš[\ÜÈ[šË\ÙSØØ][Û‹\ÙS˜]šYØ]K\ÙTÙX\˜Ú\˜[\ÈHœ›ÛH	Ü™XXİ\›İ]\‹YÛIÎÂš[\ÜÈ\ÙTÙ\ÜÚ[ÛˆHœ›ÛH	Ë‹‹Ë‹‹Ø]]İ\ÙTÙ\ÜÚ[Û‰ÎÂš[\ÜÈ\ÙT^Y\œË\H^Y\’][HHœ›ÛH	Ë‹‹Ë‹‹ÚÛÚÜËİ\ÙT^Y\œÉÎÂš[\ÜÈ^Y\”›Ùš[S[Ù[Hœ›ÛH	Ë‹‹Ë‹‹ØÛÛ\Û™[ËİX[KÔ^Y\”›Ùš[S[Ù[	ÎÂš[\ÜÂˆ]™TYÙRXY\‹ˆ]™T™[Z][TÚ[ˆ]™TØÚY[PİS[šËŸHœ›ÛH	Ë‹‹Ë‹‹ØÛÛ\Û™[ËÛ]™KÓ]™T™[Z][TÚ[	ÎÂš[\ÜÈ™[Z][Q[\Tİ]HHœ›ÛH	Ë‹‹Ë‹‹İZIÎÂš[\ÜÈØ[“X[˜YÙT›Üİ\‹›Ü›X[^™T›ÛHHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Ü›Û\ÉÎÂš[\ÜÈ\ÙSX]Ú[Y\ˆHœ›ÛH	Ë‹‹Ë‹‹ÚÛÚÜËİ\ÙSX]Ú[Y\‰ÎÂš[\ÜÈ\ÙT™\Ù]ØÜ›ÛÛ“]™Q[HHœ›ÛH	Ë‹‹Ë‹‹ÚÛÚÜËİ\ÙT™\Ù]ØÜ›ÛÛ“]™Q[IÎÂš[\ÜÂˆ\TİXœİ]][Û•ÔÛİËˆÛÛXİ]™Tİ]^Y\’YËˆ\š]™S]™SX]Ú™\^Tİ]Kˆ]™Tİ]^Y\”ÛÜ˜[šËˆ™\ÛÛ™T^][YQš[˜[X]ÚÙXÛÛ™ˆ™\ÛÛ™T™\^P]X]ÚÙXÛÛ™ˆÛ[\Y™™Xİ]™SX]ÚÙXÛÛ™Ëˆ\H^Y\”^][YSX\ˆ\Ü^SX]ÚZ[]Qœ›ÛQY™™Xİ]™TÙXÛÛ™ËˆšY[ÛİX\Ôİ\[™ÒYËˆÙ]™[˜Ú^Y\œËˆÙ]Û‘šY[YÒ[”ÛİÜ™\‹ˆÙ]^][YTİ]\Ëˆ[™TİXœİ]][Û‹ˆ™\^TİXœİ]][Û‘]™[ÓÛ”ÛİËˆ˜Z\”^T™[[İ™Y^Y\’Yœ›ÛQ]™[ˆÛÜX]Ú]™[ĞÚ›Û›ÛÙÚXØ[Kˆİ\[™Ó[™]\ÔÛİX\ˆİØ\ÛÓØØİ\YYšY[ÛİËˆ\HX]Ú[™Ú[™Q]™[ˆ\HX]Ú]™[\KŸHœ›ÛH	Ë‹‹Ë‹‹ÛX‹ÛX]Ú[™Ú[™IÎÂš[\ÜÂˆ[™Ú[™Q]™[Ò[œÙ\^[ØYˆ™]Ú]™[\ÒÛYPSX]ÚYˆ™]Úš\œİ]™SX]Úˆ[œİ\™RÚXÚÛÙ™“[™]\Û˜\Úİˆ™]ÚÚXÚÛÙ™“[™]\^Y\’YËˆ™]Ú[™]\›Ü“]™SX]Úˆ™]ÚX]ÚRYˆ[]SX]Ú]™[RYˆ™]ÚX]Ú]™[ËˆÙ]X]Ú]™PÛØÚÔİ]\ËˆU‘WÑ’QSÔÓÕÓÔ‘T‹ˆ\œÚ\İ^˜T^Y\“Ù™‹ˆ\œÚ\İ^˜T^Y\“Û‹ˆ\œÚ\İ˜Z\”^Q^˜TÙ\ÜÚ[Û•˜[œÙ™\‹ˆ[™]\\œÚ\İ[”›ÙÜ™\ÜËˆ\œÚ\İ]™S[™]\[™™[˜ÚØY™Kˆ™\Z\“]™SX]Ú[™]\™[˜ÚY“™YYYˆŞ[˜Ñš[˜[[™]\™[˜Úœ›ÛQ]™[™\^Kˆ\œÚ\İÜÚ][Û”İØ\ˆØ]™SX]Ú]™[ˆ\]QÛØ[ØÛÜ™\‹ˆ\]TİXœİ]][Û”^Y\œËˆ\]SX]Ú›İËˆX]Ú]™[”›İÕÑ[™Ú[™Kˆ\H]™SX]Ú›İËŸHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Û]™SX]ÚÙ\šXÙIÎÂš[\ÜÈ[œİ\™S]™Q™YYÜİ›Ü“X]ÚHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Ù[œİ\™S]™Q™YYÜİ	ÎÂš[\ÜÈ›Ü˜ÙT™[X\ÙP›ÙTØÜ›ÛØÚÜËØÚĞ›ÙTØÜ›ÛHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Ø›ÙTØÜ›ÛØÚÉÎÂš[\ÜÈÙ]X]ÚÚY\ÈHœ›ÛH	Ë‹‹Ë‹‹ÛX‹ÛX]ÚÚY\ÉÎÂš[\ÜÂˆQUSÓRS’SUSWÔVUSQWÓRS•UTËˆ›Ü›X]Z[š[][T^][YT›ÙÜ™\ÜËˆ›Ü›X]Z\ÜÚ[™ÓZ[]\ÓX™[ˆÙ]Z[š[][T^][YT^Y\”İ]\ËˆÙ]Z[š[][T^][YU\™Ù[˜ŞKˆÙ][›™YX]Ú\˜][Û”ÙXÛÛ™ËˆÙ]™[XZ[š[™ÑY™™Xİ]™SX]ÚÙXÛÛ™Ëˆ\Ğ™[İÓZ[š[][T^][YKˆ\ÓZ[š[][T^][YU\™Ù[ˆZ[š[][T^][YTÙXÛÛ™Ñœ›ÛSZ[]\ËˆZ[š[][T^][YU\™Ù[˜ŞT˜[šËˆQUSÔS“‘QÓPUÒÓRS•UTËˆ›Ü›X[^™SZ[š[][T^][YSZ[]\Ëˆ›Ü›X[^™T[›™YX]ÚZ[]\Ëˆ\HZ[š[][T^][YU\™Ù[˜ŞKŸHœ›ÛH	Ë‹‹Ë‹‹ÛX‹ÛZ[š[][T^][YIÎÂš[\ÜÈÛİ[ØØİ\YYšY[ÛİÈHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Û]™S[™]\›Ü›X[^™IÎÂš[\ÜÈ[™]\›Ü›X][Û”]ÚHœ›ÛH	Ë‹‹Ë‹‹ØÛÛ\Û™[ËÛX]ÚÓ[™]\›Ü›X][Û”]Ú	ÎÂš[\ÜÈZX˜Ú[’™\œÙ^HHœ›ÛH	Ë‹‹Ë‹‹ØÛÛ\Û™[ËÛX]ÚÓZX˜Ú[’™\œÙ^IÎÂš[\ÜÈ™[Z][T^Y\Ø\™Hœ›ÛH	Ë‹‹Ë‹‹ØÛÛ\Û™[ËÜ^Y\‹Ô™[Z][T^Y\Ø\™	ÎÂš[\ÜÂˆ×Ò‘T”ÑVWĞÓÓTPÕˆ×Ò‘T”ÑVWÔÕT•T‹ˆ×ÓTÕÑĞTˆĞØ\™]PÛ\ÜËˆÓ[™]\šY]ÕXÛ\ÜËˆÓY]U^Û\ÜËˆÔYÙP][ÜÜ\™PXœÛÛ]PÛ\ÜËˆÔ^Y\“˜[YPÛ\ÜËˆÔš[X\PİPÛ\ÜËˆÔÙXÛÛ™\PİPÛ\ÜËˆÔÙYÛY[XÛ\ÜËˆÔÙYÛY[˜XÚĞÛ\ÜËˆÕÙXÚÙ[ÛÛ[[[XšY[Û\ÜËˆÕÙXÚÙ[XÚÔ›İĞÛ\ÜËˆÓ]™RX“˜]Û\ÜËŸHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Ü™[Z][Q\ÚYÛ”Ş\İ[IÎÂš[\ÜÈX]Ú^P™[˜Ú[PÛ\ÜÈHœ›ÛH	Ë‹‹Ë‹‹ÛX‹ÛX]Ú^T^Y\Ø\™	ÎÂš[\ÜÂˆ]Y]›Ü›X][Û”Ûİ^[İ]ˆRT”VWÑ“Ô“PUSÓ—ĞÒÒPÑTËˆ\Ñ˜Z\”^Q›Ü›X][Û’Yˆ\ÕLLQ›Ü›X][Û’YˆX™[›Ü”Ûİ[‘›Ü›X][Û‹ˆ™\ÛÛ™S]™T]Ú›Ü›X][Û’YˆLLWÑ“Ô“PUSÓ—ĞÒÒPÑTËˆLLWÑ“Ô“PUSÓ”ËˆLLWÑ“Ô“PUSÓ—Ñ—ÑSPÒËˆ\HLLQ›Ü›X][Û’YŸHœ›ÛH	Ë‹‹Ë‹‹ÛX‹ÛX]Ú›Ü›X][ÛœÉÎÂš[\Ü\HÈšY[ÛİYHœ›ÛH	Ë‹‹Ë‹‹İ\\ËÛX]Ú	ÎÂš[\ÜÈÛÛ\\™T›Üİ\”^Y\œË^Y\’][UÔ›Üİ\‹\H›Üİ\”^Y\ˆHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Ü›Üİ\”^Y\‰ÎÂš[\ÜÈÙ]ÜÚ][Û‘[Ù]ÜÚ][Û“X™[Hœ›ÛH	Ë‹‹Ë‹‹ÛX‹ÜÜÚ][Û“X™[ÉÎÂš[\ÜÈİ\X˜\ÙHHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Üİ\X˜\ÙPÛY[	ÎÂš[\ÜÈÙ]ÛX“ÙÛËÙ]İ\•X[Q\Ü^S˜[YHHœ›ÛH	Ë‹‹Ë‹‹ÛX‹İX[SÙÛÜÉÎÂš[\ÜÈ\Õ˜[YÙÛÕ\›Hœ›ÛH	Ë‹‹Ë‹‹İ][ËÛÙÛÔ™\ÛÛ™\‰ÎÂš[\ÜÈ[œİ\™T™\İ[™YYÜİ›Ü“X]ÚHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Ù[œİ\™T™\İ[™YYÜİ	ÎÂš[\ÜÂˆ™]Úİ\›˜[Y[X]Ú˜]šYØ][ÛÛÛ^ˆ\Hİ\›˜[Y[X]Ú˜]šYØ][ÛÛÛ^ŸHœ›ÛH	Ë‹‹Ë‹‹ÛX‹İİ\›˜[Y[X]Ú˜]šYØ][Û‰ÎÂš[\ÜÈİ\›˜[Y[™^X]ÚÛÜšÙ›İĞİHHœ›ÛH	Ë‹‹Ë‹‹ØÛÛ\Û™[Ëİİ\›˜[Y[Õİ\›˜[Y[™^X]ÚÛÜšÙ›İĞİIÎÂš[\ÜÈŞ[˜ÓÙ™šXÚX[[Y\•İ\›˜[Y[X]Úš[š\ÚHœ›ÛH	Ë‹‹Ë‹‹ÛX‹İİ\›˜[Y[[”Ş[˜ÉÎÂš[\ÜÈœ›ØYØ\İ]™SX]Úİ]PÚ[™ÙYİXœØÜšX™S]™SX]Úİ]PÚ[™ÙYHœ›ÛH	Ë‹‹Ë‹‹ÛX‹Û]™SX]Úœ›ØYØ\İ	ÎÂš[\ÜÈ\ÙQ[[Ó[ÙHHœ›ÛH	Ë‹‹Ë‹‹Ù[[ËÑ[[ĞÛÛ^	ÎÂš[\ÜÈ\ÙR[\›˜[˜\ÙT]Hœ›ÛH	Ë‹‹Ë‹‹Ù[[ËÙ[[Ô]ÉÎÂš[\ÜÈÙ][[ÓX]Ú]HHœ›ÛH	Ë‹‹Ë‹‹Ù[[ËÙ[[ÓX]Úİ]IÎÂš[\ÜÈÙ][[Õİ\›˜[Y[]™[Y›Ü“X]ÚHœ›ÛH	Ë‹‹Ë‹‹Ù[[ËÙ[[Õİ\›˜[Y[İ]IÎÂš[\ÜÂˆ\Ñ[[Ó]™PØ[[™\‘š[˜[^™YˆX\šÑ[[Ó]™PØ[[™\‘š[˜[^™YˆÙ][[Ó]™Q]™[›İÜËˆÙ][[Ó]™SX]Ú›İËŸHœ›ÛH	Ë‹‹Ë‹‹Ù[[ËÙ[[Ó]™T[[YIÎÂš[\ÜÂˆSS×ÕÕT—Ñ’S’TÒÓPUÒÑU‘S•ˆSS×ÕÕT—Ñ“ĞÕT×ÔVUSQWÑU‘S•ŸHœ›ÛH	Ë‹‹Ë‹‹Ù[[ËÙ[[Õİ\Xİ[ÛœÉÎÂ‚˜ÛÛœİÓQWÑSPÒÈH	Õ[œÙ\ˆX[IÎÂ‚‹ÊŠˆÛZXÚHÜ˜YšZÈÚYHÙ[ÛÛYTØÜ™Y[ˆ
-X›XËÚ[›ËİÙ[ÛÛYKZ\›Ëœ™Ø
-Kˆ
-‹Â™[˜İ[ÛˆX]Ú›Ø\™Ù[ÛÛYR\›ÔÜ˜Ê
-Nˆİš[™ÈÂˆÛÛœİ˜\ÙHH[\Ü›Y]K™[‹TÑWÕT“	ËÉÎÂˆÛÛœİ]H	Ú[›ËİÙ[ÛÛYKZ\›Ëœ™ÉÎÂˆ™]\›ˆ˜\ÙK™[™ÕÚ]
-	ËÉÊHÈ	Ø˜\Ù_IÜ]Xˆ	Ø˜\Ù_KÉÜ]XÂŸB‚‹ÊŠˆÙÛËRØXÚ[ˆÛZXÚHÜ°í°çÙKÔİ[ÚYHÙYÛ™\È™ZH™Z\ˆ[š]X[[ˆ
-ÚYHX]ÚRØ\[‹Q˜[˜XÚÊKˆ
-‹Â™[˜İ[Ûˆ]™SX]ÚÙÛÕ[JÂˆÜ˜Ëˆ]™QÛİËˆÚ^™HH	ÛY	ËŸNˆÂˆÜ˜Îˆİš[™ÎÂˆ]™QÛİÎˆ›ÛÛX[ÂˆÚ^™OÎˆ	ÛY	È	Ú\›ÉÈ	Ú\›ÓÉÈ	ÜØÚY[IÈ	Ø›Ø\™	È	Ø›Ø\™ÛIÎÂŸJHÂˆÛÛœİÚ[YÔÜ˜ËÙ][YÔÜ˜×HH\ÙTİ]J\Õ˜[YÙÛÕ\›
-Ü˜ÊHÈÜ˜Èˆ	ËÛÙÛÜËÜXÙZÛ\‹\ÚY[XKœ™ÉÊNÂˆ\ÙQY™™Xİ
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useSession } from '../../auth/useSession';
+import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
+import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
+import {
+  LivePageHeader,
+  LivePremiumShell,
+  LiveScheduleCtaLink,
+} from '../../components/live/LivePremiumShell';
+import { PremiumEmptyState } from '../../ui';
+import { canManageRoster, normalizeRole } from '../../lib/roles';
+import { useMatchTimer } from '../../hooks/useMatchTimer';
+import { useResetScrollOnLiveEntry } from '../../hooks/useResetScrollOnLiveEntry';
+import {
+  applySubstitutionToSlots,
+  collectLiveStatPlayerIds,
+  deriveLiveMatchReplayState,
+  liveStatPlayerSortRank,
+  resolvePlaytimeFinalMatchSecond,
+  resolveReplayAtMatchSecond,
+  clampEffectiveMatchSeconds,
+  type PlayerPlaytimeMap,
+  displayMatchMinuteFromEffectiveSeconds,
+  fieldSlotMapToStartingIds,
+  getBenchPlayers,
+  getOnFieldIdsInSlotOrder,
+  getPlaytimeStatus,
+  handleSubstitution,
+  replaySubstitutionEventsOnSlots,
+  fairPlayRemovedPlayerIdFromEvent,
+  sortMatchEventsChronologically,
+  startingLineupToSlotMap,
+  swapTwoOccupiedFieldSlots,
+  type MatchEngineEvent,
+  type MatchEventType,
+} from '../../lib/matchEngine';
+import {
+  engineEventToInsertPayload,
+  fetchEventIsHomeByMatchId,
+  fetchFirstLiveMatch,
+  ensureKickoffLineupSnapshot,
+  fetchKickoffLineupPlayerIds,
+  fetchLineupForLiveMatch,
+  fetchMatchById,
+  deleteMatchEventById,
+  fetchMatchEvents,
+  getMatchLiveClockStatus,
+  LIVE_FIELD_SLOT_ORDER,
+  persistExtraPlayerOff,
+  persistExtraPlayerOn,
+  persistFairPlayExtraSessionTransfer,
+  lineupPersistInProgress,
+  persistLiveLineupAndBenchSafe,
+  repairLiveMatchLineupBenchIfNeeded,
+  syncFinalLineupBenchFromEventReplay,
+  persistPositionSwap,
+  saveMatchEvent,
+  updateGoalScorer,
+  updateSubstitutionPlayers,
+  updateMatchRow,
+  matchEventDbRowToEngine,
+  type LiveMatchRow,
+} from '../../lib/liveMatchService';
+import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
+import { forceReleaseBodyScrollLocks, lockBodyScroll } from '../../lib/bodyScrollLock';
+import { getMatchSides } from '../../lib/matchSides';
+import {
+  DEFAULT_MINIMUM_PLAYTIME_MINUTES,
+  formatMinimumPlaytimeProgress,
+  formatMissingMinutesLabel,
+  getMinimumPlaytimePlayerStatus,
+  getMinimumPlaytimeUrgency,
+  getPlannedMatchDurationSeconds,
+  getRemainingEffectiveMatchSeconds,
+  isBelowMinimumPlaytime,
+  isMinimumPlaytimeUrgent,
+  minimumPlaytimeSecondsFromMinutes,
+  minimumPlaytimeUrgencyRank,
+  DEFAULT_PLANNED_MATCH_MINUTES,
+  normalizeMinimumPlaytimeMinutes,
+  normalizePlannedMatchMinutes,
+  type MinimumPlaytimeUrgency,
+} from '../../lib/minimumPlaytime';
+import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
+import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
+import { LeibchenJersey } from '../../components/match/LeibchenJersey';
+import { PremiumPlayerCard } from '../../components/player/PremiumPlayerCard';
+import {
+  DS_JERSEY_COMPACT,
+  DS_JERSEY_STARTER,
+  DS_LIST_GAP,
+  dsCardTitleClass,
+  dsLineupViewTabClass,
+  dsMetaTextClass,
+  dsPageAtmosphereAbsoluteClass,
+  dsPlayerNameClass,
+  dsPrimaryCtaClass,
+  dsSecondaryCtaClass,
+  dsSegmentTabClass,
+  dsSegmentTrackClass,
+  dsWechselColumnAmbientClass,
+  dsWechselPickRowClass,
+  dsLiveHubNavBtnClass,
+} from '../../lib/premiumDesignSystem';
+import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
+import {
+  auditFormationSlotLayout,
+  FAIRPLAY_FORMATION_CHOICES,
+  isFairPlayFormationId,
+  isU11FormationId,
+  labelForSlotInFormation,
+  resolveLivePitchFormationId,
+  U11_FORMATION_CHOICES,
+  U11_FORMATIONS,
+  U11_FORMATION_DB_FALLBACK,
+  type U11FormationId,
+} from '../../lib/matchFormations';
+import type { FieldSlotId } from '../../types/match';
+import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
+import { getPositionFull, getPositionLabel } from '../../lib/positionLabels';
+import { supabase } from '../../lib/supabaseClient';
+import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
+import { isValidLogoUrl } from '../../utils/logoResolver';
+import { ensureResultFeedPostForMatch } from '../../lib/ensureResultFeedPost';
+import {
+  fetchTournamentMatchNavigationContext,
+  type TournamentMatchNavigationContext,
+} from '../../lib/tournamentMatchNavigation';
+import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
+import { syncOfficialPlanAfterTournamentMatchFinish } from '../../lib/tournamentPlanSync';
+import { broadcastLiveMatchStateChanged, subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
+import { useDemoMode } from '../../demo/DemoContext';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { getDemoMatchLite } from '../../demo/demoMatchState';
+import { getDemoTournamentEventIdForMatch } from '../../demo/demoTournamentState';
+import {
+  isDemoLiveCalendarFinalized,
+  markDemoLiveCalendarFinalized,
+  getDemoLiveEventRows,
+  getDemoLiveMatchRow,
+} from '../../demo/demoLiveRuntime';
+import {
+  DEMO_TOUR_FINISH_MATCH_EVENT,
+  DEMO_TOUR_FOCUS_PLAYTIME_EVENT,
+} from '../../demo/demoTourActions';
 
+const HOME_FALLBACK = 'Unser Team';
 
-HOˆÂˆÙ][YÔÜ˜Ê\Õ˜[YÙÛÕ\›
-Ü˜ÊHÈÜ˜Èˆ	ËÛÙÛÜËÜXÙZÛ\‹\ÚY[XKœ™ÉÊNÂˆKÜÜ˜×JNÂˆÛÛœİÛİÈH]™QÛİÈÈ	ÜÚYİËVÌÌÌLœÜ™Ø˜JMKŒÊWIÈˆ	ÉÎÂˆÛÛœİ›ŞBˆÚ^™HOOH	Ø›Ø\™ÛIÂˆÈ	ÚVÍŒ\™[WHËVÍŒ\™[WHÛNšVÍ\™[WHÛNËVÍ\™[WIÂˆˆÚ^™HOOH	Ø›Ø\™	ÂˆÈ	ÚVÍKŒ\™[WHËVÍKŒ\™[WHÛNšLÛNËL	ÂˆˆÚ^™HOOH	ÜØÚY[IÂˆÈ	ÚLLˆËLL‰ÂˆˆÚ^™HOOH	Ú\›ÓÉÂˆÈ	ÚVÍ‹Œ\™[WHËVÍ‹Œ\™[WHÛNšVÍ‹Í\™[WHÛNËVÍ‹Í\™[WHYšVÍËŒ\™[WHYËVÍËŒ\™[WIÂˆˆÚ^™HOOH	Ú\›ÉÂˆÈ	ÚLMËLM	Âˆˆ	ÚLMËLMÛNšVÌËÍ\™[WHÛNËVÌËÍ\™[WIÎÂˆÛÛœİ[YĞÛ\ÜÈBˆÚ^™HOOH	Ø›Ø\™ÛIÂˆÈ	ÚY[ËY[X^ZVÌË\™[WHX^]ËVÌË\™[WHØš™XİXÛÛZ[ˆ›Ü\ÚYİËVÌÌÌLœÜ™Ø˜JMKMKMKŒMŠWHÛN›X^ZVÍŒ\™[WHÛN›X^]ËVÍŒ\™[WIÂˆˆÚ^™HOOH	Ø›Ø\™	ÂˆÈ	ÚY[ËY[X^ZVÍÍ\™[WHX^]ËVÍÍ\™[WHØš™XİXÛÛZ[ˆ›Ü\ÚYİËVÌÌÌMœÜ™Ø˜JMKMKMKŒŠWHÛN›X^ZVÍ‹\™[WHÛN›X^]ËVÍ‹\™[WIÂˆˆÚ^™HOOH	ÜØÚY[IÂˆÈ	ÚLLˆËLLˆØš™XİXÛÛZ[ˆ›Ü\ÚYİÉÂˆˆÚ^™HOOH	Ú\›ÓÉÂˆÈ	ÛX^ZVÍ\™[WHX^]ËVÍ\™[WHØš™XİXÛÛZ[ˆLHÛN›X^ZVÍK\™[WHÛN›X^]ËVÍK\™[WHY›X^ZVÍœ™[WHY›X^]ËVÍœ™[WIÂˆˆÚ^™HOOH	Ú\›ÉÂˆÈ	ÛX^ZLLHX^]ËLLHØš™XİXÛÛZ[ˆLIÂˆˆ	ÛX^ZLLHX^]ËLLHØš™XİXÛÛZ[ˆLHÛN›X^ZVÌÜ™[WHÛN›X^]ËVÌÜ™[WIÎÂˆ™]\›ˆ
-ˆ]ˆÛ\ÜÓ˜[YO^Ø›^Úš[šËL][\ËXÙ[\ˆ\İYKXÙ[\ˆ	Ø›ŞH	ÙÛİßXO‚ˆ[YÂˆÜ˜Ï^Ú[YÔÜ˜ßBˆ[Hˆ‚ˆÛ\ÜÓ˜[YO^Ú[YĞÛ\ÜßBˆÛ‘\œ›Ü^Ê
-HOˆÂˆYˆ
-[YÔÜ˜ÈOOH	ËÛÙÛÜËÜXÙZÛ\‹\ÚY[XKœ™ÉÊHÙ][YÔÜ˜Ê	ËÛÙÛÜËÜXÙZÛ\‹\ÚY[XKœ™ÉÊNÂˆ_BˆÏ‚ˆÙ]‚ˆ
-NÂŸB‚™[˜İ[Ûˆ›Ü›X]ÛØÚÊİ[ÙXÎˆ[X™\ŠNˆİš[™ÈÂˆÛÛœİHHX]™›ÛÜŠİ[ÙXÈÈŒ
-NÂˆÛÛœİÈHİ[ÙXÈ	HŒÂˆ™]\›ˆ	Ôİš[™ÊJKœYİ\
-‹	Ì	Ê_N‰Ôİš[™ÊÊKœYİ\
-‹	Ì	Ê_XÂŸB‚™[˜İ[Ûˆ›Ü›X]Z[]JÎˆ[X™\ŠNˆİš[™ÈÂˆÛÛœİHH\Ü^SX]ÚZ[]Qœ›ÛQY™™Xİ]™TÙXÛÛ™ÊÊNÂˆ™]\›ˆHHÈŒ	Èˆˆ	Û_IØÂŸB‚‹ÊŠˆÛØXÚU›ÜœØÚ0éÙNˆ[šY[™Ü\H›ÛHÛİ
-]™JH8 %ÈÙ\\˜]ˆ
-‹Â\HÛØXÚ[™QÜ›İ\H	ÑQ‰È	ÓRQ	È	ÓÑ‘‰ÎÂ‚™[˜İ[ÛˆÛØXÚ[™QÜ›İ\œ›ÛTÛİ
-ÛİˆšY[ÛİY
-NˆÛØXÚ[™QÜ›İ\	ÑÒÉÈÂˆYˆ
-ÛİOOH	ÑÒÉÊH™]\›ˆ	ÑÒÉÎÂˆYˆ
-ÛİOOH	Ó‰ÈÛİOOH	Ô‰ÊH™]\›ˆ	ÑQ‰ÎÂˆYˆ
-ÛİOOH	ÔÕ	ÊH™]\›ˆ	ÓÑ‘‰ÎÂˆ™]\›ˆ	ÓRQ	ÎÂŸB‚™[˜İ[ÛˆÛØXÚ[™QÜ›İ\œ›ÛT›Üİ\”ÜÚ][ÛŠÜÎˆİš[™È[[™Yš[™Y
-NˆÛØXÚ[™QÜ›İ\	ÑÒÉÈÂˆÛÛœİÈHİš[™ÊÜÈÏÈ	ÉÊKš[J
-KÕ\\Ø\ÙJ
-NÂˆYˆ
-XÈÈOOH	ÑÒÉÊH™]\›ˆ	ÑÒÉÎÂˆYˆ
-ÉÓ‰Ë	Ô‰Ë	Ó‰Ë	Ô•‰×Kš[˜ÛY\ÊÊJH™]\›ˆ	ÑQ‰ÎÂˆYˆ
-ÉÔÕ	Ë	ÓÉË	Ô”É×Kš[˜ÛY\ÊÊJH™]\›ˆ	ÓÑ‘‰ÎÂˆ™]\›ˆ	ÓRQ	ÎÂŸB‚™[˜İ[ÛˆÛİ›Ü‘šY[^Y\ŠˆÛİÎˆ™XÛÜ™šY[ÛİYİš[™È[‹ˆ^Y\’Yˆİš[™ËŠNˆšY[ÛİY[ÂˆÛÛœİØ[Hİš[™Ê^Y\’YÏÈ	ÉÊKš[J
-NÂˆYˆ
-]Ø[
-H™]\›ˆ[Âˆ›Üˆ
-ÛÛœİÈÙˆU‘WÑ’QSÔÓÕÓÔ‘TŠHÂˆYˆ
-İš[™ÊÛİÖÜ×HÏÈ	ÉÊKš[J
-HOOHØ[
-H™]\›ˆÎÂˆBˆ™]\›ˆ[ÂŸB‚˜ÛÛœİ“Ô“PUSÓ—ÓÔSÓ—ÓP‘SÎˆ™XÛÜ™LLQ›Ü›X][Û’Yİš[™ÏˆHÂˆ	ÌKL‹L‹L‰Îˆ	ÒÛÛ\Zİ	Ëˆ	ÌKL‹LËLIÎˆ	Ğ]\ÙÙ]ÛÙÙ[‰Ëˆ	ÌKLËL‹LIÎˆ	ÑY™[œÚ]™\‰Ëˆ	ÌKLËLÉÎˆ	ÓÙ™™[œÚ]™\‰Ëˆ	ÌKLËLËLIÎˆ	Ñ˜Z\”^H0­ÈËLÈ
-È”	Ëˆ	ÌKMLÉÎˆ	Ñ˜Z\”^H0­È\ˆÙ]IËˆ	ÌKLËM	Îˆ	Ñ˜Z\”^H0­È›Ü›™IËŸNÂ‚‹ÊŠˆZ[šKT]ÚZ]ÛİT[šİ[ˆ°ïˆ›Ü›X][Û‹RØ\[ˆ[HÛØXÚTÚY]ˆ
-‹Â™[˜İ[ÛˆZ[šQ›Ü›X][Û”]Ú™]šY]ÊÂˆ›Ü›X][Û’YˆXİ]™HH˜[ÙKˆÛ\ÜÓ˜[YKŸNˆÂˆ›Ü›X][Û’YˆLLQ›Ü›X][Û’YÂˆXİ]™OÎˆ›ÛÛX[ÂˆÛ\ÜÓ˜[YOÎˆİš[™ÎÂŸJHÂˆÛÛœİÛİÈHLLWÑ“Ô“PUSÓ”ÖÙ›Ü›X][Û’YNÂˆ™]\›ˆ
-ˆ]‚ˆÛ\ÜÓ˜[YO^ÖÂˆ	Ü™[]]™HVÌËŒ\™[WHËVÌ‹\™[WHÚš[šËLİ™\™›İËZY[ˆ›İ[™Y[È›Ü™\ˆ™ËYÜ˜YY[]ËXˆœ›ÛKY[Y\˜[NMLÍMHšXK^š[˜ËNMLÎLËX›XÚÈÚYİËVÚ[œÙ]ÌÌ\ÌÜ™Ø˜JMKMKMKŒÊWIËˆXİ]™HÈ	Ø›Ü™\‹Y[Y\˜[MÍÚYİËVÌÌÌLÜ™Ø˜JM‹NKLKŒN
-WIÈˆ	Ø›Ü™\‹]Ú]KÌL‰ËˆÛ\ÜÓ˜[YHÏÈ	ÉËˆKš›Ú[Š	È	Ê_Bˆ\šXKZY[‚ˆ‚ˆ]ˆÛ\ÜÓ˜[YOH˜XœÛÛ]H[œÙ]VÎIWH›İ[™Y[È›Ü™\ˆ›Ü™\‹]Ú]KÌLˆ™ËY[Y\˜[NMLÌÍHˆÏ‚ˆ]ˆÛ\ÜÓ˜[YOH˜XœÛÛ]HYLKÌˆÜVÌN	WHVÌÌ‰WHËVÍ‰WH]˜[œÛ]K^LKÌˆ›İ[™YY[›Ü™\ˆ›Ü™\‹]Ú]KÌLˆÏ‚ˆÜÛİË›X\
+/** Gleiche Grafik wie WelcomeScreen (`public/intro/welcome-hero.png`). */
+function matchboardWelcomeHeroSrc(): string {
+  const base = import.meta.env.BASE_URL || '/';
+  const path = 'intro/welcome-hero.png';
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
 
-ÊHOˆ
-ˆÜ[‚ˆÙ^O^ÜËœÛİBˆÛ\ÜÓ˜[YO^ÖÂˆ	ØXœÛÛ]HVÍœHËVÍœH]˜[œÛ]K^LKÌˆ]˜[œÛ]K^KLKÌˆ›İ[™YY[›Ü™\‰ËˆËœÛİOOH	ÑÒÉÂˆÈ	Ø›Ü™\‹X[X™\‹LŒÎ™ËX[X™\‹MÚYİËVÌÌÍ\Ü™Ø˜JLKNLKÍ‹JWIÂˆˆXİ]™BˆÈ	Ø›Ü™\‹Y[Y\˜[LLÎL™ËY[Y\˜[MÚYİËVÌÌÍœÜ™Ø˜JL‹ŒLKMLËMJWIÂˆˆ	Ø›Ü™\‹]Ú]KÍH™Ë]Ú]KÎL	ËˆKš›Ú[Š	È	Ê_Bˆİ[O^ŞÈYˆ	ÜËIXÜˆ	ÜË_IX_BˆÏ‚ˆ
-J_BˆÙ]‚ˆ
-NÂŸB‚‹ÊŠˆ[™ZYÙHÚ™HYÙ[™TİY™™[
-[šÛˆLLHÈLLHÈÛ[[Y\›ŠKˆ
-‹Â™[˜İ[ÛˆÛX[•X[Q\Ü^S˜[YJ˜[YNˆİš[™ÊNˆİš[™ÈÂˆÛÛœİ˜]ÈH
-˜[YH	ÉÊKš[J
-NÂˆYˆ
-\˜]ÊH™]\›ˆ	ÉÎÂˆ]H˜]Âˆœ™\XÙJ×Ê–×
-×WÊ•WÌKŸWÊ–×
-WWKÙÚK	ÉÊBˆœ™\XÙJ×Ê‹WÊ•WÌKŸW‹Š‰ÚK	ÉÊBˆœ™\XÙJ×ÊÕWÌKŸW‹Š‰ÚK	ÉÊBˆœ™\XÙJ×•WÌKŸW‹ÙÚK	ÉÊBˆœ™\XÙJ×WÌKŸW‹ÙÚK	ÉÊBˆœ™\XÙJ×ŞÌ‹KÙË	È	ÊBˆš[J
-NÂˆHœ™\XÙJÖ××x $×JÉÙË	ÉÊKš[J
-NÂˆ™]\›ˆ˜]ÎÂŸB‚‹ÊŠˆİ\™\Èğï™[
-‹ˆ‹ˆTÑËÒÓŠH8 $ÈšXÚZ]ÜÛ˜[Y[ˆ™\ÙXÚÙ[‹ˆ
-‹Â™[˜İ[ÛˆÚÙ[“ÛÚÜÓZÙPX˜œ™]Šˆİš[™ÊNˆ›ÛÛX[ˆÂˆÛÛœİÈH
-	ÉÊKš[J
-NÂˆYˆ
-Ë›[™İˆË›[™İˆ
-H™]\›ˆ˜[ÙNÂˆÛÛœİ›ÑİHËœ™\XÙJ×‹ÙË	ÉÊNÂˆYˆ
-›Ñİ›[™İŠH™]\›ˆ˜[ÙNÂˆYˆ
-×–ĞKVŒNK—JÉÚK\İ
-ÊH	‰ˆ›Ñİ›[™İHŠH™]\›ˆYNÂˆ™]\›ˆ×–ĞKV°á0å°ç^Ì‹ŸIË\İ
-ÊNÂŸB‚‹ÊŠ‚ˆ
-ˆX]Ú›Ø\™ˆØ™[ˆğï™[[[ˆ™\™Z[œÛ˜[YK‚ˆ
-ˆ[\œİ0ï8 '•TÑÈ[[›Ü›[™8 '[™8 '[[›Ü›[™TÑø 'ÈZ[ˆÛÜ\ˆ[[‹‚ˆ
-‹Â™[˜İ[ÛˆX]Ú›Ø\™X˜œ™][™ÛXŠ[ˆİš[™ÊNˆÈX˜œ™]ˆİš[™ÎÈÛXˆİš[™ÈHÂˆÛÛœİš[[YYH
-[	ÉÊKš[J
-NÂˆYˆ
-]š[[YY
-H™]\›ˆÈX˜œ™]ˆ	ÉËÛXˆ	ÉÈNÂˆÛÛœİÚÙ[œÈHš[[YYœÜ]
-×ÊËÊK™š[\Š›ÛÛX[ŠNÂˆYˆ
-ÚÙ[œË›[™İOOHJH™]\›ˆÈX˜œ™]ˆ	ÉËÛXˆš[[YYNÂ‚ˆÛÛœİš\œİHÚÙ[œÖÌNÂˆÛÛœİ\İHÚÙ[œÖİÚÙ[œË›[™İHWNÂˆÛÛœİš\œİX˜œˆHÚÙ[“ÛÚÜÓZÙPX˜œ™]Šš\œİ
-NÂˆÛÛœİ\İX˜œˆHÚÙ[“ÛÚÜÓZÙPX˜œ™]Š\İ
-NÂ‚ˆYˆ
-š\œİX˜œˆ	‰ˆ[\İX˜œŠHÂˆ™]\›ˆÈX˜œ™]ˆš\œİÛXˆÚÙ[œËœÛXÙJJKš›Ú[Š	È	ÊHNÂˆBˆYˆ
-\İX˜œˆ	‰ˆYš\œİX˜œŠHÂˆ™]\›ˆÈX˜œ™]ˆ\İÛXˆÚÙ[œËœÛXÙJLJKš›Ú[Š	È	ÊHNÂˆBˆ™]\›ˆÈX˜œ™]ˆš\œİÛXˆÚÙ[œËœÛXÙJJKš›Ú[Š	È	ÊHNÂŸB‚‹ÊŠˆğï™[
-È™\™Z[ˆ[\ˆÙÛÈÙ\ˆ[H›Ø\™ÈYÚHÙ[šYÙ\ˆXœİ[™
-šY[š[
-Kˆ
-‹Â™[˜İ[ÛˆX]Ú›Ø\™X[S˜[YS[™\ÊÂˆ\Ëˆ[YÛ‹ˆYÚH˜[ÙKŸNˆÂˆ\ÎˆÈX˜œ™]ˆİš[™ÎÈÛXˆİš[™ÈNÂˆ[YÛˆ	ÛY	È	ÜšYÚ	È	ØÙ[\‰ÎÂˆYÚÎˆ›ÛÛX[ÂŸJHÂˆÛÛœİ^[YÛˆH[YÛˆOOH	ÛY	ÈÈ	İ^[Y	Èˆ[YÛˆOOH	ÜšYÚ	ÈÈ	İ^\šYÚ	Èˆ	İ^XÙ[\‰ÎÂˆÛÛœİX˜œ™]ÛÈHYÚˆÈZ[‹ZVÌY[WH^VÎ\H›Û\Ù[ZX›Û\\˜Ø\ÙHXY[™Ë]YÚ˜XÚÚ[™ËVÌŒM[WH^]Ú]KÍLˆÛN^VÌLH	İ^[YÛŸXˆˆZ[‹ZVÌY[WH^^È›Û[YY][H\\˜Ø\ÙHXY[™Ë]YÚ˜XÚÚ[™Ë]ÚY\İ^]Ú]KÍÍH	İ^[YÛŸXÂˆÛÛœİÛXÛÈHYÚˆÈ]LH^VÌL\H›Û[YY][HXY[™Ë\ÛYÈ^]Ú]KÍŒˆÛN^^È	İ^[YÛŸXˆˆ]LH^[È›Û\Ù[ZX›ÛXY[™Ë\ÛYÈ^]Ú]KÎÛN^^Y^L	İ^[YÛŸXÂˆ™]\›ˆ
-ˆ]ˆÛ\ÜÓ˜[YOHËY[Z[‹]ËL\[œË[›Û™H‚ˆ]ˆÛ\ÜÓ˜[YO^ØX˜œ™]ÛßO‚ˆÜ\Ë˜X˜œ™]ˆÈ
-ˆÜ[ˆÛ\ÜÓ˜[YOH˜›ØÚÈÜ\Ë˜X˜œ™]ŸOÜÜ[‚ˆ
-Hˆ
-ˆÜ[ˆÛ\ÜÓ˜[YOHš[š\ÚX›H›ØÚÈˆ\šXKZY[‚ˆ‚ˆÜÜ[‚ˆ
-_BˆÙ]‚ˆ]ˆÛ\ÜÓ˜[YO^ØÛXÛßO‚ˆÜ[ˆÛ\ÜÓ˜[YOH˜›ØÚÈœ™XZË]ÛÜ™ÈİÛÜ™Xœ™XZÎ››Ü›X[Hİ^]Ü˜\˜˜[[˜ÙWHÜ\Ë˜ÛXˆ	×LL	ßOÜÜ[‚ˆÙ]‚ˆÙ]‚ˆ
-NÂŸB‚‹ÊŠˆ˜Z[™\‹UXœÎˆ[\ˆ[HX]Ú›Ø\™İY][KÔ™[Z][KP[›]][™Ëˆ
-‹Â˜ÛÛœİX“˜]•Ü˜\Bˆ	Û]Lˆ›^ËY[Ø\LHİ™\™›İË^X]]È›İ[™YL›Ü™\ˆ›Ü™\‹]Ú]KÖÌŒH™ËX›XÚËÍMHLHÚYİËVÚ[œÙ]ÌÌ\ÌÜ™Ø˜JMKMKMKŒJKÎÌÌœÜ™Ø˜JJWH˜XÚÙ›ÜX›\‹[YË[\Ë[İ™\™›İË\İ[N››Û™WHÜØÜ›Û˜\‹]ÚY››Û™WHÉ‹]ÙXšÚ]\ØÜ›Û˜\—NšY[‰ÎÂ˜ÛÛœİX“˜]˜\ÙHBˆ	ÜÚš[šËLÚ]\ÜXÙK[›İÜ˜\›İ[™Y^LÈKL‹H^^È›Û\Ù[ZX›Û˜[œÚ][Û‹X[\˜][Û‹LŒÛNœMÛN^\ÛHY™›^LHY^XÙ[\‰ÎÂ˜ÛÛœİX“˜]Xİ]™HBˆ	Ø™ËYÜ˜YY[]ËXˆœ›ÛK\™YMŒË\™YN^]Ú]HÚYİËVÌÍÌÜ™Ø˜JŒŒÎÎŒÍJWIÎÂ˜ÛÛœİX“˜]’YHBˆ	İ^YÜ˜^KMLİ™\˜™Ë]Ú]KÖÌŒHİ™\^YÜ˜^KLŒ	ÎÂ‚‹ÊŠˆ\ØÚ]Y\‹UXœÎˆÛZXÚH˜[Z[YHÚYH˜Z[™\‹ˆ
-‹Â˜ÛÛœİÜXİ]Ü•X•Ü˜\Bˆ	Û]LÈ›^Ø\LHİ™\™›İË^X]]È›İ[™YL›Ü™\ˆ›Ü™\‹]Ú]KÖÌŒH™ËX›XÚËÍMHLHÚYİËVÚ[œÙ]ÌÌ\ÌÜ™Ø˜JMKMKMKŒJWH˜XÚÙ›ÜX›\‹[YË[\Ë[İ™\™›İË\İ[N››Û™WHÜØÜ›Û˜\‹]ÚY››Û™WHÉ‹]ÙXšÚ]\ØÜ›Û˜\—NšY[‰ÎÂ˜ÛÛœİÜXİ]Ü•X˜\ÙHBˆ	Ù›^LLZ[‹ZLLÚš[šËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^›Ü™\ˆ›Ü™\‹]˜[œÜ\™[Lˆ^XÙ[\ˆ^^È›Û\Ù[ZX›Û˜[œÚ][Û‹X[\˜][Û‹LŒÛN^\ÛIÎÂ˜ÛÛœİÜXİ]Ü•XXİ]™HBˆ	Ø›Ü™\‹\™YMLÌH™ËYÜ˜YY[]ËXˆœ›ÛK\™YMŒË\™YN^]Ú]HÚYİËVÌÍÌŒœÜ™Ø˜JŒŒÎÎŒÌŠWIÎÂ˜ÛÛœİÜXİ]Ü•X’YHBˆ	İ^YÜ˜^KMLİ™\˜›Ü™\‹]Ú]KÖÌŒ—Hİ™\˜™Ë]Ú]KÖÌŒHİ™\^YÜ˜^KLŒ	ÎÂ‚‹ÊŠˆÛÛ\ZİHXœÎˆÙ[šYÙ\ˆ0íšKÙZ[™HÜ›ğçÙH›İHZİ]‹RØ\Ù[ˆ
-‹Â˜ÛÛœİX“˜]•Ü˜\˜Z[™\ˆBˆ	Û]LKH›^ËY[Ø\LHİ™\™›İË^X]]È›İ[™Y^›Ü™\ˆ›Ü™\‹]Ú]KÖÌŒH™ËX›XÚËÍHLHË[\Ë[İ™\™›İË\İ[N››Û™WHÜØÜ›Û˜\‹]ÚY››Û™WHÉ‹]ÙXšÚ]\ØÜ›Û˜\—NšY[‰ÎÂ˜ÛÛœİ˜Z[™\•XˆBˆ	ÜÚš[šËLÚ]\ÜXÙK[›İÜ˜\›İ[™Y[ÈL‹HKLKH^VÌL\H›Û\Ù[ZX›Û˜[œÚ][Û‹XÛÛÜœÈÛNœLÈÛN^VÌLœIÎÂ˜ÛÛœİ˜Z[™\•XXİ]™HH	Ø™Ë]Ú]KÌLˆ^]Ú]Hš[™ËLHš[™Ë]Ú]KÌL‰ÎÂ˜ÛÛœİ˜Z[™\•X’YHH	İ^]Ú]KÍHİ™\˜™Ë]Ú]KÖÌŒ—Hİ™\^]Ú]KÎIÎÂ‚˜ÛÛœİÜXİ]Ü•X•Ü˜\ÛÛ\XİBˆ	Û]Lˆ›^Ø\LHİ™\™›İË^X]]È›İ[™Y^›Ü™\ˆ›Ü™\‹]Ú]KÖÌŒH™ËX›XÚËÍHLHË[\Ë[İ™\™›İË\İ[N››Û™WHÜØÜ›Û˜\‹]ÚY››Û™WHÉ‹]ÙXšÚ]\ØÜ›Û˜\—NšY[‰ÎÂ˜ÛÛœİÜXİ]Ü•XÛÛ\XİBˆ	Ù›^NHZ[‹ZNHÚš[šËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y[È›Ü™\ˆ›Ü™\‹]˜[œÜ\™[LKH^XÙ[\ˆ^VÌL\H›Û\Ù[ZX›Û˜[œÚ][Û‹XÛÛÜœÈÛN^VÌLœIÎÂ˜ÛÛœİÜXİ]Ü•XÛÛ\XİXİ]™HH	İ˜Z[™\•XXİ]™_H›Ü™\‹]Ú]KÌLÂ˜ÛÛœİÜXİ]Ü•XÛÛ\XİYHH	İ^]Ú]KÍHİ™\˜™Ë]Ú]KÖÌŒWHİ™\^]Ú]KÎIÎÂ‚‹ÊŠˆ]™HXˆÜ›ğçÙHİXÚVšY[KÙZ[ˆZ[šKUX‹QÙY°ïˆ
-‹Â˜ÛÛœİX“˜]”ÜXİ]ÜˆH	Û]LˆÜšYËY[ÜšYXÛÛËLHØ\LˆÛN™ÜšYXÛÛËLÈÛN™Ø\L‹IÎÂ˜ÛÛœİX“˜]•˜Z[™\ˆH	Û]LKHÜšYËY[ÜšYXÛÛËLˆØ\LKHÛN™Ø\L‰ÎÂ˜ÛÛœİX“˜]ˆHÓ]™RX“˜]Û\ÜÊ
-NÂ˜ÛÛœİ]™S[Ù[P˜XÚĞ˜\ˆBˆ	ÜİXÚŞHÜL‹M]L›^Z[‹ZVÍHÚš[šËL›^]Ü˜\][\ËXÙ[\ˆØ\Lˆ›Ü™\‹Xˆ›Ü™\‹]Ú]KÌL™ËX›XÚËÎHLˆKLˆ˜XÚÙ›ÜX›\‹[YÛNœLÉÎÂ‚˜ÛÛœİ]™PØ\™Ú[Bˆ	Ü›İ[™YVÌŒœH›Ü™\ˆ›Ü™\‹VÜ™Ø˜JMKŒÊWH™ËVÜ™Ø˜JLLMMÊWHÚYİËVÌÎÌÜ™Ø˜JŠKÌÌŒÜ™Ø˜JMKKKŒJWIÎÂ‚˜ÛÛœİX’H	ÚLLZ[‹ZLL	ÎÂ˜ÛÛœİX”›İ[™H	Ü›İ[™Y^	ÎÂ˜ÛÛœİX”›İĞˆH›^	ÛX’HİXÚ[X[š\[][Ûˆ][\ËXÙ[\ˆ\İYKXÙ[\ˆØ\LKH	ÛX”›İ[™HLÈ^^È›Û\Ù[ZX›Û˜[œÚ][ÛˆXİ]™NœØØ[KVÌNH\ØX›YœÚ[\‹Y]™[Ë[›Û™H\ØX›Y›ÜXÚ]KMÂ‚‹ÊŠˆ›İÛS˜]ˆ
-Íœ
-H
-ÈØY™H\™XH8 %]™KTÚY]ËĞÛÛ™š\›H0ï™\ˆ˜]ˆ	ˆØY˜\šKP˜\ˆ
-‹Â˜ÛÛœİU‘WÔÒQUĞ“ÕÓWĞÓPTSÑHH	ØØ[ÊÍ\™[H
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ˜ÛÛœİU‘WÔÒQUÑ“ÓÕT—ÔĞQ‘WÔˆH	ÛX^
-Í\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ‹ÊŠˆÚY]PÕNˆ›İÛS˜]ˆ
-ÈØY˜\šHÛYKR[™XØ]Üˆ
-‹Â˜ÛÛœİU‘WÔÒQUÑ“ÓÕT—ĞÓÓ‘’T“WÔĞQ‘WÔˆH	ØØ[ÊLŒ
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ‹ÊŠˆ›Ü›X][Û‹TÚY]ˆ\ˆÛYKR[™XØ]Ü‹ÙZ[ˆ›İÛS˜]‹SÙ™œÙ]
-‹Â˜ÛÛœİ“Ô“PUSÓ—ÔÒQUÑ“ÓÕT—ÔˆH	ÛX^
-\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ˜ÛÛœİU‘WÔÒQUÓPVÒRQÒH	ÛZ[Šš™[JIÎÂ˜ÛÛœİU‘WÔĞÔ“ÓĞ“ÕÓWÔQH	ØØ[ÊM
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ‹ÊŠˆ˜Z\”^KTÚY]È0ï™\ˆ›İÛS˜]ˆ
-Mœ
-ÈØY™H\™XJH
-‹Â˜ÛÛœİRT”VWÔÒQUĞ“ÕÓWÓÑ‘”ÑUH	ØØ[ÊMœ
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ˜ÛÛœİRT”VWÔÒQUÓPVÒRQÒH	ÛZ[ŠÌšÍ™[JIÎÂ˜ÛÛœİRT”VWÔÒQUÓTÕĞ“ÕÓWÔQH	ØØ[ÊLŒ
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ˜ÛÛœİU‘WÒP—ÔĞÔ“ÓĞ“ÕÓWÔQH	ØØ[ÊMÌ
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ˜ÛÛœİRT”VWÔÒQUÓÕ‘T“VHBˆ	Ùš^Y[œÙ]L‹VÌLH›^›^XÛÛ\İYKY[™™ËX›XÚËÎ˜XÚÙ›ÜX›\‹\ÛIÎÂ‹ÊŠˆÙXÚÙ[TÚY]ˆ\™Zİ[\ˆ\RXY\ˆ
-È0ï™\ˆ›İÛS˜]ˆ
-Î
-H
-‹Â˜ÛÛœİÑPÒÑSÔÒQUÕÔÓÑ‘”ÑUH	ØØ[Ê
-È[ŠØY™KX\™XKZ[œÙ]]Ü
-JIÎÂ˜ÛÛœİÑPÒÑSÔÒQUĞ“ÕÓWÓÑ‘”ÑUH	ØØ[ÊÎ
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ‹ÊŠˆÙXÚÙ[ˆZYÙ[™\ˆØÜ™Y[ˆ[\ˆ\RXY\‹0ï™\ˆXˆ
-Ü\]YKÙZ[ˆX‹TØÜ›Û
-H
-‹Â˜ÛÛœİÑPÒÑSÔĞÔ‘QS—ÔÒSBˆ	Ùš^Y[œÙ]^L‹VÍH›^Z[‹ZL›^XÛÛİ™\™›İËZY[ˆ›Ü™\‹]›Ü™\‹\™YMLÌÌ™ËX›XÚÈ^]Ú]IÎÂ‹ÊŠˆÜY[™[UXˆØÜ›ÛQ[™H0ï™\ˆ›Ûİ\‹Ğ›İÛS˜]ˆ
-‹Â˜ÛÛœİÑPÒÑSÔUÒÕP—ÔĞÔ“ÓĞ“ÕÓWÔQH	ØØ[ÊML
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ‹ÊŠˆ]Yœİ[[™Îˆ]Ú
-È˜[šÈ8 %Xœİ[™0ï™\ˆ›İÛS˜]ˆ
-]™H
-Èİ\[ŠH
-‹Â˜ÛÛœİS‘UTĞÓÓ•S•ÔĞÔ“ÓĞ“ÕÓWÔQH	ØØ[ÊNœ
-È[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ‹ÊŠˆ›Ûİ\ˆ[HØÜ™Y[ˆ8 %›İÛS˜]‹PXœİ[™ÛÛ[]›ÛHØÜ™Y[‹X›İÛH
-Î
-H
-‹Â˜ÛÛœİÑPÒÑSÔĞÔ‘QS—Ñ“ÓÕT—ÔˆH	ÛX^
-\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ‹ÊŠˆÙXÚÙ[PÛÛ[ˆXœİ[™[HØÜ›ÛQ[™H0ï™\ˆ[HİXÚŞH›Ûİ\ˆ
-‹Â˜ÛÛœİÑPÒÑSĞÓÓ•S•ÔĞÔ“ÓĞ“ÕÓWÔQH	ÛX^
-Í\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JIÎÂ‹ÊŠˆSÔÎˆÙZ[ˆÛÜY\™[‹ÓÛÚİ\]Yˆ\™ÙX›š\È	ˆZˆ
-‹Â˜ÛÛœİĞÓÔ‘P“ĞT‘Ó“×ÔÑSPÕBˆ	ÜÙ[Xİ[›Û™HİXÚ[X[š\[][ÛˆË]ÙXšÚ]]İXÚXØ[İ]››Û™WHË]ÙXšÚ]]\Ù\‹\Ù[Xİ››Û™WHİ\Ù\‹\Ù[Xİ››Û™WIÎÂ™^ÜÛÛœİU‘WÓU—Ô‘TÑUÑU‘S•H	ÜÜY[™Z]›]™K[˜]‹\™\Ù]	ÎÂ‚™[˜İ[Ûˆ]™[XÛÛŠˆX]Ú]™[\JNˆİš[™ÈÂˆYˆ
-OOH	ÙÛØ[	ÈOOH	ÙÛØ[Ø]Ø^IÊH™]\›ˆ	ø¦¯IÎÂˆYˆ
-OOH	ÜİX—Ûİ]	ÈOOH	ÜİX—Ú[‰ÈOOH	ÜİXœİ]][Û‰ÊH™]\›ˆ	ø¡á	ÎÂˆYˆ
-OOH	ÜÜÚ][Û—ÜİØ\	ÊH™]\›ˆ	ø¡¥	ÎÂˆYˆ
-OOH	Ù^˜WÜ^Y\—ÛÛ‰ÊH™]\›ˆ	ü'çèIÎÂˆYˆ
-OOH	Ù^˜WÜ^Y\—ÛÙ™‰ÊH™]\›ˆ	ü'å-	ÎÂˆYˆ
-OOH	Üİ\	ÊH™]\›ˆ	ø¥­‰ÎÂˆYˆ
-OOH	Ü]\ÙIÊH™]\›ˆ	ø£î	ÎÂˆYˆ
-OOH	Ü™\İ[YIÊH™]\›ˆ	ø¥­‰ÎÂˆYˆ
-OOH	Ù[™	ÊH™]\›ˆ	ø£îIÎÂˆ™]\›ˆ	ø (‰ÎÂŸB‚™[˜İ[Ûˆ™]Ñ]™[Y
+/** Logo-Kachel: gleiche GrÃ¶ÃŸe/Stil wie Gegner; bei Fehler Initialen (wie Match-Karten-Fallback). */
+function LiveMatchLogoTile({
+  src,
+  liveGlow,
+  size = 'md',
+}: {
+  src: string;
+  liveGlow: boolean;
+  size?: 'md' | 'hero' | 'heroLg' | 'schedule' | 'board' | 'boardSm';
+}) {
+  const [imgSrc, setImgSrc] = useState(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
+  useEffect(() => {
+    setImgSrc(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
+  }, [src]);
+  const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
+  const box =
+    size === 'boardSm'
+      ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem]'
+      : size === 'board'
+        ? 'h-[5.25rem] w-[5.25rem] sm:h-28 sm:w-28'
+        : size === 'schedule'
+          ? 'h-12 w-12'
+          : size === 'heroLg'
+          ? 'h-[6.25rem] w-[6.25rem] sm:h-[6.75rem] sm:w-[6.75rem] md:h-[7.25rem] md:w-[7.25rem]'
+            : size === 'hero'
+              ? 'h-14 w-14'
+              : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
+  const imgClass =
+    size === 'boardSm'
+      ? 'h-full w-full max-h-[3.85rem] max-w-[3.85rem] object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.16)] sm:max-h-[4.1rem] sm:max-w-[4.1rem]'
+      : size === 'board'
+        ? 'h-full w-full max-h-[4.75rem] max-w-[4.75rem] object-contain drop-shadow-[0_0_16px_rgba(255,255,255,0.2)] sm:max-h-[6.5rem] sm:max-w-[6.5rem]'
+        : size === 'schedule'
+          ? 'h-12 w-12 object-contain drop-shadow'
+          : size === 'heroLg'
+          ? 'max-h-[5rem] max-w-[5rem] object-contain p-0.5 sm:max-h-[5.5rem] sm:max-w-[5.5rem] md:max-h-[6rem] md:max-w-[6rem]'
+            : size === 'hero'
+              ? 'max-h-11 max-w-11 object-contain p-0.5'
+              : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
+  return (
+    <div className={`flex shrink-0 items-center justify-center ${box} ${glow}`}>
+      <img
+        src={imgSrc}
+        alt=""
+        className={imgClass}
+        onError={() => {
+          if (imgSrc !== '/logos/placeholder-shield-a.png') setImgSrc('/logos/placeholder-shield-a.png');
+        }}
+      />
+    </div>
+  );
+}
 
-Nˆİš[™ÈÂˆ™]\›ˆWÉÑ]K››İÊ
-_WÉÓX]œ˜[™ÛJ
-KÔİš[™ÊÍŠKœÛXÙJ‹J_XÂŸB‚™[˜İ[Ûˆ™XÛÛ\]TØÛÜ™\Ñœ›ÛQ]™[Ê]ÎˆX]Ú[™Ú[™Q]™[×JNˆÈÛYNˆ[X™\È]Ø^Nˆ[X™\ˆHÂˆÛÛœİÛÜYHÛÜX]Ú]™[ĞÚ›Û›ÛÙÚXØ[J]ÊNÂˆ]ÛYHHÂˆ]]Ø^HHÂˆ›Üˆ
-ÛÛœİHÙˆÛÜY
-HÂˆYˆ
-K\HOOH	ÙÛØ[	ÊHÛYH
-ÏHNÂˆ[ÙHYˆ
-K\HOOH	ÙÛØ[Ø]Ø^IÊH]Ø^H
-ÏHNÂˆBˆ™]\›ˆÈÛYK]Ø^HNÂŸB‚™[˜İ[Ûˆš[™\İÛØ[]™[Y›Ü”ÚYJ]™[ÎˆX]Ú[™Ú[™Q]™[×KÚYNˆ	ÚÛYIÈ	Ø]Ø^IÊNˆİš[™È[ÂˆÛÛœİÛÜYHÛÜX]Ú]™[ĞÚ›Û›ÛÙÚXØ[J]™[ÊNÂˆ›Üˆ
-]HHÛÜY›[™İHNÈHHÈHOHJHÂˆÛÛœİHHÛÜYÚWNÂˆYˆ
-ÚYHOOH	ÚÛYIÈ	‰ˆK\HOOH	ÙÛØ[	ÊH™]\›ˆKšYÂˆYˆ
-ÚYHOOH	Ø]Ø^IÈ	‰ˆK\HOOH	ÙÛØ[Ø]Ø^IÊH™]\›ˆKšYÂˆBˆ™]\›ˆ[ÂŸB‚\H]™[Ñš[\ˆH	Ø[	È	ÙÛØ[ÉÈ	ÜİXœÉÈ	ØØ\™ÉÎÂ‚‹ÊŠ‚ˆ
-ˆÙXÚÙ[[ˆÚ›Û›ÛÙÚ\ØÚ\ˆ™ZZ[™›ÛÙNˆ]ÛX\™HİXœİ]][Û˜Q]™[ÈZ[™[Âˆ
-ˆYØXŞHİX—Ûİ]ÜİX—Ú[ˆ\ˆ’Q“ÈX\™[ˆ
-]XÚÙ[›ˆ^Ú\ØÚ[ˆÜ™HËˆ0áˆYYÙ[ŠK‚ˆ
-‹Â™[˜İ[ÛˆZ\”İXœİ]][Û‘]™[Ò[“Ü™\Š\ØÎˆX]Ú[™Ú[™Q]™[×JNˆÈÙ^Nˆİš[™ÎÈ][\ÎˆX]Ú[™Ú[™Q]™[×HV×HÂˆÛÛœİ›İÜÎˆÈÙ^Nˆİš[™ÎÈ][\ÎˆX]Ú[™Ú[™Q]™[×HV×HH×NÂˆÛÛœİ[™[™Óİ]ˆX]Ú[™Ú[™Q]™[×HH×NÂ‚ˆ›Üˆ
-ÛÛœİHÙˆ\ØÊHÂˆYˆ
-K\HOOH	ÜİXœİ]][Û‰ÊHÂˆ›İÜËœ\Ú
-ÈÙ^NˆKšY][\ÎˆÙWHJNÂˆÛÛ[YNÂˆBˆYˆ
-K\HOOH	ÜİX—Ûİ]	ÊHÂˆ[™[™Óİ]œ\Ú
-JNÂˆÛÛ[YNÂˆBˆYˆ
-K\HOOH	ÜİX—Ú[‰ÊHÂˆÛÛœİİ]H[™[™Óİ]œÚY
+function formatClock(totalSec: number): string {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
-NÂˆYˆ
-İ]
-H›İÜËœ\Ú
-ÈÙ^NˆİXœZ\—ÉÛİ]šYWÉÙKšYX][\ÎˆÛİ]WHJNÂˆ[ÙH›İÜËœ\Ú
-ÈÙ^NˆKšY][\ÎˆÙWHJNÂˆÛÛ[YNÂˆBˆ›İÜËœ\Ú
-ÈÙ^NˆKšY][\ÎˆÙWHJNÂˆBˆ›Üˆ
-ÛÛœİİ]Ùˆ[™[™Óİ]
-HÂˆ›İÜËœ\Ú
-ÈÙ^Nˆİ]šY][\ÎˆÛİ]HJNÂˆBˆ™]\›ˆ›İÜÎÂŸB‚™[˜İ[ÛˆİXœİ]][Û“İ][’YÊ]ˆX]Ú[™Ú[™Q]™[
-NˆÈİ]Yˆİš[™ÎÈ[’Yˆİš[™ÈHÂˆYˆ
-]‹\HOOH	ÜİXœİ]][Û‰ÊHÂˆ™]\›ˆÂˆİ]Yˆİš[™Ê]‹œ^Y\’YÏÈ	ÉÊKš[J
-Kˆ[’Yˆİš[™Ê]‹œİØ\Ú]^Y\’YÏÈ	ÉÊKš[J
-KˆNÂˆBˆ™]\›ˆÈİ]Yˆ	ÉË[’Yˆ	ÉÈNÂŸB‚™[˜İ[Ûˆ\ÔİXœİ]][Û•XÚÙ\”Z\Š›İÎˆÈ][\ÎˆX]Ú[™Ú[™Q]™[×HJNˆ›ÛÛX[ˆÂˆYˆ
-›İËš][\Ë›[™İOOHH	‰ˆ›İËš][\ÖÌOË\HOOH	ÜİXœİ]][Û‰ÊH™]\›ˆYNÂˆ™]\›ˆ
-ˆ›İËš][\Ë›[™İOOHˆ	‰‚ˆ›İËš][\ÖÌK\HOOH	ÜİX—Ûİ]	È	‰‚ˆ›İËš][\ÖÌWOË\HOOH	ÜİX—Ú[‰Âˆ
-NÂŸB‚™[˜İ[Ûˆ›Ü›X]İXœİ]][Û•XÚÙ\“[™Jˆ›Üİ\RYˆX\İš[™Ë›Üİ\”^Y\‹ˆİ]^Y\’Yˆİš[™Ëˆ[”^Y\’Yˆİš[™ËŠNˆİš[™ÈÂˆÛÛœİİ]˜[YHH[Øš[S[™]\˜[YJ
-›Üİ\RY™Ù]
-İ]^Y\’Y
-OË›˜[YHÏÈ	ÉÊKš[J
-H	ø %	ÊNÂˆÛÛœİ[“˜[YHH[Øš[S[™]\˜[YJ
-›Üİ\RY™Ù]
-[”^Y\’Y
-OË›˜[YHÏÈ	ÉÊKš[J
-H	ø %	ÊNÂˆ™]\›ˆ˜]\È	Ûİ]˜[Y_H8¡¤ˆ™Z[ˆ	Ú[“˜[Y_XÂŸB‚™[˜İ[ÛˆİXœİ]][Û”^Y\œĞ™Y›Ü™Q]™[
-\˜[\ÎˆÂˆÚXÚÛÙ™”^Y\’YÎˆİš[™Ö×NÂˆÜ]XY^Y\’YÎˆİš[™Ö×NÂˆØ]™Y™[˜Ú^Y\’YÎˆİš[™Ö×NÂˆ]™[ÎˆX]Ú[™Ú[™Q]™[×NÂˆ]™[Yˆİš[™ÎÂˆ]™[[Y\İ[\ˆ[X™\ÂŸJNˆÈšY[^Y\’YÎˆİš[™Ö×NÈ™[˜Ú^Y\’YÎˆİš[™Ö×HHÂˆÛÛœİÛÜYHÛÜX]Ú]™[ĞÚ›Û›ÛÙÚXØ[J\˜[\Ë™]™[ÊNÂˆÛÛœİ]™[[™^HÛÜY™š[™[™^
+function formatMinute(ts: number): string {
+  const m = displayMatchMinuteFromEffectiveSeconds(ts);
+  return m <= 0 ? "0'" : `${m}'`;
+}
 
-]™[
-HOˆ]™[šYOOH\˜[\Ë™]™[Y
-NÂˆÛÛœİ]™[Ğ™Y›Ü™HH]™[[™^HÈÛÜYœÛXÙJ]™[[™^
-Hˆ×NÂˆÛÛœİ™\^HH™\^TİXœİ]][Û‘]™[ÓÛ”ÛİÊˆ\˜[\ËšÚXÚÛÙ™”^Y\’YËˆ]™[Ğ™Y›Ü™Kˆ\˜[\Ë™]™[[Y\İ[\ˆÈÜ]XY^Y\’YÎˆ\˜[\ËœÜ]XY^Y\’YÈKˆ
-NÂˆÛÛœİšY[^Y\’YÈHÙ]Û‘šY[YÒ[”ÛİÜ™\Š™\^KœÛİÊNÂˆ™]\›ˆÂˆšY[^Y\’YËˆ™[˜Ú^Y\’YÎˆÙ]™[˜Ú^Y\œÊˆ\˜[\ËœÜ]XY^Y\’YËˆšY[^Y\’YËˆ\˜[\ËœØ]™Y™[˜Ú^Y\’YËˆ
-KˆNÂŸB‚™[˜İ[Ûˆš\œİ[˜[Y]ÛZXÔİXœİ]][ÛŠ\˜[\ÎˆÂˆÚXÚÛÙ™”^Y\’YÎˆİš[™Ö×NÂˆÜ]XY^Y\’YÎˆİš[™Ö×NÂˆ]™[ÎˆX]Ú[™Ú[™Q]™[×NÂŸJNˆX]Ú[™Ú[™Q]™[[ÂˆÛÛœİÛÜYHÛÜX]Ú]™[ĞÚ›Û›ÛÙÚXØ[J\˜[\Ë™]™[ÊNÂˆ›Üˆ
-][™^HÈ[™^ÛÜY›[™İÈ[™^
-ÏHJHÂˆÛÛœİ]™[HÛÜYÚ[™^NÂˆYˆ
-]™[\HOOH	ÜİXœİ]][Û‰ÊHÛÛ[YNÂˆÛÛœİ™\^P™Y›Ü™HH™\^TİXœİ]][Û‘]™[ÓÛ”ÛİÊˆ\˜[\ËšÚXÚÛÙ™”^Y\’YËˆÛÜYœÛXÙJ[™^
-Kˆ]™[[Y\İ[\ˆÈÜ]XY^Y\’YÎˆ\˜[\ËœÜ]XY^Y\’YÈKˆ
-NÂˆÛÛœİšY[YÈH™]ÈÙ]
-Ù]Û‘šY[YÒ[”ÛİÜ™\Š™\^P™Y›Ü™KœÛİÊJNÂˆÛÛœİİ]YHİš[™Ê]™[œ^Y\’YÏÈ	ÉÊKš[J
-NÂˆÛÛœİ[’YHİš[™Ê]™[œİØ\Ú]^Y\’YÏÈ	ÉÊKš[J
-NÂˆYˆ
-[İ]YZ[’Yİ]YOOH[’YYšY[YËš\Êİ]Y
-HšY[YËš\Ê[’Y
-JHÂˆ™]\›ˆ]™[ÂˆBˆBˆ™]\›ˆ[ÂŸB‚‹ÊŠ‚ˆ
-ˆ˜Z[™\‹S]™]XÚÙ\ˆ™]Y\İHY\œİÙXÚÙ[TX\™HšXÚ™[›™[‹‚ˆ
-ˆš[\ˆ8 '•Ü™x 'ˆ\ˆÜ‹Q]™[ÎÈ8 '•ÙXÚÙ[8 'ˆ\ˆİX‹Q]™[ÈZ]X\‹SÙÚZÎÈ8 '[x 'ˆ[H]™[ÈZ]X\‹SÙÚZË‚ˆ
-‹Â™[˜İ[ÛˆZ[]™UXÚÙ\”›İÜÊ]™[ÎˆX]Ú[™Ú[™Q]™[×Kš[\ˆ]™[Ñš[\ŠNˆÈÙ^Nˆİš[™ÎÈ][\ÎˆX]Ú[™Ú[™Q]™[×HV×HÂˆYˆ
-š[\ˆOOH	ØØ\™ÉÊHÂˆ™]\›ˆ×NÂˆBˆYˆ
-š[\ˆOOH	ÙÛØ[ÉÊHÂˆÛÛœİÛØ[ÈH]™[Ë™š[\Š
-JHOˆK\HOOH	ÙÛØ[	ÈK\HOOH	ÙÛØ[Ø]Ø^IÊNÂˆÛÛœİ\ØÈHË‹‹™ÛØ[×KœÛÜ
+/** Coach-VorschlÃ¤ge: Liniengruppe vom Slot (Live) â€” TW separat. */
+type CoachLineGroup = 'DEF' | 'MID' | 'OFF';
 
-KŠHOˆ‹[Y\İ[\HK[Y\İ[\‹šY›ØØ[PÛÛ\\™JKšY
-JNÂˆ™]\›ˆ\ØË›X\
+function coachLineGroupFromSlot(slot: FieldSlotId): CoachLineGroup | 'GK' {
+  if (slot === 'GK') return 'GK';
+  if (slot === 'LB' || slot === 'RB') return 'DEF';
+  if (slot === 'ST') return 'OFF';
+  return 'MID';
+}
 
-JHOˆ
-ÈÙ^NˆKšY][\ÎˆÙWHJJNÂˆBˆYˆ
-š[\ˆOOH	ÜİXœÉÊHÂˆÛÛœİİXœÈH]™[Ë™š[\Šˆ
-JHOˆK\HOOH	ÜİX—Ûİ]	ÈK\HOOH	ÜİX—Ú[‰ÈK\HOOH	ÜİXœİ]][Û‰Ëˆ
-NÂˆÛÛœİZ\™YHZ\”İXœİ]][Û‘]™[Ò[“Ü™\ŠÛÜX]Ú]™[ĞÚ›Û›ÛÙÚXØ[JİXœÊJNÂˆ™]\›ˆZ\™YœÛXÙJ
-Kœ™]™\œÙJ
-NÂˆBˆÛÛœİZ\™YHZ\”İXœİ]][Û‘]™[Ò[“Ü™\ŠÛÜX]Ú]™[ĞÚ›Û›ÛÙÚXØ[J]™[ÊJNÂˆ™]\›ˆZ\™YœÛXÙJ
-Kœ™]™\œÙJ
-NÂŸB‚\HXÚÙ\”ÙYÛY[›İÈHÈÙ^Nˆİš[™ÎÈ][\ÎˆX]Ú[™Ú[™Q]™[×HNÂ‚‹ÊŠˆÛÜY\[™È[›™\š[ˆÛZXÚ\ˆ[™ZYÙKSZ[]NˆÜ™H8¡¤ˆØ\[ˆ8¡¤ˆÙXÚÙ[8¡¤ˆÜÚ][ÛœİÙXÚÙ[8¡¤ˆ0ïœšYËˆ
-‹Â™[˜İ[ÛˆXÚÙ\”ÙYÛY[ÛÜ˜[šÊ][\ÎˆX]Ú[™Ú[™Q]™[×JNˆ[X™\ˆÂˆYˆ
-\ÔİXœİ]][Û•XÚÙ\”Z\ŠÈ][\ÈJJH™]\›ˆÎÂˆÛÛœİH][\ÖÌOË\NÂˆYˆ
-OOH	ÙÛØ[	ÈOOH	ÙÛØ[Ø]Ø^IÊH™]\›ˆÂˆYˆ
-OOH	ŞY[İ×ØØ\™	ÈOOH	Ü™YØØ\™	ÈOOH	ÜÙXÛÛ™ŞY[İÉÊH™]\›ˆNÂˆYˆ
-OOH	ÜİX—Ûİ]	ÈOOH	ÜİX—Ú[‰ÈOOH	ÜİXœİ]][Û‰ÊH™]\›ˆÎÂˆYˆ
-OOH	ÜÜÚ][Û—ÜİØ\	ÊH™]\›ˆÂˆYˆ
-OOH	Ù^˜WÜ^Y\—ÛÛ‰ÈOOH	Ù^˜WÜ^Y\—ÛÙ™‰ÊH™]\›ˆNÂˆ™]\›ˆLÂŸB‚‹ÊŠˆ\ˆ[™ZYÙNˆ™[˜XÚ˜\H™Z[[ˆÛZXÚ\ˆ›Ü›X]Z[]XSZ[]HHZ[™[H›ØÚÈ\Ø[[Y[™˜\ÜÙ[‹ˆ
-‹Â™[˜İ[ÛˆÜ›İ\XÚÙ\”›İÜĞQ\Ü^SZ[]J›İÜÎˆXÚÙ\”ÙYÛY[›İÖ×JNˆÂˆÜ›İ\Ù^Nˆİš[™ÎÂˆZ[]SX™[ˆİš[™ÎÂˆÙYÛY[ÎˆXÚÙ\”ÙYÛY[›İÖ×NÂŸV×HÂˆÛÛœİÜ›İ\ÎˆÈÜ›İ\Ù^Nˆİš[™ÎÈZ[]SX™[ˆİš[™ÎÈÙYÛY[ÎˆXÚÙ\”ÙYÛY[›İÖ×HV×HH×NÂˆ›Üˆ
-ÛÛœİ›İÈÙˆ›İÜÊHÂˆÛÛœİÈH›İËš][\ÖÌOË[Y\İ[\ÏÈÂˆÛÛœİX™[H›Ü›X]Z[]JÊNÂˆÛÛœİ\İHÜ›İ\ÖÙÜ›İ\Ë›[™İHWNÂˆYˆ
-\İ	‰ˆ\İ›Z[]SX™[OOHX™[
-HÂˆ\İœÙYÛY[Ëœ\Ú
-›İÊNÂˆ\İ™Ü›İ\Ù^HH	Û\İ™Ü›İ\Ù^_W×ÉÜ›İËšÙ^_XÂˆH[ÙHÂˆÜ›İ\Ëœ\Ú
-ÈÜ›İ\Ù^Nˆ›İËšÙ^KZ[]SX™[ˆX™[ÙYÛY[ÎˆÜ›İ×HJNÂˆBˆBˆ›Üˆ
-ÛÛœİÈÙˆÜ›İ\ÊHÂˆÛÛœİÚ]YHËœÙYÛY[Ë›X\
+function coachLineGroupFromRosterPosition(pos: string | null | undefined): CoachLineGroup | 'GK' {
+  const c = String(pos ?? '').trim().toUpperCase();
+  if (!c || c === 'GK') return 'GK';
+  if (['LB', 'RB', 'LV', 'RV'].includes(c)) return 'DEF';
+  if (['ST', 'LS', 'RS'].includes(c)) return 'OFF';
+  return 'MID';
+}
 
-ËJHOˆ
-ÈËHJJNÂˆÚ]YœÛÜ
+function slotForFieldPlayer(
+  slots: Record<FieldSlotId, string | null>,
+  playerId: string,
+): FieldSlotId | null {
+  const want = String(playerId ?? '').trim();
+  if (!want) return null;
+  for (const s of LIVE_FIELD_SLOT_ORDER) {
+    if (String(slots[s] ?? '').trim() === want) return s;
+  }
+  return null;
+}
 
-KŠHOˆÂˆÛÛœİ˜HHXÚÙ\”ÙYÛY[ÛÜ˜[šÊKœËš][\ÊNÂˆÛÛœİ˜ˆHXÚÙ\”ÙYÛY[ÛÜ˜[šÊ‹œËš][\ÊNÂˆYˆ
-˜HOOH˜ŠH™]\›ˆ˜HH˜Âˆ™]\›ˆKšHH‹šNÂˆJNÂˆËœÙYÛY[ÈHÚ]Y›X\
+const FORMATION_OPTION_LABELS: Record<U11FormationId, string> = {
+  '1-2-2-2': 'Kompakt',
+  '1-2-3-1': 'Ausgewogen',
+  '1-3-2-1': 'Defensiver',
+  '1-3-3': 'Offensiver',
+  '1-3-3-1': 'FairPlay Â· 3-3 + FP',
+  '1-4-3': 'FairPlay Â· 4er Kette',
+  '1-3-4': 'FairPlay Â· 4 vorne',
+};
 
-
-HOˆœÊNÂˆBˆ™]\›ˆÜ›İ\ÎÂŸB‚™[˜İ[ÛˆÛÜ›Üİ\S[X™\Š\İˆ›Üİ\”^Y\–×JNˆ›Üİ\”^Y\–×HÂˆ™]\›ˆË‹‹›\İKœÛÜ
-ÛÛ\\™T›Üİ\”^Y\œÊNÂŸB‚™[˜İ[Ûˆ›Üİ\‘˜[Z[S˜[YJˆ›Üİ\”^Y\ŠNˆİš[™ÈÂˆÛÛœİ\ÈH
-›˜[YH	ÉÊKš[J
-KœÜ]
-×ÊËÊK™š[\Š›ÛÛX[ŠNÂˆ™]\›ˆ\Ë›[™İˆHÈ\ÖÜ\Ë›[™İHWHHˆ›˜[YH	ø %	ÎÂŸB‚™[˜İ[Ûˆ[Øš[S[™]\˜[YJ˜[YNˆİš[™ÊNˆİš[™ÈÂˆÛÛœİ\ÈH
-˜[YH	ÉÊKš[J
-KœÜ]
-×ÊËÊK™š[\Š›ÛÛX[ŠNÂˆ™]\›ˆ\Ë›[™İˆHÈ\ÖÜ\Ë›[™İHWHHˆ˜[YH	ø %	ÎÂŸB‚™[˜İ[ÛˆÛİY]Qœ›ÛTÛİX\
-ˆÛİÎˆ™XÛÜ™šY[ÛİYİš[™È[‹ˆ^Y\’Yˆİš[™Ëˆ›Ü›X][Û’YˆLLQ›Ü›X][Û’YŠNˆÈX™[ˆİš[™ÎÈ\ÑÚÎˆ›ÛÛX[ˆHÂˆÛÛœİÛİHU‘WÑ’QSÔÓÕÓÔ‘T‹™š[™
+/** Mini-Pitch mit Slot-Punkten fÃ¼r Formation-Karten im Coach-Sheet. */
+function MiniFormationPitchPreview({
+  formationId,
+  active = false,
+  className,
+}: {
+  formationId: U11FormationId;
+  active?: boolean;
+  className?: string;
+}) {
+  const slots = U11_FORMATIONS[formationId];
+  return (
+    <div
+      className={[
+        'relative h-[3.25rem] w-[2.85rem] shrink-0 overflow-hidden rounded-lg border bg-gradient-to-b from-emerald-950/55 via-zinc-950/90 to-black shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
+        active ? 'border-emerald-400/40 shadow-[0_0_10px_rgba(16,185,129,0.18)]' : 'border-white/12',
+        className ?? '',
+      ].join(' ')}
+      aria-hidden
+    >
+      <div className="absolute inset-[9%] rounded-lg border border-white/12 bg-emerald-950/35" />
+      <div className="absolute left-1/2 top-[18%] h-[32%] w-[42%] -translate-x-1/2 rounded-full border border-white/10" />
+      {slots.map((s) => (
+        <span
+          key={s.slot}
+          className={[
+            'absolute h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border',
+            s.slot === 'GK'
+              ? 'border-amber-200/80 bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.45)]'
+              : active
+                ? 'border-emerald-100/90 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.55)]'
+                : 'border-white/45 bg-white/90',
+          ].join(' ')}
+          style={{ left: `${s.x}%`, top: `${s.y}%` }}
+        />
+      ))}
+    </div>
+  );
+}
 
-ÊHOˆÛİÖÜ×HOOH^Y\’Y
-NÂˆYˆ
-\Ûİ
-H™]\›ˆÈX™[ˆ	ø $ÉË\ÑÚÎˆ˜[ÙHNÂˆ™]\›ˆÈX™[ˆÙ]ÜÚ][Û“X™[
-X™[›Ü”Ûİ[‘›Ü›X][ÛŠ›Ü›X][Û’YÛİ
-JH	ø $ÉË\ÑÚÎˆÛİOOH	ÑÒÉÈNÂŸB‚\H\š[ÙØÛÜ™TZ\ˆHÈˆ[X™\ÈNˆ[X™\ˆNÂ\H\š[ÙØÛÜ™\Ôİ]HHÈOÎˆ\š[ÙØÛÜ™TZ\ÈÎˆ\š[ÙØÛÜ™TZ\ÈÏÎˆ\š[ÙØÛÜ™TZ\ˆNÂ‚™[˜İ[Ûˆ\œÙT\š[ÙØÛÜ™TZ\Š˜[YNˆ[šÛ›İÛŠNˆ\š[ÙØÛÜ™TZ\ˆ[™Yš[™YÂˆYˆ
-]˜[YH\[Ùˆ˜[YHOOH	ÛØš™Xİ	ÊH™]\›ˆ[™Yš[™YÂˆÛÛœİ˜]ÈH˜[YH\ÈÈÎˆ[šÛ›İÛÈOÎˆ[šÛ›İÛˆNÂˆÛÛœİH[X™\Š˜]Ëš
-NÂˆÛÛœİHH[X™\Š˜]Ë˜JNÂˆYˆ
-S[X™\‹š\Ñš[š]J
-HS[X™\‹š\Ñš[š]JJJH™]\›ˆ[™Yš[™YÂˆ™]\›ˆÈˆX]›X^
-X][˜Ê
-JKNˆX]›X^
-X][˜ÊJJHNÂŸB‚™[˜İ[Ûˆ\œÙT\š[ÙØÛÜ™\Ê˜[YNˆ[šÛ›İÛŠNˆ\š[ÙØÛÜ™\Ôİ]HÂˆYˆ
-]˜[YH\[Ùˆ˜[YHOOH	ÛØš™Xİ	ÊH™]\›ˆßNÂˆÛÛœİ˜]ÈH˜[YH\ÈÈOÎˆ[šÛ›İÛÈÎˆ[šÛ›İÛÈÏÎˆ[šÛ›İÛˆNÂˆ™]\›ˆÂˆNˆ\œÙT\š[ÙØÛÜ™TZ\Š˜]ËœJKˆˆ\œÙT\š[ÙØÛÜ™TZ\Š˜]ËœŠKˆÎˆ\œÙT\š[ÙØÛÜ™TZ\Š˜]ËœÊKˆNÂŸB‚™[˜İ[Ûˆ›Ü›X]\š[ÙØÛÜ™\Ó[™JØÛÜ™\Îˆ\š[ÙØÛÜ™\Ôİ]JNˆİš[™ÈÂˆÛÛœİˆH
-Îˆ\š[ÙØÛÜ™TZ\ŠHOˆ
-ˆÈ	İ‹šN‰İ‹˜_Xˆ	ËN‹IÊNÂˆ™]\›ˆ
-	ÙŠØÛÜ™\ËœJ_H	ÙŠØÛÜ™\ËœŠ_H	ÙŠØÛÜ™\ËœÊ_JXÂŸB‚™|÷½w¶‰ËkºwµçQ™[Ü‚ˆ]ˆÛ\ÜÓ˜[YOH™›^›^]Ü˜\Ø\Lˆ‚ˆÚÛYTØÛÜ™\Ø[™Y]\Ë›X\
+/** Anzeige ohne Jugend-Staffel (inkl. U11 / u11 / Klammern). */
+function cleanTeamDisplayName(name: string): string {
+  const raw = (name || '').trim();
+  if (!raw) return '';
+  let t = raw
+    .replace(/\s*[\(\[]\s*U\d{1,2}\s*[\)\]]/gi, '')
+    .replace(/\s*-\s*U\d{1,2}\b.*$/i, '')
+    .replace(/\s+U\d{1,2}\b.*$/i, '')
+    .replace(/\bU\d{1,2}\b/gi, '')
+    .replace(/\bu\d{1,2}\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  t = t.replace(/[\s\-â€“]+$/g, '').trim();
+  return t || raw;
+}
 
-
-HOˆ
-ˆ]Û‚ˆÙ^O^ÜšYBˆ\OH˜]Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÙ]ÛYQÛØ[XÚÒY
-šY
-_BˆÛ\ÜÓ˜[YO^ØZ[‹ZVÍHZ[‹]ËVÌLH›^LH›İ[™Y^LÈKLˆ^\ÛH›ÛX›Û	ÂˆÛYQÛØ[XÚÒYOOHšYˆÈ	Ø™ËY[Y\˜[MŒ^]Ú]IÂˆˆ	Ø™Ë]Ú]KÌL^]Ú]HXİ]™N˜™Ë]Ú]KÌŒ	ÂˆXBˆ‚ˆÜ›[X™\ˆ	ø $ÉßHÜ›˜[Y_BˆØ]Û‚ˆ
-J_BˆÙ]‚ˆÙ]‚‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÈZÛYQÛØ[XÚÒYZ\ĞÛØÚÔ[›š[™ßBˆÛÛXÚÏ^Ø\Ş[˜È
+/** Kurzes KÃ¼rzel (z. B. USG, SKN) â€“ nicht mit Ortsnamen verwechseln. */
+function tokenLooksLikeAbbrev(t: string): boolean {
+  const s = (t || '').trim();
+  if (s.length < 2 || s.length > 8) return false;
+  const noDot = s.replace(/\./g, '');
+  if (noDot.length < 2) return false;
+  if (/^[A-Z0-9.]+$/i.test(s) && noDot.length <= 6) return true;
+  return /^[A-ZÃ„Ã–Ãœ]{2,6}$/.test(s);
+}
 
-HOˆÂˆYˆ
-ZÛYQÛØ[XÚÒYYY™™Xİ]™SX]ÚY
-H™]\›ÂˆYˆ
-Z\ĞÛØÚÔ[›š[™ÊHÂˆÙ]Ø]™Q\œ›ÜŠÛØ[›ØÚÙYY\ÜØYÙJNÂˆ™]\›ÂˆBˆÛÛœİ™Y›Ü™HH™XÛÛ\]TØÛÜ™\Ñœ›ÛQ]™[Ê]™[ÊNÂˆÛÛœİ™\ÈH]ØZ]\œÚ\İÚ[™ÛJÂˆ\Nˆ	ÙÛØ[	Ëˆ[Y\İ[\ˆİ\œ™[X]ÚÙXÛÛ™Ëˆ^Y\’YˆÛYQÛØ[XÚÒYˆJNÂˆYˆ
-\™\Ë›ÚÈ\™\ËœØ]™YY
-H™]\›ÂˆÙ™™\‘ÛØ[[™ÊÂˆ]™[Yˆ™\ËœØ]™YYˆÚYNˆ	ÚÛYIËˆ™]’ÛYNˆ™Y›Ü™KšÛYKˆ™]]Ø^Nˆ™Y›Ü™K˜]Ø^KˆJNÂˆÙ]ÛYQÛØ[[Ù[Ü[Š˜[ÙJNÂˆÙ]ÛYQÛØ[XÚÒY
-	ÉÊNÂˆ_BˆÛ\ÜÓ˜[YOH›]Mˆ›^Z[‹ZVÍMHËY[][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™YL™ËY[Y\˜[MŒ^[È›ÛX›Û^]Ú]H\ØX›Y›ÜXÚ]KLÍHXİ]™NœØØ[KVÌNWH‚ˆ‚ˆÜˆ™\İ0éYÙ[‚ˆØ]Û‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÙ]ÛYQÛØ[[Ù[Ü[Š˜[ÙJ_BˆÛ\ÜÓ˜[YOH›]LÈËY[Z[‹ZVÍH›İ[™YL›Ü™\ˆ›Ü™\‹]Ú]KÌMH^X˜\ÙH›Û\Ù[ZX›Û^]Ú]KÎ‚ˆ‚ˆX˜œ™XÚ[‚ˆØ]Û‚ˆÙ]‚ˆÙ]‚ˆ
-_B‚ˆØ]Ø^QÛØ[[Ù[Ü[ˆ	‰ˆ
-ˆ]‚ˆÛ\ÜÓ˜[YOH™š^Y[œÙ]L‹ML›^›^XÛÛ\İYKY[™™ËX›XÚËÍÌ˜XÚÙ›ÜX›\‹\ÛH‚ˆ›ÛOHœ™\Ù[][Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÙ]]Ø^QÛØ[[Ù[Ü[Š˜[ÙJ_Bˆ‚ˆ]‚ˆÛ\ÜÓ˜[YOH›X^ZVÎ]šHİ™\™›İË^KX]]È›İ[™Y]LŞ›Ü™\ˆ›Ü™\‹]Ú]KÌL™ËVÈÌMMMHM‹NMHÚYİËL‚ˆÛÛXÚÏ^ÊJHOˆKœİÜ›ÜYØ][ÛŠ
-_Bˆ‚ˆ]ˆÛ\ÜÓ˜[YOH›^X]]ÈX‹MLHËLL›İ[™YY[™Ë]Ú]KÌŒˆÏ‚ˆÈÛ\ÜÓ˜[YOH^XÙ[\ˆ^[È›ÛX›Û•ÜˆÜİY][P]Ø^Q\Ü^_OÚÏ‚ˆÛ\ÜÓ˜[YOH›]LH^XÙ[\ˆ^\ÛH^]Ú]KÍL•ÜœØÚ0ï™Hğé[‹[›ˆ™\İ0éYÙ[Ü‚‚ˆ]ˆÛ\ÜÓ˜[YOH›]MH‚ˆÛ\ÜÓ˜[YOH›X‹Lˆ^^È›ÛX›Û\\˜Ø\ÙH^\™YMÎL[H™[Ü‚ˆ]ˆÛ\ÜÓ˜[YOH™›^›^]Ü˜\Ø\Lˆ‚ˆÚÛYTØÛÜ™\Ø[™Y]\Ë›X\
+/**
+ * Matchboard: oben KÃ¼rzel, unten Vereinsname.
+ * UnterstÃ¼tzt â€USG Alpenvorlandâ€œ und â€Alpenvorland USGâ€œ; ein Wort nur unten.
+ */
+function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string } {
+  const trimmed = (full || '').trim();
+  if (!trimmed) return { abbrev: '', club: '' };
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  if (tokens.length === 1) return { abbrev: '', club: trimmed };
 
-
-HOˆ
-ˆ]Û‚ˆÙ^O^ÜšYBˆ\OH˜]Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÙ]]Ø^QÛØ[XÚÒY
-šY
-_BˆÛ\ÜÓ˜[YO^ØZ[‹ZVÍHZ[‹]ËVÌLH›^LH›İ[™Y^LÈKLˆ^\ÛH›ÛX›Û	Âˆ]Ø^QÛØ[XÚÒYOOHšYˆÈ	Ø™Ë\™YMŒ^]Ú]IÂˆˆ	Ø™Ë]Ú]KÌL^]Ú]HXİ]™N˜™Ë]Ú]KÌŒ	ÂˆXBˆ‚ˆÜ›[X™\ˆ	ø $ÉßHÜ›˜[Y_BˆØ]Û‚ˆ
-J_BˆÙ]‚ˆÙ]‚‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÈX]Ø^QÛØ[XÚÒYZ\ĞÛØÚÔ[›š[™ßBˆÛÛXÚÏ^Ø\Ş[˜È
+  const first = tokens[0];
+  const last = tokens[tokens.length - 1];
+  const firstAbbr = tokenLooksLikeAbbrev(first);
+  const lastAbbr = tokenLooksLikeAbbrev(last);
 
-HOˆÂˆYˆ
-X]Ø^QÛØ[XÚÒYYY™™Xİ]™SX]ÚY
-H™]\›ÂˆYˆ
-Z\ĞÛØÚÔ[›š[™ÊHÂˆÙ]Ø]™Q\œ›ÜŠÛØ[›ØÚÙYY\ÜØYÙJNÂˆ™]\›ÂˆBˆÛÛœİ™Y›Ü™HH™XÛÛ\]TØÛÜ™\Ñœ›ÛQ]™[Ê]™[ÊNÂˆÛÛœİ™\ÈH]ØZ]\œÚ\İÚ[™ÛJÂˆ\Nˆ	ÙÛØ[Ø]Ø^IËˆ[Y\İ[\ˆİ\œ™[X]ÚÙXÛÛ™Ëˆ^Y\’Yˆ]Ø^QÛØ[XÚÒYˆJNÂˆYˆ
-\™\Ë›ÚÈ\™\ËœØ]™YY
-H™]\›ÂˆÙ™™\‘ÛØ[[™ÊÂˆ]™[Yˆ™\ËœØ]™YYˆÚYNˆ	Ø]Ø^IËˆ™]’ÛYNˆ™Y›Ü™KšÛYKˆ™]]Ø^Nˆ™Y›Ü™K˜]Ø^KˆJNÂˆÙ]]Ø^QÛØ[[Ù[Ü[Š˜[ÙJNÂˆÙ]]Ø^QÛØ[XÚÒY
-	ÉÊNÂˆ_BˆÛ\ÜÓ˜[YOH›]Mˆ›^Z[‹ZVÍMHËY[][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™YL™Ë\™YMŒ^[È›ÛX›Û^]Ú]H\ØX›Y›ÜXÚ]KLÍHXİ]™NœØØ[KVÌNWH‚ˆ‚ˆÜˆ™\İ0éYÙ[‚ˆØ]Û‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÙ]]Ø^QÛØ[[Ù[Ü[Š˜[ÙJ_BˆÛ\ÜÓ˜[YOH›]LÈËY[Z[‹ZVÍH›İ[™YL›Ü™\ˆ›Ü™\‹]Ú]KÌMH^X˜\ÙH›Û\Ù[ZX›Û^]Ú]KÎ‚ˆ‚ˆX˜œ™XÚ[‚ˆØ]Û‚ˆÙ]‚ˆÙ]‚ˆ
-_B‚ˆÙY][™ÑÛØ[]™[	‰ˆ
-Y][™ÑÛØ[]™[\HOOH	ÙÛØ[	ÈY][™ÑÛØ[]™[\HOOH	ÙÛØ[Ø]Ø^IÊHÈ
-ˆ]‚ˆÛ\ÜÓ˜[YOH™š^Y[œÙ]L‹VÌLŒH›^Z[‹ZYš›^XÛÛ\İYKY[™™ËX›XÚËÍÍHVİ˜\ŠKX\ZXY\‹[Ù™œÙ]
-WH˜XÚÙ›ÜX›\‹\ÛH‚ˆ›ÛOHœ™\Ù[][Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÂˆYˆ
-YY][™ÑÛØ[Ø]š[™ÊHÙ]Y][™ÑÛØ[]™[
-[
-NÂˆ_Bˆ‚ˆ]‚ˆÛ\ÜÓ˜[YOH™›^Y[Z[‹ZL›^XÛÛİ™\™›İËZY[ˆ›İ[™Y]LŞ›Ü™\ˆ›Ü™\‹]Ú]KÌL™ËVÈÌMMMHÚYİËL‚ˆÛÛXÚÏ^Ê]™[
-HOˆ]™[œİÜ›ÜYØ][ÛŠ
-_Bˆ›ÛOH™X[ÙÈ‚ˆ\šXK[[Ù[HYH‚ˆ\šXK[X™[YOH™ÛØ[YY]]]H‚ˆ‚ˆ]ˆÛ\ÜÓ˜[YOHœÚš[šËLM‹LÈM‚ˆ]ˆÛ\ÜÓ˜[YOH›^X]]ÈX‹LÈLHËLL›İ[™YY[™Ë]Ú]KÌŒˆÏ‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÙY][™ÑÛØ[Ø]š[™ßBˆÛÛXÚÏ^Ê
-HOˆÙ]Y][™ÑÛØ[]™[
-[
-_BˆÛ\ÜÓ˜[YOH›X‹LÈ[›[™KY›^Z[‹ZVÍH][\ËXÙ[\ˆØ\Lˆ›İ[™YL›Ü™\ˆ›Ü™\‹]Ú]KÌL™ËX›XÚËÌÍHLÈ^\ÛH›ÛX›Û^]Ú]KÎH\ØX›Y›ÜXÚ]KM‚ˆ‚ˆÜ[ˆ\šXKZY[¸¡¤ÜÜ[‚ˆ\°ïÚÈ[H]™\ÜY[ˆØ]Û‚ˆÈYH™ÛØ[YY]]]HˆÛ\ÜÓ˜[YOH^XÙ[\ˆ^[È›ÛX›Û•ÜœØÚ0ï™H0é™\›ÚÏ‚ˆÛ\ÜÓ˜[YOH›]LH^XÙ[\ˆ^\ÛH^]Ú]KÍL‚ˆÙ›Ü›X]Z[]JY][™ÑÛØ[]™[[Y\İ[\
-_H0­ÈÜÉÈ	ßBˆÙY][™ÑÛØ[]™[\HOOH	ÙÛØ[	ÈÈİY][RÛYQ\Ü^HˆİY][P]Ø^Q\Ü^_BˆÜ‚ˆÙ]‚‚ˆ]ˆÛ\ÜÓ˜[YOH›Z[‹ZL›^LHİXÚ\[‹^Hİ™\™›İË^KX]]Èİ™\œØÜ›Û^KXÛÛZ[ˆM‹MË]ÙXšÚ][İ™\™›İË\ØÜ›Û[™ÎİXÚH‚ˆÛ\ÜÓ˜[YOH›X‹Lˆ^^È›ÛX›Û\\˜Ø\ÙH^\™YMÎL’ØY\Ü‚ˆ]ˆÛ\ÜÓ˜[YOH™›^›^]Ü˜\Ø\Lˆ‚ˆÜ›Üİ\‹›X\
+  if (firstAbbr && !lastAbbr) {
+    return { abbrev: first, club: tokens.slice(1).join(' ') };
+  }
+  if (lastAbbr && !firstAbbr) {
+    return { abbrev: last, club: tokens.slice(0, -1).join(' ') };
+  }
+  return { abbrev: first, club: tokens.slice(1).join(' ') };
+}
 
-^Y\ŠHOˆ
-ˆ]Û‚ˆÙ^O^Ü^Y\‹šYBˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÙY][™ÑÛØ[Ø]š[™ßBˆÛÛXÚÏ^Ê
-HOˆÙ]Y][™ÑÛØ[ØÛÜ™\’Y
-^Y\‹šY
-_BˆÛ\ÜÓ˜[YO^ØZ[‹ZVÍHZ[‹]ËVÌLH›^LH›İ[™Y^LÈKLˆ^\ÛH›ÛX›Û	ÂˆY][™ÑÛØ[ØÛÜ™\’YOOH^Y\‹šYˆÈ	Ø™Ë\™YMŒ^]Ú]IÂˆˆ	Ø™Ë]Ú]KÌL^]Ú]HXİ]™N˜™Ë]Ú]KÌŒ	ÂˆXBˆ‚ˆÜ^Y\‹›[X™\ˆ	ø $ÉßHÜ^Y\‹›˜[Y_BˆØ]Û‚ˆ
-J_BˆÙ]‚ˆÙ]‚‚ˆ]ˆÛ\ÜÓ˜[YOHœÚš[šËL›Ü™\‹]›Ü™\‹]Ú]KÌL™ËX›XÚËÎMHM‹VÛX^
-\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JWHLÈ‚ˆÜØ]™Q\œ›ÜˆÈ
-ˆÛ\ÜÓ˜[YOH›X‹Lˆ›İ[™Y^›Ü™\ˆ›Ü™\‹X[X™\‹MLÌÌ™ËX[X™\‹NMLÌÌLÈKLˆ^XÙ[\ˆ^VÌL\H›Û[YY][HXY[™Ë\ÛYÈ^X[X™\‹LL‚ˆÜØ]™Q\œ›ÜŸBˆÜ‚ˆ
-Hˆ[Bˆ]Û‚ˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÈYY][™ÑÛØ[ØÛÜ™\’YY][™ÑÛØ[Ø]š[™ßBˆÛÛXÚÏ^Ø\Ş[˜È
+/** KÃ¼rzel + Verein unter Logo oder am Board; `tight` = weniger Abstand (Zielbild). */
+function MatchboardTeamNameLines({
+  parts,
+  align,
+  tight = false,
+}: {
+  parts: { abbrev: string; club: string };
+  align: 'left' | 'right' | 'center';
+  tight?: boolean;
+}) {
+  const textAlign = align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
+  const abbrevCls = tight
+    ? `min-h-[1em] text-[9px] font-semibold uppercase leading-tight tracking-[0.14em] text-white/52 sm:text-[10px] ${textAlign}`
+    : `min-h-[1em] text-xs font-medium uppercase leading-tight tracking-widest text-white/75 ${textAlign}`;
+  const clubCls = tight
+    ? `mt-0.5 text-[11px] font-medium leading-snug text-white/62 sm:text-xs ${textAlign}`
+    : `mt-1 text-lg font-semibold leading-snug text-white/80 sm:text-xl md:text-2xl ${textAlign}`;
+  return (
+    <div className="w-full min-w-0 hyphens-none">
+      <div className={abbrevCls}>
+        {parts.abbrev ? (
+          <span className="block">{parts.abbrev}</span>
+        ) : (
+          <span className="invisible block" aria-hidden>
+            .
+          </span>
+        )}
+      </div>
+      <div className={clubCls}>
+        <span className="block break-words [word-break:normal] [text-wrap:balance]">{parts.club || '\u00a0'}</span>
+      </div>
+    </div>
+  );
+}
 
-HOˆÂˆYˆ
-YY][™ÑÛØ[ØÛÜ™\’YY][™ÑÛØ[Ø]š[™ÊH™]\›ÂˆÙ]Y][™ÑÛØ[Ø]š[™ÊYJNÂˆÙ]Ø]™Q\œ›ÜŠ[
-NÂˆÛÛœİÈ\œ›ÜˆHH]ØZ]\]QÛØ[ØÛÜ™\ŠY][™ÑÛØ[]™[šYY][™ÑÛØ[ØÛÜ™\’Y
-NÂˆYˆ
-\œ›ÜŠHÂˆÙ]Ø]™Q\œ›ÜŠ\œ›ÜŠNÂˆÙ]Y][™ÑÛØ[Ø]š[™Ê˜[ÙJNÂˆ™]\›ÂˆBˆÙ]]™[Ê
-™]š[İ\ÊHO‚ˆ™]š[İ\Ë›X\
+/** Trainer-Tabs: unter dem Matchboard, Stadium/Premium-Anmutung. */
+const tabNavWrap =
+  'mt-2 flex w-full gap-1 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/55 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const tabNavBtnBase =
+  'shrink-0 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 sm:px-4 sm:text-sm md:flex-1 md:text-center';
+const tabNavBtnActive =
+  'bg-gradient-to-b from-red-600 to-red-800 text-white shadow-[0_4px_24px_rgba(220,38,38,0.35)]';
+const tabNavBtnIdle =
+  'text-gray-500 hover:bg-white/[0.04] hover:text-gray-200';
 
-]™[
-HO‚ˆ]™[šYOOHY][™ÑÛØ[]™[šYˆÈÈ‹‹™]™[^Y\’YˆY][™ÑÛØ[ØÛÜ™\’YBˆˆ]™[ˆ
-Kˆ
-NÂˆYˆ
-Y™™Xİ]™SX]ÚY
-HÂˆÛÛœİ™YY™\İ[H]ØZ][œİ\™T™\İ[™YYÜİ›Ü“X]Ú
-Y™™Xİ]™SX]ÚY
-NÂˆYˆ
-Y™YY™\İ[›ÚÊHÂˆÙ]Ø]™Q\œ›ÜŠÜœØÚ0ï™HÙpé™\™YYÛÛ›HšXÚZİX[\ÚY\Ù\™[ˆ	Ù™YY™\İ[™\œ›ÜŸX
-NÂˆÙ]Y][™ÑÛØ[]™[
-[
-NÂˆÙ]Y][™ÑÛØ[Ø]š[™Ê˜[ÙJNÂˆ™]\›ÂˆBˆBˆÙ]Y][™ÑÛØ[]™[
-[
-NÂˆÙ]Y][™ÑÛØ[Ø]š[™Ê˜[ÙJNÂˆ_BˆÛ\ÜÓ˜[YOH™›^Z[‹ZVÍMHËY[][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™YL™Ë\™YMŒ^[È›ÛX›Û^]Ú]H\ØX›Y›ÜXÚ]KLÍHXİ]™NœØØ[KVÌNWH‚ˆ‚ˆÙY][™ÑÛØ[Ø]š[™ÈÈ	ÕÚ\™Ù\ÜZXÚ\8 )‰Èˆ	ğá™\[™ÈÜZXÚ\›‰ßBˆØ]Û‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÙY][™ÑÛØ[Ø]š[™ßBˆÛÛXÚÏ^Ê
-HOˆÙ]Y][™ÑÛØ[]™[
-[
-_BˆÛ\ÜÓ˜[YOH›]LˆZ[‹ZVÍœHËY[›İ[™YL›Ü™\ˆ›Ü™\‹]Ú]KÌMH^\ÛH›Û\Ù[ZX›Û^]Ú]KÎ\ØX›Y›ÜXÚ]KM‚ˆ‚ˆX˜œ™XÚ[‚ˆØ]Û‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆ
-Hˆ[B‚ˆÙY][™ÔİXœİ]][Û‘]™[Ë\HOOH	ÜİXœİ]][Û‰ÈÈ
-ˆ]‚ˆÛ\ÜÓ˜[YOH™š^Y[œÙ]L‹VÌLŒH›^Z[‹ZYš›^XÛÛ\İYKY[™™ËX›XÚËÎVİ˜\ŠKX\ZXY\‹[Ù™œÙ]
-WH˜XÚÙ›ÜX›\‹\ÛH‚ˆ›ÛOHœ™\Ù[][Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÂˆYˆ
-YY][™ÔİXœİ]][Û”Ø]š[™ÊHÙ]Y][™ÔİXœİ]][Û‘]™[
-[
-NÂˆ_Bˆ‚ˆ]‚ˆÛ\ÜÓ˜[YOH™›^Y[Z[‹ZL›^XÛÛİ™\™›İËZY[ˆ›İ[™Y]LŞ›Ü™\ˆ›Ü™\‹]Ú]KÌL™ËVÈÌMMMHÚYİËL‚ˆÛÛXÚÏ^Ê]™[
-HOˆ]™[œİÜ›ÜYØ][ÛŠ
-_Bˆ›ÛOH™X[ÙÈ‚ˆ\šXK[[Ù[HYH‚ˆ\šXK[X™[YOHœİXœİ]][Û‹YY]]]H‚ˆ‚ˆ]ˆÛ\ÜÓ˜[YOHœÚš[šËLM‹LÈM‚ˆ]ˆÛ\ÜÓ˜[YOH›^X]]ÈX‹LÈLHËLL›İ[™YY[™Ë]Ú]KÌŒˆÏ‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÙY][™ÔİXœİ]][Û”Ø]š[™ßBˆÛÛXÚÏ^Ê
-HOˆÙ]Y][™ÔİXœİ]][Û‘]™[
-[
-_BˆÛ\ÜÓ˜[YOH›X‹LÈ[›[™KY›^Z[‹ZVÍH][\ËXÙ[\ˆØ\Lˆ›İ[™YL›Ü™\ˆ›Ü™\‹]Ú]KÌL™ËX›XÚËÌÍHLÈ^\ÛH›ÛX›Û^]Ú]KÎH\ØX›Y›ÜXÚ]KM‚ˆ‚ˆÜ[ˆ\šXKZY[¸¡¤ÜÜ[‚ˆ\°ïÚÈ[H]™\ÜY[ˆØ]Û‚ˆÈYHœİXœİ]][Û‹YY]]]HˆÛ\ÜÓ˜[YOH^XÙ[\ˆ^[È›ÛX›Û‚ˆÙXÚÙ[ÛÜœšYÚY\™[‚ˆÚÏ‚ˆÛ\ÜÓ˜[YOH›]LH^XÙ[\ˆ^\ÛH^]Ú]KÍL‚ˆÙ›Ü›X]Z[]JY][™ÔİXœİ]][Û‘]™[[Y\İ[\
-_H0­ÈÜY[\ˆ™]H[Ü™™[‚ˆÜ‚ˆÙ]‚‚ˆ]ˆÛ\ÜÓ˜[YOH›Z[‹ZL›^LHİXÚ\[‹^Hİ™\™›İË^KX]]Èİ™\œØÜ›Û^KXÛÛZ[ˆM‹MË]ÙXšÚ][İ™\™›İË\ØÜ›Û[™ÎİXÚH‚ˆÙXİ[Û‚ˆÛ\ÜÓ˜[YOH›X‹Lˆ^^È›ÛX›Û\\˜Ø\ÙH˜XÚÚ[™ËVÌŒL™[WH^\™YLÌÎL‚ˆ˜]\È0­ÈÜY[\ˆ[H™[ˆÜ‚ˆ]ˆÛ\ÜÓ˜[YOH™ÜšYÜšYXÛÛËLˆØ\Lˆ‚ˆÜİXœİ]][Û‘Y]ÚÚXÙ\Ë›İ]ÛÚ[™Ë›X\
+/** Zuschauer-Tabs: gleiche Familie wie Trainer. */
+const spectatorTabWrap =
+  'mt-3 flex gap-1 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/55 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const spectatorTabBtnBase =
+  'flex h-10 min-h-10 shrink-0 flex-1 items-center justify-center rounded-xl border border-transparent px-2 text-center text-xs font-semibold transition-all duration-200 sm:text-sm';
+const spectatorTabBtnActive =
+  'border-red-500/25 bg-gradient-to-b from-red-600 to-red-800 text-white shadow-[0_4px_22px_rgba(220,38,38,0.32)]';
+const spectatorTabBtnIdle =
+  'text-gray-500 hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-gray-200';
 
-^Y\ŠHOˆ
-ˆ]Û‚ˆÙ^O^ØY]\İX‹[İ]IÜ^Y\‹šYXBˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÙY][™ÔİXœİ]][Û”Ø]š[™ßBˆÛÛXÚÏ^Ê
-HOˆÙ]Y][™ÔİXœİ]][Û“İ]Y
-^Y\‹šY
-_BˆÛ\ÜÓ˜[YO^ØZ[‹ZVÍœH›İ[™Y^›Ü™\ˆL‹HKLˆ^[Y^VÌLœH›ÛX›ÛXY[™Ë\ÛYÈ˜[œÚ][Û‹XÛÛÜœÈ	ÂˆY][™ÔİXœİ]][Û“İ]YOOH^Y\‹šYˆÈ	Ø›Ü™\‹\™YMÍH™Ë\™YMÌÎ^]Ú]IÂˆˆ	Ø›Ü™\‹]Ú]KÌL™Ë]Ú]KÖÌŒ—H^]Ú]KÎHXİ]™N˜™Ë]Ú]KÌMIÂˆXBˆ‚ˆÜ[ˆÛ\ÜÓ˜[YOH›\‹LH^]Ú]KÍHÜ^Y\‹›[X™\ˆ	ø $ÉßOÜÜ[‚ˆÜ^Y\‹›˜[Y_BˆØ]Û‚ˆ
-J_BˆÙ]‚ˆÜÙXİ[Û‚‚ˆÙXİ[ÛˆÛ\ÜÓ˜[YOH›]M‚ˆÛ\ÜÓ˜[YOH›X‹Lˆ^^È›ÛX›Û\\˜Ø\ÙH˜XÚÚ[™ËVÌŒL™[WH^Y[Y\˜[LÌÎL‚ˆ™Z[ˆ0­ÈÜY[\ˆ]Yˆ\ˆ˜[šÂˆÜ‚ˆ]ˆÛ\ÜÓ˜[YOH™ÜšYÜšYXÛÛËLˆØ\Lˆ‚ˆÜİXœİ]][Û‘Y]ÚÚXÙ\Ëš[˜ÛÛZ[™Ë›X\
+/** Kompakte Tabs: weniger HÃ¶he, keine groÃŸe rote Aktiv-Kapsel. */
+const tabNavWrapTrainer =
+  'mt-1.5 flex w-full gap-0.5 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/45 p-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const trainerTabBtn =
+  'shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors sm:px-3 sm:text-[12px]';
+const trainerTabBtnActive = 'bg-white/12 text-white ring-1 ring-white/12';
+const trainerTabBtnIdle = 'text-white/45 hover:bg-white/[0.06] hover:text-white/85';
 
-^Y\ŠHOˆ
-ˆ]Û‚ˆÙ^O^ØY]\İX‹Z[‹IÜ^Y\‹šYXBˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÙY][™ÔİXœİ]][Û”Ø]š[™ßBˆÛÛXÚÏ^Ê
-HOˆÙ]Y][™ÔİXœİ]][Û’[’Y
-^Y\‹šY
-_BˆÛ\ÜÓ˜[YO^ØZ[‹ZVÍœH›İ[™Y^›Ü™\ˆL‹HKLˆ^[Y^VÌLœH›ÛX›ÛXY[™Ë\ÛYÈ˜[œÚ][Û‹XÛÛÜœÈ	ÂˆY][™ÔİXœİ]][Û’[’YOOH^Y\‹šYˆÈ	Ø›Ü™\‹Y[Y\˜[MÍH™ËY[Y\˜[NÎ^]Ú]IÂˆˆ	Ø›Ü™\‹]Ú]KÌL™Ë]Ú]KÖÌŒ—H^]Ú]KÎHXİ]™N˜™Ë]Ú]KÌMIÂˆXBˆ‚ˆÜ[ˆÛ\ÜÓ˜[YOH›\‹LH^]Ú]KÍHÜ^Y\‹›[X™\ˆ	ø $ÉßOÜÜ[‚ˆÜ^Y\‹›˜[Y_BˆØ]Û‚ˆ
-J_BˆÙ]‚ˆÜÙXİ[Û‚ˆÙ]‚‚ˆ]ˆÛ\ÜÓ˜[YOHœÚš[šËL›Ü™\‹]›Ü™\‹]Ú]KÌL™ËX›XÚËÎMHM‹VÛX^
-\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JWHLÈ‚ˆÜØ]™Q\œ›ÜˆÈ
-ˆÛ\ÜÓ˜[YOH›X‹Lˆ›İ[™Y^›Ü™\ˆ›Ü™\‹X[X™\‹MLÌÌ™ËX[X™\‹NMLÌÌLÈKLˆ^XÙ[\ˆ^VÌL\H›Û[YY][HXY[™Ë\ÛYÈ^X[X™\‹LL‚ˆÜØ]™Q\œ›ÜŸBˆÜ‚ˆ
-Hˆ[BˆÛ\ÜÓ˜[YOH›X‹LÈ[˜Ø]H^XÙ[\ˆ^VÌLœH›Û\Ù[ZX›Û^]Ú]KÍÌ‚ˆ˜]\ÈÜ›Üİ\RY™Ù]
-Y][™ÔİXœİ]][Û“İ]Y
-OË›˜[YHÏÈ	ø )‰ßH8¡¤ˆ™Z[ÉÈ	ßBˆÜ›Üİ\RY™Ù]
-Y][™ÔİXœİ]][Û’[’Y
-OË›˜[YHÏÈ	ø )‰ßBˆÜ‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÂˆYY][™ÔİXœİ]][Û“İ]YˆYY][™ÔİXœİ]][Û’[’YˆY][™ÔİXœİ]][Û“İ]YOOHY][™ÔİXœİ]][Û’[’YˆY][™ÔİXœİ]][Û”Ø]š[™ÂˆBˆÛÛXÚÏ^Ê
-HOˆ›ÚYØ]™QY]YİXœİ]][ÛŠ
-_BˆÛ\ÜÓ˜[YOH™›^Z[‹ZVÍLœHËY[][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™YL™Ë\™YMŒ^X˜\ÙH›ÛX›Û^]Ú]H\ØX›Y›ÜXÚ]KLÍHXİ]™NœØØ[KVÌNWH‚ˆ‚ˆÙY][™ÔİXœİ]][Û”Ø]š[™ÈÈ	ÕÚ\™Ù\ÜZXÚ\8 )‰Èˆ	ğá™\[™ÈÜZXÚ\›‰ßBˆØ]Û‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆ\ØX›Y^ÙY][™ÔİXœİ]][Û”Ø]š[™ßBˆÛÛXÚÏ^Ê
-HOˆÙ]Y][™ÔİXœİ]][Û‘]™[
-[
-_BˆÛ\ÜÓ˜[YOH›]LˆZ[‹ZVÍœHËY[›İ[™YL›Ü™\ˆ›Ü™\‹]Ú]KÌMH^\ÛH›Û\Ù[ZX›Û^]Ú]KÎ\ØX›Y›ÜXÚ]KM‚ˆ‚ˆX˜œ™XÚ[‚ˆØ]Û‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆ
-Hˆ[B‚ˆÜ]\ÙPÛÛ™š\›SÜ[ˆ	‰ˆ
-ˆ]‚ˆÛ\ÜÓ˜[YOH™š^Y[œÙ]L‹VÌLH›^Z[‹ZYš][\ËXÙ[\ˆ\İYKXÙ[\ˆİ™\™›İË^KX]]Èİ™\œØÜ›Û^KXÛÛZ[ˆ™ËX›XÚËÎHMVÛX^
-Ü™[K[ŠØY™KX\™XKZ[œÙ]]Ü
-JWH‹VÛX^
-\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JWH˜XÚÙ›ÜX›\‹\ÛHÛNœKMˆ‚ˆ›ÛOHœ™\Ù[][Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÂˆYˆ
-\]\ÙPÛÛ™š\›TØ]š[™ÊHÙ]]\ÙPÛÛ™š\›SÜ[Š˜[ÙJNÂˆ_Bˆ‚ˆ]‚ˆÛ\ÜÓ˜[YOH›^KX]]È›^ËY[X^]Ë[YX^ZVÎ™šH›^XÛÛİ™\™›İËZY[ˆ›İ[™YL›Ü™\‹Lˆ›Ü™\‹Y[Y\˜[MÌÍMH™Ë^š[˜ËNMLÚYİËVÌÌÍÜ™Ø˜JJWH‚ˆÛÛXÚÏ^ÊJHOˆKœİÜ›ÜYØ][ÛŠ
-_Bˆ›ÛOH™X[ÙÈ‚ˆ\šXK[[Ù[HYH‚ˆ\šXK[X™[YOHœ]\ÙKXÛÛ™š\›K]]H‚ˆ‚ˆ]ˆÛ\ÜÓ˜[YOH›Z[‹ZL›^LHİ™\™›İË^KX]]Èİ™\œØÜ›ÛXÛÛZ[ˆM‹LÈMÛNœMHÛNœMH‚ˆÈYHœ]\ÙKXÛÛ™š\›K]]HˆÛ\ÜÓ˜[YOH^L›ÛX›XÚÈXY[™Ë]YÚ˜XÚÚ[™Ë]YÚ^]Ú]H‚ˆ]\ÙHZİ]šY\™[ÂˆÚÏ‚ˆÛ\ÜÓ˜[YOH›]Lˆ^VÌM\H›Û[YY][HXY[™Ë\ÛYÈ^^š[˜ËLÌÛN^X˜\ÙH‚ˆ\ÈZİY[Hš][Ú\™X™Ù\ØÚÜÜÙ[ˆ[™\ˆÚ\ØÚ[œİ[™Ú\™0ï™\››Û[Y[‹‚ˆÜ‚ˆÙ]‚ˆ]‚ˆÛ\ÜÓ˜[YOHœİXÚŞH›İÛKL‹LLÚš[šËL›Ü™\‹]›Ü™\‹]Ú]KÖÌŒ—H™Ë^š[˜ËNMLML‹HÛNœMH‚ˆİ[O^ŞÂˆY[™Ğ›İÛNˆ	ÛX^
-LœØ[Ê[ŠØY™KX\™XKZ[œÙ]X›İÛK
-H
-ÈKŒ\™[JJIËˆ_Bˆ‚ˆ]ˆÛ\ÜÓ˜[YOH™›^›^XÛÛØ\LˆZ[‹VÍŒN™›^\›İÈZ[‹VÍŒNš][\Ë\İ™]Ú‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛ\ÜÓ˜[YOH™›^LMZ[‹ZLMZ[‹]ËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^›Ü™\ˆ›Ü™\‹]Ú]KÌLˆ™Ë^š[˜ËNMLLÈ^\ÛH›Û\Ù[ZX›Û^^š[˜ËLÌÚYİË[›Û™HXİ]™NœØØ[KVÌNWH\ØX›Y›ÜXÚ]KMH‚ˆ\ØX›Y^Ü]\ÙPÛÛ™š\›TØ]š[™ßBˆÛÛXÚÏ^Ê
-HOˆÙ]]\ÙPÛÛ™š\›SÜ[Š˜[ÙJ_Bˆ‚ˆX˜œ™XÚ[‚ˆØ]Û‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛ\ÜÓ˜[YOH™›^LMZ[‹ZLMZ[‹]ËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^™ËYÜ˜YY[]ËXˆœ›ÛKY[Y\˜[MÌËY[Y\˜[NMLLÈ^\ÛH›ÛX›XÚÈ\\˜Ø\ÙH˜XÚÚ[™Ë]ÚYH^]Ú]HÚYİËVÌÌÌŒœÜ™Ø˜JM‹NKLKŒ
-WHXİ]™NœØØ[KVÌNWH\ØX›Y›ÜXÚ]KMH‚ˆ\ØX›Y^Ü]\ÙPÛÛ™š\›TØ]š[™ßBˆÛÛXÚÏ^Ê
-HOˆ›ÚY^Xİ]PÛÛ™š\›YY]\ÙJ
-_Bˆ‚ˆÜ]\ÙPÛÛ™š\›TØ]š[™ÈÈ	ø )‰Èˆ	Ô]\ÙHZİ]šY\™[‰ßBˆØ]Û‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆ
-_B‚ˆÙ[™PÛÛ™š\›SÜ[ˆ	‰ˆ
-ˆ]‚ˆÛ\ÜÓ˜[YOH™š^Y[œÙ]L‹VÌLH›^Z[‹ZYš][\ËXÙ[\ˆ\İYKXÙ[\ˆİ™\™›İË^KX]]Èİ™\œØÜ›Û^KXÛÛZ[ˆ™ËX›XÚËÎHMVÛX^
-Ü™[K[ŠØY™KX\™XKZ[œÙ]]Ü
-JWH‹VÛX^
-\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JWH˜XÚÙ›ÜX›\‹\ÛHÛNœKMˆ‚ˆ›ÛOHœ™\Ù[][Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÙ][™PÛÛ™š\›SÜ[Š˜[ÙJ_Bˆ‚ˆ]‚ˆÛ\ÜÓ˜[YOH›^KX]]È›^ËY[X^]Ë[YX^ZVÎ™šH›^XÛÛİ™\™›İËZY[ˆ›İ[™YL›Ü™\‹Lˆ›Ü™\‹\™YMLÍMH™Ë^š[˜ËNMLÚYİËVÌÌÍÜ™Ø˜JJWH‚ˆÛÛXÚÏ^ÊJHOˆKœİÜ›ÜYØ][ÛŠ
-_Bˆ›ÛOH™X[ÙÈ‚ˆ\šXK[[Ù[HYH‚ˆ\šXK[X™[YOH™[™K[X]Ú]]H‚ˆ‚ˆ]ˆÛ\ÜÓ˜[YOH›Z[‹ZL›^LHİ™\™›İË^KX]]Èİ™\œØÜ›ÛXÛÛZ[ˆM‹LÈMÛNœMHÛNœMH‚ˆÈYH™[™K[X]Ú]]HˆÛ\ÜÓ˜[YOH^L›ÛX›XÚÈXY[™Ë]YÚ˜XÚÚ[™Ë]YÚ^]Ú]H‚ˆÜY[™Y[™[ÂˆÚÏ‚ˆÛ\ÜÓ˜[YOH›]Lˆ^VÌM\H›Û[YY][HXY[™Ë\ÛYÈ^^š[˜ËLÌÛN^X˜\ÙH‚ˆÚ\Ñ[[ÂˆÈ	Ñ\È[[ËTÜY[Ú\™ÚØ[X™Ù\ØÚÜÜÙ[‹ˆ\ÈÙ\™[ˆÙZ[™HXÚ[ˆ][ˆ™\°í™™™[XÚˆ[œØÚYpçÙ[™Ø[›œİHÜY[™Z][ˆ]\İÙ\[‹‰Âˆˆ
-ˆ‚ˆYHZˆİÜ\ˆ]™KS[Ù\È[™][™\ˆ[™İ[™Ú\™Ù\ÜZXÚ\ˆ[œØÚYpçÙ[™Ø[›œİH[ˆØ[[™\‹U\›Z[ˆZ]ÉÈ	ßBˆÜ[ˆÛ\ÜÓ˜[YOH™›Û\Ù[ZX›Û^]Ú]H”ÜY[XœØÚYpçÙ[ÜÜ[ˆXœØÚYpçÙ[‹‚ˆÏ‚ˆ
-_BˆÜ‚ˆÙ]‚ˆ]‚ˆÛ\ÜÓ˜[YOHœİXÚŞH›İÛKL‹LLÚš[šËL›Ü™\‹]›Ü™\‹]Ú]KÖÌŒ—H™Ë^š[˜ËNMLML‹HÛNœMH‚ˆİ[O^ŞÂˆY[™Ğ›İÛNˆ	ÛX^
-LœØ[Ê[ŠØY™KX\™XKZ[œÙ]X›İÛK
-H
-ÈKŒ\™[JJIËˆ_Bˆ‚ˆ]ˆÛ\ÜÓ˜[YOH™›^›^XÛÛØ\LˆZ[‹VÍŒN™›^\›İÈZ[‹VÍŒNš][\Ë\İ™]Ú‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛ\ÜÓ˜[YOH™›^LMZ[‹ZLMZ[‹]ËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^›Ü™\ˆ›Ü™\‹]Ú]KÌLˆ™Ë^š[˜ËNMLLÈ^\ÛH›Û\Ù[ZX›Û^^š[˜ËLÌÚYİË[›Û™HXİ]™NœØØ[KVÌNWH‚ˆÛÛXÚÏ^Ê
-HOˆÙ][™PÛÛ™š\›SÜ[Š˜[ÙJ_Bˆ‚ˆX˜œ™XÚ[‚ˆØ]Û‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛ\ÜÓ˜[YOH™›^LMZ[‹ZLMZ[‹]ËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^™ËYÜ˜YY[]ËXˆœ›ÛK\™YMŒË\™YNMLLÈ^\ÛH›ÛX›XÚÈ\\˜Ø\ÙH˜XÚÚ[™Ë]ÚYH^]Ú]HÚYİËVÌÌÌŒœÜ™Ø˜JŒŒÎÎŒÎ
-WHXİ]™NœØØ[KVÌNWH‚ˆÛÛXÚÏ^Ê
-HOˆÂˆYˆ
-Z[š[][T^][YQ[˜X›Y	‰ˆ™[İÓZ[š[][T^][YPÛİ[ˆ
-HÂˆÙ][™PÛÛ™š\›SÜ[Š˜[ÙJNÂˆÙ]Z[”^][YQ[™Ø\›“Ü[ŠYJNÂˆ™]\›ÂˆBˆÙ][™PÛÛ™š\›SÜ[Š˜[ÙJNÂˆ›ÚY\œÚ\İX]Ú[™Ú]İ]Ø[[™\Š
-NÂˆ_Bˆ‚ˆ[™BˆØ]Û‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆ
-_B‚ˆÛZ[”^][YQ[™Ø\›“Ü[ˆ	‰ˆ
-ˆ]‚ˆÛ\ÜÓ˜[YOH™š^Y[œÙ]L‹VÌLH›^Z[‹ZYš][\ËXÙ[\ˆ\İYKXÙ[\ˆİ™\™›İË^KX]]Èİ™\œØÜ›Û^KXÛÛZ[ˆ™ËX›XÚËÎHMVÛX^
-Ü™[K[ŠØY™KX\™XKZ[œÙ]]Ü
-JWH‹VÛX^
-\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JWH˜XÚÙ›ÜX›\‹\ÛHÛNœKMˆ‚ˆ›ÛOHœ™\Ù[][Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÙ]Z[”^][YQ[™Ø\›“Ü[Š˜[ÙJ_Bˆ‚ˆ]‚ˆÛ\ÜÓ˜[YOH›^KX]]È›^ËY[X^]Ë[YX^ZVÎ™šH›^XÛÛİ™\™›İËZY[ˆ›İ[™YL›Ü™\‹Lˆ›Ü™\‹X[X™\‹MLÍL™Ë^š[˜ËNMLÚYİËVÌÌÍÜ™Ø˜JJWH‚ˆÛÛXÚÏ^ÊJHOˆKœİÜ›ÜYØ][ÛŠ
-_Bˆ›ÛOH™X[ÙÈ‚ˆ\šXK[[Ù[HYH‚ˆ\šXK[X™[YOH›Z[‹\^][YKY[™]]H‚ˆ‚ˆ]ˆÛ\ÜÓ˜[YOH›Z[‹ZL›^LHİ™\™›İË^KX]]Èİ™\œØÜ›ÛXÛÛZ[ˆM‹LÈMÛNœMHÛNœMH‚ˆÈYH›Z[‹\^][YKY[™]]HˆÛ\ÜÓ˜[YOH^^›ÛX›XÚÈXY[™Ë]YÚ˜XÚÚ[™Ë]YÚ^]Ú]H‚ˆÜ[ˆ\šXKZY[ˆÛ\ÜÓ˜[YOH›\‹LH‚ˆ8¦¨ˆÜÜ[‚ˆZ[™\İÜY[™Z]šXÚ\œ™ZXÚˆÚÏ‚ˆÛ\ÜÓ˜[YOH›]Lˆ^VÌM\H›Û[YY][HXY[™Ë\ÛYÈ^^š[˜ËLÌ‚ˆØ™[İÓZ[š[][T^][YPÛİ[^ÉÈ	ßBˆØ™[İÓZ[š[][T^][YPÛİ[OOHBˆÈ	ÔÜY[\ˆ]YHZ[™\İÜY[™Z]›ØÚšXÚ\œ™ZXÚ‰Âˆˆ	ÔÜY[\ˆX™[ˆYHZ[™\İÜY[™Z]›ØÚšXÚ\œ™ZXÚ‰ßBˆÜ‚ˆ[Û\ÜÓ˜[YOH›]LÈÜXÙK^KLKH‚ˆØ™[İÓZ[š[][T^][YT^Y\œË›X\
+const spectatorTabWrapCompact =
+  'mt-2 flex gap-0.5 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/45 p-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const spectatorTabBtnCompact =
+  'flex h-9 min-h-9 shrink-0 flex-1 items-center justify-center rounded-lg border border-transparent px-1.5 text-center text-[11px] font-semibold transition-colors sm:text-[12px]';
+const spectatorTabBtnCompactActive = `${trainerTabBtnActive} border-white/10`;
+const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:text-white/85';
 
-
-HOˆ
-ˆHÙ^O^ÜšYHÛ\ÜÓ˜[YOH^VÌMHXY[™Ë\ÛYÈ^]Ú]KÎ‚ˆÜ[ˆÛ\ÜÓ˜[YOH™›Û\Ù[ZX›Û^]Ú]HÜ›˜[Y_OÜÜ[‚ˆÜ[ˆÛ\ÜÓ˜[YOH^]Ú]KÍMHˆÙ›Ü›X]Z\ÜÚ[™ÓZ[]\ÓX™[
-›Z\ÜÚ[™ÔÙXÛÛ™Ê_OÜÜ[‚ˆÛO‚ˆ
-J_Bˆİ[‚ˆÙ]‚ˆ]‚ˆÛ\ÜÓ˜[YOHœİXÚŞH›İÛKL‹LLÚš[šËL›Ü™\‹]›Ü™\‹]Ú]KÖÌŒ—H™Ë^š[˜ËNMLML‹HÛNœMH‚ˆİ[O^ŞÂˆY[™Ğ›İÛNˆ	ÛX^
-LœØ[Ê[ŠØY™KX\™XKZ[œÙ]X›İÛK
-H
-ÈKŒ\™[JJIËˆ_Bˆ‚ˆ]ˆÛ\ÜÓ˜[YOH™›^›^XÛÛØ\LˆZ[‹VÍŒN™›^\›İÈZ[‹VÍŒNš][\Ë\İ™]Ú‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛ\ÜÓ˜[YOH™›^LMZ[‹ZLMZ[‹]ËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^›Ü™\ˆ›Ü™\‹]Ú]KÌLˆ™Ë^š[˜ËNMLLÈ^\ÛH›Û\Ù[ZX›Û^^š[˜ËLÌÚYİË[›Û™HXİ]™NœØØ[KVÌNWH‚ˆÛÛXÚÏ^Ê
-HOˆÙ]Z[”^][YQ[™Ø\›“Ü[Š˜[ÙJ_Bˆ‚ˆ\°ïÚÂˆØ]Û‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛ\ÜÓ˜[YOH™›^LMZ[‹ZLMZ[‹]ËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^™ËYÜ˜YY[]ËXˆœ›ÛK\™YMŒË\™YNMLLÈ^\ÛH›ÛX›XÚÈ\\˜Ø\ÙH˜XÚÚ[™Ë]ÚYH^]Ú]HÚYİËVÌÌÌŒœÜ™Ø˜JŒŒÎÎŒÎ
-WHXİ]™NœØØ[KVÌNWH‚ˆÛÛXÚÏ^Ê
-HOˆÂˆÙ]Z[”^][YQ[™Ø\›“Ü[Š˜[ÙJNÂˆ›ÚY\œÚ\İX]Ú[™Ú]İ]Ø[[™\Š
-NÂˆ_Bˆ‚ˆÜY[›İ™[H™Y[™[‚ˆØ]Û‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆ
-_B‚ˆÜÜY[XœØÚ\ÜÓÜ[ˆ	‰ˆ
-ˆ]‚ˆÛ\ÜÓ˜[YOH™š^Y[œÙ]L‹VÌLH›^Z[‹ZYš][\ËXÙ[\ˆ\İYKXÙ[\ˆİ™\™›İË^KX]]Èİ™\œØÜ›Û^KXÛÛZ[ˆ™ËX›XÚËÎHMVÛX^
-Ü™[K[ŠØY™KX\™XKZ[œÙ]]Ü
-JWH‹VÛX^
-\™[K[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JWH˜XÚÙ›ÜX›\‹\ÛHÛNœKMˆ‚ˆ›ÛOHœ™\Ù[][Ûˆ‚ˆÛÛXÚÏ^Ê
-HOˆÙ]ÜY[XœØÚ\ÜÓÜ[Š˜[ÙJ_Bˆ‚ˆ]‚ˆÛ\ÜÓ˜[YOH›^KX]]È›^ËY[X^]Ë[YX^ZVÎ™šH›^XÛÛİ™\™›İËZY[ˆ›İ[™YL›Ü™\‹Lˆ›Ü™\‹X[X™\‹MLÍH™Ë^š[˜ËNMLÚYİËVÌÌÍÜ™Ø˜JJWH‚ˆÛÛXÚÏ^ÊJHOˆKœİÜ›ÜYØ][ÛŠ
-_Bˆ›ÛOH™X[ÙÈ‚ˆ\šXK[[Ù[HYH‚ˆ\šXK[X™[YOHœÜY[XXœØÚ\ÜË]]H‚ˆ‚ˆ]ˆÛ\ÜÓ˜[YOH›Z[‹ZL›^LHİ™\™›İË^KX]]Èİ™\œØÜ›ÛXÛÛZ[ˆM‹LÈMÛNœMHÛNœMH‚ˆÈYHœÜY[XXœØÚ\ÜË]]HˆÛ\ÜÓ˜[YOH^L›ÛX›XÚÈXY[™Ë]YÚ˜XÚÚ[™Ë]YÚ^]Ú]H‚ˆØ[[™\ˆXœØÚYpçÙ[ÂˆÚÏ‚ˆÛ\ÜÓ˜[YOH›]Lˆ^VÌM\H›Û[YY][HXY[™Ë\ÛYÈ^^š[˜ËLÌÛN^X˜\ÙH‚ˆ\ˆ™\šÛ°ïH\›Z[ˆÚ\™[HÜY[[ˆ[È™Y[™]X\šÚY\ˆ[˜XÚÙXÚÙ[YH[œÚXÚ\ˆ\pç™\œÚXÚ‚ˆÜ‚ˆÙ]‚ˆ]‚ˆÛ\ÜÓ˜[YOHœİXÚŞH›İÛKL‹LLÚš[šËL›Ü™\‹]›Ü™\‹]Ú]KÖÌŒ—H™Ë^š[˜ËNMLML‹HÛNœMH‚ˆİ[O^ŞÂˆY[™Ğ›İÛNˆ	ÛX^
-LœØ[Ê[ŠØY™KX\™XKZ[œÙ]X›İÛK
-H
-ÈKŒ\™[JJIËˆ_Bˆ‚ˆ]ˆÛ\ÜÓ˜[YOH™›^›^XÛÛØ\LˆZ[‹VÍŒN™›^\›İÈZ[‹VÍŒNš][\Ë\İ™]Ú‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛ\ÜÓ˜[YOH™›^LMZ[‹ZLMZ[‹]ËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^›Ü™\ˆ›Ü™\‹]Ú]KÌLˆ™Ë^š[˜ËNMLLÈ^\ÛH›Û\Ù[ZX›Û^^š[˜ËLÌÚYİË[›Û™HXİ]™NœØØ[KVÌNWH‚ˆÛÛXÚÏ^Ê
-HOˆÙ]ÜY[XœØÚ\ÜÓÜ[Š˜[ÙJ_Bˆ‚ˆX˜œ™XÚ[‚ˆØ]Û‚ˆ]Û‚ˆ\OH˜]Ûˆ‚ˆÛ\ÜÓ˜[YOH™›^LMZ[‹ZLMZ[‹]ËL›^LH][\ËXÙ[\ˆ\İYKXÙ[\ˆ›İ[™Y^™ËYÜ˜YY[]ËXˆœ›ÛKX[X™\‹MŒËX[X™\‹NMLLÈ^\ÛH›ÛX›XÚÈ\\˜Ø\ÙH˜XÚÚ[™Ë]ÚYH^]Ú]HÚYİËVÌÌÌŒœÜ™Ø˜JKMNLKŒÌŠWHXİ]™NœØØ[KVÌNWH‚ˆÛÛXÚÏ^Ê
-HOˆ›ÚYš[˜[^™PØ[[™\‘›Ü“X]Ú
+/** Live Hub: groÃŸe Touch-Ziele, kein Mini-Tab-GefÃ¼hl. */
+const hubNavSpectator = 'mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2.5';
+const hubNavTrainer = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
+const hubNavBtn = dsLiveHubNavBtnClass();
+const liveModuleBackBar =
+  'sticky top-0 z-40 mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/85 px-2 py-2 backdrop-blur-md sm:px-3';
 
-_Bˆ‚ˆXœØÚYpçÙ[‚ˆØ]Û‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆÙ]‚ˆ
-_B‚ˆÜİXœİ]][Û•Ø\İ^È
-ˆ]ˆÛ\ÜÓ˜[YOHœÚ[\‹Y]™[Ë[›Û™Hš^YÜVØØ[Ê[ŠØY™KX\™XKZ[œÙ]]Ü
-JÍŒœ™[JWHYLKÌˆ‹VÎHËVØØ[ÊL	KLK\™[JWHX^]Ë\ÛH]˜[œÛ]K^LKÌˆ‚ˆ]ˆÛ\ÜÓ˜[YOHœ›İ[™Y^›Ü™\ˆ›Ü™\‹Y[Y\˜[MÌÍH™ËX›XÚËÎHLÈKLˆ^XÙ[\ˆ^^È›Û\Ù[ZX›Û^Y[Y\˜[LLÚYİËVÌÌÌŒÜ™Ø˜JM‹NKLKŒŠWH˜XÚÙ›ÜX›\‹[Y‚ˆÜİXœİ]][Û•Ø\İ^BˆÙ]‚ˆÙ]‚ˆ
-Hˆ[BˆÙ›Ü›X][ÛÚ[™ÙUØ\İÈ
-ˆ]ˆÛ\ÜÓ˜[YOHœÚ[\‹Y]™[Ë[›Û™Hš^Y›İÛKVØØ[ÊMœ
-Ù[ŠØY™KX\™XKZ[œÙ]X›İÛK
-JWHYLKÌˆ‹VÌLWHËVØØ[ÊL	KLœ™[JWHX^]ËVÌMÜ™[WH]˜[œÛ]K^LKÌˆ‚ˆ]ˆÛ\ÜÓ˜[YOHœ›İ[™Y[È›Ü™\ˆ›Ü™\‹Y[Y\˜[MÌH™ËX›XÚËÍÎLÈKLˆ^XÙ[\ˆ^VÌMH›Û[YY][H^Y[Y\˜[MLÎMHÚYİËVÌÍÌMœÜ™Ø˜JJWH˜XÚÙ›ÜX›\‹\ÛH‚ˆ8§$È›Ü›X][ÛˆÙpé™\ˆÙ]‚ˆÙ]‚ˆ
-Hˆ[BˆÙ]‚ˆÏ‚ˆ
-NÂŸNÂ‚™^ÜY˜][]™SX]ÚØÜ™Y[Â
+const liveCardShell =
+  'rounded-[22px] border border-[rgba(255,40,40,0.07)] bg-[rgba(10,10,14,0.97)] shadow-[0_8px_28px_rgba(0,0,0,0.42),0_0_20px_rgba(255,45,85,0.05)]';
+
+const mbBtnH = 'h-10 min-h-10';
+const mbRound = 'rounded-xl';
+const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center gap-1.5 ${mbRound} px-3 text-xs font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40`;
+
+/** BottomNav (~76px) + Safe Area â€” Live-Sheets/Confirm Ã¼ber Nav & Safari-Bar */
+const LIVE_SHEET_BOTTOM_CLEARANCE = 'calc(4.75rem + env(safe-area-inset-bottom, 0px))';
+const LIVE_SHEET_FOOTER_SAFE_PB = 'max(0.75rem, env(safe-area-inset-bottom, 0px))';
+/** Sheet-CTA: BottomNav + Safari Home-Indicator */
+const LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB = 'calc(120px + env(safe-area-inset-bottom, 0px))';
+/** Formation-Sheet: nur Home-Indicator, kein BottomNav-Offset */
+const FORMATION_SHEET_FOOTER_PB = 'max(0.65rem, env(safe-area-inset-bottom, 0px))';
+const LIVE_SHEET_MAX_HEIGHT = 'min(80dvh, 40rem)';
+const LIVE_SCROLL_BOTTOM_PAD = 'calc(140px + env(safe-area-inset-bottom, 0px))';
+/** FairPlay-Sheets Ã¼ber BottomNav (~96px + Safe Area) */
+const FAIRPLAY_SHEET_BOTTOM_OFFSET = 'calc(96px + env(safe-area-inset-bottom, 0px))';
+const FAIRPLAY_SHEET_MAX_HEIGHT = 'min(70dvh, 34rem)';
+const FAIRPLAY_SHEET_LIST_BOTTOM_PAD = 'calc(120px + env(safe-area-inset-bottom, 0px))';
+const LIVE_HUB_SCROLL_BOTTOM_PAD = 'calc(170px + env(safe-area-inset-bottom, 0px))';
+const FAIRPLAY_SHEET_OVERLAY =
+  'fixed inset-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm';
+/** Wechsel-Sheet: direkt unter App-Header + Ã¼ber BottomNav (~78px) */
+const WECHSEL_SHEET_TOP_OFFSET = 'calc(80px + env(safe-area-inset-top, 0px))';
+const WECHSEL_SHEET_BOTTOM_OFFSET = 'calc(78px + env(safe-area-inset-bottom, 0px))';
+/** Wechsel: eigener Screen unter App-Header, Ã¼ber Hub (opaque, kein Hub-Scroll) */
+const WECHSEL_SCREEN_SHELL =
+  'fixed inset-x-0 z-[40] flex min-h-0 flex-col overflow-hidden border-t border-red-500/30 bg-black text-white';
+/** Spielfeld-Tab: Scroll-Ende Ã¼ber Footer/BottomNav */
+const WECHSEL_PITCH_TAB_SCROLL_BOTTOM_PAD = 'calc(150px + env(safe-area-inset-bottom, 0px))';
+/** Aufstellung: Pitch + Bank â€” Abstand Ã¼ber BottomNav (Live + Startelf) */
+const LINEUP_CONTENT_SCROLL_BOTTOM_PAD = 'calc(182px + env(safe-area-inset-bottom, 0px))';
+/** Footer im Screen â€” BottomNav-Abstand kommt vom Screen-bottom (78px) */
+const WECHSEL_SCREEN_FOOTER_PB = 'max(0.5rem, env(safe-area-inset-bottom, 0px))';
+/** Wechsel-Content: Abstand am Scroll-Ende Ã¼ber dem sticky Footer */
+const WECHSEL_CONTENT_SCROLL_BOTTOM_PAD = 'max(0.75rem, env(safe-area-inset-bottom, 0px))';
+/** iOS: kein Kopieren/Lookup auf Ergebnis & Uhr */
+const SCOREBOARD_NO_SELECT =
+  'select-none touch-manipulation [-webkit-touch-callout:none] [-webkit-user-select:none] [user-select:none]';
+export const LIVE_NAV_RESET_EVENT = 'spielzeit:live-nav-reset';
+
+function eventIcon(t: MatchEventType): string {
+  if (t === 'goal' || t === 'goal_away') return 'âš½';
+  if (t === 'sub_out' || t === 'sub_in' || t === 'substitution') return 'â‡„';
+  if (t === 'position_swap') return 'â†”';
+  if (t === 'extra_player_on') return 'ğŸŸ¡';
+  if (t === 'extra_player_off') return 'ğŸ”´';
+  if (t === 'start') return 'â–¶';
+  if (t === 'pause') return 'â¸';
+  if (t === 'resume') return 'â–¶';
+  if (t === 'end') return 'â¹';
+  return 'â€¢';
+}
+
+function newEventId(): string {
+  return `e_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function recomputeScoresFromEvents(evts: MatchEngineEvent[]): { home: number; away: number } {
+  const sorted = sortMatchEventsChronologically(evts);
+  let home = 0;
+  let away = 0;
+  for (const e of sorted) {
+    if (e.type === 'goal') home += 1;
+    else if (e.type === 'goal_away') away += 1;
+  }
+  return { home, away };
+}
+
+function findLastGoalEventIdForSide(events: MatchEngineEvent[], side: 'home' | 'away'): string | null {
+  const sorted = sortMatchEventsChronologically(events);
+  for (let i = sorted.length - 1; i >= 0; i -= 1) {
+    const e = sorted[i];
+    if (side === 'home' && e.type === 'goal') return e.id;
+    if (side === 'away' && e.type === 'goal_away') return e.id;
+  }
+  return null;
+}
+
+type EventsFilter = 'all' | 'goals' | 'subs' | 'cards';
+
+/**
+ * Wechsel in chronologischer Reihenfolge: atomare `substitution`-Events einzeln;
+ * Legacy sub_out/sub_in per FIFO paaren (auch wenn dazwischen Tore o. Ã„. liegen).
+ */
+function pairSubstitutionEventsInOrder(asc: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
+  const rows: { key: string; items: MatchEngineEvent[] }[] = [];
+  const pendingOut: MatchEngineEvent[] = [];
+
+  for (const e of asc) {
+    if (e.type === 'substitution') {
+      rows.push({ key: e.id, items: [e] });
+      continue;
+    }
+    if (e.type === 'sub_out') {
+      pendingOut.push(e);
+      continue;
+    }
+    if (e.type === 'sub_in') {
+      const out = pendingOut.shift();
+      if (out) rows.push({ key: `subpair_${out.id}_${e.id}`, items: [out, e] });
+      else rows.push({ key: e.id, items: [e] });
+      continue;
+    }
+    rows.push({ key: e.id, items: [e] });
+  }
+  for (const out of pendingOut) {
+    rows.push({ key: out.id, items: [out] });
+  }
+  return rows;
+}
+
+function substitutionOutInIds(ev: MatchEngineEvent): { outId: string; inId: string } {
+  if (ev.type === 'substitution') {
+    return {
+      outId: String(ev.playerId ?? '').trim(),
+      inId: String(ev.swapWithPlayerId ?? '').trim(),
+    };
+  }
+  return { outId: '', inId: '' };
+}
+
+function isSubstitutionTickerPair(row: { items: MatchEngineEvent[] }): boolean {
+  if (row.items.length === 1 && row.items[0]?.type === 'substitution') return true;
+  return (
+    row.items.length === 2 &&
+    row.items[0].type === 'sub_out' &&
+    row.items[1]?.type === 'sub_in'
+  );
+}
+
+function formatSubstitutionTickerLine(
+  rosterById: Map<string, RosterPlayer>,
+  outPlayerId: string,
+  inPlayerId: string,
+): string {
+  const outName = mobileLineupName((rosterById.get(outPlayerId)?.name ?? '').trim() || 'â€”');
+  const inName = mobileLineupName((rosterById.get(inPlayerId)?.name ?? '').trim() || 'â€”');
+  return `Raus ${outName} â†’ Rein ${inName}`;
+}
+
+function substitutionPlayersBeforeEvent(params: {
+  kickoffPlayerIds: string[];
+  squadPlayerIds: string[];
+  savedBenchPlayerIds: string[];
+  events: MatchEngineEvent[];
+  eventId: string;
+  eventTimestamp: number;
+}): { fieldPlayerIds: string[]; benchPlayerIds: string[] } {
+  const sorted = sortMatchEventsChronologically(params.events);
+  const eventIndex = sorted.findIndex((event) => event.id === params.eventId);
+  const eventsBefore = eventIndex >= 0 ? sorted.slice(0, eventIndex) : [];
+  const replay = replaySubstitutionEventsOnSlots(
+    params.kickoffPlayerIds,
+    eventsBefore,
+    params.eventTimestamp,
+    { squadPlayerIds: params.squadPlayerIds },
+  );
+  const fieldPlayerIds = getOnFieldIdsInSlotOrder(replay.slots);
+  return {
+    fieldPlayerIds,
+    benchPlayerIds: getBenchPlayers(
+      params.squadPlayerIds,
+      fieldPlayerIds,
+      params.savedBenchPlayerIds,
+    ),
+  };
+}
+
+function firstInvalidAtomicSubstitution(params: {
+  kickoffPlayerIds: string[];
+  squadPlayerIds: string[];
+  events: MatchEngineEvent[];
+}): MatchEngineEvent | null {
+  const sorted = sortMatchEventsChronologically(params.events);
+  for (let index = 0; index < sorted.length; index += 1) {
+    const event = sorted[index];
+    if (event.type !== 'substitution') continue;
+    const replayBefore = replaySubstitutionEventsOnSlots(
+      params.kickoffPlayerIds,
+      sorted.slice(0, index),
+      event.timestamp,
+      { squadPlayerIds: params.squadPlayerIds },
+    );
+    const fieldIds = new Set(getOnFieldIdsInSlotOrder(replayBefore.slots));
+    const outId = String(event.playerId ?? '').trim();
+    const inId = String(event.swapWithPlayerId ?? '').trim();
+    if (!outId || !inId || outId === inId || !fieldIds.has(outId) || fieldIds.has(inId)) {
+      return event;
+    }
+  }
+  return null;
+}
+
+/**
+ * Trainer-Liveticker: neueste zuerst, Wechsel-Paare nicht trennen.
+ * Filter â€Toreâ€œ: nur Tor-Events; â€Wechselâ€œ: nur Sub-Events mit Paar-Logik; â€Alleâ€œ: alle Events mit Paar-Logik.
+ */
+function buildLiveTickerRows(events: MatchEngineEvent[], filter: EventsFilter): { key: string; items: MatchEngineEvent[] }[] {
+  if (filter === 'cards') {
+    return [];
+  }
+  if (filter === 'goals') {
+    const goals = events.filter((e) => e.type === 'goal' || e.type === 'goal_away');
+    const desc = [...goals].sort((a, b) => b.timestamp - a.timestamp || b.id.localeCompare(a.id));
+    return desc.map((e) => ({ key: e.id, items: [e] }));
+  }
+  if (filter === 'subs') {
+    const subs = events.filter(
+      (e) => e.type === 'sub_out' || e.type === 'sub_in' || e.type === 'substitution',
+    );
+    const paired = pairSubstitutionEventsInOrder(sortMatchEventsChronologically(subs));
+    return paired.slice().reverse();
+  }
+  const paired = pairSubstitutionEventsInOrder(sortMatchEventsChronologically(events));
+  return paired.slice().reverse();
+}
+
+type TickerSegmentRow = { key: string; items: MatchEngineEvent[] };
+
+/** Sortierung innerhalb gleicher Anzeige-Minute: Tore â†’ Karten â†’ Wechsel â†’ Positionswechsel â†’ Ã¼brig. */
+function tickerSegmentSortRank(items: MatchEngineEvent[]): number {
+  if (isSubstitutionTickerPair({ items })) return 3;
+  const t = items[0]?.type;
+  if (t === 'goal' || t === 'goal_away') return 0;
+  if (t === 'yellow_card' || t === 'red_card' || t === 'second_yellow') return 1;
+  if (t === 'sub_out' || t === 'sub_in' || t === 'substitution') return 3;
+  if (t === 'position_swap') return 4;
+  if (t === 'extra_player_on' || t === 'extra_player_off') return 4.5;
+  return 10;
+}
+
+/** Nur Anzeige: benachbarte Zeilen gleicher `formatMinute`-Minute zu einem Block zusammenfassen. */
+function groupTickerRowsByDisplayMinute(rows: TickerSegmentRow[]): {
+  groupKey: string;
+  minuteLabel: string;
+  segments: TickerSegmentRow[];
+}[] {
+  const groups: { groupKey: string; minuteLabel: string; segments: TickerSegmentRow[] }[] = [];
+  for (const row of rows) {
+    const ts = row.items[0]?.timestamp ?? 0;
+    const label = formatMinute(ts);
+    const last = groups[groups.length - 1];
+    if (last && last.minuteLabel === label) {
+      last.segments.push(row);
+      last.groupKey = `${last.groupKey}__${row.key}`;
+    } else {
+      groups.push({ groupKey: row.key, minuteLabel: label, segments: [row] });
+    }
+  }
+  for (const g of groups) {
+    const withIdx = g.segments.map((s, i) => ({ s, i }));
+    withIdx.sort((a, b) => {
+      const ra = tickerSegmentSortRank(a.s.items);
+      const rb = tickerSegmentSortRank(b.s.items);
+      if (ra !== rb) return ra - rb;
+      return a.i - b.i;
+    });
+    g.segments = withIdx.map((x) => x.s);
+  }
+  return groups;
+}
+
+function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
+  return [...list].sort(compareRosterPlayers);
+}
+
+function rosterFamilyName(p: RosterPlayer): string {
+  const parts = (p.name || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1]! : p.name || 'â€”';
+}
+
+function mobileLineupName(name: string): string {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1]! : name || 'â€”';
+}
+
+function slotMetaFromSlotMap(
+  slots: Record<FieldSlotId, string | null>,
+  playerId: string,
+  formationId: U11FormationId,
+): { label: string; isGk: boolean } {
+  const slot = LIVE_FIELD_SLOT_ORDER.find((s) => slots[s] === playerId);
+  if (!slot) return { label: 'â€“', isGk: false };
+  return { label: getPositionLabel(labelForSlotInFormation(formationId, slot)) || 'â€“', isGk: slot === 'GK' };
+}
+
+type PeriodScorePair = { h: number; a: number };
+type PeriodScoresState = { p1?: PeriodScorePair; p2?: PeriodScorePair; p3?: PeriodScorePair };
+
+function parsePeriodScorePair(value: unknown): PeriodScorePair | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = value as { h?: unknown; a?: unknown };
+  const h = Number(raw.h);
+  const a = Number(raw.a);
+  if (!Number.isFinite(h) || !Number.isFinite(a)) return undefined;
+  return { h: Math.max(0, Math.trunc(h)), a: Math.max(0, Math.trunc(a)) };
+}
+
+function parsePeriodScores(value: unknown): PeriodScoresState {
+  if (!value || typeof value !== 'object') return {};
+  const raw = value as { p1?: unknown; p2?: unknown; p3?: unknown };
+  return {
+    p1: parsePeriodScorePair(raw.p1),
+    p2: parsePeriodScorePair(raw.p2),
+    p3: parsePeriodScorePair(raw.p3),
+  };
+}
+
+function formatPeriodScoresLine(scores: PeriodScoresState): string {
+  const f = (v?: PeriodScorePair) => (v ? `${v.h}:${v.a}` : '-:-');
+  return `(${f(scores.p1)} | ${f(scores.p2)} | ${f(scores.p3)})`;
+}
+
+function computeUpdatedPeriodScores(
+  current: PeriodScoresState,
+  section: 1 | 2 | 3,
+  total: { home: number; away: number },
+): PeriodScoresState {
+  const safeCurrent = parsePeriodScores(current);
+  const p1 = safeCurrent.p1;
+  const p2 = safeCurrent.p2;
+  if (section === 1) {
+    return { ...safeCurrent, p1: { h: total.home, a: total.away } };
+  }
+  if (section === 2) {
+    const baseH = p1?.h ?? 0;
+    const baseA = p1?.a ?? 0;
+    return {
+      ...safeCurrent,
+      p2: { h: Math.max(0, total.home - baseH), a: Math.max(0, total.away - baseA) },
+    };
+  }
+  const baseH = (p1?.h ?? 0) + (p2?.h ?? 0);
+  const baseA = (p1?.a ?? 0) + (p2?.a ?? 0);
+  return {
+    ...safeCurrent,
+    p3: { h: Math.max(0, total.home - baseH), a: Math.max(0, total.away - baseA) },
+  };
+}
+
+function nextMissingPeriodKey(scores: PeriodScoresState): 1 | 2 | 3 | null {
+  if (!scores.p1) return 1;
+  if (!scores.p2) return 2;
+  if (!scores.p3) return 3;
+  return null;
+}
+
+function resolveSectionForPause(scores: PeriodScoresState): 1 | 2 | 3 {
+  return nextMissingPeriodKey(scores) ?? 3;
+}
+
+function resolveSectionForEnd(scores: PeriodScoresState): 1 | 2 | 3 {
+  if (scores.p1 && scores.p2 && !scores.p3) return 3;
+  if (scores.p1 && !scores.p2) return 2;
+  if (!scores.p1) return 1;
+  return 3;
+}
+
+/** Kurzcode â†’ volle Positionsbezeichnung (Matchday-Squad, lesbare Schreibweise). */
+const KICKOFF_POSITION_FULL_DE: Record<string, string> = {
+  TW: 'Torwart',
+  GK: 'Torwart',
+  LV: 'Linksverteidiger',
+  LB: 'Linksverteidiger',
+  RV: 'Rechtsverteidiger',
+  RB: 'Rechtsverteidiger',
+  ZM: 'Zentrales Mittelfeld',
+  CM: 'Zentrales Mittelfeld',
+  LF: 'Linker FlÃ¼gel',
+  RF: 'Rechter FlÃ¼gel',
+  LM: 'Linker FlÃ¼gel',
+  RM: 'Rechter FlÃ¼gel',
+  LW: 'Linker FlÃ¼gel',
+  RW: 'Rechter FlÃ¼gel',
+  ST: 'StÃ¼rmer',
+  VT: 'Verteidiger',
+  IV: 'Innenverteidiger',
+  MF: 'Mittelfeld',
+  FP: 'Fairplay',
+};
+
+function kickoffPositionParts(
+  shortLabel: string,
+  rosterPosition?: string | null,
+): { short: string; full: string } {
+  const rosterShort = rosterPosition
+    ? (getPositionLabel(rosterPosition) || String(rosterPosition)).trim().toUpperCase()
+    : '';
+  let short = (shortLabel || rosterShort || '').trim().toUpperCase();
+  if (!short || short === 'â€“' || short === '-') short = rosterShort;
+  if (!short || short === 'â€“' || short === '-') short = 'â€“';
+  let full = KICKOFF_POSITION_FULL_DE[short];
+  if (!full && rosterPosition) {
+    const fromRoster = getPositionFull(rosterPosition).trim();
+    if (fromRoster) full = fromRoster;
+  }
+  if (!full || full === 'â€“') full = short === 'â€“' ? 'Position' : short;
+  return { short, full };
+}
+
+const LINEUP_HUB_TAB_BTN =
+  'inline-flex h-[34px] shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-[22px] border border-white/[0.08] bg-[rgba(12,12,16,0.88)] px-3 text-[13px] font-semibold text-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md transition-all duration-200 hover:border-[rgba(255,75,92,0.2)] hover:bg-[rgba(16,12,14,0.92)] hover:text-white active:scale-[0.985]';
+
+const LINEUP_TRAINER_ACTION_BTN =
+  'inline-flex h-[38px] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border px-3 text-[11px] font-semibold uppercase tracking-[0.03em] transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:text-xs';
+
+/** Live-Pitch: Badge unter Trikot; nutzt formationsspezifische labelDx/labelDy (nur UI). */
+function liveLineupPitchNameOffset(
+  slot: FieldSlotId,
+  formationId: U11FormationId,
+): { dx: number; dy: number } {
+  const row = (U11_FORMATIONS[formationId] ?? []).find((s) => s.slot === slot);
+  const dx = row?.labelDx ?? 0;
+  const baseDy = row?.labelDy ?? 0;
+  const y = row?.y ?? 50;
+
+  let addDy = 2;
+  if (slot === 'GK') {
+    addDy = 1;
+  } else if (y <= 20) {
+    addDy = 1;
+  } else if (y >= 66) {
+    addDy = 3;
+  }
+
+  return { dx, dy: baseDy + addDy };
+}
+
+/** Startelf-Liste: Scroll-Puffer Ã¼ber BottomNav */
+const KICKOFF_LINEUP_SCROLL_BOTTOM_PAD = LINEUP_CONTENT_SCROLL_BOTTOM_PAD;
+
+/** Trikot-Badge fÃ¼r Startaufstellung â€” gleiche Komponente/Props wie Pitch & Live-Bank. */
+function KickoffSquadJerseyBadge({
+  name,
+  positionLabel,
+  jerseyNumber,
+  compact = false,
+  matchday = true,
+}: {
+  name: string;
+  positionLabel: string;
+  jerseyNumber: number | string | null | undefined;
+  compact?: boolean;
+  matchday?: boolean;
+}) {
+  const posUpper = positionLabel.trim().toUpperCase();
+  const isGk = posUpper === 'TW' || posUpper === 'GK';
+  const shortName = mobileLineupName(name);
+  const lastName =
+    shortName && shortName !== 'â€”' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
+  const jerseyClass = matchday ? (compact ? DS_JERSEY_COMPACT : DS_JERSEY_STARTER) : compact ? '!h-[2.65rem] !w-[2.05rem]' : '!h-[2.85rem] !w-[2.2rem]';
+  const jerseyPx = matchday
+    ? compact
+      ? { h: '2.92rem', w: '2.29rem' }
+      : { h: '3.08rem', w: '2.42rem' }
+    : compact
+      ? { h: '2.65rem', w: '2.05rem' }
+      : { h: '2.85rem', w: '2.2rem' };
+
+  return (
+    <div
+      className={[
+        'flex shrink-0 items-center justify-center overflow-visible',
+        matchday ? 'opacity-90 drop-shadow-[0_2px_12px_rgba(0,0,0,0.38),0_0_16px_rgba(255,40,40,0.1)]' : '',
+      ].join(' ')}
+      style={{ width: jerseyPx.w, height: jerseyPx.h, minWidth: jerseyPx.w, minHeight: jerseyPx.h }}
+      aria-hidden
+    >
+      <LeibchenJersey
+        lastName={lastName}
+        number={jerseyNumber ?? 'â€“'}
+        position={positionLabel}
+        variant={isGk ? 'goalkeeper' : 'field'}
+        size="compact"
+        pitchStyleBack
+        showBackPrint={false}
+        className={`shrink-0 ${jerseyClass}`}
+      />
+    </div>
+  );
+}
+
+type KickoffRosterPlayerCardProps = {
+  name: string;
+  positionShort: string;
+  rosterPosition?: string | null;
+  jerseyNumber: number | string | null | undefined;
+  avatarUrl: string | null | undefined;
+  variant: 'starter' | 'bench';
+  onClick?: () => void;
+};
+
+function KickoffRosterPlayerCard({
+  name,
+  positionShort,
+  rosterPosition,
+  jerseyNumber,
+  avatarUrl,
+  variant,
+  onClick,
+}: KickoffRosterPlayerCardProps) {
+  const isStarter = variant === 'starter';
+  const { short: posShort, full: posFull } = kickoffPositionParts(positionShort, rosterPosition);
+  const subline = `${posShort} Â· ${posFull}`;
+  const num =
+    typeof jerseyNumber === 'number'
+      ? jerseyNumber
+      : typeof jerseyNumber === 'string' && jerseyNumber.trim()
+        ? Number(jerseyNumber)
+        : undefined;
+
+  return (
+    <PremiumPlayerCard
+      tone="matchday"
+      active={isStarter}
+      player={{
+        display_name: name,
+        position: positionShort,
+        jersey_number: Number.isFinite(num) ? num : undefined,
+        avatar_url: avatarUrl ?? undefined,
+      }}
+      subline={subline}
+      density="compact"
+      onClick={onClick}
+      className={isStarter ? '' : 'opacity-[0.94]'}
+      trailing={
+        <KickoffSquadJerseyBadge
+          name={name}
+          positionLabel={posShort}
+          jerseyNumber={jerseyNumber}
+          compact={!isStarter}
+          matchday
+        />
+      }
+    />
+  );
+}
+
+export const LiveMatchScreen: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const matchIdParam = searchParams.get('matchId');
+  /** DEMO.2F: gleicher Screen unter /demo, aber gegen die lokale Runtime statt Supabase. */
+  const demo = useDemoMode();
+  const isDemo = Boolean(demo);
+  const basePath = useInternalBasePath();
+
+  const [effectiveMatchId, setEffectiveMatchId] = useState<string | null>(null);
+  const [matchRow, setMatchRow] = useState<LiveMatchRow | null>(null);
+  const [lineupData, setLineupData] = useState<{
+    startingPlayerIds: string[];
+    squadPlayerIds: string[];
+    savedBenchPlayerIds: string[];
+  } | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
+  const [savedBenchPlayerIds, setSavedBenchPlayerIds] = useState<string[]>([]);
+  const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
+  /** Kickoff-Feld aus `match_lineup_snapshots` â€” einzige Basis fÃ¼r Live-Wechsel-Replay (nicht mutierendes DB-Lineup). */
+  const [kickoffStartingPlayerIds, setKickoffStartingPlayerIds] = useState<string[]>([]);
+  const [initialStartingPlayerIds, setInitialStartingPlayerIds] = useState<string[]>([]);
+  const [events, setEvents] = useState<MatchEngineEvent[]>([]);
+  const [opponentLabel, setOpponentLabel] = useState('Gegner');
+  const [opponentLogoUrl, setOpponentLogoUrl] = useState<string | null>(null);
+  const [eventIsHome, setEventIsHome] = useState<boolean | null>(null);
+  const [scoreHome, setScoreHome] = useState(0);
+  const [scoreAway, setScoreAway] = useState(0);
+
+  const { selectedTeamSeason, canAccess, backendRole } = useSession();
+  const canControlLiveMatch =
+    isDemo || canAccess('match_admin') || String(backendRole ?? '').trim().toLowerCase() === 'admin';
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setPageLoading(true);
+      setPageError(null);
+      let resolvedId = matchIdParam?.trim() || null;
+      if (resolvedId === 'local-setup') resolvedId = null;
+      if (!resolvedId) {
+        const { data: live, error: liveErr } = await fetchFirstLiveMatch();
+        if (cancelled) return;
+        if (liveErr) {
+          setPageError(liveErr);
+          setEffectiveMatchId(null);
+          setMatchRow(null);
+          setLineupData(null);
+          setEventIsHome(null);
+          setOpponentLogoUrl(null);
+          setPageLoading(false);
+          return;
+        }
+        resolvedId = live?.id ?? null;
+      }
+      if (!resolvedId) {
+        setEffectiveMatchId(null);
+        setMatchRow(null);
+        setLineupData(null);
+        setEvents([]);
+        setEventIsHome(null);
+        setOpponentLogoUrl(null);
+        setPageLoading(false);
+        return;
+      }
+
+      const [mRes, lineRes, evRes, isHomeRes, kickoffIds] = await Promise.all([
+        fetchMatchById(resolvedId),
+        fetchLineupForLiveMatch(resolvedId),
+        fetchMatchEvents(resolvedId),
+        fetchEventIsHomeByMatchId(resolvedId),
+        fetchKickoffLineupPlayerIds(resolvedId),
+      ]);
+      if (cancelled) return;
+      if (mRes.error || !mRes.data) {
+        setPageError(mRes.error ?? 'Spiel nicht gefunden.');
+        setEffectiveMatchId(null);
+        setMatchRow(null);
+        setLineupData(null);
+        setEvents([]);
+        setEventIsHome(null);
+        setOpponentLogoUrl(null);
+        setPageLoading(false);
+        return;
+      }
+      setEffectiveMatchId(resolvedId);
+      setMatchRow(mRes.data);
+      setEventIsHome(isHomeRes.isHome);
+      setOpponentLogoUrl(isHomeRes.opponentLogoUrl);
+      const lineData = lineRes.error
+        ? { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] }
+        : lineRes.data;
+      setLineupData(lineData);
+      const sorted = sortMatchEventsChronologically(evRes.data);
+      setEvents([...sorted].reverse());
+      const kickFromSnap =
+        kickoffIds != null && kickoffIds.some((id) => String(id ?? '').trim().length > 0)
+          ? kickoffIds.slice(0, 7)
+          : null;
+      const kickFinal = kickFromSnap ?? [...lineData.startingPlayerIds].slice(0, 7);
+      setKickoffStartingPlayerIds(kickFinal);
+      if (!kickFromSnap && mRes.data?.status === 'live' && import.meta.env.DEV) {
+        const hasSubs = sorted.some(
+          (e) => e.type === 'substitution' || e.type === 'sub_out' || e.type === 'sub_in',
+        );
+        if (hasSubs) {
+          console.warn('LiveMatch missing kickoff snapshot - playtime replay may be wrong', {
+            matchId: resolvedId,
+          });
+        } else {
+          console.warn(
+            '[LiveMatch] Kein Kickoff-Snapshot (match_lineup_snapshots); Replay-Basis = aktuelles match_lineup.',
+          );
+        }
+      }
+      if (lineRes.error) setSaveError(lineRes.error);
+      if (evRes.error) setSaveError(evRes.error);
+      setPageLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Demo: Session wird im DemoProvider synchron gebootet; Match-ID der Runtime
+    // als AbhÃ¤ngigkeit, falls der erste Fetch vor dem Boot lief.
+  }, [matchIdParam, isDemo ? demo?.liveRuntimeMatchId ?? null : null]);
+
+  const teamSeasonForRoster = matchRow?.team_season_id ?? null;
+  const {
+    players: dbPlayers,
+    loading: dbPlayersLoading,
+    error: dbPlayersError,
+  } = usePlayers(isDemo ? null : teamSeasonForRoster);
+  const players = isDemo && demo ? demo.players : dbPlayers;
+  const playersLoading = isDemo ? false : dbPlayersLoading;
+  const playersError = isDemo ? null : dbPlayersError;
+  const safePlayers = Array.isArray(players) ? players : [];
+
+  const roster = useMemo(() => sortRosterByNumber(safePlayers.map(playerItemToRoster)), [safePlayers]);
+  const rosterById = useMemo(() => {
+    const m = new Map<string, RosterPlayer>();
+    roster.forEach((p) => m.set(p.id, p));
+    return m;
+  }, [roster]);
+
+  const playersById = useMemo(() => {
+    const m = new Map<string, PlayerItem>();
+    safePlayers.forEach((p) => m.set(p.id, p));
+    return m;
+  }, [safePlayers]);
+
+  const canManagePlayers = canManageRoster(normalizeRole(backendRole ?? null));
+
+  const [kickoffProfilePlayer, setKickoffProfilePlayer] = useState<PlayerItem | null>(null);
+
+  const openKickoffPlayerProfile = useCallback(
+    (playerId: string) => {
+      const pid = String(playerId ?? '').trim();
+      if (!pid || pid.startsWith('kickoff-')) return;
+      const p = playersById.get(pid);
+      if (p) setKickoffProfilePlayer(p);
+    },
+    [playersById],
+  );
+
+  useEffect(() => {
+    if (!kickoffProfilePlayer?.id) return;
+    const next = playersById.get(kickoffProfilePlayer.id);
+    if (next) setKickoffProfilePlayer(next);
+  }, [playersById, kickoffProfilePlayer?.id]);
+
+  /** Replay-Basis: immer Kickoff-Snapshot wenn vorhanden (auch nach Matchende â€” sonst Doppel-Replay). */
+  const liveLineupBasePlayerIds = useMemo(() => {
+    const hasKickoffPlayer = kickoffStartingPlayerIds.some((id) => String(id ?? '').trim().length > 0);
+    if (hasKickoffPlayer) return kickoffStartingPlayerIds.slice(0, 7);
+    return startingPlayerIds.slice(0, 7);
+  }, [kickoffStartingPlayerIds, startingPlayerIds]);
+
+  const { currentMatchSeconds, half } = useMatchTimer({
+    elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
+    isRunning: matchRow?.live_is_running ?? false,
+    hasEnded: matchRow?.status === 'finished',
+    startedAtISO: matchRow?.live_is_running ? matchRow?.live_started_at ?? null : null,
+    clockEvents: events,
+  });
+
+  const hasClockStarted = useMemo(
+    () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
+    [matchRow?.live_started_at, events],
+  );
+
+  const matchIsFinished = matchRow?.status === 'finished';
+  const matchClockStatus = useMemo(
+    () => getMatchLiveClockStatus(matchRow, { hasClockStarted }),
+    [matchRow, hasClockStarted],
+  );
+  const isRunning = matchClockStatus === 'live';
+  const isPaused = matchClockStatus === 'paused';
+  /** Tore nur bei laufender Uhr (DB: `live_is_running` + Status live). */
+  const isClockRunning = isRunning;
+  const goalBlockedMessage = useMemo(() => {
+    if (matchIsFinished) return 'Spiel beendet â€“ keine weiteren Tore mÃ¶glich.';
+    if (matchClockStatus === 'not_started') return 'Spiel noch nicht gestartet â€“ Tore erst nach Anpfiff mÃ¶glich.';
+    return 'Spiel ist pausiert â€“ Tore erst nach Weiter mÃ¶glich.';
+  }, [matchIsFinished, matchClockStatus]);
+
+  useEffect(() => {
+    if (!matchRow) return;
+    const o = matchRow.opponent?.trim();
+    setOpponentLabel(o || 'Gegner');
+    setScoreHome(Number(matchRow.score_home ?? 0));
+    setScoreAway(Number(matchRow.score_away ?? 0));
+  }, [matchRow]);
+
+  const prevEffectiveMatchIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevEffectiveMatchIdRef.current;
+    prevEffectiveMatchIdRef.current = effectiveMatchId;
+    if (!effectiveMatchId) {
+      setInitialStartingPlayerIds([]);
+      setKickoffStartingPlayerIds([]);
+      return;
+    }
+    if (prev != null && prev !== effectiveMatchId) {
+      setInitialStartingPlayerIds([]);
+      setKickoffStartingPlayerIds([]);
+    }
+  }, [effectiveMatchId]);
+
+  useEffect(() => {
+    if (!matchRow) {
+      setSquadPlayerIds([]);
+      setStartingPlayerIds([]);
+      return;
+    }
+    if (!lineupData) {
+      setSquadPlayerIds([]);
+      setStartingPlayerIds([]);
+      return;
+    }
+    setSquadPlayerIds([...lineupData.squadPlayerIds]);
+    setStartingPlayerIds([...lineupData.startingPlayerIds]);
+    setSavedBenchPlayerIds([...(lineupData.savedBenchPlayerIds ?? [])]);
+    setInitialStartingPlayerIds((prev) =>
+      prev.length > 0 ? prev : [...lineupData.startingPlayerIds].slice(0, 7),
+    );
+  }, [matchRow, lineupData]);
+
+  /** Trainer: beschÃ¤digte DB-Zeilen fÃ¼r Lineup/Bank einmal bereinigen (nur bei Abweichung). */
+  useEffect(() => {
+    if (!effectiveMatchId || !canControlLiveMatch || matchIsFinished) return;
+    if (matchRow?.status !== 'live') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (lineupPersistInProgress.current) return;
+        const { repaired, error } = await repairLiveMatchLineupBenchIfNeeded(effectiveMatchId);
+        if (error) setSaveError(error);
+        if (!repaired || cancelled) return;
+        const lineRes = await fetchLineupForLiveMatch(effectiveMatchId);
+        if (cancelled || lineRes.error) return;
+        setLineupData(lineRes.data);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMatchId, canControlLiveMatch, matchIsFinished, matchRow?.status]);
+
+  const reloadMatchSetupFromDb = useCallback(async () => {
+    if (!effectiveMatchId) return;
+    if (lineupReloadInFlightRef.current) {
+      lineupReloadPendingRef.current = true;
+      return;
+    }
+    lineupReloadInFlightRef.current = true;
+    try {
+      if (
+        !lineupPersistInProgress.current &&
+        canControlLiveMatch &&
+        (matchRow?.status === 'live' || matchRow?.status === 'finished')
+      ) {
+        const { repaired, error } = await repairLiveMatchLineupBenchIfNeeded(effectiveMatchId);
+        if (error) setSaveError(error);
+        if (import.meta.env.DEV && repaired) {
+          console.debug('[LiveMatch] lineup/bench repaired from DB');
+        }
+      }
+      const lineRes = await fetchLineupForLiveMatch(effectiveMatchId);
+      setLineupData(
+        lineRes.error
+          ? { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] }
+          : lineRes.data,
+      );
+      if (lineRes.error) setSaveError(lineRes.error);
+    } finally {
+      lineupReloadInFlightRef.current = false;
+    }
+    if (lineupReloadPendingRef.current) {
+      lineupReloadPendingRef.current = false;
+      void reloadMatchSetupFromDb();
+    }
+  }, [effectiveMatchId, canControlLiveMatch, matchRow?.status]);
+
+  const reloadLiveMatchState = useCallback(async () => {
+    if (!effectiveMatchId || realtimeReloadInFlightRef.current) return;
+    realtimeReloadInFlightRef.current = true;
+    const [mRes, evRes] = await Promise.all([
+      fetchMatchById(effectiveMatchId),
+      fetchMatchEvents(effectiveMatchId),
+    ]);
+    realtimeReloadInFlightRef.current = false;
+    if (mRes.error) setSaveError(mRes.error);
+    if (mRes.data) setMatchRow(mRes.data);
+    void reloadMatchSetupFromDb();
+    if (evRes.error) setSaveError(evRes.error);
+    const sorted = sortMatchEventsChronologically(evRes.data ?? []);
+    setEvents((prev) => {
+      const fetchedIds = new Set(sorted.map((e) => e.id));
+      const pending = prev.filter((e) => !fetchedIds.has(e.id));
+      const merged = sortMatchEventsChronologically([...sorted, ...pending]);
+      return [...merged].reverse();
+    });
+  }, [effectiveMatchId, reloadMatchSetupFromDb]);
+
+  const queueRealtimeReload = useCallback(() => {
+    if (realtimeReloadTimerRef.current != null) {
+      window.clearTimeout(realtimeReloadTimerRef.current);
+    }
+    realtimeReloadTimerRef.current = window.setTimeout(() => {
+      realtimeReloadTimerRef.current = null;
+      void reloadLiveMatchState();
+    }, 220);
+  }, [reloadLiveMatchState]);
+
+  /** Gleiche Reload-Kette fÃ¼r alle Rollen: Match-Zeile, Events, Lineup + Bank aus der DB. */
+  const queueLiveMatchRealtimeUpdate = useCallback(
+    (payload: { eventType?: string }) => {
+      if (lineupPersistInProgress.current) {
+        if (import.meta.env.DEV) {
+          console.debug('[LiveMatch] realtime update deferred â€” lineup persist in progress', payload.eventType);
+        }
+        return;
+      }
+      if (import.meta.env.DEV) {
+        console.log('live lineup realtime update', payload.eventType);
+      }
+      queueRealtimeReload();
+    },
+    [queueRealtimeReload],
+  );
+
+  useEffect(() => {
+    // Demo: lokale Runtime, kein Realtime-Kanal.
+    if (!effectiveMatchId || isDemo) return;
+    const channel = supabase
+      .channel(`live-match-screen-${effectiveMatchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${effectiveMatchId}`,
+        },
+        queueLiveMatchRealtimeUpdate,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_events',
+          filter: `match_id=eq.${effectiveMatchId}`,
+        },
+        queueLiveMatchRealtimeUpdate,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_lineup',
+          filter: `match_id=eq.${effectiveMatchId}`,
+        },
+        queueLiveMatchRealtimeUpdate,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_bench',
+          filter: `match_id=eq.${effectiveMatchId}`,
+        },
+        queueLiveMatchRealtimeUpdate,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_lineup_slots',
+          filter: `match_id=eq.${effectiveMatchId}`,
+        },
+        queueLiveMatchRealtimeUpdate,
+      )
+      .subscribe();
+    // Realtime + RLS (SELECT) fÃ¼r diese Tabellen; `match_lineup_slots` nur, falls die Tabelle in der DB existiert und publiziert ist.
+    return () => {
+      if (realtimeReloadTimerRef.current != null) {
+        window.clearTimeout(realtimeReloadTimerRef.current);
+        realtimeReloadTimerRef.current = null;
+      }
+      void supabase.removeChannel(channel);
+    };
+  }, [effectiveMatchId, isDemo, queueLiveMatchRealtimeUpdate]);
+
+  /** Demo hat keine Session-Team-Saison â€” Teamname kommt aus den Demo-Fixtures. */
+  const ownTeamName = isDemo
+    ? demo?.data.teamName ?? HOME_FALLBACK
+    : selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
+  const homeNameRaw = ownTeamName;
+  const headerOpponent = opponentLabel;
+  const sides = useMemo(
+    () =>
+      getMatchSides({
+        isHome: eventIsHome,
+        ownTeamName: homeNameRaw,
+        opponentName: headerOpponent,
+      }),
+    [eventIsHome, homeNameRaw, headerOpponent],
+  );
+  const stadiumHomeDisplay = cleanTeamDisplayName(sides.homeTeamName);
+  const stadiumAwayDisplay = cleanTeamDisplayName(sides.awayTeamName);
+  const homeNameParts = matchboardAbbrevAndClub(stadiumHomeDisplay);
+  const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
+  const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
+  /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
+  const matchTypeDisplay = 'Freundschaftsspiel';
+  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time'>('hub');
+  const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+  useEffect(() => {
+    const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
+    if (tab === 'time' || tab === 'statistik' || tab === 'spielzeiten') {
+      setMainTab('time');
+    } else if (tab === 'events' || tab === 'liveticker') {
+      setMainTab('events');
+    } else if (tab === 'lineup' || tab === 'aufstellung') {
+      setMainTab('lineup');
+    } else if (tab === 'overview' || tab === 'uebersicht') {
+      setMainTab('overview');
+    } else if (tab === 'hub') {
+      setMainTab('hub');
+    }
+  }, [searchParams]);
+  useEffect(() => {
+    if (!canControlLiveMatch && mainTab === 'time') {
+      setMainTab('hub');
+    }
+  }, [canControlLiveMatch, mainTab]);
+
+  const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
+  const [subSheetView, setSubSheetView] = useState<'list' | 'pitch'>('list');
+  const [subOutPlayerId, setSubOutPlayerId] = useState<string | null>(null);
+  const [subInPlayerId, setSubInPlayerId] = useState<string | null>(null);
+  const [subSaving, setSubSaving] = useState(false);
+  const [subSuggestionsExpanded, setSubSuggestionsExpanded] = useState(false);
+  const [subRecommendedOutId, setSubRecommendedOutId] = useState<string | null>(null);
+  const [subRecommendedInId, setSubRecommendedInId] = useState<string | null>(null);
+  const [substitutionToastText, setSubstitutionToastText] = useState<string | null>(null);
+  /** Aufstellung-Tab: Positionswechsel direkt auf dem Spielfeld (nur Feldspieler). */
+  const [lineupPositionMode, setLineupPositionMode] = useState(false);
+  /** Aufstellung: Live-Feld vs. Startaufstellung-Snapshot (read-only). */
+  const [lineupPanelView, setLineupPanelView] = useState<'live' | 'kickoff'>('live');
+  const [posSwapSlotA, setPosSwapSlotA] = useState<FieldSlotId | null>(null);
+  const [posSwapSlotB, setPosSwapSlotB] = useState<FieldSlotId | null>(null);
+  const [posSwapConfirmOpen, setPosSwapConfirmOpen] = useState(false);
+  const [posSwapSaving, setPosSwapSaving] = useState(false);
+  const [fairPlayExtraSheetOpen, setFairPlayExtraSheetOpen] = useState(false);
+  const [fairPlayExtraPickId, setFairPlayExtraPickId] = useState<string | null>(null);
+  const [fairPlayExtraSaving, setFairPlayExtraSaving] = useState(false);
+  const [fairPlayRemoveSheetOpen, setFairPlayRemoveSheetOpen] = useState(false);
+  const [fairPlayRemovePickId, setFairPlayRemovePickId] = useState<string | null>(null);
+  const [fairPlayRemoveSaving, setFairPlayRemoveSaving] = useState(false);
+  const closeWechselSheet = useCallback(() => {
+    setWechselSheetOpen(false);
+    setSubSheetView('list');
+    setSubOutPlayerId(null);
+    setSubInPlayerId(null);
+    setSubSaving(false);
+    setSubRecommendedOutId(null);
+    setSubRecommendedInId(null);
+    setLineupPositionMode(false);
+    setPosSwapSlotA(null);
+    setPosSwapSlotB(null);
+    setPosSwapConfirmOpen(false);
+    setPosSwapSaving(false);
+  }, []);
+  const openWechselSheet = useCallback(() => {
+    setSubOutPlayerId(null);
+    setSubInPlayerId(null);
+    setSubSaving(false);
+    setSubSheetView('list');
+    setSubRecommendedOutId(null);
+    setSubRecommendedInId(null);
+    setLineupPositionMode(false);
+    setPosSwapSlotA(null);
+    setPosSwapSlotB(null);
+    setPosSwapConfirmOpen(false);
+    setPosSwapSaving(false);
+    setWechselSheetOpen(true);
+  }, []);
+  /** Wechsel-Sheet mit Vorauswahl â€” BestÃ¤tigung bleibt â€Wechsel bestÃ¤tigenâ€œ. */
+  const openWechselSheetWithPreset = useCallback((outgoingPlayerId: string, incomingPlayerId: string) => {
+    const outId = String(outgoingPlayerId ?? '').trim();
+    const inId = String(incomingPlayerId ?? '').trim();
+    if (!outId || !inId || outId === inId) return;
+    setMainTab('hub');
+    setSubOutPlayerId(outId);
+    setSubInPlayerId(inId);
+    setSubSaving(false);
+    setSubSheetView('pitch');
+    setSubRecommendedOutId(outId);
+    setSubRecommendedInId(inId);
+    setLineupPositionMode(false);
+    setWechselSheetOpen(true);
+  }, []);
+  useEffect(() => {
+    if (wechselSheetOpen && mainTab !== 'overview' && mainTab !== 'hub') closeWechselSheet();
+  }, [wechselSheetOpen, mainTab, closeWechselSheet]);
+
+  const [formationSheetOpen, setFormationSheetOpen] = useState(false);
+  const [formationSaving, setFormationSaving] = useState(false);
+  const [formationPendingId, setFormationPendingId] = useState<U11FormationId | null>(null);
+  const closeFormationSheet = useCallback(() => {
+    setFormationSheetOpen(false);
+    setFormationSaving(false);
+    setFormationPendingId(null);
+    setLineupPositionMode(false);
+  }, []);
+  useEffect(() => {
+    if (formationSheetOpen && mainTab !== 'lineup') closeFormationSheet();
+  }, [formationSheetOpen, mainTab, closeFormationSheet]);
+
+  useEffect(() => {
+    if (mainTab !== 'lineup' && lineupPanelView !== 'live') setLineupPanelView('live');
+  }, [mainTab, lineupPanelView]);
+
+  /** Beim Wechsel in den Aufstellung-Tab: bei laufendem Spiel immer zuerst Live-Mannschaft zeigen. */
+  const prevMainTabForLineupDefaultRef = useRef(mainTab);
+  useEffect(() => {
+    const enteredLineup = mainTab === 'lineup' && prevMainTabForLineupDefaultRef.current !== 'lineup';
+    prevMainTabForLineupDefaultRef.current = mainTab;
+    if (enteredLineup && matchRow?.status === 'live') {
+      setLineupPanelView('live');
+      setLineupPositionMode(false);
+      setFormationSheetOpen(false);
+    }
+  }, [mainTab, matchRow?.status]);
+
+  const [formationChangeToast, setFormationChangeToast] = useState(false);
+  useEffect(() => {
+    if (!formationChangeToast) return;
+    const t = window.setTimeout(() => setFormationChangeToast(false), 2000);
+    return () => window.clearTimeout(t);
+  }, [formationChangeToast]);
+
+  const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
+  const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
+  const [awayGoalModalOpen, setAwayGoalModalOpen] = useState(false);
+  const [awayGoalPickId, setAwayGoalPickId] = useState<string>('');
+  const [editingGoalEvent, setEditingGoalEvent] = useState<MatchEngineEvent | null>(null);
+  const [editingGoalScorerId, setEditingGoalScorerId] = useState('');
+  const [editingGoalSaving, setEditingGoalSaving] = useState(false);
+  const [editingSubstitutionEvent, setEditingSubstitutionEvent] = useState<MatchEngineEvent | null>(null);
+  const [editingSubstitutionOutId, setEditingSubstitutionOutId] = useState('');
+  const [editingSubstitutionInId, setEditingSubstitutionInId] = useState('');
+  const [editingSubstitutionSaving, setEditingSubstitutionSaving] = useState(false);
+  const liveEditDialogOpen = Boolean(editingGoalEvent || editingSubstitutionEvent);
+
+  useEffect(() => {
+    document.body.toggleAttribute('data-live-edit-dialog-open', liveEditDialogOpen);
+    return () => document.body.removeAttribute('data-live-edit-dialog-open');
+  }, [liveEditDialogOpen]);
+
+  const [pauseConfirmOpen, setPauseConfirmOpen] = useState(false);
+  const [pauseConfirmSaving, setPauseConfirmSaving] = useState(false);
+  const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
+  const [minPlaytimeEndWarnOpen, setMinPlaytimeEndWarnOpen] = useState(false);
+  const [spielAbschlussOpen, setSpielAbschlussOpen] = useState(false);
+  const [calendarFinalized, setCalendarFinalized] = useState(false);
+  const [tournamentNavContext, setTournamentNavContext] =
+    useState<TournamentMatchNavigationContext | null>(null);
+  const [tournamentPlanSyncBusy, setTournamentPlanSyncBusy] = useState(false);
+  const [tournamentPlanSyncStatus, setTournamentPlanSyncStatus] = useState<string | null>(null);
+  const [goalUndoOffer, setGoalUndoOffer] = useState<{
+    eventId: string;
+    side: 'home' | 'away';
+    prevHome: number;
+    prevAway: number;
+  } | null>(null);
+  const [goalUndoToastClosing, setGoalUndoToastClosing] = useState(false);
+  const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const resultFeedRefreshAttemptRef = useRef<string | null>(null);
+  const liveScrollRef = useRef<HTMLDivElement>(null);
+  const liveHubScrollRef = useRef<HTMLElement>(null);
+
+  // Scroll-Reset: bei Route-Eintritt (location.key) und jedem Tab-Wechsel
+  // (Hub â†” Ãœbersicht/Aufstellung/Liveticker/Statistik) zuverlÃ¤ssig oben starten.
+  // Hub und Unterseiten teilen sich per CSS umgeschaltete Scrollcontainer,
+  // deren scrollTop sonst erhalten bleibt (plus iOS/bfcache window-Restore).
+  const routeLocation = useLocation();
+  useResetScrollOnLiveEntry(`${routeLocation.key}:${mainTab}`, [liveHubScrollRef, liveScrollRef]);
+
+  const releaseLiveBodyScrollLock = useCallback(() => {
+    // Defensiv: alle hÃ¤ngenden Locks lÃ¶sen (body + html), z. B. nach Sheet-Races.
+    forceReleaseBodyScrollLocks();
+  }, []);
+
+  /** Repariert auch bereits bestehende Ergebnis-Posts, wenn ein Trainer das beendete Spiel erneut Ã¶ffnet. */
+  useEffect(() => {
+    const mid = effectiveMatchId?.trim() ?? '';
+    if (!mid || isDemo || !canControlLiveMatch || matchRow?.status !== 'finished') return;
+    if (resultFeedRefreshAttemptRef.current === mid) return;
+    resultFeedRefreshAttemptRef.current = mid;
+    void ensureResultFeedPostForMatch(mid).then((result) => {
+      if (!result.ok) {
+        console.warn('[resultFeed][LiveMatch] refresh existing post failed', result.error);
+        resultFeedRefreshAttemptRef.current = null;
+      }
+    });
+  }, [effectiveMatchId, isDemo, canControlLiveMatch, matchRow?.status]);
+
+  const stabilizeLiveHubAfterFairPlay = useCallback(() => {
+    releaseLiveBodyScrollLock();
+    window.setTimeout(() => {
+      liveHubScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      liveScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  }, [releaseLiveBodyScrollLock]);
+  const substitutionToastTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+
+  const clearSubstitutionToast = useCallback(() => {
+    if (substitutionToastTimerRef.current != null) {
+      window.clearTimeout(substitutionToastTimerRef.current);
+      substitutionToastTimerRef.current = null;
+    }
+    setSubstitutionToastText(null);
+  }, []);
+
+  const showSubstitutionToast = useCallback((message: string, ms = 2200) => {
+    clearSubstitutionToast();
+    setSubstitutionToastText(message);
+    substitutionToastTimerRef.current = window.setTimeout(() => {
+      setSubstitutionToastText(null);
+      substitutionToastTimerRef.current = null;
+    }, ms);
+  }, [clearSubstitutionToast]);
+  const subSaveInFlightRef = useRef(false);
+  const substitutionAnimTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const substitutionHighlightTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const realtimeReloadTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const realtimeReloadInFlightRef = useRef(false);
+  const lineupReloadInFlightRef = useRef(false);
+  const lineupReloadPendingRef = useRef(false);
+  const prevLineupSlotsRef = useRef<Partial<Record<FieldSlotId, string | null>> | null>(null);
+  const scoresRef = useRef({ home: 0, away: 0 });
+  const homeGoalLpTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const homeGoalSuppressClickRef = useRef(false);
+  const awayGoalLpTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const awayGoalSuppressClickRef = useRef(false);
+
+  const clearGoalUndoTimer = useCallback(() => {
+    if (goalUndoTimerRef.current != null) {
+      window.clearTimeout(goalUndoTimerRef.current);
+      goalUndoTimerRef.current = null;
+    }
+    if (goalUndoFadeTimerRef.current != null) {
+      window.clearTimeout(goalUndoFadeTimerRef.current);
+      goalUndoFadeTimerRef.current = null;
+    }
+    setGoalUndoToastClosing(false);
+  }, []);
+
+  const totalsFromEvents = useMemo(() => recomputeScoresFromEvents(events), [events]);
+  /**
+   * Gesamtstand nur aus Events + Matchzeile (DB), nie aus separat hochgezÃ¤hltem Local-State â€”
+   * sonst +1 im Handler und max(totals, state) = DoppelzÃ¤hlung beim Tor.
+   */
+  const displayScoreHome = Math.max(
+    totalsFromEvents.home,
+    Number(matchRow?.score_home ?? 0),
+  );
+  const displayScoreAway = Math.max(
+    totalsFromEvents.away,
+    Number(matchRow?.score_away ?? 0),
+  );
+
+  useEffect(() => {
+    scoresRef.current = { home: displayScoreHome, away: displayScoreAway };
+  }, [displayScoreHome, displayScoreAway]);
+
+  useEffect(() => {
+    if (!effectiveMatchId || matchRow?.status !== 'finished') {
+      setCalendarFinalized(false);
+      return;
+    }
+    if (isDemo) {
+      setCalendarFinalized(isDemoLiveCalendarFinalized(effectiveMatchId));
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('status')
+        .eq('match_id', effectiveMatchId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        setCalendarFinalized(false);
+        return;
+      }
+      if (!data) setCalendarFinalized(true);
+      else setCalendarFinalized(data.status === 'finished');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMatchId, isDemo, matchRow?.status]);
+
+  useEffect(() => {
+    // Demo: keine Turnier-Navigation (kein Turnier-Match im Demo-Katalog).
+    if (!effectiveMatchId || isDemo) {
+      setTournamentNavContext(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchTournamentMatchNavigationContext(effectiveMatchId, { afterCurrentMatch: true }).then(
+      (ctx) => {
+        if (!cancelled) setTournamentNavContext(ctx);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMatchId, matchIsFinished, matchRow?.status, isDemo]);
+
+  /**
+   * Eltern/Fans: sticky ?matchId= darf nicht auf finished Match 1 bleiben,
+   * wenn bereits Match 2 (eigenes Team) live ist. 8s Poll + Broadcast.
+   */
+  useEffect(() => {
+    if (canControlLiveMatch || isDemo) return;
+    const teamSeasonId =
+      String(selectedTeamSeason?.id ?? '').trim() ||
+      String(matchRow?.team_season_id ?? '').trim();
+    if (!teamSeasonId || !effectiveMatchId) return;
+
+    let cancelled = false;
+    const trySwitchToLive = async () => {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('team_season_id', teamSeasonId)
+        .eq('status', 'live')
+        .order('match_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || error) return;
+      const liveId = data?.id ? String(data.id).trim() : '';
+      if (!liveId || liveId === effectiveMatchId) return;
+      navigate(`${basePath}/live?matchId=${encodeURIComponent(liveId)}`, { replace: true });
+    };
+
+    void trySwitchToLive();
+    const unsub = subscribeLiveMatchStateChanged((detail) => {
+      if (detail.status === 'live' || detail.status === 'finished') {
+        void trySwitchToLive();
+      }
+    });
+    const interval = window.setInterval(() => void trySwitchToLive(), 8_000);
+    return () => {
+      cancelled = true;
+      unsub();
+      window.clearInterval(interval);
+    };
+  }, [
+    canControlLiveMatch,
+    isDemo,
+    selectedTeamSeason?.id,
+    matchRow?.team_season_id,
+    effectiveMatchId,
+    navigate,
+    basePath,
+  ]);
+
+  useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
+
+  useEffect(
+    () => () => {
+      if (homeGoalLpTimerRef.current != null) window.clearTimeout(homeGoalLpTimerRef.current);
+      if (awayGoalLpTimerRef.current != null) window.clearTimeout(awayGoalLpTimerRef.current);
+      if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
+      if (substitutionAnimTimerRef.current != null) window.clearTimeout(substitutionAnimTimerRef.current);
+      if (substitutionHighlightTimerRef.current != null) window.clearTimeout(substitutionHighlightTimerRef.current);
+    },
+    [],
+  );
+
+  const offerGoalUndo = useCallback(
+    (payload: { eventId: string; side: 'home' | 'away'; prevHome: number; prevAway: number }) => {
+      clearGoalUndoTimer();
+      setGoalUndoOffer(payload);
+      setGoalUndoToastClosing(false);
+      goalUndoFadeTimerRef.current = window.setTimeout(() => {
+        setGoalUndoToastClosing(true);
+        goalUndoFadeTimerRef.current = null;
+      }, 2400);
+      goalUndoTimerRef.current = window.setTimeout(() => {
+        setGoalUndoOffer(null);
+        setGoalUndoToastClosing(false);
+        goalUndoTimerRef.current = null;
+      }, 3000);
+    },
+    [clearGoalUndoTimer],
+  );
+
+  const goalUndoRef = useRef(goalUndoOffer);
+  useEffect(() => {
+    goalUndoRef.current = goalUndoOffer;
+  }, [goalUndoOffer]);
+
+  const undoLastGoal = useCallback(async () => {
+    const offer = goalUndoRef.current;
+    if (!offer?.eventId?.trim() || !effectiveMatchId) return;
+    clearGoalUndoTimer();
+    setGoalUndoOffer(null);
+    const { eventId, prevHome, prevAway } = offer;
+    const { error } = await deleteMatchEventById(eventId.trim());
+    if (error) {
+      setSaveError(error);
+      return;
+    }
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    setScoreHome(prevHome);
+    setScoreAway(prevAway);
+    setMatchRow((prev) =>
+      prev
+        ? {
+            ...prev,
+            score_home: prevHome,
+            score_away: prevAway,
+          }
+        : prev,
+    );
+    const { error: rowErr } = await updateMatchRow(effectiveMatchId, {
+      score_home: prevHome,
+      score_away: prevAway,
+    });
+    if (rowErr) setSaveError(rowErr);
+    queueRealtimeReload();
+  }, [effectiveMatchId, clearGoalUndoTimer, queueRealtimeReload]);
+
+  const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
+  const eventsSortedAsc = useMemo(() => sortMatchEventsChronologically(events), [events]);
+
+  const kickoffSnapshotWarnedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!import.meta.env.DEV || !effectiveMatchId || matchRow?.status !== 'live') return;
+    const hasSubs = eventsSortedAsc.some(
+      (e) => e.type === 'substitution' || e.type === 'sub_out' || e.type === 'sub_in',
+    );
+    if (!hasSubs) return;
+    if (kickoffSnapshotWarnedRef.current === effectiveMatchId) return;
+
+    let cancelled = false;
+    void fetchKickoffLineupPlayerIds(effectiveMatchId).then((ids) => {
+      if (cancelled) return;
+      const hasSnap = ids != null && ids.some((id) => String(id ?? '').trim().length > 0);
+      if (!hasSnap) {
+        kickoffSnapshotWarnedRef.current = effectiveMatchId;
+        console.warn('LiveMatch missing kickoff snapshot - playtime replay may be wrong', {
+          matchId: effectiveMatchId,
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMatchId, matchRow?.status, eventsSortedAsc]);
+
+  const playtimeFinalSecond = useMemo(
+    () =>
+      resolvePlaytimeFinalMatchSecond({
+        events: eventsSortedAsc,
+        currentMatchSeconds,
+        liveElapsedSeconds: matchRow?.live_elapsed_seconds,
+        isFinished: matchIsFinished,
+      }),
+    [eventsSortedAsc, matchRow?.live_elapsed_seconds, currentMatchSeconds, matchIsFinished],
+  );
+
+  const prevPlaytimesRef = useRef<PlayerPlaytimeMap>({});
+
+  const liveReplayState = useMemo(() => {
+    const state = deriveLiveMatchReplayState({
+      kickoffLineup: liveLineupBasePlayerIds,
+      kickoffLineupForPlaytime: kickoffStartingPlayerIds.slice(0, 7),
+      squadPlayerIds,
+      events: eventsSortedAsc,
+      finalSecond: playtimeFinalSecond,
+      fallbackStartingPlayerIds: startingPlayerIds,
+      savedBenchPlayerIds,
+      previousPlaytimesByPlayerId: prevPlaytimesRef.current,
+      isLiveMatchRunning: matchRow?.status === 'live' && isRunning && !matchIsFinished,
+    });
+    prevPlaytimesRef.current = state.playtimeSecondsByPlayerId;
+    if (import.meta.env.DEV && matchRow?.status === 'live') {
+      const n = countOccupiedFieldSlots(state.slotsBySlot);
+      const minExpected = state.fairPlayExtraPlayerId ? 8 : 7;
+      if (n < minExpected) {
+        console.warn('[LiveMatch] Replay: weniger als 7 Feldspieler in Slots', {
+          slotCount: n,
+          warnings: state.diagnostics.warnings,
+        });
+      }
+    }
+    return state;
+  }, [
+    liveLineupBasePlayerIds,
+    kickoffStartingPlayerIds,
+    squadPlayerIds,
+    eventsSortedAsc,
+    playtimeFinalSecond,
+    startingPlayerIds,
+    savedBenchPlayerIds,
+    matchRow?.status,
+    isRunning,
+    matchIsFinished,
+  ]);
+
+  const lineupSlotsForDisplay = liveReplayState.slotsBySlot;
+  const onFieldIds = liveReplayState.onFieldPlayerIds;
+  const currentFieldPlayerCount = countOccupiedFieldSlots(lineupSlotsForDisplay);
+  const activePlayerIds = liveReplayState.activePlayerIds;
+  const fairPlayExtraPlayerId = liveReplayState.fairPlayExtraPlayerId;
+  const playtimes = liveReplayState.playtimeSecondsByPlayerId;
+
+  const plannedMatchMinutes = normalizePlannedMatchMinutes(
+    matchRow?.planned_match_minutes ?? DEFAULT_PLANNED_MATCH_MINUTES,
+  );
+  const minimumPlaytimeEnabled = Boolean(matchRow?.minimum_playtime_enabled);
+  const minimumPlaytimeMinutes = normalizeMinimumPlaytimeMinutes(
+    matchRow?.minimum_playtime_minutes ?? DEFAULT_MINIMUM_PLAYTIME_MINUTES,
+    plannedMatchMinutes,
+  );
+  const minimumPlaytimeRequiredSec = minimumPlaytimeSecondsFromMinutes(minimumPlaytimeMinutes);
+
+  const plannedMatchDurationSec = useMemo(
+    () => getPlannedMatchDurationSeconds({ plannedMinutes: plannedMatchMinutes }),
+    [plannedMatchMinutes],
+  );
+
+  const remainingEffectiveMatchSec = useMemo(
+    () => getRemainingEffectiveMatchSeconds(plannedMatchDurationSec, currentMatchSeconds),
+    [plannedMatchDurationSec, currentMatchSeconds],
+  );
+
+  const belowMinimumPlaytimePlayers = useMemo(() => {
+    if (!minimumPlaytimeEnabled) return [];
+    const squadSet = new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
+    const rows: {
+      id: string;
+      name: string;
+      missingSeconds: number;
+      playedMinutes: number;
+      urgency: MinimumPlaytimeUrgency;
+      onBench: boolean;
+    }[] = [];
+    for (const id of squadSet) {
+      const sec = playtimes[id] ?? 0;
+      if (!isBelowMinimumPlaytime(sec, minimumPlaytimeMinutes)) continue;
+      const st = getMinimumPlaytimePlayerStatus(sec, minimumPlaytimeMinutes);
+      const urgency = getMinimumPlaytimeUrgency(sec, minimumPlaytimeMinutes, remainingEffectiveMatchSec);
+      rows.push({
+        id,
+        name: (rosterById.get(id)?.name ?? '?').trim() || '?',
+        missingSeconds: st.missingSeconds,
+        playedMinutes: st.playedMinutes,
+        urgency,
+        onBench: !activePlayerIds.includes(id),
+      });
+    }
+    rows.sort(
+      (a, b) =>
+        minimumPlaytimeUrgencyRank(a.urgency) - minimumPlaytimeUrgencyRank(b.urgency) ||
+        b.missingSeconds - a.missingSeconds ||
+        a.name.localeCompare(b.name, 'de'),
+    );
+    return rows;
+  }, [
+    minimumPlaytimeEnabled,
+    squadPlayerIds,
+    playtimes,
+    minimumPlaytimeMinutes,
+    rosterById,
+    remainingEffectiveMatchSec,
+    plannedMatchDurationSec,
+    activePlayerIds,
+  ]);
+
+  const belowMinimumPlaytimeCount = belowMinimumPlaytimePlayers.length;
+
+  const urgentMinimumPlaytimeAlerts = useMemo(
+    () =>
+      belowMinimumPlaytimePlayers.filter((p) => p.onBench && isMinimumPlaytimeUrgent(p.urgency)),
+    [belowMinimumPlaytimePlayers],
+  );
+  const fairPlayGoalDiffOwnMinusOpp = useMemo(() => {
+    const own = sides.isOwnTeamHome ? displayScoreHome : displayScoreAway;
+    const opp = sides.isOwnTeamHome ? displayScoreAway : displayScoreHome;
+    return own - opp;
+  }, [sides.isOwnTeamHome, displayScoreHome, displayScoreAway]);
+  const fairPlayRuleActivatable = fairPlayGoalDiffOwnMinusOpp <= -4;
+  const fairPlayMustRemoveExtra = Boolean(fairPlayExtraPlayerId) && fairPlayGoalDiffOwnMinusOpp > -4;
+  const fairPlayExtraDisplayName = useMemo(() => {
+    const id = fairPlayExtraPlayerId?.trim();
+    if (!id) return '';
+    const raw = rosterById.get(id)?.name?.trim();
+    return raw && raw.length > 0 ? raw : 'Spieler';
+  }, [fairPlayExtraPlayerId, rosterById]);
+
+  const fieldPlayers = useMemo(() => {
+    const set = new Set(onFieldIds);
+    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
+  }, [onFieldIds, roster]);
+
+  const benchPlayers = useMemo(() => {
+    const list = liveReplayState.benchPlayerIds.map(
+      (id) => rosterById.get(id) ?? { id, name: 'â€”', number: 0 },
+    );
+    return sortRosterByNumber(list);
+  }, [liveReplayState.benchPlayerIds, rosterById]);
+
+  const fairPlayRemoveFieldRows = useMemo(() => {
+    const ids = [...new Set(activePlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean))];
+    const list = ids.map((id) => rosterById.get(id)).filter((p): p is RosterPlayer => Boolean(p));
+    return sortRosterByNumber(list);
+  }, [activePlayerIds, rosterById]);
+  const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
+
+  /** Single Source of Truth: `matches.u11_formation_id` (Realtime), kein localStorage. */
+  const safeFormationId = useMemo((): U11FormationId => {
+    const raw = matchRow?.u11_formation_id;
+    return isU11FormationId(raw) ? raw : U11_FORMATION_DB_FALLBACK;
+  }, [matchRow]);
+
+  const pitchFormationId = useMemo(
+    (): U11FormationId => resolveLivePitchFormationId(safeFormationId, Boolean(fairPlayExtraPlayerId)),
+    [safeFormationId, fairPlayExtraPlayerId],
+  );
+
+  const formationSheetChoices = useMemo(
+    (): U11FormationId[] =>
+      fairPlayExtraPlayerId ? [...FAIRPLAY_FORMATION_CHOICES] : [...U11_FORMATION_CHOICES],
+    [fairPlayExtraPlayerId],
+  );
+
+  const requestFormationChange = useCallback(
+    (id: U11FormationId) => {
+      if (!effectiveMatchId || !canControlLiveMatch || formationSaving) return;
+      if (fairPlayExtraPlayerId && !isFairPlayFormationId(id)) return;
+      if (!fairPlayExtraPlayerId && isFairPlayFormationId(id)) return;
+      if (id === pitchFormationId) {
+        closeFormationSheet();
+        return;
+      }
+      setFormationPendingId(id);
+    },
+    [
+      effectiveMatchId,
+      canControlLiveMatch,
+      formationSaving,
+      pitchFormationId,
+      fairPlayExtraPlayerId,
+      closeFormationSheet,
+    ],
+  );
+
+  const confirmFormationChange = useCallback(async () => {
+    const id = formationPendingId;
+    if (!id || !effectiveMatchId || !canControlLiveMatch || formationSaving) return;
+    setFormationSaving(true);
+    setSaveError(null);
+    try {
+      const layoutAudit = auditFormationSlotLayout(id);
+      const beforeFieldIds = [...liveReplayState.onFieldPlayerIds];
+      const beforeBenchIds = [...liveReplayState.benchPlayerIds];
+      const minFieldExpected = fairPlayExtraPlayerId ? 8 : 7;
+
+      if (fairPlayExtraPlayerId && layoutAudit.formationSlotsLength !== 8) {
+        console.warn('[formation-change] FairPlay-Formation hat nicht 8 Slots â€” Speichern abgebrochen', layoutAudit);
+        setSaveError('Formation ungÃ¼ltig: FairPlay erfordert genau 8 Feldslots.');
+        return;
+      }
+      if (!layoutAudit.valid) {
+        console.warn('[formation-change] Formation-Layout ungÃ¼ltig â€” Speichern abgebrochen', layoutAudit);
+        setSaveError('Formation ungÃ¼ltig: doppelte oder fehlende Slots.');
+        return;
+      }
+      if (import.meta.env.DEV && beforeFieldIds.length < minFieldExpected) {
+        console.warn('[LiveMatch] Live formation remap lost active player', {
+          activeCount: beforeFieldIds.length,
+          minFieldExpected,
+        });
+      }
+
+      const lineRes = await persistLiveLineupAndBenchSafe({
+        matchId: effectiveMatchId,
+        reason: 'formation_change',
+        slots: liveReplayState.slotsBySlot,
+        beforeFieldIds,
+        beforeBenchIds,
+        squadPlayerIds,
+        savedBenchPlayerIds,
+        kickoffStartingPlayerIds,
+        events: eventsSortedAsc,
+      });
+      if (lineRes.error || !lineRes.payload) {
+        setSaveError(lineRes.error ?? 'Formation konnte nicht gespeichert werden.');
+        return;
+      }
+
+      const { error: rowErr } = await updateMatchRow(effectiveMatchId, { u11_formation_id: id });
+      if (rowErr) {
+        setSaveError(rowErr);
+        return;
+      }
+
+      const { startingPlayerIds: ordered, squadPlayerIds: fullSquadIds, benchPlayerIds: afterBenchIds } =
+        lineRes.payload;
+      setStartingPlayerIds(ordered);
+      setSquadPlayerIds(fullSquadIds);
+      setSavedBenchPlayerIds(afterBenchIds);
+      setLineupData({
+        startingPlayerIds: ordered,
+        squadPlayerIds: fullSquadIds,
+        savedBenchPlayerIds: afterBenchIds,
+      });
+      setFormationPendingId(null);
+      closeFormationSheet();
+      setFormationChangeToast(true);
+      void queueRealtimeReload();
+    } finally {
+      setFormationSaving(false);
+    }
+  }, [
+    formationPendingId,
+    effectiveMatchId,
+    canControlLiveMatch,
+    formationSaving,
+    fairPlayExtraPlayerId,
+    liveReplayState.slotsBySlot,
+    liveReplayState.onFieldPlayerIds,
+    liveReplayState.benchPlayerIds,
+    squadPlayerIds,
+    savedBenchPlayerIds,
+    kickoffStartingPlayerIds,
+    eventsSortedAsc,
+    closeFormationSheet,
+    queueRealtimeReload,
+  ]);
+
+  const safeLineupRows = useMemo(
+    () =>
+      safeSlotOrder.map((slot) => {
+        const playerId = lineupSlotsForDisplay?.[slot] ?? null;
+        const player = playerId ? rosterById.get(playerId) ?? null : null;
+        return {
+          id: player?.id ?? slot,
+          slot,
+          rightLabel: getPositionLabel(labelForSlotInFormation(pitchFormationId, slot)) || 'â€“',
+          display_name: player?.name ?? 'Spieler',
+          position: player?.position ?? null,
+          jersey_number: player?.number ?? null,
+          avatar_url: player?.avatarUrl ?? null,
+        };
+      }),
+    [safeSlotOrder, lineupSlotsForDisplay, rosterById, safeFormationId],
+  );
+
+  /** Readonly: Startaufstellung zum Anpfiff (Snapshot), unabhÃ¤ngig von Live-Wechseln. */
+  const kickoffSafeLineupRows = useMemo(
+    () =>
+      safeSlotOrder.map((slot, i) => {
+        const raw = kickoffStartingPlayerIds[i];
+        const playerId = raw && String(raw).trim().length > 0 ? String(raw).trim() : null;
+        const player = playerId ? rosterById.get(playerId) ?? null : null;
+        return {
+          id: player?.id ?? `kickoff-${slot}`,
+          slot,
+          rightLabel: getPositionLabel(labelForSlotInFormation(pitchFormationId, slot)) || 'â€“',
+          display_name: player?.name ?? 'â€”',
+          position: player?.position ?? null,
+          jersey_number: player?.number ?? null,
+          avatar_url: player?.avatarUrl ?? null,
+        };
+      }),
+    [safeSlotOrder, kickoffStartingPlayerIds, rosterById, safeFormationId],
+  );
+  const kickoffSafeLineupRowsCount = Array.isArray(kickoffSafeLineupRows)
+    ? kickoffSafeLineupRows.filter((row) => {
+        const n = String(row.display_name ?? '').trim();
+        return n.length > 0 && n !== 'â€”';
+      }).length
+    : 0;
+
+  /** Bank beim Anpfiff (Kader minus Startaufstellung-Snapshot) â€” nur Ansicht in der Startaufstellungs-Ansicht. */
+  // TODO: future: best lineup / successful lineup analytics
+  const kickoffBenchRows = useMemo(() => {
+    const onField = new Set(
+      kickoffStartingPlayerIds.map((id) => String(id ?? '').trim()).filter((id) => id.length > 0),
+    );
+    return (Array.isArray(squadPlayerIds) ? squadPlayerIds : [])
+      .map((id) => String(id ?? '').trim())
+      .filter((id) => id.length > 0 && !onField.has(id))
+      .map((id) => {
+        const player = rosterById.get(id) ?? null;
+        return {
+          id,
+          display_name: player?.name ?? 'Spieler',
+          position: player?.position ?? null,
+          jersey_number: player?.number ?? null,
+          avatar_url: player?.avatarUrl ?? null,
+        };
+      });
+  }, [squadPlayerIds, kickoffStartingPlayerIds, rosterById]);
+
+  const safeBenchRows = useMemo(
+    () =>
+      (Array.isArray(benchPlayers) ? benchPlayers : []).map((player) => ({
+        id: player?.id ?? '',
+        display_name: player?.name ?? 'Spieler',
+        position: player?.position ?? null,
+        jersey_number: player?.number ?? null,
+        avatar_url: player?.avatarUrl ?? null,
+      })),
+    [benchPlayers],
+  );
+
+  type SubstitutionFieldRow = (typeof safeLineupRows)[number];
+
+  const substitutionFieldRows = useMemo((): SubstitutionFieldRow[] => {
+    if (!Array.isArray(safeLineupRows)) return [];
+    return safeLineupRows.filter((row) => {
+      const slot = row?.slot;
+      if (!slot) return false;
+      const pid = lineupSlotsForDisplay?.[slot];
+      return typeof pid === 'string' && pid.length > 0;
+    });
+  }, [safeLineupRows, lineupSlotsForDisplay]);
+
+  const substitutionBenchRows = useMemo(() => {
+    if (!Array.isArray(safeBenchRows)) return [];
+    return safeBenchRows.filter((r) => String(r?.id ?? '').trim().length > 0);
+  }, [safeBenchRows]);
+
+  const fairPlaySubOutOnly =
+    Boolean(fairPlayExtraPlayerId) &&
+    String(subOutPlayerId ?? '').trim() === String(fairPlayExtraPlayerId ?? '').trim() &&
+    !String(subInPlayerId ?? '').trim();
+
+  const wechselSheetPickLabels = useMemo(() => {
+    const outPid = String(subOutPlayerId ?? '').trim();
+    const inPid = String(subInPlayerId ?? '').trim();
+    const outP = outPid ? rosterById.get(outPid) ?? null : null;
+    const inP = inPid ? rosterById.get(inPid) ?? null : null;
+    const outLabel = outPid
+      ? mobileLineupName(
+          String(
+            outP?.name ??
+              (substitutionFieldRows.find((r) => {
+                const sl = r?.slot;
+                const id =
+                  sl && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
+                    ? String(lineupSlotsForDisplay[sl] ?? '').trim()
+                    : '';
+                return id === outPid;
+              })?.display_name ?? 'Spieler'),
+          ),
+        )
+      : '';
+    const inLabel = inPid
+      ? mobileLineupName(
+          String(
+            inP?.name ??
+              (Array.isArray(substitutionBenchRows)
+                ? substitutionBenchRows.find((r) => String(r?.id ?? '').trim() === inPid)?.display_name
+                : null) ??
+              'Spieler',
+          ),
+        )
+      : '';
+    return { outLabel, inLabel };
+  }, [
+    subOutPlayerId,
+    subInPlayerId,
+    rosterById,
+    substitutionFieldRows,
+    substitutionBenchRows,
+    lineupSlotsForDisplay,
+    fairPlayExtraPlayerId,
+  ]);
+
+  const safeLineupSlots = useMemo(
+    () => (lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object' ? lineupSlotsForDisplay : {}),
+    [lineupSlotsForDisplay],
+  );
+
+  /** Roter Slot-Ring im Wechsel-Spielfeld-Modus fÃ¼r den als â€rausâ€œ gewÃ¤hlten Spieler. */
+  const subPitchSlotHighlight = useMemo((): Partial<Record<FieldSlotId, 'in' | 'out'>> => {
+    const out = String(subOutPlayerId ?? '').trim();
+    if (!out) return {};
+    const slots =
+      safeLineupSlots && typeof safeLineupSlots === 'object'
+        ? (safeLineupSlots as Record<FieldSlotId, string | null>)
+        : ({} as Record<FieldSlotId, string | null>);
+    for (const slot of safeSlotOrder) {
+      const pid = String(slots[slot] ?? '').trim();
+      if (pid === out) return { [slot]: 'out' };
+    }
+    return {};
+  }, [subOutPlayerId, safeLineupSlots, safeSlotOrder]);
+
+  const lineupPosSwapRingHighlight = useMemo((): Partial<Record<FieldSlotId, 'in' | 'out'>> => {
+    if (!lineupPositionMode || !posSwapSlotA) return {};
+    const h: Partial<Record<FieldSlotId, 'in' | 'out'>> = { [posSwapSlotA]: 'out' };
+    if (posSwapSlotB) h[posSwapSlotB] = 'out';
+    return h;
+  }, [lineupPositionMode, posSwapSlotA, posSwapSlotB]);
+
+  const wechselPitchSlotHighlight = subPitchSlotHighlight;
+
+  const posSwapConfirmLabels = useMemo(() => {
+    if (!posSwapSlotA || !posSwapSlotB) return { a: '', b: '' };
+    const slots = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
+    const ida = String(slots[posSwapSlotA] ?? '').trim();
+    const idb = String(slots[posSwapSlotB] ?? '').trim();
+    const na = mobileLineupName((rosterById.get(ida)?.name ?? 'â€”').trim() || 'â€”');
+    const nb = mobileLineupName((rosterById.get(idb)?.name ?? 'â€”').trim() || 'â€”');
+    return { a: na, b: nb };
+  }, [posSwapSlotA, posSwapSlotB, lineupSlotsForDisplay, rosterById]);
+
+  const [substitutionTransitionBySlot, setSubstitutionTransitionBySlot] = useState<
+    Partial<Record<FieldSlotId, { outgoingPlayerId: string | null; incomingPlayerId: string | null }>>
+  >({});
+  const [slotHighlightBySlot, setSlotHighlightBySlot] = useState<Partial<Record<FieldSlotId, 'in' | 'out'>>>({});
+  const mainLineupPitchSlotHighlight = useMemo(() => {
+    const merged: Partial<Record<FieldSlotId, 'in' | 'out'>> = { ...slotHighlightBySlot };
+    for (const k of Object.keys(lineupPosSwapRingHighlight) as FieldSlotId[]) {
+      const v = lineupPosSwapRingHighlight[k];
+      if (v) merged[k] = v;
+    }
+    return merged;
+  }, [slotHighlightBySlot, lineupPosSwapRingHighlight]);
+  const canRenderLivePitch = safeSlotOrder.length > 0 && pitchFormationId != null;
+  const safeBenchRowsCount = Array.isArray(safeBenchRows) ? safeBenchRows.length : 0;
+
+  useEffect(() => {
+    const prev = prevLineupSlotsRef.current;
+    const current = safeLineupSlots as Partial<Record<FieldSlotId, string | null>>;
+    if (!prev) {
+      prevLineupSlotsRef.current = { ...current };
+      return;
+    }
+    const changedSlots = safeSlotOrder.filter((slot) => {
+      const before = String(prev[slot] ?? '').trim() || null;
+      const after = String(current[slot] ?? '').trim() || null;
+      return before !== after;
+    });
+    if (changedSlots.length === 0) {
+      prevLineupSlotsRef.current = { ...current };
+      return;
+    }
+
+    const nextTransition: Partial<Record<FieldSlotId, { outgoingPlayerId: string | null; incomingPlayerId: string | null }>> = {};
+    const nextHighlight: Partial<Record<FieldSlotId, 'in' | 'out'>> = {};
+    for (const slot of changedSlots) {
+      const outgoing = String(prev[slot] ?? '').trim() || null;
+      const incoming = String(current[slot] ?? '').trim() || null;
+      nextTransition[slot] = { outgoingPlayerId: outgoing, incomingPlayerId: incoming };
+      nextHighlight[slot] = incoming ? 'in' : 'out';
+    }
+    setSubstitutionTransitionBySlot(nextTransition);
+    setSlotHighlightBySlot(nextHighlight);
+
+    if (substitutionAnimTimerRef.current != null) window.clearTimeout(substitutionAnimTimerRef.current);
+    substitutionAnimTimerRef.current = window.setTimeout(() => {
+      setSubstitutionTransitionBySlot({});
+      substitutionAnimTimerRef.current = null;
+    }, 360);
+
+    if (substitutionHighlightTimerRef.current != null) window.clearTimeout(substitutionHighlightTimerRef.current);
+    substitutionHighlightTimerRef.current = window.setTimeout(() => {
+      setSlotHighlightBySlot({});
+      substitutionHighlightTimerRef.current = null;
+    }, 1500);
+
+    prevLineupSlotsRef.current = { ...current };
+  }, [safeLineupSlots, safeSlotOrder, rosterById]);
+
+  useEffect(() => {
+    clearSubstitutionToast();
+    prevLineupSlotsRef.current = { ...(safeLineupSlots as Partial<Record<FieldSlotId, string | null>>) };
+  }, [mainTab, clearSubstitutionToast]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const slotKeys = safeSlotOrder.filter((s) => Boolean(lineupSlotsForDisplay[s]));
+    const lineupCount = slotKeys.length;
+    console.log('live lineup props', {
+      role: canControlLiveMatch ? 'trainer_staff' : String(backendRole ?? 'spectator'),
+      safeFormationId,
+      slotKeys,
+      lineupCount,
+      benchCount: safeBenchRowsCount,
+    });
+  }, [
+    backendRole,
+    canControlLiveMatch,
+    lineupSlotsForDisplay,
+    safeBenchRowsCount,
+    safeFormationId,
+    safeSlotOrder,
+  ]);
+
+  /**
+   * Wechsel-VorschlÃ¤ge: kein TW; bevorzugt gleiche Liniengruppe (DEF/MID/OFF), sonst Fallback.
+   * Max. 3 Paare, kein Spieler doppelt.
+   */
+  const substitutionSuggestions = useMemo(() => {
+    if (matchIsFinished || matchRow?.status !== 'live') return [];
+    const squadSet = new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
+    const slots = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
+    const gkId = String(slots?.GK ?? '').trim();
+
+    const fieldIdsAll = onFieldIds.map((id) => String(id ?? '').trim()).filter((id) => squadSet.has(id));
+    const fieldIds = fieldIdsAll.filter((id) => id && id !== gkId);
+    const benchIdsRaw = liveReplayState.benchPlayerIds
+      .map((id) => String(id ?? '').trim())
+      .filter((id) => squadSet.has(id));
+    const benchIds = benchIdsRaw.filter((id) => coachLineGroupFromRosterPosition(rosterById.get(id)?.position) !== 'GK');
+    if (fieldIds.length === 0 || benchIds.length === 0) return [];
+
+    const pt = (id: string) => Math.max(0, playtimes[id] ?? 0);
+    const fieldSorted = [...new Set(fieldIds)].sort((a, b) => pt(b) - pt(a));
+    const benchUnique = [...new Set(benchIds)];
+    const benchBelowMin = benchUnique.filter((id) => pt(id) < minimumPlaytimeRequiredSec);
+    const benchAboveMin = benchUnique.filter((id) => pt(id) >= minimumPlaytimeRequiredSec);
+    const benchPriority = minimumPlaytimeEnabled
+      ? [
+          ...benchBelowMin.sort((a, b) => {
+            const ua = getMinimumPlaytimeUrgency(pt(a), minimumPlaytimeMinutes, remainingEffectiveMatchSec);
+            const ub = getMinimumPlaytimeUrgency(pt(b), minimumPlaytimeMinutes, remainingEffectiveMatchSec);
+            return (
+              minimumPlaytimeUrgencyRank(ua) - minimumPlaytimeUrgencyRank(ub) || pt(a) - pt(b)
+            );
+          }),
+          ...benchAboveMin.sort((a, b) => pt(a) - pt(b)),
+        ]
+      : [...benchUnique].sort((a, b) => pt(a) - pt(b));
+
+    const used = new Set<string>();
+    const pairs: {
+      outId: string;
+      inId: string;
+      outName: string;
+      inName: string;
+      outSec: number;
+      inSec: number;
+      reason: 'minimum_playtime' | 'balance';
+      inUrgency: MinimumPlaytimeUrgency;
+    }[] = [];
+
+    const tryPair = (oid: string, matcher: (bid: string) => boolean): boolean => {
+      if (used.has(oid)) return false;
+      const inId = benchPriority.find((bid) => !used.has(bid) && matcher(bid));
+      if (!inId) return false;
+      used.add(oid);
+      used.add(inId);
+      const inBelowMin = minimumPlaytimeEnabled && pt(inId) < minimumPlaytimeRequiredSec;
+      pairs.push({
+        outId: oid,
+        inId,
+        outName: (rosterById.get(oid)?.name ?? '?').trim() || '?',
+        inName: (rosterById.get(inId)?.name ?? '?').trim() || '?',
+        outSec: pt(oid),
+        inSec: pt(inId),
+        reason: inBelowMin ? 'minimum_playtime' : 'balance',
+        inUrgency: getMinimumPlaytimeUrgency(pt(inId), minimumPlaytimeMinutes, remainingEffectiveMatchSec),
+      });
+      return true;
+    };
+
+    for (const oid of fieldSorted) {
+      if (pairs.length >= 3) break;
+      const slot = slotForFieldPlayer(slots, oid);
+      if (!slot || slot === 'GK') continue;
+      const gOut = coachLineGroupFromSlot(slot);
+      if (gOut === 'GK') continue;
+      tryPair(oid, (bid) => coachLineGroupFromRosterPosition(rosterById.get(bid)?.position) === gOut);
+    }
+    for (const oid of fieldSorted) {
+      if (pairs.length >= 3) break;
+      const slot = slotForFieldPlayer(slots, oid);
+      if (!slot || slot === 'GK') continue;
+      tryPair(oid, () => true);
+    }
+    pairs.sort((a, b) => {
+      const rank = (r: typeof a.reason) => (r === 'minimum_playtime' ? 0 : 1);
+      const byReason = rank(a.reason) - rank(b.reason);
+      if (byReason !== 0) return byReason;
+      return minimumPlaytimeUrgencyRank(a.inUrgency) - minimumPlaytimeUrgencyRank(b.inUrgency);
+    });
+    return pairs;
+  }, [
+    matchIsFinished,
+    matchRow?.status,
+    squadPlayerIds,
+    onFieldIds,
+    lineupSlotsForDisplay,
+    playtimes,
+    rosterById,
+    liveReplayState.benchPlayerIds,
+    minimumPlaytimeEnabled,
+    minimumPlaytimeRequiredSec,
+    minimumPlaytimeMinutes,
+    remainingEffectiveMatchSec,
+    plannedMatchDurationSec,
+  ]);
+
+  const subSuggestionSig = substitutionSuggestions.map((s) => `${s.outId}:${s.inId}`).join('|');
+  useEffect(() => {
+    setSubSuggestionsExpanded(false);
+  }, [subSuggestionSig]);
+
+  const squadRosterForPlaytimeList = useMemo(() => {
+    const ids = collectLiveStatPlayerIds(liveReplayState, squadPlayerIds);
+    const list = ids.map((id) => rosterById.get(id) ?? { id, name: 'â€”', number: 0 });
+    return [...list].sort((a, b) => {
+      const ra = liveStatPlayerSortRank(a.id, liveReplayState);
+      const rb = liveStatPlayerSortRank(b.id, liveReplayState);
+      if (ra !== rb) return ra - rb;
+      const sa = playtimes[a.id] ?? 0;
+      const sb = playtimes[b.id] ?? 0;
+      if (sa !== sb) return sb - sa;
+      return compareRosterPlayers(a, b);
+    });
+  }, [liveReplayState, squadPlayerIds, playtimes, rosterById]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const ex = fairPlayExtraPlayerId?.trim();
+    if (!ex) return;
+    const inStats = squadRosterForPlaytimeList.some((p) => p.id === ex);
+    if (!inStats) {
+      console.warn('[liveReplay] FairPlay-Extra aktiv, fehlt in Statistikrows', { extra: ex });
+    }
+    if (playtimes[ex] == null) {
+      console.warn('[liveReplay] FairPlay-Extra aktiv, playtimeSeconds fehlt', { extra: ex });
+    }
+    if (liveReplayState.benchPlayerIds.includes(ex)) {
+      console.warn('[liveReplay] FairPlay-Extra aktiv, aber in benchPlayerIds', { extra: ex });
+    }
+  }, [
+    fairPlayExtraPlayerId,
+    squadRosterForPlaytimeList,
+    playtimes,
+    liveReplayState.benchPlayerIds,
+  ]);
+
+  const liveSubEventsDebugKey = useMemo(() => {
+    const sig = sortMatchEventsChronologically(events)
+      .filter((e) => e.type === 'sub_out' || e.type === 'sub_in' || e.type === 'substitution')
+      .map((e) => `${e.id}:${e.type}:${e.timestamp}:${e.createdAt ?? ''}`)
+      .join('|');
+    return `${sig}::${liveLineupBasePlayerIds.join(',')}`;
+  }, [events, liveLineupBasePlayerIds]);
+
+  const liveDbgMatchSecRef = useRef(currentMatchSeconds);
+  liveDbgMatchSecRef.current = currentMatchSeconds;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || matchRow?.status !== 'live') return;
+    if (!liveLineupBasePlayerIds.some((id) => String(id ?? '').trim())) return;
+    const tDbg = liveDbgMatchSecRef.current;
+    const subs = sortMatchEventsChronologically(events).filter(
+      (e) => e.timestamp <= tDbg && (e.type === 'sub_out' || e.type === 'sub_in'),
+    );
+    if (subs.length === 0) return;
+    console.table(
+      subs.map((e) => ({
+        minute: e.timestamp,
+        type: e.type,
+        player_id: e.playerId ?? '',
+        playerName: (e.playerId && rosterById.get(e.playerId)?.name) || '',
+        created_at: e.createdAt ?? '',
+      })),
+    );
+    const replay = replaySubstitutionEventsOnSlots(liveLineupBasePlayerIds, events, tDbg, {
+      squadPlayerIds,
+      collectSteps: true,
+    });
+    if (replay.steps?.length) {
+      console.table(
+        replay.steps.map((s) => ({
+          step: s.step,
+          kind: s.kind,
+          out: s.outPlayerId ?? '',
+          in: s.inPlayerId ?? '',
+          duplicatesField: s.duplicatesField.join(','),
+          duplicatesBench: s.duplicatesBench.join(','),
+          playersInBoth: s.playersInBoth.join(','),
+        })),
+      );
+    }
+  }, [liveSubEventsDebugKey, events, liveLineupBasePlayerIds, matchRow?.status, rosterById, squadPlayerIds]);
+  const periodScores = useMemo(() => parsePeriodScores(matchRow?.period_scores), [matchRow?.period_scores]);
+
+  const persistSingle = useCallback(
+    async (partial: Omit<MatchEngineEvent, 'id'>): Promise<{ ok: boolean; savedId?: string }> => {
+      if (!effectiveMatchId) return { ok: false };
+      if ((partial.type === 'goal' || partial.type === 'goal_away') && (!isClockRunning || matchIsFinished)) {
+        setSaveError(goalBlockedMessage);
+        return { ok: false };
+      }
+      setSaveError(null);
+      const tempId = newEventId();
+      const evForSave: Omit<MatchEngineEvent, 'id'> =
+        partial.type === 'goal' || partial.type === 'goal_away'
+          ? { ...partial, timestamp: clampEffectiveMatchSeconds(partial.timestamp) }
+          : partial;
+      const optimistic: MatchEngineEvent = { ...evForSave, id: tempId };
+      setEvents((prev) => [optimistic, ...prev]);
+      if (partial.type === 'start' || partial.type === 'pause' || partial.type === 'resume' || partial.type === 'end') {
+        return { ok: true };
+      }
+      const payload = engineEventToInsertPayload(effectiveMatchId, evForSave, half);
+      const { id, error } = await saveMatchEvent(payload);
+      if (error || !id) {
+        console.error('[LiveMatch] saveMatchEvent', error);
+        setSaveError(error ?? 'Ereignis konnte nicht gespeichert werden.');
+        setEvents((prev) => prev.filter((e) => e.id !== tempId));
+        return { ok: false };
+      }
+      const mid = effectiveMatchId;
+      setEvents((prev) => {
+        const mapped = prev.map((e) => (e.id === tempId ? { ...evForSave, id } : e));
+        if (partial.type === 'goal' || partial.type === 'goal_away') {
+          const { home: nh, away: na } = recomputeScoresFromEvents(mapped);
+          queueMicrotask(() => {
+            setScoreHome(nh);
+            setScoreAway(na);
+            void updateMatchRow(mid, { score_home: nh, score_away: na }).then(({ error: rowErr }) => {
+              if (rowErr) setSaveError(rowErr);
+              else {
+                broadcastLiveMatchStateChanged({
+                  matchId: mid,
+                  status: 'updated',
+                  reason: 'score',
+                  teamSeasonId: matchRow?.team_season_id ?? null,
+                });
+              }
+            });
+          });
+        }
+        return mapped;
+      });
+      return { ok: true, savedId: id };
+    },
+    [effectiveMatchId, half, isClockRunning, matchIsFinished, goalBlockedMessage, matchRow?.team_season_id],
+  );
+
+  const closeFairPlayExtraSheet = useCallback(() => {
+    setFairPlayExtraSheetOpen(false);
+    setFairPlayExtraPickId(null);
+    setFairPlayExtraSaving(false);
+    releaseLiveBodyScrollLock();
+  }, [releaseLiveBodyScrollLock]);
+
+  const openFairPlayExtraSheet = useCallback(() => {
+    setFairPlayExtraPickId(null);
+    setFairPlayExtraSaving(false);
+    setFairPlayExtraSheetOpen(true);
+  }, []);
+
+  const closeFairPlayRemoveSheet = useCallback(() => {
+    setFairPlayRemoveSheetOpen(false);
+    setFairPlayRemovePickId(null);
+    setFairPlayRemoveSaving(false);
+    releaseLiveBodyScrollLock();
+  }, [releaseLiveBodyScrollLock]);
+
+  const openFairPlayRemoveSheet = useCallback(() => {
+    setFairPlayRemovePickId(null);
+    setFairPlayRemoveSaving(false);
+    setFairPlayRemoveSheetOpen(true);
+  }, []);
+
+  const runPersistFairPlayExtraOn = useCallback(async () => {
+    const pid = String(fairPlayExtraPickId ?? '').trim();
+    const mid = effectiveMatchId?.trim();
+    if (!mid || !pid || fairPlayExtraSaving) return;
+    if (fairPlayExtraPlayerId) {
+      setSaveError('Es ist bereits ein FairPlay-Zusatzspieler aktiv.');
+      return;
+    }
+    setFairPlayExtraSaving(true);
+    setSaveError(null);
+    const tempId = newEventId();
+    const ts = clampEffectiveMatchSeconds(currentMatchSeconds);
+    const optimistic: MatchEngineEvent = { id: tempId, type: 'extra_player_on', timestamp: ts, playerId: pid };
+    setEvents((prev) => [optimistic, ...prev]);
+    const { eventId, error, startingPlayerIds: nextStarting } = await persistExtraPlayerOn({
+      matchId: mid,
+      playerId: pid,
+      currentMatchSeconds: ts,
+      period: half,
+      currentSlots: lineupSlotsForDisplay,
+      squadPlayerIds,
+      beforeFieldIds: liveReplayState.onFieldPlayerIds,
+      beforeBenchIds: liveReplayState.benchPlayerIds,
+      savedBenchPlayerIds,
+      kickoffStartingPlayerIds,
+      events: eventsSortedAsc,
+    });
+    if (error || !eventId) {
+      setEvents((prev) => prev.filter((e) => e.id !== tempId));
+      setSaveError(error ?? 'FairPlay konnte nicht gespeichert werden.');
+      setFairPlayExtraSaving(false);
+      return;
+    }
+    setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
+    if (nextStarting?.length) setStartingPlayerIds(nextStarting);
+    closeFairPlayExtraSheet();
+    setFairPlayExtraSaving(false);
+    setMainTab('hub');
+    stabilizeLiveHubAfterFairPlay();
+    void queueRealtimeReload();
+  }, [
+    fairPlayExtraPickId,
+    fairPlayExtraPlayerId,
+    effectiveMatchId,
+    fairPlayExtraSaving,
+    currentMatchSeconds,
+    half,
+    lineupSlotsForDisplay,
+    liveReplayState.onFieldPlayerIds,
+    liveReplayState.benchPlayerIds,
+    squadPlayerIds,
+    savedBenchPlayerIds,
+    kickoffStartingPlayerIds,
+    eventsSortedAsc,
+    closeFairPlayExtraSheet,
+    stabilizeLiveHubAfterFairPlay,
+    queueRealtimeReload,
+  ]);
+
+  const runPersistFairPlayExtraOff = useCallback(async (removedIdOverride?: string | null) => {
+    const extraId = String(fairPlayExtraPlayerId ?? '').trim();
+    const removedId = String(removedIdOverride ?? fairPlayRemovePickId ?? '').trim();
+    const mid = effectiveMatchId?.trim();
+    if (!mid || !extraId || !removedId || fairPlayRemoveSaving) return;
+    setFairPlayRemoveSaving(true);
+    setSaveError(null);
+    const tempId = newEventId();
+    const ts = clampEffectiveMatchSeconds(currentMatchSeconds);
+    const optimistic: MatchEngineEvent = {
+      id: tempId,
+      type: 'extra_player_off',
+      timestamp: ts,
+      playerId: extraId,
+      fairPlayRemovedPlayerId: removedId,
+    };
+    setEvents((prev) => [optimistic, ...prev]);
+    const { eventId, error, startingPlayerIds: nextStarting } = await persistExtraPlayerOff({
+      matchId: mid,
+      extraPlayerId: extraId,
+      removedPlayerId: removedId,
+      currentMatchSeconds: ts,
+      period: half,
+      currentStartingPlayerIds: fieldSlotMapToStartingIds(lineupSlotsForDisplay),
+      squadPlayerIds,
+      beforeFieldIds: liveReplayState.onFieldPlayerIds,
+      beforeBenchIds: liveReplayState.benchPlayerIds,
+      savedBenchPlayerIds,
+      kickoffStartingPlayerIds,
+      events: eventsSortedAsc,
+    });
+    if (error || !eventId) {
+      setEvents((prev) => prev.filter((e) => e.id !== tempId));
+      setSaveError(error ?? 'FairPlay konnte nicht gespeichert werden.');
+      setFairPlayRemoveSaving(false);
+      return;
+    }
+    setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
+    if (nextStarting?.length) setStartingPlayerIds(nextStarting);
+    closeFairPlayRemoveSheet();
+    setFairPlayRemoveSaving(false);
+    setMainTab('hub');
+    stabilizeLiveHubAfterFairPlay();
+    void queueRealtimeReload();
+  }, [
+    fairPlayExtraPlayerId,
+    fairPlayRemovePickId,
+    effectiveMatchId,
+    fairPlayRemoveSaving,
+    currentMatchSeconds,
+    half,
+    lineupSlotsForDisplay,
+    liveReplayState.onFieldPlayerIds,
+    liveReplayState.benchPlayerIds,
+    squadPlayerIds,
+    savedBenchPlayerIds,
+    kickoffStartingPlayerIds,
+    eventsSortedAsc,
+    closeFairPlayRemoveSheet,
+    stabilizeLiveHubAfterFairPlay,
+    queueRealtimeReload,
+  ]);
+
+  const fairPlaySheetOpen = fairPlayExtraSheetOpen || fairPlayRemoveSheetOpen;
+  useEffect(() => {
+    if (fairPlaySheetOpen) return;
+    releaseLiveBodyScrollLock();
+  }, [fairPlaySheetOpen, releaseLiveBodyScrollLock]);
+
+  useEffect(() => {
+    if (!wechselSheetOpen) {
+      releaseLiveBodyScrollLock();
+      const t = window.setTimeout(() => {
+        liveHubScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        liveScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
+      return () => window.clearTimeout(t);
+    }
+    return lockBodyScroll();
+  }, [wechselSheetOpen, releaseLiveBodyScrollLock]);
+
+  useEffect(() => {
+    const onLiveNavReset = () => {
+      setMainTab('hub');
+      closeWechselSheet();
+      closeFormationSheet();
+      closeFairPlayExtraSheet();
+      closeFairPlayRemoveSheet();
+      setFormationPendingId(null);
+      setLineupPositionMode(false);
+      releaseLiveBodyScrollLock();
+      liveHubScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      liveScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    window.addEventListener(LIVE_NAV_RESET_EVENT, onLiveNavReset);
+    return () => window.removeEventListener(LIVE_NAV_RESET_EVENT, onLiveNavReset);
+  }, [
+    closeWechselSheet,
+    closeFormationSheet,
+    closeFairPlayExtraSheet,
+    closeFairPlayRemoveSheet,
+    releaseLiveBodyScrollLock,
+  ]);
+
+  const onStartClick = async () => {
+    if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
+    if (!hasClockStarted) {
+      const { error: snapErr } = await ensureKickoffLineupSnapshot(effectiveMatchId);
+      if (snapErr) {
+        setSaveError(snapErr);
+        return;
+      }
+      const kickoffIds = await fetchKickoffLineupPlayerIds(effectiveMatchId);
+      if (kickoffIds?.some((id) => String(id ?? '').trim().length > 0)) {
+        setKickoffStartingPlayerIds(kickoffIds.slice(0, 7));
+      } else if (startingPlayerIds.some((id) => String(id ?? '').trim().length > 0)) {
+        setKickoffStartingPlayerIds(startingPlayerIds.slice(0, 7));
+      }
+
+      const { ok } = await persistSingle({ type: 'start', timestamp: 0 });
+      if (!ok) return;
+      const ts = new Date().toISOString();
+      const { error } = await updateMatchRow(effectiveMatchId, {
+        status: 'live',
+        live_started_at: ts,
+        live_is_running: true,
+        live_elapsed_seconds: 0,
+      });
+      if (error) setSaveError(error);
+      else {
+        setMatchRow((prev) =>
+          prev ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: 0 } : null,
+        );
+        void ensureLiveFeedPostForMatch(effectiveMatchId);
+        // Kalender-Event auf live setzen, damit Eltern/Fans & Schedule sofort â€LIVEâ€œ sehen.
+        void supabase
+          .from('events')
+          .update({ status: 'live', updated_at: ts })
+          .eq('match_id', effectiveMatchId)
+          .then(({ error: evErr }) => {
+            if (evErr) {
+              console.warn('[LiveMatch] events.status=live failed', {
+                matchId: effectiveMatchId,
+                error: evErr.message,
+              });
+            }
+          });
+        broadcastLiveMatchStateChanged({
+          matchId: effectiveMatchId,
+          status: 'live',
+          reason: 'kickoff',
+          teamSeasonId: matchRow?.team_season_id ?? null,
+        });
+      }
+    } else {
+      const { ok } = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
+      if (!ok) return;
+      const ts = new Date().toISOString();
+      const frozen = currentMatchSeconds;
+      const { error } = await updateMatchRow(effectiveMatchId, {
+        status: 'live',
+        live_started_at: ts,
+        live_is_running: true,
+        live_elapsed_seconds: frozen,
+      });
+      if (error) setSaveError(error);
+      else {
+        setMatchRow((prev) =>
+          prev
+            ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: frozen }
+            : null,
+        );
+        broadcastLiveMatchStateChanged({
+          matchId: effectiveMatchId,
+          status: 'live',
+          reason: 'resume',
+          teamSeasonId: matchRow?.team_season_id ?? null,
+        });
+      }
+    }
+  };
+
+  const openPauseConfirm = useCallback(() => {
+    if (!canControlLiveMatch || !isRunning || matchIsFinished || !effectiveMatchId) return;
+    setPauseConfirmOpen(true);
+  }, [canControlLiveMatch, isRunning, matchIsFinished, effectiveMatchId]);
+
+  const executeConfirmedPause = useCallback(async () => {
+    if (!canControlLiveMatch || !isRunning || matchIsFinished || !effectiveMatchId) return;
+    setPauseConfirmSaving(true);
+    setSaveError(null);
+    try {
+      const { ok } = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
+      if (!ok) return;
+      const frozen = currentMatchSeconds;
+      const section = resolveSectionForPause(periodScores);
+      const totals = recomputeScoresFromEvents(events);
+      const nextPeriodScores = computeUpdatedPeriodScores(periodScores, section, totals);
+      const { error } = await updateMatchRow(effectiveMatchId, {
+        live_elapsed_seconds: frozen,
+        live_is_running: false,
+        period_scores: nextPeriodScores,
+      });
+      if (error) {
+        setSaveError(error);
+        return;
+      }
+      setMatchRow((prev) =>
+        prev ? { ...prev, live_elapsed_seconds: frozen, live_is_running: false, period_scores: nextPeriodScores } : null,
+      );
+      setPauseConfirmOpen(false);
+    } finally {
+      setPauseConfirmSaving(false);
+    }
+  }, [
+    canControlLiveMatch,
+    isRunning,
+    matchIsFinished,
+    effectiveMatchId,
+    currentMatchSeconds,
+    periodScores,
+    events,
+    persistSingle,
+  ]);
+
+  useEffect(() => {
+    if (matchIsFinished) setPauseConfirmOpen(false);
+  }, [matchIsFinished]);
+
+  /** Ende: Uhr stoppen, Match in DB beenden, Endstand aus Toren â€” Kalender kommt bei â€Spiel abschlieÃŸenâ€œ. */
+  const persistMatchEndWithoutCalendar = async () => {
+    if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
+    const frozen = currentMatchSeconds;
+    const { home: fh, away: fa } = recomputeScoresFromEvents(events);
+    const { ok } = await persistSingle({ type: 'end', timestamp: frozen });
+    if (!ok) return;
+    const sectionForEnd = resolveSectionForEnd(periodScores);
+    const nextPeriodScores = computeUpdatedPeriodScores(periodScores, sectionForEnd, { home: fh, away: fa });
+    const { error } = await updateMatchRow(effectiveMatchId, {
+      status: 'finished',
+      live_is_running: false,
+      live_elapsed_seconds: frozen,
+      live_period: half,
+      score_home: fh,
+      score_away: fa,
+      period_scores: nextPeriodScores,
+    });
+    if (error) setSaveError(error);
+    else {
+      setScoreHome(fh);
+      setScoreAway(fa);
+      setMatchRow((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'finished',
+              live_is_running: false,
+              live_elapsed_seconds: frozen,
+              live_period: half,
+              score_home: fh,
+              score_away: fa,
+              period_scores: nextPeriodScores,
+            }
+          : null,
+      );
+      const atReplay = resolveReplayAtMatchSecond(events, frozen);
+      const syncRes = await syncFinalLineupBenchFromEventReplay({
+        matchId: effectiveMatchId,
+        kickoffStartingPlayerIds: kickoffStartingPlayerIds.slice(0, 7),
+        squadPlayerIds,
+        events: sortMatchEventsChronologically(events),
+        atMatchSecond: atReplay,
+        fallbackStartingPlayerIds: startingPlayerIds,
+        beforeFieldIds: startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0),
+        beforeBenchIds: savedBenchPlayerIds,
+      });
+      if (syncRes.error) {
+        setSaveError(syncRes.error);
+      } else {
+        setStartingPlayerIds(syncRes.startingPlayerIds);
+        setSquadPlayerIds(syncRes.squadPlayerIds);
+        if (lineupData) {
+          const fieldAfter = syncRes.startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0);
+          setLineupData({
+            startingPlayerIds: syncRes.startingPlayerIds,
+            squadPlayerIds: syncRes.squadPlayerIds,
+            savedBenchPlayerIds: getBenchPlayers(
+              syncRes.squadPlayerIds,
+              fieldAfter,
+              savedBenchPlayerIds,
+            ),
+          });
+        }
+      }
+      console.info('[resultFeed][LiveMatch] persistMatchEndWithoutCalendar OK', {
+        matchId: effectiveMatchId,
+        status: 'finished',
+        score_home: fh,
+        score_away: fa,
+      });
+      broadcastLiveMatchStateChanged({
+        matchId: effectiveMatchId,
+        status: 'finished',
+        reason: 'match_end',
+        teamSeasonId: matchRow?.team_season_id ?? null,
+        tournamentEventId: tournamentNavContext?.tournamentEventId ?? null,
+      });
+      void ensureResultFeedPostForMatch(effectiveMatchId).then((res) => {
+        console.info('[resultFeed][LiveMatch] ensureResultFeedPostForMatch', {
+          matchId: effectiveMatchId,
+          ...res,
+        });
+        if (!res.ok) console.warn('[resultFeed][LiveMatch] ensure failed', res.error);
+      });
+      if (!isDemo) {
+        setTournamentPlanSyncBusy(true);
+        setTournamentPlanSyncStatus('Turnierplan wird aktualisiert â€¦');
+        void (async () => {
+          try {
+            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(effectiveMatchId);
+            if (syncRes.skipped && !syncRes.tournamentEventId) {
+              setTournamentPlanSyncBusy(false);
+              setTournamentPlanSyncStatus(null);
+              return;
+            }
+            if (syncRes.ok) {
+              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+            } else {
+              setTournamentPlanSyncStatus('Aktualisierung fehlgeschlagen â€” lokal behalten');
+            }
+            const refreshed = await fetchTournamentMatchNavigationContext(effectiveMatchId, {
+              afterCurrentMatch: true,
+            });
+            if (refreshed) setTournamentNavContext(refreshed);
+          } catch {
+            setTournamentPlanSyncStatus('Aktualisierung fehlgeschlagen â€” lokal behalten');
+          } finally {
+            setTournamentPlanSyncBusy(false);
+            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+          }
+        })();
+      }
+    }
+  };
+
+  /** DEMO.2J: Tour beendet das Spiel lokal â€” UI mit Runtime synchronisieren. */
+  useEffect(() => {
+    if (!isDemo || !effectiveMatchId) return;
+    const onTourFinish = () => {
+      const row = getDemoLiveMatchRow(effectiveMatchId);
+      if (!row) return;
+      setMatchRow((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: row.status,
+              live_is_running: row.live_is_running,
+              live_elapsed_seconds: row.live_elapsed_seconds,
+              score_home: row.score_home,
+              score_away: row.score_away,
+            }
+          : (row as LiveMatchRow),
+      );
+      setScoreHome(Number(row.score_home ?? 0));
+      setScoreAway(Number(row.score_away ?? 0));
+      const rows = getDemoLiveEventRows(effectiveMatchId);
+      const mapped = rows
+        .map((r) => matchEventDbRowToEngine(r))
+        .filter((e): e is NonNullable<typeof e> => e != null);
+      setEvents(mapped);
+      setMainTab('time');
+    };
+    const onFocusPlaytime = () => {
+      setMainTab('time');
+    };
+    window.addEventListener(DEMO_TOUR_FINISH_MATCH_EVENT, onTourFinish);
+    window.addEventListener(DEMO_TOUR_FOCUS_PLAYTIME_EVENT, onFocusPlaytime);
+    return () => {
+      window.removeEventListener(DEMO_TOUR_FINISH_MATCH_EVENT, onTourFinish);
+      window.removeEventListener(DEMO_TOUR_FOCUS_PLAYTIME_EVENT, onFocusPlaytime);
+    };
+  }, [isDemo, effectiveMatchId]);
+
+  /** Nachgelagert: verknÃ¼pften Kalender-Termin abschlieÃŸen (events.status). */
+  const finalizeCalendarForMatch = async () => {
+    if (!effectiveMatchId || calendarFinalized) return;
+    if (isDemo) {
+      markDemoLiveCalendarFinalized(effectiveMatchId);
+      setCalendarFinalized(true);
+      setSpielAbschlussOpen(false);
+      const eventId =
+        getDemoMatchLite(effectiveMatchId)?.event_id ??
+        getDemoTournamentEventIdForMatch(effectiveMatchId) ??
+        null;
+      navigate(eventId ? `${basePath}/events/${encodeURIComponent(eventId)}` : `${basePath}/termine`);
+      return;
+    }
+    const { error } = await supabase
+      .from('events')
+      .update({ status: 'finished', updated_at: new Date().toISOString() })
+      .eq('match_id', effectiveMatchId);
+    if (error) {
+      console.warn('[LiveMatch] events.status finalize failed', {
+        matchId: effectiveMatchId,
+        error: error.message,
+      });
+      setSaveError(error.message);
+    } else {
+      console.info('[LiveMatch] events.status finalized', { matchId: effectiveMatchId });
+      setCalendarFinalized(true);
+      setSpielAbschlussOpen(false);
+      navigate('/app');
+    }
+  };
+
+  const persistSubstitution = useCallback(
+    async (outgoingPlayerId: string, incomingPlayerId: string): Promise<boolean> => {
+      const outId = String(outgoingPlayerId ?? '').trim();
+      const inId = String(incomingPlayerId ?? '').trim();
+      if (!outId) {
+        if (import.meta.env.DEV) console.warn('[LiveMatch] persistSubstitution: missing playerOutId');
+        setSaveError('Bitte zuerst den auswechselnden Spieler wÃ¤hlen.');
+        return false;
+      }
+      if (!inId) {
+        if (import.meta.env.DEV) console.warn('[LiveMatch] persistSubstitution: missing playerInId');
+        setSaveError('Bitte zuerst den einwechselnden Spieler wÃ¤hlen.');
+        return false;
+      }
+      if (outId === inId) {
+        setSaveError('Raus und Rein mÃ¼ssen unterschiedliche Spieler sein.');
+        return false;
+      }
+      if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return false;
+
+      const check = handleSubstitution({
+        outgoingPlayerId: outId,
+        incomingPlayerId: inId,
+        currentTimestamp: currentMatchSeconds,
+        events,
+        currentOnFieldPlayerIds: onFieldIds,
+        generateId: newEventId,
+      });
+      if (!check.ok) {
+        setSaveError(check.reason ?? 'Wechsel nicht mÃ¶glich.');
+        return false;
+      }
+
+      setSaveError(null);
+      const tsSub = currentMatchSeconds;
+      const replayBefore = deriveLiveMatchReplayState({
+        kickoffLineup: liveLineupBasePlayerIds,
+        kickoffLineupForPlaytime: kickoffStartingPlayerIds.slice(0, 7),
+        squadPlayerIds,
+        events,
+        finalSecond: tsSub,
+        fallbackStartingPlayerIds: startingPlayerIds,
+      });
+      const slotBefore = replayBefore.slotsBySlot;
+      const fieldIdsBefore = replayBefore.onFieldPlayerIds;
+      const benchIdsBefore = replayBefore.benchPlayerIds;
+      const dupIds = (ids: string[]) => {
+        const m = new Map<string, number>();
+        for (const id of ids) m.set(id, (m.get(id) ?? 0) + 1);
+        return [...m.entries()].filter(([, n]) => n > 1).map(([id]) => id);
+      };
+
+      let applied = applySubstitutionToSlots(slotBefore, outId, inId);
+      const { slots: nextSlots, outSlot } = applied;
+      if (!outSlot) {
+        setSaveError('Spielerposition fÃ¼r Wechsel nicht gefunden.');
+        return false;
+      }
+
+      const nextStarting = fieldSlotMapToStartingIds(nextSlots);
+      const nextSquad = [...new Set([...squadPlayerIds, outId, inId])];
+      const fieldIdsAfter = getOnFieldIdsInSlotOrder(nextSlots);
+      const benchIdsAfter = getBenchPlayers(nextSquad, fieldIdsAfter);
+
+      if (import.meta.env.DEV) {
+        const onFieldSetBefore = new Set(fieldIdsBefore);
+        console.debug('[LiveMatch][sub:before]', {
+          outPlayerId: outId,
+          inPlayerId: inId,
+          outSlot,
+          fieldIdsBefore,
+          benchIdsBefore,
+          duplicatesField: dupIds(fieldIdsBefore),
+          duplicatesBench: dupIds(benchIdsBefore),
+          playersInBoth: benchIdsBefore.filter((id) => onFieldSetBefore.has(id)),
+        });
+        const onFieldSetAfter = new Set(fieldIdsAfter);
+        console.debug('[LiveMatch][sub:after]', {
+          outPlayerId: outId,
+          inPlayerId: inId,
+          outSlot,
+          fieldIdsAfter,
+          benchIdsAfter,
+          duplicatesField: dupIds(fieldIdsAfter),
+          duplicatesBench: dupIds(benchIdsAfter),
+          playersInBoth: benchIdsAfter.filter((id) => onFieldSetAfter.has(id)),
+        });
+      }
+
+      const ts = currentMatchSeconds;
+      const subPartial: Omit<MatchEngineEvent, 'id'> = {
+        type: 'substitution',
+        timestamp: ts,
+        playerId: outId,
+        swapWithPlayerId: inId,
+      };
+      const tempId = newEventId();
+      const payload = engineEventToInsertPayload(effectiveMatchId, subPartial, half);
+      const { id, error } = await saveMatchEvent(payload);
+      if (error || !id) {
+        console.error('[LiveMatch] saveMatchEvent substitution', error);
+        setSaveError(error ?? 'Wechsel konnte nicht gespeichert werden.');
+        return false;
+      }
+
+      const lineupRes = await persistLiveLineupAndBenchSafe({
+        matchId: effectiveMatchId,
+        reason: 'substitution',
+        slots: nextSlots,
+        beforeFieldIds: fieldIdsBefore,
+        beforeBenchIds: benchIdsBefore,
+        squadPlayerIds: nextSquad,
+        savedBenchPlayerIds,
+        kickoffStartingPlayerIds,
+        events: [...events, { ...subPartial, id }],
+      });
+      if (lineupRes.error || !lineupRes.payload) {
+        console.error('[LiveMatch] persistLiveLineupAndBenchSafe after substitution', lineupRes.error);
+        setSaveError(lineupRes.error ?? 'Wechsel konnte nicht gespeichert werden.');
+        await deleteMatchEventById(id);
+        return false;
+      }
+
+      const wasFairPlayOut = String(replayBefore.fairPlayExtraPlayerId ?? '').trim() === outId;
+      if (wasFairPlayOut) {
+        const { error: fpTransferErr } = await persistFairPlayExtraSessionTransfer({
+          matchId: effectiveMatchId,
+          oldExtraPlayerId: outId,
+          newExtraPlayerId: inId,
+          currentMatchSeconds: ts,
+          period: half,
+        });
+        if (fpTransferErr) {
+          setSaveError(fpTransferErr);
+          await deleteMatchEventById(id);
+          await persistLiveLineupAndBenchSafe({
+            matchId: effectiveMatchId,
+            reason: 'substitution',
+            slots: slotBefore,
+            beforeFieldIds: fieldIdsBefore,
+            beforeBenchIds: benchIdsBefore,
+            squadPlayerIds,
+            savedBenchPlayerIds,
+            kickoffStartingPlayerIds,
+            events,
+          });
+          return false;
+        }
+      }
+
+      const persisted = lineupRes.payload;
+      setStartingPlayerIds(persisted.startingPlayerIds);
+      setSquadPlayerIds(persisted.squadPlayerIds);
+      setSavedBenchPlayerIds(persisted.benchPlayerIds);
+      setLineupData({
+        startingPlayerIds: persisted.startingPlayerIds,
+        squadPlayerIds: persisted.squadPlayerIds,
+        savedBenchPlayerIds: persisted.benchPlayerIds,
+      });
+      setEvents((prev) => [{ ...subPartial, id }, ...prev.filter((e) => e.id !== tempId)]);
+      return true;
+    },
+    [
+      canControlLiveMatch,
+      matchIsFinished,
+      effectiveMatchId,
+      currentMatchSeconds,
+      events,
+      onFieldIds,
+      half,
+      liveLineupBasePlayerIds,
+      kickoffStartingPlayerIds,
+      startingPlayerIds,
+      squadPlayerIds,
+      savedBenchPlayerIds,
+    ],
+  );
+
+  const confirmSubstitution = useCallback(async () => {
+    const outId = String(subOutPlayerId ?? '').trim();
+    const inId = String(subInPlayerId ?? '').trim();
+    const extraId = String(fairPlayExtraPlayerId ?? '').trim();
+    if (!outId) {
+      if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: missing playerOutId');
+      setSaveError('Bitte zuerst den auswechselnden Spieler wÃ¤hlen.');
+      return;
+    }
+    // Nur ohne â€Reinâ€œ-Auswahl ist es ein FairPlay-Ende. Mit Einwechselspieler lÃ¤uft ein
+    // normaler Wechsel inkl. Session-Transfer (neuer Spieler wird Zusatzspieler).
+    const fairPlayOutOnly = Boolean(extraId) && outId === extraId && !inId;
+    if (!fairPlayOutOnly && !inId) {
+      if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: missing playerInId');
+      setSaveError('Bitte zuerst den einwechselnden Spieler wÃ¤hlen.');
+      return;
+    }
+    if (!fairPlayOutOnly && outId === inId) return;
+    if (subSaveInFlightRef.current) {
+      if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: duplicate save while saving');
+      return;
+    }
+    subSaveInFlightRef.current = true;
+    setSubSaving(true);
+    try {
+      if (fairPlayOutOnly) {
+        await runPersistFairPlayExtraOff(outId);
+        const outName = mobileLineupName((rosterById.get(outId)?.name ?? 'Spieler').trim() || 'Spieler');
+        closeWechselSheet();
+        showSubstitutionToast(`FairPlay beendet Â· ${outName} auf die Bank`);
+        return;
+      }
+      const ok = await persistSubstitution(outId, inId);
+      if (ok) {
+        const outName = mobileLineupName((rosterById.get(outId)?.name ?? 'Spieler').trim() || 'Spieler');
+        const inName = mobileLineupName((rosterById.get(inId)?.name ?? 'Spieler').trim() || 'Spieler');
+        void queueRealtimeReload();
+        setSubOutPlayerId(null);
+        setSubInPlayerId(null);
+        setSubRecommendedOutId(null);
+        setSubRecommendedInId(null);
+        showSubstitutionToast(`ğŸ” ${outName} raus â€“ ${inName} rein`);
+      }
+    } catch (e) {
+      console.error('[LiveMatch] confirmSubstitution', e);
+      setSaveError('Wechsel konnte nicht abgeschlossen werden.');
+    } finally {
+      subSaveInFlightRef.current = false;
+      setSubSaving(false);
+    }
+  }, [
+    subOutPlayerId,
+    subInPlayerId,
+    fairPlayExtraPlayerId,
+    persistSubstitution,
+    runPersistFairPlayExtraOff,
+    closeWechselSheet,
+    queueRealtimeReload,
+    rosterById,
+    showSubstitutionToast,
+  ]);
+
+  useEffect(() => {
+    if (subSheetView === 'list') {
+      setPosSwapSlotA(null);
+      setPosSwapSlotB(null);
+      setPosSwapConfirmOpen(false);
+    }
+  }, [subSheetView]);
+
+  useEffect(() => {
+    if (lineupPositionMode) {
+      setSubOutPlayerId(null);
+      setSubInPlayerId(null);
+    } else {
+      setPosSwapSlotA(null);
+      setPosSwapSlotB(null);
+      setPosSwapConfirmOpen(false);
+    }
+  }, [lineupPositionMode]);
+
+  useEffect(() => {
+    if (mainTab !== 'lineup') {
+      setLineupPositionMode(false);
+    }
+  }, [mainTab]);
+
+  const confirmPositionSwap = useCallback(async () => {
+    if (!effectiveMatchId || !posSwapSlotA || !posSwapSlotB || posSwapSlotA === posSwapSlotB || matchIsFinished) {
+      return;
+    }
+
+    setPosSwapSaving(true);
+    setSaveError(null);
+    try {
+      const map = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
+      const { error } = await persistPositionSwap({
+        matchId: effectiveMatchId,
+        slotA: posSwapSlotA,
+        slotB: posSwapSlotB,
+        currentSlots: map,
+        squadPlayerIds,
+        beforeFieldIds: liveReplayState.onFieldPlayerIds,
+        beforeBenchIds: liveReplayState.benchPlayerIds,
+        savedBenchPlayerIds,
+        kickoffStartingPlayerIds,
+        events: eventsSortedAsc,
+        timestamp: currentMatchSeconds,
+        period: half,
+      });
+      if (error) {
+        setSaveError(error);
+        return;
+      }
+      const swapped = swapTwoOccupiedFieldSlots(map, posSwapSlotA, posSwapSlotB);
+      if (swapped) {
+        const ordered = fieldSlotMapToStartingIds(swapped);
+        setStartingPlayerIds(ordered);
+        setLineupData((prev) =>
+          prev
+            ? {
+                ...prev,
+                startingPlayerIds: ordered,
+              }
+            : prev,
+        );
+      }
+      setPosSwapConfirmOpen(false);
+      setPosSwapSlotA(null);
+      setPosSwapSlotB(null);
+      setLineupPositionMode(false);
+      void queueRealtimeReload();
+    } catch (e) {
+      console.error('[LiveMatch] confirmPositionSwap', e);
+      setSaveError('Positionswechsel fehlgeschlagen.');
+    } finally {
+      setPosSwapSaving(false);
+    }
+  }, [
+    effectiveMatchId,
+    posSwapSlotA,
+    posSwapSlotB,
+    matchIsFinished,
+    lineupSlotsForDisplay,
+    liveReplayState.onFieldPlayerIds,
+    liveReplayState.benchPlayerIds,
+    squadPlayerIds,
+    savedBenchPlayerIds,
+    kickoffStartingPlayerIds,
+    eventsSortedAsc,
+    currentMatchSeconds,
+    half,
+    queueRealtimeReload,
+  ]);
+
+  const handleLineupPositionSlotTap = useCallback(
+    (slot: FieldSlotId) => {
+      if (!lineupPositionMode || !canControlLiveMatch || matchIsFinished || posSwapSaving) return;
+      if (posSwapConfirmOpen) return;
+      const slots = safeLineupSlots as Record<FieldSlotId, string | null>;
+      const pid = String(slots[slot] ?? '').trim();
+      if (!pid) return;
+      if (posSwapSlotA === slot) {
+        setPosSwapSlotA(null);
+        setPosSwapSlotB(null);
+        setPosSwapConfirmOpen(false);
+        return;
+      }
+      if (!posSwapSlotA) {
+        setPosSwapSlotA(slot);
+        return;
+      }
+      if (posSwapSlotB === slot) {
+        setPosSwapSlotB(null);
+        setPosSwapConfirmOpen(false);
+        return;
+      }
+      setPosSwapSlotB(slot);
+      setPosSwapConfirmOpen(true);
+    },
+    [
+      lineupPositionMode,
+      canControlLiveMatch,
+      matchIsFinished,
+      posSwapSaving,
+      posSwapConfirmOpen,
+      safeLineupSlots,
+      posSwapSlotA,
+      posSwapSlotB,
+    ],
+  );
+
+  const trainerTickerGroups = useMemo(
+    () => groupTickerRowsByDisplayMinute(buildLiveTickerRows(events, eventsFilter)),
+    [events, eventsFilter],
+  );
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    for (const e of events) {
+      if (e.type !== 'position_swap') continue;
+      const a = String(e.playerId ?? '').trim();
+      const b = String(e.swapWithPlayerId ?? '').trim();
+      if (!a || !b) {
+        console.warn('[LiveTicker] position_swap ohne vollstÃ¤ndigen Spielerbezug (payload)', {
+          id: e.id,
+          playerId: e.playerId,
+          swapWithPlayerId: e.swapWithPlayerId,
+        });
+      }
+    }
+  }, [events]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || matchRow?.status !== 'live') return;
+    const asc = sortMatchEventsChronologically(events);
+    let depth = 0;
+    let maxDepth = 0;
+    for (const e of asc) {
+      if (e.type === 'extra_player_on') depth += 1;
+      if (e.type === 'extra_player_off') depth = Math.max(0, depth - 1);
+      maxDepth = Math.max(maxDepth, depth);
+    }
+    if (maxDepth > 1) {
+      console.warn('[FairPlay] Mehr als ein Zusatzspieler (Ã¼berlappende extra_player_on)', { maxDepth });
+    }
+    const ex = fairPlayExtraPlayerId?.trim();
+    if (!ex) return;
+    if (onFieldIds.includes(ex)) {
+      console.warn('[FairPlay] Zusatzspieler steht in einem normalen Feld-Slot', { playerId: ex });
+    }
+    if (!rosterById.has(ex)) {
+      console.warn('[FairPlay] Zusatzspieler nicht im Kader / kein Feldbezug', { playerId: ex });
+    }
+    if (fairPlayGoalDiffOwnMinusOpp > -4) {
+      console.warn('[FairPlay] Zusatzspieler aktiv obwohl keine FairPlay-Situation (weniger als 4 Tore RÃ¼ckstand)', {
+        playerId: ex,
+        eigenMinusGegner: fairPlayGoalDiffOwnMinusOpp,
+      });
+    }
+  }, [matchRow?.status, events, fairPlayExtraPlayerId, onFieldIds, rosterById, fairPlayGoalDiffOwnMinusOpp]);
+
+  const spectatorLastActionEvent = useMemo(() => {
+    const ranked = events.filter((e) => e.type !== 'pause');
+    if (ranked.length === 0) return null;
+    return [...ranked].sort((a, b) => b.timestamp - a.timestamp || a.id.localeCompare(b.id))[0] ?? null;
+  }, [events]);
+
+  /** Nur fÃ¼r UI: Stand nach jedem Tor (chronologisch), kein Einfluss auf Persistenz. */
+  const goalScoreBadgeByEventId = useMemo(() => {
+    const sorted = sortMatchEventsChronologically(events);
+    let h = 0;
+    let a = 0;
+    const map = new Map<string, string>();
+    for (const ev of sorted) {
+      if (ev.type === 'goal') {
+        h += 1;
+        map.set(ev.id, `${h}:${a}`);
+      } else if (ev.type === 'goal_away') {
+        a += 1;
+        map.set(ev.id, `${h}:${a}`);
+      }
+    }
+    return map;
+  }, [events]);
+
+  const periodScoreLine = useMemo(() => formatPeriodScoresLine(periodScores), [periodScores]);
+  /** Turnierspiele: keine leeren Drittel-/Periodenklammern unter dem Hauptscore. */
+  const showPeriodScoreLine = !tournamentNavContext;
+
+  const lastHomeGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'home'), [events]);
+  const lastAwayGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'away'), [events]);
+
+  const substitutionEditChoices = useMemo(() => {
+    if (!editingSubstitutionEvent || editingSubstitutionEvent.type !== 'substitution') {
+      return { outgoing: [] as RosterPlayer[], incoming: [] as RosterPlayer[] };
+    }
+    const before = substitutionPlayersBeforeEvent({
+      kickoffPlayerIds: liveLineupBasePlayerIds,
+      squadPlayerIds,
+      savedBenchPlayerIds,
+      events,
+      eventId: editingSubstitutionEvent.id,
+      eventTimestamp: editingSubstitutionEvent.timestamp,
+    });
+    const outgoingIds = new Set(before.fieldPlayerIds);
+    const incomingIds = new Set(before.benchPlayerIds);
+    return {
+      outgoing: roster.filter((player) => outgoingIds.has(player.id)),
+      incoming: roster.filter((player) => incomingIds.has(player.id)),
+    };
+  }, [
+    editingSubstitutionEvent,
+    liveLineupBasePlayerIds,
+    squadPlayerIds,
+    savedBenchPlayerIds,
+    events,
+    roster,
+  ]);
+
+  const saveEditedSubstitution = useCallback(async () => {
+    const event = editingSubstitutionEvent;
+    const outId = editingSubstitutionOutId.trim();
+    const inId = editingSubstitutionInId.trim();
+    if (!event || event.type !== 'substitution' || editingSubstitutionSaving) return;
+    if (!canControlLiveMatch || calendarFinalized || !effectiveMatchId) return;
+    if (!outId || !inId || outId === inId) {
+      setSaveError('Bitte unterschiedliche Spieler fÃ¼r Raus und Rein auswÃ¤hlen.');
+      return;
+    }
+
+    const nextEvents = events.map((item) =>
+      item.id === event.id
+        ? { ...item, playerId: outId, swapWithPlayerId: inId }
+        : item,
+    );
+    const currentInvalid = firstInvalidAtomicSubstitution({
+      kickoffPlayerIds: liveLineupBasePlayerIds,
+      squadPlayerIds,
+      events,
+    });
+    const nextInvalid = firstInvalidAtomicSubstitution({
+      kickoffPlayerIds: liveLineupBasePlayerIds,
+      squadPlayerIds,
+      events: nextEvents,
+    });
+    if (nextInvalid && nextInvalid.id !== currentInvalid?.id) {
+      setSaveError(
+        `Diese Korrektur passt nicht zum spÃ¤teren Wechsel in ${formatMinute(nextInvalid.timestamp)}. Bitte diesen Wechsel zuerst prÃ¼fen.`,
+      );
+      return;
+    }
+
+    setEditingSubstitutionSaving(true);
+    setSaveError(null);
+    const originalOutId = String(event.playerId ?? '').trim();
+    const originalInId = String(event.swapWithPlayerId ?? '').trim();
+    const { error } = await updateSubstitutionPlayers(event.id, outId, inId);
+    if (error) {
+      setSaveError(error);
+      setEditingSubstitutionSaving(false);
+      return;
+    }
+
+    const atReplay = resolveReplayAtMatchSecond(nextEvents, currentMatchSeconds);
+    const syncResult = await syncFinalLineupBenchFromEventReplay({
+      matchId: effectiveMatchId,
+      kickoffStartingPlayerIds: liveLineupBasePlayerIds,
+      squadPlayerIds,
+      events: sortMatchEventsChronologically(nextEvents),
+      atMatchSecond: atReplay,
+      fallbackStartingPlayerIds: startingPlayerIds,
+      beforeFieldIds: startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0),
+      beforeBenchIds: savedBenchPlayerIds,
+    });
+    if (syncResult.error) {
+      const rollback = await updateSubstitutionPlayers(event.id, originalOutId, originalInId);
+      setSaveError(
+        rollback.error
+          ? `${syncResult.error} RÃ¼cksetzen fehlgeschlagen: ${rollback.error}`
+          : `${syncResult.error} Die Ã„nderung wurde zurÃ¼ckgesetzt.`,
+      );
+      setEditingSubstitutionSaving(false);
+      queueRealtimeReload();
+      return;
+    }
+
+    const fieldAfter = syncResult.startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0);
+    const benchAfter = getBenchPlayers(syncResult.squadPlayerIds, fieldAfter, savedBenchPlayerIds);
+    setEvents(nextEvents);
+    setStartingPlayerIds(syncResult.startingPlayerIds);
+    setSquadPlayerIds(syncResult.squadPlayerIds);
+    setSavedBenchPlayerIds(benchAfter);
+    setLineupData({
+      startingPlayerIds: syncResult.startingPlayerIds,
+      squadPlayerIds: syncResult.squadPlayerIds,
+      savedBenchPlayerIds: benchAfter,
+    });
+    setEditingSubstitutionEvent(null);
+    setEditingSubstitutionSaving(false);
+    queueRealtimeReload();
+  }, [
+    editingSubstitutionEvent,
+    editingSubstitutionOutId,
+    editingSubstitutionInId,
+    editingSubstitutionSaving,
+    canControlLiveMatch,
+    calendarFinalized,
+    effectiveMatchId,
+    events,
+    liveLineupBasePlayerIds,
+    squadPlayerIds,
+    currentMatchSeconds,
+    startingPlayerIds,
+    savedBenchPlayerIds,
+    queueRealtimeReload,
+  ]);
+
+  const matchReviewOpen = matchIsFinished && !calendarFinalized;
+
+  const periodDisplayLine = useMemo(() => {
+    if (matchReviewOpen) return 'NACHARBEIT OFFEN';
+    if (matchIsFinished) return 'SPIEL BEENDET';
+    const lp = matchRow?.live_period;
+    if (typeof lp === 'number' && lp >= 1 && lp <= 3) return `${lp}. Drittel`;
+    return `${half}. Drittel`;
+  }, [matchIsFinished, matchReviewOpen, matchRow?.live_period, half]);
+
+  const positionSwapPrimaryLine = useCallback(
+    (ev: MatchEngineEvent): string | null => {
+      const a = String(ev.playerId ?? '').trim();
+      const b = String(ev.swapWithPlayerId ?? '').trim();
+      if (!a || !b) return null;
+      const na = mobileLineupName((rosterById.get(a)?.name ?? '').trim() || 'â€”');
+      const nb = mobileLineupName((rosterById.get(b)?.name ?? '').trim() || 'â€”');
+      if ((!na || na === 'â€”') && (!nb || nb === 'â€”')) return null;
+      return `â†” ${na} â‡„ ${nb}`;
+    },
+    [rosterById],
+  );
+
+  const eventLabel = (ev: MatchEngineEvent): string => {
+    const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
+    switch (ev.type) {
+      case 'start':
+        return 'Anpfiff';
+      case 'goal':
+        return name ? `âš½ TOR ${stadiumHomeDisplay}: ${name}` : `âš½ TOR ${stadiumHomeDisplay}`;
+      case 'goal_away':
+        return name ? `âš½ TOR ${stadiumAwayDisplay}: ${name}` : `âš½ TOR ${stadiumAwayDisplay}`;
+      case 'sub_out':
+        return `Raus${name ? `: ${name}` : ''}`;
+      case 'sub_in':
+        return `Rein${name ? `: ${name}` : ''}`;
+      case 'substitution': {
+        const { outId, inId } = substitutionOutInIds(ev);
+        return formatSubstitutionTickerLine(rosterById, outId, inId);
+      }
+      case 'pause':
+        return 'Pause';
+      case 'resume':
+        return 'Weiter';
+      case 'end':
+        return 'Spielende';
+      case 'position_swap':
+        return positionSwapPrimaryLine(ev) ?? 'Positionswechsel';
+      case 'extra_player_on': {
+        const n = name ? `${name} als Zusatzspieler eingesetzt` : 'Zusatzspieler eingesetzt';
+        return `ğŸŸ¡ FairPlay: ${n}`;
+      }
+      case 'extra_player_off': {
+        const removedId = fairPlayRemovedPlayerIdFromEvent(ev);
+        const removedName = removedId
+          ? mobileLineupName(rosterById.get(removedId)?.name ?? 'Spieler')
+          : name
+            ? mobileLineupName(name)
+            : 'Spieler';
+        return `ğŸ”´ FairPlay: ${removedName} vom Feld genommen`;
+      }
+      default:
+        return ev.type;
+    }
+  };
+
+  const parentLiveEventDescription = (ev: MatchEngineEvent): string => {
+    const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
+    switch (ev.type) {
+      case 'start':
+        return ev.timestamp === 0 ? 'Anpfiff' : 'Weiter im Spiel';
+      case 'resume':
+        return 'Weiter nach Pause';
+      case 'end':
+        return 'Schlusspfiff';
+      case 'goal':
+        return name ? `${name} trifft fÃ¼r ${stadiumHomeDisplay}` : `Tor fÃ¼r ${stadiumHomeDisplay}`;
+      case 'goal_away':
+        return name ? `${name} trifft fÃ¼r ${stadiumAwayDisplay}` : `Tor fÃ¼r ${stadiumAwayDisplay}`;
+      case 'sub_out':
+        return name ? `${name} wechselt aus` : 'Auswechslung';
+      case 'sub_in':
+        return name ? `${name} wechselt ein` : 'Einwechslung';
+      case 'substitution': {
+        const { outId, inId } = substitutionOutInIds(ev);
+        return formatSubstitutionTickerLine(rosterById, outId, inId);
+      }
+      case 'position_swap':
+        return positionSwapPrimaryLine(ev) ?? 'Positionswechsel';
+      case 'extra_player_on':
+        return name
+          ? `ğŸŸ¡ FairPlay: ${name} als Zusatzspieler eingesetzt`
+          : 'ğŸŸ¡ FairPlay: Zusatzspieler eingesetzt';
+      case 'extra_player_off': {
+        const removedId = fairPlayRemovedPlayerIdFromEvent(ev);
+        const removedName = removedId
+          ? mobileLineupName(rosterById.get(removedId)?.name ?? 'Spieler')
+          : name
+            ? mobileLineupName(name)
+            : 'Spieler';
+        return `ğŸ”´ FairPlay: ${removedName} vom Feld genommen`;
+      }
+      case 'pause':
+        return 'Kurze Unterbrechung';
+      default:
+        return ev.type;
+    }
+  };
+
+  const renderTimelineRow = (
+    ev: MatchEngineEvent,
+    index: number,
+    listLength: number,
+    showGoalScoreBadge: boolean,
+    friendlyFeed = false,
+    spectatorCompact = false,
+    embedOnly = false,
+  ) => {
+    const isHomeGoal = ev.type === 'goal';
+    const isAwayGoal = ev.type === 'goal_away';
+    const isGoal = isHomeGoal || isAwayGoal;
+    const isSub = ev.type === 'sub_out' || ev.type === 'sub_in' || ev.type === 'substitution';
+    const isPosSwap = ev.type === 'position_swap';
+    const isFairPlayOn = ev.type === 'extra_player_on';
+    const isFairPlayOff = ev.type === 'extra_player_off';
+    const isFairPlay = isFairPlayOn || isFairPlayOff;
+    const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
+    const posSwapLine = isPosSwap ? positionSwapPrimaryLine(ev) : null;
+    const scoreStr =
+      showGoalScoreBadge && isGoal ? (goalScoreBadgeByEventId.get(ev.id) ?? null) : null;
+    const iconTile = isHomeGoal
+      ? 'bg-green-700 text-white'
+      : isAwayGoal
+        ? 'bg-red-700 text-white'
+        : isPosSwap
+          ? 'border border-zinc-600/45 bg-zinc-900/85 text-zinc-200'
+          : isFairPlayOn
+            ? 'border border-amber-500/55 bg-amber-950/90 text-amber-100'
+            : isFairPlayOff
+              ? 'border border-red-500/55 bg-red-950/90 text-red-100'
+              : isSub
+                ? 'bg-zinc-800 text-zinc-200'
+                : 'bg-zinc-800 text-zinc-400';
+
+    const cardBorder = isPosSwap
+      ? 'border-zinc-600/40 bg-zinc-950/75 shadow-none'
+      : isFairPlay
+        ? isFairPlayOn
+          ? 'border-amber-500/40 bg-amber-950/35 shadow-[0_0_18px_rgba(245,158,11,0.12)]'
+          : 'border-red-500/40 bg-red-950/30 shadow-[0_0_18px_rgba(239,68,68,0.12)]'
+        : isHomeGoal
+          ? friendlyFeed
+            ? 'border-red-500/45 shadow-[0_0_20px_rgba(220,38,38,0.22)]'
+            : 'border-green-600/50'
+          : isAwayGoal
+            ? friendlyFeed
+              ? 'border-red-500/45 shadow-[0_0_20px_rgba(220,38,38,0.22)]'
+              : 'border-red-600/50'
+            : isSub
+              ? friendlyFeed
+                ? 'border-zinc-500/35 bg-zinc-950/90'
+                : 'border-zinc-600'
+              : 'border-zinc-700';
+
+    const scorePillClass = isHomeGoal
+      ? 'rounded-full border border-green-600 bg-green-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-green-100 md:px-2.5 md:py-1 md:text-[11px]'
+      : 'rounded-full border border-red-600 bg-red-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-red-100 md:px-2.5 md:py-1 md:text-[11px]';
+
+    const tickerCardShell = friendlyFeed
+      ? isPosSwap
+        ? 'gap-1.5 rounded-xl px-2 py-1.5'
+        : 'gap-2 rounded-xl px-2.5 py-2 md:gap-2 md:px-3 md:py-2.5'
+      : 'gap-2 rounded-lg px-2 py-1.5 md:gap-2 md:px-2.5 md:py-2';
+    const tickerIconBox =
+      friendlyFeed && isPosSwap
+        ? 'h-7 w-7 shrink-0 rounded-lg text-sm'
+        : friendlyFeed
+          ? 'h-9 w-9 shrink-0 rounded-lg text-base md:h-10 md:w-10 md:text-lg'
+          : 'h-8 w-8 rounded-md text-sm md:h-9 md:w-9 md:text-base';
+
+    const card = (
+      <div className={`flex min-h-0 items-stretch border bg-zinc-950 ${tickerCardShell} ${cardBorder}`}>
+        <div className={`flex shrink-0 items-center justify-center ${tickerIconBox} ${iconTile}`} aria-hidden>
+          {eventIcon(ev.type)}
+        </div>
+        <div className="min-w-0 flex-1 py-0.5">
+          {isHomeGoal ? (
+            <>
+              <span
+                className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+                  friendlyFeed
+                    ? 'border-red-500/50 bg-red-950/80 text-red-50 shadow-[0_0_14px_rgba(220,38,38,0.28)]'
+                    : 'border-green-600 bg-green-950/80 text-green-100'
+                }`}
+              >
+                âš½ TOR {stadiumHomeDisplay}
+              </span>
+              {pl ? (
+                <p className="mt-0.5 truncate text-sm font-semibold leading-snug text-white">
+                  {pl.name}
+                  {pl.number != null && String(pl.number).trim() !== '' ? (
+                    <span className="text-gray-300"> ({pl.number})</span>
+                  ) : null}
+                </p>
+              ) : (
+                <p className="mt-0.5 text-xs font-medium text-gray-400">Ohne TorschÃ¼tze</p>
+              )}
+            </>
+          ) : isAwayGoal ? (
+            <>
+              <span
+                className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+                  friendlyFeed
+                    ? 'border-red-500/50 bg-red-950/80 text-red-50 shadow-[0_0_14px_rgba(220,38,38,0.28)]'
+                    : 'border-red-600 bg-red-950/80 text-red-100'
+                }`}
+              >
+                âš½ TOR {stadiumAwayDisplay}
+              </span>
+              {pl ? (
+                <p className="mt-0.5 truncate text-sm font-semibold leading-snug text-white">
+                  {pl.name}
+                  {pl.number != null && String(pl.number).trim() !== '' ? (
+                    <span className="text-gray-300"> ({pl.number})</span>
+                  ) : null}
+                </p>
+              ) : (
+                <p className="mt-0.5 text-xs font-medium text-gray-400">Ohne TorschÃ¼tze</p>
+              )}
+            </>
+          ) : isPosSwap ? (
+            <>
+              <p className="text-[12px] font-semibold leading-snug text-zinc-100">
+                {posSwapLine ?? 'Positionswechsel'}
+              </p>
+              {posSwapLine && !spectatorCompact ? (
+                <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                  Positionswechsel
+                </p>
+              ) : null}
+            </>
+          ) : isFairPlay ? (
+            <>
+              <p className="text-[12px] font-semibold leading-snug text-white/95">
+                {parentLiveEventDescription(ev)}
+              </p>
+              {!spectatorCompact ? (
+                <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-amber-200/70">
+                  FairPlay
+                </p>
+              ) : null}
+            </>
+          ) : isSub ? (
+            <>
+              {!friendlyFeed ? (
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-400">Wechsel</p>
+              ) : null}
+              <p
+                className={`${friendlyFeed ? '' : 'mt-1 '}text-sm font-semibold leading-snug ${
+                  friendlyFeed ? 'text-zinc-200' : ev.type === 'sub_out' ? 'text-red-300' : 'text-emerald-300'
+                }`}
+              >
+                {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm font-semibold text-white/90">
+              {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
+            </p>
+          )}
+        </div>
+        {scoreStr ? (
+          <div className="flex shrink-0 items-start pt-0.5">
+            <span className={scorePillClass}>{scoreStr}</span>
+          </div>
+        ) : null}
+      </div>
+    );
+
+    if (embedOnly) {
+      return <div className="w-full min-w-0">{card}</div>;
+    }
+
+    return (
+      <li
+        key={ev.id}
+        className={`relative flex gap-0 ${friendlyFeed ? 'pb-1.5 last:pb-0 md:pb-2' : 'pb-2.5 last:pb-0 md:pb-3'}`}
+      >
+        <div className="flex w-10 shrink-0 flex-col items-end pr-0.5 pt-0.5 md:w-12 md:pr-1">
+          <span className="text-xs font-bold tabular-nums leading-none text-white md:text-sm">
+            {formatMinute(ev.timestamp)}
+          </span>
+        </div>
+        <div className="relative flex w-2.5 shrink-0 flex-col items-center pt-0.5 md:w-3">
+          {index < listLength - 1 ? (
+            <div
+              className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${
+                friendlyFeed ? 'top-1.5 w-px bg-zinc-600/45' : 'top-2.5 w-1 rounded-full bg-zinc-700'
+              }`}
+              aria-hidden
+            />
+          ) : null}
+          <div
+            className={`relative z-10 h-1.5 w-1.5 shrink-0 rounded-full ${
+              friendlyFeed ? 'bg-zinc-500' : 'bg-red-600'
+            }`}
+            aria-hidden
+          />
+        </div>
+        <div className="min-w-0 flex-1">{card}</div>
+      </li>
+    );
+  };
+
+  const renderTrainerTickerSegment = (row: TickerSegmentRow) => {
+    if (isSubstitutionTickerPair(row)) {
+      const atomic = row.items[0]?.type === 'substitution' ? row.items[0] : null;
+      const outId = atomic
+        ? substitutionOutInIds(atomic).outId
+        : String(row.items[0]?.playerId ?? '').trim();
+      const inId = atomic
+        ? substitutionOutInIds(atomic).inId
+        : String(row.items[1]?.playerId ?? '').trim();
+      const line = formatSubstitutionTickerLine(rosterById, outId, inId);
+      const canEditSubstitution = Boolean(canControlLiveMatch && !calendarFinalized && atomic);
+      const openSubstitutionEdit = () => {
+        if (!atomic) return;
+        setEditingSubstitutionEvent(atomic);
+        setEditingSubstitutionOutId(outId);
+        setEditingSubstitutionInId(inId);
+        setEditingSubstitutionSaving(false);
+        setSaveError(null);
+      };
+      return (
+        <div
+          key={row.key}
+          className={`flex min-h-0 items-stretch gap-2 rounded-xl border border-zinc-600/40 bg-zinc-950/88 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] md:gap-2 md:px-2.5 md:py-2 ${
+            canEditSubstitution
+              ? 'cursor-pointer touch-manipulation focus:outline-none focus:ring-2 focus:ring-red-500/70'
+              : ''
+          }`}
+          onClick={canEditSubstitution ? openSubstitutionEdit : undefined}
+          onKeyDown={
+            canEditSubstitution
+              ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openSubstitutionEdit();
+                  }
+                }
+              : undefined
+          }
+          role={canEditSubstitution ? 'button' : undefined}
+          tabIndex={canEditSubstitution ? 0 : undefined}
+          aria-label={canEditSubstitution ? `${line} bearbeiten` : undefined}
+        >
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-600/50 bg-zinc-900 text-base text-zinc-200"
+            aria-hidden
+          >
+            â‡„
+          </div>
+          <div className="min-w-0 flex-1 py-0.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Wechsel</p>
+              {canEditSubstitution ? (
+                <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-red-300/75">
+                  Ã„ndern
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-[13px] font-semibold leading-snug text-zinc-200">{line}</p>
+          </div>
+        </div>
+      );
+    }
+
+    const ev = row.items[0];
+    const canEditGoal =
+      canControlLiveMatch &&
+      !calendarFinalized &&
+      (ev.type === 'goal' || ev.type === 'goal_away');
+    const openGoalEdit = () => {
+      setEditingGoalEvent(ev);
+      setEditingGoalScorerId(ev.playerId ?? '');
+      setEditingGoalSaving(false);
+      setSaveError(null);
+    };
+    return (
+      <div
+        key={row.key}
+        className={`w-full min-w-0 ${canEditGoal ? 'cursor-pointer rounded-xl focus-within:ring-2 focus-within:ring-red-500/70' : ''}`}
+        onClick={canEditGoal ? openGoalEdit : undefined}
+        onKeyDown={
+          canEditGoal
+            ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openGoalEdit();
+                }
+              }
+            : undefined
+        }
+        role={canEditGoal ? 'button' : undefined}
+        tabIndex={canEditGoal ? 0 : undefined}
+        aria-label={canEditGoal ? `${eventLabel(ev)} bearbeiten` : undefined}
+      >
+        {renderTimelineRow(ev, 0, 1, true, true, spectatorView, true)}
+      </div>
+    );
+  };
+
+  const renderTrainerTickerMinuteGroup = (
+    group: { groupKey: string; minuteLabel: string; segments: TickerSegmentRow[] },
+    groupIndex: number,
+    groupCount: number,
+  ) => {
+    const lineConnector =
+      groupIndex < groupCount - 1 ? (
+        <div className="absolute top-1.5 bottom-0 left-1/2 w-px -translate-x-1/2 bg-zinc-600/45" aria-hidden />
+      ) : null;
+    return (
+      <li key={group.groupKey} className="relative flex gap-0 pb-1.5 last:pb-0 md:pb-2">
+        <div className="flex w-10 shrink-0 flex-col items-end pr-0.5 pt-0.5 md:w-12 md:pr-1">
+          <span className="text-xs font-bold tabular-nums leading-none text-white md:text-sm">{group.minuteLabel}</span>
+        </div>
+        <div className="relative flex w-2.5 shrink-0 flex-col items-center pt-0.5 md:w-3">
+          {lineConnector}
+          <div className="relative z-10 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          {group.segments.map((seg) => renderTrainerTickerSegment(seg))}
+        </div>
+      </li>
+    );
+  };
+
+  const selectClass =
+    'mt-1 w-full min-h-[52px] rounded-2xl border border-white/15 bg-black/50 px-3 text-base text-white focus:border-red-500/60 focus:outline-none focus:ring-1 focus:ring-red-500/40';
+
+  const ampelDot = (s: ReturnType<typeof getPlaytimeStatus>) =>
+    s === 'red' ? 'bg-red-500' : s === 'yellow' ? 'bg-amber-400' : 'bg-emerald-500';
+
+  if (pageLoading) {
+    return (
+      <LivePremiumShell centerContent>
+        <p className="text-sm text-white/60">Lade Live-Datenâ€¦</p>
+      </LivePremiumShell>
+    );
+  }
+
+  if (!effectiveMatchId) {
+    return (
+      <LivePremiumShell>
+        <LivePageHeader />
+        <PremiumEmptyState
+          variant="subtle"
+          title={pageError ?? 'Kein Live-Spiel aktiv'}
+          className="py-6"
+        >
+          <LiveScheduleCtaLink />
+        </PremiumEmptyState>
+      </LivePremiumShell>
+    );
+  }
+
+  if (playersLoading && roster.length === 0) {
+    return (
+      <LivePremiumShell centerContent>
+        <p className="text-sm text-white/60">Kader wird geladenâ€¦</p>
+      </LivePremiumShell>
+    );
+  }
+
+  if (playersError) {
+    return (
+      <LivePremiumShell centerContent>
+        <PremiumEmptyState
+          variant="subtle"
+          title={playersError}
+          description='Spieler kommen aus der Tabelle â€playersâ€œ (aktuelle Mannschaftssaison).'
+          className="max-w-md py-6"
+        />
+      </LivePremiumShell>
+    );
+  }
+
+  if (!teamSeasonForRoster) {
+    return (
+      <LivePremiumShell centerContent>
+        <PremiumEmptyState
+          variant="subtle"
+          title="Spiel hat keine Mannschaftssaison."
+          className="max-w-md py-6"
+        >
+          <LiveScheduleCtaLink />
+        </PremiumEmptyState>
+      </LivePremiumShell>
+    );
+  }
+
+  if (roster.length === 0) {
+    return (
+      <LivePremiumShell centerContent>
+        <PremiumEmptyState
+          variant="subtle"
+          title="Kein Team / keine Spieler fÃ¼r dieses Spiel."
+          description="WÃ¤hle die passende Mannschaftssaison oder lege Spieler im Team an."
+          className="max-w-md py-6"
+        >
+          <LiveScheduleCtaLink />
+        </PremiumEmptyState>
+      </LivePremiumShell>
+    );
+  }
+
+  const ownLogoName =
+    ownTeamName.trim() && ownTeamName.trim() !== HOME_FALLBACK
+      ? ownTeamName.trim()
+      : getOurTeamDisplayName();
+  const ownLogoSrc = getClubLogo(ownLogoName);
+  const opponentLogoSrc = getClubLogo(headerOpponent, { logoUrl: opponentLogoUrl ?? undefined });
+  const homeLogoSrc = sides.isOwnTeamHome ? ownLogoSrc : opponentLogoSrc;
+  const awayLogoSrc = sides.isOwnTeamHome ? opponentLogoSrc : ownLogoSrc;
+  const kickoffRaw = matchRow?.match_date ? new Date(matchRow.match_date) : null;
+  const kickoffDateTime =
+    kickoffRaw && !Number.isNaN(kickoffRaw.getTime())
+      ? {
+          date: kickoffRaw.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          time: kickoffRaw.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }),
+        }
+      : { date: 'Noch offen', time: 'Noch offen' };
+  const meetingAtRaw =
+    typeof (matchRow as (LiveMatchRow & { meeting_at?: string | null }) | null)?.meeting_at === 'string'
+      ? ((matchRow as LiveMatchRow & { meeting_at?: string | null }).meeting_at ?? '')
+      : '';
+  const meetingAtDate = meetingAtRaw ? new Date(meetingAtRaw) : null;
+  const meetingAtDisplay = !meetingAtRaw
+    ? ''
+    : meetingAtDate && !Number.isNaN(meetingAtDate.getTime())
+      ? meetingAtDate.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+      : meetingAtRaw;
+
+  const layoutShell = 'mx-auto w-full max-w-none';
+  const spectatorView = !canControlLiveMatch;
+  const matchboardVisible = mainTab === 'hub';
+  const liveBadgeAnimating = hasClockStarted && isRunning && !matchIsFinished;
+  const liveBadgeShell =
+    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3 sm:text-[11px] uppercase';
+  const liveBadgeClassName = `${liveBadgeShell} ${
+    matchIsFinished
+      ? 'border-red-500/45 bg-gradient-to-b from-red-900 to-red-950 text-red-100 shadow-[0_0_22px_rgba(220,38,38,0.45)]'
+      : hasClockStarted
+        ? `border-red-400/60 bg-gradient-to-b from-red-600 via-red-900 to-red-950 text-red-50 shadow-[0_0_28px_rgba(255,40,40,0.55),0_0_48px_rgba(220,38,38,0.25)]${liveBadgeAnimating ? ' animate-live-badge-strong' : ''}`
+        : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
+  }`;
+  /** Nur Ziffer: Tap = Tor, Long-press = Undo (kein Ball-Icon). */
+  const scoreTapHome = `${mbRowBtn} ${SCOREBOARD_NO_SELECT} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
+  const scoreTapAway = `${mbRowBtn} ${SCOREBOARD_NO_SELECT} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
+  const mbStart = `${mbRowBtn} rounded-xl border border-emerald-400/50 bg-gradient-to-b from-emerald-600/80 to-emerald-950/85 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_22px_rgba(16,185,129,0.35)] hover:from-emerald-500/85 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]`;
+  /** Pause als linke Hauptaktion â€” dunkelgrÃ¼n wie Zielbild, klar von Beginn/Weiter (hellgrÃ¼n) getrennt. */
+  const mbPausePrimary = `${mbRowBtn} rounded-xl border border-emerald-800/55 bg-gradient-to-b from-emerald-950/92 to-black/85 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_16px_rgba(6,78,59,0.35)] hover:border-emerald-600/45 hover:from-emerald-900/88`;
+  const mbEnd = `${mbRowBtn} rounded-xl border border-red-500/50 bg-gradient-to-b from-red-600/75 to-red-950/88 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(220,38,38,0.38)] hover:from-red-500/78 hover:shadow-[0_0_32px_rgba(220,38,38,0.45)]`;
+  const mbWechsel = `${mbRowBtn} w-full rounded-xl border border-white/22 bg-zinc-950/85 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/30 hover:bg-zinc-900/90`;
+  /** WÃ¤hrend Live: zurÃ¼ckhaltend (disabled). Nach Ende: klarer Gold-Abschluss. */
+  const mbSpielEndeWhileLive = `${mbRowBtn} w-full rounded-xl border border-amber-500/30 bg-black/80 text-amber-100/70 shadow-none opacity-55`;
+  const mbSpielEndeReady = `${mbRowBtn} w-full rounded-xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-950/50 to-black/92 text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(234,179,8,0.35),0_0_48px_rgba(245,158,11,0.18)] hover:border-amber-300/90 enabled:hover:shadow-[0_0_36px_rgba(250,204,21,0.38)]`;
+
+  const clearHomeGoalLongPress = () => {
+    if (homeGoalLpTimerRef.current != null) {
+      window.clearTimeout(homeGoalLpTimerRef.current);
+      homeGoalLpTimerRef.current = null;
+    }
+  };
+  const clearAwayGoalLongPress = () => {
+    if (awayGoalLpTimerRef.current != null) {
+      window.clearTimeout(awayGoalLpTimerRef.current);
+      awayGoalLpTimerRef.current = null;
+    }
+  };
+  const onHomeGoalScorePointerDown = () => {
+    if (spectatorView || !canControlLiveMatch || matchIsFinished || !isClockRunning) return;
+    homeGoalSuppressClickRef.current = false;
+    clearHomeGoalLongPress();
+    homeGoalLpTimerRef.current = window.setTimeout(() => {
+      homeGoalLpTimerRef.current = null;
+      if (lastHomeGoalEventId) {
+        homeGoalSuppressClickRef.current = true;
+        const next = events.filter((ev) => ev.id !== lastHomeGoalEventId);
+        const prev = recomputeScoresFromEvents(next);
+        offerGoalUndo({
+          eventId: lastHomeGoalEventId,
+          side: 'home',
+          prevHome: prev.home,
+          prevAway: prev.away,
+        });
+      }
+    }, 550);
+  };
+  const onAwayGoalScorePointerDown = () => {
+    if (spectatorView || !canControlLiveMatch || matchIsFinished || !isClockRunning) return;
+    awayGoalSuppressClickRef.current = false;
+    clearAwayGoalLongPress();
+    awayGoalLpTimerRef.current = window.setTimeout(() => {
+      awayGoalLpTimerRef.current = null;
+      if (lastAwayGoalEventId) {
+        awayGoalSuppressClickRef.current = true;
+        const next = events.filter((ev) => ev.id !== lastAwayGoalEventId);
+        const prev = recomputeScoresFromEvents(next);
+        offerGoalUndo({
+          eventId: lastAwayGoalEventId,
+          side: 'away',
+          prevHome: prev.home,
+          prevAway: prev.away,
+        });
+      }
+    }, 550);
+  };
+
+  const renderLastActionOverview = (headingClass: string) => {
+    const ev = spectatorLastActionEvent;
+    return (
+      <section>
+        <h2 className={headingClass}>Letzte Aktion</h2>
+        {ev ? (
+          <div className={`px-3 py-2.5 ${liveCardShell} border-red-500/20`}>
+            <div className="flex items-start gap-3">
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/50 text-base"
+                aria-hidden
+              >
+                {eventIcon(ev.type)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[11px] font-bold tabular-nums text-gray-400">{formatMinute(ev.timestamp)}</p>
+                {ev.type === 'goal' ? (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-400">
+                      âš½ TOR {stadiumHomeDisplay}
+                    </p>
+                    {ev.playerId ? (
+                      <p className="truncate text-sm font-bold text-white">
+                        {rosterById.get(ev.playerId)?.name ?? '?'}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-gray-500">Ohne TorschÃ¼tze</p>
+                    )}
+                  </>
+                ) : ev.type === 'goal_away' ? (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-red-400">
+                      âš½ TOR {stadiumAwayDisplay}
+                    </p>
+                    {ev.playerId ? (
+                      <p className="truncate text-sm font-bold text-white">
+                        {rosterById.get(ev.playerId)?.name ?? '?'}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-gray-500">Ohne TorschÃ¼tze</p>
+                    )}
+                  </>
+                ) : ev.type === 'position_swap' ? (
+                  <>
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-white">
+                      {positionSwapPrimaryLine(ev) ?? 'Positionswechsel'}
+                    </p>
+                    {positionSwapPrimaryLine(ev) ? (
+                      <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                        Positionswechsel
+                      </p>
+                    ) : null}
+                  </>
+                ) : ev.type === 'extra_player_on' || ev.type === 'extra_player_off' ? (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-amber-300/95">
+                      FairPlay
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-white">{parentLiveEventDescription(ev)}</p>
+                  </>
+                ) : ev.type === 'sub_out' || ev.type === 'sub_in' ? (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-sky-400">Wechsel</p>
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-white">{parentLiveEventDescription(ev)}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-gray-400">
+                      {ev.type === 'start' ? 'Spiel' : ev.type === 'end' ? 'Ende' : ev.type === 'resume' ? 'Weiter' : 'Ereignis'}
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-white">{parentLiveEventDescription(ev)}</p>
+                  </>
+                )}
+              </div>
+              {(ev.type === 'goal' || ev.type === 'goal_away') && goalScoreBadgeByEventId.get(ev.id) ? (
+                <span className="shrink-0 self-start rounded-full border border-green-600/80 bg-green-950/90 px-2 py-0.5 font-mono text-[11px] font-black tabular-nums text-green-100">
+                  {goalScoreBadgeByEventId.get(ev.id)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <p className={`px-3 py-2.5 text-center text-xs text-gray-500 ${liveCardShell} border-red-500/15`}>
+            Sobald etwas passiert, erscheint hier die letzte wichtige Spielaktion.
+          </p>
+        )}
+      </section>
+    );
+  };
+
+  /** Steuerzeile: [Status] [Timer] [Ende] â€” gleiche HÃ¶he, Logik unverÃ¤ndert. */
+  const trainerClockRowBtn = 'h-10 min-h-10 w-full sm:h-11 sm:min-h-11';
+  const renderTrainerClockActionRow = (gapClass: string) => {
+    if (matchIsFinished) return null;
+    return (
+      <div className={`grid grid-cols-3 items-stretch ${gapClass}`}>
+        {matchClockStatus === 'live' ? (
+          <button
+            type="button"
+            onClick={openPauseConfirm}
+            disabled={matchClockStatus === 'finished'}
+            aria-label="Spiel anhalten"
+            className={`${mbPausePrimary} ${trainerClockRowBtn} px-2 text-[11px] sm:text-xs`}
+          >
+            <span aria-hidden>â¸</span>
+            Pause
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void onStartClick()}
+            disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
+            aria-label={matchClockStatus === 'paused' ? 'Spiel fortsetzen' : 'Spiel beginnen'}
+            className={`${mbStart} ${trainerClockRowBtn} px-2 text-[11px] sm:text-xs`}
+          >
+            <span aria-hidden>â–¶</span>
+            {matchClockStatus === 'paused' ? 'Weiter' : 'Beginn'}
+          </button>
+        )}
+        <div className="flex min-w-0 items-stretch justify-center px-0.5">
+          <span
+            className="liveTimer inline-flex h-full w-full min-w-0 items-center justify-center rounded-full bg-red-600 px-2 font-mono text-sm font-bold tabular-nums leading-none text-white shadow-[0_0_26px_rgba(220,38,38,0.55),inset_0_1px_0_rgba(255,255,255,0.12)] sm:text-base"
+            aria-live="polite"
+          >
+            {formatClock(currentMatchSeconds)}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEndeConfirmOpen(true)}
+          disabled={matchClockStatus === 'finished' || matchClockStatus === 'not_started'}
+          aria-label="Spiel beenden"
+          className={`${mbEnd} ${trainerClockRowBtn} px-2 text-[11px] sm:text-xs`}
+        >
+          <span aria-hidden>â¹</span>
+          Ende
+        </button>
+      </div>
+    );
+  };
+
+  /** HÃ¶he unter globalem App-Header (main pt, safe-area-korrekt); Matchboard+Hub fix, Module scrollen (inkl. pb fÃ¼r Bottom-Nav). */
+  const liveShellOuter = 'live-shell-viewport relative flex flex-col overflow-hidden text-white';
+  const wechselScreenActive = Boolean(canControlLiveMatch && wechselSheetOpen && !matchIsFinished);
+
+  const kickoffProfilePhotoUrl = kickoffProfilePlayer
+    ? (kickoffProfilePlayer.avatar_url ?? '').trim() || null
+    : null;
+  const kickoffTeamSeasonLabel =
+    ownTeamName.trim() && ownTeamName.trim() !== HOME_FALLBACK
+      ? ownTeamName.trim()
+      : getOurTeamDisplayName();
+
+  return (
+    <>
+      {kickoffProfilePlayer ? (
+        <PlayerProfileModal
+          player={kickoffProfilePlayer}
+          role={backendRole ?? null}
+          teamSeasonLabel={kickoffTeamSeasonLabel}
+          photoUrl={kickoffProfilePhotoUrl}
+          canManage={canManagePlayers}
+          squadPlayers={safePlayers}
+          onClose={() => setKickoffProfilePlayer(null)}
+          onEdit={() => {
+            setKickoffProfilePlayer(null);
+            navigate(`${basePath}/team`);
+          }}
+        />
+      ) : null}
+    <div className={liveShellOuter}>
+      <style>{`@keyframes liveSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes liveSubOut{from{opacity:.92;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}`}</style>
+      {!wechselScreenActive ? (
+      <>
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+        <div
+          className="absolute inset-0 bg-cover opacity-[0.22] brightness-[0.42] saturate-[0.72]"
+          style={{
+            backgroundImage: `url(${matchboardWelcomeHeroSrc()})`,
+            backgroundPosition: 'center 43%',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
+        <div
+          className="absolute inset-0 opacity-[0.05] mix-blend-overlay"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E")`,
+          }}
+        />
+      </div>
+      <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
+      <header
+        ref={mainTab === 'hub' ? liveHubScrollRef : undefined}
+        className={`border-b bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
+          mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
+        } ${
+          mainTab === 'hub'
+            ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+            : 'shrink-0'
+        }`}
+      >
+        <div
+          className={`${layoutShell} ${
+            spectatorView ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0' : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
+          }`}
+        >
+          {matchboardVisible && (
+            <div
+              className={`relative mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md ${
+                spectatorView ? 'md:max-w-xl' : 'md:max-w-2xl'
+              }`}
+            >
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl bg-cover opacity-[0.12] brightness-[0.4] saturate-[0.68]"
+                style={{
+                  backgroundImage: `url(${matchboardWelcomeHeroSrc()})`,
+                  backgroundPosition: 'center 43%',
+                }}
+              />
+              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl"
+                style={{
+                  background:
+                    'linear-gradient(90deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.12) 28%, rgba(0,0,0,0.18) 72%, rgba(0,0,0,0.62) 100%)',
+                }}
+              />
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 118% 88% at 50% 48%, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.08) 52%, rgba(0,0,0,0.45) 100%)',
+                }}
+              />
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl opacity-[0.55]"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 92% 52% at 50% -8%, rgba(220,38,38,0.12), transparent 58%)',
+                }}
+              />
+              <div className={`relative z-[1] w-full px-3 py-1.5 pb-1 sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
+                {matchTypeDisplay ? (
+                  <div className="flex justify-center">
+                    <p className="text-base font-semibold text-white sm:text-lg">{matchTypeDisplay}</p>
+                  </div>
+                ) : null}
+
+                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-1.5' : 'mt-1'}`}>
+                  <div className={liveBadgeClassName}>
+                    {hasClockStarted && !matchIsFinished ? (
+                      <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
+                        â—
+                      </span>
+                    ) : null}
+                    {matchIsFinished ? 'Endstand' : hasClockStarted ? 'Live' : 'Bereit'}
+                  </div>
+                </div>
+
+                {matchReviewOpen && !spectatorView && canControlLiveMatch ? (
+                  <div className="mt-1.5 flex justify-center px-2" role="status">
+                    <p className="max-w-[18rem] text-center text-[10px] font-semibold leading-snug text-amber-200/95 sm:text-[11px]">
+                      Spiel beendet â€“ bitte Ergebnis prÃ¼fen und Spiel abschlieÃŸen
+                    </p>
+                  </div>
+                ) : null}
+
+                {isPaused && !matchIsFinished ? (
+                  <div className="mt-1 flex justify-center px-2">
+                    <div
+                      role="status"
+                      aria-label="Pause. Tore nach Weiter mÃ¶glich."
+                      className="inline-flex max-h-8 min-h-7 max-w-[10.5rem] flex-col items-center justify-center rounded-full border border-amber-400/30 bg-black/50 px-2.5 py-0.5 shadow-sm backdrop-blur-md min-[380px]:max-h-none min-[380px]:min-h-0 min-[380px]:max-w-[14rem] min-[380px]:py-1"
+                    >
+                      <span className="text-[9px] font-black uppercase leading-none tracking-[0.12em] text-amber-100/90 sm:text-[10px]">
+                        <span aria-hidden>â¸</span> Pause
+                      </span>
+                      <span className="mt-0.5 hidden min-[380px]:block text-center text-[8px] font-medium leading-tight text-white/70 sm:text-[9px]">
+                        Tore nach Weiter mÃ¶glich
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Logo + Namen unter Logo | Score + Labels + Perioden | Logo + Namen */}
+                <div
+                  className={`flex items-start justify-between gap-1.5 sm:gap-2.5 ${
+                    isPaused && !matchIsFinished ? 'mt-1.5' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
+                  }`}
+                >
+                  <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
+                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size="boardSm" />
+                    <div className="mt-1 w-full px-0.5">
+                      <MatchboardTeamNameLines parts={homeNameParts} align="center" tight />
+                    </div>
+                  </div>
+
+                  <div className={`flex min-w-0 shrink flex-col items-center gap-1 px-0.5 sm:px-1 ${SCOREBOARD_NO_SELECT}`}>
+                    {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
+                      <div className="flex items-start justify-center gap-1 sm:gap-2 motion-safe:transition-transform motion-safe:duration-300">
+                        <div className="flex min-w-0 flex-col items-center">
+                          <button
+                            type="button"
+                            disabled={!isClockRunning}
+                            aria-label={`Tor ${stadiumHomeDisplay} erfassen. Lange drÃ¼cken fÃ¼r RÃ¼ckgÃ¤ngig.`}
+                            className={scoreTapHome}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onPointerDown={onHomeGoalScorePointerDown}
+                            onPointerUp={clearHomeGoalLongPress}
+                            onPointerLeave={clearHomeGoalLongPress}
+                            onPointerCancel={clearHomeGoalLongPress}
+                            onClick={() => {
+                              if (homeGoalSuppressClickRef.current) {
+                                homeGoalSuppressClickRef.current = false;
+                                return;
+                              }
+                              if (!isClockRunning) {
+                                setSaveError(goalBlockedMessage);
+                                return;
+                              }
+                              if (sides.isOwnTeamHome) {
+                                setHomeGoalPickId('');
+                                setHomeGoalModalOpen(true);
+                                return;
+                              }
+                              void (async () => {
+                                const before = recomputeScoresFromEvents(events);
+                                const res = await persistSingle({
+                                  type: 'goal',
+                                  timestamp: currentMatchSeconds,
+                                });
+                                if (!res.ok || !res.savedId) return;
+                                offerGoalUndo({
+                                  eventId: res.savedId,
+                                  side: 'home',
+                                  prevHome: before.home,
+                                  prevAway: before.away,
+                                });
+                              })();
+                            }}
+                          >
+                            <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
+                              {displayScoreHome}
+                            </span>
+                          </button>
+                        </div>
+                        <span
+                          className="shrink-0 select-none pt-0.5 text-3xl font-bold leading-none text-white/70 tabular-nums sm:pt-1 sm:text-4xl"
+                          aria-hidden
+                        >
+                          :
+                        </span>
+                        <div className="flex min-w-0 flex-col items-center">
+                          <button
+                            type="button"
+                            disabled={!isClockRunning}
+                            aria-label={`Tor ${stadiumAwayDisplay} erfassen. Lange drÃ¼cken fÃ¼r RÃ¼ckgÃ¤ngig.`}
+                            className={scoreTapAway}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onPointerDown={onAwayGoalScorePointerDown}
+                            onPointerUp={clearAwayGoalLongPress}
+                            onPointerLeave={clearAwayGoalLongPress}
+                            onPointerCancel={clearAwayGoalLongPress}
+                            onClick={() => {
+                              if (awayGoalSuppressClickRef.current) {
+                                awayGoalSuppressClickRef.current = false;
+                                return;
+                              }
+                              if (!isClockRunning) {
+                                setSaveError(goalBlockedMessage);
+                                return;
+                              }
+                              if (sides.isOwnTeamHome) {
+                                void (async () => {
+                                  const before = recomputeScoresFromEvents(events);
+                                  const res = await persistSingle({
+                                    type: 'goal_away',
+                                    timestamp: currentMatchSeconds,
+                                  });
+                                  if (!res.ok || !res.savedId) return;
+                                  offerGoalUndo({
+                                    eventId: res.savedId,
+                                    side: 'away',
+                                    prevHome: before.home,
+                                    prevAway: before.away,
+                                  });
+                                })();
+                                return;
+                              }
+                              setAwayGoalPickId('');
+                              setAwayGoalModalOpen(true);
+                            }}
+                          >
+                            <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
+                              {displayScoreAway}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`flex flex-col items-center gap-1 ${SCOREBOARD_NO_SELECT}`}>
+                        <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
+                          <span className="text-center text-6xl font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] sm:text-7xl">
+                            {displayScoreHome}
+                            <span className="mx-1.5 text-white/75 sm:mx-2">:</span>
+                            {displayScoreAway}
+                          </span>
+                        </div>
+                        {!matchIsFinished ? (
+                          <span
+                            className={`liveTimer inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-1 font-mono text-base font-bold tabular-nums leading-none text-white shadow-[0_0_26px_rgba(220,38,38,0.55),inset_0_1px_0_rgba(255,255,255,0.12)] sm:text-lg ${SCOREBOARD_NO_SELECT}`}
+                            aria-live="polite"
+                          >
+                            {formatClock(currentMatchSeconds)}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+                    {showPeriodScoreLine ? (
+                      <p className={`mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px] ${SCOREBOARD_NO_SELECT}`}>
+                        <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
+                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size="boardSm" />
+                    <div className="mt-1 w-full px-0.5">
+                      <MatchboardTeamNameLines parts={awayNameParts} align="center" tight />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {matchRow?.status === 'live' && !matchIsFinished && (fairPlayRuleActivatable || fairPlayExtraPlayerId) ? (
+                <div className="relative z-[1] border-t border-white/10 px-2 py-1 sm:px-2.5">
+                  <div
+                    className={[
+                      'rounded-xl border px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:px-2.5',
+                      fairPlayMustRemoveExtra
+                        ? 'border-red-500/45 bg-gradient-to-br from-red-950/55 to-black/70'
+                        : fairPlayExtraPlayerId
+                          ? 'border-amber-500/40 bg-gradient-to-br from-amber-950/40 to-black/65'
+                          : 'border-amber-400/35 bg-gradient-to-br from-yellow-950/35 to-black/60',
+                    ].join(' ')}
+                  >
+                    <div className="flex items-start gap-1.5">
+                      <span className="shrink-0 text-base leading-none" aria-hidden>
+                        {fairPlayMustRemoveExtra ? 'ğŸ”´' : fairPlayExtraPlayerId ? 'ğŸŸ ' : 'ğŸŸ¡'}
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/85">
+                          {fairPlayMustRemoveExtra
+                            ? 'Ein Spieler muss vom Feld'
+                            : fairPlayExtraPlayerId
+                              ? 'FairPlay-Zusatzspieler aktiv'
+                              : 'FairPlay-Regel aktiv'}
+                        </p>
+                        <p className="text-[11px] font-semibold leading-snug text-white/95">
+                          {fairPlayMustRemoveExtra
+                            ? 'Nur noch 3 Tore Unterschied â€” Feldspieler wÃ¤hlen'
+                            : fairPlayExtraPlayerId
+                              ? `${mobileLineupName(fairPlayExtraDisplayName)} als Zusatzspieler am Feld`
+                              : '4 Tore RÃ¼ckstand â€” Zusatzspieler mÃ¶glich'}
+                        </p>
+                      </div>
+                    </div>
+                    {canControlLiveMatch ? (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {fairPlayExtraPlayerId ? (
+                          <button
+                            type="button"
+                            onClick={openFairPlayRemoveSheet}
+                            className={`min-h-9 w-full rounded-lg border px-2.5 py-1.5 text-center text-[11px] font-bold active:scale-[0.98] sm:text-xs ${
+                              fairPlayMustRemoveExtra
+                                ? 'border-red-400/55 bg-red-950/55 text-red-50'
+                                : 'border-white/20 bg-black/40 text-white'
+                            }`}
+                          >
+                            {fairPlayMustRemoveExtra ? 'Spieler entfernen' : 'Zusatzspieler entfernen'}
+                          </button>
+                        ) : null}
+                        {!fairPlayExtraPlayerId && fairPlayRuleActivatable ? (
+                          <button
+                            type="button"
+                            onClick={openFairPlayExtraSheet}
+                            className="min-h-9 w-full rounded-lg border border-amber-400/50 bg-amber-950/60 px-2.5 py-1.5 text-center text-[11px] font-bold text-amber-50 active:scale-[0.98] sm:text-xs"
+                          >
+                            + Zusatzspieler
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {!spectatorView && canControlLiveMatch ? (
+                <div
+                  className={[
+                    'relative z-[1] mt-0 space-y-1 border-t bg-black/55 px-3 py-1.5 backdrop-blur-md',
+                    mainTab === 'lineup'
+                      ? 'border-white/10 shadow-none'
+                      : 'border-red-500/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)]',
+                  ].join(' ')}
+                >
+                  {!matchIsFinished && effectiveMatchId ? (
+                    <Link
+                      to={`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
+                      className={`flex min-h-[44px] w-full items-center justify-center px-3 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
+                    >
+                      Vorbereitung bearbeiten
+                    </Link>
+                  ) : null}
+
+                  {renderTrainerClockActionRow('gap-1.5')}
+
+                  {goalUndoOffer ? (
+                    <div
+                      className={`flex items-center justify-between gap-2 rounded-xl border border-red-400/45 bg-gradient-to-r from-red-950/95 to-black/90 px-3 py-2 shadow-[0_0_18px_rgba(220,38,38,0.22)] transition-all duration-300 ${
+                        goalUndoToastClosing ? 'scale-[0.98] opacity-0' : 'scale-100 opacity-100'
+                      }`}
+                      role="status"
+                    >
+                      <p className="min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight text-white">
+                        <span className="font-black text-red-200">RÃ¼ckgÃ¤ngig</span>
+                        <span className="text-white/85">
+                          {' '}
+                          Â· Tor fÃ¼r{' '}
+                          {goalUndoOffer.side === 'home'
+                            ? stadiumHomeDisplay || 'Heim'
+                            : stadiumAwayDisplay || 'Gast'}
+                        </span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void undoLastGoal()}
+                        className="shrink-0 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white active:scale-[0.98]"
+                      >
+                        â†¶ RÃ¼ckgÃ¤ngig
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {!matchIsFinished ? (
+                    <button
+                      type="button"
+                      onClick={openWechselSheet}
+                      className={mbWechsel}
+                    >
+                      <span aria-hidden>â‡„</span>
+                      Wechsel
+                    </button>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    disabled={!matchIsFinished || calendarFinalized}
+                    onClick={() => {
+                      if (matchIsFinished && !calendarFinalized) setSpielAbschlussOpen(true);
+                    }}
+                    className={`${
+                      matchIsFinished && !calendarFinalized ? mbSpielEndeReady : mbSpielEndeWhileLive
+                    } gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
+                  >
+                    <span aria-hidden>ğŸ†</span>
+                    {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschlieÃŸen'}
+                  </button>
+
+                  {matchIsFinished && tournamentNavContext && mainTab !== 'overview' ? (
+                    <TournamentNextMatchWorkflowCta
+                      context={tournamentNavContext}
+                      audience="trainer"
+                      phase="after_finish"
+                      className="pt-1"
+                      planSyncBusy={tournamentPlanSyncBusy}
+                      planSyncStatus={tournamentPlanSyncStatus}
+                      onRefreshPlan={() => {
+                        setTournamentPlanSyncBusy(true);
+                        setTournamentPlanSyncStatus('NÃ¤chste Runde wird aktualisiert â€¦');
+                        void (async () => {
+                          try {
+                            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(
+                              effectiveMatchId,
+                            );
+                            if (syncRes.ok) {
+                              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+                            } else {
+                              setTournamentPlanSyncStatus(
+                                'Aktualisierung fehlgeschlagen â€” lokal behalten',
+                              );
+                            }
+                            const refreshed = await fetchTournamentMatchNavigationContext(
+                              effectiveMatchId,
+                              { afterCurrentMatch: true },
+                            );
+                            if (refreshed) setTournamentNavContext(refreshed);
+                          } catch {
+                            setTournamentPlanSyncStatus(
+                              'Aktualisierung fehlgeschlagen â€” lokal behalten',
+                            );
+                          } finally {
+                            setTournamentPlanSyncBusy(false);
+                            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+                          }
+                        })();
+                      }}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+
+              {saveError ? (
+                <p
+                  className="border-t border-white/10 bg-black/80 px-[15px] py-2 text-center text-xs font-medium text-amber-400"
+                  role="alert"
+                >
+                  {saveError}
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {mainTab === 'hub' ? (
+            <nav
+              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} pb-[calc(170px+env(safe-area-inset-bottom,0px))]`}
+              aria-label="Live Hub"
+            >
+              <button type="button" className={hubNavBtn} onClick={() => setMainTab('overview')}>
+                Ãœbersicht
+              </button>
+              <button type="button" className={hubNavBtn} onClick={() => setMainTab('lineup')}>
+                Aufstellung
+              </button>
+              <button type="button" className={hubNavBtn} onClick={() => setMainTab('events')}>
+                Liveticker
+              </button>
+              {!spectatorView ? (
+                <button type="button" className={hubNavBtn} onClick={() => setMainTab('time')}>
+                  Statistik
+                </button>
+              ) : null}
+            </nav>
+          ) : mainTab !== 'lineup' ? (
+            <div className={liveModuleBackBar} aria-label="ZurÃ¼ck zum Live Hub">
+              <button
+                type="button"
+                onClick={() => setMainTab('hub')}
+                className="inline-flex min-h-[44px] min-w-0 items-center gap-2 rounded-[22px] border border-white/[0.08] bg-[rgba(12,12,16,0.88)] px-3 py-2 text-sm font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md transition hover:border-[rgba(255,75,92,0.2)] hover:text-white active:scale-[0.98]"
+              >
+                <span aria-hidden>â†</span>
+                <span>Livespiel</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      <div
+        ref={liveScrollRef}
+        className={`relative min-h-0 overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} ${
+          mainTab === 'hub'
+            ? 'hidden'
+            : mainTab === 'lineup'
+              ? 'flex min-h-0 flex-1 flex-col overflow-hidden !px-0 !py-0 md:px-0 md:py-0 lg:px-0'
+              : mainTab === 'events'
+                ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-2 pb-[calc(92px+env(safe-area-inset-bottom,0px))] md:px-4 md:pt-4 lg:px-5'
+                : 'flex-1 overflow-y-auto px-2 py-3 pt-2 pb-[calc(140px+env(safe-area-inset-bottom,0px))] md:px-4 md:py-4 lg:px-5'
+        }`}
+      >
+        {mainTab === 'overview' && (
+          <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
+            {tournamentNavContext?.nextSlot ? (
+              <TournamentNextMatchWorkflowCta
+                context={tournamentNavContext}
+                audience={canControlLiveMatch ? 'trainer' : 'audience'}
+                phase={matchIsFinished ? 'after_finish' : hasClockStarted ? 'during_live' : 'before_first'}
+                planSyncBusy={tournamentPlanSyncBusy}
+                planSyncStatus={tournamentPlanSyncStatus}
+              />
+            ) : matchIsFinished && tournamentNavContext ? (
+              <TournamentNextMatchWorkflowCta
+                context={tournamentNavContext}
+                audience={canControlLiveMatch ? 'trainer' : 'audience'}
+                phase="after_finish"
+                planSyncBusy={tournamentPlanSyncBusy}
+                planSyncStatus={tournamentPlanSyncStatus}
+                onRefreshPlan={
+                  canControlLiveMatch
+                    ? () => {
+                        setTournamentPlanSyncBusy(true);
+                        setTournamentPlanSyncStatus('NÃ¤chste Runde wird aktualisiert â€¦');
+                        void (async () => {
+                          try {
+                            const syncRes = await syncOfficialPlanAfterTournamentMatchFinish(
+                              effectiveMatchId,
+                            );
+                            if (syncRes.ok) {
+                              setTournamentPlanSyncStatus('Turnierplan aktualisiert');
+                            } else {
+                              setTournamentPlanSyncStatus(
+                                'Aktualisierung fehlgeschlagen â€” lokal behalten',
+                              );
+                            }
+                            const refreshed = await fetchTournamentMatchNavigationContext(
+                              effectiveMatchId,
+                              { afterCurrentMatch: true },
+                            );
+                            if (refreshed) setTournamentNavContext(refreshed);
+                          } catch {
+                            setTournamentPlanSyncStatus(
+                              'Aktualisierung fehlgeschlagen â€” lokal behalten',
+                            );
+                          } finally {
+                            setTournamentPlanSyncBusy(false);
+                            window.setTimeout(() => setTournamentPlanSyncStatus(null), 3500);
+                          }
+                        })();
+                      }
+                    : undefined
+                }
+              />
+            ) : null}
+            {canControlLiveMatch ? (
+              <>
+                <section>
+                  <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Spielinfo</h2>
+                  <div className={`grid grid-cols-2 gap-2 px-3 py-2 ${liveCardShell} border-red-500/15 sm:grid-cols-4`}>
+                    <div className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
+                      <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-500">Abschnitt</p>
+                      <p className="mt-0.5 truncate text-xs font-medium text-gray-200">{periodDisplayLine}</p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
+                      <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-500">Laufzeit</p>
+                      <p className="mt-0.5 font-mono text-xs font-bold tabular-nums text-[#ef4444]">
+                        {formatClock(currentMatchSeconds)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
+                      <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-500">Am Feld</p>
+                      <p className="mt-0.5 text-xs font-medium text-white">
+                        {`${activePlayerIds.length}/7 aktiv`}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
+                      <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-500">Bank</p>
+                      <p className="mt-0.5 text-xs font-medium text-white">{benchPlayers.length}</p>
+                    </div>
+                  </div>
+                  {isPaused ? (
+                    <p className="mt-1.5 rounded-lg border border-amber-400/25 bg-gradient-to-br from-amber-950/40 via-yellow-950/20 to-black/70 px-2.5 py-1.5 text-center text-[11px] font-semibold leading-snug text-amber-50/95 shadow-[0_0_20px_rgba(251,191,36,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <span aria-hidden className="mr-1">
+                        â˜•
+                      </span>
+                      Pause lÃ¤uft â€“ Zeit fÃ¼r Wechsel & Anpassungen.
+                    </p>
+                  ) : null}
+                </section>
+              </>
+            ) : (
+              <div className="space-y-1.5">
+                <section>
+                  <h2 className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                    Spielinfo
+                  </h2>
+                  <div className={`space-y-1.5 px-3 py-2 ${liveCardShell} border-red-500/15`}>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                        Datum
+                      </span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-white">{kickoffDateTime.date}</span>
+                    </div>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                        Spielbeginn
+                      </span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-gray-200">{kickoffDateTime.time}</span>
+                    </div>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Spielort</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-gray-200">
+                        {matchRow?.location?.trim() || 'â€”'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Gegner</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-white">
+                        {opponentDisplayName || 'â€”'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Wettbewerb</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-white">{matchTypeDisplay}</span>
+                    </div>
+                    {meetingAtDisplay ? (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Treffpunkt</span>
+                        <span className="max-w-[65%] text-right text-xs font-medium text-white">{meetingAtDisplay}</span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Laufzeit</span>
+                        <span className="font-mono text-xs font-bold tabular-nums text-[#ef4444]">
+                          {formatClock(currentMatchSeconds)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
+            )}
+          </div>
+        )}
+
+        {mainTab === 'lineup' && (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
+            <div className="z-20 shrink-0 border-b border-white/[0.05] bg-black/95 backdrop-blur-md">
+              <div className="overflow-x-auto px-2 pt-0 pb-0 pr-3 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex w-max min-w-full items-center gap-1">
+                  <button
+                    type="button"
+                    aria-pressed={lineupPanelView === 'live'}
+                    onClick={() => {
+                      clearSubstitutionToast();
+                      setLineupPanelView('live');
+                      setLineupPositionMode(false);
+                    }}
+                    className={dsLineupViewTabClass('live', lineupPanelView === 'live')}
+                  >
+                    LIVE
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={lineupPanelView === 'kickoff'}
+                    onClick={() => {
+                      clearSubstitutionToast();
+                      setLineupPanelView('kickoff');
+                      setLineupPositionMode(false);
+                      setFormationSheetOpen(false);
+                    }}
+                    className={dsLineupViewTabClass('kickoff', lineupPanelView === 'kickoff')}
+                  >
+                    START
+                  </button>
+                  {canControlLiveMatch && lineupPanelView === 'live' ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={matchIsFinished}
+                        onClick={() => {
+                          setLineupPositionMode(false);
+                          setFormationSheetOpen(true);
+                        }}
+                        className={`${LINEUP_TRAINER_ACTION_BTN} min-w-[5.25rem] border-red-500/15 bg-red-950/25 text-white/72 shadow-none hover:border-red-500/25 hover:bg-red-950/35 hover:text-white/85`}
+                      >
+                        Formation
+                      </button>
+                      <button
+                        type="button"
+                        disabled={matchIsFinished}
+                        title="Positionen auf dem Feld tauschen"
+                        aria-pressed={lineupPositionMode}
+                        onClick={() => setLineupPositionMode((v) => !v)}
+                        className={[
+                          LINEUP_TRAINER_ACTION_BTN,
+                          'min-w-[4.4rem] shrink-0 px-3 text-[13px]',
+                          lineupPositionMode
+                            ? 'border-red-500/14 bg-black/38 text-white/76 shadow-[0_0_10px_rgba(220,38,38,0.10)]'
+                            : 'border-white/[0.08] bg-black/28 text-white/58 hover:border-white/12 hover:bg-black/34 hover:text-white/72',
+                        ].join(' ')}
+                      >
+                        POS
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+              <div className="border-t border-white/[0.05] px-2 py-1">
+                <div className="flex items-start justify-between gap-1.5">
+                  <div className="min-w-0 flex-1">
+                    {lineupPanelView === 'kickoff' ? (
+                      <div className="flex flex-col gap-1.5">
+                        <p className={dsCardTitleClass()}>Startaufstellung</p>
+                        <p className={dsMetaTextClass()}>
+                          Vor Anpfiff Â· Snapshot vom Spielbeginn
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
+                        <p className="text-[12px] leading-snug text-white/52">
+                          Stand jetzt im Spiel Â· {currentFieldPlayerCount} Spieler am Feld
+                        </p>
+                        {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
+                          <p className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-snug text-amber-300/90">
+                            <span aria-hidden className="mr-0.5">
+                              â†”
+                            </span>
+                            2 Spieler antippen & tauschen
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearSubstitutionToast();
+                      setMainTab('hub');
+                    }}
+                    className={LINEUP_HUB_TAB_BTN}
+                    aria-label="ZurÃ¼ck zum Live Hub"
+                  >
+                    <span aria-hidden>â†</span>
+                    <span>Livespiel</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pt-0 [-webkit-overflow-scrolling:touch]"
+              style={{
+                paddingBottom:
+                  lineupPanelView === 'kickoff'
+                    ? KICKOFF_LINEUP_SCROLL_BOTTOM_PAD
+                    : LINEUP_CONTENT_SCROLL_BOTTOM_PAD,
+              }}
+            >
+              {lineupPanelView === 'kickoff' ? (
+                kickoffSafeLineupRowsCount === 0 ? (
+                  <p className="rounded-[20px] border border-transparent bg-gradient-to-br from-[#101012]/90 to-black px-3 py-4 text-[13px] text-white/55 shadow-[0_6px_24px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.06)] backdrop-blur-[2px]">
+                    Zur Startaufstellung liegen noch keine Daten vor.
+                  </p>
+                ) : (
+                  <ul className={`flex flex-col ${DS_LIST_GAP} pb-1`}>
+                    <li className="sr-only">Startaufstellung, Snapshot vom Spielbeginn â€” Spielerliste</li>
+                    {kickoffSafeLineupRows
+                      .filter((row) => {
+                        const n = String(row.display_name ?? '').trim();
+                        return n.length > 0 && n !== 'â€”';
+                      })
+                      .map((row) => {
+                        const pos = String(row.rightLabel ?? 'â€“').trim() || 'â€“';
+                        const name = String(row.display_name ?? '').trim() || 'â€”';
+                        const canOpenProfile = !String(row.id ?? '').startsWith('kickoff-');
+                        return (
+                          <li key={`kickoff-line-${row.slot}`} className="w-full">
+                            <KickoffRosterPlayerCard
+                              name={name}
+                              positionShort={pos}
+                              rosterPosition={row.position}
+                              jerseyNumber={row.jersey_number}
+                              avatarUrl={row.avatar_url}
+                              variant="starter"
+                              onClick={
+                                canOpenProfile ? () => openKickoffPlayerProfile(String(row.id)) : undefined
+                              }
+                            />
+                          </li>
+                        );
+                      })}
+                  </ul>
+                )
+              ) : canRenderLivePitch ? (
+                <>
+                  <div className="mx-auto mb-0 w-full max-w-md overflow-visible px-0.5 pb-1">
+                  <div className="-translate-y-[3px] relative">
+                  <LineupFormationPitch
+                  formationId={pitchFormationId}
+                  slots={safeLineupSlots as Record<FieldSlotId, string | null>}
+                  interactive={Boolean(canControlLiveMatch && lineupPositionMode && !matchIsFinished)}
+                  onSlotTap={handleLineupPositionSlotTap}
+                  emphasizedPlayerId={null}
+                  slotHighlightBySlot={mainLineupPitchSlotHighlight}
+                  className="min-h-[10rem] max-h-[min(53dvh,31rem)] w-full"
+                  renderSlotContent={({ slot, label, playerId, isGk }) => {
+                    if (!playerId) return null;
+                    const player = rosterById.get(playerId) ?? null;
+                    // Badge folgt der Session-player_id, nicht dem FP-Slot (position_swap-sicher).
+                    const isFairPlayExtra =
+                      Boolean(fairPlayExtraPlayerId) &&
+                      String(fairPlayExtraPlayerId ?? '').trim() === String(playerId).trim();
+                    const posLabel = slot === 'FP' ? 'FP' : getPositionLabel(label) || 'â€“';
+                    const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
+                    const shortName = (() => {
+                      const s = mobileLineupName(rawName);
+                      return s === 'â€”' || !s ? 'Spieler' : s;
+                    })();
+                    const isPosSwapPick =
+                      lineupPositionMode &&
+                      (posSwapSlotA === slot || posSwapSlotB === slot) &&
+                      Boolean(playerId) &&
+                      !posSwapConfirmOpen;
+                    const { dx: nameOffsetX, dy: nameOffsetY } = liveLineupPitchNameOffset(
+                      slot,
+                      pitchFormationId,
+                    );
+                    return (
+                      <div
+                        className={[
+                          'pointer-events-none relative flex w-full max-w-[min(20vw,6.25rem)] flex-col items-center justify-start gap-0 overflow-visible',
+                          isPosSwapPick ? 'scale-[1.04]' : '',
+                        ].join(' ')}
+                      >
+                        {isFairPlayExtra ? (
+                          <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1 py-px text-[7px] font-black uppercase tracking-[0.06em] text-amber-100">
+                            Fairplay +1
+                          </span>
+                        ) : null}
+                        {(() => {
+                          const t = substitutionTransitionBySlot[slot];
+                          const outgoingId = t?.outgoingPlayerId ?? null;
+                          const incomingId = t?.incomingPlayerId ?? null;
+                          const isIncoming = Boolean(incomingId && incomingId === playerId);
+                          if (!outgoingId || !isIncoming || outgoingId === playerId) return null;
+                          const outgoing = rosterById.get(outgoingId) ?? null;
+                          const outName = mobileLineupName((outgoing?.name ?? 'Spieler').trim() || 'Spieler');
+                          return (
+                            <div className="absolute left-1/2 top-0 z-[2] -translate-x-1/2 animate-[liveSubOut_300ms_ease-out]">
+                              <LeibchenJersey
+                                lastName={outName}
+                                number={outgoing?.number ?? 'â€“'}
+                                position={posLabel}
+                                variant={isGk ? 'goalkeeper' : 'field'}
+                                size="compact"
+                                pitchStyleBack
+                                className="!opacity-70"
+                              />
+                            </div>
+                          );
+                        })()}
+                        <div
+                          className={[
+                            'transition-all duration-300 ease-out',
+                            substitutionTransitionBySlot[slot]?.incomingPlayerId === playerId
+                              ? 'animate-[liveSubIn_300ms_ease-out]'
+                              : 'translate-y-0 opacity-100',
+                          ].join(' ')}
+                        >
+                          <LeibchenJersey
+                            lastName={shortName}
+                            number={player?.number ?? 'â€“'}
+                            position={posLabel}
+                            variant={isGk ? 'goalkeeper' : 'field'}
+                            size="compact"
+                            pitchStyleBack
+                            className={[
+                              isPosSwapPick ? 'ring-2 ring-amber-400/75' : '',
+                              isFairPlayExtra ? 'ring-2 ring-amber-400/55' : '',
+                            ].join(' ')}
+                          />
+                        </div>
+                        <span
+                          className={[
+                            'mx-auto mt-1 block w-full min-w-0 max-w-[6.5rem] truncate rounded-full border px-2 py-[3px] text-center text-[11px] font-medium leading-tight shadow-[0_2px_10px_rgba(0,0,0,0.42)] backdrop-blur-sm transition-all duration-200',
+                            isFairPlayExtra
+                              ? 'border-amber-400/35 bg-black/78 text-amber-50'
+                              : 'border-white/10 bg-black/78 text-white/95',
+                          ].join(' ')}
+                          title={rawName}
+                          style={{ transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` }}
+                        >
+                          {shortName}
+                        </span>
+                      </div>
+                    );
+                  }}
+                />
+                  </div>
+                  </div>
+                </>
+              ) : (
+                <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/55">
+                  Mannschaft wird geladen â€¦
+                </p>
+              )}
+
+              <section
+                className={[
+                  'border-t border-white/[0.05] pb-2',
+                  lineupPanelView === 'kickoff' ? 'mt-2 pt-2' : 'mt-0.5 pt-1',
+                ].join(' ')}
+              >
+                <p
+                  className={[
+                    'font-bold uppercase',
+                    lineupPanelView === 'kickoff'
+                      ? 'mb-1 text-[11px] tracking-[0.12em] text-red-400/85'
+                      : 'mb-1 text-[12px] tracking-[0.24em] text-white/60',
+                  ].join(' ')}
+                >
+                  {lineupPanelView === 'kickoff' ? 'ERSATZ BEIM ANPFIFF' : 'ERSATZBANK'}
+                </p>
+                {lineupPanelView === 'kickoff' ? (
+                  kickoffBenchRows.length === 0 ? (
+                    <p className="text-[12px] text-white/45">Keine weiteren Spieler im Kader</p>
+                  ) : (
+                    <ul className={`flex flex-col ${DS_LIST_GAP} pb-2`}>
+                      {kickoffBenchRows.map((row, idx) => {
+                        const posLabel = getPositionLabel(row.position) || 'â€“';
+                        const fullBenchName = String(row.display_name || 'Spieler').trim() || 'Spieler';
+                        const pid = String(row.id ?? '').trim();
+                        return (
+                          <li key={`kickoff-bench-row-${row.id || idx}`} className="w-full">
+                            <KickoffRosterPlayerCard
+                              name={fullBenchName}
+                              positionShort={posLabel}
+                              rosterPosition={row.position}
+                              jerseyNumber={row.jersey_number}
+                              avatarUrl={row.avatar_url}
+                              variant="bench"
+                              onClick={pid ? () => openKickoffPlayerProfile(pid) : undefined}
+                            />
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )
+                ) : safeBenchRowsCount === 0 ? (
+                  <p className="text-[12px] text-white/45">Keine Bankspieler</p>
+                ) : (
+                  <div className="overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="flex min-w-min flex-nowrap items-start gap-1.5 sm:gap-2">
+                      {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => {
+                        const posLabel = getPositionLabel(row.position) || 'â€“';
+                        const fullBenchName = String(row.display_name || row.name || 'Spieler').trim() || 'Spieler';
+                        return (
+                          <div
+                            key={`live-bench-tile-${row.id || idx}`}
+                            className={`w-[6.15rem] min-w-0 sm:w-[6.65rem] ${matchdayBenchTileClass()}`}
+                          >
+                            <LeibchenJersey
+                              lastName={mobileLineupName(fullBenchName)}
+                              number={row.jersey_number ?? row.number ?? 'â€“'}
+                              position={posLabel}
+                              variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[3.28rem] !w-[2.55rem] sm:!h-[3.62rem] sm:!w-[2.82rem]"
+                            />
+                            <span
+                              className="mt-1.5 line-clamp-2 block w-full min-w-0 overflow-hidden px-0.5 text-center text-[11px] font-medium leading-snug text-white/85 [overflow-wrap:anywhere]"
+                              title={fullBenchName}
+                            >
+                              {fullBenchName}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        )}
+
+        {mainTab === 'events' && (
+          <div className="flex min-h-0 flex-1 flex-col gap-3 px-1 pb-1 sm:px-2">
+            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/12 bg-black/50 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:grid-cols-4">
+              {(
+                [
+                  ['all', 'Alle'],
+                  ['goals', 'Tore'],
+                  ['subs', 'Wechsel'],
+                  ['cards', 'Karten'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setEventsFilter(key)}
+                  className={`min-h-[44px] rounded-xl px-2 py-2 text-[12px] font-extrabold tracking-tight transition-colors sm:min-h-[48px] sm:text-sm ${
+                    eventsFilter === key
+                      ? 'border border-red-500/45 bg-gradient-to-b from-red-600/90 to-red-950/90 text-white shadow-[0_0_20px_rgba(220,38,38,0.25)]'
+                      : 'border border-transparent text-white/50 hover:border-white/10 hover:bg-white/[0.05] hover:text-white/85'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {eventsFilter === 'cards' ? (
+              <p className="rounded-2xl border border-amber-400/25 bg-amber-950/20 px-4 py-10 text-center text-sm font-medium leading-relaxed text-amber-100/90">
+                Keine Karten erfasst.
+              </p>
+            ) : trainerTickerGroups.length === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-black/40 px-4 py-10 text-center text-sm text-zinc-400">
+                Keine EintrÃ¤ge fÃ¼r diesen Filter.
+              </p>
+            ) : (
+              <ul className="min-h-0 flex-1 touch-pan-y space-y-0 overflow-y-auto overscroll-y-contain rounded-2xl border border-zinc-600/30 bg-black/55 px-1.5 py-2 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:px-2 sm:py-3">
+                {trainerTickerGroups.map((g, i, arr) => renderTrainerTickerMinuteGroup(g, i, arr.length))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {mainTab === 'time' && (
+          <div className="space-y-1.5">
+            {isPaused ? (
+              <p className="rounded-lg border border-amber-400/25 bg-gradient-to-br from-amber-950/45 via-yellow-950/22 to-black/75 px-2.5 py-2 text-center text-[12px] font-semibold leading-snug text-amber-50/95 shadow-[0_0_22px_rgba(251,191,36,0.14),inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <span aria-hidden className="mr-1">
+                  â˜•
+                </span>
+                Pause lÃ¤uft â€“ Zeit fÃ¼r Wechsel & Anpassungen.
+              </p>
+            ) : null}
+            <section
+              className={[
+                'rounded-lg p-0.5',
+                isPaused ? 'ring-2 ring-amber-300/35 ring-offset-1 ring-offset-black shadow-[0_0_24px_rgba(251,191,36,0.12)]' : '',
+              ].join(' ')}
+            >
+              <div className="mb-0.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-0.5">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                  Wechsel-VorschlÃ¤ge
+                </h2>
+                {minimumPlaytimeEnabled ? (
+                  <p className="text-[10px] font-medium text-white/45">
+                    Spielzeit: {plannedMatchMinutes} min Â· Mindestspielzeit: {minimumPlaytimeMinutes} min
+                  </p>
+                ) : (
+                  <p className="text-[10px] font-medium text-white/40">Spielzeit: {plannedMatchMinutes} min</p>
+                )}
+              </div>
+              {minimumPlaytimeEnabled && urgentMinimumPlaytimeAlerts.length > 0
+                ? urgentMinimumPlaytimeAlerts.slice(0, 2).map((alert) => (
+                    <div
+                      key={`min-urgent-${alert.id}`}
+                      className={[
+                        'mb-1 rounded-md border px-2.5 py-2',
+                        alert.urgency === 'critical'
+                          ? 'border-red-500/45 bg-red-950/35 shadow-[0_0_18px_rgba(220,38,38,0.15)]'
+                          : 'border-amber-500/40 bg-amber-950/30 shadow-[0_0_14px_rgba(251,191,36,0.12)]',
+                      ].join(' ')}
+                    >
+                      <p className="text-[11px] font-black uppercase tracking-wide text-red-200/95">
+                        <span aria-hidden className="mr-0.5">
+                          âš 
+                        </span>
+                        Mindestspielzeit dringend
+                      </p>
+                      <p className="mt-1 text-[12px] font-bold leading-snug text-white">
+                        {alert.name} jetzt einwechseln
+                      </p>
+                      <p className="mt-0.5 text-[10px] leading-snug text-white/70">
+                        {formatMinimumPlaytimeProgress(alert.playedMinutes, minimumPlaytimeMinutes)}
+                        {' Â· '}
+                        {formatMissingMinutesLabel(alert.missingSeconds)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setMainTab('time')}
+                        className="mt-1.5 text-[10px] font-bold text-amber-200/95 underline decoration-amber-500/40 underline-offset-2"
+                      >
+                        Statistik ansehen
+                      </button>
+                    </div>
+                  ))
+                : minimumPlaytimeEnabled && belowMinimumPlaytimeCount > 0 ? (
+                    <div className="mb-1 flex flex-wrap items-center justify-between gap-1 rounded-md border border-amber-500/30 bg-amber-950/25 px-2 py-1">
+                      <p className="text-[10px] font-semibold leading-snug text-amber-100/95">
+                        <span aria-hidden className="mr-0.5">
+                          âš 
+                        </span>
+                        {belowMinimumPlaytimeCount}{' '}
+                        {belowMinimumPlaytimeCount === 1 ? 'Spieler' : 'Spieler'} unter Mindestspielzeit
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setMainTab('time')}
+                        className="shrink-0 text-[10px] font-bold text-amber-200/95 underline decoration-amber-500/40 underline-offset-2"
+                      >
+                        Statistik ansehen
+                      </button>
+                    </div>
+                  ) : minimumPlaytimeEnabled && (matchRow?.status === 'live' || matchIsFinished) ? (
+                    <div className="mb-1 rounded-md border border-emerald-500/25 bg-emerald-950/20 px-2 py-1">
+                      <p className="text-[10px] font-semibold leading-snug text-emerald-100/90">
+                        <span aria-hidden className="mr-0.5">
+                          âœ…
+                        </span>
+                        Alle Mindestspielzeiten erreicht
+                      </p>
+                    </div>
+                  ) : null}
+              <div className="space-y-1">
+                {matchRow?.status !== 'live' && !matchIsFinished ? (
+                  <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[12px] text-white/55">
+                    WechselvorschlÃ¤ge sind ab Anpfiff verfÃ¼gbar.
+                  </p>
+                ) : substitutionSuggestions.length > 0 ? (
+                  <>
+                    {(subSuggestionsExpanded ? substitutionSuggestions : substitutionSuggestions.slice(0, 2)).map(
+                      (sug) => (
+                        <div
+                          key={`sub-sug-${sug.outId}-${sug.inId}`}
+                          className="rounded-lg border border-white/10 bg-zinc-950/90 px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                        >
+                          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                            <p className="min-w-0 text-[12px] font-bold leading-tight text-white">
+                              <span className="font-normal text-white/50">Raus</span> {sug.outName}
+                              <span className="ml-1 font-mono text-[11px] font-semibold tabular-nums text-red-400/90">
+                                {formatClock(sug.outSec)}
+                              </span>
+                            </p>
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                            <p className="min-w-0 text-[12px] font-bold leading-tight text-white">
+                              <span className="font-normal text-white/50">Rein</span> {sug.inName}
+                              <span className="ml-1 font-mono text-[11px] font-semibold tabular-nums text-emerald-400/90">
+                                {formatClock(sug.inSec)}
+                              </span>
+                            </p>
+                          </div>
+                          {sug.reason === 'minimum_playtime' ? (
+                            <>
+                              {isMinimumPlaytimeUrgent(sug.inUrgency) ? (
+                                <p
+                                  className={`mt-1 text-[10px] font-black uppercase tracking-wide ${
+                                    sug.inUrgency === 'critical' ? 'text-red-300/95' : 'text-amber-200/95'
+                                  }`}
+                                >
+                                  {sug.inUrgency === 'critical' ? 'Kritisch' : 'Dringend'}
+                                </p>
+                              ) : null}
+                              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-200/90">
+                                Grund: Mindestspielzeit
+                              </p>
+                              <p className="text-[10px] leading-snug text-white/55">
+                                {sug.inName}:{' '}
+                                {formatMinimumPlaytimeProgress(
+                                  getMinimumPlaytimePlayerStatus(sug.inSec, minimumPlaytimeMinutes).playedMinutes,
+                                  minimumPlaytimeMinutes,
+                                )}
+                                {(() => {
+                                  const miss = getMinimumPlaytimePlayerStatus(sug.inSec, minimumPlaytimeMinutes)
+                                    .missingSeconds;
+                                  const lbl = formatMissingMinutesLabel(miss);
+                                  return lbl ? (
+                                    <>
+                                      <br />
+                                      <span className="text-amber-200/85">{lbl}</span>
+                                      <span className="text-white/45">
+                                        {' '}
+                                        Â· PrioritÃ¤t{' '}
+                                        {isMinimumPlaytimeUrgent(sug.inUrgency) ? 'dringend' : 'hoch'}
+                                      </span>
+                                    </>
+                                  ) : null;
+                                })()}
+                              </p>
+                              {isMinimumPlaytimeUrgent(sug.inUrgency) ? (
+                                <p className="mt-0.5 text-[10px] font-semibold text-red-200/90">
+                                  Jetzt einwechseln, sonst Mindestspielzeit gefÃ¤hrdet.
+                                </p>
+                              ) : null}
+                            </>
+                          ) : (
+                            <p className="mt-0.5 text-[10px] leading-snug text-white/40">Mehr Spielzeit fÃ¼r Bankspieler</p>
+                          )}
+                          <button
+                            type="button"
+                            disabled={matchIsFinished}
+                            onClick={() => openWechselSheetWithPreset(sug.outId, sug.inId)}
+                            className="mt-1 flex h-10 w-full items-center justify-center rounded-md border border-emerald-500/40 bg-emerald-950/35 text-[11px] font-bold text-emerald-100/95 transition-colors hover:border-emerald-400/50 hover:bg-emerald-900/30 disabled:opacity-35"
+                          >
+                            Vorschlag Ã¼bernehmen
+                          </button>
+                        </div>
+                      ),
+                    )}
+                    {substitutionSuggestions.length > 2 ? (
+                      <button
+                        type="button"
+                        onClick={() => setSubSuggestionsExpanded((v) => !v)}
+                        className="flex h-9 w-full items-center justify-center rounded-md border border-white/10 bg-transparent text-[11px] font-semibold text-white/50 transition-colors hover:border-amber-400/25 hover:bg-white/[0.04] hover:text-amber-100/80"
+                      >
+                        {subSuggestionsExpanded ? 'Weniger anzeigen' : 'Weitere VorschlÃ¤ge anzeigen'}
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[12px] text-white/55">
+                    Alle Spieler sind aktuell ausgeglichen.
+                  </p>
+                )}
+              </div>
+            </section>
+            <p className="mb-1 text-[13px] text-gray-400">Effektive Spielzeit (ohne Pausen)</p>
+            <ul className="space-y-1.5">
+              {squadRosterForPlaytimeList.map((p) => {
+                const sec = playtimes[p.id] ?? 0;
+                const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
+                const isFairPlayExtra =
+                  Boolean(fairPlayExtraPlayerId) && String(fairPlayExtraPlayerId).trim() === p.id;
+                const isActive = activePlayerIds.includes(p.id);
+                const lowOnField = isActive && st === 'red';
+                return (
+                  <li
+                    key={p.id}
+                    className={[
+                      'flex min-h-[46px] items-center gap-2 rounded-lg border px-2 py-1.5',
+                      isActive
+                        ? isFairPlayExtra
+                          ? 'border-amber-500/45 bg-amber-950/18 ring-1 ring-amber-400/35'
+                          : lowOnField
+                            ? 'border-emerald-500/50 bg-emerald-950/20 ring-1 ring-amber-500/30'
+                            : 'border-emerald-600/40 bg-emerald-950/12'
+                        : 'border-zinc-700/40 bg-zinc-950/90',
+                    ].join(' ')}
+                  >
+                    <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
+                      {isActive ? (
+                        <span
+                          className={[
+                            'h-2 w-2 rounded-full shadow-[0_0_6px_rgba(16,185,129,0.45)]',
+                            isFairPlayExtra ? 'bg-amber-400/95' : 'bg-emerald-500/90',
+                          ].join(' ')}
+                        />
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-zinc-500/80" />
+                      )}
+                      <span className={`h-2.5 w-2.5 rounded-full ${ampelDot(st)}`} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-semibold text-white">
+                        {p.number || 'â€“'} Â· {p.name}
+                        {isFairPlayExtra ? (
+                          <span className="ml-1.5 inline-flex rounded border border-amber-400/50 bg-amber-500/20 px-1 py-px text-[9px] font-black text-amber-100">
+                            +1
+                          </span>
+                        ) : null}
+                      </p>
+                      <p
+                        className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] ${
+                          isActive
+                            ? isFairPlayExtra
+                              ? 'text-amber-200/95'
+                              : 'text-emerald-300'
+                            : 'text-zinc-500'
+                        }`}
+                      >
+                        {isFairPlayExtra && isActive
+                          ? 'Am Feld Â· Zusatz'
+                          : isActive
+                            ? 'Am Feld'
+                            : 'Auf der Bank'}
+                      </p>
+                      {minimumPlaytimeEnabled ? (
+                        (() => {
+                          const minSt = getMinimumPlaytimePlayerStatus(sec, minimumPlaytimeMinutes);
+                          const urgency = getMinimumPlaytimeUrgency(
+                            sec,
+                            minimumPlaytimeMinutes,
+                            remainingEffectiveMatchSec,
+                          );
+                          const missLbl = formatMissingMinutesLabel(minSt.missingSeconds);
+                          const icon =
+                            urgency === 'ok'
+                              ? 'âœ…'
+                              : urgency === 'warning'
+                                ? 'âš '
+                                : urgency === 'urgent'
+                                  ? 'âš '
+                                  : 'ğŸ”´';
+                          const pct = Math.min(
+                            100,
+                            Math.round((minSt.playedSeconds / minimumPlaytimeRequiredSec) * 100),
+                          );
+                          const showSubstituteNow =
+                            !isActive && isMinimumPlaytimeUrgent(urgency);
+                          return (
+                            <div className="mt-1 space-y-0.5">
+                              <p
+                                className={`text-[10px] font-semibold leading-snug ${
+                                  urgency === 'ok'
+                                    ? 'text-emerald-300/95'
+                                    : urgency === 'warning'
+                                      ? 'text-amber-200/90'
+                                      : urgency === 'urgent'
+                                        ? 'text-amber-300/95'
+                                        : 'text-red-300/90'
+                                }`}
+                              >
+                                {formatMinimumPlaytimeProgress(
+                                  minSt.playedMinutes,
+                                  minimumPlaytimeMinutes,
+                                )}{' '}
+                                {icon}
+                              </p>
+                              {missLbl ? (
+                                <p className="text-[10px] text-white/50">{missLbl}</p>
+                              ) : null}
+                              {showSubstituteNow ? (
+                                <p className="text-[10px] font-bold text-red-300/90">Jetzt einwechseln</p>
+                              ) : null}
+                              <div
+                                className="h-1 w-full max-w-[120px] overflow-hidden rounded-full bg-white/10"
+                                aria-hidden
+                              >
+                                <div
+                                  className={`h-full rounded-full ${
+                                    minSt.status === 'ok'
+                                      ? 'bg-emerald-500/80'
+                                      : minSt.status === 'warning'
+                                        ? 'bg-amber-500/75'
+                                        : 'bg-red-500/70'
+                                  }`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : null}
+                    </div>
+                    <span
+                      className={`shrink-0 font-mono text-base font-semibold tabular-nums tracking-tight ${
+                        isActive ? 'text-red-400/90' : 'text-zinc-500'
+                      }`}
+                    >
+                      {formatClock(sec)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+      </div>
+      </>
+      ) : null}
+
+      {canControlLiveMatch && formationSheetOpen ? (
+        <div className="fixed inset-0 z-[9998] flex items-end justify-center">
+          <button
+            type="button"
+            className="absolute inset-0 border-0 bg-black/78 backdrop-blur-md transition-opacity duration-200"
+            onClick={closeFormationSheet}
+            aria-label="SchlieÃŸen"
+          />
+          <div
+            className={[
+              'relative flex w-full max-w-lg flex-col overflow-hidden rounded-t-[1.35rem] border border-white/10 border-b-0 bg-gradient-to-b from-zinc-950/98 via-black to-black text-white shadow-[0_-20px_60px_rgba(0,0,0,0.75),0_0_40px_rgba(220,38,38,0.08)] transition-all duration-200 sm:max-w-none',
+              formationSheetChoices.length <= 4
+                ? 'h-auto max-h-[min(92dvh,820px)]'
+                : 'max-h-[min(90dvh,820px)] min-h-0',
+            ].join(' ')}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="formation-sheet-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 px-4 pt-1.5 pb-0.5">
+              <div className="mx-auto h-1 w-8 rounded-full bg-white/25" />
+            </div>
+            <div className="shrink-0 px-4 pb-1.5 pt-1 text-center">
+              <h3 id="formation-sheet-title" className="text-[15px] font-black tracking-tight text-white">
+                Formation Ã¤ndern
+              </h3>
+              <p className="mt-0.5 truncate text-[10px] leading-tight text-white/45">
+                {formationPendingId
+                  ? 'Spieler bleiben erhalten â€” nur Positionen Ã¤ndern sich.'
+                  : fairPlayExtraPlayerId
+                    ? '8 aktive Spieler bleiben auf den Slots erhalten.'
+                    : '7 aktive Spieler bleiben auf den Slots erhalten.'}
+              </p>
+            </div>
+            {formationPendingId ? (
+              <div className="mx-4 mb-3 shrink-0 rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-950/40 to-black/80 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="text-center text-[14px] font-black text-amber-100">Formation wechseln?</p>
+                <p className="mt-1.5 text-center text-[12px] font-medium leading-snug text-white/75">
+                  Alle {currentFieldPlayerCount} aktiven Spieler bleiben erhalten und werden bei
+                  Bedarf auf die neuen Slot-Positionen abgebildet.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={formationSaving}
+                    onClick={() => setFormationPendingId(null)}
+                    className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/90 text-sm font-semibold text-white/85 transition-all duration-200 hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-45"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="button"
+                    disabled={formationSaving}
+                    onClick={() => void confirmFormationChange()}
+                    className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-amber-500 text-sm font-black text-amber-950 shadow-[0_0_18px_rgba(245,158,11,0.32)] transition-all duration-200 hover:bg-amber-400 active:scale-[0.99] disabled:opacity-45"
+                  >
+                    {formationSaving ? 'â€¦' : 'Ãœbernehmen'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <div
+              className={[
+                'flex shrink-0 flex-col px-4',
+                formationSheetChoices.length > 4
+                  ? 'min-h-0 flex-1 gap-2 overflow-y-auto overscroll-y-contain py-1 [-webkit-overflow-scrolling:touch]'
+                  : 'gap-1.5 py-0.5',
+              ].join(' ')}
+            >
+              {formationSheetChoices.map((id) => {
+                const active = id === pitchFormationId;
+                return (
+                  <button
+                    key={`formation-pick-${id}`}
+                    type="button"
+                    disabled={formationSaving}
+                    onClick={() => requestFormationChange(id)}
+                    className={[
+                      'grid w-full min-h-[70px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl border px-2.5 py-[7px] text-left transition-all duration-200 active:scale-[0.99] disabled:opacity-45 sm:min-h-[72px]',
+                      active
+                        ? 'border-emerald-400/35 bg-gradient-to-r from-emerald-950/45 via-zinc-950/95 to-black shadow-[0_0_10px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-emerald-500/25'
+                        : 'border-white/10 bg-gradient-to-r from-red-950/20 via-zinc-950/90 to-black hover:border-white/16 hover:bg-zinc-900/75',
+                    ].join(' ')}
+                  >
+                    <MiniFormationPitchPreview formationId={id} active={active} />
+                    <div className="min-w-0">
+                      <p className="text-xl font-black tabular-nums leading-none tracking-tight text-white">
+                        {id}
+                      </p>
+                      <p className="mt-1 text-[12px] font-medium leading-tight text-white/55">
+                        {FORMATION_OPTION_LABELS[id]}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-center justify-center pl-0.5">
+                      {active ? (
+                        <>
+                          <span
+                            className="mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/50 bg-emerald-500/12 shadow-[0_0_8px_rgba(16,185,129,0.22)]"
+                            aria-hidden
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                          </span>
+                          <span className="text-[8px] font-extrabold uppercase tracking-[0.1em] text-emerald-300/90">
+                            Aktiv
+                          </span>
+                        </>
+                      ) : (
+                        <span
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-base text-white/40"
+                          aria-hidden
+                        >
+                          â€º
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <footer
+              className="mt-auto shrink-0 border-t border-white/10 bg-black/95 px-4 pt-1.5 backdrop-blur-md"
+              style={{ paddingBottom: FORMATION_SHEET_FOOTER_PB }}
+            >
+              <button
+                type="button"
+                disabled={formationSaving}
+                onClick={closeFormationSheet}
+                className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/90 transition-all duration-200 hover:border-white/18 hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-45"
+              >
+                SchlieÃŸen
+              </button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+
+      {wechselScreenActive ? (
+        <div
+          className={WECHSEL_SCREEN_SHELL}
+          style={{ top: WECHSEL_SHEET_TOP_OFFSET, bottom: WECHSEL_SHEET_BOTTOM_OFFSET }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wechsel-sheet-title"
+        >
+          <div aria-hidden className={dsPageAtmosphereAbsoluteClass()} />
+          <div className="relative z-[1] flex min-h-0 flex-1 flex-col bg-[#080808]">
+            <div className="sticky top-0 z-20 shrink-0 bg-[rgba(8,8,8,0.92)] backdrop-blur-md">
+            <div className="flex items-center justify-between gap-1 border-b border-transparent px-2 py-1 shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
+              <h3 id="wechsel-sheet-title" className={`shrink-0 ${dsCardTitleClass()} text-base`}>
+                Wechsel
+              </h3>
+              <div
+                className={`${dsSegmentTrackClass()} h-8 min-h-8 max-w-[14rem] flex-1 sm:max-w-[14rem]`}
+                role="tablist"
+                aria-label="Ansicht"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={subSheetView === 'list'}
+                  onClick={() => setSubSheetView('list')}
+                  className={`${dsSegmentTabClass(subSheetView === 'list')} min-h-7 text-[10px] font-bold sm:text-[11px]`}
+                >
+                  Liste
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={subSheetView === 'pitch'}
+                  onClick={() => setSubSheetView('pitch')}
+                  className={`${dsSegmentTabClass(subSheetView === 'pitch')} min-h-7 text-[10px] font-bold sm:text-[11px]`}
+                >
+                  Spielfeld
+                </button>
+              </div>
+            </div>
+
+            <div className="border-b border-white/[0.07] px-2 py-0.5">
+              <p className="truncate text-[10px] font-semibold leading-snug text-emerald-200/95">
+                {wechselSheetPickLabels.outLabel || wechselSheetPickLabels.inLabel
+                  ? `Raus ${wechselSheetPickLabels.outLabel || 'â€¦'} â†’ Rein ${wechselSheetPickLabels.inLabel || 'â€¦'}`
+                  : 'Schritt 1: Raus wÃ¤hlen Â· Schritt 2: Rein wÃ¤hlen'}
+              </p>
+            </div>
+            </div>
+
+            <div
+              className={[
+                'flex min-h-0 min-w-0 flex-1 flex-col px-2 pb-0 pt-0.5',
+                subSheetView === 'pitch'
+                  ? 'overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+                  : 'overflow-hidden',
+              ].join(' ')}
+            >
+              {subSheetView === 'list' ? (
+                <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden sm:gap-2">
+                  <div className={`flex min-h-0 flex-1 flex-col gap-1 ${dsWechselColumnAmbientClass('out')}`}>
+                    <p className="shrink-0 px-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/90">Raus Â· Feld Â· inkl. TW</p>
+                    {substitutionFieldRows.length === 0 ? (
+                      <p className="shrink-0 rounded-md border border-red-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
+                        Keine Feldspieler.
+                      </p>
+                    ) : (
+                      <div
+                        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5"
+                        style={{ paddingBottom: WECHSEL_CONTENT_SCROLL_BOTTOM_PAD }}
+                      >
+                        <div className="flex flex-col gap-1">
+                          {substitutionFieldRows.map((row) => {
+                            const slot = row?.slot;
+                            const pid =
+                              slot && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
+                                ? String(lineupSlotsForDisplay[slot] ?? '').trim()
+                                : '';
+                            if (!pid) return null;
+                            // Badge folgt der Session-player_id, nicht dem FP-Slot.
+                            const isFairPlayExtra =
+                              Boolean(fairPlayExtraPlayerId) &&
+                              String(fairPlayExtraPlayerId ?? '').trim() === pid;
+                            const rosterP = rosterById.get(pid) ?? null;
+                            const name = String(row?.display_name ?? rosterP?.name ?? 'Spieler').trim() || 'Spieler';
+                            const jerseyName = mobileLineupName(name);
+                            const slotBadge = isFairPlayExtra
+                              ? 'FairPlay +1'
+                              : String(row?.rightLabel ?? 'â€“').trim() || 'â€”';
+                            const posLabel =
+                              slot === 'FP' ? 'FP' : getPositionLabel(row.position) || slotBadge;
+                            const num = rosterP?.number ?? row?.jersey_number ?? null;
+                            const selected = subOutPlayerId === pid;
+                            const recOut = Boolean(subRecommendedOutId && subRecommendedOutId === pid && !selected);
+                            const isGk = slot !== 'FP' && (posLabel === 'TW' || slotBadge === 'TW');
+                            return (
+                              <button
+                                key={isFairPlayExtra ? `sub-out-fairplay-${pid}` : `sub-out-${slot}-${pid}`}
+                                type="button"
+                                onClick={() => setSubOutPlayerId(pid)}
+                                className={dsWechselPickRowClass({
+                                  selected,
+                                  recommended: recOut,
+                                  side: 'out',
+                                })}
+                              >
+                                <div className="pointer-events-none shrink-0">
+                                  <LeibchenJersey
+                                    lastName={jerseyName}
+                                    number={num ?? 'â€“'}
+                                    position={posLabel}
+                                    variant={isGk ? 'goalkeeper' : 'field'}
+                                    size="compact"
+                                    pitchStyleBack
+                                    className={[
+                                      '!h-[2.9rem] !w-[2.28rem] sm:!h-[3.1rem] sm:!w-[2.55rem]',
+                                      isFairPlayExtra ? 'ring-1 ring-amber-400/55' : '',
+                                    ].join(' ')}
+                                  />
+                                </div>
+                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 pr-1">
+                                  <p className={dsPlayerNameClass()}>{name}</p>
+                                  <span
+                                    className={[
+                                      'inline-flex w-fit rounded-md border border-transparent px-1.5 py-px text-[8px] font-bold uppercase tracking-wide',
+                                      isFairPlayExtra
+                                        ? 'bg-amber-500/20 text-amber-100'
+                                        : 'bg-[rgba(120,18,28,0.26)] text-[#FF8D98]',
+                                    ].join(' ')}
+                                  >
+                                    {slotBadge}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={`flex min-h-0 flex-1 flex-col gap-1 ${dsWechselColumnAmbientClass('in')}`}>
+                    <p className="shrink-0 px-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-300/90">Rein Â· Bank</p>
+                    {substitutionBenchRows.length === 0 ? (
+                      <p className="shrink-0 rounded-md border border-emerald-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
+                        Keine Bankspieler.
+                      </p>
+                    ) : (
+                      <div
+                        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5"
+                        style={{ paddingBottom: WECHSEL_CONTENT_SCROLL_BOTTOM_PAD }}
+                      >
+                        <div className="flex flex-col gap-1">
+                          {substitutionBenchRows.map((row) => {
+                            const pid = String(row?.id ?? '').trim();
+                            if (!pid) return null;
+                            const rosterP = rosterById.get(pid) ?? null;
+                            const name = String(row?.display_name ?? rosterP?.name ?? 'Spieler').trim() || 'Spieler';
+                            const jerseyName = mobileLineupName(name);
+                            const posLabel = getPositionLabel(row.position) || 'â€“';
+                            const num = rosterP?.number ?? row?.jersey_number ?? null;
+                            const selected = subInPlayerId === pid;
+                            const recIn = Boolean(subRecommendedInId && subRecommendedInId === pid && !selected);
+                            const isGk = posLabel === 'TW';
+                            return (
+                              <button
+                                key={`sub-in-${pid}`}
+                                type="button"
+                                onClick={() => setSubInPlayerId(pid)}
+                                className={dsWechselPickRowClass({
+                                  selected,
+                                  recommended: recIn,
+                                  side: 'in',
+                                })}
+                              >
+                                <div className="pointer-events-none shrink-0">
+                                  <LeibchenJersey
+                                    lastName={jerseyName}
+                                    number={num ?? 'â€“'}
+                                    position={posLabel}
+                                    variant={isGk ? 'goalkeeper' : 'field'}
+                                    size="compact"
+                                    pitchStyleBack
+                                    className="!h-[2.9rem] !w-[2.28rem] sm:!h-[3.1rem] sm:!w-[2.55rem]"
+                                  />
+                                </div>
+                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 pr-1">
+                                  <p className={dsPlayerNameClass()}>{name}</p>
+                                  <span className="inline-flex w-fit rounded-md border border-transparent bg-[rgba(16,16,20,0.88)] px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-[#9A9AA0]">
+                                    Bank
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : !canRenderLivePitch ? (
+                <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[10px] text-white/50">
+                  Aufstellung wird geladen â€¦
+                </p>
+              ) : (
+                <>
+                  <div className="mx-auto w-full max-w-md px-0.5">
+                    <LineupFormationPitch
+                          formationId={pitchFormationId}
+                          slots={(safeLineupSlots ?? {}) as Record<FieldSlotId, string | null>}
+                          interactive
+                          onSlotTap={(slot) => {
+                            const raw =
+                              safeLineupSlots && typeof safeLineupSlots === 'object'
+                                ? (safeLineupSlots as Record<FieldSlotId, string | null>)[slot]
+                                : null;
+                            const pid = String(raw ?? '').trim();
+                            if (pid) setSubOutPlayerId(pid);
+                          }}
+                          slotHighlightBySlot={wechselPitchSlotHighlight}
+                          emphasizedPlayerId={null}
+                          renderSlotContent={({ slot: _slot, label, playerId, isGk }) => {
+                            if (!playerId) return null;
+                            const player = rosterById.get(playerId) ?? null;
+                            const posLabel = getPositionLabel(label) || 'â€“';
+                            const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
+                            const shortName = (() => {
+                              const s = mobileLineupName(rawName);
+                              return s === 'â€”' || !s ? 'Spieler' : s;
+                            })();
+                            const isOutPick = String(subOutPlayerId ?? '').trim() === String(playerId).trim();
+                            const recOutPitch =
+                              Boolean(subRecommendedOutId) &&
+                              String(subRecommendedOutId ?? '').trim() === String(playerId).trim() &&
+                              !isOutPick;
+                            return (
+                              <div
+                                className={[
+                                  'pointer-events-none relative flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center rounded-lg transition-[transform,box-shadow] duration-200',
+                                  isOutPick
+                                    ? 'shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_8px_rgba(239,68,68,0.35)]'
+                                    : recOutPitch
+                                      ? 'shadow-[0_0_14px_rgba(16,185,129,0.35)] ring-1 ring-emerald-400/45 rounded-lg'
+                                      : '',
+                                ].join(' ')}
+                              >
+                                <LeibchenJersey
+                                  lastName={shortName}
+                                  number={player?.number ?? 'â€“'}
+                                  position={posLabel}
+                                  variant={isGk ? 'goalkeeper' : 'field'}
+                                  size="compact"
+                                  pitchStyleBack
+                                  className={['sm:!h-[4.1rem] sm:!w-[3.25rem]', isOutPick ? 'ring-2 ring-red-500/70' : ''].join(
+                                    ' ',
+                                  )}
+                                />
+                                <span
+                                  className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[10px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 sm:text-[11px]"
+                                  title={rawName}
+                                >
+                                  {shortName}
+                                </span>
+                              </div>
+                            );
+                          }}
+                          className="min-h-[11rem] max-h-[min(46dvh,28rem)] w-full sm:max-h-[min(48dvh,30rem)]"
+                        />
+                  </div>
+                  {fairPlayExtraPlayerId &&
+                  !Object.values(lineupSlotsForDisplay ?? {}).some(
+                    (v) => String(v ?? '').trim() === String(fairPlayExtraPlayerId ?? '').trim(),
+                  ) ? (
+                    <div className="mx-auto mt-1 flex w-full max-w-md justify-center px-0.5">
+                      {(() => {
+                        const pid = fairPlayExtraPlayerId.trim();
+                        const player = rosterById.get(pid) ?? null;
+                        const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
+                        const shortName = mobileLineupName(rawName);
+                        const selected = String(subOutPlayerId ?? '').trim() === pid;
+                        const recOut =
+                          Boolean(subRecommendedOutId) &&
+                          String(subRecommendedOutId ?? '').trim() === pid &&
+                          !selected;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setSubOutPlayerId(pid)}
+                            className={[
+                              'flex min-w-[9.5rem] flex-col items-center rounded-xl border bg-black/45 px-2 py-1.5 transition-all active:scale-[0.98]',
+                              selected
+                                ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.45)] ring-2 ring-red-500/65'
+                                : recOut
+                                  ? 'border-amber-400/55 shadow-[0_0_12px_rgba(251,191,36,0.28)] ring-1 ring-amber-400/45'
+                                  : 'border-amber-400/35 hover:border-amber-300/55',
+                            ].join(' ')}
+                          >
+                            <span className="mb-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/90">
+                              FairPlay +1 Â· Raus
+                            </span>
+                            <LeibchenJersey
+                              lastName={shortName}
+                              number={player?.number ?? 'â€“'}
+                              position="FP"
+                              variant="field"
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[3rem] !w-[2.35rem] ring-1 ring-amber-400/55"
+                            />
+                            <span className="mt-0.5 truncate text-[10px] font-semibold text-white">{shortName}</span>
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  ) : null}
+                  <section
+                    className="border-t border-white/[0.08] pt-1 transition-opacity duration-200"
+                    style={{ paddingBottom: WECHSEL_PITCH_TAB_SCROLL_BOTTOM_PAD }}
+                  >
+                    <p className="mb-1 px-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300/90">
+                      Bank
+                    </p>
+                    {substitutionBenchRows.length === 0 ? (
+                      <p className="rounded-md border border-emerald-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
+                        Keine Bankspieler.
+                      </p>
+                    ) : (
+                      <div className="-mx-0.5 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
+                        <div className="flex min-w-min flex-nowrap items-start gap-2 px-0.5">
+                          {substitutionBenchRows.map((row, idx) => {
+                                const pid = String(row?.id ?? '').trim();
+                                if (!pid) return null;
+                                const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
+                                const shortName = mobileLineupName(name);
+                                const posLabel = getPositionLabel(row.position) || 'â€“';
+                                const num = row.jersey_number ?? row.number ?? 'â€“';
+                                const selected = subInPlayerId === pid;
+                                const recInPitch =
+                                  Boolean(subRecommendedInId) &&
+                                  String(subRecommendedInId ?? '').trim() === pid &&
+                                  !selected;
+                                return (
+                                  <button
+                                    key={`sub-pitch-bench-${row.id || idx}`}
+                                    type="button"
+                                    onClick={() => setSubInPlayerId(pid)}
+                                    title={name}
+                                    className={[
+                                      'flex w-[4.65rem] shrink-0 flex-col items-center rounded-xl border bg-black/35 px-1 py-1 transition-all active:scale-[0.98] sm:w-[5.1rem]',
+                                      selected
+                                        ? 'border-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.48)] ring-2 ring-emerald-400/65'
+                                        : recInPitch
+                                          ? 'border-emerald-400/50 shadow-[0_0_12px_rgba(16,185,129,0.28)] ring-1 ring-emerald-400/45'
+                                          : 'border-white/14 hover:border-emerald-500/38',
+                                    ].join(' ')}
+                                  >
+                                    <LeibchenJersey
+                                      lastName={shortName}
+                                      number={num}
+                                      position={posLabel}
+                                      variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                                      size="compact"
+                                      pitchStyleBack
+                                      className="!h-[3.25rem] !w-[2.55rem] sm:!h-[3.55rem] sm:!w-[2.8rem]"
+                                    />
+                                    <span className="mt-0.5 w-full min-w-0 truncate text-center text-[10px] font-bold leading-tight text-white sm:text-[11px]">
+                                      {shortName}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                  </section>
+                </>
+              )}
+            </div>
+
+            <footer
+              className="sticky bottom-0 z-30 shrink-0 border-t border-transparent bg-[rgba(8,8,8,0.92)] px-2 pt-1 backdrop-blur-xl shadow-[0_-10px_36px_rgba(0,0,0,0.42)]"
+              style={{ paddingBottom: WECHSEL_SCREEN_FOOTER_PB }}
+            >
+              <div className="flex flex-row gap-2">
+                <button
+                  type="button"
+                  disabled={subSaving || posSwapSaving}
+                  onClick={closeWechselSheet}
+                  className={`flex min-h-[48px] flex-1 items-center justify-center px-2 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
+                >
+                  ZurÃ¼ck zum Livespiel
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    subSaving ||
+                    posSwapSaving ||
+                    !String(subOutPlayerId ?? '').trim() ||
+                    (!fairPlaySubOutOnly &&
+                      (!String(subInPlayerId ?? '').trim() ||
+                        String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()))
+                  }
+                  onClick={() => void confirmSubstitution()}
+                  className={`flex min-h-[48px] flex-1 items-center justify-center px-1 text-[11px] font-bold ${dsPrimaryCtaClass()}`}
+                >
+                  {subSaving
+                    ? 'â€¦'
+                    : fairPlaySubOutOnly
+                      ? 'FairPlay beenden'
+                      : wechselSheetPickLabels.outLabel && wechselSheetPickLabels.inLabel
+                      ? (() => {
+                          const s = `${wechselSheetPickLabels.outLabel} â†’ ${wechselSheetPickLabels.inLabel}`;
+                          return s.length <= 30 ? s : 'Wechsel bestÃ¤tigen';
+                        })()
+                      : 'Wechsel bestÃ¤tigen'}
+                </button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+
+      {posSwapConfirmOpen && posSwapSlotA && posSwapSlotB && canControlLiveMatch && !matchIsFinished ? (
+        <div
+          className="pointer-events-auto fixed inset-0 z-[10060] flex flex-col justify-end"
+          style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <button
+            type="button"
+            aria-label="Abbrechen"
+            disabled={posSwapSaving}
+            className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity disabled:opacity-60"
+            onClick={() => {
+              if (posSwapSaving) return;
+              setPosSwapConfirmOpen(false);
+              setPosSwapSlotA(null);
+              setPosSwapSlotB(null);
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pos-swap-confirm-title"
+            className="relative z-[1] mx-auto mb-0 w-[min(100%,24rem)] rounded-2xl border border-red-500/40 bg-gradient-to-b from-zinc-950/98 via-zinc-950/95 to-black px-3 pb-4 pt-3 shadow-[0_0_32px_rgba(239,68,68,0.35),0_-12px_40px_rgba(0,0,0,0.75)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-white/18" />
+            <h3
+              id="pos-swap-confirm-title"
+              className="text-center text-[13px] font-black uppercase tracking-[0.12em] text-white sm:text-sm"
+            >
+              Positionen tauschen?
+            </h3>
+            <p className="mt-2 text-center text-[13px] font-semibold leading-snug text-white/85 sm:text-[14px]">
+              {posSwapConfirmLabels.a} â†” {posSwapConfirmLabels.b}
+            </p>
+            <div className="mt-4 flex min-h-[48px] flex-row gap-2">
+              <button
+                type="button"
+                disabled={posSwapSaving}
+                onClick={() => {
+                  setPosSwapConfirmOpen(false);
+                  setPosSwapSlotA(null);
+                  setPosSwapSlotB(null);
+                }}
+                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 backdrop-blur-sm hover:bg-zinc-800 disabled:opacity-45"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                disabled={posSwapSaving || matchIsFinished}
+                onClick={() => void confirmPositionSwap()}
+                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-red-600 px-2 text-[12px] font-black text-white shadow-[0_0_18px_rgba(220,38,38,0.5)] disabled:opacity-40"
+              >
+                {posSwapSaving ? 'â€¦' : 'Tauschen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {canControlLiveMatch && fairPlayExtraSheetOpen && !matchIsFinished ? (
+        <div
+          className={FAIRPLAY_SHEET_OVERLAY}
+          role="presentation"
+          onClick={() => {
+            if (fairPlayExtraSaving) return;
+            closeFairPlayExtraSheet();
+          }}
+        >
+          <div
+            className="mx-auto flex w-full max-w-lg max-h-[min(70dvh,34rem)] flex-col overflow-y-auto rounded-t-2xl border border-amber-500/25 bg-gradient-to-b from-amber-950/45 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]"
+            style={{ marginBottom: FAIRPLAY_SHEET_BOTTOM_OFFSET }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fairplay-extra-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mt-1.5 h-1 w-8 shrink-0 rounded-full bg-amber-400/40" aria-hidden />
+            <div className="shrink-0 border-b border-white/[0.07] px-3 py-1.5">
+              <h3
+                id="fairplay-extra-title"
+                className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-200/95"
+              >
+                {fairPlayExtraPickId ? 'FairPlay bestÃ¤tigen' : 'Zusatzspieler'}
+              </h3>
+              {!fairPlayExtraPickId ? (
+                <p className="mt-0.5 text-[12px] font-medium text-white/55">Spieler von der Bank wÃ¤hlen</p>
+              ) : null}
+            </div>
+            {fairPlayExtraPickId ? (
+              <>
+                <div className="shrink-0 px-3 py-2.5">
+                  <p className="text-center text-[15px] font-bold leading-snug text-white">
+                    {mobileLineupName(rosterById.get(fairPlayExtraPickId)?.name ?? 'Spieler')}
+                  </p>
+                  <p className="mt-1 text-center text-[12px] font-medium leading-snug text-white/65">
+                    als Zusatzspieler am Feld einsetzen?
+                  </p>
+                </div>
+                <footer
+                  className="sticky bottom-0 z-10 shrink-0 border-t border-amber-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
+                  style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
+                >
+                  <button
+                    type="button"
+                    disabled={fairPlayExtraSaving}
+                    onClick={() => void runPersistFairPlayExtraOn()}
+                    className="flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-xl border border-amber-300/55 bg-amber-500 text-[15px] font-black text-black shadow-[0_0_20px_rgba(245,158,11,0.35)] active:scale-[0.99] disabled:opacity-45"
+                  >
+                    {fairPlayExtraSaving ? 'â€¦' : 'Zusatzspieler einsetzen'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={fairPlayExtraSaving}
+                    onClick={() => setFairPlayExtraPickId(null)}
+                    className="mt-2 flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-sm font-bold text-white/88 active:scale-[0.99] disabled:opacity-45"
+                  >
+                    ZurÃ¼ck zur Auswahl
+                  </button>
+                </footer>
+              </>
+            ) : (
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1.5 [-webkit-overflow-scrolling:touch]"
+                style={{ paddingBottom: FAIRPLAY_SHEET_LIST_BOTTOM_PAD }}
+              >
+                {benchPlayers.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-white/50">Keine Bankspieler.</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {benchPlayers.map((p) => {
+                      const shortName = mobileLineupName(p.name);
+                      const posLabel = getPositionLabel(p.position ?? '') || 'â€“';
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setFairPlayExtraPickId(p.id)}
+                          className="flex min-h-[64px] items-center gap-2 rounded-xl border border-white/10 bg-black/50 px-2 py-2 text-left transition-transform active:scale-[0.99]"
+                        >
+                          <div className="pointer-events-none shrink-0">
+                            <LeibchenJersey
+                              lastName={shortName === 'â€”' || !shortName ? 'Spieler' : shortName}
+                              number={p.number ?? 'â€“'}
+                              position={posLabel}
+                              variant="field"
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[3.2rem] !w-[2.55rem]"
+                            />
+                          </div>
+                          <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{p.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {canControlLiveMatch && fairPlayRemoveSheetOpen && fairPlayExtraPlayerId && !matchIsFinished ? (
+        <div
+          className={FAIRPLAY_SHEET_OVERLAY}
+          role="presentation"
+          onClick={() => {
+            if (fairPlayRemoveSaving) return;
+            closeFairPlayRemoveSheet();
+          }}
+        >
+          <div
+            className="relative z-[1] mx-auto flex w-full max-w-lg max-h-[min(70dvh,34rem)] flex-col overflow-y-auto rounded-t-2xl border border-red-500/35 bg-gradient-to-b from-red-950/40 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]"
+            style={{ marginBottom: FAIRPLAY_SHEET_BOTTOM_OFFSET }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fairplay-remove-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mt-1.5 h-1 w-8 shrink-0 rounded-full bg-red-400/40" aria-hidden />
+            <div className="shrink-0 border-b border-white/[0.07] px-3 py-1.5">
+              <h3
+                id="fairplay-remove-title"
+                className="text-[11px] font-black uppercase tracking-[0.14em] text-red-300/95"
+              >
+                {fairPlayRemovePickId ? 'Entfernen bestÃ¤tigen' : 'Spieler vom Feld'}
+              </h3>
+              {!fairPlayRemovePickId ? (
+                <p className="mt-0.5 text-[12px] font-medium text-white/55">
+                  {fairPlayMustRemoveExtra
+                    ? 'Ein Spieler muss vom Feld â€” Zusatzspieler darf bleiben'
+                    : 'Feldspieler wÃ¤hlen, der auf die Bank geht'}
+                </p>
+              ) : null}
+            </div>
+            {fairPlayRemovePickId ? (
+              <>
+                <div className="shrink-0 px-3 py-2.5">
+                  <p className="text-center text-[15px] font-bold leading-snug text-white">
+                    {mobileLineupName(rosterById.get(fairPlayRemovePickId)?.name ?? 'Spieler')}
+                  </p>
+                  <p className="mt-1 text-center text-[12px] font-medium leading-snug text-white/65">
+                    {String(fairPlayRemovePickId).trim() === String(fairPlayExtraPlayerId ?? '').trim()
+                      ? 'Zusatzspieler verlÃ¤sst das Feld (7/7)'
+                      : 'verlÃ¤sst das Feld â€” Zusatzspieler bleibt am Feld'}
+                  </p>
+                </div>
+                <footer
+                  className="sticky bottom-0 z-10 shrink-0 border-t border-red-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
+                  style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
+                >
+                  <button
+                    type="button"
+                    disabled={fairPlayRemoveSaving}
+                    onClick={() => void runPersistFairPlayExtraOff()}
+                    className="flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-xl bg-red-600 text-[15px] font-black text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-[0.99] disabled:opacity-40"
+                  >
+                    {fairPlayRemoveSaving ? 'â€¦' : 'Vom Feld nehmen'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={fairPlayRemoveSaving}
+                    onClick={() => setFairPlayRemovePickId(null)}
+                    className="mt-2 flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-sm font-bold text-white/88 active:scale-[0.99] disabled:opacity-45"
+                  >
+                    ZurÃ¼ck zur Auswahl
+                  </button>
+                </footer>
+              </>
+            ) : (
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1.5 [-webkit-overflow-scrolling:touch]"
+                style={{ paddingBottom: FAIRPLAY_SHEET_LIST_BOTTOM_PAD }}
+              >
+                {fairPlayRemoveFieldRows.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-white/50">Keine Feldspieler.</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {fairPlayRemoveFieldRows.map((p) => {
+                      const shortName = mobileLineupName(p.name);
+                      const posLabel = getPositionLabel(p.position ?? '') || 'â€“';
+                      const isExtra = String(p.id).trim() === String(fairPlayExtraPlayerId ?? '').trim();
+                      return (
+                        <button
+                          key={`fairplay-remove-pick-${p.id}`}
+                          type="button"
+                          onClick={() => setFairPlayRemovePickId(p.id)}
+                          className="flex min-h-[64px] items-center gap-2 rounded-xl border border-white/10 bg-black/50 px-2 py-2 text-left transition-transform active:scale-[0.99]"
+                        >
+                          <div className="pointer-events-none shrink-0">
+                            <LeibchenJersey
+                              lastName={shortName === 'â€”' || !shortName ? 'Spieler' : shortName}
+                              number={p.number ?? 'â€“'}
+                              position={posLabel}
+                              variant="field"
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[3.2rem] !w-[2.55rem]"
+                            />
+                          </div>
+                          <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">
+                            {p.name}
+                            {isExtra ? (
+                              <span className="ml-1 text-[10px] font-semibold text-amber-300/90">FairPlay +1</span>
+                            ) : null}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {homeGoalModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setHomeGoalModalOpen(false)}
+        >
+          <div
+            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#141414] px-4 pb-8 pt-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+            <h3 className="text-center text-lg font-bold">Tor {stadiumHomeDisplay}</h3>
+            <p className="mt-1 text-center text-sm text-white/50">TorschÃ¼tze wÃ¤hlen, dann bestÃ¤tigen</p>
+
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-bold uppercase text-emerald-400/90">Am Feld</p>
+              <div className="flex flex-wrap gap-2">
+                {homeScorerCandidates.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setHomeGoalPickId(p.id)}
+                    className={`min-h-[48px] min-w-[100px] flex-1 rounded-xl px-3 py-2 text-sm font-bold ${
+                      homeGoalPickId === p.id
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-white/10 text-white active:bg-white/20'
+                    }`}
+                  >
+                    {p.number || 'â€“'} {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={!homeGoalPickId || !isClockRunning}
+              onClick={async () => {
+                if (!homeGoalPickId || !effectiveMatchId) return;
+                if (!isClockRunning) {
+                  setSaveError(goalBlockedMessage);
+                  return;
+                }
+                const before = recomputeScoresFromEvents(events);
+                const res = await persistSingle({
+                  type: 'goal',
+                  timestamp: currentMatchSeconds,
+                  playerId: homeGoalPickId,
+                });
+                if (!res.ok || !res.savedId) return;
+                offerGoalUndo({
+                  eventId: res.savedId,
+                  side: 'home',
+                  prevHome: before.home,
+                  prevAway: before.away,
+                });
+                setHomeGoalModalOpen(false);
+                setHomeGoalPickId('');
+              }}
+              className="mt-6 flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+            >
+              Tor bestÃ¤tigen
+            </button>
+            <button
+              type="button"
+              onClick={() => setHomeGoalModalOpen(false)}
+              className="mt-3 w-full min-h-[48px] rounded-2xl border border-white/15 text-base font-semibold text-white/80"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {awayGoalModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setAwayGoalModalOpen(false)}
+        >
+          <div
+            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#141414] px-4 pb-8 pt-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+            <h3 className="text-center text-lg font-bold">Tor {stadiumAwayDisplay}</h3>
+            <p className="mt-1 text-center text-sm text-white/50">TorschÃ¼tze wÃ¤hlen, dann bestÃ¤tigen</p>
+
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-bold uppercase text-red-400/90">Am Feld</p>
+              <div className="flex flex-wrap gap-2">
+                {homeScorerCandidates.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setAwayGoalPickId(p.id)}
+                    className={`min-h-[48px] min-w-[100px] flex-1 rounded-xl px-3 py-2 text-sm font-bold ${
+                      awayGoalPickId === p.id
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white/10 text-white active:bg-white/20'
+                    }`}
+                  >
+                    {p.number || 'â€“'} {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={!awayGoalPickId || !isClockRunning}
+              onClick={async () => {
+                if (!awayGoalPickId || !effectiveMatchId) return;
+                if (!isClockRunning) {
+                  setSaveError(goalBlockedMessage);
+                  return;
+                }
+                const before = recomputeScoresFromEvents(events);
+                const res = await persistSingle({
+                  type: 'goal_away',
+                  timestamp: currentMatchSeconds,
+                  playerId: awayGoalPickId,
+                });
+                if (!res.ok || !res.savedId) return;
+                offerGoalUndo({
+                  eventId: res.savedId,
+                  side: 'away',
+                  prevHome: before.home,
+                  prevAway: before.away,
+                });
+                setAwayGoalModalOpen(false);
+                setAwayGoalPickId('');
+              }}
+              className="mt-6 flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-red-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+            >
+              Tor bestÃ¤tigen
+            </button>
+            <button
+              type="button"
+              onClick={() => setAwayGoalModalOpen(false)}
+              className="mt-3 w-full min-h-[48px] rounded-2xl border border-white/15 text-base font-semibold text-white/80"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editingGoalEvent && (editingGoalEvent.type === 'goal' || editingGoalEvent.type === 'goal_away') ? (
+        <div
+          className="fixed inset-0 z-[10020] flex min-h-dvh flex-col justify-end bg-black/75 pt-[var(--app-header-offset)] backdrop-blur-sm"
+          role="presentation"
+          onClick={() => {
+            if (!editingGoalSaving) setEditingGoalEvent(null);
+          }}
+        >
+          <div
+            className="flex h-full min-h-0 flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#141414] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="goal-edit-title"
+          >
+            <div className="shrink-0 px-4 pb-3 pt-4">
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+              <button
+                type="button"
+                disabled={editingGoalSaving}
+                onClick={() => setEditingGoalEvent(null)}
+                className="mb-3 inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-white/10 bg-black/35 px-3 text-sm font-bold text-white/85 disabled:opacity-40"
+              >
+                <span aria-hidden>â†</span>
+                ZurÃ¼ck zum Livespiel
+              </button>
+              <h3 id="goal-edit-title" className="text-center text-lg font-bold">TorschÃ¼tze Ã¤ndern</h3>
+              <p className="mt-1 text-center text-sm text-white/50">
+                {formatMinute(editingGoalEvent.timestamp)} Â· Tor{' '}
+                {editingGoalEvent.type === 'goal' ? stadiumHomeDisplay : stadiumAwayDisplay}
+              </p>
+            </div>
+
+            <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-4 pb-4 [-webkit-overflow-scrolling:touch]">
+              <p className="mb-2 text-xs font-bold uppercase text-red-400/90">Kader</p>
+              <div className="flex flex-wrap gap-2">
+                {roster.map((player) => (
+                  <button
+                    key={player.id}
+                    type="button"
+                    disabled={editingGoalSaving}
+                    onClick={() => setEditingGoalScorerId(player.id)}
+                    className={`min-h-[48px] min-w-[100px] flex-1 rounded-xl px-3 py-2 text-sm font-bold ${
+                      editingGoalScorerId === player.id
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white/10 text-white active:bg-white/20'
+                    }`}
+                  >
+                    {player.number || 'â€“'} {player.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="shrink-0 border-t border-white/10 bg-black/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-3">
+              {saveError ? (
+                <p className="mb-2 rounded-xl border border-amber-500/30 bg-amber-950/30 px-3 py-2 text-center text-[11px] font-medium leading-snug text-amber-100">
+                  {saveError}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                disabled={!editingGoalScorerId || editingGoalSaving}
+                onClick={async () => {
+                  if (!editingGoalScorerId || editingGoalSaving) return;
+                  setEditingGoalSaving(true);
+                  setSaveError(null);
+                  const { error } = await updateGoalScorer(editingGoalEvent.id, editingGoalScorerId);
+                  if (error) {
+                    setSaveError(error);
+                    setEditingGoalSaving(false);
+                    return;
+                  }
+                  setEvents((previous) =>
+                    previous.map((event) =>
+                      event.id === editingGoalEvent.id
+                        ? { ...event, playerId: editingGoalScorerId }
+                        : event,
+                    ),
+                  );
+                  if (effectiveMatchId) {
+                    const feedResult = await ensureResultFeedPostForMatch(effectiveMatchId);
+                    if (!feedResult.ok) {
+                      setSaveError(`TorschÃ¼tze geÃ¤ndert, Feed konnte nicht aktualisiert werden: ${feedResult.error}`);
+                      setEditingGoalEvent(null);
+                      setEditingGoalSaving(false);
+                      return;
+                    }
+                  }
+                  setEditingGoalEvent(null);
+                  setEditingGoalSaving(false);
+                }}
+                className="flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-red-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+              >
+                {editingGoalSaving ? 'Wird gespeichertâ€¦' : 'Ã„nderung speichern'}
+              </button>
+              <button
+                type="button"
+                disabled={editingGoalSaving}
+                onClick={() => setEditingGoalEvent(null)}
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-white/15 text-sm font-semibold text-white/80 disabled:opacity-40"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editingSubstitutionEvent?.type === 'substitution' ? (
+        <div
+          className="fixed inset-0 z-[10020] flex min-h-dvh flex-col justify-end bg-black/80 pt-[var(--app-header-offset)] backdrop-blur-sm"
+          role="presentation"
+          onClick={() => {
+            if (!editingSubstitutionSaving) setEditingSubstitutionEvent(null);
+          }}
+        >
+          <div
+            className="flex h-full min-h-0 flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#141414] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="substitution-edit-title"
+          >
+            <div className="shrink-0 px-4 pb-3 pt-4">
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+              <button
+                type="button"
+                disabled={editingSubstitutionSaving}
+                onClick={() => setEditingSubstitutionEvent(null)}
+                className="mb-3 inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-white/10 bg-black/35 px-3 text-sm font-bold text-white/85 disabled:opacity-40"
+              >
+                <span aria-hidden>â†</span>
+                ZurÃ¼ck zum Livespiel
+              </button>
+              <h3 id="substitution-edit-title" className="text-center text-lg font-bold">
+                Wechsel korrigieren
+              </h3>
+              <p className="mt-1 text-center text-sm text-white/50">
+                {formatMinute(editingSubstitutionEvent.timestamp)} Â· Spieler neu zuordnen
+              </p>
+            </div>
+
+            <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-4 pb-4 [-webkit-overflow-scrolling:touch]">
+              <section>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-red-300/90">
+                  Raus Â· Spieler am Feld
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {substitutionEditChoices.outgoing.map((player) => (
+                    <button
+                      key={`edit-sub-out-${player.id}`}
+                      type="button"
+                      disabled={editingSubstitutionSaving}
+                      onClick={() => setEditingSubstitutionOutId(player.id)}
+                      className={`min-h-[46px] rounded-xl border px-2.5 py-2 text-left text-[12px] font-bold leading-snug transition-colors ${
+                        editingSubstitutionOutId === player.id
+                          ? 'border-red-400/65 bg-red-700/80 text-white'
+                          : 'border-white/10 bg-white/[0.06] text-white/85 active:bg-white/15'
+                      }`}
+                    >
+                      <span className="mr-1 text-white/45">{player.number || 'â€“'}</span>
+                      {player.name}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-4">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-emerald-300/90">
+                  Rein Â· Spieler auf der Bank
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {substitutionEditChoices.incoming.map((player) => (
+                    <button
+                      key={`edit-sub-in-${player.id}`}
+                      type="button"
+                      disabled={editingSubstitutionSaving}
+                      onClick={() => setEditingSubstitutionInId(player.id)}
+                      className={`min-h-[46px] rounded-xl border px-2.5 py-2 text-left text-[12px] font-bold leading-snug transition-colors ${
+                        editingSubstitutionInId === player.id
+                          ? 'border-emerald-400/65 bg-emerald-800/80 text-white'
+                          : 'border-white/10 bg-white/[0.06] text-white/85 active:bg-white/15'
+                      }`}
+                    >
+                      <span className="mr-1 text-white/45">{player.number || 'â€“'}</span>
+                      {player.name}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="shrink-0 border-t border-white/10 bg-black/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-3">
+              {saveError ? (
+                <p className="mb-2 rounded-xl border border-amber-500/30 bg-amber-950/30 px-3 py-2 text-center text-[11px] font-medium leading-snug text-amber-100">
+                  {saveError}
+                </p>
+              ) : null}
+              <p className="mb-3 truncate text-center text-[12px] font-semibold text-white/70">
+                Raus {rosterById.get(editingSubstitutionOutId)?.name ?? 'â€¦'} â†’ Rein{' '}
+                {rosterById.get(editingSubstitutionInId)?.name ?? 'â€¦'}
+              </p>
+              <button
+                type="button"
+                disabled={
+                  !editingSubstitutionOutId ||
+                  !editingSubstitutionInId ||
+                  editingSubstitutionOutId === editingSubstitutionInId ||
+                  editingSubstitutionSaving
+                }
+                onClick={() => void saveEditedSubstitution()}
+                className="flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-red-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+              >
+                {editingSubstitutionSaving ? 'Wird gespeichertâ€¦' : 'Ã„nderung speichern'}
+              </button>
+              <button
+                type="button"
+                disabled={editingSubstitutionSaving}
+                onClick={() => setEditingSubstitutionEvent(null)}
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-white/15 text-sm font-semibold text-white/80 disabled:opacity-40"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pauseConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-y-auto overscroll-y-contain bg-black/85 px-4 pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm sm:py-6"
+          role="presentation"
+          onClick={() => {
+            if (!pauseConfirmSaving) setPauseConfirmOpen(false);
+          }}
+        >
+          <div
+            className="my-auto flex w-full max-w-md max-h-[82dvh] flex-col overflow-hidden rounded-2xl border-2 border-emerald-700/55 bg-zinc-950 shadow-[0_0_40px_rgba(0,0,0,0.85)]"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pause-confirm-title"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+              <h3 id="pause-confirm-title" className="text-2xl font-black leading-tight tracking-tight text-white">
+                Pause aktivieren?
+              </h3>
+              <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
+                Das aktuelle Drittel wird abgeschlossen und der Zwischenstand wird Ã¼bernommen.
+              </p>
+            </div>
+            <div
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.06] bg-zinc-950 px-4 pt-2.5 sm:px-5"
+              style={{
+                paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 5.25rem))',
+              }}
+            >
+              <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-stretch">
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 shadow-none active:scale-[0.99] disabled:opacity-45"
+                  disabled={pauseConfirmSaving}
+                  onClick={() => setPauseConfirmOpen(false)}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-emerald-700 to-emerald-950 px-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(16,185,129,0.28)] active:scale-[0.99] disabled:opacity-45"
+                  disabled={pauseConfirmSaving}
+                  onClick={() => void executeConfirmedPause()}
+                >
+                  {pauseConfirmSaving ? 'â€¦' : 'Pause aktivieren'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {endeConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-y-auto overscroll-y-contain bg-black/85 px-4 pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm sm:py-6"
+          role="presentation"
+          onClick={() => setEndeConfirmOpen(false)}
+        >
+          <div
+            className="my-auto flex w-full max-w-md max-h-[82dvh] flex-col overflow-hidden rounded-2xl border-2 border-red-500/55 bg-zinc-950 shadow-[0_0_40px_rgba(0,0,0,0.85)]"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ende-match-title"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+              <h3 id="ende-match-title" className="text-2xl font-black leading-tight tracking-tight text-white">
+                Spiel beenden?
+              </h3>
+              <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
+                {isDemo
+                  ? 'Das Demo-Spiel wird lokal abgeschlossen. Es werden keine echten Daten verÃ¶ffentlicht. AnschlieÃŸend kannst du Spielzeiten auswerten.'
+                  : (
+                    <>
+                      Die Uhr stoppt, der Live-Modus endet und der Endstand wird gespeichert. AnschlieÃŸend kannst du den Kalender-Termin mit{' '}
+                      <span className="font-semibold text-white">Spiel abschlieÃŸen</span> abschlieÃŸen.
+                    </>
+                  )}
+              </p>
+            </div>
+            <div
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.06] bg-zinc-950 px-4 pt-2.5 sm:px-5"
+              style={{
+                paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 5.25rem))',
+              }}
+            >
+              <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-stretch">
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 shadow-none active:scale-[0.99]"
+                  onClick={() => setEndeConfirmOpen(false)}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 px-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(220,38,38,0.38)] active:scale-[0.99]"
+                  onClick={() => {
+                    if (minimumPlaytimeEnabled && belowMinimumPlaytimeCount > 0) {
+                      setEndeConfirmOpen(false);
+                      setMinPlaytimeEndWarnOpen(true);
+                      return;
+                    }
+                    setEndeConfirmOpen(false);
+                    void persistMatchEndWithoutCalendar();
+                  }}
+                >
+                  Ende
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {minPlaytimeEndWarnOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-y-auto overscroll-y-contain bg-black/85 px-4 pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm sm:py-6"
+          role="presentation"
+          onClick={() => setMinPlaytimeEndWarnOpen(false)}
+        >
+          <div
+            className="my-auto flex w-full max-w-md max-h-[82dvh] flex-col overflow-hidden rounded-2xl border-2 border-amber-500/50 bg-zinc-950 shadow-[0_0_40px_rgba(0,0,0,0.85)]"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="min-playtime-end-title"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+              <h3 id="min-playtime-end-title" className="text-xl font-black leading-tight tracking-tight text-white">
+                <span aria-hidden className="mr-1">
+                  âš 
+                </span>
+                Mindestspielzeit nicht erreicht
+              </h3>
+              <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300">
+                {belowMinimumPlaytimeCount}{' '}
+                {belowMinimumPlaytimeCount === 1
+                  ? 'Spieler hat die Mindestspielzeit noch nicht erreicht.'
+                  : 'Spieler haben die Mindestspielzeit noch nicht erreicht.'}
+              </p>
+              <ul className="mt-3 space-y-1.5">
+                {belowMinimumPlaytimePlayers.map((p) => (
+                  <li key={p.id} className="text-[14px] leading-snug text-white/88">
+                    <span className="font-semibold text-white">{p.name}</span>
+                    <span className="text-white/55">: {formatMissingMinutesLabel(p.missingSeconds)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.06] bg-zinc-950 px-4 pt-2.5 sm:px-5"
+              style={{
+                paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 5.25rem))',
+              }}
+            >
+              <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-stretch">
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 shadow-none active:scale-[0.99]"
+                  onClick={() => setMinPlaytimeEndWarnOpen(false)}
+                >
+                  ZurÃ¼ck
+                </button>
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 px-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(220,38,38,0.38)] active:scale-[0.99]"
+                  onClick={() => {
+                    setMinPlaytimeEndWarnOpen(false);
+                    void persistMatchEndWithoutCalendar();
+                  }}
+                >
+                  Spiel trotzdem beenden
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {spielAbschlussOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-y-auto overscroll-y-contain bg-black/85 px-4 pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm sm:py-6"
+          role="presentation"
+          onClick={() => setSpielAbschlussOpen(false)}
+        >
+          <div
+            className="my-auto flex w-full max-w-md max-h-[82dvh] flex-col overflow-hidden rounded-2xl border-2 border-amber-500/45 bg-zinc-950 shadow-[0_0_40px_rgba(0,0,0,0.85)]"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="spiel-abschluss-title"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+              <h3 id="spiel-abschluss-title" className="text-2xl font-black leading-tight tracking-tight text-white">
+                Kalender abschlieÃŸen?
+              </h3>
+              <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
+                Der verknÃ¼pfte Termin wird im Spielplan als beendet markiert. Danach wechselt die Ansicht zur App-Ãœbersicht.
+              </p>
+            </div>
+            <div
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.06] bg-zinc-950 px-4 pt-2.5 sm:px-5"
+              style={{
+                paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 5.25rem))',
+              }}
+            >
+              <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-stretch">
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 shadow-none active:scale-[0.99]"
+                  onClick={() => setSpielAbschlussOpen(false)}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-amber-600 to-amber-950 px-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(245,158,11,0.32)] active:scale-[0.99]"
+                  onClick={() => void finalizeCalendarForMatch()}
+                >
+                  AbschlieÃŸen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {substitutionToastText ? (
+        <div className="pointer-events-none fixed top-[calc(env(safe-area-inset-top,0px)+4.2rem)] left-1/2 z-[80] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2">
+          <div className="rounded-xl border border-emerald-400/35 bg-black/85 px-3 py-2 text-center text-xs font-semibold text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.2)] backdrop-blur-md">
+            {substitutionToastText}
+          </div>
+        </div>
+      ) : null}
+      {formationChangeToast ? (
+        <div className="pointer-events-none fixed bottom-[calc(96px+env(safe-area-inset-bottom,0px))] left-1/2 z-[10001] w-[calc(100%-2rem)] max-w-[17rem] -translate-x-1/2">
+          <div className="rounded-lg border border-emerald-400/25 bg-black/78 px-3 py-2 text-center text-[14px] font-medium text-emerald-50/95 shadow-[0_4px_16px_rgba(0,0,0,0.45)] backdrop-blur-sm">
+            âœ“ Formation geÃ¤ndert
+          </div>
+        </div>
+      ) : null}
+    </div>
+    </>
+  );
+};
+
+export default LiveMatchScreen;
