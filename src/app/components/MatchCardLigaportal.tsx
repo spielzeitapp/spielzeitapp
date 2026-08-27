@@ -947,9 +947,12 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           ) : matchPhase === 'finished' && scheduleNextMatchHero && !isAudienceHeroRole ? (
             /* ── Finished Hero (simplified — result + CTA, Trainer) ── */
             <div className="relative z-[1] flex flex-col items-center gap-1.5 px-1 py-1">
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.10em] text-white/40">
-                BEENDET
-              </span>
+              {matchTypeLabel ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/20 bg-red-950/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.10em] text-red-100/90">
+                  <Trophy className="h-3 w-3 text-red-300/80" strokeWidth={2} aria-hidden />
+                  {matchTypeLabel}
+                </span>
+              ) : null}
               <MatchCardGameCore
                 headerTitle={null}
                 kickoffSubtitleAboveHeader={null}
