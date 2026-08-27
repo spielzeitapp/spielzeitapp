@@ -1544,6 +1544,13 @@ export const LiveMatchScreen: React.FC = () => {
   const [editingSubstitutionOutId, setEditingSubstitutionOutId] = useState('');
   const [editingSubstitutionInId, setEditingSubstitutionInId] = useState('');
   const [editingSubstitutionSaving, setEditingSubstitutionSaving] = useState(false);
+  const liveEditDialogOpen = Boolean(editingGoalEvent || editingSubstitutionEvent);
+
+  useEffect(() => {
+    document.body.toggleAttribute('data-live-edit-dialog-open', liveEditDialogOpen);
+    return () => document.body.removeAttribute('data-live-edit-dialog-open');
+  }, [liveEditDialogOpen]);
+
   const [pauseConfirmOpen, setPauseConfirmOpen] = useState(false);
   const [pauseConfirmSaving, setPauseConfirmSaving] = useState(false);
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
@@ -6876,6 +6883,15 @@ export const LiveMatchScreen: React.FC = () => {
           >
             <div className="shrink-0 px-4 pb-3 pt-4">
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+              <button
+                type="button"
+                disabled={editingGoalSaving}
+                onClick={() => setEditingGoalEvent(null)}
+                className="mb-3 inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-white/10 bg-black/35 px-3 text-sm font-bold text-white/85 disabled:opacity-40"
+              >
+                <span aria-hidden>←</span>
+                Zurück zum Livespiel
+              </button>
               <h3 id="goal-edit-title" className="text-center text-lg font-bold">Torschütze ändern</h3>
               <p className="mt-1 text-center text-sm text-white/50">
                 {formatMinute(editingGoalEvent.timestamp)} · Tor{' '}
@@ -6976,6 +6992,15 @@ export const LiveMatchScreen: React.FC = () => {
           >
             <div className="shrink-0 px-4 pb-3 pt-4">
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+              <button
+                type="button"
+                disabled={editingSubstitutionSaving}
+                onClick={() => setEditingSubstitutionEvent(null)}
+                className="mb-3 inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-white/10 bg-black/35 px-3 text-sm font-bold text-white/85 disabled:opacity-40"
+              >
+                <span aria-hidden>←</span>
+                Zurück zum Livespiel
+              </button>
               <h3 id="substitution-edit-title" className="text-center text-lg font-bold">
                 Wechsel korrigieren
               </h3>

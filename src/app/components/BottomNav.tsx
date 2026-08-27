@@ -179,6 +179,7 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
+      data-app-bottom-nav
       className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pb-1 pt-2 sm:px-5"
       style={{
         paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
