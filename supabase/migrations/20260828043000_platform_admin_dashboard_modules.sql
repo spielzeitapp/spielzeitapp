@@ -1,6 +1,15 @@
 -- PLATFORM-ADMIN.2 (Staging/develop)
 -- Plattform-Dashboard, Vereinsmodule und protokollierter Supportzugriff.
 
+CREATE OR REPLACE FUNCTION public.normalize_club_name(p_value text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path = public
+AS $
+  SELECT regexp_replace(lower(coalesce(p_value, '')), '[^a-z0-9]+', '', 'g');
+$;
+
 CREATE TABLE IF NOT EXISTS public.platform_modules (
   key text PRIMARY KEY,
   name text NOT NULL,

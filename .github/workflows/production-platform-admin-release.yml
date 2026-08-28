@@ -79,11 +79,10 @@ jobs:
                 to_regclass('public.memberships') IS NOT NULL AS memberships,
                 to_regclass('public.team_season_players') IS NOT NULL AS team_season_players,
                 to_regclass('public.events') IS NOT NULL AS events,
-                to_regprocedure('public.is_platform_admin()') IS NOT NULL AS platform_guard,
-                to_regprocedure('public.normalize_club_name(text)') IS NOT NULL AS club_normalizer;
+                to_regprocedure('public.is_platform_admin()') IS NOT NULL AS platform_guard;
             `);
             const p = preflight?.[0] || {};
-            const required = ['clubs', 'teams', 'team_seasons', 'memberships', 'team_season_players', 'events', 'platform_guard', 'club_normalizer'];
+            const required = ['clubs', 'teams', 'team_seasons', 'memberships', 'team_season_players', 'events', 'platform_guard'];
             if (required.some((key) => !p[key])) {
               const missing = required.filter((key) => !p[key]);
               throw new Error(`Production preflight failed; missing schema dependencies: ${missing.join(', ')}`);
@@ -103,7 +102,8 @@ jobs:
                 to_regprocedure('public.admin_get_platform_dashboard()') IS NOT NULL AS dashboard_rpc,
                 to_regprocedure('public.admin_list_clubs_v2(text,text)') IS NOT NULL AS clubs_rpc,
                 to_regprocedure('public.admin_set_club_module(uuid,text,boolean)') IS NOT NULL AS module_rpc,
-                to_regprocedure('public.admin_log_support_access(uuid,text,uuid)') IS NOT NULL AS support_rpc;
+                to_regprocedure('public.admin_log_support_access(uuid,text,uuid)') IS NOT NULL AS support_rpc,
+                to_regprocedure('public.normalize_club_name(text)') IS NOT NULL AS club_normalizer;
             `);
             const v = verification?.[0] || {};
             if (Object.values(v).some((value) => !value)) {
