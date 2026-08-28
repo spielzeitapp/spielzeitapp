@@ -6,9 +6,9 @@ RETURNS text
 LANGUAGE sql
 IMMUTABLE
 SET search_path = public
-AS $
+AS $normalize_club_name$
   SELECT regexp_replace(lower(coalesce(p_value, '')), '[^a-z0-9]+', '', 'g');
-$;
+$normalize_club_name$;
 
 CREATE TABLE IF NOT EXISTS public.platform_modules (
   key text PRIMARY KEY,
