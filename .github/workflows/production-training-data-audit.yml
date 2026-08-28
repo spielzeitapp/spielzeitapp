@@ -107,6 +107,46 @@ jobs:
               ORDER BY d.created_at DESC;
             `);
             if (!Array.isArray(sourceCandidates) || sourceCandidates.length !== 1) {
+              const diagnostic = await query(stagingRef, `
+                SELECT
+                  count(*)::int AS u12_documents,
+                  coalesce(min(x.active_sessions), 0)::int AS min_active_sessions,
+                  coalesce(max(x.active_sessions), 0)::int AS max_active_sessions,
+                  coalesce(min(x.selected_items), 0)::int AS min_selected_items,
+                  coalesce(max(x.selected_items), 0)::int AS max_selected_items,
+                  count(*) FILTER (WHERE x.document_has_nr6 OR x.session_has_nr6)::int AS nr6_marked_documents
+                FROM (
+                  SELECT
+                    d.id,
+                    d.title ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)' AS document_has_nr6,
+                    (SELECT count(*) FROM public.training_sessions s
+                      WHERE s.team_season_id = d.team_season_id
+                        AND s.record_type <> 'template' AND s.status <> 'archived')::int AS active_sessions,
+                    (SELECT count(*) FROM public.training_exam_documentation_items i
+                      WHERE i.documentation_id = d.id)::int AS selected_items,
+                    EXISTS (SELECT 1 FROM public.training_sessions s
+                      WHERE s.team_season_id = d.team_season_id
+                        AND s.record_type <> 'template' AND s.status <> 'archived'
+                        AND concat_ws(' ', s.title, s.objective, s.notes, s.focus)
+                          ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)') AS session_has_nr6
+                  FROM public.training_exam_documentations d
+                  JOIN public.team_seasons ts ON ts.id = d.team_season_id
+                  JOIN public.teams t ON t.id = ts.team_id
+                  WHERE regexp_replace(
+                    lower(coalesce(nullif(btrim(ts.age_group), ''), nullif(btrim(t.age_group), ''))),
+                    '[^a-z0-9]+', '', 'g'
+                  ) LIKE 'u12%'
+                ) x;
+              `);
+              const d = diagnostic?.[0] || {};
+              console.error(
+                `SAFE_DIAGNOSTIC u12_documents=${Number(d.u12_documents) || 0}` +
+                ` active_sessions_min=${Number(d.min_active_sessions) || 0}` +
+                ` active_sessions_max=${Number(d.max_active_sessions) || 0}` +
+                ` selected_items_min=${Number(d.min_selected_items) || 0}` +
+                ` selected_items_max=${Number(d.max_selected_items) || 0}` +
+                ` nr6_marked_documents=${Number(d.nr6_marked_documents) || 0}`
+              );
               throw new Error(`Expected exactly one Staging U12 trainer-exam documentation with 10 active sessions, found ${sourceCandidates?.length || 0}.`);
             }
             const source = sourceCandidates[0];
