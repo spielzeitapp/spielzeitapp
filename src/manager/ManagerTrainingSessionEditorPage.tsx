@@ -636,6 +636,29 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     : -1;
 
   const safeReturnTo = returnToFromQuery?.startsWith('/app/events/') ? returnToFromQuery : null;
+  const safeManagerReturnTo = returnToFromQuery === '/manager/training/einheiten?tab=exam'
+    ? returnToFromQuery
+    : null;
+
+  const openExerciseEditor = (item: TrainingSessionExerciseRow, returnToTrainingView = false) => {
+    if (!session?.id || seasonArchived) return;
+    const returnParams = returnToTrainingView
+      ? new URLSearchParams({
+          view: 'training',
+          exerciseItem: item.id,
+          ...(safeReturnTo ? { returnTo: safeReturnTo } : {}),
+        })
+      : null;
+    const editorReturnTo = `/manager/training/einheiten/${session.id}${
+      returnParams ? `?${returnParams.toString()}` : ''
+    }`;
+    const libraryParams = new URLSearchParams({
+      edit: item.exercise_id,
+      returnTo: editorReturnTo,
+    });
+    navigate(`/manager/training/bibliothek?${libraryParams.toString()}`);
+  };
+
   const closeTrainingView = () => {
     if (safeReturnTo) {
       navigate(safeReturnTo);
@@ -724,10 +747,10 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            to={safeReturnTo ?? '/manager/training/einheiten'}
+            to={safeManagerReturnTo ?? safeReturnTo ?? '/manager/training/einheiten'}
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
           >
-            {safeReturnTo ? 'Zum Trainingscenter' : 'Zurück'}
+            {safeManagerReturnTo ? 'Zur Trainerprüfung' : safeReturnTo ? 'Zum Trainingscenter' : 'Zurück'}
           </Link>
           {session?.id ? (
             <button
@@ -1045,6 +1068,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                           exercise={ex}
                           sketchUrl={ex ? mobileSketchUrls[ex.id] : null}
                           onView={() => setDetailItemId(it.id)}
+                          onEdit={() => openExerciseEditor(it)}
                           onReplace={() => openReplacePicker(it)}
                           onRemove={() => void removeItem(it)}
                           onDurationChange={(minutes) => void changeDuration(it, minutes)}
@@ -1133,14 +1157,24 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                   <h2 className="mt-1 text-xl font-semibold text-slate-900">{ex?.title}</h2>
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[14px] text-slate-600">{it.duration_minutes} Minuten</p>
-                    <button
-                      type="button"
-                      disabled={saving || seasonArchived}
-                      onClick={() => openQuickReplace(it)}
-                      className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-red-200 bg-red-50 px-4 text-[13px] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50"
-                    >
-                      Übung austauschen
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={saving || seasonArchived}
+                        onClick={() => openExerciseEditor(it, true)}
+                        className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        Übung bearbeiten
+                      </button>
+                      <button
+                        type="button"
+                        disabled={saving || seasonArchived}
+                        onClick={() => openQuickReplace(it)}
+                        className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-red-200 bg-red-50 px-4 text-[13px] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50"
+                      >
+                        Übung austauschen
+                      </button>
+                    </div>
                   </div>
                   {ex?.image_path && mobileSketchUrls[ex.id] ? (
                     <figure className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
@@ -1187,10 +1221,27 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                       <p className="mt-1 whitespace-pre-wrap text-[15px] text-slate-800">{ex.variations}</p>
                     </section>
                   ) : null}
-                  {it.coach_notes ? (
+                  {it.coach_notes || !seasonArchived ? (
                     <section className="mt-4 rounded-xl bg-amber-50 px-3 py-3">
-                      <h3 className="text-[12px] font-semibold text-amber-800">Trainerhinweise</h3>
-                      <p className="mt-1 whitespace-pre-wrap text-[15px] text-amber-950">{it.coach_notes}</p>
+                      <h3 className="text-[12px] font-semibold text-amber-800">
+                        Praxisnotiz für diese Einheit
+                      </h3>
+                      {seasonArchived ? (
+                        <p className="mt-1 whitespace-pre-wrap text-[15px] text-amber-950">{it.coach_notes}</p>
+                      ) : (
+                        <>
+                          <textarea
+                            defaultValue={it.coach_notes ?? ''}
+                            onBlur={(event) => void changeNotes(it, event.target.value)}
+                            rows={3}
+                            placeholder="Was klappt nicht? Was beim nächsten Mal ändern?"
+                            className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-[15px] leading-relaxed text-slate-900"
+                          />
+                          <p className="mt-1 text-[11px] text-amber-700">
+                            Wird beim Verlassen des Feldes gespeichert und gilt nur für dieses Training.
+                          </p>
+                        </>
+                      )}
                     </section>
                   ) : null}
                   {session?.record_type === 'session' ? (

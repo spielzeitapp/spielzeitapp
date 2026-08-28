@@ -1,6 +1,7 @@
 import type { PDFPageProxy } from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import type { ExerciseFocus, TrainingPhase } from './trainingPhases';
+import { createTrainingExerciseShortText } from './trainingExerciseShortText';
 
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
@@ -40,6 +41,9 @@ export type ImportedExerciseDraft = {
   organization: string;
   coachingPoints: string;
   variations: string;
+  shortContent: string;
+  shortMaterials: string;
+  shortCoaching: string;
   sourceReference: string;
   sketch: Blob | null;
 };
@@ -198,6 +202,43 @@ async function extractCoachTemplateSketch(page: PDFPageProxy): Promise<Blob | nu
   return canvasToBlob(crop);
 }
 
+async function extractMhFootballSketch(page: PDFPageProxy): Promise<Blob | null> {
+  if (typeof document === 'undefined') return null;
+  const scale = 2;
+  const viewport = page.getViewport({ scale });
+  const rendered = document.createElement('canvas');
+  rendered.width = Math.ceil(viewport.width);
+  rendered.height = Math.ceil(viewport.height);
+  const context = rendered.getContext('2d');
+  if (!context) return null;
+  await page.render({ canvas: rendered, canvasContext: context, viewport }).promise;
+
+  const sourceX = Math.floor(rendered.width * 0.07);
+  const sourceY = Math.floor(rendered.height * 0.05);
+  const sourceWidth = Math.floor(rendered.width * 0.49);
+  const sourceHeight = Math.floor(rendered.height * 0.27);
+  const crop = document.createElement('canvas');
+  crop.width = sourceWidth;
+  crop.height = sourceHeight;
+  const cropContext = crop.getContext('2d');
+  if (!cropContext) return null;
+  cropContext.fillStyle = '#ffffff';
+  cropContext.fillRect(0, 0, crop.width, crop.height);
+  cropContext.drawImage(rendered, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  return canvasToBlob(crop);
+}
+
+function joinedRange(lines: string[], start: RegExp, end: RegExp): string {
+  const startIndex = lines.findIndex((line) => start.test(line));
+  if (startIndex < 0) return '';
+  const values: string[] = [];
+  for (let index = startIndex; index < lines.length; index += 1) {
+    if (index > startIndex && end.test(lines[index])) break;
+    values.push(lines[index]);
+  }
+  return normalize(values.join(' '));
+}
+
 function phaseFromText(text: string): TrainingPhase[] {
   const compact = compactHeading(text);
   if (compact.includes('aufwärmen')) return ['AW'];
@@ -252,6 +293,12 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     (candidate) =>
       candidate.lines.some((line) => compactHeading(line) === 'ablauf') &&
       candidate.lines.some((line) => compactHeading(line) === 'coachingpunkte'),
+  );
+  const mhFootballPage = pages.find(
+    (candidate) =>
+      candidate.lines.some((line) => /^Warm-up\s+\d+/i.test(line)) &&
+      candidate.lines.some((line) => /Aufbau\s*&\s*Organisation/i.test(line)) &&
+      candidate.lines.some((line) => /^Tipp:/i.test(line)),
   );
 
   let title = '';
@@ -309,6 +356,26 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     ].filter(Boolean);
     materials = genericMaterials.join(', ');
     sketch = await extractCoachTemplateSketch(coachOverviewPage.page);
+  } else if (mhFootballPage) {
+    title = mhFootballPage.lines.find((line) => /^Warm-up\s+\d+/i.test(line)) ?? file.name.replace(/\.pdf$/i, '');
+    const rightLines = linesFromTokens(mhFootballPage.tokens, mhFootballPage.width * 0.55, mhFootballPage.width - 20);
+    organization = textAfterHeading(rightLines, 'Aufbau & Organisation', []);
+    description = joinedRange(mhFootballPage.lines, /^Die Spielergruppen/i, /^Variation:/i)
+      .replace(/Spieleranzahl:\s*\d+\s*[-–]\s*\d+.*$/i, '')
+      .trim();
+    variations = joinedRange(mhFootballPage.lines, /^Variation:/i, /^Tipp:/i).replace(/^Variation:\s*/i, '');
+    coachingPoints = joinedRange(mhFootballPage.lines, /^Tipp:/i, /^Erstellt mit/i).replace(/^Tipp:\s*/i, '');
+    const players = sourceText.match(/Spieleranzahl:\s*(\d+)\s*[-–]\s*(\d+)/i);
+    playerCountMin = players?.[1] ?? '';
+    playerCountMax = players?.[2] ?? '';
+    suitablePhases = ['AW'];
+    materials = [
+      /Ball/i.test(sourceText) ? 'Bälle' : '',
+      /Hütchen/i.test(sourceText) ? 'Hütchen' : '',
+      /Stange/i.test(sourceText) ? 'Stangen' : '',
+    ].filter(Boolean).join(', ');
+    ageGroup = 'Alle Altersklassen';
+    sketch = await extractMhFootballSketch(mhFootballPage.page);
   }
 
   const links = Array.from(sourceText.matchAll(/https?:\/\/\S+/g), (match) => match[0].replace(/[),.;]+$/, ''));
@@ -326,6 +393,14 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     throw new Error('Titel oder Beschreibung konnten nicht sicher erkannt werden.');
   }
 
+  const shortText = createTrainingExerciseShortText({
+    description,
+    organization,
+    materials,
+    coachingPoints,
+    variations,
+  });
+
   return {
     title,
     description,
@@ -339,6 +414,9 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     organization,
     coachingPoints,
     variations: [variations, ...links.map((link) => `Video: ${link}`)].filter(Boolean).join('\n'),
+    shortContent: shortText.content,
+    shortMaterials: shortText.materials,
+    shortCoaching: shortText.coaching,
     sourceReference: sourceParts.join(' · '),
     sketch,
   };

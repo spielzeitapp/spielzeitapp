@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, List, Plus } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useEvents, type EventRow } from '../hooks/useEvents';
@@ -16,9 +16,10 @@ import { listFieldZones, listVenueFields } from '../lib/venueFields';
 import { listVenuesForClub, resolveClubIdForTeamSeason } from '../lib/venues';
 import { VIENNA_TZ } from '../lib/viennaTime';
 import { ManagerTrainingPlanPickerDialog } from './ManagerTrainingPlanPickerDialog';
+import { ManagerTrainingExamPanel } from './ManagerTrainingExamPanel';
 
 type FieldLabelMap = Record<string, string>;
-type MainTab = 'dates' | 'plans';
+type MainTab = 'dates' | 'plans' | 'exam';
 type CalendarView = 'week' | 'month' | 'list';
 type PlanFilter = 'all' | 'open' | 'ready';
 
@@ -74,6 +75,7 @@ function eventMatchesFilter(session: TrainingSessionRow | null, filter: PlanFilt
 }
 
 export function ManagerTrainingSessionsPage(): React.ReactElement {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { selectedTeamSeasonId, selectedTeamSeason, viewTeamSeason } = useSession();
   const contextSeason = viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
@@ -86,7 +88,10 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fieldLabels, setFieldLabels] = useState<FieldLabelMap>({});
-  const [mainTab, setMainTab] = useState<MainTab>('dates');
+  const requestedTab = searchParams.get('tab');
+  const [mainTab, setMainTab] = useState<MainTab>(
+    requestedTab === 'exam' || requestedTab === 'plans' ? requestedTab : 'dates',
+  );
   const [calendarView, setCalendarView] = useState<CalendarView>('month');
   const [filter, setFilter] = useState<PlanFilter>('all');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
@@ -161,6 +166,16 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
   useEffect(() => {
     void reloadSessions();
   }, [reloadSessions]);
+
+  useEffect(() => {
+    const nextTab: MainTab = requestedTab === 'exam' || requestedTab === 'plans' ? requestedTab : 'dates';
+    setMainTab(nextTab);
+  }, [requestedTab]);
+
+  const selectMainTab = (tab: MainTab) => {
+    setMainTab(tab);
+    setSearchParams(tab === 'dates' ? {} : { tab }, { replace: true });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -259,8 +274,9 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
       </header>
 
       <nav className="flex gap-6 overflow-x-auto border-b border-slate-200" aria-label="Trainingsplanung Bereiche">
-        <button type="button" onClick={() => setMainTab('dates')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'dates' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Trainingstermine</button>
-        <button type="button" onClick={() => setMainTab('plans')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'plans' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Meine Pläne</button>
+        <button type="button" onClick={() => selectMainTab('dates')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'dates' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Trainingstermine</button>
+        <button type="button" onClick={() => selectMainTab('plans')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'plans' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Meine Pläne</button>
+        <button type="button" onClick={() => selectMainTab('exam')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'exam' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Trainerprüfung</button>
         <Link to="/manager/training/vorlagen" className="inline-flex min-h-[44px] items-center whitespace-nowrap border-b-2 border-transparent px-1 text-[13px] font-semibold text-slate-500 hover:text-slate-900">Vorlagen</Link>
         <Link to="/manager/training/chronik" className="inline-flex min-h-[44px] items-center whitespace-nowrap border-b-2 border-transparent px-1 text-[13px] font-semibold text-slate-500 hover:text-slate-900">Chronik</Link>
       </nav>
@@ -298,6 +314,10 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
 
       {!loading && mainTab === 'plans' ? (
         <MyPlans drafts={drafts} readyPlans={readyPlans} archivedPlans={archivedPlans} />
+      ) : null}
+
+      {!loading && mainTab === 'exam' ? (
+        <ManagerTrainingExamPanel sessions={sessions} teamSeasonId={teamSeasonId} seasonArchived={seasonArchived} />
       ) : null}
 
       <ManagerTrainingPlanPickerDialog event={planningEvent} savedPlans={readyPlans} templates={templates} lastSession={lastSession} onClose={() => setPlanningEvent(null)} />

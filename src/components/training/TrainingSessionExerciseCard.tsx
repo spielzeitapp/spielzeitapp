@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { formatPlayerCountRange, type TrainingExerciseRow } from '../../lib/trainingExercises';
 import { EXERCISE_FOCUS_LABELS, TRAINING_PHASE_LABELS, type TrainingPhase } from '../../lib/trainingPhases';
@@ -11,6 +11,7 @@ type Props = {
   exercise: TrainingExerciseRow | undefined;
   sketchUrl?: string | null;
   onView: () => void;
+  onEdit: () => void;
   onReplace: () => void;
   onRemove: () => void;
   onDurationChange: (minutes: number) => void;
@@ -28,14 +29,18 @@ const actionButtonClass =
 
 function ActionButtons({
   onView,
+  onEdit,
   onReplace,
+  onNote,
   onRemove,
   saving,
   readOnly,
   layout = 'row',
 }: {
   onView: () => void;
+  onEdit: () => void;
   onReplace: () => void;
+  onNote: () => void;
   onRemove: () => void;
   saving: boolean;
   readOnly: boolean;
@@ -43,7 +48,7 @@ function ActionButtons({
 }): React.ReactElement {
   const stack = layout === 'stack';
   return (
-    <div className={stack ? 'flex min-w-0 flex-col gap-2' : 'grid min-w-0 grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-2'}>
+    <div className={stack ? 'flex min-w-0 flex-col gap-2' : 'grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2'}>
       <button
         type="button"
         onClick={onView}
@@ -56,10 +61,26 @@ function ActionButtons({
           <button
             type="button"
             disabled={saving}
+            onClick={onEdit}
+            className={`${actionButtonClass} border border-slate-200 bg-white text-slate-800 disabled:opacity-50 ${stack ? 'w-full' : ''}`}
+          >
+            Bearbeiten
+          </button>
+          <button
+            type="button"
+            disabled={saving}
             onClick={onReplace}
             className={`${actionButtonClass} border border-slate-200 bg-white text-slate-800 disabled:opacity-50 ${stack ? 'w-full' : ''}`}
           >
             Austauschen
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onNote}
+            className={`${actionButtonClass} border border-amber-200 bg-amber-50 text-amber-900 disabled:opacity-50 ${stack ? 'w-full' : ''}`}
+          >
+            Praxisnotiz
           </button>
           <button
             type="button"
@@ -80,6 +101,7 @@ export function TrainingSessionExerciseCard({
   exercise,
   sketchUrl,
   onView,
+  onEdit,
   onReplace,
   onRemove,
   onDurationChange,
@@ -92,6 +114,14 @@ export function TrainingSessionExerciseCard({
   readOnly = false,
 }: Props): React.ReactElement {
   const [notesOpen, setNotesOpen] = useState(Boolean(item.coach_notes?.trim()));
+  const notesInputRef = useRef<HTMLTextAreaElement>(null);
+  const openPracticeNote = (): void => {
+    setNotesOpen(true);
+    window.requestAnimationFrame(() => {
+      notesInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      notesInputRef.current?.focus();
+    });
+  };
   const players = exercise
     ? formatPlayerCountRange(exercise.player_count_min, exercise.player_count_max)
     : null;
@@ -175,7 +205,7 @@ export function TrainingSessionExerciseCard({
                 onClick={() => setNotesOpen((open) => !open)}
                 className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] font-semibold text-slate-700"
               >
-                <span>Trainerhinweise{notes && !notesOpen ? ' (gekürzt)' : ''}</span>
+                <span>Praxisnotiz für diese Einheit{notes && !notesOpen ? ' (gekürzt)' : ''}</span>
                 {notesOpen ? (
                   <ChevronUp className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
                 ) : (
@@ -189,15 +219,16 @@ export function TrainingSessionExerciseCard({
                   ) : (
                     <>
                       <textarea
+                        ref={notesInputRef}
                         defaultValue={item.coach_notes ?? ''}
                         onBlur={(e) => onNotesChange(e.target.value)}
                         rows={2}
-                        placeholder="Hinweise für diese Einheit…"
+                        placeholder="Was hat funktioniert, was soll beim nächsten Mal angepasst werden?"
                         className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[13px] text-slate-800"
                       />
                       {!notes ? (
                         <p className="mt-1 text-[12px] text-slate-400">
-                          Optional – z. B. Anpassungen für diese Einheit.
+                          Bleibt nur bei dieser Trainingseinheit und verändert die Bibliotheksübung nicht.
                         </p>
                       ) : null}
                     </>
@@ -240,7 +271,9 @@ export function TrainingSessionExerciseCard({
           ) : null}
           <ActionButtons
             onView={onView}
+            onEdit={onEdit}
             onReplace={onReplace}
+            onNote={openPracticeNote}
             onRemove={onRemove}
             saving={saving}
             readOnly={readOnly}
@@ -252,7 +285,9 @@ export function TrainingSessionExerciseCard({
       <div className="border-t border-slate-100 bg-slate-50/40 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
         <ActionButtons
           onView={onView}
+          onEdit={onEdit}
           onReplace={onReplace}
+          onNote={openPracticeNote}
           onRemove={onRemove}
           saving={saving}
           readOnly={readOnly}

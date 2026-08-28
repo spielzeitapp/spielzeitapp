@@ -256,7 +256,7 @@ export async function listSessionExercises(
   const { data, error } = await supabase
     .from('training_session_exercises')
     .select(
-      `${ITEM_SELECT}, exercise:training_exercises (id, club_id, team_id, title, description, focus, suitable_phases, age_group, duration_minutes, player_count_min, player_count_max, difficulty, materials, organization, coaching_points, variations, image_path, source_type, is_active)`,
+      `${ITEM_SELECT}, exercise:training_exercises (id, club_id, team_id, title, description, focus, suitable_phases, age_group, duration_minutes, player_count_min, player_count_max, difficulty, materials, organization, coaching_points, variations, short_content, short_materials, short_coaching, image_path, source_type, is_active)`,
     )
     .eq('training_session_id', sessionId)
     .order('phase', { ascending: true })
@@ -323,8 +323,14 @@ function mapExerciseEmbed(ex: Record<string, unknown>): TrainingExerciseRow {
     organization: (ex.organization as string | null) ?? null,
     coaching_points: (ex.coaching_points as string | null) ?? null,
     variations: (ex.variations as string | null) ?? null,
+    short_content: (ex.short_content as string | null) ?? null,
+    short_materials: (ex.short_materials as string | null) ?? null,
+    short_coaching: (ex.short_coaching as string | null) ?? null,
     image_path: (ex.image_path as string | null) ?? null,
     source_type: String(ex.source_type ?? 'club'),
+    source_reference: null,
+    visibility: 'club',
+    created_by: null,
     is_active: ex.is_active !== false,
   };
 }

@@ -26,6 +26,9 @@ export type TrainingExerciseRow = {
   organization: string | null;
   coaching_points: string | null;
   variations: string | null;
+  short_content: string | null;
+  short_materials: string | null;
+  short_coaching: string | null;
   image_path: string | null;
   source_type: string;
   source_reference: string | null;
@@ -37,6 +40,9 @@ export type TrainingExerciseRow = {
 };
 
 const SELECT =
+  'id, club_id, team_id, title, description, focus, suitable_phases, age_group, duration_minutes, player_count_min, player_count_max, difficulty, materials, organization, coaching_points, variations, short_content, short_materials, short_coaching, image_path, source_type, source_reference, visibility, created_by, is_active, created_at, updated_at';
+
+const SELECT_WITHOUT_SHORT_TEXT =
   'id, club_id, team_id, title, description, focus, suitable_phases, age_group, duration_minutes, player_count_min, player_count_max, difficulty, materials, organization, coaching_points, variations, image_path, source_type, source_reference, visibility, created_by, is_active, created_at, updated_at';
 
 export const TRAINING_EXERCISE_MEDIA_BUCKET = 'training-exercise-media';
@@ -76,6 +82,9 @@ function mapRow(raw: Record<string, unknown>): TrainingExerciseRow {
     organization: (raw.organization as string | null) ?? null,
     coaching_points: (raw.coaching_points as string | null) ?? null,
     variations: (raw.variations as string | null) ?? null,
+    short_content: (raw.short_content as string | null) ?? null,
+    short_materials: (raw.short_materials as string | null) ?? null,
+    short_coaching: (raw.short_coaching as string | null) ?? null,
     image_path: (raw.image_path as string | null) ?? null,
     source_type: String(raw.source_type ?? 'club'),
     source_reference: (raw.source_reference as string | null) ?? null,
@@ -95,6 +104,10 @@ function isVisibilityColumnMissing(message: string): boolean {
   return /visibility|created_by|42703|PGRST204/i.test(message);
 }
 
+function isShortTextColumnMissing(message: string): boolean {
+  return /short_content|short_materials|short_coaching/i.test(message);
+}
+
 const SELECT_LEGACY =
   'id, club_id, team_id, title, description, focus, suitable_phases, age_group, duration_minutes, player_count_min, player_count_max, difficulty, materials, organization, coaching_points, variations, image_path, source_type, source_reference, is_active, created_at, updated_at';
 
@@ -110,6 +123,17 @@ export async function listTrainingExercises(
   if (!opts?.includeInactive) q = q.eq('is_active', true);
   const { data, error } = await q;
   if (error) {
+    if (isShortTextColumnMissing(error.message)) {
+      let fallbackQ = supabase
+        .from('training_exercises')
+        .select(SELECT_WITHOUT_SHORT_TEXT)
+        .eq('club_id', clubId)
+        .order('title', { ascending: true });
+      if (!opts?.includeInactive) fallbackQ = fallbackQ.eq('is_active', true);
+      const fallback = await fallbackQ;
+      if (fallback.error) return { data: [], error: fallback.error.message };
+      return { data: (fallback.data ?? []).map((r) => mapRow(r as Record<string, unknown>)), error: null };
+    }
     if (isMigrationPending(error.message)) {
       return { data: [], error: 'Trainingsbibliothek noch nicht migriert (STEP 3A ausstehend).' };
     }
@@ -137,6 +161,15 @@ export async function getTrainingExercise(
 ): Promise<{ data: TrainingExerciseRow | null; error: string | null }> {
   const { data, error } = await supabase.from('training_exercises').select(SELECT).eq('id', id).maybeSingle();
   if (error) {
+    if (isShortTextColumnMissing(error.message)) {
+      const fallback = await supabase
+        .from('training_exercises')
+        .select(SELECT_WITHOUT_SHORT_TEXT)
+        .eq('id', id)
+        .maybeSingle();
+      if (fallback.error) return { data: null, error: fallback.error.message };
+      return { data: fallback.data ? mapRow(fallback.data as Record<string, unknown>) : null, error: null };
+    }
     if (isMigrationPending(error.message)) return { data: null, error: null };
     if (isVisibilityColumnMissing(error.message)) {
       const legacy = await supabase
@@ -168,6 +201,9 @@ export type TrainingExerciseInput = {
   organization?: string | null;
   coachingPoints?: string | null;
   variations?: string | null;
+  shortContent?: string | null;
+  shortMaterials?: string | null;
+  shortCoaching?: string | null;
   imagePath?: string | null;
   sourceType?: 'club' | 'import';
   sourceReference?: string | null;
@@ -218,6 +254,9 @@ export async function createTrainingExercise(
     organization: nullIfEmpty(input.organization),
     coaching_points: nullIfEmpty(input.coachingPoints),
     variations: nullIfEmpty(input.variations),
+    short_content: nullIfEmpty(input.shortContent),
+    short_materials: nullIfEmpty(input.shortMaterials),
+    short_coaching: nullIfEmpty(input.shortCoaching),
     image_path: nullIfEmpty(input.imagePath),
     source_type: input.sourceType ?? 'club',
     source_reference: nullIfEmpty(input.sourceReference),
@@ -227,6 +266,16 @@ export async function createTrainingExercise(
   };
   const { data, error } = await supabase.from('training_exercises').insert(payload).select(SELECT).maybeSingle();
   if (error) {
+    if (isShortTextColumnMissing(error.message)) {
+      const { short_content: _sc, short_materials: _sm, short_coaching: _sco, ...fallbackPayload } = payload;
+      const fallback = await supabase
+        .from('training_exercises')
+        .insert(fallbackPayload)
+        .select(SELECT_WITHOUT_SHORT_TEXT)
+        .maybeSingle();
+      if (fallback.error) return { data: null, error: fallback.error.message };
+      return { data: fallback.data ? mapRow(fallback.data as Record<string, unknown>) : null, error: null };
+    }
     if (isMigrationPending(error.message)) {
       return { data: null, error: 'Trainingsbibliothek noch nicht migriert (STEP 3A ausstehend).' };
     }
@@ -263,6 +312,9 @@ export async function updateTrainingExercise(
   if (patch.organization !== undefined) payload.organization = nullIfEmpty(patch.organization);
   if (patch.coachingPoints !== undefined) payload.coaching_points = nullIfEmpty(patch.coachingPoints);
   if (patch.variations !== undefined) payload.variations = nullIfEmpty(patch.variations);
+  if (patch.shortContent !== undefined) payload.short_content = nullIfEmpty(patch.shortContent);
+  if (patch.shortMaterials !== undefined) payload.short_materials = nullIfEmpty(patch.shortMaterials);
+  if (patch.shortCoaching !== undefined) payload.short_coaching = nullIfEmpty(patch.shortCoaching);
   if (patch.imagePath !== undefined) payload.image_path = nullIfEmpty(patch.imagePath);
   if (patch.sourceType !== undefined) payload.source_type = patch.sourceType;
   if (patch.sourceReference !== undefined) payload.source_reference = nullIfEmpty(patch.sourceReference);
@@ -280,6 +332,17 @@ export async function updateTrainingExercise(
     .select(SELECT)
     .maybeSingle();
   if (error) {
+    if (isShortTextColumnMissing(error.message)) {
+      const { short_content: _sc, short_materials: _sm, short_coaching: _sco, ...fallbackPayload } = payload;
+      const fallback = await supabase
+        .from('training_exercises')
+        .update(fallbackPayload)
+        .eq('id', id)
+        .select(SELECT_WITHOUT_SHORT_TEXT)
+        .maybeSingle();
+      if (fallback.error) return { data: null, error: fallback.error.message };
+      return { data: fallback.data ? mapRow(fallback.data as Record<string, unknown>) : null, error: null };
+    }
     if (isVisibilityColumnMissing(error.message)) {
       const { visibility: _v, ...legacyPayload } = payload;
       const legacy = await supabase

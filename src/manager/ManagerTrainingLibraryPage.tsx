@@ -4,7 +4,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { FileUp, ImagePlus, Plus, Search, Trash2, X } from 'lucide-react';
+import { FileUp, ImagePlus, Plus, RotateCw, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 import {
@@ -22,6 +22,14 @@ import {
   type TrainingExerciseVisibility,
 } from '../lib/trainingExercises';
 import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
+import {
+  createTrainingExerciseOriginalText,
+  TRAINING_SHORT_TEXT_LIMITS,
+  type TrainingExerciseShortText,
+  type TrainingExerciseShortTextInput,
+} from '../lib/trainingExerciseShortText';
+import { createTrainingExerciseAiShortText } from '../lib/trainingExerciseAiShortText';
+import { measureTrainingExamPhaseTextFit, type TrainingExamTextFit } from '../lib/trainingExamPdfExport';
 import { addExerciseToSession, updateSessionExercise } from '../lib/trainingSessions';
 import {
   EXERCISE_DIFFICULTY_LABELS,
@@ -50,6 +58,9 @@ type FormState = {
   organization: string;
   coachingPoints: string;
   variations: string;
+  shortContent: string;
+  shortMaterials: string;
+  shortCoaching: string;
   sourceReference: string;
   visibility: TrainingExerciseVisibility;
 };
@@ -68,11 +79,21 @@ const emptyForm = (): FormState => ({
   organization: '',
   coachingPoints: '',
   variations: '',
+  shortContent: '',
+  shortMaterials: '',
+  shortCoaching: '',
   sourceReference: '',
   visibility: 'club',
 });
 
 function formFromRow(row: TrainingExerciseRow): FormState {
+  const originalText = createTrainingExerciseOriginalText({
+    description: row.description,
+    organization: row.organization,
+    materials: row.materials,
+    coachingPoints: row.coaching_points,
+    variations: row.variations,
+  });
   return {
     title: row.title,
     description: row.description ?? '',
@@ -87,9 +108,25 @@ function formFromRow(row: TrainingExerciseRow): FormState {
     organization: row.organization ?? '',
     coachingPoints: row.coaching_points ?? '',
     variations: row.variations ?? '',
+    // Der rote Bereich startet bewusst immer mit den unveränderten Originalfeldern.
+    // Eine gespeicherte Alt-Kurzfassung darf den Ausgangstext für einen neuen
+    // Prüfvorgang nicht verdecken.
+    shortContent: originalText.content,
+    shortMaterials: originalText.materials,
+    shortCoaching: originalText.coaching,
     sourceReference: row.source_reference ?? '',
     visibility: row.visibility === 'private' ? 'private' : 'club',
   };
+}
+
+function originalTextFitsPdf(title: string, text: TrainingExerciseShortText): boolean {
+  if (
+    text.content.length > TRAINING_SHORT_TEXT_LIMITS.content
+    || text.materials.length > TRAINING_SHORT_TEXT_LIMITS.materials
+    || text.coaching.length > TRAINING_SHORT_TEXT_LIMITS.coaching
+  ) return false;
+  const fit = measureTrainingExamPhaseTextFit({ title, ...text });
+  return !Object.values(fit).includes('too-long');
 }
 
 export function ManagerTrainingLibraryPage(): React.ReactElement {
@@ -106,6 +143,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     : null;
   const replaceItemId = searchParams.get('replace');
   const quickReplace = searchParams.get('quick') === '1';
+  const editExerciseId = searchParams.get('edit');
   const requestedReturnTo = searchParams.get('returnTo');
   const returnTo =
     requestedReturnTo?.startsWith('/manager/training/einheiten/')
@@ -113,6 +151,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       : selectionSessionId
         ? `/manager/training/einheiten/${selectionSessionId}`
         : null;
+  const editReturnTo = requestedReturnTo?.startsWith('/manager/training/einheiten/')
+    ? requestedReturnTo
+    : null;
   const selectionMode = Boolean(selectionSessionId && selectionPhase && returnTo);
 
   const [clubId, setClubId] = useState<string | null>(null);
@@ -134,14 +175,28 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [saving, setSaving] = useState(false);
   const [selectingId, setSelectingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [shortTextError, setShortTextError] = useState<string | null>(null);
+  const [shortTextWarning, setShortTextWarning] = useState<string | null>(null);
+  const [shorteningWithAi, setShorteningWithAi] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [sketchProcessing, setSketchProcessing] = useState(false);
+  const [sketchProcessing] = useState(false);
   const [pendingSketch, setPendingSketch] = useState<Blob | null>(null);
   const [pendingSketchUrl, setPendingSketchUrl] = useState<string | null>(null);
   const [currentSketchUrl, setCurrentSketchUrl] = useState<string | null>(null);
   const [removeCurrentSketch, setRemoveCurrentSketch] = useState(false);
+  const [cropSource, setCropSource] = useState<{ url: string; owned: boolean } | null>(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropX, setCropX] = useState(0);
+  const [cropY, setCropY] = useState(0);
+  const [cropRotation, setCropRotation] = useState(0);
+  const [cropReplaceGrass, setCropReplaceGrass] = useState(false);
+  const [cropWhiteStrength, setCropWhiteStrength] = useState(55);
+  const [cropGrassCompare, setCropGrassCompare] = useState<'original' | 'grass'>('grass');
+  const [cropSaving, setCropSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
+  const cropCanvasRef = useRef<HTMLCanvasElement>(null);
+  const openedRequestedEditorRef = useRef<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!teamSeasonId) {
@@ -186,6 +241,25 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     [pendingSketchUrl],
   );
 
+  useEffect(() => {
+    if (!cropSource || !cropCanvasRef.current) return;
+    let active = true;
+    const showGrass = cropReplaceGrass && cropGrassCompare === 'grass';
+    void renderExerciseCrop(cropCanvasRef.current, cropSource.url, {
+      zoom: cropZoom,
+      x: cropX,
+      y: cropY,
+      rotation: cropRotation,
+      replaceWhiteWithGrass: showGrass,
+      whiteStrength: cropWhiteStrength,
+    }).catch(() => {
+      if (active) setFormError('Die Zuschneidevorschau konnte nicht geladen werden.');
+    });
+    return () => {
+      active = false;
+    };
+  }, [cropGrassCompare, cropReplaceGrass, cropRotation, cropSource, cropWhiteStrength, cropX, cropY, cropZoom]);
+
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     const age = ageFilter.trim().toLowerCase();
@@ -219,6 +293,8 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setForm(emptyForm());
     resetSketchState();
     setFormError(null);
+    setShortTextError(null);
+    setShortTextWarning(null);
     setEditorOpen(true);
   };
 
@@ -228,14 +304,47 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setForm(formFromRow(row));
     resetSketchState();
     setFormError(null);
+    setShortTextError(null);
+    setShortTextWarning(null);
     setEditorOpen(true);
     if (row.image_path) {
       void getTrainingExerciseSketchUrl(row.image_path).then((url) => setCurrentSketchUrl(url));
     }
   };
 
+  useEffect(() => {
+    if (!editExerciseId || loading || openedRequestedEditorRef.current === editExerciseId) return;
+    openedRequestedEditorRef.current = editExerciseId;
+    const row = rows.find((candidate) => candidate.id === editExerciseId);
+    if (!row) {
+      setToast('Die gewählte Übung wurde nicht gefunden.');
+      return;
+    }
+    openEdit(row);
+  }, [editExerciseId, loading, rows]);
+
   const openDetail = (row: TrainingExerciseRow) => {
     setDetail(row);
+  };
+
+  const closeCrop = () => {
+    setCropSource((current) => {
+      if (current?.owned) URL.revokeObjectURL(current.url);
+      return null;
+    });
+    setCropSaving(false);
+  };
+
+  const openCrop = (url: string, owned = false) => {
+    setFormError(null);
+    setCropZoom(1);
+    setCropX(0);
+    setCropY(0);
+    setCropRotation(0);
+    setCropReplaceGrass(false);
+    setCropWhiteStrength(55);
+    setCropGrassCompare('grass');
+    setCropSource({ url, owned });
   };
 
   const selectSketch = async (file: File) => {
@@ -247,21 +356,36 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       setFormError('Das Bild darf höchstens 8 MB groß sein.');
       return;
     }
-    setSketchProcessing(true);
+    if (cropSource?.owned) URL.revokeObjectURL(cropSource.url);
+    openCrop(URL.createObjectURL(file), true);
+    if (sketchInputRef.current) sketchInputRef.current.value = '';
+  };
+
+  const applyCrop = async (useOriginal = false) => {
+    if (!cropSource) return;
+    setCropSaving(true);
     setFormError(null);
     try {
-      const sketch = await imageFileToWebp(file);
+      const sketch = useOriginal
+        ? await imageUrlToWebp(cropSource.url)
+        : await cropExerciseImageToWebp(cropSource.url, {
+            zoom: cropZoom,
+            x: cropX,
+            y: cropY,
+            rotation: cropRotation,
+            replaceWhiteWithGrass: cropReplaceGrass,
+            whiteStrength: cropWhiteStrength,
+          });
       setPendingSketchUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return URL.createObjectURL(sketch);
       });
       setPendingSketch(sketch);
       setRemoveCurrentSketch(false);
+      closeCrop();
     } catch {
-      setFormError('Das Bild konnte nicht verarbeitet werden.');
-    } finally {
-      setSketchProcessing(false);
-      if (sketchInputRef.current) sketchInputRef.current.value = '';
+      setCropSaving(false);
+      setFormError('Die Skizze konnte nicht zugeschnitten werden.');
     }
   };
 
@@ -280,6 +404,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setError(null);
     try {
       const draft = await analyzeTrainingExercisePdf(file);
+      const originalText = createTrainingExerciseOriginalText({
+        description: draft.description,
+        organization: draft.organization,
+        materials: draft.materials,
+        coachingPoints: draft.coachingPoints,
+        variations: draft.variations,
+      });
       setDetail(null);
       setEditing(null);
       setForm((current) => ({
@@ -287,6 +418,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
         ...draft,
         difficulty: 'medium',
         visibility: 'club',
+        shortContent: originalText.content,
+        shortMaterials: originalText.materials,
+        shortCoaching: originalText.coaching,
       }));
       setPendingSketch(draft.sketch);
       setPendingSketchUrl((prev) => {
@@ -313,8 +447,78 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     });
   };
 
+  const generateShortText = () => {
+    const original = createTrainingExerciseOriginalText({
+      description: form.description,
+      organization: form.organization,
+      materials: form.materials,
+      coachingPoints: form.coachingPoints,
+      variations: form.variations,
+    });
+    setForm((current) => ({
+      ...current,
+      shortContent: original.content,
+      shortMaterials: original.materials,
+      shortCoaching: original.coaching,
+    }));
+    setShortTextError(null);
+    setShortTextWarning(null);
+    setToast('Originaltext übernommen. Zu lange Felder können jetzt manuell oder mit KI gekürzt werden.');
+  };
+
+  const generateAiShortText = async () => {
+    if (shorteningWithAi) return;
+    const input = {
+      description: form.description,
+      organization: form.organization,
+      materials: form.materials,
+      coachingPoints: form.coachingPoints,
+      variations: form.variations,
+    };
+    const original = createTrainingExerciseOriginalText(input);
+    // Eine bereits manuell bearbeitete und vom Trainer geprüfte Fassung bleibt
+    // während des KI-Versuchs sichtbar. Nur ein erfolgreich erzeugter Entwurf
+    // darf sie ersetzen; ein Fehler setzt sie niemals auf das Original zurück.
+    if (originalTextFitsPdf(form.title, original)) {
+      setFormError(null);
+      setShortTextError(null);
+      setShortTextWarning(null);
+      setToast('Der vollständige Text passt. Es wurde keine KI verwendet.');
+      return;
+    }
+    if (!clubId) return;
+    setShorteningWithAi(true);
+    setFormError(null);
+    setShortTextError(null);
+    setShortTextWarning(null);
+    const result = await createTrainingExerciseAiShortText(clubId, input);
+    setShorteningWithAi(false);
+    if (!result.data) {
+      const message = result.error ?? 'KI-Kurzfassung fehlgeschlagen.';
+      setShortTextError(`${message} Deine aktuell angezeigte Fassung bleibt unverändert.`);
+      setShortTextWarning(null);
+      return;
+    }
+    const generated = result.data;
+    setForm((current) => ({
+      ...current,
+      shortContent: generated.content,
+      shortMaterials: generated.materials,
+      shortCoaching: generated.coaching,
+    }));
+    setShortTextError(null);
+    if (result.warnings.length > 0) {
+      setShortTextWarning(`KI-Entwurf übernommen. Bitte prüfen und bei Bedarf ergänzen: ${result.warnings.join(' · ')}`);
+      setToast('Bester KI-Entwurf übernommen – bitte die Hinweise prüfen.');
+    } else {
+      setShortTextWarning('Bitte vor dem Speichern mit dem Original vergleichen – besonders Spieleranzahl, Maße, Rollen, Reihenfolge und Variationen.');
+      setToast('KI-Kurzfassung erstellt – bitte prüfen und anschließend speichern.');
+    }
+  };
+
   const save = async () => {
     if (!clubId) return;
+    const returnAfterSave = editing?.id === editExerciseId ? editReturnTo : null;
     setSaving(true);
     setFormError(null);
 
@@ -333,6 +537,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       organization: form.organization,
       coachingPoints: form.coachingPoints,
       variations: form.variations,
+      shortContent: form.shortContent,
+      shortMaterials: form.shortMaterials,
+      shortCoaching: form.shortCoaching,
       sourceType: (form.sourceReference ? 'import' : editing?.source_type === 'import' ? 'import' : 'club') as
         | 'club'
         | 'import',
@@ -398,6 +605,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     resetSketchState();
     setToast(editing ? 'Übung aktualisiert.' : form.sourceReference ? 'PDF-Übung importiert.' : 'Übung angelegt.');
     await reload();
+    if (returnAfterSave) navigate(returnAfterSave);
   };
 
   const selectForSession = async (row: TrainingExerciseRow) => {
@@ -455,6 +663,12 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
 
   const hasSketchPreview = Boolean(pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch));
   const sketchButtonLabel = hasSketchPreview ? 'Skizze ersetzen' : 'Skizze hochladen';
+  const shortTextPdfFit = measureTrainingExamPhaseTextFit({
+    title: form.title,
+    content: form.shortContent,
+    materials: form.shortMaterials,
+    coaching: form.shortCoaching,
+  });
 
   return (
     <div className="space-y-5">
@@ -794,15 +1008,28 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     {sketchButtonLabel}
                   </button>
                   {hasSketchPreview ? (
-                    <button
-                      type="button"
-                      disabled={sketchProcessing || saving}
-                      onClick={removeSketchWithConfirm}
-                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                      Skizze entfernen
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        disabled={sketchProcessing || saving}
+                        onClick={() => {
+                          const url = pendingSketchUrl ?? currentSketchUrl;
+                          if (url) openCrop(url);
+                        }}
+                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        Skizze zuschneiden
+                      </button>
+                      <button
+                        type="button"
+                        disabled={sketchProcessing || saving}
+                        onClick={removeSketchWithConfirm}
+                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden />
+                        Skizze entfernen
+                      </button>
+                    </>
                   ) : null}
                 </div>
               </div>
@@ -955,6 +1182,80 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
                 />
               </Field>
+              <section className="rounded-xl border border-red-100 bg-red-50/50 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-[13px] font-semibold text-slate-900">
+                      Kurzfassung für Handout &amp; optionale Trainer-PDF
+                    </h3>
+                    <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                      Zuerst wird hier der vollständige Originaltext aus Aufbau, Ablauf und Variationen angezeigt. Ist er länger als 760 Zeichen, kann er manuell oder mit KI gekürzt werden. Coachingpunkte bleiben getrennt. Nur ein erfolgreich erzeugter KI-Entwurf ersetzt die aktuell angezeigte Fassung.
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium leading-4 text-amber-800">
+                      KI-Kurzfassungen sind Entwürfe. Bitte Zahlen, Spieleranzahl, Rollen, Reihenfolge und Variationen vor dem Speichern mit dem Original kontrollieren.
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium leading-4 text-slate-600">
+                      Hinweise der KI sind Empfehlungen. Du kannst den Text manuell ändern, Hinweise bewusst verwerfen und deine freigegebene Fassung jederzeit speichern.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void generateAiShortText()}
+                      disabled={shorteningWithAi}
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      <Sparkles className={`h-3.5 w-3.5 ${shorteningWithAi ? 'animate-pulse' : ''}`} aria-hidden />
+                      {shorteningWithAi ? 'KI kürzt…' : 'Prüfen & bei Bedarf KI kürzen'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={generateShortText}
+                      disabled={shorteningWithAi}
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-50 disabled:opacity-60"
+                    >
+                      <RotateCw className="h-3.5 w-3.5" aria-hidden />
+                      Original neu übernehmen
+                    </button>
+                  </div>
+                </div>
+                {shortTextError ? (
+                  <p className="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2 text-[12px] font-medium leading-5 text-red-800" role="alert">
+                    <strong>KI-Versuch abgelehnt:</strong> {shortTextError}
+                  </p>
+                ) : null}
+                {shortTextWarning ? (
+                  <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-5 text-amber-900" role="status">
+                    <strong>KI-Entwurf prüfen:</strong> {shortTextWarning}
+                  </p>
+                ) : null}
+                <div className="mt-3 space-y-3">
+                  <ShortTextField
+                    label="Inhalte: Aufbau, Ablauf & Variationen"
+                    value={form.shortContent}
+                    max={TRAINING_SHORT_TEXT_LIMITS.content}
+                    rows={5}
+                    pdfFit={shortTextPdfFit.content}
+                    onChange={(value) => setForm((current) => ({ ...current, shortContent: value }))}
+                  />
+                  <ShortTextField
+                    label="Geräte"
+                    value={form.shortMaterials}
+                    max={TRAINING_SHORT_TEXT_LIMITS.materials}
+                    rows={2}
+                    pdfFit={shortTextPdfFit.materials}
+                    onChange={(value) => setForm((current) => ({ ...current, shortMaterials: value }))}
+                  />
+                  <ShortTextField
+                    label="Coachingpunkte"
+                    value={form.shortCoaching}
+                    max={TRAINING_SHORT_TEXT_LIMITS.coaching}
+                    rows={5}
+                    pdfFit={shortTextPdfFit.coaching}
+                    onChange={(value) => setForm((current) => ({ ...current, shortCoaching: value }))}
+                  />
+                </div>
+              </section>
               {form.sourceReference ? (
                 <Field label="Quelle">
                   <textarea
@@ -971,6 +1272,10 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               <button
                 type="button"
                 onClick={() => {
+                  if (editing?.id === editExerciseId && editReturnTo) {
+                    navigate(editReturnTo);
+                    return;
+                  }
                   setEditorOpen(false);
                   resetSketchState();
                 }}
@@ -991,12 +1296,184 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
         </div>
       ) : null}
 
+      {cropSource ? (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-3 sm:items-center">
+          <div
+            className="max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl sm:p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exercise-crop-title"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 id="exercise-crop-title" className="text-[17px] font-semibold text-slate-900">
+                  Skizze zuschneiden
+                </h2>
+                <p className="mt-0.5 text-[12px] text-slate-500">
+                  Einheitliches 4:3-Format für Bibliothek, Word und A4-Handout
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={cropSaving}
+                onClick={closeCrop}
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                aria-label="Zuschneiden schließen"
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+
+            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              <canvas
+                ref={cropCanvasRef}
+                width={800}
+                height={600}
+                className="aspect-[4/3] w-full bg-white object-contain"
+                aria-label="Vorschau des 4:3-Zuschnitts"
+              />
+            </div>
+
+            <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+              <label className="flex min-h-[44px] cursor-pointer items-center justify-between gap-3">
+                <span className="text-[13px] font-semibold text-slate-800">
+                  Weißen Hintergrund durch Rasen ersetzen
+                </span>
+                <input
+                  type="checkbox"
+                  checked={cropReplaceGrass}
+                  disabled={cropSaving}
+                  onChange={(e) => setCropReplaceGrass(e.target.checked)}
+                  className="h-5 w-5 rounded border-slate-300 text-red-700 focus:ring-red-600"
+                />
+              </label>
+              {cropReplaceGrass ? (
+                <>
+                  <CropRange
+                    label="Weiß-Erkennung"
+                    min={0}
+                    max={100}
+                    value={cropWhiteStrength}
+                    onChange={setCropWhiteStrength}
+                    suffix=" %"
+                  />
+                  <p className="text-[11px] leading-4 text-slate-500">
+                    Höhere Werte entfernen auch hellgraue Flächen. Linien und Symbole bleiben erhalten.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2" role="group" aria-label="Vergleich Hintergrund">
+                    <button
+                      type="button"
+                      disabled={cropSaving}
+                      onClick={() => setCropGrassCompare('original')}
+                      className={`min-h-[40px] rounded-xl px-3 text-[13px] font-semibold disabled:opacity-50 ${
+                        cropGrassCompare === 'original'
+                          ? 'bg-slate-900 text-white'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      Original
+                    </button>
+                    <button
+                      type="button"
+                      disabled={cropSaving}
+                      onClick={() => setCropGrassCompare('grass')}
+                      className={`min-h-[40px] rounded-xl px-3 text-[13px] font-semibold disabled:opacity-50 ${
+                        cropGrassCompare === 'grass'
+                          ? 'bg-slate-900 text-white'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      Mit Rasen
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <CropRange label="Bildgröße / Zoom" min={40} max={250} value={Math.round(cropZoom * 100)} onChange={(value) => setCropZoom(value / 100)} suffix=" %" />
+                <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                  Unter 100 % wird das ganze Bild kleiner und mit{' '}
+                  {cropReplaceGrass ? 'Rasenrand' : 'weißem Rand'} eingepasst.
+                </p>
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  disabled={cropSaving}
+                  onClick={() => setCropRotation((value) => (value + 90) % 360)}
+                  className="inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <RotateCw className="h-4 w-4" aria-hidden />
+                  90° drehen
+                </button>
+              </div>
+              <CropRange label="Horizontal verschieben" min={-100} max={100} value={cropX} onChange={setCropX} />
+              <CropRange label="Vertikal verschieben" min={-100} max={100} value={cropY} onChange={setCropY} />
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                disabled={cropSaving}
+                onClick={() => void applyCrop(true)}
+                className="min-h-[42px] rounded-full border border-slate-200 px-4 text-[13px] font-semibold text-slate-700 disabled:opacity-50"
+              >
+                Original verwenden
+              </button>
+              <button
+                type="button"
+                disabled={cropSaving}
+                onClick={() => void applyCrop(false)}
+                className="min-h-[42px] rounded-full bg-red-700 px-5 text-[13px] font-semibold text-white hover:bg-red-800 disabled:opacity-50"
+              >
+                {cropSaving ? 'Wird verarbeitet…' : 'Zuschnitt übernehmen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {toast ? (
         <div className="fixed bottom-4 left-1/2 z-[90] max-w-[min(92vw,28rem)] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-center text-[13px] text-white shadow-lg">
           {toast}
         </div>
       ) : null}
     </div>
+  );
+}
+
+function CropRange({
+  label,
+  min,
+  max,
+  value,
+  onChange,
+  suffix = '',
+}: {
+  label: string;
+  min: number;
+  max: number;
+  value: number;
+  onChange: (value: number) => void;
+  suffix?: string;
+}): React.ReactElement {
+  return (
+    <label className="block">
+      <span className="flex items-center justify-between gap-2 text-[12px] font-medium text-slate-600">
+        <span>{label}</span>
+        <span className="tabular-nums text-slate-400">{value}{suffix}</span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-2 w-full accent-red-700"
+      />
+    </label>
   );
 }
 
@@ -1009,31 +1486,180 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-async function imageFileToWebp(file: File): Promise<Blob> {
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const next = new Image();
-      next.onload = () => resolve(next);
-      next.onerror = () => reject(new Error('Bild konnte nicht geladen werden.'));
-      next.src = objectUrl;
-    });
-    const maxEdge = 2400;
-    const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
-    const width = Math.max(1, Math.round(image.naturalWidth * scale));
-    const height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, width, height);
-    context.drawImage(image, 0, 0, width, height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
-    if (!blob) throw new Error('Bild konnte nicht konvertiert werden.');
-    return blob;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
+function ShortTextField({
+  label,
+  value,
+  max,
+  rows,
+  pdfFit,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  max: number;
+  rows: number;
+  pdfFit: TrainingExamTextFit;
+  onChange: (value: string) => void;
+}): React.ReactElement {
+  const length = value.length;
+  const fit = length > max || pdfFit === 'too-long'
+    ? 'Zu lang'
+    : pdfFit === 'tight'
+      ? 'Knapp'
+      : 'Passt';
+  const fitClass =
+    fit === 'Passt'
+      ? 'bg-emerald-50 text-emerald-700'
+      : fit === 'Knapp'
+        ? 'bg-amber-50 text-amber-800'
+        : 'bg-red-100 text-red-800';
+  return (
+    <label className="block">
+      <span className="flex items-center justify-between gap-2 text-[12px] font-medium text-slate-600">
+        <span>{label}</span>
+        <span className="flex items-center gap-2 text-[10px]">
+          <span className="tabular-nums text-slate-400">{length}/{max}</span>
+          <span className={`rounded-full px-2 py-0.5 font-bold ${fitClass}`}>{fit}</span>
+        </span>
+      </span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={rows}
+        placeholder="• Kurzer, verständlicher Stichpunkt"
+        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] leading-5"
+      />
+    </label>
+  );
+}
+
+type ExerciseCropOptions = {
+  zoom: number;
+  x: number;
+  y: number;
+  rotation: number;
+  replaceWhiteWithGrass?: boolean;
+  whiteStrength?: number;
+};
+
+async function loadCropImage(url: string): Promise<HTMLImageElement> {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Bild konnte nicht geladen werden.'));
+    image.src = url;
+  });
+}
+
+function rotatedImageCanvas(image: HTMLImageElement, rotation: number): HTMLCanvasElement {
+  const normalized = ((rotation % 360) + 360) % 360;
+  const swap = normalized === 90 || normalized === 270;
+  const canvas = document.createElement('canvas');
+  canvas.width = swap ? image.naturalHeight : image.naturalWidth;
+  canvas.height = swap ? image.naturalWidth : image.naturalHeight;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
+  context.translate(canvas.width / 2, canvas.height / 2);
+  context.rotate((normalized * Math.PI) / 180);
+  context.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+  return canvas;
+}
+
+function drawTrainingGrass(context: CanvasRenderingContext2D, width: number, height: number): void {
+  const stripeCount = 8;
+  const colors = ['#66ad55', '#80bd6f'] as const;
+  const stripeHeight = height / stripeCount;
+  for (let index = 0; index < stripeCount; index += 1) {
+    context.fillStyle = colors[index % 2];
+    const top = Math.floor(index * stripeHeight);
+    const bottom = Math.floor((index + 1) * stripeHeight);
+    context.fillRect(0, top, width, Math.max(1, bottom - top));
   }
+}
+
+function removeWhiteBackground(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  strength: number,
+): void {
+  const clamped = Math.max(0, Math.min(100, strength));
+  const threshold = 252 - Math.round((clamped / 100) * 57);
+  const imageData = context.getImageData(0, 0, width, height);
+  const { data } = imageData;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    if (r >= threshold && g >= threshold && b >= threshold && max - min <= 22) {
+      data[i + 3] = 0;
+    }
+  }
+  context.putImageData(imageData, 0, 0);
+}
+
+async function renderExerciseCrop(
+  canvas: HTMLCanvasElement,
+  url: string,
+  options: ExerciseCropOptions,
+): Promise<void> {
+  const image = await loadCropImage(url);
+  const rotated = rotatedImageCanvas(image, options.rotation);
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
+  const scale = Math.max(canvas.width / rotated.width, canvas.height / rotated.height) * options.zoom;
+  const width = rotated.width * scale;
+  const height = rotated.height * scale;
+  const overflowX = Math.max(0, width - canvas.width);
+  const overflowY = Math.max(0, height - canvas.height);
+  const left = (canvas.width - width) / 2 - (options.x / 100) * (overflowX / 2);
+  const top = (canvas.height - height) / 2 - (options.y / 100) * (overflowY / 2);
+
+  if (options.replaceWhiteWithGrass) {
+    const layer = document.createElement('canvas');
+    layer.width = canvas.width;
+    layer.height = canvas.height;
+    const layerContext = layer.getContext('2d', { willReadFrequently: true });
+    if (!layerContext) throw new Error('Bildverarbeitung nicht verfügbar.');
+    layerContext.clearRect(0, 0, layer.width, layer.height);
+    layerContext.drawImage(rotated, left, top, width, height);
+    removeWhiteBackground(layerContext, layer.width, layer.height, options.whiteStrength ?? 55);
+    drawTrainingGrass(context, canvas.width, canvas.height);
+    context.drawImage(layer, 0, 0);
+    return;
+  }
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(rotated, left, top, width, height);
+}
+
+async function cropExerciseImageToWebp(url: string, options: ExerciseCropOptions): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1600;
+  canvas.height = 1200;
+  await renderExerciseCrop(canvas, url, options);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
+  if (!blob) throw new Error('Bild konnte nicht konvertiert werden.');
+  return blob;
+}
+
+async function imageUrlToWebp(url: string): Promise<Blob> {
+  const image = await loadCropImage(url);
+  const maxEdge = 2400;
+  const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
+  if (!blob) throw new Error('Bild konnte nicht konvertiert werden.');
+  return blob;
 }

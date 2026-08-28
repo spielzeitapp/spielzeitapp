@@ -1,0 +1,100 @@
+import assert from 'node:assert/strict';
+import { createServer } from 'vite';
+
+const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
+try {
+  const {
+    createTrainingExerciseShortText,
+    createTrainingExerciseOriginalText,
+    hasCompleteTrainingExerciseShortContent,
+    TRAINING_SHORT_TEXT_LIMITS,
+  } = await vite.ssrLoadModule(
+    '/src/lib/trainingExerciseShortText.ts',
+  );
+  const result = createTrainingExerciseShortText({
+    description:
+      'Spieler A passt zu Spieler B. Spieler B nimmt den Ball in Spielrichtung mit. Danach erfolgt der Abschluss auf das Tor. Anschließend wechseln beide Spieler ihre Position.',
+    organization: 'Feld 20 x 25 Meter mit zwei Toren aufbauen.',
+    materials: '8 Bälle, 12 Hütchen, 8 Bälle, 2 Tore',
+    coachingPoints:
+      'Offene Stellung einnehmen. Erster Kontakt in Spielrichtung. Nach dem Pass sofort freilaufen. Hohes Tempo einfordern.',
+    variations: 'Mit maximal zwei Kontakten spielen.',
+  });
+
+  assert.match(result.content, /^Aufbau:/);
+  assert.match(result.content, /^Ablauf:/m);
+  assert.match(result.content, /^Variation 1:/m);
+  assert.ok(!/^•/m.test(result.content));
+  assert.match(result.content, /Spieler A passt zu Spieler B/);
+  assert.match(result.content, /Anschließend wechseln beide Spieler ihre Position/);
+  assert.match(result.coaching, /^Offene Stellung/m);
+  assert.doesNotMatch(result.coaching, /Variation/i);
+  assert.equal(result.materials, '8 Bälle, 12 Hütchen, 8 Bälle, 2 Tore');
+  assert.ok(result.content.length <= TRAINING_SHORT_TEXT_LIMITS.content);
+  assert.ok(result.materials.length <= TRAINING_SHORT_TEXT_LIMITS.materials);
+  assert.ok(result.coaching.length <= TRAINING_SHORT_TEXT_LIMITS.coaching);
+  assert.ok(!/https?:\/\//.test(`${result.content}${result.coaching}`));
+  assert.ok(!/…|\.\.\./.test(`${result.content}${result.materials}${result.coaching}`));
+  assert.deepEqual(TRAINING_SHORT_TEXT_LIMITS, { content: 760, materials: 100, coaching: 250 });
+
+  const original = createTrainingExerciseOriginalText({
+    description: 'Die Mannschaft greift auf das Großtor an. Nach Tor oder Ballverlust wechselt die Spielrichtung.',
+    organization: 'Doppelten Strafraum markieren.',
+    materials: 'Bälle, Hütchen',
+    coachingPoints: 'Schnell umschalten. Zielstrebig abschließen.',
+    variations: 'Kontakte begrenzen; Feld verkleinern; Neutrale Spieler einsetzen; Tore doppelt zählen',
+  });
+  assert.match(original.content, /^Aufbau:/m);
+  assert.match(original.content, /^Ablauf:/m);
+  assert.equal((original.content.match(/^Variation \d:/gm) ?? []).length, 3);
+  assert.doesNotMatch(original.coaching, /Variation/i);
+  assert.match(original.coaching, /Schnell umschalten/);
+
+  const realistic = createTrainingExerciseShortText({
+    organization: 'Ein ca. 15 x 30 Meter großes Spielfeld mit zwei Toren aufbauen.',
+    description:
+      'Spieler B startet die Aktion, indem er von der Markierungsscheibe in Richtung Spieler A zwischen die Dummies läuft. B erhält ein Zuspiel von A, welches er zwischen den Dummies direkt wieder zurückspielt.',
+    materials: 'Bälle, Hütchen, zwei Tore',
+    coachingPoints:
+      'Die Mannschaften treten im Wettkampf gegeneinander an: Welches Team erzielt in einem Zeitabschnitt die meisten Treffer? Nach dem Pass sofort freilaufen.',
+    variations: 'Die Positionen B und C an den Dummies einfach ohne Ball besetzen.',
+  });
+
+  assert.match(realistic.content, /Aufbau: Ein ca\. 15 x 30 Meter/);
+  assert.match(realistic.content, /Spieler B startet die Aktion/);
+
+  const oversized = createTrainingExerciseShortText({
+    organization: 'Ein großes Feld mit zwei Toren und vier Außenspielern aufbauen. '.repeat(4),
+    description: 'Die Spieler kombinieren zielstrebig, wechseln Positionen und schließen anschließend auf das Tor ab. '.repeat(12),
+    materials: 'Bälle, Hütchen, Tore',
+    coachingPoints: 'Offene Stellung einnehmen. Erster Kontakt in Spielrichtung.',
+    variations: 'Kontakte begrenzen; Feld verkleinern; Neutrale Spieler einsetzen',
+  });
+  assert.ok(oversized.content.length <= TRAINING_SHORT_TEXT_LIMITS.content);
+  assert.ok(hasCompleteTrainingExerciseShortContent(oversized.content));
+  assert.ok(!hasCompleteTrainingExerciseShortContent('Ablauf: Verteidiger bleibt'));
+  assert.ok(!hasCompleteTrainingExerciseShortContent('Ablauf: Wandspieler nur.'));
+  assert.ok(hasCompleteTrainingExerciseShortContent('Ablauf: Der Verteidiger bleibt.'));
+  assert.ok(hasCompleteTrainingExerciseShortContent('Ablauf: Die Wandspieler dürfen nur direkt spielen.'));
+  assert.ok(hasCompleteTrainingExerciseShortContent('Ablauf: Der Verteidiger bleibt an der Linie.'));
+  assert.ok(oversized.content.length < createTrainingExerciseOriginalText({
+    organization: 'Ein großes Feld mit zwei Toren und vier Außenspielern aufbauen. '.repeat(4),
+    description: 'Die Spieler kombinieren zielstrebig, wechseln Positionen und schließen anschließend auf das Tor ab. '.repeat(12),
+    materials: 'Bälle, Hütchen, Tore',
+    coachingPoints: 'Offene Stellung einnehmen. Erster Kontakt in Spielrichtung.',
+    variations: 'Kontakte begrenzen; Feld verkleinern; Neutrale Spieler einsetzen',
+  }).content.length);
+  for (const line of `${realistic.content}\n${realistic.coaching}`.split('\n').filter(Boolean)) {
+    assert.doesNotMatch(
+      line,
+      /\b(?:und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i,
+    );
+  }
+  for (const line of oversized.content.split('\n').filter(Boolean)) {
+    assert.match(line, /[.!?]$/);
+  }
+} finally {
+  await vite.close();
+}
+
+console.log('training-exercise-short-text: ok');

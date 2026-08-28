@@ -2,6 +2,7 @@ import { strToU8, zipSync } from 'fflate';
 import type { TrainingExerciseRow } from './trainingExercises';
 import type { TrainingSessionExerciseRow, TrainingSessionRow } from './trainingSessions';
 import { TRAINING_PHASE_LABELS, TRAINING_PHASE_SHORT } from './trainingPhases';
+import { resolveTrainingExerciseShortText } from './trainingExerciseShortText';
 
 type WordExercise = {
   item: TrainingSessionExerciseRow;
@@ -111,27 +112,54 @@ function imageDrawing(relationshipId: string, drawingId: number, title: string):
 }
 
 function contentBlock(entry: WordExercise): string {
+  const shortText = resolveTrainingExerciseShortText({
+    description: entry.exercise.description,
+    organization: entry.exercise.organization,
+    materials: entry.exercise.materials,
+    coachingPoints: entry.exercise.coaching_points,
+    variations: entry.exercise.variations,
+    shortContent: entry.exercise.short_content,
+    shortMaterials: entry.exercise.short_materials,
+    shortCoaching: entry.exercise.short_coaching,
+  });
   const notes = entry.item.coach_notes
     ? labeledText('Trainerhinweis', entry.item.coach_notes)
     : '';
-  return `${exerciseHeading(entry)}${paragraph(run(clean(entry.exercise.description), { size: 12 }), {
+  return `${exerciseHeading(entry)}${paragraph(run(clean(shortText.content), { size: 12 }), {
     after: 20,
   })}${notes}`;
 }
 
 function materialBlock(entry: WordExercise): string {
-  return `${compactPhaseHeading(entry)}${paragraph(run(clean(entry.exercise.materials), { size: 12 }), {
+  const shortText = resolveTrainingExerciseShortText({
+    description: entry.exercise.description,
+    organization: entry.exercise.organization,
+    materials: entry.exercise.materials,
+    coachingPoints: entry.exercise.coaching_points,
+    variations: entry.exercise.variations,
+    shortContent: entry.exercise.short_content,
+    shortMaterials: entry.exercise.short_materials,
+    shortCoaching: entry.exercise.short_coaching,
+  });
+  return `${compactPhaseHeading(entry)}${paragraph(run(clean(shortText.materials), { size: 12 }), {
     after: 20,
   })}`;
 }
 
 function coachingBlock(entry: WordExercise): string {
-  const variations = entry.exercise.variations
-    ? labeledText('Variation', entry.exercise.variations)
-    : '';
-  return `${compactPhaseHeading(entry)}${paragraph(run(clean(entry.exercise.coaching_points), { size: 12 }), {
+  const shortText = resolveTrainingExerciseShortText({
+    description: entry.exercise.description,
+    organization: entry.exercise.organization,
+    materials: entry.exercise.materials,
+    coachingPoints: entry.exercise.coaching_points,
+    variations: entry.exercise.variations,
+    shortContent: entry.exercise.short_content,
+    shortMaterials: entry.exercise.short_materials,
+    shortCoaching: entry.exercise.short_coaching,
+  });
+  return `${compactPhaseHeading(entry)}${paragraph(run(clean(shortText.coaching), { size: 12 }), {
     after: 15,
-  })}${variations}`;
+  })}`;
 }
 
 function organizationGrid(entries: WordExercise[], startIndex: number): string {
