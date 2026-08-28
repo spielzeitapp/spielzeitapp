@@ -28,7 +28,7 @@ const PHASES: TrainingPhase[] = ['AW', 'HT1', 'HT2', 'AK'];
 // Exakte Nutzflächen der unveränderten NÖFV-ÖFB-D-Diplom-Seite (A4 quer).
 const TABLE_HEADER_TOP = 44.8;
 const PHASE_TOP = 49.5;
-const PHASE_GAP = 1.3;
+const PHASE_GAP = 0.7;
 const CONTENT_TABLE_BOTTOM = 205;
 const PHASE_HEIGHT = (CONTENT_TABLE_BOTTOM - PHASE_TOP - PHASE_GAP * 3) / 4;
 const TABLE_LEFT = 12.7;
@@ -57,6 +57,8 @@ const TITLE_HEIGHT = 5.4;
 const CONTENT_Y_OFFSET = 7.6;
 const TITLE_CONTENT_GAP = 0.6;
 const PHASE_GREEN: [number, number, number] = [38, 124, 70];
+const TABLE_LINE_COLOR = 80;
+const TABLE_LINE_WIDTH = 0.25;
 
 export type TrainingExamTextFit = 'fit' | 'tight' | 'too-long';
 
@@ -234,11 +236,10 @@ function drawAdjustedTable(pdf: jsPDF): void {
   );
   // Die Vorlage wird oft ausgedruckt oder fotografiert. 0,15 mm wirkte dabei
   // zu blass; 0,25 mm entspricht rund 0,7 pt und bleibt dennoch unaufdringlich.
-  pdf.setDrawColor(90, 90, 90);
-  pdf.setLineWidth(0.25);
+  pdf.setDrawColor(TABLE_LINE_COLOR, TABLE_LINE_COLOR, TABLE_LINE_COLOR);
+  pdf.setLineWidth(TABLE_LINE_WIDTH);
   pdf.rect(TABLE_LEFT, TABLE_HEADER_TOP, TABLE_RIGHT - TABLE_LEFT, CONTENT_TABLE_BOTTOM - TABLE_HEADER_TOP);
   pdf.line(TABLE_LEFT, PHASE_TOP, TABLE_RIGHT, PHASE_TOP);
-  pdf.setLineWidth(0.2);
   [SKETCH_COLUMN_X, MATERIAL_COLUMN_X, COACHING_COLUMN_X].forEach((x) => {
     pdf.line(x, TABLE_HEADER_TOP, x, CONTENT_TABLE_BOTTOM);
   });
@@ -250,8 +251,6 @@ function drawAdjustedTable(pdf: jsPDF): void {
   pdf.text('Organisation (Skizzen)', SKETCH_COLUMN_X + SKETCH_COLUMN_WIDTH / 2, tableHeaderBaseline, { align: 'center' });
   pdf.text('Geräte', MATERIAL_COLUMN_X + (COACHING_COLUMN_X - MATERIAL_COLUMN_X) / 2, tableHeaderBaseline, { align: 'center' });
   pdf.text('Coachingpunkte', COACHING_COLUMN_X + (TABLE_RIGHT - COACHING_COLUMN_X) / 2, tableHeaderBaseline, { align: 'center' });
-  pdf.setDrawColor(105, 105, 105);
-  pdf.setLineWidth(0.21);
   for (let phaseIndex = 1; phaseIndex < PHASES.length; phaseIndex += 1) {
     const separatorY = PHASE_TOP + phaseIndex * PHASE_HEIGHT + (phaseIndex - 0.5) * PHASE_GAP;
     pdf.line(TABLE_LEFT, separatorY, TABLE_RIGHT, separatorY);
@@ -269,11 +268,14 @@ function drawAdjustedHeader(pdf: jsPDF): void {
     TABLE_HEADER_TOP - HEADER_TOP + 0.7,
     'F',
   );
-  pdf.setDrawColor(90, 90, 90);
-  pdf.setLineWidth(0.25);
-  pdf.line(ORIGINAL_HEADER_RIGHT - 0.15, HEADER_TOP, TABLE_RIGHT, HEADER_TOP);
+  pdf.setDrawColor(TABLE_LINE_COLOR, TABLE_LINE_COLOR, TABLE_LINE_COLOR);
+  pdf.setLineWidth(TABLE_LINE_WIDTH);
+  // Alle waagrechten Kopflinien werden von der linken bis zur neuen rechten
+  // Tabellenkante in einem Zug gezeichnet. Dadurch gibt es an der ehemaligen
+  // Vorlagenkante weder eine Lücke noch unterschiedliche Linienstärken.
+  pdf.line(TABLE_LEFT, HEADER_TOP, TABLE_RIGHT, HEADER_TOP);
   HEADER_SEPARATOR_Y.forEach((y) => {
-    pdf.line(ORIGINAL_HEADER_RIGHT - 0.15, y, TABLE_RIGHT, y);
+    pdf.line(TABLE_LEFT, y, TABLE_RIGHT, y);
   });
   pdf.line(TABLE_RIGHT, HEADER_TOP, TABLE_RIGHT, TABLE_HEADER_TOP);
 }
@@ -495,11 +497,11 @@ async function drawPhase(
     (candidate): candidate is { data: string; width: number; height: number } => Boolean(candidate),
   );
   if (images.length === 1) {
-    drawContainedImage(pdf, images[0], SKETCH_X + 1, top + 1, SKETCH_WIDTH - 2, PHASE_HEIGHT - 2);
+    drawContainedImage(pdf, images[0], SKETCH_X + 0.4, top + 0.4, SKETCH_WIDTH - 0.8, PHASE_HEIGHT - 0.8);
   } else if (images.length === 2) {
-    const half = (SKETCH_WIDTH - 3) / 2;
-    drawContainedImage(pdf, images[0], SKETCH_X + 1, top + 1, half, PHASE_HEIGHT - 2);
-    drawContainedImage(pdf, images[1], SKETCH_X + 2 + half, top + 1, half, PHASE_HEIGHT - 2);
+    const half = (SKETCH_WIDTH - 1.8) / 2;
+    drawContainedImage(pdf, images[0], SKETCH_X + 0.4, top + 0.4, half, PHASE_HEIGHT - 0.8);
+    drawContainedImage(pdf, images[1], SKETCH_X + 1.4 + half, top + 0.4, half, PHASE_HEIGHT - 0.8);
   }
   drawSketchPhaseBadge(pdf, phase, SKETCH_BADGE_X, top + 1.5);
 }

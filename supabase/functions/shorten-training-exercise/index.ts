@@ -200,7 +200,9 @@ function normalizedWords(value: string): string[] {
 
 function truncatedSentenceEndings(value: string, sourceCorpus: string): string[] {
   const sourceWords = new Set(normalizedWords(sourceCorpus));
-  const validShortEndings = new Set(['an', 'ab', 'aus']);
+  // Gängige Trainerplan-Abkürzungen enthalten Punkte innerhalb eines Satzes.
+  // Sie sind bewusst knapp und dürfen nicht als abgeschnittenes Wort gelten.
+  const validShortEndings = new Set(['an', 'ab', 'aus', 'ca', 'max', 'min', 'bzw', 'pos']);
   const candidateWords = cleanOutput(value)
     .split(/[.!?]+/)
     .map((sentence) => normalizedWords(sentence).at(-1))
@@ -542,6 +544,10 @@ serve(async (req) => {
         [
           'Du bist Fußballtrainer und erstellst einen verständlichen Spickzettel für den Trainingsplatz.',
           'Bewahre die fachliche Bedeutung. Erfinde, ergänze oder vertausche keine Details.',
+          'Schreibe im kompakten Trainerplan-Stil: kurze Hauptsätze und klare Handlungsfolgen statt Fließtext.',
+          'Spare Artikel wie der, die, das, ein oder eine aus, wenn Rolle und Handlung trotzdem eindeutig bleiben. Lasse niemals das handelnde Team oder den handelnden Spieler weg, wenn sonst Unklarheit entsteht.',
+          'Nutze geläufige Kurzformen wie ca., m, max., je, bzw., Pos. A und 2vs2. Erfinde keine eigenen Abkürzungen.',
+          'Bevorzuge Formulierungen wie „Rot und Blau spielen 2vs2.“ oder „Grün als Wandspieler neben Tor.“ Vermeide Füllwörter, Wiederholungen und Erklärungen, die bereits aus Aufbau oder Skizze hervorgehen.',
           'Jede Zahl, Spannweite und Mengenangabe muss beim gleichen Bezugswort wie im Original bleiben. Ändere zum Beispiel niemals 4–6 Spieler in 2 Spieler.',
           'Jeder Eintrag aus mustKeepFacts muss semantisch eindeutig im zugehörigen Bereich setup, flow oder variations enthalten sein.',
           'Gib nur setup, flow, variations, materials und coachingPoints getrennt zurück.',
@@ -550,7 +556,7 @@ serve(async (req) => {
           `variations: genau ${variationCount} kurze Einträge in derselben Reihenfolge wie im Original; jeder höchstens ${variationGenerationLimit} Zeichen inklusive Satzzeichen. Bewahre alle Bedingungen, erfinde nichts und lasse keine Originalvariation weg.`,
           `Aufbau, Ablauf und alle beschrifteten Variationen dürfen zusammen höchstens ${LIMITS.content} Zeichen haben. Nutze freie Zeichen flexibel für die Pflichtfakten.`,
           'Der Ablauf hat höchste Priorität. Wenn der Platz knapp wird, kürze zuerst optionale Variationsdetails; bei einem langen nicht nummerierten Variationstext genügt eine wichtige, zusammenhängende Variation.',
-          'Nutze kurze, grammatikalisch vollständige Sätze und übliche Fußballbegriffe. Rollen, Reihenfolge, Zuständigkeiten und Wechsel müssen eindeutig bleiben.',
+          'Nutze kurze, inhaltlich abgeschlossene Trainerplan-Sätze und übliche Fußballbegriffe. Rollen, Reihenfolge, Zuständigkeiten und Wechsel müssen eindeutig bleiben.',
           'Kürze ganze Formulierungen, aber niemals einzelne Wörter. Verwende keine Wortfragmente, weichen Trennzeichen oder erfundenen Abkürzungen.',
           'materials: höchstens 100 Zeichen, nur eine kompakte kommagetrennte Materialliste.',
           'coachingPoints: zwei bis vier kurze Einträge ausschließlich aus den ursprünglichen Coachingpunkten.',

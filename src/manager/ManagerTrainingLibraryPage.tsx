@@ -476,15 +476,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       variations: form.variations,
     };
     const original = createTrainingExerciseOriginalText(input);
-    // Vor jedem KI-Versuch ist der sichtbare und gespeicherte Ausgangspunkt
-    // eindeutig der Originaltext. Nur ein erfolgreich geprüftes KI-Ergebnis
-    // darf diese Felder anschließend ersetzen.
-    setForm((current) => ({
-      ...current,
-      shortContent: original.content,
-      shortMaterials: original.materials,
-      shortCoaching: original.coaching,
-    }));
+    // Eine bereits manuell bearbeitete und vom Trainer geprüfte Fassung bleibt
+    // während des KI-Versuchs sichtbar. Nur ein erfolgreich erzeugter Entwurf
+    // darf sie ersetzen; ein Fehler setzt sie niemals auf das Original zurück.
     if (originalTextFitsPdf(form.title, original)) {
       setFormError(null);
       setShortTextError(null);
@@ -501,7 +495,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setShorteningWithAi(false);
     if (!result.data) {
       const message = result.error ?? 'KI-Kurzfassung fehlgeschlagen.';
-      setShortTextError(`${message} Der vollständige Originaltext bleibt unverändert angezeigt.`);
+      setShortTextError(`${message} Deine aktuell angezeigte Fassung bleibt unverändert.`);
       setShortTextWarning(null);
       return;
     }
@@ -1195,7 +1189,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       Kurzfassung für Handout &amp; optionale Trainer-PDF
                     </h3>
                     <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                      Zuerst wird hier der vollständige Originaltext aus Aufbau, Ablauf und Variationen angezeigt. Ist er länger als 760 Zeichen, kann er manuell oder mit KI gekürzt werden. Coachingpunkte bleiben getrennt. Nur eine erfolgreich geprüfte KI-Kurzfassung ersetzt das Original.
+                      Zuerst wird hier der vollständige Originaltext aus Aufbau, Ablauf und Variationen angezeigt. Ist er länger als 760 Zeichen, kann er manuell oder mit KI gekürzt werden. Coachingpunkte bleiben getrennt. Nur ein erfolgreich erzeugter KI-Entwurf ersetzt die aktuell angezeigte Fassung.
                     </p>
                     <p className="mt-1 text-[11px] font-medium leading-4 text-amber-800">
                       KI-Kurzfassungen sind Entwürfe. Bitte Zahlen, Spieleranzahl, Rollen, Reihenfolge und Variationen vor dem Speichern mit dem Original kontrollieren.

@@ -14,6 +14,12 @@ Die Prüfung ist übungsunabhängig:
 Die zulässigen Längen für Ablauf und Variationen werden für jede Übung aus dem gemeinsamen
 760-Zeichen-Budget berechnet und direkt im strukturierten KI-Ausgabeformat erzwungen.
 
+Die Ausgabe verwendet einen kompakten Trainerplan-Stil: kurze Handlungsfolgen, sparsame
+Artikel und geläufige Kurzformen wie `ca.`, `m`, `max.`, `je`, `Pos. A` und `2vs2`.
+Der verständliche Ablauf hat Vorrang. Bei einem langen unnummerierten Variationstext
+wird nur eine wichtige, zusammenhängende Variante übernommen; fehlende Pflichtangaben
+werden dem Trainer als prüfbare Hinweise zurückgegeben.
+
 Dadurch funktionieren Pass-, Technik-, Torschuss-, Koordinations- und Spielformen ohne fest
 programmierte Regeln für einzelne Übungen.
 
