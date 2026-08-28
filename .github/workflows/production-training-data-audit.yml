@@ -1,0 +1,140 @@
+name: Audit training exam data for Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-training-data-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Compare selected Staging units with Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      STAGING_REF: acbaecjzoabafbsjrzvr
+      PRODUCTION_REF: shxugattqatahckhspwk
+    steps:
+      - name: Inspect source documentation and destination mapping
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const stagingRef = process.env.STAGING_REF;
+          const productionRef = process.env.PRODUCTION_REF;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body.slice(0, 500)}`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(ref, sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const [staging, production] = await Promise.all([
+              request(`/projects/${stagingRef}`),
+              request(`/projects/${productionRef}`),
+            ]);
+            if (staging.id !== stagingRef || staging.name !== 'spielzeitapp-staging') {
+              throw new Error(`Staging guard failed: ${staging.name} (${staging.id})`);
+            }
+            if (production.id !== productionRef || production.name !== 'spielzeitapp-nsg') {
+              throw new Error(`Production guard failed: ${production.name} (${production.id})`);
+            }
+
+            const sourceCandidates = await query(stagingRef, `
+              SELECT
+                d.id,
+                encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') AS creator_hash,
+                encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') AS club_hash,
+                encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') AS team_hash,
+                count(i.id)::int AS selected_units
+              FROM public.training_exam_documentations d
+              JOIN public.clubs c ON c.id = d.club_id
+              JOIN public.team_seasons ts ON ts.id = d.team_season_id
+              JOIN public.teams t ON t.id = ts.team_id
+              JOIN auth.users u ON u.id = d.created_by
+              JOIN public.training_exam_documentation_items i ON i.documentation_id = d.id
+              GROUP BY d.id, u.email, c.name, t.name
+              HAVING count(i.id) = 10
+              ORDER BY max(d.updated_at) DESC
+              LIMIT 2;
+            `);
+            if (!Array.isArray(sourceCandidates) || sourceCandidates.length !== 1) {
+              throw new Error(`Expected exactly one Staging documentation with 10 units, found ${sourceCandidates?.length || 0}.`);
+            }
+            const source = sourceCandidates[0];
+            const sourceId = String(source.id).replace(/'/g, "''");
+            const unitCheck = await query(stagingRef, `
+              SELECT
+                count(DISTINCT i.id)::int AS selected_units,
+                count(DISTINCT s.id)::int AS sessions,
+                count(se.id)::int AS exercise_links,
+                count(DISTINCT e.id)::int AS exercises,
+                count(DISTINCT e.id) FILTER (
+                  WHERE e.image_path IS NOT NULL AND btrim(e.image_path) <> ''
+                )::int AS exercises_with_images
+              FROM public.training_exam_documentation_items i
+              JOIN public.training_sessions s ON s.id = i.training_session_id
+              LEFT JOIN public.training_session_exercises se ON se.training_session_id = s.id
+              LEFT JOIN public.training_exercises e ON e.id = se.exercise_id
+              WHERE i.documentation_id = '${sourceId}';
+            `);
+            const counts = unitCheck?.[0] || {};
+            if (Number(counts.selected_units) !== 10 || Number(counts.sessions) !== 10) {
+              throw new Error('The selected documentation does not resolve to exactly 10 distinct sessions.');
+            }
+
+            const creatorHash = String(source.creator_hash).replace(/'/g, "''");
+            const clubHash = String(source.club_hash).replace(/'/g, "''");
+            const teamHash = String(source.team_hash).replace(/'/g, "''");
+            const targets = await query(productionRef, `
+              SELECT
+                u.id AS user_id,
+                c.id AS club_id,
+                t.id AS team_id,
+                ts.id AS team_season_id
+              FROM auth.users u
+              CROSS JOIN public.clubs c
+              JOIN public.teams t ON t.club_id = c.id
+              JOIN public.team_seasons ts ON ts.team_id = t.id
+              WHERE encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') = '${creatorHash}'
+                AND encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') = '${clubHash}'
+                AND encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') = '${teamHash}'
+              ORDER BY ts.created_at DESC;
+            `);
+            if (!Array.isArray(targets) || targets.length !== 1) {
+              throw new Error(`Expected exactly one Production mapping, found ${targets?.length || 0}.`);
+            }
+            console.log('AUDIT_READY=true selected_units=10 production_mapping=unique');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
