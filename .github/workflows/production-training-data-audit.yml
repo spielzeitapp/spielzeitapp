@@ -91,7 +91,7 @@ jobs:
                   WHERE s.team_season_id = d.team_season_id
                     AND coalesce(s.record_type, 'session') <> 'template'
                     AND coalesce(s.status, 'planned') <> 'archived'
-                ) = 10
+                ) = 9
                 AND (
                   d.title ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
                   OR EXISTS (
@@ -103,6 +103,16 @@ jobs:
                       AND concat_ws(' ', nr6.title, nr6.objective, nr6.notes, nr6.focus)
                         ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
                   )
+                )
+                AND EXISTS (
+                  SELECT 1
+                  FROM public.training_exam_documentation_items selected_item
+                  JOIN public.training_sessions selected_session
+                    ON selected_session.id = selected_item.session_id
+                  WHERE selected_item.documentation_id = d.id
+                    AND selected_session.team_season_id = d.team_season_id
+                    AND coalesce(selected_session.record_type, 'session') <> 'template'
+                    AND coalesce(selected_session.status, 'planned') <> 'archived'
                 )
               ORDER BY d.created_at DESC;
             `);
@@ -162,7 +172,7 @@ jobs:
                 ` selected_items_max=${Number(d.max_selected_items) || 0}` +
                 ` nr6_marked_documents=${Number(d.nr6_marked_documents) || 0}`
               );
-              throw new Error(`Expected exactly one Staging U12 trainer-exam documentation with 10 active sessions, found ${sourceCandidates?.length || 0}.`);
+              throw new Error(`Expected exactly one Staging NR6 U12 trainer-exam documentation with 9 active sessions, found ${sourceCandidates?.length || 0}.`);
             }
             const source = sourceCandidates[0];
             const sourceSeasonId = String(source.team_season_id).replace(/'/g, "''");
@@ -182,8 +192,8 @@ jobs:
                 AND coalesce(s.status, 'planned') <> 'archived';
             `);
             const counts = unitCheck?.[0] || {};
-            if (Number(counts.sessions) !== 10) {
-              throw new Error(`Expected exactly 10 active Staging sessions for the exam team, found ${Number(counts.sessions) || 0}.`);
+            if (Number(counts.sessions) !== 9) {
+              throw new Error(`Expected exactly 9 active Staging sessions for the exam team, found ${Number(counts.sessions) || 0}.`);
             }
 
             const creatorHash = String(source.creator_hash).replace(/'/g, "''");
@@ -207,7 +217,7 @@ jobs:
             if (!Array.isArray(targets) || targets.length !== 1) {
               throw new Error(`Expected exactly one Production mapping, found ${targets?.length || 0}.`);
             }
-            console.log('AUDIT_READY=true selected_units=10 production_mapping=unique');
+            console.log('AUDIT_READY=true selected_units=9 archived_units=excluded templates=excluded nr6=verified production_mapping=unique');
           })().catch((error) => {
             console.error(error);
             process.exit(1);
