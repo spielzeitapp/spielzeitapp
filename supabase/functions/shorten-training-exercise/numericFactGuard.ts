@@ -99,14 +99,19 @@ export function extractQuantityFacts(value: string): QuantityFact[] {
     if (!subject) return;
 
     let quantity: string | null = null;
+    let distributedQuantity = false;
     for (let offset = 1; offset <= 4 && index - offset >= 0; offset += 1) {
       const nearby = tokens[index - offset];
       if (SUBJECTS[nearby]) break;
       if (QUANTITY_SCOPE_BREAKS.has(nearby)) break;
       quantity = quantityValue(nearby);
-      if (quantity) break;
+      if (quantity) {
+        const beforeQuantity = tokens[index - offset - 1];
+        distributedQuantity = QUANTITY_SCOPE_BREAKS.has(beforeQuantity);
+        break;
+      }
     }
-    if (quantity) facts.push({ subject, value: quantity });
+    if (quantity && !distributedQuantity) facts.push({ subject, value: quantity });
   });
 
   return facts.filter((fact, index) => (

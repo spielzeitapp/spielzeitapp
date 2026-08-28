@@ -28,6 +28,13 @@ import {
   workModeHomePath,
   type ManagerWorkMode,
 } from './managerWorkMode';
+import { adminLogSupportAccess } from '../lib/platformClubAdmin';
+
+export type ManagerSupportSession = {
+  clubId: string;
+  clubName: string;
+  teamSeasons: SessionTeamSeasonItem[];
+};
 
 type ManagerWorkModeContextValue = {
   workMode: ManagerWorkMode;
@@ -44,6 +51,9 @@ type ManagerWorkModeContextValue = {
   switchToAdministration: () => void;
   switchToTrainer: () => void;
   adminSwitchButtonLabel: string;
+  supportSession: ManagerSupportSession | null;
+  startSupportSession: (input: ManagerSupportSession & { initialTeamSeasonId: string }) => void;
+  endSupportSession: () => void;
 };
 
 const ManagerWorkModeContext = createContext<ManagerWorkModeContextValue | undefined>(undefined);
@@ -61,6 +71,7 @@ export function ManagerWorkModeProvider({
     teamSeasons,
     loading,
     setSelectedTeamSeasonId,
+    setViewTeamSeasonId,
     selectedTeamSeasonId,
   } = useSession();
 
@@ -85,6 +96,7 @@ export function ManagerWorkModeProvider({
   const [workMode, setWorkModeState] = useState<ManagerWorkMode>(() =>
     resolveDefaultWorkMode(availableModes),
   );
+  const [supportSession, setSupportSession] = useState<ManagerSupportSession | null>(null);
 
   useEffect(() => {
     if (loading || !authUser?.id) return;
@@ -108,9 +120,42 @@ export function ManagerWorkModeProvider({
   );
 
   const contextTeamSeasons = useMemo(() => {
+    if (workMode === 'platform_admin' && supportSession) return supportSession.teamSeasons;
     if (isTrainerWorkMode(workMode)) return trainerTeamSeasons;
     return teamSeasons;
-  }, [workMode, teamSeasons, trainerTeamSeasons]);
+  }, [workMode, supportSession, teamSeasons, trainerTeamSeasons]);
+
+  const startSupportSession = useCallback(
+    (input: ManagerSupportSession & { initialTeamSeasonId: string }) => {
+      if (!availableModes.includes('platform_admin')) return;
+      const { initialTeamSeasonId, ...session } = input;
+      setSupportSession(session);
+      setWorkModeState('platform_admin');
+      if (authUser?.id) writeStoredWorkMode(authUser.id, 'platform_admin');
+      setViewTeamSeasonId(null);
+      setSelectedTeamSeasonId(initialTeamSeasonId);
+      void adminLogSupportAccess({
+        clubId: input.clubId,
+        action: 'support_started',
+        teamSeasonId: initialTeamSeasonId,
+      });
+      navigate('/manager');
+    },
+    [availableModes, authUser?.id, navigate, setSelectedTeamSeasonId, setViewTeamSeasonId],
+  );
+
+  const endSupportSession = useCallback(() => {
+    if (supportSession) {
+      void adminLogSupportAccess({
+        clubId: supportSession.clubId,
+        action: 'support_ended',
+        teamSeasonId: selectedTeamSeasonId,
+      });
+    }
+    setSupportSession(null);
+    setViewTeamSeasonId(null);
+    navigate('/manager/plattform', { replace: true });
+  }, [navigate, selectedTeamSeasonId, setViewTeamSeasonId, supportSession]);
 
   const applyTrainerTeamSeason = useCallback(
     (opts?: { force?: boolean }) => {
@@ -231,6 +276,9 @@ export function ManagerWorkModeProvider({
       switchToAdministration,
       switchToTrainer,
       adminSwitchButtonLabel,
+      supportSession,
+      startSupportSession,
+      endSupportSession,
     }),
     [
       workMode,
@@ -243,6 +291,9 @@ export function ManagerWorkModeProvider({
       switchToAdministration,
       switchToTrainer,
       adminSwitchButtonLabel,
+      supportSession,
+      startSupportSession,
+      endSupportSession,
     ],
   );
 

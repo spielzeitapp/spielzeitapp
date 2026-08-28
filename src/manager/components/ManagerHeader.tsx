@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, LogOut } from 'lucide-react';
+import { ArrowLeftRight, Headphones, LogOut, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { useProfile, getDisplayFirstName, profileDisplayName } from '../../auth/useProfile';
 import { useSession, type SessionTeamSeasonItem } from '../../auth/useSession';
@@ -64,10 +64,17 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
     adminSwitchButtonLabel,
     workMode,
     selectTrainerTeamSeasonId,
+    supportSession,
+    endSupportSession,
   } = useManagerWorkMode();
   const { profile } = useProfile(authUser?.id);
 
-  const headerTeamSeasons = contextTeamSeasons.length > 0 ? contextTeamSeasons : teamSeasons;
+  const platformGlobal = workMode === 'platform_admin' && !supportSession;
+  const headerTeamSeasons = platformGlobal
+    ? []
+    : contextTeamSeasons.length > 0
+      ? contextTeamSeasons
+      : teamSeasons;
 
   const displayName =
     getDisplayFirstName(profile) ??
@@ -75,7 +82,10 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
     (authUser?.email ? authUser.email.split('@')[0] : null) ??
     'Trainer';
 
-  const contextSeason = viewTeamSeason ?? selectedTeamSeason;
+  const supportContextSeason = supportSession?.teamSeasons.find(
+    (season) => season.id === (viewTeamSeasonId ?? selectedTeamSeasonId),
+  ) ?? supportSession?.teamSeasons[0] ?? null;
+  const contextSeason = supportContextSeason ?? viewTeamSeason ?? selectedTeamSeason;
   const contextLine = useMemo(() => {
     if (!contextSeason) return sessionLoading ? 'Kontext wird geladen…' : 'Kein Team ausgewählt';
     const status = getSeasonStatusLabel(contextSeason.status);
@@ -178,7 +188,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             </div>
           ) : null}
 
-          {canSwitchMode ? (
+          {canSwitchMode && !supportSession ? (
             <button
               type="button"
               onClick={() => {
@@ -222,6 +232,22 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         </div>
       </div>
 
+      {supportSession ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-300/30 bg-amber-400 px-3 py-2 text-[12px] font-medium text-slate-950 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
+          <span className="inline-flex items-center gap-2">
+            <Headphones className="h-4 w-4" aria-hidden />
+            Supportmodus: <strong>{supportSession.clubName}</strong> · Änderungen werden als Plattformadmin protokolliert.
+          </span>
+          <button
+            type="button"
+            onClick={endSupportSession}
+            className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-slate-900/20 bg-white/70 px-3 font-semibold hover:bg-white"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden /> Support beenden
+          </button>
+        </div>
+      ) : null}
+
       {headerTeamSeasons.length > 1 ? (
         <div className="border-t border-white/10 px-3 py-2 sm:hidden">
           <select
@@ -236,7 +262,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
               </option>
             ))}
           </select>
-          {canSwitchMode ? (
+          {canSwitchMode && !supportSession ? (
             <button
               type="button"
               onClick={() => {
@@ -250,7 +276,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             </button>
           ) : null}
         </div>
-      ) : canSwitchMode ? (
+      ) : canSwitchMode && !supportSession ? (
         <div className="border-t border-white/10 px-3 py-2 sm:hidden">
           <button
             type="button"
