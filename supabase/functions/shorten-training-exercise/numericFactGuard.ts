@@ -63,6 +63,13 @@ const NUMBER_WORDS: Record<string, string> = {
   zwölf: '12',
 };
 
+// A quantity before `je` or `pro` belongs to the distribution context, not
+// automatically to the following noun. Example: "an beiden Grundlinien je ein
+// Großtor" describes one goal per line. Without this boundary the leading
+// "beiden" was incorrectly attached to "Großtor" and a correct compact form
+// such as "je 1 Großtor" was rejected as a numeric contradiction.
+const QUANTITY_SCOPE_BREAKS = new Set(['je', 'pro']);
+
 function quantityValue(token: string): string | null {
   if (/^\d+(?:-\d+)?$/.test(token)) return token;
   if (/^\d+er$/.test(token)) return token.slice(0, -2);
@@ -95,6 +102,7 @@ export function extractQuantityFacts(value: string): QuantityFact[] {
     for (let offset = 1; offset <= 4 && index - offset >= 0; offset += 1) {
       const nearby = tokens[index - offset];
       if (SUBJECTS[nearby]) break;
+      if (QUANTITY_SCOPE_BREAKS.has(nearby)) break;
       quantity = quantityValue(nearby);
       if (quantity) break;
     }

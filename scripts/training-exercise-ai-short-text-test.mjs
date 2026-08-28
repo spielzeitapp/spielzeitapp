@@ -107,6 +107,8 @@ assert.match(page, /besonders Spieleranzahl, Maße, Rollen, Reihenfolge und Vari
 assert.match(numericGuard, /export function extractQuantityFacts/);
 assert.match(numericGuard, /export function numericFactContradictions/);
 assert.match(numericGuard, /Zahlenwiderspruch bei/);
+assert.match(numericGuard, /QUANTITY_SCOPE_BREAKS/);
+assert.match(numericGuard, /QUANTITY_SCOPE_BREAKS\.has\(nearby\)/);
 assert.match(client, /warnings: string\[\]/);
 assert.match(edge, /Returning best reviewable summary/);
 assert.match(edge, /needsReview: true/);
