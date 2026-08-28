@@ -112,6 +112,10 @@ jobs:
                   count(*)::int AS u12_documents,
                   coalesce(min(x.active_sessions), 0)::int AS min_active_sessions,
                   coalesce(max(x.active_sessions), 0)::int AS max_active_sessions,
+                  coalesce(min(x.non_template_sessions), 0)::int AS min_non_template_sessions,
+                  coalesce(max(x.non_template_sessions), 0)::int AS max_non_template_sessions,
+                  coalesce(min(x.all_sessions), 0)::int AS min_all_sessions,
+                  coalesce(max(x.all_sessions), 0)::int AS max_all_sessions,
                   coalesce(min(x.selected_items), 0)::int AS min_selected_items,
                   coalesce(max(x.selected_items), 0)::int AS max_selected_items,
                   count(*) FILTER (WHERE x.document_has_nr6 OR x.session_has_nr6)::int AS nr6_marked_documents
@@ -123,6 +127,11 @@ jobs:
                       WHERE s.team_season_id = d.team_season_id
                         AND coalesce(s.record_type, 'session') <> 'template'
                         AND coalesce(s.status, 'planned') <> 'archived')::int AS active_sessions,
+                    (SELECT count(*) FROM public.training_sessions s
+                      WHERE s.team_season_id = d.team_season_id
+                        AND coalesce(s.record_type, 'session') <> 'template')::int AS non_template_sessions,
+                    (SELECT count(*) FROM public.training_sessions s
+                      WHERE s.team_season_id = d.team_season_id)::int AS all_sessions,
                     (SELECT count(*) FROM public.training_exam_documentation_items i
                       WHERE i.documentation_id = d.id)::int AS selected_items,
                     EXISTS (SELECT 1 FROM public.training_sessions s
@@ -145,6 +154,10 @@ jobs:
                 `SAFE_DIAGNOSTIC u12_documents=${Number(d.u12_documents) || 0}` +
                 ` active_sessions_min=${Number(d.min_active_sessions) || 0}` +
                 ` active_sessions_max=${Number(d.max_active_sessions) || 0}` +
+                ` non_template_sessions_min=${Number(d.min_non_template_sessions) || 0}` +
+                ` non_template_sessions_max=${Number(d.max_non_template_sessions) || 0}` +
+                ` all_sessions_min=${Number(d.min_all_sessions) || 0}` +
+                ` all_sessions_max=${Number(d.max_all_sessions) || 0}` +
                 ` selected_items_min=${Number(d.min_selected_items) || 0}` +
                 ` selected_items_max=${Number(d.max_selected_items) || 0}` +
                 ` nr6_marked_documents=${Number(d.nr6_marked_documents) || 0}`
