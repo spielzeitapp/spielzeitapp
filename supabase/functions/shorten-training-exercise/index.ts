@@ -140,7 +140,7 @@ function cleanOutput(value: string): string {
     .trim();
 }
 
-const DANGLING_SENTENCE_END = /\b(?:nur|sowie|beziehungsweise|und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer)$/i;
+const DANGLING_SENTENCE_END = /(?:\b(?:nur|sowie|beziehungsweise|und|oder|mit|in|auf|für|von|zu|nach|vor|bei|durch|der|die|das|den|dem|einem|einer|je|pro)|(?:^|\s)à)$/i;
 
 function hasCompleteSentence(value: string): boolean {
   const normalized = value.trim();
@@ -549,6 +549,7 @@ serve(async (req) => {
           'Nutze geläufige Kurzformen wie ca., m, max., je, bzw., Pos. A und 2vs2. Erfinde keine eigenen Abkürzungen.',
           'Bevorzuge Formulierungen wie „Rot und Blau spielen 2vs2.“ oder „Grün als Wandspieler neben Tor.“ Vermeide Füllwörter, Wiederholungen und Erklärungen, die bereits aus Aufbau oder Skizze hervorgehen.',
           'Jede Zahl, Spannweite und Mengenangabe muss beim gleichen Bezugswort wie im Original bleiben. Ändere zum Beispiel niemals 4–6 Spieler in 2 Spieler.',
+          'Schreibe Mengenangaben vollständig. Beende einen Satz niemals mit einer offenen Angabe wie „à.“, „je.“ oder „pro.“.',
           'Jeder Eintrag aus mustKeepFacts muss semantisch eindeutig im zugehörigen Bereich setup, flow oder variations enthalten sein.',
           'Gib nur setup, flow, variations, materials und coachingPoints getrennt zurück.',
           `setup: höchstens ${setupGenerationLimit} Zeichen inklusive Satzzeichen und nur die nötige Feldorganisation.`,
