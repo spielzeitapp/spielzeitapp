@@ -13,6 +13,10 @@ export type ManagerNavItem = {
   platformAdminOnly?: boolean;
   /** In Trainer-Arbeitsmodus ausblenden (z. B. Sportanlagen-Verwaltung). */
   hideInTrainerMode?: boolean;
+  /** Nur in der globalen Plattformverwaltung, nicht im Vereins-/Supportkontext. */
+  platformGlobalOnly?: boolean;
+  /** Zugehöriges Vereinsmodul; Grundmodule sind ebenfalls im Katalog enthalten. */
+  moduleKey?: string;
 };
 
 export type ManagerNavSection = {
@@ -25,9 +29,31 @@ export type ManagerNavSection = {
 
 export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
   {
+    id: 'platform',
+    label: 'Plattform',
+    items: [
+      {
+        id: 'platform-dashboard',
+        label: 'Plattform-Dashboard',
+        to: '/manager/plattform',
+        status: 'ready',
+        platformAdminOnly: true,
+        platformGlobalOnly: true,
+      },
+      {
+        id: 'clubs',
+        label: 'Vereine',
+        to: '/manager/vereine',
+        status: 'ready',
+        platformAdminOnly: true,
+        platformGlobalOnly: true,
+      },
+    ],
+  },
+  {
     id: 'overview',
     label: 'Übersicht',
-    items: [{ id: 'dashboard', label: 'Dashboard', to: '/manager', status: 'ready' }],
+    items: [{ id: 'dashboard', label: 'Dashboard', to: '/manager', status: 'ready', moduleKey: 'dashboard' }],
   },
   {
     id: 'my-team',
@@ -37,20 +63,20 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
       { id: 'players', label: 'Spieler', status: 'planned' },
       { id: 'parents', label: 'Eltern', status: 'planned' },
       { id: 'events', label: 'Termine', status: 'planned' },
-      { id: 'seasons', label: 'Saisonen', to: '/manager/saisons', status: 'ready' },
+      { id: 'seasons', label: 'Saisonen', to: '/manager/saisons', status: 'ready', moduleKey: 'seasons' },
     ],
   },
   {
     id: 'sport',
     label: 'Sport',
     items: [
-      { id: 'training', label: 'Trainingsplanung', to: '/manager/training/einheiten', status: 'ready' },
-      { id: 'training-lib', label: 'Übungsbibliothek', to: '/manager/training/bibliothek', status: 'ready' },
-      { id: 'training-tpl', label: 'Vorlagen', to: '/manager/training/vorlagen', status: 'ready' },
-      { id: 'training-chronik', label: 'Chronik', to: '/manager/training/chronik', status: 'ready' },
+      { id: 'training', label: 'Trainingsplanung', to: '/manager/training/einheiten', status: 'ready', moduleKey: 'training' },
+      { id: 'training-lib', label: 'Übungsbibliothek', to: '/manager/training/bibliothek', status: 'ready', moduleKey: 'training-lib' },
+      { id: 'training-tpl', label: 'Vorlagen', to: '/manager/training/vorlagen', status: 'ready', moduleKey: 'training-tpl' },
+      { id: 'training-chronik', label: 'Chronik', to: '/manager/training/chronik', status: 'ready', moduleKey: 'training-chronik' },
       { id: 'matches', label: 'Spiele', status: 'planned' },
       { id: 'tournaments', label: 'Turniere', status: 'planned' },
-      { id: 'venues', label: 'Platzbelegung', to: '/manager/platzbelegung', status: 'ready' },
+      { id: 'venues', label: 'Platzbelegung', to: '/manager/platzbelegung', status: 'ready', moduleKey: 'venues' },
       { id: 'video', label: 'Video & Analyse', status: 'planned' },
     ],
   },
@@ -67,13 +93,6 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     label: 'Verein',
     hideInTrainerMode: true,
     items: [
-      {
-        id: 'clubs',
-        label: 'Vereine',
-        to: '/manager/vereine',
-        status: 'ready',
-        platformAdminOnly: true,
-      },
       { id: 'equipment', label: 'Ausrüstung & Teamshop', status: 'planned' },
       {
         id: 'facilities',

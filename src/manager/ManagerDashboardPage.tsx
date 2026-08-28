@@ -34,6 +34,7 @@ import {
 } from '../lib/trainingSessions';
 import { listVenueFields, listFieldZones } from '../lib/venueFields';
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
+import { useManagerWorkMode } from './ManagerWorkModeContext';
 
 function greetingPrefix(now = new Date()): string {
   const h = now.getHours();
@@ -158,13 +159,15 @@ export function ManagerDashboardPage(): React.ReactElement {
   const { user: authUser } = useAuth();
   const { profile } = useProfile(authUser?.id);
   const { selectedTeamSeason, selectedTeamSeasonId, viewTeamSeason, teamSeasons } = useSession();
+  const { supportSession } = useManagerWorkMode();
 
   const [seasonDraftHint, setSeasonDraftHint] = useState<{
     id: string;
     label: string;
   } | null>(null);
 
-  const contextSeason = viewTeamSeason ?? selectedTeamSeason;
+  const supportContextSeason = supportSession?.teamSeasons.find((season) => season.id === selectedTeamSeasonId) ?? null;
+  const contextSeason = supportContextSeason ?? viewTeamSeason ?? selectedTeamSeason;
   const teamSeasonId = contextSeason?.id ?? selectedTeamSeasonId;
 
   const { events, loading: eventsLoading, error: eventsError } = useEvents(teamSeasonId);
