@@ -73,11 +73,13 @@ jobs:
                 d.team_season_id,
                 encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') AS creator_hash,
                 encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') AS club_hash,
-                encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') AS team_hash
+                encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') AS team_hash,
+                encode(digest(lower(btrim(season.name)), 'sha256'), 'hex') AS season_hash
               FROM public.training_exam_documentations d
               JOIN public.clubs c ON c.id = d.club_id
               JOIN public.team_seasons ts ON ts.id = d.team_season_id
               JOIN public.teams t ON t.id = ts.team_id
+              JOIN public.seasons season ON season.id = ts.season_id
               JOIN auth.users u ON u.id = d.created_by
               WHERE regexp_replace(
                 lower(coalesce(nullif(btrim(ts.age_group), ''), nullif(btrim(t.age_group), ''))),
@@ -199,6 +201,7 @@ jobs:
             const creatorHash = String(source.creator_hash).replace(/'/g, "''");
             const clubHash = String(source.club_hash).replace(/'/g, "''");
             const teamHash = String(source.team_hash).replace(/'/g, "''");
+            const seasonHash = String(source.season_hash).replace(/'/g, "''");
             const targets = await query(productionRef, `
               SELECT
                 u.id AS user_id,
@@ -209,9 +212,16 @@ jobs:
               CROSS JOIN public.clubs c
               JOIN public.teams t ON t.club_id = c.id
               JOIN public.team_seasons ts ON ts.team_id = t.id
+              JOIN public.seasons season ON season.id = ts.season_id
               WHERE encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') = '${creatorHash}'
                 AND encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') = '${clubHash}'
                 AND encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') = '${teamHash}'
+                AND encode(digest(lower(btrim(season.name)), 'sha256'), 'hex') = '${seasonHash}'
+                AND regexp_replace(
+                  lower(coalesce(nullif(btrim(ts.age_group), ''), nullif(btrim(t.age_group), ''))),
+                  '[^a-z0-9]+', '', 'g'
+                ) LIKE 'u12%'
+                AND coalesce(ts.status, 'active') = 'active'
               ORDER BY ts.created_at DESC;
             `);
             if (!Array.isArray(targets) || targets.length !== 1) {
