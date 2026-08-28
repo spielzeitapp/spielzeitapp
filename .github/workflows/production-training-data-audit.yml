@@ -89,7 +89,7 @@ jobs:
                   SELECT count(*)
                   FROM public.training_sessions s
                   WHERE s.team_season_id = d.team_season_id
-                    AND s.record_type <> 'template'
+                    AND coalesce(s.record_type, 'session') <> 'template'
                     AND s.status <> 'archived'
                 ) = 10
                 AND (
@@ -98,7 +98,7 @@ jobs:
                     SELECT 1
                     FROM public.training_sessions nr6
                     WHERE nr6.team_season_id = d.team_season_id
-                      AND nr6.record_type <> 'template'
+                      AND coalesce(nr6.record_type, 'session') <> 'template'
                       AND nr6.status <> 'archived'
                       AND concat_ws(' ', nr6.title, nr6.objective, nr6.notes, nr6.focus)
                         ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
@@ -121,12 +121,12 @@ jobs:
                     d.title ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)' AS document_has_nr6,
                     (SELECT count(*) FROM public.training_sessions s
                       WHERE s.team_season_id = d.team_season_id
-                        AND s.record_type <> 'template' AND s.status <> 'archived')::int AS active_sessions,
+                        AND coalesce(s.record_type, 'session') <> 'template' AND s.status <> 'archived')::int AS active_sessions,
                     (SELECT count(*) FROM public.training_exam_documentation_items i
                       WHERE i.documentation_id = d.id)::int AS selected_items,
                     EXISTS (SELECT 1 FROM public.training_sessions s
                       WHERE s.team_season_id = d.team_season_id
-                        AND s.record_type <> 'template' AND s.status <> 'archived'
+                        AND coalesce(s.record_type, 'session') <> 'template' AND s.status <> 'archived'
                         AND concat_ws(' ', s.title, s.objective, s.notes, s.focus)
                           ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)') AS session_has_nr6
                   FROM public.training_exam_documentations d
@@ -163,7 +163,7 @@ jobs:
               LEFT JOIN public.training_session_exercises se ON se.training_session_id = s.id
               LEFT JOIN public.training_exercises e ON e.id = se.exercise_id
               WHERE s.team_season_id = '${sourceSeasonId}'
-                AND s.record_type <> 'template'
+                AND coalesce(s.record_type, 'session') <> 'template'
                 AND s.status <> 'archived';
             `);
             const counts = unitCheck?.[0] || {};
