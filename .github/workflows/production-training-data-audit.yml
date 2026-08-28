@@ -69,38 +69,35 @@ jobs:
             }
 
             const sourceCandidates = await query(stagingRef, `
-              WITH authorized_set AS (
-                SELECT
-                  s.team_season_id,
-                  min(s.club_id::text)::uuid AS club_id,
-                  min(s.team_id::text)::uuid AS team_id,
-                  (min(s.created_by::text) FILTER (WHERE s.title ILIKE '%NR6%'))::uuid AS creator_id,
-                  count(*)::int AS active_units
-                FROM public.training_sessions s
-                WHERE s.record_type <> 'template'
-                  AND s.status <> 'archived'
-                GROUP BY s.team_season_id
-                HAVING bool_or(s.title ILIKE '%NR6%')
-              )
               SELECT
-                a.team_season_id,
-                a.active_units,
+                d.team_season_id,
                 encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') AS creator_hash,
                 encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') AS club_hash,
                 encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') AS team_hash
-              FROM authorized_set a
-              JOIN public.clubs c ON c.id = a.club_id
-              JOIN public.teams t ON t.id = a.team_id
-              JOIN auth.users u ON u.id = a.creator_id
-              LIMIT 2;
+              FROM public.training_exam_documentations d
+              JOIN public.clubs c ON c.id = d.club_id
+              JOIN public.team_seasons ts ON ts.id = d.team_season_id
+              JOIN public.teams t ON t.id = ts.team_id
+              JOIN auth.users u ON u.id = d.created_by
+              WHERE regexp_replace(
+                lower(coalesce(nullif(btrim(ts.age_group), ''), nullif(btrim(t.age_group), ''))),
+                '[^a-z0-9]+',
+                '',
+                'g'
+              ) = 'u12'
+                AND (
+                  SELECT count(*)
+                  FROM public.training_sessions s
+                  WHERE s.team_season_id = d.team_season_id
+                    AND s.record_type <> 'template'
+                    AND s.status <> 'archived'
+                ) = 10
+              ORDER BY d.created_at DESC;
             `);
             if (!Array.isArray(sourceCandidates) || sourceCandidates.length !== 1) {
-              throw new Error(`Expected one authorized U12 set containing NR6, found ${sourceCandidates?.length || 0}.`);
+              throw new Error(`Expected exactly one Staging U12 trainer-exam documentation with 10 active sessions, found ${sourceCandidates?.length || 0}.`);
             }
             const source = sourceCandidates[0];
-            if (Number(source.active_units) !== 10) {
-              throw new Error(`Authorized NR6 team currently has ${Number(source.active_units) || 0} active units instead of 10.`);
-            }
             const sourceSeasonId = String(source.team_season_id).replace(/'/g, "''");
             const unitCheck = await query(stagingRef, `
               SELECT
