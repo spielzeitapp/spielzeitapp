@@ -1,0 +1,131 @@
+name: Production platform admin release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-platform-admin-release.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-platform-admin-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Verify Production, migrate platform admin, deploy training function
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: shxugattqatahckhspwk
+      EXPECTED_PROJECT_NAME: spielzeitapp-nsg
+    steps:
+      - name: Checkout Production
+        uses: actions/checkout@v4
+
+      - name: Verify Production and apply platform migration
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body.slice(0, 500)}`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+
+            const preflight = await query(`
+              SELECT
+                to_regclass('public.clubs') IS NOT NULL AS clubs,
+                to_regclass('public.teams') IS NOT NULL AS teams,
+                to_regclass('public.team_seasons') IS NOT NULL AS team_seasons,
+                to_regclass('public.memberships') IS NOT NULL AS memberships,
+                to_regclass('public.team_season_players') IS NOT NULL AS team_season_players,
+                to_regclass('public.events') IS NOT NULL AS events,
+                to_regprocedure('public.is_platform_admin()') IS NOT NULL AS platform_guard,
+                to_regprocedure('public.normalize_club_name(text)') IS NOT NULL AS club_normalizer;
+            `);
+            const p = preflight?.[0] || {};
+            const required = ['clubs', 'teams', 'team_seasons', 'memberships', 'team_season_players', 'events', 'platform_guard', 'club_normalizer'];
+            if (required.some((key) => !p[key])) {
+              throw new Error('Production preflight failed; required schema dependency is missing.');
+            }
+
+            const sql = fs.readFileSync(
+              'supabase/migrations/20260828043000_platform_admin_dashboard_modules.sql',
+              'utf8',
+            );
+            await query(sql);
+
+            const verification = await query(`
+              SELECT
+                to_regclass('public.platform_modules') IS NOT NULL AS platform_modules,
+                to_regclass('public.club_modules') IS NOT NULL AS club_modules,
+                to_regclass('public.platform_admin_audit_log') IS NOT NULL AS audit_log,
+                to_regprocedure('public.admin_get_platform_dashboard()') IS NOT NULL AS dashboard_rpc,
+                to_regprocedure('public.admin_list_clubs_v2(text,text)') IS NOT NULL AS clubs_rpc,
+                to_regprocedure('public.admin_set_club_module(uuid,text,boolean)') IS NOT NULL AS module_rpc,
+                to_regprocedure('public.admin_log_support_access(uuid,text,uuid)') IS NOT NULL AS support_rpc;
+            `);
+            const v = verification?.[0] || {};
+            if (Object.values(v).some((value) => !value)) {
+              throw new Error('Production platform migration verification failed.');
+            }
+            console.log('Production platform migration verified.');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Verify OpenAI secret
+        shell: bash
+        run: |
+          npx --yes supabase@2.16.0 secrets list --project-ref "$SUPABASE_PROJECT_REF" \
+            | grep -q 'OPENAI_API_KEY' || {
+                echo "::error::OPENAI_API_KEY is missing in Production Supabase."
+                exit 1
+              }
+
+      - name: Deploy reviewed shortening function
+        shell: bash
+        run: |
+          npx --yes supabase@2.16.0 functions deploy shorten-training-exercise \
+            --project-ref "$SUPABASE_PROJECT_REF"
