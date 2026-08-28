@@ -92,14 +92,17 @@ jobs:
                     AND s.record_type <> 'template'
                     AND s.status <> 'archived'
                 ) = 10
-                AND EXISTS (
-                  SELECT 1
-                  FROM public.training_sessions nr6
-                  WHERE nr6.team_season_id = d.team_season_id
-                    AND nr6.record_type <> 'template'
-                    AND nr6.status <> 'archived'
-                    AND concat_ws(' ', nr6.title, nr6.objective, nr6.notes, nr6.focus)
-                      ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
+                AND (
+                  d.title ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
+                  OR EXISTS (
+                    SELECT 1
+                    FROM public.training_sessions nr6
+                    WHERE nr6.team_season_id = d.team_season_id
+                      AND nr6.record_type <> 'template'
+                      AND nr6.status <> 'archived'
+                      AND concat_ws(' ', nr6.title, nr6.objective, nr6.notes, nr6.focus)
+                        ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
+                  )
                 )
               ORDER BY d.created_at DESC;
             `);
