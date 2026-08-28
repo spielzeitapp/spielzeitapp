@@ -24,7 +24,6 @@ import {
 import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
 import {
   createTrainingExerciseOriginalText,
-  hasCompleteTrainingExerciseShortContent,
   TRAINING_SHORT_TEXT_LIMITS,
   type TrainingExerciseShortText,
   type TrainingExerciseShortTextInput,
@@ -525,12 +524,6 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
 
   const save = async () => {
     if (!clubId) return;
-    if (form.shortContent.trim() && !hasCompleteTrainingExerciseShortContent(form.shortContent)) {
-      setFormError(
-        'Die PDF-Kurzfassung enthält einen unvollständigen Satz. Bitte neu erzeugen oder Aufbau, Ablauf und Variationen mit vollständigen Sätzen abschließen.',
-      );
-      return;
-    }
     const returnAfterSave = editing?.id === editExerciseId ? editReturnTo : null;
     setSaving(true);
     setFormError(null);
@@ -1206,6 +1199,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     </p>
                     <p className="mt-1 text-[11px] font-medium leading-4 text-amber-800">
                       KI-Kurzfassungen sind Entwürfe. Bitte Zahlen, Spieleranzahl, Rollen, Reihenfolge und Variationen vor dem Speichern mit dem Original kontrollieren.
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium leading-4 text-slate-600">
+                      Hinweise der KI sind Empfehlungen. Du kannst den Text manuell ändern, Hinweise bewusst verwerfen und deine freigegebene Fassung jederzeit speichern.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
