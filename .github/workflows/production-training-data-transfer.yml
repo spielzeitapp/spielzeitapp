@@ -1,0 +1,423 @@
+name: Transfer active U12 training data to Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-training-data-transfer.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-active-u12-training-transfer
+  cancel-in-progress: false
+
+jobs:
+  transfer:
+    name: Transfer verified active U12 units
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      STAGING_REF: acbaecjzoabafbsjrzvr
+      PRODUCTION_REF: shxugattqatahckhspwk
+      EXPECTED_ACTIVE_UNITS: "9"
+    steps:
+      - name: Preflight, transfer and verify
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const crypto = require('node:crypto');
+
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const stagingRef = process.env.STAGING_REF;
+          const productionRef = process.env.PRODUCTION_REF;
+          const expectedUnits = Number(process.env.EXPECTED_ACTIVE_UNITS);
+          const managementBase = 'https://api.supabase.com/v1';
+          const bucket = 'training-exercise-media';
+          const tables = [
+            'training_exercises',
+            'training_sessions',
+            'training_session_exercises',
+            'training_exam_documentations',
+            'training_exam_documentation_items',
+          ];
+
+          function fail(message) {
+            throw new Error(message);
+          }
+
+          async function management(path, options = {}) {
+            const response = await fetch(managementBase + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const text = await response.text();
+            if (!response.ok) fail(`Supabase Management request failed (${response.status}).`);
+            return text ? JSON.parse(text) : null;
+          }
+
+          async function query(ref, sql) {
+            return management(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          function sqlText(value) {
+            return `'${String(value).replace(/'/g, "''")}'`;
+          }
+
+          function uuidList(values) {
+            if (!values.length) return 'ARRAY[]::uuid[]';
+            return `ARRAY[${values.map((value) => `${sqlText(value)}::uuid`).join(',')}]`;
+          }
+
+          function jsonLiteral(value) {
+            const tag = `$transfer_${crypto.randomUUID().replaceAll('-', '')}$`;
+            return `${tag}${JSON.stringify(value)}${tag}::jsonb`;
+          }
+
+          function recordsetInsert(table, rows) {
+            if (!rows.length) return '';
+            return `INSERT INTO public.${table} SELECT * FROM jsonb_populate_recordset(NULL::public.${table}, ${jsonLiteral(rows)});`;
+          }
+
+          function normalizedAgeSql(teamSeasonAlias, teamAlias) {
+            return `regexp_replace(lower(coalesce(nullif(btrim(${teamSeasonAlias}.age_group), ''), nullif(btrim(${teamAlias}.age_group), ''), '')), '[^a-z0-9]+', '', 'g')`;
+          }
+
+          async function serviceRoleKey(ref) {
+            const keys = await management(`/projects/${ref}/api-keys`);
+            const row = Array.isArray(keys)
+              ? keys.find((item) => String(item.name || item.type || '').toLowerCase().includes('service_role'))
+              : null;
+            const key = row?.api_key || row?.key;
+            if (!key) fail('A required project service key is unavailable.');
+            return key;
+          }
+
+          function objectUrl(ref, path) {
+            const encoded = String(path).split('/').map(encodeURIComponent).join('/');
+            return `https://${ref}.supabase.co/storage/v1/object/${bucket}/${encoded}`;
+          }
+
+          async function downloadObject(ref, key, path) {
+            const response = await fetch(objectUrl(ref, path), {
+              headers: { Authorization: `Bearer ${key}`, apikey: key },
+            });
+            if (!response.ok) fail(`A required Staging sketch could not be read (${response.status}).`);
+            return {
+              bytes: Buffer.from(await response.arrayBuffer()),
+              contentType: response.headers.get('content-type') || 'application/octet-stream',
+            };
+          }
+
+          async function uploadObject(ref, key, path, object) {
+            const response = await fetch(objectUrl(ref, path), {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${key}`,
+                apikey: key,
+                'Content-Type': object.contentType,
+                'x-upsert': 'true',
+              },
+              body: object.bytes,
+            });
+            if (!response.ok) fail(`A Production sketch could not be stored (${response.status}).`);
+          }
+
+          (async () => {
+            if (expectedUnits !== 9) fail('Release scope guard failed.');
+
+            const [stagingProject, productionProject] = await Promise.all([
+              management(`/projects/${stagingRef}`),
+              management(`/projects/${productionRef}`),
+            ]);
+            if (stagingProject.id !== stagingRef || stagingProject.name !== 'spielzeitapp-staging') {
+              fail('Staging project guard failed.');
+            }
+            if (productionProject.id !== productionRef || productionProject.name !== 'spielzeitapp-nsg') {
+              fail('Production project guard failed.');
+            }
+
+            const schemaSql = `
+              SELECT table_name,
+                string_agg(column_name || ':' || data_type || ':' || is_nullable, ',' ORDER BY ordinal_position) AS signature
+              FROM information_schema.columns
+              WHERE table_schema = 'public'
+                AND table_name = ANY(ARRAY[${tables.map(sqlText).join(',')}])
+              GROUP BY table_name
+              ORDER BY table_name;
+            `;
+            const [stagingSchema, productionSchema] = await Promise.all([
+              query(stagingRef, schemaSql),
+              query(productionRef, schemaSql),
+            ]);
+            if (JSON.stringify(stagingSchema) !== JSON.stringify(productionSchema) || stagingSchema.length !== tables.length) {
+              fail('Staging and Production training schemas do not match.');
+            }
+
+            const sourceCandidates = await query(stagingRef, `
+              SELECT
+                d.id AS documentation_id,
+                d.club_id,
+                d.team_season_id,
+                ts.team_id,
+                d.created_by AS user_id,
+                encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') AS creator_hash,
+                encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') AS club_hash,
+                encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') AS team_hash,
+                encode(digest(lower(btrim(season.name)), 'sha256'), 'hex') AS season_hash
+              FROM public.training_exam_documentations d
+              JOIN public.clubs c ON c.id = d.club_id
+              JOIN public.team_seasons ts ON ts.id = d.team_season_id
+              JOIN public.teams t ON t.id = ts.team_id
+              JOIN public.seasons season ON season.id = ts.season_id
+              JOIN auth.users u ON u.id = d.created_by
+              WHERE ${normalizedAgeSql('ts', 't')} LIKE 'u12%'
+                AND (SELECT count(*) FROM public.training_sessions s
+                  WHERE s.team_season_id = d.team_season_id
+                    AND coalesce(s.record_type, 'session') <> 'template'
+                    AND coalesce(s.status, 'planned') <> 'archived') = ${expectedUnits}
+                AND (
+                  d.title ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
+                  OR EXISTS (SELECT 1 FROM public.training_sessions s
+                    WHERE s.team_season_id = d.team_season_id
+                      AND coalesce(s.record_type, 'session') <> 'template'
+                      AND coalesce(s.status, 'planned') <> 'archived'
+                      AND concat_ws(' ', s.title, s.objective, s.notes, s.focus)
+                        ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)')
+                )
+                AND EXISTS (
+                  SELECT 1
+                  FROM public.training_exam_documentation_items i
+                  JOIN public.training_sessions selected ON selected.id = i.training_session_id
+                  WHERE i.documentation_id = d.id
+                    AND selected.team_season_id = d.team_season_id
+                    AND coalesce(selected.record_type, 'session') <> 'template'
+                    AND coalesce(selected.status, 'planned') <> 'archived'
+                );
+            `);
+            if (sourceCandidates.length !== 1) fail('The approved Staging NR6 U12 source set is not unique.');
+            const source = sourceCandidates[0];
+
+            const targets = await query(productionRef, `
+              SELECT u.id AS user_id, c.id AS club_id, t.id AS team_id, ts.id AS team_season_id
+              FROM auth.users u
+              CROSS JOIN public.clubs c
+              JOIN public.teams t ON t.club_id = c.id
+              JOIN public.team_seasons ts ON ts.team_id = t.id
+              JOIN public.seasons season ON season.id = ts.season_id
+              WHERE encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') = ${sqlText(source.creator_hash)}
+                AND encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') = ${sqlText(source.club_hash)}
+                AND encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') = ${sqlText(source.team_hash)}
+                AND encode(digest(lower(btrim(season.name)), 'sha256'), 'hex') = ${sqlText(source.season_hash)}
+                AND ${normalizedAgeSql('ts', 't')} LIKE 'u12%'
+                AND coalesce(ts.status, 'active') = 'active';
+            `);
+            if (targets.length !== 1) fail('The Production U12 destination is not unique.');
+            const target = targets[0];
+
+            const sourceSeason = sqlText(source.team_season_id);
+            const activeFilter = `team_season_id = ${sourceSeason}
+              AND coalesce(record_type, 'session') <> 'template'
+              AND coalesce(status, 'planned') <> 'archived'`;
+
+            const sessionRows = (await query(stagingRef,
+              `SELECT to_jsonb(s) AS row FROM public.training_sessions s WHERE ${activeFilter} ORDER BY s.created_at, s.id;`
+            )).map((item) => item.row);
+            if (sessionRows.length !== expectedUnits) fail('Active session count changed after preflight.');
+            const sessionIds = sessionRows.map((row) => row.id);
+
+            const linkRows = (await query(stagingRef, `
+              SELECT to_jsonb(link) AS row
+              FROM public.training_session_exercises link
+              WHERE link.training_session_id = ANY(${uuidList(sessionIds)})
+              ORDER BY link.training_session_id, link.sort_order, link.id;
+            `)).map((item) => item.row);
+            const exerciseIds = [...new Set(linkRows.map((row) => row.exercise_id))];
+            const exerciseRows = exerciseIds.length
+              ? (await query(stagingRef, `
+                  SELECT to_jsonb(e) AS row FROM public.training_exercises e
+                  WHERE e.id = ANY(${uuidList(exerciseIds)}) ORDER BY e.id;
+                `)).map((item) => item.row)
+              : [];
+            if (exerciseRows.length !== exerciseIds.length) fail('A linked Staging exercise is missing.');
+
+            const documentRows = (await query(stagingRef, `
+              SELECT to_jsonb(d) AS row FROM public.training_exam_documentations d
+              WHERE d.id = ${sqlText(source.documentation_id)}::uuid;
+            `)).map((item) => item.row);
+            if (documentRows.length !== 1) fail('The Staging NR6 documentation is missing.');
+
+            const itemRows = (await query(stagingRef, `
+              SELECT to_jsonb(i) AS row
+              FROM public.training_exam_documentation_items i
+              WHERE i.documentation_id = ${sqlText(source.documentation_id)}::uuid
+                AND i.training_session_id = ANY(${uuidList(sessionIds)})
+              ORDER BY i.sort_order, i.id;
+            `)).map((item) => item.row);
+            if (itemRows.length < 1) fail('NR6 has no active selected documentation item.');
+
+            const existing = await query(productionRef, `
+              SELECT
+                (SELECT count(*) FROM public.training_sessions WHERE id = ANY(${uuidList(sessionIds)}))::int AS sessions,
+                (SELECT count(*) FROM public.training_exercises WHERE id = ANY(${uuidList(exerciseIds)}))::int AS exercises,
+                (SELECT count(*) FROM public.training_session_exercises
+                  WHERE id = ANY(${uuidList(linkRows.map((row) => row.id))}))::int AS links;
+            `);
+            const collisions = existing[0] || {};
+            if (Number(collisions.sessions) || Number(collisions.exercises) || Number(collisions.links)) {
+              fail('Production already contains one or more source record IDs; transfer aborted without changes.');
+            }
+
+            const targetDocs = await query(productionRef, `
+              SELECT id,
+                (SELECT count(*) FROM public.training_exam_documentation_items i
+                  WHERE i.documentation_id = d.id)::int AS item_count
+              FROM public.training_exam_documentations d
+              WHERE d.team_season_id = ${sqlText(target.team_season_id)}::uuid
+                AND d.created_by = ${sqlText(target.user_id)}::uuid;
+            `);
+            if (targetDocs.length > 1) fail('Multiple Production trainer-exam documents exist for the destination.');
+            if (targetDocs.length === 1 && Number(targetDocs[0].item_count) !== 0) {
+              fail('The Production trainer-exam document already contains items; nothing was overwritten.');
+            }
+            const targetDocumentId = targetDocs[0]?.id || source.documentation_id;
+
+            const sourceClubId = String(source.club_id);
+            const targetClubId = String(target.club_id);
+            const sourceTeamId = String(source.team_id);
+            const targetTeamId = String(target.team_id);
+            const sourceUserId = String(source.user_id);
+            const targetUserId = String(target.user_id);
+
+            for (const row of exerciseRows) {
+              if (row.team_id && String(row.team_id) !== sourceTeamId) {
+                fail('A linked exercise belongs to a different Staging team.');
+              }
+              row.club_id = targetClubId;
+              row.team_id = row.team_id ? targetTeamId : null;
+              row.created_by = row.created_by ? targetUserId : null;
+              if (row.image_path) {
+                const parts = String(row.image_path).split('/');
+                const fileName = parts.at(-1) || `${crypto.randomUUID()}.webp`;
+                row.image_path = parts[0] === sourceClubId
+                  ? [targetClubId, ...parts.slice(1)].join('/')
+                  : `${targetClubId}/exercises/${row.id}/${fileName}`;
+              }
+            }
+
+            for (const row of sessionRows) {
+              row.club_id = targetClubId;
+              row.team_id = targetTeamId;
+              row.team_season_id = target.team_season_id;
+              row.event_id = null;
+              row.source_session_id = null;
+              row.template_id = null;
+              row.created_by = row.created_by ? targetUserId : null;
+              if ('completed_by' in row) row.completed_by = row.completed_by ? targetUserId : null;
+              if ('archived_by' in row) row.archived_by = null;
+            }
+
+            const documentRow = documentRows[0];
+            documentRow.id = targetDocumentId;
+            documentRow.club_id = targetClubId;
+            documentRow.team_season_id = target.team_season_id;
+            documentRow.created_by = targetUserId;
+            for (const row of itemRows) row.documentation_id = targetDocumentId;
+
+            const imageTransfers = [];
+            const sourceById = new Map(
+              (await query(stagingRef, `
+                SELECT id, image_path FROM public.training_exercises
+                WHERE id = ANY(${uuidList(exerciseIds)}) AND image_path IS NOT NULL AND btrim(image_path) <> '';
+              `)).map((row) => [String(row.id), String(row.image_path)])
+            );
+            if (sourceById.size) {
+              const [stagingKey, productionKey] = await Promise.all([
+                serviceRoleKey(stagingRef),
+                serviceRoleKey(productionRef),
+              ]);
+              for (const exercise of exerciseRows) {
+                const sourcePath = sourceById.get(String(exercise.id));
+                if (!sourcePath) continue;
+                const object = await downloadObject(stagingRef, stagingKey, sourcePath);
+                imageTransfers.push({ path: exercise.image_path, object, productionKey });
+              }
+            }
+
+            for (const image of imageTransfers) {
+              await uploadObject(productionRef, image.productionKey, image.path, image.object);
+            }
+
+            const sql = `
+              BEGIN;
+              ${recordsetInsert('training_exercises', exerciseRows)}
+              ${recordsetInsert('training_sessions', sessionRows)}
+              ${recordsetInsert('training_session_exercises', linkRows)}
+              ${targetDocs.length === 0
+                ? recordsetInsert('training_exam_documentations', [documentRow])
+                : `UPDATE public.training_exam_documentations d SET
+                    title = src.title,
+                    required_units = src.required_units,
+                    deadline = src.deadline,
+                    export_version = src.export_version,
+                    last_exported_at = src.last_exported_at,
+                    updated_at = src.updated_at,
+                    trainer_name = src.trainer_name
+                  FROM jsonb_populate_record(NULL::public.training_exam_documentations, ${jsonLiteral(documentRow)}) src
+                  WHERE d.id = ${sqlText(targetDocumentId)}::uuid;`}
+              ${recordsetInsert('training_exam_documentation_items', itemRows)}
+              COMMIT;
+            `;
+            await query(productionRef, sql);
+
+            const verification = await query(productionRef, `
+              SELECT
+                (SELECT count(*) FROM public.training_sessions s
+                  WHERE s.id = ANY(${uuidList(sessionIds)})
+                    AND s.team_season_id = ${sqlText(target.team_season_id)}::uuid
+                    AND coalesce(s.record_type, 'session') <> 'template'
+                    AND coalesce(s.status, 'planned') <> 'archived')::int AS sessions,
+                (SELECT count(*) FROM public.training_exercises e
+                  WHERE e.id = ANY(${uuidList(exerciseIds)})
+                    AND e.club_id = ${sqlText(targetClubId)}::uuid)::int AS exercises,
+                (SELECT count(*) FROM public.training_session_exercises l
+                  WHERE l.id = ANY(${uuidList(linkRows.map((row) => row.id))}))::int AS links,
+                (SELECT count(*) FROM public.training_exam_documentation_items i
+                  WHERE i.documentation_id = ${sqlText(targetDocumentId)}::uuid
+                    AND i.training_session_id = ANY(${uuidList(sessionIds)}))::int AS items;
+            `);
+            const verified = verification[0] || {};
+            if (
+              Number(verified.sessions) !== expectedUnits ||
+              Number(verified.exercises) !== exerciseRows.length ||
+              Number(verified.links) !== linkRows.length ||
+              Number(verified.items) !== itemRows.length
+            ) fail('Production verification failed after transfer.');
+
+            console.log(
+              `TRANSFER_OK active_units=${expectedUnits}` +
+              ` exercises=${exerciseRows.length}` +
+              ` links=${linkRows.length}` +
+              ` exam_items=${itemRows.length}` +
+              ` sketches=${imageTransfers.length}` +
+              ` archived_units=excluded templates=excluded nr6=verified`
+            );
+          })().catch((error) => {
+            console.error(error.message || 'Transfer failed.');
+            process.exit(1);
+          });
+          NODE
