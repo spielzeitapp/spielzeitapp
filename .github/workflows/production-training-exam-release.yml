@@ -96,7 +96,7 @@ jobs:
                 EXISTS (
                   SELECT 1 FROM information_schema.columns
                   WHERE table_schema = 'public'
-                    AND table_name = 'training_exam_documentations'
+                    AND table_name = 'training_exam_documentation_items'
                     AND column_name = 'phase_text_overrides'
                 ) AS phase_overrides;
             `);
