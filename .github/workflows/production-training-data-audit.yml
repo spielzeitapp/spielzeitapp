@@ -69,46 +69,53 @@ jobs:
             }
 
             const sourceCandidates = await query(stagingRef, `
+              WITH authorized_set AS (
+                SELECT
+                  s.team_season_id,
+                  min(s.club_id::text)::uuid AS club_id,
+                  min(s.team_id::text)::uuid AS team_id,
+                  (min(s.created_by::text) FILTER (WHERE s.title ILIKE '%Prüfung NR6%'))::uuid AS creator_id
+                FROM public.training_sessions s
+                WHERE s.record_type <> 'template'
+                  AND s.status <> 'archived'
+                GROUP BY s.team_season_id
+                HAVING count(*) = 10
+                  AND bool_or(s.title ILIKE '%Prüfung NR6%')
+              )
               SELECT
-                d.id,
+                a.team_season_id,
                 encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') AS creator_hash,
                 encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') AS club_hash,
-                encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') AS team_hash,
-                count(i.id)::int AS selected_units
-              FROM public.training_exam_documentations d
-              JOIN public.clubs c ON c.id = d.club_id
-              JOIN public.team_seasons ts ON ts.id = d.team_season_id
-              JOIN public.teams t ON t.id = ts.team_id
-              JOIN auth.users u ON u.id = d.created_by
-              JOIN public.training_exam_documentation_items i ON i.documentation_id = d.id
-              GROUP BY d.id, u.email, c.name, t.name
-              HAVING count(i.id) = 10
-              ORDER BY max(d.updated_at) DESC
+                encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') AS team_hash
+              FROM authorized_set a
+              JOIN public.clubs c ON c.id = a.club_id
+              JOIN public.teams t ON t.id = a.team_id
+              JOIN auth.users u ON u.id = a.creator_id
               LIMIT 2;
             `);
             if (!Array.isArray(sourceCandidates) || sourceCandidates.length !== 1) {
-              throw new Error(`Expected exactly one Staging documentation with 10 units, found ${sourceCandidates?.length || 0}.`);
+              throw new Error(`Expected one authorized U12 set with 10 active units including Prüfung NR6, found ${sourceCandidates?.length || 0}.`);
             }
             const source = sourceCandidates[0];
-            const sourceId = String(source.id).replace(/'/g, "''");
+            const sourceSeasonId = String(source.team_season_id).replace(/'/g, "''");
             const unitCheck = await query(stagingRef, `
               SELECT
-                count(DISTINCT i.id)::int AS selected_units,
                 count(DISTINCT s.id)::int AS sessions,
                 count(se.id)::int AS exercise_links,
                 count(DISTINCT e.id)::int AS exercises,
                 count(DISTINCT e.id) FILTER (
                   WHERE e.image_path IS NOT NULL AND btrim(e.image_path) <> ''
                 )::int AS exercises_with_images
-              FROM public.training_exam_documentation_items i
-              JOIN public.training_sessions s ON s.id = i.training_session_id
+              FROM public.training_sessions s
               LEFT JOIN public.training_session_exercises se ON se.training_session_id = s.id
               LEFT JOIN public.training_exercises e ON e.id = se.exercise_id
-              WHERE i.documentation_id = '${sourceId}';
+              WHERE s.team_season_id = '${sourceSeasonId}'
+                AND s.record_type <> 'template'
+                AND s.status <> 'archived';
             `);
             const counts = unitCheck?.[0] || {};
-            if (Number(counts.selected_units) !== 10 || Number(counts.sessions) !== 10) {
-              throw new Error('The selected documentation does not resolve to exactly 10 distinct sessions.');
+            if (Number(counts.sessions) !== 10) {
+              throw new Error(`Expected exactly 10 active Staging sessions for the exam team, found ${Number(counts.sessions) || 0}.`);
             }
 
             const creatorHash = String(source.creator_hash).replace(/'/g, "''");
