@@ -85,7 +85,8 @@ jobs:
             const p = preflight?.[0] || {};
             const required = ['clubs', 'teams', 'team_seasons', 'memberships', 'team_season_players', 'events', 'platform_guard', 'club_normalizer'];
             if (required.some((key) => !p[key])) {
-              throw new Error('Production preflight failed; required schema dependency is missing.');
+              const missing = required.filter((key) => !p[key]);
+              throw new Error(`Production preflight failed; missing schema dependencies: ${missing.join(', ')}`);
             }
 
             const sql = fs.readFileSync(
