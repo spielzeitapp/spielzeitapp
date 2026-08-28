@@ -108,7 +108,7 @@ jobs:
                   SELECT 1
                   FROM public.training_exam_documentation_items selected_item
                   JOIN public.training_sessions selected_session
-                    ON selected_session.id = selected_item.session_id
+                    ON selected_session.id = selected_item.training_session_id
                   WHERE selected_item.documentation_id = d.id
                     AND selected_session.team_season_id = d.team_season_id
                     AND coalesce(selected_session.record_type, 'session') <> 'template'
