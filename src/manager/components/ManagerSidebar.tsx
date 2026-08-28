@@ -21,6 +21,7 @@ import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 import { MANAGER_NAV_SECTIONS } from '../managerNav';
 import { navItemVisibleForWorkMode } from '../managerWorkMode';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
+import { useManagerClubModules } from '../ManagerClubModulesContext';
 
 /** Bestehende mobile App-Startseite (ohne Logout). */
 export const MANAGER_TO_APP_HOME_PATH = '/app/home';
@@ -65,6 +66,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   seasons: CalendarDays,
   video: Video,
   clubs: Shield,
+  'platform-dashboard': LayoutDashboard,
   equipment: Building2,
 };
 
@@ -98,7 +100,9 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
     onClose();
   }, [onClose]);
   const location = useLocation();
-  const { workMode } = useManagerWorkMode();
+  const { workMode, supportSession } = useManagerWorkMode();
+  const { isModuleEnabled } = useManagerClubModules();
+  const platformGlobal = workMode === 'platform_admin' && !supportSession;
 
   useEffect(() => {
     if (!open) return;
@@ -129,7 +133,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
         aria-label="Manager-Navigation"
       >
         <div className="flex h-[72px] shrink-0 items-center justify-between gap-2 border-b border-white/10 px-5 pt-[env(safe-area-inset-top)] lg:pt-0">
-          <Link to="/manager" className="flex min-w-0 items-center gap-2" onClick={closeOnNav}>
+          <Link to={platformGlobal ? '/manager/plattform' : '/manager'} className="flex min-w-0 items-center gap-2" onClick={closeOnNav}>
             <img
               src={spielzeitappHeader}
               alt="SpielzeitApp"
@@ -160,14 +164,21 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
         </div>
 
         <p className="px-5 pt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">
-          {workMode === 'trainer' ? 'Trainer' : workMode === 'platform_admin' ? 'Plattform' : 'Verein'}
+          {workMode === 'trainer' ? 'Trainer' : supportSession ? 'Support' : workMode === 'platform_admin' ? 'Plattform' : 'Verein'}
         </p>
 
         <nav className="mt-2 flex-1 overflow-y-auto px-2.5 pb-4 manager-sidebar-scroll">
-          {MANAGER_NAV_SECTIONS.filter(
-            (section) => !(workMode === 'trainer' && section.hideInTrainerMode),
-          ).map((section) => {
-            const items = section.items.filter((item) => navItemVisibleForWorkMode(item, workMode));
+          {MANAGER_NAV_SECTIONS.filter((section) => {
+            if (platformGlobal) return section.id === 'platform';
+            if (section.id === 'platform') return false;
+            return !(workMode === 'trainer' && section.hideInTrainerMode);
+          }).map((section) => {
+            const items = section.items.filter(
+              (item) =>
+                navItemVisibleForWorkMode(item, workMode) &&
+                !item.platformGlobalOnly &&
+                isModuleEnabled(item.moduleKey),
+            );
             if (items.length === 0) return null;
             return (
             <div key={section.id} className="mb-4">

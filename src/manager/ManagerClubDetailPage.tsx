@@ -4,7 +4,9 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Headphones, LockKeyhole } from 'lucide-react';
 import { useSession } from '../auth/useSession';
+import type { SessionTeamSeasonItem } from '../auth/useSession';
 import {
   adminAssignClubAdmin,
   adminAssignTeamSeasonStaff,
@@ -18,15 +20,19 @@ import {
   isPlatformAdminRole,
   restorePlatformClub,
   updatePlatformClub,
+  adminSetClubModule,
+  listClubModules,
   type AdminUserLookup,
   type ClubDetail,
   type GrantableVenue,
+  type ClubModule,
 } from '../lib/platformClubAdmin';
 import {
   formatClubTeamOptionLabel,
   formatTeamSeasonContextLabel,
 } from '../lib/seasonLifecycle';
 import { ManagerClubVenueGrantsPanel } from './ManagerClubVenueGrantsPanel';
+import { useManagerWorkMode } from './ManagerWorkModeContext';
 
 function seasonContextLabel(s: ClubDetail['team_seasons'][number]): string {
   return formatTeamSeasonContextLabel(
@@ -59,6 +65,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const navigate = useNavigate();
   const { backendRole, loading: sessionLoading } = useSession();
   const allowed = isPlatformAdminRole(backendRole);
+  const { startSupportSession } = useManagerWorkMode();
 
   const [detail, setDetail] = useState<ClubDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,14 +90,17 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [trainerLookup, setTrainerLookup] = useState<AdminUserLookup | null>(null);
   const [grantTeamSeasonId, setGrantTeamSeasonId] = useState('');
   const [grantableVenues, setGrantableVenues] = useState<GrantableVenue[]>([]);
+  const [modules, setModules] = useState<ClubModule[]>([]);
+  const [moduleBusy, setModuleBusy] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!clubId) return;
     setLoading(true);
     setError(null);
-    const res = await getPlatformClub(clubId);
+    const [res, modulesRes] = await Promise.all([getPlatformClub(clubId), listClubModules(clubId)]);
     setDetail(res.data);
-    setError(res.error);
+    setModules(modulesRes.data);
+    setError(res.error ?? modulesRes.error);
     if (res.data) {
       setEditName(res.data.name);
       setEditShort(res.data.short_name ?? '');
@@ -205,6 +215,50 @@ export function ManagerClubDetailPage(): React.ReactElement {
     setTrainerLookup(res.data);
   }
 
+  async function toggleModule(module: ClubModule) {
+    if (!clubId || module.is_core || moduleBusy) return;
+    setModuleBusy(module.module_key);
+    setError(null);
+    setSuccess(null);
+    const res = await adminSetClubModule({
+      clubId,
+      moduleKey: module.module_key,
+      enabled: !module.enabled,
+    });
+    setModuleBusy(null);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    setModules((current) =>
+      current.map((row) => row.module_key === module.module_key ? { ...row, enabled: !row.enabled } : row),
+    );
+    setSuccess(`${module.name} wurde ${module.enabled ? 'deaktiviert' : 'aktiviert'}.`);
+  }
+
+  function startClubSupport() {
+    if (!detail || detail.team_seasons.length === 0) return;
+    const supportTeamSeasons = detail.team_seasons.map((season) => ({
+      id: season.id,
+      team_id: season.team_id,
+      season_id: season.id,
+      status: season.status,
+      display_name: season.team_name,
+      age_group: season.age_group,
+      team: { id: season.team_id, name: season.team_name },
+      teams: { id: season.team_id, name: season.team_name },
+      season: { id: season.id, name: season.season_name ?? 'Saison' },
+      seasons: { id: season.id, name: season.season_name ?? 'Saison' },
+    })) as unknown as SessionTeamSeasonItem[];
+    const initial = detail.team_seasons.find((season) => season.status === 'active') ?? detail.team_seasons[0];
+    startSupportSession({
+      clubId: detail.id,
+      clubName: detail.name,
+      teamSeasons: supportTeamSeasons,
+      initialTeamSeasonId: initial.id,
+    });
+  }
+
   const deps = detail?.dependencies;
 
   return (
@@ -224,6 +278,18 @@ export function ManagerClubDetailPage(): React.ReactElement {
             </span>
             {detail.short_name ? ` · Kurzname ${detail.short_name}` : ''}
           </p>
+        ) : null}
+        {detail?.status === 'active' ? (
+          <button
+            type="button"
+            onClick={startClubSupport}
+            disabled={detail.team_seasons.length === 0}
+            className="mt-3 inline-flex min-h-[42px] items-center gap-2 rounded-full bg-slate-900 px-4 text-[13px] font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
+            title={detail.team_seasons.length === 0 ? 'Zuerst eine Mannschaft mit Saison anlegen.' : undefined}
+          >
+            <Headphones className="h-4 w-4" aria-hidden />
+            Im Supportmodus öffnen
+          </button>
         ) : null}
       </div>
 
@@ -274,6 +340,67 @@ export function ManagerClubDetailPage(): React.ReactElement {
               Speichern
             </button>
           </form>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 className="text-[16px] font-semibold text-slate-900">Module &amp; Funktionen</h2>
+                <p className="mt-1 text-[13px] text-slate-600">
+                  Grundausstattung ist immer aktiv. Zusatzmodule können für diesen Verein freigeschaltet werden.
+                </p>
+              </div>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                {modules.filter((module) => module.enabled).length}/{modules.length} aktiv
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              {(['core', 'sport', 'content', 'administration'] as const).map((category) => {
+                const categoryModules = modules.filter((module) => module.category === category);
+                if (categoryModules.length === 0) return null;
+                const label = category === 'core' ? 'Grundausstattung' : category === 'sport' ? 'Sport' : category === 'content' ? 'Kommunikation & Content' : 'Verwaltung';
+                return (
+                  <div key={category} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                    <h3 className="text-[12px] font-bold uppercase tracking-wide text-slate-500">{label}</h3>
+                    <ul className="mt-2 space-y-2">
+                      {categoryModules.map((module) => (
+                        <li key={module.module_key} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2.5">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="text-[13px] font-semibold text-slate-900">{module.name}</p>
+                              {module.availability !== 'ready' ? (
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                                  {module.availability === 'beta' ? 'Beta' : 'Demnächst'}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-0.5 text-[11px] text-slate-500">{module.description}</p>
+                          </div>
+                          {module.is_core ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                              <LockKeyhole className="h-3 w-3" aria-hidden /> Immer aktiv
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={module.enabled}
+                              aria-label={`${module.name} ${module.enabled ? 'deaktivieren' : 'aktivieren'}`}
+                              disabled={moduleBusy !== null}
+                              onClick={() => void toggleModule(module)}
+                              className={`relative h-7 w-12 shrink-0 rounded-full transition ${module.enabled ? 'bg-emerald-600' : 'bg-slate-300'} disabled:opacity-50`}
+                            >
+                              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${module.enabled ? 'left-6' : 'left-1'}`} />
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <h2 className="text-[16px] font-semibold text-slate-900">Abhängigkeiten</h2>

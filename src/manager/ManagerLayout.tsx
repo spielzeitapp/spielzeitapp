@@ -4,6 +4,7 @@ import { ManagerHeader } from './components/ManagerHeader';
 import { ManagerSidebar } from './components/ManagerSidebar';
 import { ManagerAccessGate } from './ManagerAccessGate';
 import { ManagerWorkModeProvider } from './ManagerWorkModeContext';
+import { ManagerClubModulesProvider } from './ManagerClubModulesContext';
 import { ManagerAccessDeniedBanner, ManagerRouteGuard } from './ManagerRouteGuard';
 import { useSession } from '../auth/useSession';
 import { getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
@@ -22,6 +23,7 @@ export function ManagerLayout(): React.ReactElement {
   return (
     <ManagerAccessGate>
       <ManagerWorkModeProvider>
+        <ManagerClubModulesProvider>
         <div className="manager-shell flex min-h-[100dvh] w-full min-w-0 flex-1 bg-[#F4F5F7] text-slate-900">
           <ManagerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <div className="flex min-w-0 flex-1 flex-col bg-[#F4F5F7]">
@@ -47,6 +49,7 @@ export function ManagerLayout(): React.ReactElement {
             </main>
           </div>
         </div>
+        </ManagerClubModulesProvider>
       </ManagerWorkModeProvider>
     </ManagerAccessGate>
   );

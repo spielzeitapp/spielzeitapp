@@ -192,7 +192,7 @@ export function canSwitchWorkMode(available: readonly ManagerWorkMode[]): boolea
 }
 
 export function workModeHomePath(mode: ManagerWorkMode): string {
-  if (mode === 'platform_admin') return '/manager/vereine';
+  if (mode === 'platform_admin') return '/manager/plattform';
   if (mode === 'club_admin') return '/manager/saisons';
   return '/manager';
 }
@@ -204,10 +204,24 @@ export function adminSwitchLabel(mode: ManagerWorkMode): string {
 
 /** Admin-only Manager-Routen (UI-Guard; Server bleibt maßgeblich). */
 export function isAdminOnlyManagerLocation(pathname: string, search: string): boolean {
+  if (pathname.startsWith('/manager/plattform')) return true;
   if (pathname.startsWith('/manager/vereine')) return true;
   const tab = new URLSearchParams(search).get('tab');
   if (pathname.startsWith('/manager/platzbelegung') && tab === 'facilities') return true;
   return false;
+}
+
+export function managerModuleKeyForLocation(pathname: string, search: string): string | null {
+  if (pathname === '/manager' || pathname === '/manager/dashboard') return 'dashboard';
+  if (pathname.startsWith('/manager/saisons')) return 'seasons';
+  if (pathname.startsWith('/manager/training/bibliothek')) return 'training-lib';
+  if (pathname.startsWith('/manager/training/vorlagen')) return 'training-tpl';
+  if (pathname.startsWith('/manager/training/chronik')) return 'training-chronik';
+  if (pathname.startsWith('/manager/training')) return 'training';
+  if (pathname.startsWith('/manager/platzbelegung')) {
+    return new URLSearchParams(search).get('tab') === 'facilities' ? 'venues' : 'venues';
+  }
+  return null;
 }
 
 export function navItemVisibleForWorkMode(

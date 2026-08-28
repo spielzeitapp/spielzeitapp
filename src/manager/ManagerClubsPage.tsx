@@ -185,8 +185,10 @@ export function ManagerClubsPage(): React.ReactElement {
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Mannschaften</th>
                 <th className="px-4 py-3 font-semibold">Aktive Saisonen</th>
-                <th className="px-4 py-3 font-semibold">Staff</th>
-                <th className="px-4 py-3 font-semibold">Erstellt</th>
+                <th className="px-4 py-3 font-semibold">Spieler</th>
+                <th className="px-4 py-3 font-semibold">Benutzer</th>
+                <th className="px-4 py-3 font-semibold">Module</th>
+                <th className="px-4 py-3 font-semibold">Letzte Aktivität</th>
                 <th className="px-4 py-3 font-semibold">Aktion</th>
               </tr>
             </thead>
@@ -210,11 +212,11 @@ export function ManagerClubsPage(): React.ReactElement {
                   </td>
                   <td className="px-4 py-3 text-slate-700">{row.team_count}</td>
                   <td className="px-4 py-3 text-slate-700">{row.active_season_count}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.staff_admin_count}</td>
+                  <td className="px-4 py-3 text-slate-700">{row.active_player_count}</td>
+                  <td className="px-4 py-3 text-slate-700">{row.user_count}</td>
+                  <td className="px-4 py-3 text-slate-700">{row.enabled_module_count}/{row.available_module_count}</td>
                   <td className="px-4 py-3 text-slate-600">
-                    {row.created_at
-                      ? new Date(row.created_at).toLocaleDateString('de-AT')
-                      : '—'}
+                    {row.last_activity_at ? new Date(row.last_activity_at).toLocaleDateString('de-AT') : 'Noch keine'}
                   </td>
                   <td className="px-4 py-3">
                     <Link

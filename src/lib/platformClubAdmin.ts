@@ -17,6 +17,32 @@ export type ClubListRow = {
   team_count: number;
   active_season_count: number;
   staff_admin_count: number;
+  user_count: number;
+  active_player_count: number;
+  enabled_module_count: number;
+  available_module_count: number;
+  last_activity_at: string | null;
+};
+
+export type PlatformDashboardStats = {
+  active_clubs: number;
+  archived_clubs: number;
+  teams: number;
+  active_seasons: number;
+  users: number;
+  active_players: number;
+  clubs_without_active_season: number;
+};
+
+export type ClubModule = {
+  module_key: string;
+  name: string;
+  description: string;
+  category: 'core' | 'sport' | 'content' | 'administration';
+  is_core: boolean;
+  availability: 'ready' | 'planned' | 'beta';
+  enabled: boolean;
+  sort_order: number;
 };
 
 export type ClubDependencyCounts = {
@@ -100,6 +126,11 @@ function mapListRow(raw: Record<string, unknown>): ClubListRow {
     team_count: Number(raw.team_count ?? 0),
     active_season_count: Number(raw.active_season_count ?? 0),
     staff_admin_count: Number(raw.staff_admin_count ?? 0),
+    user_count: Number(raw.user_count ?? 0),
+    active_player_count: Number(raw.active_player_count ?? 0),
+    enabled_module_count: Number(raw.enabled_module_count ?? 0),
+    available_module_count: Number(raw.available_module_count ?? 0),
+    last_activity_at: raw.last_activity_at != null ? String(raw.last_activity_at) : null,
   };
 }
 
@@ -107,13 +138,56 @@ export async function listPlatformClubs(opts?: {
   status?: 'active' | 'archived' | 'all' | null;
   search?: string | null;
 }): Promise<{ data: ClubListRow[]; error: string | null }> {
-  const { data, error } = await supabase.rpc('admin_list_clubs', {
+  const { data, error } = await supabase.rpc('admin_list_clubs_v2', {
     p_status: opts?.status ?? 'all',
     p_search: opts?.search ?? null,
   });
   if (error) return { data: [], error: rpcErrorMessage(error) };
   const rows = Array.isArray(data) ? data.map((r) => mapListRow(r as Record<string, unknown>)) : [];
   return { data: rows, error: null };
+}
+
+export async function getPlatformDashboard(): Promise<{
+  data: PlatformDashboardStats | null;
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('admin_get_platform_dashboard');
+  if (error) return { data: null, error: rpcErrorMessage(error) };
+  return { data: (data ?? null) as PlatformDashboardStats | null, error: null };
+}
+
+export async function listClubModules(
+  clubId: string,
+): Promise<{ data: ClubModule[]; error: string | null }> {
+  const { data, error } = await supabase.rpc('club_effective_modules', { p_club_id: clubId });
+  if (error) return { data: [], error: rpcErrorMessage(error) };
+  return { data: (Array.isArray(data) ? data : []) as ClubModule[], error: null };
+}
+
+export async function adminSetClubModule(input: {
+  clubId: string;
+  moduleKey: string;
+  enabled: boolean;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('admin_set_club_module', {
+    p_club_id: input.clubId,
+    p_module_key: input.moduleKey,
+    p_enabled: input.enabled,
+  });
+  return { error: error ? rpcErrorMessage(error) : null };
+}
+
+export async function adminLogSupportAccess(input: {
+  clubId: string;
+  action: 'support_started' | 'support_ended';
+  teamSeasonId?: string | null;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('admin_log_support_access', {
+    p_club_id: input.clubId,
+    p_action: input.action,
+    p_team_season_id: input.teamSeasonId ?? null,
+  });
+  return { error: error ? rpcErrorMessage(error) : null };
 }
 
 export async function getPlatformClub(
