@@ -36,14 +36,22 @@ function demoPlayerMedia(player: PlayerItem): string {
   return `/avatars/demo/demo-player-upper-${index}.webp`;
 }
 
-function playerMedia(player: PlayerItem): { src: string; isCutout: boolean } {
+function playerMedia(player: PlayerItem): { src: string; isCutout: boolean; isUpperBodyDemo: boolean } {
   const cutout = (player.cutout_url ?? "").trim();
-  if (cutout) return { src: cutout, isCutout: true };
+  if (cutout) return { src: cutout, isCutout: true, isUpperBodyDemo: false };
   const avatar = (player.avatar_url ?? "").trim();
-  if (avatar) return { src: avatar, isCutout: false };
+  if (avatar) {
+    return {
+      src: avatar,
+      isCutout: false,
+      isUpperBodyDemo: /\/demo-player-upper-\d+\.webp(?:\?|$)/i.test(avatar),
+    };
+  }
   // Bereits vorhandenes Testmotiv; wird nur verwendet, wenn Daniel noch kein Profilbild hat.
-  if (isDanielBaumann(player)) return { src: "/avatars/Dani Trans.png", isCutout: false };
-  return { src: demoPlayerMedia(player), isCutout: false };
+  if (isDanielBaumann(player)) {
+    return { src: "/avatars/Dani Trans.png", isCutout: false, isUpperBodyDemo: false };
+  }
+  return { src: demoPlayerMedia(player), isCutout: false, isUpperBodyDemo: true };
 }
 
 function playerCardName(player: PlayerItem): string {
@@ -136,16 +144,18 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
                 className={`absolute inset-0 h-full w-full transition duration-300 ${
                   media.isCutout
                     ? "origin-bottom scale-[1.55] object-contain object-bottom group-hover:scale-[1.6]"
+                    : media.isUpperBodyDemo
+                      ? "object-contain object-bottom group-hover:scale-[1.02]"
                     : "object-cover object-center group-hover:scale-[1.02]"
                 }`}
               />
-              <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
+              <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
               <div className="absolute inset-x-0 bottom-0 z-10 p-3 sm:p-4">
                 <p className="truncate text-[20px] font-black uppercase leading-none tracking-tight text-white sm:text-[24px]">
                   {playerCardName(player)}
                 </p>
                 {playerCardFamilyName(player) ? (
-                  <p className="mt-1.5 truncate text-[10px] font-black uppercase tracking-[0.14em] text-red-400 sm:text-[12px]">
+                  <p className="mt-1 truncate text-[14px] font-black uppercase leading-none tracking-[0.06em] text-white/90 sm:text-[16px]">
                     {playerCardFamilyName(player)}
                   </p>
                 ) : null}
@@ -192,7 +202,11 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
                       event.currentTarget.src = PLAYER_PLACEHOLDER;
                     }}
                     className={`h-full w-full object-bottom ${
-                      media.isCutout ? "origin-bottom scale-[1.45] object-contain" : "object-cover"
+                      media.isCutout
+                        ? "origin-bottom scale-[1.45] object-contain"
+                        : media.isUpperBodyDemo
+                          ? "object-contain"
+                          : "object-cover"
                     }`}
                   />
                 </div>
