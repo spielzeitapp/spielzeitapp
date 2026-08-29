@@ -123,8 +123,10 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = PLAYER_PLACEHOLDER;
                 }}
-                className={`absolute inset-0 h-full w-full object-center transition duration-300 group-hover:scale-[1.02] ${
-                  media.isCutout ? "object-contain" : "object-cover"
+                className={`absolute inset-0 h-full w-full transition duration-300 ${
+                  media.isCutout
+                    ? "origin-bottom scale-[1.55] object-contain object-bottom group-hover:scale-[1.6]"
+                    : "object-cover object-center group-hover:scale-[1.02]"
                 }`}
               />
               <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
@@ -177,7 +179,9 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = PLAYER_PLACEHOLDER;
                     }}
-                    className={`h-full w-full object-bottom ${media.isCutout ? "object-contain" : "object-cover"}`}
+                    className={`h-full w-full object-bottom ${
+                      media.isCutout ? "origin-bottom scale-[1.45] object-contain" : "object-cover"
+                    }`}
                   />
                 </div>
                 <span className="w-12 shrink-0 border-l border-white/10 pl-2.5 text-[25px] font-black leading-none text-white">
