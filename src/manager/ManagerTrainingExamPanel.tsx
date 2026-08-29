@@ -38,6 +38,12 @@ type SessionDetails = {
   missing: string[];
 };
 
+function isTrainingExamSchemaMissing(message: string | null | undefined): boolean {
+  if (!message) return false;
+  return /(?:42P01|PGRST205|does not exist|schema cache)/i.test(message)
+    && /training_exam_/i.test(message);
+}
+
 function formatDate(value: string | null | undefined): string {
   if (!value) return '—';
   try {
@@ -242,7 +248,7 @@ export function ManagerTrainingExamPanel({
     });
     if (result.error || !result.data) {
       setError(
-        result.error?.includes('training_exam_')
+        isTrainingExamSchemaMissing(result.error)
           ? 'Die Trainerprüfungs-Migration ist auf dieser Umgebung noch nicht angewendet.'
           : result.error ?? 'Dokumentation konnte nicht geladen werden.',
       );
