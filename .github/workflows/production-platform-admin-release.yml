@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/production-platform-admin-release.yml"
+      - "supabase/migrations/20260828043000_platform_admin_dashboard_modules.sql"
 
 permissions:
   contents: read
