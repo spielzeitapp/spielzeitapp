@@ -38,12 +38,14 @@ export const DEMO_PLAYER_AVATAR_DIR = '/avatars/demo';
 
 /**
  * Zentrale Avatar-Zuordnung über stabile Spieler-ID (aktiver Kader p01–p12).
- * Dateien: `public/avatars/demo/demo-player-pXX.webp`
+ * Vier Oberkörpermotive wechseln regelmäßig und bleiben pro Spieler stabil.
  */
 export function getDemoPlayerAvatarUrl(playerId: string | null | undefined): string | null {
   const id = String(playerId ?? '').trim();
   if (!/^p(0[1-9]|1[0-2])$/.test(id)) return null;
-  return `${DEMO_PLAYER_AVATAR_DIR}/demo-player-${id}.webp`;
+  const playerNumber = Number(id.slice(1));
+  const portraitNumber = ((playerNumber - 1) % 4) + 1;
+  return `${DEMO_PLAYER_AVATAR_DIR}/demo-player-upper-${String(portraitNumber).padStart(2, '0')}.webp`;
 }
 
 export function isDemoPlayerId(playerId: string | null | undefined): boolean {
