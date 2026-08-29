@@ -67,7 +67,7 @@ function playerCardFamilyName(player: PlayerItem): string {
   return nameParts.slice(1).join(" ") || "";
 }
 
-export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPlayerClick }) => {
+export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick }) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -111,7 +111,6 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
         aria-label="Spieler-Karussell"
       >
         {players.map((player) => {
-          const ownPlayer = ownPlayerIds.has(player.id);
           const number = player.jersey_number;
           const media = playerMedia(player);
           return (
@@ -124,11 +123,6 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(220,38,38,0.25),transparent_46%)]" aria-hidden />
               <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(239,68,68,0.15)_15px,transparent_16px)]" aria-hidden />
-              {ownPlayer ? (
-                <span className="absolute left-3 top-3 z-20 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white shadow-lg">
-                  Dein Kind
-                </span>
-              ) : null}
               {number != null ? (
                 <span className="absolute right-2.5 top-2 z-10 text-[28px] font-black leading-none text-white/12 sm:text-[34px]">
                   {number}
