@@ -114,8 +114,13 @@ jobs:
             if (Object.values(v).some((value) => value !== true)) {
               throw new Error(`Production verification failed: ${JSON.stringify(v)}`);
             }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'summary=Production training access verified\n');
             console.log('PRODUCTION_TRAINING_ACCESS_OK exercises>=9 sessions>=9 links>=27');
           })().catch((error) => {
+            const summary = String(error?.message || error)
+              .replace(/[\r\n]+/g, ' ')
+              .slice(0, 105);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `summary=${summary}\n`);
             console.error(error);
             process.exit(1);
           });
@@ -125,6 +130,7 @@ jobs:
         if: always()
         env:
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          VERIFY_SUMMARY: ${{ steps.verify.outputs.summary }}
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
@@ -133,7 +139,7 @@ jobs:
             description="Production training access verified"
           else
             state=failure
-            description="Production training access verification failed"
+            description="$VERIFY_SUMMARY"
           fi
           curl --fail-with-body --silent --show-error \
             --request POST \
@@ -141,7 +147,8 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            --data "{\"state\":\"${state}\",\"context\":\"Production database – training access\",\"description\":\"${description}\"}"
+            --data "$(jq -cn --arg state "$state" --arg description "$description" \
+              '{state:$state,context:"Production database – training access",description:$description}')"
 
       - name: Fail when verification failed
         if: steps.verify.outcome != 'success'
