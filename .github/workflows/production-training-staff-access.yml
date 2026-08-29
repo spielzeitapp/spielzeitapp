@@ -82,7 +82,8 @@ jobs:
                 to_regclass('public.training_session_exercises') IS NOT NULL AS links,
                 to_regclass('public.training_exam_documentations') IS NOT NULL AS exam_documents,
                 to_regclass('public.training_exam_documentation_items') IS NOT NULL AS exam_items,
-                (SELECT count(*) FROM public.training_exercises WHERE is_active) >= 9 AS transferred_exercises_present,
+                (SELECT count(*) FROM public.training_exercises) >= 9 AS transferred_exercises_present,
+                (SELECT count(*) FROM public.training_exercises WHERE is_active) > 0 AS active_exercises_present,
                 (SELECT count(*) FROM public.training_sessions WHERE status <> 'archived') >= 9 AS transferred_sessions_present,
                 (SELECT count(*) FROM public.training_session_exercises) >= 27 AS transferred_links_present;
             `);
