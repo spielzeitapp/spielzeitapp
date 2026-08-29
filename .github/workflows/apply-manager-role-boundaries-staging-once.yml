@@ -1,4 +1,5 @@
 name: Apply manager role boundaries to staging (one time)
+# Retry 2: explicit UUID cast in legacy backfill.
 
 on:
   push:
