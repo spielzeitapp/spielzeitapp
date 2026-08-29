@@ -1,0 +1,97 @@
+name: Apply manager role boundaries to staging (one time)
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/apply-manager-role-boundaries-staging-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Apply and verify manager role boundaries on staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm configured access token
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "SUPABASE_ACCESS_TOKEN is not available as a repository secret."
+            exit 1
+          fi
+
+      - name: Apply exact migration to staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: acbaecjzoabafbsjrzvr
+          MIGRATION_FILE: supabase/migrations/20260829090000_manager_role_assignment_boundaries.sql
+        run: |
+          jq -n --rawfile query "$MIGRATION_FILE" '{query: $query}' > migration-request.json
+          status="$(curl --silent --show-error --output migration-response.json --write-out '%{http_code}' \
+            --request POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data @migration-request.json)"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Migration request failed with HTTP $status."
+            jq -r '.message // .error // "Unknown Supabase error"' migration-response.json
+            exit 1
+          fi
+          echo "Manager role migration applied to staging project $PROJECT_REF."
+
+      - name: Verify table, RLS, RPCs and legacy backfill
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: acbaecjzoabafbsjrzvr
+        run: |
+          cat > verify.sql <<'SQL'
+          SELECT
+            to_regclass('public.club_admin_assignments')::text AS assignment_table,
+            (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.club_admin_assignments'::regclass) AS rls_enabled,
+            to_regprocedure('public.is_club_admin_for_club(uuid)') IS NOT NULL AS helper_exists,
+            to_regprocedure('public.manager_list_my_club_admin_team_seasons()') IS NOT NULL AS context_rpc_exists,
+            to_regprocedure('public.manager_lookup_staff_user_by_email(uuid,text)') IS NOT NULL AS lookup_rpc_exists,
+            to_regprocedure('public.admin_assign_club_admin(uuid,uuid)') IS NOT NULL AS club_admin_rpc_exists,
+            to_regprocedure('public.admin_assign_team_season_staff(uuid,uuid,text)') IS NOT NULL AS trainer_rpc_exists,
+            NOT EXISTS (
+              SELECT 1
+              FROM public.memberships m
+              JOIN public.team_seasons ts ON ts.id = m.team_season_id
+              JOIN public.teams t ON t.id = ts.team_id
+              WHERE lower(m.role::text) = 'admin'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM public.club_admin_assignments ca
+                  WHERE ca.club_id = t.club_id
+                    AND ca.user_id = m.user_id
+                    AND ca.is_active
+                )
+            ) AS legacy_backfill_complete;
+          SQL
+          jq -n --rawfile query verify.sql '{query: $query}' > verify-request.json
+          status="$(curl --silent --show-error --output verify-response.json --write-out '%{http_code}' \
+            --request POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data @verify-request.json)"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Verification request failed with HTTP $status."
+            jq -r '.message // .error // "Unknown Supabase error"' verify-response.json
+            exit 1
+          fi
+          jq -e '.[0].assignment_table == "club_admin_assignments"
+            and .[0].rls_enabled == true
+            and .[0].helper_exists == true
+            and .[0].context_rpc_exists == true
+            and .[0].lookup_rpc_exists == true
+            and .[0].club_admin_rpc_exists == true
+            and .[0].trainer_rpc_exists == true
+            and .[0].legacy_backfill_complete == true' verify-response.json >/dev/null
+          echo "Verified role boundaries, RLS, RPCs and legacy backfill on staging."
