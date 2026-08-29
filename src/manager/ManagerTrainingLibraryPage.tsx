@@ -4,7 +4,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { FileUp, ImagePlus, Plus, RotateCw, Search, Sparkles, Trash2, X } from 'lucide-react';
+import { FileDown, FileUp, ImagePlus, Plus, RotateCw, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 import {
@@ -43,6 +43,7 @@ import {
 import { TrainingExerciseDetailModal } from '../components/training/TrainingExerciseDetailModal';
 import { TrainingExerciseImage } from '../components/training/TrainingExerciseImage';
 import { TrainingExerciseMetaChip } from '../components/training/TrainingExerciseMetaChip';
+import { createTrainingExerciseHandoutHtml } from '../lib/trainingExerciseHandout';
 
 type FormState = {
   title: string;
@@ -174,6 +175,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [selectingId, setSelectingId] = useState<string | null>(null);
+  const [exportingExerciseId, setExportingExerciseId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [shortTextError, setShortTextError] = useState<string | null>(null);
   const [shortTextWarning, setShortTextWarning] = useState<string | null>(null);
@@ -325,6 +327,39 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
 
   const openDetail = (row: TrainingExerciseRow) => {
     setDetail(row);
+  };
+
+  const printExercise = async (row: TrainingExerciseRow) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      setToast('Die PDF-Vorschau wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
+      return;
+    }
+    printWindow.document.write('<p style="font-family:Arial;padding:24px">Einzelübungs-PDF wird erstellt…</p>');
+    setExportingExerciseId(row.id);
+    try {
+      const sketchUrl = row.image_path ? await getTrainingExerciseSketchUrl(row.image_path) : null;
+      const teamName =
+        (contextSeason?.display_name ?? '').trim()
+        || (contextSeason?.age_group ?? '').trim()
+        || contextSeason?.team?.name
+        || '';
+      const html = createTrainingExerciseHandoutHtml({
+        exercise: row,
+        sketchUrl,
+        teamName,
+        seasonName: contextSeason?.season?.name ?? '',
+      });
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      setToast('Einzelübungs-PDF wurde geöffnet.');
+    } catch (cause) {
+      printWindow.close();
+      setToast(cause instanceof Error ? cause.message : 'Einzelübungs-PDF konnte nicht erstellt werden.');
+    } finally {
+      setExportingExerciseId(null);
+    }
   };
 
   const closeCrop = () => {
@@ -903,6 +938,15 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               <>
                 <button
                   type="button"
+                  disabled={exportingExerciseId === detail.id}
+                  onClick={() => void printExercise(detail)}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  <FileDown className="h-4 w-4" aria-hidden />
+                  {exportingExerciseId === detail.id ? 'PDF wird erstellt…' : 'Übung als PDF'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => setDetail(null)}
                   className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
                 >
@@ -923,6 +967,15 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               </>
             ) : (
               <>
+                <button
+                  type="button"
+                  disabled={exportingExerciseId === detail.id}
+                  onClick={() => void printExercise(detail)}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  <FileDown className="h-4 w-4" aria-hidden />
+                  {exportingExerciseId === detail.id ? 'PDF wird erstellt…' : 'Übung als PDF'}
+                </button>
                 <button
                   type="button"
                   onClick={() => openEdit(detail)}
