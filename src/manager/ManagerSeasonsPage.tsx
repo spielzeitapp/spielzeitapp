@@ -25,6 +25,7 @@ import {
 } from '../lib/seasonTransition';
 import { SeasonTransitionWizard } from '../components/season/SeasonTransitionWizard';
 import { ManagerTrainingVenuesPanel } from './ManagerTrainingVenuesPanel';
+import { ManagerStaffAssignmentPanel } from './ManagerStaffAssignmentPanel';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import type { ManagerWorkMode } from './managerWorkMode';
 
@@ -248,6 +249,10 @@ export function ManagerSeasonsPage(): React.ReactElement {
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
           {success}
         </div>
+      ) : null}
+
+      {workMode === 'club_admin' && selectedTeamSeasonId ? (
+        <ManagerStaffAssignmentPanel teamSeasonId={selectedTeamSeasonId} />
       ) : null}
 
       {loading ? <p className="text-[13px] text-slate-400">Saisons werden geladen…</p> : null}
