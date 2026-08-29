@@ -19,7 +19,7 @@ COMMENT ON TABLE public.club_admin_assignments IS
 
 -- Bestehende Test-Zuordnungen aus dem alten memberships.role=admin-Modell verlustfrei übernehmen.
 INSERT INTO public.club_admin_assignments (club_id, user_id, assigned_by, is_active)
-SELECT DISTINCT t.club_id, m.user_id, NULL, true
+SELECT DISTINCT t.club_id, m.user_id, NULL::uuid, true
 FROM public.memberships m
 JOIN public.team_seasons ts ON ts.id = m.team_season_id
 JOIN public.teams t ON t.id = ts.team_id
