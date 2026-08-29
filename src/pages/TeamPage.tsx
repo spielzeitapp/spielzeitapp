@@ -50,7 +50,7 @@ import { useAvailabilityPermissions } from "../hooks/useAvailabilityPermissions"
 import { getOurTeamDisplayName, getOurTeamLogoUrl } from "../lib/teamLogos";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
-const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
+const TEAM_HERO_PLACEHOLDER = "/team/team-demo-u12-v2.webp";
 
 type TeamTabId = "squad" | "trainers" | "training" | "matches";
 type SquadFilterId = "active" | "paused" | "all";
@@ -963,11 +963,11 @@ export const TeamPage: React.FC = () => {
     <PageShell
       variant="subtle"
       showAtmosphere={false}
-      className="page team-page min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-36 sm:px-4 md:px-0"
-      contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl"
+      className="page team-page min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-0 pb-36 sm:px-4 md:px-0"
+      contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
       {/* Team Hero */}
-      <PremiumCard matchday showAmbientGlow className="!p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
+      <PremiumCard matchday showAmbientGlow className="!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x">
       <div className="relative aspect-[16/9] min-h-[220px] max-h-[390px] sm:min-h-[280px]">
         <img
           src={heroPhotoSrc}
@@ -1035,7 +1035,7 @@ export const TeamPage: React.FC = () => {
           </div>
           <div>
             {!isDemo && teamSeasons.length > 1 ? (
-              <label className="mt-3 block min-w-0 pl-[80px] sm:pl-[98px]">
+              <label className="mt-3 hidden min-w-0 pl-[80px] sm:block sm:pl-[98px]">
                 <span className="sr-only">Saison anzeigen</span>
                 <select
                   value={readTeamSeasonId ?? ""}
@@ -1103,7 +1103,7 @@ export const TeamPage: React.FC = () => {
       <GlassCard
         variant="subtle"
         showAmbientGlow={false}
-        className="sticky top-0 z-20 !p-1 backdrop-blur-md"
+        className="sticky top-0 z-20 mx-3 !p-1 backdrop-blur-md sm:mx-0"
       >
         {tabsReady ? (
           <PremiumTabTrack className="min-w-0">
@@ -1133,8 +1133,8 @@ export const TeamPage: React.FC = () => {
       {isDemo ? <DemoAiDisclosure className="mt-3" /> : null}
 
       {activeTab === "squad" ? (
-      <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
-        <div className="flex items-center justify-between gap-2">
+      <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-0">
           <SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
             Unser Team
           </SectionTitle>
@@ -1169,8 +1169,8 @@ export const TeamPage: React.FC = () => {
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
             <>
               {canManagePlayers ? (
-                <div className="mb-2 mt-2 space-y-2">
-                  <p className="text-xs text-white/60">
+                <div className="mb-2 mt-2 space-y-2 px-3 sm:px-0">
+                  <p className="hidden text-xs text-white/60 sm:block">
                     Pausierte Spieler bleiben gespeichert, sind aber für Eltern/Fans und Spielkader nicht sichtbar.
                   </p>
                   <PremiumTabTrack className="min-w-0">
