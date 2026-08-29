@@ -10,7 +10,7 @@ type Props = {
 };
 
 const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
-const DEMO_PLAYER_COUNT = 15;
+const DEMO_PLAYER_COUNT = 4;
 
 function isDanielBaumann(player: PlayerItem): boolean {
   return /daniel\s+baumann/i.test(
@@ -19,6 +19,9 @@ function isDanielBaumann(player: PlayerItem): boolean {
 }
 
 function stablePlayerDemoIndex(player: PlayerItem): number {
+  if (typeof player.jersey_number === "number" && Number.isFinite(player.jersey_number)) {
+    return (Math.max(1, Math.abs(Math.trunc(player.jersey_number))) - 1) % DEMO_PLAYER_COUNT + 1;
+  }
   const key = `${player.id}|${player.display_name ?? ""}`;
   let hash = 2166136261;
   for (let index = 0; index < key.length; index += 1) {
@@ -30,7 +33,7 @@ function stablePlayerDemoIndex(player: PlayerItem): number {
 
 function demoPlayerMedia(player: PlayerItem): string {
   const index = stablePlayerDemoIndex(player).toString().padStart(2, "0");
-  return `/avatars/demo/demo-player-p${index}.webp`;
+  return `/avatars/demo/demo-player-upper-${index}.webp`;
 }
 
 function playerMedia(player: PlayerItem): { src: string; isCutout: boolean } {
@@ -47,6 +50,13 @@ function playerCardName(player: PlayerItem): string {
   const firstName = (player.first_name ?? "").trim();
   if (firstName) return firstName;
   return premiumPlayerDisplayName(player).split(/\s+/)[0] || "Spieler";
+}
+
+function playerCardFamilyName(player: PlayerItem): string {
+  const lastName = (player.last_name ?? "").trim();
+  if (lastName) return lastName;
+  const nameParts = premiumPlayerDisplayName(player).trim().split(/\s+/);
+  return nameParts.slice(1).join(" ") || "";
 }
 
 export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPlayerClick }) => {
@@ -134,9 +144,11 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, ownPlayerIds, onPl
                 <p className="truncate text-[20px] font-black uppercase leading-none tracking-tight text-white sm:text-[24px]">
                   {playerCardName(player)}
                 </p>
-                <p className="mt-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-red-400 sm:text-[12px]">
-                  {number != null ? `Nr. ${number}` : "Spieler"}
-                </p>
+                {playerCardFamilyName(player) ? (
+                  <p className="mt-1.5 truncate text-[10px] font-black uppercase tracking-[0.14em] text-red-400 sm:text-[12px]">
+                    {playerCardFamilyName(player)}
+                  </p>
+                ) : null}
               </div>
             </button>
           );
