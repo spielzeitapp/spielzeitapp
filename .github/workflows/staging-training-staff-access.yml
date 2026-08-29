@@ -1,0 +1,118 @@
+name: Staging training staff access
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - ".github/workflows/staging-training-staff-access.yml"
+      - "supabase/migrations/20260829094500_training_staff_access_boundaries.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-training-staff-access
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Verify Staging, apply and validate training access
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: acbaecjzoabafbsjrzvr
+      EXPECTED_PROJECT_NAME: spielzeitapp-staging
+    steps:
+      - name: Checkout Test
+        uses: actions/checkout@v4
+
+      - name: Verify Staging, migrate and validate
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body.slice(0, 500)}`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+
+            const preflight = await query(`
+              SELECT
+                to_regclass('public.training_exercises') IS NOT NULL AS exercises,
+                to_regclass('public.training_sessions') IS NOT NULL AS sessions,
+                to_regclass('public.training_session_exercises') IS NOT NULL AS links,
+                to_regclass('public.training_exam_documentations') IS NOT NULL AS exam_documents,
+                to_regclass('public.training_exam_documentation_items') IS NOT NULL AS exam_items,
+                to_regprocedure('public.is_club_admin_for_club(uuid)') IS NOT NULL AS club_admin_guard;
+            `);
+            const p = preflight?.[0] || {};
+            const missing = Object.entries(p).filter(([, value]) => value !== true).map(([key]) => key);
+            if (missing.length) throw new Error(`Staging preflight failed; missing: ${missing.join(', ')}`);
+
+            const sql = fs.readFileSync(
+              'supabase/migrations/20260829094500_training_staff_access_boundaries.sql',
+              'utf8',
+            );
+            await query(sql);
+
+            const verification = await query(`
+              SELECT
+                to_regprocedure('public.can_manage_training_club(uuid)') IS NOT NULL AS club_helper,
+                to_regprocedure('public.can_manage_training_team_season(uuid)') IS NOT NULL AS team_helper,
+                (SELECT count(*) = 4 FROM pg_policies
+                  WHERE schemaname = 'public' AND tablename = 'training_exercises'
+                    AND coalesce(qual, '') || coalesce(with_check, '') LIKE '%can_manage_training_club%') AS exercise_policies,
+                (SELECT count(*) = 4 FROM pg_policies
+                  WHERE schemaname = 'public' AND tablename = 'training_sessions'
+                    AND coalesce(qual, '') || coalesce(with_check, '') LIKE '%can_manage_training_team_season%') AS session_policies,
+                (SELECT count(*) = 4 FROM pg_policies
+                  WHERE schemaname = 'public' AND tablename = 'training_exam_documentations'
+                    AND coalesce(qual, '') || coalesce(with_check, '') LIKE '%can_manage_training_team_season%') AS exam_policies,
+                (SELECT count(*) FROM public.training_exercises WHERE is_active) > 0 AS active_exercises_present;
+            `);
+            const v = verification?.[0] || {};
+            if (Object.values(v).some((value) => value !== true)) {
+              throw new Error(`Staging verification failed: ${JSON.stringify(v)}`);
+            }
+            console.log('STAGING_TRAINING_ACCESS_OK');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
