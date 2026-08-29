@@ -16,5 +16,12 @@ assert.match(handout, /Material/);
 assert.match(handout, /Coachingpunkte/);
 assert.match(handout, /Variationen/);
 assert.match(handout, /Drucken \/ als PDF speichern/);
+assert.match(handout, /players,/);
+assert.doesNotMatch(handout, /\$\{players\} Spieler/);
+assert.match(handout, /withoutVideoUrls/);
+assert.match(handout, /Video \$\{index \+ 1\} ansehen/);
+assert.match(handout, /margin-top: auto/);
+assert.match(handout, /font-size: 9\.2pt/);
+assert.match(page, /contextSeason\?\.team\?\.age_group/);
 
 console.log('training-exercise-handout: ok');
