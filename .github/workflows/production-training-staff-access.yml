@@ -1,0 +1,148 @@
+name: Production training staff access
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-training-staff-access.yml"
+      - "supabase/migrations/20260829094500_training_staff_access_boundaries.sql"
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: production-training-staff-access
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Verify Production, apply and validate training access
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: shxugattqatahckhspwk
+      EXPECTED_PROJECT_NAME: spielzeitapp-nsg
+    steps:
+      - name: Checkout Production
+        uses: actions/checkout@v4
+
+      - name: Verify Production, migrate and validate
+        id: verify
+        continue-on-error: true
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body.slice(0, 500)}`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+
+            const preflight = await query(`
+              SELECT
+                to_regclass('public.training_exercises') IS NOT NULL AS exercises,
+                to_regclass('public.training_sessions') IS NOT NULL AS sessions,
+                to_regclass('public.training_session_exercises') IS NOT NULL AS links,
+                to_regclass('public.training_exam_documentations') IS NOT NULL AS exam_documents,
+                to_regclass('public.training_exam_documentation_items') IS NOT NULL AS exam_items,
+                (SELECT count(*) FROM public.training_exercises WHERE is_active) >= 9 AS transferred_exercises_present,
+                (SELECT count(*) FROM public.training_sessions WHERE status <> 'archived') >= 9 AS transferred_sessions_present,
+                (SELECT count(*) FROM public.training_session_exercises) >= 27 AS transferred_links_present;
+            `);
+            const p = preflight?.[0] || {};
+            const failed = Object.entries(p).filter(([, value]) => value !== true).map(([key]) => key);
+            if (failed.length) throw new Error(`Production preflight failed: ${failed.join(', ')}`);
+
+            const sql = fs.readFileSync(
+              'supabase/migrations/20260829094500_training_staff_access_boundaries.sql',
+              'utf8',
+            );
+            await query(sql);
+
+            const verification = await query(`
+              SELECT
+                to_regprocedure('public.can_manage_training_club(uuid)') IS NOT NULL AS club_helper,
+                to_regprocedure('public.can_manage_training_team_season(uuid)') IS NOT NULL AS team_helper,
+                (SELECT count(*) = 4 FROM pg_policies
+                  WHERE schemaname = 'public' AND tablename = 'training_exercises'
+                    AND coalesce(qual, '') || coalesce(with_check, '') LIKE '%can_manage_training_club%') AS exercise_policies,
+                (SELECT count(*) = 4 FROM pg_policies
+                  WHERE schemaname = 'public' AND tablename = 'training_sessions'
+                    AND coalesce(qual, '') || coalesce(with_check, '') LIKE '%can_manage_training_team_season%') AS session_policies,
+                (SELECT count(*) = 4 FROM pg_policies
+                  WHERE schemaname = 'public' AND tablename = 'training_exam_documentations'
+                    AND coalesce(qual, '') || coalesce(with_check, '') LIKE '%can_manage_training_team_season%') AS exam_policies;
+            `);
+            const v = verification?.[0] || {};
+            if (Object.values(v).some((value) => value !== true)) {
+              throw new Error(`Production verification failed: ${JSON.stringify(v)}`);
+            }
+            console.log('PRODUCTION_TRAINING_ACCESS_OK exercises>=9 sessions>=9 links>=27');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Publish database verification status
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [ "$VERIFY_OUTCOME" = "success" ]; then
+            state=success
+            description="Production training access verified"
+          else
+            state=failure
+            description="Production training access verification failed"
+          fi
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data "{\"state\":\"${state}\",\"context\":\"Production database – training access\",\"description\":\"${description}\"}"
+
+      - name: Fail when verification failed
+        if: steps.verify.outcome != 'success'
+        run: exit 1
