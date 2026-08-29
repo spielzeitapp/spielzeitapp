@@ -902,6 +902,15 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     <>
                       <button
                         type="button"
+                        disabled={exportingExerciseId === row.id}
+                        onClick={() => void printExercise(row)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-60"
+                      >
+                        <FileDown className="h-3.5 w-3.5" aria-hidden />
+                        {exportingExerciseId === row.id ? 'PDF…' : 'PDF'}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => openEdit(row)}
                         className="rounded-full border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
                       >
