@@ -34,7 +34,13 @@ function resolvePlayerHeroTeamLine(teamName: string | null | undefined, teamSeas
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
   const combined = `${teamName ?? ""} ${parsed.team} ${teamSeasonLabel}`;
   const ageGroup = /\bU\d+\b/i.exec(combined)?.[0]?.toUpperCase() ?? "";
-  const club = ((teamName ?? "").trim() || parsed.team.replace(/\bU\d+\b/gi, "").trim() || "Team").toUpperCase();
+  const rawClub = (teamName ?? "").trim() || parsed.team || "Team";
+  const club = rawClub
+    .replace(/[–-]\s*Demo\b/gi, "")
+    .replace(/\bU\d+\b/gi, "")
+    .trim()
+    .replace(/^NSG\s+Rohrbach\b/i, "SPG Rohrbach")
+    .toUpperCase();
   return ageGroup ? `${club} · ${ageGroup}` : club;
 }
 
