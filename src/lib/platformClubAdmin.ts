@@ -330,6 +330,18 @@ export async function adminLookupUserByEmail(
   return { data: (data ?? null) as AdminUserLookup | null, error: null };
 }
 
+export async function managerLookupStaffUserByEmail(input: {
+  teamSeasonId: string;
+  email: string;
+}): Promise<{ data: AdminUserLookup | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('manager_lookup_staff_user_by_email', {
+    p_team_season_id: input.teamSeasonId,
+    p_email: input.email,
+  });
+  if (error) return { data: null, error: rpcErrorMessage(error) };
+  return { data: (data ?? null) as AdminUserLookup | null, error: null };
+}
+
 export async function adminAssignClubAdmin(input: {
   clubId: string;
   userId: string;
