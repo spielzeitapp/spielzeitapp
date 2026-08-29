@@ -17,6 +17,17 @@ CREATE INDEX IF NOT EXISTS idx_club_admin_assignments_user_active
 COMMENT ON TABLE public.club_admin_assignments IS
   'Vereinsweite Adminrechte, bewusst getrennt von memberships.role und Trainerrollen.';
 
+-- Bestehende Test-Zuordnungen aus dem alten memberships.role=admin-Modell verlustfrei übernehmen.
+INSERT INTO public.club_admin_assignments (club_id, user_id, assigned_by, is_active)
+SELECT DISTINCT t.club_id, m.user_id, NULL, true
+FROM public.memberships m
+JOIN public.team_seasons ts ON ts.id = m.team_season_id
+JOIN public.teams t ON t.id = ts.team_id
+WHERE lower(m.role::text) = 'admin'
+ON CONFLICT (club_id, user_id) DO UPDATE SET
+  is_active = true,
+  updated_at = now();
+
 ALTER TABLE public.club_admin_assignments ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS club_admin_assignments_read_authorized ON public.club_admin_assignments;
