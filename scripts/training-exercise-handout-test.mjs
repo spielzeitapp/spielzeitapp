@@ -7,6 +7,8 @@ const handout = fs.readFileSync('src/lib/trainingExerciseHandout.ts', 'utf8');
 
 assert.match(page, /createTrainingExerciseHandoutHtml/);
 assert.match(page, /Übung als PDF/);
+assert.match(page, /printExercise\(row\)/);
+assert.match(page, /exportingExerciseId === row\.id \? 'PDF…' : 'PDF'/);
 assert.match(page, /getTrainingExerciseSketchUrl/);
 assert.match(page, /contextSeason\?\.season\?\.name/);
 assert.match(handout, /@page \{ size: A4 portrait/);
