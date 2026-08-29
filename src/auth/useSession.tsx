@@ -402,7 +402,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.info('[startup] memberships fetch start');
 
       try {
-        const [dbRole, membershipsRes] = await Promise.all([
+        const [dbRole, membershipsRes, clubAdminSeasonsRes] = await Promise.all([
           fetchUserRole(authUser.id),
           supabase
             .from('memberships')
@@ -418,6 +418,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 `)
             .eq('user_id', authUser.id)
             .order('id', { ascending: true }),
+          supabase.rpc('manager_list_my_club_admin_team_seasons'),
         ]);
 
         const roleToSet = dbRole ?? null;
@@ -443,10 +444,25 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
 
         setMembershipError(null);
-        const list = ((data ?? []) as MembershipWithJoin[]).map((m) => ({
+        const regularMemberships = ((data ?? []) as MembershipWithJoin[]).map((m) => ({
           ...m,
           role: normalizeRole(m.role),
         }));
+        const clubAdminRows = clubAdminSeasonsRes.error
+          ? []
+          : ((clubAdminSeasonsRes.data ?? []) as { club_id: string; team_season_id: string }[]);
+        if (clubAdminSeasonsRes.error) {
+          console.warn(
+            '[useSession] manager_list_my_club_admin_team_seasons error:',
+            clubAdminSeasonsRes.error.message,
+          );
+        }
+        const clubAdminMemberships: MembershipWithJoin[] = clubAdminRows.map((row) => ({
+          id: `club-admin:${row.club_id}:${row.team_season_id}`,
+          role: 'admin',
+          team_season_id: row.team_season_id,
+        }));
+        const list = [...regularMemberships, ...clubAdminMemberships];
         setMemberships(list);
 
         if (list.length === 0) {
