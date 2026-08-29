@@ -339,11 +339,11 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setExportingExerciseId(row.id);
     try {
       const sketchUrl = row.image_path ? await getTrainingExerciseSketchUrl(row.image_path) : null;
-      const teamName =
-        (contextSeason?.display_name ?? '').trim()
-        || (contextSeason?.age_group ?? '').trim()
-        || contextSeason?.team?.name
-        || '';
+      const team = (contextSeason?.team?.name ?? '').trim();
+      const ageGroup = (contextSeason?.age_group ?? contextSeason?.team?.age_group ?? '').trim();
+      const teamName = [team, ageGroup && !team.toLowerCase().includes(ageGroup.toLowerCase()) ? ageGroup : '']
+        .filter(Boolean)
+        .join(' · ');
       const html = createTrainingExerciseHandoutHtml({
         exercise: row,
         sketchUrl,
