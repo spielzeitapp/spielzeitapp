@@ -32,10 +32,14 @@ type Props = {
   statusSlot?: React.ReactNode;
 };
 
-function resolvePlayerHeroTeamLine(teamName: string | null | undefined, teamSeasonLabel: string): string {
+function resolvePlayerHeroTeamHeader(
+  teamName: string | null | undefined,
+  teamSeasonLabel: string,
+): { club: string; ageGroup: string; season: string } {
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
   const combined = `${teamName ?? ""} ${parsed.team} ${teamSeasonLabel}`;
   const ageGroup = /\bU\d+\b/i.exec(combined)?.[0]?.toUpperCase() ?? "";
+  const season = /\b20\d{2}\/\d{2}\b/.exec(combined)?.[0] ?? "";
   const rawClub = (teamName ?? "").trim() || parsed.team || "Team";
   const club = rawClub
     .replace(/[–-]\s*Demo\b/gi, "")
@@ -43,7 +47,7 @@ function resolvePlayerHeroTeamLine(teamName: string | null | undefined, teamSeas
     .trim()
     .replace(/^NSG\s+Rohrbach\b/i, "SPG Rohrbach")
     .toUpperCase();
-  return ageGroup ? `${ageGroup} · ${club}` : club;
+  return { club, ageGroup, season };
 }
 
 function PlayerProfileHeroCard(props: Props) {
@@ -69,7 +73,7 @@ function PlayerProfileHeroCard(props: Props) {
 
   useProfileHeroImagePreload(cutoutUrl, photoUrl);
 
-  const teamLine = resolvePlayerHeroTeamLine(teamName, teamSeasonLabel);
+  const teamHeader = resolvePlayerHeroTeamHeader(teamName, teamSeasonLabel);
   const isUpperBodyDemo = isDemoUpperBodyPortraitUrl(heroImageSrc);
 
   return (
@@ -109,18 +113,27 @@ function PlayerProfileHeroCard(props: Props) {
 
       <div className="absolute inset-x-0 bottom-0 z-[3] h-[48%] bg-gradient-to-t from-black via-black/78 to-transparent" aria-hidden />
 
-      <div className="absolute inset-x-0 top-0 z-[4] flex items-center gap-2 p-4 sm:gap-2.5 sm:p-5">
+      <div className="absolute inset-x-0 top-0 z-[4] flex items-start justify-between gap-3 p-4 sm:p-5">
+        <div className="min-w-0 pt-0.5">
+          <p className="truncate text-[15px] font-black uppercase leading-none tracking-[0.07em] text-white sm:text-[17px]">
+            {teamHeader.club}
+          </p>
+          {teamHeader.ageGroup || teamHeader.season ? (
+            <p className="mt-1.5 text-[11px] font-black uppercase leading-none tracking-[0.12em] text-white/72 sm:text-[12px]">
+              {teamHeader.ageGroup ? <span className="text-red-400">{teamHeader.ageGroup}</span> : null}
+              {teamHeader.ageGroup && teamHeader.season ? <span className="text-white/45"> · </span> : null}
+              {teamHeader.season ? <span>{teamHeader.season}</span> : null}
+            </p>
+          ) : null}
+        </div>
         {teamLogoUrl ? (
           <img
             src={teamLogoUrl}
             alt=""
-            className="h-7 w-7 shrink-0 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:h-8 sm:w-8"
+            className="h-10 w-10 shrink-0 object-contain drop-shadow-[0_3px_10px_rgba(0,0,0,0.8)] sm:h-11 sm:w-11"
             aria-hidden
           />
         ) : null}
-        <p className="text-[13px] font-black uppercase tracking-[0.1em] text-white/90 sm:text-[14px]">
-          {teamLine}
-        </p>
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-[4] p-4 sm:p-5">
