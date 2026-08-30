@@ -33,9 +33,9 @@ import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
 import { TeamSquadShowcase } from "../components/team/TeamSquadShowcase";
+import { TeamTrainerShowcase } from "../components/team/TeamTrainerShowcase";
 import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
-import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TeamTrainingDashboard } from "../components/team/TeamTrainingDashboard";
 import { TeamTrainingPublicOverview } from "../components/team/TeamTrainingPublicOverview";
 import { SeasonMatchSummaryCard } from "../components/team/SeasonMatchSummaryCard";
@@ -1258,18 +1258,12 @@ export const TeamPage: React.FC = () => {
                   {STAFF_RPC_MIGRATION_HINT}
                 </p>
               ) : null}
-              <ul className="mt-3 w-full space-y-1.5 pb-8">
-                {staffRows.map((row) => (
-                  <li key={`${row.user_id}-${row.role}`} className="w-full">
-                    <TrainerStaffCard
-                      member={row}
-                      onClick={() =>
-                        navigate(`${basePath}/team/trainer/${encodeURIComponent(row.user_id)}`)
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
+              <TeamTrainerShowcase
+                trainers={staffRows}
+                onTrainerClick={(row) =>
+                  navigate(`${basePath}/team/trainer/${encodeURIComponent(row.user_id)}`)
+                }
+              />
             </>
           )}
         </PremiumCard>

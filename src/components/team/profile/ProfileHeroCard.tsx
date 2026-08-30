@@ -83,7 +83,7 @@ function PlayerProfileHeroCard(props: Props) {
 
       {watermark ? (
         <p
-          className="absolute left-9 top-[6.25rem] z-[1] select-none text-[clamp(8.75rem,38vw,12.5rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.115] sm:left-12 sm:top-[6.75rem]"
+          className="absolute left-9 top-[6.25rem] z-[4] select-none text-[clamp(8.75rem,38vw,12.5rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-12 sm:top-[6.75rem]"
           aria-hidden
         >
           {watermark}
@@ -113,7 +113,7 @@ function PlayerProfileHeroCard(props: Props) {
 
       <div className="absolute inset-x-0 bottom-0 z-[3] h-[48%] bg-gradient-to-t from-black via-black/78 to-transparent" aria-hidden />
 
-      <div className="absolute inset-x-0 top-0 z-[4] flex items-start justify-between gap-3 p-4 sm:p-5">
+      <div className="absolute inset-x-0 top-0 z-[5] flex items-start justify-between gap-3 p-4 sm:p-5">
         <div className="min-w-0 pt-0.5">
           <p className="truncate text-[15px] font-black uppercase leading-none tracking-[0.07em] text-white sm:text-[17px]">
             {teamHeader.club}
@@ -130,13 +130,13 @@ function PlayerProfileHeroCard(props: Props) {
           <img
             src={teamLogoUrl}
             alt=""
-            className="h-16 w-16 shrink-0 object-contain drop-shadow-[0_4px_14px_rgba(0,0,0,0.85)] sm:h-[4.5rem] sm:w-[4.5rem]"
+            className="h-20 w-20 shrink-0 object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] sm:h-24 sm:w-24"
             aria-hidden
           />
         ) : null}
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-[4] p-4 sm:p-5">
+      <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5">
         <div className="max-w-[62%] break-words text-[28px] font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] sm:text-[32px]">
           {firstNameLine ? <p>{firstNameLine}</p> : null}
           {lastNameLine ? <p>{lastNameLine}</p> : null}

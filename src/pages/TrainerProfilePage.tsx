@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ProfileCompactHeader } from "../components/team/profile/ProfileCompactHeader";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
@@ -9,6 +9,7 @@ import {
   staffDisplayName,
   staffRoleLabelDe,
   STAFF_RPC_MIGRATION_HINT,
+  useTeamStaff,
   type TeamStaffMember,
 } from "../hooks/useTeamStaff";
 import { useSeasonMatchBoard } from "../hooks/useSeasonMatchBoard";
@@ -25,6 +26,8 @@ import { useDemoMode } from "../demo/DemoContext";
 import { useInternalBasePath } from "../demo/demoPaths";
 import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
 import { getDemoStaffMember } from "../demo/demoStaff";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getOurTeamLogoUrl } from "../lib/teamLogos";
 
 function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string } {
   const first = (member.first_name ?? "").trim().toUpperCase();
@@ -63,6 +66,8 @@ export const TrainerProfilePage: React.FC = () => {
     mode: canManage ? "all" : "active",
   });
   const players = isDemo && demo ? demo.players : livePlayers;
+  const { staff: liveNavigationStaff } = useTeamStaff(isDemo ? null : teamSeasonId);
+  const navigationStaff = isDemo && demo ? demo.staff : liveNavigationStaff;
 
   const [member, setMember] = useState<TeamStaffMember | null>(null);
   const [loading, setLoading] = useState(true);
@@ -195,6 +200,22 @@ export const TrainerProfilePage: React.FC = () => {
   const roleWatermark = "TR";
   const demoAi = isDemo && Boolean(getDemoStaffMember(userId));
 
+  const currentTrainerIndex = navigationStaff.findIndex((trainer) => trainer.user_id === member?.user_id);
+  const previousTrainer = currentTrainerIndex > 0 ? navigationStaff[currentTrainerIndex - 1] : null;
+  const nextTrainer =
+    currentTrainerIndex >= 0 && currentTrainerIndex < navigationStaff.length - 1
+      ? navigationStaff[currentTrainerIndex + 1]
+      : null;
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const switchTrainer = useCallback(
+    (trainer: TeamStaffMember | null) => {
+      if (!trainer) return;
+      navigate(`${basePath}/team/trainer/${encodeURIComponent(trainer.user_id)}`, { replace: true });
+    },
+    [basePath, navigate],
+  );
+
   const goBack = () => navigate(`${basePath}/team`, { state: { tab: "trainers" } });
 
   return (
@@ -229,18 +250,57 @@ export const TrainerProfilePage: React.FC = () => {
       ) : (
         <>
           <div className="pt-2">
-            <ProfileHeroCard
-              variant="trainer"
-              watermark={roleWatermark}
-              firstNameLine={firstNameLine}
-              lastNameLine={lastNameLine}
-              teamSeasonLabel={teamSeasonLabel}
-              teamName={teamName}
-              roleLabel={staffRoleLabelDe(member.role).toUpperCase()}
-              photoUrl={avatarUrl || null}
-              cutoutUrl={member.cutout_url ?? null}
-              initials={initials}
-            />
+            <div
+              className="relative touch-pan-y"
+              onTouchStart={(event) => {
+                const touch = event.changedTouches[0];
+                swipeStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+              }}
+              onTouchEnd={(event) => {
+                const start = swipeStartRef.current;
+                swipeStartRef.current = null;
+                const touch = event.changedTouches[0];
+                if (!start || !touch) return;
+                const deltaX = touch.clientX - start.x;
+                const deltaY = touch.clientY - start.y;
+                if (Math.abs(deltaX) < 55 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+                switchTrainer(deltaX < 0 ? nextTrainer : previousTrainer);
+              }}
+            >
+              <ProfileHeroCard
+                variant="trainer"
+                watermark={roleWatermark}
+                firstNameLine={firstNameLine}
+                lastNameLine={lastNameLine}
+                teamSeasonLabel={teamSeasonLabel}
+                teamName={teamName}
+                teamLogoUrl={getOurTeamLogoUrl()}
+                roleLabel={staffRoleLabelDe(member.role).toUpperCase()}
+                photoUrl={avatarUrl || null}
+                cutoutUrl={member.cutout_url ?? null}
+                initials={initials}
+              />
+              {previousTrainer ? (
+                <button
+                  type="button"
+                  onClick={() => switchTrainer(previousTrainer)}
+                  aria-label={`Vorheriger Trainer: ${staffDisplayName(previousTrainer)}`}
+                  className="absolute left-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm active:scale-95"
+                >
+                  <ChevronLeft className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+                </button>
+              ) : null}
+              {nextTrainer ? (
+                <button
+                  type="button"
+                  onClick={() => switchTrainer(nextTrainer)}
+                  aria-label={`Nächster Trainer: ${staffDisplayName(nextTrainer)}`}
+                  className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm active:scale-95"
+                >
+                  <ChevronRight className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+                </button>
+              ) : null}
+            </div>
 
             {teamSeasonId ? (
               <TrainerProfileBody
