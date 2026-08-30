@@ -69,9 +69,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
           const endX = event.changedTouches[0]?.clientX ?? start.x;
           if (endX - start.x > 45) onSwipePastStart();
         }}
-        className={`flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-5 ${
-          trainers.length === 1 ? "justify-center" : ""
-        }`}
+        className="flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-5"
         aria-label="Trainer-Karussell"
       >
         {trainers.map((trainer) => {
@@ -106,12 +104,12 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
                 </div>
               )}
               <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-black via-black/80 to-transparent" aria-hidden />
-              <div className="absolute inset-x-0 bottom-0 z-10 p-4">
-                <p className="text-[22px] font-black uppercase leading-[0.92] tracking-tight text-white sm:text-[25px]">
+              <div className="absolute inset-x-0 bottom-7 z-10 p-3 sm:bottom-0 sm:p-4">
+                <p className="truncate text-[20px] font-black uppercase leading-none tracking-tight text-white sm:text-[24px]">
                   {nameParts[0] || "Trainer"}
                 </p>
                 {nameParts.length > 1 ? (
-                  <p className="mt-1 text-[16px] font-black uppercase leading-none tracking-[0.04em] text-white/92 sm:text-[18px]">
+                  <p className="mt-1 truncate text-[14px] font-black uppercase leading-none tracking-[0.06em] text-white/90 sm:text-[16px]">
                     {nameParts.slice(1).join(" ")}
                   </p>
                 ) : null}
@@ -132,7 +130,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
         </button>
       ) : null}
 
-      {trainers.length > 1 ? (
+      {trainers.length > 0 ? (
         <div className="mb-3 mt-1 flex justify-center gap-1.5" aria-label="Trainer auswählen">
           {trainers.map((trainer, index) => (
             <button
