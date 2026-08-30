@@ -981,7 +981,7 @@ export const TeamPage: React.FC = () => {
     >
       {/* Team Hero */}
       <PremiumCard matchday showAmbientGlow className="!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x">
-      <div className="relative aspect-[16/9] min-h-[220px] max-h-[390px] sm:min-h-[280px]">
+      <div className="relative h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
         <img
           src={heroPhotoSrc}
           alt=""

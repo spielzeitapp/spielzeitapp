@@ -182,7 +182,7 @@ export const BottomNav: React.FC = () => {
       data-app-bottom-nav
       className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pb-1 pt-2 sm:px-5"
       style={{
-        paddingBottom: 'max(0.25rem, calc(env(safe-area-inset-bottom, 0px) - 0.75rem))',
+        paddingBottom: 'max(0.125rem, calc(env(safe-area-inset-bottom, 0px) - 1.5rem))',
       }}
       aria-label="Hauptnavigation"
     >
