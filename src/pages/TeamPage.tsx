@@ -1261,9 +1261,9 @@ export const TeamPage: React.FC = () => {
       ) : null}
 
       {activeTab === "trainers" ? (
-        <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
-          <div className="flex items-center justify-between gap-2">
-            <SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
+        <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
+          <div className="flex items-center justify-between gap-2 px-3 sm:px-0">
+            <SectionTitle as="h2" className="shrink-0 [&>h2]:whitespace-nowrap [&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
               Unsere Trainer
             </SectionTitle>
             {teamSeasonId != null && canManagePlayers && !isDemo && !staffLoading ? (
@@ -1271,7 +1271,7 @@ export const TeamPage: React.FC = () => {
                 type="button"
                 variant="interactive"
                 onClick={trainerEditor.openCreateTrainerForm}
-                className="!min-h-[40px] shrink-0 !px-3 !py-2 !text-sm"
+                className="!min-h-[34px] shrink-0 !px-2.5 !py-1.5 !text-[11px]"
               >
                 + Trainer hinzufügen
               </PremiumButton>
