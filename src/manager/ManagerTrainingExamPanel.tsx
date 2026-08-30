@@ -678,6 +678,7 @@ export function ManagerTrainingExamPanel({
                   {!ready && sessionDetails ? <p className="mt-2 text-[11px] leading-5 text-amber-800">{missing.slice(0, 4).join(' · ')}{missing.length > 4 ? ` · +${missing.length - 4} weitere` : ''}</p> : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <Link to={`/manager/training/einheiten/${session.id}?view=training&returnTo=${encodeURIComponent('/manager/training/einheiten?tab=exam')}`} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"><Eye className="h-4 w-4" aria-hidden />Ansehen</Link>
                   <Link to={`/manager/training/einheiten/${session.id}?returnTo=${encodeURIComponent('/manager/training/einheiten?tab=exam')}`} className="inline-flex min-h-[40px] items-center rounded-xl border border-slate-200 px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">Bearbeiten</Link>
                   <button type="button" onClick={() => void removeItem(item)} disabled={saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-600 disabled:opacity-30" aria-label="Aus Dokumentation entfernen"><Trash2 className="h-4 w-4" aria-hidden /></button>
                 </div>

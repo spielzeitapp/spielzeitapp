@@ -47,6 +47,7 @@ import { listTrainingTemplates, updateExerciseReview } from '../lib/trainingSess
 import { TRAINING_EXERCISE_REVIEW_LABELS, type TrainingExerciseReviewStatus } from '../lib/trainingPhases';
 import { downloadTrainingSessionWord } from '../lib/trainingSessionWordExport';
 import { createTrainingSessionHandoutHtml } from '../lib/trainingSessionHandout';
+import { createTrainingExerciseHandoutHtml } from '../lib/trainingExerciseHandout';
 import { TrainingExerciseDetailModal } from '../components/training/TrainingExerciseDetailModal';
 import { TrainingSessionExerciseCard } from '../components/training/TrainingSessionExerciseCard';
 
@@ -118,6 +119,7 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   const [docMode, setDocMode] = useState(false);
   const [exportingWord, setExportingWord] = useState(false);
   const [exportingHandout, setExportingHandout] = useState(false);
+  const [exportingExerciseId, setExportingExerciseId] = useState<string | null>(null);
   const [planChangeOpen, setPlanChangeOpen] = useState(false);
   const [planChangeLoading, setPlanChangeLoading] = useState(false);
   const [replacementPlans, setReplacementPlans] = useState<TrainingSessionRow[]>([]);
@@ -588,6 +590,46 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     }
   }
 
+  async function printExercise(exercise: TrainingExerciseRow) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      setError('Die PDF-Vorschau wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
+      return;
+    }
+    printWindow.document.write('<p style="font-family:Arial;padding:24px">Einzelübungs-PDF wird erstellt…</p>');
+    setExportingExerciseId(exercise.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const sketchUrl = exercise.image_path
+        ? await getTrainingExerciseSketchUrl(exercise.image_path)
+        : null;
+      const team = (contextSeason?.team?.name ?? '').trim();
+      const ageGroup = (contextSeason?.age_group ?? contextSeason?.team?.age_group ?? '').trim();
+      const teamName = [
+        team,
+        ageGroup && !team.toLowerCase().includes(ageGroup.toLowerCase()) ? ageGroup : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      const html = createTrainingExerciseHandoutHtml({
+        exercise,
+        sketchUrl,
+        teamName,
+        seasonName: contextSeason?.season?.name ?? '',
+      });
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      setSuccess('Einzelübungs-PDF wurde geöffnet.');
+    } catch (cause) {
+      printWindow.close();
+      setError(cause instanceof Error ? cause.message : 'Einzelübungs-PDF konnte nicht erstellt werden.');
+    } finally {
+      setExportingExerciseId(null);
+    }
+  }
+
   async function moveItem(item: TrainingSessionExerciseRow, dir: -1 | 1) {
     const list = byPhase[item.phase];
     const idx = list.findIndex((x) => x.id === item.id);
@@ -646,7 +688,9 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
       ? new URLSearchParams({
           view: 'training',
           exerciseItem: item.id,
-          ...(safeReturnTo ? { returnTo: safeReturnTo } : {}),
+          ...((safeManagerReturnTo ?? safeReturnTo)
+            ? { returnTo: (safeManagerReturnTo ?? safeReturnTo)! }
+            : {}),
         })
       : null;
     const editorReturnTo = `/manager/training/einheiten/${session.id}${
@@ -660,6 +704,10 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
   };
 
   const closeTrainingView = () => {
+    if (safeManagerReturnTo) {
+      navigate(safeManagerReturnTo);
+      return;
+    }
     if (safeReturnTo) {
       navigate(safeReturnTo);
       return;
@@ -672,7 +720,9 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
     const trainingViewParams = new URLSearchParams({
       view: 'training',
       exerciseItem: item.id,
-      ...(safeReturnTo ? { returnTo: safeReturnTo } : {}),
+      ...((safeManagerReturnTo ?? safeReturnTo)
+        ? { returnTo: (safeManagerReturnTo ?? safeReturnTo)! }
+        : {}),
     });
     const libraryReturnTo = `/manager/training/einheiten/${session.id}?${trainingViewParams.toString()}`;
     const libraryParams = new URLSearchParams({
@@ -1144,7 +1194,11 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                     onClick={closeTrainingView}
                     className="text-[14px] font-semibold text-red-700"
                   >
-                    {safeReturnTo ? '← Trainingscenter' : 'Schließen'}
+                    {safeManagerReturnTo
+                      ? '← Trainerprüfung'
+                      : safeReturnTo
+                        ? '← Trainingscenter'
+                        : 'Schließen'}
                   </button>
                   <span className="text-[12px] text-slate-500">
                     {mobileIndex + 1} / {mobileItems.length}
@@ -1158,6 +1212,24 @@ export function ManagerTrainingSessionEditorPage(): React.ReactElement {
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[14px] text-slate-600">{it.duration_minutes} Minuten</p>
                     <div className="flex flex-wrap gap-2">
+                      {ex ? (
+                        <button
+                          type="button"
+                          disabled={exportingExerciseId === ex.id}
+                          onClick={() => void printExercise(ex)}
+                          className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          {exportingExerciseId === ex.id ? 'PDF wird erstellt…' : 'Einzelübung PDF'}
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        disabled={exportingHandout || items.length === 0}
+                        onClick={() => void printHandout()}
+                        className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        {exportingHandout ? 'Handout wird erstellt…' : 'A4-Handout'}
+                      </button>
                       <button
                         type="button"
                         disabled={saving || seasonArchived}
