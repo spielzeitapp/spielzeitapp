@@ -70,15 +70,15 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
         {watermark || "TR"}
       </p>
 
-      <div className="absolute inset-0 z-[2] flex items-end justify-end overflow-hidden" aria-hidden>
+      <div className="absolute inset-0 z-[2] flex items-end justify-center overflow-hidden" aria-hidden>
         {heroImageSrc && imageOk ? (
           <img
             src={heroImageSrc}
             alt=""
             className={`h-full origin-bottom object-bottom ${
               cutoutSrc
-                ? "w-[72%] translate-x-[6%] translate-y-[2%] object-contain sm:w-[70%] sm:translate-x-[4%]"
-                : "w-[72%] translate-x-[6%] translate-y-[2%] object-contain sm:w-[70%] sm:translate-x-[4%]"
+                ? "w-[72%] -translate-x-[3%] translate-y-[2%] object-contain sm:w-[70%] sm:-translate-x-[2%]"
+                : "w-[72%] -translate-x-[3%] translate-y-[2%] object-contain sm:w-[70%] sm:-translate-x-[2%]"
             }`}
             onError={() => setImageOk(false)}
           />

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { staffDisplayName, type TeamStaffMember } from "../../hooks/useTeamStaff";
 
 type Props = {
@@ -53,7 +53,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
   };
 
   return (
-    <div className="mt-3">
+    <div className="relative mt-3">
       <div
         ref={sliderRef}
         onScroll={updateActiveCard}
@@ -120,6 +120,17 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
           );
         })}
       </div>
+
+      {onSwipePastStart ? (
+        <button
+          type="button"
+          onClick={() => (activeIndex > 0 ? scrollToCard(activeIndex - 1) : onSwipePastStart())}
+          className="absolute left-1 top-[7.25rem] z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/65 text-white/85 shadow-lg backdrop-blur-sm transition active:scale-95 sm:left-2 sm:top-[8.75rem]"
+          aria-label={activeIndex > 0 ? "Vorherigen Trainer anzeigen" : "Zurück zum Kader"}
+        >
+          <ChevronLeft className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+        </button>
+      ) : null}
 
       {trainers.length > 1 ? (
         <div className="mb-3 mt-1 flex justify-center gap-1.5" aria-label="Trainer auswählen">

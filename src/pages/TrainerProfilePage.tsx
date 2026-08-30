@@ -220,7 +220,7 @@ export const TrainerProfilePage: React.FC = () => {
 
   return (
     <div
-      className="mx-auto w-full max-w-lg min-w-0 overflow-x-hidden px-3 pt-0 sm:px-4"
+      className="relative left-1/2 w-screen max-w-lg min-w-0 -translate-x-1/2 overflow-x-hidden px-3 pt-0 sm:px-4"
       style={{ paddingBottom: `calc(${APP_BOTTOM_SCROLL_PAD})` }}
     >
       <ProfileCompactHeader title="Trainerprofil" onBack={goBack} backLabel="Zurück zum Team" />
