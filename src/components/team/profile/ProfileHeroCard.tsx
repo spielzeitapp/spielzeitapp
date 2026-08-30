@@ -102,7 +102,7 @@ function PlayerProfileHeroCard(props: Props) {
             alt=""
             className={`h-full w-full object-bottom ${
               cutoutSrc
-                ? "origin-bottom translate-x-[9%] scale-[1.22] object-contain sm:translate-x-[7%]"
+                ? "origin-bottom translate-x-[9%] translate-y-[3%] scale-[1.08] object-contain sm:translate-x-[7%]"
                 : isUpperBodyDemo
                   ? "translate-x-[9%] object-contain sm:translate-x-[7%]"
                   : "object-cover object-[62%_top]"
