@@ -17,16 +17,17 @@ function buildTeamSeasonParts(row: {
   teamName: string;
   ageGroup: string;
   seasonName: string;
+  displayName?: string;
 }): { teamTitle: string; seasonTitle: string } {
-  const nameNorm = row.teamName.replace(/\s+/g, ' ').trim();
+  const nameNorm = (row.displayName || row.teamName).replace(/\s+/g, ' ').trim();
   const ageNorm = row.ageGroup.replace(/\s+/g, ' ').trim();
+  const nameWithoutAge = nameNorm.replace(/^u\d{1,2}\b\s*/i, '').trim();
   const alreadyStartsWithAge =
-    (ageNorm && nameNorm && nameNorm.toLowerCase().startsWith(ageNorm.toLowerCase())) ||
-    (nameNorm && /^u\d{1,2}\b/i.test(nameNorm));
+    ageNorm && nameNorm && nameNorm.toLowerCase().startsWith(ageNorm.toLowerCase());
   const teamTitle = (
     alreadyStartsWithAge
       ? nameNorm
-      : [ageNorm, nameNorm].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
+      : [ageNorm, nameWithoutAge].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
   ) || 'Team';
   const seasonTitle = row.seasonName.trim() || 'Aktuelle Saison';
   return { teamTitle, seasonTitle };
@@ -36,7 +37,7 @@ export const FanOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [teamSeasons, setTeamSeasons] = useState<TeamSeasonOption[]>([]);
-  const [selectedTeamSeasonId, setSelectedTeamSeasonId] = useState<string>('');
+  const [selectedTeamSeasonIds, setSelectedTeamSeasonIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -67,7 +68,9 @@ export const FanOnboardingPage: React.FC = () => {
 
       const { data: teamSeasonRows, error: tsError } = await supabase
         .from('team_seasons')
-        .select('id, team_id, season_id');
+        .select('id, team_id, season_id, display_name, age_group')
+        .eq('status', 'active')
+        .is('archived_at', null);
 
       if (!alive) return;
 
@@ -125,13 +128,16 @@ export const FanOnboardingPage: React.FC = () => {
         id: string;
         team_id?: string;
         season_id?: string;
+        display_name?: string;
+        age_group?: string;
       }) => {
         const team = teamById.get(String(row.team_id ?? '')) ?? { name: 'Team', ageGroup: '' };
         const seasonName = seasonById.get(String(row.season_id ?? '')) ?? '';
         const { teamTitle, seasonTitle } = buildTeamSeasonParts({
           teamName: team.name,
-          ageGroup: team.ageGroup,
+          ageGroup: String(row.age_group ?? '').trim() || team.ageGroup,
           seasonName,
+          displayName: String(row.display_name ?? '').trim(),
         });
         return {
           id: String(row.id),
@@ -144,9 +150,6 @@ export const FanOnboardingPage: React.FC = () => {
       opts.sort((a, b) => a.label.localeCompare(b.label, 'de'));
 
       setTeamSeasons(opts);
-      if (opts.length > 0) {
-        setSelectedTeamSeasonId(opts[0].id);
-      }
       setLoading(false);
     }
 
@@ -164,8 +167,8 @@ export const FanOnboardingPage: React.FC = () => {
   }, []);
 
   const handleSave = async () => {
-    if (!userId || !selectedTeamSeasonId) {
-      const msg = 'Bitte Team / Saison auswählen.';
+    if (!userId || selectedTeamSeasonIds.length === 0) {
+      const msg = 'Bitte mindestens ein Team auswählen.';
       setError(msg);
       return;
     }
@@ -176,11 +179,11 @@ export const FanOnboardingPage: React.FC = () => {
     const membershipRes = await supabase
       .from('memberships')
       .upsert(
-        {
+        selectedTeamSeasonIds.map((teamSeasonId) => ({
           user_id: userId,
-          team_season_id: selectedTeamSeasonId,
+          team_season_id: teamSeasonId,
           role: 'fan',
-        },
+        })),
         { onConflict: 'user_id,team_season_id' },
       )
       .select('user_id, team_season_id, role');
@@ -252,16 +255,22 @@ export const FanOnboardingPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-2.5" role="listbox" aria-label="Team / Saison auswählen">
+            <div className="space-y-2.5" role="group" aria-label="Teams und Saisonen auswählen">
               {teamSeasons.map((ts) => {
-                const selected = ts.id === selectedTeamSeasonId;
+                const selected = selectedTeamSeasonIds.includes(ts.id);
                 return (
                   <button
                     key={ts.id}
                     type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() => setSelectedTeamSeasonId(ts.id)}
+                    role="checkbox"
+                    aria-checked={selected}
+                    onClick={() =>
+                      setSelectedTeamSeasonIds((current) =>
+                        current.includes(ts.id)
+                          ? current.filter((id) => id !== ts.id)
+                          : [...current, ts.id],
+                      )
+                    }
                     className={cn(
                       'w-full rounded-2xl border p-4 text-left transition-[border-color,background,box-shadow,transform] duration-150',
                       'min-h-[4.75rem] active:scale-[0.99]',
@@ -299,7 +308,7 @@ export const FanOnboardingPage: React.FC = () => {
           <div className="sticky bottom-0 mt-4 shrink-0 border-t border-white/6 bg-[rgba(6,6,8,0.82)] pt-4 backdrop-blur-xl">
             <button
               type="button"
-              disabled={saving || saved || !selectedTeamSeasonId}
+              disabled={saving || saved || selectedTeamSeasonIds.length === 0}
               onClick={() => {
                 void handleSave();
               }}
@@ -316,7 +325,7 @@ export const FanOnboardingPage: React.FC = () => {
                   Wird gespeichert…
                 </>
               ) : (
-                'Team verfolgen'
+                selectedTeamSeasonIds.length > 1 ? 'Teams verfolgen' : 'Team verfolgen'
               )}
             </button>
           </div>
