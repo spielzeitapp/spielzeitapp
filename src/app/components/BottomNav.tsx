@@ -51,6 +51,7 @@ function NavItem({
   liveMatchActive,
   badgeCount,
   onReclick,
+  accent = ACCENT,
 }: {
   to: string;
   end?: boolean;
@@ -61,6 +62,7 @@ function NavItem({
   liveMatchActive?: boolean;
   badgeCount?: number;
   onReclick?: () => void;
+  accent?: string;
 }) {
   const base = navAssetBase();
   const { pathname } = useLocation();
@@ -90,7 +92,7 @@ function NavItem({
             {badgeCount != null && badgeCount > 0 ? (
               <div
                 className="pointer-events-none absolute right-0 top-0 z-[3] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#0a0a0a]"
-                style={{ backgroundColor: ACCENT }}
+                style={{ backgroundColor: accent }}
               >
                 {badgeCount > 99 ? '99+' : badgeCount}
               </div>
@@ -128,7 +130,7 @@ function NavItem({
               'mt-1 h-1 w-5 shrink-0 rounded-[2px] transition-opacity duration-200',
               isActive ? 'opacity-100 shadow-[0_0_14px_rgba(255,45,45,0.42)]' : 'bg-transparent opacity-0',
             ].join(' ')}
-            style={isActive ? { backgroundColor: ACCENT, height: '4px', width: '20px' } : undefined}
+            style={isActive ? { backgroundColor: accent, height: '4px', width: '20px' } : undefined}
             aria-hidden
           />
         </>
@@ -147,6 +149,8 @@ export const BottomNav: React.FC = () => {
   const unreadCount = useUnreadCount(user?.id);
   const termineNavLabel = normalizeRole(effectiveRole) === 'fan' ? 'Spielplan' : 'Termine';
   const isDemo = Boolean(demo) || pathname.startsWith('/demo');
+  const isMelkDemo = isDemo && searchParams.get('club') === 'sc-melk';
+  const navAccent = isMelkDemo ? '#FACC15' : ACCENT;
   const appTabsResolved =
     termineNavLabel === 'Termine'
       ? appTabs
@@ -198,8 +202,9 @@ export const BottomNav: React.FC = () => {
         <div
           className="pointer-events-none absolute inset-0 rounded-[28px]"
           style={{
-            background:
-              'linear-gradient(180deg, rgba(255,45,45,0.12) 0%, rgba(255,30,30,0.04) 28%, transparent 48%)',
+            background: isMelkDemo
+              ? 'linear-gradient(180deg, rgba(37,99,235,0.18) 0%, rgba(30,64,175,0.06) 28%, transparent 48%)'
+              : 'linear-gradient(180deg, rgba(255,45,45,0.12) 0%, rgba(255,30,30,0.04) 28%, transparent 48%)',
           }}
           aria-hidden
         />
@@ -228,6 +233,7 @@ export const BottomNav: React.FC = () => {
               liveMatchActive={t.live ? liveActiveForNav : false}
               badgeCount={t.to === '/app/mehr' || t.to === '/demo/mehr' ? mehrBadge : undefined}
               onReclick={t.live ? handleLiveTabReclick : undefined}
+              accent={navAccent}
             />
           ))}
         </div>

@@ -10,6 +10,7 @@ type Props = {
   ownPlayerIds: Set<string>;
   onPlayerClick: (player: PlayerItem) => void;
   onSwipePastEnd?: () => void;
+  clubTheme?: "default" | "melk";
 };
 
 const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
@@ -46,8 +47,14 @@ function playerCardFamilyName(player: PlayerItem): string {
   return nameParts.slice(1).join(" ") || "";
 }
 
-export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onSwipePastEnd }) => {
+export const TeamSquadShowcase: React.FC<Props> = ({
+  players,
+  onPlayerClick,
+  onSwipePastEnd,
+  clubTheme = "default",
+}) => {
   const demo = useDemoMode();
+  const isMelk = clubTheme === "melk";
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const swipeStartRef = useRef<{ x: number; atEnd: boolean } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -116,10 +123,28 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               data-showcase-card
               type="button"
               onClick={() => onPlayerClick(player)}
-              className="group relative aspect-[4/5] w-[42vw] min-w-[148px] max-w-[172px] shrink-0 snap-start overflow-hidden rounded-[18px] border border-red-500/35 bg-[linear-gradient(145deg,#171719_0%,#080809_52%,#20090b_100%)] text-left shadow-[0_12px_30px_rgba(0,0,0,0.42)] transition active:scale-[0.985] sm:w-[210px] sm:max-w-[210px] sm:rounded-[22px]"
+              className={`group relative aspect-[4/5] w-[42vw] min-w-[148px] max-w-[172px] shrink-0 snap-start overflow-hidden rounded-[18px] border text-left shadow-[0_12px_30px_rgba(0,0,0,0.42)] transition active:scale-[0.985] sm:w-[210px] sm:max-w-[210px] sm:rounded-[22px] ${
+                isMelk
+                  ? "border-blue-500/55 bg-[linear-gradient(145deg,#101b34_0%,#070b14_52%,#06152e_100%)]"
+                  : "border-red-500/35 bg-[linear-gradient(145deg,#171719_0%,#080809_52%,#20090b_100%)]"
+              }`}
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(220,38,38,0.25),transparent_46%)]" aria-hidden />
-              <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(239,68,68,0.15)_15px,transparent_16px)]" aria-hidden />
+              <div
+                className={`absolute inset-0 ${
+                  isMelk
+                    ? "bg-[radial-gradient(circle_at_76%_28%,rgba(37,99,235,0.32),transparent_46%)]"
+                    : "bg-[radial-gradient(circle_at_76%_28%,rgba(220,38,38,0.25),transparent_46%)]"
+                }`}
+                aria-hidden
+              />
+              <div
+                className={`absolute inset-0 opacity-20 ${
+                  isMelk
+                    ? "[background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(250,204,21,0.18)_15px,transparent_16px)]"
+                    : "[background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(239,68,68,0.15)_15px,transparent_16px)]"
+                }`}
+                aria-hidden
+              />
               {number != null ? (
                 <span className="absolute right-2.5 top-2 z-10 text-[28px] font-black leading-none text-white/12 sm:text-[34px]">
                   {number}
@@ -164,7 +189,9 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               type="button"
               onClick={() => scrollToCard(index)}
               className={`h-2 rounded-full transition-all ${
-                activeIndex === index ? "w-5 bg-red-500" : "w-2 bg-white/25 hover:bg-white/45"
+                activeIndex === index
+                  ? `w-5 ${isMelk ? "bg-yellow-400" : "bg-red-500"}`
+                  : "w-2 bg-white/25 hover:bg-white/45"
               }`}
               aria-label={`${premiumPlayerDisplayName(player)} anzeigen`}
               aria-current={activeIndex === index ? "true" : undefined}
@@ -182,7 +209,9 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               <button
                 type="button"
                 onClick={() => onPlayerClick(player)}
-                className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-white/10 bg-[linear-gradient(100deg,rgba(24,24,27,0.98),rgba(9,9,11,0.99))] px-2.5 text-left shadow-[0_7px_20px_rgba(0,0,0,0.24)] transition hover:border-red-500/30 hover:bg-white/[0.06] active:scale-[0.99]"
+                className={`flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border bg-[linear-gradient(100deg,rgba(24,24,27,0.98),rgba(9,9,11,0.99))] px-2.5 text-left shadow-[0_7px_20px_rgba(0,0,0,0.24)] transition hover:bg-white/[0.06] active:scale-[0.99] ${
+                  isMelk ? "border-blue-500/20 hover:border-blue-400/45" : "border-white/10 hover:border-red-500/30"
+                }`}
               >
                 <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
                   <img
