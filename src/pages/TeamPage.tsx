@@ -1078,11 +1078,11 @@ export const TeamPage: React.FC = () => {
             </div>
           ) : null}
           <div className="flex items-end gap-3 sm:gap-4">
-            <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/60 p-1.5 shadow-2xl backdrop-blur-sm sm:h-[82px] sm:w-[82px]">
+            <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
               <img
                 src={isMelkDemo ? DEMO_MELK_LOGO_URL : getOurTeamLogoUrl()}
                 alt={isMelkDemo ? "SC Melk Wappen" : "SPG Rohrbach Wappen"}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]"
               />
             </div>
             <div className="min-w-0 flex-1 pb-1">
