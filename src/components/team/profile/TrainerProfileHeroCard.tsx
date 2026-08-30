@@ -64,7 +64,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
       <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgba(239,68,68,0.14)_17px,transparent_18px)]" aria-hidden />
 
       <p
-        className="absolute left-9 top-[6.25rem] z-[4] select-none text-[clamp(6.75rem,30vw,9.75rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.18] sm:left-12 sm:top-[6.75rem]"
+        className="absolute left-9 top-[6.5rem] z-[4] select-none text-[clamp(5.75rem,26vw,8.5rem)] font-black leading-[0.7] tracking-[-0.07em] text-white/[0.18] sm:left-12 sm:top-[6.9rem]"
         aria-hidden
       >
         {watermark || "TR"}
