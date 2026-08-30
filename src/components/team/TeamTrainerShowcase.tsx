@@ -144,7 +144,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
               <button
                 type="button"
                 onClick={() => onTrainerClick(trainer)}
-                className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-white/10 bg-[linear-gradient(100deg,rgba(24,24,27,0.98),rgba(9,9,11,0.99))] px-2.5 text-left shadow-[0_7px_20px_rgba(0,0,0,0.24)] transition hover:border-red-500/30 active:scale-[0.99]"
+                className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 bg-[radial-gradient(circle_at_14%_50%,rgba(220,38,38,0.16),transparent_42%),linear-gradient(100deg,rgba(28,9,12,0.98),rgba(8,8,10,0.99))] px-2.5 text-left shadow-[0_7px_22px_rgba(80,0,8,0.18)] transition hover:border-red-400/55 hover:shadow-[0_8px_24px_rgba(127,29,29,0.24)] active:scale-[0.99]"
               >
                 <div className="relative mr-3 h-[58px] w-[58px] shrink-0 overflow-hidden rounded-xl bg-white/[0.04]">
                   {photo ? (
