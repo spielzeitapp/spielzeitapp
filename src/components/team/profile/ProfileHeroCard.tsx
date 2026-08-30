@@ -83,7 +83,7 @@ function PlayerProfileHeroCard(props: Props) {
 
       {watermark ? (
         <p
-          className="absolute left-9 top-[3.5rem] z-[1] select-none text-[clamp(8.75rem,38vw,12.5rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.115] sm:left-12 sm:top-[3.85rem]"
+          className="absolute left-9 top-[6.25rem] z-[1] select-none text-[clamp(8.75rem,38vw,12.5rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.115] sm:left-12 sm:top-[6.75rem]"
           aria-hidden
         >
           {watermark}
@@ -130,7 +130,7 @@ function PlayerProfileHeroCard(props: Props) {
           <img
             src={teamLogoUrl}
             alt=""
-            className="h-10 w-10 shrink-0 object-contain drop-shadow-[0_3px_10px_rgba(0,0,0,0.8)] sm:h-11 sm:w-11"
+            className="h-16 w-16 shrink-0 object-contain drop-shadow-[0_4px_14px_rgba(0,0,0,0.85)] sm:h-[4.5rem] sm:w-[4.5rem]"
             aria-hidden
           />
         ) : null}

@@ -67,7 +67,7 @@ export function buildDemoPlayers(): PlayerItem[] {
     id: p.id,
     team_season_id: DEMO_TEAM_SEASON_ID,
     first_name: p.firstName,
-    last_name: p.lastInitial,
+    last_name: p.lastName,
     jersey_number: p.jersey,
     position: p.position,
     birthdate: null,
@@ -79,7 +79,7 @@ export function buildDemoPlayers(): PlayerItem[] {
     is_injured: !p.available,
     injured_since: null,
     injured_until: null,
-    display_name: `${p.firstName} ${p.lastInitial}`,
+    display_name: `${p.firstName} ${p.lastName}`,
   }));
 }
 
