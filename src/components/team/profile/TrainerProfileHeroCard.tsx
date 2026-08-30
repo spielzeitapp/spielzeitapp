@@ -45,7 +45,6 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
   teamSeasonLabel,
   teamName,
   teamLogoUrl,
-  roleLabel,
   photoUrl,
   cutoutUrl,
   initials,
@@ -59,8 +58,6 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
   useProfileHeroImagePreload(cutoutUrl, photoUrl);
 
   const teamHeader = resolveTrainerTeamHeader(teamName, teamSeasonLabel);
-  const role = (roleLabel ?? "Trainer").trim().toUpperCase();
-
   return (
     <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#171719_0%,#070708_52%,#25090c_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(220,38,38,0.3),transparent_48%)]" aria-hidden />
@@ -78,8 +75,8 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
           <img
             src={heroImageSrc}
             alt=""
-            className={`h-full w-[72%] origin-bottom object-bottom ${
-              cutoutSrc ? "translate-x-[4%] scale-[1.12] object-contain" : "object-cover object-top"
+            className={`h-full w-[64%] origin-bottom object-bottom ${
+              cutoutSrc ? "translate-x-[6%] scale-[1.02] object-contain" : "translate-x-[4%] object-contain"
             }`}
             onError={() => setImageOk(false)}
           />
@@ -116,13 +113,10 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5">
-        <div className="max-w-[62%] break-words text-[28px] font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] sm:text-[32px]">
+        <div className="max-w-[58%] break-words text-[28px] font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] sm:text-[32px]">
           {firstNameLine ? <p>{firstNameLine}</p> : null}
           {lastNameLine ? <p>{lastNameLine}</p> : null}
         </div>
-        <p className="mt-2 text-[12px] font-black uppercase tracking-[0.16em] text-red-400 sm:text-[13px]">
-          {role}
-        </p>
       </div>
     </div>
   );

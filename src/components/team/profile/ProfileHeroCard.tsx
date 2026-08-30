@@ -75,6 +75,7 @@ function PlayerProfileHeroCard(props: Props) {
 
   const teamHeader = resolvePlayerHeroTeamHeader(teamName, teamSeasonLabel);
   const isUpperBodyDemo = isDemoUpperBodyPortraitUrl(heroImageSrc);
+  const isDoubleDigitWatermark = watermark.trim().length >= 2;
 
   return (
     <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#171719_0%,#070708_52%,#25090c_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
@@ -83,7 +84,11 @@ function PlayerProfileHeroCard(props: Props) {
 
       {watermark ? (
         <p
-          className="absolute left-9 top-[6.25rem] z-[4] select-none text-[clamp(8.75rem,38vw,12.5rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-12 sm:top-[6.75rem]"
+          className={`absolute left-9 top-[6.25rem] z-[4] select-none font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-12 sm:top-[6.75rem] ${
+            isDoubleDigitWatermark
+              ? "text-[clamp(6.75rem,30vw,9.75rem)]"
+              : "text-[clamp(8.75rem,38vw,12.5rem)]"
+          }`}
           aria-hidden
         >
           {watermark}
