@@ -4,6 +4,7 @@
  */
 
 import type { PlayerItem } from '../hooks/usePlayers';
+import { getDemoPlayerPortraitUrl } from '../lib/playerDemoPortrait';
 import type { PlayerLastMatchRow, PlayerSeasonStats } from '../lib/stats/playerStatsService';
 import { DEMO_TEAM_SEASON_ID } from './demoDataSource';
 import { demoFixtures } from './demoFixtures';
@@ -43,9 +44,8 @@ export const DEMO_PLAYER_AVATAR_DIR = '/avatars/demo';
 export function getDemoPlayerAvatarUrl(playerId: string | null | undefined): string | null {
   const id = String(playerId ?? '').trim();
   if (!/^p(0[1-9]|1[0-2])$/.test(id)) return null;
-  const playerNumber = Number(id.slice(1));
-  const portraitNumber = ((playerNumber - 1) % 4) + 1;
-  return `${DEMO_PLAYER_AVATAR_DIR}/demo-player-upper-${String(portraitNumber).padStart(2, '0')}.webp`;
+  const player = demoFixtures.players.find((entry) => entry.id === id);
+  return getDemoPlayerPortraitUrl(player?.jersey, id);
 }
 
 export function isDemoPlayerId(playerId: string | null | undefined): boolean {

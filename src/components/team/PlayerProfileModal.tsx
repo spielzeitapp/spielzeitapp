@@ -21,6 +21,7 @@ import { useDemoMode } from "../../demo/DemoContext";
 import { DEMO_TEAM_SEASON_ID } from "../../demo/demoDataSource";
 import { isDemoPlayerId } from "../../demo/demoPlayers";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
+import { getDemoPlayerPortraitUrl } from "../../lib/playerDemoPortrait";
 import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
 import {
   getPositionFull,
@@ -608,7 +609,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   }, [stats.averageMinutesPerGame]);
 
   const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
-  const avatarSrc = (photoUrl ?? "").trim() || "/avatars/player-placeholder.png";
+  const avatarSrc =
+    (photoUrl ?? "").trim() || getDemoPlayerPortraitUrl(player.jersey_number, player.id);
   const jerseyWatermark =
     player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
       ? String(player.jersey_number)

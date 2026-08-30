@@ -5,6 +5,7 @@ import {
   useProfileHeroImagePreload,
 } from "./profileHeroShared";
 import type { ProfilePositionBadge } from "../../../lib/positionLabels";
+import { isDemoUpperBodyPortraitUrl } from "../../../lib/playerDemoPortrait";
 import { resolveProfilePhotoSrc } from "../../../lib/profileHeroImage";
 import { TrainerProfileHeroCard } from "./TrainerProfileHeroCard";
 
@@ -67,7 +68,7 @@ function PlayerProfileHeroCard(props: Props) {
   useProfileHeroImagePreload(cutoutUrl, photoUrl);
 
   const teamLine = resolvePlayerHeroTeamLine(teamName, teamSeasonLabel);
-  const isUpperBodyDemo = /\/demo-player-upper-\d+\.webp(?:\?|$)/i.test(heroImageSrc ?? "");
+  const isUpperBodyDemo = isDemoUpperBodyPortraitUrl(heroImageSrc);
 
   return (
     <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#171719_0%,#070708_52%,#25090c_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">

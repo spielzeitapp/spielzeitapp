@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
+import { getDemoPlayerPortraitUrl, isDemoUpperBodyPortraitUrl } from "../../lib/playerDemoPortrait";
 import { premiumPlayerDisplayName } from "../../lib/premiumPlayerCard";
 
 type Props = {
@@ -10,7 +11,6 @@ type Props = {
 };
 
 const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
-const DEMO_PLAYER_COUNT = 4;
 
 function isDanielBaumann(player: PlayerItem): boolean {
   return /daniel\s+baumann/i.test(
@@ -18,22 +18,8 @@ function isDanielBaumann(player: PlayerItem): boolean {
   );
 }
 
-function stablePlayerDemoIndex(player: PlayerItem): number {
-  if (typeof player.jersey_number === "number" && Number.isFinite(player.jersey_number)) {
-    return (Math.max(1, Math.abs(Math.trunc(player.jersey_number))) - 1) % DEMO_PLAYER_COUNT + 1;
-  }
-  const key = `${player.id}|${player.display_name ?? ""}`;
-  let hash = 2166136261;
-  for (let index = 0; index < key.length; index += 1) {
-    hash ^= key.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return ((hash >>> 0) % DEMO_PLAYER_COUNT) + 1;
-}
-
 function demoPlayerMedia(player: PlayerItem): string {
-  const index = stablePlayerDemoIndex(player).toString().padStart(2, "0");
-  return `/avatars/demo/demo-player-upper-${index}.webp`;
+  return getDemoPlayerPortraitUrl(player.jersey_number, `${player.id}|${player.display_name ?? ""}`);
 }
 
 function playerMedia(player: PlayerItem): { src: string; isCutout: boolean; isUpperBodyDemo: boolean } {
@@ -44,7 +30,7 @@ function playerMedia(player: PlayerItem): { src: string; isCutout: boolean; isUp
     return {
       src: avatar,
       isCutout: false,
-      isUpperBodyDemo: /\/demo-player-upper-\d+\.webp(?:\?|$)/i.test(avatar),
+      isUpperBodyDemo: isDemoUpperBodyPortraitUrl(avatar),
     };
   }
   // Bereits vorhandenes Testmotiv; wird nur verwendet, wenn Daniel noch kein Profilbild hat.
