@@ -1152,7 +1152,18 @@ export const TeamPage: React.FC = () => {
             Unser Team
           </SectionTitle>
           <div className="flex items-center gap-2">
-            {!plLoading ? (
+            {!plLoading && canManagePlayers ? (
+              <select
+                value={squadFilter}
+                onChange={(event) => setSquadFilter(event.target.value as typeof squadFilter)}
+                className="h-9 min-w-0 max-w-[112px] rounded-full border border-white/10 bg-white/[0.06] px-2.5 text-[11px] font-black text-white/80 outline-none"
+                aria-label="Kader filtern"
+              >
+                <option value="active">Aktiv ({activeCount})</option>
+                <option value="paused">Pausiert ({pausedCount})</option>
+                <option value="all">Alle ({players.length})</option>
+              </select>
+            ) : !plLoading ? (
               <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-white/75">
                 {showcasePlayers.length} Spieler
               </span>
@@ -1181,39 +1192,6 @@ export const TeamPage: React.FC = () => {
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
             <>
-              {canManagePlayers ? (
-                <div className="mb-2 mt-2 space-y-2 px-3 sm:px-0">
-                  <p className="hidden text-xs text-white/60 sm:block">
-                    Pausierte Spieler bleiben gespeichert, sind aber für Eltern/Fans und Spielkader nicht sichtbar.
-                  </p>
-                  <PremiumTabTrack className="min-w-0">
-                    <PremiumTab
-                      kind="filter"
-                      active={squadFilter === "active"}
-                      onClick={() => setSquadFilter("active")}
-                      className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
-                    >
-                      Aktiv ({activeCount})
-                    </PremiumTab>
-                    <PremiumTab
-                      kind="filter"
-                      active={squadFilter === "paused"}
-                      onClick={() => setSquadFilter("paused")}
-                      className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
-                    >
-                      Pausiert ({pausedCount})
-                    </PremiumTab>
-                    <PremiumTab
-                      kind="filter"
-                      active={squadFilter === "all"}
-                      onClick={() => setSquadFilter("all")}
-                      className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
-                    >
-                      Alle ({players.length})
-                    </PremiumTab>
-                  </PremiumTabTrack>
-                </div>
-              ) : null}
               <TeamSquadShowcase
                 players={showcasePlayers}
                 ownPlayerIds={ownPlayerIds}
