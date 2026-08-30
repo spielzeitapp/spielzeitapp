@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { getDemoPlayerPortraitUrl, isDemoUpperBodyPortraitUrl } from "../../lib/playerDemoPortrait";
 import { premiumPlayerDisplayName } from "../../lib/premiumPlayerCard";
+import { useDemoMode } from "../../demo/DemoContext";
 
 type Props = {
   players: PlayerItem[];
@@ -13,17 +14,11 @@ type Props = {
 
 const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
 
-function isDanielBaumann(player: PlayerItem): boolean {
-  return /daniel\s+baumann/i.test(
-    `${player.first_name ?? ""} ${player.last_name ?? ""} ${player.display_name ?? ""}`,
-  );
-}
-
 function demoPlayerMedia(player: PlayerItem): string {
   return getDemoPlayerPortraitUrl(player.jersey_number, `${player.id}|${player.display_name ?? ""}`);
 }
 
-function playerMedia(player: PlayerItem): { src: string; isCutout: boolean; isUpperBodyDemo: boolean } {
+function playerMedia(player: PlayerItem, isDemo: boolean): { src: string; isCutout: boolean; isUpperBodyDemo: boolean } {
   const cutout = (player.cutout_url ?? "").trim();
   if (cutout) return { src: cutout, isCutout: true, isUpperBodyDemo: false };
   const avatar = (player.avatar_url ?? "").trim();
@@ -34,11 +29,8 @@ function playerMedia(player: PlayerItem): { src: string; isCutout: boolean; isUp
       isUpperBodyDemo: isDemoUpperBodyPortraitUrl(avatar),
     };
   }
-  // Bereits vorhandenes Testmotiv; wird nur verwendet, wenn Daniel noch kein Profilbild hat.
-  if (isDanielBaumann(player)) {
-    return { src: "/avatars/Dani Trans.png", isCutout: false, isUpperBodyDemo: false };
-  }
-  return { src: demoPlayerMedia(player), isCutout: false, isUpperBodyDemo: true };
+  if (isDemo) return { src: demoPlayerMedia(player), isCutout: false, isUpperBodyDemo: true };
+  return { src: PLAYER_PLACEHOLDER, isCutout: false, isUpperBodyDemo: true };
 }
 
 function playerCardName(player: PlayerItem): string {
@@ -55,6 +47,7 @@ function playerCardFamilyName(player: PlayerItem): string {
 }
 
 export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onSwipePastEnd }) => {
+  const demo = useDemoMode();
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const swipeStartRef = useRef<{ x: number; atEnd: boolean } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -116,7 +109,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
       >
         {players.map((player) => {
           const number = player.jersey_number;
-          const media = playerMedia(player);
+          const media = playerMedia(player, Boolean(demo));
           return (
             <button
               key={`showcase-${player.id}`}
@@ -183,7 +176,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
       <ul className="space-y-2 px-3 sm:px-5">
         {players.map((player) => {
           const number = player.jersey_number;
-          const media = playerMedia(player);
+          const media = playerMedia(player, Boolean(demo));
           return (
             <li key={`row-${player.id}`}>
               <button

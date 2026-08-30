@@ -637,7 +637,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
   const avatarSrc =
-    (photoUrl ?? "").trim() || getDemoPlayerPortraitUrl(player.jersey_number, player.id);
+    (photoUrl ?? "").trim() ||
+    (demo ? getDemoPlayerPortraitUrl(player.jersey_number, player.id) : "/avatars/player-placeholder.png");
   const jerseyWatermark =
     player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
       ? String(player.jersey_number)

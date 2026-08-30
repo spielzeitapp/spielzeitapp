@@ -38,5 +38,9 @@ export function getDemoPlayerPortraitUrl(
 }
 
 export function isDemoUpperBodyPortraitUrl(url: string | null | undefined): boolean {
-  return /\/demo-player-(?:upper-\d+|goalkeeper-green)\.webp(?:\?|$)/i.test((url ?? "").trim());
+  const normalized = (url ?? "").trim();
+  return (
+    /\/demo-player-(?:upper-\d+|goalkeeper-green)\.webp(?:\?|$)/i.test(normalized) ||
+    /\/avatars\/player-placeholder\.png(?:\?|$)/i.test(normalized)
+  );
 }
