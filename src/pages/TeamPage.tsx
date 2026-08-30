@@ -380,6 +380,13 @@ export const TeamPage: React.FC = () => {
     }
   };
 
+  const switchPlayerProfile = (player: PlayerItem) => {
+    setSelectedProfilePlayer(player);
+    const next = new URLSearchParams(searchParams);
+    next.set("player", player.id);
+    setSearchParams(next, { replace: true });
+  };
+
   const handleTeamPhotoPick = async (file: File) => {
     if (isDemo || !teamSeasonId) return;
     const allowed = ["image/jpeg", "image/png", "image/webp"];
@@ -892,6 +899,8 @@ export const TeamPage: React.FC = () => {
         canManage={canManagePlayers}
         initialTab={profileInitialTab}
         squadPlayers={players}
+        profilePlayers={showcasePlayers}
+        onPlayerChange={switchPlayerProfile}
         onClose={closePlayerProfile}
         onEdit={handleEditFromProfile}
         onPlayerUpdated={(patch) => {

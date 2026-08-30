@@ -22,6 +22,7 @@ type Props = {
   lastNameLine: string;
   teamSeasonLabel: string;
   teamName?: string | null;
+  teamLogoUrl?: string | null;
   roleLabel?: string | null;
   photoUrl?: string | null;
   cutoutUrl?: string | null;
@@ -52,6 +53,7 @@ function PlayerProfileHeroCard(props: Props) {
     lastNameLine,
     teamSeasonLabel,
     teamName,
+    teamLogoUrl,
     photoUrl,
     cutoutUrl,
     initials,
@@ -77,7 +79,7 @@ function PlayerProfileHeroCard(props: Props) {
 
       {watermark ? (
         <p
-          className="absolute left-4 top-[3.35rem] z-[1] select-none text-[clamp(7.25rem,31vw,10.5rem)] font-black leading-[0.72] tracking-[-0.08em] text-white/[0.11] sm:left-5 sm:top-[3.65rem]"
+          className="absolute left-9 top-[3.5rem] z-[1] select-none text-[clamp(8.75rem,38vw,12.5rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.115] sm:left-12 sm:top-[3.85rem]"
           aria-hidden
         >
           {watermark}
@@ -107,8 +109,16 @@ function PlayerProfileHeroCard(props: Props) {
 
       <div className="absolute inset-x-0 bottom-0 z-[3] h-[48%] bg-gradient-to-t from-black via-black/78 to-transparent" aria-hidden />
 
-      <div className="absolute inset-x-0 top-0 z-[4] p-4 sm:p-5">
-        <p className="pt-1 text-[11px] font-black uppercase tracking-[0.12em] text-white/85 sm:text-[12px]">
+      <div className="absolute inset-x-0 top-0 z-[4] flex items-center gap-2 p-4 sm:gap-2.5 sm:p-5">
+        {teamLogoUrl ? (
+          <img
+            src={teamLogoUrl}
+            alt=""
+            className="h-7 w-7 shrink-0 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:h-8 sm:w-8"
+            aria-hidden
+          />
+        ) : null}
+        <p className="text-[13px] font-black uppercase tracking-[0.1em] text-white/90 sm:text-[14px]">
           {teamLine}
         </p>
       </div>
