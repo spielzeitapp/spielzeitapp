@@ -1224,8 +1224,8 @@ export const TeamPage: React.FC = () => {
       {activeTab === "trainers" ? (
         <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
           <div className="flex items-center justify-between gap-2">
-            <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
-              Trainer
+            <SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
+              Unsere Trainer
             </SectionTitle>
             {teamSeasonId != null && canManagePlayers && !isDemo && !staffLoading ? (
               <PremiumButton

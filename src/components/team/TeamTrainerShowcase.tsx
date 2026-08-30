@@ -18,7 +18,6 @@ function trainerInitials(trainer: TeamStaffMember): string {
 export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick }) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const isSingleTrainer = trainers.length === 1;
 
   useEffect(() => {
     setActiveIndex(0);
@@ -68,11 +67,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick 
               data-trainer-card
               type="button"
               onClick={() => onTrainerClick(trainer)}
-              className={`group relative shrink-0 snap-start overflow-hidden rounded-[18px] border border-red-500/35 bg-[linear-gradient(145deg,#171719_0%,#080809_52%,#20090b_100%)] text-left shadow-[0_12px_30px_rgba(0,0,0,0.42)] transition active:scale-[0.985] sm:rounded-[22px] ${
-                isSingleTrainer
-                  ? "aspect-[16/10] w-[calc(100%-1.5rem)] max-w-none"
-                  : "aspect-[4/5] w-[55vw] min-w-[190px] max-w-[220px] sm:w-[240px] sm:max-w-[240px]"
-              }`}
+              className="group relative aspect-[4/5] w-[42vw] min-w-[148px] max-w-[172px] shrink-0 snap-start overflow-hidden rounded-[18px] border border-red-500/35 bg-[linear-gradient(145deg,#171719_0%,#080809_52%,#20090b_100%)] text-left shadow-[0_12px_30px_rgba(0,0,0,0.42)] transition active:scale-[0.985] sm:w-[210px] sm:max-w-[210px] sm:rounded-[22px]"
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(220,38,38,0.25),transparent_46%)]" aria-hidden />
               <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(239,68,68,0.15)_15px,transparent_16px)]" aria-hidden />
@@ -83,12 +78,8 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick 
                 <img
                   src={photo}
                   alt=""
-                  className={`absolute bottom-0 right-0 h-full transition duration-300 group-hover:scale-[1.02] ${
-                    isSingleTrainer
-                      ? "w-[68%] object-contain object-bottom"
-                      : trainer.cutout_url
-                        ? "w-full object-contain object-bottom"
-                        : "w-full object-cover object-top"
+                  className={`absolute inset-0 h-full w-full transition duration-300 group-hover:scale-[1.02] ${
+                    trainer.cutout_url ? "object-contain object-bottom" : "object-cover object-top"
                   }`}
                 />
               ) : (
@@ -97,7 +88,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick 
                 </div>
               )}
               <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-black via-black/80 to-transparent" aria-hidden />
-              <div className={`absolute inset-x-0 bottom-0 z-10 p-4 ${isSingleTrainer ? "max-w-[58%]" : ""}`}>
+              <div className="absolute inset-x-0 bottom-0 z-10 p-4">
                 <p className="text-[22px] font-black uppercase leading-[0.92] tracking-tight text-white sm:text-[25px]">
                   {nameParts[0] || "Trainer"}
                 </p>
