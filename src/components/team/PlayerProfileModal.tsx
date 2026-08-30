@@ -74,6 +74,8 @@ export type PlayerProfileModalProps = {
   profilePlayers?: PlayerItem[];
   /** Spielerprofil wechseln, ohne das Modal zu schließen. */
   onPlayerChange?: (player: PlayerItem) => void;
+  /** Nach dem letzten Kaderspieler zum ersten Trainerprofil wechseln. */
+  onNextAfterLast?: () => void;
   /** Nach Eltern-Verknüpfung (optional). */
   onGuardiansChanged?: () => void;
 };
@@ -500,6 +502,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   squadPlayers = [],
   profilePlayers = [],
   onPlayerChange,
+  onNextAfterLast,
   onGuardiansChanged,
 }) => {
   const demo = useDemoMode();
@@ -527,8 +530,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
       : null;
 
   const switchProfilePlayer = (nextPlayer: PlayerItem | null) => {
-    if (!nextPlayer || !onPlayerChange) return;
-    onPlayerChange(nextPlayer);
+    if (nextPlayer && onPlayerChange) {
+      onPlayerChange(nextPlayer);
+      return;
+    }
+    if (!nextPlayer) onNextAfterLast?.();
   };
 
   const { canViewForPlayer } = useTrainingParticipationAccess(role);
@@ -797,7 +803,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               const deltaX = touch.clientX - start.x;
               const deltaY = touch.clientY - start.y;
               if (Math.abs(deltaX) < 55 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
-              switchProfilePlayer(deltaX < 0 ? nextProfilePlayer : previousProfilePlayer);
+              if (deltaX < 0) switchProfilePlayer(nextProfilePlayer);
+              else if (previousProfilePlayer) switchProfilePlayer(previousProfilePlayer);
             }}
           >
             <ProfileHeroCard
@@ -833,6 +840,15 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 type="button"
                 onClick={() => switchProfilePlayer(nextProfilePlayer)}
                 aria-label={`Nächster Spieler: ${displayFullName(nextProfilePlayer)}`}
+                className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:border-red-400/45 hover:text-white active:scale-95"
+              >
+                <ChevronRight className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+              </button>
+            ) : onNextAfterLast ? (
+              <button
+                type="button"
+                onClick={onNextAfterLast}
+                aria-label="Zum ersten Trainerprofil"
                 className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:border-red-400/45 hover:text-white active:scale-95"
               >
                 <ChevronRight className="h-5 w-5" strokeWidth={2.5} aria-hidden />

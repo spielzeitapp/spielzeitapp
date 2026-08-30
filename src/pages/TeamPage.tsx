@@ -901,6 +901,10 @@ export const TeamPage: React.FC = () => {
         squadPlayers={players}
         profilePlayers={showcasePlayers}
         onPlayerChange={switchPlayerProfile}
+        onNextAfterLast={staffRows[0] ? () => {
+          closePlayerProfile();
+          navigate(`${basePath}/team/trainer/${encodeURIComponent(staffRows[0].user_id)}`);
+        } : undefined}
         onClose={closePlayerProfile}
         onEdit={handleEditFromProfile}
         onPlayerUpdated={(patch) => {

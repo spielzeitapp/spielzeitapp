@@ -207,6 +207,7 @@ export const TrainerProfilePage: React.FC = () => {
       ? navigationStaff[currentTrainerIndex + 1]
       : null;
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const previousPlayer = currentTrainerIndex === 0 && players.length > 0 ? players[players.length - 1] : null;
 
   const switchTrainer = useCallback(
     (trainer: TeamStaffMember | null) => {
@@ -217,10 +218,14 @@ export const TrainerProfilePage: React.FC = () => {
   );
 
   const goBack = () => navigate(`${basePath}/team`, { state: { tab: "trainers" } });
+  const switchToPreviousPlayer = () => {
+    if (!previousPlayer) return;
+    navigate(`${basePath}/team?player=${encodeURIComponent(previousPlayer.id)}`);
+  };
 
   return (
     <div
-      className="relative left-1/2 w-screen max-w-lg min-w-0 -translate-x-1/2 overflow-x-hidden px-3 pt-0 sm:px-4"
+      className="mx-auto w-full max-w-lg min-w-0 overflow-x-hidden px-3 pt-0 sm:px-4"
       style={{ paddingBottom: `calc(${APP_BOTTOM_SCROLL_PAD})` }}
     >
       <ProfileCompactHeader title="Trainerprofil" onBack={goBack} backLabel="Zurück zum Team" />
@@ -264,7 +269,9 @@ export const TrainerProfilePage: React.FC = () => {
                 const deltaX = touch.clientX - start.x;
                 const deltaY = touch.clientY - start.y;
                 if (Math.abs(deltaX) < 55 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
-                switchTrainer(deltaX < 0 ? nextTrainer : previousTrainer);
+                if (deltaX < 0) switchTrainer(nextTrainer);
+                else if (previousTrainer) switchTrainer(previousTrainer);
+                else switchToPreviousPlayer();
               }}
             >
               <ProfileHeroCard
@@ -280,11 +287,11 @@ export const TrainerProfilePage: React.FC = () => {
                 cutoutUrl={member.cutout_url ?? null}
                 initials={initials}
               />
-              {previousTrainer ? (
+              {previousTrainer || previousPlayer ? (
                 <button
                   type="button"
-                  onClick={() => switchTrainer(previousTrainer)}
-                  aria-label={`Vorheriger Trainer: ${staffDisplayName(previousTrainer)}`}
+                  onClick={() => previousTrainer ? switchTrainer(previousTrainer) : switchToPreviousPlayer()}
+                  aria-label={previousTrainer ? `Vorheriger Trainer: ${staffDisplayName(previousTrainer)}` : "Zum letzten Spielerprofil"}
                   className="absolute left-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm active:scale-95"
                 >
                   <ChevronLeft className="h-5 w-5" strokeWidth={2.5} aria-hidden />

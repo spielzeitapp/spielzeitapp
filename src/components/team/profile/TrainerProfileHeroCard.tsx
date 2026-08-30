@@ -77,8 +77,8 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
             alt=""
             className={`h-full origin-bottom object-bottom ${
               cutoutSrc
-                ? "w-[72%] translate-x-[8%] translate-y-[2%] object-contain sm:w-[70%] sm:translate-x-[6%]"
-                : "w-[72%] translate-x-[8%] translate-y-[2%] object-contain sm:w-[70%] sm:translate-x-[6%]"
+                ? "w-[72%] -translate-x-[1%] translate-y-[2%] object-contain sm:w-[70%]"
+                : "w-[72%] -translate-x-[1%] translate-y-[2%] object-contain sm:w-[70%]"
             }`}
             onError={() => setImageOk(false)}
           />
