@@ -64,7 +64,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
       <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgba(239,68,68,0.14)_17px,transparent_18px)]" aria-hidden />
 
       <p
-        className="absolute left-8 top-[6.75rem] z-[4] select-none text-[clamp(5.75rem,26vw,8.25rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-11 sm:top-[7.1rem]"
+        className="absolute left-9 top-[6.25rem] z-[4] select-none text-[clamp(6.75rem,30vw,9.75rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.18] sm:left-12 sm:top-[6.75rem]"
         aria-hidden
       >
         {watermark || "TR"}
@@ -77,8 +77,8 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
             alt=""
             className={`h-full origin-bottom object-bottom ${
               cutoutSrc
-                ? "w-[72%] -translate-x-[1%] translate-y-[2%] object-contain sm:w-[70%]"
-                : "w-[72%] -translate-x-[1%] translate-y-[2%] object-contain sm:w-[70%]"
+                ? "w-[72%] translate-x-[8%] translate-y-[2%] object-contain sm:w-[70%] sm:translate-x-[7%]"
+                : "w-[72%] translate-x-[8%] translate-y-[2%] object-contain sm:w-[70%] sm:translate-x-[7%]"
             }`}
             onError={() => setImageOk(false)}
           />

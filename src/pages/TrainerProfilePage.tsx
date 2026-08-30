@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { ProfileCompactHeader } from "../components/team/profile/ProfileCompactHeader";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
@@ -28,6 +29,7 @@ import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
 import { getDemoStaffMember } from "../demo/demoStaff";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getOurTeamLogoUrl } from "../lib/teamLogos";
+import { lockAppMainScroll } from "../lib/bodyScrollLock";
 
 function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string } {
   const first = (member.first_name ?? "").trim().toUpperCase();
@@ -61,6 +63,8 @@ export const TrainerProfilePage: React.FC = () => {
   const role = isDemo ? "trainer" : sessionRole;
   const tsLoading = isDemo ? false : tsLoadingRaw;
   const canManage = !isDemo && canManageRoster(normalizeRole(role));
+
+  useEffect(() => lockAppMainScroll(), []);
 
   const { players: livePlayers } = usePlayers(isDemo ? null : teamSeasonId, {
     mode: canManage ? "all" : "active",
@@ -223,9 +227,9 @@ export const TrainerProfilePage: React.FC = () => {
     navigate(`${basePath}/team?player=${encodeURIComponent(previousPlayer.id)}`);
   };
 
-  return (
+  const profileContent = (
     <div
-      className="mx-auto w-full max-w-lg min-w-0 overflow-x-hidden px-3 pt-0 sm:px-4"
+      className="fixed inset-0 z-[100] mx-auto w-full max-w-lg min-w-0 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] px-3 pt-0 sm:px-4 sm:shadow-2xl"
       style={{ paddingBottom: `calc(${APP_BOTTOM_SCROLL_PAD})` }}
     >
       <ProfileCompactHeader title="Trainerprofil" onBack={goBack} backLabel="Zurück zum Team" />
@@ -357,4 +361,5 @@ export const TrainerProfilePage: React.FC = () => {
       )}
     </div>
   );
+  return typeof document === "undefined" ? profileContent : createPortal(profileContent, document.body);
 };
