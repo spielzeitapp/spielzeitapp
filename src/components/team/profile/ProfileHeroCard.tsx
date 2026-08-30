@@ -76,6 +76,15 @@ function PlayerProfileHeroCard(props: Props) {
   const teamHeader = resolvePlayerHeroTeamHeader(teamName, teamSeasonLabel);
   const isUpperBodyDemo = isDemoUpperBodyPortraitUrl(heroImageSrc);
   const isDoubleDigitWatermark = watermark.trim().length >= 2;
+  const longestNameLine = Math.max(firstNameLine.length, lastNameLine.length);
+  const nameSizeClass =
+    longestNameLine >= 18
+      ? "text-[17px] sm:text-[20px]"
+      : longestNameLine >= 15
+        ? "text-[19px] sm:text-[22px]"
+        : longestNameLine >= 12
+          ? "text-[22px] sm:text-[25px]"
+          : "text-[28px] sm:text-[32px]";
 
   return (
     <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#171719_0%,#070708_52%,#25090c_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
@@ -142,9 +151,9 @@ function PlayerProfileHeroCard(props: Props) {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5">
-        <div className="max-w-[62%] break-words text-[28px] font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] sm:text-[32px]">
-          {firstNameLine ? <p>{firstNameLine}</p> : null}
-          {lastNameLine ? <p>{lastNameLine}</p> : null}
+        <div className={`max-w-[82%] font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] ${nameSizeClass}`}>
+          {firstNameLine ? <p className="whitespace-nowrap">{firstNameLine}</p> : null}
+          {lastNameLine ? <p className="whitespace-nowrap">{lastNameLine}</p> : null}
         </div>
       </div>
     </div>
