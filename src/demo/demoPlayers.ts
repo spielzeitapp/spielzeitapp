@@ -4,6 +4,7 @@
  */
 
 import type { PlayerItem } from '../hooks/usePlayers';
+import { getDemoPlayerPortraitUrl } from '../lib/playerDemoPortrait';
 import type { PlayerLastMatchRow, PlayerSeasonStats } from '../lib/stats/playerStatsService';
 import { DEMO_TEAM_SEASON_ID } from './demoDataSource';
 import { demoFixtures } from './demoFixtures';
@@ -38,12 +39,13 @@ export const DEMO_PLAYER_AVATAR_DIR = '/avatars/demo';
 
 /**
  * Zentrale Avatar-Zuordnung über stabile Spieler-ID (aktiver Kader p01–p12).
- * Dateien: `public/avatars/demo/demo-player-pXX.webp`
+ * Vier Oberkörpermotive wechseln regelmäßig und bleiben pro Spieler stabil.
  */
 export function getDemoPlayerAvatarUrl(playerId: string | null | undefined): string | null {
   const id = String(playerId ?? '').trim();
   if (!/^p(0[1-9]|1[0-2])$/.test(id)) return null;
-  return `${DEMO_PLAYER_AVATAR_DIR}/demo-player-${id}.webp`;
+  const player = demoFixtures.players.find((entry) => entry.id === id);
+  return getDemoPlayerPortraitUrl(player?.jersey, id);
 }
 
 export function isDemoPlayerId(playerId: string | null | undefined): boolean {
@@ -65,7 +67,7 @@ export function buildDemoPlayers(): PlayerItem[] {
     id: p.id,
     team_season_id: DEMO_TEAM_SEASON_ID,
     first_name: p.firstName,
-    last_name: p.lastInitial,
+    last_name: p.lastName,
     jersey_number: p.jersey,
     position: p.position,
     birthdate: null,
@@ -77,7 +79,7 @@ export function buildDemoPlayers(): PlayerItem[] {
     is_injured: !p.available,
     injured_since: null,
     injured_until: null,
-    display_name: `${p.firstName} ${p.lastInitial}`,
+    display_name: `${p.firstName} ${p.lastName}`,
   }));
 }
 

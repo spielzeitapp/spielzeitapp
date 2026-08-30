@@ -25,7 +25,6 @@ import {
   createRosterPlayer,
   updateRosterPlayerSeasonFields,
 } from "../lib/rosterService";
-import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
 import { uploadStorageObject } from "../lib/storageUpload";
@@ -33,10 +32,10 @@ import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
-import { PlayerCard } from "../components/team/PlayerCard";
+import { TeamSquadShowcase } from "../components/team/TeamSquadShowcase";
+import { TeamTrainerShowcase } from "../components/team/TeamTrainerShowcase";
 import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
-import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TeamTrainingDashboard } from "../components/team/TeamTrainingDashboard";
 import { TeamTrainingPublicOverview } from "../components/team/TeamTrainingPublicOverview";
 import { SeasonMatchSummaryCard } from "../components/team/SeasonMatchSummaryCard";
@@ -47,9 +46,11 @@ import { useDemoMode } from "../demo/DemoContext";
 import { useInternalBasePath } from "../demo/demoPaths";
 import { buildDemoSeasonMatchBoard } from "../demo/demoMatchState";
 import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
+import { useAvailabilityPermissions } from "../hooks/useAvailabilityPermissions";
+import { getOurTeamDisplayName, getOurTeamLogoUrl } from "../lib/teamLogos";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
-const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
+const TEAM_HERO_PLACEHOLDER = "/team/team-demo-u12-v2.webp";
 
 type TeamTabId = "squad" | "trainers" | "training" | "matches";
 type SquadFilterId = "active" | "paused" | "all";
@@ -306,14 +307,20 @@ export const TeamPage: React.FC = () => {
     return m?.[1]?.trim() ?? "—";
   }, [seasonLine, selectedTeamSeason, teamLabel, isDemo, demo]);
 
-  const trainerCount = useMemo(() => staffRows.length, [staffRows]);
+  const heroAgeGroup = useMemo(() => {
+    if (isDemo) return "U12";
+    const viewedSeason = teamSeasons.find((season) => season.id === readTeamSeasonId);
+    const explicit = viewedSeason?.age_group?.trim() || selectedTeamSeason?.age_group?.trim();
+    if (explicit) return explicit.toUpperCase();
+    const parsed = /\bU\s*\d{1,2}\b/i.exec(`${heroTeamName} ${teamLabel ?? ""}`)?.[0];
+    return parsed?.replace(/\s+/g, "").toUpperCase() ?? "TEAM";
+  }, [isDemo, teamSeasons, readTeamSeasonId, selectedTeamSeason, heroTeamName, teamLabel]);
+
   const teamPhotoUrl = useMemo(() => readTeamPhotoUrl(teamPhoto), [teamPhoto]);
   const heroPhotoSrc = useMemo(
     () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : TEAM_HERO_PLACEHOLDER),
     [teamPhotoUrl],
   );
-  const heroShowsPlaceholder = !teamPhotoUrl || teamPhotoUrl.length === 0;
-
   useEffect(() => {
     if (isDemo || !teamSeasonId) {
       setTeamPhoto(null);
@@ -371,6 +378,13 @@ export const TeamPage: React.FC = () => {
       next.delete("player");
       setSearchParams(next, { replace: true });
     }
+  };
+
+  const switchPlayerProfile = (player: PlayerItem) => {
+    setSelectedProfilePlayer(player);
+    const next = new URLSearchParams(searchParams);
+    next.set("player", player.id);
+    setSearchParams(next, { replace: true });
   };
 
   const handleTeamPhotoPick = async (file: File) => {
@@ -848,6 +862,25 @@ export const TeamPage: React.FC = () => {
     () => players.filter((p) => (p.status ?? "active") === "paused").length,
     [players]
   );
+  const { myAttendancePlayerIds } = useAvailabilityPermissions({
+    role: roleNormalized,
+    teamSeasonId,
+    viewOnlyPlayer: false,
+  });
+  const ownPlayerIds = useMemo(() => {
+    if (isDemo) return new Set(["p08"]);
+    return new Set(myAttendancePlayerIds);
+  }, [isDemo, myAttendancePlayerIds]);
+  const showcasePlayers = useMemo(() => {
+    const prioritizeOwnPlayers = isDemo || roleNormalized === "parent" || roleNormalized === "player";
+    if (!prioritizeOwnPlayers) return sortedPlayers;
+    const own = new Set(ownPlayerIds);
+    return [...sortedPlayers].sort((a, b) => {
+      const aOwn = own.has(a.id) ? 1 : 0;
+      const bOwn = own.has(b.id) ? 1 : 0;
+      return bOwn - aOwn;
+    });
+  }, [sortedPlayers, ownPlayerIds, isDemo, roleNormalized]);
 
   if (searchParams.get("tab") === "parents") {
     return <Navigate to={isDemo ? `${basePath}/team` : "/app/mehr/parent-access"} replace />;
@@ -866,6 +899,12 @@ export const TeamPage: React.FC = () => {
         canManage={canManagePlayers}
         initialTab={profileInitialTab}
         squadPlayers={players}
+        profilePlayers={showcasePlayers}
+        onPlayerChange={switchPlayerProfile}
+        onNextAfterLast={staffRows[0] ? () => {
+          closePlayerProfile();
+          navigate(`${basePath}/team/trainer/${encodeURIComponent(staffRows[0].user_id)}`);
+        } : undefined}
         onClose={closePlayerProfile}
         onEdit={handleEditFromProfile}
         onPlayerUpdated={(patch) => {
@@ -937,31 +976,28 @@ export const TeamPage: React.FC = () => {
     <PageShell
       variant="subtle"
       showAtmosphere={false}
-      className="page team-page min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-36 sm:px-4 md:px-0"
-      contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl"
+      className="page team-page min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-0 pb-36 sm:px-4 md:px-0"
+      contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
       {/* Team Hero */}
-      <PremiumCard matchday showAmbientGlow className="!p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
-      <div className="relative min-h-[160px] sm:min-h-[178px]">
+      <PremiumCard matchday showAmbientGlow className="!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x">
+      <div className="relative aspect-[16/9] min-h-[220px] max-h-[390px] sm:min-h-[280px]">
         <img
           src={heroPhotoSrc}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div
-          className={
-            heroShowsPlaceholder
-              ? "pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(48,10,10,0.55)_0%,rgba(14,14,18,0.72)_50%,rgba(8,8,12,0.85)_100%)]"
-              : "pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(48,10,10,0.96)_0%,rgba(14,14,18,0.98)_45%,rgba(8,8,12,1)_100%)]"
-          }
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.18)_38%,rgba(0,0,0,0.94)_100%)]"
           aria-hidden
         />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.48)_0%,transparent_62%)]" aria-hidden />
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[repeating-linear-gradient(90deg,transparent,transparent_14px,rgba(255,255,255,0.04)_14px,rgba(255,255,255,0.04)_16px)]"
           aria-hidden
         />
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-red-600/20 blur-3xl" aria-hidden />
-        <div className="relative z-10 flex min-h-[160px] flex-col justify-end p-5 sm:min-h-[178px] sm:p-6">
+        <div className="relative z-10 flex h-full min-h-[220px] flex-col justify-end p-4 sm:min-h-[280px] sm:p-6">
           {canManagePlayers ? (
             <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
               <input
@@ -996,12 +1032,23 @@ export const TeamPage: React.FC = () => {
               </AppButton>
             </div>
           ) : null}
+          <div className="flex items-end gap-3 sm:gap-4">
+            <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/60 p-1.5 shadow-2xl backdrop-blur-sm sm:h-[82px] sm:w-[82px]">
+              <img src={getOurTeamLogoUrl()} alt="SPG Rohrbach Wappen" className="h-full w-full object-contain" />
+            </div>
+            <div className="min-w-0 flex-1 pb-1">
+              <p className="truncate text-[27px] font-black uppercase leading-none tracking-tight text-white drop-shadow-lg sm:text-[34px]">
+                {tsLoading ? "Lade Team…" : getOurTeamDisplayName()}
+              </p>
+              <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
+                <span className="text-red-400">{heroAgeGroup}</span> · Saison {heroSeason}
+                {isHistoryReadOnly ? " · Archiv" : ""}
+              </p>
+            </div>
+          </div>
           <div>
-            <p className="text-lg font-bold leading-tight text-white sm:text-xl">
-              {tsLoading ? "Lade Team…" : heroTeamName}
-            </p>
             {!isDemo && teamSeasons.length > 1 ? (
-              <label className="mt-2 block min-w-0">
+              <label className="mt-3 hidden min-w-0 pl-[80px] sm:block sm:pl-[98px]">
                 <span className="sr-only">Saison anzeigen</span>
                 <select
                   value={readTeamSeasonId ?? ""}
@@ -1043,10 +1090,7 @@ export const TeamPage: React.FC = () => {
                 </select>
               </label>
             ) : (
-              <p className="mt-1 text-[14px] text-white/70">
-                {heroSeason}
-                {isHistoryReadOnly ? " · Archiv" : ""}
-              </p>
+              null
             )}
           </div>
           {isHistoryReadOnly ? (
@@ -1054,17 +1098,6 @@ export const TeamPage: React.FC = () => {
               {softLockMessage ?? "Archivierte Saison — nur Lesen. Aktive Saison bleibt unverändert."}
             </p>
           ) : null}
-          <div className="mt-4 flex flex-wrap gap-2 text-[14px] text-white/70">
-            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
-              {tsLoading || plLoading ? "…" : `${activeCount} Spieler`}
-            </span>
-            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
-              {staffLoading ? "…" : `${trainerCount} Trainer`}
-            </span>
-            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
-              Saison {heroSeason}
-            </span>
-          </div>
         </div>
       </div>
       </PremiumCard>
@@ -1083,7 +1116,7 @@ export const TeamPage: React.FC = () => {
       <GlassCard
         variant="subtle"
         showAmbientGlow={false}
-        className="sticky top-0 z-20 !p-1 backdrop-blur-md"
+        className="sticky top-0 z-20 mx-3 !p-1 backdrop-blur-md sm:mx-0"
       >
         {tabsReady ? (
           <PremiumTabTrack className="min-w-0">
@@ -1113,16 +1146,23 @@ export const TeamPage: React.FC = () => {
       {isDemo ? <DemoAiDisclosure className="mt-3" /> : null}
 
       {activeTab === "squad" ? (
-      <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
-        <div className="flex items-center justify-between gap-2">
-          <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
-            Kader
+      <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-0">
+          <SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
+            Unser Team
           </SectionTitle>
-          {teamSeasonId != null && canManagePlayers && !plLoading ? (
-            <PremiumButton type="button" variant="interactive" onClick={() => openCreateForm()} className="!min-h-[40px] shrink-0 !px-3 !py-2 !text-sm">
-              + Spieler hinzufügen
-            </PremiumButton>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {!plLoading ? (
+              <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-white/75">
+                {showcasePlayers.length} Spieler
+              </span>
+            ) : null}
+            {teamSeasonId != null && canManagePlayers && !plLoading ? (
+              <PremiumButton type="button" variant="interactive" onClick={() => openCreateForm()} className="!min-h-[36px] shrink-0 !px-2.5 !py-1.5 !text-xs">
+                + Spieler
+              </PremiumButton>
+            ) : null}
+          </div>
         </div>
         <div className="mt-2">
           {teamSeasonId == null && !tsLoading && (
@@ -1142,8 +1182,8 @@ export const TeamPage: React.FC = () => {
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
             <>
               {canManagePlayers ? (
-                <div className="mb-2 mt-2 space-y-2">
-                  <p className="text-xs text-white/60">
+                <div className="mb-2 mt-2 space-y-2 px-3 sm:px-0">
+                  <p className="hidden text-xs text-white/60 sm:block">
                     Pausierte Spieler bleiben gespeichert, sind aber für Eltern/Fans und Spielkader nicht sichtbar.
                   </p>
                   <PremiumTabTrack className="min-w-0">
@@ -1174,54 +1214,12 @@ export const TeamPage: React.FC = () => {
                   </PremiumTabTrack>
                 </div>
               ) : null}
-            <ul className="mt-3 w-full space-y-1.5 pb-8">
-              {sortedPlayers.map((p) => (
-                <li key={p.id} className="w-full">
-                  <div className="space-y-1">
-                    <PlayerCard
-                      player={{
-                        id: p.id,
-                        first_name: p.first_name,
-                        last_name: p.last_name,
-                        display_name: p.display_name,
-                        position: getPositionLabel(p.position) || p.position,
-                        jersey_number: p.jersey_number,
-                        photo_url: readOptionalPhotoUrl(p),
-                        is_injured: p.is_injured,
-                        is_laz_player: p.is_laz_player,
-                      }}
-                      onClick={() => openPlayerProfile(p)}
-                    />
-                    <div className="flex items-center justify-between px-2">
-                      {(p.status ?? "active") === "paused" ? (
-                        <span className="rounded-full border border-amber-400/35 bg-amber-900/30 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
-                          Pausiert
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-emerald-400/30 bg-emerald-900/25 px-2 py-0.5 text-[11px] font-semibold text-emerald-200">
-                          Aktiv
-                        </span>
-                      )}
-                      {canManagePlayers ? (
-                        <button
-                          type="button"
-                          disabled={deletingId !== null || saving}
-                          onClick={() =>
-                            void handleSetPlayerStatus(
-                              p.id,
-                              (p.status ?? "active") === "paused" ? "active" : "paused"
-                            )
-                          }
-                          className="rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-white/80 hover:bg-white/[0.08] disabled:opacity-50"
-                        >
-                          {(p.status ?? "active") === "paused" ? "Wieder aktivieren" : "Pausieren"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+              <TeamSquadShowcase
+                players={showcasePlayers}
+                ownPlayerIds={ownPlayerIds}
+                onPlayerClick={openPlayerProfile}
+                onSwipePastEnd={() => handleTeamTabChange("trainers")}
+              />
             </>
           )}
         </div>
@@ -1231,8 +1229,8 @@ export const TeamPage: React.FC = () => {
       {activeTab === "trainers" ? (
         <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
           <div className="flex items-center justify-between gap-2">
-            <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
-              Trainer
+            <SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
+              Unsere Trainer
             </SectionTitle>
             {teamSeasonId != null && canManagePlayers && !isDemo && !staffLoading ? (
               <PremiumButton
@@ -1265,18 +1263,13 @@ export const TeamPage: React.FC = () => {
                   {STAFF_RPC_MIGRATION_HINT}
                 </p>
               ) : null}
-              <ul className="mt-3 w-full space-y-1.5 pb-8">
-                {staffRows.map((row) => (
-                  <li key={`${row.user_id}-${row.role}`} className="w-full">
-                    <TrainerStaffCard
-                      member={row}
-                      onClick={() =>
-                        navigate(`${basePath}/team/trainer/${encodeURIComponent(row.user_id)}`)
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
+              <TeamTrainerShowcase
+                trainers={staffRows}
+                onSwipePastStart={() => handleTeamTabChange("squad")}
+                onTrainerClick={(row) =>
+                  navigate(`${basePath}/team/trainer/${encodeURIComponent(row.user_id)}`)
+                }
+              />
             </>
           )}
         </PremiumCard>

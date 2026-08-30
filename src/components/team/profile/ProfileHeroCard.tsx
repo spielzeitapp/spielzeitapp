@@ -1,23 +1,12 @@
 import React from "react";
 import {
-  hasCutoutUrl,
-  HERO_CARD_CLASS,
-  HeroAvatarInSlot,
-  HeroClubLogoWatermark,
-  HeroCutoutLayer,
-  HeroNameBlock,
-  HeroPrimaryMark,
-  HeroSeasonLine,
-  HeroTeamHeaderLine,
-  PremiumHeroStadiumAtmosphere,
-  profileHeroLayoutMode,
   resolveProfileCutoutSrc,
   splitTeamSeasonLabel,
   useProfileHeroImagePreload,
-  useStadiumBackgroundUrl,
 } from "./profileHeroShared";
-import { PlayerHeroMetaBadges } from "./PlayerHeroMetaBadges";
 import type { ProfilePositionBadge } from "../../../lib/positionLabels";
+import { isDemoUpperBodyPortraitUrl } from "../../../lib/playerDemoPortrait";
+import { resolveProfilePhotoSrc } from "../../../lib/profileHeroImage";
 import { TrainerProfileHeroCard } from "./TrainerProfileHeroCard";
 
 /**
@@ -33,6 +22,7 @@ type Props = {
   lastNameLine: string;
   teamSeasonLabel: string;
   teamName?: string | null;
+  teamLogoUrl?: string | null;
   roleLabel?: string | null;
   photoUrl?: string | null;
   cutoutUrl?: string | null;
@@ -42,11 +32,22 @@ type Props = {
   statusSlot?: React.ReactNode;
 };
 
-function resolvePlayerHeroSeasonLine(teamSeasonLabel: string): string {
+function resolvePlayerHeroTeamHeader(
+  teamName: string | null | undefined,
+  teamSeasonLabel: string,
+): { club: string; ageGroup: string; season: string } {
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
-  if (parsed.season) return parsed.season;
-  const paren = /\(([^)]+)\)/.exec((teamSeasonLabel ?? "").trim());
-  return paren?.[1]?.trim() ?? "";
+  const combined = `${teamName ?? ""} ${parsed.team} ${teamSeasonLabel}`;
+  const ageGroup = /\bU\d+\b/i.exec(combined)?.[0]?.toUpperCase() ?? "";
+  const season = /\b20\d{2}\/\d{2}\b/.exec(combined)?.[0] ?? "";
+  const rawClub = (teamName ?? "").trim() || parsed.team || "Team";
+  const club = rawClub
+    .replace(/[–-]\s*Demo\b/gi, "")
+    .replace(/\bU\d+\b/gi, "")
+    .trim()
+    .replace(/^NSG\s+Rohrbach\b/i, "SPG Rohrbach")
+    .toUpperCase();
+  return { club, ageGroup, season };
 }
 
 function PlayerProfileHeroCard(props: Props) {
@@ -56,71 +57,94 @@ function PlayerProfileHeroCard(props: Props) {
     lastNameLine,
     teamSeasonLabel,
     teamName,
-    roleLabel,
+    teamLogoUrl,
     photoUrl,
     cutoutUrl,
     initials,
-    positionBadge,
-    statusSlot,
   } = props;
-  const stadiumBgUrl = useStadiumBackgroundUrl();
-  const cutoutSrc = hasCutoutUrl(cutoutUrl) ? resolveProfileCutoutSrc(cutoutUrl) : null;
-  const [cutoutImageOk, setCutoutImageOk] = React.useState(true);
+  const cutoutSrc = resolveProfileCutoutSrc(cutoutUrl);
+  const photoSrc = resolveProfilePhotoSrc(photoUrl);
+  const heroImageSrc = cutoutSrc || photoSrc;
+  const [imageOk, setImageOk] = React.useState(true);
 
   React.useEffect(() => {
-    setCutoutImageOk(true);
-  }, [cutoutUrl]);
+    setImageOk(true);
+  }, [heroImageSrc]);
 
   useProfileHeroImagePreload(cutoutUrl, photoUrl);
 
-  const isCutoutLayout = profileHeroLayoutMode(cutoutUrl) === "cutout";
-  const showCutoutImage = isCutoutLayout && cutoutImageOk && Boolean(cutoutSrc);
-  /** Ohne Cutout: Porträt-Avatar (wie Trainer-Hero) — Demo-KI-Fotos + produktive Avatare ohne Freisteller. */
-  const showAvatarFallback = !showCutoutImage;
-
-  const parsed = splitTeamSeasonLabel(teamSeasonLabel);
-  const teamLine = (teamName ?? "").trim() || parsed.team;
-  const seasonLine = resolvePlayerHeroSeasonLine(teamSeasonLabel);
+  const teamHeader = resolvePlayerHeroTeamHeader(teamName, teamSeasonLabel);
+  const isUpperBodyDemo = isDemoUpperBodyPortraitUrl(heroImageSrc);
+  const isDoubleDigitWatermark = watermark.trim().length >= 2;
 
   return (
-    <div className={HERO_CARD_CLASS}>
-      <PremiumHeroStadiumAtmosphere photoBgUrl={stadiumBgUrl} />
-      <HeroClubLogoWatermark />
+    <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#171719_0%,#070708_52%,#25090c_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(220,38,38,0.3),transparent_48%)]" aria-hidden />
+      <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgba(239,68,68,0.14)_17px,transparent_18px)]" aria-hidden />
 
-      {isCutoutLayout && cutoutSrc ? (
-        <HeroCutoutLayer
-          cutoutSrc={cutoutSrc}
-          visible={showCutoutImage}
-          variant="player"
-          onLoad={() => setCutoutImageOk(true)}
-          onError={() => setCutoutImageOk(false)}
-        />
+      {watermark ? (
+        <p
+          className={`absolute left-9 top-[6.25rem] z-[4] select-none font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-12 sm:top-[6.75rem] ${
+            isDoubleDigitWatermark
+              ? "text-[clamp(6.75rem,30vw,9.75rem)]"
+              : "text-[clamp(8.75rem,38vw,12.5rem)]"
+          }`}
+          aria-hidden
+        >
+          {watermark}
+        </p>
       ) : null}
 
-      <div className="relative flex h-full min-h-0 items-stretch justify-between gap-0 px-3 pb-2 pt-2 sm:px-4 sm:pb-2">
-        <div className="relative z-[4] flex h-full min-w-0 max-w-[52%] flex-1 flex-col py-0.5 pl-0.5 pr-0.5 sm:max-w-[50%]">
-          {teamLine ? <HeroTeamHeaderLine teamLine={teamLine} /> : null}
-
-          <div className="mt-0.5 shrink-0">
-            <HeroPrimaryMark mark={watermark} variant="player" />
-          </div>
-
-          <HeroNameBlock firstNameLine={firstNameLine} lastNameLine={lastNameLine} />
-
-          <PlayerHeroMetaBadges
-            positionBadge={positionBadge}
-            jerseyNumber={watermark}
-            seasonLine={seasonLine}
-            statusSlot={statusSlot}
+      <div className="absolute inset-0 z-[2] flex items-end justify-center overflow-hidden" aria-hidden>
+        {heroImageSrc && imageOk ? (
+          <img
+            src={heroImageSrc}
+            alt=""
+            className={`h-full w-full object-bottom ${
+              cutoutSrc
+                ? "origin-bottom translate-x-[9%] scale-[1.22] object-contain sm:translate-x-[7%]"
+                : isUpperBodyDemo
+                  ? "translate-x-[9%] object-contain sm:translate-x-[7%]"
+                  : "object-cover object-[62%_top]"
+            }`}
+            onError={() => setImageOk(false)}
           />
+        ) : (
+          <div className="mb-20 flex h-32 w-32 items-center justify-center rounded-full border border-white/10 bg-zinc-900 text-3xl font-black text-white/80">
+            {initials}
+          </div>
+        )}
+      </div>
 
-          {!positionBadge && !statusSlot && seasonLine ? <HeroSeasonLine seasonLine={seasonLine} /> : null}
-        </div>
+      <div className="absolute inset-x-0 bottom-0 z-[3] h-[48%] bg-gradient-to-t from-black via-black/78 to-transparent" aria-hidden />
 
-        <div className="relative z-[1] w-[52%] max-w-[14rem] shrink-0 sm:max-w-[15rem]" aria-hidden>
-          {showAvatarFallback ? (
-            <HeroAvatarInSlot photoUrl={photoUrl} initials={initials} visible />
+      <div className="absolute inset-x-0 top-0 z-[5] flex items-start justify-between gap-3 p-4 sm:p-5">
+        <div className="min-w-0 pt-0.5">
+          <p className="truncate text-[15px] font-black uppercase leading-none tracking-[0.07em] text-white sm:text-[17px]">
+            {teamHeader.club}
+          </p>
+          {teamHeader.ageGroup || teamHeader.season ? (
+            <p className="mt-1.5 text-[11px] font-black uppercase leading-none tracking-[0.12em] text-white/72 sm:text-[12px]">
+              {teamHeader.ageGroup ? <span className="text-red-400">{teamHeader.ageGroup}</span> : null}
+              {teamHeader.ageGroup && teamHeader.season ? <span className="text-white/45"> · </span> : null}
+              {teamHeader.season ? <span>{teamHeader.season}</span> : null}
+            </p>
           ) : null}
+        </div>
+        {teamLogoUrl ? (
+          <img
+            src={teamLogoUrl}
+            alt=""
+            className="h-20 w-20 shrink-0 object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] sm:h-24 sm:w-24"
+            aria-hidden
+          />
+        ) : null}
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5">
+        <div className="max-w-[62%] break-words text-[28px] font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] sm:text-[32px]">
+          {firstNameLine ? <p>{firstNameLine}</p> : null}
+          {lastNameLine ? <p>{lastNameLine}</p> : null}
         </div>
       </div>
     </div>

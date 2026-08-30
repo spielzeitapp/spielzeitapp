@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { lockAppMainScroll } from "../../lib/bodyScrollLock";
 import { APP_BOTTOM_SCROLL_PAD } from "../../lib/appScrollPadding";
-import { Activity, CalendarDays, ChevronDown, Trophy, User } from "lucide-react";
+import { Activity, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Trophy, User } from "lucide-react";
 import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
 import { ProfileStatTile } from "./ProfileStatTile";
@@ -21,7 +21,9 @@ import { useDemoMode } from "../../demo/DemoContext";
 import { DEMO_TEAM_SEASON_ID } from "../../demo/demoDataSource";
 import { isDemoPlayerId } from "../../demo/demoPlayers";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
+import { getDemoPlayerPortraitUrl } from "../../lib/playerDemoPortrait";
 import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
+import { getOurTeamLogoUrl } from "../../lib/teamLogos";
 import {
   getPositionFull,
   getPositionLabel,
@@ -68,6 +70,12 @@ export type PlayerProfileModalProps = {
   initialTab?: ProfileTab;
   /** Aktiver Kader für anonymisierten Teamdurchschnitt im Training-Tab. */
   squadPlayers?: PlayerItem[];
+  /** Sichtbare Kaderreihenfolge für Profilwechsel per Wischen/Pfeilen. */
+  profilePlayers?: PlayerItem[];
+  /** Spielerprofil wechseln, ohne das Modal zu schließen. */
+  onPlayerChange?: (player: PlayerItem) => void;
+  /** Nach dem letzten Kaderspieler zum ersten Trainerprofil wechseln. */
+  onNextAfterLast?: () => void;
   /** Nach Eltern-Verknüpfung (optional). */
   onGuardiansChanged?: () => void;
 };
@@ -492,6 +500,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onPlayerUpdated,
   initialTab = "overview",
   squadPlayers = [],
+  profilePlayers = [],
+  onPlayerChange,
+  onNextAfterLast,
   onGuardiansChanged,
 }) => {
   const demo = useDemoMode();
@@ -508,6 +519,23 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   /** null = career/gesamt; sonst team_season_id */
   const [statsFilterId, setStatsFilterId] = useState<string | null>(teamSeasonId ?? player.team_season_id ?? null);
   const [statsMode, setStatsMode] = useState<PlayerStatsMode>("season");
+  const swipeStartRef = React.useRef<{ x: number; y: number } | null>(null);
+
+  const profileSequence = profilePlayers.length > 0 ? profilePlayers : squadPlayers;
+  const profilePlayerIndex = profileSequence.findIndex((entry) => entry.id === player.id);
+  const previousProfilePlayer = profilePlayerIndex > 0 ? profileSequence[profilePlayerIndex - 1] : null;
+  const nextProfilePlayer =
+    profilePlayerIndex >= 0 && profilePlayerIndex < profileSequence.length - 1
+      ? profileSequence[profilePlayerIndex + 1]
+      : null;
+
+  const switchProfilePlayer = (nextPlayer: PlayerItem | null) => {
+    if (nextPlayer && onPlayerChange) {
+      onPlayerChange(nextPlayer);
+      return;
+    }
+    if (!nextPlayer) onNextAfterLast?.();
+  };
 
   const { canViewForPlayer } = useTrainingParticipationAccess(role);
   const canViewTrainingParticipation = canViewForPlayer(player.id);
@@ -608,7 +636,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   }, [stats.averageMinutesPerGame]);
 
   const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
-  const avatarSrc = (photoUrl ?? "").trim() || "/avatars/player-placeholder.png";
+  const avatarSrc =
+    (photoUrl ?? "").trim() ||
+    (demo ? getDemoPlayerPortraitUrl(player.jersey_number, player.id) : "/avatars/player-placeholder.png");
   const jerseyWatermark =
     player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
       ? String(player.jersey_number)
@@ -640,7 +670,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   useEffect(() => {
     setProfileTab(initialTab);
-  }, [player.id, initialTab]);
+  }, [initialTab]);
 
   useEffect(() => {
     if (profileTab === "training" && !canViewTrainingParticipation) {
@@ -760,22 +790,72 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           className="min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 pt-2 [-webkit-overflow-scrolling:touch] [hyphens:none] sm:px-4"
           style={{ paddingBottom: `calc(${APP_BOTTOM_SCROLL_PAD})` }}
         >
-          <ProfileHeroCard
-            variant="player"
-            watermark={jerseyWatermark}
-            firstNameLine={firstNameLine}
-            lastNameLine={lastNameLine}
-            teamSeasonLabel={teamSeasonLabel ?? "Team"}
-            teamName={teamName}
-            roleLabel={positionHeroLabel !== "—" ? positionHeroLabel : undefined}
-            photoUrl={(photoUrl ?? "").trim() || avatarSrc}
-            cutoutUrl={player.cutout_url}
-            initials={initials(player)}
-            positionBadge={profilePositionBadge}
-            statusSlot={
-              <PlayerStatusBadgesRow isLaz={lazToggleChecked} isInjured={injuredToggleChecked} />
-            }
-          />
+          <div
+            className="relative touch-pan-y"
+            onTouchStart={(event) => {
+              const touch = event.changedTouches[0];
+              swipeStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+            }}
+            onTouchEnd={(event) => {
+              const start = swipeStartRef.current;
+              swipeStartRef.current = null;
+              const touch = event.changedTouches[0];
+              if (!start || !touch) return;
+              const deltaX = touch.clientX - start.x;
+              const deltaY = touch.clientY - start.y;
+              if (Math.abs(deltaX) < 55 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+              if (deltaX < 0) switchProfilePlayer(nextProfilePlayer);
+              else if (previousProfilePlayer) switchProfilePlayer(previousProfilePlayer);
+            }}
+          >
+            <ProfileHeroCard
+              variant="player"
+              watermark={jerseyWatermark}
+              firstNameLine={firstNameLine}
+              lastNameLine={lastNameLine}
+              teamSeasonLabel={teamSeasonLabel ?? "Team"}
+              teamName={teamName}
+              teamLogoUrl={getOurTeamLogoUrl()}
+              roleLabel={positionHeroLabel !== "—" ? positionHeroLabel : undefined}
+              photoUrl={(photoUrl ?? "").trim() || avatarSrc}
+              cutoutUrl={player.cutout_url}
+              initials={initials(player)}
+              positionBadge={profilePositionBadge}
+              statusSlot={
+                <PlayerStatusBadgesRow isLaz={lazToggleChecked} isInjured={injuredToggleChecked} />
+              }
+            />
+
+            {previousProfilePlayer && onPlayerChange ? (
+              <button
+                type="button"
+                onClick={() => switchProfilePlayer(previousProfilePlayer)}
+                aria-label={`Vorheriger Spieler: ${displayFullName(previousProfilePlayer)}`}
+                className="absolute left-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:border-red-400/45 hover:text-white active:scale-95"
+              >
+                <ChevronLeft className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+              </button>
+            ) : null}
+            {nextProfilePlayer && onPlayerChange ? (
+              <button
+                type="button"
+                onClick={() => switchProfilePlayer(nextProfilePlayer)}
+                aria-label={`Nächster Spieler: ${displayFullName(nextProfilePlayer)}`}
+                className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:border-red-400/45 hover:text-white active:scale-95"
+              >
+                <ChevronRight className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+              </button>
+            ) : onNextAfterLast ? (
+              <button
+                type="button"
+                onClick={onNextAfterLast}
+                aria-label="Zum ersten Trainerprofil"
+                className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:border-red-400/45 hover:text-white active:scale-95"
+              >
+                <ChevronRight className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+              </button>
+            ) : null}
+          </div>
 
           {ageLabel || birthYearLabel ? (
             <div className="mb-2.5 mt-1 grid grid-cols-2 gap-1.5">

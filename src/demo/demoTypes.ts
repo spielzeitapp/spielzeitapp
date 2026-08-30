@@ -21,6 +21,7 @@ export type DemoFeedKind =
 export type DemoPlayer = {
   id: string;
   firstName: string;
+  lastName: string;
   lastInitial: string;
   position: DemoPlayerPosition;
   jersey: number;
