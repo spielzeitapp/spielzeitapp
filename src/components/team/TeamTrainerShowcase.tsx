@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { staffDisplayName, staffRoleLabelDe, type TeamStaffMember } from "../../hooks/useTeamStaff";
+import { staffDisplayName, type TeamStaffMember } from "../../hooks/useTeamStaff";
 
 type Props = {
   trainers: TeamStaffMember[];
@@ -76,8 +76,8 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick 
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(220,38,38,0.25),transparent_46%)]" aria-hidden />
               <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(239,68,68,0.15)_15px,transparent_16px)]" aria-hidden />
-              <span className="absolute left-3 top-3 z-10 rounded-full border border-red-400/30 bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-red-300">
-                {staffRoleLabelDe(trainer.role)}
+              <span className="absolute right-3 top-3 z-10 text-[28px] font-black uppercase leading-none text-white sm:text-[34px]">
+                TR
               </span>
               {photo ? (
                 <img
@@ -148,12 +148,12 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick 
                     </div>
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[16px] font-bold text-white/95">{staffDisplayName(trainer)}</p>
-                  <p className="mt-0.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-red-300/85">
-                    {staffRoleLabelDe(trainer.role)}
-                  </p>
-                </div>
+                <span className="w-12 shrink-0 border-l border-white/10 pl-2.5 text-[20px] font-black uppercase leading-none text-white">
+                  TR
+                </span>
+                <p className="min-w-0 flex-1 truncate pl-2.5 text-[16px] font-bold text-white/95">
+                  {staffDisplayName(trainer)}
+                </p>
                 <ChevronRight className="ml-2 h-5 w-5 shrink-0 text-white/60" aria-hidden />
               </button>
             </li>
