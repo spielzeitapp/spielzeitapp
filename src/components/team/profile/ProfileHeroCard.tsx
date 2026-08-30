@@ -42,7 +42,7 @@ function resolvePlayerHeroTeamLine(teamName: string | null | undefined, teamSeas
     .trim()
     .replace(/^NSG\s+Rohrbach\b/i, "SPG Rohrbach")
     .toUpperCase();
-  return ageGroup ? `${club} · ${ageGroup}` : club;
+  return ageGroup ? `${ageGroup} · ${club}` : club;
 }
 
 function PlayerProfileHeroCard(props: Props) {
@@ -75,17 +75,26 @@ function PlayerProfileHeroCard(props: Props) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(220,38,38,0.3),transparent_48%)]" aria-hidden />
       <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgba(239,68,68,0.14)_17px,transparent_18px)]" aria-hidden />
 
-      <div className="absolute inset-0 z-[1] flex items-end justify-center overflow-hidden" aria-hidden>
+      {watermark ? (
+        <p
+          className="absolute left-4 top-[3.35rem] z-[1] select-none text-[clamp(7.25rem,31vw,10.5rem)] font-black leading-[0.72] tracking-[-0.08em] text-white/[0.11] sm:left-5 sm:top-[3.65rem]"
+          aria-hidden
+        >
+          {watermark}
+        </p>
+      ) : null}
+
+      <div className="absolute inset-0 z-[2] flex items-end justify-center overflow-hidden" aria-hidden>
         {heroImageSrc && imageOk ? (
           <img
             src={heroImageSrc}
             alt=""
             className={`h-full w-full object-bottom ${
               cutoutSrc
-                ? "origin-bottom scale-[1.22] object-contain"
+                ? "origin-bottom translate-x-[9%] scale-[1.22] object-contain sm:translate-x-[7%]"
                 : isUpperBodyDemo
-                  ? "object-contain"
-                  : "object-cover object-top"
+                  ? "translate-x-[9%] object-contain sm:translate-x-[7%]"
+                  : "object-cover object-[62%_top]"
             }`}
             onError={() => setImageOk(false)}
           />
@@ -96,17 +105,16 @@ function PlayerProfileHeroCard(props: Props) {
         )}
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-[2] h-[48%] bg-gradient-to-t from-black via-black/78 to-transparent" aria-hidden />
+      <div className="absolute inset-x-0 bottom-0 z-[3] h-[48%] bg-gradient-to-t from-black via-black/78 to-transparent" aria-hidden />
 
-      <div className="absolute inset-x-0 top-0 z-[3] flex items-start justify-between p-4 sm:p-5">
+      <div className="absolute inset-x-0 top-0 z-[4] p-4 sm:p-5">
         <p className="pt-1 text-[11px] font-black uppercase tracking-[0.12em] text-white/85 sm:text-[12px]">
           {teamLine}
         </p>
-        <p className="text-[44px] font-black leading-none text-white sm:text-[52px]">{watermark}</p>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-[3] p-4 sm:p-5">
-        <div className="max-w-[82%] text-[28px] font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] sm:text-[32px]">
+      <div className="absolute inset-x-0 bottom-0 z-[4] p-4 sm:p-5">
+        <div className="max-w-[62%] break-words text-[28px] font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] sm:text-[32px]">
           {firstNameLine ? <p>{firstNameLine}</p> : null}
           {lastNameLine ? <p>{lastNameLine}</p> : null}
         </div>
