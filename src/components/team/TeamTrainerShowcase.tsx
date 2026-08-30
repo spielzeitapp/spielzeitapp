@@ -5,6 +5,7 @@ import { staffDisplayName, type TeamStaffMember } from "../../hooks/useTeamStaff
 type Props = {
   trainers: TeamStaffMember[];
   onTrainerClick: (trainer: TeamStaffMember) => void;
+  onSwipePastStart?: () => void;
 };
 
 function trainerInitials(trainer: TeamStaffMember): string {
@@ -15,8 +16,9 @@ function trainerInitials(trainer: TeamStaffMember): string {
     .toUpperCase() || "TR";
 }
 
-export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick }) => {
+export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick, onSwipePastStart }) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
+  const swipeStartRef = useRef<{ x: number; atStart: boolean } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -55,7 +57,21 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick 
       <div
         ref={sliderRef}
         onScroll={updateActiveCard}
-        className="flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-5"
+        onTouchStart={(event) => {
+          const slider = sliderRef.current;
+          if (!slider) return;
+          swipeStartRef.current = { x: event.touches[0]?.clientX ?? 0, atStart: slider.scrollLeft <= 4 };
+        }}
+        onTouchEnd={(event) => {
+          const start = swipeStartRef.current;
+          swipeStartRef.current = null;
+          if (!start?.atStart || !onSwipePastStart) return;
+          const endX = event.changedTouches[0]?.clientX ?? start.x;
+          if (endX - start.x > 45) onSwipePastStart();
+        }}
+        className={`flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-5 ${
+          trainers.length === 1 ? "justify-center" : ""
+        }`}
         aria-label="Trainer-Karussell"
       >
         {trainers.map((trainer) => {
@@ -79,7 +95,9 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick 
                   src={photo}
                   alt=""
                   className={`absolute inset-0 h-full w-full transition duration-300 group-hover:scale-[1.02] ${
-                    trainer.cutout_url ? "object-contain object-bottom" : "object-cover object-top"
+                    trainer.cutout_url
+                      ? "origin-bottom -translate-y-[4%] scale-[1.22] object-contain object-bottom group-hover:-translate-y-[4%] group-hover:scale-[1.25]"
+                      : "object-cover object-top"
                   }`}
                 />
               ) : (

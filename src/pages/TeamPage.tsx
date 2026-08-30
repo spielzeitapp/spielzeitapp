@@ -1214,6 +1214,7 @@ export const TeamPage: React.FC = () => {
                 players={showcasePlayers}
                 ownPlayerIds={ownPlayerIds}
                 onPlayerClick={openPlayerProfile}
+                onSwipePastEnd={() => handleTeamTabChange("trainers")}
               />
             </>
           )}
@@ -1260,6 +1261,7 @@ export const TeamPage: React.FC = () => {
               ) : null}
               <TeamTrainerShowcase
                 trainers={staffRows}
+                onSwipePastStart={() => handleTeamTabChange("squad")}
                 onTrainerClick={(row) =>
                   navigate(`${basePath}/team/trainer/${encodeURIComponent(row.user_id)}`)
                 }

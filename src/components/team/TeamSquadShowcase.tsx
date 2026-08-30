@@ -8,6 +8,7 @@ type Props = {
   players: PlayerItem[];
   ownPlayerIds: Set<string>;
   onPlayerClick: (player: PlayerItem) => void;
+  onSwipePastEnd?: () => void;
 };
 
 const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
@@ -53,8 +54,9 @@ function playerCardFamilyName(player: PlayerItem): string {
   return nameParts.slice(1).join(" ") || "";
 }
 
-export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick }) => {
+export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onSwipePastEnd }) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
+  const swipeStartRef = useRef<{ x: number; atEnd: boolean } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -93,6 +95,22 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick }) =
       <div
         ref={sliderRef}
         onScroll={updateActiveCard}
+        onTouchStart={(event) => {
+          const slider = sliderRef.current;
+          if (!slider) return;
+          const maxScroll = Math.max(0, slider.scrollWidth - slider.clientWidth);
+          swipeStartRef.current = {
+            x: event.touches[0]?.clientX ?? 0,
+            atEnd: slider.scrollLeft >= maxScroll - 4,
+          };
+        }}
+        onTouchEnd={(event) => {
+          const start = swipeStartRef.current;
+          swipeStartRef.current = null;
+          if (!start?.atEnd || !onSwipePastEnd) return;
+          const endX = event.changedTouches[0]?.clientX ?? start.x;
+          if (endX - start.x < -45) onSwipePastEnd();
+        }}
         className="flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-5"
         aria-label="Spieler-Karussell"
       >
