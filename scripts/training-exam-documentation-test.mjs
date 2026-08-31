@@ -4,6 +4,7 @@ const panel = fs.readFileSync('src/manager/ManagerTrainingExamPanel.tsx', 'utf8'
 const pdf = fs.readFileSync('src/lib/trainingExamPdfExport.ts', 'utf8');
 const data = fs.readFileSync('src/lib/trainingExamDocumentation.ts', 'utf8');
 const sessions = fs.readFileSync('src/manager/ManagerTrainingSessionsPage.tsx', 'utf8');
+const editor = fs.readFileSync('src/manager/ManagerTrainingSessionEditorPage.tsx', 'utf8');
 const migration = fs.readFileSync(
   'supabase/migrations/20260824210000_training_exam_documentations.sql',
   'utf8',
@@ -29,6 +30,12 @@ const checks = [
   [panel.includes('automatisch nach Trainingsdatum sortiert'), 'Automatische Datumssortierung fehlt'],
   [panel.includes('for (const [index, item] of selectedItems.entries())'), 'PDF-Nummerierung folgt nicht der Datumssortierung'],
   [panel.includes("returnTo=${encodeURIComponent('/manager/training/einheiten?tab=exam')}"), 'Bearbeiten-Rücksprung zur Trainerprüfung fehlt'],
+  [panel.includes('?view=training&returnTo='), 'Ansehen-Aktion für Prüfungseinheiten fehlt'],
+  [panel.includes('>Ansehen</Link>'), 'Ansehen-Beschriftung für Prüfungseinheiten fehlt'],
+  [editor.includes("createTrainingExerciseHandoutHtml"), 'Einzelübungs-PDF fehlt in der Trainingsansicht'],
+  [editor.includes("'Einzelübung PDF'"), 'PDF-Knopf in der Trainingsansicht fehlt'],
+  [editor.includes("'A4-Handout'"), 'Handout-Knopf in der Trainingsansicht fehlt'],
+  [editor.includes('if (safeManagerReturnTo)'), 'Rücksprung aus Ansehen zur Trainerprüfung fehlt'],
   [panel.includes('Mannschaft'), 'Mannschaftsfeld fehlt'],
   [panel.includes('Schwerpunkt'), 'Schwerpunktfeld fehlt'],
   [panel.includes('PDF-Prüfungstexte auswählen'), 'Auswahl für PDF-Prüfungstexte fehlt'],
