@@ -12,6 +12,7 @@ import {
   formatTournamentLiveClock,
   type TournamentLiveMatchDetails,
 } from '../../lib/matchCenterTournamentLive';
+import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
 import {
   liveMatchPath,
   matchLineupPath,
@@ -29,6 +30,7 @@ import {
 import { CenterEmptyState } from '../center/CenterEmptyState';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { isDemoTournamentMatchId } from '../../demo/demoTournamentState';
+import { TournamentOwnMatchEditSheet } from './TournamentOwnMatchEditSheet';
 
 type Props = {
   slots: TournamentMatchSlotView[];
@@ -41,12 +43,14 @@ type Props = {
   completingTournament?: boolean;
   awaitingFurtherPhase?: boolean;
   refreshingPlan?: boolean;
+  tournamentDayIso?: string;
   onOpen: (matchId: string) => void;
   onAddMatch?: () => void;
   onCreateReport?: () => void;
   onCompleteTournament?: () => void;
   onShowOverview?: () => void;
   onRefreshPlan?: () => void;
+  onSlotEdited?: () => void;
 };
 
 function TeamLogoMark({ name }: { name: string }) {
@@ -243,13 +247,16 @@ export function TournamentFeaturedMatchCard({
   completingTournament = false,
   awaitingFurtherPhase = false,
   refreshingPlan = false,
+  tournamentDayIso = '',
   onOpen,
   onAddMatch,
   onCreateReport,
   onCompleteTournament,
   onShowOverview,
   onRefreshPlan,
+  onSlotEdited,
 }: Props) {
+  const [editOpen, setEditOpen] = useState(false);
   const basePath = useInternalBasePath();
   const focus = useMemo(() => pickOrchestratorFocus(slots), [slots]);
   const focusSlot = focus.kind !== 'none' ? focus.slot : null;
@@ -358,12 +365,16 @@ export function TournamentFeaturedMatchCard({
     orchestrator.phase === 'awaiting_next_round' ||
     orchestrator.phase === 'awaiting_knockout';
   const timeLabel = formatTournamentKickoffTime(focusSlot.kickoff_at);
-  const group = safeOptionalText(focusSlot.group_label);
-  const phase = safeOptionalText(focusSlot.phase);
   const pitch = safeOptionalText(focusSlot.pitch);
   const opponent = safeText(focusSlot.opponent_name) || 'Gegner';
   const ourTeam = safeText(ourTeamName) || 'Unser Team';
-  const phaseLabel = phase ? phase : group ? `Gruppe ${group}` : null;
+  const phaseLabel = tournamentPhaseDisplayLabel(focusSlot.phase, focusSlot.group_label);
+  const phaseMeta =
+    phaseLabel && phaseLabel !== 'Turnierspiel' && phaseLabel !== 'Gruppenspiel'
+      ? phaseLabel
+      : safeOptionalText(focusSlot.group_label)
+        ? `Gruppe ${safeText(focusSlot.group_label)}`
+        : null;
 
   const scoreHome = isLive && liveDetails ? liveDetails.scoreHome : focusSlot.score_home;
   const scoreAway = isLive && liveDetails ? liveDetails.scoreAway : focusSlot.score_away;
@@ -448,7 +459,7 @@ export function TournamentFeaturedMatchCard({
                 <Clock className="h-3 w-3 shrink-0 text-red-400/75" strokeWidth={2} aria-hidden />
                 {timeLabel} Uhr
               </span>
-              {phaseLabel ? <span className="text-white/45">· {phaseLabel}</span> : null}
+              {phaseMeta ? <span className="text-white/45">· {phaseMeta}</span> : null}
               {pitch ? <span className="text-white/45">· {pitch}</span> : null}
             </div>
           ) : (
@@ -473,6 +484,15 @@ export function TournamentFeaturedMatchCard({
                 basePath,
               }),
             )}
+            {canManage &&
+            focusSlot &&
+            !isLive &&
+            !isAllFinished &&
+            (focusSlot.match_status ?? 'upcoming').toLowerCase() !== 'finished' ? (
+              <WorkflowCtaButton variant="secondary" onClick={() => setEditOpen(true)}>
+                Spiel bearbeiten
+              </WorkflowCtaButton>
+            ) : null}
             {lineupLoading ? (
               <p className="text-center text-[10px] text-white/40">Prüfe Aufstellung…</p>
             ) : null}
@@ -486,6 +506,16 @@ export function TournamentFeaturedMatchCard({
           </div>
         ) : null}
       </div>
+      {canManage && focusSlot && tournamentDayIso ? (
+        <TournamentOwnMatchEditSheet
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          slot={focusSlot}
+          tournamentDayIso={tournamentDayIso}
+          ourTeamName={ourTeamName}
+          onSaved={() => onSlotEdited?.()}
+        />
+      ) : null}
     </article>
   );
 }

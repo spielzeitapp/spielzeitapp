@@ -11,6 +11,8 @@ import { resolvePostAuthDestination } from '../lib/postAuthDestination';
 import {
   buildParentInviteAuthNext,
   buildParentInviteAuthQuery,
+  clearPendingParentEmailInviteFlag,
+  clearStashedParentInviteToken,
   ensureParentInviteContextFromNext,
   isAppIntroEntryPath,
   readParentInviteTokenFromUserMetadata,
@@ -61,6 +63,7 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPlayerLogin, setShowPlayerLogin] = useState(false);
+  const [parentInviteDismissed, setParentInviteDismissed] = useState(false);
 
   const fromState = (location.state as { from?: { pathname: string; search?: string } })?.from;
   const fromStatePath = fromState?.pathname
@@ -73,7 +76,7 @@ export const LoginPage: React.FC = () => {
     searchParams.get('invite_confirmed') === '1' || searchParams.get('invite_confirmed') === 'true';
 
   // Recover invite next from RequireAuth from-state or stash/metadata (Confirm Site-URL fallback).
-  const pendingInvitePath = resolvePendingParentInvitePath(user);
+  const pendingInvitePath = parentInviteDismissed ? null : resolvePendingParentInvitePath(user);
   const fromInvitePath =
     fromStatePath && pathLooksLikeParentInvite(fromStatePath) && isSafeAuthRedirectPath(fromStatePath)
       ? fromStatePath.split('?')[0] || fromStatePath
@@ -83,13 +86,15 @@ export const LoginPage: React.FC = () => {
   const orphanTokenValid = isParentInviteTokenShape(normalizeParentInviteToken(orphanT ?? ''));
   const metaToken = readParentInviteTokenFromUserMetadata(user);
   const isParentInviteFlow = Boolean(
-    pendingInvitePath ||
+    !parentInviteDismissed && (
+      pendingInvitePath ||
       nextSafe ||
       orphanTokenValid ||
       metaToken ||
       readStashedParentInviteEmail() ||
       (searchParams.get('email') ?? '').trim() ||
-      inviteConfirmedFlag,
+      inviteConfirmedFlag
+    ),
   );
 
   const showInviteConfirmedHint = Boolean(
@@ -106,6 +111,7 @@ export const LoginPage: React.FC = () => {
 
   const playerLoginEnabled = isPlayerQrAccessEnabled();
   const lockedInviteEmail = useMemo(() => {
+    if (parentInviteDismissed) return '';
     const fromQuery = (searchParams.get('email') ?? '').trim().toLowerCase();
     if (fromQuery) return fromQuery;
     const stashed = (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
@@ -113,7 +119,7 @@ export const LoginPage: React.FC = () => {
     const fromUser = (user?.email ?? '').trim().toLowerCase();
     if (isParentInviteFlow && fromUser) return fromUser;
     return '';
-  }, [searchParams, user?.email, isParentInviteFlow]);
+  }, [searchParams, user?.email, isParentInviteFlow, parentInviteDismissed]);
 
   const inviteEmailLocked = Boolean(lockedInviteEmail);
 
@@ -218,6 +224,16 @@ export const LoginPage: React.FC = () => {
     navigate(dest.path, { replace: true });
   };
 
+  const openNormalLogin = () => {
+    clearStashedParentInviteToken();
+    clearPendingParentEmailInviteFlag();
+    clearEmailConfirmFlow();
+    setEmail('');
+    setPassword('');
+    setParentInviteDismissed(true);
+    navigate('/login', { replace: true });
+  };
+
   return (
     <div className={AUTH_PAGE_SHELL_CLASS}>
       <div className={AUTH_PAGE_CARD_CLASS}>
@@ -229,6 +245,15 @@ export const LoginPage: React.FC = () => {
               ? 'Mit der eingeladenen E-Mail anmelden, um die Eltern-Einladung fortzusetzen.'
               : 'E-Mail und Passwort eingeben'}
         </p>
+        {isParentInviteFlow ? (
+          <button
+            type="button"
+            onClick={openNormalLogin}
+            className="mt-3 text-sm font-semibold text-red-300 hover:text-red-200 hover:underline"
+          >
+            Zur normalen Anmeldung
+          </button>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>

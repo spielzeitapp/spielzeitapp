@@ -4515,6 +4515,8 @@ export const LiveMatchScreen: React.FC = () => {
           photoUrl={kickoffProfilePhotoUrl}
           canManage={canManagePlayers}
           squadPlayers={safePlayers}
+          profilePlayers={safePlayers}
+          onPlayerChange={setKickoffProfilePlayer}
           onClose={() => setKickoffProfilePlayer(null)}
           onEdit={() => {
             setKickoffProfilePlayer(null);

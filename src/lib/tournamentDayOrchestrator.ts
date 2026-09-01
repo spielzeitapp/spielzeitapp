@@ -106,6 +106,15 @@ export function pickFeaturedTournamentSlotFromOrchestrator(
 }
 
 function knockoutHeaderTitle(slot: TournamentMatchSlotView | null | undefined): string | null {
+  const fromLabel = String(slot?.group_label ?? '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  if (/spiel\s+um\s+platz\s*\d+/i.test(fromLabel)) return fromLabel;
+  if (/^platz\s*\d+\b/i.test(fromLabel)) {
+    const n = fromLabel.match(/\d+/)?.[0];
+    if (n) return `Spiel um Platz ${n}`;
+  }
+
   const phase = String(slot?.phase ?? '')
     .trim()
     .toLowerCase()
@@ -123,7 +132,9 @@ function knockoutHeaderTitle(slot: TournamentMatchSlotView | null | undefined): 
     phase.includes('3rd') ||
     phase.includes('bronze')
   ) {
-    return 'Platzierung';
+    const fromPhase = String(slot?.phase ?? '').trim();
+    if (/spiel\s+um\s+platz\s*\d+/i.test(fromPhase)) return fromPhase.replace(/\s+/g, ' ');
+    return 'Platzierungsspiel';
   }
   if (phase === 'knockout' || phase === 'ko') return 'KO-Spiel';
   return null;
@@ -131,7 +142,7 @@ function knockoutHeaderTitle(slot: TournamentMatchSlotView | null | undefined): 
 
 function prepareLabel(slot: TournamentMatchSlotView | null | undefined, priorFinishedCount: number): string {
   const knockout = knockoutHeaderTitle(slot);
-  if (knockout) return `${knockout} vorbereiten`;
+  if (knockout) return 'Spiel vorbereiten';
   if (priorFinishedCount === 0) return 'Erstes Spiel vorbereiten';
   return 'Nächstes Spiel vorbereiten';
 }
@@ -218,7 +229,7 @@ export function resolveTournamentOrchestrator(params: {
       if (params.canManage) {
         ctas.push({
           kind: 'refresh_plan',
-          label: 'Turnierplan aktualisieren',
+          label: 'Jetzt aktualisieren',
           variant: 'primary',
         });
       }
@@ -231,7 +242,7 @@ export function resolveTournamentOrchestrator(params: {
         ctas,
         showLineupReadyMark: false,
         footerHint:
-          'Die nächste Turnierphase wird aktualisiert. Sobald Halbfinale, Finale oder Platzierungsspiel feststeht, erscheint dein nächstes Spiel automatisch.',
+          'Der Turnierplan wird automatisch aktualisiert. Sobald das nächste Spiel feststeht, erscheint es hier.',
       };
     }
 

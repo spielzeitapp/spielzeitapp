@@ -1162,12 +1162,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
           completingTournament={completingTournament}
           awaitingFurtherPhase={awaitingFurtherPhase}
           refreshingPlan={planSyncBusy}
+          tournamentDayIso={tournamentDayIso}
           onOpen={onOpenMatchPreparation}
           onAddMatch={canManage ? openMatchModal : undefined}
           onCreateReport={() => setOrchestratorReportOpen(true)}
           onCompleteTournament={handleCompleteTournament}
           onShowOverview={showOrchestratorOverview}
           onRefreshPlan={() => void runForcedPlanSync({ reason: 'manual' })}
+          onSlotEdited={() => void reload()}
         />
       ) : null}
 
@@ -1218,11 +1220,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
             bundle={standingsBundle}
             loading={standingsLoading}
             onShowFullTable={showFullStandingsTable}
-          />
-          <TournamentScorersOverviewCard
-            scorers={goalScorers}
-            players={players}
-            loading={loading || goalScorersLoading}
           />
         </div>
       ) : null}

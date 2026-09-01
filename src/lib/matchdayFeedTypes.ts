@@ -19,6 +19,11 @@ export type MatchdayFeedPayload = {
   deep_link: string;
   /** Feed-Ankündigung: heute / morgen (optional, Legacy ohne Feld). */
   matchday_timing?: 'today' | 'tomorrow';
+  /** Beim Erstellen fixiertes Spielermotiv; alte Posts bleiben ohne diese Felder kompatibel. */
+  matchday_player_id?: string | null;
+  matchday_player_image_url?: string | null;
+  matchday_player_name?: string | null;
+  matchday_motif_source?: 'event_override' | 'roster_rotation' | 'demo_fallback';
 };
 
 /** Rohzeile aus Supabase (inkl. optionaler Medien-Felder). */
@@ -174,5 +179,17 @@ export function parseMatchdayPayload(raw: unknown): MatchdayFeedPayload | null {
     deep_link: typeof p.deep_link === 'string' ? p.deep_link : `/app/events/${eventId}`,
     matchday_timing:
       p.matchday_timing === 'today' || p.matchday_timing === 'tomorrow' ? p.matchday_timing : undefined,
+    matchday_player_id:
+      typeof p.matchday_player_id === 'string' ? p.matchday_player_id : null,
+    matchday_player_image_url:
+      typeof p.matchday_player_image_url === 'string' ? p.matchday_player_image_url : null,
+    matchday_player_name:
+      typeof p.matchday_player_name === 'string' ? p.matchday_player_name : null,
+    matchday_motif_source:
+      p.matchday_motif_source === 'event_override' ||
+      p.matchday_motif_source === 'roster_rotation' ||
+      p.matchday_motif_source === 'demo_fallback'
+        ? p.matchday_motif_source
+        : undefined,
   };
 }

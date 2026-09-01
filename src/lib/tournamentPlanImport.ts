@@ -28,6 +28,7 @@ import {
   analyzeTournamentLiveUrl,
   TOURNAMENT_LIVE_INCOMPLETE_MESSAGE,
 } from './tournamentLiveAdapter';
+import { looksLikeUnresolvedTournamentTeamName } from './tournamentUnresolvedTeam';
 
 export {
   extractMeinTurnierplanId,
@@ -2801,6 +2802,7 @@ export async function importTournamentPlanFromAnalysis(params: {
     external_match_id?: string | null;
     home_team?: string | null;
     away_team?: string | null;
+    pitch?: string | null;
   }>;
   knownNames?: string[];
 }): Promise<{
@@ -2895,6 +2897,22 @@ export async function importTournamentPlanFromAnalysis(params: {
       return false;
     });
     if (bySides) return bySides;
+
+    // Physical slot identity: same kickoff + pitch + phase when prior side was unresolved.
+    // Covers Placeholder → concrete without relying on unstable synthetic external IDs.
+    const physicalKey = `${match.kickoffTimeHHmm}|${safeOptionalText(match.pitch) ?? ''}|${normalizePhaseForDedupe(match.phase) || 'unknown'}`;
+    const byPhysical = params.existingSlots.find((slot) => {
+      if (usedSlotIds.has(slot.id ?? '')) return false;
+      const slotKey = `${formatTournamentKickoffTime(slot.kickoff_at)}|${safeOptionalText(slot.pitch) ?? ''}|${normalizePhaseForDedupe(slot.phase) || 'unknown'}`;
+      if (slotKey !== physicalKey) return false;
+      const unresolved =
+        looksLikeUnresolvedTournamentTeamName(slot.home_team) ||
+        looksLikeUnresolvedTournamentTeamName(slot.away_team) ||
+        looksLikeUnresolvedTournamentTeamName(match.homeTeam) ||
+        looksLikeUnresolvedTournamentTeamName(match.awayTeam);
+      return unresolved;
+    });
+    if (byPhysical) return byPhysical;
 
     if (!opponentName) return undefined;
     const ownKey = buildTournamentMatchDedupeKey({
@@ -3051,8 +3069,8 @@ export async function importTournamentPlanFromAnalysis(params: {
       };
     }
     if (created) importedMatches += 1;
+    else if (updated) updatedResults += 1;
     else skippedMatches += 1;
-    if (updated && match.hasResult) updatedResults += 1;
   }
 
   return { importedTeams, importedMatches, skippedMatches, updatedResults, error: null };
