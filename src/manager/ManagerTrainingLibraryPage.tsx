@@ -1475,7 +1475,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     suffix=" %"
                   />
                   <p className="text-[11px] leading-4 text-slate-500">
-                    Höhere Werte entfernen auch hellgraue Flächen. Linien und Symbole bleiben erhalten.
+                    Höhere Werte entfernen auch hellgraue und sehr helle bläuliche Import-Rahmen. Dunkle Linien und Symbole bleiben erhalten.
                   </p>
                 </>
               ) : null}
@@ -1726,7 +1726,8 @@ function removeWhiteBackground(
   strength: number,
 ): void {
   const clamped = Math.max(0, Math.min(100, strength));
-  const threshold = 252 - Math.round((clamped / 100) * 57);
+  const threshold = 252 - Math.round((clamped / 100) * 72);
+  const colorTolerance = 22 + Math.round((clamped / 100) * 50);
   const imageData = context.getImageData(0, 0, width, height);
   const { data } = imageData;
   for (let i = 0; i < data.length; i += 4) {
@@ -1735,7 +1736,7 @@ function removeWhiteBackground(
     const b = data[i + 2];
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    if (r >= threshold && g >= threshold && b >= threshold && max - min <= 22) {
+    if (min >= threshold && max - min <= colorTolerance) {
       data[i + 3] = 0;
     }
   }
@@ -1848,10 +1849,10 @@ async function renderExerciseCrop(
   const scale = Math.max(canvas.width / rotated.width, canvas.height / rotated.height) * options.zoom;
   const width = rotated.width * scale;
   const height = rotated.height * scale;
-  const overflowX = Math.max(0, width - canvas.width);
-  const overflowY = Math.max(0, height - canvas.height);
-  const left = (canvas.width - width) / 2 - (options.x / 100) * (overflowX / 2);
-  const top = (canvas.height - height) / 2 - (options.y / 100) * (overflowY / 2);
+  const movementX = Math.abs(width - canvas.width) / 2;
+  const movementY = Math.abs(height - canvas.height) / 2;
+  const left = (canvas.width - width) / 2 - (options.x / 100) * movementX;
+  const top = (canvas.height - height) / 2 - (options.y / 100) * movementY;
 
   if (options.unifyGrass) {
     const layer = document.createElement('canvas');
