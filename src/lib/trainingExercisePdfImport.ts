@@ -321,9 +321,15 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
   const info = metadata?.info as { Author?: string; CreationDate?: string; Title?: string } | undefined;
   const pages: PdfPageData[] = [];
   const documentLines: string[] = [];
+  const rawDocumentText: string[] = [];
   for (let pageNumber = 1; pageNumber <= Math.min(pdf.numPages, 12); pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
+    rawDocumentText.push(
+      content.items
+        .flatMap((item) => ('str' in item ? [item.str] : []))
+        .join(''),
+    );
     const tokens = content.items.flatMap((item) => {
       if (!('str' in item) || !item.str.trim()) return [];
       return [{ text: item.str, x: item.transform[4], y: item.transform[5], width: item.width }];
@@ -333,7 +339,7 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     pages.push({ page, tokens, lines, width: page.getViewport({ scale: 1 }).width });
   }
   const sourceText = documentLines.join('\n');
-  const spielzeitAppPayload = parseTrainingExercisePdfPayload(sourceText);
+  const spielzeitAppPayload = parseTrainingExercisePdfPayload(rawDocumentText.join('\n'));
   if (spielzeitAppPayload) {
     const sketch = spielzeitAppPayload.hasSketch ? await extractSpielzeitAppSketch(pages[0]) : null;
     await documentTask.destroy();
