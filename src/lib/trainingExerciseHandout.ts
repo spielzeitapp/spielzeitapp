@@ -94,7 +94,7 @@ export function createTrainingExerciseHandoutHtml(input: TrainingExerciseHandout
     body { background: #e5e7eb; }
     .toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: center; padding: 12px; background: #0f172a; }
     .toolbar button { min-height: 42px; border: 0; border-radius: 999px; padding: 10px 22px; color: #fff; background: #b91c1c; font-size: 14px; font-weight: 700; cursor: pointer; }
-    .page { width: 210mm; min-height: 297mm; margin: 12px auto; padding: 12mm 12mm 10mm; display: flex; flex-direction: column; background: #fff; }
+    .page { position: relative; width: 210mm; min-height: 297mm; margin: 12px auto; padding: 12mm 12mm 10mm; display: flex; flex-direction: column; background: #fff; }
     .brand { margin: 0 0 3mm; color: #dc2626; font-size: 9pt; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
     h1 { margin: 0; font-size: 27pt; line-height: 1.06; letter-spacing: -.025em; }
     .chips { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 4mm; }
@@ -119,7 +119,7 @@ export function createTrainingExerciseHandoutHtml(input: TrainingExerciseHandout
     .videos small { display: block; margin-top: 2mm; color: #64748b; font-size: 7.5pt; }
     footer { display: flex; justify-content: space-between; gap: 8mm; margin-top: auto; border-top: 1px solid #cbd5e1; padding-top: 3mm; color: #64748b; font-size: 8pt; }
     footer strong { color: #0f172a; }
-    .machine-data { position: fixed; left: 10mm; bottom: 1mm; width: 190mm; max-height: 8mm; overflow: hidden; color: #fff; font-size: 1px; line-height: 1px; overflow-wrap: anywhere; }
+    .machine-data { position: absolute; left: 10mm; bottom: 1mm; width: 190mm; max-height: 8mm; overflow: hidden; color: #fff; font-size: 1px; line-height: 1px; overflow-wrap: anywhere; }
     @page { size: A4 portrait; margin: 0; }
     @media print {
       body { background: #fff; }
@@ -156,8 +156,8 @@ export function createTrainingExerciseHandoutHtml(input: TrainingExerciseHandout
       </div>
     </div>
     <footer><span>${escapeHtml(footer || 'SpielzeitApp')}</span><strong>Einzelübung</strong></footer>
+    <div class="machine-data" aria-hidden="true">${machinePayload}</div>
   </main>
-  <div class="machine-data" aria-hidden="true">${machinePayload}</div>
 </body>
 </html>`;
 }

@@ -43,6 +43,21 @@ try {
   assert.equal(decoded.difficulty, 'hard');
   assert.equal(decoded.coachingPoints, exercise.coaching_points);
   assert.equal(decoded.hasSketch, true);
+
+  const markerStart = 'SPIELZEITAPP_EXERCISE_V1_BEGIN';
+  const markerEnd = 'SPIELZEITAPP_EXERCISE_V1_END';
+  const standardBase64 = encoded.slice(markerStart.length, -markerEnd.length);
+  const legacyBase64Url = standardBase64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  assert.match(legacyBase64Url, /_/);
+  const chromiumTextLayer = [
+    'SPIELZEITAPP EXERCISE V1 BEGIN',
+    legacyBase64Url.replace('_', ' '),
+    'SPIELZEITAPP EXERCISE V1 END',
+  ].join('\n');
+  const chromiumDecoded = payloadModule.parseTrainingExercisePdfPayload(chromiumTextLayer);
+  assert.equal(chromiumDecoded.title, exercise.title);
+  assert.equal(chromiumDecoded.description, exercise.description);
+  assert.equal(chromiumDecoded.hasSketch, true);
   assert.equal(payloadModule.parseTrainingExercisePdfPayload('Externe Trainings-PDF'), null);
 } finally {
   await vite.close();

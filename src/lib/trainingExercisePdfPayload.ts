@@ -14,6 +14,12 @@ const PAYLOAD_START = 'SPIELZEITAPP_EXERCISE_V1_BEGIN';
 const PAYLOAD_END = 'SPIELZEITAPP_EXERCISE_V1_END';
 const MAX_COMPRESSED_PAYLOAD_BYTES = 256 * 1024;
 
+// Browser print engines may expose underscores in the PDF text layer as spaces.
+// Accept both representations so a PDF printed by Chrome/Edge can be imported
+// again without weakening validation of the compressed payload itself.
+const PAYLOAD_START_PATTERN = /SPIELZEITAPP[\s_]*EXERCISE[\s_]*V1[\s_]*BEGIN/i;
+const PAYLOAD_END_PATTERN = /SPIELZEITAPP[\s_]*EXERCISE[\s_]*V1[\s_]*END/i;
+
 export type TrainingExercisePdfPayload = {
   title: string;
   description: string;
@@ -52,7 +58,9 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   for (let offset = 0; offset < bytes.length; offset += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  // Keep standard Base64 in printed PDFs. Chromium can turn the underscore in
+  // Base64URL into a space in the PDF text layer, which corrupts the payload.
+  return btoa(binary);
 }
 
 function base64UrlToBytes(value: string): Uint8Array {
@@ -111,20 +119,33 @@ export function createTrainingExercisePdfPayload(exercise: TrainingExerciseRow):
 }
 
 export function parseTrainingExercisePdfPayload(documentText: string): TrainingExercisePdfPayload | null {
-  const compact = documentText.replace(/\s+/g, '');
-  const start = compact.indexOf(PAYLOAD_START);
-  if (start < 0) return null;
-  const payloadStart = start + PAYLOAD_START.length;
-  const end = compact.indexOf(PAYLOAD_END, payloadStart);
-  if (end < 0) throw new Error('Die eingebetteten SpielzeitApp-Daten in der PDF sind unvollständig.');
-  const encoded = compact.slice(payloadStart, end);
+  const start = PAYLOAD_START_PATTERN.exec(documentText);
+  if (!start) return null;
+  const payloadStart = start.index + start[0].length;
+  const remainder = documentText.slice(payloadStart);
+  const end = PAYLOAD_END_PATTERN.exec(remainder);
+  if (!end) throw new Error('Die eingebetteten SpielzeitApp-Daten in der PDF sind unvollständig.');
+  const extractedPayload = remainder.slice(0, end.index);
+  const encodedCandidates = [
+    extractedPayload.replace(/\s+/g, ''),
+    // Compatibility for PDFs already exported with Base64URL: Chromium may
+    // expose an underscore as an ordinary space, while real line wrapping is
+    // exposed as a newline.
+    extractedPayload.replace(/[ \t]+/g, '_').replace(/[\r\n\f]+/g, ''),
+  ];
 
   let raw: unknown;
-  try {
-    const compressed = base64UrlToBytes(encoded);
-    if (compressed.byteLength > MAX_COMPRESSED_PAYLOAD_BYTES) throw new Error('payload too large');
-    raw = JSON.parse(strFromU8(unzlibSync(compressed)));
-  } catch {
+  for (const encoded of [...new Set(encodedCandidates)]) {
+    try {
+      const compressed = base64UrlToBytes(encoded);
+      if (compressed.byteLength > MAX_COMPRESSED_PAYLOAD_BYTES) throw new Error('payload too large');
+      raw = JSON.parse(strFromU8(unzlibSync(compressed)));
+      break;
+    } catch {
+      // Try the compatibility candidate before reporting a damaged payload.
+    }
+  }
+  if (raw === undefined) {
     throw new Error('Die eingebetteten SpielzeitApp-Daten in der PDF sind beschädigt.');
   }
   if (!isRecord(raw) || raw.format !== PDF_PAYLOAD_FORMAT || raw.version !== PDF_PAYLOAD_VERSION) {
