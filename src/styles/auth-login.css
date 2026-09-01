@@ -1,0 +1,21 @@
+.auth-login-page {
+  background:
+    radial-gradient(circle at 50% -8%, rgb(220 38 38 / 20%), transparent 34rem),
+    radial-gradient(circle at 8% 70%, rgb(127 29 29 / 10%), transparent 24rem),
+    #050506;
+}
+
+.auth-login-input:-webkit-autofill,
+.auth-login-input:-webkit-autofill:hover,
+.auth-login-input:-webkit-autofill:focus,
+.auth-login-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+  box-shadow: 0 0 0 1000px #1b1d22 inset !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.auth-login-input:-moz-autofill {
+  color: #fff !important;
+  box-shadow: 0 0 0 1000px #1b1d22 inset !important;
+}
