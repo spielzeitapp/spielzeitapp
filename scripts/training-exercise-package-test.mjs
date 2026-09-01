@@ -54,10 +54,10 @@ for (const field of [
 // Native packages are additive; external PDF import remains available.
 assert.match(page, /createTrainingExercisePackage/);
 assert.match(page, /parseTrainingExercisePackage/);
-assert.match(page, /Übungspaket importieren/);
-assert.match(page, /Übungspaket prüfen/);
-assert.match(page, /Paket wird erstellt/);
-assert.match(page, /PDF importieren/);
+assert.match(page, /SpielzeitApp-Übung importieren/);
+assert.match(page, /SpielzeitApp-Übung prüfen/);
+assert.match(page, /Übung übertragen/);
+assert.match(page, /Externe PDF importieren/);
 assert.match(page, /analyzeTrainingExercisePdf/);
 
 console.log('training-exercise-package: ok');

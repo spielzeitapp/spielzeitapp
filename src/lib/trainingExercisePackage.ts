@@ -102,10 +102,10 @@ export async function createTrainingExercisePackage(
   let sketch: Uint8Array | null = null;
   if (sketchUrl) {
     const response = await fetch(sketchUrl);
-    if (!response.ok) throw new Error('Die Skizze konnte nicht in das Übungspaket übernommen werden.');
+    if (!response.ok) throw new Error('Die Skizze konnte nicht in die SpielzeitApp-Übungsdatei übernommen werden.');
     sketch = new Uint8Array(await response.arrayBuffer());
     if (sketch.byteLength > MAX_SKETCH_BYTES) {
-      throw new Error('Die Skizze ist für ein Übungspaket zu groß.');
+      throw new Error('Die Skizze ist für die Übertragung zu groß.');
     }
   }
 
@@ -135,7 +135,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function requiredText(value: unknown, label: string): string {
   const result = text(value);
-  if (!result) throw new Error(`${label} fehlt im Übungspaket.`);
+  if (!result) throw new Error(`${label} fehlt in der SpielzeitApp-Übungsdatei.`);
   return result;
 }
 
@@ -154,31 +154,31 @@ function validFocus(value: unknown): ExerciseFocus {
 
 export async function parseTrainingExercisePackage(file: File): Promise<TrainingExercisePackageDraft> {
   if (!file.name.toLowerCase().endsWith(TRAINING_EXERCISE_PACKAGE_EXTENSION)) {
-    throw new Error('Bitte eine SpielzeitApp-Übungspaket-Datei auswählen.');
+    throw new Error('Bitte eine SpielzeitApp-Übungsdatei auswählen.');
   }
-  if (file.size > MAX_PACKAGE_BYTES) throw new Error('Das Übungspaket darf maximal 12 MB groß sein.');
+  if (file.size > MAX_PACKAGE_BYTES) throw new Error('Die SpielzeitApp-Übungsdatei darf maximal 12 MB groß sein.');
 
   let archive: Record<string, Uint8Array>;
   try {
     archive = unzipSync(new Uint8Array(await file.arrayBuffer()));
   } catch {
-    throw new Error('Das Übungspaket ist beschädigt oder nicht lesbar.');
+    throw new Error('Die SpielzeitApp-Übungsdatei ist beschädigt oder nicht lesbar.');
   }
   const manifestBytes = archive[MANIFEST_FILE];
   if (!manifestBytes || manifestBytes.byteLength > MAX_MANIFEST_BYTES) {
-    throw new Error('Im Übungspaket fehlt die gültige Beschreibung.');
+    throw new Error('In der SpielzeitApp-Übungsdatei fehlt die gültige Beschreibung.');
   }
 
   let raw: unknown;
   try {
     raw = JSON.parse(strFromU8(manifestBytes));
   } catch {
-    throw new Error('Die Beschreibung des Übungspakets ist beschädigt.');
+    throw new Error('Die Beschreibung der SpielzeitApp-Übungsdatei ist beschädigt.');
   }
   if (!isRecord(raw) || raw.format !== PACKAGE_FORMAT || raw.version !== PACKAGE_VERSION) {
-    throw new Error('Dieses Übungspaket-Format wird nicht unterstützt.');
+    throw new Error('Dieses SpielzeitApp-Übungsformat wird nicht unterstützt.');
   }
-  if (!isRecord(raw.exercise)) throw new Error('Im Übungspaket fehlen die Übungsdaten.');
+  if (!isRecord(raw.exercise)) throw new Error('In der SpielzeitApp-Übungsdatei fehlen die Übungsdaten.');
   const exercise = raw.exercise;
 
   const phaseValues = Array.isArray(exercise.suitablePhases)
@@ -189,14 +189,14 @@ export async function parseTrainingExercisePackage(file: File): Promise<Training
   const focusValue = validFocus(exercise.focus);
   const difficultyValue = String(exercise.difficulty ?? 'medium') as ExerciseDifficulty;
   const duration = Number(exercise.durationMinutes);
-  if (!Number.isFinite(duration) || duration <= 0) throw new Error('Die Dauer im Übungspaket ist ungültig.');
+  if (!Number.isFinite(duration) || duration <= 0) throw new Error('Die Dauer in der SpielzeitApp-Übungsdatei ist ungültig.');
 
   const sketchBytes = archive[SKETCH_FILE];
   if (sketchBytes && sketchBytes.byteLength > MAX_SKETCH_BYTES) {
-    throw new Error('Die Skizze im Übungspaket ist zu groß.');
+    throw new Error('Die Skizze in der SpielzeitApp-Übungsdatei ist zu groß.');
   }
   if (exercise.hasSketch === true && !sketchBytes) {
-    throw new Error('Die Skizze fehlt im Übungspaket.');
+    throw new Error('Die Skizze fehlt in der SpielzeitApp-Übungsdatei.');
   }
 
   return {

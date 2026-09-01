@@ -393,9 +393,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      setToast('Übungspaket wurde heruntergeladen.');
+      setToast('Übung wurde für die Übertragung heruntergeladen.');
     } catch (cause) {
-      setToast(cause instanceof Error ? cause.message : 'Übungspaket konnte nicht erstellt werden.');
+      setToast(cause instanceof Error ? cause.message : 'Übung konnte nicht für die Übertragung erstellt werden.');
     } finally {
       setExportingPackageExerciseId(null);
     }
@@ -540,7 +540,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       setShortTextWarning(null);
       setEditorOpen(true);
     } catch (cause) {
-      setToast(cause instanceof Error ? cause.message : 'Übungspaket konnte nicht importiert werden.');
+      setToast(cause instanceof Error ? cause.message : 'SpielzeitApp-Übung konnte nicht importiert werden.');
     } finally {
       setPackageImporting(false);
       if (packageInputRef.current) packageInputRef.current.value = '';
@@ -713,7 +713,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       editing
         ? 'Übung aktualisiert.'
         : editorImportKind === 'package'
-          ? 'SpielzeitApp-Übungspaket importiert.'
+          ? 'SpielzeitApp-Übung importiert.'
           : editorImportKind === 'pdf'
             ? 'PDF-Übung importiert.'
             : 'Übung angelegt.',
@@ -813,7 +813,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-4 text-[13px] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50"
           >
             <PackageOpen className="h-4 w-4" aria-hidden />
-            {packageImporting ? 'Paket wird gelesen…' : 'Übungspaket importieren'}
+            {packageImporting ? 'Übung wird gelesen…' : 'SpielzeitApp-Übung importieren'}
           </button>
           <input
             ref={fileInputRef}
@@ -832,7 +832,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             <FileUp className="h-4 w-4" aria-hidden />
-            {importing ? 'PDF wird gelesen…' : 'PDF importieren'}
+            {importing ? 'PDF wird gelesen…' : 'Externe PDF importieren'}
           </button>
           <button
             type="button"
@@ -1013,10 +1013,10 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                         disabled={exportingPackageExerciseId === row.id}
                         onClick={() => void exportExercisePackage(row)}
                         className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                        title="Übung vollständig für eine andere SpielzeitApp-Umgebung exportieren"
+                        title="Übung vollständig in eine andere SpielzeitApp-Umgebung übertragen"
                       >
                         <PackageOpen className="h-3.5 w-3.5" aria-hidden />
-                        {exportingPackageExerciseId === row.id ? 'Paket…' : 'Paket'}
+                        {exportingPackageExerciseId === row.id ? 'Übertragen…' : 'Übertragen'}
                       </button>
                       <button
                         type="button"
@@ -1070,7 +1070,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                 >
                   <PackageOpen className="h-4 w-4" aria-hidden />
-                  {exportingPackageExerciseId === detail.id ? 'Paket wird erstellt…' : 'Übungspaket'}
+                  {exportingPackageExerciseId === detail.id ? 'Übertragung wird erstellt…' : 'Übung übertragen'}
                 </button>
                 <button
                   type="button"
@@ -1110,7 +1110,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                 >
                   <PackageOpen className="h-4 w-4" aria-hidden />
-                  {exportingPackageExerciseId === detail.id ? 'Paket wird erstellt…' : 'Übungspaket'}
+                  {exportingPackageExerciseId === detail.id ? 'Übertragung wird erstellt…' : 'Übung übertragen'}
                 </button>
                 <button
                   type="button"
@@ -1150,7 +1150,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               {editing
                 ? 'Übung bearbeiten'
                 : editorImportKind === 'package'
-                  ? 'Übungspaket prüfen'
+                  ? 'SpielzeitApp-Übung prüfen'
                   : editorImportKind === 'pdf'
                     ? 'PDF-Import prüfen'
                     : 'Neue Übung'}
