@@ -19,6 +19,7 @@ const migrationShortText = read(
 );
 
 assert.match(page, /PDF importieren/);
+assert.doesNotMatch(page, /SpielzeitApp-Übung importieren/);
 assert.match(page, /PDF-Import prüfen/);
 assert.match(page, /besonders die Trainingsphase prüfen/);
 assert.match(page, /Skizze hochladen/);
@@ -30,14 +31,17 @@ assert.match(page, /DetailModal|exercise-detail-title/);
 assert.match(page, /Organisation \/ Aufbau/);
 assert.match(page, /Coachingpunkte/);
 assert.match(page, /Variationen/);
-assert.match(page, /Kurzfassung für Handout &amp; Trainer-PDF/);
-assert.match(page, /Neu vorschlagen/);
+assert.match(page, /Kurzfassung für Handout &amp; optionale Trainer-PDF/);
+assert.match(page, /Prüfen & bei Bedarf KI kürzen/);
 assert.match(page, /Nur für mich \(privat\)/);
 assert.match(page, /Schwerpunkt filtern|Trainingsphase filtern/);
 assert.match(parser, /file\.arrayBuffer\(\)/, 'PDF muss lokal im Browser gelesen werden');
 assert.doesNotMatch(parser, /fetch\(/, 'Original-PDF darf nicht an einen Analyse-Service gesendet werden');
 assert.match(parser, /MAX_PDF_BYTES = 15 \* 1024 \* 1024/);
 assert.match(parser, /createTrainingExerciseShortText/);
+assert.match(parser, /parseTrainingExercisePdfPayload/);
+assert.match(parser, /importKind: 'spielzeitapp'/);
+assert.match(parser, /importKind: 'external'/);
 assert.match(storage, /source_type: input\.sourceType \?\? 'club'/);
 assert.match(storage, /TRAINING_EXERCISE_SKETCH_MAX_BYTES = 8 \* 1024 \* 1024/);
 assert.match(storage, /\$\{clubId\}\/exercises\/\$\{exerciseId\}/);

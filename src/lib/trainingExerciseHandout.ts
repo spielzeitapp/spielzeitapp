@@ -1,6 +1,7 @@
 import type { TrainingExerciseRow } from './trainingExercises';
 import { formatPlayerCountRange } from './trainingExercises';
 import { EXERCISE_FOCUS_LABELS } from './trainingPhases';
+import { createTrainingExercisePdfPayload } from './trainingExercisePdfPayload';
 
 type TrainingExerciseHandoutInput = {
   exercise: TrainingExerciseRow;
@@ -79,6 +80,7 @@ export function createTrainingExerciseHandoutHtml(input: TrainingExerciseHandout
     .filter(Boolean)
     .join(' · ');
   const videoUrls = extractVideoUrls(exercise.variations, exercise.source_reference);
+  const machinePayload = createTrainingExercisePdfPayload(exercise);
 
   return `<!doctype html>
 <html lang="de">
@@ -117,6 +119,7 @@ export function createTrainingExerciseHandoutHtml(input: TrainingExerciseHandout
     .videos small { display: block; margin-top: 2mm; color: #64748b; font-size: 7.5pt; }
     footer { display: flex; justify-content: space-between; gap: 8mm; margin-top: auto; border-top: 1px solid #cbd5e1; padding-top: 3mm; color: #64748b; font-size: 8pt; }
     footer strong { color: #0f172a; }
+    .machine-data { position: fixed; left: 10mm; bottom: 1mm; width: 190mm; max-height: 8mm; overflow: hidden; color: #fff; font-size: 1px; line-height: 1px; overflow-wrap: anywhere; }
     @page { size: A4 portrait; margin: 0; }
     @media print {
       body { background: #fff; }
@@ -154,6 +157,7 @@ export function createTrainingExerciseHandoutHtml(input: TrainingExerciseHandout
     </div>
     <footer><span>${escapeHtml(footer || 'SpielzeitApp')}</span><strong>Einzelübung</strong></footer>
   </main>
+  <div class="machine-data" aria-hidden="true">${machinePayload}</div>
 </body>
 </html>`;
 }
