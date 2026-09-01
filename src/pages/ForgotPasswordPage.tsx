@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
 import { AUTH_PASSWORD_RECOVERY_PATH, getAuthRedirectUrl } from '../lib/authRedirect';
+import {
+  isTurnstileConfigured,
+  TurnstileWidget,
+} from '../components/auth/TurnstileWidget';
 
 const AUTH_PAGE_SHELL_CLASS =
   'flex min-h-[100dvh] min-h-screen w-full flex-col items-stretch overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))]';
@@ -20,6 +24,8 @@ export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +35,17 @@ export const ForgotPasswordPage: React.FC = () => {
       setMessage({ type: 'error', text: 'Bitte E-Mail eingeben.' });
       return;
     }
+    if (isTurnstileConfigured && !captchaToken) {
+      setMessage({ type: 'error', text: 'Bitte Sicherheitsprüfung abschließen.' });
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
       redirectTo: getAuthRedirectUrl(AUTH_PASSWORD_RECOVERY_PATH),
+      captchaToken: captchaToken ?? undefined,
     });
+    setCaptchaToken(null);
+    setCaptchaResetKey((value) => value + 1);
     setLoading(false);
     if (error) {
       setMessage({ type: 'error', text: error.message });
@@ -69,6 +82,10 @@ export const ForgotPasswordPage: React.FC = () => {
               className={inputClass}
             />
           </div>
+          <TurnstileWidget
+            onTokenChange={setCaptchaToken}
+            resetKey={captchaResetKey}
+          />
           {message && (
             <p
               className={`text-sm ${message.type === 'success' ? 'text-green-300' : 'text-red-300'}`}
@@ -77,7 +94,11 @@ export const ForgotPasswordPage: React.FC = () => {
               {message.text}
             </p>
           )}
-          <Button type="submit" fullWidth disabled={loading}>
+          <Button
+            type="submit"
+            fullWidth
+            disabled={loading || (isTurnstileConfigured && !captchaToken)}
+          >
             {loading ? 'Wird gesendet…' : 'Link senden'}
           </Button>
         </form>

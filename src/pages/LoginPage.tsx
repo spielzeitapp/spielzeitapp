@@ -3,6 +3,10 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { Button } from '../app/components/ui/Button';
 import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
 import {
+  isTurnstileConfigured,
+  TurnstileWidget,
+} from '../components/auth/TurnstileWidget';
+import {
   clearEmailConfirmFlow,
   isEmailConfirmFlow,
   isSafeAuthRedirectPath,
@@ -64,6 +68,8 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPlayerLogin, setShowPlayerLogin] = useState(false);
   const [parentInviteDismissed, setParentInviteDismissed] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const fromState = (location.state as { from?: { pathname: string; search?: string } })?.from;
   const fromStatePath = fromState?.pathname
@@ -182,6 +188,11 @@ export const LoginPage: React.FC = () => {
     stashTokenIfValid(orphanT);
 
     const trimmedEmail = email.trim().toLowerCase();
+    if (isTurnstileConfigured && !captchaToken) {
+      setLoading(false);
+      setError('Bitte Sicherheitsprüfung abschließen.');
+      return;
+    }
     if (lockedInviteEmail && trimmedEmail !== lockedInviteEmail) {
       setLoading(false);
       setError('Für diese Einladung musst du die eingeladene E-Mail-Adresse verwenden.');
@@ -191,7 +202,10 @@ export const LoginPage: React.FC = () => {
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: trimmedEmail,
       password,
+      options: captchaToken ? { captchaToken } : undefined,
     });
+    setCaptchaToken(null);
+    setCaptchaResetKey((value) => value + 1);
     setLoading(false);
     if (signInError) {
       setError(signInError.message);
@@ -322,9 +336,19 @@ export const LoginPage: React.FC = () => {
             <span>Immer angemeldet bleiben</span>
           </label>
 
+          <TurnstileWidget
+            onTokenChange={setCaptchaToken}
+            resetKey={captchaResetKey}
+          />
+
           {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
 
-          <Button type="submit" fullWidth disabled={loading} className="mt-2">
+          <Button
+            type="submit"
+            fullWidth
+            disabled={loading || (isTurnstileConfigured && !captchaToken)}
+            className="mt-2"
+          >
             {loading ? 'Wird angemeldet…' : 'Anmelden'}
           </Button>
         </form>
