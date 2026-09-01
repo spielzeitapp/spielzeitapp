@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../app/components/ui/Button';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
@@ -85,6 +86,8 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -403,33 +406,55 @@ export const RegisterPage: React.FC = () => {
             <label htmlFor="reg-password" className="mb-1 block text-sm font-medium text-white/80">
               Passwort
             </label>
-            <input
-              id="reg-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={`Mindestens ${MIN_PASSWORD_LENGTH} Zeichen`}
-              minLength={MIN_PASSWORD_LENGTH}
-              required
-              autoComplete="new-password"
-              className={inputClass}
-            />
+            <div className="relative">
+              <input
+                id="reg-password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={`Mindestens ${MIN_PASSWORD_LENGTH} Zeichen`}
+                minLength={MIN_PASSWORD_LENGTH}
+                required
+                autoComplete="new-password"
+                className={`${inputClass} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-white/60 transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-500/70"
+                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? <EyeOff aria-hidden="true" size={20} /> : <Eye aria-hidden="true" size={20} />}
+              </button>
+            </div>
           </div>
           <div>
             <label htmlFor="reg-confirm-password" className="mb-1 block text-sm font-medium text-white/80">
               Passwort wiederholen
             </label>
-            <input
-              id="reg-confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Passwort wiederholen"
-              minLength={MIN_PASSWORD_LENGTH}
-              required
-              autoComplete="new-password"
-              className={inputClass}
-            />
+            <div className="relative">
+              <input
+                id="reg-confirm-password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Passwort wiederholen"
+                minLength={MIN_PASSWORD_LENGTH}
+                required
+                autoComplete="new-password"
+                className={`${inputClass} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((visible) => !visible)}
+                className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-white/60 transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-500/70"
+                aria-label={showConfirmPassword ? 'Passwortbestätigung verbergen' : 'Passwortbestätigung anzeigen'}
+                aria-pressed={showConfirmPassword}
+              >
+                {showConfirmPassword ? <EyeOff aria-hidden="true" size={20} /> : <Eye aria-hidden="true" size={20} />}
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
