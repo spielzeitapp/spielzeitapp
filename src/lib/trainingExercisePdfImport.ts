@@ -1,7 +1,9 @@
 import type { PDFPageProxy } from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import type { ExerciseFocus, TrainingPhase } from './trainingPhases';
+import type { TrainingExerciseVisibility } from './trainingExercises';
+import type { ExerciseDifficulty, ExerciseFocus, TrainingPhase } from './trainingPhases';
 import { createTrainingExerciseShortText } from './trainingExerciseShortText';
+import { parseTrainingExercisePdfPayload } from './trainingExercisePdfPayload';
 
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
@@ -44,8 +46,12 @@ export type ImportedExerciseDraft = {
   shortContent: string;
   shortMaterials: string;
   shortCoaching: string;
+  difficulty: ExerciseDifficulty;
+  visibility: TrainingExerciseVisibility;
+  sourceType: 'club' | 'import';
   sourceReference: string;
   sketch: Blob | null;
+  importKind: 'spielzeitapp' | 'external';
 };
 
 function normalize(value: string): string {
@@ -228,6 +234,52 @@ async function extractMhFootballSketch(page: PDFPageProxy): Promise<Blob | null>
   return canvasToBlob(crop);
 }
 
+async function extractSpielzeitAppSketch(pageData: PdfPageData): Promise<Blob | null> {
+  if (typeof document === 'undefined') return null;
+  const scale = 2;
+  const viewport = pageData.page.getViewport({ scale });
+  const rendered = document.createElement('canvas');
+  rendered.width = Math.ceil(viewport.width);
+  rendered.height = Math.ceil(viewport.height);
+  const context = rendered.getContext('2d');
+  if (!context) return null;
+  await pageData.page.render({ canvas: rendered, canvasContext: context, viewport }).promise;
+
+  const pageHeight = viewport.height / scale;
+  const contentHeading = pageData.tokens.find((token) =>
+    /^(Kurzbeschreibung|Organisation\s*&\s*Aufbau|Ablauf)$/i.test(normalize(token.text)),
+  );
+  const sketchHeight = pageHeight * (93 / 297);
+  const sketchBottom = contentHeading
+    ? pageHeight - contentHeading.y - 18
+    : pageHeight * (143 / 297);
+  const sourceY = Math.max(0, (sketchBottom - sketchHeight) * scale);
+  const sourceHeight = Math.min(sketchHeight * scale, rendered.height - sourceY);
+  const sourceWidth = Math.min(sourceHeight * (4 / 3), rendered.width);
+  const sourceX = (rendered.width - sourceWidth) / 2;
+  if (sourceWidth < 200 || sourceHeight < 150) return null;
+
+  const crop = document.createElement('canvas');
+  crop.width = Math.round(sourceWidth);
+  crop.height = Math.round(sourceHeight);
+  const cropContext = crop.getContext('2d');
+  if (!cropContext) return null;
+  cropContext.fillStyle = '#ffffff';
+  cropContext.fillRect(0, 0, crop.width, crop.height);
+  cropContext.drawImage(
+    rendered,
+    Math.round(sourceX),
+    Math.round(sourceY),
+    Math.round(sourceWidth),
+    Math.round(sourceHeight),
+    0,
+    0,
+    crop.width,
+    crop.height,
+  );
+  return canvasToBlob(crop);
+}
+
 function joinedRange(lines: string[], start: RegExp, end: RegExp): string {
   const startIndex = lines.findIndex((line) => start.test(line));
   if (startIndex < 0) return '';
@@ -269,9 +321,15 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
   const info = metadata?.info as { Author?: string; CreationDate?: string; Title?: string } | undefined;
   const pages: PdfPageData[] = [];
   const documentLines: string[] = [];
+  const rawDocumentText: string[] = [];
   for (let pageNumber = 1; pageNumber <= Math.min(pdf.numPages, 12); pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
+    rawDocumentText.push(
+      content.items
+        .flatMap((item) => ('str' in item ? [item.str] : []))
+        .join(''),
+    );
     const tokens = content.items.flatMap((item) => {
       if (!('str' in item) || !item.str.trim()) return [];
       return [{ text: item.str, x: item.transform[4], y: item.transform[5], width: item.width }];
@@ -281,6 +339,16 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     pages.push({ page, tokens, lines, width: page.getViewport({ scale: 1 }).width });
   }
   const sourceText = documentLines.join('\n');
+  const spielzeitAppPayload = parseTrainingExercisePdfPayload(rawDocumentText.join('\n'));
+  if (spielzeitAppPayload) {
+    const sketch = spielzeitAppPayload.hasSketch ? await extractSpielzeitAppSketch(pages[0]) : null;
+    await documentTask.destroy();
+    return {
+      ...spielzeitAppPayload,
+      sketch,
+      importKind: 'spielzeitapp',
+    };
+  }
   const cardPage = pages.find(
     (candidate) =>
       candidate.lines.some((line) => /Beschreibung/i.test(line)) &&
@@ -417,7 +485,11 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     shortContent: shortText.content,
     shortMaterials: shortText.materials,
     shortCoaching: shortText.coaching,
+    difficulty: 'medium',
+    visibility: 'club',
+    sourceType: 'import',
     sourceReference: sourceParts.join(' · '),
     sketch,
+    importKind: 'external',
   };
 }

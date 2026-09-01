@@ -62,6 +62,7 @@ type FormState = {
   shortContent: string;
   shortMaterials: string;
   shortCoaching: string;
+  sourceType: 'club' | 'import';
   sourceReference: string;
   visibility: TrainingExerciseVisibility;
 };
@@ -83,6 +84,7 @@ const emptyForm = (): FormState => ({
   shortContent: '',
   shortMaterials: '',
   shortCoaching: '',
+  sourceType: 'club',
   sourceReference: '',
   visibility: 'club',
 });
@@ -115,6 +117,7 @@ function formFromRow(row: TrainingExerciseRow): FormState {
     shortContent: originalText.content,
     shortMaterials: originalText.materials,
     shortCoaching: originalText.coaching,
+    sourceType: row.source_type === 'import' ? 'import' : 'club',
     sourceReference: row.source_reference ?? '',
     visibility: row.visibility === 'private' ? 'private' : 'club',
   };
@@ -171,6 +174,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
 
   const [detail, setDetail] = useState<TrainingExerciseRow | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editorImportKind, setEditorImportKind] = useState<'spielzeitapp' | 'external' | null>(null);
   const [editing, setEditing] = useState<TrainingExerciseRow | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -192,7 +196,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [cropY, setCropY] = useState(0);
   const [cropRotation, setCropRotation] = useState(0);
   const [cropReplaceGrass, setCropReplaceGrass] = useState(false);
+  const [cropUnifyGrass, setCropUnifyGrass] = useState(false);
   const [cropWhiteStrength, setCropWhiteStrength] = useState(55);
+  const [cropGreenStrength, setCropGreenStrength] = useState(55);
   const [cropGrassCompare, setCropGrassCompare] = useState<'original' | 'grass'>('grass');
   const [cropSaving, setCropSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -246,21 +252,23 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   useEffect(() => {
     if (!cropSource || !cropCanvasRef.current) return;
     let active = true;
-    const showGrass = cropReplaceGrass && cropGrassCompare === 'grass';
+    const showGrass = (cropReplaceGrass || cropUnifyGrass) && cropGrassCompare === 'grass';
     void renderExerciseCrop(cropCanvasRef.current, cropSource.url, {
       zoom: cropZoom,
       x: cropX,
       y: cropY,
       rotation: cropRotation,
-      replaceWhiteWithGrass: showGrass,
+      replaceWhiteWithGrass: showGrass && cropReplaceGrass,
+      unifyGrass: showGrass && cropUnifyGrass,
       whiteStrength: cropWhiteStrength,
+      greenStrength: cropGreenStrength,
     }).catch(() => {
       if (active) setFormError('Die Zuschneidevorschau konnte nicht geladen werden.');
     });
     return () => {
       active = false;
     };
-  }, [cropGrassCompare, cropReplaceGrass, cropRotation, cropSource, cropWhiteStrength, cropX, cropY, cropZoom]);
+  }, [cropGrassCompare, cropGreenStrength, cropReplaceGrass, cropRotation, cropSource, cropUnifyGrass, cropWhiteStrength, cropX, cropY, cropZoom]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -292,6 +300,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const openCreate = () => {
     setDetail(null);
     setEditing(null);
+    setEditorImportKind(null);
     setForm(emptyForm());
     resetSketchState();
     setFormError(null);
@@ -303,6 +312,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const openEdit = (row: TrainingExerciseRow) => {
     setDetail(null);
     setEditing(row);
+    setEditorImportKind(null);
     setForm(formFromRow(row));
     resetSketchState();
     setFormError(null);
@@ -377,7 +387,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setCropY(0);
     setCropRotation(0);
     setCropReplaceGrass(false);
+    setCropUnifyGrass(false);
     setCropWhiteStrength(55);
+    setCropGreenStrength(55);
     setCropGrassCompare('grass');
     setCropSource({ url, owned });
   };
@@ -409,7 +421,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             y: cropY,
             rotation: cropRotation,
             replaceWhiteWithGrass: cropReplaceGrass,
+            unifyGrass: cropUnifyGrass,
             whiteStrength: cropWhiteStrength,
+            greenStrength: cropGreenStrength,
           });
       setPendingSketchUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -448,19 +462,19 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       });
       setDetail(null);
       setEditing(null);
+      const { sketch, importKind, ...draftFields } = draft;
+      setEditorImportKind(importKind);
       setForm((current) => ({
         ...current,
-        ...draft,
-        difficulty: 'medium',
-        visibility: 'club',
-        shortContent: originalText.content,
-        shortMaterials: originalText.materials,
-        shortCoaching: originalText.coaching,
+        ...draftFields,
+        shortContent: importKind === 'spielzeitapp' ? draft.shortContent : originalText.content,
+        shortMaterials: importKind === 'spielzeitapp' ? draft.shortMaterials : originalText.materials,
+        shortCoaching: importKind === 'spielzeitapp' ? draft.shortCoaching : originalText.coaching,
       }));
-      setPendingSketch(draft.sketch);
+      setPendingSketch(sketch);
       setPendingSketchUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
-        return draft.sketch ? URL.createObjectURL(draft.sketch) : null;
+        return sketch ? URL.createObjectURL(sketch) : null;
       });
       setCurrentSketchUrl(null);
       setRemoveCurrentSketch(false);
@@ -575,9 +589,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
       shortContent: form.shortContent,
       shortMaterials: form.shortMaterials,
       shortCoaching: form.shortCoaching,
-      sourceType: (form.sourceReference ? 'import' : editing?.source_type === 'import' ? 'import' : 'club') as
-        | 'club'
-        | 'import',
+      sourceType: form.sourceType,
       sourceReference: form.sourceReference,
       visibility: form.visibility,
     };
@@ -638,7 +650,16 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     setSaving(false);
     setEditorOpen(false);
     resetSketchState();
-    setToast(editing ? 'Übung aktualisiert.' : form.sourceReference ? 'PDF-Übung importiert.' : 'Übung angelegt.');
+    setToast(
+      editing
+        ? 'Übung aktualisiert.'
+        : editorImportKind === 'spielzeitapp'
+          ? 'SpielzeitApp-PDF vollständig importiert.'
+          : editorImportKind === 'external'
+            ? 'Externe PDF-Übung importiert.'
+            : 'Übung angelegt.',
+    );
+    setEditorImportKind(null);
     await reload();
     if (returnAfterSave) navigate(returnAfterSave);
   };
@@ -1020,9 +1041,19 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
             aria-labelledby="exercise-editor-title"
           >
             <h2 id="exercise-editor-title" className="text-[16px] font-semibold text-slate-900">
-              {editing ? 'Übung bearbeiten' : form.sourceReference ? 'PDF-Import prüfen' : 'Neue Übung'}
+              {editing
+                ? 'Übung bearbeiten'
+                : editorImportKind === 'spielzeitapp'
+                  ? 'SpielzeitApp-PDF prüfen'
+                  : editorImportKind === 'external'
+                    ? 'PDF-Import prüfen'
+                    : 'Neue Übung'}
             </h2>
-            {!editing && form.sourceReference ? (
+            {!editing && editorImportKind === 'spielzeitapp' ? (
+              <p className="mt-1 text-[12px] text-emerald-700">
+                SpielzeitApp-PDF erkannt: Alle Übungsdaten und die Skizze wurden übernommen. Bitte kurz prüfen und speichern.
+              </p>
+            ) : !editing && editorImportKind === 'external' ? (
               <p className="mt-1 text-[12px] text-amber-700">
                 Vorschlag aus der PDF: Bitte alle Angaben und besonders die Trainingsphase prüfen. Die erkannte
                 Skizze kannst du durch eine eigene Datei ersetzen.
@@ -1339,6 +1370,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     return;
                   }
                   setEditorOpen(false);
+                  setEditorImportKind(null);
                   resetSketchState();
                 }}
                 className="min-h-[40px] rounded-full border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-700"
@@ -1405,8 +1437,31 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   type="checkbox"
                   checked={cropReplaceGrass}
                   disabled={cropSaving}
-                  onChange={(e) => setCropReplaceGrass(e.target.checked)}
+                  onChange={(e) => {
+                    setCropReplaceGrass(e.target.checked);
+                    if (e.target.checked) setCropUnifyGrass(false);
+                  }}
                   className="h-5 w-5 rounded border-slate-300 text-red-700 focus:ring-red-600"
+                />
+              </label>
+              <label className="flex min-h-[44px] cursor-pointer items-center justify-between gap-3 border-t border-slate-200 pt-2">
+                <span>
+                  <span className="block text-[13px] font-semibold text-slate-800">
+                    Gesamten Rasen vereinheitlichen
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">
+                    Ersetzt vorhandene Grüntöne und Rasenstreifen durch ein einfarbiges Grün.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={cropUnifyGrass}
+                  disabled={cropSaving}
+                  onChange={(e) => {
+                    setCropUnifyGrass(e.target.checked);
+                    if (e.target.checked) setCropReplaceGrass(false);
+                  }}
+                  className="h-5 w-5 shrink-0 rounded border-slate-300 text-red-700 focus:ring-red-600"
                 />
               </label>
               {cropReplaceGrass ? (
@@ -1420,9 +1475,27 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                     suffix=" %"
                   />
                   <p className="text-[11px] leading-4 text-slate-500">
-                    Höhere Werte entfernen auch hellgraue Flächen. Linien und Symbole bleiben erhalten.
+                    Höhere Werte entfernen auch hellgraue und sehr helle bläuliche Import-Rahmen. Dunkle Linien und Symbole bleiben erhalten.
                   </p>
-                  <div className="grid grid-cols-2 gap-2" role="group" aria-label="Vergleich Hintergrund">
+                </>
+              ) : null}
+              {cropUnifyGrass ? (
+                <>
+                  <CropRange
+                    label="Grün-Erkennung"
+                    min={0}
+                    max={100}
+                    value={cropGreenStrength}
+                    onChange={setCropGreenStrength}
+                    suffix=" %"
+                  />
+                  <p className="text-[11px] leading-4 text-slate-500">
+                    Höhere Werte erfassen mehr Grüntöne. Linien, Tore, Pfeile und Spielermarkierungen bleiben erhalten.
+                  </p>
+                </>
+              ) : null}
+              {cropReplaceGrass || cropUnifyGrass ? (
+                <div className="grid grid-cols-2 gap-2" role="group" aria-label="Vergleich Hintergrund">
                     <button
                       type="button"
                       disabled={cropSaving}
@@ -1445,10 +1518,9 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                           : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                       }`}
                     >
-                      Mit Rasen
+                      {cropUnifyGrass ? 'Einfarbig grün' : 'Mit Rasen'}
                     </button>
                   </div>
-                </>
               ) : null}
             </div>
 
@@ -1457,7 +1529,12 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                 <CropRange label="Bildgröße / Zoom" min={40} max={250} value={Math.round(cropZoom * 100)} onChange={(value) => setCropZoom(value / 100)} suffix=" %" />
                 <p className="mt-1 text-[11px] leading-4 text-slate-500">
                   Unter 100 % wird das ganze Bild kleiner und mit{' '}
-                  {cropReplaceGrass ? 'Rasenrand' : 'weißem Rand'} eingepasst.
+                  {cropUnifyGrass
+                    ? 'einfarbig grünem Rand'
+                    : cropReplaceGrass
+                      ? 'Rasenrand'
+                      : 'weißem Rand'}{' '}
+                  eingepasst.
                 </p>
               </div>
               <div className="flex items-end">
@@ -1601,7 +1678,9 @@ type ExerciseCropOptions = {
   y: number;
   rotation: number;
   replaceWhiteWithGrass?: boolean;
+  unifyGrass?: boolean;
   whiteStrength?: number;
+  greenStrength?: number;
 };
 
 async function loadCropImage(url: string): Promise<HTMLImageElement> {
@@ -1647,7 +1726,8 @@ function removeWhiteBackground(
   strength: number,
 ): void {
   const clamped = Math.max(0, Math.min(100, strength));
-  const threshold = 252 - Math.round((clamped / 100) * 57);
+  const threshold = 252 - Math.round((clamped / 100) * 72);
+  const colorTolerance = 22 + Math.round((clamped / 100) * 50);
   const imageData = context.getImageData(0, 0, width, height);
   const { data } = imageData;
   for (let i = 0; i < data.length; i += 4) {
@@ -1656,11 +1736,105 @@ function removeWhiteBackground(
     const b = data[i + 2];
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    if (r >= threshold && g >= threshold && b >= threshold && max - min <= 22) {
+    if (min >= threshold && max - min <= colorTolerance) {
       data[i + 3] = 0;
     }
   }
   context.putImageData(imageData, 0, 0);
+}
+
+type GrassColorBin = {
+  count: number;
+  red: number;
+  green: number;
+  blue: number;
+};
+
+function isLikelyGrassPixel(red: number, green: number, blue: number): boolean {
+  return green >= 50 && green - red >= 8 && green - blue >= 5;
+}
+
+/**
+ * Replaces only the dominant green colour clusters. Small saturated green
+ * objects (for example player markers) do not become a dominant cluster and
+ * therefore remain untouched.
+ */
+function unifyGrassBackground(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  strength: number,
+): string {
+  const imageData = context.getImageData(0, 0, width, height);
+  const { data } = imageData;
+  const bins = new Map<number, GrassColorBin>();
+  let greenPixelCount = 0;
+
+  for (let index = 0; index < data.length; index += 4) {
+    if (data[index + 3] === 0) continue;
+    const red = data[index];
+    const green = data[index + 1];
+    const blue = data[index + 2];
+    if (!isLikelyGrassPixel(red, green, blue)) continue;
+    greenPixelCount += 1;
+    const key = ((red >> 4) << 8) | ((green >> 4) << 4) | (blue >> 4);
+    const bin = bins.get(key) ?? { count: 0, red: 0, green: 0, blue: 0 };
+    bin.count += 1;
+    bin.red += red;
+    bin.green += green;
+    bin.blue += blue;
+    bins.set(key, bin);
+  }
+
+  const minimumClusterSize = Math.max(12, Math.round(greenPixelCount * 0.006));
+  const dominantBins = [...bins.values()]
+    .filter((bin) => bin.count >= minimumClusterSize)
+    .sort((left, right) => right.count - left.count)
+    .slice(0, 10);
+
+  if (dominantBins.length === 0) return '#72b963';
+
+  const dominantColors = dominantBins.map((bin) => ({
+    red: bin.red / bin.count,
+    green: bin.green / bin.count,
+    blue: bin.blue / bin.count,
+    count: bin.count,
+  }));
+  const dominantCount = dominantColors.reduce((sum, color) => sum + color.count, 0);
+  const target = dominantColors.reduce(
+    (color, value) => ({
+      red: color.red + value.red * value.count,
+      green: color.green + value.green * value.count,
+      blue: color.blue + value.blue * value.count,
+    }),
+    { red: 0, green: 0, blue: 0 },
+  );
+  const targetRed = Math.round(target.red / dominantCount);
+  const targetGreen = Math.round(target.green / dominantCount);
+  const targetBlue = Math.round(target.blue / dominantCount);
+  const clampedStrength = Math.max(0, Math.min(100, strength));
+  const tolerance = 18 + clampedStrength * 0.62;
+
+  for (let index = 0; index < data.length; index += 4) {
+    if (data[index + 3] === 0) continue;
+    const red = data[index];
+    const green = data[index + 1];
+    const blue = data[index + 2];
+    if (!isLikelyGrassPixel(red, green, blue)) continue;
+    const matchesGrass = dominantColors.some((color) => {
+      const redDelta = red - color.red;
+      const greenDelta = green - color.green;
+      const blueDelta = blue - color.blue;
+      return Math.sqrt(redDelta ** 2 + greenDelta ** 2 + blueDelta ** 2) <= tolerance;
+    });
+    if (!matchesGrass) continue;
+    data[index] = targetRed;
+    data[index + 1] = targetGreen;
+    data[index + 2] = targetBlue;
+  }
+
+  context.putImageData(imageData, 0, 0);
+  return `rgb(${targetRed}, ${targetGreen}, ${targetBlue})`;
 }
 
 async function renderExerciseCrop(
@@ -1675,10 +1849,30 @@ async function renderExerciseCrop(
   const scale = Math.max(canvas.width / rotated.width, canvas.height / rotated.height) * options.zoom;
   const width = rotated.width * scale;
   const height = rotated.height * scale;
-  const overflowX = Math.max(0, width - canvas.width);
-  const overflowY = Math.max(0, height - canvas.height);
-  const left = (canvas.width - width) / 2 - (options.x / 100) * (overflowX / 2);
-  const top = (canvas.height - height) / 2 - (options.y / 100) * (overflowY / 2);
+  const movementX = Math.abs(width - canvas.width) / 2;
+  const movementY = Math.abs(height - canvas.height) / 2;
+  const left = (canvas.width - width) / 2 - (options.x / 100) * movementX;
+  const top = (canvas.height - height) / 2 - (options.y / 100) * movementY;
+
+  if (options.unifyGrass) {
+    const layer = document.createElement('canvas');
+    layer.width = canvas.width;
+    layer.height = canvas.height;
+    const layerContext = layer.getContext('2d', { willReadFrequently: true });
+    if (!layerContext) throw new Error('Bildverarbeitung nicht verfügbar.');
+    layerContext.clearRect(0, 0, layer.width, layer.height);
+    layerContext.drawImage(rotated, left, top, width, height);
+    const solidGrassColor = unifyGrassBackground(
+      layerContext,
+      layer.width,
+      layer.height,
+      options.greenStrength ?? 55,
+    );
+    context.fillStyle = solidGrassColor;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(layer, 0, 0);
+    return;
+  }
 
   if (options.replaceWhiteWithGrass) {
     const layer = document.createElement('canvas');
