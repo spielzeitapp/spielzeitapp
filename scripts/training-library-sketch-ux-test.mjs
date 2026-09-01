@@ -47,10 +47,19 @@ assert.match(page, /Weißen Hintergrund durch Rasen ersetzen/);
 assert.match(page, /function removeWhiteBackground/);
 assert.match(page, /function drawTrainingGrass/);
 assert.match(page, />\s*Original\s*</);
-assert.match(page, />\s*Mit Rasen\s*</);
+assert.match(page, /'Mit Rasen'/);
 assert.match(page, /threshold = 252 - Math\.round\(\(clamped \/ 100\) \* 57\)/);
 assert.match(page, /#66ad55/);
 assert.match(page, /#80bd6f/);
 assert.match(page, /replaceWhiteWithGrass/);
+
+// Existing green sketches can be normalized to one dominant grass colour.
+assert.match(page, /Gesamten Rasen vereinheitlichen/);
+assert.match(page, /Grün-Erkennung/);
+assert.match(page, /function unifyGrassBackground/);
+assert.match(page, /function isLikelyGrassPixel/);
+assert.match(page, /unifyGrass: cropUnifyGrass/);
+assert.match(page, /Einfarbig grün/);
+assert.match(page, /dominantBins/);
 
 console.log('training-library-sketch-ux: ok');
