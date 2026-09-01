@@ -15,6 +15,8 @@ assert.doesNotMatch(page, />\s*Übertragen\s*</);
 assert.match(handout, /createTrainingExercisePdfPayload/);
 assert.match(handout, /machine-data/);
 assert.match(importer, /parseTrainingExercisePdfPayload/);
+assert.match(importer, /rawDocumentText/);
+assert.match(importer, /\.flatMap\(\(item\) => \('str' in item \? \[item\.str\] : \[\]\)\)/);
 assert.match(importer, /extractSpielzeitAppSketch/);
 assert.match(importer, /importKind: 'spielzeitapp'/);
 assert.match(importer, /importKind: 'external'/);
