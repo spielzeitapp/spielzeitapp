@@ -48,7 +48,9 @@ assert.match(page, /function removeWhiteBackground/);
 assert.match(page, /function drawTrainingGrass/);
 assert.match(page, />\s*Original\s*</);
 assert.match(page, /'Mit Rasen'/);
-assert.match(page, /threshold = 252 - Math\.round\(\(clamped \/ 100\) \* 57\)/);
+assert.match(page, /threshold = 252 - Math\.round\(\(clamped \/ 100\) \* 72\)/);
+assert.match(page, /colorTolerance = 22 \+ Math\.round\(\(clamped \/ 100\) \* 50\)/);
+assert.match(page, /max - min <= colorTolerance/);
 assert.match(page, /#66ad55/);
 assert.match(page, /#80bd6f/);
 assert.match(page, /replaceWhiteWithGrass/);
@@ -61,5 +63,10 @@ assert.match(page, /function isLikelyGrassPixel/);
 assert.match(page, /unifyGrass: cropUnifyGrass/);
 assert.match(page, /Einfarbig grün/);
 assert.match(page, /dominantBins/);
+
+// Position controls also work when zoom is below 100% and the image is smaller than the canvas.
+assert.match(page, /movementX = Math\.abs\(width - canvas\.width\) \/ 2/);
+assert.match(page, /movementY = Math\.abs\(height - canvas\.height\) \/ 2/);
+assert.doesNotMatch(page, /overflowX = Math\.max\(0, width - canvas\.width\)/);
 
 console.log('training-library-sketch-ux: ok');
