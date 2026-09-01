@@ -46,6 +46,10 @@ assert.ok(register.includes("supabase.auth.resend({"), 'confirmation email can b
 assert.ok(register.includes('email_confirm_sent'), 'initial invite mail delivery result is evaluated');
 assert.ok(register.includes('E-Mail erneut senden'), 'confirmation screen has resend action');
 assert.ok(register.includes('Spam, Junk oder Werbung'), 'confirmation screen has mailbox guidance');
+assert.ok(register.includes("aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}"));
+assert.ok(register.includes("aria-label={showConfirmPassword ? 'Passwortbestätigung verbergen' : 'Passwortbestätigung anzeigen'}"));
+assert.ok(register.includes("type={showPassword ? 'text' : 'password'}"));
+assert.ok(register.includes("type={showConfirmPassword ? 'text' : 'password'}"));
 assert.ok(login.includes('Anmelden'));
 assert.ok(accept.includes('safe-area-inset-top'));
 assert.ok(accept.includes('overflow-y-auto'));
