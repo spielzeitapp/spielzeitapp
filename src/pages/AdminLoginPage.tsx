@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { Button } from '../app/components/ui/Button';
+import {
+  isTurnstileConfigured,
+  TurnstileWidget,
+} from '../components/auth/TurnstileWidget';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -15,16 +19,24 @@ export const AdminLoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/admin';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (isTurnstileConfigured && !captchaToken) {
+      setError('Bitte Sicherheitsprüfung abschließen.');
+      return;
+    }
     setLoading(true);
 
     console.log('[ADMIN AUTH LOGIN START]', { email: email.trim() });
-    const { error: signInError } = await signIn(email, password);
+    const { error: signInError } = await signIn(email, password, captchaToken ?? undefined);
+    setCaptchaToken(null);
+    setCaptchaResetKey((value) => value + 1);
     setLoading(false);
 
     if (signInError) {
@@ -59,6 +71,11 @@ export const AdminLoginPage: React.FC = () => {
             />
           </div>
 
+          <TurnstileWidget
+            onTokenChange={setCaptchaToken}
+            resetKey={captchaResetKey}
+          />
+
           <div>
             <label htmlFor="admin-password" className="mb-1 block text-sm font-medium text-white/80">
               Passwort
@@ -91,7 +108,12 @@ export const AdminLoginPage: React.FC = () => {
             </p>
           )}
 
-          <Button type="submit" fullWidth disabled={loading} className="mt-2">
+          <Button
+            type="submit"
+            fullWidth
+            disabled={loading || (isTurnstileConfigured && !captchaToken)}
+            className="mt-2"
+          >
             {loading ? 'Wird angemeldet…' : 'Einloggen'}
           </Button>
         </form>
@@ -105,4 +127,3 @@ export const AdminLoginPage: React.FC = () => {
     </div>
   );
 };
-

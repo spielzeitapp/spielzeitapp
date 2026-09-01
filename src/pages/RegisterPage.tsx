@@ -18,6 +18,10 @@ import {
 import { isParentInviteTokenShape, normalizeParentInviteToken } from '../lib/parentChildLink';
 import { resolvePostAuthDestination } from '../lib/postAuthDestination';
 import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
+import {
+  isTurnstileConfigured,
+  TurnstileWidget,
+} from '../components/auth/TurnstileWidget';
 
 const AUTH_PAGE_SHELL_CLASS =
   'flex min-h-[100dvh] min-h-screen w-full flex-col items-stretch overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1.5rem,calc(env(safe-area-inset-top,0px)+0.75rem))]';
@@ -115,6 +119,8 @@ export const RegisterPage: React.FC = () => {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const nextRaw = searchParams.get('next') ?? '';
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
@@ -194,6 +200,11 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (!hasInviteSession && !isParentInviteFlow && isTurnstileConfigured && !captchaToken) {
+      setMessage({ type: 'error', text: 'Bitte Sicherheitsprüfung abschließen.' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -269,10 +280,13 @@ export const RegisterPage: React.FC = () => {
         options: {
           data: { first_name: trimmedFirst, last_name: trimmedLast },
           emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
+          ...(captchaToken ? { captchaToken } : {}),
         },
       };
 
       const result = await supabase.auth.signUp(signUpPayload);
+      setCaptchaToken(null);
+      setCaptchaResetKey((value) => value + 1);
       const { data, error: signUpError } = result;
 
       if (signUpError) {
@@ -323,6 +337,10 @@ export const RegisterPage: React.FC = () => {
   const handleResendConfirmation = async () => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail || resendingConfirmation) return;
+    if (isTurnstileConfigured && !captchaToken) {
+      setResendStatus({ type: 'error', text: 'Bitte Sicherheitsprüfung abschließen.' });
+      return;
+    }
 
     setResendingConfirmation(true);
     setResendStatus(null);
@@ -331,8 +349,11 @@ export const RegisterPage: React.FC = () => {
       email: trimmedEmail,
       options: {
         emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
+        captchaToken: captchaToken ?? undefined,
       },
     });
+    setCaptchaToken(null);
+    setCaptchaResetKey((value) => value + 1);
     setResendingConfirmation(false);
 
     if (resendError) {
@@ -405,10 +426,17 @@ export const RegisterPage: React.FC = () => {
               </div>
             ) : null}
 
+            <div className="mt-4">
+              <TurnstileWidget
+                onTokenChange={setCaptchaToken}
+                resetKey={captchaResetKey}
+              />
+            </div>
+
             <button
               type="button"
               onClick={() => void handleResendConfirmation()}
-              disabled={resendingConfirmation}
+              disabled={resendingConfirmation || (isTurnstileConfigured && !captchaToken)}
               className="mt-4 grid min-h-12 w-full grid-flow-col place-content-center items-center gap-2 rounded-xl bg-red-600 px-4 text-[15px] font-bold text-white shadow-[0_10px_28px_rgba(220,38,38,0.22)] transition hover:bg-red-500 disabled:cursor-wait disabled:opacity-60"
             >
               <RefreshCw className={`h-4 w-4 ${resendingConfirmation ? 'animate-spin' : ''}`} aria-hidden />
@@ -435,6 +463,7 @@ export const RegisterPage: React.FC = () => {
             </Link>
             </div>
           </div>
+
         </div>
       </div>
     );
@@ -577,6 +606,13 @@ export const RegisterPage: React.FC = () => {
             </div>
           </div>
 
+          {!hasInviteSession && !isParentInviteFlow ? (
+            <TurnstileWidget
+              onTokenChange={setCaptchaToken}
+              resetKey={captchaResetKey}
+            />
+          ) : null}
+
           {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
           {message && (
             <p className={`text-sm ${message.type === 'success' ? 'text-green-300' : 'text-red-300'}`} role="status">
@@ -584,7 +620,18 @@ export const RegisterPage: React.FC = () => {
             </p>
           )}
 
-          <Button type="submit" fullWidth disabled={loading} className="mt-2">
+          <Button
+            type="submit"
+            fullWidth
+            disabled={
+              loading ||
+              (!hasInviteSession &&
+                !isParentInviteFlow &&
+                isTurnstileConfigured &&
+                !captchaToken)
+            }
+            className="mt-2"
+          >
             {loading
               ? 'Wird gespeichert…'
               : hasInviteSession

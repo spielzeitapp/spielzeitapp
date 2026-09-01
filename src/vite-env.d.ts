@@ -13,6 +13,8 @@ interface ImportMetaEnv {
   readonly VITE_VAPID_PUBLIC_KEY?: string;
   /** Wenn 'true': nach Matchday-RPC optional /api/send-reminders triggern (nur Tests) */
   readonly VITE_MATCHDAY_PUSH_TEST?: string;
+  /** Öffentlicher Cloudflare-Turnstile-Site-Key für Supabase Auth */
+  readonly VITE_TURNSTILE_SITE_KEY?: string;
   readonly MODE: string;
   readonly DEV: boolean;
   readonly PROD: boolean;
