@@ -407,6 +407,42 @@ export async function archiveTrainingExercise(
   return { ok: true, error: null };
 }
 
+export async function deleteTrainingExercise(
+  id: string,
+  imagePath?: string | null,
+): Promise<{ ok: boolean; error: string | null }> {
+  const usage = await countExerciseUsage(id);
+  if (usage.error) return { ok: false, error: usage.error };
+  if (usage.count > 0) {
+    return {
+      ok: false,
+      error: `Diese Übung wird in ${usage.count} Einheit(en) verwendet und kann deshalb nur archiviert werden.`,
+    };
+  }
+
+  const { data, error } = await supabase
+    .from('training_exercises')
+    .delete()
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+  if (error) {
+    if (/foreign key|23503/i.test(error.message)) {
+      return { ok: false, error: 'Diese Übung wird bereits verwendet und kann deshalb nur archiviert werden.' };
+    }
+    return { ok: false, error: error.message };
+  }
+  if (!data) return { ok: false, error: 'Übung nicht gefunden oder keine Berechtigung zum Löschen.' };
+
+  if (imagePath) {
+    const sketch = await removeTrainingExerciseSketch(imagePath);
+    if (sketch.error) {
+      return { ok: true, error: 'Übung wurde gelöscht, die alte Skizzendatei konnte aber nicht entfernt werden.' };
+    }
+  }
+  return { ok: true, error: null };
+}
+
 export async function countExerciseUsage(
   exerciseId: string,
 ): Promise<{ count: number; error: string | null }> {

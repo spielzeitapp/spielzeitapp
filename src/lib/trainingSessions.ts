@@ -501,6 +501,28 @@ export async function archiveTrainingSession(
   return { ok: true, error: null };
 }
 
+export async function deleteTrainingSession(
+  id: string,
+): Promise<{ ok: boolean; error: string | null }> {
+  const { data, error } = await supabase
+    .from('training_sessions')
+    .delete()
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+  if (error) {
+    if (/training_exam_documentation|foreign key|23503/i.test(error.message)) {
+      return {
+        ok: false,
+        error: 'Diese Einheit wird in einer Trainerprüfungs-Dokumentation verwendet und kann nicht gelöscht werden.',
+      };
+    }
+    return { ok: false, error: error.message };
+  }
+  if (!data) return { ok: false, error: 'Einheit nicht gefunden oder keine Berechtigung zum Löschen.' };
+  return { ok: true, error: null };
+}
+
 export async function addExerciseToSession(input: {
   sessionId: string;
   exerciseId: string;
