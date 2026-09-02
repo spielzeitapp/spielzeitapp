@@ -87,7 +87,32 @@ export type LineupFormationPitchProps = {
     isGk: boolean;
     emphasize: boolean;
   }) => React.ReactNode;
+  /** Größere, portraitartige Darstellung für die mobile Aufstellungsseite. */
+  displayMode?: 'default' | 'lineup-fullscreen';
   className?: string;
+};
+
+type FullscreenSlotPosition = { x?: number; y: number };
+
+/**
+ * In der hohen Aufstellungsansicht liegen die Mannschaftsteile bewusst auf
+ * klar getrennten Reihen. So kollidieren Trikot und Name auch bei 1-3-3 nicht.
+ */
+const FULLSCREEN_SLOT_POSITIONS: Partial<
+  Record<U11FormationId, Partial<Record<FieldSlotId, FullscreenSlotPosition>>>
+> = {
+  '1-2-2-2': {
+    GK: { y: 88 }, LB: { y: 66 }, RB: { y: 66 }, LW: { y: 41 }, RW: { y: 41 }, CM: { y: 17 }, ST: { y: 17 },
+  },
+  '1-2-3-1': {
+    GK: { y: 88 }, LB: { y: 67 }, RB: { y: 67 }, LW: { x: 17, y: 42 }, CM: { y: 47 }, RW: { x: 83, y: 42 }, ST: { x: 50, y: 17 },
+  },
+  '1-3-2-1': {
+    GK: { y: 88 }, LB: { x: 17, y: 66 }, CM: { y: 66 }, RB: { x: 83, y: 66 }, LW: { y: 41 }, RW: { y: 41 }, ST: { y: 17 },
+  },
+  '1-3-3': {
+    GK: { y: 88 }, LB: { x: 17, y: 65 }, CM: { y: 65 }, RB: { x: 83, y: 65 }, LW: { x: 17, y: 25 }, ST: { y: 25 }, RW: { x: 83, y: 25 },
+  },
 };
 
 export function LineupFormationPitch({
@@ -100,8 +125,10 @@ export function LineupFormationPitch({
   slotHighlightBySlot,
   emphasizedPlayerId = null,
   renderSlotContent,
+  displayMode = 'default',
   className = '',
 }: LineupFormationPitchProps): React.ReactElement {
+  const isFullscreenLineup = displayMode === 'lineup-fullscreen';
   const formationKeys = Object.keys(U11_FORMATIONS) as U11FormationId[];
   const fallbackFormationId =
     (formationKeys.find((id) => id === '1-2-3-1') as U11FormationId | undefined) ?? formationKeys[0];
@@ -124,7 +151,7 @@ export function LineupFormationPitch({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[1/1.02] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] ${isFullscreenLineup ? 'aspect-[0.72/1]' : 'aspect-[1/1.02]'} ${className}`}
       style={PITCH_SURFACE}
     >
       <div
@@ -171,8 +198,10 @@ export function LineupFormationPitch({
       </svg>
 
       <div
-        className="absolute inset-x-[4%] z-[1] min-h-0"
-        style={{ top: 'calc(3.5% + 14px)', bottom: 'calc(3.5% + 26px)' }}
+        className={`absolute z-[1] min-h-0 ${isFullscreenLineup ? 'inset-x-[2%]' : 'inset-x-[4%]'}`}
+        style={isFullscreenLineup
+          ? { top: 'calc(2.5% + 10px)', bottom: 'calc(2.5% + 18px)' }
+          : { top: 'calc(3.5% + 14px)', bottom: 'calc(3.5% + 26px)' }}
       >
         {layout.map(({ slot, label, x, y, labelDx = 0, labelDy = 0 }, layoutIdx) => {
           const playerId = safeSlots[slot] ?? null;
@@ -196,16 +225,19 @@ export function LineupFormationPitch({
             emphasize,
           });
 
+          const fullscreenPosition = isFullscreenLineup ? FULLSCREEN_SLOT_POSITIONS[safeFormationId]?.[slot] : undefined;
           const slotStyle = {
-            left: `${x}%`,
-            top: `${y}%`,
+            left: `${fullscreenPosition?.x ?? x}%`,
+            top: `${fullscreenPosition?.y ?? y}%`,
             transform: 'translate(-50%, -50%)',
             zIndex: layoutIdx + 1,
           } as const;
 
           /** Begrenzt Breite pro Slot, damit Namens-Labels nicht in Nachbar-Slots laufen. */
           const content = (
-            <div className="flex max-w-[min(19vw,4.85rem)] flex-col items-center justify-center origin-center scale-[0.88]">
+            <div className={isFullscreenLineup
+              ? 'flex w-[7.25rem] max-w-[30vw] origin-center flex-col items-center justify-center'
+              : 'flex max-w-[min(19vw,4.85rem)] origin-center scale-[0.88] flex-col items-center justify-center'}>
               {inner}
             </div>
           );

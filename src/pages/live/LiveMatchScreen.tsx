@@ -85,6 +85,7 @@ import {
 import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
+import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import { PremiumPlayerCard } from '../../components/player/PremiumPlayerCard';
 import {
   DS_JERSEY_COMPACT,
@@ -832,28 +833,6 @@ const LINEUP_HUB_TAB_BTN =
 
 const LINEUP_TRAINER_ACTION_BTN =
   'inline-flex h-[38px] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border px-3 text-[11px] font-semibold uppercase tracking-[0.03em] transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:text-xs';
-
-/** Live-Pitch: Badge unter Trikot; nutzt formationsspezifische labelDx/labelDy (nur UI). */
-function liveLineupPitchNameOffset(
-  slot: FieldSlotId,
-  formationId: U11FormationId,
-): { dx: number; dy: number } {
-  const row = (U11_FORMATIONS[formationId] ?? []).find((s) => s.slot === slot);
-  const dx = row?.labelDx ?? 0;
-  const baseDy = row?.labelDy ?? 0;
-  const y = row?.y ?? 50;
-
-  let addDy = 2;
-  if (slot === 'GK') {
-    addDy = 1;
-  } else if (y <= 20) {
-    addDy = 1;
-  } else if (y >= 66) {
-    addDy = 3;
-  }
-
-  return { dx, dy: baseDy + addDy };
-}
 
 /** Startelf-Liste: Scroll-Puffer über BottomNav */
 const KICKOFF_LINEUP_SCROLL_BOTTOM_PAD = LINEUP_CONTENT_SCROLL_BOTTOM_PAD;
@@ -4524,8 +4503,21 @@ export const LiveMatchScreen: React.FC = () => {
           }}
         />
       ) : null}
-    <div className={liveShellOuter}>
+    <div className={`${liveShellOuter} ${mainTab === 'lineup' ? 'live-lineup-fullscreen' : ''}`}>
       <style>{`@keyframes liveSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes liveSubOut{from{opacity:.92;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}`}</style>
+      {mainTab === 'lineup' ? (
+        <style>{`@media (max-width: 639px){
+          nav[aria-label="Hauptnavigation"], .app-header { display:none !important; }
+          main.appMain { padding-top: env(safe-area-inset-top, 0px) !important; }
+          .live-lineup-fullscreen.live-shell-viewport {
+            height: calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - env(safe-area-inset-top, 0px)) !important;
+            max-height: calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - env(safe-area-inset-top, 0px)) !important;
+          }
+          .live-lineup-fullscreen .live-lineup-scroll {
+            padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important;
+          }
+        }`}</style>
+      ) : null}
       {!wechselScreenActive ? (
       <>
       <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
@@ -5274,7 +5266,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
             <div
-              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pt-0 [-webkit-overflow-scrolling:touch]"
+              className="live-lineup-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-1.5 pt-0 [-webkit-overflow-scrolling:touch] sm:px-2"
               style={{
                 paddingBottom:
                   lineupPanelView === 'kickoff'
@@ -5319,16 +5311,17 @@ export const LiveMatchScreen: React.FC = () => {
                 )
               ) : canRenderLivePitch ? (
                 <>
-                  <div className="mx-auto mb-0 w-full max-w-md overflow-visible px-0.5 pb-1">
-                  <div className="-translate-y-[3px] relative">
+                  <div className="mx-auto mb-0 w-full max-w-xl overflow-visible pb-1 sm:max-w-md sm:px-0.5">
+                  <div className="relative">
                   <LineupFormationPitch
                   formationId={pitchFormationId}
+                  displayMode="lineup-fullscreen"
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
                   interactive={Boolean(canControlLiveMatch && lineupPositionMode && !matchIsFinished)}
                   onSlotTap={handleLineupPositionSlotTap}
                   emphasizedPlayerId={null}
                   slotHighlightBySlot={mainLineupPitchSlotHighlight}
-                  className="min-h-[10rem] max-h-[min(53dvh,31rem)] w-full"
+                  className="w-full"
                   renderSlotContent={({ slot, label, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
@@ -5347,19 +5340,15 @@ export const LiveMatchScreen: React.FC = () => {
                       (posSwapSlotA === slot || posSwapSlotB === slot) &&
                       Boolean(playerId) &&
                       !posSwapConfirmOpen;
-                    const { dx: nameOffsetX, dy: nameOffsetY } = liveLineupPitchNameOffset(
-                      slot,
-                      pitchFormationId,
-                    );
                     return (
                       <div
                         className={[
-                          'pointer-events-none relative flex w-full max-w-[min(20vw,6.25rem)] flex-col items-center justify-start gap-0 overflow-visible',
+                          'pointer-events-none relative flex w-full flex-col items-center justify-start gap-0 overflow-visible rounded-xl',
                           isPosSwapPick ? 'scale-[1.04]' : '',
                         ].join(' ')}
                       >
                         {isFairPlayExtra ? (
-                          <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1 py-px text-[7px] font-black uppercase tracking-[0.06em] text-amber-100">
+                          <span className="absolute -top-3 left-1/2 z-[3] -translate-x-1/2 whitespace-nowrap rounded-full border border-amber-300/70 bg-amber-950/90 px-1.5 py-px text-[7px] font-black uppercase tracking-[0.06em] text-amber-100">
                             Fairplay +1
                           </span>
                         ) : null}
@@ -5378,46 +5367,33 @@ export const LiveMatchScreen: React.FC = () => {
                                 number={outgoing?.number ?? '–'}
                                 position={posLabel}
                                 variant={isGk ? 'goalkeeper' : 'field'}
-                                size="compact"
+                                size="large"
                                 pitchStyleBack
-                                className="!opacity-70"
+                                className="!h-[72px] !w-[58px] !opacity-70"
                               />
                             </div>
                           );
                         })()}
                         <div
                           className={[
-                            'transition-all duration-300 ease-out',
+                            'rounded-xl transition-all duration-300 ease-out',
                             substitutionTransitionBySlot[slot]?.incomingPlayerId === playerId
                               ? 'animate-[liveSubIn_300ms_ease-out]'
                               : 'translate-y-0 opacity-100',
+                            isPosSwapPick ? 'ring-2 ring-amber-400/75' : '',
+                            isFairPlayExtra ? 'ring-2 ring-amber-400/55' : '',
                           ].join(' ')}
                         >
-                          <LeibchenJersey
+                          <PitchPlayerMarker
                             lastName={shortName}
                             number={player?.number ?? '–'}
-                            position={posLabel}
+                            positionBadge={posLabel}
                             variant={isGk ? 'goalkeeper' : 'field'}
-                            size="compact"
-                            pitchStyleBack
-                            className={[
-                              isPosSwapPick ? 'ring-2 ring-amber-400/75' : '',
-                              isFairPlayExtra ? 'ring-2 ring-amber-400/55' : '',
-                            ].join(' ')}
+                            mode="pitch"
+                            fullscreenLineup
+                            emphasize={isPosSwapPick}
                           />
                         </div>
-                        <span
-                          className={[
-                            'mx-auto mt-1 block w-full min-w-0 max-w-[6.5rem] truncate rounded-full border px-2 py-[3px] text-center text-[11px] font-medium leading-tight shadow-[0_2px_10px_rgba(0,0,0,0.42)] backdrop-blur-sm transition-all duration-200',
-                            isFairPlayExtra
-                              ? 'border-amber-400/35 bg-black/78 text-amber-50'
-                              : 'border-white/10 bg-black/78 text-white/95',
-                          ].join(' ')}
-                          title={rawName}
-                          style={{ transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` }}
-                        >
-                          {shortName}
-                        </span>
                       </div>
                     );
                   }}
