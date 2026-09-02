@@ -1528,13 +1528,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               <div>
                 <CropRange label="Bildgröße / Zoom" min={40} max={250} value={Math.round(cropZoom * 100)} onChange={(value) => setCropZoom(value / 100)} suffix=" %" />
                 <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                  Unter 100 % wird das ganze Bild kleiner und mit{' '}
+                  Bei 100 % bleibt die vollständige Skizze sichtbar. Freie Ränder werden mit{' '}
                   {cropUnifyGrass
-                    ? 'einfarbig grünem Rand'
+                    ? 'einfarbigem Grün'
                     : cropReplaceGrass
-                      ? 'Rasenrand'
-                      : 'weißem Rand'}{' '}
-                  eingepasst.
+                      ? 'Rasen'
+                      : 'Weiß'}{' '}
+                  gefüllt. Erst über 100 % wird hineingezoomt.
                 </p>
               </div>
               <div className="flex items-end">
@@ -1846,7 +1846,7 @@ async function renderExerciseCrop(
   const rotated = rotatedImageCanvas(image, options.rotation);
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
-  const scale = Math.max(canvas.width / rotated.width, canvas.height / rotated.height) * options.zoom;
+  const scale = Math.min(canvas.width / rotated.width, canvas.height / rotated.height) * options.zoom;
   const width = rotated.width * scale;
   const height = rotated.height * scale;
   const movementX = Math.abs(width - canvas.width) / 2;
