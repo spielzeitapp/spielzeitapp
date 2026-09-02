@@ -14,6 +14,8 @@ export type PitchPlayerMarkerProps = {
   assignFlash?: boolean;
   selected?: boolean;
   emphasize?: boolean;
+  /** Namen einzeilig direkt unter dem Trikot, ohne alte Kollisions-Offsets. */
+  fullscreenLineup?: boolean;
 };
 
 function PitchPlayerMarkerInner({
@@ -27,6 +29,7 @@ function PitchPlayerMarkerInner({
   assignFlash = false,
   selected = false,
   emphasize = false,
+  fullscreenLineup = false,
 }: PitchPlayerMarkerProps): React.ReactElement {
   /** Pitch: kräftigeres Trikot, Bank kompakter */
   const jerseyClass =
@@ -34,9 +37,12 @@ function PitchPlayerMarkerInner({
       ? '!h-[72px] !w-[58px] shrink-0 sm:!h-[76px] sm:!w-[62px]'
       : '!h-[44px] !w-[38px] shrink-0 sm:!h-[48px] sm:!w-[40px]';
 
-  const nameMax =
-    mode === 'pitch' ? 'max-w-[148px] sm:max-w-[160px]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
-  const wrapperMax = mode === 'pitch' ? 'max-w-[152px] sm:max-w-[164px]' : 'max-w-[5.25rem] sm:max-w-[5.75rem]';
+  const nameMax = fullscreenLineup
+    ? 'max-w-[7.25rem]'
+    : mode === 'pitch' ? 'max-w-[148px] sm:max-w-[160px]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
+  const wrapperMax = fullscreenLineup
+    ? 'max-w-[7.25rem]'
+    : mode === 'pitch' ? 'max-w-[152px] sm:max-w-[164px]' : 'max-w-[5.25rem] sm:max-w-[5.75rem]';
 
   const trimmedName = lastName.trim();
   const displayName = trimmedName || '—';
@@ -64,11 +70,13 @@ function PitchPlayerMarkerInner({
       </div>
       <span
         className={
-          mode === 'pitch'
+          fullscreenLineup
+            ? `mt-0.5 w-full truncate whitespace-nowrap rounded-lg bg-zinc-950/90 px-1.5 py-0.5 text-center text-[12px] font-extrabold leading-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${nameMax}`
+            : mode === 'pitch'
             ? `mt-0.5 line-clamp-2 max-w-full whitespace-normal rounded-xl bg-zinc-950/90 px-2.5 py-1 text-center text-[13px] font-extrabold leading-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:text-sm ${nameMax}`
             : `mt-0.5 w-full truncate text-center text-sm font-bold leading-tight text-white ${nameMax}`
         }
-        style={mode === 'pitch' ? { transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` } : undefined}
+        style={mode === 'pitch' && !fullscreenLineup ? { transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` } : undefined}
       >
         {displayName}
       </span>

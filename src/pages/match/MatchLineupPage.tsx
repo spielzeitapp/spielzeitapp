@@ -753,7 +753,10 @@ export const MatchLineupPage: React.FC = () => {
   return (
     <div className={dsPageShellClass('relative flex flex-col')}>
       <div className={dsPageAtmosphereClass()} aria-hidden />
-      <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
+      <style>{`@media (max-width: 639px){
+        nav[aria-label="Hauptnavigation"], .app-header { display:none !important; }
+        main.appMain { padding-top: env(safe-area-inset-top, 0px) !important; }
+      }`}</style>
 
       {saveMsg ? (
         <div
@@ -771,10 +774,10 @@ export const MatchLineupPage: React.FC = () => {
         className={dsPageContentClass(
           // Normaler Layout-Flow: Seite scrollt im Body, kein verschachtelter Scroll/overflow-hidden
           // (iOS/iPhone SE: Inhalte sonst abgeschnitten). Scroll-Ende über BottomNav + Safe-Area.
-          'live-page-safe-scroll mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-4 pt-0.5 sm:pb-[25rem] sm:pt-1',
+          'live-page-safe-scroll mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-1.5 pt-0 sm:px-4 sm:pb-[25rem] sm:pt-1',
         )}
       >
-        <header className="relative flex min-h-[2.75rem] shrink-0 items-center justify-center px-0 py-2">
+        <header className="relative flex min-h-[2.5rem] shrink-0 items-center justify-center px-1 py-1.5 sm:min-h-[2.75rem] sm:py-2">
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -791,7 +794,7 @@ export const MatchLineupPage: React.FC = () => {
 
         {canManage ? (
           <div
-            className="mb-1 mt-1 grid h-12 w-full shrink-0 grid-cols-2 gap-1.5"
+            className="mb-1 mt-0.5 grid h-11 w-full shrink-0 grid-cols-2 gap-1.5 sm:mt-1 sm:h-12"
             role="tablist"
             aria-label="Aufstellungsvarianten"
           >
@@ -823,7 +826,7 @@ export const MatchLineupPage: React.FC = () => {
         ) : null}
 
         <div
-          className="mb-2 mt-2 flex h-10 w-full shrink-0 overflow-hidden rounded-[12px] border border-transparent bg-[rgba(18,18,22,0.88)] p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)]"
+          className="mb-1 mt-1 flex h-9 w-full shrink-0 overflow-hidden rounded-[12px] border border-transparent bg-[rgba(18,18,22,0.88)] p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)] sm:mb-2 sm:mt-2 sm:h-10"
           role="tablist"
           aria-label="Aufstellungsansicht"
         >
@@ -848,7 +851,7 @@ export const MatchLineupPage: React.FC = () => {
           </button>
         </div>
 
-        <div className="-mx-1 mb-2 shrink-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:mx-0">
+        <div className="-mx-0.5 mb-1 shrink-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:mx-0 sm:mb-2">
           <div className="flex min-h-9 flex-nowrap items-center gap-1.5 px-0.5 pb-0.5">
             {canManage
               ? formationChoices.map((id) => {
@@ -897,12 +900,13 @@ export const MatchLineupPage: React.FC = () => {
               <div className="overflow-hidden rounded-[11px]">
                 <LineupFormationPitch
                   formationId={formationId}
+                  displayMode="lineup-fullscreen"
                   slots={slots}
                   interactive={lineupEditable}
                   onSlotTap={onTapSlot}
                   selectedBankPlayerId={selectedBankPlayerId}
                   assignFlashSlot={assignFlashSlot}
-                  className="max-h-[min(70dvh,50rem)] w-full sm:max-h-[min(50rem,78vh)]"
+                  className="w-full"
                   renderSlotContent={({ label, labelDx, labelDy, playerId, flash, isGk, emphasize }) => {
                     if (!playerId || !squadIds.includes(playerId)) return null;
                     const player = playersById.get(playerId);
@@ -915,6 +919,7 @@ export const MatchLineupPage: React.FC = () => {
                           positionBadge={getPositionLabel(label) || label}
                           variant={isGk ? 'goalkeeper' : 'field'}
                           mode="pitch"
+                          fullscreenLineup
                           nameOffsetX={labelDx}
                           nameOffsetY={labelDy}
                           assignFlash={flash}
