@@ -14,6 +14,7 @@ import {
 } from '../../lib/seasonLifecycle';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { AppHomeIcon, MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
+import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 
 type Props = {
   onOpenSidebar: () => void;
@@ -152,7 +153,8 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         <ManagerMenuButton onClick={onOpenSidebar} />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[18px] font-bold tracking-tight text-white sm:text-[20px]">Manager</p>
+          <img src={spielzeitappHeader} alt="SpielzeitApp" className="h-7 w-auto max-w-[10.5rem] object-contain object-left sm:hidden" />
+          <p className="hidden truncate text-[18px] font-bold tracking-tight text-white sm:block sm:text-[20px]">Manager</p>
           <p className="truncate text-[11px] text-white/45 sm:hidden">{contextLine}</p>
         </div>
 

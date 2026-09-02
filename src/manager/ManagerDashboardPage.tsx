@@ -10,6 +10,10 @@ import {
   Video,
   ShoppingBag,
   Dumbbell,
+  AlertTriangle,
+  Plus,
+  RefreshCw,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { useProfile, getDisplayFirstName } from '../auth/useProfile';
@@ -438,9 +442,147 @@ export function ManagerDashboardPage(): React.ReactElement {
 
   const loading = eventsLoading || playersLoading;
   const error = eventsError || playersError;
+  const mobileAttentionCount =
+    (todayField.unassignedCount > 0 ? todayField.unassignedCount : 0) +
+    (seasonDraftHint ? 1 : 0) +
+    (!hasActive ? 1 : 0);
+  const mobileContextLabel =
+    (contextSeason?.team?.name ?? '').trim() ||
+    (contextSeason?.display_name ?? '').trim() ||
+    ageLabel;
 
   return (
-    <div className="space-y-6">
+    <>
+    <div className="manager-mobile-dashboard min-h-full bg-[#050506] px-4 pb-6 pt-5 text-white md:hidden">
+      <header>
+        <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-white/45">
+          {greetingPrefix()}{firstName ? `, ${firstName}` : ''}
+        </p>
+        <h1 className="mt-1 text-[26px] font-bold tracking-tight">Vereinsübersicht</h1>
+        <p className="mt-1 truncate text-[13px] text-white/55">{mobileContextLabel}</p>
+      </header>
+
+      {mobileAttentionCount > 0 ? (
+        <section className="mt-5 rounded-2xl border border-red-500/25 bg-gradient-to-br from-red-950/80 to-[#17090c] p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" aria-hidden />
+            <div className="min-w-0">
+              <p className="font-semibold">
+                {mobileAttentionCount} {mobileAttentionCount === 1 ? 'Punkt' : 'Punkte'} kontrollieren
+              </p>
+              <p className="mt-1 text-[12px] leading-relaxed text-white/60">
+                {!hasActive
+                  ? 'Keine aktive Saison ausgewählt.'
+                  : todayField.unassignedCount > 0
+                    ? `${todayField.unassignedCount} heutige ${todayField.unassignedCount === 1 ? 'Termin ist' : 'Termine sind'} noch keinem Platz zugeordnet.`
+                    : seasonDraftHint
+                      ? `${seasonDraftHint.label} ist als Saisonentwurf vorbereitet.`
+                      : 'Bitte die aktuellen Daten kontrollieren.'}
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-950/25 px-4 py-3 text-[13px] text-emerald-200">
+          Spiele und Platzbelegung sind aktuell.
+        </section>
+      )}
+
+      {error ? (
+        <div className="mt-3 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-[13px] text-red-200">
+          Daten konnten nicht geladen werden: {error}
+        </div>
+      ) : null}
+
+      <section className="mt-6">
+        <h2 className="text-[16px] font-bold">Schnellaktionen</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <Link
+            to="/app/termine"
+            className="flex min-h-[104px] flex-col justify-between rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#18181b] to-[#0c0c0e] p-4"
+          >
+            <Plus className="h-6 w-6 text-red-400" aria-hidden />
+            <span className="text-[14px] font-semibold">Spiel anlegen</span>
+          </Link>
+          <Link
+            to={teamSeasonId ? `/manager/saisons/${encodeURIComponent(teamSeasonId)}/oefb-import` : '/manager/saisons'}
+            className="flex min-h-[104px] flex-col justify-between rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#18181b] to-[#0c0c0e] p-4"
+          >
+            <RefreshCw className="h-6 w-6 text-red-400" aria-hidden />
+            <span className="text-[14px] font-semibold">Spiele importieren</span>
+          </Link>
+          <Link
+            to="/manager/training/einheiten/neu"
+            className="flex min-h-[104px] flex-col justify-between rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#18181b] to-[#0c0c0e] p-4"
+          >
+            <Dumbbell className="h-6 w-6 text-red-400" aria-hidden />
+            <span className="text-[14px] font-semibold">Training anlegen</span>
+          </Link>
+          <Link
+            to="/manager/platzbelegung"
+            className="flex min-h-[104px] flex-col justify-between rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#18181b] to-[#0c0c0e] p-4"
+          >
+            <MapPin className="h-6 w-6 text-red-400" aria-hidden />
+            <span className="text-[14px] font-semibold">Plätze prüfen</span>
+          </Link>
+        </div>
+      </section>
+
+      <section className="mt-7">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-[16px] font-bold">Als Nächstes</h2>
+          <Link to="/app/termine" className="text-[12px] font-semibold text-red-400">Alle Termine</Link>
+        </div>
+        {loading ? (
+          <p className="mt-3 text-[13px] text-white/45">Termine werden geladen…</p>
+        ) : nextEvents.length === 0 ? (
+          <div className="mt-3 rounded-2xl border border-dashed border-white/15 px-4 py-6 text-[13px] text-white/45">
+            Keine kommenden Termine in dieser Saison.
+          </div>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {nextEvents.map((event) => (
+              <li key={event.id}>
+                <Link
+                  to={`/app/events/${encodeURIComponent(event.id)}`}
+                  className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-[#161619] to-[#0d0d0f] px-4 py-3"
+                >
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-950/70 text-red-300">
+                    {event.kind === 'training' || event.type === 'training'
+                      ? <Dumbbell className="h-5 w-5" aria-hidden />
+                      : <Trophy className="h-5 w-5" aria-hidden />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] font-semibold">{eventTitle(event)}</span>
+                    <span className="mt-1 block text-[12px] text-white/50">{formatEventWhen(event.starts_at)}</span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-white/25" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <Link
+        to="/manager/platzbelegung"
+        className="mt-7 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#111114] p-4"
+      >
+        <span>
+          <span className="block text-[14px] font-semibold">Heute am Sportplatz</span>
+          <span className="mt-1 block text-[12px] text-white/50">
+            {todayField.loading
+              ? 'Platzbelegung wird geladen…'
+              : todayField.assignedCount > 0
+                ? `${todayField.assignedCount} ${todayField.assignedCount === 1 ? 'Belegung' : 'Belegungen'}${todayField.rangeLabel ? ` · ${todayField.rangeLabel}` : ''}`
+                : 'Heute sind keine Plätze belegt.'}
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
+      </Link>
+    </div>
+
+    <div className="hidden space-y-6 md:block">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">
           {greetingPrefix()}
@@ -762,5 +904,6 @@ export function ManagerDashboardPage(): React.ReactElement {
         </Card>
       </div>
     </div>
+    </>
   );
 }

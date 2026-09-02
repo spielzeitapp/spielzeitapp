@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ManagerHeader } from './components/ManagerHeader';
 import { ManagerSidebar } from './components/ManagerSidebar';
 import { ManagerAccessGate } from './ManagerAccessGate';
@@ -8,6 +8,7 @@ import { ManagerClubModulesProvider } from './ManagerClubModulesContext';
 import { ManagerAccessDeniedBanner, ManagerRouteGuard } from './ManagerRouteGuard';
 import { useSession } from '../auth/useSession';
 import { getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
+import { ManagerMobileNav } from './components/ManagerMobileNav';
 import './managerShell.css';
 
 /**
@@ -16,9 +17,11 @@ import './managerShell.css';
  */
 export function ManagerLayout(): React.ReactElement {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
   const { viewTeamSeason, selectedTeamSeason } = useSession();
   const context = viewTeamSeason ?? selectedTeamSeason;
   const viewingArchive = context ? isSeasonArchived(context.status) : false;
+  const dashboardRoute = location.pathname === '/manager' || location.pathname === '/manager/dashboard';
 
   return (
     <ManagerAccessGate>
@@ -39,14 +42,23 @@ export function ManagerLayout(): React.ReactElement {
                 </Link>
               </div>
             ) : null}
-            <main className="min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto bg-[#F4F5F7]">
-              <div className="manager-shell__content px-3 py-5 sm:px-5 sm:py-6 lg:px-8 xl:px-10 2xl:px-12">
+            <main className={[
+              'min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto pb-20 md:pb-0',
+              dashboardRoute ? 'bg-[#050506] md:bg-[#F4F5F7]' : 'bg-[#F4F5F7]',
+            ].join(' ')}>
+              <div className={[
+                'manager-shell__content',
+                dashboardRoute
+                  ? 'px-0 py-0 md:px-5 md:py-6 lg:px-8 xl:px-10 2xl:px-12'
+                  : 'px-3 py-5 sm:px-5 sm:py-6 lg:px-8 xl:px-10 2xl:px-12',
+              ].join(' ')}>
                 <ManagerRouteGuard>
                   <ManagerAccessDeniedBanner />
                   <Outlet />
                 </ManagerRouteGuard>
               </div>
             </main>
+            <ManagerMobileNav onOpenMenu={() => setSidebarOpen(true)} />
           </div>
         </div>
         </ManagerClubModulesProvider>
