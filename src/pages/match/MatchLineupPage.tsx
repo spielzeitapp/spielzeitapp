@@ -60,6 +60,13 @@ import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
 import { normalizeRole } from '../../lib/roles';
+import {
+  cloneMatchLineupVariant,
+  readMatchLineupVariants,
+  writeMatchLineupVariants,
+  type MatchLineupVariantDraft,
+  type MatchLineupVariantNumber,
+} from '../../lib/matchLineupVariants';
 
 type MatchRowLite = {
   id: string;
@@ -146,6 +153,12 @@ export const MatchLineupPage: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [lineupViewMode, setLineupViewMode] = useState<'pitch' | 'list'>('pitch');
   const [saveToastFading, setSaveToastFading] = useState(false);
+  const [visibleVariant, setVisibleVariant] = useState<MatchLineupVariantNumber>(1);
+  const [startVariant, setStartVariant] = useState<MatchLineupVariantNumber>(1);
+  const [variantDrafts, setVariantDrafts] = useState<
+    Record<MatchLineupVariantNumber, MatchLineupVariantDraft> | null
+  >(null);
+  const initializedVariantsForMatchRef = useRef<string | null>(null);
 
   // Status + Rolle: Eltern/Fans niemals editierbar (auch bei direktem Route-Aufruf).
   const lineupEditable =
@@ -393,10 +406,7 @@ export const MatchLineupPage: React.FC = () => {
 
   /** Erfolgsmeldung: kurzer Toast mit Fade-out, kein permanenter Block. */
   useEffect(() => {
-    if (
-      saveMsg !== 'Aufstellung gespeichert.' &&
-      saveMsg !== 'Aufstellung vom letzten Spiel übernommen'
-    ) {
+    if (!saveMsg) {
       setSaveToastFading(false);
       return;
     }
@@ -411,6 +421,76 @@ export const MatchLineupPage: React.FC = () => {
       window.clearTimeout(clearAt);
     };
   }, [saveMsg]);
+
+  const captureVisibleVariant = (): MatchLineupVariantDraft => ({
+    slots: { ...slots },
+    squadIds: [...squadIds],
+    formationId,
+  });
+
+  useEffect(() => {
+    if (!matchId || lineupLoading || initializedVariantsForMatchRef.current === matchId) return;
+    initializedVariantsForMatchRef.current = matchId;
+    const canonical = captureVisibleVariant();
+    const stored = readMatchLineupVariants(matchId);
+    if (stored) {
+      const selected = stored.startVariant;
+      const selectedDraft = cloneMatchLineupVariant(stored.variants[selected]);
+      setVariantDrafts({
+        1: cloneMatchLineupVariant(stored.variants[1]),
+        2: cloneMatchLineupVariant(stored.variants[2]),
+      });
+      setStartVariant(selected);
+      setVisibleVariant(selected);
+      setSlots(selectedDraft.slots);
+      setSquadIds(selectedDraft.squadIds);
+      setFormationId(selectedDraft.formationId);
+      return;
+    }
+    const initial = {
+      1: cloneMatchLineupVariant(canonical),
+      2: cloneMatchLineupVariant(canonical),
+    };
+    setVariantDrafts(initial);
+    writeMatchLineupVariants(matchId, { version: 1, startVariant: 1, variants: initial });
+  // Der Effekt initialisiert genau einmal je Match nach dem kanonischen Lineup-Load.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId, lineupLoading]);
+
+  const persistVariantDrafts = (
+    nextDrafts: Record<MatchLineupVariantNumber, MatchLineupVariantDraft>,
+    nextStartVariant = startVariant,
+  ) => {
+    if (!matchId) return;
+    writeMatchLineupVariants(matchId, {
+      version: 1,
+      startVariant: nextStartVariant,
+      variants: nextDrafts,
+    });
+  };
+
+  const onSelectVariant = (nextVariant: MatchLineupVariantNumber) => {
+    if (nextVariant === visibleVariant) return;
+    const currentDraft = captureVisibleVariant();
+    const fallbackDraft = cloneMatchLineupVariant(currentDraft);
+    const nextDrafts = variantDrafts
+      ? {
+          1: cloneMatchLineupVariant(variantDrafts[1]),
+          2: cloneMatchLineupVariant(variantDrafts[2]),
+        }
+      : { 1: cloneMatchLineupVariant(fallbackDraft), 2: cloneMatchLineupVariant(fallbackDraft) };
+    nextDrafts[visibleVariant] = cloneMatchLineupVariant(currentDraft);
+    const target = cloneMatchLineupVariant(nextDrafts[nextVariant] ?? fallbackDraft);
+    setVariantDrafts(nextDrafts);
+    persistVariantDrafts(nextDrafts);
+    setVisibleVariant(nextVariant);
+    setSlots(target.slots);
+    setSquadIds(target.squadIds);
+    setFormationId(target.formationId);
+    setSelectedBankPlayerId(null);
+    setSaveMsg(null);
+    setSaveError(null);
+  };
 
   const starterCount = useMemo(
     () => LIVE_FIELD_SLOT_ORDER.filter((slot) => Boolean(slots[slot])).length,
@@ -492,6 +572,23 @@ export const MatchLineupPage: React.FC = () => {
     setSaveError(null);
     setSavingLineup(true);
 
+    const currentDraft = captureVisibleVariant();
+    const nextDrafts = variantDrafts
+      ? {
+          1: cloneMatchLineupVariant(variantDrafts[1]),
+          2: cloneMatchLineupVariant(variantDrafts[2]),
+        }
+      : { 1: cloneMatchLineupVariant(currentDraft), 2: cloneMatchLineupVariant(currentDraft) };
+    nextDrafts[visibleVariant] = cloneMatchLineupVariant(currentDraft);
+    setVariantDrafts(nextDrafts);
+    persistVariantDrafts(nextDrafts);
+
+    if (visibleVariant !== startVariant) {
+      setSavingLineup(false);
+      setSaveMsg(`Variante ${visibleVariant} gespeichert.`);
+      return true;
+    }
+
     if (isDemo && demo) {
       demo.setDemoMatchLineup(matchId, slots, squadIds, formationId);
       setSavingLineup(false);
@@ -523,6 +620,7 @@ export const MatchLineupPage: React.FC = () => {
     if (!matchId) return;
     const saved = await saveLineup();
     if (!saved) return;
+    if (visibleVariant !== startVariant) return;
     console.warn('[LINEUP FEED] LINEUP SAVE SUCCESS', { matchId });
     if (isDemo) {
       demo?.setDemoMatchPublishedLocal(matchId, true);
@@ -538,6 +636,46 @@ export const MatchLineupPage: React.FC = () => {
         error: error instanceof Error ? error.message : String(error),
       });
     });
+  };
+
+  const onUseAsStartVariant = async (): Promise<void> => {
+    if (!matchId || !lineupEditable || visibleVariant === startVariant) return;
+    setSaveMsg(null);
+    setSaveError(null);
+    setSavingLineup(true);
+    const currentDraft = captureVisibleVariant();
+    const nextDrafts = variantDrafts
+      ? {
+          1: cloneMatchLineupVariant(variantDrafts[1]),
+          2: cloneMatchLineupVariant(variantDrafts[2]),
+        }
+      : { 1: cloneMatchLineupVariant(currentDraft), 2: cloneMatchLineupVariant(currentDraft) };
+    nextDrafts[visibleVariant] = cloneMatchLineupVariant(currentDraft);
+
+    if (isDemo && demo) {
+      demo.setDemoMatchLineup(matchId, slots, squadIds, formationId);
+    } else {
+      const ordered = LIVE_FIELD_SLOT_ORDER.map((slot) => slots[slot] ?? null);
+      const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadIds);
+      if (error) {
+        setSavingLineup(false);
+        setSaveError(friendlyMatchLineupWriteError(error));
+        return;
+      }
+      const { error: formationErr } = await updateMatchRow(matchId, { u11_formation_id: formationId });
+      if (formationErr) {
+        setSavingLineup(false);
+        setSaveError(friendlyMatchLineupWriteError(formationErr));
+        return;
+      }
+    }
+
+    setVariantDrafts(nextDrafts);
+    setStartVariant(visibleVariant);
+    persistVariantDrafts(nextDrafts, visibleVariant);
+    setSavingLineup(false);
+    setSaveMsg(`Variante ${visibleVariant} als Startaufstellung gewählt.`);
+    if (!isDemo) void triggerLineupFeedPostAfterSave(matchId);
   };
 
   const onStartLive = async () => {
@@ -617,8 +755,7 @@ export const MatchLineupPage: React.FC = () => {
       <div className={dsPageAtmosphereClass()} aria-hidden />
       <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
 
-      {saveMsg === 'Aufstellung gespeichert.' ||
-      saveMsg === 'Aufstellung vom letzten Spiel übernommen' ? (
+      {saveMsg ? (
         <div
           className={[
             'pointer-events-none fixed left-1/2 top-[calc(env(safe-area-inset-top,0px)+4.25rem)] z-[80] w-[min(92vw,20rem)] -translate-x-1/2 rounded-xl border border-white/10 bg-black/80 px-3 py-2 text-center text-xs font-semibold text-emerald-200/95 shadow-lg backdrop-blur-md transition-opacity duration-500 sm:top-[5rem]',
@@ -651,6 +788,39 @@ export const MatchLineupPage: React.FC = () => {
             Aufstellung
           </h1>
         </header>
+
+        {canManage ? (
+          <div
+            className="mb-1 mt-1 grid h-12 w-full shrink-0 grid-cols-2 gap-1.5"
+            role="tablist"
+            aria-label="Aufstellungsvarianten"
+          >
+            {([1, 2] as const).map((variant) => {
+              const active = visibleVariant === variant;
+              const isStart = startVariant === variant;
+              return (
+                <button
+                  key={variant}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => onSelectVariant(variant)}
+                  className={[
+                    'flex min-h-11 flex-col items-center justify-center rounded-xl border text-xs font-bold transition-colors',
+                    active
+                      ? 'border-red-500/80 bg-red-950/45 text-white shadow-[0_0_18px_rgba(224,33,41,0.10)]'
+                      : 'border-white/10 bg-white/[0.035] text-white/55',
+                  ].join(' ')}
+                >
+                  <span>Variante {variant}</span>
+                  <span className={isStart ? 'text-[9px] font-bold uppercase tracking-wider text-emerald-400' : 'text-[9px] font-medium uppercase tracking-wider text-white/30'}>
+                    {isStart ? 'Startaufstellung' : 'Alternative'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         <div
           className="mb-2 mt-2 flex h-10 w-full shrink-0 overflow-hidden rounded-[12px] border border-transparent bg-[rgba(18,18,22,0.88)] p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)]"
@@ -936,10 +1106,16 @@ export const MatchLineupPage: React.FC = () => {
           <button
             type="button"
             disabled={!lineupEditable || starterCount < 7 || savingLineup || startingLive}
-            onClick={() => void onStartLive()}
+            onClick={() => void (visibleVariant === startVariant ? onStartLive() : onUseAsStartVariant())}
             className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-bold leading-tight ${dsPrimaryCtaClass()}`}
           >
-            {startingLive ? 'Start…' : isDemo ? 'LIVE (Demo)' : 'Spiel starten'}
+            {startingLive
+              ? 'Start…'
+              : visibleVariant !== startVariant
+                ? 'Als Start wählen'
+                : isDemo
+                  ? 'LIVE (Demo)'
+                  : 'Spiel starten'}
           </button>
         </div>
         {!lineupEditable ? (
@@ -960,4 +1136,3 @@ export const MatchLineupPage: React.FC = () => {
     </div>
   );
 };
-
