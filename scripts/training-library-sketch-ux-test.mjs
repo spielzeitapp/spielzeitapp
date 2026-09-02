@@ -41,6 +41,9 @@ assert.match(page, /min=\{40\} max=\{250\}/);
 assert.match(page, /canvas\.width = 1600/);
 assert.match(page, /canvas\.height = 1200/);
 assert.match(page, /fillStyle = '#ffffff'/);
+assert.match(page, /Math\.min\(canvas\.width \/ rotated\.width, canvas\.height \/ rotated\.height\) \* options\.zoom/);
+assert.doesNotMatch(page, /Math\.max\(canvas\.width \/ rotated\.width, canvas\.height \/ rotated\.height\) \* options\.zoom/);
+assert.match(page, /Bei 100 % bleibt die vollständige Skizze sichtbar/);
 
 // Local white-to-grass background unification in crop dialog
 assert.match(page, /Weißen Hintergrund durch Rasen ersetzen/);
