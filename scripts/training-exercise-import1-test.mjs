@@ -18,6 +18,13 @@ assert.match(page, /besonders die Trainingsphase prüfen/);
 assert.match(parser, /file\.arrayBuffer\(\)/, 'PDF muss lokal im Browser gelesen werden');
 assert.doesNotMatch(parser, /fetch\(/, 'Original-PDF darf nicht an einen Analyse-Service gesendet werden');
 assert.match(parser, /MAX_PDF_BYTES = 15 \* 1024 \* 1024/);
+assert.match(parser, /createTrainingExerciseShortText/);
+assert.match(parser, /parseTrainingExercisePdfPayload/);
+assert.match(parser, /importKind: 'spielzeitapp'/);
+assert.match(parser, /importKind: 'external'/);
+assert.match(parser, /resolveExerciseSketchColumnStart/);
+assert.match(parser, /descriptionCenter \+ sketchCenter/);
+assert.doesNotMatch(parser, /pageWidth \* 0\.55 \* scale/);
 assert.match(storage, /source_type: input\.sourceType \?\? 'club'/);
 assert.match(migration, /'training-exercise-media'[\s\S]*false,/);
 assert.match(migration, /can_manage_club_venues/);
@@ -26,7 +33,20 @@ const samplePaths = process.argv.slice(2);
 if (samplePaths.length) {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   try {
-    const { analyzeTrainingExercisePdf } = await vite.ssrLoadModule('/src/lib/trainingExercisePdfImport.ts');
+    const { analyzeTrainingExercisePdf, resolveExerciseSketchColumnStart } = await vite.ssrLoadModule(
+      '/src/lib/trainingExercisePdfImport.ts',
+    );
+    assert.equal(
+      resolveExerciseSketchColumnStart(
+        [
+          { text: 'Beschreibung', x: 127.65, width: 62.89 },
+          { text: 'Skizze', x: 431.53, width: 28.95 },
+        ],
+        595.4,
+      ),
+      302.55,
+      'Skizzenspalte muss aus den beiden Spaltenüberschriften berechnet werden',
+    );
     for (const samplePath of samplePaths) {
       const bytes = fs.readFileSync(samplePath);
       const file = new File([bytes], path.basename(samplePath), { type: 'application/pdf' });

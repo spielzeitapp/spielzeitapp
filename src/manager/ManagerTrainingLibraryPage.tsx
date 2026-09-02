@@ -11,6 +11,7 @@ import {
   archiveTrainingExercise,
   countExerciseUsage,
   createTrainingExercise,
+  deleteTrainingExercise,
   formatPlayerCountRange,
   getTrainingExerciseSketchUrl,
   listTrainingExercises,
@@ -180,6 +181,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
   const [saving, setSaving] = useState(false);
   const [selectingId, setSelectingId] = useState<string | null>(null);
   const [exportingExerciseId, setExportingExerciseId] = useState<string | null>(null);
+  const [deletingExerciseId, setDeletingExerciseId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [shortTextError, setShortTextError] = useState<string | null>(null);
   const [shortTextWarning, setShortTextWarning] = useState<string | null>(null);
@@ -717,6 +719,29 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
     await reload();
   };
 
+  const removeExercise = async (row: TrainingExerciseRow) => {
+    const usage = await countExerciseUsage(row.id);
+    if (usage.error) {
+      setToast(usage.error);
+      return;
+    }
+    if (usage.count > 0) {
+      setToast(`Diese Übung wird in ${usage.count} Einheit(en) verwendet und kann deshalb nur archiviert werden.`);
+      return;
+    }
+    if (!window.confirm(`Übung „${row.title}“ endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
+    setDeletingExerciseId(row.id);
+    const res = await deleteTrainingExercise(row.id, row.image_path);
+    setDeletingExerciseId(null);
+    if (!res.ok) {
+      setToast(res.error ?? 'Übung konnte nicht gelöscht werden.');
+      return;
+    }
+    setDetail(null);
+    setToast(res.error ?? 'Übung endgültig gelöscht.');
+    await reload();
+  };
+
   const hasSketchPreview = Boolean(pendingSketchUrl || (currentSketchUrl && !removeCurrentSketch));
   const sketchButtonLabel = hasSketchPreview ? 'Skizze ersetzen' : 'Skizze hochladen';
   const shortTextPdfFit = measureTrainingExamPhaseTextFit({
@@ -944,6 +969,15 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       >
                         Archivieren
                       </button>
+                      <button
+                        type="button"
+                        disabled={deletingExerciseId === row.id}
+                        onClick={() => void removeExercise(row)}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        {deletingExerciseId === row.id ? 'Löschen…' : 'Löschen'}
+                      </button>
                       <Link
                         to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(row.id)}`}
                         className="rounded-full bg-red-700/10 px-3 py-1.5 text-[12px] font-semibold text-red-800 hover:bg-red-700/15"
@@ -1019,6 +1053,15 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                   className="min-h-[40px] rounded-full px-4 py-2 text-[13px] font-semibold text-slate-500 hover:bg-slate-50"
                 >
                   Archivieren
+                </button>
+                <button
+                  type="button"
+                  disabled={deletingExerciseId === detail.id}
+                  onClick={() => void removeExercise(detail)}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                  {deletingExerciseId === detail.id ? 'Löschen…' : 'Löschen'}
                 </button>
                 <Link
                   to={`/manager/training/einheiten/neu?exercise=${encodeURIComponent(detail.id)}`}
@@ -1528,13 +1571,13 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
               <div>
                 <CropRange label="Bildgröße / Zoom" min={40} max={250} value={Math.round(cropZoom * 100)} onChange={(value) => setCropZoom(value / 100)} suffix=" %" />
                 <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                  Unter 100 % wird das ganze Bild kleiner und mit{' '}
+                  Bei 100 % bleibt die vollständige Skizze sichtbar. Freie Ränder werden mit{' '}
                   {cropUnifyGrass
-                    ? 'einfarbig grünem Rand'
+                    ? 'einfarbigem Grün'
                     : cropReplaceGrass
-                      ? 'Rasenrand'
-                      : 'weißem Rand'}{' '}
-                  eingepasst.
+                      ? 'Rasen'
+                      : 'Weiß'}{' '}
+                  gefüllt. Erst über 100 % wird hineingezoomt.
                 </p>
               </div>
               <div className="flex items-end">
@@ -1846,7 +1889,7 @@ async function renderExerciseCrop(
   const rotated = rotatedImageCanvas(image, options.rotation);
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Bildverarbeitung nicht verfügbar.');
-  const scale = Math.max(canvas.width / rotated.width, canvas.height / rotated.height) * options.zoom;
+  const scale = Math.min(canvas.width / rotated.width, canvas.height / rotated.height) * options.zoom;
   const width = rotated.width * scale;
   const height = rotated.height * scale;
   const movementX = Math.abs(width - canvas.width) / 2;

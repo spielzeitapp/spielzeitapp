@@ -4,12 +4,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, List, Plus } from 'lucide-react';
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, List, Plus, Trash2 } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useEvents, type EventRow } from '../hooks/useEvents';
 import { getAssignmentForEvent } from '../lib/eventFieldAssignments';
 import { listTrainingTemplates } from '../lib/trainingSessionOps';
-import { listTrainingSessionsForSeason, type TrainingSessionRow } from '../lib/trainingSessions';
+import { deleteTrainingSession, listTrainingSessionsForSeason, type TrainingSessionRow } from '../lib/trainingSessions';
 import { TRAINING_SESSION_STATUS_LABELS } from '../lib/trainingPhases';
 import { isSeasonArchived } from '../lib/seasonLifecycle';
 import { listFieldZones, listVenueFields } from '../lib/venueFields';
@@ -96,6 +96,7 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
   const [filter, setFilter] = useState<PlanFilter>('all');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [planningEvent, setPlanningEvent] = useState<EventRow | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   const trainings = useMemo(
     () =>
@@ -260,6 +261,20 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
   const loading = eventsLoading || loadingSessions;
   const pageError = eventsError || error;
 
+  const removePlan = async (session: TrainingSessionRow) => {
+    const eventNote = session.event_id ? ' Der verknüpfte Trainingstermin bleibt bestehen.' : '';
+    if (!window.confirm(`Einheit „${session.title}“ endgültig löschen?${eventNote} Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
+    setDeletingSessionId(session.id);
+    setError(null);
+    const result = await deleteTrainingSession(session.id);
+    setDeletingSessionId(null);
+    if (!result.ok) {
+      setError(result.error ?? 'Einheit konnte nicht gelöscht werden.');
+      return;
+    }
+    await reloadSessions();
+  };
+
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -313,7 +328,13 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
       ) : null}
 
       {!loading && mainTab === 'plans' ? (
-        <MyPlans drafts={drafts} readyPlans={readyPlans} archivedPlans={archivedPlans} />
+        <MyPlans
+          drafts={drafts}
+          readyPlans={readyPlans}
+          archivedPlans={archivedPlans}
+          deletingSessionId={deletingSessionId}
+          onDelete={removePlan}
+        />
       ) : null}
 
       {!loading && mainTab === 'exam' ? (
@@ -362,12 +383,12 @@ function TrainingListRow({ event, session, fieldLabel, onPlan }: { event: EventR
   </div>;
 }
 
-function MyPlans({ drafts, readyPlans, archivedPlans }: { drafts: TrainingSessionRow[]; readyPlans: TrainingSessionRow[]; archivedPlans: TrainingSessionRow[] }): React.ReactElement {
-  return <div className="space-y-5"><div className="grid gap-5 xl:grid-cols-2"><PlanSection title="Fertige Pläne" description="Sofort für einen Trainingstermin verwendbar" rows={readyPlans} empty="Noch keine fertigen Pläne vorhanden." /><PlanSection title="Entwürfe ohne Termin" description="Noch nicht fertiggestellte Trainingseinheiten" rows={drafts} empty="Keine offenen Entwürfe vorhanden." /></div><details className="rounded-2xl border border-slate-200 bg-white shadow-sm"><summary className="cursor-pointer list-none px-4 py-4 text-[14px] font-semibold text-slate-800">Archiv ({archivedPlans.length}) <span className="ml-1 text-[12px] font-normal text-slate-500">– alte oder ersetzte Pläne</span></summary><div className="border-t border-slate-100 p-4"><PlanSection title="Archivierte Pläne" description="Ausgeblendete Pläne können geöffnet und wiederhergestellt werden" rows={archivedPlans} empty="Das Archiv ist leer." /></div></details></div>;
+function MyPlans({ drafts, readyPlans, archivedPlans, deletingSessionId, onDelete }: { drafts: TrainingSessionRow[]; readyPlans: TrainingSessionRow[]; archivedPlans: TrainingSessionRow[]; deletingSessionId: string | null; onDelete: (session: TrainingSessionRow) => void }): React.ReactElement {
+  return <div className="space-y-5"><div className="grid gap-5 xl:grid-cols-2"><PlanSection title="Fertige Pläne" description="Sofort für einen Trainingstermin verwendbar" rows={readyPlans} empty="Noch keine fertigen Pläne vorhanden." deletingSessionId={deletingSessionId} onDelete={onDelete} /><PlanSection title="Entwürfe ohne Termin" description="Noch nicht fertiggestellte Trainingseinheiten" rows={drafts} empty="Keine offenen Entwürfe vorhanden." deletingSessionId={deletingSessionId} onDelete={onDelete} /></div><details className="rounded-2xl border border-slate-200 bg-white shadow-sm"><summary className="cursor-pointer list-none px-4 py-4 text-[14px] font-semibold text-slate-800">Archiv ({archivedPlans.length}) <span className="ml-1 text-[12px] font-normal text-slate-500">– alte oder ersetzte Pläne</span></summary><div className="border-t border-slate-100 p-4"><PlanSection title="Archivierte Pläne" description="Ausgeblendete Pläne können geöffnet und wiederhergestellt werden" rows={archivedPlans} empty="Das Archiv ist leer." deletingSessionId={deletingSessionId} onDelete={onDelete} /></div></details></div>;
 }
 
-function PlanSection({ title, description, rows, empty }: { title: string; description: string; rows: TrainingSessionRow[]; empty: string }): React.ReactElement {
-  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h2 className="text-[17px] font-bold text-slate-950">{title}</h2><p className="mt-0.5 text-[12px] text-slate-500">{description}</p>{rows.length === 0 ? <p className="mt-4 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-[13px] text-slate-500">{empty}</p> : <ul className="mt-4 space-y-2">{rows.map((session) => <li key={session.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-3"><div className="min-w-0"><p className="truncate text-[14px] font-semibold text-slate-950">{session.title}</p><p className="text-[12px] text-slate-500">{TRAINING_SESSION_STATUS_LABELS[session.status]}{session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}</p></div><Link to={`/manager/training/einheiten/${encodeURIComponent(session.id)}`} className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-[12px] font-semibold text-slate-800 hover:bg-slate-50">Öffnen</Link></li>)}</ul>}</section>;
+function PlanSection({ title, description, rows, empty, deletingSessionId, onDelete }: { title: string; description: string; rows: TrainingSessionRow[]; empty: string; deletingSessionId: string | null; onDelete: (session: TrainingSessionRow) => void }): React.ReactElement {
+  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h2 className="text-[17px] font-bold text-slate-950">{title}</h2><p className="mt-0.5 text-[12px] text-slate-500">{description}</p>{rows.length === 0 ? <p className="mt-4 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-[13px] text-slate-500">{empty}</p> : <ul className="mt-4 space-y-2">{rows.map((session) => <li key={session.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-3"><div className="min-w-0"><p className="truncate text-[14px] font-semibold text-slate-950">{session.title}</p><p className="text-[12px] text-slate-500">{TRAINING_SESSION_STATUS_LABELS[session.status]}{session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}</p></div><div className="flex shrink-0 items-center gap-2"><Link to={`/manager/training/einheiten/${encodeURIComponent(session.id)}`} className="rounded-lg border border-slate-200 px-3 py-2 text-[12px] font-semibold text-slate-800 hover:bg-slate-50">Öffnen</Link><button type="button" disabled={deletingSessionId === session.id} onClick={() => onDelete(session)} className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" aria-hidden />{deletingSessionId === session.id ? 'Löschen…' : 'Löschen'}</button></div></li>)}</ul>}</section>;
 }
 
 function EmptyState(): React.ReactElement {
