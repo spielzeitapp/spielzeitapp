@@ -141,14 +141,36 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
 }
 
+function findHeading(tokens: TextToken[], heading: string): TextToken | undefined {
+  const expected = heading.toLowerCase();
+  return tokens.find((token) => normalize(token.text).toLowerCase() === expected);
+}
+
+export function resolveExerciseSketchColumnStart(
+  tokens: Array<Pick<TextToken, 'text' | 'x' | 'width'>>,
+  pageWidth: number,
+): number {
+  const descriptionHeader = findHeading(tokens as TextToken[], 'Beschreibung');
+  const sketchHeader = findHeading(tokens as TextToken[], 'Skizze');
+  if (!descriptionHeader || !sketchHeader) return pageWidth * 0.5;
+
+  const descriptionCenter = descriptionHeader.x + descriptionHeader.width / 2;
+  const sketchCenter = sketchHeader.x + sketchHeader.width / 2;
+  const columnBoundary = (descriptionCenter + sketchCenter) / 2;
+  if (columnBoundary < pageWidth * 0.35 || columnBoundary > pageWidth * 0.65) {
+    return pageWidth * 0.5;
+  }
+  return columnBoundary;
+}
+
 async function extractSketch(
   page: PDFPageProxy,
   tokens: TextToken[],
   pageWidth: number,
 ): Promise<Blob | null> {
   if (typeof document === 'undefined') return null;
-  const descriptionHeader = tokens.find((token) => /Beschreibung/i.test(token.text));
-  const coachingHeader = tokens.find((token) => /Coachingpunkte/i.test(token.text));
+  const descriptionHeader = findHeading(tokens, 'Beschreibung');
+  const coachingHeader = findHeading(tokens, 'Coachingpunkte');
   if (!descriptionHeader || !coachingHeader || descriptionHeader.y <= coachingHeader.y) return null;
 
   const scale = 2;
@@ -160,8 +182,9 @@ async function extractSketch(
   if (!context) return null;
   await page.render({ canvas: rendered, canvasContext: context, viewport }).promise;
 
-  const sourceX = Math.floor(pageWidth * 0.55 * scale);
-  const sourceY = Math.max(0, Math.floor((viewport.height / scale - descriptionHeader.y + 12) * scale));
+  const columnStart = resolveExerciseSketchColumnStart(tokens, pageWidth);
+  const sourceX = Math.max(0, Math.floor((columnStart - 4) * scale));
+  const sourceY = Math.max(0, Math.floor((viewport.height / scale - descriptionHeader.y + 4) * scale));
   const sourceBottom = Math.min(
     rendered.height,
     Math.ceil((viewport.height / scale - coachingHeader.y - 8) * scale),
