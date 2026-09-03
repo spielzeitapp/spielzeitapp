@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { CalendarDays, ChevronRight, Plus, Users } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { CalendarDays, ChevronRight, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { formatManagerEventDate, ManagerMobilePageTitle } from './ManagerMobileUi';
@@ -9,7 +9,7 @@ import { useManagerMobileEvents } from './useManagerMobileEvents';
 export function ManagerMobileTeamsPage(): React.ReactElement {
   const navigate = useNavigate();
   const { setSelectedTeamSeasonId, setViewTeamSeasonId } = useSession();
-  const { contextTeamSeasons, isTrainerMode, isAdministrationMode, selectTrainerTeamSeasonId } = useManagerWorkMode();
+  const { contextTeamSeasons, isTrainerMode, selectTrainerTeamSeasonId } = useManagerWorkMode();
   const { events, loading } = useManagerMobileEvents(contextTeamSeasons);
   const nextByTeam = useMemo(() => {
     const result = new Map<string, (typeof events)[number]>();
@@ -19,8 +19,6 @@ export function ManagerMobileTeamsPage(): React.ReactElement {
     }
     return result;
   }, [events]);
-  const mayCreate = isTrainerMode || isAdministrationMode;
-
   const openTeam = (id: string) => {
     setViewTeamSeasonId(null);
     if (isTrainerMode) selectTrainerTeamSeasonId(id);
@@ -50,7 +48,7 @@ export function ManagerMobileTeamsPage(): React.ReactElement {
               </button>
               <div className="mt-3 flex items-center justify-between border-t border-white/[0.07] pt-3">
                 <span className="flex min-w-0 items-center gap-2 text-[11px] text-white/50"><CalendarDays className="h-3.5 w-3.5 text-red-300" />{next && date ? `Nächster Termin: ${date.date}, ${date.time}` : 'Kein Termin geplant'}</span>
-                {mayCreate ? <Link to="/app/termine" onClick={() => { setViewTeamSeasonId(null); if (isTrainerMode) selectTrainerTeamSeasonId(team.id); else setSelectedTeamSeasonId(team.id); }} className="ml-2 inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg border border-red-500/25 bg-red-950/35 px-2.5 text-[11px] font-bold text-red-200"><Plus className="h-3.5 w-3.5" /> Termin</Link> : null}
+                <span className="ml-2 shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-white/35">Ansehen</span>
               </div>
             </section>
           );

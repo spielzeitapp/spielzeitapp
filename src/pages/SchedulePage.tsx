@@ -996,6 +996,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
             return;
           }
         }
+        closeEditModal();
         await refetch();
         return;
       }
@@ -1005,6 +1006,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
       alert(error);
       return;
     }
+    closeEditModal();
     await refetch();
   };
 
@@ -1295,7 +1297,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className={dsPageTitleClass()}>
-                    {normalizedUiRole === 'fan' || managerSimpleMode ? 'Spielplan' : 'Termine'}
+                    {normalizedUiRole === 'fan' && !managerSimpleMode ? 'Spielplan' : 'Termine'}
                   </h1>
                   {canMutateSchedule ? (
                     <button
@@ -1316,7 +1318,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                     </button>
                   ) : null}
                 </div>
-                <div className="mt-1.5 flex max-w-full flex-col gap-1.5">
+                <div className={`${managerSimpleMode ? 'hidden' : 'mt-1.5 flex'} max-w-full flex-col gap-1.5`}>
                   {teamSeasons.length > 1 ? (
                     <label className="block min-w-0">
                       <span className="sr-only">Saison anzeigen</span>
@@ -1997,20 +1999,33 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
             title="Termin bearbeiten"
             onClose={closeEditModal}
             footer={
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={closeEditModal} className="pointer-events-auto touch-manipulation">
-                  Abbrechen
-                </Button>
-                <Button
-                  type="submit"
-                  form="edit-event-form"
-                  variant="primary"
-                  disabled={savingEdit}
-                  className="pointer-events-auto touch-manipulation"
-                  onClick={() => console.debug('[EditModal] save click')}
-                >
-                  {savingEdit ? 'Speichern…' : 'Speichern'}
-                </Button>
+              <div className="flex w-full items-center justify-between gap-2">
+                {managerSimpleMode && editEvent && canMutateSchedule ? (
+                  <Button
+                    type="button"
+                    variant="negative"
+                    disabled={savingEdit}
+                    onClick={() => void handleDelete(editEvent)}
+                    className="pointer-events-auto touch-manipulation"
+                  >
+                    Löschen
+                  </Button>
+                ) : <span />}
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" onClick={closeEditModal} className="pointer-events-auto touch-manipulation">
+                    Abbrechen
+                  </Button>
+                  <Button
+                    type="submit"
+                    form="edit-event-form"
+                    variant="primary"
+                    disabled={savingEdit}
+                    className="pointer-events-auto touch-manipulation"
+                    onClick={() => console.debug('[EditModal] save click')}
+                  >
+                    {savingEdit ? 'Speichern…' : 'Speichern'}
+                  </Button>
+                </div>
               </div>
             }
           >

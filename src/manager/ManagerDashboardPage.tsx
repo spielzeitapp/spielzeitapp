@@ -36,7 +36,6 @@ import {
 import { listVenueFields, listFieldZones } from '../lib/venueFields';
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
-import { SchedulePage } from '../pages/SchedulePage';
 import { ManagerEventCard } from './mobile/ManagerMobileUi';
 import { useManagerMobileEvents } from './mobile/useManagerMobileEvents';
 
@@ -461,10 +460,7 @@ export function ManagerDashboardPage(): React.ReactElement {
 
   return (
     <>
-    <div className="min-h-full bg-[#050506] px-2 pb-6 pt-2 text-white md:hidden">
-      <SchedulePage managerSimpleMode />
-    </div>
-    <div className="manager-mobile-dashboard hidden min-h-full bg-[#050506] px-4 pb-6 pt-5 text-white">
+    <div className="manager-mobile-dashboard min-h-full bg-[#050506] px-4 pb-6 pt-5 text-white md:hidden">
       <header>
         <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/75">Vereinsfeed</p>
         <h1 className="mt-1 text-[26px] font-black tracking-tight">{greetingPrefix()}{firstName ? `, ${firstName}` : ''}</h1>
@@ -518,12 +514,7 @@ export function ManagerDashboardPage(): React.ReactElement {
           <ul className="mt-3 space-y-3">
             {mobileFeedEvents.map((event) => (
               <li key={event.id}>
-                <Link
-                  to={`/app/events/${encodeURIComponent(event.id)}`}
-                  className="block"
-                >
-                  <ManagerEventCard event={event} />
-                </Link>
+                <ManagerEventCard event={event} />
               </li>
             ))}
           </ul>
