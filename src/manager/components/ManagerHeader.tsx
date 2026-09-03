@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, Bell, Headphones, LogOut, UserRound, X } from 'lucide-react';
+import { ArrowLeftRight, Headphones, LogOut, UserRound, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { useProfile, getDisplayFirstName, profileDisplayName } from '../../auth/useProfile';
 import { useSession, type SessionTeamSeasonItem } from '../../auth/useSession';
@@ -169,9 +169,6 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             <span className="hidden min-[380px]:inline">Zur App</span>
           </Link>
 
-          <Link to="/app/nachrichten" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 sm:hidden" aria-label="Benachrichtigungen">
-            <Bell className="h-5 w-5" />
-          </Link>
           <Link to="/manager/mehr" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 sm:hidden" aria-label="Profil und Einstellungen">
             <UserRound className="h-5 w-5" />
           </Link>

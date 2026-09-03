@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeftRight, Bell, ChevronRight, LogOut, Monitor, PlayCircle, UserRound } from 'lucide-react';
+import { ChevronRight, LogOut, Monitor, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
@@ -16,7 +16,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
   const { user } = useAuth();
   const { signOut } = useSession();
   const { profile } = useProfile(user?.id);
-  const { canSwitchMode, isTrainerMode, switchToAdministration, switchToTrainer, adminSwitchButtonLabel } = useManagerWorkMode();
+  const { isTrainerMode } = useManagerWorkMode();
   const name = getDisplayFirstName(profile) || profileDisplayName(profile) || user?.email?.split('@')[0] || 'Funktionär';
 
   return (
@@ -29,12 +29,9 @@ export function ManagerMobileMorePage(): React.ReactElement {
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
         <MoreLink to="/app/profile" icon={UserRound} title="Profil" detail="Persönliche Daten und Konto" />
-        <MoreLink to="/app/nachrichten" icon={Bell} title="Benachrichtigungen" detail="Hinweise und offene Änderungen" />
-        <MoreLink to="/demo/intro/welcome" icon={PlayCircle} title="SpielzeitApp Demo" detail="Die vollständige Team-App ansehen" />
-        <MoreLink to="/manager/saisons" icon={Monitor} title="Vollständiger Manager" detail="Alle Funktionen am Desktop" />
+        <MoreLink to="/manager/saisons" icon={Monitor} title="Desktop-Manager" detail="Alle weiteren Funktionen am Computer" />
       </section>
 
-      {canSwitchMode ? <button type="button" onClick={() => isTrainerMode ? switchToAdministration() : switchToTrainer()} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-[13px] font-bold text-white/75"><ArrowLeftRight className="h-4 w-4 text-red-300" />{isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}</button> : null}
       <button type="button" onClick={async () => { await signOut(); navigate('/login', { replace: true }); }} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-semibold text-white/45"><LogOut className="h-4 w-4" />Abmelden</button>
     </div>
   );
