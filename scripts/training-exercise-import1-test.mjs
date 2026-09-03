@@ -25,6 +25,9 @@ assert.match(parser, /importKind: 'external'/);
 assert.match(parser, /resolveExerciseSketchColumnStart/);
 assert.match(parser, /descriptionCenter \+ sketchCenter/);
 assert.doesNotMatch(parser, /pageWidth \* 0\.55 \* scale/);
+assert.match(parser, /collectCoachDetailLines/);
+assert.match(parser, /pages\.map\(\(candidate\) => candidate\.lines\)/);
+assert.match(parser, /findHeading\(tokens, 'Coachingpunkte', true\)/);
 assert.match(storage, /source_type: input\.sourceType \?\? 'club'/);
 assert.match(migration, /'training-exercise-media'[\s\S]*false,/);
 assert.match(migration, /can_manage_club_venues/);
@@ -33,8 +36,19 @@ const samplePaths = process.argv.slice(2);
 if (samplePaths.length) {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   try {
-    const { analyzeTrainingExercisePdf, resolveExerciseSketchColumnStart } = await vite.ssrLoadModule(
+    const { analyzeTrainingExercisePdf, collectCoachDetailLines, resolveExerciseSketchColumnStart } = await vite.ssrLoadModule(
       '/src/lib/trainingExercisePdfImport.ts',
+    );
+    assert.deepEqual(
+      collectCoachDetailLines(
+        [
+          ['ABLAUF & BESCHREIBUNG', 'Organisation', 'Aufbau', 'Ablauf', 'AI FOOTBALL COACH · Seite 1 / 2'],
+          ['Erster Teil des Ablaufs.', 'Zweiter Teil des Ablaufs.', 'Coachingpunkte', 'Offene Stellung.', 'Variationen', 'Mit zwei Bällen.'],
+        ],
+        0,
+      ),
+      ['Ablauf', 'Erster Teil des Ablaufs.', 'Zweiter Teil des Ablaufs.', 'Coachingpunkte', 'Offene Stellung.', 'Variationen', 'Mit zwei Bällen.'],
+      'AI-Football-Coach-Abschnitte müssen über einen Seitenumbruch hinweg gelesen werden',
     );
     assert.equal(
       resolveExerciseSketchColumnStart(
@@ -65,6 +79,14 @@ if (samplePaths.length) {
         assert.equal(draft.playerCountMin, '13');
         assert.match(draft.organization, /20 x 25 Meter/);
         assert.match(draft.variations, /10 Ballkontakte/);
+      }
+      if (/Warm-Up mit Ball im Mittelkreis/i.test(samplePath)) {
+        assert.match(draft.title, /Warm-Up mit Ball im Mittelkreis/i);
+        assert.equal(draft.suitablePhases[0], 'AW');
+        assert.match(draft.organization, /8 Markierungsscheiben oder Hütchen/i);
+        assert.match(draft.description, /passt zu einem Mitspieler/i);
+        assert.match(draft.coachingPoints, /Lautstarke Kommunikation/i);
+        assert.match(draft.variations, /Mit zwei Bällen gleichzeitig spielen/i);
       }
     }
   } finally {

@@ -91,6 +91,42 @@ function compactHeading(value: string): string {
   return normalize(value).replace(/\s+/g, '').replace(/[·:]/g, '').toLowerCase();
 }
 
+function isCoachPageFurniture(line: string): boolean {
+  return /^AI FOOTBALL COACH/i.test(line) || /^Seite\s+\d/i.test(line);
+}
+
+export function collectCoachDetailLines(pageLines: string[][], overviewPageIndex: number): string[] {
+  if (overviewPageIndex < 0 || overviewPageIndex >= pageLines.length) return [];
+
+  const relevantPages = pageLines.slice(overviewPageIndex);
+  const startPageIndex = relevantPages.findIndex((lines) =>
+    lines.some((line) => compactHeading(line) === 'ablauf'),
+  );
+  if (startPageIndex < 0) return [];
+
+  const sectionPages = relevantPages.slice(startPageIndex);
+  const hasCoachingPoints = sectionPages.some((lines) =>
+    lines.some((line) => compactHeading(line) === 'coachingpunkte'),
+  );
+  if (!hasCoachingPoints) return [];
+
+  const collected: string[] = [];
+  let started = false;
+  for (const lines of sectionPages) {
+    for (const line of lines) {
+      const compact = compactHeading(line);
+      if (!started) {
+        if (compact !== 'ablauf') continue;
+        started = true;
+      } else if (/^übung\d/.test(compact)) {
+        return collected;
+      }
+      if (!isCoachPageFurniture(line)) collected.push(line);
+    }
+  }
+  return collected;
+}
+
 function textAfterHeading(
   lines: string[],
   startHeading: string,
@@ -141,9 +177,12 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
 }
 
-function findHeading(tokens: TextToken[], heading: string): TextToken | undefined {
-  const expected = heading.toLowerCase();
-  return tokens.find((token) => normalize(token.text).toLowerCase() === expected);
+function findHeading(tokens: TextToken[], heading: string, allowSuffix = false): TextToken | undefined {
+  const expected = compactHeading(heading);
+  return tokens.find((token) => {
+    const actual = compactHeading(token.text);
+    return actual === expected || (allowSuffix && actual.startsWith(expected));
+  });
 }
 
 export function resolveExerciseSketchColumnStart(
@@ -170,7 +209,7 @@ async function extractSketch(
 ): Promise<Blob | null> {
   if (typeof document === 'undefined') return null;
   const descriptionHeader = findHeading(tokens, 'Beschreibung');
-  const coachingHeader = findHeading(tokens, 'Coachingpunkte');
+  const coachingHeader = findHeading(tokens, 'Coachingpunkte', true);
   if (!descriptionHeader || !coachingHeader || descriptionHeader.y <= coachingHeader.y) return null;
 
   const scale = 2;
@@ -377,13 +416,13 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
       candidate.lines.some((line) => /Beschreibung/i.test(line)) &&
       candidate.lines.some((line) => /Coachingpunkte/i.test(line)),
   );
-  const coachOverviewPage = pages.find((candidate) =>
+  const coachOverviewPageIndex = pages.findIndex((candidate) =>
     candidate.lines.some((line) => compactHeading(line).includes('ablauf&beschreibung')),
   );
-  const coachDetailPage = pages.find(
-    (candidate) =>
-      candidate.lines.some((line) => compactHeading(line) === 'ablauf') &&
-      candidate.lines.some((line) => compactHeading(line) === 'coachingpunkte'),
+  const coachOverviewPage = coachOverviewPageIndex >= 0 ? pages[coachOverviewPageIndex] : undefined;
+  const coachDetailLines = collectCoachDetailLines(
+    pages.map((candidate) => candidate.lines),
+    coachOverviewPageIndex,
   );
   const mhFootballPage = pages.find(
     (candidate) =>
@@ -423,7 +462,7 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
     playerCountMin = players?.[1] ?? '';
     playerCountMax = players?.[2] ?? '';
     sketch = await extractSketch(cardPage.page, cardPage.tokens, cardPage.width);
-  } else if (coachOverviewPage && coachDetailPage) {
+  } else if (coachOverviewPage && coachDetailLines.length) {
     title = normalize(info?.Title ?? '') || file.name.replace(/\.pdf$/i, '');
     const categoryLine = coachOverviewPage.lines.find((line) => /Spielaufbau|Ballbesitzspiel/i.test(line)) ?? '';
     theme = firstMatch(categoryLine, /(.+?)(?=Alle Altersklassen|U\d+)/i) || categoryLine;
@@ -432,9 +471,9 @@ export async function analyzeTrainingExercisePdf(file: File): Promise<ImportedEx
       ? 'Alle Altersklassen'
       : firstMatch(ageLine, /(U\d+(?:\s*[-–]\s*U\d+)?)/i);
     organization = textAfterHeading(coachOverviewPage.lines, 'Organisation', ['Ablauf']);
-    description = textAfterHeading(coachDetailPage.lines, 'Ablauf', ['Coachingpunkte']);
-    coachingPoints = textAfterHeading(coachDetailPage.lines, 'Coachingpunkte', ['Variationen']);
-    variations = textAfterHeading(coachDetailPage.lines, 'Variationen', []);
+    description = textAfterHeading(coachDetailLines, 'Ablauf', ['Coachingpunkte']);
+    coachingPoints = textAfterHeading(coachDetailLines, 'Coachingpunkte', ['Variationen']);
+    variations = textAfterHeading(coachDetailLines, 'Variationen', []);
     suitablePhases = phaseFromText(sourceText);
     const count = playerCountFromTitle(title);
     playerCountMin = count.min;
