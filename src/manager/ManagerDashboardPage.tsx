@@ -11,9 +11,6 @@ import {
   ShoppingBag,
   Dumbbell,
   AlertTriangle,
-  Plus,
-  RefreshCw,
-  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { useProfile, getDisplayFirstName } from '../auth/useProfile';
@@ -39,6 +36,8 @@ import {
 import { listVenueFields, listFieldZones } from '../lib/venueFields';
 import { fetchSeasonManagementSnapshot } from '../lib/seasonManagementData';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
+import { ManagerEventCard } from './mobile/ManagerMobileUi';
+import { useManagerMobileEvents } from './mobile/useManagerMobileEvents';
 
 function greetingPrefix(now = new Date()): string {
   const h = now.getHours();
@@ -163,7 +162,12 @@ export function ManagerDashboardPage(): React.ReactElement {
   const { user: authUser } = useAuth();
   const { profile } = useProfile(authUser?.id);
   const { selectedTeamSeason, selectedTeamSeasonId, viewTeamSeason, teamSeasons } = useSession();
-  const { supportSession } = useManagerWorkMode();
+  const { supportSession, contextTeamSeasons } = useManagerWorkMode();
+  const {
+    events: mobileClubEvents,
+    loading: mobileClubEventsLoading,
+    error: mobileClubEventsError,
+  } = useManagerMobileEvents(contextTeamSeasons);
 
   const [seasonDraftHint, setSeasonDraftHint] = useState<{
     id: string;
@@ -450,16 +454,17 @@ export function ManagerDashboardPage(): React.ReactElement {
     (contextSeason?.team?.name ?? '').trim() ||
     (contextSeason?.display_name ?? '').trim() ||
     ageLabel;
+  const mobileFeedEvents = mobileClubEvents
+    .filter((event) => new Date(event.starts_at).getTime() >= now.getTime() - 6 * 60 * 60 * 1000)
+    .slice(0, 8);
 
   return (
     <>
     <div className="manager-mobile-dashboard min-h-full bg-[#050506] px-4 pb-6 pt-5 text-white md:hidden">
       <header>
-        <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-white/45">
-          {greetingPrefix()}{firstName ? `, ${firstName}` : ''}
-        </p>
-        <h1 className="mt-1 text-[26px] font-bold tracking-tight">Vereinsübersicht</h1>
-        <p className="mt-1 truncate text-[13px] text-white/55">{mobileContextLabel}</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/75">Vereinsfeed</p>
+        <h1 className="mt-1 text-[26px] font-black tracking-tight">{greetingPrefix()}{firstName ? `, ${firstName}` : ''}</h1>
+        <p className="mt-1 truncate text-[13px] text-white/50">Alle wichtigen Termine · {mobileContextLabel}</p>
       </header>
 
       {mobileAttentionCount > 0 ? (
@@ -488,75 +493,32 @@ export function ManagerDashboardPage(): React.ReactElement {
         </section>
       )}
 
-      {error ? (
+      {mobileClubEventsError || error ? (
         <div className="mt-3 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-[13px] text-red-200">
-          Daten konnten nicht geladen werden: {error}
+          Daten konnten nicht geladen werden: {mobileClubEventsError || error}
         </div>
       ) : null}
 
-      <section className="mt-6">
-        <h2 className="text-[16px] font-bold">Schnellaktionen</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <Link
-            to="/app/termine"
-            className="flex min-h-[104px] flex-col justify-between rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#18181b] to-[#0c0c0e] p-4"
-          >
-            <Plus className="h-6 w-6 text-red-400" aria-hidden />
-            <span className="text-[14px] font-semibold">Spiel anlegen</span>
-          </Link>
-          <Link
-            to={teamSeasonId ? `/manager/saisons/${encodeURIComponent(teamSeasonId)}/oefb-import` : '/manager/saisons'}
-            className="flex min-h-[104px] flex-col justify-between rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#18181b] to-[#0c0c0e] p-4"
-          >
-            <RefreshCw className="h-6 w-6 text-red-400" aria-hidden />
-            <span className="text-[14px] font-semibold">Spiele importieren</span>
-          </Link>
-          <Link
-            to="/manager/training/einheiten/neu"
-            className="flex min-h-[104px] flex-col justify-between rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#18181b] to-[#0c0c0e] p-4"
-          >
-            <Dumbbell className="h-6 w-6 text-red-400" aria-hidden />
-            <span className="text-[14px] font-semibold">Training anlegen</span>
-          </Link>
-          <Link
-            to="/manager/platzbelegung"
-            className="flex min-h-[104px] flex-col justify-between rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#18181b] to-[#0c0c0e] p-4"
-          >
-            <MapPin className="h-6 w-6 text-red-400" aria-hidden />
-            <span className="text-[14px] font-semibold">Plätze prüfen</span>
-          </Link>
-        </div>
-      </section>
-
       <section className="mt-7">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[16px] font-bold">Als Nächstes</h2>
-          <Link to="/app/termine" className="text-[12px] font-semibold text-red-400">Alle Termine</Link>
+          <h2 className="text-[13px] font-black uppercase tracking-[0.2em] text-white/65">Demnächst im Verein</h2>
+          <Link to="/manager/termine" className="text-[12px] font-semibold text-red-400">Alle Termine</Link>
         </div>
-        {loading ? (
+        {mobileClubEventsLoading ? (
           <p className="mt-3 text-[13px] text-white/45">Termine werden geladen…</p>
-        ) : nextEvents.length === 0 ? (
+        ) : mobileFeedEvents.length === 0 ? (
           <div className="mt-3 rounded-2xl border border-dashed border-white/15 px-4 py-6 text-[13px] text-white/45">
-            Keine kommenden Termine in dieser Saison.
+            Keine kommenden Termine in den freigegebenen Mannschaften.
           </div>
         ) : (
           <ul className="mt-3 space-y-3">
-            {nextEvents.map((event) => (
+            {mobileFeedEvents.map((event) => (
               <li key={event.id}>
                 <Link
                   to={`/app/events/${encodeURIComponent(event.id)}`}
-                  className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-[#161619] to-[#0d0d0f] px-4 py-3"
+                  className="block"
                 >
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-950/70 text-red-300">
-                    {event.kind === 'training' || event.type === 'training'
-                      ? <Dumbbell className="h-5 w-5" aria-hidden />
-                      : <Trophy className="h-5 w-5" aria-hidden />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-semibold">{eventTitle(event)}</span>
-                    <span className="mt-1 block text-[12px] text-white/50">{formatEventWhen(event.starts_at)}</span>
-                  </span>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-white/25" aria-hidden />
+                  <ManagerEventCard event={event} />
                 </Link>
               </li>
             ))}
@@ -565,7 +527,7 @@ export function ManagerDashboardPage(): React.ReactElement {
       </section>
 
       <Link
-        to="/manager/platzbelegung"
+        to="/manager/termine"
         className="mt-7 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#111114] p-4"
       >
         <span>
@@ -578,7 +540,7 @@ export function ManagerDashboardPage(): React.ReactElement {
                 : 'Heute sind keine Plätze belegt.'}
           </span>
         </span>
-        <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
+        <span className="text-[11px] font-bold text-red-300">Termine</span>
       </Link>
     </div>
 

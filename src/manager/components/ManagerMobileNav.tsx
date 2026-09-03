@@ -1,31 +1,32 @@
 import React from 'react';
-import { CalendarDays, Home, MapPinned, Menu, Users } from 'lucide-react';
+import { CalendarDays, Home, MoreHorizontal, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-
-type Props = {
-  onOpenMenu: () => void;
-};
 
 function activeFor(pathname: string, target: string): boolean {
   if (target === '/manager') return pathname === '/manager' || pathname === '/manager/dashboard';
+  if (target === '/manager/termine') {
+    return pathname.startsWith('/manager/termine') || pathname.startsWith('/manager/platzbelegung');
+  }
   return pathname.startsWith(target);
 }
 
-export function ManagerMobileNav({ onOpenMenu }: Props): React.ReactElement {
+export function ManagerMobileNav(): React.ReactElement {
   const { pathname } = useLocation();
   const links = [
-    { label: 'Übersicht', to: '/manager', icon: Home },
-    { label: 'Termine', to: '/app/termine', icon: CalendarDays },
-    { label: 'Plätze', to: '/manager/platzbelegung', icon: MapPinned },
-    { label: 'Teams', to: '/manager/saisons', icon: Users },
+    { label: 'Home', to: '/manager', icon: Home },
+    { label: 'Termine', to: '/manager/termine', icon: CalendarDays },
+    { label: 'Teams', to: '/manager/teams', icon: Users },
+    { label: 'Mehr', to: '/manager/mehr', icon: MoreHorizontal },
   ] as const;
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 flex min-h-[72px] items-start justify-around border-t border-red-500/20 bg-gradient-to-b from-[#210b0f]/[0.98] to-[#08080a]/[0.99] px-1 pb-[env(safe-area-inset-bottom)] pt-2 text-white shadow-[0_-10px_30px_rgba(0,0,0,0.35)] backdrop-blur-md md:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-1 pt-2 text-white md:hidden"
       aria-label="Mobile Manager-Navigation"
     >
-      {links.map(({ label, to, icon: Icon }) => {
+      <div className="pointer-events-auto relative mx-auto grid min-h-[76px] max-w-md grid-cols-4 items-center overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#08080a]/90 px-2 py-2 shadow-[0_28px_64px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[20px]">
+        <span className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-gradient-to-b from-red-500/20 to-transparent blur-xl" />
+        {links.map(({ label, to, icon: Icon }) => {
         const active = activeFor(pathname, to);
         return (
           <Link
@@ -33,24 +34,17 @@ export function ManagerMobileNav({ onOpenMenu }: Props): React.ReactElement {
             to={to}
             aria-current={active ? 'page' : undefined}
             className={[
-              'flex min-h-[52px] min-w-[58px] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-medium',
-              active ? 'text-red-400' : 'text-white/50',
+              'relative z-10 flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium',
+              active ? 'font-semibold text-white' : 'text-zinc-400',
             ].join(' ')}
           >
             <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} aria-hidden />
             <span>{label}</span>
-            {active ? <span className="h-0.5 w-5 rounded-full bg-red-500" aria-hidden /> : null}
+            {active ? <span className="mt-0.5 h-1 w-5 rounded-sm bg-[#ff2d38] shadow-[0_0_14px_rgba(255,45,56,0.5)]" aria-hidden /> : <span className="mt-0.5 h-1 w-5" />}
           </Link>
         );
-      })}
-      <button
-        type="button"
-        onClick={onOpenMenu}
-        className="flex min-h-[52px] min-w-[58px] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-medium text-white/50"
-      >
-        <Menu className="h-5 w-5" aria-hidden />
-        <span>Mehr</span>
-      </button>
+        })}
+      </div>
     </nav>
   );
 }

@@ -21,7 +21,13 @@ export function ManagerLayout(): React.ReactElement {
   const { viewTeamSeason, selectedTeamSeason } = useSession();
   const context = viewTeamSeason ?? selectedTeamSeason;
   const viewingArchive = context ? isSeasonArchived(context.status) : false;
-  const dashboardRoute = location.pathname === '/manager' || location.pathname === '/manager/dashboard';
+  const mobileAppRoute =
+    location.pathname === '/manager' ||
+    location.pathname === '/manager/dashboard' ||
+    location.pathname.startsWith('/manager/termine') ||
+    location.pathname.startsWith('/manager/platzbelegung') ||
+    location.pathname.startsWith('/manager/teams') ||
+    location.pathname.startsWith('/manager/mehr');
 
   return (
     <ManagerAccessGate>
@@ -44,11 +50,11 @@ export function ManagerLayout(): React.ReactElement {
             ) : null}
             <main className={[
               'min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto pb-20 md:pb-0',
-              dashboardRoute ? 'bg-[#050506] md:bg-[#F4F5F7]' : 'bg-[#F4F5F7]',
+              mobileAppRoute ? 'bg-[#050506] md:bg-[#F4F5F7]' : 'bg-[#F4F5F7]',
             ].join(' ')}>
               <div className={[
                 'manager-shell__content',
-                dashboardRoute
+                mobileAppRoute
                   ? 'px-0 py-0 md:px-5 md:py-6 lg:px-8 xl:px-10 2xl:px-12'
                   : 'px-3 py-5 sm:px-5 sm:py-6 lg:px-8 xl:px-10 2xl:px-12',
               ].join(' ')}>
@@ -58,7 +64,7 @@ export function ManagerLayout(): React.ReactElement {
                 </ManagerRouteGuard>
               </div>
             </main>
-            <ManagerMobileNav onOpenMenu={() => setSidebarOpen(true)} />
+            <ManagerMobileNav />
           </div>
         </div>
         </ManagerClubModulesProvider>
