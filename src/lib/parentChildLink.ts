@@ -151,6 +151,16 @@ export type ParentOnboardingPlayerOption = {
   jersey_number: number | null;
 };
 
+/**
+ * Die Altersklasse gehört zur Saison (z. B. U12 · 2026/27), nicht zum
+ * langlebigen Mannschaftsnamen. Alte technische Namen wie "U11 SPG Rohrbach"
+ * werden deshalb in der Mannschaftsauswahl neutral als "SPG Rohrbach" gezeigt.
+ */
+export function formatOnboardingTeamLabel(label: string | null | undefined): string {
+  const normalized = String(label ?? '').replace(/\s+/g, ' ').trim();
+  return normalized.replace(/^u\d{1,2}\b\s*/i, '').trim() || normalized || 'Mannschaft';
+}
+
 export async function listParentOnboardingClubs(): Promise<{
   data: ParentOnboardingClubOption[];
   error: string | null;
@@ -177,7 +187,7 @@ export async function listParentOnboardingTeams(clubId: string): Promise<{
   return {
     data: ((data ?? []) as Array<{ id: string; label?: string | null }>).map((row) => ({
       id: String(row.id),
-      label: String(row.label ?? '').trim() || 'Mannschaft',
+      label: formatOnboardingTeamLabel(row.label),
     })),
     error: null,
   };

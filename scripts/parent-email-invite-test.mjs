@@ -61,7 +61,12 @@ assert.ok(api.includes('/app/parent-invite/'));
 assert.ok(api.includes('spielzeit_parent_invite_token'));
 assert.ok(api.includes('email_redirect_to'));
 assert.ok(api.includes('/auth/v1/otp'));
-assert.ok(api.includes('create_user: !authExists') || api.includes('create_user: true') || api.includes('const createUser = !authExists'));
+assert.ok(
+  api.includes('create_user: createUser') ||
+    api.includes('create_user: !authExists') ||
+    api.includes('create_user: true') ||
+    api.includes('const createUser = !authExists'),
+);
 assert.ok(api.includes('complete_signup'));
 assert.ok(api.includes('/register?'));
 assert.ok(api.includes('invite_confirmed'));

@@ -10,6 +10,23 @@ type TeamSeasonOption = {
   label: string;
 };
 
+function buildTeamSeasonLabel(row: {
+  teamName: string;
+  ageGroup: string;
+  seasonName: string;
+  displayName: string;
+}): string {
+  const name = (row.displayName || row.teamName).replace(/\s+/g, ' ').trim();
+  const ageGroup = row.ageGroup.replace(/\s+/g, ' ').trim();
+  const nameWithoutAge = name.replace(/^u\d{1,2}\b\s*/i, '').trim();
+  const teamTitle =
+    ageGroup && !name.toLowerCase().startsWith(ageGroup.toLowerCase())
+      ? `${ageGroup} ${nameWithoutAge}`.trim()
+      : name || 'Team';
+
+  return row.seasonName.trim() ? `${teamTitle} · ${row.seasonName.trim()}` : teamTitle;
+}
+
 export const PlayerOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
@@ -54,7 +71,9 @@ export const PlayerOnboardingPage: React.FC = () => {
 
       const { data: teamSeasonRows, error: tsError } = await supabase
         .from('team_seasons')
-        .select('id, team_id');
+        .select('id, team_id, season_id, display_name, age_group')
+        .eq('status', 'active')
+        .is('archived_at', null);
 
       console.log('[PLAYER TEAM LOAD RAW TEAM_SEASONS]', {
         data: teamSeasonRows,
@@ -76,11 +95,15 @@ export const PlayerOnboardingPage: React.FC = () => {
       const teamIds = [
         ...new Set((teamSeasonRows ?? []).map((row: any) => row.team_id).filter(Boolean)),
       ];
+      const seasonIds = [
+        ...new Set((teamSeasonRows ?? []).map((row: any) => row.season_id).filter(Boolean)),
+      ];
 
-      const { data: teamsRows, error: teamsError } = await supabase
-        .from('teams')
-        .select('id, name')
-        .in('id', teamIds);
+      const [{ data: teamsRows, error: teamsError }, { data: seasonsRows, error: seasonsError }] =
+        await Promise.all([
+          supabase.from('teams').select('id, name, age_group').in('id', teamIds),
+          supabase.from('seasons').select('id, name').in('id', seasonIds),
+        ]);
 
       console.log('[PLAYER TEAM LOAD RAW TEAMS]', {
         data: teamsRows,
@@ -89,8 +112,9 @@ export const PlayerOnboardingPage: React.FC = () => {
 
       if (!alive) return;
 
-      if (teamsError) {
-        const msg = teamsError.message ?? 'Teamnamen konnten nicht geladen werden.';
+      if (teamsError || seasonsError) {
+        const msg =
+          teamsError?.message ?? seasonsError?.message ?? 'Teamnamen konnten nicht geladen werden.';
         console.log('[PLAYER ONBOARDING LOAD ERROR]', msg);
         setError(msg);
         setLoadError(msg);
@@ -99,14 +123,45 @@ export const PlayerOnboardingPage: React.FC = () => {
         return;
       }
 
-      const teamNameById = new Map(
-        (teamsRows ?? []).map((row: any) => [String(row.id), String(row.name ?? 'Team')]),
+      const teamById = new Map(
+        (teamsRows ?? []).map((row: any) => [
+          String(row.id),
+          {
+            name: String(row.name ?? 'Team'),
+            ageGroup: String(row.age_group ?? ''),
+          },
+        ]),
+      );
+      const seasonNameById = new Map(
+        (seasonsRows ?? []).map((row: any) => [String(row.id), String(row.name ?? '')]),
       );
 
-      const opts: TeamSeasonOption[] = (teamSeasonRows ?? []).map((row: any) => ({
-        id: String(row.id),
-        label: (teamNameById.get(String(row.team_id)) ?? 'Team').toString().trim(),
-      }));
+      // Nur aktive Saisons mit einem aktuell auswählbaren Spieler anbieten.
+      // So erscheinen weder archivierte Vorsaisons noch leere interne Testteams.
+      const rosterResults = await Promise.all(
+        (teamSeasonRows ?? []).map(async (row: any) => ({
+          row,
+          roster: await listRoster(String(row.id), 'active'),
+        })),
+      );
+
+      if (!alive) return;
+
+      const opts: TeamSeasonOption[] = rosterResults
+        .filter(({ roster }) => !roster.error && roster.data.length > 0)
+        .map(({ row }) => {
+          const team = teamById.get(String(row.team_id)) ?? { name: 'Team', ageGroup: '' };
+          return {
+            id: String(row.id),
+            label: buildTeamSeasonLabel({
+              teamName: team.name,
+              ageGroup: String(row.age_group ?? '').trim() || team.ageGroup,
+              seasonName: seasonNameById.get(String(row.season_id)) ?? '',
+              displayName: String(row.display_name ?? ''),
+            }),
+          };
+        })
+        .sort((a, b) => a.label.localeCompare(b.label, 'de'));
 
       console.log('[PLAYER TEAM OPTIONS]', opts);
 
@@ -411,4 +466,3 @@ export const PlayerOnboardingPage: React.FC = () => {
     </div>
   );
 };
-

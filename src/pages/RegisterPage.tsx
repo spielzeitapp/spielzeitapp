@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, MailCheck, RefreshCw } from 'lucide-react';
 import { Button } from '../app/components/ui/Button';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
@@ -42,7 +42,12 @@ async function completeInviteSignup(input: {
   password: string;
   firstName: string;
   lastName: string;
-}): Promise<{ ok: boolean; error: string | null; needsConfirm: boolean }> {
+}): Promise<{
+  ok: boolean;
+  error: string | null;
+  needsConfirm: boolean;
+  confirmationEmailSent: boolean | null;
+}> {
   try {
     const res = await fetch('/api/parent/send-invite', {
       method: 'POST',
@@ -68,15 +73,27 @@ async function completeInviteSignup(input: {
         invalid_token: 'Einladung ungültig.',
         weak_password: `Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.`,
       };
-      return { ok: false, error: messages[err] ?? 'Registrierung fehlgeschlagen.', needsConfirm: false };
+      return {
+        ok: false,
+        error: messages[err] ?? 'Registrierung fehlgeschlagen.',
+        needsConfirm: false,
+        confirmationEmailSent: null,
+      };
     }
     return {
       ok: true,
       error: null,
       needsConfirm: String(payload.status) === 'pending_email_confirmation',
+      confirmationEmailSent:
+        typeof payload.email_confirm_sent === 'boolean' ? payload.email_confirm_sent : null,
     };
   } catch {
-    return { ok: false, error: 'Registrierung fehlgeschlagen.', needsConfirm: false };
+    return {
+      ok: false,
+      error: 'Registrierung fehlgeschlagen.',
+      needsConfirm: false,
+      confirmationEmailSent: null,
+    };
   }
 }
 
@@ -98,6 +115,12 @@ export const RegisterPage: React.FC = () => {
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState<boolean | null>(null);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
+  const [resendStatus, setResendStatus] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const nextRaw = searchParams.get('next') ?? '';
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
@@ -139,6 +162,8 @@ export const RegisterPage: React.FC = () => {
     setError('');
     setMessage(null);
     setNeedsEmailConfirmation(false);
+    setConfirmationEmailSent(null);
+    setResendStatus(null);
 
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
@@ -240,6 +265,7 @@ export const RegisterPage: React.FC = () => {
           return;
         }
         setNeedsEmailConfirmation(true);
+        setConfirmationEmailSent(completed.confirmationEmailSent);
         setMessage({
           type: 'success',
           text: 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse, um die Registrierung abzuschließen. Danach kannst du die persönliche Einladung annehmen und dein Kind direkt mit deinem Elternkonto verknüpfen — ohne Rollen- oder Mannschaftswahl.',
@@ -292,6 +318,7 @@ export const RegisterPage: React.FC = () => {
       }
 
       setNeedsEmailConfirmation(true);
+      setConfirmationEmailSent(null);
       setMessage({
         type: 'success',
         text: isParentInviteFlow
@@ -307,28 +334,135 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
+  const handleResendConfirmation = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || resendingConfirmation) return;
+    if (isTurnstileConfigured && !captchaToken) {
+      setResendStatus({ type: 'error', text: 'Bitte Sicherheitsprüfung abschließen.' });
+      return;
+    }
+
+    setResendingConfirmation(true);
+    setResendStatus(null);
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: trimmedEmail,
+      options: {
+        emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
+        captchaToken: captchaToken ?? undefined,
+      },
+    });
+    setCaptchaToken(null);
+    setCaptchaResetKey((value) => value + 1);
+    setResendingConfirmation(false);
+
+    if (resendError) {
+      const rateLimited = /rate|security purposes|seconds/i.test(resendError.message);
+      setResendStatus({
+        type: 'error',
+        text: rateLimited
+          ? 'Bitte kurz warten und danach noch einmal versuchen.'
+          : 'Die E-Mail konnte nicht erneut gesendet werden. Bitte später nochmals versuchen.',
+      });
+      return;
+    }
+
+    setConfirmationEmailSent(true);
+    setResendStatus({
+      type: 'success',
+      text: 'Neue Bestätigungs-E-Mail wurde versendet.',
+    });
+  };
+
   if (needsEmailConfirmation) {
     return (
       <div className={AUTH_PAGE_SHELL_CLASS}>
-        <div className={AUTH_PAGE_CARD_CLASS}>
-          <h1 className="text-xl font-semibold text-white">E-Mail bestätigen</h1>
-          <p className="mt-2 text-sm text-white/70">
-            {isParentInviteFlow
-              ? 'Bitte bestätige deine E-Mail-Adresse. Danach öffnet sich die Einladung — ohne Rollen- oder Teamauswahl. Dein Passwort bleibt gültig.'
-              : 'Bitte bestätige deine E-Mail-Adresse. Nach dem Klick auf den Bestätigungslink geht es weiter zur Rollenwahl. Dein Passwort bleibt gültig — du musst es nicht erneut setzen.'}
-          </p>
-          <p className="mt-4 text-center text-sm text-white/60">
+        <div className="mx-auto w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(155deg,rgba(30,30,33,0.98),rgba(8,8,10,0.98))] shadow-[0_24px_70px_rgba(0,0,0,0.5)]">
+          <div className="h-1 bg-gradient-to-r from-red-800 via-red-500 to-red-800" aria-hidden />
+          <div className="px-5 py-6 sm:px-7 sm:py-8">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300 shadow-[0_0_28px_rgba(220,38,38,0.16)]">
+              <MailCheck className="h-7 w-7" aria-hidden />
+            </div>
+            <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-red-400">
+              Fast geschafft
+            </p>
+            <h1 className="mt-1 text-[28px] font-black leading-tight text-white">E-Mail bestätigen</h1>
+            <p className="mt-3 text-[15px] leading-6 text-white/68">
+              Wir haben den Bestätigungslink an diese Adresse gesendet:
+            </p>
+            <div className="mt-3 break-all rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-center text-[15px] font-bold text-white">
+              {email.trim().toLowerCase()}
+            </div>
+
+            {confirmationEmailSent === false ? (
+              <div className="mt-4 flex gap-3 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3.5 py-3 text-[13px] leading-5 text-amber-100">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden />
+                <span>Der erste Versand hat nicht funktioniert. Bitte sende die E-Mail erneut.</span>
+              </div>
+            ) : (
+              <div className="mt-4 flex gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] px-3.5 py-3 text-[13px] leading-5 text-emerald-100">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" aria-hidden />
+                <span>Öffne die E-Mail und tippe auf den Bestätigungslink.</span>
+              </div>
+            )}
+
+            <div className="mt-5 rounded-xl border border-white/8 bg-black/20 px-4 py-3">
+              <p className="text-[13px] font-semibold text-white/80">Keine E-Mail erhalten?</p>
+              <p className="mt-1 text-[12px] leading-5 text-white/55">
+                Warte kurz und prüfe auch Spam, Junk oder Werbung.
+              </p>
+            </div>
+
+            {resendStatus ? (
+              <div
+                className={`mt-3 rounded-xl border px-3.5 py-3 text-[13px] leading-5 ${
+                  resendStatus.type === 'success'
+                    ? 'border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-100'
+                    : 'border-red-400/25 bg-red-500/10 text-red-100'
+                }`}
+                role="status"
+              >
+                {resendStatus.text}
+              </div>
+            ) : null}
+
+            <div className="mt-4">
+              <TurnstileWidget
+                onTokenChange={setCaptchaToken}
+                resetKey={captchaResetKey}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handleResendConfirmation()}
+              disabled={resendingConfirmation || (isTurnstileConfigured && !captchaToken)}
+              className="mt-4 grid min-h-12 w-full grid-flow-col place-content-center items-center gap-2 rounded-xl bg-red-600 px-4 text-[15px] font-bold text-white shadow-[0_10px_28px_rgba(220,38,38,0.22)] transition hover:bg-red-500 disabled:cursor-wait disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${resendingConfirmation ? 'animate-spin' : ''}`} aria-hidden />
+              {resendingConfirmation ? 'Wird gesendet…' : 'E-Mail erneut senden'}
+            </button>
+
+            <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
+              {isParentInviteFlow
+                ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
+                : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
+              {' '}Dein Passwort bleibt gespeichert.
+            </p>
+
+            <div className="mt-5 border-t border-white/10 pt-4 text-center text-sm">
             <Link
               to={
                 nextSafe
                   ? `/login?${buildParentInviteAuthQuery({ next: nextSafe, email })}`
                   : '/login'
               }
-              className="text-white/80 hover:text-white hover:underline"
+              className="font-semibold text-white/65 hover:text-white hover:underline"
             >
               Zur Anmeldung
             </Link>
-          </p>
+            </div>
+          </div>
         </div>
       </div>
     );
