@@ -177,9 +177,12 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9));
 }
 
-function findHeading(tokens: TextToken[], heading: string): TextToken | undefined {
-  const expected = heading.toLowerCase();
-  return tokens.find((token) => normalize(token.text).toLowerCase() === expected);
+function findHeading(tokens: TextToken[], heading: string, allowSuffix = false): TextToken | undefined {
+  const expected = compactHeading(heading);
+  return tokens.find((token) => {
+    const actual = compactHeading(token.text);
+    return actual === expected || (allowSuffix && actual.startsWith(expected));
+  });
 }
 
 export function resolveExerciseSketchColumnStart(
@@ -206,7 +209,7 @@ async function extractSketch(
 ): Promise<Blob | null> {
   if (typeof document === 'undefined') return null;
   const descriptionHeader = findHeading(tokens, 'Beschreibung');
-  const coachingHeader = findHeading(tokens, 'Coachingpunkte');
+  const coachingHeader = findHeading(tokens, 'Coachingpunkte', true);
   if (!descriptionHeader || !coachingHeader || descriptionHeader.y <= coachingHeader.y) return null;
 
   const scale = 2;

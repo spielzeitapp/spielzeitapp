@@ -47,6 +47,7 @@ assert.match(parser, /descriptionCenter \+ sketchCenter/);
 assert.doesNotMatch(parser, /pageWidth \* 0\.55 \* scale/);
 assert.match(parser, /collectCoachDetailLines/);
 assert.match(parser, /pages\.map\(\(candidate\) => candidate\.lines\)/);
+assert.match(parser, /findHeading\(tokens, 'Coachingpunkte', true\)/);
 assert.match(storage, /source_type: input\.sourceType \?\? 'club'/);
 assert.match(storage, /TRAINING_EXERCISE_SKETCH_MAX_BYTES = 8 \* 1024 \* 1024/);
 assert.match(storage, /\$\{clubId\}\/exercises\/\$\{exerciseId\}/);
