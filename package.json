@@ -10,6 +10,7 @@
     "test:training-delete-actions": "node scripts/training-delete-actions-test.mjs",
     "test:matchday-motifs": "node scripts/matchday-motif-rotation-test.mjs",
     "test:platform-admin": "node scripts/platform-admin-dashboard-test.mjs",
+    "test:player-onboarding": "node scripts/player-onboarding-active-season-test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
