@@ -13,6 +13,7 @@ import { getCanonicalEventType, getEventDisplayTitle, type RawEventRow } from '.
 import type { TeamNotificationSettingsRow } from '../notifications/teamSettings';
 import type { NotificationKind } from '../notifications/pending';
 import type { ReminderJobInsert, ReminderJobKind } from './types';
+import { getViennaCutoffDate } from '../viennaTime';
 
 const VIENNA_TZ_DEBUG = 'Europe/Vienna';
 
@@ -109,17 +110,16 @@ export function getOffsetsForEvent(
   const out: OffsetSlot[] = [];
 
   if (ctype === 'training' && settings.training_enabled) {
-    const m = safeMinutes(settings.training_minutes_before, 120);
-    out.push({ offsetMinutes: m, reminderKey: `training_${m}`, notificationType: 'training_reminder' });
+    out.push({ offsetMinutes: 0, reminderKey: 'training_day_1100', notificationType: 'training_reminder' });
   }
 
   if (ctype === 'game') {
     if (settings.match_enabled) {
-      const m = safeMinutes(settings.match_minutes_before, 1440);
+      const m = safeMinutes(settings.match_minutes_before, 2880);
       out.push({ offsetMinutes: m, reminderKey: `match_${m}`, notificationType: 'game_reminder' });
     }
     if (settings.match_second_enabled) {
-      const m = safeMinutes(settings.match_second_minutes_before, 120);
+      const m = safeMinutes(settings.match_second_minutes_before, 1440);
       out.push({
         offsetMinutes: m,
         reminderKey: `match_second_${m}`,
@@ -236,7 +236,10 @@ export function buildReminderJobsForEvent(
   }
 
   for (const slot of slots) {
-    const idealSendAtMs = baseMs - slot.offsetMinutes * 60 * 1000;
+    const trainingAtEleven = ctype === 'training' ? getViennaCutoffDate(baseIso, 11, 0) : null;
+    const idealSendAtMs = trainingAtEleven
+      ? trainingAtEleven.getTime()
+      : baseMs - slot.offsetMinutes * 60 * 1000;
     let sendAtMs = idealSendAtMs;
     let clamped = false;
     if (sendAtMs <= nowMs) {

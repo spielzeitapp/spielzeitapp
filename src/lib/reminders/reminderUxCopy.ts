@@ -43,7 +43,7 @@ export function buildReminderUxCopy(
   if (kind === 'training') {
     return {
       title: 'Training',
-      message: `Heute ${timeStr} – Treffpunkt nicht vergessen`,
+      message: `Heute um ${timeStr} Uhr. Du bist eingeplant – falls du nicht kommen kannst, bitte absagen.`,
     };
   }
 

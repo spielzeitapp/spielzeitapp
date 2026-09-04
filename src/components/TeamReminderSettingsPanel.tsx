@@ -7,9 +7,8 @@ import {
   type TeamNotificationSettingsRow,
 } from '../lib/notifications/teamSettings';
 
-const TRAINING_MIN = [60, 120, 180, 360] as const;
-const MATCH_MIN = [180, 360, 720, 1440] as const;
-const MATCH2_MIN = [60, 120, 180] as const;
+const MATCH_MIN = [720, 1440, 2880] as const;
+const MATCH2_MIN = [180, 720, 1440] as const;
 const EVENT_MIN = [180, 720, 1440] as const;
 
 function nearest(allowed: readonly number[], v: number, fallback: number): number {
@@ -23,9 +22,9 @@ function normalizeRow(raw: TeamNotificationSettingsRow): TeamNotificationSetting
   return {
     ...raw,
     training_minutes_before: nearest(TRAINING_MIN, raw.training_minutes_before, 120),
-    match_minutes_before: nearest(MATCH_MIN, raw.match_minutes_before, 1440),
+    match_minutes_before: nearest(MATCH_MIN, raw.match_minutes_before, 2880),
     // Nur Minuten auf erlaubte Werte runden; Checkboxen bleiben unverändert.
-    match_second_minutes_before: nearest(MATCH2_MIN, raw.match_second_minutes_before, 120),
+    match_second_minutes_before: nearest(MATCH2_MIN, raw.match_second_minutes_before, 1440),
     event_minutes_before: nearest(EVENT_MIN, raw.event_minutes_before, 1440),
   };
 }
@@ -185,19 +184,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           />
           <span>Training erinnern</span>
         </label>
-        <div className="flex flex-wrap items-center gap-2 pl-6">
-          <span className="text-white/60">Vorher</span>
-          <select
-            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.training_minutes_before}
-            onChange={(e) => update('training_minutes_before', Number(e.target.value))}
-          >
-            {TRAINING_MIN.map((m) => (
-              <option key={m} value={m}>
-                {m} Min
-              </option>
-            ))}
-          </select>
+        <div className="pl-6 text-sm text-white/60">
+          Am Trainingstag um 11:00 Uhr
         </div>
 
         <label className="flex items-center gap-2">
