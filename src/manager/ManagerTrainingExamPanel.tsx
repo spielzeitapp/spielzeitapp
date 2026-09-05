@@ -9,6 +9,8 @@ import {
   markTrainingExamExported,
   removeTrainingExamSession,
   reorderTrainingExamSessions,
+  updateTrainingExamItemIncluded,
+  updateTrainingExamRequiredUnits,
   updateTrainingExamSessionMetadata,
   updateTrainingExamTrainerName,
   type TrainingExamDocumentationBundle,
@@ -175,7 +177,7 @@ export function ManagerTrainingExamPanel({
     () => Object.fromEntries(sessions.map((session) => [session.id, session])),
     [sessions],
   );
-  const selectedItems = useMemo(() => [...(bundle?.items ?? [])].sort((left, right) => {
+  const orderedItems = useMemo(() => [...(bundle?.items ?? [])].sort((left, right) => {
     const leftSession = sessionById[left.training_session_id];
     const rightSession = sessionById[right.training_session_id];
     const leftDate = left.training_date_override
@@ -188,13 +190,17 @@ export function ManagerTrainingExamPanel({
       ?? '';
     return leftDate.localeCompare(rightDate) || left.sort_order - right.sort_order;
   }), [bundle?.items, eventDates, sessionById]);
+  const selectedItems = useMemo(
+    () => orderedItems.filter((item) => item.included_in_pdf),
+    [orderedItems],
+  );
   const candidates = useMemo(() => {
-    const selected = new Set(selectedItems.map((item) => item.training_session_id));
+    const managed = new Set(orderedItems.map((item) => item.training_session_id));
     return sessions
       .filter((session) => session.record_type !== 'template')
-      .filter((session) => !selected.has(session.id))
+      .filter((session) => !managed.has(session.id))
       .sort((left, right) => String(right.updated_at ?? '').localeCompare(String(left.updated_at ?? '')));
-  }, [selectedItems, sessions]);
+  }, [orderedItems, sessions]);
 
   const load = useCallback(async () => {
     if (!teamSeasonId) {
@@ -234,7 +240,7 @@ export function ManagerTrainingExamPanel({
 
   useEffect(() => {
     let active = true;
-    const ids = selectedItems.map((item) => item.training_session_id);
+    const ids = orderedItems.map((item) => item.training_session_id);
     if (ids.length === 0) {
       setDetails({});
       return () => {
@@ -252,7 +258,7 @@ export function ManagerTrainingExamPanel({
     return () => {
       active = false;
     };
-  }, [selectedItems]);
+  }, [orderedItems]);
 
   useEffect(() => {
     let active = true;
@@ -279,14 +285,20 @@ export function ManagerTrainingExamPanel({
 
   async function addCandidate() {
     if (!bundle || !candidateId) return;
-    if (bundle.items.length >= bundle.documentation.required_units) {
-      setError(`Es können höchstens ${bundle.documentation.required_units} Einheiten ausgewählt werden.`);
+    if (bundle.items.length >= 20) {
+      setError('Es können höchstens 20 Einheiten vorbereitet werden.');
       return;
     }
     setSaving(true);
     setError(null);
     setSuccess(null);
-    const result = await addTrainingExamSession(bundle.documentation.id, candidateId, bundle.items.length);
+    const includeImmediately = selectedItems.length < bundle.documentation.required_units;
+    const result = await addTrainingExamSession(
+      bundle.documentation.id,
+      candidateId,
+      bundle.items.length,
+      includeImmediately,
+    );
     setSaving(false);
     if (result.error || !result.data) {
       setError(result.error ?? 'Einheit konnte nicht hinzugefügt werden.');
@@ -295,6 +307,44 @@ export function ManagerTrainingExamPanel({
     setBundle({ ...bundle, items: [...bundle.items, result.data] });
     setCandidateId('');
     setSuccess('Trainingseinheit zur Prüfungsdokumentation hinzugefügt.');
+  }
+
+  async function setItemIncluded(item: TrainingExamDocumentationItemRow, includedInPdf: boolean) {
+    if (!bundle) return;
+    if (includedInPdf && selectedItems.length >= bundle.documentation.required_units) {
+      setError(`Es können höchstens ${bundle.documentation.required_units} Einheiten für dieses PDF ausgewählt werden.`);
+      return;
+    }
+    updateItemLocal(item.id, { included_in_pdf: includedInPdf });
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    const result = await updateTrainingExamItemIncluded(item.id, includedInPdf);
+    setSaving(false);
+    if (result.error || !result.data) {
+      updateItemLocal(item.id, { included_in_pdf: item.included_in_pdf });
+      setError(result.error ?? 'PDF-Auswahl konnte nicht gespeichert werden.');
+      return;
+    }
+    updateItemLocal(item.id, result.data);
+    setSuccess(includedInPdf ? 'Einheit wird in die PDF übernommen.' : 'Einheit bleibt gespeichert, wird aber nicht in die PDF übernommen.');
+  }
+
+  async function saveRequiredUnits(requiredUnits: number) {
+    if (!bundle) return;
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    const result = await updateTrainingExamRequiredUnits(bundle.documentation.id, requiredUnits);
+    setSaving(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setBundle((current) => current
+      ? { ...current, documentation: { ...current.documentation, required_units: result.requiredUnits } }
+      : current);
+    setSuccess(`Zielanzahl auf ${result.requiredUnits} Einheiten gesetzt.`);
   }
 
   async function removeItem(item: TrainingExamDocumentationItemRow) {
@@ -476,8 +526,7 @@ export function ManagerTrainingExamPanel({
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-600">ÖFB-D-Diplom</p>
             <h2 className="mt-1 text-2xl font-bold text-slate-950">Trainerprüfungs-Dokumentation</h2>
             <p className="mt-2 max-w-3xl text-[13px] leading-6 text-slate-600">
-              Wähle deine zehn Trainingseinheiten. Sie werden automatisch nach Trainingsdatum sortiert und bleiben vollständig bearbeitbar;
-              Vorschau und Download werden immer neu aus dem aktuellen Stand erzeugt.
+              Bereite deine Trainingseinheiten vor und wähle bei jeder Einheit aus, ob sie in die PDF übernommen wird. Nur angehakte Einheiten werden exportiert und automatisch nach Trainingsdatum sortiert.
             </p>
           </div>
           <div className="grid min-w-[260px] grid-cols-2 gap-2">
@@ -499,23 +548,38 @@ export function ManagerTrainingExamPanel({
 
       {bundle ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <label className="block text-[12px] font-bold text-slate-700" htmlFor="exam-trainer-name">
-            Trainername für alle PDF-Seiten
-          </label>
-          <input
-            id="exam-trainer-name"
-            value={bundle.documentation.trainer_name || defaultTrainerName}
-            onChange={(event) =>
-              setBundle({
-                ...bundle,
-                documentation: { ...bundle.documentation, trainer_name: event.target.value },
-              })
-            }
-            onBlur={() => void saveTrainerName()}
-            placeholder="z. B. Johannes Baumann"
-            className="mt-2 min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3 text-[14px] text-slate-950 sm:max-w-md"
-          />
-          <p className="mt-2 text-[11px] text-slate-500">Änderungen werden beim Verlassen des Feldes gespeichert.</p>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_220px]">
+            <label className="block text-[12px] font-bold text-slate-700" htmlFor="exam-trainer-name">
+              Trainername für alle PDF-Seiten
+              <input
+                id="exam-trainer-name"
+                value={bundle.documentation.trainer_name || defaultTrainerName}
+                onChange={(event) =>
+                  setBundle({
+                    ...bundle,
+                    documentation: { ...bundle.documentation, trainer_name: event.target.value },
+                  })
+                }
+                onBlur={() => void saveTrainerName()}
+                placeholder="z. B. Johannes Baumann"
+                className="mt-2 min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3 text-[14px] font-normal text-slate-950"
+              />
+            </label>
+            <label className="block text-[12px] font-bold text-slate-700" htmlFor="exam-required-units">
+              Benötigte PDF-Einheiten
+              <select
+                id="exam-required-units"
+                value={bundle.documentation.required_units}
+                onChange={(event) => void saveRequiredUnits(Number(event.target.value))}
+                disabled={saving}
+                className="mt-2 min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3 text-[14px] font-normal text-slate-950"
+              >
+                <option value={5}>5 Einheiten mit Videodokumentation</option>
+                <option value={10}>10 Einheiten</option>
+              </select>
+            </label>
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500">Die Auswahl und Änderungen werden gespeichert.</p>
         </div>
       ) : null}
 
@@ -533,7 +597,7 @@ export function ManagerTrainingExamPanel({
             <select
               value={candidateId}
               onChange={(event) => setCandidateId(event.target.value)}
-              disabled={saving || selectedItems.length >= required}
+              disabled={saving || bundle.items.length >= 20}
               className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900"
             >
               <option value="">Trainingseinheit auswählen…</option>
@@ -546,7 +610,7 @@ export function ManagerTrainingExamPanel({
             <button
               type="button"
               onClick={() => void addCandidate()}
-              disabled={!candidateId || saving || selectedItems.length >= required}
+              disabled={!candidateId || saving || bundle.items.length >= 20}
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
@@ -557,12 +621,12 @@ export function ManagerTrainingExamPanel({
       ) : null}
 
       <div className="space-y-3">
-        {selectedItems.length === 0 ? (
+        {orderedItems.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-[13px] text-slate-500">
             Noch keine Einheit ausgewählt. Füge deine erste fertige Trainingseinheit hinzu.
           </div>
         ) : null}
-        {selectedItems.map((item, index) => {
+        {orderedItems.map((item) => {
           const session = sessionById[item.training_session_id];
           if (!session) return null;
           const sessionDetails = details[session.id];
@@ -577,12 +641,23 @@ export function ManagerTrainingExamPanel({
                 new Date(bundle.documentation.last_exported_at).getTime(),
           );
           const phases = new Set((sessionDetails?.items ?? []).map((exercise) => exercise.phase as TrainingPhase));
+          const pdfIndex = selectedItems.findIndex((candidate) => candidate.id === item.id);
           return (
-            <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <article key={item.id} className={`rounded-2xl border bg-white p-4 shadow-sm sm:p-5 ${item.included_in_pdf ? 'border-red-200' : 'border-slate-200 opacity-80'}`}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-lg font-bold text-white">
-                  {index + 1}
-                </div>
+                <label className="flex shrink-0 cursor-pointer items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={item.included_in_pdf}
+                    onChange={(event) => void setItemIncluded(item, event.target.checked)}
+                    disabled={saving}
+                    className="h-5 w-5 accent-red-600"
+                  />
+                  <span className="text-[12px] font-bold text-slate-800">In PDF</span>
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold ${item.included_in_pdf ? 'bg-slate-950 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                    {pdfIndex >= 0 ? pdfIndex + 1 : '–'}
+                  </span>
+                </label>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-[16px] font-bold text-slate-950">{session.title}</h3>
@@ -743,8 +818,8 @@ export function ManagerTrainingExamPanel({
           <div className="flex items-center gap-2 text-[12px] text-slate-600">
             <CheckCircle2 className={`h-5 w-5 ${selectedItems.length === required ? 'text-emerald-600' : 'text-slate-400'}`} aria-hidden />
             {selectedItems.length === required
-              ? '10 Einheiten ausgewählt – finale Einreichungs-PDF möglich.'
-              : `Test-PDF mit ${selectedItems.length} ${selectedItems.length === 1 ? 'Einheit' : 'Einheiten'} möglich · ${required - selectedItems.length} fehlen bis zur Abgabe.`}
+              ? `${required} Einheiten ausgewählt – finale Einreichungs-PDF möglich.`
+              : `PDF mit ${selectedItems.length} ${selectedItems.length === 1 ? 'Einheit' : 'Einheiten'} möglich · ${Math.max(0, required - selectedItems.length)} fehlen bis zur Zielanzahl.`}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button type="button" onClick={() => void exportPdf('preview')} disabled={Boolean(exporting)} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50">
@@ -755,7 +830,7 @@ export function ManagerTrainingExamPanel({
               {exporting === 'download' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileDown className="h-4 w-4" aria-hidden />}
               {selectedItems.length === required
                 ? 'Gesamtdokumentation herunterladen'
-                : `Test-PDF herunterladen (${selectedItems.length} ${selectedItems.length === 1 ? 'Seite' : 'Seiten'})`}
+                : `PDF herunterladen (${selectedItems.length} ${selectedItems.length === 1 ? 'Seite' : 'Seiten'})`}
             </button>
           </div>
         </div>

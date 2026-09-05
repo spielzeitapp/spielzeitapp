@@ -35,6 +35,7 @@ export type TrainingExamDocumentationItemRow = {
   team_name_override: string | null;
   training_date_override: string | null;
   phase_text_overrides: TrainingExamPhaseTextOverrides;
+  included_in_pdf: boolean;
   updated_at: string;
 };
 
@@ -45,7 +46,7 @@ export type TrainingExamDocumentationBundle = {
 
 const DOCUMENT_SELECT =
   'id, club_id, team_season_id, title, required_units, deadline, export_version, last_exported_at, created_by, created_at, updated_at, trainer_name';
-const ITEM_SELECT = 'id, documentation_id, training_session_id, sort_order, created_at, updated_at, focus_override, team_name_override, training_date_override, phase_text_overrides';
+const ITEM_SELECT = 'id, documentation_id, training_session_id, sort_order, created_at, updated_at, focus_override, team_name_override, training_date_override, phase_text_overrides, included_in_pdf';
 
 function mapPhaseTextOverrides(raw: unknown): TrainingExamPhaseTextOverrides {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
@@ -93,6 +94,7 @@ function mapItem(raw: Record<string, unknown>): TrainingExamDocumentationItemRow
     team_name_override: (raw.team_name_override as string | null) ?? null,
     training_date_override: (raw.training_date_override as string | null) ?? null,
     phase_text_overrides: mapPhaseTextOverrides(raw.phase_text_overrides),
+    included_in_pdf: raw.included_in_pdf !== false,
     updated_at: String(raw.updated_at ?? raw.created_at),
   };
 }
@@ -149,6 +151,7 @@ export async function addTrainingExamSession(
   documentationId: string,
   trainingSessionId: string,
   sortOrder: number,
+  includedInPdf = true,
 ): Promise<{ data: TrainingExamDocumentationItemRow | null; error: string | null }> {
   const result = await supabase
     .from('training_exam_documentation_items')
@@ -156,10 +159,44 @@ export async function addTrainingExamSession(
       documentation_id: documentationId,
       training_session_id: trainingSessionId,
       sort_order: sortOrder,
+      included_in_pdf: includedInPdf,
     })
     .select(ITEM_SELECT)
     .single();
   if (result.error) return { data: null, error: result.error.message };
+  return { data: mapItem(result.data as Record<string, unknown>), error: null };
+}
+
+export async function updateTrainingExamRequiredUnits(
+  documentationId: string,
+  requiredUnits: number,
+): Promise<{ requiredUnits: number; error: string | null }> {
+  const normalized = Math.max(1, Math.min(10, Math.round(requiredUnits)));
+  const result = await supabase
+    .from('training_exam_documentations')
+    .update({ required_units: normalized, updated_at: new Date().toISOString() })
+    .eq('id', documentationId)
+    .select('required_units')
+    .single();
+  if (result.error || !result.data) {
+    return { requiredUnits, error: result.error?.message ?? 'Zielanzahl konnte nicht gespeichert werden.' };
+  }
+  return { requiredUnits: Number(result.data.required_units) || normalized, error: null };
+}
+
+export async function updateTrainingExamItemIncluded(
+  itemId: string,
+  includedInPdf: boolean,
+): Promise<{ data: TrainingExamDocumentationItemRow | null; error: string | null }> {
+  const result = await supabase
+    .from('training_exam_documentation_items')
+    .update({ included_in_pdf: includedInPdf, updated_at: new Date().toISOString() })
+    .eq('id', itemId)
+    .select(ITEM_SELECT)
+    .single();
+  if (result.error || !result.data) {
+    return { data: null, error: result.error?.message ?? 'PDF-Auswahl konnte nicht gespeichert werden.' };
+  }
   return { data: mapItem(result.data as Record<string, unknown>), error: null };
 }
 

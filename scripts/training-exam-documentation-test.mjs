@@ -17,6 +17,14 @@ const phaseTextMigration = fs.readFileSync(
   'supabase/migrations/20260825120000_training_exam_phase_text_overrides.sql',
   'utf8',
 );
+const pdfSelectionMigration = fs.readFileSync(
+  'supabase/migrations/20260905100000_training_exam_pdf_unit_selection.sql',
+  'utf8',
+);
+const pdfSelectionWorkflow = fs.readFileSync(
+  '.github/workflows/staging-training-exam-unit-selection.yml',
+  'utf8',
+);
 
 const checks = [
   [sessions.includes("selectMainTab('exam')"), 'Trainerprüfung-Tab fehlt'],
@@ -24,11 +32,19 @@ const checks = [
   [sessions.includes('<ManagerTrainingExamPanel'), 'Trainerprüfung-Panel fehlt'],
   [panel.includes('PDF-Vorschau'), 'Vorschau-Aktion fehlt'],
   [panel.includes('Gesamtdokumentation herunterladen'), 'Sammeldownload fehlt'],
-  [panel.includes('Test-PDF herunterladen'), 'Teil-Download fehlt'],
+  [panel.includes('PDF herunterladen'), 'Teil-Download fehlt'],
   [panel.includes('Trainername für alle PDF-Seiten'), 'Trainername-Feld fehlt'],
   [panel.includes('Trainingsdatum'), 'Datumsfeld fehlt'],
   [panel.includes('automatisch nach Trainingsdatum sortiert'), 'Automatische Datumssortierung fehlt'],
   [panel.includes('for (const [index, item] of selectedItems.entries())'), 'PDF-Nummerierung folgt nicht der Datumssortierung'],
+  [panel.includes('orderedItems.filter((item) => item.included_in_pdf)'), 'PDF filtert nicht nach ausgewählten Einheiten'],
+  [panel.includes('checked={item.included_in_pdf}'), 'Auswahlbox je Trainingseinheit fehlt'],
+  [panel.includes('In PDF'), 'Beschriftung der PDF-Auswahl fehlt'],
+  [panel.includes('Benötigte PDF-Einheiten'), 'Auswahl der benötigten Einheiten fehlt'],
+  [panel.includes('5 Einheiten mit Videodokumentation'), 'Option für fünf Einheiten fehlt'],
+  [panel.includes('10 Einheiten'), 'Option für zehn Einheiten fehlt'],
+  [panel.includes('updateTrainingExamItemIncluded'), 'PDF-Auswahl wird nicht gespeichert'],
+  [panel.includes('updateTrainingExamRequiredUnits'), 'Zielanzahl wird nicht gespeichert'],
   [panel.includes("returnTo=${encodeURIComponent('/manager/training/einheiten?tab=exam')}"), 'Bearbeiten-Rücksprung zur Trainerprüfung fehlt'],
   [panel.includes('?view=training&returnTo='), 'Ansehen-Aktion für Prüfungseinheiten fehlt'],
   [panel.includes('>Ansehen</Link>'), 'Ansehen-Beschriftung für Prüfungseinheiten fehlt'],
@@ -58,7 +74,11 @@ const checks = [
   [editableMigration.includes('team_name_override'), 'Mannschaft-Migration fehlt'],
   [editableMigration.includes('training_date_override'), 'Datums-Migration fehlt'],
   [phaseTextMigration.includes('phase_text_overrides jsonb'), 'Migration für phasenweise Prüfungstexte fehlt'],
+  [pdfSelectionMigration.includes('included_in_pdf boolean NOT NULL DEFAULT true'), 'Migration für PDF-Auswahl fehlt'],
+  [pdfSelectionWorkflow.includes('acbaecjzoabafbsjrzvr'), 'Staging-Projektwächter für PDF-Auswahl fehlt'],
+  [pdfSelectionWorkflow.includes('EXPECTED_PROJECT_NAME: spielzeitapp-staging'), 'Staging-Name wird nicht geprüft'],
   [data.includes('phase_text_overrides'), 'Kompatibilität mit gespeicherten Prüfungstexten fehlt'],
+  [data.includes('included_in_pdf'), 'Persistenz der PDF-Auswahl fehlt'],
   [!pdf.includes('phaseTextOverrides'), 'PDF verwendet noch prüfungsspezifische Texte'],
   [!pdf.includes('useOriginal'), 'PDF verwendet noch den alten Originaltext-Modus'],
   [pdf.includes('Die gemeinsame Kurzfassung'), 'Warnung für zu lange gemeinsame Kurzfassung fehlt'],
