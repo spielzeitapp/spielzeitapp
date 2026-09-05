@@ -13,7 +13,6 @@ import {
   updateTrainingExamTrainerName,
   type TrainingExamDocumentationBundle,
   type TrainingExamDocumentationItemRow,
-  type TrainingExamPhaseText,
 } from '../lib/trainingExamDocumentation';
 import {
   createTrainingExamPdf,
@@ -26,10 +25,7 @@ import {
 import { getTrainingExerciseSketchUrl, type TrainingExerciseRow } from '../lib/trainingExercises';
 import { listSessionExercises, type TrainingSessionExerciseRow, type TrainingSessionRow } from '../lib/trainingSessions';
 import { TRAINING_PHASES, type TrainingPhase } from '../lib/trainingPhases';
-import {
-  createTrainingExerciseOriginalText,
-  resolveTrainingExerciseShortText,
-} from '../lib/trainingExerciseShortText';
+import { resolveTrainingExerciseShortText } from '../lib/trainingExerciseShortText';
 import { resolveClubIdForTeamSeason } from '../lib/venues';
 
 type SessionDetails = {
@@ -129,34 +125,6 @@ function defaultPhaseText(details: SessionDetails | undefined, phase: TrainingPh
     content: content.filter(Boolean).join('\n\n'),
     materials: materials.filter(Boolean).join('\n'),
     coaching: coaching.filter(Boolean).join('\n\n'),
-  };
-}
-
-function originalPhaseText(details: SessionDetails | undefined, phase: TrainingPhase): ExamPhaseTextValues {
-  const content: string[] = [];
-  const materials: string[] = [];
-  const coaching: string[] = [];
-  const phaseItems = (details?.items ?? [])
-    .filter((item) => item.phase === phase)
-    .sort((left, right) => left.sort_order - right.sort_order);
-  for (const item of phaseItems) {
-    const exercise = details?.exerciseMap[item.exercise_id] ?? item.exercise ?? null;
-    if (!exercise) continue;
-    const original = createTrainingExerciseOriginalText({
-      description: exercise.description,
-      organization: exercise.organization,
-      materials: exercise.materials,
-      coachingPoints: exercise.coaching_points,
-      variations: exercise.variations,
-    });
-    if (original.content) content.push(original.content);
-    if (original.materials) materials.push(original.materials);
-    if (original.coaching) coaching.push(withoutExamVideo(original.coaching));
-  }
-  return {
-    content: content.join('\n\n'),
-    materials: materials.join('\n'),
-    coaching: coaching.join('\n\n'),
   };
 }
 
@@ -361,48 +329,7 @@ export function ManagerTrainingExamPanel({
     );
   }
 
-  function updatePhaseText(
-    item: TrainingExamDocumentationItemRow,
-    phase: TrainingPhase,
-    field: 'content' | 'materials' | 'coaching',
-    value: string,
-  ) {
-    updateItemLocal(item.id, {
-      phase_text_overrides: {
-        ...item.phase_text_overrides,
-        [phase]: {
-          ...item.phase_text_overrides[phase],
-          [field]: value,
-        },
-      },
-    });
-  }
-
-  function resetPhaseText(item: TrainingExamDocumentationItemRow, phase: TrainingPhase) {
-    const next = { ...item.phase_text_overrides };
-    const useOriginal = next[phase]?.useOriginal !== false;
-    if (useOriginal) delete next[phase];
-    else next[phase] = { useOriginal: false };
-    updateItemLocal(item.id, { phase_text_overrides: next });
-    void saveItemMetadata(item.id, next);
-  }
-
-  function setPhaseTextMode(item: TrainingExamDocumentationItemRow, phase: TrainingPhase, useOriginal: boolean) {
-    const next = {
-      ...item.phase_text_overrides,
-      [phase]: {
-        ...item.phase_text_overrides[phase],
-        useOriginal,
-      },
-    };
-    updateItemLocal(item.id, { phase_text_overrides: next });
-    void saveItemMetadata(item.id, next);
-  }
-
-  async function saveItemMetadata(
-    itemId: string,
-    phaseTextOverrides?: TrainingExamDocumentationItemRow['phase_text_overrides'],
-  ) {
+  async function saveItemMetadata(itemId: string) {
     const current = bundle?.items.find((item) => item.id === itemId);
     if (!current) return;
     setSaving(true);
@@ -411,7 +338,7 @@ export function ManagerTrainingExamPanel({
       focusOverride: current.focus_override,
       teamNameOverride: current.team_name_override,
       trainingDateOverride: current.training_date_override,
-      phaseTextOverrides: phaseTextOverrides ?? current.phase_text_overrides,
+      phaseTextOverrides: current.phase_text_overrides,
     });
     setSaving(false);
     if (result.error || !result.data) {
@@ -464,7 +391,6 @@ export function ManagerTrainingExamPanel({
           item.training_date_override ??
           (session.event_id ? eventDates[session.event_id] ?? null : session.created_at),
         examNumber: index + 1,
-        phaseTextOverrides: item.phase_text_overrides,
       });
     }
     return result;
@@ -717,27 +643,20 @@ export function ManagerTrainingExamPanel({
               </div>
               <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70">
                 <summary className="cursor-pointer list-none px-4 py-3 text-[13px] font-bold text-slate-900 marker:hidden">
-                  PDF-Prüfungstexte auswählen
-                  <span className="ml-2 text-[11px] font-normal text-slate-500">Nur für diese Prüfungsseite</span>
+                  Gemeinsame Kurzfassungen prüfen
+                  <span className="ml-2 text-[11px] font-normal text-slate-500">Gilt für alle Ausgaben</span>
                 </summary>
                 <div className="space-y-3 border-t border-slate-200 p-3 sm:p-4">
                   <p className="text-[12px] leading-5 text-slate-600">
-                    Standard ist immer der Originaltext aus der Übung. Eine gespeicherte Kurzfassung wird nur verwendet, wenn du sie für die jeweilige Phase bewusst auswählst.
+                    Die gespeicherte Kurzfassung der Übung wird automatisch in Trainerprüfung, Übungsbibliothek, Handout und Einzelübungs-PDF verwendet. Änderungen speicherst du einmal in der Übungsbibliothek.
                   </p>
                   {TRAINING_PHASES.map((phase) => {
-                    const defaults = defaultPhaseText(sessionDetails, phase);
-                    const originals = originalPhaseText(sessionDetails, phase);
-                    const overrides = item.phase_text_overrides[phase] ?? {};
-                    const shortValues = {
-                      content: typeof overrides.content === 'string' ? overrides.content : defaults.content,
-                      materials: typeof overrides.materials === 'string' ? overrides.materials : defaults.materials,
-                      coaching: typeof overrides.coaching === 'string' ? overrides.coaching : defaults.coaching,
-                    };
-                    const useOriginal = overrides.useOriginal !== false;
-                    const values = useOriginal ? originals : shortValues;
-                    const hasCustomShortText = ['content', 'materials', 'coaching'].some(
-                      (field) => typeof overrides[field as 'content' | 'materials' | 'coaching'] === 'string',
-                    );
+                    const values = defaultPhaseText(sessionDetails, phase);
+                    const phaseExercises = (sessionDetails?.items ?? [])
+                      .filter((phaseItem) => phaseItem.phase === phase)
+                      .sort((left, right) => left.sort_order - right.sort_order)
+                      .map((phaseItem) => sessionDetails?.exerciseMap[phaseItem.exercise_id] ?? phaseItem.exercise ?? null)
+                      .filter((exercise): exercise is TrainingExerciseRow => Boolean(exercise));
                     const measuredFit = measureTrainingExamPhaseTextFit({
                       title: phaseTitle(sessionDetails, phase),
                       content: values.content,
@@ -754,48 +673,28 @@ export function ManagerTrainingExamPanel({
                             {phase}
                           </h4>
                           <div className="flex flex-wrap items-center justify-end gap-2">
-                            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5" aria-label={`PDF-Textmodus ${phase}`}>
-                              <button
-                                type="button"
-                                onClick={() => setPhaseTextMode(item, phase, false)}
-                                className={`rounded-md px-2.5 py-1 text-[11px] font-semibold ${!useOriginal ? 'bg-white text-red-700 shadow-sm' : 'text-slate-500'}`}
+                            {phaseExercises.map((exercise) => (
+                              <Link
+                                key={exercise.id}
+                                to={`/manager/training/bibliothek?edit=${encodeURIComponent(exercise.id)}&returnTo=${encodeURIComponent('/manager/training/einheiten?tab=exam')}`}
+                                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-red-700 hover:border-red-200 hover:bg-red-50"
                               >
-                                Kurzfassung
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setPhaseTextMode(item, phase, true)}
-                                className={`rounded-md px-2.5 py-1 text-[11px] font-semibold ${useOriginal ? 'bg-white text-red-700 shadow-sm' : 'text-slate-500'}`}
-                              >
-                                Originaltext
-                              </button>
-                            </div>
-                            {hasCustomShortText ? (
-                              <button
-                                type="button"
-                                onClick={() => resetPhaseText(item, phase)}
-                                className="text-[11px] font-semibold text-slate-500 hover:text-slate-900"
-                              >
-                                Eigene Kurzfassung zurücksetzen
-                              </button>
-                            ) : null}
+                                Kurzfassung bearbeiten{phaseExercises.length > 1 ? `: ${exercise.title}` : ''}
+                              </Link>
+                            ))}
                           </div>
                         </div>
                         <p className="mb-3 text-[11px] leading-4 text-slate-500">
-                          {useOriginal
-                            ? 'Für die PDF wird der ausführliche Originaltext verwendet. Die Anzeige prüft die tatsächlich umgebrochenen PDF-Zeilen. Deine Kurzfassung bleibt gespeichert.'
-                            : 'Für die PDF wird bewusst die kompakte Fassung verwendet. Passt, Knapp und Zu lang werden anhand der tatsächlichen PDF-Zeilen berechnet.'}
+                          Passt, Knapp und Zu lang werden anhand der tatsächlich umgebrochenen PDF-Zeilen berechnet. Der ausführliche Originaltext bleibt in der Übung separat erhalten.
                         </p>
                         <div className="grid gap-3 xl:grid-cols-[1.2fr_0.7fr_1.1fr]">
                           <label className="text-[11px] font-bold text-slate-600">
                             Inhalt / Ablauf
                             <textarea
                               value={values.content}
-                              onChange={(event) => updatePhaseText(item, phase, 'content', event.target.value)}
-                              onBlur={() => void saveItemMetadata(item.id)}
-                              readOnly={useOriginal}
+                              readOnly
                               rows={5}
-                              className={`mt-1 w-full resize-y rounded-xl border border-slate-200 p-3 text-[13px] font-normal leading-5 text-slate-950 ${useOriginal ? 'bg-slate-50' : 'bg-white'}`}
+                              className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 text-[13px] font-normal leading-5 text-slate-950"
                             />
                             <span className="mt-1 flex items-center justify-between gap-2 font-normal">
                               <span className="text-slate-400">{values.content.length} Zeichen</span>
@@ -806,11 +705,9 @@ export function ManagerTrainingExamPanel({
                             Geräte
                             <textarea
                               value={values.materials}
-                              onChange={(event) => updatePhaseText(item, phase, 'materials', event.target.value)}
-                              onBlur={() => void saveItemMetadata(item.id)}
-                              readOnly={useOriginal}
+                              readOnly
                               rows={5}
-                              className={`mt-1 w-full resize-y rounded-xl border border-slate-200 p-3 text-[13px] font-normal leading-5 text-slate-950 ${useOriginal ? 'bg-slate-50' : 'bg-white'}`}
+                              className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 text-[13px] font-normal leading-5 text-slate-950"
                             />
                             <span className="mt-1 flex items-center justify-between gap-2 font-normal">
                               <span className="text-slate-400">{values.materials.length} Zeichen</span>
@@ -821,11 +718,9 @@ export function ManagerTrainingExamPanel({
                             Coachingpunkte
                             <textarea
                               value={values.coaching}
-                              onChange={(event) => updatePhaseText(item, phase, 'coaching', event.target.value)}
-                              onBlur={() => void saveItemMetadata(item.id)}
-                              readOnly={useOriginal}
+                              readOnly
                               rows={5}
-                              className={`mt-1 w-full resize-y rounded-xl border border-slate-200 p-3 text-[13px] font-normal leading-5 text-slate-950 ${useOriginal ? 'bg-slate-50' : 'bg-white'}`}
+                              className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 text-[13px] font-normal leading-5 text-slate-950"
                             />
                             <span className="mt-1 flex items-center justify-between gap-2 font-normal">
                               <span className="text-slate-400">{values.coaching.length} Zeichen</span>

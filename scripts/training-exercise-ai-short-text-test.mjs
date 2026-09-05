@@ -121,8 +121,10 @@ assert.match(edge, /bestCandidate/);
 assert.doesNotMatch(edge, /unlabelled\.flatMap/);
 assert.match(page, /Deine aktuell angezeigte Fassung bleibt unverändert/);
 assert.match(page, /bereits manuell bearbeitete und vom Trainer geprüfte Fassung bleibt/);
-assert.match(page, /shortContent: originalText\.content/);
-assert.doesNotMatch(page, /shortContent: row\.short_content \?\?/);
+assert.match(page, /Gemeinsame Kurzfassung/);
+assert.match(page, /resolveTrainingExerciseShortText/);
+assert.match(page, /shortContent: row\.short_content/);
+assert.match(page, /Trainerprüfung verwendet/);
 assert.doesNotMatch(edge, /SUPABASE_SERVICE_ROLE_KEY/);
 
 console.log('training-exercise-ai-short-text: ok');

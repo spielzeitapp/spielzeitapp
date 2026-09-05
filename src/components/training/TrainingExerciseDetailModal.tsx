@@ -5,6 +5,10 @@ import { EXERCISE_FOCUS_LABELS, TRAINING_PHASE_LABELS } from '../../lib/training
 import { TrainingExerciseDetailBlock } from './TrainingExerciseDetailBlock';
 import { TrainingExerciseImage } from './TrainingExerciseImage';
 import { TrainingExerciseMetaChip } from './TrainingExerciseMetaChip';
+import {
+  createTrainingExerciseOriginalText,
+  resolveTrainingExerciseShortText,
+} from '../../lib/trainingExerciseShortText';
 
 function extractVideoUrl(row: TrainingExerciseRow): string | null {
   const candidates = [row.source_reference, row.description, row.organization, row.coaching_points];
@@ -18,15 +22,6 @@ function extractVideoUrl(row: TrainingExerciseRow): string | null {
     }
   }
   return null;
-}
-
-function detailTexts(row: TrainingExerciseRow): { summary: string | null; flow: string | null } {
-  const description = String(row.description ?? '').trim() || null;
-  const organization = String(row.organization ?? '').trim();
-  if (organization) {
-    return { summary: null, flow: description };
-  }
-  return { summary: description, flow: null };
 }
 
 type Props = {
@@ -45,7 +40,20 @@ export function TrainingExerciseDetailModal({
 }: Props): React.ReactElement {
   const players = formatPlayerCountRange(row.player_count_min, row.player_count_max);
   const videoUrl = extractVideoUrl(row);
-  const { summary, flow } = detailTexts(row);
+  const textInput = {
+    description: row.description,
+    organization: row.organization,
+    materials: row.materials,
+    coachingPoints: row.coaching_points,
+    variations: row.variations,
+  };
+  const shortText = resolveTrainingExerciseShortText({
+    ...textInput,
+    shortContent: row.short_content,
+    shortMaterials: row.short_materials,
+    shortCoaching: row.short_coaching,
+  });
+  const originalText = createTrainingExerciseOriginalText(textInput);
 
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 sm:items-center">
@@ -93,12 +101,19 @@ export function TrainingExerciseDetailModal({
         </div>
 
         <div className="mt-4 space-y-3">
-          <TrainingExerciseDetailBlock label="Kurzbeschreibung" value={summary} />
-          <TrainingExerciseDetailBlock label="Organisation / Aufbau" value={row.organization} />
-          <TrainingExerciseDetailBlock label="Ablauf" value={flow} />
-          <TrainingExerciseDetailBlock label="Material" value={row.materials} />
-          <TrainingExerciseDetailBlock label="Coachingpunkte" value={row.coaching_points} />
-          <TrainingExerciseDetailBlock label="Variationen" value={row.variations} />
+          <TrainingExerciseDetailBlock label="Inhalte: Aufbau, Ablauf & Variationen" value={shortText.content} />
+          <TrainingExerciseDetailBlock label="Material" value={shortText.materials} />
+          <TrainingExerciseDetailBlock label="Coachingpunkte" value={shortText.coaching} />
+          <details className="rounded-xl border border-slate-200 bg-slate-50/70">
+            <summary className="cursor-pointer px-3 py-2 text-[12px] font-semibold text-slate-600">
+              Ausführlichen Originaltext anzeigen
+            </summary>
+            <div className="space-y-3 border-t border-slate-200 p-3">
+              <TrainingExerciseDetailBlock label="Original: Aufbau, Ablauf & Variationen" value={originalText.content} />
+              <TrainingExerciseDetailBlock label="Original: Material" value={originalText.materials} />
+              <TrainingExerciseDetailBlock label="Original: Coachingpunkte" value={originalText.coaching} />
+            </div>
+          </details>
           {videoUrl ? (
             <section>
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">Video</h3>

@@ -25,6 +25,7 @@ import {
 import { analyzeTrainingExercisePdf } from '../lib/trainingExercisePdfImport';
 import {
   createTrainingExerciseOriginalText,
+  resolveTrainingExerciseShortText,
   TRAINING_SHORT_TEXT_LIMITS,
   type TrainingExerciseShortText,
   type TrainingExerciseShortTextInput,
@@ -91,12 +92,15 @@ const emptyForm = (): FormState => ({
 });
 
 function formFromRow(row: TrainingExerciseRow): FormState {
-  const originalText = createTrainingExerciseOriginalText({
+  const shortText = resolveTrainingExerciseShortText({
     description: row.description,
     organization: row.organization,
     materials: row.materials,
     coachingPoints: row.coaching_points,
     variations: row.variations,
+    shortContent: row.short_content,
+    shortMaterials: row.short_materials,
+    shortCoaching: row.short_coaching,
   });
   return {
     title: row.title,
@@ -112,12 +116,12 @@ function formFromRow(row: TrainingExerciseRow): FormState {
     organization: row.organization ?? '',
     coachingPoints: row.coaching_points ?? '',
     variations: row.variations ?? '',
-    // Der rote Bereich startet bewusst immer mit den unveränderten Originalfeldern.
-    // Eine gespeicherte Alt-Kurzfassung darf den Ausgangstext für einen neuen
-    // Prüfvorgang nicht verdecken.
-    shortContent: originalText.content,
-    shortMaterials: originalText.materials,
-    shortCoaching: originalText.coaching,
+    // Eine freigegebene Kurzfassung ist die gemeinsame Darstellung in
+    // Bibliothek, Handouts und Trainerprüfung. Das Original bleibt weiterhin
+    // in den ausführlichen Stammdatenfeldern erhalten.
+    shortContent: shortText.content,
+    shortMaterials: shortText.materials,
+    shortCoaching: shortText.coaching,
     sourceType: row.source_type === 'import' ? 'import' : 'club',
     sourceReference: row.source_reference ?? '',
     visibility: row.visibility === 'private' ? 'private' : 'club',
@@ -1322,10 +1326,10 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h3 className="text-[13px] font-semibold text-slate-900">
-                      Kurzfassung für Handout &amp; optionale Trainer-PDF
+                      Gemeinsame Kurzfassung
                     </h3>
                     <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                      Zuerst wird hier der vollständige Originaltext aus Aufbau, Ablauf und Variationen angezeigt. Ist er länger als 760 Zeichen, kann er manuell oder mit KI gekürzt werden. Coachingpunkte bleiben getrennt. Nur ein erfolgreich erzeugter KI-Entwurf ersetzt die aktuell angezeigte Fassung.
+                      Diese gespeicherte Fassung wird einheitlich in der Übungsbibliothek, im Handout, in der Einzelübungs-PDF und in der Trainerprüfung verwendet. Der ausführliche Originaltext oben bleibt unverändert erhalten.
                     </p>
                     <p className="mt-1 text-[11px] font-medium leading-4 text-amber-800">
                       KI-Kurzfassungen sind Entwürfe. Bitte Zahlen, Spieleranzahl, Rollen, Reihenfolge und Variationen vor dem Speichern mit dem Original kontrollieren.
