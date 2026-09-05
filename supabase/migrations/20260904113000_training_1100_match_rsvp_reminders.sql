@@ -94,12 +94,17 @@ DO $$
 DECLARE
   r record;
 BEGIN
-  FOR r IN
-    SELECT id FROM public.events
-    WHERE COALESCE(status, 'upcoming') = 'upcoming' AND starts_at > now()
-  LOOP
-    PERFORM public.sync_notification_jobs_for_event(r.id);
-  END LOOP;
+  -- Ältere Production-Schemas besitzen diese Hilfsfunktion noch nicht.
+  -- In diesem Fall bleiben bestehende Jobs erhalten und werden unten direkt
+  -- normalisiert; neue Jobs werden weiterhin vom Worker erzeugt.
+  IF to_regprocedure('public.sync_notification_jobs_for_event(uuid)') IS NOT NULL THEN
+    FOR r IN
+      SELECT id FROM public.events
+      WHERE COALESCE(status, 'upcoming') = 'upcoming' AND starts_at > now()
+    LOOP
+      EXECUTE 'SELECT public.sync_notification_jobs_for_event($1)' USING r.id;
+    END LOOP;
+  END IF;
 END;
 $$;
 

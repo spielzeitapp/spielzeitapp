@@ -89,7 +89,7 @@ jobs:
                     AND NOT tgisinternal
                 ) AS normalize_trigger,
                 (
-                  SELECT column_default = '2880'
+                  SELECT COALESCE(column_default LIKE '2880%', false)
                   FROM information_schema.columns
                   WHERE table_schema = 'public'
                     AND table_name = 'team_notification_settings'
