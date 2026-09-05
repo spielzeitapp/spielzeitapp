@@ -50,6 +50,10 @@ jobs:
             'supabase/migrations/20260825120000_training_exam_phase_text_overrides.sql',
             'supabase/migrations/20260825143000_training_exercise_short_texts.sql',
             'supabase/migrations/20260905100000_training_exam_pdf_unit_selection.sql',
+            // Muss zuletzt laufen: Die ältere Grundmigration definiert noch
+            // Platzverwaltungsrechte, die aktuelle Regel verwendet bewusst
+            // die Trainerberechtigung der Mannschaftssaison.
+            'supabase/migrations/20260829094500_training_staff_access_boundaries.sql',
           ];
 
           async function request(path, options = {}) {
@@ -108,10 +112,17 @@ jobs:
                     AND table_name = 'training_exam_documentation_items'
                     AND column_name = 'included_in_pdf'
                     AND data_type = 'boolean'
-                ) AS included_in_pdf;
+                ) AS included_in_pdf,
+                EXISTS (
+                  SELECT 1 FROM pg_policies
+                  WHERE schemaname = 'public'
+                    AND tablename = 'training_exam_documentations'
+                    AND policyname = 'training_exam_documentations_insert'
+                    AND with_check LIKE '%can_manage_training_team_season%'
+                ) AS trainer_rls;
             `);
             const row = verification?.[0] || {};
-            if (!row.exam_docs || !row.exam_items || !row.short_content || !row.phase_overrides || !row.included_in_pdf) {
+            if (!row.exam_docs || !row.exam_items || !row.short_content || !row.phase_overrides || !row.included_in_pdf || !row.trainer_rls) {
               throw new Error(`Migration verification failed: ${JSON.stringify(row)}`);
             }
             console.log('Production training migrations verified.');
