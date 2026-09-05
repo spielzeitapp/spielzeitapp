@@ -1,4 +1,6 @@
 import { jsPDF } from 'jspdf';
+import liberationSansBoldUrl from 'pdfjs-dist/standard_fonts/LiberationSans-Bold.ttf?url';
+import liberationSansRegularUrl from 'pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf?url';
 import type { TrainingExerciseRow } from './trainingExercises';
 import type { TrainingSessionExerciseRow, TrainingSessionRow } from './trainingSessions';
 import type { TrainingPhase } from './trainingPhases';
@@ -57,6 +59,11 @@ const TITLE_CONTENT_GAP = 0.6;
 const PHASE_GREEN: [number, number, number] = [38, 124, 70];
 const TABLE_LINE_COLOR = 80;
 const TABLE_LINE_WIDTH = 0.25;
+const PDF_FONT_FAMILY = 'LiberationSans';
+const PDF_FONT_FILES = {
+  normal: 'LiberationSans-Regular.ttf',
+  bold: 'LiberationSans-Bold.ttf',
+} as const;
 
 export type TrainingExamTextFit = 'fit' | 'tight' | 'too-long';
 
@@ -67,6 +74,36 @@ export type TrainingExamPhaseTextFit = {
 };
 
 let backgroundCache: string | null = null;
+let regularFontCache: string | null = null;
+let boldFontCache: string | null = null;
+
+async function fontUrlToBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Die PDF-Schrift konnte nicht geladen werden.');
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function registerPdfFonts(pdf: jsPDF): Promise<void> {
+  const [regular, bold] = await Promise.all([
+    regularFontCache ?? fontUrlToBase64(liberationSansRegularUrl),
+    boldFontCache ?? fontUrlToBase64(liberationSansBoldUrl),
+  ]);
+  regularFontCache = regular;
+  boldFontCache = bold;
+  pdf.addFileToVFS(PDF_FONT_FILES.normal, regular);
+  pdf.addFont(PDF_FONT_FILES.normal, PDF_FONT_FAMILY, 'normal');
+  pdf.addFileToVFS(PDF_FONT_FILES.bold, bold);
+  pdf.addFont(PDF_FONT_FILES.bold, PDF_FONT_FAMILY, 'bold');
+  // Manche PDF-Viewer übernehmen sonst einen Zeichenabstand aus einem zuvor
+  // verwendeten Textzustand. Für die Prüfungsvorlage gilt immer Normalabstand.
+  pdf.setCharSpace(0);
+}
 
 async function loadOfficialBlankPage(): Promise<string> {
   if (backgroundCache) return backgroundCache;
@@ -78,7 +115,28 @@ async function loadOfficialBlankPage(): Promise<string> {
 }
 
 function clean(value: unknown): string {
-  return String(value ?? '').replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ').trim();
+  return String(value ?? '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/\u00ad/g, '')
+    .replace(/[\u00a0\u202f]/g, ' ')
+    .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, '-')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .trim();
+}
+
+function normalizeContentSections(value: unknown): string {
+  return clean(value)
+    .replace(/\s+(?=(?:Aufbau|Ablauf(?:\s*\d+|\s*-\s*[A-Z])?|Variationen?(?:\s*\d+)?|Technische Variationen?)\s*:)/gi, '\n')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
+function normalizeList(value: unknown): string {
+  const text = clean(value);
+  if (!text) return '';
+  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return text;
+  return lines.map((line) => `• ${line.replace(/^[•\-*]\s*/, '')}`).join('\n');
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -242,7 +300,7 @@ function drawAdjustedTable(pdf: jsPDF): void {
     pdf.line(x, TABLE_HEADER_TOP, x, CONTENT_TABLE_BOTTOM);
   });
   pdf.setTextColor(15, 15, 15);
-  pdf.setFont('helvetica', 'bold');
+  pdf.setFont(PDF_FONT_FAMILY, 'bold');
   pdf.setFontSize(8);
   const tableHeaderBaseline = TABLE_HEADER_TOP + 3.55;
   pdf.text('Inhalte', CONTENT_X + CONTENT_WIDTH / 2, tableHeaderBaseline, { align: 'center' });
@@ -335,7 +393,7 @@ function drawContainedImage(
 
 function drawPhaseLabel(pdf: jsPDF, phase: TrainingPhase, x: number, y: number): void {
   pdf.setTextColor(...PHASE_GREEN);
-  pdf.setFont('helvetica', 'bold');
+  pdf.setFont(PDF_FONT_FAMILY, 'bold');
   pdf.setFontSize(7.4);
   pdf.text(phase, x, y);
 }
@@ -344,7 +402,7 @@ function drawSketchPhaseBadge(pdf: jsPDF, phase: TrainingPhase, x: number, y: nu
   pdf.setFillColor(...PHASE_GREEN);
   pdf.roundedRect(x, y, 12.5, 5.2, 1.5, 1.5, 'F');
   pdf.setTextColor(255, 255, 255);
-  pdf.setFont('helvetica', 'bold');
+  pdf.setFont(PDF_FONT_FAMILY, 'bold');
   pdf.setFontSize(6.8);
   pdf.text(phase, x + 6.25, y + 3.55, { align: 'center' });
 }
@@ -392,13 +450,13 @@ async function drawPhase(
   // für Trainerprüfung, Handouts und Bibliothek. Alte prüfungsspezifische
   // Overrides bleiben aus Kompatibilitätsgründen gespeichert, werden aber für
   // neue Exporte nicht mehr verwendet.
-  const contentText = withoutContentBullets(detailParts.join('\n\n'));
+  const contentText = normalizeContentSections(withoutContentBullets(detailParts.join('\n\n')));
   const materialsText = materialParts.join('\n');
-  const coachingText = coachingParts.join('\n\n');
+  const coachingText = normalizeList(coachingParts.join('\n\n'));
 
   drawPhaseLabel(pdf, phase, CONTENT_X + 1.3, top + 3.1);
   pdf.setTextColor(20, 20, 20);
-  pdf.setFont('helvetica', 'bold');
+  pdf.setFont(PDF_FONT_FAMILY, 'bold');
   const titleMetrics = drawFittedText(
     pdf,
     titleParts.join(' / '),
@@ -412,7 +470,7 @@ async function drawPhase(
       lineHeightFactor: 1.08,
     },
   );
-  pdf.setFont('helvetica', 'normal');
+  pdf.setFont(PDF_FONT_FAMILY, 'normal');
   const contentY = top + Math.max(
     CONTENT_Y_OFFSET,
     TITLE_Y_OFFSET + titleMetrics.usedHeight + TITLE_CONTENT_GAP,
@@ -425,7 +483,7 @@ async function drawPhase(
 
   drawPhaseLabel(pdf, phase, MATERIAL_X + 1.2, top + 3.1);
   pdf.setTextColor(20, 20, 20);
-  pdf.setFont('helvetica', 'normal');
+  pdf.setFont(PDF_FONT_FAMILY, 'normal');
   const materialsMetrics = drawFittedText(pdf, materialsText, MATERIAL_X, top + 6.5, MATERIAL_WIDTH, PHASE_HEIGHT - 7.4, {
     maxFontSize: 7,
     minFontSize: 6.5,
@@ -434,7 +492,7 @@ async function drawPhase(
 
   drawPhaseLabel(pdf, phase, COACHING_X + 1.2, top + 3.1);
   pdf.setTextColor(20, 20, 20);
-  pdf.setFont('helvetica', 'normal');
+  pdf.setFont(PDF_FONT_FAMILY, 'normal');
   const coachingMetrics = drawFittedText(pdf, coachingText, COACHING_X, top + 6.5, COACHING_WIDTH, PHASE_HEIGHT - 7.4, {
     maxFontSize: 7,
     minFontSize: 6.5,
@@ -481,6 +539,7 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
   if (input.sessions.length === 0) throw new Error('Bitte mindestens eine Trainingseinheit auswählen.');
   const background = await loadOfficialBlankPage();
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+  await registerPdfFonts(pdf);
 
   for (let index = 0; index < input.sessions.length; index += 1) {
     if (index > 0) pdf.addPage('a4', 'landscape');
@@ -493,7 +552,7 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
     drawAdjustedTable(pdf);
 
     pdf.setTextColor(15, 15, 15);
-    pdf.setFont('helvetica', 'bold');
+    pdf.setFont(PDF_FONT_FAMILY, 'bold');
     drawFittedText(pdf, entry.examFocus, 84.5, 38.1, 132, 4.2, {
       maxFontSize: 9.2,
       minFontSize: 7,
@@ -501,7 +560,7 @@ export async function createTrainingExamPdf(input: TrainingExamPdfInput): Promis
     });
     pdf.setFontSize(9.2);
     pdf.text(String(entry.examNumber || index + 1), 252, 38.1);
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont(PDF_FONT_FAMILY, 'normal');
     drawFittedText(pdf, input.trainerName, 28, 43.6, 70, 4, {
       maxFontSize: 8.5,
       minFontSize: 6.5,
