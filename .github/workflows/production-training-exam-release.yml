@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/production-training-exam-release.yml"
+      - "supabase/migrations/20260905100000_training_exam_pdf_unit_selection.sql"
+      - "supabase/functions/shorten-training-exercise/**"
 
 permissions:
   contents: read
@@ -47,6 +49,7 @@ jobs:
             'supabase/migrations/20260824223000_training_exam_editable_pdf_fields.sql',
             'supabase/migrations/20260825120000_training_exam_phase_text_overrides.sql',
             'supabase/migrations/20260825143000_training_exercise_short_texts.sql',
+            'supabase/migrations/20260905100000_training_exam_pdf_unit_selection.sql',
           ];
 
           async function request(path, options = {}) {
@@ -98,10 +101,17 @@ jobs:
                   WHERE table_schema = 'public'
                     AND table_name = 'training_exam_documentation_items'
                     AND column_name = 'phase_text_overrides'
-                ) AS phase_overrides;
+                ) AS phase_overrides,
+                EXISTS (
+                  SELECT 1 FROM information_schema.columns
+                  WHERE table_schema = 'public'
+                    AND table_name = 'training_exam_documentation_items'
+                    AND column_name = 'included_in_pdf'
+                    AND data_type = 'boolean'
+                ) AS included_in_pdf;
             `);
             const row = verification?.[0] || {};
-            if (!row.exam_docs || !row.exam_items || !row.short_content || !row.phase_overrides) {
+            if (!row.exam_docs || !row.exam_items || !row.short_content || !row.phase_overrides || !row.included_in_pdf) {
               throw new Error(`Migration verification failed: ${JSON.stringify(row)}`);
             }
             console.log('Production training migrations verified.');

@@ -192,7 +192,9 @@ function ScheduleHeroToolbarAction({
   );
 }
 
-export const SchedulePage: React.FC = () => {
+export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
+  managerSimpleMode = false,
+}) => {
   const navigate = useNavigate();
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
@@ -304,16 +306,18 @@ export const SchedulePage: React.FC = () => {
   // /demo/* = interne App-Oberfläche (wie /app), nicht öffentlich.
   const { pathname } = useLocation();
   const forcePublicView =
-    pathname === '/schedule' ||
-    pathname === '/live' ||
-    !(pathname.startsWith('/app') || pathname.startsWith('/demo'));
+    !managerSimpleMode &&
+    (pathname === '/schedule' ||
+      pathname === '/live' ||
+      !(pathname.startsWith('/app') || pathname.startsWith('/demo')));
   const backendRole = isDemo ? 'trainer' : normalizeRole(roleFromHook);
   const uiRoleRaw = forcePublicView ? null : (backendRole ?? null);
   const normalizedUiRole = normalizeRole(uiRoleRaw);
   const uiRole = normalizedUiRole === 'fan' ? null : normalizedUiRole;
   /** Demo: Trainer-Übersicht + eigene Rückmeldung (verknüpfter Demo-Spieler). */
   const canShowRsvpUi =
-    isDemo || ((uiRole === 'parent' || uiRole === 'player') && !isViewOnlyPlayer);
+    !managerSimpleMode &&
+    (isDemo || ((uiRole === 'parent' || uiRole === 'player') && !isViewOnlyPlayer));
   const canManage = forcePublicView || isHistoryReadOnly ? false : canManageMatches(normalizedUiRole);
   /** Admin-Writes in der Demo gesperrt — Anzeige wie Trainer bleibt. */
   const canMutateSchedule = canManage && !isDemo;
@@ -394,7 +398,7 @@ export const SchedulePage: React.FC = () => {
 
   const [kindFilter, setKindFilter] = useState<KindFilterId>(() =>
     readScheduleFilters({
-      kindFilter: normalizedUiRole === 'fan' ? 'match' : 'all',
+      kindFilter: normalizedUiRole === 'fan' && !managerSimpleMode ? 'match' : 'all',
       timeFilter: 'upcoming',
     }).kindFilter,
   );
@@ -992,6 +996,7 @@ export const SchedulePage: React.FC = () => {
             return;
           }
         }
+        closeEditModal();
         await refetch();
         return;
       }
@@ -1001,6 +1006,7 @@ export const SchedulePage: React.FC = () => {
       alert(error);
       return;
     }
+    closeEditModal();
     await refetch();
   };
 
@@ -1291,7 +1297,7 @@ export const SchedulePage: React.FC = () => {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className={dsPageTitleClass()}>
-                    {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
+                    {normalizedUiRole === 'fan' && !managerSimpleMode ? 'Spielplan' : 'Termine'}
                   </h1>
                   {canMutateSchedule ? (
                     <button
@@ -1312,7 +1318,7 @@ export const SchedulePage: React.FC = () => {
                     </button>
                   ) : null}
                 </div>
-                <div className="mt-1.5 flex max-w-full flex-col gap-1.5">
+                <div className={`${managerSimpleMode ? 'hidden' : 'mt-1.5 flex'} max-w-full flex-col gap-1.5`}>
                   {teamSeasons.length > 1 ? (
                     <label className="block min-w-0">
                       <span className="sr-only">Saison anzeigen</span>
@@ -1368,8 +1374,8 @@ export const SchedulePage: React.FC = () => {
                   ) : null}
                 </div>
               </div>
-              <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:justify-end">
-                {!forcePublicView && normalizedUiRole !== 'fan' && !isDemo ? (
+              <div className={`${managerSimpleMode ? 'hidden' : 'flex'} w-full min-w-0 flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:justify-end`}>
+                {!forcePublicView && normalizedUiRole !== 'fan' && !isDemo && !managerSimpleMode ? (
                   <Link
                     to="/app/spielplan"
                     className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] shrink-0 items-center gap-1.5 px-3 text-[12px] no-underline sm:h-10`}
@@ -1405,12 +1411,16 @@ export const SchedulePage: React.FC = () => {
             </div>
           </div>
 
+          {managerSimpleMode && canMutateSchedule ? (
+            <p className="text-[11px] text-white/45">Zum Ändern einen Termin antippen. Mit + legst du einen neuen Termin an.</p>
+          ) : null}
+
           <div
             className="schedule-page__filters flex w-full min-w-0 flex-col gap-1 overflow-x-hidden"
             aria-label="Termine Filter"
           >
             <div className="flex flex-col gap-1">
-              {normalizedUiRole !== 'fan' ? (
+              {normalizedUiRole !== 'fan' && !managerSimpleMode ? (
                 <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS} role="group" aria-label="Terminart">
                   <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
                     {([
@@ -1468,7 +1478,7 @@ export const SchedulePage: React.FC = () => {
 
           {pageLoading && (
             <p className="text-sm text-[var(--muted)]">
-              {normalizedUiRole === 'fan' ? 'Lade Spielplan…' : 'Lade Termine…'}
+              {normalizedUiRole === 'fan' || managerSimpleMode ? 'Lade Spielplan…' : 'Lade Termine…'}
             </p>
           )}
           {error && (
@@ -1479,7 +1489,7 @@ export const SchedulePage: React.FC = () => {
 
           {!pageLoading && !error && (
             <div className="w-full">
-              {activeScheduleLive ? (
+              {activeScheduleLive && !managerSimpleMode ? (
                 <ScheduleActiveLiveCard
                   live={activeScheduleLive}
                   liveHref={`${basePath}/live?matchId=${encodeURIComponent(activeScheduleLive.matchId)}`}
@@ -1559,7 +1569,7 @@ export const SchedulePage: React.FC = () => {
                             }
                           : {};
                         const heroShowsTrainerStats =
-                          !forcePublicView && !isFinishedMatch && canManage;
+                          !forcePublicView && !managerSimpleMode && !isFinishedMatch && canManage;
                         const heroShowsParentPill =
                           !forcePublicView &&
                           !isFinishedMatch &&
@@ -1602,13 +1612,18 @@ export const SchedulePage: React.FC = () => {
                                   }}
                                 />
                               ) : null;
-                        const heroClickable = !forcePublicView && Boolean(ev.id);
+                        const heroClickable = !forcePublicView && Boolean(ev.id) && (!managerSimpleMode || canMutateSchedule);
                         const heroIsLive =
                           ev.status === 'live' || Boolean(matchScore?.liveIsRunning);
                         const heroOnNavigate =
                           forcePublicView || !ev.id
                             ? undefined
                             : (id: string) => {
+                                if (managerSimpleMode) {
+                                  const target = events.find((event) => event.id === id);
+                                  if (target && canMutateSchedule) openEditModal(target);
+                                  return;
+                                }
                                 if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
                                   navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`);
                                   return;
@@ -1617,6 +1632,7 @@ export const SchedulePage: React.FC = () => {
                               };
                         const heroCardFooter = undefined;
                         const heroGoLive =
+                          !managerSimpleMode &&
                           et === 'game' &&
                           ev.match_id &&
                           !forcePublicView &&
@@ -1728,7 +1744,7 @@ export const SchedulePage: React.FC = () => {
                   >
                     {showHeroCard && furtherEvents.length > 0 ? (
                       <h3 className={`mb-2 mt-1 border-t border-white/[0.05] pt-3 ${dsMatchdaySectionLabelClass()} !text-[0.7rem]`}>
-                        {normalizedUiRole === 'fan' ? 'Weitere Spiele' : 'Weitere Termine'}
+                        Weitere Termine
                       </h3>
                     ) : null}
                     {furtherEvents.map((ev) => {
@@ -1757,7 +1773,7 @@ export const SchedulePage: React.FC = () => {
                           : undefined;
                       const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
                       const showCompactTrainerStats =
-                        normalizedUiRole !== 'fan' && !forcePublicView && !isFinishedMatch && canManage;
+                        normalizedUiRole !== 'fan' && !managerSimpleMode && !forcePublicView && !isFinishedMatch && canManage;
                       const showCompactParentPill =
                         normalizedUiRole !== 'fan' &&
                         !forcePublicView &&
@@ -1818,7 +1834,14 @@ export const SchedulePage: React.FC = () => {
                             scoreAway={matchScoreRow?.scoreAway ?? null}
                             periodBracketLine={matchScoreRow?.periodBracket ?? null}
                             forcePublicView={forcePublicView}
-                            onNavigate={(id) => navigate(`${basePath}/events/${id}`)}
+                            onNavigate={(id) => {
+                              if (managerSimpleMode) {
+                                const target = events.find((event) => event.id === id);
+                                if (target && canMutateSchedule) openEditModal(target);
+                                return;
+                              }
+                              navigate(`${basePath}/events/${id}`);
+                            }}
                           />
                         );
                       }
@@ -1832,11 +1855,18 @@ export const SchedulePage: React.FC = () => {
                           parentCompactLayout={showCompactParentPill || showCompactTrainerStats}
                           trailing={compactTrailing}
                           forcePublicView={forcePublicView}
-                          onNavigate={(id) =>
-                            (isFinishedMatch || matchReviewPending) && ev.match_id
-                              ? navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`)
-                              : navigate(`${basePath}/events/${id}`)
-                          }
+                          onNavigate={(id) => {
+                            if (managerSimpleMode) {
+                              const target = events.find((event) => event.id === id);
+                              if (target && canMutateSchedule) openEditModal(target);
+                              return;
+                            }
+                            if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
+                              navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`);
+                            } else {
+                              navigate(`${basePath}/events/${id}`);
+                            }
+                          }}
                           reviewPending={matchReviewPending}
                         />
                       );
@@ -1969,20 +1999,33 @@ export const SchedulePage: React.FC = () => {
             title="Termin bearbeiten"
             onClose={closeEditModal}
             footer={
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={closeEditModal} className="pointer-events-auto touch-manipulation">
-                  Abbrechen
-                </Button>
-                <Button
-                  type="submit"
-                  form="edit-event-form"
-                  variant="primary"
-                  disabled={savingEdit}
-                  className="pointer-events-auto touch-manipulation"
-                  onClick={() => console.debug('[EditModal] save click')}
-                >
-                  {savingEdit ? 'Speichern…' : 'Speichern'}
-                </Button>
+              <div className="flex w-full items-center justify-between gap-2">
+                {managerSimpleMode && editEvent && canMutateSchedule ? (
+                  <Button
+                    type="button"
+                    variant="negative"
+                    disabled={savingEdit}
+                    onClick={() => void handleDelete(editEvent)}
+                    className="pointer-events-auto touch-manipulation"
+                  >
+                    Löschen
+                  </Button>
+                ) : <span />}
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" onClick={closeEditModal} className="pointer-events-auto touch-manipulation">
+                    Abbrechen
+                  </Button>
+                  <Button
+                    type="submit"
+                    form="edit-event-form"
+                    variant="primary"
+                    disabled={savingEdit}
+                    className="pointer-events-auto touch-manipulation"
+                    onClick={() => console.debug('[EditModal] save click')}
+                  >
+                    {savingEdit ? 'Speichern…' : 'Speichern'}
+                  </Button>
+                </div>
               </div>
             }
           >

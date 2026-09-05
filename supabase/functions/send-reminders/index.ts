@@ -294,6 +294,53 @@ function reminderAppDeepLink(kind: string, event: EventRow): string {
   return `/app/events/${event.id}`;
 }
 
+async function filterUnansweredMatchRecipients(
+  supabase: ReturnType<typeof createClient>,
+  event: EventRow,
+  userIds: string[],
+): Promise<string[]> {
+  const { data: attendanceRows, error: attendanceError } = await supabase
+    .from("event_attendance")
+    .select("player_id, status")
+    .eq("event_id", event.id);
+  if (attendanceError) throw attendanceError;
+
+  const answeredPlayerIds = new Set(
+    (attendanceRows ?? [])
+      .filter((row: { status?: string | null }) => row.status === "yes" || row.status === "no")
+      .map((row: { player_id: string }) => row.player_id),
+  );
+
+  const { data: rosterRows, error: rosterError } = await supabase
+    .from("team_season_players")
+    .select("player_id")
+    .eq("team_season_id", event.team_season_id)
+    .is("left_at", null);
+  if (rosterError) throw rosterError;
+  const rosterIds = new Set((rosterRows ?? []).map((row: { player_id: string }) => row.player_id));
+
+  const [{ data: guardianRows, error: guardianError }, { data: playerUserRows, error: playerUserError }] =
+    await Promise.all([
+      supabase.from("player_guardians").select("user_id, player_id").in("user_id", userIds),
+      supabase.from("player_users").select("user_id, player_id").in("user_id", userIds),
+    ]);
+  if (guardianError) throw guardianError;
+  if (playerUserError) throw playerUserError;
+
+  const playersByUser = new Map<string, Set<string>>();
+  for (const row of [...(guardianRows ?? []), ...(playerUserRows ?? [])] as Array<{ user_id: string; player_id: string }>) {
+    if (!rosterIds.has(row.player_id)) continue;
+    const current = playersByUser.get(row.user_id) ?? new Set<string>();
+    current.add(row.player_id);
+    playersByUser.set(row.user_id, current);
+  }
+
+  return userIds.filter((userId) => {
+    const playerIds = [...(playersByUser.get(userId) ?? [])];
+    return playerIds.length > 0 && playerIds.some((playerId) => !answeredPlayerIds.has(playerId));
+  });
+}
+
 function buildReminderUxCopy(
   kind: string,
   event: EventRow,
@@ -312,15 +359,16 @@ function buildReminderUxCopy(
       reminderKey === "match_reminder_2" ||
       reminderKey === "match_second_reminder" ||
       (typeof reminderKey === "string" && reminderKey.includes("second"));
+    const dateStr = formatDateShortDe(event.starts_at);
     const message = isSecond
-      ? `Heute ${timeStr} – Gleich Treffpunkt`
-      : `Heute ${timeStr} – Treffpunkt nicht vergessen`;
+      ? "Deine Rückmeldung fehlt noch. Bitte jetzt verbindlich zu- oder absagen."
+      : `Bitte für das Spiel am ${dateStr || "kommenden Termin"} um ${timeStr} Uhr zu- oder absagen.`;
     return { title, message };
   }
   if (kind === "training") {
     return {
       title: "Training",
-      message: `Heute ${timeStr} – Treffpunkt nicht vergessen`,
+      message: `Heute um ${timeStr} Uhr. Du bist eingeplant – falls du nicht kommen kannst, bitte absagen.`,
     };
   }
   const dateStr = formatDateShortDe(event.starts_at);
@@ -434,13 +482,21 @@ serve(async () => {
           continue;
         }
 
-        const uniqueUserIds = [
+        let uniqueUserIds = [
           ...new Set(
             members
               .map((m: { user_id: string }) => m.user_id)
               .filter((id: string) => !!id),
           ),
         ];
+
+        if (jobKind === "match" && !isMatchday) {
+          uniqueUserIds = await filterUnansweredMatchRecipients(
+            supabase,
+            event as EventRow,
+            uniqueUserIds,
+          );
+        }
 
         let uxTitle: string;
         let uxMessage: string;

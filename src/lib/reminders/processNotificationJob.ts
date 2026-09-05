@@ -8,6 +8,8 @@ import {
 } from '../../../lib/notificationDispatchHandler';
 import type { NotificationJobPayload, NotificationJobRow, ReminderJobKind } from './types';
 import { buildReminderUxCopy, reminderAppDeepLink } from './reminderUxCopy';
+import { hasUserResponded } from '../notifications/hasUserResponded';
+import { getCanonicalEventType } from '../notifications/eventTypes';
 import { isSeasonArchived } from '../seasonLifecycle';
 
 async function isEventTeamSeasonArchived(
@@ -141,6 +143,7 @@ async function processMatchdayNotificationJob(
   }
 
   recipients = dedupeRecipientUserIds(recipients);
+
   const dispatchLogReminderKey = `matchday_auto:${job.id}`;
 
   if (recipients.length === 0) {
@@ -297,6 +300,28 @@ export async function processNotificationJob(
 
   const recipientCountBeforeDedupe = recipients.length;
   recipients = dedupeRecipientUserIds(recipients);
+
+  // Spiele sind opt-in: Nur Eltern/Spieler mit mindestens einer noch offenen
+  // Zu-/Absage erinnern. Nutzer ohne Spielerzuordnung (z. B. Trainer) erhalten
+  // keine Abstimmungsaufforderung. Bei einem Prüf-Fehler wird bewusst nicht
+  // breit versendet, damit bereits abgestimmte Familien nicht erneut erinnert werden.
+  if (getCanonicalEventType(ev) === 'game') {
+    const unansweredRecipients: string[] = [];
+    for (const userId of recipients) {
+      try {
+        const answered = await hasUserResponded(admin, userId, job.event_id);
+        if (!answered) unansweredRecipients.push(userId);
+      } catch (error: unknown) {
+        console.warn('[reminderPipeline] match RSVP recipient check failed', {
+          jobId: job.id,
+          eventId: job.event_id,
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    recipients = unansweredRecipients;
+  }
   console.log('[notificationsDedup] job recipients', {
     jobId: job.id,
     eventId: job.event_id,

@@ -1,0 +1,114 @@
+name: Production reminder release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-reminder-release.yml"
+      - "supabase/migrations/20260904113000_training_1100_match_rsvp_reminders.sql"
+      - "supabase/functions/send-reminders/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-reminder-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Migrate and deploy reminder features
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: shxugattqatahckhspwk
+      EXPECTED_PROJECT_NAME: spielzeitapp-nsg
+    steps:
+      - name: Checkout production
+        uses: actions/checkout@v4
+
+      - name: Verify production project and apply migration
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const base = 'https://api.supabase.com/v1';
+          const migrationFile = 'supabase/migrations/20260904113000_training_1100_match_rsvp_reminders.sql';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body.slice(0, 500)}`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+
+            await query(fs.readFileSync(migrationFile, 'utf8'));
+            const verification = await query(`
+              SELECT
+                EXISTS (
+                  SELECT 1 FROM pg_proc p
+                  JOIN pg_namespace n ON n.oid = p.pronamespace
+                  WHERE n.nspname = 'public'
+                    AND p.proname = 'normalize_standard_event_reminder_jobs'
+                ) AS normalize_function,
+                EXISTS (
+                  SELECT 1 FROM pg_trigger
+                  WHERE tgname = 'zz_events_normalize_standard_reminders'
+                    AND NOT tgisinternal
+                ) AS normalize_trigger,
+                (
+                  SELECT column_default = '2880'
+                  FROM information_schema.columns
+                  WHERE table_schema = 'public'
+                    AND table_name = 'team_notification_settings'
+                    AND column_name = 'match_reminder_minutes_before'
+                ) AS match_default;
+            `);
+            const row = verification?.[0] || {};
+            if (!row.normalize_function || !row.normalize_trigger || !row.match_default) {
+              throw new Error('Production reminder migration verification failed.');
+            }
+            console.log('Production reminder migration verified.');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Deploy reminder function
+        shell: bash
+        run: |
+          npx --yes supabase@2.16.0 functions deploy send-reminders \
+            --project-ref "$SUPABASE_PROJECT_REF"

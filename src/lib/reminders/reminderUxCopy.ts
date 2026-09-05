@@ -24,6 +24,7 @@ export function buildReminderUxCopy(
   const meetOrStart =
     ev.meeting_at && String(ev.meeting_at).trim() ? ev.meeting_at : ev.starts_at;
   const timeStr = formatEventTimeVienna(meetOrStart);
+  const dateStr = formatEventDateVienna(ev.starts_at);
 
   if (kind === 'match') {
     const opp = (ev.opponent ?? '').trim();
@@ -34,19 +35,18 @@ export function buildReminderUxCopy(
       reminderKey === 'match_second_reminder' ||
       (typeof reminderKey === 'string' && reminderKey.includes('second'));
     const message = isSecond
-      ? `Heute ${timeStr} – Gleich Treffpunkt`
-      : `Heute ${timeStr} – Treffpunkt nicht vergessen`;
+      ? `Deine Rückmeldung fehlt noch. Bitte jetzt verbindlich zu- oder absagen.`
+      : `Bitte für das Spiel am ${dateStr || 'kommenden Termin'} um ${timeStr} Uhr zu- oder absagen.`;
     return { title, message };
   }
 
   if (kind === 'training') {
     return {
       title: 'Training',
-      message: `Heute ${timeStr} – Treffpunkt nicht vergessen`,
+      message: `Heute um ${timeStr} Uhr. Du bist eingeplant – falls du nicht kommen kannst, bitte absagen.`,
     };
   }
 
-  const dateStr = formatEventDateVienna(ev.starts_at);
   const startTime = formatEventTimeVienna(ev.starts_at);
   return {
     title: 'Termin',

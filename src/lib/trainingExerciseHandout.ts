@@ -2,6 +2,7 @@ import type { TrainingExerciseRow } from './trainingExercises';
 import { formatPlayerCountRange } from './trainingExercises';
 import { EXERCISE_FOCUS_LABELS } from './trainingPhases';
 import { createTrainingExercisePdfPayload } from './trainingExercisePdfPayload';
+import { resolveTrainingExerciseShortText } from './trainingExerciseShortText';
 
 type TrainingExerciseHandoutInput = {
   exercise: TrainingExerciseRow;
@@ -21,14 +22,6 @@ function escapeHtml(value: unknown): string {
 
 function clean(value: string | null | undefined): string {
   return String(value ?? '').replace(/\r\n?/g, '\n').trim();
-}
-
-function withoutVideoUrls(value: string | null | undefined): string {
-  return clean(value)
-    .split('\n')
-    .map((line) => line.replace(/(?:video\s*:\s*)?https?:\/\/\S+/gi, '').trim())
-    .filter(Boolean)
-    .join('\n');
 }
 
 function extractVideoUrls(...values: Array<string | null | undefined>): string[] {
@@ -66,6 +59,16 @@ function videoCard(urls: string[]): string {
 
 export function createTrainingExerciseHandoutHtml(input: TrainingExerciseHandoutInput): string {
   const { exercise } = input;
+  const shortText = resolveTrainingExerciseShortText({
+    description: exercise.description,
+    organization: exercise.organization,
+    materials: exercise.materials,
+    coachingPoints: exercise.coaching_points,
+    variations: exercise.variations,
+    shortContent: exercise.short_content,
+    shortMaterials: exercise.short_materials,
+    shortCoaching: exercise.short_coaching,
+  });
   const players = formatPlayerCountRange(exercise.player_count_min, exercise.player_count_max);
   const phases = exercise.suitable_phases.join(' · ');
   const focus = EXERCISE_FOCUS_LABELS[exercise.focus] ?? exercise.focus;
@@ -143,15 +146,12 @@ export function createTrainingExerciseHandoutHtml(input: TrainingExerciseHandout
     </div>
     <div class="content">
       <div class="column">
-        ${detailCard('Kurzbeschreibung', exercise.organization ? null : exercise.description)}
-        ${detailCard('Organisation & Aufbau', exercise.organization)}
-        ${detailCard('Ablauf', exercise.organization ? exercise.description : null)}
-        ${detailCard('Variationen', withoutVideoUrls(exercise.variations))}
+        ${detailCard('Inhalte: Aufbau, Ablauf & Variationen', shortText.content)}
       </div>
       <div class="column secondary">
         ${detailCard('Schwerpunkt', focus, 'focus')}
-        ${detailCard('Material', exercise.materials)}
-        ${detailCard('Coachingpunkte', exercise.coaching_points)}
+        ${detailCard('Material', shortText.materials)}
+        ${detailCard('Coachingpunkte', shortText.coaching)}
         ${videoCard(videoUrls)}
       </div>
     </div>

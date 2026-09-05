@@ -2,8 +2,7 @@ import { jsPDF } from 'jspdf';
 import type { TrainingExerciseRow } from './trainingExercises';
 import type { TrainingSessionExerciseRow, TrainingSessionRow } from './trainingSessions';
 import type { TrainingPhase } from './trainingPhases';
-import type { TrainingExamPhaseTextOverrides } from './trainingExamDocumentation';
-import { createTrainingExerciseOriginalText, resolveTrainingExerciseShortText } from './trainingExerciseShortText';
+import { resolveTrainingExerciseShortText } from './trainingExerciseShortText';
 
 export type TrainingExamPdfSession = {
   session: TrainingSessionRow;
@@ -15,7 +14,6 @@ export type TrainingExamPdfSession = {
   examTeamName: string;
   examDateIso: string | null;
   examNumber: number;
-  phaseTextOverrides?: TrainingExamPhaseTextOverrides;
 };
 
 export type TrainingExamPdfInput = {
@@ -371,9 +369,6 @@ async function drawPhase(
   const detailParts: string[] = [];
   const materialParts: string[] = [];
   const coachingParts: string[] = [];
-  const originalDetailParts: string[] = [];
-  const originalMaterialParts: string[] = [];
-  const originalCoachingParts: string[] = [];
   for (const item of items) {
     const exercise = entry.exerciseMap[item.exercise_id] ?? item.exercise ?? null;
     if (!exercise) continue;
@@ -387,43 +382,19 @@ async function drawPhase(
       shortMaterials: exercise.short_materials,
       shortCoaching: exercise.short_coaching,
     });
-    const originalText = createTrainingExerciseOriginalText({
-      description: exercise.description,
-      organization: exercise.organization,
-      materials: exercise.materials,
-      coachingPoints: exercise.coaching_points,
-      variations: exercise.variations,
-    });
     titleParts.push(clean(exercise.title));
     if (shortText.content) detailParts.push(shortText.content);
     if (shortText.materials) materialParts.push(shortText.materials);
     if (shortText.coaching) coachingParts.push(withoutVideoLines(shortText.coaching));
-    if (originalText.content) originalDetailParts.push(originalText.content);
-    if (originalText.materials) originalMaterialParts.push(originalText.materials);
-    if (originalText.coaching) originalCoachingParts.push(withoutVideoLines(originalText.coaching));
   }
 
-  const override = entry.phaseTextOverrides?.[phase];
-  // Missing mode is intentionally the original. A short version is only used
-  // after the trainer explicitly selects it for this phase.
-  const useOriginal = override?.useOriginal !== false;
-  const contentText = withoutContentBullets(
-    useOriginal
-      ? originalDetailParts.join('\n\n')
-      : typeof override?.content === 'string'
-        ? override.content
-        : detailParts.join('\n\n'),
-  );
-  const materialsText = useOriginal
-    ? originalMaterialParts.join('\n')
-    : typeof override?.materials === 'string'
-      ? override.materials
-      : materialParts.join('\n');
-  const coachingText = useOriginal
-    ? originalCoachingParts.join('\n\n')
-    : typeof override?.coaching === 'string'
-      ? override.coaching
-      : coachingParts.join('\n\n');
+  // Die freigegebene Kurzfassung der Übung ist die einzige gemeinsame Quelle
+  // für Trainerprüfung, Handouts und Bibliothek. Alte prüfungsspezifische
+  // Overrides bleiben aus Kompatibilitätsgründen gespeichert, werden aber für
+  // neue Exporte nicht mehr verwendet.
+  const contentText = withoutContentBullets(detailParts.join('\n\n'));
+  const materialsText = materialParts.join('\n');
+  const coachingText = coachingParts.join('\n\n');
 
   drawPhaseLabel(pdf, phase, CONTENT_X + 1.3, top + 3.1);
   pdf.setTextColor(20, 20, 20);
@@ -478,8 +449,8 @@ async function drawPhase(
       coachingMetrics.truncated ? 'Coachingpunkte' : '',
     ].filter(Boolean).join(', ');
     throw new Error(
-      `${useOriginal ? 'Der Originaltext' : 'Die Kurzfassung'} für ${phase} ist in ${fields} zu lang für die offizielle PDF-Vorlage. `
-      + `${useOriginal ? `Wähle für ${phase} bewusst „Kurzfassung“ oder kürze den Originaltext in der Übung.` : 'Kürze den markierten Text vollständig; die PDF schneidet niemals mitten im Satz ab.'}`,
+      `Die gemeinsame Kurzfassung für ${phase} ist in ${fields} zu lang für die offizielle PDF-Vorlage. `
+      + 'Kürze sie in der Übung; die Änderung gilt danach auch für Bibliothek und Handouts. Die PDF schneidet niemals mitten im Satz ab.',
     );
   }
 
