@@ -1535,6 +1535,12 @@ export const LiveMatchScreen: React.FC = () => {
     return () => document.body.removeAttribute('data-live-edit-dialog-open');
   }, [liveEditDialogOpen]);
 
+  const liveWorkflowOpen = wechselSheetOpen || formationSheetOpen || posSwapConfirmOpen;
+  useEffect(() => {
+    document.body.toggleAttribute('data-live-workflow-open', liveWorkflowOpen);
+    return () => document.body.removeAttribute('data-live-workflow-open');
+  }, [liveWorkflowOpen]);
+
   const [pauseConfirmOpen, setPauseConfirmOpen] = useState(false);
   const [pauseConfirmSaving, setPauseConfirmSaving] = useState(false);
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
