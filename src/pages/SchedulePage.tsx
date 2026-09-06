@@ -1031,6 +1031,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     });
 
     const sorted = [...base].sort((a, b) => {
+      // Im Reiter „Vergangene“ steht das zuletzt gespielte Match/der letzte Termin oben.
+      if (timeFilter === 'past') {
+        return (b.starts_at ?? '').localeCompare(a.starts_at ?? '');
+      }
       const reviewA =
         a.match_id &&
         isMatchReviewPending({ eventStatus: a.status, matchStatus: matchStatusById[a.match_id] });
