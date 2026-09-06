@@ -1412,7 +1412,7 @@ export const LiveMatchScreen: React.FC = () => {
   }, [canControlLiveMatch, mainTab]);
 
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
-  const [subSheetView, setSubSheetView] = useState<'list' | 'pitch'>('list');
+  const [subSheetView, setSubSheetView] = useState<'list' | 'pitch'>('pitch');
   const [subOutPlayerId, setSubOutPlayerId] = useState<string | null>(null);
   const [subInPlayerId, setSubInPlayerId] = useState<string | null>(null);
   const [subSaving, setSubSaving] = useState(false);
@@ -1436,7 +1436,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [fairPlayRemoveSaving, setFairPlayRemoveSaving] = useState(false);
   const closeWechselSheet = useCallback(() => {
     setWechselSheetOpen(false);
-    setSubSheetView('list');
+    setSubSheetView('pitch');
     setSubOutPlayerId(null);
     setSubInPlayerId(null);
     setSubSaving(false);
@@ -1452,7 +1452,7 @@ export const LiveMatchScreen: React.FC = () => {
     setSubOutPlayerId(null);
     setSubInPlayerId(null);
     setSubSaving(false);
-    setSubSheetView('list');
+    setSubSheetView('pitch');
     setSubRecommendedOutId(null);
     setSubRecommendedInId(null);
     setLineupPositionMode(false);
@@ -1491,8 +1491,8 @@ export const LiveMatchScreen: React.FC = () => {
     setLineupPositionMode(false);
   }, []);
   useEffect(() => {
-    if (formationSheetOpen && mainTab !== 'lineup') closeFormationSheet();
-  }, [formationSheetOpen, mainTab, closeFormationSheet]);
+    if (formationSheetOpen && mainTab !== 'lineup' && !wechselSheetOpen) closeFormationSheet();
+  }, [formationSheetOpen, mainTab, wechselSheetOpen, closeFormationSheet]);
 
   useEffect(() => {
     if (mainTab !== 'lineup' && lineupPanelView !== 'live') setLineupPanelView('live');
@@ -6019,37 +6019,66 @@ export const LiveMatchScreen: React.FC = () => {
                 Wechsel
               </h3>
               <div
-                className={`${dsSegmentTrackClass()} h-8 min-h-8 max-w-[14rem] flex-1 sm:max-w-[14rem]`}
+                className={`${dsSegmentTrackClass()} h-8 min-h-8 max-w-[16rem] flex-1 sm:max-w-[16rem]`}
                 role="tablist"
-                aria-label="Ansicht"
+                aria-label="Aktion"
               >
                 <button
                   type="button"
                   role="tab"
-                  aria-selected={subSheetView === 'list'}
-                  onClick={() => setSubSheetView('list')}
-                  className={`${dsSegmentTabClass(subSheetView === 'list')} min-h-7 text-[10px] font-bold sm:text-[11px]`}
+                  aria-selected={!lineupPositionMode}
+                  onClick={() => {
+                    setLineupPositionMode(false);
+                    setSubSheetView('pitch');
+                  }}
+                  className={`${dsSegmentTabClass(!lineupPositionMode)} min-h-7 text-[10px] font-bold sm:text-[11px]`}
                 >
-                  Liste
+                  Wechsel
                 </button>
                 <button
                   type="button"
                   role="tab"
-                  aria-selected={subSheetView === 'pitch'}
-                  onClick={() => setSubSheetView('pitch')}
-                  className={`${dsSegmentTabClass(subSheetView === 'pitch')} min-h-7 text-[10px] font-bold sm:text-[11px]`}
+                  aria-selected={false}
+                  onClick={() => {
+                    setLineupPositionMode(false);
+                    setFormationSheetOpen(true);
+                  }}
+                  className={`${dsSegmentTabClass(false)} min-h-7 text-[10px] font-bold sm:text-[11px]`}
                 >
-                  Spielfeld
+                  Formation
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={lineupPositionMode}
+                  onClick={() => {
+                    setSubSheetView('pitch');
+                    setLineupPositionMode(true);
+                  }}
+                  className={`${dsSegmentTabClass(lineupPositionMode)} min-h-7 text-[10px] font-bold sm:text-[11px]`}
+                >
+                  POS
                 </button>
               </div>
             </div>
 
-            <div className="border-b border-white/[0.07] px-2 py-0.5">
-              <p className="truncate text-[10px] font-semibold leading-snug text-emerald-200/95">
-                {wechselSheetPickLabels.outLabel || wechselSheetPickLabels.inLabel
-                  ? `Raus ${wechselSheetPickLabels.outLabel || '…'} → Rein ${wechselSheetPickLabels.inLabel || '…'}`
-                  : 'Schritt 1: Raus wählen · Schritt 2: Rein wählen'}
+            <div className="flex items-center gap-2 border-b border-white/[0.07] px-2 py-0.5">
+              <p className={`min-w-0 flex-1 truncate text-[10px] font-semibold leading-snug ${lineupPositionMode ? 'text-amber-200/95' : 'text-emerald-200/95'}`}>
+                {lineupPositionMode
+                  ? '2 Spieler am Feld antippen und Position tauschen'
+                  : wechselSheetPickLabels.outLabel || wechselSheetPickLabels.inLabel
+                    ? `Raus ${wechselSheetPickLabels.outLabel || '…'} → Rein ${wechselSheetPickLabels.inLabel || '…'}`
+                    : 'Schritt 1: Raus wählen · Schritt 2: Rein wählen'}
               </p>
+              {!lineupPositionMode ? (
+                <button
+                  type="button"
+                  onClick={() => setSubSheetView((view) => (view === 'pitch' ? 'list' : 'pitch'))}
+                  className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-bold text-white/65"
+                >
+                  {subSheetView === 'pitch' ? 'Liste' : 'Spielfeld'}
+                </button>
+              ) : null}
             </div>
             </div>
 
@@ -6061,7 +6090,7 @@ export const LiveMatchScreen: React.FC = () => {
                   : 'overflow-hidden',
               ].join(' ')}
             >
-              {subSheetView === 'list' ? (
+              {subSheetView === 'list' && !lineupPositionMode ? (
                 <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden sm:gap-2">
                   <div className={`flex min-h-0 flex-1 flex-col gap-1 ${dsWechselColumnAmbientClass('out')}`}>
                     <p className="shrink-0 px-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/90">Raus · Feld · inkl. TW</p>
@@ -6215,6 +6244,10 @@ export const LiveMatchScreen: React.FC = () => {
                           slots={(safeLineupSlots ?? {}) as Record<FieldSlotId, string | null>}
                           interactive
                           onSlotTap={(slot) => {
+                            if (lineupPositionMode) {
+                              handleLineupPositionSlotTap(slot);
+                              return;
+                            }
                             const raw =
                               safeLineupSlots && typeof safeLineupSlots === 'object'
                                 ? (safeLineupSlots as Record<FieldSlotId, string | null>)[slot]
@@ -6222,7 +6255,7 @@ export const LiveMatchScreen: React.FC = () => {
                             const pid = String(raw ?? '').trim();
                             if (pid) setSubOutPlayerId(pid);
                           }}
-                          slotHighlightBySlot={wechselPitchSlotHighlight}
+                          slotHighlightBySlot={lineupPositionMode ? mainLineupPitchSlotHighlight : wechselPitchSlotHighlight}
                           emphasizedPlayerId={null}
                           renderSlotContent={({ slot: _slot, label, playerId, isGk }) => {
                             if (!playerId) return null;
@@ -6318,7 +6351,7 @@ export const LiveMatchScreen: React.FC = () => {
                       })()}
                     </div>
                   ) : null}
-                  <section
+                  {!lineupPositionMode ? <section
                     className="border-t border-white/[0.08] pt-1 transition-opacity duration-200"
                     style={{ paddingBottom: WECHSEL_PITCH_TAB_SCROLL_BOTTOM_PAD }}
                   >
@@ -6377,7 +6410,7 @@ export const LiveMatchScreen: React.FC = () => {
                             </div>
                           </div>
                         )}
-                  </section>
+                  </section> : null}
                 </>
               )}
             </div>
@@ -6395,7 +6428,7 @@ export const LiveMatchScreen: React.FC = () => {
                 >
                   Zurück zum Livespiel
                 </button>
-                <button
+                {!lineupPositionMode ? <button
                   type="button"
                   disabled={
                     subSaving ||
@@ -6418,7 +6451,7 @@ export const LiveMatchScreen: React.FC = () => {
                           return s.length <= 30 ? s : 'Wechsel bestätigen';
                         })()
                       : 'Wechsel bestätigen'}
-                </button>
+                </button> : null}
               </div>
             </footer>
           </div>
