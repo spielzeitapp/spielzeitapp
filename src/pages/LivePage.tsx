@@ -247,7 +247,15 @@ export const LivePage: React.FC = () => {
   }
 
   if (rows.length === 1) {
-    return <LiveMatchScreen />;
+    // Die Match-ID dauerhaft in der URL halten. Ohne sticky matchId würde ein erneuter
+    // Tap auf den Live-Tab erst den Match-Center laden und den LiveMatchScreen neu
+    // mounten; offene Wechsel-/Positionsansichten gingen dabei verloren.
+    return (
+      <Navigate
+        to={`${basePath}/live?matchId=${encodeURIComponent(String(rows[0]!.id))}`}
+        replace
+      />
+    );
   }
 
   return (

@@ -166,6 +166,9 @@ export const BottomNav: React.FC = () => {
   const liveActiveForNav = isDemo ? Boolean(demoLiveActive) : hasLiveMatch;
 
   const handleLiveTabReclick = () => {
+    // Während eines Trainer-Workflows darf ein versehentlicher Tap durch das
+    // darüberliegende Sheet die komplette Live-Route nicht neu öffnen/resetten.
+    if (document.body.hasAttribute('data-live-workflow-open')) return;
     if (isDemo) {
       window.dispatchEvent(new CustomEvent(LIVE_NAV_RESET_EVENT));
       navigate('/demo/live');
