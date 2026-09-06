@@ -92,13 +92,19 @@ import {
   type DsChipTone,
 } from '../lib/premiumDesignSystem';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
-import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
+import { fetchKickoffLineupPlayerIds, fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { MinimumPlaytimeMatchSettings } from '../components/live/MinimumPlaytimeMatchSettings';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
   DEFAULT_PLANNED_MATCH_MINUTES,
 } from '../lib/minimumPlaytime';
-import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
+import {
+  buildPauseDelimitedPeriodScoreLine,
+  computePlayerPlaytimeFromEvents,
+  resolveReplayAtMatchSecond,
+  statsMatchEventRowToEngine,
+  type MatchEngineEvent,
+} from '../lib/matchEngine';
 import {
   countStadiumGoalsFromMatchEventRows,
   debugAssertMatchEventDbType,
@@ -456,6 +462,8 @@ export const EventDetailPage: React.FC = () => {
     score_away: number | null;
     location: string | null;
     period_scores: unknown | null;
+    live_elapsed_seconds: number | null;
+    planned_match_minutes: number | null;
   } | null>(null);
   const [matchEvents, setMatchEvents] = useState<MatchEventRow[]>([]);
   const [matchLoading, setMatchLoading] = useState(false);
@@ -474,6 +482,7 @@ export const EventDetailPage: React.FC = () => {
   const [editSwitchInPlayerId, setEditSwitchInPlayerId] = useState('');
   const [lineupRows, setLineupRows] = useState<Array<{ player_id: string | null; slot: string | null }>>([]);
   const [benchRows, setBenchRows] = useState<Array<{ player_id: string | null }>>([]);
+  const [kickoffPlayerIds, setKickoffPlayerIds] = useState<string[]>([]);
   const [lineupLoading, setLineupLoading] = useState(false);
   const [lineupError, setLineupError] = useState<string | null>(null);
   const [p1h, setP1h] = useState('');
@@ -703,6 +712,8 @@ export const EventDetailPage: React.FC = () => {
           score_away: lite?.score_away ?? null,
           location: event.location,
           period_scores: null,
+          live_elapsed_seconds: null,
+          planned_match_minutes: null,
         });
         // DEMO.2F: Ticker-Ereignisse der lokalen Live-Session (leer für Katalog-Spiele)
         setMatchEvents(getDemoLiveEventRows(event.match_id));
@@ -736,6 +747,8 @@ export const EventDetailPage: React.FC = () => {
               score_away: row.score_away ?? null,
               location: row.location ?? null,
               period_scores: row.period_scores ?? null,
+              live_elapsed_seconds: row.live_elapsed_seconds ?? null,
+              planned_match_minutes: row.planned_match_minutes ?? null,
             }
           : null,
       );
@@ -791,9 +804,10 @@ export const EventDetailPage: React.FC = () => {
     setLineupLoading(true);
     setLineupError(null);
     (async () => {
-      const [lineupRes, benchRes] = await Promise.all([
+      const [lineupRes, benchRes, kickoffIds] = await Promise.all([
         supabase.from('match_lineup').select('player_id, slot').eq('match_id', event.match_id!),
         supabase.from('match_bench').select('player_id').eq('match_id', event.match_id!),
+        fetchKickoffLineupPlayerIds(event.match_id!),
       ]);
       if (cancelled) return;
       if (lineupRes.error) {
@@ -812,6 +826,7 @@ export const EventDetailPage: React.FC = () => {
       }
       setLineupRows((lineupRes.data ?? []) as Array<{ player_id: string | null; slot: string | null }>);
       setBenchRows((benchRes.data ?? []) as Array<{ player_id: string | null }>);
+      setKickoffPlayerIds(kickoffIds ?? []);
       setLineupLoading(false);
     })();
     return () => {
@@ -1941,6 +1956,37 @@ export const EventDetailPage: React.FC = () => {
     };
 
     const timelineEvents = [...matchEvents].sort(compareFinishedMatchEventsChrono);
+    const playtimeEngineEvents = timelineEvents
+      .map((row) => statsMatchEventRowToEngine(row))
+      .filter((row): row is MatchEngineEvent => row !== null);
+    const playtimeFinalSecond = resolveReplayAtMatchSecond(
+      playtimeEngineEvents,
+      matchRowLite?.live_elapsed_seconds,
+    );
+    const playtimeStartingIds = kickoffPlayerIds.length > 0
+      ? kickoffPlayerIds
+      : lineupRows.map((row) => row.player_id).filter((id): id is string => Boolean(id));
+    const playtimeSecondsByPlayerId = computePlayerPlaytimeFromEvents({
+      kickoffStartingPlayerIds: playtimeStartingIds,
+      fallbackStartingPlayerIds: playtimeStartingIds,
+      squadPlayerIds: [...squadPlayerIds],
+      events: playtimeEngineEvents,
+      finalMatchSecond: playtimeFinalSecond,
+    });
+    const playtimeRows = [...squadPlayerIds]
+      .map((id) => {
+        const player = players.find((candidate) => candidate.id === id);
+        return {
+          id,
+          name: (player?.display_name ?? player?.name ?? 'Spieler').trim(),
+          jerseyNumber: player?.jersey_number ?? null,
+          avatarUrl: player?.avatar_url ?? null,
+          position: player?.position ?? null,
+          seconds: Math.max(0, playtimeSecondsByPlayerId[id] ?? 0),
+        };
+      })
+      .sort((a, b) => b.seconds - a.seconds || a.name.localeCompare(b.name, 'de'));
+    const playedMatchMinutes = playtimeFinalSecond > 0 ? Math.max(1, Math.ceil(playtimeFinalSecond / 60)) : 0;
     const periodLineFromInputs =
       p1h !== '' && p1a !== '' && p2h !== '' && p2a !== '' && p3h !== '' && p3a !== ''
         ? `(${p1h}:${p1a} | ${p2h}:${p2a} | ${p3h}:${p3a})`
@@ -2485,15 +2531,15 @@ export const EventDetailPage: React.FC = () => {
     };
 
     return (
-      <div className="min-h-screen text-white [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_55%,rgba(10,0,0,0.99)_100%)]">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
+      <div className="min-h-screen text-white [background:radial-gradient(circle_at_50%_0%,rgba(127,18,25,0.26),transparent_34%),linear-gradient(180deg,#090707_0%,#170304_48%,#090000_100%)]">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 overflow-x-hidden px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
           <div className="flex flex-col gap-2">
             <Link to={`${basePath}/termine`} className="text-[14px] text-white/80 hover:text-white">
               ← Zurück zum Spielplan
             </Link>
           </div>
 
-          <div className="mb-1 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full">
+          <div className="mb-1 w-full min-w-0">
             <section className="mb-1 w-full pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
               <div className="mb-1.5 flex items-start justify-between gap-2 px-0.5">
                 <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/90">Spielbericht</h2>
@@ -2513,13 +2559,13 @@ export const EventDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="relative w-full overflow-hidden rounded-[2rem] border border-red-500/30 bg-black shadow-[0_0_40px_rgba(255,0,0,0.25)]">
+              <div className="relative w-full min-w-0 overflow-hidden rounded-[1.75rem] border border-red-500/30 bg-black shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_32px_rgba(220,38,38,0.16)]">
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#000000] via-[#100304] to-[#050505]" />
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.04),transparent_42%),radial-gradient(ellipse_at_bottom,rgba(150,18,24,0.09),transparent_58%)]" />
                 <div className="pointer-events-none absolute inset-0 opacity-60 [background:linear-gradient(180deg,rgba(0,0,0,0.28)_0%,rgba(0,0,0,0.6)_46%,rgba(0,0,0,0.9)_100%)]" />
 
                 <div className="relative z-10 px-3 py-1.5 sm:px-4 sm:py-2">
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-2">
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(5.5rem,auto)_minmax(0,1fr)] items-start gap-x-1.5">
                     <div className="flex min-w-0 flex-col items-center text-center">
                       <img
                         src={homeLogoSrc}
@@ -2534,7 +2580,7 @@ export const EventDetailPage: React.FC = () => {
                       <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                         {homeSplit.prefix || ' '}
                       </p>
-                      <p className="mt-0.5 line-clamp-2 min-w-0 max-w-[8.5rem] text-center text-[14px] font-semibold leading-[1.25] text-white break-normal hyphens-none [overflow-wrap:normal] sm:max-w-[10rem] sm:text-[15px]">
+                      <p className="mt-0.5 w-full min-w-0 text-center text-[13px] font-semibold leading-[1.2] text-white break-words sm:text-[15px]">
                         {homeSplit.name || homeTeamName}
                       </p>
                     </div>
@@ -2550,7 +2596,6 @@ export const EventDetailPage: React.FC = () => {
                       {savedOrEngineBracket ? (
                         <p className="mt-0 text-[11px] tabular-nums leading-tight text-white/58">{savedOrEngineBracket}</p>
                       ) : null}
-                      {venue ? <p className="mt-0.5 line-clamp-2 text-center text-[0.9rem] leading-snug text-white/65">{venue}</p> : null}
                       {homeAway ? (
                         <span
                           className={`mt-0.5 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
@@ -2578,11 +2623,17 @@ export const EventDetailPage: React.FC = () => {
                       <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                         {awaySplit.prefix || ' '}
                       </p>
-                      <p className="mt-0.5 line-clamp-2 min-w-0 max-w-[8.5rem] text-center text-[14px] font-semibold leading-[1.25] text-white break-normal hyphens-none [overflow-wrap:normal] sm:max-w-[10rem] sm:text-[15px]">
+                      <p className="mt-0.5 w-full min-w-0 text-center text-[13px] font-semibold leading-[1.2] text-white break-words sm:text-[15px]">
                         {awaySplit.name || awayTeamName}
                       </p>
                     </div>
                   </div>
+                  {venue ? (
+                    <div className="mt-2 flex items-center justify-center gap-1.5 border-t border-white/[0.07] pt-2 text-center text-[12px] text-white/55">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-red-300/70" aria-hidden />
+                      <span className="min-w-0 truncate">{venue}</span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -2751,8 +2802,8 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
 
           {finishedTab === 'stats' ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Stats</p>
+            <div className="rounded-[1.5rem] border border-red-500/20 bg-black/55 p-4 text-white/75 shadow-[0_16px_38px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <p className="text-[12px] font-black uppercase tracking-[0.2em] text-red-300/85">Spielstatistik</p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[14px]">
                 <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Tore Heim</p>
@@ -2781,6 +2832,62 @@ export const EventDetailPage: React.FC = () => {
                   </p>
                 </div>
               </div>
+
+              <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.055] to-transparent">
+                <div className="flex items-end justify-between gap-3 border-b border-white/[0.08] px-3.5 py-3">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/90">Einsatzminuten</p>
+                    <p className="mt-0.5 text-[11px] text-white/45">Startaufstellung und alle Wechsel</p>
+                  </div>
+                  {playedMatchMinutes > 0 ? (
+                    <span className="shrink-0 rounded-full border border-red-400/25 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold tabular-nums text-red-100">
+                      {playedMatchMinutes} Min. Spielzeit
+                    </span>
+                  ) : null}
+                </div>
+
+                {playtimeRows.length === 0 || playedMatchMinutes === 0 ? (
+                  <p className="px-3.5 py-4 text-[13px] leading-relaxed text-white/55">
+                    Für dieses Spiel sind keine vollständigen Live-Spielzeiten gespeichert.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-white/[0.065]">
+                    {playtimeRows.map((row) => {
+                      const minutes = Math.min(playedMatchMinutes, Math.max(0, Math.round(row.seconds / 60)));
+                      const share = playedMatchMinutes > 0 ? Math.min(100, (minutes / playedMatchMinutes) * 100) : 0;
+                      return (
+                        <li key={row.id} className="px-3 py-2.5">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-black/55 text-[12px] font-black text-white/80">
+                              {row.avatarUrl ? (
+                                <img src={row.avatarUrl} alt="" className="h-full w-full object-cover" />
+                              ) : row.jerseyNumber != null ? (
+                                row.jerseyNumber
+                              ) : (
+                                row.name.slice(0, 1).toUpperCase()
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center justify-between gap-3">
+                                <p className="min-w-0 truncate text-[13px] font-semibold text-white/90">{row.name}</p>
+                                <p className="shrink-0 text-[15px] font-black tabular-nums text-white">
+                                  {minutes} <span className="text-[10px] font-bold uppercase text-white/45">Min.</span>
+                                </p>
+                              </div>
+                              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-red-700 via-red-500 to-red-300 shadow-[0_0_8px_rgba(239,68,68,0.42)]"
+                                  style={{ width: `${share}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
             </div>
           ) : null}
 
