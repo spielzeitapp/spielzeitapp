@@ -592,7 +592,7 @@ export const MatchPreparationPage: React.FC = () => {
               <MatchPlayerRow
                 player={p}
                 selected={selected}
-                status={status === 'available' ? 'yes' : status === 'absent' ? 'no' : 'open'}
+                status={status === 'absent' ? 'no' : selected ? 'yes' : 'open'}
                 rightLabel={
                   status === 'absent' ? 'Abwesend' : selected ? '✓ IM KADER' : 'NICHT IM KADER'
                 }
