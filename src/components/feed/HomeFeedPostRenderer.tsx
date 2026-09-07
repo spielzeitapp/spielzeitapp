@@ -22,7 +22,7 @@ type Props = {
   /** Saison-Badge der Post-Saison, z. B. „U11 · 2025/26“. */
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
-  onFeedPostDeleted?: () => void;
+  onFeedPostDeleted?: (postId: string) => void;
 };
 
 export const HomeFeedPostRenderer: React.FC<Props> = ({
@@ -32,13 +32,16 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
   teamLabel,
   seasonLabel,
   staffCanDelete,
-  onFeedPostDeleted,
+  onFeedPostDeleted: notifyFeedPostDeleted,
 }) => {
   const eventId = (item.post.event_id ?? '').trim();
   const linkedEvent = eventId ? eventById.get(eventId) ?? null : null;
   const linkedEventStatus = eventId && finishedEventIds.has(eventId)
     ? 'finished'
     : linkedEvent?.status ?? null;
+  const onFeedPostDeleted = notifyFeedPostDeleted
+    ? () => notifyFeedPostDeleted(item.post.id)
+    : undefined;
 
   if (item.kind === 'live') {
     return (
