@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, ClipboardList, Heart, MapPin, MessageCircle, Share2, Trophy } from 'lucide-react';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
+import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 
 export const FEED_HASHTAG = '#GEMEINSAMEINTEAM';
 
@@ -119,13 +120,19 @@ export function FeedGameCtaLink({
   to,
   children = 'Zum Spiel',
   className = '',
+  appearance = 'feed',
 }: {
   to: string;
   children?: React.ReactNode;
   className?: string;
+  appearance?: 'feed' | 'primary';
 }) {
+  const appearanceClass = appearance === 'primary'
+    ? `${dsPrimaryCtaClass()} inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center`
+    : FEED_GAME_CTA_CLASS;
+
   return (
-    <Link to={to} className={`${FEED_GAME_CTA_CLASS} ${className}`.trim()}>
+    <Link to={to} className={`${appearanceClass} ${className}`.trim()}>
       {children}
     </Link>
   );
