@@ -33,7 +33,14 @@ function likeStorageKey(postId: string): string {
 export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabel, staffCanDelete, onFeedPostDeleted }) => {
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const resolvedSrc = useFeedMediaSrc(post.media_url);
+
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageFailed(false);
+  }, [post.media_url]);
 
   useEffect(() => {
     try {
@@ -98,21 +105,24 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
       <FeedPostTypeBadge>Foto</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
-        {resolvedSrc ? (
-          <div className="overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border">
+        <div className="relative aspect-[4/5] max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border">
+          {resolvedSrc && !imageFailed ? (
             <img
               src={resolvedSrc}
               alt=""
-              className="max-h-[min(78vh,720px)] w-full object-cover"
+              className={`h-full w-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
               decoding="async"
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageFailed(true)}
             />
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-8 text-center text-xs text-white/55">
-            Bild konnte nicht geladen werden.
-          </div>
-        )}
+          ) : null}
+          {!imageLoaded ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(160deg,rgba(42,12,17,0.55),rgba(0,0,0,0.96))] text-xs font-medium text-white/45">
+              {imageFailed ? 'Bild konnte nicht geladen werden.' : 'Bild wird geladen…'}
+            </div>
+          ) : null}
+        </div>
 
         {post.caption?.trim() ? (
           <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>

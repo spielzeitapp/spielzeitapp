@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
@@ -235,6 +235,15 @@ export const HomePage: React.FC = () => {
   const teamFeedLoading = isDemoMode ? false : teamFeedLoadingRaw;
   const teamFeedError = isDemoMode ? null : teamFeedErrorRaw;
   const hasMoreHistoric = isDemoMode ? false : hasMoreHistoricLive;
+  const [dismissedFeedPostIds, setDismissedFeedPostIds] = useState<Set<string>>(() => new Set());
+  const handleFeedPostDeleted = useCallback((postId: string) => {
+    setDismissedFeedPostIds((current) => {
+      const next = new Set(current);
+      next.add(postId);
+      return next;
+    });
+    void refetchFeed();
+  }, [refetchFeed]);
   const staffCanDeleteFeed =
     !isDemoMode && !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
 
@@ -282,8 +291,8 @@ export const HomePage: React.FC = () => {
         autoMatchdaySettingsReady,
         disabledMatchdayMatchIds,
         spieltagHintPick,
-      }),
-    [activePosts, spieltagHintPick, disabledMatchdayMatchIds, autoMatchdaySettingsReady],
+      }).filter((item) => !dismissedFeedPostIds.has(item.post.id)),
+    [activePosts, spieltagHintPick, disabledMatchdayMatchIds, autoMatchdaySettingsReady, dismissedFeedPostIds],
   );
 
   const visibleHistoricPosts = useMemo(
@@ -292,8 +301,8 @@ export const HomePage: React.FC = () => {
         autoMatchdaySettingsReady,
         disabledMatchdayMatchIds,
         spieltagHintPick: null,
-      }),
-    [historicPosts, disabledMatchdayMatchIds, autoMatchdaySettingsReady],
+      }).filter((item) => !dismissedFeedPostIds.has(item.post.id)),
+    [historicPosts, disabledMatchdayMatchIds, autoMatchdaySettingsReady, dismissedFeedPostIds],
   );
 
   const showNoUpcomingMatchEmpty =
@@ -410,7 +419,7 @@ export const HomePage: React.FC = () => {
                       teamLabel={activeTeamLabel}
                       seasonLabel={null}
                       staffCanDelete={staffCanDeleteFeed}
-                      onFeedPostDeleted={() => void refetchFeed()}
+                      onFeedPostDeleted={handleFeedPostDeleted}
                     />
                   ))}
                 </div>
@@ -493,7 +502,7 @@ export const HomePage: React.FC = () => {
                           teamLabel={historicTeamLabel}
                           seasonLabel={seasonBadge}
                           staffCanDelete={staffCanDeleteFeed}
-                          onFeedPostDeleted={() => void refetchFeed()}
+                          onFeedPostDeleted={handleFeedPostDeleted}
                         />
                       </React.Fragment>
                     );
