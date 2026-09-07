@@ -24,6 +24,7 @@ import {
   type FeedSeasonDisplayMeta,
 } from '../../lib/feedSeasonLabel';
 import {
+  isAutomaticMatchFeedPost,
   isMatchdayFeedPostHiddenByAutomation,
   loadAutoMatchdayFeedDisabledMatchIds,
 } from '../../lib/autoMatchdayFeedEnabled';
@@ -51,7 +52,7 @@ function filterVisibleFeedPosts(
 ): ClassifiedFeedPost[] {
   const withoutDisabledMatchday = opts.autoMatchdaySettingsReady
     ? posts.filter((item) => !isMatchdayFeedPostHiddenByAutomation(item, opts.disabledMatchdayMatchIds))
-    : posts.filter((item) => item.kind !== 'matchday');
+    : posts.filter((item) => !isAutomaticMatchFeedPost(item));
   if (!opts.spieltagHintPick) return withoutDisabledMatchday;
   return withoutDisabledMatchday.filter(
     (item) =>

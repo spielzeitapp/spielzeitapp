@@ -648,6 +648,18 @@ export async function ensureLineupFeedPostForMatch(
     return { ok: false, error: 'Spiel nicht gefunden.' };
   }
 
+  if (match.auto_matchday_feed_enabled === false) {
+    lineupFeedExit('feed automation disabled', {
+      matchFound: true,
+      matchId: mid,
+      teamSeasonId: match.team_season_id?.trim() || null,
+      matchStatus: match.status ?? null,
+      dedupeKey: dedupe_key,
+      reason: 'feed_automation_disabled',
+    });
+    return { ok: true, created: false, reason: 'feed_automation_disabled' };
+  }
+
   const status = (match.status ?? '').toLowerCase();
   const teamSeasonIdEarly = match.team_season_id?.trim() ?? '';
 
