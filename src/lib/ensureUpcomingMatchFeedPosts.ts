@@ -1,5 +1,6 @@
 import { isInternalChampionshipFixture } from './championshipVisibility';
 import { supabase } from './supabaseClient';
+import { loadAutoMatchdayFeedEnabledByMatchId } from './autoMatchdayFeedEnabled';
 import { getClubLogo } from './teamLogos';
 import { formatFullLocation, splitCombinedLocation } from './eventLocation';
 import {
@@ -236,10 +237,15 @@ export async function ensureUpcomingMatchFeedPosts(
   }
 
   const rows = (feedRes.data ?? []) as EventRowLite[];
+  const enabledByMatchId = await loadAutoMatchdayFeedEnabledByMatchId(rows.map((row) => row.match_id));
 
   for (const ev of rows) {
     if (isInternalChampionshipFixture(ev.fixture_status)) continue;
     if (!isMatchEvent(ev)) continue;
+    if (ev.match_id?.trim() && enabledByMatchId.get(ev.match_id.trim()) === false) {
+      result.skipped += 1;
+      continue;
+    }
     const st = (ev.status ?? 'upcoming').toLowerCase();
     if (st !== 'upcoming') continue;
     if (!ev.starts_at) continue;

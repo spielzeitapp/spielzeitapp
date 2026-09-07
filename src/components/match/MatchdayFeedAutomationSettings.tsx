@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-/** Pro Spiel: automatischen Matchday-Feed-Post ein-/ausschalten. */
+/** Pro Spiel: sämtliche automatischen Feed-Beiträge ein-/ausschalten. */
 export function MatchdayFeedAutomationSettings({
   matchId,
   enabled: enabledProp,
@@ -69,12 +69,11 @@ export function MatchdayFeedAutomationSettings({
         />
         <span className="min-w-0 flex-1">
           <span className="block text-[14px] font-semibold text-white/92">
-            Automatischen Spieltag-Post erstellen
+            Automatische Feed-Posts erstellen
           </span>
           <span className="mt-1 block text-[12px] leading-snug text-white/55">
-            Wenn aktiviert, erstellt die App am Spieltag automatisch einen Spieltag-Post im Feed
-            und zeigt die Spieltag-Hero-Karte auf Home an. Aufstellung, Live-Updates und Ergebnis
-            bleiben davon unabhängig.
+            Wenn aktiviert, erstellt die App Spieltag, Aufstellung, Live-Updates und Ergebnis
+            automatisch im Feed. Manuelle Foto- und Video-Posts bleiben immer sichtbar.
           </span>
         </span>
       </label>

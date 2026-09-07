@@ -102,6 +102,11 @@ export async function ensureLiveFeedPostForMatch(matchId: string): Promise<Ensur
   if (matchErr) return { ok: false, error: matchErr };
   if (!match) return { ok: false, error: 'Spiel nicht gefunden.' };
 
+  if (match.auto_matchday_feed_enabled === false) {
+    lfLog('skip: feed_automation_disabled', { matchId: mid, dedupe_key });
+    return { ok: true, created: false, reason: 'feed_automation_disabled' };
+  }
+
   if (!matchIsLive(match.status, match.live_is_running)) {
     lfLog('skip: not_live', { matchId: mid, status: match.status });
     return { ok: true, created: false, reason: 'not_live' };

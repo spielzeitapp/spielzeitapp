@@ -116,9 +116,10 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     rfLog('skip: not_finished', { matchId: mid, status: match.status, dedupe_key });
     return { ok: true, created: false, reason: 'not_finished' };
   }
-
-  // Hinweis: auto_matchday_feed_enabled steuert NUR den Spieltag-Post/Hero.
-  // Der Ergebnis-Post bleibt davon unabhängig und wird immer erstellt.
+  if (match.auto_matchday_feed_enabled === false) {
+    rfLog('skip: feed_automation_disabled', { matchId: mid, dedupe_key });
+    return { ok: true, created: false, reason: 'feed_automation_disabled' };
+  }
 
   const { data: existing, error: exErr } = await supabase
     .from('team_feed_posts')
