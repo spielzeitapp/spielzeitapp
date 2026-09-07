@@ -273,8 +273,8 @@ export const HomePage: React.FC = () => {
 
   const spieltagHintPick =
     matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
-  const showNextMatchCompact = Boolean(!feedBusy && matchPick && matchPick.status === 'next');
-  const showTournamentCompact = Boolean(!feedBusy && sportingPick?.sportingKind === 'tournament');
+  const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
+  const showTournamentCompact = Boolean(sportingPick?.sportingKind === 'tournament');
 
   const reviewPendingForEvent = (event: EventRow | undefined) =>
     Boolean(
@@ -410,7 +410,7 @@ export const HomePage: React.FC = () => {
                 />
               ) : (
                 <div className="min-w-0 space-y-4">
-                  {visibleActivePosts.map((item, index) => (
+                  {visibleActivePosts.map((item) => (
                     <HomeFeedPostRenderer
                       key={item.post.id}
                       item={item}
@@ -420,7 +420,6 @@ export const HomePage: React.FC = () => {
                       seasonLabel={null}
                       staffCanDelete={staffCanDeleteFeed}
                       onFeedPostDeleted={handleFeedPostDeleted}
-                      mediaPriority={index === 0}
                     />
                   ))}
                 </div>

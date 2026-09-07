@@ -12,11 +12,7 @@ import {
   type ClassifiedFeedPost,
   type TeamFeedPostDbRow,
 } from '../lib/matchdayFeedTypes';
-import {
-  buildEventStatusMap,
-  isFeedPostVisibleInHomeFeed,
-  sortClassifiedFeedPosts,
-} from '../lib/feedPostPriority';
+import { buildEventStatusMap, isFeedPostVisibleInHomeFeed } from '../lib/feedPostPriority';
 import { supabase } from '../lib/supabaseClient';
 
 const FEED_SELECT =
@@ -51,10 +47,7 @@ function mapVisiblePosts(
     const c = classifyTeamFeedPost(r);
     if (c) mapped.push(c);
   }
-  const posts = opts?.chronicle
-    ? sortChronological(mapped)
-    : sortClassifiedFeedPosts(mapped, eventStatusById, now);
-  return { posts, parseDropped: rows.length - mapped.length };
+  return { posts: sortChronological(mapped), parseDropped: rows.length - mapped.length };
 }
 
 async function fetchEventStatusMapForSeasons(teamSeasonIds: string[]): Promise<Map<string, string>> {
@@ -183,14 +176,10 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
     ensureRecentLiveFeedPostsForSeason(teamSeasonId).catch((e) => {
       console.warn('[useTeamFeedPosts] ensureRecentLiveFeedPostsForSeason failed', e);
     }),
+    ensureRecentResultFeedPostsForSeason(teamSeasonId).catch((e) => {
+      console.warn('[useTeamFeedPosts] ensureRecentResultFeedPostsForSeason failed', e);
+    }),
   ]);
-}
-
-/** Endstand vor der ersten sichtbaren Liste prüfen, damit kein Spieltag-Post kurz aufblitzt. */
-async function ensureResultBeforeInitialFeed(teamSeasonId: string): Promise<void> {
-  await ensureRecentResultFeedPostsForSeason(teamSeasonId).catch((e) => {
-    console.warn('[useTeamFeedPosts] ensureResultBeforeInitialFeed failed', e);
-  });
 }
 
 /**
@@ -228,10 +217,6 @@ export function useTeamFeedPosts(
     setLoading(true);
     setError(null);
     try {
-      if (!skipEnsures) {
-        setEnsuring(true);
-        await ensureResultBeforeInitialFeed(teamSeasonId);
-      }
       await logMatchdayFeedSeasonContext(teamSeasonId);
       const active = await withTimeout(
         fetchActiveSeasonPosts({
@@ -274,6 +259,7 @@ export function useTeamFeedPosts(
       setLoading(false);
 
       if (!skipEnsures) {
+        setEnsuring(true);
         try {
           await runFeedEnsures(teamSeasonId);
           const refreshed = await fetchActiveSeasonPosts({
@@ -343,11 +329,6 @@ export function useTeamFeedPosts(
       setLoading(true);
       setError(null);
       try {
-        if (!skipEnsures) {
-          setEnsuring(true);
-          await ensureResultBeforeInitialFeed(teamSeasonId);
-          if (cancelled) return;
-        }
         await logMatchdayFeedSeasonContext(teamSeasonId);
         if (cancelled) return;
         const active = await withTimeout(
@@ -377,6 +358,7 @@ export function useTeamFeedPosts(
         if (!cancelled) setLoading(false);
 
         if (!skipEnsures) {
+          if (!cancelled) setEnsuring(true);
           try {
             await runFeedEnsures(teamSeasonId);
             if (cancelled) return;
