@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Clock3, MapPin } from 'lucide-react';
+import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { LiveFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
@@ -25,9 +26,12 @@ import {
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { isFinishedMatchStatus, resolveMatchGameHref } from '../../lib/matchFeedLink';
 
 type Props = {
   post: LiveFeedPostRow;
+  liveEvent?: EventRow | null;
+  eventStatus?: EventStatus | null;
   teamLabel: string;
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
@@ -50,6 +54,8 @@ function formatKickoffTime(iso: string | null): string {
 
 export const LiveFeedPostCard: React.FC<Props> = ({
   post,
+  liveEvent,
+  eventStatus: linkedEventStatus,
   teamLabel,
   seasonLabel,
   staffCanDelete,
@@ -70,9 +76,13 @@ export const LiveFeedPostCard: React.FC<Props> = ({
 
   const venueLabel = useMemo(() => formatFeedVenueShort(p.location) ?? '—', [p.location]);
 
-  const deepLink = p.deep_link?.startsWith('/')
-    ? p.deep_link
-    : `${basePath}/live/${p.match_id}`;
+  const eventStatus = linkedEventStatus ?? liveEvent?.status ?? 'live';
+  const deepLink = resolveMatchGameHref({
+    matchId: p.match_id ?? liveEvent?.match_id,
+    eventId: p.event_id,
+    status: eventStatus,
+    basePath,
+  });
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
   const kickoffLabel = formatKickoffTime(p.starts_at);
 
@@ -168,7 +178,9 @@ export const LiveFeedPostCard: React.FC<Props> = ({
             </dl>
 
             <div className="pt-1">
-              <FeedGameCtaLink to={deepLink}>Zum Liveticker</FeedGameCtaLink>
+              <FeedGameCtaLink to={deepLink}>
+                {isFinishedMatchStatus(eventStatus) ? 'Zur Zusammenfassung' : 'Zum Liveticker'}
+              </FeedGameCtaLink>
             </div>
           </div>
         </div>

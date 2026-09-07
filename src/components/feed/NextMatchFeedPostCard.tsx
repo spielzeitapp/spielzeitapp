@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Clock3, MapPin } from 'lucide-react';
+import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { NextMatchFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { getClubLogo } from '../../lib/teamLogos';
@@ -24,13 +25,15 @@ import {
   FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
-import { resolveMatchGameHref } from '../../lib/matchFeedLink';
+import { matchFeedCtaLabel, resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   post: NextMatchFeedPostRow;
+  liveEvent?: EventRow | null;
+  eventStatus?: EventStatus | null;
   teamLabel: string;
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
@@ -90,6 +93,8 @@ function LogoBlock({ src, alt }: { src: string; alt: string }) {
 
 export const NextMatchFeedPostCard: React.FC<Props> = ({
   post,
+  liveEvent,
+  eventStatus: linkedEventStatus,
   teamLabel,
   seasonLabel,
   staffCanDelete,
@@ -126,10 +131,11 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
   const basePath = useInternalBasePath();
+  const eventStatus = linkedEventStatus ?? liveEvent?.status ?? 'upcoming';
   const gameHref = resolveMatchGameHref({
-    matchId: p.match_id,
+    matchId: p.match_id ?? liveEvent?.match_id,
     eventId: p.event_id,
-    status: 'upcoming',
+    status: eventStatus,
     canManage: viewerIsStaff || basePath === '/demo',
     basePath,
   });
@@ -234,7 +240,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
               </div>
             </dl>
             <div className="pt-1">
-              <FeedGameCtaLink to={gameHref} />
+              <FeedGameCtaLink to={gameHref}>{matchFeedCtaLabel(eventStatus)}</FeedGameCtaLink>
             </div>
           </div>
         </div>

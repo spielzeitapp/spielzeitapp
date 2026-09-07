@@ -2,6 +2,14 @@ export type MatchGameLinkStatus = 'upcoming' | 'live' | 'finished' | 'ended' | '
 
 const FINISHED_STATUSES = new Set(['finished', 'ended', 'completed']);
 
+export function isFinishedMatchStatus(status?: MatchGameLinkStatus | null): boolean {
+  return FINISHED_STATUSES.has((status ?? '').trim().toLowerCase());
+}
+
+export function matchFeedCtaLabel(status?: MatchGameLinkStatus | null): string {
+  return isFinishedMatchStatus(status) ? 'Zur Zusammenfassung' : 'Zum Spiel';
+}
+
 /**
  * Ziel-Route für „Zum Spiel“ — moderne Vorbereitungs-/Detailseite, Live-Screen oder Ergebnis.
  * Vermeidet die Legacy-Route /app/match/:id (altes Scoreboard).
@@ -36,9 +44,9 @@ export function resolveMatchGameHref(params: {
     return `${base}/live`;
   }
 
-  if (FINISHED_STATUSES.has(status)) {
-    if (mid) return `${base}/match-preparation?matchId=${encodeURIComponent(mid)}`;
+  if (isFinishedMatchStatus(status)) {
     if (eid) return `${base}/events/${encodeURIComponent(eid)}`;
+    if (mid) return `${base}/live?matchId=${encodeURIComponent(mid)}`;
     return `${base}/termine`;
   }
 

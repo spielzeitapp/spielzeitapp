@@ -347,9 +347,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             <div className="pt-1">
-              <FeedGameCtaLink to={gameHref} appearance="primary">
-                Zur Zusammenfassung
-              </FeedGameCtaLink>
+              <FeedGameCtaLink to={gameHref}>Zur Zusammenfassung</FeedGameCtaLink>
             </div>
           </div>
         </div>

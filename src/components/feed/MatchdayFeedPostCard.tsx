@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { EventRow } from '../../hooks/useEvents';import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
+import type { EventRow, EventStatus } from '../../hooks/useEvents';
+import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getClubLogo } from '../../lib/teamLogos';
@@ -28,7 +29,7 @@ import {
   FEED_STADIUM_ARTICLE_SHADOW,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
-import { resolveMatchGameHref } from '../../lib/matchFeedLink';
+import { matchFeedCtaLabel, resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
@@ -37,6 +38,7 @@ type Props = {
   post: TeamFeedPostRow;
   /** Aktueller Termin aus dem Kalender — für LIVE / ENDSTAND / Logos live halten. */
   liveEvent?: EventRow | null;
+  eventStatus?: EventStatus | null;
   teamLabel: string;
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
@@ -80,6 +82,7 @@ function legacyDemoPlayerImage(eventId: string): string {
 export const MatchdayFeedPostCard: React.FC<Props> = ({
   post,
   liveEvent,
+  eventStatus: linkedEventStatus,
   teamLabel,
   seasonLabel,
   staffCanDelete,
@@ -110,7 +113,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     }
   }, [post.id]);
 
-  const eventStatus = liveEvent?.status ?? 'upcoming';
+  const eventStatus = linkedEventStatus ?? liveEvent?.status ?? 'upcoming';
   const matchId = liveEvent?.match_id ?? p.match_id;
 
   useEffect(() => {
@@ -364,7 +367,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
         ) : null}
 
         <div className={`${FEED_POST_BODY_INSET_CLASS} pt-1`}>
-          <FeedGameCtaLink to={gameHref} />
+          <FeedGameCtaLink to={gameHref}>{matchFeedCtaLabel(eventStatus)}</FeedGameCtaLink>
         </div>
       </div>
 
