@@ -11,12 +11,12 @@ import {
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
   FeedPostHeader,
+  FeedPostTypeBadge,
   FeedPostActionsFooter,
   FeedStandardActions,
   FEED_STADIUM_ARTICLE_SHADOW,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
-import { resolveFeedMediaUrl } from '../../lib/feedMediaUrl';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -24,46 +24,23 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
-  priority?: boolean;
 };
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
 }
 
-export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabel, staffCanDelete, onFeedPostDeleted, priority = false }) => {
+export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabel, staffCanDelete, onFeedPostDeleted }) => {
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const [originalFallbackSrc, setOriginalFallbackSrc] = useState<string | null>(null);
-  const optimizedSrc = useFeedMediaSrc(post.media_url, {
-    width: 1080,
-    height: 1350,
-    resize: 'cover',
-    quality: 78,
-  });
-  const resolvedSrc = originalFallbackSrc ?? optimizedSrc;
+  const resolvedSrc = useFeedMediaSrc(post.media_url);
 
   useEffect(() => {
     setImageLoaded(false);
     setImageFailed(false);
-    setOriginalFallbackSrc(null);
   }, [post.media_url]);
-
-  const onImageError = useCallback(async () => {
-    if (originalFallbackSrc) {
-      setImageFailed(true);
-      return;
-    }
-    const original = await resolveFeedMediaUrl(post.media_url);
-    if (original && original !== optimizedSrc) {
-      setImageLoaded(false);
-      setOriginalFallbackSrc(original);
-      return;
-    }
-    setImageFailed(true);
-  }, [optimizedSrc, originalFallbackSrc, post.media_url]);
 
   useEffect(() => {
     try {
@@ -125,6 +102,8 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
           ) : null
         }
       />
+      <FeedPostTypeBadge>Foto</FeedPostTypeBadge>
+
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         <div className="relative aspect-[4/5] max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border">
           {resolvedSrc && !imageFailed ? (
@@ -132,11 +111,10 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
               src={resolvedSrc}
               alt=""
               className={`h-full w-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-              loading={priority ? 'eager' : 'lazy'}
-              fetchPriority={priority ? 'high' : 'auto'}
+              loading="lazy"
               decoding="async"
               onLoad={() => setImageLoaded(true)}
-              onError={() => void onImageError()}
+              onError={() => setImageFailed(true)}
             />
           ) : null}
           {!imageLoaded ? (
