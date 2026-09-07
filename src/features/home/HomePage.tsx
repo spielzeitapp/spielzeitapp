@@ -273,8 +273,8 @@ export const HomePage: React.FC = () => {
 
   const spieltagHintPick =
     matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
-  const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
-  const showTournamentCompact = Boolean(sportingPick?.sportingKind === 'tournament');
+  const showNextMatchCompact = Boolean(!feedBusy && matchPick && matchPick.status === 'next');
+  const showTournamentCompact = Boolean(!feedBusy && sportingPick?.sportingKind === 'tournament');
 
   const reviewPendingForEvent = (event: EventRow | undefined) =>
     Boolean(

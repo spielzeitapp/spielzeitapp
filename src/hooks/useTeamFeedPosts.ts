@@ -12,7 +12,11 @@ import {
   type ClassifiedFeedPost,
   type TeamFeedPostDbRow,
 } from '../lib/matchdayFeedTypes';
-import { buildEventStatusMap, isFeedPostVisibleInHomeFeed } from '../lib/feedPostPriority';
+import {
+  buildEventStatusMap,
+  isFeedPostVisibleInHomeFeed,
+  sortClassifiedFeedPosts,
+} from '../lib/feedPostPriority';
 import { supabase } from '../lib/supabaseClient';
 
 const FEED_SELECT =
@@ -47,7 +51,10 @@ function mapVisiblePosts(
     const c = classifyTeamFeedPost(r);
     if (c) mapped.push(c);
   }
-  return { posts: sortChronological(mapped), parseDropped: rows.length - mapped.length };
+  const posts = opts?.chronicle
+    ? sortChronological(mapped)
+    : sortClassifiedFeedPosts(mapped, eventStatusById, now);
+  return { posts, parseDropped: rows.length - mapped.length };
 }
 
 async function fetchEventStatusMapForSeasons(teamSeasonIds: string[]): Promise<Map<string, string>> {
