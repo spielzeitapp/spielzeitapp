@@ -63,17 +63,8 @@ export function isMatchdayFeedPostHiddenByAutomation(
   item: ClassifiedFeedPost,
   disabledMatchIds: ReadonlySet<string>,
 ): boolean {
-  if (!isAutomaticMatchFeedPost(item)) return false;
-  const payload = item.post.payload as Record<string, unknown> | null;
-  const matchId = typeof payload?.match_id === 'string' ? payload.match_id.trim() : '';
+  if (item.kind !== 'matchday') return false;
+  const matchId = item.post.payload.match_id?.trim();
   if (!matchId) return false;
   return disabledMatchIds.has(matchId);
-}
-
-/** Automatisch erzeugter, einem Spiel zugeordneter Feed-Beitrag. Manuelle Medien bleiben unberührt. */
-export function isAutomaticMatchFeedPost(item: ClassifiedFeedPost): boolean {
-  const postKind = (item.post.post_kind ?? '').toLowerCase().trim();
-  if (!postKind.endsWith('_auto')) return false;
-  const payload = item.post.payload as Record<string, unknown> | null;
-  return typeof payload?.match_id === 'string' && payload.match_id.trim().length > 0;
 }
