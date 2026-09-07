@@ -112,27 +112,20 @@ export const FEED_ACTIONS_ROW_BASE =
 
 export const FEED_ACTIONS_ROW_CLASS = `${FEED_ACTIONS_ROW_BASE} border-t border-white/[0.06]`;
 
-/** Primärer Feed-CTA „Zum Spiel“ — einheitlich rot. */
-export const FEED_GAME_CTA_CLASS =
-  'inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-4 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_8px_22px_rgba(227,29,47,0.32),inset_0_1px_0_rgba(255,255,255,0.2)] transition hover:brightness-110 active:scale-[0.98]';
+/** Primärer Feed-CTA — identisch mit dem dunklen Bordeaux-Button im Match Center. */
+export const FEED_GAME_CTA_CLASS = `${dsPrimaryCtaClass()} inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center`;
 
 export function FeedGameCtaLink({
   to,
   children = 'Zum Spiel',
   className = '',
-  appearance = 'feed',
 }: {
   to: string;
   children?: React.ReactNode;
   className?: string;
-  appearance?: 'feed' | 'primary';
 }) {
-  const appearanceClass = appearance === 'primary'
-    ? `${dsPrimaryCtaClass()} inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center`
-    : FEED_GAME_CTA_CLASS;
-
   return (
-    <Link to={to} className={`${appearanceClass} ${className}`.trim()}>
+    <Link to={to} className={`${FEED_GAME_CTA_CLASS} ${className}`.trim()}>
       {children}
     </Link>
   );

@@ -17,6 +17,7 @@ import {
 type Props = {
   item: ClassifiedFeedPost;
   eventById: Map<string, EventRow>;
+  finishedEventIds: Set<string>;
   teamLabel: string;
   /** Saison-Badge der Post-Saison, z. B. „U11 · 2025/26“. */
   seasonLabel?: string | null;
@@ -27,15 +28,24 @@ type Props = {
 export const HomeFeedPostRenderer: React.FC<Props> = ({
   item,
   eventById,
+  finishedEventIds,
   teamLabel,
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
+  const eventId = (item.post.event_id ?? '').trim();
+  const linkedEvent = eventId ? eventById.get(eventId) ?? null : null;
+  const linkedEventStatus = eventId && finishedEventIds.has(eventId)
+    ? 'finished'
+    : linkedEvent?.status ?? null;
+
   if (item.kind === 'live') {
     return (
       <LiveFeedPostCard
         post={item.post}
+        liveEvent={linkedEvent}
+        eventStatus={linkedEventStatus}
         teamLabel={teamLabel}
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
@@ -47,6 +57,8 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
     return (
       <NextMatchFeedPostCard
         post={item.post}
+        liveEvent={linkedEvent}
+        eventStatus={linkedEventStatus}
         teamLabel={teamLabel}
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
@@ -58,7 +70,8 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
     return (
       <LineupFeedPostCard
         post={item.post}
-        liveEvent={item.post.event_id ? eventById.get(item.post.event_id) ?? null : null}
+        liveEvent={linkedEvent}
+        eventStatus={linkedEventStatus}
         teamLabel={teamLabel}
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
@@ -70,7 +83,8 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
     return (
       <MatchdayFeedPostCard
         post={item.post}
-        liveEvent={item.post.event_id ? eventById.get(item.post.event_id) ?? null : null}
+        liveEvent={linkedEvent}
+        eventStatus={linkedEventStatus}
         teamLabel={teamLabel}
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}

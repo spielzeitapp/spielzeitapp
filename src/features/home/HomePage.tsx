@@ -245,6 +245,17 @@ export const HomePage: React.FC = () => {
     return m;
   }, [events, now]);
 
+  /** Auch alte Saison-Posts erkennen: Ein vorhandener Ergebnis-Post beweist den Endstand. */
+  const finishedFeedEventIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of [...activePosts, ...historicPosts]) {
+      if (item.kind !== 'result') continue;
+      const eventId = (item.post.event_id ?? item.post.payload.event_id ?? '').trim();
+      if (eventId) ids.add(eventId);
+    }
+    return ids;
+  }, [activePosts, historicPosts]);
+
   const sessionPending = isDemoMode ? false : sessionLoading;
   const eventsPending = isDemoMode ? false : evLoading;
   const feedBusy = teamFeedLoading && activePosts.length === 0 && !teamFeedError;
@@ -395,6 +406,7 @@ export const HomePage: React.FC = () => {
                       key={item.post.id}
                       item={item}
                       eventById={eventById}
+                      finishedEventIds={finishedFeedEventIds}
                       teamLabel={activeTeamLabel}
                       seasonLabel={null}
                       staffCanDelete={staffCanDeleteFeed}
@@ -477,6 +489,7 @@ export const HomePage: React.FC = () => {
                         <HomeFeedPostRenderer
                           item={item}
                           eventById={eventById}
+                          finishedEventIds={finishedFeedEventIds}
                           teamLabel={historicTeamLabel}
                           seasonLabel={seasonBadge}
                           staffCanDelete={staffCanDeleteFeed}
