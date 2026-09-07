@@ -410,7 +410,7 @@ export const HomePage: React.FC = () => {
                 />
               ) : (
                 <div className="min-w-0 space-y-4">
-                  {visibleActivePosts.map((item) => (
+                  {visibleActivePosts.map((item, index) => (
                     <HomeFeedPostRenderer
                       key={item.post.id}
                       item={item}
@@ -420,6 +420,7 @@ export const HomePage: React.FC = () => {
                       seasonLabel={null}
                       staffCanDelete={staffCanDeleteFeed}
                       onFeedPostDeleted={handleFeedPostDeleted}
+                      mediaPriority={index === 0}
                     />
                   ))}
                 </div>

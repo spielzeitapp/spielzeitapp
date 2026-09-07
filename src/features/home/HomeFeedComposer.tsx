@@ -11,6 +11,7 @@ import {
   validateFeedCtaUrl,
 } from '../../lib/feedCtaLink';
 import { PremiumCard } from '../../ui';
+import { optimizeFeedImageForUpload } from '../../lib/feedImageOptimization';
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
@@ -173,8 +174,11 @@ export const HomeFeedComposer: React.FC<Props> = ({
     setPhase('uploading');
     startFakeUploadProgress();
 
+    const uploadFile = draftKind === 'image'
+      ? await optimizeFeedImageForUpload(draftFile)
+      : draftFile;
     const folder = draftKind === 'video' ? 'videos' : 'images';
-    const ext = extForMime(draftFile.type, draftKind);
+    const ext = extForMime(uploadFile.type, draftKind);
     const seasonSeg = sanitizeTeamFeedObjectPathSegment(teamSeasonId);
     if (!seasonSeg) {
       setError('Ungültige team_season_id für den Speicherpfad.');
@@ -187,29 +191,30 @@ export const HomeFeedComposer: React.FC<Props> = ({
     const objectPath = `${folder}/${seasonSeg}/${crypto.randomUUID()}.${ext}`.replace(/\/+/g, '/');
 
     const contentType =
-      draftFile.type && draftFile.type.trim() !== ''
-        ? draftFile.type
+      uploadFile.type && uploadFile.type.trim() !== ''
+        ? uploadFile.type
         : draftKind === 'image'
           ? 'image/jpeg'
           : 'video/mp4';
 
     const fileForUpload =
-      draftFile.type && draftFile.type.trim() !== ''
-        ? draftFile
-        : new File([draftFile], draftFile.name, { type: contentType });
+      uploadFile.type && uploadFile.type.trim() !== ''
+        ? uploadFile
+        : new File([uploadFile], uploadFile.name, { type: contentType });
 
     try {
       console.warn('[HomeFeedComposer][storage-upload] vor Upload', {
         bucket: TEAM_FEED_BUCKET,
         path: objectPath,
-        file_name: draftFile.name,
-        file_type: draftFile.type,
-        file_size: draftFile.size,
+        file_name: uploadFile.name,
+        file_type: uploadFile.type,
+        file_size: uploadFile.size,
+        original_file_size: draftFile.size,
         contentType,
       });
 
       const { error: upErr } = await uploadStorageObject(TEAM_FEED_BUCKET, objectPath, fileForUpload, {
-        cacheControl: '3600',
+        cacheControl: '31536000',
         upsert: false,
         contentType,
       });
