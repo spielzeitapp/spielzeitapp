@@ -196,14 +196,20 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   const basePath = useInternalBasePath();
 
   const gameHref = useMemo(
-    () =>
-      resolveMatchGameHref({
+    () => {
+      // Ein Ergebnis gehört zur abgeschlossenen Termin-Zusammenfassung
+      // (Spielbericht + Statistik), nicht mehr zur Match-Vorbereitung.
+      if (p.event_id?.trim()) {
+        return `${basePath}/events/${encodeURIComponent(p.event_id.trim())}`;
+      }
+      return resolveMatchGameHref({
         matchId: p.match_id,
         eventId: p.event_id,
         status: 'finished',
         canManage: viewerIsStaff || basePath === '/demo',
         basePath,
-      }),
+      });
+    },
     [p.match_id, p.event_id, viewerIsStaff, basePath],
   );
 
@@ -341,7 +347,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             <div className="pt-1">
-              <FeedGameCtaLink to={gameHref} />
+              <FeedGameCtaLink to={gameHref}>Zur Zusammenfassung</FeedGameCtaLink>
             </div>
           </div>
         </div>
