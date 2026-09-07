@@ -591,6 +591,7 @@ export const MatchPreparationPage: React.FC = () => {
             <div key={p.id} className={disabled ? 'opacity-70' : ''}>
               <MatchPlayerRow
                 player={p}
+                layout="team-roster"
                 selected={selected}
                 status={status === 'absent' ? 'no' : selected ? 'yes' : 'open'}
                 rightLabel={
