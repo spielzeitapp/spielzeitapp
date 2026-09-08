@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { CalendarDays, CalendarPlus, ClipboardList, Pencil, Radio, Trash2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
@@ -1080,7 +1080,70 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     return timeFilter === 'upcoming';
   }, [displayEvents.length, normalizedUiRole, timeFilter]);
 
-  const heroEvent = showHeroCard ? displayEvents[0] ?? null : null;
+  const heroCarouselEvents = useMemo(
+    () => (showHeroCard ? displayEvents.slice(0, 5) : []),
+    [displayEvents, showHeroCard],
+  );
+  const heroCarouselKey = heroCarouselEvents.map((event) => event.id).join(',');
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+  const safeHeroSlideIndex = Math.min(heroSlideIndex, Math.max(0, heroCarouselEvents.length - 1));
+  const heroEvent = heroCarouselEvents[safeHeroSlideIndex] ?? null;
+  const heroSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const heroSwipeConsumedRef = useRef(false);
+  const heroSwipeResetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setHeroSlideIndex(0);
+  }, [heroCarouselKey, kindFilter, timeFilter]);
+
+  useEffect(
+    () => () => {
+      if (heroSwipeResetTimerRef.current != null) {
+        window.clearTimeout(heroSwipeResetTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const selectHeroSlide = useCallback(
+    (nextIndex: number) => {
+      if (heroCarouselEvents.length === 0) return;
+      setHeroSlideIndex(Math.max(0, Math.min(nextIndex, heroCarouselEvents.length - 1)));
+    },
+    [heroCarouselEvents.length],
+  );
+
+  const handleHeroTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    heroSwipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleHeroTouchEnd = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      const start = heroSwipeStartRef.current;
+      const touch = event.changedTouches[0];
+      heroSwipeStartRef.current = null;
+      if (!start || !touch) return;
+
+      const deltaX = touch.clientX - start.x;
+      const deltaY = touch.clientY - start.y;
+      if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+      const nextIndex = deltaX < 0 ? safeHeroSlideIndex + 1 : safeHeroSlideIndex - 1;
+      if (nextIndex === safeHeroSlideIndex || nextIndex < 0 || nextIndex >= heroCarouselEvents.length) return;
+
+      heroSwipeConsumedRef.current = true;
+      selectHeroSlide(nextIndex);
+      if (heroSwipeResetTimerRef.current != null) {
+        window.clearTimeout(heroSwipeResetTimerRef.current);
+      }
+      heroSwipeResetTimerRef.current = window.setTimeout(() => {
+        heroSwipeConsumedRef.current = false;
+      }, 350);
+    },
+    [heroCarouselEvents.length, safeHeroSlideIndex, selectHeroSlide],
+  );
   const [heroLineupResult, setHeroLineupResult] = useState<{ matchId: string; ready: boolean } | null>(null);
 
   const heroLineupMatchId =
@@ -1120,8 +1183,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
 
   const furtherEvents = useMemo(() => {
     if (!showHeroCard) return displayEvents;
-    return displayEvents.slice(1);
-  }, [displayEvents, showHeroCard]);
+    if (!heroEvent) return displayEvents;
+    return displayEvents.filter((event) => event.id !== heroEvent.id);
+  }, [displayEvents, heroEvent, showHeroCard]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1563,8 +1627,19 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                 ) : null
               ) : (
                 <>
-                  {heroEvent
-                    ? (() => {
+                  {heroEvent ? (
+                    <div
+                      className="touch-pan-y"
+                      onTouchStart={handleHeroTouchStart}
+                      onTouchEnd={handleHeroTouchEnd}
+                      onClickCapture={(event) => {
+                        if (!heroSwipeConsumedRef.current) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        heroSwipeConsumedRef.current = false;
+                      }}
+                    >
+                      {(() => {
                         const ev = heroEvent;
                         const evAttendance = attendanceByEventId[ev.id];
                         const yesRaw = evAttendance?.yes ?? 0;
@@ -1773,8 +1848,35 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             </EventHeroCard>
                           </div>
                         );
-                      })()
-                    : null}
+                      })()}
+                    </div>
+                  ) : null}
+
+                  {heroCarouselEvents.length > 1 ? (
+                    <div
+                      className="mb-3 mt-0.5 flex items-center justify-center gap-2"
+                      role="group"
+                      aria-label="Kommende Termine durchblättern"
+                    >
+                      {heroCarouselEvents.map((event, index) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => selectHeroSlide(index)}
+                          className={`h-2.5 rounded-full transition-all ${
+                            index === safeHeroSlideIndex
+                              ? 'w-7 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.45)]'
+                              : 'w-2.5 bg-white/25 hover:bg-white/40'
+                          }`}
+                          aria-label={`Termin ${index + 1} von ${heroCarouselEvents.length} anzeigen`}
+                          aria-current={index === safeHeroSlideIndex ? 'true' : undefined}
+                        />
+                      ))}
+                      <span className="ml-1 text-[10px] font-semibold tabular-nums text-white/40">
+                        {safeHeroSlideIndex + 1}/{heroCarouselEvents.length}
+                      </span>
+                    </div>
+                  ) : null}
 
                   <div
                     className={
