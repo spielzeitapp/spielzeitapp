@@ -11,7 +11,6 @@ import {
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
   FeedPostHeader,
-  FeedPostTypeBadge,
   FeedPostActionsFooter,
   FeedStandardActions,
   FEED_STADIUM_ARTICLE_SHADOW,
@@ -102,8 +101,6 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
           ) : null
         }
       />
-      <FeedPostTypeBadge>Foto</FeedPostTypeBadge>
-
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         <div className="relative aspect-[4/5] max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border">
           {resolvedSrc && !imageFailed ? (
