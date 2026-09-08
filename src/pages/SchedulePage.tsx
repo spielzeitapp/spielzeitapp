@@ -229,6 +229,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   const refetch = isDemo ? (() => {}) : refetchLive;
 
   const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
+  const [matchStatusLoading, setMatchStatusLoading] = useState(!isDemo);
   useEffect(() => {
     if (isDemo) {
       const next: Record<string, string> = {};
@@ -242,6 +243,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
         next[runtime.matchId] = runtime.status;
       }
       setMatchStatusById(next);
+      setMatchStatusLoading(false);
       return;
     }
     const matchIds = Array.from(
@@ -251,17 +253,27 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
           .map((e) => e.match_id!)
       ),
     );
-    if (matchIds.length === 0) { setMatchStatusById({}); return; }
+    if (matchIds.length === 0) {
+      setMatchStatusById({});
+      setMatchStatusLoading(false);
+      return;
+    }
+    setMatchStatusLoading(true);
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from('matches')
         .select('id, status')
         .in('id', matchIds);
-      if (cancelled || error) return;
+      if (cancelled) return;
+      if (error) {
+        setMatchStatusLoading(false);
+        return;
+      }
       const next: Record<string, string> = {};
       for (const r of data ?? []) next[r.id] = r.status ?? 'upcoming';
       setMatchStatusById(next);
+      setMatchStatusLoading(false);
     })();
     return () => { cancelled = true; };
   }, [rawEvents, isDemo, demo?.liveRuntimeVersion]);
@@ -1069,13 +1081,26 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   }, [displayEvents.length, normalizedUiRole, timeFilter]);
 
   const heroEvent = showHeroCard ? displayEvents[0] ?? null : null;
-  const [heroLineupReady, setHeroLineupReady] = useState(false);
+  const [heroLineupResult, setHeroLineupResult] = useState<{ matchId: string; ready: boolean } | null>(null);
+
+  const heroLineupMatchId =
+    !isDemo && heroEvent && getEffectiveEventType(heroEvent) === 'game'
+      ? heroEvent.match_id?.trim() ?? ''
+      : '';
+  const heroLineupLoading = Boolean(
+    heroLineupMatchId && heroLineupResult?.matchId !== heroLineupMatchId,
+  );
+  const heroLineupReady = Boolean(
+    heroLineupMatchId &&
+      heroLineupResult?.matchId === heroLineupMatchId &&
+      heroLineupResult.ready,
+  );
 
   useEffect(() => {
     let cancelled = false;
     const mid = heroEvent?.match_id?.trim() ?? '';
     if (isDemo || !mid || !heroEvent || getEffectiveEventType(heroEvent) !== 'game') {
-      setHeroLineupReady(false);
+      setHeroLineupResult(null);
       return () => {
         cancelled = true;
       };
@@ -1083,7 +1108,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     void (async () => {
       const { data, error } = await fetchLineupForLiveMatch(mid);
       if (cancelled) return;
-      setHeroLineupReady(!error && isStartelfCompleteFromStartingIds(data.startingPlayerIds));
+      setHeroLineupResult({
+        matchId: mid,
+        ready: !error && isStartelfCompleteFromStartingIds(data.startingPlayerIds),
+      });
     })();
     return () => {
       cancelled = true;
@@ -1185,7 +1213,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
 
   const displayEventIds = useMemo(() => displayEvents.map((e) => e.id), [displayEvents]);
   const { byEventId: attendanceByEventId, loading: attendanceLoading, refresh: refreshAttendance } = useEventsAttendance(displayEventIds);
-  const { players: livePlayers } = usePlayers(isDemo ? null : effectiveTeamSeasonId);
+  const { players: livePlayers, loading: playersLoading } = usePlayers(isDemo ? null : effectiveTeamSeasonId);
   const players = isDemo ? demo!.players : livePlayers;
   const { myAttendancePlayerIds: liveAttendancePlayerIds } = useAvailabilityPermissions({
     role: normalizedUiRole,
@@ -1251,7 +1279,16 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   /** Eltern/Spieler: „Weitere Termine“ etwas breiter (näher an BottomNav-Padding), ohne Hero/Filter anzufassen. */
   const widenParentFurtherList = (uiRole === 'parent' || uiRole === 'player') && !forcePublicView;
 
-  const pageLoading = loading || eLoading;
+  // Die Hero-Karte erst anzeigen, wenn alle statusbestimmenden Daten da sind.
+  // Sonst blitzt zuerst die Verfuegbarkeit auf und wechselt nach dem
+  // Lineup-/Match-Request auf den aktuellen Live-Zustand.
+  const pageLoading =
+    loading ||
+    eLoading ||
+    matchStatusLoading ||
+    attendanceLoading ||
+    (!isDemo && playersLoading) ||
+    heroLineupLoading;
   const error = tsError ?? eError;
   const canShowCalendarActions = Boolean(teamIcsFeedUrl && !pageLoading && displayEvents.length > 0);
 
