@@ -1144,42 +1144,63 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     },
     [heroCarouselEvents.length, safeHeroSlideIndex, selectHeroSlide],
   );
-  const [heroLineupResult, setHeroLineupResult] = useState<{ matchId: string; ready: boolean } | null>(null);
-
+  const [heroLineupReadyByMatchId, setHeroLineupReadyByMatchId] = useState<Record<string, boolean>>({});
+  const heroLineupMatchIds = useMemo(
+    () =>
+      isDemo
+        ? []
+        : Array.from(
+            new Set(
+              heroCarouselEvents
+                .filter((event) => getEffectiveEventType(event) === 'game')
+                .map((event) => event.match_id?.trim() ?? '')
+                .filter(Boolean),
+            ),
+          ),
+    [heroCarouselEvents, isDemo],
+  );
+  const heroLineupMatchIdsKey = heroLineupMatchIds.join(',');
   const heroLineupMatchId =
     !isDemo && heroEvent && getEffectiveEventType(heroEvent) === 'game'
       ? heroEvent.match_id?.trim() ?? ''
       : '';
-  const heroLineupLoading = Boolean(
-    heroLineupMatchId && heroLineupResult?.matchId !== heroLineupMatchId,
+  const heroLineupLoading = heroLineupMatchIds.some(
+    (matchId) => !Object.prototype.hasOwnProperty.call(heroLineupReadyByMatchId, matchId),
   );
   const heroLineupReady = Boolean(
-    heroLineupMatchId &&
-      heroLineupResult?.matchId === heroLineupMatchId &&
-      heroLineupResult.ready,
+    heroLineupMatchId && heroLineupReadyByMatchId[heroLineupMatchId],
   );
 
   useEffect(() => {
     let cancelled = false;
-    const mid = heroEvent?.match_id?.trim() ?? '';
-    if (isDemo || !mid || !heroEvent || getEffectiveEventType(heroEvent) !== 'game') {
-      setHeroLineupResult(null);
-      return () => {
-        cancelled = true;
-      };
-    }
+    if (isDemo || heroLineupMatchIds.length === 0) return undefined;
+
+    const missingMatchIds = heroLineupMatchIds.filter(
+      (matchId) => !Object.prototype.hasOwnProperty.call(heroLineupReadyByMatchId, matchId),
+    );
+    if (missingMatchIds.length === 0) return undefined;
+
     void (async () => {
-      const { data, error } = await fetchLineupForLiveMatch(mid);
+      const results = await Promise.all(
+        missingMatchIds.map(async (matchId) => {
+          const { data, error } = await fetchLineupForLiveMatch(matchId);
+          return {
+            matchId,
+            ready: !error && isStartelfCompleteFromStartingIds(data.startingPlayerIds),
+          };
+        }),
+      );
       if (cancelled) return;
-      setHeroLineupResult({
-        matchId: mid,
-        ready: !error && isStartelfCompleteFromStartingIds(data.startingPlayerIds),
+      setHeroLineupReadyByMatchId((current) => {
+        const next = { ...current };
+        for (const result of results) next[result.matchId] = result.ready;
+        return next;
       });
     })();
     return () => {
       cancelled = true;
     };
-  }, [heroEvent?.id, heroEvent?.match_id]);
+  }, [heroLineupMatchIdsKey, isDemo]);
 
   const furtherEvents = useMemo(() => {
     if (!showHeroCard) return displayEvents;
