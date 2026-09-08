@@ -34,11 +34,13 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
   const [shareHint, setShareHint] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const resolvedSrc = useFeedMediaSrc(post.media_url);
 
   useEffect(() => {
     setImageLoaded(false);
     setImageFailed(false);
+    setImageAspectRatio(null);
   }, [post.media_url]);
 
   useEffect(() => {
@@ -102,15 +104,24 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
         }
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
-        <div className="relative aspect-[4/5] max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border">
+        <div
+          className="relative max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border"
+          style={{ aspectRatio: imageAspectRatio ?? 4 / 5 }}
+        >
           {resolvedSrc && !imageFailed ? (
             <img
               src={resolvedSrc}
               alt=""
-              className={`h-full w-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`h-full w-full object-contain transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
               decoding="async"
-              onLoad={() => setImageLoaded(true)}
+              onLoad={(event) => {
+                const image = event.currentTarget;
+                if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                  setImageAspectRatio(image.naturalWidth / image.naturalHeight);
+                }
+                setImageLoaded(true);
+              }}
               onError={() => setImageFailed(true)}
             />
           ) : null}
