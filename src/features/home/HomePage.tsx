@@ -138,7 +138,20 @@ export const HomePage: React.FC = () => {
   const [disabledMatchdayMatchIds, setDisabledMatchdayMatchIds] = useState<Set<string>>(() => new Set());
   /** Pessimistischer Default: Auto-Matchday erst nach Settings-Load anzeigen (kein Flash). */
   const [disabledMatchdayLoading, setDisabledMatchdayLoading] = useState(true);
+  const [loadedMatchdaySettingsKey, setLoadedMatchdaySettingsKey] = useState<string | null>(null);
   const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
+
+  const matchdaySettingsMatchIds = useMemo(
+    () =>
+      [...new Set(
+        (events ?? [])
+          .filter((event) => event.kind === 'match')
+          .map((event) => event.match_id?.trim())
+          .filter((id): id is string => Boolean(id)),
+      )].sort(),
+    [events],
+  );
+  const matchdaySettingsKey = matchdaySettingsMatchIds.join(',');
 
   useEffect(() => {
     if (FEED_DEMO || isDemoMode) {
@@ -174,28 +187,28 @@ export const HomePage: React.FC = () => {
     if (FEED_DEMO || isDemoMode) {
       setDisabledMatchdayMatchIds(new Set());
       setDisabledMatchdayLoading(false);
+      setLoadedMatchdaySettingsKey(matchdaySettingsKey);
       return;
     }
-    const matchIds = (events ?? [])
-      .filter((e) => e.kind === 'match')
-      .map((e) => e.match_id);
-    if (matchIds.length === 0) {
+    if (matchdaySettingsMatchIds.length === 0) {
       setDisabledMatchdayMatchIds(new Set());
       setDisabledMatchdayLoading(false);
+      setLoadedMatchdaySettingsKey(matchdaySettingsKey);
       return;
     }
     let cancelled = false;
     setDisabledMatchdayLoading(true);
-    void loadAutoMatchdayFeedDisabledMatchIds(matchIds).then((ids) => {
+    void loadAutoMatchdayFeedDisabledMatchIds(matchdaySettingsMatchIds).then((ids) => {
       if (!cancelled) {
         setDisabledMatchdayMatchIds(ids);
+        setLoadedMatchdaySettingsKey(matchdaySettingsKey);
         setDisabledMatchdayLoading(false);
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [events, isDemoMode]);
+  }, [isDemoMode, matchdaySettingsKey]);
 
   const hasMatchEventsToCheck = useMemo(() => {
     if (FEED_DEMO || isDemoMode) return false;
@@ -203,7 +216,11 @@ export const HomePage: React.FC = () => {
   }, [events, isDemoMode]);
 
   const autoMatchdaySettingsReady =
-    FEED_DEMO || isDemoMode || (!evLoading && (!hasMatchEventsToCheck || !disabledMatchdayLoading));
+    FEED_DEMO ||
+    isDemoMode ||
+    (!evLoading &&
+      (!hasMatchEventsToCheck ||
+        (!disabledMatchdayLoading && loadedMatchdaySettingsKey === matchdaySettingsKey)));
 
   const sportingPickResolved = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
