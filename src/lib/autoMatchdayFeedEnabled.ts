@@ -2,7 +2,7 @@ import type { EventRow } from '../hooks/useEvents';
 import type { ClassifiedFeedPost } from './matchdayFeedTypes';
 import { supabase } from './supabaseClient';
 
-/** Match-IDs mit deaktivierter Matchday-Automatisierung (Hero + Feed-Matchday-Post). */
+/** Match-IDs mit deaktivierter Spieltag-Automatisierung (Hero + Spielankündigungen). */
 export async function loadAutoMatchdayFeedDisabledMatchIds(
   matchIds: Iterable<string | null | undefined>,
 ): Promise<Set<string>> {
@@ -63,7 +63,7 @@ export function isMatchdayFeedPostHiddenByAutomation(
   item: ClassifiedFeedPost,
   disabledMatchIds: ReadonlySet<string>,
 ): boolean {
-  if (item.kind !== 'matchday') return false;
+  if (item.kind !== 'matchday' && item.kind !== 'next_match') return false;
   const matchId = item.post.payload.match_id?.trim();
   if (!matchId) return false;
   return disabledMatchIds.has(matchId);
