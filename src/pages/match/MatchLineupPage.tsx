@@ -20,6 +20,7 @@ import {
   labelForSlotInFormation,
   readStoredU11Formation,
   U11_FORMATION_CHOICES,
+  U11_FORMATIONS,
   FAIRPLAY_FORMATION_CHOICES,
   U11_FORMATION_DB_FALLBACK,
   writeStoredU11Formation,
@@ -993,7 +994,7 @@ export const MatchLineupPage: React.FC = () => {
                 <div className="flex min-h-0 min-w-0 flex-col gap-1">
                   <h2 className={`shrink-0 ${dsSectionLabelClass()}`}>Startaufstellung</h2>
                   <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] flex flex-col ${DS_LIST_GAP}`}>
-                    {LIVE_FIELD_SLOT_ORDER.map((slot) => {
+                    {U11_FORMATIONS[formationId].map(({ slot }) => {
                       const pid = slots[slot];
                       const p = pid ? playersById.get(pid) : null;
                       const posLabel = getPositionLabel(labelForSlotInFormation(formationId, slot)) || '—';
