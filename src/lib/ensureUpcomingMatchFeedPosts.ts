@@ -9,6 +9,7 @@ import {
 } from './nextMatchFeedTypes';
 import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import { viennaCalendarDaysUntil } from './viennaTime';
+import { loadAutoMatchdayFeedEnabledByMatchId } from './autoMatchdayFeedEnabled';
 
 export type EnsureUpcomingMatchFeedPostsResult = {
   scanned: number;
@@ -236,6 +237,9 @@ export async function ensureUpcomingMatchFeedPosts(
   }
 
   const rows = (feedRes.data ?? []) as EventRowLite[];
+  const enabledByMatchId = await loadAutoMatchdayFeedEnabledByMatchId(
+    rows.map((event) => event.match_id),
+  );
 
   for (const ev of rows) {
     if (isInternalChampionshipFixture(ev.fixture_status)) continue;
@@ -243,6 +247,11 @@ export async function ensureUpcomingMatchFeedPosts(
     const st = (ev.status ?? 'upcoming').toLowerCase();
     if (st !== 'upcoming') continue;
     if (!ev.starts_at) continue;
+    const matchId = ev.match_id?.trim();
+    if (matchId && enabledByMatchId.get(matchId) === false) {
+      result.skipped += 1;
+      continue;
+    }
 
     const kick = new Date(ev.starts_at);
     if (Number.isNaN(kick.getTime())) continue;
