@@ -23,6 +23,7 @@ export function useEventsAttendance(eventIds: string[]) {
   const demo = useDemoMode();
   const [rows, setRows] = useState<Array<{ event_id: string; player_id: string; status: string }>>([]);
   const [loading, setLoading] = useState(false);
+  const [loadedEventIdsKey, setLoadedEventIdsKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const eventIdsKey = eventIds.join(",");
@@ -30,12 +31,14 @@ export function useEventsAttendance(eventIds: string[]) {
   const load = useCallback(async () => {
     if (demo) {
       setRows([]);
+      setLoadedEventIdsKey(eventIdsKey);
       setLoading(false);
       setError(null);
       return;
     }
     if (eventIds.length === 0) {
       setRows([]);
+      setLoadedEventIdsKey(eventIdsKey);
       setLoading(false);
       setError(null);
       return;
@@ -63,6 +66,7 @@ export function useEventsAttendance(eventIds: string[]) {
     } else {
       setRows(list);
     }
+    setLoadedEventIdsKey(eventIdsKey);
     setLoading(false);
   }, [demo, eventIdsKey]);
 
@@ -117,7 +121,9 @@ export function useEventsAttendance(eventIds: string[]) {
   return {
     byEventId,
     refresh: load,
-    loading: demo ? false : loading,
+    // `useEffect` startet erst nach dem ersten Render. Ohne den Key-Abgleich
+    // wuerden dabei kurz die Daten der vorherigen Termin-Auswahl erscheinen.
+    loading: demo ? false : loading || loadedEventIdsKey !== eventIdsKey,
     error: demo ? null : error,
   };
 }
