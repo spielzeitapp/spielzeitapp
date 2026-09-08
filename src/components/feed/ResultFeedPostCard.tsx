@@ -15,7 +15,6 @@ import {
   FeedMatchDateVenueLine,
   FeedMatchMetaBadge,
   FeedPostHeader,
-  FeedPostTypeBadge,
   FeedPostActionsFooter,
   FeedSectionHeader,
   FeedStandardActions,
@@ -254,8 +253,6 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           ) : null
         }
       />
-      <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
-
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
