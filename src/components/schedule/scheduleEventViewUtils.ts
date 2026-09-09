@@ -2,7 +2,7 @@ import type { EventRow } from '../../hooks/useEvents';
 import { safeText } from '../../lib/safeText';
 import { formatVisibleMatchEncounter, normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 import { VIENNA_TZ } from '../../lib/viennaTime';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import {
   effectiveEventTypeLabelDe,
@@ -107,9 +107,8 @@ export function scheduleEventTypeLabel(ev: EventRow, et: EffectiveEventType): st
 }
 
 export function scheduleLocationLine(ev: EventRow): string {
-  const parsed = splitCombinedLocation(ev.location ?? '');
   const addrExtra = (ev as { address?: string | null }).address ?? null;
-  return formatFullLocation(parsed.place, parsed.address || addrExtra);
+  return formatFeedVenueShort(ev.location ?? addrExtra) ?? '';
 }
 
 /** Titelzeile für kompakte Liste (eine Zeile). */
