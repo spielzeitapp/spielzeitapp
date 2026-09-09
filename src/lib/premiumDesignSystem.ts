@@ -96,7 +96,7 @@ export function dsScreenHeadlineClass(): string {
 
 /** Section Labels (NÄCHSTES SPIEL, Matchday-Feed). */
 export function dsMatchdaySectionLabelClass(): string {
-  return 'text-[0.78rem] font-semibold uppercase tracking-[0.35em] text-[#B85C68]';
+  return 'sz-club-accent-text text-[0.78rem] font-semibold uppercase tracking-[0.35em]';
 }
 
 /** Sublines unter Headlines. */
@@ -109,12 +109,10 @@ export function dsButtonTextClass(): string {
   return 'text-[1rem] font-semibold tracking-[0.01em]';
 }
 
-const PRIMARY_GRADIENT = 'bg-gradient-to-br from-[#7A1D2A] to-[#3A1218]';
-const PRIMARY_ACTIVE_GLOW = 'shadow-[0_0_22px_rgba(122,29,42,0.35),inset_0_1px_0_rgba(255,255,255,0.1)]';
-const PRIMARY_GLOW =
-  'shadow-[0_0_24px_rgba(122,29,42,0.2),inset_0_1px_0_rgba(255,255,255,0.1),0_4px_18px_rgba(0,0,0,0.4)]';
-const PRIMARY_GLOW_HOVER =
-  'hover:shadow-[0_0_28px_rgba(122,29,42,0.32),inset_0_1px_0_rgba(255,255,255,0.12),0_6px_22px_rgba(0,0,0,0.44)]';
+const PRIMARY_GRADIENT = 'sz-club-primary';
+const PRIMARY_ACTIVE_GLOW = '';
+const PRIMARY_GLOW = '';
+const PRIMARY_GLOW_HOVER = '';
 
 export function dsCardTitleClass(): string {
   return 'text-lg font-bold leading-snug tracking-tight text-white';
@@ -143,7 +141,7 @@ export function dsScheduleDateBoxClass(): string {
 }
 
 export function dsScheduleDateBoxWeekdayClass(): string {
-  return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B85C68]';
+  return 'sz-club-accent-text text-[10px] font-semibold uppercase tracking-[0.14em]';
 }
 
 export function dsScheduleDateBoxDayClass(): string {
@@ -173,9 +171,7 @@ export function dsScheduleGlassButtonClass(): string {
 /** Termin anlegen (+). */
 export function dsSchedulePlusButtonClass(): string {
   return [
-    'flex items-center justify-center rounded-full border border-[rgba(122,29,42,0.35)]',
-    'bg-gradient-to-br from-[#7A1D2A] to-[#3A1218] text-white',
-    'shadow-[0_0_20px_rgba(122,29,42,0.28),inset_0_1px_0_rgba(255,255,255,0.1)]',
+    'flex items-center justify-center rounded-full border sz-club-primary',
     'transition-[box-shadow,transform] duration-150',
     'hover:shadow-[0_0_24px_rgba(122,29,42,0.35)] active:scale-[0.97]',
     'disabled:opacity-45',
@@ -195,15 +191,13 @@ export function dsTertiaryButtonClass(): string {
 }
 
 /** Cinematic Stadium Surface — dunkler, dünner Rot-Ambient-Rand. */
-export const DS_CARD_BG = 'bg-[rgba(12,12,16,0.96)]';
+export const DS_CARD_BG = '';
 /** Mehr Schwarz, Rot nur oben/seitlich (Startaufstellung). */
-export const DS_CARD_BG_MATCHDAY = 'bg-[rgba(10,10,14,0.97)]';
-export const DS_CARD_BORDER = 'border border-[rgba(255,40,40,0.07)]';
+export const DS_CARD_BG_MATCHDAY = '';
+export const DS_CARD_BORDER = 'border sz-club-surface';
 
-const CARD_SHADOW =
-  'shadow-[0_0_28px_rgba(255,40,40,0.06),0_8px_24px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.025)]';
-const CARD_SHADOW_ACTIVE =
-  'shadow-[0_0_32px_rgba(255,40,40,0.09),0_10px_28px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.03)]';
+const CARD_SHADOW = '';
+const CARD_SHADOW_ACTIVE = 'sz-club-surface--hero';
 
 export function dsCardShellClass(opts?: {
   active?: boolean;
@@ -228,10 +222,7 @@ export function dsCardShellClass(opts?: {
 }
 
 export function dsCardAmbientGlowClass(matchday?: boolean): string {
-  if (matchday) {
-    return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_60%_at_12%_0%,rgba(255,40,40,0.08),transparent_52%),radial-gradient(ellipse_40%_50%_at_100%_30%,rgba(120,0,0,0.05),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.025)_0%,transparent_26%)]';
-  }
-  return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_65%_at_10%_0%,rgba(255,40,40,0.06),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.025)_0%,transparent_24%)]';
+  return `pointer-events-none absolute inset-0 sz-club-card-glow${matchday ? ' sz-club-card-glow--hero' : ''}`;
 }
 
 /** Home-Feed / Training — mehr Schwarz, kein roter Flächenlook. */
@@ -239,9 +230,7 @@ export function dsFeedCardShellClass(className = ''): string {
   return [
     'relative w-full overflow-hidden text-left',
     DS_CARD_RADIUS,
-    'border border-[rgba(255,255,255,0.06)]',
-    'bg-[rgba(11,11,13,0.98)]',
-    'shadow-[0_10px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.03)]',
+    'border sz-club-surface sz-club-surface--quiet',
     'px-0 py-0',
     className,
   ]
@@ -250,7 +239,7 @@ export function dsFeedCardShellClass(className = ''): string {
 }
 
 export function dsFeedCardGlowClass(): string {
-  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_18%)]';
+  return 'pointer-events-none absolute inset-0 sz-club-card-glow';
 }
 
 /** Training-Teilnahme: Premium Matchday Panel mit Stadium-Tiefe (kein Vollrot). */
@@ -258,9 +247,7 @@ export function dsTrainingAttendanceCardShellClass(className = ''): string {
   return [
     'relative w-full overflow-hidden text-left',
     DS_CARD_RADIUS,
-    'border border-[rgba(255,45,85,0.1)]',
-    'bg-[linear-gradient(180deg,rgba(13,12,15,0.98)_0%,rgba(11,10,13,0.98)_42%,rgba(16,10,12,0.99)_100%)]',
-    'shadow-[0_12px_36px_rgba(0,0,0,0.52),0_0_32px_rgba(255,45,85,0.09),inset_0_1px_0_rgba(255,255,255,0.045),inset_0_-28px_52px_rgba(255,30,30,0.05)]',
+    'border sz-club-surface sz-club-surface--hero',
     'px-3 py-3',
     className,
   ]
@@ -271,21 +258,20 @@ export function dsTrainingAttendanceCardShellClass(className = ''): string {
 export function dsTrainingAttendanceCardGlowClass(): string {
   return [
     'pointer-events-none absolute inset-0',
-    'bg-[radial-gradient(ellipse_92%_58%_at_50%_0%,rgba(255,45,85,0.08)_0%,transparent_58%),radial-gradient(ellipse_85%_45%_at_50%_100%,rgba(70,8,18,0.1)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.028)_0%,transparent_22%)]',
+    'sz-club-card-glow sz-club-card-glow--hero',
   ].join(' ');
 }
 
 /** Training-Detail: warmer Header-Nebel (nur Wrapper, Logos unberührt). */
 export function dsTrainingDetailHeaderAtmosphereClass(): string {
-  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_115%_80%_at_50%_-10%,rgba(122,29,42,0.16)_0%,transparent_56%),radial-gradient(ellipse_70%_45%_at_100%_0%,rgba(255,240,220,0.06)_0%,transparent_50%),linear-gradient(180deg,rgba(58,18,24,0.08)_0%,transparent_42%)]';
+  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_115%_80%_at_50%_-10%,rgba(122,29,42,0.08)_0%,transparent_56%),radial-gradient(ellipse_70%_45%_at_100%_0%,rgba(255,240,220,0.04)_0%,transparent_50%),linear-gradient(180deg,rgba(58,18,24,0.04)_0%,transparent_42%)]';
 }
 
 /** Termin-Detail: Kalender-Zeile — Deep Red Premium. */
 export function dsScheduleDetailCalendarRowClass(): string {
   return [
-    'flex w-full items-center gap-3 rounded-[14px] border border-[rgba(122,29,42,0.28)] px-3.5 py-3',
-    'bg-[linear-gradient(135deg,rgba(58,18,24,0.42)_0%,rgba(12,12,14,0.96)_100%)]',
-    'text-white/92 shadow-[0_0_20px_rgba(122,29,42,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]',
+    'flex w-full items-center gap-3 rounded-[14px] border sz-club-surface px-3.5 py-3',
+    'text-white/92',
     'transition-[background,border-color,transform] duration-150',
     'hover:border-[rgba(122,29,42,0.38)] hover:bg-[linear-gradient(135deg,rgba(58,18,24,0.5)_0%,rgba(16,14,16,0.98)_100%)]',
     'active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45',
@@ -312,9 +298,7 @@ export function dsAvatarRingClass(): string {
 export function dsAvatarFrameClass(): string {
   return [
     'overflow-hidden rounded-full',
-    'border border-[rgba(255,40,40,0.55)]',
-    'bg-[rgba(12,10,12,0.95)]',
-    'shadow-[0_0_26px_rgba(255,40,40,0.24),0_0_10px_rgba(255,55,55,0.18),inset_0_0_0_1px_rgba(255,120,120,0.22),inset_0_0_16px_rgba(255,40,40,0.1),0_4px_14px_rgba(0,0,0,0.35)]',
+    'border sz-club-avatar',
   ].join(' ');
 }
 
@@ -365,7 +349,7 @@ export function dsJerseyWrapClass(): string {
 export const DS_JERSEY_COMPACT = '!h-[2.92rem] !w-[2.29rem]';
 export const DS_JERSEY_STARTER = '!h-[3.08rem] !w-[2.42rem]';
 
-export const DS_CARD_FOOTER_DIVIDER = 'border-t border-[rgba(60,24,28,0.45)]';
+export const DS_CARD_FOOTER_DIVIDER = 'border-t sz-club-divider';
 
 export type DsChipTone =
   | 'present'
@@ -471,11 +455,10 @@ export function dsRsvpChoiceClass(kind: 'yes' | 'no', active: boolean): string {
 export function dsPanelRowClass(): string {
   return [
     'flex items-center justify-between gap-3 rounded-xl',
-    DS_CARD_BORDER,
-    'bg-[rgba(12,12,16,0.96)] px-4 py-3.5 text-left text-[16px] font-semibold text-white',
-    'shadow-[0_0_28px_rgba(255,40,40,0.06),inset_0_1px_0_rgba(255,255,255,0.025)]',
+    'border sz-club-surface sz-club-surface--quiet',
+    'px-4 py-3.5 text-left text-[16px] font-semibold text-white',
     'transition-[box-shadow,background] duration-150',
-    'hover:shadow-[0_0_40px_rgba(255,40,40,0.12)]',
+    'hover:shadow-[0_0_28px_rgba(255,40,40,0.08),0_8px_24px_rgba(0,0,0,0.38)]',
   ].join(' ');
 }
 
@@ -674,7 +657,7 @@ export function dsStickyCtaBarClass(): string {
 
 export function dsPrimaryCtaClass(): string {
   return [
-    'rounded-[22px] border border-[rgba(122,29,42,0.25)]',
+    'rounded-[22px] border',
     PRIMARY_GRADIENT,
     'px-4 py-2.5 text-white tracking-[0.02em]',
     dsButtonTextClass(),
@@ -711,16 +694,14 @@ export function dsSchedulePageStyle(): { background: string; boxShadow: string }
 export function dsScheduleHeroPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[14px]',
-    'border border-[rgba(122,29,42,0.25)]',
-    'bg-[linear-gradient(168deg,rgba(20,20,22,0.99)_0%,rgba(10,10,12,0.99)_58%,rgba(18,8,12,0.99)_100%)]',
-    'shadow-[0_16px_48px_rgba(0,0,0,0.60),0_0_36px_rgba(122,29,42,0.16),inset_0_1px_0_rgba(255,255,255,0.04)]',
+    'border sz-club-surface sz-club-surface--hero',
   ].join(' ');
 }
 
 export function dsScheduleHeroPanelGlowClass(): string {
   return [
     'pointer-events-none absolute inset-0',
-    'bg-[radial-gradient(ellipse_100%_65%_at_50%_-10%,rgba(122,29,42,0.18)_0%,transparent_60%),radial-gradient(ellipse_80%_50%_at_50%_110%,rgba(58,18,24,0.08)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_30%)]',
+    'sz-club-card-glow sz-club-card-glow--hero',
   ].join(' ');
 }
 
@@ -734,7 +715,7 @@ export function dsScheduleHeroDateBoxClass(): string {
 }
 
 export function dsScheduleHeroDateBoxWeekdayClass(): string {
-  return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B85C68]';
+  return 'sz-club-accent-text text-[10px] font-semibold uppercase tracking-[0.14em]';
 }
 
 export function dsScheduleHeroDateBoxDayClass(): string {
@@ -749,22 +730,19 @@ export function dsScheduleHeroDateBoxMonthClass(): string {
 export function dsScheduleListPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[12px]',
-    'border border-white/[0.015]',
-    'bg-[linear-gradient(180deg,rgba(4,4,6,0.99)_0%,rgba(2,2,4,0.99)_100%)]',
-    'shadow-[0_1px_4px_rgba(0,0,0,0.22)]',
+    'border sz-club-surface sz-club-surface--quiet',
   ].join(' ');
 }
 
 export function dsScheduleListPanelGlowClass(): string {
-  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.002)_0%,transparent_5%)]';
+  return 'pointer-events-none absolute inset-0 sz-club-card-glow';
 }
 
 /** Termin-Detail / Hero-Footer: ruhige Action-Zeilen (Dark Glass). */
 export function dsScheduleActionRowClass(opts?: { danger?: boolean }): string {
   const base = [
     'flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3',
-    'bg-[rgba(12,12,14,0.94)] backdrop-blur-sm',
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
+    'sz-club-surface sz-club-surface--quiet backdrop-blur-sm',
     'transition-[background,border-color,transform] duration-150',
     'hover:bg-[rgba(18,16,18,0.97)] active:scale-[0.99]',
     'disabled:cursor-not-allowed disabled:opacity-45',
