@@ -8,12 +8,13 @@ import { FeedCard } from '../../components/feed/FeedCard';
 import { ReminderCard } from '../../components/feed/ReminderCard';
 import { NewsCard } from '../../components/feed/NewsCard';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 
 function NextEventListCard({ event, now }: { event: EventRow; now: Date }) {
   const base = useInternalBasePath();
   const label = eventKindLabel(event.kind);
   const when = formatDateTimeDeVienna(event.starts_at);
-  const place = (event.location ?? event.address ?? '').trim() || '—';
+  const place = formatFeedVenueShort(event.location ?? event.address) ?? '—';
   const countdown = formatCountdownToStartsAt(event.starts_at, now);
 
   return (
