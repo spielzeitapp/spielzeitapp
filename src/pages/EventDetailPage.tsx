@@ -3968,6 +3968,7 @@ export const EventDetailPage: React.FC = () => {
               compactDetailGame
               ourTeamName={ourTeamName}
               opponent={event.opponent}
+              opponentLogoUrl={event.opponent_logo_url ?? null}
               isHome={event.is_home}
               startsAt={event.starts_at}
               status={event.status}
