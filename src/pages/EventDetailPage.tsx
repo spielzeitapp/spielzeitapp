@@ -72,7 +72,6 @@ import { TrainingAttendancePanel } from '../components/events/TrainingAttendance
 import { EventFeedCommunicationSection } from '../components/events/EventFeedCommunicationSection';
 import { useSession } from '../auth/useSession';
 import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
-import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
 import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath } from '../demo/demoPaths';
@@ -94,6 +93,7 @@ import {
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchKickoffLineupPlayerIds, fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { MinimumPlaytimeMatchSettings } from '../components/live/MinimumPlaytimeMatchSettings';
+import { getDemoPlayerPortraitUrl, isDemoUpperBodyPortraitUrl } from '../lib/playerDemoPortrait';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
   DEFAULT_PLANNED_MATCH_MINUTES,
@@ -392,6 +392,29 @@ function comparePlayersInBucket(a: PlayerItem, b: PlayerItem): number {
   if (byFirst !== 0) return byFirst;
 
   return (a.display_name ?? '').trim().toLocaleLowerCase('de-AT').localeCompare((b.display_name ?? '').trim().toLocaleLowerCase('de-AT'), 'de-AT');
+}
+
+const MATCH_PREP_PLAYER_PLACEHOLDER = '/avatars/player-placeholder.png';
+
+function matchPrepPlayerMedia(player: PlayerItem, isDemo: boolean) {
+  const cutout = (player.cutout_url ?? '').trim();
+  if (cutout) return { src: cutout, isCutout: true, isUpperBodyDemo: false };
+  const avatar = (player.avatar_url ?? '').trim();
+  if (avatar) {
+    return {
+      src: avatar,
+      isCutout: false,
+      isUpperBodyDemo: isDemoUpperBodyPortraitUrl(avatar),
+    };
+  }
+  if (isDemo) {
+    return {
+      src: getDemoPlayerPortraitUrl(player.jersey_number, `${player.id}|${player.display_name ?? ''}`),
+      isCutout: false,
+      isUpperBodyDemo: true,
+    };
+  }
+  return { src: MATCH_PREP_PLAYER_PLACEHOLDER, isCutout: false, isUpperBodyDemo: true };
 }
 
 /** Sortierung RSVP-Spielerliste: OFFEN → DABEI → ABWESEND; innerhalb Gruppe: # aufsteigend, sonst Nachname/Vorname. */
@@ -4171,6 +4194,7 @@ export const EventDetailPage: React.FC = () => {
                               {group.map((player) => {
                                 const bucket = statusBucket(getAttendanceStatus, player.id);
                                 const rsvpDisplay = getMatchRsvpDisplay(player.id);
+                                const media = matchPrepPlayerMedia(player, isDemo);
                                 const badge =
                                   rsvpDisplay === 'yes'
                                     ? 'DABEI'
@@ -4189,38 +4213,64 @@ export const EventDetailPage: React.FC = () => {
                                       : bucket === 'no'
                                         ? 'absent'
                                         : 'open';
-                                const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
-                                const pos = (player.position ?? '').trim();
-                                const sub = [pos || null, num].filter(Boolean).join(' · ') || '—';
-
                                 return (
                                   <li key={player.id} className="w-full">
-                                    <PremiumPlayerCard
-                                      player={player}
-                                      subline={sub}
-                                      density="compact"
-                                      trailing={
-                                        <PremiumStatusBadge label={badge} tone={chipTone} />
-                                      }
-                                      footer={
-                                        <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                                    <div className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 bg-[radial-gradient(circle_at_14%_50%,rgba(220,38,38,0.16),transparent_42%),linear-gradient(100deg,rgba(28,9,12,0.98),rgba(8,8,10,0.99))] px-2.5 text-left shadow-[0_7px_22px_rgba(80,0,8,0.18)]">
+                                      <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
+                                        <img
+                                          src={media.src}
+                                          alt=""
+                                          onError={(event) => {
+                                            event.currentTarget.onerror = null;
+                                            event.currentTarget.src = MATCH_PREP_PLAYER_PLACEHOLDER;
+                                          }}
+                                          className={`h-full w-full object-bottom ${
+                                            media.isCutout
+                                              ? 'origin-bottom scale-[1.45] object-contain'
+                                              : media.isUpperBodyDemo
+                                                ? 'object-contain'
+                                                : 'object-cover'
+                                          }`}
+                                        />
+                                      </div>
+                                      <span className="w-12 shrink-0 border-l border-white/10 pl-2.5 text-[25px] font-black leading-none text-white">
+                                        {player.jersey_number ?? '–'}
+                                      </span>
+                                      <span className="min-w-0 flex-1 truncate pl-2.5 text-[15px] font-bold text-white/92 sm:text-[16px]">
+                                        {premiumPlayerDisplayName(player)}
+                                      </span>
+                                      <div className="ml-1.5 flex shrink-0 items-center gap-1">
+                                          {rsvpDisplay === 'injured' || rsvpDisplay === 'sick' ? (
+                                            <PremiumStatusBadge label={badge} tone={chipTone} />
+                                          ) : null}
                                           <button
                                             type="button"
                                             onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                            className={dsRsvpChoiceClass('yes', bucket === 'yes')}
+                                            className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent transition active:scale-95 ${
+                                              bucket === 'yes'
+                                                ? 'bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]'
+                                                : 'bg-white/[0.045] text-white/45 hover:text-emerald-300'
+                                            }`}
+                                            aria-label={`${premiumPlayerDisplayName(player)} auf Dabei setzen`}
+                                            title="Dabei"
                                           >
-                                            Dabei
+                                            <ThumbsUp className="h-4 w-4" aria-hidden />
                                           </button>
                                           <button
                                             type="button"
                                             onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                            className={dsRsvpChoiceClass('no', bucket === 'no')}
+                                            className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent transition active:scale-95 ${
+                                              bucket === 'no'
+                                                ? 'bg-red-950/80 text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.16)]'
+                                                : 'bg-white/[0.045] text-white/45 hover:text-[#FF8D98]'
+                                            }`}
+                                            aria-label={`${premiumPlayerDisplayName(player)} auf Abwesend setzen`}
+                                            title="Abwesend"
                                           >
-                                            Abwesend
+                                            <ThumbsDown className="h-4 w-4" aria-hidden />
                                           </button>
-                                        </div>
-                                      }
-                                    />
+                                      </div>
+                                    </div>
                                   </li>
                                 );
                               })}
