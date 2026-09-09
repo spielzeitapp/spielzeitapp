@@ -4,8 +4,9 @@ import { resolveTournamentHeroBackgroundUrl } from '../../lib/matchCenterTournam
 import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { safeOptionalText } from '../../lib/safeText';
-import { formatTournamentDayDate, formatTournamentLocationDisplay } from './tournamentCenterUtils';
+import { formatTournamentDayDate } from './tournamentCenterUtils';
 import { CenterCompactHero } from '../center/CenterCompactHero';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 
 type Props = {
   title: string;
@@ -30,7 +31,7 @@ export function TournamentCompactCard({
   const timeLabel = formatTimeHHmmDe(startsAt);
   const meetupRaw = meetingAt ? formatMeetupTimeOnlyDe(meetingAt) : '';
   const meetupLabel = meetupRaw.replace(/\s*Uhr$/i, '').trim();
-  const placeLine = formatTournamentLocationDisplay(location);
+  const placeLine = formatFeedVenueShort(safeOptionalText(location));
   const metaLines = [
     dateLabel !== '—' ? dateLabel : null,
     `Treffpunkt ${meetupLabel || '–'}${meetupLabel ? ' Uhr' : ''}`,
