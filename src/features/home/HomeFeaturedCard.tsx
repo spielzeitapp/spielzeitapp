@@ -8,6 +8,7 @@ import { PremiumCard, PremiumEmptyState } from '../../ui';
 import { cn } from '../../ui/lib/cn';
 import { formatCountdownToStartsAt, eventKindLabel } from './homeFeedBuilder';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 
 type HomeFeaturedCardProps = {
   featured:
@@ -22,7 +23,7 @@ function NextEventHero({ event, now }: { event: EventRow; now: Date }) {
   const basePath = useInternalBasePath();
   const label = eventKindLabel(event.kind);
   const when = formatDateTimeDeVienna(event.starts_at);
-  const place = (event.location ?? event.address ?? '').trim() || '—';
+  const place = formatFeedVenueShort(event.location ?? event.address) ?? '—';
   const countdown = formatCountdownToStartsAt(event.starts_at, now);
 
   return (
