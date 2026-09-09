@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight, Clock, MapPin } from 'lucide-react';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
 import { HOME_FEED_HERO_STATUS_LABEL, HOME_NEXT_MATCH_ORG_LABEL } from './homeFeedBuilder';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { getMatchTypeLabel } from '../../components/match/matchCardLabels';
@@ -57,9 +57,7 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({
       }).format(date)
     : '–';
 
-  const parsedLocation = splitCombinedLocation(event.location);
-  const placeShort = (formatFullLocation(parsedLocation.place, parsedLocation.address || (event.address ?? '').trim()) || '')
-    .trim();
+  const placeShort = formatFeedVenueShort(event.location ?? event.address) ?? '';
 
   return (
     <PremiumCard
