@@ -4237,8 +4237,20 @@ export const EventDetailPage: React.FC = () => {
                                       <span className="w-12 shrink-0 border-l border-white/10 pl-2.5 text-[25px] font-black leading-none text-white">
                                         {player.jersey_number ?? '–'}
                                       </span>
-                                      <span className="min-w-0 flex-1 truncate pl-2.5 text-[15px] font-bold text-white/92 sm:text-[16px]">
-                                        {premiumPlayerDisplayName(player)}
+                                      <span className="min-w-0 flex flex-1 flex-col justify-center pl-2.5 text-[15px] font-bold leading-[1.08] text-white/92 sm:text-[16px]">
+                                        {(() => {
+                                          const firstName = safeText(player.first_name);
+                                          const lastName = safeText(player.last_name);
+                                          if (firstName || lastName) {
+                                            return (
+                                              <>
+                                                {firstName ? <span className="truncate">{firstName}</span> : null}
+                                                {lastName ? <span className="truncate">{lastName}</span> : null}
+                                              </>
+                                            );
+                                          }
+                                          return <span className="line-clamp-2">{premiumPlayerDisplayName(player)}</span>;
+                                        })()}
                                       </span>
                                       <div className="ml-1.5 flex shrink-0 items-center gap-1">
                                           {rsvpDisplay === 'injured' || rsvpDisplay === 'sick' ? (
