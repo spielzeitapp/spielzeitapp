@@ -1,5 +1,85 @@
 /* UI-Test Skin – Card, Button, Pill, Topbar, BottomNav */
 
+/*
+ * Shared club-neutral visual language.
+ * The black surface stays constant for every club; only the subtle ambient
+ * colour comes from the club theme tokens in tokens.css.
+ */
+.sz-club-surface {
+  border-color: rgb(var(--club-primary-rgb) / 0.16);
+  background:
+    radial-gradient(ellipse 80% 75% at 8% 0%, rgb(var(--club-primary-rgb) / 0.09), transparent 58%),
+    linear-gradient(165deg, rgba(17, 17, 20, 0.99) 0%, rgba(8, 8, 11, 0.99) 62%, rgba(12, 10, 13, 0.99) 100%);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.46),
+    0 0 24px rgb(var(--club-primary-rgb) / 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.sz-club-surface--quiet {
+  border-color: rgb(var(--club-primary-rgb) / 0.11);
+  background:
+    radial-gradient(ellipse 70% 70% at 5% 0%, rgb(var(--club-primary-rgb) / 0.055), transparent 60%),
+    linear-gradient(180deg, rgba(12, 12, 15, 0.99) 0%, rgba(6, 6, 9, 0.99) 100%);
+  box-shadow:
+    0 5px 18px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.sz-club-surface--hero {
+  border-color: rgb(var(--club-primary-rgb) / 0.24);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.56),
+    0 0 32px rgb(var(--club-primary-rgb) / 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.sz-club-card-glow {
+  background:
+    radial-gradient(ellipse 90% 65% at 10% 0%, rgb(var(--club-primary-rgb) / 0.08), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.024) 0%, transparent 24%);
+}
+
+.sz-club-card-glow--hero {
+  background:
+    radial-gradient(ellipse 100% 70% at 50% -10%, rgb(var(--club-primary-rgb) / 0.09), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, transparent 28%);
+}
+
+.sz-club-primary {
+  border-color: rgb(var(--club-primary-rgb) / 0.34);
+  color: var(--club-on-primary);
+  background: linear-gradient(145deg, rgb(var(--club-primary-rgb) / 0.96), rgb(var(--club-primary-rgb) / 0.62));
+  box-shadow:
+    0 0 24px rgb(var(--club-primary-rgb) / 0.24),
+    0 4px 18px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.sz-club-primary:hover:not(:disabled) {
+  box-shadow:
+    0 0 30px rgb(var(--club-primary-rgb) / 0.34),
+    0 6px 22px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.sz-club-accent-text {
+  color: rgb(var(--club-accent-rgb) / 0.78);
+}
+
+.sz-club-avatar {
+  border-color: rgb(var(--club-accent-rgb) / 0.52);
+  background: rgba(10, 10, 12, 0.96);
+  box-shadow:
+    0 0 24px rgb(var(--club-primary-rgb) / 0.2),
+    inset 0 0 0 1px rgb(var(--club-secondary-rgb) / 0.1),
+    0 4px 14px rgba(0, 0, 0, 0.38);
+}
+
+.sz-club-divider {
+  border-color: rgb(var(--club-primary-rgb) / 0.2);
+}
+
 /* Card – dark glass panel */
 .card {
   background: var(--glass-bg);
