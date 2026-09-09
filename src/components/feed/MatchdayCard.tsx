@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Clock, ChevronRight, MapPin } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { splitStatusForHero } from '../../features/home/homeFeedBuilder';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
@@ -66,10 +66,7 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
   const descriptionParts = noteParts.slice(1).filter((p) => !p.toLowerCase().startsWith('ende:'));
   const descriptionText = descriptionParts.length ? descriptionParts.join(' · ') : null;
 
-  const parsedLocation = splitCombinedLocation(event.location);
-  const placeLine = parsedLocation.place;
-  const addressLine = parsedLocation.address || (event.address ?? '').trim();
-  const ortLine = (formatFullLocation(placeLine, addressLine) || '').trim() || '—';
+  const ortLine = formatFeedVenueShort(event.location ?? event.address) ?? '—';
   const meetLine = formatMeetupTimeOnlyDe(event.meeting_at) || '—';
 
   const headerTitle = getMatchTypeLabel(event.match_type ?? event.type);
