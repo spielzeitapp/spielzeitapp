@@ -182,7 +182,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               <button
                 type="button"
                 onClick={() => onPlayerClick(player)}
-                className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 bg-[radial-gradient(circle_at_14%_50%,rgba(220,38,38,0.08),transparent_44%),linear-gradient(100deg,rgba(15,11,13,0.99),rgba(7,7,9,0.99))] px-2.5 text-left shadow-[0_7px_22px_rgba(0,0,0,0.34),0_0_16px_rgba(122,29,42,0.06)] transition hover:border-red-400/55 hover:shadow-[0_8px_24px_rgba(127,29,29,0.16)] active:scale-[0.99]"
+                className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 sz-club-surface sz-club-surface--quiet px-2.5 text-left transition hover:border-red-400/55 hover:shadow-[0_8px_24px_rgba(127,29,29,0.16)] active:scale-[0.99]"
               >
                 <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
                   <img
