@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Share2 } from 'lucide-react';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
@@ -45,9 +45,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
     event.meeting_at && !Number.isNaN(new Date(event.meeting_at).getTime())
       ? formatMeetupTimeOnlyDe(event.meeting_at)
       : null;
-  const parsed = splitCombinedLocation(event.location);
-  const locationLine =
-    (formatFullLocation(parsed.place, parsed.address || (event.address ?? '').trim()) || '').trim() || '—';
+  const locationLine = formatFeedVenueShort(event.location ?? event.address) ?? '—';
   const venueLabel = isHome ? 'Heimspiel' : 'Auswärtsspiel';
 
   const eventUrl =
