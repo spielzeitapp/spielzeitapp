@@ -4,7 +4,7 @@ import { participationPctBadgeClass } from '../../lib/trainingAttendance';
 import { cn } from '../../ui/lib/cn';
 
 const HERO_CLASS =
-  'relative w-full overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-3.5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(220,38,38,0.12),0_10px_32px_rgba(0,0,0,0.45)] sm:px-4 sm:py-4';
+  'relative w-full overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--hero px-3.5 py-4 sm:px-4 sm:py-4';
 
 type Props = {
   sessionsCount: number;
@@ -66,7 +66,7 @@ export const TrainingOverviewHero: React.FC<Props> = ({
   return (
     <div className={cn(HERO_CLASS, className)}>
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgba(220,38,38,0.16)_0%,transparent_55%)]"
+        className="pointer-events-none absolute inset-0 sz-club-card-glow sz-club-card-glow--hero"
         aria-hidden
       />
       <div className="relative w-full">
