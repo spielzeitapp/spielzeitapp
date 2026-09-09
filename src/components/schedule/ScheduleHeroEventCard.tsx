@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bus, CalendarDays, ChevronRight, Clapperboard, ClipboardList, Clock, MapPin, PartyPopper, Pizza, Trophy, Users } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
-import { formatFullLocation, formatLocationTwoLines, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../match/matchCardLabels';
 import { getClubLogoUrl, isValidLogoUrl } from '../../utils/logoResolver';
 import type { EffectiveEventType } from './scheduleEventViewUtils';
@@ -202,12 +202,12 @@ export function ScheduleHeroEventCard({
   const trainingTitle = eventNotesTitle(ev.notes) ?? 'Training';
   const endDisplay = eventTrainingEndDisplay(ev.notes);
 
-  const parsedLoc = splitCombinedLocation(ev.location ?? '');
   const addrExtra = (ev as { address?: string | null }).address ?? null;
-  const { line1: locLine1, line2: locLine2 } = formatLocationTwoLines(parsedLoc.place, parsedLoc.address || addrExtra);
+  const venueShort = formatFeedVenueShort(ev.location ?? addrExtra);
+  const locLine1 = venueShort;
+  const locLine2 = null;
   const locSingle = scheduleLocationLine(ev);
-  const locationForKickoff =
-    formatFullLocation(parsedLoc.place, parsedLoc.address || addrExtra) || null;
+  const locationForKickoff = venueShort;
 
   const { endTimeLabel: gameEndLabel, descriptionText: gameDescription } = parseNotesParts(ev);
 
