@@ -264,7 +264,7 @@ export function dsTrainingAttendanceCardGlowClass(): string {
 
 /** Training-Detail: warmer Header-Nebel (nur Wrapper, Logos unberührt). */
 export function dsTrainingDetailHeaderAtmosphereClass(): string {
-  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_115%_80%_at_50%_-10%,rgba(122,29,42,0.16)_0%,transparent_56%),radial-gradient(ellipse_70%_45%_at_100%_0%,rgba(255,240,220,0.06)_0%,transparent_50%),linear-gradient(180deg,rgba(58,18,24,0.08)_0%,transparent_42%)]';
+  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_115%_80%_at_50%_-10%,rgba(122,29,42,0.08)_0%,transparent_56%),radial-gradient(ellipse_70%_45%_at_100%_0%,rgba(255,240,220,0.04)_0%,transparent_50%),linear-gradient(180deg,rgba(58,18,24,0.04)_0%,transparent_42%)]';
 }
 
 /** Termin-Detail: Kalender-Zeile — Deep Red Premium. */
@@ -455,11 +455,10 @@ export function dsRsvpChoiceClass(kind: 'yes' | 'no', active: boolean): string {
 export function dsPanelRowClass(): string {
   return [
     'flex items-center justify-between gap-3 rounded-xl',
-    DS_CARD_BORDER,
-    'bg-[rgba(12,12,16,0.96)] px-4 py-3.5 text-left text-[16px] font-semibold text-white',
-    'shadow-[0_0_28px_rgba(255,40,40,0.06),inset_0_1px_0_rgba(255,255,255,0.025)]',
+    'border sz-club-surface sz-club-surface--quiet',
+    'px-4 py-3.5 text-left text-[16px] font-semibold text-white',
     'transition-[box-shadow,background] duration-150',
-    'hover:shadow-[0_0_40px_rgba(255,40,40,0.12)]',
+    'hover:shadow-[0_0_28px_rgba(255,40,40,0.08),0_8px_24px_rgba(0,0,0,0.38)]',
   ].join(' ');
 }
 
