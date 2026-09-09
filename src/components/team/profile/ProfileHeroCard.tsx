@@ -87,9 +87,9 @@ function PlayerProfileHeroCard(props: Props) {
           : "text-[28px] sm:text-[32px]";
 
   return (
-    <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#171719_0%,#070708_52%,#25090c_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(220,38,38,0.3),transparent_48%)]" aria-hidden />
-      <div className="absolute inset-0 opacity-20 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgba(239,68,68,0.14)_17px,transparent_18px)]" aria-hidden />
+    <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#151517_0%,#070708_58%,#10080a_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55),0_0_20px_rgba(122,29,42,0.08)] ring-1 ring-red-500/10">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(220,38,38,0.12),transparent_50%)]" aria-hidden />
+      <div className="absolute inset-0 opacity-10 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgba(239,68,68,0.12)_17px,transparent_18px)]" aria-hidden />
 
       {watermark ? (
         <p
