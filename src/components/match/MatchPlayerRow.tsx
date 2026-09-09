@@ -90,10 +90,10 @@ export const MatchPlayerRow: React.FC<{
     );
     const className = [
       "flex min-h-[78px] w-full items-center overflow-hidden rounded-[15px] border px-2.5 text-left transition active:scale-[0.99]",
-      "bg-[radial-gradient(circle_at_14%_50%,rgba(220,38,38,0.16),transparent_42%),linear-gradient(100deg,rgba(28,9,12,0.98),rgba(8,8,10,0.99))]",
+      "sz-club-surface sz-club-surface--quiet",
       selected
         ? "border-emerald-500/55 shadow-[0_8px_26px_rgba(5,150,105,0.16),0_0_18px_rgba(16,185,129,0.10)]"
-        : "border-red-500/35 shadow-[0_7px_22px_rgba(80,0,8,0.18)]",
+        : "border-red-500/35",
       onClick ? "hover:border-red-400/55" : "",
     ].join(" ");
     return onClick ? (
