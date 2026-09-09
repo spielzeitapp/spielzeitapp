@@ -4,7 +4,7 @@ on:
   push:
     branches: [develop]
     paths:
-      - supabase/migrations/20260909100000_event_carpooling.sql
+      - supabase/migrations/20260909190000_event_carpool_request_notifications.sql
       - supabase/functions/send-reminders/index.ts
       - .github/workflows/staging-event-carpooling.yml
 
@@ -19,8 +19,8 @@ jobs:
     env:
       PROJECT_REF: acbaecjzoabafbsjrzvr
       LIVE_PROJECT_REF: shxugattqatahckhspwk
-      MIGRATION_VERSION: "20260909100000"
-      MIGRATION_FILE: supabase/migrations/20260909100000_event_carpooling.sql
+      MIGRATION_VERSION: "20260909190000"
+      MIGRATION_FILE: supabase/migrations/20260909190000_event_carpool_request_notifications.sql
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -70,6 +70,7 @@ jobs:
             "to_regprocedure(\u0027public.carpool_can_access_event(uuid)\u0027) IS NOT NULL AS access_helper, " +
             "to_regprocedure(\u0027public.carpool_can_use_player(uuid,uuid)\u0027) IS NOT NULL AS player_helper, " +
             "EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = \u0027trg_validate_event_carpool_reservation\u0027 AND NOT tgisinternal) AS capacity_trigger, " +
+            "EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = \u0027trg_event_carpool_request_notification\u0027 AND NOT tgisinternal) AS request_notification_trigger, " +
             "EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = \u0027" + $version + "\u0027) AS migration_recorded;"
           )}' > verify-request.json
           status="$(curl --silent --show-error --output verify-response.json --write-out '%{http_code}' \
@@ -88,6 +89,7 @@ jobs:
             and .[0].access_helper == true
             and .[0].player_helper == true
             and .[0].capacity_trigger == true
+            and .[0].request_notification_trigger == true
             and .[0].migration_recorded == true' verify-response.json >/dev/null
           echo "Verified carpooling schema and security on staging."
 

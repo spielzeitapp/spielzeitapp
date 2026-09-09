@@ -5,7 +5,10 @@ import {
   ChevronUp,
   Clock3,
   MapPin,
+  MessageCircle,
+  Minus,
   Pencil,
+  Plus,
   RotateCcw,
   Trash2,
   UserPlus,
@@ -121,6 +124,12 @@ export const EventCarpoolCard: React.FC<Props> = ({
     { kind: 'reserve'; offerId: string } | { kind: 'request' } | null
   >(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
+
+  const changeOfferSeats = (delta: number) => {
+    const current = Number.parseInt(offerSeats, 10);
+    const next = Math.min(12, Math.max(1, (Number.isFinite(current) ? current : 1) + delta));
+    setOfferSeats(String(next));
+  };
 
   const playerById = useMemo(
     () => new Map(players.map((player) => [player.id, player])),
@@ -339,8 +348,8 @@ export const EventCarpoolCard: React.FC<Props> = ({
             <Car className="h-5 w-5" strokeWidth={2.1} aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="sz-club-accent-text block text-[13px] font-bold uppercase tracking-[0.15em]">Fahrgemeinschaft</span>
-            <span className="mt-0.5 block text-[13px] text-white/62">
+            <span className="sz-club-accent-text block text-[15px] font-bold uppercase tracking-[0.12em]">Fahrgemeinschaft</span>
+            <span className="mt-1 block text-[14px] font-medium text-white/68">
               {loading
                 ? 'Wird geladen…'
                 : totalFreeSeats > 0
@@ -379,11 +388,11 @@ export const EventCarpoolCard: React.FC<Props> = ({
                 <section key={offer.id} className="rounded-2xl border border-white/[0.09] bg-black/25 p-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-[15px] font-bold text-white">
+                      <p className="truncate text-[17px] font-bold text-white">
                         {isOwn ? 'Meine Fahrt' : `${offer.driver_name} fährt`}
                       </p>
                       <span
-                        className={`mt-1.5 inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${
+                        className={`mt-1.5 inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-[0.06em] ${
                           freeSeats > 0
                             ? 'border border-emerald-400/25 bg-emerald-500/14 text-emerald-300'
                             : 'border border-white/10 bg-white/[0.05] text-white/55'
@@ -406,14 +415,14 @@ export const EventCarpoolCard: React.FC<Props> = ({
                     )}
                   </div>
 
-                  <div className="mt-3 grid gap-2 text-[14px] text-white/78">
+                  <div className="mt-3 grid gap-2.5 text-[15px] font-medium text-white/82">
                     <div className="flex items-center gap-2"><Clock3 className="sz-club-accent-text h-4 w-4" /><span>Abfahrt {timeLabel(offer.departure_at)} Uhr</span></div>
                     <div className="flex items-start gap-2"><MapPin className="sz-club-accent-text mt-0.5 h-4 w-4 shrink-0" /><span className="break-words">{offer.departure_location}</span></div>
                     <div className="flex items-center gap-2"><RotateCcw className="sz-club-accent-text h-4 w-4" /><span>{offer.return_included ? 'Rückfahrt inklusive' : 'Nur Hinfahrt'}</span></div>
                   </div>
-                  {offer.note ? <p className="mt-2.5 rounded-lg bg-white/[0.04] px-2.5 py-2 text-[13px] text-white/65">{offer.note}</p> : null}
+                  {offer.note ? <p className="mt-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5 text-[14px] leading-relaxed text-white/70">{offer.note}</p> : null}
                   {offerReservations.length > 0 ? (
-                    <div className="mt-3 flex items-start gap-2 border-t border-white/[0.07] pt-3 text-[13px] text-white/68">
+                    <div className="mt-3 flex items-start gap-2 border-t border-white/[0.07] pt-3 text-[14px] text-white/72">
                       <Users className="sz-club-accent-text mt-0.5 h-4 w-4 shrink-0" />
                       <span>Mitfahrer: {offerReservations.map((row) => playerName(playerById.get(row.player_id))).join(', ')}</span>
                     </div>
@@ -440,12 +449,12 @@ export const EventCarpoolCard: React.FC<Props> = ({
 
             {requests.length > 0 ? (
               <div className="rounded-xl border border-amber-300/16 bg-amber-400/[0.06] px-3 py-2.5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-amber-200/80">Platz gesucht</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-amber-200/80">Platz gesucht</p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {requests.map((request) => {
                     const own = myPlayerIds.includes(request.player_id);
                     return (
-                      <span key={request.id} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[12px] text-white/75">
+                      <span key={request.id} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[14px] font-medium text-white/80">
                         {playerName(playerById.get(request.player_id))}
                         {own ? <button type="button" disabled={busy} className="ml-0.5 text-white/45 hover:text-white" onClick={() => void cancelRequest(request)} aria-label="Platzgesuch zurücknehmen">×</button> : null}
                       </span>
@@ -478,34 +487,98 @@ export const EventCarpoolCard: React.FC<Props> = ({
       <Modal
         open={offerModalOpen}
         title={editingOffer ? 'Fahrt bearbeiten' : 'Fahrt anbieten'}
+        titleClassName="!text-[22px] !font-bold !tracking-[-0.02em]"
         onClose={() => !busy && setOfferModalOpen(false)}
         footer={
           <div className="grid w-full grid-cols-2 gap-2">
-            <button type="button" className={dsSecondaryCtaClass()} disabled={busy} onClick={() => setOfferModalOpen(false)}>Abbrechen</button>
-            <button type="button" className={dsPrimaryCtaClass()} disabled={busy} onClick={() => void saveOffer()}>{busy ? 'Speichert…' : 'Speichern'}</button>
+            <button type="button" className={`${dsSecondaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => setOfferModalOpen(false)}>Abbrechen</button>
+            <button type="button" className={`${dsPrimaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => void saveOffer()}>
+              {busy ? 'Speichert…' : editingOffer ? 'Speichern' : 'Fahrt anbieten'}
+            </button>
           </div>
         }
       >
-        <div className="grid gap-4">
-          <label className="grid gap-1.5 text-[13px] font-semibold text-white/78">
+        <div className="grid gap-4 pb-1">
+          <label className="grid gap-2 text-[15px] font-bold text-white/90">
             Abfahrtszeit
-            <input type="time" value={offerTime} onChange={(event) => setOfferTime(event.target.value)} className="input min-h-[46px]" />
+            <span className="relative block">
+              <Clock3 className="sz-club-accent-text pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2" aria-hidden />
+              <input
+                type="time"
+                value={offerTime}
+                onChange={(event) => setOfferTime(event.target.value)}
+                className="input min-h-[54px] w-full rounded-[16px] border-white/[0.16] bg-white/[0.055] pl-12 pr-4 text-[17px] font-semibold text-white [color-scheme:dark]"
+              />
+            </span>
           </label>
-          <label className="grid gap-1.5 text-[13px] font-semibold text-white/78">
+          <label className="grid gap-2 text-[15px] font-bold text-white/90">
             Abfahrtsort / Treffpunkt
-            <input type="text" maxLength={240} value={offerLocation} onChange={(event) => setOfferLocation(event.target.value)} placeholder="z. B. Sportplatz Rohrbach" className="input min-h-[46px]" />
+            <span className="relative block">
+              <MapPin className="sz-club-accent-text pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2" aria-hidden />
+              <input
+                type="text"
+                maxLength={240}
+                value={offerLocation}
+                onChange={(event) => setOfferLocation(event.target.value)}
+                placeholder="z. B. Sportplatz Rohrbach"
+                className="input min-h-[54px] w-full rounded-[16px] border-white/[0.16] bg-white/[0.055] pl-12 pr-4 text-[17px] font-medium text-white placeholder:text-white/42"
+              />
+            </span>
           </label>
-          <label className="grid gap-1.5 text-[13px] font-semibold text-white/78">
-            Freie Plätze
-            <input type="number" min={1} max={12} inputMode="numeric" value={offerSeats} onChange={(event) => setOfferSeats(event.target.value)} className="input min-h-[46px]" />
-          </label>
-          <label className="flex min-h-[46px] cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-[14px] text-white/82">
-            <input type="checkbox" checked={offerReturn} onChange={(event) => setOfferReturn(event.target.checked)} />
+          <fieldset className="grid gap-2">
+            <legend className="text-[15px] font-bold text-white/90">Freie Plätze</legend>
+            <div className="mt-2 flex min-h-[58px] items-center justify-center gap-6 rounded-[16px] border border-white/[0.12] bg-white/[0.035] px-4">
+              <button
+                type="button"
+                className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] text-white/85 active:scale-95 disabled:opacity-35"
+                onClick={() => changeOfferSeats(-1)}
+                disabled={Number.parseInt(offerSeats, 10) <= 1}
+                aria-label="Einen freien Platz weniger"
+              >
+                <Minus className="h-5 w-5" aria-hidden />
+              </button>
+              <output className="min-w-[44px] text-center text-[28px] font-bold tabular-nums text-white" aria-label={`${offerSeats} freie Plätze`}>
+                {offerSeats}
+              </output>
+              <button
+                type="button"
+                className="sz-club-primary flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border text-white active:scale-95 disabled:opacity-35"
+                onClick={() => changeOfferSeats(1)}
+                disabled={Number.parseInt(offerSeats, 10) >= 12}
+                aria-label="Einen freien Platz mehr"
+              >
+                <Plus className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+          </fieldset>
+          <label className="flex min-h-[58px] cursor-pointer items-center gap-3 rounded-[16px] border border-white/[0.12] bg-white/[0.035] px-4 text-[15px] font-semibold leading-snug text-white/88">
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              checked={offerReturn}
+              onChange={(event) => setOfferReturn(event.target.checked)}
+            />
+            <span
+              className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors after:absolute after:left-1 after:top-1 after:h-[18px] after:w-[18px] after:rounded-full after:bg-white after:shadow-md after:transition-transform peer-checked:after:translate-x-5 ${
+                offerReturn ? 'sz-club-primary' : 'border-white/[0.16] bg-white/[0.08]'
+              }`}
+              aria-hidden
+            />
             Rückfahrt wird ebenfalls angeboten
           </label>
-          <label className="grid gap-1.5 text-[13px] font-semibold text-white/78">
+          <label className="grid gap-2 text-[15px] font-bold text-white/90">
             Anmerkung (optional)
-            <textarea maxLength={500} rows={3} value={offerNote} onChange={(event) => setOfferNote(event.target.value)} placeholder="z. B. Kindersitz bitte selbst mitbringen" className="input resize-none" />
+            <span className="relative block">
+              <MessageCircle className="sz-club-accent-text pointer-events-none absolute left-4 top-4 z-10 h-5 w-5" aria-hidden />
+              <textarea
+                maxLength={500}
+                rows={2}
+                value={offerNote}
+                onChange={(event) => setOfferNote(event.target.value)}
+                placeholder="z. B. Kindersitz bitte selbst mitbringen"
+                className="input min-h-[76px] w-full resize-none rounded-[16px] border-white/[0.16] bg-white/[0.055] py-3.5 pl-12 pr-4 text-[16px] font-medium leading-relaxed text-white placeholder:text-white/42"
+              />
+            </span>
           </label>
           {error ? <p className="text-[13px] text-red-300">{error}</p> : null}
         </div>
@@ -514,18 +587,19 @@ export const EventCarpoolCard: React.FC<Props> = ({
       <Modal
         open={Boolean(playerAction)}
         title={playerAction?.kind === 'reserve' ? 'Platz reservieren' : 'Platz suchen'}
+        titleClassName="!text-[22px] !font-bold !tracking-[-0.02em]"
         onClose={() => !busy && setPlayerAction(null)}
         footer={
           <div className="grid w-full grid-cols-2 gap-2">
-            <button type="button" className={dsSecondaryCtaClass()} disabled={busy} onClick={() => setPlayerAction(null)}>Abbrechen</button>
-            <button type="button" className={dsPrimaryCtaClass()} disabled={busy || !selectedPlayerId} onClick={() => void confirmPlayerAction()}>{busy ? 'Speichert…' : 'Bestätigen'}</button>
+            <button type="button" className={`${dsSecondaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => setPlayerAction(null)}>Abbrechen</button>
+            <button type="button" className={`${dsPrimaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy || !selectedPlayerId} onClick={() => void confirmPlayerAction()}>{busy ? 'Speichert…' : 'Bestätigen'}</button>
           </div>
         }
       >
         {playerActionCandidates.length > 0 ? (
-          <label className="grid gap-2 text-[14px] text-white/82">
+          <label className="grid gap-2 text-[15px] font-bold text-white/90">
             Für welches Kind?
-            <select className="input min-h-[48px]" value={selectedPlayerId} onChange={(event) => setSelectedPlayerId(event.target.value)}>
+            <select className="input min-h-[54px] rounded-[16px] border-white/[0.16] bg-white/[0.055] px-4 text-[17px] font-semibold text-white [color-scheme:dark]" value={selectedPlayerId} onChange={(event) => setSelectedPlayerId(event.target.value)}>
               {playerActionCandidates.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
             </select>
           </label>
