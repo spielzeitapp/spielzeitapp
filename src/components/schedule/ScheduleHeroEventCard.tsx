@@ -135,16 +135,16 @@ function HeroHybridBackdrop({ training = false }: { training?: boolean }) {
       <div
         className={`absolute inset-0 ${
           training
-            ? 'bg-[radial-gradient(ellipse_88%_68%_at_100%_-8%,rgba(255,248,235,0.22)_0%,rgba(122,29,42,0.28)_28%,transparent_68%),radial-gradient(ellipse_55%_40%_at_88%_8%,rgba(255,255,255,0.06)_0%,transparent_55%)]'
-            : 'bg-[radial-gradient(ellipse_75%_55%_at_100%_0%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.18)_32%,transparent_62%)]'
+            ? 'bg-[radial-gradient(ellipse_88%_68%_at_100%_-8%,rgba(255,248,235,0.14)_0%,rgba(122,29,42,0.14)_28%,transparent_68%),radial-gradient(ellipse_55%_40%_at_88%_8%,rgba(255,255,255,0.04)_0%,transparent_55%)]'
+            : 'bg-[radial-gradient(ellipse_75%_55%_at_100%_0%,rgba(255,240,220,0.09)_0%,rgba(122,29,42,0.10)_32%,transparent_62%)]'
         }`}
         aria-hidden
       />
       <div
         className={`absolute inset-0 ${
           training
-            ? 'bg-[radial-gradient(ellipse_100%_72%_at_50%_-8%,rgba(122,29,42,0.17),transparent_58%),radial-gradient(ellipse_82%_52%_at_50%_110%,rgba(58,18,24,0.14),transparent_52%)]'
-            : 'bg-[radial-gradient(ellipse_100%_70%_at_50%_-8%,rgba(122,29,42,0.14),transparent_58%),radial-gradient(ellipse_80%_50%_at_50%_110%,rgba(58,18,24,0.12),transparent_52%)]'
+            ? 'bg-[radial-gradient(ellipse_100%_72%_at_50%_-8%,rgba(122,29,42,0.09),transparent_58%),radial-gradient(ellipse_82%_52%_at_50%_110%,rgba(58,18,24,0.07),transparent_52%)]'
+            : 'bg-[radial-gradient(ellipse_100%_70%_at_50%_-8%,rgba(122,29,42,0.08),transparent_58%),radial-gradient(ellipse_80%_50%_at_50%_110%,rgba(58,18,24,0.06),transparent_52%)]'
         }`}
         aria-hidden
       />
