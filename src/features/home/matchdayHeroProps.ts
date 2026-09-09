@@ -1,6 +1,6 @@
 import type { EventRow } from '../../hooks/useEvents';
 import type { MatchFeedSettingsRow } from '../../types/matchFeedSettings';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
@@ -72,11 +72,7 @@ export function buildMatchdayHeroCardProps(args: {
   const titleLead = headline ? null : lead || null;
   const subtitle = sublineOv || (oppRaw ? `Gegen ${oppRaw}` : null);
 
-  const parsedLocation = splitCombinedLocation(event.location);
-  const placeLine = parsedLocation.place;
-  const addressLine = parsedLocation.address || (event.address ?? '').trim();
-  const locCombined = (formatFullLocation(placeLine, addressLine) || '').trim();
-  const location = locCombined.length > 0 ? locCombined : null;
+  const location = formatFeedVenueShort(event.location ?? event.address);
 
   const meetupFormatted = formatMeetupTimeOnlyDe(event.meeting_at).trim();
   const meetup = meetupFormatted.length > 0 ? meetupFormatted : null;
