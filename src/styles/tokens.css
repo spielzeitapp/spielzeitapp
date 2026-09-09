@@ -1,5 +1,15 @@
 /* Stadium Night – Dark dominant, red accents */
 :root {
+  /*
+   * Club theme. Keep surfaces neutral; only borders, glows and primary actions
+   * consume these channels. A club theme can override the three RGB values
+   * without changing any component markup (for example 30 64 175 / 250 204 21).
+   */
+  --club-primary-rgb: 122 29 42;
+  --club-accent-rgb: 255 64 80;
+  --club-secondary-rgb: 255 255 255;
+  --club-on-primary: #ffffff;
+
   /* Background – dark almost black */
   --bg-base: #0b0b0f;
 
