@@ -4217,7 +4217,7 @@ export const EventDetailPage: React.FC = () => {
                                         : 'open';
                                 return (
                                   <li key={player.id} className="w-full">
-                                    <div className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 bg-[radial-gradient(circle_at_14%_50%,rgba(220,38,38,0.16),transparent_42%),linear-gradient(100deg,rgba(28,9,12,0.98),rgba(8,8,10,0.99))] px-2 text-left shadow-[0_7px_22px_rgba(80,0,8,0.18)]">
+                                    <div className="sz-club-surface sz-club-surface--quiet flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border px-2 text-left">
                                       <div className="relative -mb-2.5 mr-1 h-[68px] w-[50px] shrink-0 self-end overflow-hidden">
                                         <img
                                           src={media.src}
