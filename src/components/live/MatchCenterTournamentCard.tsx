@@ -15,7 +15,7 @@ import {
   tournamentPhaseDisplayLabel,
 } from '../../lib/matchCenterTournamentVisuals';
 import { tournamentPrepareCtaLabel } from '../../lib/tournamentDayOrchestrator';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
@@ -106,8 +106,7 @@ export function MatchCenterTournamentCard({
   const kickoff = formatTimeHHmmDe(event.starts_at);
   const meetupRaw = event.meeting_at ? formatMeetupTimeOnlyDe(event.meeting_at) : '';
   const meetupCore = meetupRaw.replace(/\s*Uhr$/i, '').trim();
-  const parsedLocation = splitCombinedLocation(event.location);
-  const place = formatFullLocation(parsedLocation.place, parsedLocation.address || (event.address ?? ''));
+  const place = formatFeedVenueShort(event.location ?? event.address);
 
   const carouselTeams = useMemo((): MatchCenterParticipant[] => {
     if (participants.length > 0) return participants;
