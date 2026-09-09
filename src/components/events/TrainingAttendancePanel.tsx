@@ -87,7 +87,7 @@ const STAT_BOX_TONE: Record<DsChipTone, string> = {
 };
 
 const PARTICIPATION_BOX =
-  'border-[rgba(255,255,255,0.1)] bg-[radial-gradient(ellipse_90%_80%_at_50%_0%,rgba(220,38,38,0.14)_0%,rgba(12,8,10,0.97)_55%,rgba(8,8,10,0.98)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.1),0_8px_24px_rgba(0,0,0,0.38)]';
+  'border-[rgba(255,255,255,0.1)] bg-[radial-gradient(ellipse_90%_80%_at_50%_0%,rgba(220,38,38,0.08)_0%,rgba(11,10,12,0.98)_55%,rgba(7,7,9,0.99)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_18px_rgba(220,38,38,0.06),0_8px_24px_rgba(0,0,0,0.38)]';
 
 const STAT_LABEL_CLASS =
   'text-[8px] font-medium uppercase tracking-[0.1em] text-[#8E8E93] leading-[1.45]';
