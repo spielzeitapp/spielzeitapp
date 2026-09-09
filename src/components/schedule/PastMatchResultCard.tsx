@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
-import { splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { formatCompactListWeekdayAbbrev } from './scheduleEventViewUtils';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 
@@ -134,8 +134,7 @@ export function PastMatchResultCard({
       : '';
   const yearSmall = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : '';
 
-  const parsedLoc = splitCombinedLocation(ev.location ?? '');
-  const venue = (parsedLoc.place ?? '').trim() || (ev.location ?? '').trim() || null;
+  const venue = formatFeedVenueShort(ev.location);
 
   const homeAwayLabel = ev.is_home === true ? 'Heim' : ev.is_home === false ? 'Auswärts' : null;
   const homeSplit = splitPrefixAndName(homeName);
