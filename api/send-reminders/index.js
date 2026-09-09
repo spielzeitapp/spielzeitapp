@@ -356,6 +356,7 @@ async function processOneJob(admin, job) {
 
   const rawPayload = job.payload && typeof job.payload === 'object' ? job.payload : {};
   const isMatchday = rawPayload.automation === 'matchday_post';
+  const isCarpool = rawPayload.automation === 'carpool';
 
   let title;
   let textBody;
@@ -363,32 +364,34 @@ async function processOneJob(admin, job) {
   let eventType;
   let pushTagSuffix;
 
-  if (isMatchday) {
+  if (isMatchday || isCarpool) {
     const st = String(event.status || 'upcoming').toLowerCase();
-    if (st === 'finished' || st === 'canceled') {
-      console.log('[reminderPipeline] matchday skip: event finished/canceled', {
+    if (st === 'finished' || st === 'canceled' || st === 'cancelled') {
+      console.log('[reminderPipeline] automation skip: event finished/canceled', {
         jobId: job.id,
         eventId: job.event_id,
       });
       await completeJob(admin, job.id);
-      return { ok: true, skipped: 'matchday_event_done' };
+      return { ok: true, skipped: 'automation_event_done' };
     }
-    if (st !== 'upcoming' && st !== 'live') {
+    if (!isCarpool && st !== 'upcoming' && st !== 'live') {
       await completeJob(admin, job.id);
       return { ok: true, skipped: 'matchday_bad_status' };
     }
     title =
       typeof rawPayload.pushTitle === 'string' && rawPayload.pushTitle.trim()
         ? rawPayload.pushTitle.trim()
-        : 'Matchday';
+        : isCarpool
+          ? 'Fahrgemeinschaft'
+          : 'Matchday';
     textBody = typeof rawPayload.pushBody === 'string' ? rawPayload.pushBody : '';
     url =
       typeof rawPayload.linkPath === 'string' && rawPayload.linkPath.trim()
         ? rawPayload.linkPath.trim()
         : reminderAppDeepLink(job.kind, event);
     if (!url.startsWith('/')) url = `/${url}`;
-    eventType = 'matchday';
-    pushTagSuffix = 'matchday';
+    eventType = isCarpool ? 'carpool' : 'matchday';
+    pushTagSuffix = isCarpool ? 'carpool' : 'matchday';
   } else {
     const payload = parseJobPayload(job.payload);
     if (!payload) {
@@ -410,12 +413,19 @@ async function processOneJob(admin, job) {
   }
 
   let recipients;
-  try {
-    recipients = await fetchReminderRecipientUserIdsForTeamSeason(admin, event.team_season_id);
-  } catch (e) {
-    const msg = e && e.message ? e.message : String(e);
-    await failJobWithRetry(admin, job, msg);
-    return { ok: false, error: msg };
+  const targetedRecipients = Array.isArray(rawPayload.recipientUserIds)
+    ? rawPayload.recipientUserIds.filter((value) => typeof value === 'string' && value.trim())
+    : [];
+  if (isCarpool && targetedRecipients.length > 0) {
+    recipients = targetedRecipients;
+  } else {
+    try {
+      recipients = await fetchReminderRecipientUserIdsForTeamSeason(admin, event.team_season_id);
+    } catch (e) {
+      const msg = e && e.message ? e.message : String(e);
+      await failJobWithRetry(admin, job, msg);
+      return { ok: false, error: msg };
+    }
   }
 
   console.log('[reminderPipeline] job recipients resolved', {
@@ -504,7 +514,9 @@ async function processOneJob(admin, job) {
     const rk = String(pushTagSuffix || 'r').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 48);
     const pushTag = isMatchday
       ? `spz-matchday-${job.event_id}`
-      : `spz-reminder-${job.event_id}-${rk}`;
+      : isCarpool
+        ? `spz-carpool-${job.id}`
+        : `spz-reminder-${job.event_id}-${rk}`;
     const pushRes = await sendPushesForUser(
       admin,
       userId,

@@ -456,14 +456,15 @@ serve(async () => {
           ? (locked.payload as Record<string, unknown>)
           : {};
         const isMatchday = p.automation === "matchday_post";
+        const isCarpool = p.automation === "carpool";
         const st = String(event.status ?? "upcoming").toLowerCase();
 
-        if (isMatchday) {
-          if (st === "finished" || st === "canceled") {
+        if (isMatchday || isCarpool) {
+          if (st === "finished" || st === "canceled" || st === "cancelled") {
             await completeJob(supabase, locked.id);
             continue;
           }
-          if (st !== "upcoming" && st !== "live") {
+          if (!isCarpool && st !== "upcoming" && st !== "live") {
             await completeJob(supabase, locked.id);
             continue;
           }
@@ -490,7 +491,16 @@ serve(async () => {
           ),
         ];
 
-        if (jobKind === "match" && !isMatchday) {
+        const targetedRecipients = Array.isArray(p.recipientUserIds)
+          ? p.recipientUserIds.filter(
+              (value): value is string => typeof value === "string" && value.trim().length > 0,
+            )
+          : [];
+        if (isCarpool && targetedRecipients.length > 0) {
+          uniqueUserIds = [...new Set(targetedRecipients)];
+        }
+
+        if (jobKind === "match" && !isMatchday && !isCarpool) {
           uniqueUserIds = await filterUnansweredMatchRecipients(
             supabase,
             event as EventRow,
@@ -503,14 +513,16 @@ serve(async () => {
         let linkPath: string;
         let eventType: string | null = null;
 
-        if (isMatchday) {
+        if (isMatchday || isCarpool) {
           uxTitle = typeof p.pushTitle === "string" && p.pushTitle.trim()
             ? p.pushTitle.trim()
-            : "Matchday";
+            : isCarpool
+              ? "Fahrgemeinschaft"
+              : "Matchday";
           uxMessage = typeof p.pushBody === "string" ? p.pushBody : "";
           const rawLink = typeof p.linkPath === "string" ? p.linkPath.trim() : "";
           linkPath = rawLink || reminderAppDeepLink(jobKind, event as EventRow);
-          eventType = "matchday";
+          eventType = isCarpool ? "carpool" : "matchday";
         } else {
           const reminderKey =
             typeof p.reminderKey === "string"

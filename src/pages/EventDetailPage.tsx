@@ -70,6 +70,7 @@ import { TrainingDetailSections } from '../components/training/TrainingDetailSec
 import { shareEventCenter } from '../components/tournament/tournamentCenterUtils';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
 import { EventFeedCommunicationSection } from '../components/events/EventFeedCommunicationSection';
+import { EventCarpoolCard } from '../components/events/EventCarpoolCard';
 import { useSession } from '../auth/useSession';
 import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
 import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
@@ -3617,6 +3618,25 @@ export const EventDetailPage: React.FC = () => {
   const isAudienceMatchDetail = event.kind === 'match' && !canTrainerManageEvent;
   const isTournament = event.kind === 'tournament';
   const isEventOrOther = event.kind === 'event';
+  const showCarpooling =
+    !isDemo &&
+    Boolean(sessionUser?.id) &&
+    !['finished', 'canceled', 'cancelled'].includes(safeText(event.status).toLowerCase()) &&
+    ['parent', 'player', 'trainer', 'admin'].includes(effectiveRole) &&
+    ((event.kind === 'match' && event.is_home === false) || event.kind === 'tournament');
+  const carpoolingCard = showCarpooling && sessionUser?.id ? (
+    <EventCarpoolCard
+      eventId={event.id}
+      eventStartsAt={event.starts_at}
+      meetingAt={event.meeting_at}
+      defaultLocation={null}
+      currentUserId={sessionUser.id}
+      myPlayerIds={myAttendancePlayerIds}
+      players={players}
+      canOffer={effectiveRole === 'parent'}
+      canManage={canTrainerManageEvent}
+    />
+  ) : null;
   const tournamentTitle = safeText(eventNotesTitle(event.notes) ?? 'Turnier');
   const tournamentEndLabel = eventTrainingEndDisplay(event.notes);
   const tournamentMeetupLabel = event.meeting_at ? formatMeetupTimeOnlyDe(event.meeting_at) : null;
@@ -4034,6 +4054,8 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         ) : null}
 
+        {isTournament ? carpoolingCard : null}
+
         {isAudienceMatchDetail && canShowSelfRsvp ? (
           <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
             <CardTitle>Zu-/Absagen</CardTitle>
@@ -4063,6 +4085,8 @@ export const EventDetailPage: React.FC = () => {
             )}
           </Card>
         ) : null}
+
+        {event.kind === 'match' ? carpoolingCard : null}
 
         {isAudienceMatchDetail && event.status === 'live' && event.match_id ? (
           <div className="flex flex-col gap-2.5 rounded-[14px] border border-red-500/28 bg-[linear-gradient(135deg,rgba(58,18,24,0.55)_0%,rgba(12,12,14,0.96)_100%)] px-3.5 py-3.5 shadow-[0_0_22px_rgba(220,38,38,0.14)]">

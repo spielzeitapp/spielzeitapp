@@ -1,0 +1,103 @@
+name: Apply event carpooling to staging
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - supabase/migrations/20260909190000_event_carpool_request_notifications.sql
+      - supabase/functions/send-reminders/index.ts
+      - .github/workflows/staging-event-carpooling.yml
+
+permissions:
+  contents: read
+
+jobs:
+  migrate-and-deploy:
+    name: Migrate and verify staging carpooling
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROJECT_REF: acbaecjzoabafbsjrzvr
+      LIVE_PROJECT_REF: shxugattqatahckhspwk
+      MIGRATION_VERSION: "20260909190000"
+      MIGRATION_FILE: supabase/migrations/20260909190000_event_carpool_request_notifications.sql
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm staging target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test "$PROJECT_REF" = "acbaecjzoabafbsjrzvr"
+          test "$PROJECT_REF" != "$LIVE_PROJECT_REF"
+          response="$(curl --silent --show-error --fail \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$PROJECT_REF")"
+          test "$(jq -r '.id' <<<"$response")" = "$PROJECT_REF"
+          test "$(jq -r '.name' <<<"$response")" = "spielzeitapp-staging"
+          echo "Confirmed staging target: spielzeitapp-staging"
+
+      - name: Apply and record migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n --rawfile migration "$MIGRATION_FILE" --arg version "$MIGRATION_VERSION" \
+            '{query: ($migration + "\nINSERT INTO supabase_migrations.schema_migrations (version) VALUES (\u0027" + $version + "\u0027) ON CONFLICT DO NOTHING;\n")} ' \
+            > migration-request.json
+          status="$(curl --silent --show-error --output migration-response.json --write-out '%{http_code}' \
+            --request POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data @migration-request.json)"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            jq -r '.message // .error // "Unknown migration error"' migration-response.json
+            exit 1
+          fi
+          echo "Carpooling migration applied and recorded on staging."
+
+      - name: Verify tables, RLS and triggers
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n --arg version "$MIGRATION_VERSION" '{query: (
+            "SELECT " +
+            "to_regclass(\u0027public.event_carpool_offers\u0027)::text AS offers, " +
+            "to_regclass(\u0027public.event_carpool_reservations\u0027)::text AS reservations, " +
+            "to_regclass(\u0027public.event_carpool_requests\u0027)::text AS requests, " +
+            "(SELECT relrowsecurity FROM pg_class WHERE oid = \u0027public.event_carpool_offers\u0027::regclass) AS offers_rls, " +
+            "to_regprocedure(\u0027public.carpool_can_access_event(uuid)\u0027) IS NOT NULL AS access_helper, " +
+            "to_regprocedure(\u0027public.carpool_can_use_player(uuid,uuid)\u0027) IS NOT NULL AS player_helper, " +
+            "EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = \u0027trg_validate_event_carpool_reservation\u0027 AND NOT tgisinternal) AS capacity_trigger, " +
+            "EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = \u0027trg_event_carpool_request_notification\u0027 AND NOT tgisinternal) AS request_notification_trigger, " +
+            "EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = \u0027" + $version + "\u0027) AS migration_recorded;"
+          )}' > verify-request.json
+          status="$(curl --silent --show-error --output verify-response.json --write-out '%{http_code}' \
+            --request POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data @verify-request.json)"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            jq -r '.message // .error // "Unknown verification error"' verify-response.json
+            exit 1
+          fi
+          jq -e '.[0].offers == "event_carpool_offers"
+            and .[0].reservations == "event_carpool_reservations"
+            and .[0].requests == "event_carpool_requests"
+            and .[0].offers_rls == true
+            and .[0].access_helper == true
+            and .[0].player_helper == true
+            and .[0].capacity_trigger == true
+            and .[0].request_notification_trigger == true
+            and .[0].migration_recorded == true' verify-response.json >/dev/null
+          echo "Verified carpooling schema and security on staging."
+
+      - name: Deploy reminder worker to staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@2.106.0 functions deploy send-reminders \
+            --project-ref "$PROJECT_REF" \
+            --no-verify-jwt
+          echo "Deployed send-reminders to staging."
