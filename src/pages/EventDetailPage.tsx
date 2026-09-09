@@ -4216,8 +4216,8 @@ export const EventDetailPage: React.FC = () => {
                                         : 'open';
                                 return (
                                   <li key={player.id} className="w-full">
-                                    <div className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 bg-[radial-gradient(circle_at_14%_50%,rgba(220,38,38,0.16),transparent_42%),linear-gradient(100deg,rgba(28,9,12,0.98),rgba(8,8,10,0.99))] px-2.5 text-left shadow-[0_7px_22px_rgba(80,0,8,0.18)]">
-                                      <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
+                                    <div className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 bg-[radial-gradient(circle_at_14%_50%,rgba(220,38,38,0.16),transparent_42%),linear-gradient(100deg,rgba(28,9,12,0.98),rgba(8,8,10,0.99))] px-2 text-left shadow-[0_7px_22px_rgba(80,0,8,0.18)]">
+                                      <div className="relative -mb-2.5 mr-1 h-[68px] w-[50px] shrink-0 self-end overflow-hidden">
                                         <img
                                           src={media.src}
                                           alt=""
@@ -4234,32 +4234,32 @@ export const EventDetailPage: React.FC = () => {
                                           }`}
                                         />
                                       </div>
-                                      <span className="w-12 shrink-0 border-l border-white/10 pl-2.5 text-[25px] font-black leading-none text-white">
+                                      <span className="w-9 shrink-0 border-l border-white/10 pl-1.5 text-[24px] font-black leading-none text-white">
                                         {player.jersey_number ?? '–'}
                                       </span>
-                                      <span className="min-w-0 flex flex-1 flex-col justify-center pl-2.5 text-[15px] font-bold leading-[1.08] text-white/92 sm:text-[16px]">
+                                      <span className="min-w-0 flex flex-1 flex-col justify-center pl-1 text-[14px] font-bold leading-[1.08] text-white/92 sm:text-[15px]">
                                         {(() => {
                                           const firstName = safeText(player.first_name);
                                           const lastName = safeText(player.last_name);
                                           if (firstName || lastName) {
                                             return (
                                               <>
-                                                {firstName ? <span className="truncate">{firstName}</span> : null}
-                                                {lastName ? <span className="truncate">{lastName}</span> : null}
+                                                {firstName ? <span className="whitespace-nowrap">{firstName}</span> : null}
+                                                {lastName ? <span className="whitespace-nowrap">{lastName}</span> : null}
                                               </>
                                             );
                                           }
                                           return <span className="line-clamp-2">{premiumPlayerDisplayName(player)}</span>;
                                         })()}
                                       </span>
-                                      <div className="ml-1.5 flex shrink-0 items-center gap-1">
+                                      <div className="ml-1 flex shrink-0 items-center gap-0.5">
                                           {rsvpDisplay === 'injured' || rsvpDisplay === 'sick' ? (
                                             <PremiumStatusBadge label={badge} tone={chipTone} />
                                           ) : null}
                                           <button
                                             type="button"
                                             onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                            className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent transition active:scale-95 ${
+                                            className={`inline-flex h-[34px] w-[34px] items-center justify-center rounded-xl border border-transparent transition active:scale-95 ${
                                               bucket === 'yes'
                                                 ? 'bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]'
                                                 : 'bg-white/[0.045] text-white/45 hover:text-emerald-300'
@@ -4272,7 +4272,7 @@ export const EventDetailPage: React.FC = () => {
                                           <button
                                             type="button"
                                             onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                            className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent transition active:scale-95 ${
+                                            className={`inline-flex h-[34px] w-[34px] items-center justify-center rounded-xl border border-transparent transition active:scale-95 ${
                                               bucket === 'no'
                                                 ? 'bg-red-950/80 text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.16)]'
                                                 : 'bg-white/[0.045] text-white/45 hover:text-[#FF8D98]'
