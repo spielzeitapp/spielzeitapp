@@ -48,7 +48,7 @@ export const SeasonMatchSummaryCard: React.FC<Props> = ({ summary, loading = fal
 
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-3 py-3.5">
+      <div className="overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3 py-3.5">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
             <div
@@ -62,7 +62,7 @@ export const SeasonMatchSummaryCard: React.FC<Props> = ({ summary, loading = fal
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(220,38,38,0.1),0_10px_36px_rgba(0,0,0,0.4)]">
+    <div className="overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3 py-3.5">
       <h3 className="mb-3 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
         Saisonbilanz
       </h3>
