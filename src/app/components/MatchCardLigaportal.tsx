@@ -18,7 +18,7 @@ import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
@@ -151,10 +151,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
   const meetupTimeOnly = formatMeetupTimeOnlyDe(meetupAt);
-  const parsedLocation = splitCombinedLocation(location);
-  const placeLine = parsedLocation.place;
-  const addressLine = parsedLocation.address || (address ?? '').trim();
-  const locationForKickoff = formatFullLocation(placeLine, addressLine) || null;
+  const locationForKickoff = formatFeedVenueShort(location ?? address);
 
   const effectiveEventType: 'game' | 'training' | 'event' | 'other' =
     eventType ??
