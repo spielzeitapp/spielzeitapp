@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Clock, MapPin } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { computeMatchCenterCountdown } from '../../lib/matchCenterUtils';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { getClubLogo, getTeamInitials } from '../../lib/teamLogos';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
@@ -62,8 +62,7 @@ export function MatchCenterNextMatchCard({ event, ourTeamName, now }: Props) {
   );
   const dateParts = formatHeroDateParts(event.starts_at);
   const kickoff = formatTimeHHmmDe(event.starts_at);
-  const parsedLocation = splitCombinedLocation(event.location);
-  const place = formatFullLocation(parsedLocation.place, parsedLocation.address || (event.address ?? ''));
+  const place = formatFeedVenueShort(event.location ?? event.address);
   const matchLabel = getMatchTypeLabel(event.match_type ?? event.type);
 
   return (
