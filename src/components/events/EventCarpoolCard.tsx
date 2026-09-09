@@ -337,18 +337,34 @@ export const EventCarpoolCard: React.FC<Props> = ({
 
   return (
     <>
-      <Card className="sz-club-surface sz-club-surface--hero flex flex-col gap-3 border">
+      <Card
+        className="sz-club-surface sz-club-surface--hero relative flex flex-col gap-3 overflow-hidden border"
+        style={{ borderColor: 'rgb(var(--club-primary-rgb) / 0.34)' }}
+      >
+        <span
+          className="pointer-events-none absolute inset-x-8 top-0 h-px"
+          style={{
+            background:
+              'linear-gradient(90deg, transparent, rgb(var(--club-primary-rgb) / 0.78), transparent)',
+          }}
+          aria-hidden
+        />
         <button
           type="button"
           className="flex min-h-[44px] w-full items-center gap-3 text-left"
           onClick={() => setExpanded((value) => !value)}
           aria-expanded={expanded}
         >
-          <span className="sz-club-accent-text flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
-            <Car className="h-5 w-5" strokeWidth={2.1} aria-hidden />
+          <span className="sz-club-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border">
+            <Car className="h-[22px] w-[22px] text-white" strokeWidth={2.25} aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="sz-club-accent-text block text-[15px] font-bold uppercase tracking-[0.12em]">Fahrgemeinschaft</span>
+            <span
+              className="block text-[15px] font-bold uppercase tracking-[0.12em]"
+              style={{ color: 'rgb(var(--club-primary-rgb))' }}
+            >
+              Fahrgemeinschaft
+            </span>
             <span className="mt-1 block text-[14px] font-medium text-white/68">
               {loading
                 ? 'Wird geladen…'
@@ -466,7 +482,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {canOffer && !ownOffer ? (
-                <button type="button" className={dsSecondaryCtaClass()} onClick={() => openOfferModal()}>
+                <button type="button" className={dsPrimaryCtaClass()} onClick={() => openOfferModal()}>
                   <Car className="h-4 w-4" aria-hidden /> Fahrt anbieten
                 </button>
               ) : null}
