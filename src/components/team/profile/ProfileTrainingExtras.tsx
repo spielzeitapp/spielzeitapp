@@ -3,7 +3,7 @@ import { TRAINING_CHALLENGE_TYPES } from "../../../lib/trainingChallengeTypes";
 import { podiumMedal } from "../../../lib/trainingRanking";
 
 const PROFILE_GLASS_PANEL =
-  "overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(18,18,20,0.98)] to-[rgba(60,10,18,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.08)]";
+  "overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet";
 
 export function ProfileTrainingKaiserStatus({ rank }: { rank: number | null }) {
   if (rank == null || rank <= 0) return null;
