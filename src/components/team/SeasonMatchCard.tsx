@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import type { SeasonMatchCardData } from '../../lib/seasonMatchStats';
 import { seasonMatchCardHref } from '../../lib/seasonMatchStats';
 import { getClubLogo } from '../../lib/teamLogos';
-import { splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { useInternalBasePath } from '../../demo/demoPaths';
 
@@ -155,8 +155,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
       : '';
   const yearSmall = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : '';
 
-  const parsedLoc = splitCombinedLocation(match.location ?? '');
-  const venue = (parsedLoc.place ?? '').trim() || (match.location ?? '').trim() || null;
+  const venue = formatFeedVenueShort(match.location);
   const homeAwayLabel = match.isHome === true ? 'Heim' : match.isHome === false ? 'Auswärts' : null;
   const homeSplit = splitPrefixAndName(homeName);
   const awaySplit = splitPrefixAndName(awayName);
