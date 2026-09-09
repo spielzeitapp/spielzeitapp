@@ -40,7 +40,7 @@ import {
 import { TrainerParentAccessHint } from "./TrainerParentAccessHint";
 
 const PROFILE_GLASS_PANEL =
-  "overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(18,18,20,0.98)] to-[rgba(60,10,18,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.08)]";
+  "overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet";
 
 const PROFILE_METRIC_TILE =
   "rounded-xl border border-[rgba(220,38,38,0.16)] bg-[rgba(8,8,10,0.72)] px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
@@ -49,7 +49,7 @@ const PROFILE_PROGRESS_TRACK =
   "mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)] ring-1 ring-[rgba(255,255,255,0.04)]";
 
 const PROFILE_SETTINGS_PANEL =
-  "overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.2)] bg-gradient-to-br from-[rgba(14,14,16,0.98)] to-[rgba(45,8,14,0.35)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_20px_rgba(220,38,38,0.06)]";
+  "overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet";
 
 export type PlayerProfileModalProps = {
   player: PlayerItem;
@@ -83,10 +83,10 @@ export type PlayerProfileModalProps = {
 export type ProfileTab = "overview" | "matches" | "achievements" | "training";
 
 const APPEARANCE_MATCH_CARD_CLASS =
-  "relative overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(220,38,38,0.12),0_10px_32px_rgba(0,0,0,0.45)]";
+  "relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3 py-3";
 
 const APPEARANCE_MATCH_SCORE_CLASS =
-  "relative shrink-0 overflow-hidden rounded-xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-2.5 py-1.5 text-[22px] font-bold tabular-nums leading-none text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_16px_rgba(220,38,38,0.1)]";
+  "relative shrink-0 overflow-hidden rounded-xl border sz-club-surface sz-club-surface--quiet px-2.5 py-1.5 text-[22px] font-bold tabular-nums leading-none text-white";
 
 const EINSATZ_MINUTES_CHIP_CLASS =
   "inline-flex shrink-0 items-center rounded-full border border-red-500/30 bg-red-500/[0.12] px-2.5 py-0.5 text-[12px] font-extrabold uppercase tracking-wide text-white/90 shadow-[0_0_16px_rgba(220,38,38,0.12)]";
