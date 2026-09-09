@@ -3,7 +3,7 @@ import { CalendarDays, MapPin, Trophy } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo } from '../../lib/teamLogos';
 import { normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
-import { splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import type { EffectiveEventType } from './scheduleEventViewUtils';
 import {
@@ -188,8 +188,8 @@ export function CompactEventCard({
   const title = scheduleCompactPrimaryTitle(ev, et, ourTeamName);
   const trainingNotesTitle = eventNotesTitle(ev.notes);
 
-  const parsedLoc = splitCombinedLocation(ev.location ?? '');
-  const venueOnly = (parsedLoc.place ?? '').trim() || null;
+  const addrExtra = (ev as { address?: string | null }).address ?? null;
+  const venueOnly = formatFeedVenueShort(ev.location ?? addrExtra);
 
   const clickable = !forcePublicView;
   const handleRowClick = () => {
