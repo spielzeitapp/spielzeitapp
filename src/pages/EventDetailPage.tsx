@@ -73,6 +73,7 @@ import { EventFeedCommunicationSection } from '../components/events/EventFeedCom
 import { useSession } from '../auth/useSession';
 import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
 import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
+import { premiumPlayerDisplayName } from '../lib/premiumPlayerCard';
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath } from '../demo/demoPaths';
 import { getDemoMatchLite, getDemoMatchStatus } from '../demo/demoMatchState';
