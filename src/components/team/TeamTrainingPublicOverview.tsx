@@ -103,7 +103,7 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({
         />
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(18,18,20,0.98)] to-[rgba(60,10,18,0.18)] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.08)]">
+      <div className="mt-4 overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3.5 py-3">
         <p className="text-[12px] leading-relaxed text-white/60">
           Mannschaftswerte aus vergangenen Team-Trainings. Ausständige Termine zählen nicht.
         </p>
