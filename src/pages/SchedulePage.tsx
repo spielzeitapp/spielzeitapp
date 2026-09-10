@@ -141,6 +141,15 @@ function heroLabelForEffectiveType(
   return 'Nächster Termin';
 }
 
+function pastHeroLabelForEffectiveType(
+  et: ReturnType<typeof getEffectiveEventType>,
+): string {
+  if (et === 'game') return 'Letztes Ergebnis';
+  if (et === 'training') return 'Letztes Training';
+  if (et === 'tournament') return 'Letztes Turnier';
+  return 'Letzter Termin';
+}
+
 function attendanceMergedToPillStatus(s: AttendanceStatus | null | undefined): AttendanceStatusKind {
   if (s === 'external_training') return 'laz';
   if (s === 'yes') return 'yes';
@@ -1042,6 +1051,37 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
       return true; // all
     });
 
+    const bucketForView = (event: EventRow): TimeBucketId =>
+      normalizedUiRole === 'fan'
+        ? getEventTab(event) === 'finished'
+          ? 'past'
+          : 'upcoming'
+        : getTimeBucket(event, now);
+
+    const compareUpcoming = (a: EventRow, b: EventRow) => {
+      const reviewA = Boolean(
+        a.match_id &&
+          isMatchReviewPending({ eventStatus: a.status, matchStatus: matchStatusById[a.match_id] }),
+      );
+      const reviewB = Boolean(
+        b.match_id &&
+          isMatchReviewPending({ eventStatus: b.status, matchStatus: matchStatusById[b.match_id] }),
+      );
+      if (reviewA !== reviewB) return reviewA ? -1 : 1;
+      const wa = statusWeight[a.status ?? 'upcoming'] ?? 0;
+      const wb = statusWeight[b.status ?? 'upcoming'] ?? 0;
+      if (wa !== wb) return wa - wb;
+      return (a.starts_at ?? '').localeCompare(b.starts_at ?? '');
+    };
+
+    if (timeFilter === 'all') {
+      const upcoming = base.filter((event) => bucketForView(event) === 'upcoming').sort(compareUpcoming);
+      const past = base
+        .filter((event) => bucketForView(event) === 'past')
+        .sort((a, b) => (b.starts_at ?? '').localeCompare(a.starts_at ?? ''));
+      return [...upcoming, ...past];
+    }
+
     const sorted = [...base].sort((a, b) => {
       // Im Reiter „Vergangene“ steht das zuletzt gespielte Match/der letzte Termin oben.
       if (timeFilter === 'past') {
@@ -1060,25 +1100,20 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
       return (a.starts_at ?? '').localeCompare(b.starts_at ?? '');
     });
 
-    // Fan: nur Spiele; Zeitraum Alle = alle Spiele.
+    // Fan: nur Spiele.
     if (normalizedUiRole === 'fan') {
-      if (timeFilter === 'all') return sorted;
       if (timeFilter === 'upcoming') {
         return sorted.filter((e) => getEventTab(e) !== 'finished');
       }
       return sorted.filter((e) => getEventTab(e) === 'finished');
     }
-    if (timeFilter === 'all') return sorted;
     return sorted.filter((e) => getTimeBucket(e, now) === timeFilter);
   }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById]);
 
   const showHeroCard = useMemo(() => {
     if (displayEvents.length === 0) return false;
-    if (normalizedUiRole === 'fan') {
-      return timeFilter === 'upcoming';
-    }
-    return timeFilter === 'upcoming';
-  }, [displayEvents.length, normalizedUiRole, timeFilter]);
+    return timeFilter === 'upcoming' || timeFilter === 'past';
+  }, [displayEvents.length, timeFilter]);
 
   const heroCarouselEvents = useMemo(
     () => (showHeroCard ? displayEvents.slice(0, 5) : []),
@@ -1204,9 +1239,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
 
   const furtherEvents = useMemo(() => {
     if (!showHeroCard) return displayEvents;
-    if (!heroEvent) return displayEvents;
-    return displayEvents.filter((event) => event.id !== heroEvent.id);
-  }, [displayEvents, heroEvent, showHeroCard]);
+    if (heroCarouselEvents.length === 0) return displayEvents;
+    const heroIds = new Set(heroCarouselEvents.map((event) => event.id));
+    return displayEvents.filter((event) => !heroIds.has(event.id));
+  }, [displayEvents, heroCarouselEvents, showHeroCard]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1779,9 +1815,11 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         const opponentLogo = ev.opponent_logo_url ?? null;
                         if (et === 'game') {
                           const heroSectionLabel =
-                            isFinishedMatch || matchReviewPending
-                              ? 'Letztes Spiel'
-                              : heroLabelForEffectiveType(et);
+                            timeFilter === 'past'
+                              ? pastHeroLabelForEffectiveType(et)
+                              : isFinishedMatch || matchReviewPending
+                                ? 'Letztes Spiel'
+                                : heroLabelForEffectiveType(et);
                           return (
                             <div
                               key={ev.id}
@@ -1789,6 +1827,18 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                               {...publicWrap}
                             >
                               <EventHeroCard label={heroSectionLabel} footer={heroCardFooter}>
+                                {timeFilter === 'past' && isFinishedMatch ? (
+                                  <PastMatchResultCard
+                                    ev={ev}
+                                    ourTeamName={ourTeamName}
+                                    opponentLogoUrl={opponentLogo}
+                                    scoreHome={matchScore?.scoreHome ?? null}
+                                    scoreAway={matchScore?.scoreAway ?? null}
+                                    periodBracketLine={matchScore?.periodBracket ?? null}
+                                    forcePublicView={forcePublicView}
+                                    onNavigate={(id) => heroOnNavigate?.(id)}
+                                  />
+                                ) : (
                                 <MatchCardLigaportal
                                   className="w-full max-w-full !px-2.5 !py-2 sm:!px-3 sm:!py-2.5"
                                   scheduleNextMatchHero
@@ -1846,13 +1896,21 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   liveIsRunning={matchScore?.liveIsRunning ?? null}
                                   reviewPending={matchReviewPending}
                                 />
+                                )}
                               </EventHeroCard>
                             </div>
                           );
                         }
                         return (
                           <div key={ev.id} className="w-full" {...publicWrap}>
-                            <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
+                            <EventHeroCard
+                              label={
+                                timeFilter === 'past'
+                                  ? pastHeroLabelForEffectiveType(et)
+                                  : heroLabelForEffectiveType(et)
+                              }
+                              footer={heroCardFooter}
+                            >
                               <ScheduleHeroEventCard
                                 ev={ev}
                                 et={et}
@@ -1877,7 +1935,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                     <div
                       className="mb-3 mt-0.5 flex items-center justify-center gap-2"
                       role="group"
-                      aria-label="Kommende Termine durchblättern"
+                      aria-label={timeFilter === 'past' ? 'Vergangene Termine durchblättern' : 'Kommende Termine durchblättern'}
                     >
                       {heroCarouselEvents.map((event, index) => (
                         <button
@@ -1908,10 +1966,27 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                   >
                     {showHeroCard && furtherEvents.length > 0 ? (
                       <h3 className={`mb-2 mt-1 border-t border-white/[0.05] pt-3 ${dsMatchdaySectionLabelClass()} !text-[0.7rem]`}>
-                        Weitere Termine
+                        {timeFilter === 'past' ? 'Weitere vergangene Termine' : 'Weitere Termine'}
                       </h3>
                     ) : null}
-                    {furtherEvents.map((ev) => {
+                    {furtherEvents.map((ev, index) => {
+                      const nowForList = new Date();
+                      const listBucket = getTimeBucket(ev, nowForList);
+                      const previousEvent = index > 0 ? furtherEvents[index - 1] : null;
+                      const previousBucket = previousEvent ? getTimeBucket(previousEvent, nowForList) : null;
+                      const allListSectionLabel =
+                        timeFilter === 'all' && (index === 0 || previousBucket !== listBucket)
+                          ? listBucket === 'upcoming'
+                            ? 'Kommende Termine'
+                            : 'Vergangene Termine'
+                          : null;
+                      const allListSectionHeading = allListSectionLabel ? (
+                        <h3
+                          className={`${index > 0 ? 'mt-4 border-t border-white/[0.06] pt-4' : 'mt-1'} mb-2 ${dsMatchdaySectionLabelClass()} !text-[0.7rem]`}
+                        >
+                          {allListSectionLabel}
+                        </h3>
+                      ) : null;
                       const evAttendance = attendanceByEventId[ev.id];
                       const yesRaw = evAttendance?.yes ?? 0;
                       const no = evAttendance?.no ?? 0;
@@ -1989,14 +2064,39 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                       const showPastResultCard = et === 'game' && ev.status === 'finished';
                       if (showPastResultCard) {
                         return (
-                          <PastMatchResultCard
-                            key={ev.id}
+                          <React.Fragment key={ev.id}>
+                            {allListSectionHeading}
+                            <PastMatchResultCard
+                              ev={ev}
+                              ourTeamName={ourTeamName}
+                              opponentLogoUrl={opponentLogo}
+                              scoreHome={matchScoreRow?.scoreHome ?? null}
+                              scoreAway={matchScoreRow?.scoreAway ?? null}
+                              periodBracketLine={matchScoreRow?.periodBracket ?? null}
+                              forcePublicView={forcePublicView}
+                              compact={timeFilter === 'all' || timeFilter === 'past'}
+                              onNavigate={(id) => {
+                                if (managerSimpleMode) {
+                                  const target = events.find((event) => event.id === id);
+                                  if (target && canMutateSchedule) openEditModal(target);
+                                  return;
+                                }
+                                navigate(`${basePath}/events/${id}`);
+                              }}
+                            />
+                          </React.Fragment>
+                        );
+                      }
+                      return (
+                        <React.Fragment key={ev.id}>
+                          {allListSectionHeading}
+                          <CompactEventCard
                             ev={ev}
+                            et={et}
                             ourTeamName={ourTeamName}
                             opponentLogoUrl={opponentLogo}
-                            scoreHome={matchScoreRow?.scoreHome ?? null}
-                            scoreAway={matchScoreRow?.scoreAway ?? null}
-                            periodBracketLine={matchScoreRow?.periodBracket ?? null}
+                            parentCompactLayout={showCompactParentPill || showCompactTrainerStats}
+                            trailing={compactTrailing}
                             forcePublicView={forcePublicView}
                             onNavigate={(id) => {
                               if (managerSimpleMode) {
@@ -2004,35 +2104,15 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                 if (target && canMutateSchedule) openEditModal(target);
                                 return;
                               }
-                              navigate(`${basePath}/events/${id}`);
+                              if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
+                                navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`);
+                              } else {
+                                navigate(`${basePath}/events/${id}`);
+                              }
                             }}
+                            reviewPending={matchReviewPending}
                           />
-                        );
-                      }
-                      return (
-                        <CompactEventCard
-                          key={ev.id}
-                          ev={ev}
-                          et={et}
-                          ourTeamName={ourTeamName}
-                          opponentLogoUrl={opponentLogo}
-                          parentCompactLayout={showCompactParentPill || showCompactTrainerStats}
-                          trailing={compactTrailing}
-                          forcePublicView={forcePublicView}
-                          onNavigate={(id) => {
-                            if (managerSimpleMode) {
-                              const target = events.find((event) => event.id === id);
-                              if (target && canMutateSchedule) openEditModal(target);
-                              return;
-                            }
-                            if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
-                              navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`);
-                            } else {
-                              navigate(`${basePath}/events/${id}`);
-                            }
-                          }}
-                          reviewPending={matchReviewPending}
-                        />
+                        </React.Fragment>
                       );
                     })}
                   </div>
