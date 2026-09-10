@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { BarChart3, CalendarDays, ChevronRight, FileText, Radio, Shirt } from 'lucide-react';
+import { BarChart3, ChevronRight, FileText, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -367,7 +367,7 @@ function MatchboardTeamNameLines({
     : `min-h-[1em] text-xs font-medium uppercase leading-tight tracking-widest text-white/75 ${textAlign}`;
   const clubCls = tight
     ? `mt-0.5 text-[11px] font-medium leading-snug text-white/62 sm:text-xs ${textAlign}`
-    : `mt-1 text-lg font-semibold leading-snug text-white/80 sm:text-xl md:text-2xl ${textAlign}`;
+    : `mt-1 whitespace-nowrap text-[clamp(12px,3.7vw,17px)] font-bold leading-snug tracking-[-0.025em] text-white/92 ${textAlign}`;
   return (
     <div className="w-full min-w-0 hyphens-none">
       <div className={abbrevCls}>
@@ -4284,16 +4284,21 @@ export const LiveMatchScreen: React.FC = () => {
         .replace('.', '')
         .toUpperCase()
     : null;
-  const finishedMatchDayMonth = finishedMatchDateValid
-    ? new Intl.DateTimeFormat('de-AT', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'Europe/Vienna',
-      })
+  const finishedMatchDay = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', { day: '2-digit', timeZone: 'Europe/Vienna' }).format(
+        finishedMatchDate as Date,
+      )
+    : null;
+  const finishedMatchMonth = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', { month: 'short', timeZone: 'Europe/Vienna' })
         .format(finishedMatchDate as Date)
         .replace('.', '')
         .toUpperCase()
+    : null;
+  const finishedMatchYear = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', { year: 'numeric', timeZone: 'Europe/Vienna' }).format(
+        finishedMatchDate as Date,
+      )
     : null;
   const liveBadgeAnimating = hasClockStarted && isRunning && !matchIsFinished;
   const liveBadgeShell =
@@ -4627,20 +4632,27 @@ export const LiveMatchScreen: React.FC = () => {
                 }}
               />
               <div className={`relative z-[1] w-full px-3 ${matchIsFinished ? 'pb-3 pt-3' : 'pb-1 pt-1.5'} sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <div className={`grid items-center gap-2 ${matchIsFinished ? 'grid-cols-[58px_minmax(0,1fr)_66px]' : 'grid-cols-[1fr_auto_1fr]'}`}>
                   <div className="min-w-0">
-                    {matchIsFinished && finishedMatchDayMonth ? (
-                      <div className="flex items-center gap-1.5 text-white/72">
-                        <CalendarDays className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
-                        <p className="min-w-0 text-[10px] font-bold uppercase leading-tight tracking-[0.08em] sm:text-[11px]">
-                          <span className="block text-white/92">{finishedMatchWeekday}</span>
-                          <span className="block">{finishedMatchDayMonth}</span>
-                        </p>
+                    {matchIsFinished && finishedMatchDay ? (
+                      <div className="flex w-[58px] flex-col items-center justify-center border-r border-white/10 pr-2 text-center leading-none">
+                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-red-300">
+                          {finishedMatchWeekday}
+                        </span>
+                        <span className="mt-0.5 text-[30px] font-black tabular-nums text-white">
+                          {finishedMatchDay}
+                        </span>
+                        <span className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white/65">
+                          {finishedMatchMonth}
+                        </span>
+                        <span className="mt-0.5 text-[10px] font-semibold tabular-nums text-white/42">
+                          {finishedMatchYear}
+                        </span>
                       </div>
                     ) : null}
                   </div>
                   <div className="flex justify-center">
-                    <p className="rounded-full border border-red-500/40 bg-red-950/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-red-50 shadow-[0_0_20px_rgba(220,38,38,0.18)] sm:text-[11px]">
+                    <p className="whitespace-nowrap rounded-full border border-red-500/40 bg-red-950/70 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-red-50 shadow-[0_0_20px_rgba(220,38,38,0.18)] min-[390px]:px-3 min-[390px]:text-[10px] sm:text-[11px]">
                       {matchTypeDisplay}
                     </p>
                   </div>
