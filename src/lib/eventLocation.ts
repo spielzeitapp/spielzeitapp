@@ -40,7 +40,7 @@ export function combineLocationParts(
   return p || a;
 }
 
-/** Kurzer Platzname für Feed (ohne Straße/Adresse/PLZ). */
+/** Kurzer Platzname für alle Übersichten (ohne Straße/Adresse/PLZ); Details behalten die vollständige Adresse. */
 function feedVenueLooksLikeAddress(segment: string): boolean {
   const t = segment.trim();
   if (!t) return false;
