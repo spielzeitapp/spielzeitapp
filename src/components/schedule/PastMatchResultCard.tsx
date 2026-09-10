@@ -6,6 +6,7 @@ import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { formatCompactListWeekdayAbbrev } from './scheduleEventViewUtils';
 import { VIENNA_TZ } from '../../lib/viennaTime';
+import { dsScheduleListPanelClass } from '../../lib/premiumDesignSystem';
 
 export type PastMatchResultCardProps = {
   ev: EventRow;
@@ -19,6 +20,8 @@ export type PastMatchResultCardProps = {
   /** Optional z. B. „(1:0)“ wenn später Daten verfügbar — sonst ausgeblendet. */
   halftimeLine?: string | null;
   forcePublicView: boolean;
+  /** Kompakte Zeile für den Reiter „Alle“ und die Liste unter dem Ergebnis-Slider. */
+  compact?: boolean;
   onNavigate: (id: string) => void;
 };
 
@@ -59,7 +62,7 @@ function TeamLogoBlock({ src, label }: { src: string; label: string }) {
     <img
       src={src}
       alt={label}
-      className="h-10 w-10 shrink-0 object-contain [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.14))] sm:h-11 sm:w-11"
+      className="h-14 w-14 shrink-0 object-contain [filter:drop-shadow(0_0_12px_rgba(255,255,255,0.16))] sm:h-16 sm:w-16"
       onError={(e) => {
         const img = e.currentTarget as HTMLImageElement;
         if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
@@ -82,6 +85,7 @@ export function PastMatchResultCard({
   periodBracketLine,
   halftimeLine,
   forcePublicView,
+  compact = false,
   onNavigate,
 }: PastMatchResultCardProps) {
   void _ourTeamNameProp;
@@ -136,9 +140,71 @@ export function PastMatchResultCard({
 
   const venue = formatFeedVenueShort(ev.location);
 
-  const homeAwayLabel = ev.is_home === true ? 'Heim' : ev.is_home === false ? 'Auswärts' : null;
   const homeSplit = splitPrefixAndName(homeName);
   const awaySplit = splitPrefixAndName(awayName);
+
+  if (compact) {
+    return (
+      <div
+        className={[
+          `group relative mb-2 -mx-1 flex min-h-[118px] w-[calc(100%+0.5rem)] min-w-0 items-stretch gap-2.5 overflow-hidden px-2 py-2 outline-none transition sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
+          clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
+        ].join(' ')}
+        role={clickable ? 'button' : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        onClick={clickable ? handleActivate : undefined}
+        onKeyDown={
+          clickable
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleActivate();
+                }
+              }
+            : undefined
+        }
+      >
+        <div className="flex w-[64px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
+          <span className="text-[12px] font-semibold uppercase leading-none tracking-widest text-red-400">{weekdayBadge}</span>
+          <span className="text-[30px] font-bold tabular-nums leading-none text-white">{dayBig}</span>
+          <span className="text-[12px] leading-tight text-white/60">{monSmall || '—'}</span>
+          {yearSmall ? <span className="text-[10px] font-medium leading-tight text-white/40">{yearSmall}</span> : null}
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col justify-center pr-[3.7rem]">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <img src={homeLogoSrc} alt="" className="h-10 w-10 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <span className="mt-1 line-clamp-2 text-[10px] font-semibold leading-tight text-white/88">
+                {homeName}
+              </span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#D17A86]">Endstand</span>
+              <span className="mt-0.5 whitespace-nowrap text-[27px] font-extrabold tabular-nums leading-none text-white">{scoreStr}</span>
+              {periodBracketLine ? (
+                <span className="mt-0.5 whitespace-nowrap text-[8px] font-medium tabular-nums text-white/42">{periodBracketLine}</span>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <img src={awayLogoSrc} alt="" className="h-10 w-10 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <span className="mt-1 line-clamp-2 text-[10px] font-semibold leading-tight text-white/88">
+                {awayName}
+              </span>
+            </div>
+          </div>
+          <div className="mt-1.5 flex min-w-0 items-center border-t border-white/[0.06] pt-1.5">
+            {venue ? <span className="line-clamp-1 min-w-0 text-[12px] text-white/58">{venue}</span> : null}
+          </div>
+        </div>
+
+        <span className="absolute right-3 top-2.5 rounded-md border border-red-950/80 bg-black/45 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[#E8C4C8]">
+          Beendet
+        </span>
+        {clickable ? <ChevronRight className="absolute bottom-4 right-3 h-5 w-5 text-white/30" strokeWidth={2} aria-hidden /> : null}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -229,17 +295,6 @@ export function PastMatchResultCard({
 
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/[0.07] pt-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            {homeAwayLabel ? (
-              <span
-                className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                  ev.is_home === true
-                    ? 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200'
-                    : 'border-amber-500/35 bg-amber-500/12 text-amber-100'
-                }`}
-              >
-                {homeAwayLabel}
-              </span>
-            ) : null}
             {venue ? (
               <p className="line-clamp-1 min-w-0 text-[12px] leading-snug text-white/50">{venue}</p>
             ) : null}
