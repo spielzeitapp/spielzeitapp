@@ -4580,7 +4580,9 @@ export const LiveMatchScreen: React.FC = () => {
           mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
         } ${
           mainTab === 'hub'
-            ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+            ? matchIsFinished
+              ? 'shrink-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+              : 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
             : 'shrink-0'
         }`}
       >
@@ -4624,7 +4626,7 @@ export const LiveMatchScreen: React.FC = () => {
                     'radial-gradient(ellipse 92% 52% at 50% -8%, rgba(220,38,38,0.12), transparent 58%)',
                 }}
               />
-              <div className={`relative z-[1] w-full px-3 py-1.5 pb-1 sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
+              <div className={`relative z-[1] w-full px-3 ${matchIsFinished ? 'pb-3 pt-3' : 'pb-1 pt-1.5'} sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                   <div className="min-w-0">
                     {matchIsFinished && finishedMatchDayMonth ? (
@@ -4651,7 +4653,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
 
-                <div className={`flex justify-center ${matchIsFinished ? 'mt-1' : 'mt-1.5'}`}>
+                <div className={`flex justify-center ${matchIsFinished ? 'mt-2' : 'mt-1.5'}`}>
                   <div className={liveBadgeClassName}>
                     {hasClockStarted && !matchIsFinished ? (
                       <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
@@ -4690,13 +4692,13 @@ export const LiveMatchScreen: React.FC = () => {
                 {/* Logo + Namen unter Logo | Score + Labels + Perioden | Logo + Namen */}
                 <div
                   className={`flex items-start justify-between gap-1.5 sm:gap-2.5 ${
-                    isPaused && !matchIsFinished ? 'mt-1.5' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
+                    isPaused && !matchIsFinished ? 'mt-1.5' : matchIsFinished ? 'mt-3' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
-                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size="boardSm" />
-                    <div className="mt-1 w-full px-0.5">
-                      <MatchboardTeamNameLines parts={homeNameParts} align="center" tight />
+                  <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
+                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
+                    <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
+                      <MatchboardTeamNameLines parts={homeNameParts} align="center" tight={!matchIsFinished} />
                     </div>
                   </div>
 
@@ -4805,7 +4807,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <div className={`flex flex-col items-center gap-1 ${SCOREBOARD_NO_SELECT}`}>
                         <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
-                          <span className="text-center text-6xl font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] sm:text-7xl">
+                          <span className={`text-center font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] ${matchIsFinished ? 'text-[4.35rem] sm:text-[5rem]' : 'text-6xl sm:text-7xl'}`}>
                             {displayScoreHome}
                             <span className="mx-1.5 text-white/75 sm:mx-2">:</span>
                             {displayScoreAway}
@@ -4828,10 +4830,10 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
-                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size="boardSm" />
-                    <div className="mt-1 w-full px-0.5">
-                      <MatchboardTeamNameLines parts={awayNameParts} align="center" tight />
+                  <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
+                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
+                    <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
+                      <MatchboardTeamNameLines parts={awayNameParts} align="center" tight={!matchIsFinished} />
                     </div>
                   </div>
                 </div>
@@ -5030,39 +5032,39 @@ export const LiveMatchScreen: React.FC = () => {
 
           {mainTab === 'hub' ? (
             <nav
-              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} pb-[calc(170px+env(safe-area-inset-bottom,0px))]`}
+              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${matchIsFinished ? 'mt-3 pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
               aria-label="Live Hub"
             >
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left`} onClick={() => setMainTab('overview')}>
-                <FileText className="h-6 w-6 shrink-0 text-red-400" aria-hidden />
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('overview')}>
+                <FileText className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-white">Übersicht</span>
-                  <span className="block text-[10px] font-medium text-white/45">Spielbericht</span>
+                  <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Übersicht</span>
+                  <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielbericht</span>
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left`} onClick={() => setMainTab('lineup')}>
-                <Shirt className="h-6 w-6 shrink-0 text-red-400" aria-hidden />
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('lineup')}>
+                <Shirt className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-white">Aufstellung</span>
-                  <span className="block text-[10px] font-medium text-white/45">Formation</span>
+                  <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Aufstellung</span>
+                  <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Formation</span>
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left`} onClick={() => setMainTab('events')}>
-                <Radio className="h-6 w-6 shrink-0 text-red-400" aria-hidden />
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('events')}>
+                <Radio className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-white">Liveticker</span>
-                  <span className="block text-[10px] font-medium text-white/45">Spielverlauf</span>
+                  <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Liveticker</span>
+                  <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielverlauf</span>
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
               {!spectatorView ? (
-                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left`} onClick={() => setMainTab('time')}>
-                  <BarChart3 className="h-6 w-6 shrink-0 text-red-400" aria-hidden />
+                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('time')}>
+                  <BarChart3 className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-white">Statistik</span>
-                    <span className="block text-[10px] font-medium text-white/45">Einsatzzeiten</span>
+                    <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Statistik</span>
+                    <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Einsatzzeiten</span>
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
                 </button>

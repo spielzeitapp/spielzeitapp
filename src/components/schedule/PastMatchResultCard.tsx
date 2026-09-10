@@ -62,7 +62,7 @@ function TeamLogoBlock({ src, label }: { src: string; label: string }) {
     <img
       src={src}
       alt={label}
-      className="h-14 w-14 shrink-0 object-contain [filter:drop-shadow(0_0_12px_rgba(255,255,255,0.16))] sm:h-16 sm:w-16"
+      className="h-[4.5rem] w-[4.5rem] shrink-0 object-contain [filter:drop-shadow(0_0_14px_rgba(255,255,255,0.18))] sm:h-20 sm:w-20"
       onError={(e) => {
         const img = e.currentTarget as HTMLImageElement;
         if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
@@ -209,7 +209,7 @@ export function PastMatchResultCard({
   return (
     <div
       className={[
-        'group relative mb-4 w-full min-w-0 overflow-hidden rounded-[30px] border border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)] outline-none backdrop-blur-sm transition-transform duration-200 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)]',
+        'group relative w-full min-w-0 overflow-hidden rounded-[26px] border border-red-500/25 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)] outline-none backdrop-blur-sm transition-transform duration-200 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)]',
         clickable
           ? 'cursor-pointer hover:border-red-500/35 hover:shadow-[0_12px_44px_rgba(255,0,0,0.26)] active:scale-[0.99]'
           : 'cursor-default',
@@ -230,48 +230,48 @@ export function PastMatchResultCard({
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.12),transparent_55%)] opacity-90" />
 
-      <div className="relative px-3.5 pb-2.5 pt-3 sm:px-4 sm:pb-3 sm:pt-3.5">
-        <div className="mb-1 flex items-start justify-between gap-2">
-          <div className="flex w-[44px] shrink-0 flex-col items-center justify-center gap-0 text-center">
-            <span className="text-[11px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">
+      <div className="relative px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4">
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+            <span className="text-[12px] font-bold uppercase leading-none tracking-[0.12em] text-[#D36C7B]">
               {weekdayBadge}
             </span>
-            <span className="text-[26px] font-bold tabular-nums leading-none text-white">
+            <span className="text-[34px] font-black tabular-nums leading-none text-white">
               {dayBig}
             </span>
-            <span className="text-[11px] font-medium leading-tight text-white/60">
+            <span className="text-[13px] font-semibold leading-tight text-white/68">
               {monSmall || '—'}
             </span>
-            {yearSmall ? <span className="text-[10px] font-medium leading-tight text-white/40">{yearSmall}</span> : null}
+            {yearSmall ? <span className="text-[11px] font-medium leading-tight text-white/48">{yearSmall}</span> : null}
           </div>
-          <span className="shrink-0 rounded-md border border-red-950/80 bg-black/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
+          <span className="shrink-0 rounded-lg border border-red-800/60 bg-black/55 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-red-100">
             Beendet
           </span>
         </div>
 
-        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-2.5">
           <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
             <TeamLogoBlock src={homeLogoSrc} label={homeName} />
             {homeSplit.prefix ? (
-              <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
+              <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/92 sm:text-[12px]">
                 {homeSplit.prefix}
               </div>
             ) : null}
-            <p className="mt-0.5 line-clamp-2 min-w-0 max-w-full text-center text-[14px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[15px]">
+            <p className="mt-1 line-clamp-2 min-w-0 max-w-full text-center text-[16px] font-bold leading-[1.12] text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[17px]">
               {homeSplit.name || homeName}
             </p>
           </div>
 
-          <div className="flex min-w-0 flex-col items-center justify-start px-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.32em] text-red-300">Endstand</span>
+          <div className="flex min-w-[5rem] flex-col items-center justify-start px-0.5 pt-1">
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-red-300">Endstand</span>
             <span
-              className="mt-0.5 text-center text-[2rem] font-extrabold leading-none tracking-tight text-white tabular-nums sm:text-[2.2rem]"
+              className="mt-1 text-center text-[2.7rem] font-black leading-none tracking-tight text-white tabular-nums sm:text-5xl"
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {scoreStr}
             </span>
             {periodBracketLine ? (
-              <span className="mt-0.5 max-w-[14rem] text-center text-[11px] font-medium tabular-nums leading-snug text-white/55 sm:max-w-none sm:text-[12px]">
+              <span className="mt-1 max-w-[14rem] text-center text-[12px] font-semibold tabular-nums leading-snug text-white/62 sm:max-w-none sm:text-[13px]">
                 {periodBracketLine}
               </span>
             ) : null}
@@ -283,25 +283,25 @@ export function PastMatchResultCard({
           <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
             <TeamLogoBlock src={awayLogoSrc} label={awayName} />
             {awaySplit.prefix ? (
-              <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
+              <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/92 sm:text-[12px]">
                 {awaySplit.prefix}
               </div>
             ) : null}
-            <p className="mt-0.5 line-clamp-2 min-w-0 max-w-full text-center text-[14px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[15px]">
+            <p className="mt-1 line-clamp-2 min-w-0 max-w-full text-center text-[16px] font-bold leading-[1.12] text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[17px]">
               {awaySplit.name || awayName}
             </p>
           </div>
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/[0.07] pt-2">
+        <div className="mt-3 flex min-h-10 items-center justify-between gap-2 border-t border-white/[0.08] pt-2.5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {venue ? (
-              <p className="line-clamp-1 min-w-0 text-[12px] leading-snug text-white/50">{venue}</p>
+              <p className="line-clamp-1 min-w-0 text-[14px] font-medium leading-snug text-white/62">{venue}</p>
             ) : null}
           </div>
           {clickable ? (
             <ChevronRight
-              className="h-5 w-5 shrink-0 text-white/40 transition-colors group-hover:text-red-300/90"
+              className="h-6 w-6 shrink-0 text-red-300/80 transition-colors group-hover:text-red-200"
               strokeWidth={2}
               aria-hidden
             />
