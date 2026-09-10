@@ -151,7 +151,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
   const meetupTimeOnly = formatMeetupTimeOnlyDe(meetupAt);
-  const locationForKickoff = formatFeedVenueShort(location ?? address);
+  const placeLine = formatFeedVenueShort(location ?? address);
+  const locationForKickoff = placeLine;
 
   const effectiveEventType: 'game' | 'training' | 'event' | 'other' =
     eventType ??
