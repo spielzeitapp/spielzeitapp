@@ -7,6 +7,7 @@ import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { formatCompactListWeekdayAbbrev } from './scheduleEventViewUtils';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { dsScheduleListPanelClass } from '../../lib/premiumDesignSystem';
+import { getMatchTypeLabel } from '../match/matchCardLabels';
 
 export type PastMatchResultCardProps = {
   ev: EventRow;
@@ -139,6 +140,7 @@ export function PastMatchResultCard({
   const yearSmall = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : '';
 
   const venue = formatFeedVenueShort(ev.location);
+  const matchTypeLabel = getMatchTypeLabel(ev.match_type) ?? 'Meisterschaftsspiel';
 
   const homeSplit = splitPrefixAndName(homeName);
   const awaySplit = splitPrefixAndName(awayName);
@@ -231,7 +233,7 @@ export function PastMatchResultCard({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.12),transparent_55%)] opacity-90" />
 
       <div className="relative px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4">
-        <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="mb-2 grid grid-cols-[52px_minmax(0,1fr)_auto] items-start gap-2">
           <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
             <span className="text-[12px] font-bold uppercase leading-none tracking-[0.12em] text-[#D36C7B]">
               {weekdayBadge}
@@ -243,6 +245,11 @@ export function PastMatchResultCard({
               {monSmall || '—'}
             </span>
             {yearSmall ? <span className="text-[11px] font-medium leading-tight text-white/48">{yearSmall}</span> : null}
+          </div>
+          <div className="flex min-w-0 justify-center pt-0.5">
+            <span className="max-w-full truncate rounded-full border border-red-500/35 bg-red-950/65 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-red-50 sm:text-[10px]">
+              {matchTypeLabel}
+            </span>
           </div>
           <span className="shrink-0 rounded-lg border border-red-800/60 bg-black/55 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-red-100">
             Beendet

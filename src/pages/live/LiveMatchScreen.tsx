@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { BarChart3, ChevronRight, FileText, Radio, Shirt } from 'lucide-react';
+import { BarChart3, ChevronRight, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -380,7 +380,9 @@ function MatchboardTeamNameLines({
         )}
       </div>
       <div className={clubCls}>
-        <span className="block break-words [word-break:normal] [text-wrap:balance]">{parts.club || '\u00a0'}</span>
+        <span className={tight ? 'block break-words [word-break:normal] [text-wrap:balance]' : 'block whitespace-nowrap'}>
+          {parts.club || '\u00a0'}
+        </span>
       </div>
     </div>
   );
@@ -978,6 +980,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [eventIsHome, setEventIsHome] = useState<boolean | null>(null);
   const [calendarMatchType, setCalendarMatchType] = useState<string | null>(null);
   const [calendarStartsAt, setCalendarStartsAt] = useState<string | null>(null);
+  const [calendarLocation, setCalendarLocation] = useState<string | null>(null);
   const [scoreHome, setScoreHome] = useState(0);
   const [scoreAway, setScoreAway] = useState(0);
 
@@ -1668,6 +1671,7 @@ export const LiveMatchScreen: React.FC = () => {
       setCalendarFinalized(false);
       setCalendarMatchType(null);
       setCalendarStartsAt(null);
+      setCalendarLocation(null);
       return;
     }
     if (isDemo) {
@@ -1676,13 +1680,14 @@ export const LiveMatchScreen: React.FC = () => {
       );
       setCalendarMatchType('championship');
       setCalendarStartsAt(null);
+      setCalendarLocation(null);
       return;
     }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('status, match_type, starts_at')
+        .select('status, match_type, starts_at, location')
         .eq('match_id', effectiveMatchId)
         .maybeSingle();
       if (cancelled) return;
@@ -1692,6 +1697,7 @@ export const LiveMatchScreen: React.FC = () => {
       }
       setCalendarMatchType(data?.match_type ?? null);
       setCalendarStartsAt(data?.starts_at ?? null);
+      setCalendarLocation(data?.location ?? null);
       if (matchRow?.status !== 'finished') setCalendarFinalized(false);
       else if (!data) setCalendarFinalized(true);
       else setCalendarFinalized(data.status === 'finished');
@@ -4849,6 +4855,12 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                {matchIsFinished && calendarLocation?.trim() ? (
+                  <div className="mt-3 flex min-h-11 items-center gap-2 border-t border-white/10 px-1 pt-2.5 text-[14px] font-semibold text-white/68">
+                    <MapPin className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
+                    <span className="min-w-0 truncate">{calendarLocation.trim()}</span>
+                  </div>
+                ) : null}
               </div>
 
               {matchRow?.status === 'live' && !matchIsFinished && (fairPlayRuleActivatable || fairPlayExtraPlayerId) ? (
