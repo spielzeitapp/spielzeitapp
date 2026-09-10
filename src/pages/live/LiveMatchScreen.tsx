@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { BarChart3, ChevronRight, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -65,6 +66,7 @@ import {
 import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
 import { forceReleaseBodyScrollLocks, lockBodyScroll } from '../../lib/bodyScrollLock';
 import { getMatchSides } from '../../lib/matchSides';
+import { getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
   formatMinimumPlaytimeProgress,
@@ -365,7 +367,7 @@ function MatchboardTeamNameLines({
     : `min-h-[1em] text-xs font-medium uppercase leading-tight tracking-widest text-white/75 ${textAlign}`;
   const clubCls = tight
     ? `mt-0.5 text-[11px] font-medium leading-snug text-white/62 sm:text-xs ${textAlign}`
-    : `mt-1 text-lg font-semibold leading-snug text-white/80 sm:text-xl md:text-2xl ${textAlign}`;
+    : `mt-1 whitespace-nowrap text-[clamp(12px,3.7vw,17px)] font-bold leading-snug tracking-[-0.025em] text-white/92 ${textAlign}`;
   return (
     <div className="w-full min-w-0 hyphens-none">
       <div className={abbrevCls}>
@@ -378,7 +380,9 @@ function MatchboardTeamNameLines({
         )}
       </div>
       <div className={clubCls}>
-        <span className="block break-words [word-break:normal] [text-wrap:balance]">{parts.club || '\u00a0'}</span>
+        <span className={tight ? 'block break-words [word-break:normal] [text-wrap:balance]' : 'block whitespace-nowrap'}>
+          {parts.club || '\u00a0'}
+        </span>
       </div>
     </div>
   );
@@ -974,6 +978,9 @@ export const LiveMatchScreen: React.FC = () => {
   const [opponentLabel, setOpponentLabel] = useState('Gegner');
   const [opponentLogoUrl, setOpponentLogoUrl] = useState<string | null>(null);
   const [eventIsHome, setEventIsHome] = useState<boolean | null>(null);
+  const [calendarMatchType, setCalendarMatchType] = useState<string | null>(null);
+  const [calendarStartsAt, setCalendarStartsAt] = useState<string | null>(null);
+  const [calendarLocation, setCalendarLocation] = useState<string | null>(null);
   const [scoreHome, setScoreHome] = useState(0);
   const [scoreAway, setScoreAway] = useState(0);
 
@@ -1387,8 +1394,7 @@ export const LiveMatchScreen: React.FC = () => {
   const homeNameParts = matchboardAbbrevAndClub(stadiumHomeDisplay);
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
-  /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
-  const matchTypeDisplay = 'Freundschaftsspiel';
+  const matchTypeDisplay = getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
   const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
@@ -1661,19 +1667,27 @@ export const LiveMatchScreen: React.FC = () => {
   }, [displayScoreHome, displayScoreAway]);
 
   useEffect(() => {
-    if (!effectiveMatchId || matchRow?.status !== 'finished') {
+    if (!effectiveMatchId) {
       setCalendarFinalized(false);
+      setCalendarMatchType(null);
+      setCalendarStartsAt(null);
+      setCalendarLocation(null);
       return;
     }
     if (isDemo) {
-      setCalendarFinalized(isDemoLiveCalendarFinalized(effectiveMatchId));
+      setCalendarFinalized(
+        matchRow?.status === 'finished' && isDemoLiveCalendarFinalized(effectiveMatchId),
+      );
+      setCalendarMatchType('championship');
+      setCalendarStartsAt(null);
+      setCalendarLocation(null);
       return;
     }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('status')
+        .select('status, match_type, starts_at, location')
         .eq('match_id', effectiveMatchId)
         .maybeSingle();
       if (cancelled) return;
@@ -1681,7 +1695,11 @@ export const LiveMatchScreen: React.FC = () => {
         setCalendarFinalized(false);
         return;
       }
-      if (!data) setCalendarFinalized(true);
+      setCalendarMatchType(data?.match_type ?? null);
+      setCalendarStartsAt(data?.starts_at ?? null);
+      setCalendarLocation(data?.location ?? null);
+      if (matchRow?.status !== 'finished') setCalendarFinalized(false);
+      else if (!data) setCalendarFinalized(true);
       else setCalendarFinalized(data.status === 'finished');
     })();
     return () => {
@@ -4264,6 +4282,30 @@ export const LiveMatchScreen: React.FC = () => {
   const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
   const matchboardVisible = mainTab === 'hub';
+  const finishedMatchDate = calendarStartsAt ? new Date(calendarStartsAt) : null;
+  const finishedMatchDateValid = Boolean(finishedMatchDate && !Number.isNaN(finishedMatchDate.getTime()));
+  const finishedMatchWeekday = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', { weekday: 'short', timeZone: 'Europe/Vienna' })
+        .format(finishedMatchDate as Date)
+        .replace('.', '')
+        .toUpperCase()
+    : null;
+  const finishedMatchDay = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', { day: '2-digit', timeZone: 'Europe/Vienna' }).format(
+        finishedMatchDate as Date,
+      )
+    : null;
+  const finishedMatchMonth = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', { month: 'short', timeZone: 'Europe/Vienna' })
+        .format(finishedMatchDate as Date)
+        .replace('.', '')
+        .toUpperCase()
+    : null;
+  const finishedMatchYear = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', { year: 'numeric', timeZone: 'Europe/Vienna' }).format(
+        finishedMatchDate as Date,
+      )
+    : null;
   const liveBadgeAnimating = hasClockStarted && isRunning && !matchIsFinished;
   const liveBadgeShell =
     'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3 sm:text-[11px] uppercase';
@@ -4549,7 +4591,9 @@ export const LiveMatchScreen: React.FC = () => {
           mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
         } ${
           mainTab === 'hub'
-            ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+            ? matchIsFinished
+              ? 'shrink-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+              : 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
             : 'shrink-0'
         }`}
       >
@@ -4593,14 +4637,41 @@ export const LiveMatchScreen: React.FC = () => {
                     'radial-gradient(ellipse 92% 52% at 50% -8%, rgba(220,38,38,0.12), transparent 58%)',
                 }}
               />
-              <div className={`relative z-[1] w-full px-3 py-1.5 pb-1 sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
-                {matchTypeDisplay ? (
-                  <div className="flex justify-center">
-                    <p className="text-base font-semibold text-white sm:text-lg">{matchTypeDisplay}</p>
+              <div className={`relative z-[1] w-full px-3 ${matchIsFinished ? 'pb-3 pt-3' : 'pb-1 pt-1.5'} sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
+                <div className={`grid items-center gap-2 ${matchIsFinished ? 'grid-cols-[58px_minmax(0,1fr)_66px]' : 'grid-cols-[1fr_auto_1fr]'}`}>
+                  <div className="min-w-0">
+                    {matchIsFinished && finishedMatchDay ? (
+                      <div className="flex w-[58px] flex-col items-center justify-center border-r border-white/10 pr-2 text-center leading-none">
+                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-red-300">
+                          {finishedMatchWeekday}
+                        </span>
+                        <span className="mt-0.5 text-[30px] font-black tabular-nums text-white">
+                          {finishedMatchDay}
+                        </span>
+                        <span className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white/65">
+                          {finishedMatchMonth}
+                        </span>
+                        <span className="mt-0.5 text-[10px] font-semibold tabular-nums text-white/42">
+                          {finishedMatchYear}
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
+                  <div className="flex justify-center">
+                    <p className="whitespace-nowrap rounded-full border border-red-500/40 bg-red-950/70 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-red-50 shadow-[0_0_20px_rgba(220,38,38,0.18)] min-[390px]:px-3 min-[390px]:text-[10px] sm:text-[11px]">
+                      {matchTypeDisplay}
+                    </p>
+                  </div>
+                  <div className="flex justify-end">
+                    {matchIsFinished ? (
+                      <span className="rounded-full border border-white/18 bg-white/[0.07] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/75 sm:text-[10px]">
+                        Beendet
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
 
-                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-1.5' : 'mt-1'}`}>
+                <div className={`flex justify-center ${matchIsFinished ? 'mt-2' : 'mt-1.5'}`}>
                   <div className={liveBadgeClassName}>
                     {hasClockStarted && !matchIsFinished ? (
                       <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
@@ -4639,13 +4710,13 @@ export const LiveMatchScreen: React.FC = () => {
                 {/* Logo + Namen unter Logo | Score + Labels + Perioden | Logo + Namen */}
                 <div
                   className={`flex items-start justify-between gap-1.5 sm:gap-2.5 ${
-                    isPaused && !matchIsFinished ? 'mt-1.5' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
+                    isPaused && !matchIsFinished ? 'mt-1.5' : matchIsFinished ? 'mt-3' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
-                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size="boardSm" />
-                    <div className="mt-1 w-full px-0.5">
-                      <MatchboardTeamNameLines parts={homeNameParts} align="center" tight />
+                  <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
+                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
+                    <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
+                      <MatchboardTeamNameLines parts={homeNameParts} align="center" tight={!matchIsFinished} />
                     </div>
                   </div>
 
@@ -4754,7 +4825,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <div className={`flex flex-col items-center gap-1 ${SCOREBOARD_NO_SELECT}`}>
                         <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
-                          <span className="text-center text-6xl font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] sm:text-7xl">
+                          <span className={`text-center font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] ${matchIsFinished ? 'text-[4.35rem] sm:text-[5rem]' : 'text-6xl sm:text-7xl'}`}>
                             {displayScoreHome}
                             <span className="mx-1.5 text-white/75 sm:mx-2">:</span>
                             {displayScoreAway}
@@ -4777,13 +4848,19 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
-                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size="boardSm" />
-                    <div className="mt-1 w-full px-0.5">
-                      <MatchboardTeamNameLines parts={awayNameParts} align="center" tight />
+                  <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
+                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
+                    <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
+                      <MatchboardTeamNameLines parts={awayNameParts} align="center" tight={!matchIsFinished} />
                     </div>
                   </div>
                 </div>
+                {matchIsFinished && calendarLocation?.trim() ? (
+                  <div className="mt-3 flex min-h-11 items-center gap-2 border-t border-white/10 px-1 pt-2.5 text-[14px] font-semibold text-white/68">
+                    <MapPin className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
+                    <span className="min-w-0 truncate">{calendarLocation.trim()}</span>
+                  </div>
+                ) : null}
               </div>
 
               {matchRow?.status === 'live' && !matchIsFinished && (fairPlayRuleActivatable || fairPlayExtraPlayerId) ? (
@@ -4907,19 +4984,21 @@ export const LiveMatchScreen: React.FC = () => {
                     </button>
                   ) : null}
 
-                  <button
-                    type="button"
-                    disabled={!matchIsFinished || calendarFinalized}
-                    onClick={() => {
-                      if (matchIsFinished && !calendarFinalized) setSpielAbschlussOpen(true);
-                    }}
-                    className={`${
-                      matchIsFinished && !calendarFinalized ? mbSpielEndeReady : mbSpielEndeWhileLive
-                    } gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
-                  >
-                    <span aria-hidden>🏆</span>
-                    {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschließen'}
-                  </button>
+                  {!calendarFinalized ? (
+                    <button
+                      type="button"
+                      disabled={!matchIsFinished}
+                      onClick={() => {
+                        if (matchIsFinished) setSpielAbschlussOpen(true);
+                      }}
+                      className={`${
+                        matchIsFinished ? mbSpielEndeReady : mbSpielEndeWhileLive
+                      } gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
+                    >
+                      <span aria-hidden>🏆</span>
+                      Spiel abschließen
+                    </button>
+                  ) : null}
 
                   {matchIsFinished && tournamentNavContext && mainTab !== 'overview' ? (
                     <TournamentNextMatchWorkflowCta
@@ -4977,21 +5056,41 @@ export const LiveMatchScreen: React.FC = () => {
 
           {mainTab === 'hub' ? (
             <nav
-              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} pb-[calc(170px+env(safe-area-inset-bottom,0px))]`}
+              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${matchIsFinished ? 'mt-3 pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
               aria-label="Live Hub"
             >
-              <button type="button" className={hubNavBtn} onClick={() => setMainTab('overview')}>
-                Übersicht
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('overview')}>
+                <FileText className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Übersicht</span>
+                  <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielbericht</span>
+                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
-              <button type="button" className={hubNavBtn} onClick={() => setMainTab('lineup')}>
-                Aufstellung
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('lineup')}>
+                <Shirt className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Aufstellung</span>
+                  <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Formation</span>
+                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
-              <button type="button" className={hubNavBtn} onClick={() => setMainTab('events')}>
-                Liveticker
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('events')}>
+                <Radio className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Liveticker</span>
+                  <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielverlauf</span>
+                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
               {!spectatorView ? (
-                <button type="button" className={hubNavBtn} onClick={() => setMainTab('time')}>
-                  Statistik
+                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('time')}>
+                  <BarChart3 className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Statistik</span>
+                    <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Einsatzzeiten</span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
                 </button>
               ) : null}
             </nav>
