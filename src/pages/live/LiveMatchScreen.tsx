@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { BarChart3, ChevronRight, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { BarChart3, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -67,6 +67,7 @@ import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
 import { forceReleaseBodyScrollLocks, lockBodyScroll } from '../../lib/bodyScrollLock';
 import { getMatchSides } from '../../lib/matchSides';
 import { getMatchTypeLabel } from '../../components/match/matchCardLabels';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
   formatMinimumPlaytimeProgress,
@@ -4307,6 +4308,7 @@ export const LiveMatchScreen: React.FC = () => {
         finishedMatchDate as Date,
       )
     : null;
+  const finishedMatchVenue = formatFeedVenueShort(calendarLocation);
   const liveBadgeAnimating = hasClockStarted && isRunning && !matchIsFinished;
   const liveBadgeShell =
     'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3 sm:text-[11px] uppercase';
@@ -4600,7 +4602,11 @@ export const LiveMatchScreen: React.FC = () => {
       >
         <div
           className={`${layoutShell} ${
-            spectatorView ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0' : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
+            matchIsFinished
+              ? 'px-2 pb-1 pt-3 md:px-4 md:pb-1 md:pt-3'
+              : spectatorView
+                ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0'
+                : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
           }`}
         >
           {matchboardVisible && (
@@ -4856,10 +4862,10 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                {matchIsFinished && calendarLocation?.trim() ? (
+                {matchIsFinished && finishedMatchVenue ? (
                   <div className="mt-3 flex min-h-11 items-center gap-2 border-t border-white/10 px-1 pt-2.5 text-[14px] font-semibold text-white/68">
                     <MapPin className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
-                    <span className="min-w-0 truncate">{calendarLocation.trim()}</span>
+                    <span className="min-w-0 truncate">{finishedMatchVenue}</span>
                   </div>
                 ) : null}
               </div>
@@ -5066,7 +5072,6 @@ export const LiveMatchScreen: React.FC = () => {
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Übersicht</span>
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielbericht</span>
                 </span>
-                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
               <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('lineup')}>
                 <Shirt className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
@@ -5074,7 +5079,6 @@ export const LiveMatchScreen: React.FC = () => {
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Aufstellung</span>
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Formation</span>
                 </span>
-                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
               <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('events')}>
                 <Radio className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
@@ -5082,7 +5086,6 @@ export const LiveMatchScreen: React.FC = () => {
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Liveticker</span>
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielverlauf</span>
                 </span>
-                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
               {!spectatorView ? (
                 <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('time')}>
@@ -5091,7 +5094,6 @@ export const LiveMatchScreen: React.FC = () => {
                     <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Statistik</span>
                     <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Einsatzzeiten</span>
                   </span>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
                 </button>
               ) : null}
             </nav>
