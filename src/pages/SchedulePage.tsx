@@ -1827,6 +1827,18 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                               {...publicWrap}
                             >
                               <EventHeroCard label={heroSectionLabel} footer={heroCardFooter}>
+                                {timeFilter === 'past' && isFinishedMatch ? (
+                                  <PastMatchResultCard
+                                    ev={ev}
+                                    ourTeamName={ourTeamName}
+                                    opponentLogoUrl={opponentLogo}
+                                    scoreHome={matchScore?.scoreHome ?? null}
+                                    scoreAway={matchScore?.scoreAway ?? null}
+                                    periodBracketLine={matchScore?.periodBracket ?? null}
+                                    forcePublicView={forcePublicView}
+                                    onNavigate={(id) => heroOnNavigate?.(id)}
+                                  />
+                                ) : (
                                 <MatchCardLigaportal
                                   className="w-full max-w-full !px-2.5 !py-2 sm:!px-3 sm:!py-2.5"
                                   scheduleNextMatchHero
@@ -1884,6 +1896,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   liveIsRunning={matchScore?.liveIsRunning ?? null}
                                   reviewPending={matchReviewPending}
                                 />
+                                )}
                               </EventHeroCard>
                             </div>
                           );
