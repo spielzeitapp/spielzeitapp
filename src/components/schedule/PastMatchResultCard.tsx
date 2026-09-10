@@ -19,6 +19,8 @@ export type PastMatchResultCardProps = {
   /** Optional z. B. „(1:0)“ wenn später Daten verfügbar — sonst ausgeblendet. */
   halftimeLine?: string | null;
   forcePublicView: boolean;
+  /** Kompakte Zeile für den Reiter „Alle“ und die Liste unter dem Ergebnis-Slider. */
+  compact?: boolean;
   onNavigate: (id: string) => void;
 };
 
@@ -82,6 +84,7 @@ export function PastMatchResultCard({
   periodBracketLine,
   halftimeLine,
   forcePublicView,
+  compact = false,
   onNavigate,
 }: PastMatchResultCardProps) {
   void _ourTeamNameProp;
@@ -139,6 +142,74 @@ export function PastMatchResultCard({
   const homeAwayLabel = ev.is_home === true ? 'Heim' : ev.is_home === false ? 'Auswärts' : null;
   const homeSplit = splitPrefixAndName(homeName);
   const awaySplit = splitPrefixAndName(awayName);
+
+  if (compact) {
+    return (
+      <div
+        className={[
+          'group relative mb-3 grid w-full min-w-0 grid-cols-[4.15rem_minmax(0,1fr)_auto] overflow-hidden rounded-[22px] border border-[rgba(122,29,42,0.34)] bg-[linear-gradient(155deg,rgba(18,19,23,0.98)_0%,rgba(8,9,12,0.99)_62%,rgba(24,8,12,0.96)_100%)] shadow-[0_10px_28px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.035)] outline-none transition',
+          clickable ? 'cursor-pointer hover:border-[rgba(255,64,80,0.42)] active:scale-[0.995]' : 'cursor-default',
+        ].join(' ')}
+        role={clickable ? 'button' : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        onClick={clickable ? handleActivate : undefined}
+        onKeyDown={
+          clickable
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleActivate();
+                }
+              }
+            : undefined
+        }
+      >
+        <div className="flex min-h-[132px] flex-col items-center justify-center border-r border-white/[0.07] px-1.5 py-3 text-center">
+          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#D17A86]">{weekdayBadge}</span>
+          <span className="text-[32px] font-extrabold tabular-nums leading-none text-white">{dayBig}</span>
+          <span className="mt-1 text-[11px] font-medium text-white/55">{monSmall || '—'}</span>
+          {yearSmall ? <span className="text-[10px] font-medium text-white/35">{yearSmall}</span> : null}
+        </div>
+
+        <div className="flex min-w-0 flex-col justify-center px-2.5 py-3">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <img src={homeLogoSrc} alt="" className="h-8 w-8 object-contain" />
+              <span className="mt-1 line-clamp-2 text-[10px] font-semibold leading-tight text-white/82">
+                {homeName}
+              </span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#D17A86]">Endstand</span>
+              <span className="mt-0.5 whitespace-nowrap text-[25px] font-extrabold tabular-nums leading-none text-white">{scoreStr}</span>
+              {periodBracketLine ? (
+                <span className="mt-1 whitespace-nowrap text-[9px] font-medium tabular-nums text-white/42">{periodBracketLine}</span>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <img src={awayLogoSrc} alt="" className="h-8 w-8 object-contain" />
+              <span className="mt-1 line-clamp-2 text-[10px] font-semibold leading-tight text-white/82">
+                {awayName}
+              </span>
+            </div>
+          </div>
+          <div className="mt-2 flex min-w-0 items-center gap-2 border-t border-white/[0.06] pt-2">
+            {homeAwayLabel ? (
+              <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-amber-200/80">{homeAwayLabel}</span>
+            ) : null}
+            {venue ? <span className="line-clamp-1 min-w-0 text-[11px] text-white/45">{venue}</span> : null}
+          </div>
+        </div>
+
+        <div className="flex w-[3.15rem] flex-col items-center justify-between py-3 pr-2">
+          <span className="rounded-md border border-[rgba(122,29,42,0.44)] bg-black/45 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-[#E8C4C8]">
+            Beendet
+          </span>
+          {clickable ? <ChevronRight className="h-5 w-5 text-white/40" strokeWidth={2} aria-hidden /> : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
