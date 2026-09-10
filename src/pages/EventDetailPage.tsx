@@ -3633,7 +3633,7 @@ export const EventDetailPage: React.FC = () => {
       currentUserId={sessionUser.id}
       myPlayerIds={myAttendancePlayerIds}
       players={players}
-      canOffer={effectiveRole === 'parent'}
+      canOffer={['parent', 'trainer', 'admin'].includes(effectiveRole)}
       canManage={canTrainerManageEvent}
     />
   ) : null;
