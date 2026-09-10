@@ -58,6 +58,13 @@ function splitPrefixAndName(full: string): { prefix: string; name: string } {
   return { prefix: first, name: parts.slice(1).join(' ') };
 }
 
+function heroTeamNameClass(name: string): string {
+  const length = name.trim().length;
+  if (length >= 14) return 'text-[13px] tracking-[-0.035em] sm:text-[14px]';
+  if (length >= 11) return 'text-[14px] tracking-[-0.025em] sm:text-[15px]';
+  return 'text-[16px] tracking-[-0.015em] sm:text-[17px]';
+}
+
 function TeamLogoBlock({ src, label }: { src: string; label: string }) {
   return (
     <img
@@ -144,6 +151,9 @@ export function PastMatchResultCard({
 
   const homeSplit = splitPrefixAndName(homeName);
   const awaySplit = splitPrefixAndName(awayName);
+  const homeHeroName = homeSplit.name || homeName;
+  const awayHeroName = awaySplit.name || awayName;
+  const wideScore = scoreStr.replace(/\s/g, '').length >= 4;
 
   if (compact) {
     return (
@@ -264,15 +274,15 @@ export function PastMatchResultCard({
                 {homeSplit.prefix}
               </div>
             ) : null}
-            <p className="mt-1 line-clamp-2 min-w-0 max-w-full text-center text-[16px] font-bold leading-[1.12] text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[17px]">
-              {homeSplit.name || homeName}
+            <p className={`mt-1 max-w-full whitespace-nowrap text-center font-bold leading-[1.12] text-white ${heroTeamNameClass(homeHeroName)}`}>
+              {homeHeroName}
             </p>
           </div>
 
           <div className="flex min-w-[5rem] flex-col items-center justify-start px-0.5 pt-1">
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-red-300">Endstand</span>
             <span
-              className="mt-1 text-center text-[2.7rem] font-black leading-none tracking-tight text-white tabular-nums sm:text-5xl"
+              className={`mt-1 text-center font-black leading-none tracking-tight text-white tabular-nums ${wideScore ? 'text-[2.3rem] sm:text-[2.65rem]' : 'text-[2.7rem] sm:text-5xl'}`}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {scoreStr}
@@ -294,8 +304,8 @@ export function PastMatchResultCard({
                 {awaySplit.prefix}
               </div>
             ) : null}
-            <p className="mt-1 line-clamp-2 min-w-0 max-w-full text-center text-[16px] font-bold leading-[1.12] text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[17px]">
-              {awaySplit.name || awayName}
+            <p className={`mt-1 max-w-full whitespace-nowrap text-center font-bold leading-[1.12] text-white ${heroTeamNameClass(awayHeroName)}`}>
+              {awayHeroName}
             </p>
           </div>
         </div>

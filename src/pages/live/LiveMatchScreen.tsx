@@ -1661,6 +1661,7 @@ export const LiveMatchScreen: React.FC = () => {
     totalsFromEvents.away,
     Number(matchRow?.score_away ?? 0),
   );
+  const finishedScoreHasTwoDigits = displayScoreHome >= 10 || displayScoreAway >= 10;
 
   useEffect(() => {
     scoresRef.current = { home: displayScoreHome, away: displayScoreAway };
@@ -4825,7 +4826,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <div className={`flex flex-col items-center gap-1 ${SCOREBOARD_NO_SELECT}`}>
                         <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
-                          <span className={`text-center font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] ${matchIsFinished ? 'text-[4.35rem] sm:text-[5rem]' : 'text-6xl sm:text-7xl'}`}>
+                          <span className={`text-center font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] ${matchIsFinished ? (finishedScoreHasTwoDigits ? 'text-[3.65rem] sm:text-[4.25rem]' : 'text-[4.35rem] sm:text-[5rem]') : 'text-6xl sm:text-7xl'}`}>
                             {displayScoreHome}
                             <span className="mx-1.5 text-white/75 sm:mx-2">:</span>
                             {displayScoreAway}
@@ -5059,7 +5060,7 @@ export const LiveMatchScreen: React.FC = () => {
               className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${matchIsFinished ? 'mt-3 pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
               aria-label="Live Hub"
             >
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('overview')}>
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('overview')}>
                 <FileText className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Übersicht</span>
@@ -5067,7 +5068,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('lineup')}>
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('lineup')}>
                 <Shirt className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Aufstellung</span>
@@ -5075,7 +5076,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('events')}>
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('events')}>
                 <Radio className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Liveticker</span>
@@ -5084,7 +5085,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
               {!spectatorView ? (
-                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[88px]' : ''}`} onClick={() => setMainTab('time')}>
+                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('time')}>
                   <BarChart3 className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Statistik</span>
