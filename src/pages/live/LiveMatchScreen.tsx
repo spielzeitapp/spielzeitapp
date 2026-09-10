@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { BarChart3, CalendarDays, ChevronRight, FileText, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -65,6 +66,7 @@ import {
 import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
 import { forceReleaseBodyScrollLocks, lockBodyScroll } from '../../lib/bodyScrollLock';
 import { getMatchSides } from '../../lib/matchSides';
+import { getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
   formatMinimumPlaytimeProgress,
@@ -974,6 +976,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [opponentLabel, setOpponentLabel] = useState('Gegner');
   const [opponentLogoUrl, setOpponentLogoUrl] = useState<string | null>(null);
   const [eventIsHome, setEventIsHome] = useState<boolean | null>(null);
+  const [calendarMatchType, setCalendarMatchType] = useState<string | null>(null);
+  const [calendarStartsAt, setCalendarStartsAt] = useState<string | null>(null);
   const [scoreHome, setScoreHome] = useState(0);
   const [scoreAway, setScoreAway] = useState(0);
 
@@ -1387,8 +1391,7 @@ export const LiveMatchScreen: React.FC = () => {
   const homeNameParts = matchboardAbbrevAndClub(stadiumHomeDisplay);
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
-  /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
-  const matchTypeDisplay = 'Freundschaftsspiel';
+  const matchTypeDisplay = getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
   const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
@@ -1661,19 +1664,25 @@ export const LiveMatchScreen: React.FC = () => {
   }, [displayScoreHome, displayScoreAway]);
 
   useEffect(() => {
-    if (!effectiveMatchId || matchRow?.status !== 'finished') {
+    if (!effectiveMatchId) {
       setCalendarFinalized(false);
+      setCalendarMatchType(null);
+      setCalendarStartsAt(null);
       return;
     }
     if (isDemo) {
-      setCalendarFinalized(isDemoLiveCalendarFinalized(effectiveMatchId));
+      setCalendarFinalized(
+        matchRow?.status === 'finished' && isDemoLiveCalendarFinalized(effectiveMatchId),
+      );
+      setCalendarMatchType('championship');
+      setCalendarStartsAt(null);
       return;
     }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('status')
+        .select('status, match_type, starts_at')
         .eq('match_id', effectiveMatchId)
         .maybeSingle();
       if (cancelled) return;
@@ -1681,7 +1690,10 @@ export const LiveMatchScreen: React.FC = () => {
         setCalendarFinalized(false);
         return;
       }
-      if (!data) setCalendarFinalized(true);
+      setCalendarMatchType(data?.match_type ?? null);
+      setCalendarStartsAt(data?.starts_at ?? null);
+      if (matchRow?.status !== 'finished') setCalendarFinalized(false);
+      else if (!data) setCalendarFinalized(true);
       else setCalendarFinalized(data.status === 'finished');
     })();
     return () => {
@@ -4264,6 +4276,25 @@ export const LiveMatchScreen: React.FC = () => {
   const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
   const matchboardVisible = mainTab === 'hub';
+  const finishedMatchDate = calendarStartsAt ? new Date(calendarStartsAt) : null;
+  const finishedMatchDateValid = Boolean(finishedMatchDate && !Number.isNaN(finishedMatchDate.getTime()));
+  const finishedMatchWeekday = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', { weekday: 'short', timeZone: 'Europe/Vienna' })
+        .format(finishedMatchDate as Date)
+        .replace('.', '')
+        .toUpperCase()
+    : null;
+  const finishedMatchDayMonth = finishedMatchDateValid
+    ? new Intl.DateTimeFormat('de-AT', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'Europe/Vienna',
+      })
+        .format(finishedMatchDate as Date)
+        .replace('.', '')
+        .toUpperCase()
+    : null;
   const liveBadgeAnimating = hasClockStarted && isRunning && !matchIsFinished;
   const liveBadgeShell =
     'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3 sm:text-[11px] uppercase';
@@ -4594,13 +4625,33 @@ export const LiveMatchScreen: React.FC = () => {
                 }}
               />
               <div className={`relative z-[1] w-full px-3 py-1.5 pb-1 sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
-                {matchTypeDisplay ? (
-                  <div className="flex justify-center">
-                    <p className="text-base font-semibold text-white sm:text-lg">{matchTypeDisplay}</p>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <div className="min-w-0">
+                    {matchIsFinished && finishedMatchDayMonth ? (
+                      <div className="flex items-center gap-1.5 text-white/72">
+                        <CalendarDays className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
+                        <p className="min-w-0 text-[10px] font-bold uppercase leading-tight tracking-[0.08em] sm:text-[11px]">
+                          <span className="block text-white/92">{finishedMatchWeekday}</span>
+                          <span className="block">{finishedMatchDayMonth}</span>
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
+                  <div className="flex justify-center">
+                    <p className="rounded-full border border-red-500/40 bg-red-950/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-red-50 shadow-[0_0_20px_rgba(220,38,38,0.18)] sm:text-[11px]">
+                      {matchTypeDisplay}
+                    </p>
+                  </div>
+                  <div className="flex justify-end">
+                    {matchIsFinished ? (
+                      <span className="rounded-full border border-white/18 bg-white/[0.07] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/75 sm:text-[10px]">
+                        Beendet
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
 
-                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-1.5' : 'mt-1'}`}>
+                <div className={`flex justify-center ${matchIsFinished ? 'mt-1' : 'mt-1.5'}`}>
                   <div className={liveBadgeClassName}>
                     {hasClockStarted && !matchIsFinished ? (
                       <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
@@ -4907,19 +4958,21 @@ export const LiveMatchScreen: React.FC = () => {
                     </button>
                   ) : null}
 
-                  <button
-                    type="button"
-                    disabled={!matchIsFinished || calendarFinalized}
-                    onClick={() => {
-                      if (matchIsFinished && !calendarFinalized) setSpielAbschlussOpen(true);
-                    }}
-                    className={`${
-                      matchIsFinished && !calendarFinalized ? mbSpielEndeReady : mbSpielEndeWhileLive
-                    } gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
-                  >
-                    <span aria-hidden>🏆</span>
-                    {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschließen'}
-                  </button>
+                  {!calendarFinalized ? (
+                    <button
+                      type="button"
+                      disabled={!matchIsFinished}
+                      onClick={() => {
+                        if (matchIsFinished) setSpielAbschlussOpen(true);
+                      }}
+                      className={`${
+                        matchIsFinished ? mbSpielEndeReady : mbSpielEndeWhileLive
+                      } gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
+                    >
+                      <span aria-hidden>🏆</span>
+                      Spiel abschließen
+                    </button>
+                  ) : null}
 
                   {matchIsFinished && tournamentNavContext && mainTab !== 'overview' ? (
                     <TournamentNextMatchWorkflowCta
@@ -4980,18 +5033,38 @@ export const LiveMatchScreen: React.FC = () => {
               className={`${spectatorView ? hubNavSpectator : hubNavTrainer} pb-[calc(170px+env(safe-area-inset-bottom,0px))]`}
               aria-label="Live Hub"
             >
-              <button type="button" className={hubNavBtn} onClick={() => setMainTab('overview')}>
-                Übersicht
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left`} onClick={() => setMainTab('overview')}>
+                <FileText className="h-6 w-6 shrink-0 text-red-400" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-white">Übersicht</span>
+                  <span className="block text-[10px] font-medium text-white/45">Spielbericht</span>
+                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
-              <button type="button" className={hubNavBtn} onClick={() => setMainTab('lineup')}>
-                Aufstellung
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left`} onClick={() => setMainTab('lineup')}>
+                <Shirt className="h-6 w-6 shrink-0 text-red-400" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-white">Aufstellung</span>
+                  <span className="block text-[10px] font-medium text-white/45">Formation</span>
+                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
-              <button type="button" className={hubNavBtn} onClick={() => setMainTab('events')}>
-                Liveticker
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left`} onClick={() => setMainTab('events')}>
+                <Radio className="h-6 w-6 shrink-0 text-red-400" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-white">Liveticker</span>
+                  <span className="block text-[10px] font-medium text-white/45">Spielverlauf</span>
+                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
               </button>
               {!spectatorView ? (
-                <button type="button" className={hubNavBtn} onClick={() => setMainTab('time')}>
-                  Statistik
+                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left`} onClick={() => setMainTab('time')}>
+                  <BarChart3 className="h-6 w-6 shrink-0 text-red-400" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold text-white">Statistik</span>
+                    <span className="block text-[10px] font-medium text-white/45">Einsatzzeiten</span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
                 </button>
               ) : null}
             </nav>
