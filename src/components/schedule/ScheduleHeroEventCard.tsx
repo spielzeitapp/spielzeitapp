@@ -378,7 +378,7 @@ export function ScheduleHeroEventCard({
         ? 'text-[16px] min-[375px]:text-[17px]'
         : 'text-[18px] min-[375px]:text-[19px]';
   /** Terminübersicht: nur Platzname/Ort, keine Adresse. */
-  const eventTileOrtName = (parsedLoc.place || locLine1 || locSingle || '—').trim() || '—';
+  const eventTileOrtName = (locLine1 || locSingle || '—').trim() || '—';
   const EventTypeIcon = eventTypePremiumIcon(ev, et);
 
   const trainingMetaItems = [
