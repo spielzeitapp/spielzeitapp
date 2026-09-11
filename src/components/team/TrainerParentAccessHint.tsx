@@ -34,7 +34,7 @@ export const TrainerParentAccessHint: React.FC<{
       <p className="text-sm font-medium text-white/90">{label}</p>
       <Link
         to={`/app/mehr/parent-access?player=${encodeURIComponent(playerId)}`}
-        className="mt-1 inline-flex text-sm font-semibold text-red-300 hover:text-red-200"
+        className="sz-club-link mt-1 inline-flex text-sm font-semibold"
       >
         Zugänge verwalten →
       </Link>

@@ -97,6 +97,26 @@ function appearancePitchWatermarkSrc(): string {
   return `${base}icons/pitch-red.svg`;
 }
 
+function AppearancePitchWatermark() {
+  const src = `url("${appearancePitchWatermarkSrc()}")`;
+  return (
+    <span
+      className="sz-club-stat-watermark pointer-events-none absolute -right-1 -top-1 block h-[4.75rem] w-[4.75rem] bg-current"
+      style={{
+        WebkitMaskImage: src,
+        WebkitMaskPosition: "center",
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskImage: src,
+        maskPosition: "center",
+        maskRepeat: "no-repeat",
+        maskSize: "contain",
+      }}
+      aria-hidden
+    />
+  );
+}
+
 function displayFullName(p: PlayerItem): string {
   const first = (p.first_name ?? "").trim();
   const last = (p.last_name ?? "").trim();
@@ -1101,13 +1121,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                         className="pointer-events-none absolute inset-0 sz-club-card-glow"
                         aria-hidden
                       />
-                      <img
-                        src={appearancePitchWatermarkSrc()}
-                        alt=""
-                        aria-hidden
-                        draggable={false}
-                        className="pointer-events-none absolute -right-1 -top-1 h-[4.75rem] w-[4.75rem] object-contain object-right-top opacity-[0.07]"
-                      />
+                      <AppearancePitchWatermark />
                       <div className="relative flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="text-[12px] font-semibold uppercase tracking-wide text-white/65">

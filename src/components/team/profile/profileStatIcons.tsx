@@ -4,12 +4,10 @@ import { getTrainingPlayerListSrc } from "../../../config/trainingIconVariant";
 
 type IconProps = { className?: string };
 
-/** Watermark-Größe in Stat-Kacheln — opacity ~0.18 via text-red-400/18 */
-export const STAT_ICON_WATERMARK_CLASS = "h-[4.75rem] w-[4.75rem] text-red-400/[0.18]";
+/** Watermark-Größe in Stat-Kacheln — Farbe folgt dem aktuellen Verein. */
+export const STAT_ICON_WATERMARK_CLASS = "sz-club-stat-watermark h-[4.75rem] w-[4.75rem]";
 
 const deco = STAT_ICON_WATERMARK_CLASS;
-
-const statImgWatermarkClass = "object-contain object-right-top opacity-[0.18]";
 
 function profileNavIconSrc(file: string): string {
   const b = import.meta.env.BASE_URL || "/";
@@ -17,30 +15,34 @@ function profileNavIconSrc(file: string): string {
   return `${base}icons/${file}`;
 }
 
-/** Spiele — rotes Spielfeld (pitch-red.svg), img für stabiles Laden auf Safari/PWA. */
-export function StatIconPitch({ className = deco }: IconProps) {
+function StatImageMask({ file, className }: { file: string; className: string }) {
+  const src = `url("${profileNavIconSrc(file)}")`;
   return (
-    <img
-      src={profileNavIconSrc("pitch-red.svg")}
-      alt=""
+    <span
+      className={`block bg-current ${className}`}
+      style={{
+        WebkitMaskImage: src,
+        WebkitMaskPosition: "center",
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskImage: src,
+        maskPosition: "center",
+        maskRepeat: "no-repeat",
+        maskSize: "contain",
+      }}
       aria-hidden
-      draggable={false}
-      className={`${statImgWatermarkClass} ${className}`}
     />
   );
 }
 
-/** Tore — roter Ball (home-ball-red.png), img für stabiles Laden auf Safari/PWA. */
+/** Spiele — das Spielfeld übernimmt die aktuelle Vereinsfarbe. */
+export function StatIconPitch({ className = deco }: IconProps) {
+  return <StatImageMask file="pitch-red.svg" className={className} />;
+}
+
+/** Tore — der Ball übernimmt die aktuelle Vereinsfarbe. */
 export function StatIconFootball({ className = deco }: IconProps) {
-  return (
-    <img
-      src={profileNavIconSrc("home-ball-red.png")}
-      alt=""
-      aria-hidden
-      draggable={false}
-      className={`${statImgWatermarkClass} ${className}`}
-    />
-  );
+  return <StatImageMask file="home-ball-red.png" className={className} />;
 }
 
 export function StatIconAssist({ className = deco }: IconProps) {
@@ -101,13 +103,21 @@ export function StatIconTarget({ className = deco }: IconProps) {
 
 /** Trainings — gleiches Motiv wie Termine/Training (TrainingPlayerIcon list). */
 export function StatIconTraining({ className = deco }: IconProps) {
+  const src = getTrainingPlayerListSrc();
   return (
-    <img
-      src={getTrainingPlayerListSrc()}
-      alt=""
+    <span
+      className={`block bg-current ${className}`}
+      style={{
+        WebkitMaskImage: `url("${src}")`,
+        WebkitMaskPosition: "center",
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskImage: `url("${src}")`,
+        maskPosition: "center",
+        maskRepeat: "no-repeat",
+        maskSize: "contain",
+      }}
       aria-hidden
-      draggable={false}
-      className={`object-contain object-right-top opacity-[0.18] [filter:none] ${className}`}
     />
   );
 }

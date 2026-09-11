@@ -18,7 +18,7 @@ export const ProfileContactCard: React.FC<ContactProps> = ({ phone, email }) => 
 
   return (
     <div className="rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-black/40 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <h3 className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-red-300/80">Kontakt</h3>
+      <h3 className="sz-club-profile-accent mb-2 text-[10px] font-extrabold uppercase tracking-[0.16em]">Kontakt</h3>
       <div className="space-y-1.5">
         {phoneTrim ? (
           <a href={`tel:${phoneTrim}`} className="flex items-center gap-2 text-[13px] text-white/88 hover:text-white">
@@ -44,9 +44,9 @@ export const ProfileContactCard: React.FC<ContactProps> = ({ phone, email }) => 
 export const ProfileTeamCard: React.FC<TeamProps> = ({ teamName, seasonName, roleLabel }) => {
   return (
     <div className="rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-black/40 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <h3 className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-red-300/80">Teamzuordnung</h3>
+      <h3 className="sz-club-profile-accent mb-2 text-[10px] font-extrabold uppercase tracking-[0.16em]">Teamzuordnung</h3>
       <div className="flex items-start gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-950/55 text-red-300/90">
+        <span className="sz-club-accent-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
           <Users className="h-3.5 w-3.5" aria-hidden />
         </span>
         <div className="min-w-0 space-y-1">

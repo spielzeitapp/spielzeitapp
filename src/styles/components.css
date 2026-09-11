@@ -179,6 +179,18 @@
   border-color: rgb(var(--club-primary-rgb) / 0.24);
 }
 
+.sz-club-link {
+  color: rgb(var(--club-accent-rgb) / 0.9);
+}
+
+.sz-club-link:hover {
+  color: rgb(var(--club-accent-rgb));
+}
+
+.sz-club-stat-watermark {
+  color: rgb(var(--club-accent-rgb) / 0.18);
+}
+
 /* Card – dark glass panel */
 .card {
   background: var(--glass-bg);
