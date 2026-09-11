@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
+import { canSeeMeetup, normalizeRole } from '../lib/roles';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { isParentVisibleFixtureStatus } from '../lib/championshipVisibility';
 import { formatFeedVenueShort } from '../lib/eventLocation';
@@ -158,10 +159,11 @@ function getMonthGrid(date: Date): Date[] {
 
 export const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
-  const { effectiveRole, loading, selectedMembership } = useSession();
+  const { loading, memberships, selectedMembership } = useSession();
   const {
     readTeamSeasonId,
     setViewTeamSeasonId,
@@ -173,8 +175,8 @@ export const CalendarPage: React.FC = () => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  /** Nur Trainer: optional „Alle Teams“. Sonst immer Session-Saison. */
-  const [allTeamsMode, setAllTeamsMode] = useState(false);
+  /** Alle ausgewählten Teams gemeinsam anzeigen; kann von der Terminseite vorgewählt werden. */
+  const [allTeamsMode, setAllTeamsMode] = useState(() => searchParams.get('teams') === 'all');
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -254,22 +256,12 @@ export const CalendarPage: React.FC = () => {
     }
   }, [view]);
 
-  const isFan = !isDemo && effectiveRole === 'fan';
-  const canSeeAllTeams =
-    !isDemo &&
-    (effectiveRole === 'trainer' ||
-      effectiveRole === 'admin' ||
-      effectiveRole === 'head_coach' ||
-      effectiveRole === 'co_trainer');
-
-  useEffect(() => {
-    if (isDemo) return;
-    if (isFan && !loading) {
-      navigate(`${basePath}/termine`, { replace: true });
-    }
-  }, [isDemo, isFan, loading, navigate, basePath]);
-
   const accessibleTeamSeasons = useMemo(() => teamSeasons ?? [], [teamSeasons]);
+  const activeAccessibleTeamSeasons = useMemo(
+    () => accessibleTeamSeasons.filter((teamSeason) => isSeasonActive(teamSeason.status)),
+    [accessibleTeamSeasons],
+  );
+  const canSeeAllTeams = !isDemo && activeAccessibleTeamSeasons.length > 1;
 
   /** Session-Saison ist Source of Truth; „Alle Teams“ nur als expliziter Trainer-Override. */
   const selectedTeamSeasonId: string | 'all' = useMemo(() => {
@@ -292,8 +284,8 @@ export const CalendarPage: React.FC = () => {
 
   /** Session-Wechsel (Termine → Kalender) beendet Alle-Teams-Override. */
   useEffect(() => {
-    setAllTeamsMode(false);
-  }, [readTeamSeasonId]);
+    if (searchParams.get('teams') !== 'all') setAllTeamsMode(false);
+  }, [readTeamSeasonId, searchParams]);
 
   const handleTeamSeasonFilterChange = useCallback(
     (value: string) => {
@@ -347,7 +339,7 @@ export const CalendarPage: React.FC = () => {
 
         const teamSeasonIds =
           selectedTeamSeasonId === 'all'
-            ? accessibleTeamSeasons.map((ts) => ts.id)
+            ? activeAccessibleTeamSeasons.map((ts) => ts.id)
             : [selectedTeamSeasonId];
 
         // Events über `type`-Spalte laden (OPEN-Meisterschaftsfixtures ausblenden)
@@ -449,7 +441,12 @@ export const CalendarPage: React.FC = () => {
 
             const startsAt = r.starts_at as string;
             const notes: string | null = (r.notes as string | null) ?? null;
-            const meetupAt: string | null = (r.meeting_at as string | null) ?? null;
+            const eventRole = normalizeRole(
+              memberships.find((membership) => membership.team_season_id === r.team_season_id)?.role ?? null,
+            );
+            const meetupAt: string | null = canSeeMeetup(eventRole)
+              ? (r.meeting_at as string | null) ?? null
+              : null;
             const opponent: string | null = (r.opponent as string | null) ?? null;
             let title = '';
             if (t === 'game') {
@@ -503,10 +500,8 @@ export const CalendarPage: React.FC = () => {
         setLoadingEvents(false);
       }
     };
-    if (!isFan) {
-      loadEvents();
-    }
-  }, [currentMonth, accessibleTeamSeasons, selectedTeamSeasonId, isFan, isDemo, demo]);
+    loadEvents();
+  }, [currentMonth, accessibleTeamSeasons, activeAccessibleTeamSeasons, selectedTeamSeasonId, memberships, isDemo, demo]);
 
   const days = useMemo(() => getMonthGrid(currentMonth), [currentMonth]);
 
@@ -674,7 +669,7 @@ export const CalendarPage: React.FC = () => {
           </div>
         </div>
 
-        {!isDemo && !loading && !isFan && (accessibleTeamSeasons.length > 1 || loadingEvents) ? (
+        {!isDemo && !loading && (accessibleTeamSeasons.length > 1 || loadingEvents) ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
             {accessibleTeamSeasons.length > 1 ? (
               <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -691,7 +686,7 @@ export const CalendarPage: React.FC = () => {
                   className="min-w-0 flex-1 rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white"
                 >
                   {canSeeAllTeams && (
-                    <option value="all">Alle Teams</option>
+                    <option value="all">Alle ausgewählten Teams</option>
                   )}
                   {accessibleTeamSeasons.map((ts) => {
                     const labels = teamSeasonLabelFromSessionRow(ts);
@@ -805,4 +800,3 @@ export const CalendarPage: React.FC = () => {
     </div>
   );
 };
-

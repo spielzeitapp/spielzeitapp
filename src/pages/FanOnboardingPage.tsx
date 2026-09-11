@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Loader2, Radio } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, Radio } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from '../app/components/ui/Button';
 import { dsPrimaryCtaClass } from '../lib/premiumDesignSystem';
@@ -11,6 +11,11 @@ type TeamSeasonOption = {
   label: string;
   teamTitle: string;
   seasonTitle: string;
+};
+
+type ExistingMembership = {
+  team_season_id: string;
+  role: string;
 };
 
 function buildTeamSeasonParts(row: {
@@ -38,6 +43,9 @@ export const FanOnboardingPage: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [teamSeasons, setTeamSeasons] = useState<TeamSeasonOption[]>([]);
   const [selectedTeamSeasonIds, setSelectedTeamSeasonIds] = useState<string[]>([]);
+  const [lockedTeamSeasonIds, setLockedTeamSeasonIds] = useState<string[]>([]);
+  const [existingFanTeamSeasonIds, setExistingFanTeamSeasonIds] = useState<string[]>([]);
+  const [editingExistingSelection, setEditingExistingSelection] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -66,16 +74,23 @@ export const FanOnboardingPage: React.FC = () => {
 
       setUserId(user.id);
 
-      const { data: teamSeasonRows, error: tsError } = await supabase
-        .from('team_seasons')
-        .select('id, team_id, season_id, display_name, age_group')
-        .eq('status', 'active')
-        .is('archived_at', null);
+      const [{ data: teamSeasonRows, error: tsError }, { data: membershipRows, error: membershipError }] =
+        await Promise.all([
+          supabase
+            .from('team_seasons')
+            .select('id, team_id, season_id, display_name, age_group')
+            .eq('status', 'active')
+            .is('archived_at', null),
+          supabase
+            .from('memberships')
+            .select('team_season_id, role')
+            .eq('user_id', user.id),
+        ]);
 
       if (!alive) return;
 
-      if (tsError) {
-        const msg = tsError.message ?? 'Teams konnten nicht geladen werden.';
+      if (tsError || membershipError) {
+        const msg = tsError?.message ?? membershipError?.message ?? 'Teams konnten nicht geladen werden.';
         setError(msg);
         setLoadError(msg);
         setTeamSeasons([]);
@@ -149,7 +164,22 @@ export const FanOnboardingPage: React.FC = () => {
 
       opts.sort((a, b) => a.label.localeCompare(b.label, 'de'));
 
+      const availableIds = new Set(opts.map((option) => option.id));
+      const existing = ((membershipRows ?? []) as ExistingMembership[]).filter((membership) =>
+        availableIds.has(String(membership.team_season_id)),
+      );
+      const lockedIds = existing
+        .filter((membership) => String(membership.role).toLowerCase() !== 'fan')
+        .map((membership) => String(membership.team_season_id));
+      const fanIds = existing
+        .filter((membership) => String(membership.role).toLowerCase() === 'fan')
+        .map((membership) => String(membership.team_season_id));
+
       setTeamSeasons(opts);
+      setLockedTeamSeasonIds(lockedIds);
+      setExistingFanTeamSeasonIds(fanIds);
+      setEditingExistingSelection(((membershipRows ?? []) as ExistingMembership[]).length > 0);
+      setSelectedTeamSeasonIds([...new Set([...lockedIds, ...fanIds])]);
       setLoading(false);
     }
 
@@ -176,17 +206,40 @@ export const FanOnboardingPage: React.FC = () => {
     setSaving(true);
     setError(null);
 
-    const membershipRes = await supabase
-      .from('memberships')
-      .upsert(
-        selectedTeamSeasonIds.map((teamSeasonId) => ({
+    const fanIdsToKeep = selectedTeamSeasonIds.filter(
+      (teamSeasonId) => !lockedTeamSeasonIds.includes(teamSeasonId),
+    );
+    const fanIdsToRemove = existingFanTeamSeasonIds.filter(
+      (teamSeasonId) => !fanIdsToKeep.includes(teamSeasonId),
+    );
+
+    if (fanIdsToRemove.length > 0) {
+      const removeRes = await supabase
+        .from('memberships')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role', 'fan')
+        .in('team_season_id', fanIdsToRemove);
+      if (removeRes.error) {
+        setError(removeRes.error.message ?? 'Entfernen der Team-Auswahl fehlgeschlagen.');
+        setSaving(false);
+        return;
+      }
+    }
+
+    const membershipRes = fanIdsToKeep.length > 0
+      ? await supabase
+        .from('memberships')
+        .upsert(
+          fanIdsToKeep.map((teamSeasonId) => ({
           user_id: userId,
           team_season_id: teamSeasonId,
           role: 'fan',
-        })),
-        { onConflict: 'user_id,team_season_id' },
-      )
-      .select('user_id, team_season_id, role');
+          })),
+          { onConflict: 'user_id,team_season_id' },
+        )
+        .select('user_id, team_season_id, role')
+      : { error: null };
 
     if (membershipRes.error) {
       const msg = membershipRes.error.message ?? 'Speichern der Team-Auswahl fehlgeschlagen.';
@@ -196,7 +249,7 @@ export const FanOnboardingPage: React.FC = () => {
     }
 
     setSaved(true);
-    navigate('/app/home', { replace: true });
+    navigate(editingExistingSelection ? '/app/termine' : '/app/home', { replace: true });
     window.setTimeout(() => window.location.reload(), 450);
   };
 
@@ -217,12 +270,24 @@ export const FanOnboardingPage: React.FC = () => {
 
       <div className="relative z-10 mx-auto flex min-h-[inherit] w-full max-w-lg flex-col px-3 pb-[max(6.5rem,calc(5rem+env(safe-area-inset-bottom,0px)))] pt-4 sm:px-4 sm:pt-5">
         <header className="shrink-0 space-y-2 text-center">
+          {editingExistingSelection ? (
+            <div className="text-left">
+              <button
+                type="button"
+                onClick={() => navigate('/app/termine')}
+                className="mb-1 inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/12 bg-black/35 px-3 text-sm font-semibold text-white/80"
+              >
+                <ArrowLeft className="h-4 w-4 text-red-400" aria-hidden />
+                Termine
+              </button>
+            </div>
+          ) : null}
           <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-red-500/25 bg-red-950/30 shadow-[0_0_24px_rgba(220,38,38,0.2)]">
             <Radio className="h-5 w-5 text-red-400" strokeWidth={2.2} aria-hidden />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">Dein Team verfolgen</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">Mannschaften auswählen</h1>
           <p className="mx-auto max-w-[20rem] text-sm leading-relaxed text-white/62 sm:text-[15px]">
-            Wähle dein Team und erhalte Spieltage, Ergebnisse und Live-Updates.
+            Wähle alle Mannschaften, deren Termine, Ergebnisse und Live-Updates du sehen möchtest.
           </p>
         </header>
 
@@ -258,19 +323,21 @@ export const FanOnboardingPage: React.FC = () => {
             <div className="space-y-2.5" role="group" aria-label="Teams und Saisonen auswählen">
               {teamSeasons.map((ts) => {
                 const selected = selectedTeamSeasonIds.includes(ts.id);
+                const locked = lockedTeamSeasonIds.includes(ts.id);
                 return (
                   <button
                     key={ts.id}
                     type="button"
                     role="checkbox"
                     aria-checked={selected}
-                    onClick={() =>
+                    onClick={() => {
+                      if (locked) return;
                       setSelectedTeamSeasonIds((current) =>
                         current.includes(ts.id)
                           ? current.filter((id) => id !== ts.id)
                           : [...current, ts.id],
-                      )
-                    }
+                      );
+                    }}
                     className={cn(
                       'w-full rounded-2xl border p-4 text-left transition-[border-color,background,box-shadow,transform] duration-150',
                       'min-h-[4.75rem] active:scale-[0.99]',
@@ -283,7 +350,9 @@ export const FanOnboardingPage: React.FC = () => {
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold leading-snug text-white">{ts.teamTitle}</p>
                         <p className="mt-0.5 truncate text-sm text-white/68">{ts.seasonTitle}</p>
-                        <p className="mt-2 text-xs text-white/42">Feed, Termine &amp; Live verfolgen</p>
+                        <p className="mt-2 text-xs text-white/42">
+                          {locked ? 'Meine Mannschaft · eigene Berechtigung' : 'Termine & Live nur ansehen'}
+                        </p>
                       </div>
                       <span
                         className={cn(
