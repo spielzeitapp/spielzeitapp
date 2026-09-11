@@ -103,7 +103,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
           ) : null
         }
       />
-      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div
           className="sz-club-feed-media-frame relative max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y bg-black sm:rounded-2xl sm:border"
           style={{ aspectRatio: imageAspectRatio ?? 4 / 5 }}

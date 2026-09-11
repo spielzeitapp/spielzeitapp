@@ -183,7 +183,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
       />
       <FeedPostTypeBadge>Aufstellung</FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
 

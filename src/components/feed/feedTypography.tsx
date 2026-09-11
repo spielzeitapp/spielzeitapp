@@ -104,10 +104,10 @@ export const FEED_POST_BODY_INSET_CLASS = 'px-3 sm:px-4';
 export const FEED_POST_CAPTION_AFTER_MEDIA_CLASS = 'mt-3 mb-1 px-3 sm:px-4';
 
 export const FEED_CAPTION_FOOTER_CLASS =
-  'min-w-0 border-t border-white/[0.04] bg-[#060606]/95 px-3 pb-[max(0.75rem,calc(0.35rem+env(safe-area-inset-bottom,0px)))] pt-3 sm:px-4';
+  'min-w-0 border-t border-white/[0.06] bg-[#060606]/95';
 
 export const FEED_ACTIONS_ROW_BASE =
-  'flex items-center justify-between gap-0 px-3 pb-[max(0.75rem,calc(0.35rem+env(safe-area-inset-bottom,0px)))] pt-2 sm:px-4';
+  'flex items-center justify-between gap-0 px-3 py-2 sm:px-4 sm:py-2.5';
 
 export const FEED_ACTIONS_ROW_CLASS = `${FEED_ACTIONS_ROW_BASE} border-t border-white/[0.06]`;
 
@@ -226,7 +226,7 @@ export function FeedPostActionsFooter({
 }) {
   return (
     <div className={`${FEED_CAPTION_FOOTER_CLASS} ${className}`.trim()}>
-      {shareHint ? <p className="mb-2 text-center text-[12px] text-white/55">{shareHint}</p> : null}
+      {shareHint ? <p className="px-3 pt-2 text-center text-[12px] text-white/55 sm:px-4">{shareHint}</p> : null}
       {children}
     </div>
   );

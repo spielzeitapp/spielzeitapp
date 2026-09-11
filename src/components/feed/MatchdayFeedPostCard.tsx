@@ -339,7 +339,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
             : 'Spieltag'}
       </FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <MatchdayPosterCard
           ref={posterCaptureRef}
           homeTeamName={displayHomeName}
