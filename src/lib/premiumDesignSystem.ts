@@ -690,11 +690,11 @@ export function dsSchedulePageStyle(): { background: string; boxShadow: string }
   };
 }
 
-/** Hero „Nächstes Training/Spiel“ — Premium Matchday, Flutlicht, Fog. */
+/** Hero „Nächstes Training/Spiel“ — clean club surface without stadium lights. */
 export function dsScheduleHeroPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[14px]',
-    'border sz-club-surface sz-club-surface--hero',
+    'border sz-club-surface sz-club-surface--hero sz-club-schedule-hero-card',
   ].join(' ');
 }
 
@@ -730,7 +730,7 @@ export function dsScheduleHeroDateBoxMonthClass(): string {
 export function dsScheduleListPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[14px]',
-    'border sz-club-list-card sz-club-surface sz-club-surface--quiet',
+    'border sz-club-list-card sz-club-schedule-list-card sz-club-surface sz-club-surface--quiet',
   ].join(' ');
 }
 
