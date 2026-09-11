@@ -215,7 +215,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
   return (
     <FeedPostArticleShell
       ref={wrapRef}
-      className="border-red-600/35"
+      className=""
       style={{
         boxShadow:
           'inset 0 0 70px rgba(120,20,20,0.12), 0 20px 44px rgba(0,0,0,0.58), 0 0 0 1px rgba(220,38,38,0.12), 0 0 36px -8px rgba(220,38,38,0.18)',
@@ -236,7 +236,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
       <div className={FEED_POST_BODY_CLASS}>
         <div
           ref={videoShellRef}
-          className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
+          className="sz-club-feed-media-frame relative w-full min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
           style={{ aspectRatio: '9 / 16' }}
         >
           {srcLoaded && resolvedSrc ? (

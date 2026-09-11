@@ -23,10 +23,10 @@ function NextEventListCard({ event, now }: { event: EventRow; now: Date }) {
       <p className="mt-2 text-base font-semibold text-white/90">{label}</p>
       <p className="mt-1 text-sm text-white/70">{when}</p>
       <p className="mt-1 text-sm text-white/55">{place}</p>
-      <p className="mt-3 text-base font-semibold text-red-400">{countdown}</p>
+      <p className="sz-club-feed-accent-text mt-3 text-base font-semibold">{countdown}</p>
       <Link
         to={`${base}/events/${event.id}`}
-        className="mt-4 inline-flex min-h-[44px] items-center text-base font-semibold text-red-400 hover:text-red-300"
+        className="sz-club-feed-accent-text mt-4 inline-flex min-h-[44px] items-center text-base font-semibold hover:opacity-100"
       >
         Details →
       </Link>

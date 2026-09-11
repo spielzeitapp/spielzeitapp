@@ -61,10 +61,10 @@ export function FeedSectionHeader({
 }
 
 export const FEED_HERO_TITLE_CLASS =
-  'text-[16px] font-black uppercase leading-none tracking-[0.2em] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.85),0_0_22px_rgba(255,71,71,0.5)] sm:text-[19px] sm:tracking-[0.24em]';
+  'text-[16px] font-black uppercase leading-none tracking-[0.2em] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.85)] sm:text-[19px] sm:tracking-[0.24em]';
 
 export const FEED_RESULT_SCORE_CLASS =
-  'text-[2.65rem] font-black tabular-nums leading-none tracking-tight text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.75),0_0_32px_rgba(255,71,71,0.25)] min-[390px]:text-[3rem] sm:text-[3.5rem]';
+  'text-[2.9rem] font-black tabular-nums leading-none tracking-tight text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.82)] min-[390px]:text-[3.3rem] sm:text-[3.8rem]';
 
 export const FEED_POST_TYPE_BADGE_CLASS =
   'sz-club-feed-badge inline-flex min-h-[22px] items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]';
@@ -131,7 +131,7 @@ export function FeedGameCtaLink({
 }
 
 export function FeedLineupMetaIcon() {
-  return <ClipboardList className="h-3 w-3 shrink-0 text-red-200/90" strokeWidth={2.25} aria-hidden />;
+  return <ClipboardList className="sz-club-feed-accent-text h-3 w-3 shrink-0" strokeWidth={2.25} aria-hidden />;
 }
 
 export function FeedMatchMetaBadge({
@@ -161,7 +161,7 @@ export function FeedMatchMetaBadge({
         )}
         {parts.map((part, i) => (
           <React.Fragment key={`${part}-${i}`}>
-            {i > 0 ? <span className="text-red-400/40" aria-hidden>·</span> : null}
+            {i > 0 ? <span className="sz-club-feed-accent-text opacity-45" aria-hidden>·</span> : null}
             <span
               className={
                 /^U\d/i.test(part) ? 'font-bold tracking-wide text-white/95' : 'tracking-[0.02em] text-white/90'
@@ -196,7 +196,7 @@ export function FeedMatchDateVenueLine({
     >
       {dateLabel ? (
         <span className="inline-flex items-center gap-1.5">
-          <CalendarDays className="h-4 w-4 shrink-0 text-red-300" strokeWidth={2} aria-hidden />
+          <CalendarDays className="sz-club-feed-accent-text h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
           {dateLabel}
         </span>
       ) : null}
@@ -207,7 +207,7 @@ export function FeedMatchDateVenueLine({
       ) : null}
       {venueLabel ? (
         <span className="inline-flex items-center gap-1.5">
-          <MapPin className="h-4 w-4 shrink-0 text-red-400/90" strokeWidth={2} aria-hidden />
+          <MapPin className="sz-club-feed-accent-text h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
           {venueLabel}
         </span>
       ) : null}

@@ -113,7 +113,7 @@ export const LiveFeedPostCard: React.FC<Props> = ({
 
   return (
     <FeedPostArticleShell
-      className="!border-[rgba(255,71,71,0.15)]"
+      className=""
       style={{ boxShadow: FEED_STADIUM_ARTICLE_SHADOW }}
     >
       <FeedPostHeader
@@ -146,7 +146,7 @@ export const LiveFeedPostCard: React.FC<Props> = ({
                 <FeedMatchLogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
                 <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
               </div>
-              <span className="-skew-x-6 shrink-0 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[1.75rem]">
+              <span className="sz-club-feed-accent-text -skew-x-6 shrink-0 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] sm:text-[1.75rem]">
                 VS
               </span>
               <div className={FEED_MATCH_TEAM_COL_CLASS}>
@@ -156,15 +156,15 @@ export const LiveFeedPostCard: React.FC<Props> = ({
             </div>
 
             <dl className="grid grid-cols-2 gap-1.5 text-center">
-              <div className="min-w-0 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
-                <dt className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
+              <div className="sz-club-feed-inset min-w-0 rounded-2xl border px-1 py-2 backdrop-blur-md">
+                <dt className="sz-club-feed-accent-text flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em]">
                   <Clock3 className="h-3 w-3 shrink-0" aria-hidden />
                   Anpfiff
                 </dt>
                 <dd className="mt-1 truncate text-[12px] font-semibold text-white">{kickoffLabel}</dd>
               </div>
-              <div className="min-w-0 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
-                <dt className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
+              <div className="sz-club-feed-inset min-w-0 rounded-2xl border px-1 py-2 backdrop-blur-md">
+                <dt className="sz-club-feed-accent-text flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em]">
                   <MapPin className="h-3 w-3 shrink-0" aria-hidden />
                   Ort
                 </dt>
