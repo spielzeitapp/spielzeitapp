@@ -77,5 +77,55 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children 
     root.style.setProperty("--club-on-primary", palette.onPrimary);
   }, [themeKey]);
 
-  return <>{children}</>;
+  return (
+    <>
+      <svg className="pointer-events-none absolute h-0 w-0" aria-hidden focusable="false">
+        <defs>
+          <filter id="sz-jersey-blue" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              in="SourceGraphic"
+              type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.8 -0.9 -0.9 0 -0.22"
+              result="redMask"
+            />
+            <feComponentTransfer in="redMask" result="selectedRed">
+              <feFuncA type="discrete" tableValues="0 0 0 1 1" />
+            </feComponentTransfer>
+            <feFlood floodColor="#176fe5" floodOpacity="0.88" result="clubColor" />
+            <feComposite in="clubColor" in2="selectedRed" operator="in" result="tintedRed" />
+            <feComposite in="tintedRed" in2="SourceGraphic" operator="over" />
+          </filter>
+          <filter id="sz-jersey-green" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              in="SourceGraphic"
+              type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.8 -0.9 -0.9 0 -0.22"
+              result="redMask"
+            />
+            <feComponentTransfer in="redMask" result="selectedRed">
+              <feFuncA type="discrete" tableValues="0 0 0 1 1" />
+            </feComponentTransfer>
+            <feFlood floodColor="#18a558" floodOpacity="0.9" result="clubColor" />
+            <feComposite in="clubColor" in2="selectedRed" operator="in" result="tintedRed" />
+            <feComposite in="tintedRed" in2="SourceGraphic" operator="over" />
+          </filter>
+          <filter id="sz-jersey-white" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              in="SourceGraphic"
+              type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.8 -0.9 -0.9 0 -0.22"
+              result="redMask"
+            />
+            <feComponentTransfer in="redMask" result="selectedRed">
+              <feFuncA type="discrete" tableValues="0 0 0 1 1" />
+            </feComponentTransfer>
+            <feFlood floodColor="#f4f4f5" floodOpacity="0.82" result="clubColor" />
+            <feComposite in="clubColor" in2="selectedRed" operator="in" result="tintedRed" />
+            <feComposite in="tintedRed" in2="SourceGraphic" operator="over" />
+          </filter>
+        </defs>
+      </svg>
+      {children}
+    </>
+  );
 };

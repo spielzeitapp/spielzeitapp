@@ -191,6 +191,19 @@
   color: rgb(var(--club-accent-rgb) / 0.18);
 }
 
+/* Nur generische Platzhalter-Trikots werden an die Vereinsfarbe angepasst. */
+html[data-club-theme="blue-yellow"] .sz-club-placeholder-player {
+  filter: url("#sz-jersey-blue");
+}
+
+html[data-club-theme="green-white"] .sz-club-placeholder-player {
+  filter: url("#sz-jersey-green");
+}
+
+html[data-club-theme="black-white"] .sz-club-placeholder-player {
+  filter: url("#sz-jersey-white");
+}
+
 /* Card – dark glass panel */
 .card {
   background: var(--glass-bg);
