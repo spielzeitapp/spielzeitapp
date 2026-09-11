@@ -121,12 +121,6 @@ import {
   parsePeriodScores,
   sumPeriodScoresTriplet,
 } from '../lib/matchEventScores';
-import {
-  MATCH_FEED_TEMPLATE_KEYS,
-  MATCH_FEED_TEMPLATE_LABELS,
-  normalizeMatchFeedTemplateKey,
-  type MatchFeedTemplateKey,
-} from '../features/home/feedTemplates';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
 import {
   eventNotesTitle,
@@ -545,14 +539,6 @@ export const EventDetailPage: React.FC = () => {
     minutes: number;
   } | null>(null);
 
-  const [feedLoading, setFeedLoading] = useState(false);
-  const [feedSaving, setFeedSaving] = useState(false);
-  const [showInFeed, setShowInFeed] = useState(false);
-  const [template, setTemplate] = useState<MatchFeedTemplateKey>('spieltag_clean');
-  const [playerImage, setPlayerImage] = useState('');
-  const [opponentLogo, setOpponentLogo] = useState('');
-  const [title, setTitle] = useState('');
-  const [subline, setSubline] = useState('');
   const [feedSectionExpanded, setFeedSectionExpanded] = useState(false);
 
   const { teamSeasons } = useActiveTeamSeason();
@@ -987,34 +973,6 @@ export const EventDetailPage: React.FC = () => {
     };
   }, [isFinishedMatchEvent, event?.match_id, matchLoading, matchEvents, matchRowLite]);
 
-  const loadFeedFromEvent = useCallback(async () => {
-    if (!eventId) return;
-    if (isDemo) {
-      setFeedLoading(false);
-      return;
-    }
-    setFeedLoading(true);
-    const { data, error } = await supabase.from('events').select('*').eq('id', eventId).single();
-    setFeedLoading(false);
-    if (error) {
-      console.error('[EventDetailPage] feed load events', error);
-      return;
-    }
-    if (!data) return;
-    const d = data as Record<string, unknown>;
-    setShowInFeed(Boolean(d.show_in_feed));
-    setTemplate(normalizeMatchFeedTemplateKey(String(d.feed_template ?? '')));
-    setPlayerImage(d.player_image_url != null ? String(d.player_image_url) : '');
-    setOpponentLogo(d.opponent_logo_url != null ? String(d.opponent_logo_url) : '');
-    setTitle(d.feed_title != null ? String(d.feed_title) : '');
-    setSubline(d.feed_subline != null ? String(d.feed_subline) : '');
-  }, [eventId, isDemo]);
-
-  useEffect(() => {
-    if (!eventId || event?.kind !== 'match') return;
-    void loadFeedFromEvent();
-  }, [eventId, event?.kind, loadFeedFromEvent]);
-
   useEffect(() => {
     if (isDemo) {
       setMatchLinkBusy(false);
@@ -1138,44 +1096,6 @@ export const EventDetailPage: React.FC = () => {
     };
     loadRsvp();
   }, [eventId, playerId, isDemo, demo]);
-
-  const saveFeedSettings = useCallback(async () => {
-    if (!eventId || !canTrainerManageEvent || event?.kind !== 'match') return;
-    if (isDemo) {
-      alert('In der Demo nicht verfügbar');
-      return;
-    }
-    setFeedSaving(true);
-    const { error } = await supabase
-      .from('events')
-      .update({
-        show_in_feed: showInFeed,
-        feed_template: template,
-        player_image_url: playerImage.trim() === '' ? null : playerImage.trim(),
-        opponent_logo_url: opponentLogo.trim() === '' ? null : opponentLogo.trim(),
-        feed_title: title.trim() === '' ? null : title.trim(),
-        feed_subline: subline.trim() === '' ? null : subline.trim(),
-      })
-      .eq('id', eventId);
-    setFeedSaving(false);
-    if (error) {
-      console.error('[EventDetailPage] feed save events', error);
-      return;
-    }
-    await loadFeedFromEvent();
-  }, [
-    eventId,
-    event?.kind,
-    canTrainerManageEvent,
-    showInFeed,
-    template,
-    playerImage,
-    opponentLogo,
-    title,
-    subline,
-    loadFeedFromEvent,
-    isDemo,
-  ]);
 
   const loadEventAttendance = useCallback(async () => {
     if (!eventId || !canTrainerViewEvent) {
@@ -1875,12 +1795,12 @@ export const EventDetailPage: React.FC = () => {
     const awaySplit = splitPrefixAndName(awayTeamName);
     const homeLogoSrc =
       event.is_home === false
-        ? getClubLogo(opponentName, { logoUrl: opponentLogo.trim() || undefined })
+        ? getClubLogo(opponentName, { logoUrl: event.opponent_logo_url ?? undefined })
         : getOurTeamLogoUrl();
     const awayLogoSrc =
       event.is_home === false
         ? getOurTeamLogoUrl()
-        : getClubLogo(opponentName, { logoUrl: opponentLogo.trim() || undefined });
+        : getClubLogo(opponentName, { logoUrl: event.opponent_logo_url ?? undefined });
     const scoreStr = `${scoreHome}:${scoreAway}`;
 
     const renderTabButton = (id: 'overview' | 'lineup' | 'timeline' | 'stats', label: string) => (
@@ -4483,84 +4403,13 @@ export const EventDetailPage: React.FC = () => {
             {feedSectionExpanded ? (
               <div className="flex flex-col gap-3 pt-1">
                 <p className="text-[14px] leading-snug text-white/75">
-                  Wenn dieses Spiel auf der Startseite als nächstes Match erscheint, kann die große Hero-Karte hier
-                  vorbereitet werden (nur URL-Eingaben, kein Upload).
+                  Spieltagsposter hochladen, Beitragstext festlegen und die Veröffentlichung vorbereiten.
                 </p>
-                {feedLoading ? <p className="text-[14px] text-white/70">Lade Feed-Einstellungen…</p> : null}
-                <label className="flex cursor-pointer items-center gap-2 text-[14px] text-white/90">
-                  <input
-                    type="checkbox"
-                    checked={showInFeed}
-                    onChange={(e) => setShowInFeed(e.target.checked)}
-                    className="h-4 w-4 rounded border border-white/25 bg-black/30"
-                  />
-                  Im Home Feed anzeigen
-                </label>
-                <div>
-                  <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/60">Template</label>
-                  <select
-                    value={template}
-                    onChange={(e) => setTemplate(normalizeMatchFeedTemplateKey(e.target.value))}
-                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-                  >
-                    {MATCH_FEED_TEMPLATE_KEYS.map((k) => (
-                      <option key={k} value={k}>
-                        {MATCH_FEED_TEMPLATE_LABELS[k]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/60">Spielerbild URL (optional)</label>
-                  <input
-                    type="url"
-                    value={playerImage}
-                    onChange={(e) => setPlayerImage(e.target.value)}
-                    placeholder="https://…"
-                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/60">Gegnerlogo URL (optional)</label>
-                  <input
-                    type="url"
-                    value={opponentLogo}
-                    onChange={(e) => setOpponentLogo(e.target.value)}
-                    placeholder="https://…"
-                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Überschrift (optional)</label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Leer = Standard (z. B. SPIELTAG)"
-                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/60">Subline (optional)</label>
-                  <input
-                    type="text"
-                    value={subline}
-                    onChange={(e) => setSubline(e.target.value)}
-                    placeholder="Leer = z. B. Gegen …"
-                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-                  />
-                </div>
-                <Button variant="primary" size="sm" onClick={() => void saveFeedSettings()}>
-                  {feedSaving ? 'Speichern…' : 'Feed-Einstellungen speichern'}
-                </Button>
+                <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} embedded />
               </div>
             ) : null}
           </Card>
         )}
-
-        {canTrainerManageEvent && !isTournament && !isTraining ? (
-          <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} />
-        ) : null}
 
         <Modal
           isOpen={attendanceModalOpen}
