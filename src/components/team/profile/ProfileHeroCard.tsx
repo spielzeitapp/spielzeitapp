@@ -87,9 +87,8 @@ function PlayerProfileHeroCard(props: Props) {
           : "text-[28px] sm:text-[32px]";
 
   return (
-    <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#151517_0%,#070708_58%,#10080a_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55),0_0_20px_rgba(122,29,42,0.08)] ring-1 ring-red-500/10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(220,38,38,0.12),transparent_50%)]" aria-hidden />
-      <div className="absolute inset-0 opacity-10 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgba(239,68,68,0.12)_17px,transparent_18px)]" aria-hidden />
+    <div className="sz-club-profile-hero relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border">
+      <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
 
       {watermark ? (
         <p
@@ -134,7 +133,7 @@ function PlayerProfileHeroCard(props: Props) {
           </p>
           {teamHeader.ageGroup || teamHeader.season ? (
             <p className="mt-1.5 text-[11px] font-black uppercase leading-none tracking-[0.12em] text-white/72 sm:text-[12px]">
-              {teamHeader.ageGroup ? <span className="text-red-400">{teamHeader.ageGroup}</span> : null}
+              {teamHeader.ageGroup ? <span className="sz-club-profile-accent">{teamHeader.ageGroup}</span> : null}
               {teamHeader.ageGroup && teamHeader.season ? <span className="text-white/45"> · </span> : null}
               {teamHeader.season ? <span>{teamHeader.season}</span> : null}
             </p>

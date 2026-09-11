@@ -43,7 +43,7 @@ const PROFILE_GLASS_PANEL =
   "overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet";
 
 const PROFILE_METRIC_TILE =
-  "rounded-xl border border-[rgba(220,38,38,0.16)] bg-[rgba(8,8,10,0.72)] px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
+  "rounded-xl border sz-club-surface sz-club-surface--quiet px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
 
 const PROFILE_PROGRESS_TRACK =
   "mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)] ring-1 ring-[rgba(255,255,255,0.04)]";
@@ -89,7 +89,7 @@ const APPEARANCE_MATCH_SCORE_CLASS =
   "relative shrink-0 overflow-hidden rounded-xl border sz-club-surface sz-club-surface--quiet px-2.5 py-1.5 text-[22px] font-bold tabular-nums leading-none text-white";
 
 const EINSATZ_MINUTES_CHIP_CLASS =
-  "inline-flex shrink-0 items-center rounded-full border border-red-500/30 bg-red-500/[0.12] px-2.5 py-0.5 text-[12px] font-extrabold uppercase tracking-wide text-white/90 shadow-[0_0_16px_rgba(220,38,38,0.12)]";
+  "sz-club-accent-chip inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[12px] font-extrabold uppercase tracking-wide text-white/90";
 
 function appearancePitchWatermarkSrc(): string {
   const b = import.meta.env.BASE_URL || "/";
@@ -176,12 +176,8 @@ function PlayerInfoChip({
   subdued?: boolean;
 }) {
   return (
-    <div className="relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-2.5 py-2 shadow-[0_0_28px_rgba(220,38,38,0.12),0_8px_24px_rgba(0,0,0,0.42)]">
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgba(220,38,38,0.14)_0%,transparent_55%)]"
-        aria-hidden
-      />
-      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[rgba(220,38,38,0.28)] bg-red-950/45 text-[#E50914]">
+    <div className="sz-club-accent-panel relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-2xl border px-2.5 py-2">
+      <div className="sz-club-accent-icon relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border">
         {icon}
       </div>
       <div className="relative min-w-0">
@@ -207,7 +203,7 @@ function EinsatzBadge({ kind, label }: { kind: "full" | "sub_in" | "bank" | "par
   if (kind === "bank") {
     return (
       <span
-        className={`${base} border-[rgba(220,38,38,0.22)] bg-[rgba(25,25,28,0.88)] text-white/55 shadow-[0_0_12px_rgba(220,38,38,0.08)]`}
+        className={`${base} sz-club-accent-chip bg-[rgba(25,25,28,0.88)] text-white/55`}
       >
         {label}
       </span>
@@ -237,7 +233,7 @@ function PlayerSpecialSettingsAccordion({ children }: { children: React.ReactNod
         aria-expanded={open}
         aria-controls="player-special-settings-panel"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-[rgba(220,38,38,0.2)] bg-[rgba(8,8,10,0.72)] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[rgba(220,38,38,0.32)]"
+        className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex w-full items-center justify-between gap-2 rounded-2xl border px-3 py-2.5 text-left transition"
       >
         <span className="whitespace-nowrap text-[12px] font-semibold text-white/62">
           <span className="mr-1.5" aria-hidden>
@@ -279,7 +275,7 @@ function SpecialSettingToggleRow({
   return (
     <div
       className={[
-        "flex items-center justify-between gap-3 border-b border-[rgba(220,38,38,0.1)] px-3 py-3 last:border-b-0 sm:px-3.5",
+        "flex items-center justify-between gap-3 border-b sz-club-divider px-3 py-3 last:border-b-0 sm:px-3.5",
         checked
           ? accent === "amber"
             ? "bg-[rgba(88,46,10,0.12)]"
@@ -398,7 +394,7 @@ function TrainingProgressRow({
 }) {
   const fillClass =
     variant === "quote"
-      ? "bg-gradient-to-r from-[rgba(170,28,38,0.9)] to-[rgba(210,70,45,0.8)] shadow-[0_0_14px_rgba(220,38,38,0.22)]"
+      ? "sz-club-progress-fill"
       : "bg-gradient-to-r from-[rgba(90,50,160,0.75)] to-[rgba(35,130,85,0.8)] shadow-[0_0_14px_rgba(100,60,180,0.18)]";
 
   return (
@@ -451,7 +447,7 @@ function ProfileTrainingOverviewCompact({
   return (
     <div className={`mt-4 p-3 sm:p-3.5 ${PROFILE_GLASS_PANEL}`}>
       <div className="flex items-center justify-between gap-2">
-        <h4 className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
+        <h4 className="sz-club-profile-accent whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em]">
           Training
         </h4>
       </div>
@@ -477,7 +473,7 @@ function ProfileSaveSnackbar({ visible }: { visible: boolean }) {
       role="status"
       aria-live="polite"
     >
-      <div className="rounded-full border border-[rgba(220,38,38,0.2)] bg-[rgba(8,8,12,0.94)] px-4 py-2 text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)] backdrop-blur-md">
+      <div className="rounded-full border sz-club-divider bg-[rgba(8,8,12,0.94)] px-4 py-2 text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)] backdrop-blur-md">
         Gespeichert
       </div>
     </div>
@@ -831,7 +827,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 type="button"
                 onClick={() => switchProfilePlayer(previousProfilePlayer)}
                 aria-label={`Vorheriger Spieler: ${displayFullName(previousProfilePlayer)}`}
-                className="absolute left-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:border-red-400/45 hover:text-white active:scale-95"
+                className="sz-club-profile-nav absolute left-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:text-white active:scale-95"
               >
                 <ChevronLeft className="h-5 w-5" strokeWidth={2.5} aria-hidden />
               </button>
@@ -841,7 +837,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 type="button"
                 onClick={() => switchProfilePlayer(nextProfilePlayer)}
                 aria-label={`Nächster Spieler: ${displayFullName(nextProfilePlayer)}`}
-                className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:border-red-400/45 hover:text-white active:scale-95"
+                className="sz-club-profile-nav absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:text-white active:scale-95"
               >
                 <ChevronRight className="h-5 w-5" strokeWidth={2.5} aria-hidden />
               </button>
@@ -850,7 +846,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 type="button"
                 onClick={onNextAfterLast}
                 aria-label="Zum ersten Trainerprofil"
-                className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:border-red-400/45 hover:text-white active:scale-95"
+                className="sz-club-profile-nav absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 shadow-lg backdrop-blur-sm transition hover:text-white active:scale-95"
               >
                 <ChevronRight className="h-5 w-5" strokeWidth={2.5} aria-hidden />
               </button>
@@ -905,8 +901,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           ) : null}
 
           {/* Sticky tabs */}
-          <div className="sticky top-0 z-10 -mx-3 mb-3 border-b border-[rgba(220,38,38,0.12)] bg-[linear-gradient(180deg,rgba(8,4,6,0.96)_0%,rgba(0,0,0,0.88)_100%)] px-1 py-1 backdrop-blur-md sm:-mx-4">
-            <div className="flex gap-1 rounded-xl border border-[rgba(220,38,38,0.16)] bg-[rgba(8,8,10,0.85)] p-0.5">
+          <div className="sticky top-0 z-10 -mx-3 mb-3 border-b sz-club-divider bg-[linear-gradient(180deg,rgba(8,8,10,0.96)_0%,rgba(0,0,0,0.88)_100%)] px-1 py-1 backdrop-blur-md sm:-mx-4">
+            <div className="sz-club-tab-track flex gap-1 rounded-xl border p-0.5">
               {visibleTabs.map((t) => {
                 const active = profileTab === t.id;
                 return (
@@ -917,7 +913,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     className={[
                       "min-h-[34px] flex-1 whitespace-nowrap rounded-lg px-1 py-1.5 text-[11px] font-bold transition-all sm:min-h-[38px] sm:px-1.5 sm:text-[12px]",
                       active
-                        ? "border border-red-500/40 bg-red-600/25 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)]"
+                        ? "sz-club-tab-active border text-white"
                         : "border border-transparent text-white/60 hover:text-white/80",
                     ].join(" ")}
                   >
@@ -939,7 +935,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 className={[
                   "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-colors",
                   statsMode === "career"
-                    ? "border-red-500/50 bg-red-600/30 text-white"
+                    ? "sz-club-tab-active text-white"
                     : "border-white/15 bg-black/40 text-white/70 hover:text-white",
                 ].join(" ")}
               >
@@ -964,7 +960,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     className={[
                       "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-colors",
                       active
-                        ? "border-red-500/50 bg-red-600/30 text-white"
+                        ? "sz-club-tab-active text-white"
                         : "border-white/15 bg-black/40 text-white/70 hover:text-white",
                     ].join(" ")}
                   >
@@ -982,7 +978,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   ? [0, 1, 2, 3].map((i) => (
                       <div
                         key={`st-skel-${i}`}
-                        className="h-[4.75rem] animate-pulse rounded-2xl border border-[rgba(220,38,38,0.12)] bg-[rgba(25,25,28,0.45)]"
+                        className="h-[4.75rem] animate-pulse rounded-2xl border sz-club-divider bg-[rgba(25,25,28,0.45)]"
                       />
                     ))
                   : (
@@ -1034,7 +1030,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               ) : null}
 
               <div className="mt-4">
-                <h4 className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                <h4 className="sz-club-profile-accent mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em]">
                   {statsMode === "career" ? "Gesamtstatistik" : "Saisonstatistik"}
                 </h4>
                 <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
@@ -1081,7 +1077,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {profileTab === "matches" ? (
             <div>
-              <h4 className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+              <h4 className="sz-club-profile-accent mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em]">
                 {statsMode === "career" ? "Letzte Spiele (Gesamt)" : "Letzte Spiele"}
               </h4>
               {statsLoading ? (
@@ -1089,12 +1085,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   {[0, 1, 2].map((i) => (
                     <div
                       key={`em-skel-${i}`}
-                      className="h-[5.5rem] animate-pulse rounded-2xl border border-[rgba(220,38,38,0.18)] bg-[rgba(25,25,28,0.55)]"
+                      className="h-[5.5rem] animate-pulse rounded-2xl border sz-club-divider bg-[rgba(25,25,28,0.55)]"
                     />
                   ))}
                 </div>
               ) : lastMatches.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-[rgba(220,38,38,0.2)] bg-[rgba(8,8,10,0.5)] py-8 text-center text-sm text-white/60">
+                <p className="sz-club-dashed-border rounded-xl border border-dashed bg-[rgba(8,8,10,0.5)] py-8 text-center text-sm text-white/60">
                   Noch keine Einsatzdaten
                 </p>
               ) : (
@@ -1102,7 +1098,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   {lastMatches.map((m) => (
                     <li key={m.match_id} className={APPEARANCE_MATCH_CARD_CLASS}>
                       <div
-                        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgba(220,38,38,0.14)_0%,transparent_55%)]"
+                        className="pointer-events-none absolute inset-0 sz-club-card-glow"
                         aria-hidden
                       />
                       <img
@@ -1136,7 +1132,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {profileTab === "achievements" ? (
             <div>
-              <h4 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+              <h4 className="sz-club-profile-accent mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em]">
                 Auszeichnungen
               </h4>
               <div className="grid gap-2.5 sm:grid-cols-1">
@@ -1150,7 +1146,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     className={`px-3 py-3.5 sm:px-3.5 ${PROFILE_GLASS_PANEL}`}
                   >
                     <div className="flex items-center gap-2">
-                      <Trophy className="h-5 w-5 shrink-0 text-red-400/80" strokeWidth={1.75} aria-hidden />
+                      <Trophy className="sz-club-profile-accent h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
                       <div>
                         <div className="text-[16px] font-semibold text-white">{c.title}</div>
                         <div className="text-[14px] text-white/75">{c.sub}</div>
@@ -1167,8 +1163,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             <>
               <div className={`p-3 sm:p-3.5 ${PROFILE_GLASS_PANEL}`}>
                 <div className="flex min-w-0 items-center gap-2">
-                  <Activity className="h-5 w-5 shrink-0 text-red-400/85" strokeWidth={1.75} aria-hidden />
-                  <h4 className="whitespace-nowrap text-[12px] font-extrabold uppercase tracking-wide text-red-300/90">
+                  <Activity className="sz-club-profile-accent h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
+                  <h4 className="sz-club-profile-accent whitespace-nowrap text-[12px] font-extrabold uppercase tracking-wide">
                     Trainingsbeteiligung
                   </h4>
                 </div>

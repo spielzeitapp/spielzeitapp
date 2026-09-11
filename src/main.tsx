@@ -7,6 +7,7 @@ import './index.css';
 import { SessionProvider } from './auth/useSession';
 import { AuthProvider } from './auth/AuthProvider';
 import { registerServiceWorkerInboxBridge } from './lib/pushInboxBridge';
+import { ClubThemeProvider } from './theme/ClubThemeProvider';
 
 registerServiceWorkerInboxBridge();
 
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ManifestSync />
       <AuthProvider>
         <SessionProvider>
-          <App isInternalDomain={isInternalDomain} />
+          <ClubThemeProvider>
+            <App isInternalDomain={isInternalDomain} />
+          </ClubThemeProvider>
         </SessionProvider>
       </AuthProvider>
     </BrowserRouter>

@@ -116,10 +116,9 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               data-showcase-card
               type="button"
               onClick={() => onPlayerClick(player)}
-              className="group relative aspect-[4/5] w-[42vw] min-w-[148px] max-w-[172px] shrink-0 snap-start overflow-hidden rounded-[18px] border border-red-500/35 bg-[linear-gradient(145deg,#151517_0%,#080809_58%,#10080a_100%)] text-left shadow-[0_12px_30px_rgba(0,0,0,0.42),0_0_18px_rgba(122,29,42,0.08)] transition active:scale-[0.985] sm:w-[210px] sm:max-w-[210px] sm:rounded-[22px]"
+              className="sz-club-showcase-card group relative aspect-[4/5] w-[42vw] min-w-[148px] max-w-[172px] shrink-0 snap-start overflow-hidden rounded-[18px] border text-left transition active:scale-[0.985] sm:w-[210px] sm:max-w-[210px] sm:rounded-[22px]"
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(220,38,38,0.12),transparent_48%)]" aria-hidden />
-              <div className="absolute inset-0 opacity-10 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(239,68,68,0.12)_15px,transparent_16px)]" aria-hidden />
+              <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
               {number != null ? (
                 <span className="absolute right-2.5 top-2 z-10 text-[28px] font-black leading-none text-white/12 sm:text-[34px]">
                   {number}
@@ -164,7 +163,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               type="button"
               onClick={() => scrollToCard(index)}
               className={`h-2 rounded-full transition-all ${
-                activeIndex === index ? "w-5 bg-red-500" : "w-2 bg-white/25 hover:bg-white/45"
+                activeIndex === index ? "sz-club-slider-dot-active w-5" : "w-2 bg-white/25 hover:bg-white/45"
               }`}
               aria-label={`${premiumPlayerDisplayName(player)} anzeigen`}
               aria-current={activeIndex === index ? "true" : undefined}
@@ -182,7 +181,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               <button
                 type="button"
                 onClick={() => onPlayerClick(player)}
-                className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 sz-club-surface sz-club-surface--quiet px-2.5 text-left transition hover:border-red-400/55 hover:shadow-[0_8px_24px_rgba(127,29,29,0.16)] active:scale-[0.99]"
+                className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border px-2.5 text-left transition active:scale-[0.99]"
               >
                 <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
                   <img
