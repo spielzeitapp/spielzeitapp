@@ -8,6 +8,7 @@ type Props = {
   onShare?: () => Promise<boolean>;
   onEdit?: () => void;
   onDelete?: () => void;
+  layout?: 'scroll' | 'grid';
 };
 
 export function CenterQuickActionBar({
@@ -17,6 +18,7 @@ export function CenterQuickActionBar({
   onShare,
   onEdit,
   onDelete,
+  layout = 'scroll',
 }: Props) {
   const [shareHint, setShareHint] = useState<string | null>(null);
 
@@ -30,17 +32,21 @@ export function CenterQuickActionBar({
   return (
     <div className="relative">
       <div
-        className="flex items-stretch gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={
+          layout === 'grid'
+            ? 'grid grid-cols-2 gap-2'
+            : 'flex items-stretch gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        }
         role="toolbar"
         aria-label="Schnellaktionen"
       >
-        <ActionChip icon={CalendarPlus} label="Kalender" onClick={onAddToCalendar} />
+        <ActionChip icon={CalendarPlus} label="Kalender" onClick={onAddToCalendar} layout={layout} />
         {showNavigation && onNavigate ? (
-          <ActionChip icon={MapPin} label="Navigation" onClick={onNavigate} />
+          <ActionChip icon={MapPin} label="Navigation" onClick={onNavigate} layout={layout} />
         ) : null}
-        {onShare ? <ActionChip icon={Share2} label="Teilen" onClick={() => void handleShare()} /> : null}
-        {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten" onClick={onEdit} /> : null}
-        {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={onDelete} danger /> : null}
+        {onShare ? <ActionChip icon={Share2} label="Teilen" onClick={() => void handleShare()} layout={layout} /> : null}
+        {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten" onClick={onEdit} layout={layout} /> : null}
+        {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={onDelete} danger layout={layout} /> : null}
       </div>
       {shareHint ? (
         <span
@@ -59,19 +65,25 @@ function ActionChip({
   label,
   onClick,
   danger = false,
+  layout = 'scroll',
 }: {
   icon: typeof CalendarPlus;
   label: string;
   onClick: () => void;
   danger?: boolean;
+  layout?: 'scroll' | 'grid';
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-[34px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold touch-manipulation transition active:scale-[0.98] ${danger ? 'border border-red-400/35 bg-red-950/35 text-red-200 hover:bg-red-900/45' : 'border border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.05)] text-white/88 hover:border-[rgba(255,71,71,0.3)] hover:bg-[rgba(255,71,71,0.1)]'}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-2 touch-manipulation transition active:scale-[0.98] ${
+        layout === 'grid'
+          ? 'sz-club-event-action min-h-[50px] w-full rounded-[15px] px-3 py-2.5 text-[14px] font-bold'
+          : 'min-h-[34px] rounded-full px-3 py-1.5 text-[11px] font-semibold'
+      } ${danger ? 'border border-red-400/35 bg-red-950/35 text-red-200 hover:bg-red-900/45' : layout === 'grid' ? 'text-white/90' : 'border border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.05)] text-white/88 hover:border-[rgba(255,71,71,0.3)] hover:bg-[rgba(255,71,71,0.1)]'}`}
     >
-      <Icon className={`h-3.5 w-3.5 shrink-0 ${danger ? 'text-red-300' : 'text-red-300/85'}`} strokeWidth={2.25} aria-hidden />
+      <Icon className={`${layout === 'grid' ? 'h-[18px] w-[18px]' : 'h-3.5 w-3.5'} shrink-0 ${danger ? 'text-red-300' : 'sz-club-accent-text'}`} strokeWidth={2.25} aria-hidden />
       {label}
     </button>
   );
