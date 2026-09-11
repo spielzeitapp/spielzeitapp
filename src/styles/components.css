@@ -82,14 +82,14 @@
 
 /* Spieler- und Trainerkarten: dunkle Basis, Vereinsfarbe nur als Akzent. */
 .sz-club-showcase-card {
-  border-color: rgb(var(--club-accent-rgb) / 0.64);
+  border-color: rgb(var(--club-border-rgb) / 0.64);
   background:
     radial-gradient(ellipse 90% 100% at 108% 46%, rgb(var(--club-primary-rgb) / 0.58) 0%, rgb(var(--club-primary-rgb) / 0.22) 42%, transparent 72%),
     linear-gradient(145deg, #151517 0%, #060607 55%, rgb(var(--club-primary-rgb) / 0.24) 100%);
   box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.42),
     0 0 26px rgb(var(--club-primary-rgb) / 0.22),
-    inset 0 0 0 1px rgb(var(--club-accent-rgb) / 0.08),
+    inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.08),
     inset -28px 0 46px rgb(var(--club-primary-rgb) / 0.12);
 }
 
@@ -99,7 +99,7 @@
     130deg,
     transparent 0,
     transparent 14px,
-    rgb(var(--club-accent-rgb) / 0.26) 15px,
+    rgb(var(--club-border-rgb) / 0.26) 15px,
     transparent 16px
   );
   -webkit-mask-image: linear-gradient(90deg, transparent 12%, rgba(0, 0, 0, 0.22) 44%, #000 100%);
@@ -112,10 +112,10 @@
 }
 
 .sz-club-list-card {
-  border-color: rgb(var(--club-accent-rgb) / 0.38);
+  border-color: rgb(var(--club-border-rgb) / 0.38);
   background:
     radial-gradient(ellipse 62% 140% at 100% 50%, rgb(var(--club-primary-rgb) / 0.26), transparent 72%),
-    repeating-linear-gradient(130deg, transparent 0, transparent 18px, rgb(var(--club-accent-rgb) / 0.035) 19px, transparent 20px),
+    repeating-linear-gradient(130deg, transparent 0, transparent 18px, rgb(var(--club-border-rgb) / 0.035) 19px, transparent 20px),
     linear-gradient(100deg, rgba(8, 8, 10, 0.98), rgb(var(--club-primary-rgb) / 0.11));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.025),
@@ -123,23 +123,23 @@
 }
 
 .sz-club-list-card:hover {
-  border-color: rgb(var(--club-accent-rgb) / 0.5);
+  border-color: rgb(var(--club-border-rgb) / 0.5);
   box-shadow: 0 8px 24px rgb(var(--club-primary-rgb) / 0.18);
 }
 
 .sz-club-number-divider {
-  border-color: rgb(var(--club-accent-rgb) / 0.42);
+  border-color: rgb(var(--club-border-rgb) / 0.42);
 }
 
 .sz-club-profile-hero {
-  border-color: rgb(var(--club-accent-rgb) / 0.64);
+  border-color: rgb(var(--club-border-rgb) / 0.64);
   background:
     radial-gradient(ellipse 90% 100% at 108% 46%, rgb(var(--club-primary-rgb) / 0.58) 0%, rgb(var(--club-primary-rgb) / 0.22) 42%, transparent 72%),
     linear-gradient(145deg, #151517 0%, #060607 55%, rgb(var(--club-primary-rgb) / 0.24) 100%);
   box-shadow:
     0 14px 42px rgba(0, 0, 0, 0.55),
     0 0 28px rgb(var(--club-primary-rgb) / 0.22),
-    inset 0 0 0 1px rgb(var(--club-accent-rgb) / 0.08),
+    inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.08),
     inset -28px 0 46px rgb(var(--club-primary-rgb) / 0.12);
 }
 
@@ -204,6 +204,78 @@
 
 .sz-club-stat-watermark {
   color: rgb(var(--club-accent-rgb) / 0.18);
+}
+
+/* Home-Feed: dieselbe schwarze Club-Editorial-Sprache wie Spieler- und Profilkarten. */
+.sz-club-feed-shell {
+  overflow: hidden;
+  border-color: rgb(var(--club-border-rgb) / 0.34) !important;
+  background:
+    radial-gradient(ellipse 88% 75% at 108% 18%, rgb(var(--club-primary-rgb) / 0.34), transparent 68%),
+    repeating-linear-gradient(130deg, transparent 0, transparent 20px, rgb(var(--club-border-rgb) / 0.028) 21px, transparent 22px),
+    linear-gradient(150deg, rgba(15, 15, 18, 0.99), rgba(4, 4, 6, 0.995) 58%, rgb(var(--club-primary-rgb) / 0.12));
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.55),
+    0 0 30px rgb(var(--club-primary-rgb) / 0.16),
+    inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.045) !important;
+}
+
+.sz-club-feed-media-frame {
+  border-color: rgb(var(--club-border-rgb) / 0.38) !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.52),
+    0 0 24px rgb(var(--club-primary-rgb) / 0.15);
+}
+
+.sz-club-feed-poster-background {
+  background:
+    radial-gradient(ellipse 78% 66% at 96% 55%, rgb(var(--club-primary-rgb) / 0.62), transparent 72%),
+    linear-gradient(115deg, rgba(0, 0, 0, 0.99) 0%, rgba(5, 5, 6, 0.97) 44%, rgb(var(--club-primary-rgb) / 0.42) 100%);
+}
+
+.sz-club-feed-poster-lines {
+  opacity: 0.22;
+  background-image: repeating-linear-gradient(
+    118deg,
+    transparent 0,
+    transparent 18px,
+    rgb(var(--club-border-rgb) / 0.28) 19px,
+    transparent 20px
+  );
+  -webkit-mask-image: linear-gradient(90deg, transparent 22%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 22%, #000 100%);
+}
+
+.sz-club-feed-accent-text {
+  color: rgb(var(--club-accent-rgb) / 0.94) !important;
+}
+
+.sz-club-feed-accent-line {
+  background-color: rgb(var(--club-accent-rgb) / 0.92) !important;
+}
+
+.sz-club-feed-accent-fade {
+  background: linear-gradient(90deg, transparent, rgb(var(--club-accent-rgb) / 0.92), transparent) !important;
+}
+
+.sz-club-feed-badge {
+  border-color: rgb(var(--club-accent-rgb) / 0.38) !important;
+  color: rgb(var(--club-accent-rgb) / 0.94) !important;
+  background-color: rgb(var(--club-primary-rgb) / 0.28) !important;
+  box-shadow: 0 0 16px rgb(var(--club-primary-rgb) / 0.18) !important;
+}
+
+.sz-club-feed-text-gradient {
+  color: rgb(var(--club-accent-rgb) / 0.96);
+  text-shadow: 0 0 18px rgb(var(--club-primary-rgb) / 0.42);
+}
+
+.sz-club-feed-accent-border {
+  border-color: rgb(var(--club-accent-rgb) / 0.78) !important;
+}
+
+.sz-club-feed-primary-glow {
+  background-color: rgb(var(--club-primary-rgb) / 0.28) !important;
 }
 
 /* Nur generische Platzhalter-Trikots werden an die Vereinsfarbe angepasst. */

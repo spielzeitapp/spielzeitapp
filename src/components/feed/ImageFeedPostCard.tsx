@@ -89,7 +89,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
 
   return (
     <FeedPostArticleShell
-      className="!border-[rgba(255,71,71,0.15)]"
+      className=""
       style={{ boxShadow: FEED_STADIUM_ARTICLE_SHADOW }}
     >
       <FeedPostHeader
@@ -105,7 +105,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         <div
-          className="relative max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border"
+          className="sz-club-feed-media-frame relative max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y bg-black sm:rounded-2xl sm:border"
           style={{ aspectRatio: imageAspectRatio ?? 4 / 5 }}
         >
           {resolvedSrc && !imageFailed ? (

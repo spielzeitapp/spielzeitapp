@@ -13,9 +13,9 @@ export function FeedCardHeaderBrand({
   return (
     <p className="truncate text-[13px] font-semibold leading-snug sm:text-sm">
       <span className="text-white">Spielzeit</span>
-      <span className="text-[#f87171]">App</span>
+      <span className="sz-club-feed-accent-text">App</span>
       <span className="font-normal text-white/50"> · </span>
-      <span className="text-red-200/95">{teamLabel}</span>
+      <span className="sz-club-feed-accent-text">{teamLabel}</span>
       {season ? (
         <>
           <span className="font-normal text-white/50"> · </span>

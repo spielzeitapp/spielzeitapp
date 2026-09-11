@@ -7,6 +7,7 @@ export type ClubThemeKey = "black-red" | "blue-yellow" | "green-white" | "black-
 type ClubPalette = {
   primary: string;
   accent: string;
+  border: string;
   secondary: string;
   onPrimary: string;
 };
@@ -15,24 +16,28 @@ const CLUB_PALETTES: Record<ClubThemeKey, ClubPalette> = {
   "black-red": {
     primary: "122 29 42",
     accent: "255 64 80",
+    border: "255 64 80",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
   },
   "blue-yellow": {
     primary: "22 87 168",
     accent: "250 204 21",
+    border: "37 125 255",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
   },
   "green-white": {
     primary: "22 130 74",
     accent: "236 253 245",
+    border: "34 197 94",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
   },
   "black-white": {
     primary: "82 82 91",
     accent: "244 244 245",
+    border: "212 212 216",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
   },
@@ -73,6 +78,7 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children 
     root.dataset.clubTheme = themeKey;
     root.style.setProperty("--club-primary-rgb", palette.primary);
     root.style.setProperty("--club-accent-rgb", palette.accent);
+    root.style.setProperty("--club-border-rgb", palette.border);
     root.style.setProperty("--club-secondary-rgb", palette.secondary);
     root.style.setProperty("--club-on-primary", palette.onPrimary);
   }, [themeKey]);

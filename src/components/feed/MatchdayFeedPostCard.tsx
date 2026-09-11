@@ -317,7 +317,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   return (
     <FeedPostArticleShell
-      className="!border-[rgba(255,71,71,0.15)]"
+      className=""
       style={{ boxShadow: FEED_STADIUM_ARTICLE_SHADOW }}
     >
       <FeedPostHeader
