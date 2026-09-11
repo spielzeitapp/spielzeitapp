@@ -4080,13 +4080,13 @@ export const EventDetailPage: React.FC = () => {
                   <>
                 <div className={`mt-2 flex flex-wrap ${DS_STAT_GRID_GAP}`}>
                     <span className={dsStatusChipClass('present')}>
-                      Zugesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
-                    </span>
-                    <span className={dsStatusChipClass('absent')}>
-                      Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
+                      Dabei: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
                     </span>
                     <span className={dsStatusChipClass('open')}>
                       Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
+                    </span>
+                    <span className={dsStatusChipClass('absent')}>
+                      Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
                     </span>
                   </div>
                 <div className={`flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3`}>
@@ -4180,8 +4180,8 @@ export const EventDetailPage: React.FC = () => {
 
                       return (
                         <div className="flex flex-col gap-1">
-                          {renderGroup('OFFEN', openPlayers)}
                           {renderGroup('DABEI', yesPlayers)}
+                          {renderGroup('OFFEN', openPlayers)}
                           {renderGroup('ABWESEND', noPlayers)}
                         </div>
                       );
