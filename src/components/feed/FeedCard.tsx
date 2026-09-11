@@ -11,7 +11,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ children, className = '', as
   return (
     <Tag
       className={[
-        'rounded-2xl border border-white/[0.08] bg-[#181818] p-5 shadow-lg',
+        'sz-club-feed-shell rounded-2xl border p-5 shadow-lg',
         'text-white',
         className,
       ]

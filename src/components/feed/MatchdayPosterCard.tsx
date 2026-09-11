@@ -4,9 +4,6 @@ import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { FEED_HASHTAG } from './feedTypography';
 import { MatchdayPosterArtwork } from './MatchdayPosterArtwork';
 
-const SHELL_SHADOW =
-  '0 0 0 1px rgba(220, 38, 38, 0.12), 0 28px 56px -16px rgba(0, 0, 0, 0.85), 0 0 80px -28px rgba(220, 38, 38, 0.22)';
-
 export type MatchdayPosterVisualStatus = 'today' | 'live' | 'finished';
 export type MatchdayAnnouncementTiming = 'today' | 'tomorrow';
 
@@ -101,8 +98,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
     return (
       <div
         ref={ref}
-        className="relative w-full overflow-hidden rounded-none border-y border-red-500/40 p-[1px] sm:rounded-3xl sm:border"
-        style={{ boxShadow: SHELL_SHADOW }}
+        className="sz-club-feed-media-frame relative w-full overflow-hidden rounded-none border-y p-[1px] sm:rounded-3xl sm:border"
       >
         <MatchdayPosterArtwork
           statusLabel={statusLabel}

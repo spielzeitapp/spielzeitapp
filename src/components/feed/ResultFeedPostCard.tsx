@@ -236,7 +236,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
   return (
     <FeedPostArticleShell
-      className="!border-[rgba(255,71,71,0.15)]"
+      className=""
       style={{ boxShadow: presentation.articleShadow }}
       data-feed-result-card="v8"
     >
@@ -253,7 +253,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           ) : null
         }
       />
-      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
 
@@ -300,7 +300,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             {groupedScorers.length > 0 ? (
-              <div className="rounded-2xl border border-[rgba(255,71,71,0.14)] bg-black/35 px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-3 sm:py-3">
+              <div className="sz-club-feed-inset rounded-2xl border px-2 py-2.5 backdrop-blur-md sm:px-3 sm:py-3">
                 <FeedSectionHeader icon="⚽" label="Torschützen" />
                 <ul className="space-y-1">
                   {groupedScorers.map((scorer) => (
@@ -316,7 +316,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
                           <span className="min-w-0 break-words text-[13px] font-semibold leading-snug text-white sm:text-[14px]">
                             {scorer.playerName}
                           </span>
-                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-red-200/85 sm:text-[11px]">
+                          <span className="sz-club-feed-accent-text shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] sm:text-[11px]">
                             {scorer.goalCount} {scorer.goalCount === 1 ? 'Tor' : 'Tore'}
                           </span>
                         </div>
@@ -333,8 +333,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             {captionTrim ? (
-              <div className="mt-0.5 rounded-2xl border border-white/[0.06] bg-black/30 px-2 py-2 sm:px-2.5 sm:py-2.5">
-                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-red-200/85 sm:text-[11px]">
+              <div className="sz-club-feed-inset mt-0.5 rounded-2xl border px-2 py-2 sm:px-2.5 sm:py-2.5">
+                <p className="sz-club-feed-accent-text text-[10px] font-black uppercase tracking-[0.14em] sm:text-[11px]">
                   Kurzbericht
                 </p>
                 <div className="mt-1 min-w-0">

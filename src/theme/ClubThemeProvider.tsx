@@ -1,0 +1,137 @@
+import React, { useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
+import { useSession } from "../auth/useSession";
+
+export type ClubThemeKey = "black-red" | "blue-yellow" | "green-white" | "black-white";
+
+type ClubPalette = {
+  primary: string;
+  accent: string;
+  border: string;
+  secondary: string;
+  onPrimary: string;
+};
+
+const CLUB_PALETTES: Record<ClubThemeKey, ClubPalette> = {
+  "black-red": {
+    primary: "122 29 42",
+    accent: "255 64 80",
+    border: "255 64 80",
+    secondary: "255 255 255",
+    onPrimary: "#ffffff",
+  },
+  "blue-yellow": {
+    primary: "22 87 168",
+    accent: "250 204 21",
+    border: "37 125 255",
+    secondary: "255 255 255",
+    onPrimary: "#ffffff",
+  },
+  "green-white": {
+    primary: "22 130 74",
+    accent: "236 253 245",
+    border: "34 197 94",
+    secondary: "255 255 255",
+    onPrimary: "#ffffff",
+  },
+  "black-white": {
+    primary: "82 82 91",
+    accent: "244 244 245",
+    border: "212 212 216",
+    secondary: "255 255 255",
+    onPrimary: "#ffffff",
+  },
+};
+
+function isClubThemeKey(value: string | null): value is ClubThemeKey {
+  return value === "black-red" || value === "blue-yellow" || value === "green-white" || value === "black-white";
+}
+
+/**
+ * Test-Override: `?clubTheme=blue-yellow|green-white|black-white|black-red`.
+ * Bekannte Mannschaften erhalten ansonsten automatisch ihr Farbpaar.
+ */
+export function resolveClubThemeKey(teamName: string, search: string): ClubThemeKey {
+  const params = new URLSearchParams(search);
+  const requested = params.get("clubTheme");
+  if (isClubThemeKey(requested)) return requested;
+
+  const normalized = `${teamName} ${params.get("club") ?? ""}`.trim().toLocaleLowerCase("de-AT");
+  if (/melk|blau.?gelb/.test(normalized)) return "blue-yellow";
+  if (/grün.?weiß|gruen.?weiss/.test(normalized)) return "green-white";
+  if (/usc\s+.*rohrbach|schwarz.?weiß|schwarz.?weiss/.test(normalized)) return "black-white";
+  return "black-red";
+}
+
+export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const location = useLocation();
+  const { selectedTeamSeason, viewTeamSeason } = useSession();
+  const teamName = (viewTeamSeason ?? selectedTeamSeason)?.team?.name ?? "";
+  const themeKey = useMemo(
+    () => resolveClubThemeKey(teamName, location.search),
+    [location.search, teamName],
+  );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const palette = CLUB_PALETTES[themeKey];
+    root.dataset.clubTheme = themeKey;
+    root.style.setProperty("--club-primary-rgb", palette.primary);
+    root.style.setProperty("--club-accent-rgb", palette.accent);
+    root.style.setProperty("--club-border-rgb", palette.border);
+    root.style.setProperty("--club-secondary-rgb", palette.secondary);
+    root.style.setProperty("--club-on-primary", palette.onPrimary);
+  }, [themeKey]);
+
+  return (
+    <>
+      <svg className="pointer-events-none absolute h-0 w-0" aria-hidden focusable="false">
+        <defs>
+          <filter id="sz-jersey-blue" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              in="SourceGraphic"
+              type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.8 -0.9 -0.9 0 -0.22"
+              result="redMask"
+            />
+            <feComponentTransfer in="redMask" result="selectedRed">
+              <feFuncA type="discrete" tableValues="0 0 0 1 1" />
+            </feComponentTransfer>
+            <feFlood floodColor="#176fe5" floodOpacity="0.88" result="clubColor" />
+            <feComposite in="clubColor" in2="selectedRed" operator="in" result="tintedRed" />
+            <feComposite in="tintedRed" in2="SourceGraphic" operator="over" />
+          </filter>
+          <filter id="sz-jersey-green" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              in="SourceGraphic"
+              type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.8 -0.9 -0.9 0 -0.22"
+              result="redMask"
+            />
+            <feComponentTransfer in="redMask" result="selectedRed">
+              <feFuncA type="discrete" tableValues="0 0 0 1 1" />
+            </feComponentTransfer>
+            <feFlood floodColor="#18a558" floodOpacity="0.9" result="clubColor" />
+            <feComposite in="clubColor" in2="selectedRed" operator="in" result="tintedRed" />
+            <feComposite in="tintedRed" in2="SourceGraphic" operator="over" />
+          </filter>
+          <filter id="sz-jersey-white" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              in="SourceGraphic"
+              type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.8 -0.9 -0.9 0 -0.22"
+              result="redMask"
+            />
+            <feComponentTransfer in="redMask" result="selectedRed">
+              <feFuncA type="discrete" tableValues="0 0 0 1 1" />
+            </feComponentTransfer>
+            <feFlood floodColor="#f4f4f5" floodOpacity="0.82" result="clubColor" />
+            <feComposite in="clubColor" in2="selectedRed" operator="in" result="tintedRed" />
+            <feComposite in="tintedRed" in2="SourceGraphic" operator="over" />
+          </filter>
+        </defs>
+      </svg>
+      {children}
+    </>
+  );
+};

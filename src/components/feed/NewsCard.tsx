@@ -25,9 +25,9 @@ export const NewsCard: React.FC<NewsCardProps> = ({ message, trainerLabel = 'Tra
       <h3 className="text-lg font-bold text-white">Letzte Nachricht</h3>
       <Link
         to={base === '/demo' ? `${base}/mehr` : `${base}/nachrichten`}
-        className="mt-4 block min-h-[44px] rounded-xl outline-none ring-offset-2 ring-offset-[#0b0b0b] focus-visible:ring-2 focus-visible:ring-red-500/60"
+        className="mt-4 block min-h-[44px] rounded-xl outline-none ring-offset-2 ring-offset-[#0b0b0b] focus-visible:ring-2 focus-visible:ring-white/40"
       >
-        <p className="text-sm font-semibold text-red-400">{trainerLabel}</p>
+        <p className="sz-club-feed-accent-text text-sm font-semibold">{trainerLabel}</p>
         <p className="mt-1 line-clamp-2 text-base font-medium text-white">{message.title}</p>
         <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-white/65">{previewText(message)}</p>
         <p className="mt-2 text-xs text-white/40">{rel}</p>

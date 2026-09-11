@@ -28,7 +28,7 @@ export function ProfileTrainingKaiserStatus({ rank }: { rank: number | null }) {
 export function ProfileTrainingAwardsSection() {
   return (
     <div className={`mt-4 p-3 sm:p-3.5 ${PROFILE_GLASS_PANEL}`}>
-      <h4 className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
+      <h4 className="sz-club-profile-accent whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em]">
         <span className="mr-1" aria-hidden>
           🏆
         </span>
@@ -38,7 +38,7 @@ export function ProfileTrainingAwardsSection() {
         {TRAINING_CHALLENGE_TYPES.map((challenge) => (
           <div
             key={challenge.id}
-            className="rounded-xl border border-[rgba(220,38,38,0.14)] bg-[rgba(8,8,10,0.72)] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+            className="rounded-xl border sz-club-surface sz-club-surface--quiet px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
           >
             <p className="whitespace-nowrap text-[11px] font-semibold text-white/88">
               <span aria-hidden>{challenge.emoji}</span> {challenge.title}
@@ -56,7 +56,7 @@ export function ProfileTrainingAwardsSection() {
 export function ProfileGoalkeeperStatsPlaceholder() {
   return (
     <div className={`mt-4 p-3 sm:p-3.5 ${PROFILE_GLASS_PANEL}`}>
-      <h4 className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
+      <h4 className="sz-club-profile-accent whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em]">
         <span className="mr-1" aria-hidden>
           🥅
         </span>
@@ -66,7 +66,7 @@ export function ProfileGoalkeeperStatsPlaceholder() {
         {["Zu-Null-Spiele", "Gegentore", "Paraden"].map((label) => (
           <div
             key={label}
-            className="rounded-xl border border-[rgba(220,38,38,0.14)] bg-[rgba(8,8,10,0.72)] px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+            className="rounded-xl border sz-club-surface sz-club-surface--quiet px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
           >
             <p className="text-[9px] font-medium leading-snug text-white/40">{label}</p>
             <p className="mt-1 text-[14px] font-bold tabular-nums text-white/35">—</p>

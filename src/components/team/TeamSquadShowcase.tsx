@@ -104,7 +104,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
           const endX = event.changedTouches[0]?.clientX ?? start.x;
           if (endX - start.x < -45) onSwipePastEnd();
         }}
-        className="flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-5"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-[12%] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4 sm:px-[18%]"
         aria-label="Spieler-Karussell"
       >
         {players.map((player) => {
@@ -116,12 +116,11 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               data-showcase-card
               type="button"
               onClick={() => onPlayerClick(player)}
-              className="group relative aspect-[4/5] w-[42vw] min-w-[148px] max-w-[172px] shrink-0 snap-start overflow-hidden rounded-[18px] border border-red-500/35 bg-[linear-gradient(145deg,#151517_0%,#080809_58%,#10080a_100%)] text-left shadow-[0_12px_30px_rgba(0,0,0,0.42),0_0_18px_rgba(122,29,42,0.08)] transition active:scale-[0.985] sm:w-[210px] sm:max-w-[210px] sm:rounded-[22px]"
+              className="sz-club-showcase-card group relative aspect-[3/4] w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]"
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_28%,rgba(220,38,38,0.12),transparent_48%)]" aria-hidden />
-              <div className="absolute inset-0 opacity-10 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_14px,rgba(239,68,68,0.12)_15px,transparent_16px)]" aria-hidden />
+              <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
               {number != null ? (
-                <span className="absolute right-2.5 top-2 z-10 text-[28px] font-black leading-none text-white/12 sm:text-[34px]">
+                <span className="absolute left-5 top-5 z-10 text-[56px] font-black leading-none tracking-[-0.06em] text-white/90 sm:text-[66px]">
                   {number}
                 </span>
               ) : null}
@@ -132,7 +131,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = PLAYER_PLACEHOLDER;
                 }}
-                className={`absolute inset-0 h-full w-full transition duration-300 ${
+                className={`absolute inset-0 h-full w-full transition duration-300 ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
                   media.isCutout
                     ? "origin-bottom scale-[1.55] object-contain object-bottom group-hover:scale-[1.6]"
                     : media.isUpperBodyDemo
@@ -141,12 +140,12 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                 }`}
               />
               <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
-              <div className="absolute inset-x-0 bottom-7 z-10 p-3 sm:bottom-0 sm:p-4">
-                <p className="truncate text-[20px] font-black uppercase leading-none tracking-tight text-white sm:text-[24px]">
+              <div className="absolute inset-x-0 bottom-0 z-10 p-4 sm:p-5">
+                <p className="truncate text-[25px] font-black uppercase leading-none tracking-tight text-white sm:text-[28px]">
                   {playerCardName(player)}
                 </p>
                 {playerCardFamilyName(player) ? (
-                  <p className="mt-1 truncate text-[14px] font-black uppercase leading-none tracking-[0.06em] text-white/90 sm:text-[16px]">
+                  <p className="mt-1 truncate text-[19px] font-black uppercase leading-none tracking-[0.035em] text-white sm:text-[21px]">
                     {playerCardFamilyName(player)}
                   </p>
                 ) : null}
@@ -164,7 +163,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               type="button"
               onClick={() => scrollToCard(index)}
               className={`h-2 rounded-full transition-all ${
-                activeIndex === index ? "w-5 bg-red-500" : "w-2 bg-white/25 hover:bg-white/45"
+                activeIndex === index ? "sz-club-slider-dot-active w-5" : "w-2 bg-white/25 hover:bg-white/45"
               }`}
               aria-label={`${premiumPlayerDisplayName(player)} anzeigen`}
               aria-current={activeIndex === index ? "true" : undefined}
@@ -182,7 +181,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               <button
                 type="button"
                 onClick={() => onPlayerClick(player)}
-                className="flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border border-red-500/35 sz-club-surface sz-club-surface--quiet px-2.5 text-left transition hover:border-red-400/55 hover:shadow-[0_8px_24px_rgba(127,29,29,0.16)] active:scale-[0.99]"
+                className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[78px] w-full items-center overflow-hidden rounded-[14px] border px-2.5 text-left transition active:scale-[0.99]"
               >
                 <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
                   <img
@@ -192,7 +191,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = PLAYER_PLACEHOLDER;
                     }}
-                    className={`h-full w-full object-bottom ${
+                    className={`h-full w-full object-bottom ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
                       media.isCutout
                         ? "origin-bottom scale-[1.45] object-contain"
                         : media.isUpperBodyDemo
@@ -201,11 +200,16 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                     }`}
                   />
                 </div>
-                <span className="w-12 shrink-0 border-l border-white/10 pl-2.5 text-[25px] font-black leading-none text-white">
+                <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">
                   {number ?? "–"}
                 </span>
-                <span className="min-w-0 flex-1 truncate pl-2.5 text-[15px] font-bold text-white/92 sm:text-[16px]">
-                  {premiumPlayerDisplayName(player)}
+                <span className="min-w-0 flex-1 pl-2.5">
+                  <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 sm:text-[14px]">
+                    {playerCardName(player)}
+                  </span>
+                  <span className="block truncate text-[17px] font-black leading-tight text-white sm:text-[18px]">
+                    {playerCardFamilyName(player) || premiumPlayerDisplayName(player)}
+                  </span>
                 </span>
                 <ChevronRight className="ml-2 h-5 w-5 shrink-0 text-white/65" aria-hidden />
               </button>

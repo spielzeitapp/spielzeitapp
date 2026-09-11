@@ -32,7 +32,7 @@ export function TournamentCompletionFeedPostCard({
   const season = (seasonLabel ?? '').trim();
 
   return (
-    <article className="overflow-hidden rounded-[18px] border border-amber-500/25 bg-[linear-gradient(165deg,rgba(88,62,12,0.28)_0%,rgba(10,8,12,0.96)_45%)] shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+    <article className="sz-club-feed-shell overflow-hidden rounded-[18px] border">
       <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
         <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-200/90">
           <Trophy className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />

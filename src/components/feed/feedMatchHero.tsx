@@ -18,10 +18,10 @@ export function FeedMatchLogoBlock({ src, alt }: { src: string; alt: string }) {
   if (!valid) {
     return (
       <div
-        className={`flex ${FEED_MATCH_LOGO_SIZE_CLASS} shrink-0 items-center justify-center rounded-full border border-red-500/35 bg-black/55 shadow-[0_0_20px_rgba(227,29,47,0.22)]`}
+        className={`sz-club-feed-logo-placeholder flex ${FEED_MATCH_LOGO_SIZE_CLASS} shrink-0 items-center justify-center rounded-full border bg-black/55`}
         aria-label={alt}
       >
-        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
+        <span className="sz-club-feed-accent-text text-[10px] font-black uppercase tracking-[0.12em]">Club</span>
       </div>
     );
   }

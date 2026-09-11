@@ -201,7 +201,7 @@ export function HeroSeasonLine({ seasonLine }: { seasonLine: string }) {
 
 export function HeroInfoBadge({ emoji, label }: { emoji: string; label: string }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-[rgba(220,38,38,0.28)] bg-[rgba(8,8,10,0.78)] px-2 py-0.5 text-[10px] font-semibold text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(220,38,38,0.12)]">
+    <span className="sz-club-accent-chip inline-flex max-w-full items-center gap-1 rounded-full border bg-[rgba(8,8,10,0.78)] px-2 py-0.5 text-[10px] font-semibold text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
       <span className="shrink-0" aria-hidden>
         {emoji}
       </span>
