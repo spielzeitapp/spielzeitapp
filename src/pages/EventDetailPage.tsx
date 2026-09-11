@@ -4136,6 +4136,7 @@ export const EventDetailPage: React.FC = () => {
                                       player={player}
                                       status={bucket}
                                       layout="team-roster"
+                                      hideSubline
                                       trailing={
                                         <div className="flex shrink-0 items-center gap-0.5">
                                           {rsvpDisplay === 'injured' || rsvpDisplay === 'sick' ? (

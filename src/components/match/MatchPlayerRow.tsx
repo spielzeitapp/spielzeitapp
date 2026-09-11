@@ -50,7 +50,9 @@ export const MatchPlayerRow: React.FC<{
   layout?: "default" | "team-roster";
   /** Eigene rechte Aktionen, z. B. Zu-/Absage im Matchcenter. */
   trailing?: React.ReactNode;
-}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", trailing }) => {
+  /** Blendet die Positionszeile aus, wenn nur Name und Status relevant sind. */
+  hideSubline?: boolean;
+}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", trailing, hideSubline = false }) => {
   const number = player.jersey_number ?? player.number ?? null;
   const isMatchday = tone === "matchday";
   const baseSub = positionSubline(player.position);
@@ -78,7 +80,7 @@ export const MatchPlayerRow: React.FC<{
           <span className="line-clamp-2 block text-[15px] font-bold leading-tight text-white/95">
             {premiumPlayerDisplayName(player)}
           </span>
-          <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span>
+          {!hideSubline ? <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span> : null}
         </span>
         {trailing ? (
           <span className="ml-1 flex shrink-0 items-center">{trailing}</span>
