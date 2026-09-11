@@ -217,7 +217,7 @@ export function CompactEventCard({
     ) : et === 'tournament' ? (
       <Trophy className="h-5 w-5 shrink-0 text-amber-300/90" strokeWidth={2} aria-hidden />
     ) : (
-      <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
+    <CalendarDays className="sz-club-accent-text h-5 w-5 shrink-0" />
     );
 
   if (parentCompactLayout) {
@@ -251,14 +251,14 @@ export function CompactEventCard({
             : undefined
         }
       >
-        {et === 'training' ? <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(122,29,42,0.07)_0%,transparent_60%)]" aria-hidden /> : null}
+        {et === 'training' ? <div className="pointer-events-none absolute inset-0 sz-club-card-glow" aria-hidden /> : null}
         <div className="flex w-[60px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
-          <span className="text-[12px] font-semibold uppercase leading-none tracking-widest text-red-400">
+          <span className="sz-club-accent-text text-[12px] font-semibold uppercase leading-none tracking-widest">
             {wdAbbrev}
           </span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{day}</span>
           <span className="text-[12px] leading-tight text-white/60">{monYear}</span>
-          <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
+          <span className="sz-club-accent-text text-[13px] font-medium tabular-nums leading-tight">{timeStr}</span>
         </div>
 
         <div className={`flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5 ${hasTrailing ? 'pr-[4.75rem]' : ''}`}>
@@ -354,7 +354,7 @@ export function CompactEventCard({
       </span>
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-        <CalendarDays className="h-5 w-5 text-red-200/85" />
+        <CalendarDays className="sz-club-accent-text h-5 w-5" />
       </span>
     );
 
@@ -416,7 +416,7 @@ export function CompactEventCard({
         </p>
       ) : (
         <p className="flex min-h-0 min-w-0 max-w-full items-center gap-1 text-[14px] font-medium leading-snug text-white/72 line-clamp-2">
-          <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
+          <MapPin className="sz-club-accent-text h-3 w-3 shrink-0" aria-hidden />
           <span className="min-w-0 flex-1" title={venueOnly}>
             {venueOnly}
           </span>
@@ -520,13 +520,13 @@ export function CompactEventCard({
             : undefined
         }
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(122,29,42,0.07)_0%,transparent_60%)]" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 sz-club-card-glow" aria-hidden />
         <div className={dsScheduleListPanelGlowClass()} aria-hidden />
         <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
           <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
           <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
-          <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
+          <span className="sz-club-accent-text text-[11px] font-semibold tabular-nums leading-tight">{timeStr}</span>
         </div>
 
         <div className="relative z-[1] flex w-[58px] shrink-0 items-center justify-center self-center">
@@ -599,7 +599,7 @@ export function CompactEventCard({
         <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
         <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
         <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
-        <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
+        <span className="sz-club-accent-text text-[11px] font-semibold tabular-nums leading-tight">{timeStr}</span>
       </div>
 
       {listIconColumn}

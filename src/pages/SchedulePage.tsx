@@ -1978,7 +1978,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           onClick={() => selectHeroSlide(index)}
                           className={`h-2.5 rounded-full transition-all ${
                             index === safeHeroSlideIndex
-                              ? 'w-7 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.45)]'
+                              ? 'sz-club-slider-dot-active w-7'
                               : 'w-2.5 bg-white/25 hover:bg-white/40'
                           }`}
                           aria-label={`Termin ${index + 1} von ${heroCarouselEvents.length} anzeigen`}

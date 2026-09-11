@@ -729,8 +729,8 @@ export function dsScheduleHeroDateBoxMonthClass(): string {
 /** Weitere Termine — sekundär, flach und dunkel. */
 export function dsScheduleListPanelClass(): string {
   return [
-    'relative overflow-hidden rounded-[12px]',
-    'border sz-club-surface sz-club-surface--quiet',
+    'relative overflow-hidden rounded-[14px]',
+    'border sz-club-list-card sz-club-surface sz-club-surface--quiet',
   ].join(' ');
 }
 

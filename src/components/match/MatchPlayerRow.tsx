@@ -36,6 +36,17 @@ function statusTone(status?: "open" | "yes" | "no"): PremiumStatusBadgeTone {
   return "open";
 }
 
+function playerNameParts(player: MatchRowPlayer): { first: string; family: string } {
+  const first = (player.first_name ?? "").trim();
+  const family = (player.last_name ?? "").trim();
+  if (first || family) return { first: first || "Spieler", family };
+  const parts = premiumPlayerDisplayName(player).trim().split(/\s+/).filter(Boolean);
+  return {
+    first: parts[0] || "Spieler",
+    family: parts.slice(1).join(" "),
+  };
+}
+
 export const MatchPlayerRow: React.FC<{
   player: MatchRowPlayer;
   status?: "open" | "yes" | "no";
@@ -60,6 +71,7 @@ export const MatchPlayerRow: React.FC<{
 
   if (layout === "team-roster") {
     const mediaSrc = player.cutout_url?.trim() || premiumPlayerAvatarSrc(player);
+    const nameParts = playerNameParts(player);
     const content = (
       <>
         <div className="relative -mb-2.5 mr-2 h-[74px] w-[60px] shrink-0 self-end overflow-hidden">
@@ -73,12 +85,15 @@ export const MatchPlayerRow: React.FC<{
             }}
           />
         </div>
-        <span className="w-11 shrink-0 border-l border-white/10 pl-2 text-[25px] font-black leading-none text-white">
+        <span className="sz-club-number-divider w-11 shrink-0 border-l pl-2 text-[25px] font-black leading-none text-white">
           {number ?? "–"}
         </span>
         <span className="min-w-0 flex-1 pl-2">
-          <span className="line-clamp-2 block text-[15px] font-bold leading-tight text-white/95">
-            {premiumPlayerDisplayName(player)}
+          <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 sm:text-[14px]">
+            {nameParts.first}
+          </span>
+          <span className="block truncate text-[17px] font-black leading-tight text-white sm:text-[18px]">
+            {nameParts.family || premiumPlayerDisplayName(player)}
           </span>
           {!hideSubline ? <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span> : null}
         </span>
@@ -98,11 +113,11 @@ export const MatchPlayerRow: React.FC<{
     );
     const className = [
       "flex min-h-[78px] w-full items-center overflow-hidden rounded-[15px] border px-2.5 text-left transition active:scale-[0.99]",
-      "sz-club-surface sz-club-surface--quiet",
+      "sz-club-list-card sz-club-surface sz-club-surface--quiet",
       selected
         ? "border-emerald-500/55 shadow-[0_8px_26px_rgba(5,150,105,0.16),0_0_18px_rgba(16,185,129,0.10)]"
-        : "border-red-500/35",
-      onClick ? "hover:border-red-400/55" : "",
+        : "",
+      onClick ? "hover:brightness-110" : "",
     ].join(" ");
     return onClick ? (
       <button type="button" onClick={onClick} className={className}>
