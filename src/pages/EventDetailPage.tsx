@@ -85,7 +85,6 @@ import {
   dsRsvpLazChoiceClass,
   dsScheduleGlassButtonClass,
   dsSecondaryCtaClass,
-  dsScheduleDetailCalendarRowClass,
   dsSectionLabelClass,
   dsStatusChipClass,
   DS_LIST_GAP,
@@ -95,7 +94,6 @@ import {
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchKickoffLineupPlayerIds, fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { MinimumPlaytimeMatchSettings } from '../components/live/MinimumPlaytimeMatchSettings';
-import { getDemoPlayerPortraitUrl, isDemoUpperBodyPortraitUrl } from '../lib/playerDemoPortrait';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
   DEFAULT_PLANNED_MATCH_MINUTES,
@@ -388,29 +386,6 @@ function comparePlayersInBucket(a: PlayerItem, b: PlayerItem): number {
   if (byFirst !== 0) return byFirst;
 
   return (a.display_name ?? '').trim().toLocaleLowerCase('de-AT').localeCompare((b.display_name ?? '').trim().toLocaleLowerCase('de-AT'), 'de-AT');
-}
-
-const MATCH_PREP_PLAYER_PLACEHOLDER = '/avatars/player-placeholder.png';
-
-function matchPrepPlayerMedia(player: PlayerItem, isDemo: boolean) {
-  const cutout = (player.cutout_url ?? '').trim();
-  if (cutout) return { src: cutout, isCutout: true, isUpperBodyDemo: false };
-  const avatar = (player.avatar_url ?? '').trim();
-  if (avatar) {
-    return {
-      src: avatar,
-      isCutout: false,
-      isUpperBodyDemo: isDemoUpperBodyPortraitUrl(avatar),
-    };
-  }
-  if (isDemo) {
-    return {
-      src: getDemoPlayerPortraitUrl(player.jersey_number, `${player.id}|${player.display_name ?? ''}`),
-      isCutout: false,
-      isUpperBodyDemo: true,
-    };
-  }
-  return { src: MATCH_PREP_PLAYER_PLACEHOLDER, isCutout: false, isUpperBodyDemo: true };
 }
 
 /** Sortierung RSVP-Spielerliste: OFFEN → DABEI → ABWESEND; innerhalb Gruppe: # aufsteigend, sonst Nachname/Vorname. */
@@ -3701,42 +3676,20 @@ export const EventDetailPage: React.FC = () => {
     >
       <div
         className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden ${isTraining ? 'px-0 sm:px-4' : 'px-2 sm:px-4'} ${
-          isTournament || isTraining
+          isTournament || isTraining || event.kind === 'match'
             ? 'gap-2.5 py-2.5 pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))]'
             : isAudienceMatchDetail
               ? 'gap-3 py-4'
               : 'gap-5 py-5 pb-28'
         }`}
       >
-        {!isTournament && !isTraining ? (
-        <div className="flex flex-col gap-3">
-          <Link to={`${basePath}/termine`} className="text-[14px] text-white/90 hover:text-white">
-            ← Zurück zum Spielplan
-          </Link>
-          {isAudienceMatchDetail ? (
-            <div className="flex flex-col gap-2" role="toolbar" aria-label="Spieltag-Aktionen">
-              <button
-                type="button"
-                className={`inline-flex min-h-[52px] w-full items-center gap-3 ${dsScheduleDetailCalendarRowClass()}`}
-                onClick={() => void handleAddSingleEventToCalendar()}
-              >
-                <CalendarPlus className="h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                <span className="min-w-0 flex-1 text-left text-[15px] font-semibold">Zum Kalender hinzufügen</span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
-              </button>
-              {canStartNavigation ? (
-                <button
-                  type="button"
-                  className={`inline-flex min-h-[52px] w-full items-center gap-3 ${dsScheduleDetailCalendarRowClass()}`}
-                  onClick={handleStartNavigation}
-                >
-                  <Navigation className="h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                  <span className="min-w-0 flex-1 text-left text-[15px] font-semibold">Navigation starten</span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
-                </button>
-              ) : null}
-            </div>
-          ) : (
+        {event.kind === 'match' ? (
+          <CenterHeader title="Matchcenter" />
+        ) : !isTournament && !isTraining ? (
+          <div className="flex flex-col gap-3">
+            <Link to={`${basePath}/termine`} className="text-[14px] text-white/90 hover:text-white">
+              ← Zurück zum Spielplan
+            </Link>
             <ScheduleEventActionsPanel
               className="w-full"
               rows={[
@@ -3775,8 +3728,7 @@ export const EventDetailPage: React.FC = () => {
                   : []),
               ]}
             />
-          )}
-        </div>
+          </div>
         ) : null}
 
         {isTournament ? (
@@ -3940,6 +3892,16 @@ export const EventDetailPage: React.FC = () => {
             />
           </div>
         )}
+
+        {event.kind === 'match' ? (
+          <CenterQuickActionBar
+            onAddToCalendar={() => void handleAddSingleEventToCalendar()}
+            onNavigate={canStartNavigation ? handleStartNavigation : undefined}
+            showNavigation={canStartNavigation}
+            onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
+            onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
+          />
+        ) : null}
 
         {isEventOrOther ? (
           <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
@@ -4150,7 +4112,6 @@ export const EventDetailPage: React.FC = () => {
                               {group.map((player) => {
                                 const bucket = statusBucket(getAttendanceStatus, player.id);
                                 const rsvpDisplay = getMatchRsvpDisplay(player.id);
-                                const media = matchPrepPlayerMedia(player, isDemo);
                                 const badge =
                                   rsvpDisplay === 'yes'
                                     ? 'DABEI'
@@ -4171,43 +4132,12 @@ export const EventDetailPage: React.FC = () => {
                                         : 'open';
                                 return (
                                   <li key={player.id} className="w-full">
-                                    <div className="sz-club-surface sz-club-surface--quiet flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border px-2 text-left">
-                                      <div className="relative -mb-2.5 mr-1 h-[68px] w-[50px] shrink-0 self-end overflow-hidden">
-                                        <img
-                                          src={media.src}
-                                          alt=""
-                                          onError={(event) => {
-                                            event.currentTarget.onerror = null;
-                                            event.currentTarget.src = MATCH_PREP_PLAYER_PLACEHOLDER;
-                                          }}
-                                          className={`h-full w-full object-bottom ${
-                                            media.isCutout
-                                              ? 'origin-bottom scale-[1.45] object-contain'
-                                              : media.isUpperBodyDemo
-                                                ? 'object-contain'
-                                                : 'object-cover'
-                                          }`}
-                                        />
-                                      </div>
-                                      <span className="w-9 shrink-0 border-l border-white/10 pl-1.5 text-[24px] font-black leading-none text-white">
-                                        {player.jersey_number ?? '–'}
-                                      </span>
-                                      <span className="min-w-0 flex flex-1 flex-col justify-center pl-1 text-[14px] font-bold leading-[1.08] text-white/92 sm:text-[15px]">
-                                        {(() => {
-                                          const firstName = safeText(player.first_name);
-                                          const lastName = safeText(player.last_name);
-                                          if (firstName || lastName) {
-                                            return (
-                                              <>
-                                                {firstName ? <span className="whitespace-nowrap">{firstName}</span> : null}
-                                                {lastName ? <span className="whitespace-nowrap">{lastName}</span> : null}
-                                              </>
-                                            );
-                                          }
-                                          return <span className="line-clamp-2">{premiumPlayerDisplayName(player)}</span>;
-                                        })()}
-                                      </span>
-                                      <div className="ml-1 flex shrink-0 items-center gap-0.5">
+                                    <MatchPlayerRow
+                                      player={player}
+                                      status={bucket}
+                                      layout="team-roster"
+                                      trailing={
+                                        <div className="flex shrink-0 items-center gap-0.5">
                                           {rsvpDisplay === 'injured' || rsvpDisplay === 'sick' ? (
                                             <PremiumStatusBadge label={badge} tone={chipTone} />
                                           ) : null}
@@ -4237,8 +4167,9 @@ export const EventDetailPage: React.FC = () => {
                                           >
                                             <ThumbsDown className="h-4 w-4" aria-hidden />
                                           </button>
-                                      </div>
-                                    </div>
+                                        </div>
+                                      }
+                                    />
                                   </li>
                                 );
                               })}
