@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { BarChart3, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, BarChart3, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -4609,6 +4609,19 @@ export const LiveMatchScreen: React.FC = () => {
                 : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
           }`}
         >
+          {matchboardVisible && matchIsFinished ? (
+            <div className="mb-2 flex items-center px-1">
+              <button
+                type="button"
+                onClick={() => navigate(`${basePath}/termine`)}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 bg-black/72 px-3.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:border-red-400/45 hover:bg-red-950/45 active:scale-[0.98]"
+                aria-label="Zurück zu Termine"
+              >
+                <ArrowLeft className="h-5 w-5 text-red-400" aria-hidden />
+                Termine
+              </button>
+            </div>
+          ) : null}
           {matchboardVisible && (
             <div
               className={`relative mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md ${
