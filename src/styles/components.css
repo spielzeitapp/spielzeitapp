@@ -82,25 +82,28 @@
 
 /* Spieler- und Trainerkarten: dunkle Basis, Vereinsfarbe nur als Akzent. */
 .sz-club-showcase-card {
-  border-color: rgb(var(--club-primary-rgb) / 0.42);
+  border-color: rgb(var(--club-accent-rgb) / 0.64);
   background:
-    radial-gradient(circle at 78% 26%, rgb(var(--club-primary-rgb) / 0.17), transparent 48%),
-    linear-gradient(145deg, #151517 0%, #080809 58%, rgb(var(--club-primary-rgb) / 0.1) 100%);
+    radial-gradient(ellipse 90% 100% at 108% 46%, rgb(var(--club-primary-rgb) / 0.58) 0%, rgb(var(--club-primary-rgb) / 0.22) 42%, transparent 72%),
+    linear-gradient(145deg, #151517 0%, #060607 55%, rgb(var(--club-primary-rgb) / 0.24) 100%);
   box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.42),
-    0 0 20px rgb(var(--club-primary-rgb) / 0.11),
-    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    0 0 26px rgb(var(--club-primary-rgb) / 0.22),
+    inset 0 0 0 1px rgb(var(--club-accent-rgb) / 0.08),
+    inset -28px 0 46px rgb(var(--club-primary-rgb) / 0.12);
 }
 
 .sz-club-diagonal-lines {
-  opacity: 0.13;
+  opacity: 0.34;
   background-image: repeating-linear-gradient(
     130deg,
     transparent 0,
     transparent 14px,
-    rgb(var(--club-accent-rgb) / 0.22) 15px,
+    rgb(var(--club-accent-rgb) / 0.26) 15px,
     transparent 16px
   );
+  -webkit-mask-image: linear-gradient(90deg, transparent 12%, rgba(0, 0, 0, 0.22) 44%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 12%, rgba(0, 0, 0, 0.22) 44%, #000 100%);
 }
 
 .sz-club-slider-dot-active {
@@ -109,7 +112,14 @@
 }
 
 .sz-club-list-card {
-  border-color: rgb(var(--club-primary-rgb) / 0.34);
+  border-color: rgb(var(--club-accent-rgb) / 0.38);
+  background:
+    radial-gradient(ellipse 62% 140% at 100% 50%, rgb(var(--club-primary-rgb) / 0.26), transparent 72%),
+    repeating-linear-gradient(130deg, transparent 0, transparent 18px, rgb(var(--club-accent-rgb) / 0.035) 19px, transparent 20px),
+    linear-gradient(100deg, rgba(8, 8, 10, 0.98), rgb(var(--club-primary-rgb) / 0.11));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 8px 22px rgba(0, 0, 0, 0.3);
 }
 
 .sz-club-list-card:hover {
@@ -117,15 +127,20 @@
   box-shadow: 0 8px 24px rgb(var(--club-primary-rgb) / 0.18);
 }
 
+.sz-club-number-divider {
+  border-color: rgb(var(--club-accent-rgb) / 0.42);
+}
+
 .sz-club-profile-hero {
-  border-color: rgb(var(--club-primary-rgb) / 0.44);
+  border-color: rgb(var(--club-accent-rgb) / 0.64);
   background:
-    radial-gradient(circle at 78% 28%, rgb(var(--club-primary-rgb) / 0.18), transparent 50%),
-    linear-gradient(145deg, #151517 0%, #070708 58%, rgb(var(--club-primary-rgb) / 0.12) 100%);
+    radial-gradient(ellipse 90% 100% at 108% 46%, rgb(var(--club-primary-rgb) / 0.58) 0%, rgb(var(--club-primary-rgb) / 0.22) 42%, transparent 72%),
+    linear-gradient(145deg, #151517 0%, #060607 55%, rgb(var(--club-primary-rgb) / 0.24) 100%);
   box-shadow:
     0 14px 42px rgba(0, 0, 0, 0.55),
-    0 0 22px rgb(var(--club-primary-rgb) / 0.12),
-    inset 0 0 0 1px rgb(var(--club-primary-rgb) / 0.1);
+    0 0 28px rgb(var(--club-primary-rgb) / 0.22),
+    inset 0 0 0 1px rgb(var(--club-accent-rgb) / 0.08),
+    inset -28px 0 46px rgb(var(--club-primary-rgb) / 0.12);
 }
 
 .sz-club-profile-accent {

@@ -61,7 +61,6 @@ function PlayerProfileHeroCard(props: Props) {
     photoUrl,
     cutoutUrl,
     initials,
-    roleLabel,
   } = props;
   const cutoutSrc = resolveProfileCutoutSrc(cutoutUrl);
   const photoSrc = resolveProfilePhotoSrc(photoUrl);
@@ -155,11 +154,6 @@ function PlayerProfileHeroCard(props: Props) {
           {firstNameLine ? <p className="whitespace-nowrap">{firstNameLine}</p> : null}
           {lastNameLine ? <p className="whitespace-nowrap">{lastNameLine}</p> : null}
         </div>
-        {roleLabel ? (
-          <p className="sz-club-profile-accent mt-2 text-[12px] font-black uppercase leading-none tracking-[0.12em] sm:text-[13px]">
-            {roleLabel}
-          </p>
-        ) : null}
       </div>
     </div>
   );

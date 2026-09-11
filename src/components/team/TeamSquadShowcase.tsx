@@ -3,7 +3,6 @@ import { ChevronRight } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { getDemoPlayerPortraitUrl, isDemoUpperBodyPortraitUrl } from "../../lib/playerDemoPortrait";
 import { premiumPlayerDisplayName } from "../../lib/premiumPlayerCard";
-import { getTrainingPositionDisplay } from "../../lib/positionLabels";
 import { useDemoMode } from "../../demo/DemoContext";
 
 type Props = {
@@ -45,11 +44,6 @@ function playerCardFamilyName(player: PlayerItem): string {
   if (lastName) return lastName;
   const nameParts = premiumPlayerDisplayName(player).trim().split(/\s+/);
   return nameParts.slice(1).join(" ") || "";
-}
-
-function playerPosition(player: PlayerItem): string {
-  const position = getTrainingPositionDisplay(player.position);
-  return position === "—" ? "" : position.toUpperCase();
 }
 
 export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onSwipePastEnd }) => {
@@ -155,11 +149,6 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                     {playerCardFamilyName(player)}
                   </p>
                 ) : null}
-                {playerPosition(player) ? (
-                  <p className="sz-club-profile-accent mt-2 truncate text-[12px] font-black uppercase leading-none tracking-[0.12em] sm:text-[13px]">
-                    {playerPosition(player)}
-                  </p>
-                ) : null}
               </div>
             </button>
           );
@@ -211,7 +200,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                     }`}
                   />
                 </div>
-                <span className="w-12 shrink-0 border-l border-white/10 pl-2.5 text-[25px] font-black leading-none text-white">
+                <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">
                   {number ?? "–"}
                 </span>
                 <span className="min-w-0 flex-1 pl-2.5">
@@ -221,11 +210,6 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                   <span className="block truncate text-[17px] font-black leading-tight text-white sm:text-[18px]">
                     {playerCardFamilyName(player) || premiumPlayerDisplayName(player)}
                   </span>
-                  {playerPosition(player) ? (
-                    <span className="sz-club-profile-accent mt-0.5 block truncate text-[11px] font-black uppercase leading-tight tracking-[0.1em]">
-                      {playerPosition(player)}
-                    </span>
-                  ) : null}
                 </span>
                 <ChevronRight className="ml-2 h-5 w-5 shrink-0 text-white/65" aria-hidden />
               </button>
