@@ -48,7 +48,11 @@ export const MatchPlayerRow: React.FC<{
   tone?: PremiumPlayerCardTone;
   /** Kaderwahl in der Match-Vorbereitung: gleiche Zeilenoptik wie Team → Kader. */
   layout?: "default" | "team-roster";
-}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default" }) => {
+  /** Eigene rechte Aktionen, z. B. Zu-/Absage im Matchcenter. */
+  trailing?: React.ReactNode;
+  /** Blendet die Positionszeile aus, wenn nur Name und Status relevant sind. */
+  hideSubline?: boolean;
+}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", trailing, hideSubline = false }) => {
   const number = player.jersey_number ?? player.number ?? null;
   const isMatchday = tone === "matchday";
   const baseSub = positionSubline(player.position);
@@ -76,16 +80,20 @@ export const MatchPlayerRow: React.FC<{
           <span className="line-clamp-2 block text-[15px] font-bold leading-tight text-white/95">
             {premiumPlayerDisplayName(player)}
           </span>
-          <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span>
+          {!hideSubline ? <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span> : null}
         </span>
-        <span className="ml-1 flex max-w-[7.25rem] shrink-0 flex-col items-end gap-1">
-          <PlayerSpecialStatusBadges
-            isLaz={player.is_laz_player}
-            isInjured={player.is_injured}
-            size="xs"
-          />
-          {rightLabel ? <PremiumStatusBadge label={rightLabel} tone={statusTone(status)} /> : null}
-        </span>
+        {trailing ? (
+          <span className="ml-1 flex shrink-0 items-center">{trailing}</span>
+        ) : (
+          <span className="ml-1 flex max-w-[7.25rem] shrink-0 flex-col items-end gap-1">
+            <PlayerSpecialStatusBadges
+              isLaz={player.is_laz_player}
+              isInjured={player.is_injured}
+              size="xs"
+            />
+            {rightLabel ? <PremiumStatusBadge label={rightLabel} tone={statusTone(status)} /> : null}
+          </span>
+        )}
       </>
     );
     const className = [

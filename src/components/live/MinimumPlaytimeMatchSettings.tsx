@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { updateMatchRow } from '../../lib/liveMatchService';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
@@ -59,6 +60,7 @@ export function MinimumPlaytimeMatchSettings({
   const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [savedHint, setSavedHint] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const exceedsPlanned = minimumPlaytimeExceedsPlanned(minutes, plannedMinutes);
 
@@ -71,6 +73,10 @@ export function MinimumPlaytimeMatchSettings({
     setCustomMinimum('');
     setValidationError(null);
   }, [plannedProp, enabledProp, minutesProp, matchId]);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [matchId]);
 
   const persist = useCallback(
     async (nextPlanned: number, nextEnabled: boolean, nextMinutes: number) => {
@@ -114,10 +120,30 @@ export function MinimumPlaytimeMatchSettings({
     <div
       className={`rounded-xl border border-white/10 bg-black/35 px-3 py-2.5 ${className}`.trim()}
     >
-      <h3 className="text-[14px] font-bold text-white/92">Spielzeit</h3>
-      <p className="mt-0.5 text-[12px] leading-snug text-white/55">
-        Die Spieldauer steuert Timer-Hinweise und Mindestspielzeit-Warnungen.
-      </p>
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        className="flex min-h-[42px] w-full items-center justify-between gap-3 text-left"
+        aria-expanded={expanded}
+      >
+        <span className="min-w-0">
+          <span className="block text-[14px] font-bold text-white/92">Spielzeit &amp; Mindestspielzeit</span>
+          <span className="mt-0.5 block text-[11px] text-white/48">
+            {plannedMinutes} Minuten · Mindestspielzeit {enabled ? `${minutes} Minuten` : 'aus'}
+          </span>
+        </span>
+        <ChevronDown
+          className={`h-5 w-5 shrink-0 text-white/55 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          strokeWidth={2.2}
+          aria-hidden
+        />
+      </button>
+
+      {expanded ? (
+        <div className="mt-2 border-t border-white/10 pt-2.5">
+          <p className="text-[12px] leading-snug text-white/55">
+            Die Spieldauer steuert Timer-Hinweise und Mindestspielzeit-Warnungen.
+          </p>
 
       <div className="mt-2.5 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -248,6 +274,8 @@ export function MinimumPlaytimeMatchSettings({
           </p>
         )}
       </div>
+        </div>
+      ) : null}
 
       {exceedsPlanned ? (
         <p className="mt-2 text-[12px] font-medium text-amber-300/95">
