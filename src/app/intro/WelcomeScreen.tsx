@@ -12,6 +12,7 @@ import { isStandaloneDisplayMode } from '../../lib/pwaDisplayMode';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
 const WELCOME_HERO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-clean-numbers.jpg`;
+const WELCOME_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
 const ROUTE_APP_HOME = '/app/home';
@@ -301,6 +302,22 @@ export const WelcomeScreen: React.FC = () => {
           className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-black/80 via-black/35 to-transparent"
           aria-hidden
         />
+
+        <div
+          className="pointer-events-none absolute inset-x-5 z-10 flex flex-col items-center"
+          style={{ top: 'max(5.75rem, 12svh)' }}
+          aria-hidden
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.42em] text-white/90 sm:text-xs">
+            Willkommen in der
+          </p>
+          <img
+            src={WELCOME_LOGO_PATH}
+            alt=""
+            className="mt-3 h-auto w-[78%] max-w-[19rem] object-contain"
+            decoding="async"
+          />
+        </div>
 
         {/* Hero oben: Branding + Personengruppe. 1fr füllt den Zwischenraum. */}
         <div className="relative z-10 min-h-[10rem]" aria-hidden />

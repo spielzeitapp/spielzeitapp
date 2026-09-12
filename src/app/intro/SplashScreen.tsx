@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import spielzeitappSplash from '../../assets/branding/spielzeitapp-splash.png';
 import { readPendingParentEmailInviteFlag, resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
 
-const APP_SPLASH_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
+const APP_SPLASH_ALT = 'SpielzeitApp – Unser Team. Unsere Momente. Unser Spiel.';
+const SPLASH_IMAGE_PATH = `${import.meta.env.BASE_URL || '/'}intro/splash-clean.jpg`;
 
 /** Kurzer Marken-Beat (~1000 ms), danach nur Welcome — nie direkt Home. */
 const SPLASH_MS = 1000;
@@ -39,18 +39,14 @@ export const SplashScreen: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center overflow-hidden bg-black px-3"
-      style={{
-        paddingTop: 'max(14vh, calc(3.75rem + env(safe-area-inset-top, 0px)))',
-        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
-      }}
+      className="fixed inset-0 z-[100] flex justify-center overflow-hidden bg-black"
     >
       <img
-        src={spielzeitappSplash}
+        src={SPLASH_IMAGE_PATH}
         alt={APP_SPLASH_ALT}
-        className="intro-splash-mark mx-auto h-auto w-full max-h-[min(82svh,34rem)] max-w-[min(94vw,29rem)] object-contain object-top"
-        width={853}
-        height={1844}
+        className="intro-splash-mark h-full min-h-full w-full max-w-md object-cover object-center"
+        width={941}
+        height={1672}
         decoding="async"
         fetchPriority="high"
       />
