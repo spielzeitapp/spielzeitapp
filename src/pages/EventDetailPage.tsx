@@ -4,7 +4,9 @@ import {
   Bus,
   CalendarPlus,
   Clapperboard,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   ClipboardList,
   Clock3,
   MapPin,
@@ -515,6 +517,7 @@ export const EventDetailPage: React.FC = () => {
   } | null>(null);
 
   const [feedSectionExpanded, setFeedSectionExpanded] = useState(false);
+  const [matchAttendanceExpanded, setMatchAttendanceExpanded] = useState(true);
 
   const { role: roleFromHook } = useActiveTeamSeason();
   const { user: sessionUser, isViewOnlyPlayer } = useSession();
@@ -3660,10 +3663,7 @@ export const EventDetailPage: React.FC = () => {
                 : CalendarPlus;
 
   return (
-    <div
-      className="min-h-screen text-white"
-      style={{ background: '#000000' }}
-    >
+    <div className={`min-h-screen text-white ${event.kind === 'match' ? 'sz-club-event-detail' : 'bg-black'}`}>
       <div
         className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden ${isTraining ? 'px-0 sm:px-4' : 'px-2 sm:px-4'} ${
           isTournament || isTraining || event.kind === 'match'
@@ -3854,9 +3854,9 @@ export const EventDetailPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="-mx-3 relative flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
+          <div className="relative flex w-full min-w-0 flex-col">
             <MatchCardLigaportal
-              className="relative z-[1] !overflow-visible w-full max-w-full rounded-2xl"
+              className="sz-club-event-match-card relative z-[1] w-full max-w-full rounded-[20px]"
               compactDetailGame
               ourTeamName={ourTeamName}
               opponent={event.opponent}
@@ -3885,6 +3885,7 @@ export const EventDetailPage: React.FC = () => {
 
         {event.kind === 'match' ? (
           <CenterQuickActionBar
+            layout="grid"
             onAddToCalendar={() => void handleAddSingleEventToCalendar()}
             onNavigate={canStartNavigation ? handleStartNavigation : undefined}
             showNavigation={canStartNavigation}
@@ -4019,7 +4020,7 @@ export const EventDetailPage: React.FC = () => {
                 ? 'relative flex flex-col gap-4 overflow-hidden border border-[rgba(122,29,42,0.12)] bg-[rgba(18,18,20,0.94)] shadow-[0_0_32px_rgba(122,29,42,0.08),inset_0_1px_0_rgba(255,255,255,0.03)]'
                 : isEventOrOther
                   ? 'flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]'
-                  : 'flex flex-col gap-4'
+                  : 'sz-club-event-section relative flex flex-col gap-3 overflow-hidden border'
             }
           >
             {isTraining ? (
@@ -4028,11 +4029,30 @@ export const EventDetailPage: React.FC = () => {
                 aria-hidden
               />
             ) : null}
-            <CardTitle className={isTraining ? 'relative z-[1]' : undefined}>
-              {isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}
-            </CardTitle>
+            {event.kind === 'match' ? (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 text-left"
+                onClick={() => setMatchAttendanceExpanded((expanded) => !expanded)}
+                aria-expanded={matchAttendanceExpanded}
+              >
+                <span className="sz-club-event-section-icon inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                  <Users className="h-[18px] w-[18px]" strokeWidth={2.1} aria-hidden />
+                </span>
+                <span className="flex-1 text-[19px] font-bold text-white">Zu-/Absagen</span>
+                {matchAttendanceExpanded ? (
+                  <ChevronUp className="h-5 w-5 text-white/55" aria-hidden />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-white/55" aria-hidden />
+                )}
+              </button>
+            ) : (
+              <CardTitle className={isTraining ? 'relative z-[1]' : undefined}>
+                {isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}
+              </CardTitle>
+            )}
 
-            {canTrainerManageEvent ? (
+            {event.kind !== 'match' || matchAttendanceExpanded ? canTrainerManageEvent ? (
               <div className={`flex flex-col gap-3 ${isTraining ? 'relative z-[1]' : ''}`}>
                 {event.kind === 'match' && event.match_id ? (
                   <>
@@ -4068,16 +4088,19 @@ export const EventDetailPage: React.FC = () => {
                   />
                 ) : (
                   <>
-                <div className={`mt-2 flex flex-wrap ${DS_STAT_GRID_GAP}`}>
-                    <span className={dsStatusChipClass('present')}>
-                      Dabei: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
-                    </span>
-                    <span className={dsStatusChipClass('open')}>
-                      Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
-                    </span>
-                    <span className={dsStatusChipClass('absent')}>
-                      Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
-                    </span>
+                <div className="mt-1 grid grid-cols-3 gap-2">
+                    <div className="sz-club-rsvp-stat sz-club-rsvp-stat--yes">
+                      <span>Zugesagt</span>
+                      <strong>{Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}</strong>
+                    </div>
+                    <div className="sz-club-rsvp-stat sz-club-rsvp-stat--open">
+                      <span>Offen</span>
+                      <strong>{Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}</strong>
+                    </div>
+                    <div className="sz-club-rsvp-stat sz-club-rsvp-stat--no">
+                      <span>Abgesagt</span>
+                      <strong>{Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}</strong>
+                    </div>
                   </div>
                 <div className={`flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3`}>
                   {(playersLoading || loadingEventAttendance) && (
@@ -4274,7 +4297,7 @@ export const EventDetailPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            ) : null}
+            ) : null : null}
           </Card>
         ) : null}
 

@@ -866,10 +866,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const cardContent = (
     <>
-      {/* Stadium ambient glow — intensity varies by match phase */}
+      {compactDetailGame ? <div className="sz-club-event-card-lines pointer-events-none absolute inset-0 z-0" aria-hidden /> : null}
+      {/* Quiet club ambience for detail view; schedule heroes keep phase ambience. */}
       <div
         className={
-          isHeroLayout
+          compactDetailGame
+            ? 'pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.025)_0%,transparent_24%),linear-gradient(145deg,transparent_35%,rgb(var(--club-primary-rgb)/0.075)_100%)]'
+            : isHeroLayout
             ? matchPhase === 'live'
               ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,rgba(122,29,42,0.28)_0%,rgba(58,18,24,0.14)_35%,transparent_65%),radial-gradient(ellipse_70%_50%_at_80%_0%,rgba(16,185,129,0.07)_0%,transparent_50%),radial-gradient(ellipse_90%_50%_at_50%_110%,rgba(58,18,24,0.10)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_30%)]'
               : matchPhase === 'finished'
@@ -881,8 +884,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         }
         aria-hidden
       />
-      {/* Vignette + edge darkening for stadium depth */}
-      {isHeroLayout ? (
+      {scheduleNextMatchHero && effectiveEventType === 'game' ? (
+        <div className="sz-club-schedule-match-lines pointer-events-none absolute inset-0 z-0" aria-hidden />
+      ) : null}
+      {/* Vignette + edge darkening for schedule depth. */}
+      {isHeroLayout && !compactDetailGame ? (
         <>
           <div className="pointer-events-none absolute inset-0 z-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.45),inset_0_-30px_50px_rgba(0,0,0,0.25)]" aria-hidden />
           <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,transparent_0%,rgba(0,0,0,0.20)_100%)]" aria-hidden />
@@ -1149,10 +1155,17 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 descriptionText={descriptionText}
                 variant="schedule"
                 kickoffShowUhr={false}
-                compactScheduleHero
-                compactDetailGame={false}
+                compactScheduleHero={scheduleNextMatchHero}
+                compactDetailGame={compactDetailGame}
                 suppressCompactScheduleFooter
               />
+
+              {compactDetailGame && detailGameKickoffLocation ? (
+                <div className="mx-2 mt-2 flex items-center gap-2 border-t border-white/[0.07] px-1 pt-2 text-[13px] font-semibold text-white/78">
+                  <MapPin className="sz-club-accent-text h-4 w-4 shrink-0" strokeWidth={2.2} aria-hidden />
+                  <span className="line-clamp-1 min-w-0">{detailGameKickoffLocation}</span>
+                </div>
+              ) : null}
 
               {/* ── Info Tiles (Schedule Hero only, Trainer) ── */}
               {scheduleNextMatchHero ? (
@@ -1334,7 +1347,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroRing = heroHighlight
     ? 'ring-2 ring-[rgba(122,29,42,0.45)] shadow-[0_0_40px_rgba(122,29,42,0.16)] sm:py-5'
     : '';
-  const overflowClass = isHeroLayout ? 'overflow-visible' : 'overflow-hidden';
+  const overflowClass = compactDetailGame ? 'overflow-hidden' : isHeroLayout ? 'overflow-visible' : 'overflow-hidden';
   const heroShadow = isHeroLayout
     ? matchPhase === 'live'
       ? 'shadow-[0_24px_60px_rgba(0,0,0,0.65),0_0_48px_rgba(122,29,42,0.18),0_0_24px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.04)]'

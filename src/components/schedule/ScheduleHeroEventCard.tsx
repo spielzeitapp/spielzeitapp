@@ -90,8 +90,6 @@ function HeroTeamTwoLines({ displayName, matchColumn }: { displayName: string; m
   );
 }
 
-const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
-
 /** Match-Hero: Logo 56px (SE) bis 64px (sm+). */
 function HeroMatchTeamLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
@@ -115,42 +113,14 @@ function HeroMatchTeamLogo({ src }: { src: string }) {
   );
 }
 
-const heroStadiumGradient =
-  'linear-gradient(to bottom, rgba(16,14,16,0.88) 0%, rgba(10,10,12,0.94) 46%, rgba(18,10,12,0.97) 100%)';
-
-/** Stadion-Flutlicht, Fog, Bloom — cinematic Hero-Layer. */
-function HeroHybridBackdrop({ training = false }: { training?: boolean }) {
+/** Clean club backdrop: diagonal structure without stadium imagery or light effects. */
+function HeroHybridBackdrop({ training: _training = false }: { training?: boolean }) {
+  void _training;
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
-      <img
-        src={stadiumBgUrl}
-        alt=""
-        className={`absolute inset-0 h-full min-h-full w-full min-w-full scale-110 object-cover ${
-          training ? 'object-[92%_12%]' : 'object-[center_28%]'
-        } ${training ? 'opacity-[0.16]' : 'opacity-[0.14]'} brightness-[0.5] saturate-[0.78]`}
-        aria-hidden
-      />
-      <div className={`absolute inset-0 ${training ? 'bg-black/64' : 'bg-black/70'}`} aria-hidden />
-      <div className={`absolute inset-0 ${training ? 'backdrop-blur-[4px] bg-black/14' : 'backdrop-blur-[3px] bg-black/12'}`} aria-hidden />
-      <div
-        className={`absolute inset-0 ${
-          training
-            ? 'bg-[radial-gradient(ellipse_88%_68%_at_100%_-8%,rgba(255,248,235,0.14)_0%,rgba(122,29,42,0.14)_28%,transparent_68%),radial-gradient(ellipse_55%_40%_at_88%_8%,rgba(255,255,255,0.04)_0%,transparent_55%)]'
-            : 'bg-[radial-gradient(ellipse_75%_55%_at_100%_0%,rgba(255,240,220,0.09)_0%,rgba(122,29,42,0.10)_32%,transparent_62%)]'
-        }`}
-        aria-hidden
-      />
-      <div
-        className={`absolute inset-0 ${
-          training
-            ? 'bg-[radial-gradient(ellipse_100%_72%_at_50%_-8%,rgba(122,29,42,0.09),transparent_58%),radial-gradient(ellipse_82%_52%_at_50%_110%,rgba(58,18,24,0.07),transparent_52%)]'
-            : 'bg-[radial-gradient(ellipse_100%_70%_at_50%_-8%,rgba(122,29,42,0.08),transparent_58%),radial-gradient(ellipse_80%_50%_at_50%_110%,rgba(58,18,24,0.06),transparent_52%)]'
-        }`}
-        aria-hidden
-      />
-      <div className={`absolute inset-0 ${training ? 'bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_26%,rgba(0,0,0,0.22)_100%)]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_28%,rgba(0,0,0,0.2)_100%)]'}`} aria-hidden />
-      <div className="absolute inset-0" style={{ background: heroStadiumGradient }} aria-hidden />
-    </div>
+    <div
+      className="sz-club-schedule-hero-backdrop pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]"
+      aria-hidden
+    />
   );
 }
 

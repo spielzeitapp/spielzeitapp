@@ -566,7 +566,7 @@ export function dsScheduleFilterTabClass(active: boolean): string {
   return [
     'min-h-[44px] flex-1 basis-0 rounded-[14px] px-1.5 text-[11px] font-semibold tracking-[0.01em] transition-all duration-150 sm:min-h-[36px] sm:px-2.5 sm:text-[12px]',
     active
-      ? `border border-[rgba(122,29,42,0.32)] ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
+      ? `border sz-club-schedule-filter-active ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
       : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
   ].join(' ');
 }
@@ -577,7 +577,7 @@ export function dsScheduleKindFilterTabClass(active: boolean): string {
     'min-h-[44px] min-w-0 flex-1 basis-0 truncate rounded-[14px] px-1 text-[11px] font-semibold tracking-[0.01em] transition-all duration-150',
     'sm:min-h-[36px] sm:px-2.5 sm:text-[12px]',
     active
-      ? `border border-[rgba(122,29,42,0.32)] ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
+      ? `border sz-club-schedule-filter-active ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
       : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
   ].join(' ');
 }
@@ -586,7 +586,7 @@ export function dsScheduleKindFilterTabClass(active: boolean): string {
 export const DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS = 'w-full min-w-0';
 
 export const DS_SCHEDULE_KIND_FILTER_TRACK_CLASS =
-  'flex w-full min-w-0 items-stretch gap-0.5 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-0.5 backdrop-blur-sm sm:gap-1 sm:p-1';
+  'sz-club-schedule-filter-track flex w-full min-w-0 items-stretch gap-0.5 rounded-xl border p-0.5 backdrop-blur-sm sm:gap-1 sm:p-1';
 /** Live Hub: Übersicht / Aufstellung / Liveticker / Statistik. */
 export function dsLiveHubNavBtnClass(): string {
   return [
@@ -690,11 +690,11 @@ export function dsSchedulePageStyle(): { background: string; boxShadow: string }
   };
 }
 
-/** Hero „Nächstes Training/Spiel“ — Premium Matchday, Flutlicht, Fog. */
+/** Hero „Nächstes Training/Spiel“ — clean club surface without stadium lights. */
 export function dsScheduleHeroPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[14px]',
-    'border sz-club-surface sz-club-surface--hero',
+    'border sz-club-surface sz-club-surface--hero sz-club-schedule-hero-card',
   ].join(' ');
 }
 
@@ -729,8 +729,8 @@ export function dsScheduleHeroDateBoxMonthClass(): string {
 /** Weitere Termine — sekundär, flach und dunkel. */
 export function dsScheduleListPanelClass(): string {
   return [
-    'relative overflow-hidden rounded-[12px]',
-    'border sz-club-surface sz-club-surface--quiet',
+    'relative overflow-hidden rounded-[14px]',
+    'border sz-club-list-card sz-club-schedule-list-card sz-club-surface sz-club-surface--quiet',
   ].join(' ');
 }
 
