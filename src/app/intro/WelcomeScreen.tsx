@@ -317,6 +317,9 @@ export const WelcomeScreen: React.FC = () => {
             className="mt-3 h-auto w-[78%] max-w-[19rem] object-contain"
             decoding="async"
           />
+          <p className="mt-2 whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.17em] text-white/85 min-[390px]:text-[9px] sm:text-[10px]">
+            Unser Team. <span className="text-red-500">Unsere Momente.</span> Unser Spiel.
+          </p>
         </div>
 
         {/* Hero oben: Branding + Personengruppe. 1fr füllt den Zwischenraum. */}
