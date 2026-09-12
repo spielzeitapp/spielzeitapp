@@ -884,6 +884,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         }
         aria-hidden
       />
+      {scheduleNextMatchHero && effectiveEventType === 'game' ? (
+        <div className="sz-club-schedule-match-lines pointer-events-none absolute inset-0 z-0" aria-hidden />
+      ) : null}
       {/* Vignette + edge darkening for schedule depth. */}
       {isHeroLayout && !compactDetailGame ? (
         <>
