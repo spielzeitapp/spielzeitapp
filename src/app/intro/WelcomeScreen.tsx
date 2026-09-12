@@ -9,8 +9,9 @@ import {
 } from '../../lib/parentLinkInvites';
 import { DEMO_TOUR_WHAT_PATH, DEMO_TOUR_WELCOME_BENEFIT, DEMO_TOUR_WELCOME_HEADLINE, DEMO_TOUR_WELCOME_PRIMARY, DEMO_TOUR_WELCOME_PROBLEM } from '../../demo/demoTourConfig';
 import { isStandaloneDisplayMode } from '../../lib/pwaDisplayMode';
-import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg-neu.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
+
+const WELCOME_HERO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-clean-numbers.jpg`;
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
 const ROUTE_APP_HOME = '/app/home';
@@ -289,7 +290,7 @@ export const WelcomeScreen: React.FC = () => {
         }}
       >
         <img
-          src={welcomeHeroBg}
+          src={WELCOME_HERO_PATH}
           alt=""
           className="pointer-events-none absolute inset-0 h-full min-h-full w-full object-cover object-center"
           decoding="async"
