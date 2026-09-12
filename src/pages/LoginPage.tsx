@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import spielzeitAppLogo from '../assets/branding/spielzeitapp-logo-mark.png';
 import { Button } from '../app/components/ui/Button';
 import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
 import {
@@ -39,6 +38,7 @@ const AUTH_PAGE_SHELL_CLASS =
   'auth-login-page flex min-h-[100dvh] min-h-screen w-full flex-col items-stretch overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] sm:py-10';
 const AUTH_PAGE_CARD_CLASS =
   'relative mx-auto w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#111216]/95 px-5 pb-6 pt-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:px-7 sm:pb-7 sm:pt-6';
+const AUTH_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 const inputClass =
   'auth-login-input h-12 w-full rounded-xl border border-white/10 bg-[#1b1d22] pl-11 pr-4 text-[16px] text-white placeholder:text-white/35 shadow-inner transition focus:border-red-400/70 focus:outline-none focus:ring-2 focus:ring-red-500/25';
@@ -257,23 +257,18 @@ export const LoginPage: React.FC = () => {
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-700 via-red-500 to-red-800" />
         <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-red-600/10 blur-3xl" />
 
-        <header className="relative flex items-center gap-3.5">
-          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-red-400/20 bg-gradient-to-br from-red-500/15 to-black shadow-[0_10px_32px_rgba(220,38,38,0.16)]">
-            <img
-              src={spielzeitAppLogo}
-              alt=""
-              className="h-12 w-12 object-contain"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-300">
-              SpielzeitApp
-            </p>
-            <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-white">
-              Willkommen zurück
-            </h1>
-          </div>
+        <header className="relative">
+          <img
+            src={AUTH_LOGO_PATH}
+            alt="SpielzeitApp"
+            className="h-auto w-[13.5rem] max-w-[76vw] object-contain object-left"
+            width={1200}
+            height={378}
+            decoding="async"
+          />
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">
+            Willkommen zurück
+          </h1>
         </header>
 
         <p className="relative mt-4 text-sm leading-6 text-white/60">

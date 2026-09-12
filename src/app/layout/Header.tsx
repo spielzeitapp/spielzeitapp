@@ -5,25 +5,25 @@ import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
-import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 import { TeamSwitcher } from '../components/TeamSwitcher';
 import { ParentChildrenSwitcher } from '../../components/parent/ParentChildrenSwitcher';
 import { isStagingApp } from '../../lib/appEnvironment';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
 
-const APP_HEADER_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
+const APP_HEADER_ALT = 'SpielzeitApp';
+const APP_HEADER_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 /** App-Wortmarke (PNG); object-cover zeigt Logo + Schriftzug ohne Unterzeile. */
 function AppHeaderBrand() {
   return (
     <span className="inline-flex items-center gap-1.5">
       <img
-        src={spielzeitappHeader}
+        src={APP_HEADER_LOGO_PATH}
         alt={APP_HEADER_ALT}
-        className="h-11 w-[10.25rem] max-w-[min(50vw,10.25rem)] shrink-0 object-cover object-[50%_32%] sm:h-12 sm:w-[12rem] sm:max-w-[12rem]"
-        width={192}
-        height={48}
+        className="h-11 w-[10.25rem] max-w-[min(50vw,10.25rem)] shrink-0 object-contain object-left sm:h-12 sm:w-[12rem] sm:max-w-[12rem]"
+        width={1200}
+        height={378}
         decoding="async"
       />
       {isStagingApp() ? (
