@@ -14,12 +14,17 @@ const PARENT_INVITE_STASH_TTL_MS = 72 * 60 * 60 * 1000;
 
 /**
  * Capture invite token early (Magic Link), before Auth hash processing rewrites the URL.
- * Supports /app/parent-invite/<token> and ?t= — kept here to avoid circular imports.
+ * Supports /app/parent-invite/<token> and ?t= on that route only — kept here
+ * to avoid circular imports. Player QR links also use ?t= and must never be
+ * captured as parent invitations.
  */
 export function captureParentInviteTokenFromUrl(): void {
   if (typeof window === 'undefined') return;
   try {
     const path = window.location.pathname || '';
+    const isParentInvitePath =
+      path === '/app/parent-invite' || path.startsWith('/app/parent-invite/');
+    if (!isParentInvitePath) return;
     const pathMatch = path.match(/\/app\/parent-invite\/([0-9a-fA-F]{48})\/?$/);
     let raw = '';
     if (pathMatch?.[1]) {
