@@ -138,6 +138,9 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
       <ul className="space-y-2 px-3 pb-8 sm:px-5">
         {trainers.map((trainer) => {
           const photo = (trainer.cutout_url ?? trainer.avatar_url ?? "").trim();
+          const nameParts = staffDisplayName(trainer).split(/\s+/).filter(Boolean);
+          const firstName = nameParts[0] || "Trainer";
+          const familyName = nameParts.slice(1).join(" ");
           return (
             <li key={`trainer-row-${trainer.user_id}-${trainer.role}`}>
               <button
@@ -157,9 +160,14 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
                 <span className="w-12 shrink-0 border-l border-white/10 pl-2.5 text-[20px] font-black uppercase leading-none text-white">
                   TR
                 </span>
-                <p className="min-w-0 flex-1 truncate pl-2.5 text-[16px] font-bold text-white/95">
-                  {staffDisplayName(trainer)}
-                </p>
+                <span className="min-w-0 flex-1 pl-2.5">
+                  <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 sm:text-[14px]">
+                    {firstName}
+                  </span>
+                  <span className="block truncate text-[17px] font-black leading-tight text-white sm:text-[18px]">
+                    {familyName || staffDisplayName(trainer)}
+                  </span>
+                </span>
                 <ChevronRight className="ml-2 h-5 w-5 shrink-0 text-white/60" aria-hidden />
               </button>
             </li>
