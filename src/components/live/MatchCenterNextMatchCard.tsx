@@ -11,8 +11,6 @@ import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEvent
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
 
-const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
-
 type Props = {
   event: EventRow;
   ourTeamName: string;
@@ -30,7 +28,7 @@ function TeamLogoMark({
   const src = getClubLogo(name, { logoUrl });
   if (failed) {
     return (
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-black/50 text-[12px] font-bold text-white/80">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-black/50 text-[13px] font-black text-white/80">
         {getTeamInitials(name)}
       </div>
     );
@@ -39,7 +37,7 @@ function TeamLogoMark({
     <img
       src={src}
       alt=""
-      className="h-12 w-12 shrink-0 object-contain"
+      className="h-16 w-16 shrink-0 object-contain drop-shadow-[0_5px_12px_rgba(0,0,0,0.65)] sm:h-[4.5rem] sm:w-[4.5rem]"
       onError={() => setFailed(true)}
     />
   );
@@ -66,89 +64,72 @@ export function MatchCenterNextMatchCard({ event, ourTeamName, now }: Props) {
   const matchLabel = getMatchTypeLabel(event.match_type ?? event.type);
 
   return (
-    <article className="relative overflow-hidden rounded-[20px] border border-[rgba(220,38,38,0.32)] shadow-[0_0_32px_rgba(220,38,38,0.12),0_16px_48px_rgba(0,0,0,0.55)]">
-      <div className="relative bg-black px-3 py-2.5 sm:px-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-300/85">
+    <article className="sz-club-schedule-hero-card relative overflow-hidden rounded-[22px] border shadow-[0_0_32px_rgba(220,38,38,0.13),0_16px_48px_rgba(0,0,0,0.55)]">
+      <div className="sz-club-schedule-hero-backdrop pointer-events-none absolute inset-0" aria-hidden />
+      <div className="relative border-b border-[rgb(var(--club-border-rgb)/0.16)] bg-black/35 px-4 py-3 backdrop-blur-sm">
+        <p className="text-[12px] font-black uppercase tracking-[0.22em] text-red-300/90">
           Nächstes Spiel
         </p>
         {matchLabel ? (
-          <p className="mt-0.5 text-[11px] font-medium text-white/45">{matchLabel}</p>
+          <p className="mt-1 text-[13px] font-semibold text-white/55">{matchLabel}</p>
         ) : null}
       </div>
 
-      <div className="relative min-w-0 overflow-hidden">
-        <img
-          src={stadiumBgUrl}
-          alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover object-[center_28%] opacity-[0.16] brightness-[0.55] saturate-[0.8]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(10,10,12,0.82)_0%,rgba(14,8,10,0.94)_55%,rgba(8,6,8,0.97)_100%)]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_100%_0%,rgba(255,240,220,0.12)_0%,rgba(122,29,42,0.16)_32%,transparent_62%)]"
-          aria-hidden
-        />
-
-        <div className="relative px-3 py-3.5 sm:px-4 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+      <div className="relative min-w-0 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
+            <div className="flex min-w-0 flex-col items-center gap-2">
               <TeamLogoMark name={homeTeam} logoUrl={homeLogoUrl} />
-              <p className="line-clamp-2 w-full text-center text-[11px] font-bold leading-snug text-white">
+              <p className="line-clamp-2 w-full text-center text-[14px] font-black leading-[1.15] text-white sm:text-[15px]">
                 {homeTeam}
               </p>
             </div>
-            <span className="shrink-0 px-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
-              vs
-            </span>
-            <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <div className="flex min-w-[5.5rem] flex-col items-center pt-1 text-center">
+              <span className="text-[10px] font-black uppercase tracking-[0.24em] text-red-300/85">Anpfiff</span>
+              <span className="mt-1 text-[2rem] font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.7)]">{kickoff}</span>
+              <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/38">Uhr</span>
+            </div>
+            <div className="flex min-w-0 flex-col items-center gap-2">
               <TeamLogoMark name={awayTeam} logoUrl={awayLogoUrl} />
-              <p className="line-clamp-2 w-full text-center text-[11px] font-bold leading-snug text-white">
+              <p className="line-clamp-2 w-full text-center text-[14px] font-black leading-[1.15] text-white sm:text-[15px]">
                 {awayTeam}
               </p>
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-2 text-[12px] text-white/72">
-            <span className="inline-flex min-w-[3rem] flex-col items-center rounded-lg border border-red-500/25 bg-black/35 px-2 py-1">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-red-300/80">
+          <div className="mt-4 grid grid-cols-[4.25rem_1fr] overflow-hidden rounded-[16px] border border-white/[0.08] bg-black/38 shadow-inner backdrop-blur-sm">
+            <span className="inline-flex min-h-[4.5rem] flex-col items-center justify-center border-r border-white/[0.08] px-2 py-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-red-300/85">
                 {dateParts.wd}
               </span>
-              <span className="text-[18px] font-bold leading-none text-white">{dateParts.day}</span>
-              <span className="text-[10px] font-semibold uppercase text-white/55">{dateParts.mon}</span>
+              <span className="text-[25px] font-black tabular-nums leading-none text-white">{dateParts.day}</span>
+              <span className="mt-0.5 text-[10px] font-bold uppercase text-white/58">{dateParts.mon}</span>
             </span>
-            <div className="min-w-0 flex-1 space-y-1">
-              <p className="inline-flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
-                <span>Anpfiff {kickoff} Uhr</span>
-              </p>
+            <div className="flex min-w-0 flex-col justify-center gap-1.5 px-3 py-2 text-[12px] font-semibold text-white/76">
               {place ? (
                 <p className="inline-flex min-w-0 items-start gap-1.5">
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-400/85" aria-hidden />
                   <span className="min-w-0 break-words leading-snug">{place}</span>
                 </p>
               ) : null}
+              <p className="inline-flex items-center gap-1.5 text-white/48">
+                <Clock className="h-4 w-4 shrink-0 text-red-400/65" aria-hidden />
+                <span>Spielbeginn {kickoff} Uhr</span>
+              </p>
             </div>
           </div>
 
           {countdown ? (
-            <div className="mt-3.5">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/42">
-                Countdown
-              </p>
+            <div className="mt-3">
               <MatchCenterCountdown parts={countdown} />
             </div>
           ) : null}
 
           <Link
             to={`/app/events/${event.id}`}
-            className={`${dsPrimaryCtaClass()} mt-4 inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
+            className={`${dsPrimaryCtaClass()} mt-3 inline-flex min-h-[46px] w-full touch-manipulation items-center justify-center px-4 py-2.5 text-[15px] font-black`}
           >
             Zum Spiel
           </Link>
-        </div>
       </div>
     </article>
   );
