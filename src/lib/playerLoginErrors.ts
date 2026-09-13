@@ -39,6 +39,9 @@ export function mapPlayerLoginError(raw: string | null | undefined): string {
   if (msg.includes('failed to fetch') || msg.includes('network')) {
     return 'Netzwerkfehler. Bitte Verbindung prüfen und erneut versuchen.';
   }
+  if (msg.includes('captcha') || msg.includes('explicit_user_intent')) {
+    return 'Sicherheitsprüfung fehlgeschlagen. Bitte bestätigen und erneut versuchen.';
+  }
   return raw ?? 'Ein Fehler ist aufgetreten.';
 }
 
