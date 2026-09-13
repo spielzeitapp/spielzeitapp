@@ -462,7 +462,64 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           role: 'admin',
           team_season_id: row.team_season_id,
         }));
-        const list = [...regularMemberships, ...clubAdminMemberships];
+        const directMemberships = [...regularMemberships, ...clubAdminMemberships];
+
+        // Eltern bleiben über player_guardians dauerhaft mit ihrem Kind verknüpft.
+        // Dadurch dürfen sie auch frühere, inzwischen archivierte Kader-Saisons
+        // weiterhin lesen, selbst wenn die Parent-Membership nur auf die aktuelle
+        // Saison übertragen wurde.
+        const isParentAccount =
+          regularMemberships.some((membership) => normalizeRole(membership.role) === 'parent') ||
+          roleToSet === 'parent' ||
+          resolveParentUiRole(authUser) === 'parent';
+        const guardianHistoryMemberships: MembershipWithJoin[] = [];
+        if (isParentAccount) {
+          const { data: guardianRows, error: guardianError } = await supabase
+            .from('player_guardians')
+            .select('player_id')
+            .eq('user_id', authUser.id);
+
+          if (guardianError) {
+            console.warn('[useSession] parent history guardians error:', guardianError.message);
+          } else {
+            const playerIds = Array.from(
+              new Set(
+                (guardianRows ?? [])
+                  .map((row: { player_id?: string | null }) => row.player_id)
+                  .filter((id): id is string => Boolean(id)),
+              ),
+            );
+            if (playerIds.length > 0) {
+              const { data: rosterRows, error: rosterError } = await supabase
+                .from('team_season_players')
+                .select('team_season_id')
+                .in('player_id', playerIds);
+
+              if (rosterError) {
+                console.warn('[useSession] parent history seasons error:', rosterError.message);
+              } else {
+                const existingIds = new Set(directMemberships.map((membership) => membership.team_season_id));
+                const historyIds = Array.from(
+                  new Set(
+                    (rosterRows ?? [])
+                      .map((row: { team_season_id?: string | null }) => row.team_season_id)
+                      .filter((id): id is string => Boolean(id)),
+                  ),
+                );
+                for (const teamSeasonId of historyIds) {
+                  if (existingIds.has(teamSeasonId)) continue;
+                  guardianHistoryMemberships.push({
+                    id: `guardian-history:${teamSeasonId}`,
+                    role: 'parent',
+                    team_season_id: teamSeasonId,
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        const list = [...directMemberships, ...guardianHistoryMemberships];
         setMemberships(list);
 
         if (list.length === 0) {
@@ -698,4 +755,3 @@ export function useSession(): SessionContextValue {
   }
   return ctx;
 }
-
