@@ -37,7 +37,7 @@ import '../styles/auth-login.css';
 const AUTH_PAGE_SHELL_CLASS =
   'auth-login-page flex min-h-[100dvh] min-h-screen w-full flex-col items-stretch overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] sm:py-10';
 const AUTH_PAGE_CARD_CLASS =
-  'relative mx-auto w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#111216]/95 px-5 pb-6 pt-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:px-7 sm:pb-7 sm:pt-6';
+  'relative mx-auto w-full max-w-md shrink-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#111216]/95 px-5 pb-6 pt-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:px-7 sm:pb-7 sm:pt-6';
 const AUTH_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 const inputClass =
