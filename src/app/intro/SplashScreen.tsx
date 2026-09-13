@@ -63,23 +63,23 @@ export const SplashScreen: React.FC = () => {
           }}
           aria-hidden
         />
-        <div className="relative z-10 flex w-full -translate-y-[2vh] flex-col items-center justify-center px-5 text-center">
+        <div className="relative z-10 flex w-full -translate-y-[5vh] flex-col items-center justify-center px-4 text-center">
           <img
             src={spielzeitappIcon}
             alt=""
-            className="intro-splash-mark h-auto w-[54vw] max-w-[13rem] object-contain drop-shadow-[0_0_34px_rgba(239,68,68,0.34)]"
+            className="intro-splash-mark h-auto w-[82vw] max-w-[20rem] object-contain drop-shadow-[0_0_42px_rgba(239,68,68,0.4)]"
             width={512}
             height={512}
             decoding="async"
             fetchPriority="high"
           />
           <div
-            className="mt-2 text-[clamp(2.75rem,13vw,3.8rem)] font-black leading-none tracking-[-0.06em] text-white [text-shadow:0_3px_12px_rgba(0,0,0,0.7)]"
+            className="-mt-3 text-[clamp(2.7rem,12.5vw,3.65rem)] font-black leading-none tracking-[-0.06em] text-white [text-shadow:0_3px_12px_rgba(0,0,0,0.7)]"
             aria-label={APP_SPLASH_ALT}
           >
             Spielzeit<span className="text-[#ff222b]">App</span>
           </div>
-          <div className="mt-5 flex flex-col items-center text-[clamp(1.15rem,5.6vw,1.55rem)] font-black uppercase leading-[1.18] tracking-[0.015em] text-white">
+          <div className="mt-4 flex flex-col items-center text-[clamp(1.2rem,5.8vw,1.6rem)] font-black uppercase leading-[1.12] tracking-[0.01em] text-white">
             <span>Unser Team.</span>
             <span className="text-[#ff3038]">Unsere Momente.</span>
             <span>Unser Spiel.</span>
