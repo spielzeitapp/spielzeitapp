@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { readPendingParentEmailInviteFlag, resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
+import { SpielzeitAppWordmark } from '../../components/branding/SpielzeitAppBrand';
 
 const APP_SPLASH_ALT = 'SpielzeitApp';
-const SPLASH_WORDMARK_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 /** Kurzer Marken-Beat (~1000 ms), danach nur Welcome — nie direkt Home. */
 const SPLASH_MS = 1000;
@@ -74,14 +74,10 @@ export const SplashScreen: React.FC = () => {
             decoding="async"
             fetchPriority="high"
           />
-          <svg
-            viewBox="275 55 900 220"
-            className="-mt-4 h-auto w-[98vw] max-w-[28rem] overflow-visible drop-shadow-[0_3px_14px_rgba(0,0,0,0.78)]"
-            role="img"
-            aria-label={APP_SPLASH_ALT}
-          >
-            <image href={SPLASH_WORDMARK_PATH} width="1200" height="378" />
-          </svg>
+          <SpielzeitAppWordmark
+            className="-mt-3 w-[92vw] max-w-[27rem] drop-shadow-[0_3px_14px_rgba(0,0,0,0.78)]"
+            label={APP_SPLASH_ALT}
+          />
           <div className="mt-3 flex flex-col items-center text-[clamp(1.25rem,6vw,1.65rem)] font-black uppercase leading-[1.1] tracking-[0.005em] text-white">
             <span>Unser Team.</span>
             <span className="text-[#ff3038]">Unsere Momente.</span>
