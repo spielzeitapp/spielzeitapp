@@ -69,7 +69,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
           const endX = event.changedTouches[0]?.clientX ?? start.x;
           if (endX - start.x > 45) onSwipePastStart();
         }}
-        className="flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-5"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-[12%] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4 sm:px-[18%]"
         aria-label="Trainer-Karussell"
       >
         {trainers.map((trainer) => {
@@ -81,10 +81,10 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
               data-trainer-card
               type="button"
               onClick={() => onTrainerClick(trainer)}
-              className="sz-club-showcase-card group relative aspect-[4/5] w-[42vw] min-w-[148px] max-w-[172px] shrink-0 snap-start overflow-hidden rounded-[18px] border text-left transition active:scale-[0.985] sm:w-[210px] sm:max-w-[210px] sm:rounded-[22px]"
+              className="sz-club-showcase-card group relative aspect-[3/4] w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]"
             >
               <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
-              <span className="absolute right-3 top-3 z-10 text-[28px] font-black uppercase leading-none text-white sm:text-[34px]">
+              <span className="absolute left-5 top-5 z-10 text-[56px] font-black uppercase leading-none tracking-[-0.06em] text-white/90 sm:text-[66px]">
                 TR
               </span>
               {photo ? (
@@ -93,7 +93,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
                   alt=""
                   className={`absolute inset-0 h-full w-full transition duration-300 group-hover:scale-[1.02] ${
                     trainer.cutout_url
-                      ? "origin-bottom -translate-y-[4%] scale-[1.22] object-contain object-bottom group-hover:-translate-y-[4%] group-hover:scale-[1.25]"
+                      ? "origin-bottom scale-[1.38] object-contain object-bottom group-hover:scale-[1.43]"
                       : "object-cover object-top"
                   }`}
                 />
@@ -102,13 +102,13 @@ export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick,
                   {trainerInitials(trainer)}
                 </div>
               )}
-              <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-black via-black/80 to-transparent" aria-hidden />
-              <div className="absolute inset-x-0 bottom-7 z-10 p-3 sm:bottom-0 sm:p-4">
-                <p className="truncate text-[20px] font-black uppercase leading-none tracking-tight text-white sm:text-[24px]">
+              <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
+              <div className="absolute inset-x-0 bottom-0 z-10 p-4 sm:p-5">
+                <p className="truncate text-[25px] font-black uppercase leading-none tracking-tight text-white sm:text-[28px]">
                   {nameParts[0] || "Trainer"}
                 </p>
                 {nameParts.length > 1 ? (
-                  <p className="mt-1 truncate text-[14px] font-black uppercase leading-none tracking-[0.06em] text-white/90 sm:text-[16px]">
+                  <p className="mt-1 truncate text-[19px] font-black uppercase leading-none tracking-[0.035em] text-white sm:text-[21px]">
                     {nameParts.slice(1).join(" ")}
                   </p>
                 ) : null}
