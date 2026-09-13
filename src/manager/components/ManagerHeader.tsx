@@ -14,7 +14,7 @@ import {
 } from '../../lib/seasonLifecycle';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { AppHomeIcon, MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
-import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
+const SPIELZEITAPP_BRAND_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 type Props = {
   onOpenSidebar: () => void;
@@ -153,11 +153,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         <div className="hidden sm:block"><ManagerMenuButton onClick={onOpenSidebar} /></div>
 
         <div className="min-w-0 flex-1">
-          <SpielzeitAppBrand
-            className="max-w-[48vw] sm:hidden"
-            iconClassName="h-10 w-10"
-            wordmarkClassName="w-[7.7rem]"
-          />
+          <img src={SPIELZEITAPP_BRAND_PATH} alt="SpielzeitApp" className="h-10 w-[10.2rem] max-w-[48vw] object-contain object-left sm:hidden" />
           <p className="hidden truncate text-[18px] font-bold tracking-tight text-white sm:block sm:text-[20px]">Manager</p>
           <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.16em] text-red-300/60 sm:hidden">Manager · {roleHint.replace(/_/g, ' ')}</p>
         </div>

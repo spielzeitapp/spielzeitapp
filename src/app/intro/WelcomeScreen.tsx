@@ -10,9 +10,9 @@ import {
 import { DEMO_TOUR_WHAT_PATH, DEMO_TOUR_WELCOME_BENEFIT, DEMO_TOUR_WELCOME_HEADLINE, DEMO_TOUR_WELCOME_PRIMARY, DEMO_TOUR_WELCOME_PROBLEM } from '../../demo/demoTourConfig';
 import { isStandaloneDisplayMode } from '../../lib/pwaDisplayMode';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
-import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
 
 const WELCOME_HERO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-clean-numbers.jpg`;
+const WELCOME_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
 const ROUTE_APP_HOME = '/app/home';
@@ -311,11 +311,11 @@ export const WelcomeScreen: React.FC = () => {
           <p className="text-[14px] font-black uppercase tracking-[0.34em] text-white/95 min-[390px]:text-[15px] sm:text-base">
             Willkommen in der
           </p>
-          <SpielzeitAppBrand
-            className="mt-3 w-[94%] max-w-[23rem] justify-center drop-shadow-[0_0_22px_rgba(239,68,68,0.2)]"
-            iconClassName="h-[4.75rem] w-[4.75rem]"
-            wordmarkClassName="w-[17rem] max-w-[68vw]"
-            label=""
+          <img
+            src={WELCOME_LOGO_PATH}
+            alt=""
+            className="mt-3 h-auto w-[90%] max-w-[22rem] object-contain drop-shadow-[0_0_22px_rgba(239,68,68,0.2)]"
+            decoding="async"
           />
           <div className="mt-3 flex flex-col items-center">
             <p className="-skew-x-6 whitespace-nowrap text-[17px] font-black italic uppercase tracking-[-0.015em] min-[390px]:text-[18px] sm:text-[19px] [text-shadow:0_2px_8px_rgba(0,0,0,0.85)]">
