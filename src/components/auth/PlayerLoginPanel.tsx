@@ -9,6 +9,10 @@ import {
 } from '../../lib/playerLoginErrors';
 import { INTRO_SPLASH_PATH } from '../../app/intro/introFlowSession';
 import { supabase } from '../../lib/supabaseClient';
+import {
+  isTurnstileConfigured,
+  TurnstileWidget,
+} from './TurnstileWidget';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -24,6 +28,8 @@ export const PlayerLoginPanel: React.FC<Props> = ({ onBack }) => {
   const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const featureOn = isPlayerQrAccessEnabled();
 
@@ -47,7 +53,9 @@ export const PlayerLoginPanel: React.FC<Props> = ({ onBack }) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        const { error: anonErr } = await supabase.auth.signInAnonymously();
+        const { error: anonErr } = await supabase.auth.signInAnonymously({
+          options: captchaToken ? { captchaToken } : undefined,
+        });
         if (anonErr) {
           setError(mapPlayerLoginError(anonErr.message));
           return;
@@ -75,6 +83,8 @@ export const PlayerLoginPanel: React.FC<Props> = ({ onBack }) => {
     } catch (e: unknown) {
       setError(mapPlayerLoginError(e instanceof Error ? e.message : String(e)));
     } finally {
+      setCaptchaToken(null);
+      setCaptchaResetKey((value) => value + 1);
       setLoading(false);
     }
   };
@@ -147,13 +157,23 @@ export const PlayerLoginPanel: React.FC<Props> = ({ onBack }) => {
           </div>
         </div>
 
+        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-2.5">
+          <p className="mb-2 px-1 text-xs font-semibold text-white/50">Sichere Anmeldung</p>
+          <TurnstileWidget onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
+        </div>
+
         {error ? (
           <p className="text-sm text-red-300" role="alert">
             {error}
           </p>
         ) : null}
 
-        <Button type="submit" fullWidth disabled={loading} className="mt-2">
+        <Button
+          type="submit"
+          fullWidth
+          disabled={loading || (isTurnstileConfigured && !captchaToken)}
+          className="mt-2"
+        >
           {loading ? 'Wird angemeldet…' : 'Anmelden'}
         </Button>
       </form>
