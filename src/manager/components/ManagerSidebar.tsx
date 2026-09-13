@@ -20,11 +20,11 @@ import {
 import { MANAGER_NAV_SECTIONS } from '../managerNav';
 import { navItemVisibleForWorkMode } from '../managerWorkMode';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
+import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
 import { useManagerClubModules } from '../ManagerClubModulesContext';
 
 /** Bestehende mobile App-Startseite (ohne Logout). */
 export const MANAGER_TO_APP_HOME_PATH = '/app/home';
-const SPIELZEITAPP_BRAND_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 function appHomeIconSrc(): string {
   const b = import.meta.env.BASE_URL || '/';
@@ -134,11 +134,10 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
       >
         <div className="flex h-[72px] shrink-0 items-center justify-between gap-2 border-b border-white/10 px-5 pt-[env(safe-area-inset-top)] lg:pt-0">
           <Link to={platformGlobal ? '/manager/plattform' : '/manager'} className="flex min-w-0 items-center gap-2" onClick={closeOnNav}>
-            <img
-              src={SPIELZEITAPP_BRAND_PATH}
-              alt="SpielzeitApp"
-              className="h-9 w-auto max-w-[13rem] object-contain object-left"
-              decoding="async"
+            <SpielzeitAppBrand
+              className="max-w-[13rem]"
+              iconClassName="h-9 w-9"
+              wordmarkClassName="w-[9rem]"
             />
           </Link>
           <button
