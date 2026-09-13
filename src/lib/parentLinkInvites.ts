@@ -606,12 +606,16 @@ export function ensureParentInviteContextFromNext(next: string | null | undefine
 }
 
 /**
- * Capture invite token from URL path, ?t=, or hash as early as possible.
+ * Capture invite token from the parent-invite URL path, ?t=, or hash as early
+ * as possible. Player access uses the same query key and must stay separate.
  */
 export function captureParentInviteTokenFromUrl(): void {
   if (typeof window === 'undefined') return;
   try {
     const path = window.location.pathname || '';
+    const isParentInvitePath =
+      path === '/app/parent-invite' || path.startsWith('/app/parent-invite/');
+    if (!isParentInvitePath) return;
     const pathMatch = path.match(/\/app\/parent-invite\/([0-9a-fA-F]{48})\/?$/);
     if (pathMatch?.[1]) {
       const token = normalizeParentInviteToken(pathMatch[1]);

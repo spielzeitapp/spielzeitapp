@@ -14,6 +14,14 @@ const accessSeasonMigration = readFileSync(
   new URL('../supabase/migrations/20260913103000_player_access_active_season.sql', import.meta.url),
   'utf8',
 );
+const supabaseClient = readFileSync(
+  new URL('../src/lib/supabaseClient.ts', import.meta.url),
+  'utf8',
+);
+const parentInviteLib = readFileSync(
+  new URL('../src/lib/parentLinkInvites.ts', import.meta.url),
+  'utf8',
+);
 
 assert.match(source, /\.eq\('status', 'active'\)/, 'player onboarding must require an active season');
 assert.match(source, /\.is\('archived_at', null\)/, 'player onboarding must exclude archived seasons');
@@ -57,6 +65,27 @@ assert.match(
   accessSeasonMigration,
   /INSERT INTO public\.memberships/,
   'existing player devices must receive their active-season membership',
+);
+
+for (const [label, inviteSource] of [
+  ['early auth capture', supabaseClient],
+  ['parent invite capture', parentInviteLib],
+]) {
+  assert.match(
+    inviteSource,
+    /isParentInvitePath/,
+    `${label}: ?t= must be scoped to the parent-invite route`,
+  );
+  assert.match(
+    inviteSource,
+    /if \(!isParentInvitePath\) return/,
+    `${label}: player QR tokens must not be captured as parent invites`,
+  );
+}
+assert.match(
+  qrRedeem,
+  /clearStashedParentInviteToken\(\)/,
+  'player QR redemption must clear tokens misclassified by older versions',
 );
 
 console.log('player onboarding active-season checks passed');

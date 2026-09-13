@@ -10,6 +10,7 @@ import { useSession } from '../auth/useSession';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { mapPlayerAccessRedeemError } from '../lib/playerAccessRedeemErrors';
 import { INTRO_SPLASH_PATH } from '../app/intro/introFlowSession';
+import { clearStashedParentInviteToken } from '../lib/parentLinkInvites';
 
 type RedeemPhase = 'idle' | 'working' | 'success' | 'error';
 
@@ -40,6 +41,9 @@ export const PlayerAccessRedeemPage: React.FC = () => {
 
     setPhase('working');
     setErrorMessage(null);
+    // Ältere App-Versionen speicherten den Spieler-QR-Parameter ?t=
+    // versehentlich als Eltern-Einladung und leiteten nach dem Einlösen um.
+    clearStashedParentInviteToken();
     setRememberMePreference(rememberMe);
 
     try {
