@@ -1400,10 +1400,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     ? Boolean(players.find((p) => p.id === myLinkedPlayerId)?.is_laz_player)
     : myLinkedPlayerIsLazLive;
 
-  /** Eltern/Spieler: ruhiger Sicherheitsabstand zu den schmalen mobilen Displayrändern. */
-  const useAudienceScheduleInset =
-    (uiRole === 'parent' || uiRole === 'player') && !forcePublicView;
-
   // Die Hero-Karte erst anzeigen, wenn alle statusbestimmenden Daten da sind.
   // Sonst blitzt zuerst die Verfuegbarkeit auf und wechselt nach dem
   // Lineup-/Match-Request auf den aktuellen Live-Zustand.
@@ -1440,7 +1436,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
       style={dsSchedulePageStyle()}
     >
       <div className="schedule-page__scroll min-w-0 overflow-x-hidden">
-        <div className={`w-full ${useAudienceScheduleInset ? 'px-3' : 'px-[6px]'} sm:px-4 md:px-6 lg:px-2`}>
+        <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
           <div className="mx-auto mt-1 max-w-3xl space-y-2 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-1 sm:mt-2 sm:space-y-4 sm:pt-2">
           {toastMessage && (
             <div
