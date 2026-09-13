@@ -1,4 +1,17 @@
 .auth-login-page {
+  /*
+   * The app root is viewport-sized. A min-height alone lets this page grow
+   * beyond that root, which makes the lower login actions unreachable on
+   * short iPhones (for example iPhone SE). Keep this page inside the root and
+   * make it the explicit touch-scroll container instead.
+   */
+  height: 100%;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   background:
     radial-gradient(circle at 50% -8%, rgb(220 38 38 / 20%), transparent 34rem),
     radial-gradient(circle at 8% 70%, rgb(127 29 29 / 10%), transparent 24rem),
