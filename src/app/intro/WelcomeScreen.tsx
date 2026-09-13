@@ -305,21 +305,28 @@ export const WelcomeScreen: React.FC = () => {
 
         <div
           className="pointer-events-none absolute inset-x-5 z-10 flex flex-col items-center"
-          style={{ top: 'max(5.75rem, 12svh)' }}
+          style={{ top: 'max(4.75rem, 9svh)' }}
           aria-hidden
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.42em] text-white/90 sm:text-xs">
+          <p className="text-[14px] font-black uppercase tracking-[0.34em] text-white/95 min-[390px]:text-[15px] sm:text-base">
             Willkommen in der
           </p>
           <img
             src={WELCOME_LOGO_PATH}
             alt=""
-            className="mt-3 h-auto w-[78%] max-w-[19rem] object-contain"
+            className="mt-3 h-auto w-[90%] max-w-[22rem] object-contain drop-shadow-[0_0_22px_rgba(239,68,68,0.2)]"
             decoding="async"
           />
-          <p className="mt-2.5 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.09em] text-white/95 min-[390px]:text-[11px] sm:text-[12px]">
-            Unser Team. <span className="text-red-500">Unsere Momente.</span> Unser Spiel.
-          </p>
+          <div className="mt-3 flex flex-col items-center">
+            <p className="-skew-x-6 whitespace-nowrap text-[17px] font-black italic uppercase tracking-[-0.015em] min-[390px]:text-[18px] sm:text-[19px] [text-shadow:0_2px_8px_rgba(0,0,0,0.85)]">
+              <span className="text-white">#GEMEINSAM</span>
+              <span className="text-[#ff2731]">EINTEAM</span>
+            </p>
+            <span
+              className="mt-1 h-[3px] w-[82%] -skew-x-12 bg-gradient-to-r from-transparent via-[#ff2731] to-transparent shadow-[0_0_8px_rgba(255,39,49,0.7)]"
+              aria-hidden
+            />
+          </div>
         </div>
 
         {/* Hero oben: Branding + Personengruppe. 1fr füllt den Zwischenraum. */}
@@ -387,10 +394,10 @@ export const WelcomeScreen: React.FC = () => {
                 <span className="welcome-intro-icon-shell relative z-10">
                   <img
                     src={spielzeitappIcon}
-                    className="h-10 w-10 object-contain sm:h-11 sm:w-11"
+                    className="h-[52px] w-[52px] object-contain sm:h-14 sm:w-14"
                     alt=""
-                    width={44}
-                    height={44}
+                    width={56}
+                    height={56}
                     decoding="async"
                     draggable={false}
                   />

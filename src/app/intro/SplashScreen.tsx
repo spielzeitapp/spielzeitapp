@@ -1,16 +1,16 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { readPendingParentEmailInviteFlag, resolvePendingParentInvitePath } from '../../lib/parentLinkInvites';
+import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
 const APP_SPLASH_ALT = 'SpielzeitApp';
-const SPLASH_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 /** Kurzer Marken-Beat (~1000 ms), danach nur Welcome — nie direkt Home. */
 const SPLASH_MS = 1000;
 
 /**
- * Marken-Splash: neues Logo auf einem ruhigen rot-schwarzen Hintergrund.
- * Keine Buttons und kein Slogan – die Botschaft folgt auf der Welcome-Seite.
+ * Marken-Splash: Wappen, Wortmarke und Markenclaim untereinander auf einem
+ * ruhigen rot-schwarzen Hintergrund.
  * Demo und App teilen dieselbe Komponente — Zielpfad hängt vom aktuellen Prefixe ab.
  * Pending Eltern-Einladung überspringt Splash → Accept-Seite.
  */
@@ -63,16 +63,27 @@ export const SplashScreen: React.FC = () => {
           }}
           aria-hidden
         />
-        <div className="relative z-10 flex w-full -translate-y-[3vh] justify-center px-7">
+        <div className="relative z-10 flex w-full -translate-y-[2vh] flex-col items-center justify-center px-5 text-center">
           <img
-            src={SPLASH_LOGO_PATH}
-            alt={APP_SPLASH_ALT}
-            className="intro-splash-mark h-auto w-full max-w-[22rem] object-contain drop-shadow-[0_0_30px_rgba(239,68,68,0.2)]"
-            width={1200}
-            height={378}
+            src={spielzeitappIcon}
+            alt=""
+            className="intro-splash-mark h-auto w-[54vw] max-w-[13rem] object-contain drop-shadow-[0_0_34px_rgba(239,68,68,0.34)]"
+            width={512}
+            height={512}
             decoding="async"
             fetchPriority="high"
           />
+          <div
+            className="mt-2 text-[clamp(2.75rem,13vw,3.8rem)] font-black leading-none tracking-[-0.06em] text-white [text-shadow:0_3px_12px_rgba(0,0,0,0.7)]"
+            aria-label={APP_SPLASH_ALT}
+          >
+            Spielzeit<span className="text-[#ff222b]">App</span>
+          </div>
+          <div className="mt-5 flex flex-col items-center text-[clamp(1.15rem,5.6vw,1.55rem)] font-black uppercase leading-[1.18] tracking-[0.015em] text-white">
+            <span>Unser Team.</span>
+            <span className="text-[#ff3038]">Unsere Momente.</span>
+            <span>Unser Spiel.</span>
+          </div>
         </div>
       </div>
     </div>
