@@ -100,9 +100,12 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
         onTouchEnd={(event) => {
           const start = swipeStartRef.current;
           swipeStartRef.current = null;
-          if (!start?.atEnd || !onSwipePastEnd) return;
+          const slider = sliderRef.current;
+          if (!start || !slider || !onSwipePastEnd) return;
           const endX = event.changedTouches[0]?.clientX ?? start.x;
-          if (endX - start.x < -45) onSwipePastEnd();
+          const maxScroll = Math.max(0, slider.scrollWidth - slider.clientWidth);
+          const reachedEnd = start.atEnd || slider.scrollLeft >= maxScroll - 8;
+          if (reachedEnd && endX - start.x < -45) onSwipePastEnd();
         }}
         className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-[12%] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4 sm:px-[18%]"
         aria-label="Spieler-Karussell"
