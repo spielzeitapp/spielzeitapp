@@ -26,5 +26,8 @@ export function mapPlayerAccessRedeemError(raw: string | null | undefined): stri
   if (msg.includes('forbidden')) {
     return 'Keine Berechtigung für diesen Zugangslink.';
   }
+  if (msg.includes('captcha') || msg.includes('explicit_user_intent')) {
+    return 'Sicherheitsprüfung fehlgeschlagen. Bitte bestätigen und erneut versuchen.';
+  }
   return raw ?? 'Einlösung fehlgeschlagen.';
 }
