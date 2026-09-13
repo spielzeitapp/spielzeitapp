@@ -10,15 +10,21 @@ import { ParentChildrenSwitcher } from '../../components/parent/ParentChildrenSw
 import { isStagingApp } from '../../lib/appEnvironment';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
-import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
 
+const APP_HEADER_ALT = 'SpielzeitApp';
+const APP_HEADER_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
+
+/** App-Wortmarke (PNG); object-cover zeigt Logo + Schriftzug ohne Unterzeile. */
 function AppHeaderBrand() {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <SpielzeitAppBrand
-        className="max-w-[min(50vw,10.25rem)] sm:max-w-[12rem]"
-        iconClassName="h-11 w-11 sm:h-12 sm:w-12"
-        wordmarkClassName="w-[7.8rem] sm:w-[9.1rem]"
+      <img
+        src={APP_HEADER_LOGO_PATH}
+        alt={APP_HEADER_ALT}
+        className="h-11 w-[10.25rem] max-w-[min(50vw,10.25rem)] shrink-0 object-contain object-left sm:h-12 sm:w-[12rem] sm:max-w-[12rem]"
+        width={1200}
+        height={378}
+        decoding="async"
       />
       {isStagingApp() ? (
         <span

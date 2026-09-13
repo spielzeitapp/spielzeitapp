@@ -33,12 +33,12 @@ import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 import { useAuth } from '../auth/AuthProvider';
 import '../styles/auth-login.css';
-import { SpielzeitAppBrand } from '../components/branding/SpielzeitAppBrand';
 
 const AUTH_PAGE_SHELL_CLASS =
   'auth-login-page flex min-h-[100dvh] min-h-screen w-full flex-col items-stretch overflow-y-auto overscroll-y-contain px-4 pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1rem))] pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] sm:py-10';
 const AUTH_PAGE_CARD_CLASS =
   'relative mx-auto w-full max-w-md shrink-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#111216]/95 px-5 pb-6 pt-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:px-7 sm:pb-7 sm:pt-6';
+const AUTH_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-logo-clean.png`;
 
 const inputClass =
   'auth-login-input h-12 w-full rounded-xl border border-white/10 bg-[#1b1d22] pl-11 pr-4 text-[16px] text-white placeholder:text-white/35 shadow-inner transition focus:border-red-400/70 focus:outline-none focus:ring-2 focus:ring-red-500/25';
@@ -258,10 +258,13 @@ export const LoginPage: React.FC = () => {
         <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-red-600/10 blur-3xl" />
 
         <header className="relative">
-          <SpielzeitAppBrand
-            className="max-w-[76vw]"
-            iconClassName="h-14 w-14"
-            wordmarkClassName="w-[10.5rem]"
+          <img
+            src={AUTH_LOGO_PATH}
+            alt="SpielzeitApp"
+            className="h-auto w-[13.5rem] max-w-[76vw] object-contain object-left"
+            width={1200}
+            height={378}
+            decoding="async"
           />
           <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">
             Willkommen zurück
