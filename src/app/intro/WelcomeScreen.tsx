@@ -317,8 +317,8 @@ export const WelcomeScreen: React.FC = () => {
             className="mt-3 h-auto w-[78%] max-w-[19rem] object-contain"
             decoding="async"
           />
-          <p className="mt-2.5 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.09em] text-white/95 min-[390px]:text-[11px] sm:text-[12px]">
-            Unser Team. <span className="text-red-500">Unsere Momente.</span> Unser Spiel.
+          <p className="mt-2.5 whitespace-nowrap text-[13px] font-black uppercase tracking-[0.08em] text-white/95 min-[390px]:text-[14px] sm:text-[15px]">
+            #GEMEINSAM<span className="text-red-500">EINTEAM</span>
           </p>
         </div>
 
@@ -387,10 +387,10 @@ export const WelcomeScreen: React.FC = () => {
                 <span className="welcome-intro-icon-shell relative z-10">
                   <img
                     src={spielzeitappIcon}
-                    className="h-10 w-10 object-contain sm:h-11 sm:w-11"
+                    className="h-[52px] w-[52px] object-contain sm:h-14 sm:w-14"
                     alt=""
-                    width={44}
-                    height={44}
+                    width={56}
+                    height={56}
                     decoding="async"
                     draggable={false}
                   />
