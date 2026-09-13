@@ -68,7 +68,7 @@ export const SplashScreen: React.FC = () => {
           <img
             src={spielzeitappIcon}
             alt=""
-            className="intro-splash-mark h-auto w-[82vw] max-w-[20rem] object-contain drop-shadow-[0_0_42px_rgba(239,68,68,0.4)]"
+            className="intro-splash-mark h-auto w-[90vw] max-w-[22rem] object-contain drop-shadow-[0_0_46px_rgba(239,68,68,0.42)]"
             width={512}
             height={512}
             decoding="async"
@@ -76,13 +76,13 @@ export const SplashScreen: React.FC = () => {
           />
           <svg
             viewBox="275 55 900 220"
-            className="-mt-3 h-auto w-[96vw] max-w-[27rem] overflow-visible drop-shadow-[0_3px_12px_rgba(0,0,0,0.7)]"
+            className="-mt-4 h-auto w-[98vw] max-w-[28rem] overflow-visible drop-shadow-[0_3px_14px_rgba(0,0,0,0.78)]"
             role="img"
             aria-label={APP_SPLASH_ALT}
           >
             <image href={SPLASH_WORDMARK_PATH} width="1200" height="378" />
           </svg>
-          <div className="mt-4 flex flex-col items-center text-[clamp(1.2rem,5.8vw,1.6rem)] font-black uppercase leading-[1.12] tracking-[0.01em] text-white">
+          <div className="mt-3 flex flex-col items-center text-[clamp(1.25rem,6vw,1.65rem)] font-black uppercase leading-[1.1] tracking-[0.005em] text-white">
             <span>Unser Team.</span>
             <span className="text-[#ff3038]">Unsere Momente.</span>
             <span>Unser Spiel.</span>
