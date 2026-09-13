@@ -8,7 +8,7 @@ import {
   type PlayerCodeLoginResult,
 } from '../../lib/playerLoginErrors';
 import { INTRO_SPLASH_PATH } from '../../app/intro/introFlowSession';
-import { supabase } from '../../lib/supabaseClient';
+import { setRememberMePreference, supabase } from '../../lib/supabaseClient';
 import {
   isTurnstileConfigured,
   TurnstileWidget,
@@ -28,6 +28,7 @@ export const PlayerLoginPanel: React.FC<Props> = ({ onBack }) => {
   const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
@@ -49,6 +50,7 @@ export const PlayerLoginPanel: React.FC<Props> = ({ onBack }) => {
 
     setError('');
     setLoading(true);
+    setRememberMePreference(rememberMe);
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -161,6 +163,16 @@ export const PlayerLoginPanel: React.FC<Props> = ({ onBack }) => {
           <p className="mb-2 px-1 text-xs font-semibold text-white/50">Sichere Anmeldung</p>
           <TurnstileWidget onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
         </div>
+
+        <label className="flex items-center gap-2.5 text-sm text-white/70">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(event) => setRememberMe(event.target.checked)}
+            className="h-4 w-4 shrink-0 rounded border border-white/25 bg-black/30 accent-red-500"
+          />
+          <span>Auf diesem Gerät angemeldet bleiben</span>
+        </label>
 
         {error ? (
           <p className="text-sm text-red-300" role="alert">

@@ -5,7 +5,7 @@ import {
   isTurnstileConfigured,
   TurnstileWidget,
 } from '../components/auth/TurnstileWidget';
-import { supabase } from '../lib/supabaseClient';
+import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { mapPlayerAccessRedeemError } from '../lib/playerAccessRedeemErrors';
@@ -29,6 +29,7 @@ export const PlayerAccessRedeemPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleRedeem = async () => {
     if (!token) {
@@ -39,6 +40,7 @@ export const PlayerAccessRedeemPage: React.FC = () => {
 
     setPhase('working');
     setErrorMessage(null);
+    setRememberMePreference(rememberMe);
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -119,6 +121,15 @@ export const PlayerAccessRedeemPage: React.FC = () => {
             <p className="mb-2 px-1 text-xs font-semibold text-white/50">Sichere Anmeldung</p>
             <TurnstileWidget onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
           </div>
+          <label className="mt-4 flex items-center gap-2.5 text-sm text-white/70">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+              className="h-4 w-4 shrink-0 rounded border border-white/25 bg-black/30 accent-red-500"
+            />
+            <span>Auf diesem Gerät angemeldet bleiben</span>
+          </label>
           <Button
             type="button"
             fullWidth
