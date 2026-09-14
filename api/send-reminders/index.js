@@ -262,30 +262,68 @@ function formatDateShortDeVienna(iso) {
   }
 }
 
-/** Kurze iPhone-ähnliche Texte für In-App + Push. */
+function formatReminderDateDeVienna(iso) {
+  if (!iso) return '';
+  try {
+    return new Intl.DateTimeFormat('de-AT', {
+      timeZone: 'Europe/Vienna',
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit',
+    }).format(new Date(iso));
+  } catch (_) {
+    return '';
+  }
+}
+
+function isTomorrowInVienna(iso) {
+  if (!iso) return false;
+  const nowParts = zonedParts(new Date());
+  const eventParts = zonedParts(new Date(iso));
+  const nowDay = Date.UTC(Number(nowParts.year), Number(nowParts.month) - 1, Number(nowParts.day));
+  const eventDay = Date.UTC(Number(eventParts.year), Number(eventParts.month) - 1, Number(eventParts.day));
+  return eventDay - nowDay === 24 * 60 * 60 * 1000;
+}
+
+/** Automatische RSVP-Texte mit den aktuellen Terminangaben. */
 function buildReminderUxCopy(kind, event, reminderKey) {
-  const meetOrStart =
-    event.meeting_at && String(event.meeting_at).trim() ? event.meeting_at : event.starts_at;
-  const timeStr = formatTimeDe(meetOrStart);
+  const startTime = formatTimeDe(event.starts_at);
+  const meetingTime =
+    event.meeting_at && String(event.meeting_at).trim() ? formatTimeDe(event.meeting_at) : '';
+  const dateLabel = formatReminderDateDeVienna(event.starts_at);
+
   if (kind === 'match') {
-    const opp = (event.opponent || '').trim();
-    const gegner = opp || 'Gegner';
-    const title = `⚽ Spiel gegen ${gegner}`;
+    const gegner = String(event.opponent || '').trim() || 'den Gegner';
     const isSecond =
       reminderKey === 'match_reminder_2' ||
       reminderKey === 'match_second_reminder' ||
       (typeof reminderKey === 'string' && reminderKey.includes('second'));
-    const message = isSecond
-      ? `Heute ${timeStr} – Gleich Treffpunkt`
-      : `Heute ${timeStr} – Treffpunkt nicht vergessen`;
-    return { title, message };
+    const when = isSecond && isTomorrowInVienna(event.starts_at) ? 'Morgen' : `Am ${dateLabel}`;
+    const times = `Anpfiff ${startTime} Uhr${meetingTime ? `, Treffpunkt ${meetingTime} Uhr` : ''}.`;
+
+    if (isSecond) {
+      return {
+        title: '⚽ Letzte Rückmeldung zum Spiel',
+        message: `${when} spielen wir gegen ${gegner}. ${times} Bitte jetzt zu- oder absagen.`,
+      };
+    }
+    return {
+      title: '⚽ Kader-Rückmeldung offen',
+      message: `${when} spielen wir gegen ${gegner}. ${times} Bitte jetzt zu- oder absagen, damit wir den Kader planen können.`,
+    };
   }
+
   if (kind === 'training') {
-    return { title: 'Training', message: `Heute ${timeStr} – Treffpunkt nicht vergessen` };
+    return {
+      title: '⚽ Training heute',
+      message: `Training heute um ${startTime} Uhr${meetingTime && meetingTime !== startTime ? `, Treffpunkt ${meetingTime} Uhr` : ''}. Bitte jetzt zu- oder absagen.`,
+    };
   }
-  const dateStr = formatDateShortDeVienna(event.starts_at);
-  const startTime = formatTimeDe(event.starts_at);
-  return { title: 'Termin', message: `${dateStr} ${startTime} – Treffpunkt nicht vergessen` };
+
+  return {
+    title: 'Termin-Rückmeldung offen',
+    message: `Am ${dateLabel} um ${startTime} Uhr. Bitte jetzt zu- oder absagen.`,
+  };
 }
 
 function parseBody(req) {
