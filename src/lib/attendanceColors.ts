@@ -35,6 +35,14 @@ export const ATTENDANCE_LAZ_PILL = ATTENDANCE_LAZ_PILL_COLORS;
 export const ATTENDANCE_ABSENT_PILL =
   'border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)]';
 
+/** Krank – Blau. */
+export const ATTENDANCE_SICK_PILL =
+  'border-blue-400/40 bg-blue-600/75 text-white shadow-[0_0_14px_rgba(59,130,246,0.3)]';
+
+/** Verletzt – Orange. */
+export const ATTENDANCE_INJURED_PILL =
+  'border-orange-400/40 bg-orange-600/75 text-white shadow-[0_0_14px_rgba(249,115,22,0.3)]';
+
 /** Offen (Spiele) – Neutral. */
 export const ATTENDANCE_OPEN_PILL = 'border-white/20 bg-zinc-700/75 text-white/90';
 
@@ -48,6 +56,14 @@ export function attendanceLazPillClass(sizeClass: string, extra = ''): string {
 
 export function attendanceAbsentPillClass(sizeClass: string, extra = ''): string {
   return [PILL_BASE, sizeClass, ATTENDANCE_ABSENT_PILL, extra].filter(Boolean).join(' ');
+}
+
+export function attendanceSickPillClass(sizeClass: string, extra = ''): string {
+  return [PILL_BASE, sizeClass, ATTENDANCE_SICK_PILL, extra].filter(Boolean).join(' ');
+}
+
+export function attendanceInjuredPillClass(sizeClass: string, extra = ''): string {
+  return [PILL_BASE, sizeClass, ATTENDANCE_INJURED_PILL, extra].filter(Boolean).join(' ');
 }
 
 export function attendanceOpenPillClass(sizeClass: string, extra = ''): string {
@@ -72,6 +88,18 @@ export function attendanceLazModalButtonClass(active: boolean): string {
   return active
     ? 'border-[rgba(73,190,139,0.38)] text-[#7FE3B2] bg-[rgba(12,50,38,0.82)] shadow-[0_0_12px_rgba(73,190,139,0.16)]'
     : '';
+}
+
+export function attendanceSickModalButtonClass(active: boolean): string {
+  return active
+    ? 'border-blue-400/35 bg-blue-600/25 text-blue-100 shadow-[0_0_14px_rgba(59,130,246,0.18)]'
+    : 'text-blue-200/80';
+}
+
+export function attendanceInjuredModalButtonClass(active: boolean): string {
+  return active
+    ? 'border-orange-400/35 bg-orange-600/25 text-orange-100 shadow-[0_0_14px_rgba(249,115,22,0.18)]'
+    : 'text-orange-200/80';
 }
 
 /** Premium-Chip LAZ (external). */

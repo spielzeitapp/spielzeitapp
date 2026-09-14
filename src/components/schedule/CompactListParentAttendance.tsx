@@ -3,8 +3,10 @@ import { CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { triggerHaptic } from '../../lib/hapticFeedback';
 import {
   attendanceAbsentPillClass,
+  attendanceInjuredPillClass,
   attendanceLazPillClass,
   attendanceOpenPillClass,
+  attendanceSickPillClass,
   attendancePresentPillClass,
 } from '../../lib/attendanceColors';
 import type { AttendanceStatusKind } from './AttendanceStatusPill';
@@ -71,6 +73,28 @@ export function CompactListParentAttendance({
           onClick={openModal}
         >
           <span className="text-[10px] font-extrabold uppercase tracking-wide">LAZ</span>
+        </AttendancePillButton>
+      );
+    }
+    if (status === 'sick') {
+      return (
+        <AttendancePillButton
+          className={attendanceSickPillClass(btnBase, className)}
+          ariaLabel="Krank"
+          onClick={openModal}
+        >
+          <span className="text-[15px] font-black leading-none">K</span>
+        </AttendancePillButton>
+      );
+    }
+    if (status === 'injured') {
+      return (
+        <AttendancePillButton
+          className={attendanceInjuredPillClass(btnBase, className)}
+          ariaLabel="Verletzt"
+          onClick={openModal}
+        >
+          <span className="text-[15px] font-black leading-none">V</span>
         </AttendancePillButton>
       );
     }

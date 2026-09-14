@@ -2,12 +2,14 @@ import React from 'react';
 import { CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
 import {
   attendanceAbsentPillClass,
+  attendanceInjuredPillClass,
   attendanceLazPillClass,
   attendanceOpenPillClass,
+  attendanceSickPillClass,
   attendancePresentPillClass,
 } from '../../lib/attendanceColors';
 
-export type AttendanceStatusKind = 'yes' | 'no' | 'open' | 'laz';
+export type AttendanceStatusKind = 'yes' | 'no' | 'sick' | 'injured' | 'open' | 'laz';
 
 type Props = {
   status: AttendanceStatusKind;
@@ -31,6 +33,20 @@ export function AttendanceStatusPill({
       return (
         <span className={attendanceLazPillClass(size, className)} aria-label="LAZ">
           <span className="text-[10px] font-extrabold uppercase tracking-wide">LAZ</span>
+        </span>
+      );
+    }
+    if (status === 'sick') {
+      return (
+        <span className={attendanceSickPillClass(size, className)} aria-label="Krank">
+          <span className="text-[15px] font-black leading-none">K</span>
+        </span>
+      );
+    }
+    if (status === 'injured') {
+      return (
+        <span className={attendanceInjuredPillClass(size, className)} aria-label="Verletzt">
+          <span className="text-[15px] font-black leading-none">V</span>
         </span>
       );
     }

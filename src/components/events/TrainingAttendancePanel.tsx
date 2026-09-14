@@ -7,16 +7,16 @@ import {
   trainingAttendanceLabel,
   type TrainingAttendanceStatus,
 } from '../../lib/trainingAttendance';
-import { getTrainingPositionDisplay } from '../../lib/positionLabels';
 import {
   ATTENDANCE_ACTION_GLASS_IDLE,
   ATTENDANCE_ACTION_LAZ_ON,
   ATTENDANCE_STAT_BOX_LAZ,
 } from '../../lib/attendanceColors';
 import { DS_LIST_GAP, DS_TEXT_MUTED, type DsChipTone } from '../../lib/premiumDesignSystem';
-import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
+import { useDemoMode } from '../../demo/DemoContext';
 import { PlayerSpecialStatusBadges } from '../player/PlayerSpecialStatusBadges';
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
+import { playerCardFamilyName, playerCardName, playerMedia } from '../team/TeamSquadShowcase';
 
 type Props = {
   players: PlayerItem[];
@@ -130,11 +130,6 @@ function trainingActionButtonClass(
   return [base, active ? tones[tone].on : tones[tone].idle].join(' ');
 }
 
-const TRAINING_NAME_CLASS =
-  'line-clamp-2 min-w-0 whitespace-normal break-words text-[13px] font-semibold leading-[1.36] text-white sm:text-[14px]';
-
-const TRAINING_SUBLINE_CLASS = `mt-1 line-clamp-1 text-[12px] font-normal leading-snug ${DS_TEXT_MUTED}`;
-
 const TRAINING_BADGE_CLASS =
   '!inline-flex !h-[20px] !max-w-[4.25rem] shrink-0 !px-1.5 !text-[8px] !font-bold !uppercase !tracking-[0.07em] !leading-none';
 
@@ -146,6 +141,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   className = '',
   readOnly = false,
 }) => {
+  const demo = useDemoMode();
   const counts = useMemo(() => {
     const statuses = players.map((p) => getStatus(p.id));
     return countTrainingAttendanceByStatus(statuses);
@@ -189,48 +185,72 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
         <ul className={`-mx-2.5 flex w-[calc(100%+1.25rem)] flex-col sm:-mx-3 sm:w-[calc(100%+1.5rem)] ${DS_LIST_GAP} pb-1`}>
           {sorted.map((player) => {
             const status = getStatus(player.id);
-            const sub = getTrainingPositionDisplay(player.position);
+            const media = playerMedia(player, Boolean(demo));
+            const isUnavailable = status !== 'present';
 
             return (
               <li key={player.id} className="w-full min-w-0">
-                <PremiumPlayerCard
-                  player={player}
-                  tone="training"
-                  subline={sub}
-                  density="compact"
-                  nameClassName={TRAINING_NAME_CLASS}
-                  sublineClassName={TRAINING_SUBLINE_CLASS}
-                  trailing={
-                    <>
-                      <PlayerSpecialStatusBadges
-                        isLaz={player.is_laz_player}
-                        isInjured={player.is_injured}
-                        size="xs"
-                        className="mr-1"
+                <div className="sz-club-list-card sz-club-surface sz-club-surface--quiet w-full overflow-hidden rounded-[14px] border">
+                  <div className="flex min-h-[78px] w-full items-center px-2.5">
+                    <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
+                      <img
+                        src={media.src}
+                        alt=""
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = media.fallbackSrc;
+                        }}
+                        className={`h-full w-full object-bottom ${media.isUpperBodyDemo ? 'sz-club-placeholder-player' : ''} ${
+                          media.isCutout
+                            ? 'origin-bottom scale-[1.45] object-contain'
+                            : media.isUpperBodyDemo
+                              ? 'object-contain'
+                              : 'object-cover'
+                        }`}
                       />
-                      {(player.status ?? 'active') === 'paused' ? (
-                        <span className="mr-1 shrink-0 rounded-full border border-amber-400/35 bg-amber-500/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-100/95">
-                          Pausiert
-                        </span>
-                      ) : null}
+                    </div>
+                    <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">
+                      {player.jersey_number ?? '–'}
+                    </span>
+                    <span className="min-w-0 flex-1 pl-2.5">
+                      <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 sm:text-[14px]">
+                        {playerCardName(player)}
+                      </span>
+                      <span className="block truncate text-[17px] font-black leading-tight text-white sm:text-[18px]">
+                        {playerCardFamilyName(player) || playerCardName(player)}
+                      </span>
+                    </span>
+                    <div className="ml-2 flex shrink-0 flex-col items-end gap-1">
+                      <div className="flex items-center justify-end gap-1">
+                        <PlayerSpecialStatusBadges
+                          isLaz={player.is_laz_player}
+                          isInjured={player.is_injured}
+                          size="xs"
+                        />
+                        {(player.status ?? 'active') === 'paused' ? (
+                          <span className="shrink-0 rounded-full border border-amber-400/35 bg-amber-500/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-100/95">
+                            Pausiert
+                          </span>
+                        ) : null}
+                      </div>
                       <PremiumStatusBadge
                         label={trainingAttendanceLabel(status)}
                         tone={statusTone(status)}
                         className={TRAINING_BADGE_CLASS}
                       />
-                    </>
-                  }
-                  footer={
-                    readOnly ? undefined : (
-                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-                      <button
-                        type="button"
-                        disabled={status === 'present'}
-                        onClick={() => onSetStatus(player.id, 'present')}
-                        className={trainingActionButtonClass('present', status === 'present')}
-                      >
-                        Dabei
-                      </button>
+                    </div>
+                  </div>
+                  {!readOnly ? (
+                    <div className="grid grid-cols-2 gap-1.5 border-t border-white/[0.06] px-2.5 pb-2.5 pt-2.5">
+                      {isUnavailable ? (
+                        <button
+                          type="button"
+                          onClick={() => onSetStatus(player.id, 'present')}
+                          className={`${trainingActionButtonClass('present', true)} col-span-2`}
+                        >
+                          Wieder dabei
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         disabled={status === 'absent'}
@@ -264,9 +284,8 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         LAZ
                       </button>
                     </div>
-                    )
-                  }
-                />
+                  ) : null}
+                </div>
               </li>
             );
           })}

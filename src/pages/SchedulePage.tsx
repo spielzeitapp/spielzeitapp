@@ -61,7 +61,11 @@ import {
   utcIsoToViennaTimeHHmm,
 } from '../lib/viennaTime';
 import { formatDateTimeDeVienna } from '../lib/notifications/format';
-import { attendanceLazModalButtonClass } from '../lib/attendanceColors';
+import {
+  attendanceInjuredModalButtonClass,
+  attendanceLazModalButtonClass,
+  attendanceSickModalButtonClass,
+} from '../lib/attendanceColors';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
 import { safeOptionalText } from '../lib/safeText';
@@ -152,6 +156,8 @@ function pastHeroLabelForEffectiveType(
 
 function attendanceMergedToPillStatus(s: AttendanceStatus | null | undefined): AttendanceStatusKind {
   if (s === 'external_training') return 'laz';
+  if (s === 'sick') return 'sick';
+  if (s === 'injured') return 'injured';
   if (s === 'yes') return 'yes';
   if (s === 'no') return 'no';
   return 'open';
@@ -637,7 +643,13 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
         ? attendanceByEventId[eventId].availabilityByPlayerId[myPidKey]
         : undefined;
     const fromDb: AttendanceStatus | null =
-      fromDbRaw === 'yes' || fromDbRaw === 'no' || fromDbRaw === 'external_training' ? fromDbRaw : null;
+      fromDbRaw === 'yes' ||
+      fromDbRaw === 'no' ||
+      fromDbRaw === 'sick' ||
+      fromDbRaw === 'injured' ||
+      fromDbRaw === 'external_training'
+        ? fromDbRaw
+        : null;
     const currentLocal = attendanceStatusByEventId[eventId] ?? fromDb ?? null;
 
     let result;
@@ -1773,11 +1785,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   isTraining={et === 'training'}
                                   context="hero"
                                   onOpen={() => {
-                                    const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
-                                    if (et === 'training' && (pill === 'no' || pill === 'laz')) {
-                                      setTrainingRejoinModalEvent(ev);
-                                      return;
-                                    }
                                     setAttendanceModalEvent(ev);
                                   }}
                                 />
@@ -2034,11 +2041,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           status={attendanceMergedToPillStatus(attendanceStatusMerged)}
                           isTraining={et === 'training'}
                           onOpen={() => {
-                            const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
-                            if (et === 'training' && (pill === 'no' || pill === 'laz')) {
-                              setTrainingRejoinModalEvent(ev);
-                              return;
-                            }
                             setAttendanceModalEvent(ev);
                           }}
                         />
@@ -2494,7 +2496,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
 
                     const current = attendanceStatusByEventId[attendanceModalEvent.id] ?? myStatusFromDb ?? null;
                     const isLaz = current === 'external_training';
+                    const isSick = current === 'sick';
+                    const isInjured = current === 'injured';
                     const canceled = current === 'no';
+                    const isUnavailable = canceled || isSick || isInjured || isLaz;
                     const cutoffPassed = isTrainingAbsenceDeadlinePassed(
                       attendanceModalEvent.starts_at,
                       attendanceModalEvent.training_absence_deadline_disabled,
@@ -2503,14 +2508,22 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                     return (
                       <>
                         <p className="text-sm text-[var(--text-main)] font-medium">
-                          Status: {isLaz ? 'LAZ' : canceled ? 'Abwesend' : 'Dabei'}
+                          Status: {isLaz
+                            ? 'LAZ'
+                            : isInjured
+                              ? 'Verletzt'
+                              : isSick
+                                ? 'Krank'
+                                : canceled
+                                  ? 'Abwesend'
+                                  : 'Dabei'}
                         </p>
                         <p className="text-xs text-[var(--text-sub)] mt-1">
                           {attendanceModalEvent.training_absence_deadline_disabled
                             ? 'Absage jederzeit möglich.'
                             : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
                         </p>
-                        {!cancelAllowed && !canceled ? (
+                        {!cancelAllowed && !isUnavailable ? (
                           <p className="text-xs text-amber-200/90 mt-1">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
 
@@ -2526,23 +2539,22 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           />
                         </div>
 
-                        <div
-                          className={`mt-6 grid gap-3 ${myLinkedPlayerIsLaz ? 'grid-cols-3' : 'grid-cols-2'}`}
-                        >
-                          <Button
-                            type="button"
-                            variant="positive"
-                            disabled={!canceled && !isLaz}
-                            onClick={() => {
-                              if (!attendanceModalEvent) return;
-                              setAttendance(attendanceModalEvent.id, 'yes').catch((e) => console.error('[ATTENDANCE]', e));
-                            }}
-                            className={`w-full py-3 px-5 text-sm ${
-                              !canceled && !isLaz ? '' : 'opacity-50 cursor-not-allowed'
-                            }`}
-                          >
-                            Dabei
-                          </Button>
+                        <div className="mt-6 grid grid-cols-2 gap-3">
+                          {isUnavailable ? (
+                            <Button
+                              type="button"
+                              variant="positive"
+                              onClick={() => {
+                                if (!attendanceModalEvent) return;
+                                setAttendance(attendanceModalEvent.id, 'yes').catch((e) =>
+                                  console.error('[ATTENDANCE]', e),
+                                );
+                              }}
+                              className="col-span-2 w-full py-3 px-5 text-sm"
+                            >
+                              Wieder dabei
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             variant="negative"
@@ -2552,11 +2564,37 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                               if (!attendanceModalEvent) return;
                               setAttendance(attendanceModalEvent.id, 'no', trainingCancelReason).catch((e) => console.error('[ATTENDANCE]', e));
                             }}
-                            className={`w-full py-3 px-5 text-sm ${
+                            className={`col-span-2 w-full py-3 px-5 text-sm ${
                               canceled || !cancelAllowed ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           >
-                            Absagen
+                            Abwesend
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="soft"
+                            onClick={() => {
+                              if (!attendanceModalEvent) return;
+                              setAttendance(attendanceModalEvent.id, 'sick', trainingCancelReason).catch((e) =>
+                                console.error('[ATTENDANCE]', e),
+                              );
+                            }}
+                            className={`w-full py-3 px-5 text-sm font-semibold ${attendanceSickModalButtonClass(isSick)}`}
+                          >
+                            Krank
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="soft"
+                            onClick={() => {
+                              if (!attendanceModalEvent) return;
+                              setAttendance(attendanceModalEvent.id, 'injured', trainingCancelReason).catch((e) =>
+                                console.error('[ATTENDANCE]', e),
+                              );
+                            }}
+                            className={`w-full py-3 px-5 text-sm font-semibold ${attendanceInjuredModalButtonClass(isInjured)}`}
+                          >
+                            Verletzt
                           </Button>
                           {myLinkedPlayerIsLaz ? (
                             <Button
@@ -2568,7 +2606,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   console.error('[ATTENDANCE]', e),
                                 );
                               }}
-                              className={`w-full py-3 px-5 text-sm font-semibold ${attendanceLazModalButtonClass(isLaz)}`}
+                              className={`col-span-2 w-full py-3 px-5 text-sm font-semibold ${attendanceLazModalButtonClass(isLaz)}`}
                             >
                               LAZ
                             </Button>

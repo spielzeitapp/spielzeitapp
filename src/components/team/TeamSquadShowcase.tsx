@@ -38,7 +38,7 @@ function demoPlayerMedia(player: PlayerItem): string {
   return getDemoPlayerPortraitUrl(player.jersey_number, `${player.id}|${player.display_name ?? ""}`);
 }
 
-function playerMedia(player: PlayerItem, isDemo: boolean): { src: string; fallbackSrc: string; isCutout: boolean; isUpperBodyDemo: boolean } {
+export function playerMedia(player: PlayerItem, isDemo: boolean): { src: string; fallbackSrc: string; isCutout: boolean; isUpperBodyDemo: boolean } {
   const fallbackSrc = playerPlaceholder(player);
   const cutout = (player.cutout_url ?? "").trim();
   if (cutout) return { src: cutout, fallbackSrc, isCutout: true, isUpperBodyDemo: false };
@@ -55,13 +55,13 @@ function playerMedia(player: PlayerItem, isDemo: boolean): { src: string; fallba
   return { src: fallbackSrc, fallbackSrc, isCutout: false, isUpperBodyDemo: true };
 }
 
-function playerCardName(player: PlayerItem): string {
+export function playerCardName(player: PlayerItem): string {
   const firstName = (player.first_name ?? "").trim();
   if (firstName) return firstName;
   return premiumPlayerDisplayName(player).split(/\s+/)[0] || "Spieler";
 }
 
-function playerCardFamilyName(player: PlayerItem): string {
+export function playerCardFamilyName(player: PlayerItem): string {
   const lastName = (player.last_name ?? "").trim();
   if (lastName) return lastName;
   const nameParts = premiumPlayerDisplayName(player).trim().split(/\s+/);
