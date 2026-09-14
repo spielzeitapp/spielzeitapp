@@ -97,7 +97,7 @@ async function ensureUpcomingReminderJobs(admin) {
   const horizon = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
   const { data: events, error: eventsErr } = await admin
     .from('events')
-    .select('id, team_season_id, starts_at, kickoff_at, status, type, kind')
+    .select('id, team_season_id, starts_at, status, type, kind')
     .or('status.eq.upcoming,status.is.null')
     .gt('starts_at', now.toISOString())
     .lte('starts_at', horizon)
@@ -188,7 +188,7 @@ async function ensureUpcomingReminderJobs(admin) {
     }
 
     if (kind !== 'match') continue;
-    const baseMs = Date.parse(event.kickoff_at || event.starts_at);
+    const baseMs = Date.parse(event.starts_at);
     const slots = [];
     if (settingBool(row, 'match_reminder_enabled', 'match_enabled', true)) {
       slots.push(['match', settingMinutes(row, 'match_reminder_minutes_before', 'match_minutes_before', 2880)]);
@@ -208,7 +208,7 @@ async function ensureUpcomingReminderJobs(admin) {
         team_id: teamId,
         kind: 'match',
         send_at: sendAt,
-        payload: { reminderKey, reminder_type: reminderKey, offsetMinutes: minutes, baseTimeIso: event.kickoff_at || event.starts_at },
+        payload: { reminderKey, reminder_type: reminderKey, offsetMinutes: minutes, baseTimeIso: event.starts_at },
         status: 'pending',
         dedupe_key: dedupeKey,
       });
