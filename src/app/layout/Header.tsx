@@ -16,9 +16,9 @@ function AppHeaderBrand() {
   return (
     <span className="inline-flex min-w-0 shrink-0 items-center gap-1.5 max-[359px]:gap-0.5">
       <SpielzeitAppBrand
-        className="min-w-0 max-w-[min(50vw,10.25rem)] max-[359px]:max-w-[2.25rem] sm:max-w-[12rem]"
-        iconClassName="h-11 w-11 max-[359px]:h-9 max-[359px]:w-9 sm:h-12 sm:w-12"
-        wordmarkClassName="w-[7.8rem] max-[359px]:hidden sm:w-[9.1rem]"
+        className="min-w-0 max-w-[min(50vw,10.25rem)] max-[479px]:max-w-[8.5rem] max-[359px]:max-w-[2.25rem] sm:max-w-[12rem]"
+        iconClassName="h-11 w-11 max-[479px]:h-9 max-[479px]:w-9 sm:h-12 sm:w-12"
+        wordmarkClassName="w-[7.8rem] max-[479px]:w-[6.2rem] max-[359px]:hidden sm:w-[9.1rem]"
       />
       {isStagingApp() ? (
         <span

@@ -79,7 +79,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
   };
 
   const selectClass = compact
-    ? 'inline-flex max-w-[min(42vw,9.5rem)] min-w-0 appearance-none truncate rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[10px] font-medium text-white/90 sm:max-w-[11rem] sm:text-[11px]'
+    ? 'inline-flex w-[min(28vw,6.5rem)] min-w-0 appearance-none truncate rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[10px] font-medium text-white/90 sm:w-auto sm:max-w-[11rem] sm:text-[11px]'
     : 'inline-flex max-w-[min(100%,12.5rem)] min-w-0 appearance-none items-center gap-1 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-xs font-medium text-white/90 shadow-sm text-left sm:max-w-xs';
 
   return (
