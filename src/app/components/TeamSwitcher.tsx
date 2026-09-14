@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import type { SessionTeamSeasonItem } from '../../auth/useSession';
 import {
@@ -53,12 +54,14 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
   className,
   hideWhenSingle = false,
 }) => {
+  const navigate = useNavigate();
   const {
     teamSeasons,
     selectedTeamSeasonId,
     setSelectedTeamSeasonId,
     viewTeamSeasonId,
     setViewTeamSeasonId,
+    memberships,
   } = useSession();
 
   if (teamSeasons.length === 0) {
@@ -76,6 +79,11 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
   const value = viewTeamSeasonId ?? selectedTeamSeasonId ?? '';
 
   const onChange = (raw: string) => {
+    if (raw === '__manage_favorites__') {
+      navigate('/app/fan-onboarding');
+      return;
+    }
+
     const id = raw || null;
     if (!id) {
       setViewTeamSeasonId(null);
@@ -91,14 +99,36 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
     setSelectedTeamSeasonId(id);
   };
 
+  const ownTeamSeasonIds = new Set(
+    memberships
+      .filter((membership) => String(membership.role).trim().toLowerCase() !== 'fan')
+      .map((membership) => membership.team_season_id),
+  );
+  const ownTeamSeasons = teamSeasons.filter((ts) => ownTeamSeasonIds.has(ts.id));
+  const favoriteTeamSeasons = teamSeasons.filter((ts) => !ownTeamSeasonIds.has(ts.id));
+
   const options = (
     <>
       <option value="">Team wählen</option>
-      {teamSeasons.map((ts) => (
-        <option key={ts.id} value={ts.id}>
-          {labelForTeamSeason(ts, selectedTeamSeasonId)}
-        </option>
-      ))}
+      {ownTeamSeasons.length > 0 ? (
+        <optgroup label="Meine Mannschaften">
+          {ownTeamSeasons.map((ts) => (
+            <option key={ts.id} value={ts.id}>
+              {labelForTeamSeason(ts, selectedTeamSeasonId)}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+      {favoriteTeamSeasons.length > 0 ? (
+        <optgroup label="Favoriten">
+          {favoriteTeamSeasons.map((ts) => (
+            <option key={ts.id} value={ts.id}>
+              {`★ ${labelForTeamSeason(ts, selectedTeamSeasonId)}`}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+      <option value="__manage_favorites__">＋ Favoriten verwalten</option>
     </>
   );
 

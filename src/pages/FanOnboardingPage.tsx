@@ -274,20 +274,24 @@ export const FanOnboardingPage: React.FC = () => {
             <div className="text-left">
               <button
                 type="button"
-                onClick={() => navigate('/app/termine')}
+                onClick={() => navigate(-1)}
                 className="mb-1 inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/12 bg-black/35 px-3 text-sm font-semibold text-white/80"
               >
                 <ArrowLeft className="h-4 w-4 text-red-400" aria-hidden />
-                Termine
+                Zurück
               </button>
             </div>
           ) : null}
           <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-red-500/25 bg-red-950/30 shadow-[0_0_24px_rgba(220,38,38,0.2)]">
             <Radio className="h-5 w-5 text-red-400" strokeWidth={2.2} aria-hidden />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">Mannschaften auswählen</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+            {editingExistingSelection ? 'Favoriten verwalten' : 'Mannschaften auswählen'}
+          </h1>
           <p className="mx-auto max-w-[20rem] text-sm leading-relaxed text-white/62 sm:text-[15px]">
-            Wähle alle Mannschaften, deren Termine, Ergebnisse und Live-Updates du sehen möchtest.
+            {editingExistingSelection
+              ? 'Wähle weitere Mannschaften als Favoriten aus oder entferne bestehende Favoriten.'
+              : 'Wähle alle Mannschaften, deren Termine, Ergebnisse und Live-Updates du sehen möchtest.'}
           </p>
         </header>
 
@@ -351,7 +355,7 @@ export const FanOnboardingPage: React.FC = () => {
                         <p className="truncate text-base font-semibold leading-snug text-white">{ts.teamTitle}</p>
                         <p className="mt-0.5 truncate text-sm text-white/68">{ts.seasonTitle}</p>
                         <p className="mt-2 text-xs text-white/42">
-                          {locked ? 'Meine Mannschaft · eigene Berechtigung' : 'Termine & Live nur ansehen'}
+                          {locked ? 'Meine Mannschaft · eigene Berechtigung' : 'Favorit · Termine & Live nur ansehen'}
                         </p>
                       </div>
                       <span
@@ -394,7 +398,11 @@ export const FanOnboardingPage: React.FC = () => {
                   Wird gespeichert…
                 </>
               ) : (
-                selectedTeamSeasonIds.length > 1 ? 'Teams verfolgen' : 'Team verfolgen'
+                editingExistingSelection
+                  ? 'Favoriten speichern'
+                  : selectedTeamSeasonIds.length > 1
+                    ? 'Teams verfolgen'
+                    : 'Team verfolgen'
               )}
             </button>
           </div>
