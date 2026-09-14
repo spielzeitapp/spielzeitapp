@@ -17,6 +17,18 @@ function navAssetBase(): string {
   return b.endsWith('/') ? b : `${b}/`;
 }
 
+function readStandaloneScreenHeight(): number | null {
+  if (typeof window === 'undefined') return null;
+  const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
+  const isStandalone =
+    navigatorWithStandalone.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  if (!isStandalone) return null;
+  const screenHeight = Number(window.screen.height);
+  return Number.isFinite(screenHeight) && screenHeight > 0
+    ? Math.max(screenHeight, window.innerHeight)
+    : window.innerHeight;
+}
+
 /**
  * Bottom Navigation — nur UI.
  * Reihenfolge: Home | Termine | Team | Live | Mehr
@@ -164,6 +176,20 @@ export const BottomNav: React.FC = () => {
   /** Demo: Puls nur wenn die lokale Live-Runtime tatsächlich läuft (DEMO.2F). */
   const demoLiveActive = demo?.liveRuntimeStatus === 'live';
   const liveActiveForNav = isDemo ? Boolean(demoLiveActive) : hasLiveMatch;
+  const [standaloneScreenHeight, setStandaloneScreenHeight] = React.useState<number | null>(() =>
+    readStandaloneScreenHeight(),
+  );
+
+  React.useEffect(() => {
+    const updateStandaloneHeight = () => setStandaloneScreenHeight(readStandaloneScreenHeight());
+    updateStandaloneHeight();
+    window.addEventListener('orientationchange', updateStandaloneHeight);
+    window.addEventListener('resize', updateStandaloneHeight);
+    return () => {
+      window.removeEventListener('orientationchange', updateStandaloneHeight);
+      window.removeEventListener('resize', updateStandaloneHeight);
+    };
+  }, []);
 
   const handleLiveTabReclick = () => {
     // Während eines Trainer-Workflows darf ein versehentlicher Tap durch das
@@ -185,13 +211,22 @@ export const BottomNav: React.FC = () => {
       data-app-bottom-nav
       className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pb-1 pt-2 sm:px-5"
       style={{
+        ...(standaloneScreenHeight != null
+          ? {
+              top: 0,
+              bottom: 'auto',
+              height: `${standaloneScreenHeight}px`,
+              display: 'flex',
+              alignItems: 'flex-end',
+            }
+          : null),
         paddingBottom: 'max(0.125rem, calc(env(safe-area-inset-bottom, 0px) - 1.5rem))',
       }}
       aria-label="Hauptnavigation"
     >
       <div
         className={[
-          'pointer-events-auto relative mx-auto max-w-md overflow-visible rounded-[28px] border border-white/[0.06]',
+          'pointer-events-auto relative mx-auto w-full max-w-md overflow-visible rounded-[28px] border border-white/[0.06]',
           'shadow-[0_28px_64px_-12px_rgba(0,0,0,0.88),0_12px_32px_-10px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06),0_0_0_1px_rgba(0,0,0,0.65)]',
           'backdrop-blur-[20px] backdrop-saturate-150',
           isApp ? 'min-h-[76px]' : 'min-h-[68px]',
