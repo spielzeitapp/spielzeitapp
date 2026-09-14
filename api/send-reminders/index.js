@@ -316,7 +316,7 @@ function buildReminderUxCopy(kind, event, reminderKey) {
   if (kind === 'training') {
     return {
       title: '⚽ Training heute',
-      message: `Training heute um ${startTime} Uhr${meetingTime && meetingTime !== startTime ? `, Treffpunkt ${meetingTime} Uhr` : ''}. Bitte jetzt zu- oder absagen.`,
+      message: `Training heute um ${startTime} Uhr${meetingTime && meetingTime !== startTime ? `, Treffpunkt ${meetingTime} Uhr` : ''}. Bitte nur absagen, wenn du nicht kommst.`,
     };
   }
 
