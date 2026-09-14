@@ -42,6 +42,184 @@ function viennaDateTimeDebug(iso) {
   }
 }
 
+function settingBool(row, longKey, shortKey, fallback) {
+  const value = row?.[longKey] ?? row?.[shortKey];
+  return value == null ? fallback : value === true || value === 'true' || value === 1;
+}
+
+function settingMinutes(row, longKey, shortKey, fallback) {
+  const value = Number(row?.[longKey] ?? row?.[shortKey]);
+  return Number.isFinite(value) && value >= 0 ? Math.floor(value) : fallback;
+}
+
+function zonedParts(instant) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Vienna',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(instant);
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]));
+}
+
+/** 11:00 Europe/Vienna am lokalen Kalendertag des Termins als UTC-Instant. */
+function trainingReminderAt(eventStartIso) {
+  const eventParts = zonedParts(new Date(eventStartIso));
+  const wallClockUtc = Date.UTC(
+    Number(eventParts.year),
+    Number(eventParts.month) - 1,
+    Number(eventParts.day),
+    11,
+  );
+  const probe = new Date(wallClockUtc);
+  const probeParts = zonedParts(probe);
+  const representedAsUtc = Date.UTC(
+    Number(probeParts.year),
+    Number(probeParts.month) - 1,
+    Number(probeParts.day),
+    Number(probeParts.hour),
+    Number(probeParts.minute),
+    Number(probeParts.second),
+  );
+  return new Date(wallClockUtc - (representedAsUtc - wallClockUtc)).toISOString();
+}
+
+/**
+ * Selbstheilung, falls der DB-Trigger bei älteren/extern importierten Terminen keinen Job angelegt hat.
+ * Standard: Training am Tag um 11:00 Wien; Match 48h und 24h vorher.
+ */
+async function ensureUpcomingReminderJobs(admin) {
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: events, error: eventsErr } = await admin
+    .from('events')
+    .select('id, team_season_id, starts_at, status, type, kind')
+    .or('status.eq.upcoming,status.is.null')
+    .gt('starts_at', now.toISOString())
+    .lte('starts_at', horizon)
+    .limit(500);
+  if (eventsErr) throw eventsErr;
+  if (!events?.length) return { inserted: 0, normalized: 0 };
+
+  const seasonIds = [...new Set(events.map((event) => event.team_season_id).filter(Boolean))];
+  if (!seasonIds.length) return { inserted: 0, normalized: 0 };
+  const eventIds = events.map((event) => event.id);
+  const [{ data: seasons, error: seasonsErr }, { data: settings, error: settingsErr }, { data: jobs, error: jobsErr }] =
+    await Promise.all([
+      admin.from('team_seasons').select('id, team_id').in('id', seasonIds),
+      admin.from('team_notification_settings').select('*').in('team_season_id', seasonIds),
+      admin.from('notification_jobs').select('id, event_id, kind, dedupe_key, status').in('event_id', eventIds),
+    ]);
+  if (seasonsErr) throw seasonsErr;
+  if (settingsErr) throw settingsErr;
+  if (jobsErr) throw jobsErr;
+
+  const teamBySeason = new Map((seasons || []).map((row) => [row.id, row.team_id]));
+  const settingsBySeason = new Map((settings || []).map((row) => [row.team_season_id, row]));
+  const jobsByEvent = new Map();
+  for (const job of jobs || []) {
+    const list = jobsByEvent.get(job.event_id) || [];
+    list.push(job);
+    jobsByEvent.set(job.event_id, list);
+  }
+
+  let inserted = 0;
+  let normalized = 0;
+  for (const event of events) {
+    const teamId = teamBySeason.get(event.team_season_id);
+    if (!teamId) continue;
+    const row = settingsBySeason.get(event.team_season_id);
+    const rawType = String(event.type || event.kind || '').toLowerCase();
+    const kind = rawType === 'training' ? 'training' : rawType === 'event' || rawType === 'other' ? rawType : 'match';
+    const existing = jobsByEvent.get(event.id) || [];
+
+    if (kind === 'training' && settingBool(row, 'training_reminder_enabled', 'training_enabled', true)) {
+      const sendAt = trainingReminderAt(event.starts_at);
+      if (Date.parse(sendAt) < now.getTime() - MAX_REMINDER_DELAY_MS) continue;
+      const dedupeKey = `event:${event.id}:training_day_1100`;
+      const completed = existing.some(
+        (job) => job.kind === 'training' && (job.status === 'sent' || job.status === 'processing'),
+      );
+      const current =
+        existing.find(
+          (job) => job.dedupe_key === dedupeKey && (job.status === 'pending' || job.status === 'failed'),
+        ) ||
+        existing.find(
+          (job) => job.kind === 'training' && (job.status === 'pending' || job.status === 'failed'),
+        );
+      const payload = {
+        reminderKey: 'training_day_1100',
+        reminder_type: 'training_day_1100',
+        offsetMinutes: 0,
+        schedule: 'training_day_1100',
+        baseTimeIso: event.starts_at,
+      };
+      if (completed) {
+        continue;
+      }
+      if (current) {
+        const { error } = await admin.from('notification_jobs').update({
+          send_at: sendAt,
+          status: 'pending',
+          dedupe_key: dedupeKey,
+          payload,
+          updated_at: now.toISOString(),
+        }).eq('id', current.id);
+        if (error) throw error;
+        normalized += 1;
+      } else if (!current) {
+        const { error } = await admin.from('notification_jobs').insert({
+          event_id: event.id,
+          team_id: teamId,
+          kind: 'training',
+          send_at: sendAt,
+          payload,
+          status: 'pending',
+          dedupe_key: dedupeKey,
+        });
+        if (error && error.code !== '23505') throw error;
+        if (!error) inserted += 1;
+      }
+      continue;
+    }
+
+    if (kind !== 'match') continue;
+    const baseMs = Date.parse(event.starts_at);
+    const slots = [];
+    if (settingBool(row, 'match_reminder_enabled', 'match_enabled', true)) {
+      slots.push(['match', settingMinutes(row, 'match_reminder_minutes_before', 'match_minutes_before', 2880)]);
+    }
+    if (settingBool(row, 'match_second_reminder_enabled', 'match_second_enabled', true)) {
+      slots.push(['match_second', settingMinutes(row, 'match_second_reminder_minutes_before', 'match_second_minutes_before', 1440)]);
+    }
+    for (const [slot, minutes] of slots) {
+      const reminderKey = `${slot}_${minutes}`;
+      const dedupeKey = `event:${event.id}:${reminderKey}`;
+      if (existing.some((job) => job.dedupe_key === dedupeKey)) continue;
+      const idealMs = baseMs - minutes * 60 * 1000;
+      if (idealMs < now.getTime() - MAX_REMINDER_DELAY_MS) continue;
+      const sendAt = new Date(Math.max(idealMs, now.getTime() + 2 * 60 * 1000)).toISOString();
+      const { error } = await admin.from('notification_jobs').insert({
+        event_id: event.id,
+        team_id: teamId,
+        kind: 'match',
+        send_at: sendAt,
+        payload: { reminderKey, reminder_type: reminderKey, offsetMinutes: minutes, baseTimeIso: event.starts_at },
+        status: 'pending',
+        dedupe_key: dedupeKey,
+      });
+      if (error && error.code !== '23505') throw error;
+      if (!error) inserted += 1;
+    }
+  }
+  console.log('[reminderPipeline] reconciliation complete', { inserted, normalized });
+  return { inserted, normalized };
+}
+
 function reminderAppDeepLink(kind, event) {
   const mid = event.match_id;
   if (kind === 'match' && mid) return `/app/match/${mid}`;
@@ -547,6 +725,7 @@ async function processOneJob(admin, job) {
  * Claim über DB-RPC claim_notification_job (attempt_count++, Status processing).
  */
 async function runNotificationJobsWorker(admin) {
+  const reconciliation = await ensureUpcomingReminderJobs(admin);
   const nowIso = new Date().toISOString();
 
   const { count: pendingTotal, error: countErr } = await admin
@@ -648,7 +827,7 @@ async function runNotificationJobsWorker(admin) {
     }
   }
 
-  return { processed, sent, failed, errors };
+  return { processed, sent, failed, errors, reconciliation };
 }
 
 module.exports = async (req, res) => {
@@ -691,7 +870,7 @@ module.exports = async (req, res) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { processed, sent, failed, errors } = await runNotificationJobsWorker(admin);
+    const { processed, sent, failed, errors, reconciliation } = await runNotificationJobsWorker(admin);
 
     return res.status(200).json({
       ok: true,
@@ -699,6 +878,7 @@ module.exports = async (req, res) => {
       processed,
       sent,
       failed,
+      reconciliation,
       ...(errors.length ? { errors } : {}),
     });
   } catch (err) {
