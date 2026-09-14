@@ -5,6 +5,7 @@ import type { EventRow } from '../../hooks/useEvents';
 import { computeMatchCenterCountdown } from '../../lib/matchCenterUtils';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
+import { parseClubDisplayName, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { getClubLogo, getTeamInitials } from '../../lib/teamLogos';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
@@ -49,8 +50,11 @@ export function MatchCenterNextMatchCard({ event, ourTeamName, now }: Props) {
     ourTeamName,
     opponentName: event.opponent,
   });
-  const homeTeam = enc.home;
-  const awayTeam = enc.away;
+  const homeParts = parseClubDisplayName(enc.home);
+  const awayParts = parseClubDisplayName(enc.away);
+  const homeTeam = [homeParts.line1, homeParts.line2].filter(Boolean).join(' ') || enc.home;
+  const awayTeam = [awayParts.line1, awayParts.line2].filter(Boolean).join(' ') || enc.away;
+  const ageGroup = pickFeedAgeGroup(ourTeamName);
   const homeLogoUrl = event.is_home === false ? event.opponent_logo_url : null;
   const awayLogoUrl = event.is_home === false ? null : event.opponent_logo_url;
 
@@ -70,9 +74,16 @@ export function MatchCenterNextMatchCard({ event, ourTeamName, now }: Props) {
         <p className="text-[12px] font-black uppercase tracking-[0.22em] text-red-300/90">
           Nächstes Spiel
         </p>
-        {matchLabel ? (
-          <p className="mt-1 text-[13px] font-semibold text-white/55">{matchLabel}</p>
-        ) : null}
+        <div className="mt-1 flex items-center gap-2">
+          {matchLabel ? (
+            <p className="text-[13px] font-semibold text-white/55">{matchLabel}</p>
+          ) : null}
+          {ageGroup ? (
+            <span className="rounded-full border border-red-400/25 bg-red-950/35 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.13em] text-red-300">
+              {ageGroup}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="relative min-w-0 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
