@@ -7,7 +7,8 @@ import {
   type TeamNotificationSettingsRow,
 } from '../lib/notifications/teamSettings';
 
-const MATCH_MIN = [720, 1440, 2880] as const;
+const TRAINING_MIN = [120] as const;
+const MATCH_MIN = [720, 1440, 2880, 4320] as const;
 const MATCH2_MIN = [180, 720, 1440] as const;
 const EVENT_MIN = [180, 720, 1440] as const;
 
@@ -22,7 +23,7 @@ function normalizeRow(raw: TeamNotificationSettingsRow): TeamNotificationSetting
   return {
     ...raw,
     training_minutes_before: nearest(TRAINING_MIN, raw.training_minutes_before, 120),
-    match_minutes_before: nearest(MATCH_MIN, raw.match_minutes_before, 2880),
+    match_minutes_before: nearest(MATCH_MIN, raw.match_minutes_before, 4320),
     // Nur Minuten auf erlaubte Werte runden; Checkboxen bleiben unverändert.
     match_second_minutes_before: nearest(MATCH2_MIN, raw.match_second_minutes_before, 1440),
     event_minutes_before: nearest(EVENT_MIN, raw.event_minutes_before, 1440),
@@ -174,6 +175,10 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
       )}
       {saved && !saveError && <p className="mt-2 text-xs text-emerald-300/90">Gespeichert.</p>}
 
+      <div className="mt-3 rounded-xl border border-red-500/25 bg-red-950/20 p-3 text-xs leading-relaxed text-white/70">
+        Versendet werden nur offene Rückmeldungen – als Push, Nachricht unter der Glocke und App-Badge.
+      </div>
+
       <div className="mt-3 space-y-3 text-sm">
         <label className="flex items-center gap-2">
           <input
@@ -182,7 +187,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
             onChange={(e) => update('training_enabled', e.target.checked)}
             className="rounded border-white/20"
           />
-          <span>Training erinnern</span>
+          <span className="font-semibold">Training – letzte Rückmeldung</span>
         </label>
         <div className="pl-6 text-sm text-white/60">
           Am Trainingstag um 11:00 Uhr
@@ -195,7 +200,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
             onChange={(e) => update('match_enabled', e.target.checked)}
             className="rounded border-white/20"
           />
-          <span>Spiel erinnern</span>
+          <span className="font-semibold">Match – Kader-Erinnerung</span>
         </label>
         <div className="flex flex-wrap items-center gap-2 pl-6">
           <span className="text-white/60">Vorher</span>
@@ -206,7 +211,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           >
             {MATCH_MIN.map((m) => (
               <option key={m} value={m}>
-                {m >= 60 ? `${m / 60} h` : `${m} Min`}
+                {m === 4320 ? '3 Tage' : m === 2880 ? '48 Stunden' : m === 1440 ? '24 Stunden' : m === 720 ? '12 Stunden' : `${m} Min`}
               </option>
             ))}
           </select>
@@ -219,7 +224,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
             onChange={(e) => update('match_second_enabled', e.target.checked)}
             className="rounded border-white/20"
           />
-          <span>Zweite Spiel-Erinnerung</span>
+          <span>Zweite Match-Erinnerung</span>
         </label>
         <div className="flex flex-wrap items-center gap-2 pl-6">
           <span className="text-white/60">Vorher</span>
@@ -230,7 +235,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           >
             {MATCH2_MIN.map((m) => (
               <option key={m} value={m}>
-                {m} Min
+                {m === 1440 ? '24 Stunden' : m === 720 ? '12 Stunden' : m === 180 ? '3 Stunden' : `${m} Min`}
               </option>
             ))}
           </select>
@@ -267,7 +272,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         onClick={() => void save()}
         className="mt-4 w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
       >
-        {saving ? 'Speichern…' : 'Speichern'}
+        {saving ? 'Speichern…' : 'Erinnerungen speichern'}
       </button>
     </div>
   );
