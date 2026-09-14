@@ -2,12 +2,6 @@
   "git": {
     "deploymentEnabled": true
   },
-  "crons": [
-    {
-      "path": "/api/send-reminders",
-      "schedule": "* * * * *"
-    }
-  ],
   "ignoreCommand": "node scripts/vercel-ignore-build.mjs",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",

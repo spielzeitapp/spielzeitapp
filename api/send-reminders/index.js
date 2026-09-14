@@ -1,5 +1,5 @@
 /**
- * Vercel: GET (Cron) oder POST (manuell) /api/send-reminders (CommonJS)
+ * Vercel: POST /api/send-reminders (CommonJS)
  * Verarbeitet fällige `notification_jobs` → `notifications` + Web Push über `push_subscriptions`
  * (gleicher Pfad wie Team-Push / Direkt-Push).
  *
@@ -13,17 +13,6 @@ const { assertStagingSafeToRunOutbound } = require('../../lib/stagingGuards');
 const JOB_BATCH_LIMIT = 50;
 /** Keine alten Reminder nach einem Cron-Ausfall gesammelt nachsenden. */
 const MAX_REMINDER_DELAY_MS = 2 * 60 * 60 * 1000;
-
-function headerValue(req, name) {
-  const raw = req.headers?.[name] ?? req.headers?.[name.toLowerCase()];
-  return Array.isArray(raw) ? raw[0] : raw;
-}
-
-function isAuthorizedCronRequest(req) {
-  const secret = (process.env.CRON_SECRET || '').trim();
-  if (secret) return headerValue(req, 'authorization') === `Bearer ${secret}`;
-  return headerValue(req, 'user-agent') === 'vercel-cron/1.0';
-}
 
 function formatTimeDe(iso) {
   if (!iso) return '--:--';
@@ -666,11 +655,8 @@ module.exports = async (req, res) => {
   console.log('SEND REMINDERS START', { method: req.method });
 
   try {
-    if (req.method !== 'POST' && req.method !== 'GET') {
+    if (req.method !== 'POST') {
       return res.status(405).json({ ok: false, error: 'Method not allowed' });
-    }
-    if (req.method === 'GET' && !isAuthorizedCronRequest(req)) {
-      return res.status(401).json({ ok: false, error: 'Unauthorized cron request' });
     }
 
     const stagingGate = assertStagingSafeToRunOutbound();
