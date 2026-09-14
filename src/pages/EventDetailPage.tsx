@@ -4099,7 +4099,7 @@ export const EventDetailPage: React.FC = () => {
                   />
                 ) : (
                   <>
-                <div className="mt-1 grid grid-cols-3 gap-2">
+                <div className="-mx-4 mt-1 grid grid-cols-3 gap-2 sm:-mx-5">
                     <div className="sz-club-rsvp-stat sz-club-rsvp-stat--yes">
                       <span>Zugesagt</span>
                       <strong>{Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}</strong>
@@ -4113,7 +4113,7 @@ export const EventDetailPage: React.FC = () => {
                       <strong>{Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}</strong>
                     </div>
                   </div>
-                <div className={`flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3`}>
+                <div className={`-mx-4 flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3 sm:-mx-5`}>
                   {(playersLoading || loadingEventAttendance) && (
                     <p className="text-[14px] text-white/70">Lade…</p>
                   )}
