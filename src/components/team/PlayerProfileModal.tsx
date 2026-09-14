@@ -736,7 +736,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const trainingsSick = trainingStats.sick;
   const trainingsInjured = trainingStats.injured;
   const trainingsExternal = trainingStats.external;
-  const teamTrainingBasis = trainingsPresent + trainingsAbsent;
+  const teamTrainingBasis = trainingsPresent + trainingsExternal + trainingsAbsent;
   const activityTrainingNumerator = trainingsPresent + trainingsExternal;
   const activityTrainingBasis = activityTrainingNumerator + trainingsAbsent;
   const [trainingHistoryFilter, setTrainingHistoryFilter] = useState<TrainingHistoryFilter | null>(null);
@@ -1345,8 +1345,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       </div>
                     ) : null}
                     <p className="mt-2.5 text-[11px] leading-relaxed text-white/45 [hyphens:none]">
-                      Trainingsquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
-                      Aktivität berücksichtigt LAZ zusätzlich.
+                      Trainingsquote: Dabei / (Dabei + Abwesend + LAZ). Aktivität zählt Dabei + LAZ.
+                      Krank und verletzt zählen bei beiden Werten neutral.
                     </p>
                     {!teamRankingLoading ? (
                       <ProfileTrainingKaiserStatus rank={trainingKaiserRank} />

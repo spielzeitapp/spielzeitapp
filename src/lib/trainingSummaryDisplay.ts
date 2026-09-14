@@ -30,7 +30,7 @@ export function formatParticipationLabel(pct: number | null): string {
 
 /** Unterzeile Ø Trainingsbeteiligung (Trainingszentrale, session-basiert). */
 export const PARTICIPATION_EXPLICIT_BASIS_SUB =
-  'Ø über gewertete Trainings · Dabei / (Dabei + Abwesend)';
+  'Ø über gewertete Trainings · Dabei / (Dabei + Abwesend + LAZ)';
 
 /** Kachel-Titel: session-aggregierte Teamkennzahl (nicht Spieler-Saisonquote). */
 export const TEAM_PARTICIPATION_TILE_TITLE = 'Ø Trainingsbeteiligung';
