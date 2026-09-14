@@ -24,11 +24,16 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem, activeId: string | null):
 }
 
 function compactLabelForTeamSeason(ts: SessionTeamSeasonItem | undefined): string {
-  const ageGroup = ts?.age_group?.trim();
-  if (ageGroup) return ageGroup.toUpperCase();
+  const ageGroup = ts?.age_group?.trim().toUpperCase();
+  const seasonName = ts?.season?.name?.trim();
+
+  if (ageGroup && seasonName) return `${ageGroup} · ${seasonName}`;
+  if (ageGroup) return ageGroup;
 
   const fallback = ts?.display_name ?? ts?.team?.name ?? '';
-  return fallback.match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase() ?? 'Team';
+  const fallbackAgeGroup = fallback.match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase();
+  const fallbackSeason = fallback.match(/\b20\d{2}\/\d{2}\b/)?.[0];
+  return [fallbackAgeGroup, fallbackSeason].filter(Boolean).join(' · ') || 'Team';
 }
 
 export type TeamSwitcherProps = {
@@ -103,7 +108,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
     return (
       <label
         className={[
-          'relative inline-flex h-8 min-w-[3.75rem] shrink-0 items-center justify-center gap-1 rounded-full border border-white/15 bg-black/45 px-2.5 text-[11px] font-bold text-white/95 shadow-sm',
+          'relative inline-flex h-8 min-w-[5.75rem] shrink-0 items-center justify-center gap-1 rounded-full border border-white/15 bg-black/45 px-2 text-[10px] font-bold text-white/95 shadow-sm sm:min-w-[6.75rem] sm:px-2.5 sm:text-[11px]',
           className,
         ]
           .filter(Boolean)
