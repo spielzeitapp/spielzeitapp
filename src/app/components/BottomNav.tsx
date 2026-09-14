@@ -17,16 +17,10 @@ function navAssetBase(): string {
   return b.endsWith('/') ? b : `${b}/`;
 }
 
-function readStandaloneScreenHeight(): number | null {
-  if (typeof window === 'undefined') return null;
-  const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
-  const isStandalone =
-    navigatorWithStandalone.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-  if (!isStandalone) return null;
-  const screenHeight = Number(window.screen.height);
-  return Number.isFinite(screenHeight) && screenHeight > 0
-    ? Math.max(screenHeight, window.innerHeight)
-    : window.innerHeight;
+function readVisualViewportBottomOffset(): number {
+  if (typeof window === 'undefined' || !window.visualViewport) return 0;
+  const viewport = window.visualViewport;
+  return Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
 }
 
 /**
@@ -176,18 +170,22 @@ export const BottomNav: React.FC = () => {
   /** Demo: Puls nur wenn die lokale Live-Runtime tatsächlich läuft (DEMO.2F). */
   const demoLiveActive = demo?.liveRuntimeStatus === 'live';
   const liveActiveForNav = isDemo ? Boolean(demoLiveActive) : hasLiveMatch;
-  const [standaloneScreenHeight, setStandaloneScreenHeight] = React.useState<number | null>(() =>
-    readStandaloneScreenHeight(),
+  const [visualViewportBottomOffset, setVisualViewportBottomOffset] = React.useState(() =>
+    readVisualViewportBottomOffset(),
   );
 
   React.useEffect(() => {
-    const updateStandaloneHeight = () => setStandaloneScreenHeight(readStandaloneScreenHeight());
-    updateStandaloneHeight();
-    window.addEventListener('orientationchange', updateStandaloneHeight);
-    window.addEventListener('resize', updateStandaloneHeight);
+    const updateVisualViewportOffset = () => setVisualViewportBottomOffset(readVisualViewportBottomOffset());
+    updateVisualViewportOffset();
+    window.addEventListener('orientationchange', updateVisualViewportOffset);
+    window.addEventListener('resize', updateVisualViewportOffset);
+    window.visualViewport?.addEventListener('resize', updateVisualViewportOffset);
+    window.visualViewport?.addEventListener('scroll', updateVisualViewportOffset);
     return () => {
-      window.removeEventListener('orientationchange', updateStandaloneHeight);
-      window.removeEventListener('resize', updateStandaloneHeight);
+      window.removeEventListener('orientationchange', updateVisualViewportOffset);
+      window.removeEventListener('resize', updateVisualViewportOffset);
+      window.visualViewport?.removeEventListener('resize', updateVisualViewportOffset);
+      window.visualViewport?.removeEventListener('scroll', updateVisualViewportOffset);
     };
   }, []);
 
@@ -211,15 +209,7 @@ export const BottomNav: React.FC = () => {
       data-app-bottom-nav
       className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pb-1 pt-2 sm:px-5"
       style={{
-        ...(standaloneScreenHeight != null
-          ? {
-              top: 0,
-              bottom: 'auto',
-              height: `${standaloneScreenHeight}px`,
-              display: 'flex',
-              alignItems: 'flex-end',
-            }
-          : null),
+        bottom: `${visualViewportBottomOffset}px`,
         paddingBottom: 'max(0.125rem, calc(env(safe-area-inset-bottom, 0px) - 1.5rem))',
       }}
       aria-label="Hauptnavigation"
