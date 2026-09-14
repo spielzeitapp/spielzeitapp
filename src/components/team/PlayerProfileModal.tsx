@@ -21,6 +21,10 @@ import { useDemoMode } from "../../demo/DemoContext";
 import { DEMO_TEAM_SEASON_ID } from "../../demo/demoDataSource";
 import { isDemoPlayerId } from "../../demo/demoPlayers";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
+import {
+  trainingAttendanceLabel,
+  type TrainingAttendanceStatus,
+} from "../../lib/trainingAttendance";
 import { getDemoPlayerPortraitUrl } from "../../lib/playerDemoPortrait";
 import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
 import { getOurTeamLogoUrl } from "../../lib/teamLogos";
@@ -175,13 +179,64 @@ function formatAgeLabel(birthdate: string | null | undefined): string | null {
   return `${age} Jahre`;
 }
 
-function SeasonMiniCell({ label, value }: { label: string; value: string }) {
+function SeasonMiniCell({
+  label,
+  value,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const className = `${PROFILE_METRIC_TILE} text-center transition ${
+    active ? "sz-club-accent-panel ring-1 ring-[var(--sz-club-accent)]" : ""
+  } ${onClick ? "cursor-pointer active:scale-[0.98]" : ""}`;
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className} aria-pressed={active}>
+        <div className="whitespace-nowrap text-[10px] font-medium tracking-wide text-white/50">{label}</div>
+        <div className="mt-0.5 text-[20px] font-bold tabular-nums leading-none text-white">{value}</div>
+      </button>
+    );
+  }
   return (
-    <div className={`${PROFILE_METRIC_TILE} text-center`}>
+    <div className={className}>
       <div className="whitespace-nowrap text-[10px] font-medium tracking-wide text-white/50">{label}</div>
       <div className="mt-0.5 text-[20px] font-bold tabular-nums leading-none text-white">{value}</div>
     </div>
   );
+}
+
+type TrainingHistoryFilter =
+  | "all"
+  | Extract<TrainingAttendanceStatus, "present" | "absent" | "sick" | "injured" | "external">;
+
+const TRAINING_HISTORY_STATUS_CLASS: Record<TrainingHistoryFilter, string> = {
+  all: "border-white/15 bg-white/[0.06] text-white/75",
+  present: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  absent: "border-red-500/30 bg-red-500/10 text-red-300",
+  sick: "border-violet-500/30 bg-violet-500/10 text-violet-300",
+  injured: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  external: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
+};
+
+function formatTrainingHistoryDate(startsAt: string): { date: string; time: string } {
+  const date = new Date(startsAt);
+  if (!Number.isFinite(date.getTime())) return { date: "Training", time: "" };
+  return {
+    date: new Intl.DateTimeFormat("de-AT", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date),
+    time: new Intl.DateTimeFormat("de-AT", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date),
+  };
 }
 
 function PlayerInfoChip({
@@ -606,6 +661,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   );
   const {
     stats: trainingStats,
+    sessions: trainingSessions,
     loading: trainingStatsLoading,
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, statsSeasonId, canViewTrainingParticipation, {
@@ -683,6 +739,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const teamTrainingBasis = trainingsPresent + trainingsAbsent;
   const activityTrainingNumerator = trainingsPresent + trainingsExternal;
   const activityTrainingBasis = activityTrainingNumerator + trainingsAbsent;
+  const [trainingHistoryFilter, setTrainingHistoryFilter] = useState<TrainingHistoryFilter | null>(null);
+  const filteredTrainingSessions = useMemo(
+    () => trainingHistoryFilter == null || trainingHistoryFilter === "all"
+      ? trainingSessions
+      : trainingSessions.filter((session) => session.status === trainingHistoryFilter),
+    [trainingHistoryFilter, trainingSessions],
+  );
 
   useEffect(() => {
     setIsLazPlayer(player.is_laz_player);
@@ -693,7 +756,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   useEffect(() => {
     setProfileTab(initialTab);
+    setTrainingHistoryFilter(null);
   }, [initialTab]);
+
+  useEffect(() => {
+    setTrainingHistoryFilter(null);
+  }, [player.id, statsMode, statsFilterId]);
 
   useEffect(() => {
     if (profileTab === "training" && !canViewTrainingParticipation) {
@@ -1225,12 +1293,57 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       {trainingsInjured} Verletzt · {trainingsExternal} LAZ
                     </p>
                     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
-                      <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
-                      <SeasonMiniCell label="Krank" value={String(trainingsSick)} />
-                      <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
-                      <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
+                      <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} active={trainingHistoryFilter === "present"} onClick={() => setTrainingHistoryFilter("present")} />
+                      <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} active={trainingHistoryFilter === "absent"} onClick={() => setTrainingHistoryFilter("absent")} />
+                      <SeasonMiniCell label="Krank" value={String(trainingsSick)} active={trainingHistoryFilter === "sick"} onClick={() => setTrainingHistoryFilter("sick")} />
+                      <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} active={trainingHistoryFilter === "injured"} onClick={() => setTrainingHistoryFilter("injured")} />
+                      <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} active={trainingHistoryFilter === "external"} onClick={() => setTrainingHistoryFilter("external")} />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setTrainingHistoryFilter(trainingHistoryFilter == null ? "all" : null)}
+                      className="sz-club-accent-chip mt-3 flex min-h-[42px] w-full items-center justify-between rounded-xl border px-3 text-left text-[12px] font-semibold text-white/85"
+                      aria-expanded={trainingHistoryFilter != null}
+                    >
+                      <span>{trainingHistoryFilter == null ? `Alle ${trainingSessions.length} Trainings anzeigen` : "Trainingsliste schließen"}</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${trainingHistoryFilter != null ? "rotate-180" : ""}`} aria-hidden />
+                    </button>
+                    {trainingHistoryFilter != null ? (
+                      <div className="mt-2 overflow-hidden rounded-xl border sz-club-divider bg-black/20">
+                        <div className="flex items-center justify-between border-b sz-club-divider px-3 py-2">
+                          <span className="text-[11px] font-semibold text-white/70">
+                            {trainingHistoryFilter === "all" ? "Alle Trainings" : trainingAttendanceLabel(trainingHistoryFilter)}
+                          </span>
+                          {trainingHistoryFilter !== "all" ? (
+                            <button type="button" onClick={() => setTrainingHistoryFilter("all")} className="text-[11px] font-semibold sz-club-profile-accent">
+                              Alle anzeigen
+                            </button>
+                          ) : null}
+                        </div>
+                        {filteredTrainingSessions.length > 0 ? (
+                          <div className="divide-y divide-white/[0.07]">
+                            {filteredTrainingSessions.map((session) => {
+                              const formatted = formatTrainingHistoryDate(session.startsAt);
+                              const statusClass = TRAINING_HISTORY_STATUS_CLASS[session.status as TrainingHistoryFilter]
+                                ?? TRAINING_HISTORY_STATUS_CLASS.all;
+                              return (
+                                <div key={session.eventId} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                                  <div className="min-w-0">
+                                    <p className="text-[12px] font-semibold capitalize text-white/85">{formatted.date}</p>
+                                    <p className="mt-0.5 text-[10px] text-white/40">{formatted.time ? `${formatted.time} Uhr` : ""}</p>
+                                  </div>
+                                  <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusClass}`}>
+                                    {trainingAttendanceLabel(session.status)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="px-3 py-4 text-center text-[12px] text-white/45">Keine Trainings mit diesem Status.</p>
+                        )}
+                      </div>
+                    ) : null}
                     <p className="mt-2.5 text-[11px] leading-relaxed text-white/45 [hyphens:none]">
                       Trainingsquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
                       Aktivität berücksichtigt LAZ zusätzlich.

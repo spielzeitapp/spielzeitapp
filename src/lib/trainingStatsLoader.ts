@@ -1,12 +1,24 @@
 import {
   computeTrainingAttendanceStats,
   resolveTrainingAttendanceStatusForStats,
+  type TrainingAttendanceStatus,
   type TrainingAttendanceStats,
 } from './trainingAttendance';
 import { isPastTrainingEvent } from './eventFilters';
 import { supabase } from './supabaseClient';
 
 export type PastTrainingEvent = { id: string; starts_at: string };
+
+export type PlayerTrainingSession = {
+  eventId: string;
+  startsAt: string;
+  status: TrainingAttendanceStatus;
+};
+
+export type PlayerTrainingHistory = {
+  stats: TrainingAttendanceStats;
+  sessions: PlayerTrainingSession[];
+};
 
 export const EMPTY_TRAINING_STATS: TrainingAttendanceStats = {
   teamRatePct: 0,
@@ -60,13 +72,35 @@ export function computeTrainingStatsForPlayer(
   return computeTrainingAttendanceStats(sessionStatuses);
 }
 
-export async function loadPlayerTrainingStats(
+export function computeTrainingHistoryForPlayer(
+  eventRows: PastTrainingEvent[],
+  attendanceByEventId: Map<string, string>,
+  nowMs: number = Date.now(),
+): PlayerTrainingHistory {
+  const sessions = eventRows.map((ev) => ({
+    eventId: ev.id,
+    startsAt: ev.starts_at,
+    status: resolveTrainingAttendanceStatusForStats(
+      attendanceByEventId.get(String(ev.id).toLowerCase()),
+      ev.starts_at,
+      nowMs,
+    ),
+  }));
+  return {
+    stats: computeTrainingAttendanceStats(sessions.map((session) => session.status)),
+    sessions,
+  };
+}
+
+export async function loadPlayerTrainingHistory(
   playerId: string,
   teamSeasonId: string,
-): Promise<TrainingAttendanceStats> {
+): Promise<PlayerTrainingHistory> {
   const pid = playerId.trim();
   const events = await fetchPastTrainingEvents(teamSeasonId);
-  if (!pid || events.length === 0) return { ...EMPTY_TRAINING_STATS };
+  if (!pid || events.length === 0) {
+    return { stats: { ...EMPTY_TRAINING_STATS }, sessions: [] };
+  }
 
   const eventIds = events.map((e) => e.id).filter(Boolean);
   const { data: attRows, error } = await supabase
@@ -83,7 +117,14 @@ export async function loadPlayerTrainingStats(
     statusByEvent.set(String(row.event_id).toLowerCase(), row.status);
   }
 
-  return computeTrainingStatsForPlayer(events, statusByEvent);
+  return computeTrainingHistoryForPlayer(events, statusByEvent);
+}
+
+export async function loadPlayerTrainingStats(
+  playerId: string,
+  teamSeasonId: string,
+): Promise<TrainingAttendanceStats> {
+  return (await loadPlayerTrainingHistory(playerId, teamSeasonId)).stats;
 }
 
 export async function loadTeamPlayersTrainingStats(
@@ -136,9 +177,16 @@ export async function loadPlayerTrainingStatsAcrossSeasons(
   playerId: string,
   teamSeasonIds: string[],
 ): Promise<TrainingAttendanceStats> {
+  return (await loadPlayerTrainingHistoryAcrossSeasons(playerId, teamSeasonIds)).stats;
+}
+
+export async function loadPlayerTrainingHistoryAcrossSeasons(
+  playerId: string,
+  teamSeasonIds: string[],
+): Promise<PlayerTrainingHistory> {
   const pid = playerId.trim();
   const ids = [...new Set(teamSeasonIds.map((id) => id.trim()).filter(Boolean))];
-  if (!pid || ids.length === 0) return { ...EMPTY_TRAINING_STATS };
+  if (!pid || ids.length === 0) return { stats: { ...EMPTY_TRAINING_STATS }, sessions: [] };
 
   const eventById = new Map<string, PastTrainingEvent>();
   for (const sid of ids) {
@@ -146,7 +194,7 @@ export async function loadPlayerTrainingStatsAcrossSeasons(
     for (const ev of events) eventById.set(ev.id, ev);
   }
   const events = [...eventById.values()].sort((a, b) => b.starts_at.localeCompare(a.starts_at));
-  if (events.length === 0) return { ...EMPTY_TRAINING_STATS };
+  if (events.length === 0) return { stats: { ...EMPTY_TRAINING_STATS }, sessions: [] };
 
   const eventIds = events.map((e) => e.id);
   const { data: attRows, error } = await supabase
@@ -161,5 +209,5 @@ export async function loadPlayerTrainingStatsAcrossSeasons(
     const row = r as { event_id: string; status: string };
     statusByEvent.set(String(row.event_id).toLowerCase(), row.status);
   }
-  return computeTrainingStatsForPlayer(events, statusByEvent);
+  return computeTrainingHistoryForPlayer(events, statusByEvent);
 }
