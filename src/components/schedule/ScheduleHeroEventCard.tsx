@@ -82,9 +82,9 @@ function HeroTeamTwoLines({ displayName, matchColumn }: { displayName: string; m
           : 'mt-1.5 flex w-full max-w-[6.75rem] flex-col items-center gap-0.5 px-0.5 text-center sm:max-w-[7.25rem]'
       }
     >
-      <span className="w-full break-words text-[11px] font-bold leading-snug text-white/90">{line1}</span>
+      <span className="w-full break-words text-[11px] font-bold leading-snug text-white/90 max-[359px]:text-[10px]">{line1}</span>
       {line2 ? (
-        <span className="w-full break-words text-[10px] font-semibold leading-snug text-white/78">{line2}</span>
+        <span className="w-full break-words text-[10px] font-semibold leading-snug text-white/78 max-[359px]:text-[9px]">{line2}</span>
       ) : null}
     </div>
   );
@@ -96,7 +96,7 @@ function HeroMatchTeamLogo({ src }: { src: string }) {
   if (failed) {
     return (
       <div
-        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/14 bg-black/50 text-[1.65rem] leading-none sm:h-16 sm:w-16 sm:text-[1.85rem]"
+        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/14 bg-black/50 text-[1.65rem] leading-none max-[359px]:h-12 max-[359px]:w-12 max-[359px]:text-[1.4rem] sm:h-16 sm:w-16 sm:text-[1.85rem]"
         aria-hidden
       >
         ⚽
@@ -107,7 +107,7 @@ function HeroMatchTeamLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
+      className="h-14 w-14 shrink-0 object-contain max-[359px]:h-12 max-[359px]:w-12 sm:h-16 sm:w-16"
       onError={() => setFailed(true)}
     />
   );
@@ -240,7 +240,7 @@ export function ScheduleHeroEventCard({
 
   /** Match-Hero: Datum in Zeile über Teams (nicht absolute — siehe gameBody). */
   const gameDateBadgeRow = (
-    <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0.5 rounded-xl border border-white/18 bg-black/68 px-2 py-2 text-left shadow-md backdrop-blur-md sm:gap-1 sm:px-2.5 sm:py-2">
+    <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0.5 rounded-xl border border-white/18 bg-black/68 px-2 py-2 text-left shadow-md backdrop-blur-md max-[359px]:px-1.5 max-[359px]:py-1.5 sm:gap-1 sm:px-2.5 sm:py-2">
       <span className="text-[10px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-[11px]">
         {wd}
       </span>
@@ -270,20 +270,20 @@ export function ScheduleHeroEventCard({
           {gameStatsInline ?? <span className="min-w-[2rem] shrink-0" aria-hidden />}
         </div>
 
-        <div className="mt-2.5 flex w-full min-w-0 shrink-0 flex-row items-center justify-between gap-x-0.5 sm:gap-x-1">
-          <div className="flex w-[26%] min-w-0 flex-col items-center justify-center px-0.5">
+        <div className="mt-2.5 flex w-full min-w-0 shrink-0 flex-row items-center justify-between gap-x-0.5 max-[359px]:mt-2 sm:gap-x-1">
+          <div className="flex w-[26%] min-w-0 flex-col items-center justify-center px-0.5 max-[359px]:w-[25%]">
             <HeroMatchTeamLogo src={leftLogoSrc} />
             <HeroTeamTwoLines displayName={leftName} matchColumn />
           </div>
 
-          <div className="flex w-[48%] min-w-0 flex-col items-center justify-center self-center border-x border-white/12 px-1 py-0.5 sm:px-1.5">
+          <div className="flex w-[48%] min-w-0 flex-col items-center justify-center self-center border-x border-white/12 px-1 py-0.5 max-[359px]:w-[50%] max-[359px]:px-0.5 sm:px-1.5">
             <p className="px-0.5 text-center text-[9px] font-bold uppercase leading-snug tracking-[0.14em] text-white/88 sm:text-[10px] sm:tracking-[0.16em]">
               {matchKindCenterLabel}
             </p>
             <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[#B85C68] sm:text-[10px]">
               {kickoffHeaderLabel}
             </span>
-            <span className="mt-1 text-center text-[2.2rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] min-[375px]:text-[2.4rem] sm:text-[2.5rem]">
+            <span className="mt-1 text-center text-[2.2rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] max-[359px]:text-[1.85rem] min-[375px]:text-[2.4rem] sm:text-[2.5rem]">
               {showScore ? `${home} : ${away}` : timeStr}
             </span>
             {!showScore ? (
@@ -304,7 +304,7 @@ export function ScheduleHeroEventCard({
             ) : null}
           </div>
 
-          <div className="flex w-[26%] min-w-0 flex-col items-center justify-center px-0.5">
+          <div className="flex w-[26%] min-w-0 flex-col items-center justify-center px-0.5 max-[359px]:w-[25%]">
             <HeroMatchTeamLogo src={rightLogoSrc} />
             <HeroTeamTwoLines displayName={rightName} matchColumn />
           </div>

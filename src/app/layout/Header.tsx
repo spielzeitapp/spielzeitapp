@@ -14,11 +14,11 @@ import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
 
 function AppHeaderBrand() {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex min-w-0 shrink-0 items-center gap-1.5 max-[359px]:gap-0.5">
       <SpielzeitAppBrand
-        className="max-w-[min(50vw,10.25rem)] sm:max-w-[12rem]"
-        iconClassName="h-11 w-11 sm:h-12 sm:w-12"
-        wordmarkClassName="w-[7.8rem] sm:w-[9.1rem]"
+        className="min-w-0 max-w-[min(50vw,10.25rem)] max-[359px]:max-w-[2.25rem] sm:max-w-[12rem]"
+        iconClassName="h-11 w-11 max-[359px]:h-9 max-[359px]:w-9 sm:h-12 sm:w-12"
+        wordmarkClassName="w-[7.8rem] max-[359px]:hidden sm:w-[9.1rem]"
       />
       {isStagingApp() ? (
         <span
@@ -132,13 +132,13 @@ export const Header: React.FC = () => {
         className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[radial-gradient(ellipse_70%_100%_at_18%_0%,rgba(255,30,30,0.07),transparent_68%)]"
         aria-hidden
       />
-      <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-0.5 md:px-8 md:py-1">
+      <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-0.5 max-[359px]:gap-1 max-[359px]:px-2 md:px-8 md:py-1">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home bzw. /demo/home) */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden max-[359px]:flex-none max-[359px]:gap-1 sm:gap-2.5">
           {pathname.startsWith('/app') || isDemo ? (
             <Link
               to={isDemo ? '/demo/home' : '/app/home'}
-              className="inline-flex min-w-0 items-center gap-1.5"
+              className="inline-flex min-w-0 items-center gap-1.5 overflow-hidden max-[359px]:gap-0.5"
             >
               <AppHeaderBrand />
               {isDemo ? <DemoBadge /> : null}
@@ -166,13 +166,13 @@ export const Header: React.FC = () => {
         </div>
 
         {!publicView && !isDemo && effectiveRole !== 'parent' && (teamSeasons?.length ?? 0) > 1 ? (
-          <div className="flex shrink-0 justify-center px-1">
+          <div className="flex min-w-0 shrink justify-center px-1 max-[359px]:flex-1 max-[359px]:px-0">
             <TeamSwitcher compact hideWhenSingle />
           </div>
         ) : null}
 
         {!publicView && !isDemo && effectiveRole === 'parent' ? (
-          <div className="flex shrink-0 justify-center px-1">
+          <div className="flex min-w-0 shrink justify-center px-1 max-[359px]:flex-1 max-[359px]:px-0">
             <ParentChildrenSwitcher />
           </div>
         ) : null}
