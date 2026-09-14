@@ -6,7 +6,6 @@ import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import { TeamSwitcher } from '../components/TeamSwitcher';
-import { ParentChildrenSwitcher } from '../../components/parent/ParentChildrenSwitcher';
 import { isStagingApp } from '../../lib/appEnvironment';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
@@ -165,15 +164,9 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {!publicView && !isDemo && effectiveRole !== 'parent' && (teamSeasons?.length ?? 0) > 1 ? (
+        {!publicView && !isDemo && (teamSeasons?.length ?? 0) > 0 ? (
           <div className="flex min-w-0 shrink justify-center px-1 max-[359px]:flex-1 max-[359px]:px-0">
-            <TeamSwitcher compact hideWhenSingle />
-          </div>
-        ) : null}
-
-        {!publicView && !isDemo && effectiveRole === 'parent' ? (
-          <div className="flex min-w-0 shrink justify-center px-1 max-[359px]:flex-1 max-[359px]:px-0">
-            <ParentChildrenSwitcher />
+            <TeamSwitcher compact />
           </div>
         ) : null}
 
