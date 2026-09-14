@@ -83,7 +83,7 @@ export function CompactListParentAttendance({
           ariaLabel="Krank"
           onClick={openModal}
         >
-          <span className="text-[9px] font-extrabold uppercase tracking-wide">K</span>
+          <span className="text-[15px] font-black leading-none">K</span>
         </AttendancePillButton>
       );
     }
@@ -94,7 +94,7 @@ export function CompactListParentAttendance({
           ariaLabel="Verletzt"
           onClick={openModal}
         >
-          <span className="text-[9px] font-extrabold uppercase tracking-wide">V</span>
+          <span className="text-[15px] font-black leading-none">V</span>
         </AttendancePillButton>
       );
     }

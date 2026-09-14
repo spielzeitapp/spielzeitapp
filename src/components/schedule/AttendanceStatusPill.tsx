@@ -39,14 +39,14 @@ export function AttendanceStatusPill({
     if (status === 'sick') {
       return (
         <span className={attendanceSickPillClass(size, className)} aria-label="Krank">
-          <span className="text-[9px] font-extrabold uppercase tracking-wide">K</span>
+          <span className="text-[15px] font-black leading-none">K</span>
         </span>
       );
     }
     if (status === 'injured') {
       return (
         <span className={attendanceInjuredPillClass(size, className)} aria-label="Verletzt">
-          <span className="text-[9px] font-extrabold uppercase tracking-wide">V</span>
+          <span className="text-[15px] font-black leading-none">V</span>
         </span>
       );
     }
