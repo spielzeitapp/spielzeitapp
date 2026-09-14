@@ -637,7 +637,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   }, [statsMode, seasonOptions, statsFilterId, teamSeasonLabel]);
 
   const profilePositionBadge = useMemo(() => getProfilePositionBadge(player.position), [player.position]);
-  const showGoalkeeperPlaceholder = isGoalkeeperProfilePosition(player.position);
+  const showGoalkeeperPlaceholder =
+    isGoalkeeperProfilePosition(player.position) ||
+    player.jersey_number === 1 ||
+    player.jersey_number === 21;
 
   const goalsPerGameDisplay = useMemo(() => {
     const v = Number(stats.goalsPerGame);
@@ -654,7 +657,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
   const avatarSrc =
     (photoUrl ?? "").trim() ||
-    (demo ? getDemoPlayerPortraitUrl(player.jersey_number, player.id) : "/avatars/player-placeholder.png");
+    (demo
+      ? getDemoPlayerPortraitUrl(player.jersey_number, player.id)
+      : showGoalkeeperPlaceholder
+        ? "/avatars/player-placeholder-goalkeeper.png"
+        : "/avatars/player-placeholder.png");
   const jerseyWatermark =
     player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
       ? String(player.jersey_number)
