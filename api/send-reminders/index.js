@@ -196,6 +196,27 @@ async function ensureUpcomingReminderJobs(admin) {
     if (settingBool(row, 'match_second_reminder_enabled', 'match_second_enabled', true)) {
       slots.push(['match_second', settingMinutes(row, 'match_second_reminder_minutes_before', 'match_second_minutes_before', 1440)]);
     }
+    const expectedDedupeKeys = new Set(
+      slots.map(([slot, minutes]) => `event:${event.id}:${slot}_${minutes}`),
+    );
+    const obsoleteIds = existing
+      .filter(
+        (job) =>
+          job.kind === 'match' &&
+          (job.status === 'pending' || job.status === 'failed') &&
+          String(job.dedupe_key || '').startsWith(`event:${event.id}:match`) &&
+          !expectedDedupeKeys.has(job.dedupe_key),
+      )
+      .map((job) => job.id);
+    if (obsoleteIds.length) {
+      const { error } = await admin.from('notification_jobs').delete().in('id', obsoleteIds);
+      if (error) throw error;
+      console.log('[reminderPipeline] obsolete match reminders removed', {
+        eventId: event.id,
+        removed: obsoleteIds.length,
+      });
+    }
+
     for (const [slot, minutes] of slots) {
       const reminderKey = `${slot}_${minutes}`;
       const dedupeKey = `event:${event.id}:${reminderKey}`;
@@ -339,6 +360,68 @@ async function fetchReminderRecipientUserIdsForTeamSeason(admin, teamSeasonId) {
     afterClientDedupe: out.length,
   });
   return out;
+}
+
+/** Empfänger für Termin-Reminder: nur Eltern/Spieler, deren Spieler noch keine Rückmeldung hat. */
+async function fetchOpenRsvpRecipientUserIds(admin, event) {
+  let rosterPlayerIds = [];
+  const { data: rosterRows, error: rosterErr } = await admin
+    .from('team_season_players')
+    .select('player_id, status, is_active')
+    .eq('team_season_id', event.team_season_id);
+
+  if (!rosterErr) {
+    rosterPlayerIds = (rosterRows || [])
+      .filter((row) => row.is_active !== false && String(row.status || 'active').toLowerCase() === 'active')
+      .map((row) => row.player_id)
+      .filter(Boolean);
+  } else {
+    console.warn('[reminderPipeline] roster mapping fallback to players', rosterErr.message);
+    const { data: playerRows, error: playersErr } = await admin
+      .from('players')
+      .select('id, status, is_active')
+      .eq('team_season_id', event.team_season_id);
+    if (playersErr) throw playersErr;
+    rosterPlayerIds = (playerRows || [])
+      .filter((row) => row.is_active !== false && String(row.status || 'active').toLowerCase() === 'active')
+      .map((row) => row.id)
+      .filter(Boolean);
+  }
+
+  rosterPlayerIds = [...new Set(rosterPlayerIds)];
+  if (!rosterPlayerIds.length) return [];
+
+  const { data: attendanceRows, error: attendanceErr } = await admin
+    .from('event_attendance')
+    .select('player_id')
+    .eq('event_id', event.id)
+    .in('player_id', rosterPlayerIds);
+  if (attendanceErr) throw attendanceErr;
+
+  const answered = new Set((attendanceRows || []).map((row) => row.player_id).filter(Boolean));
+  const openPlayerIds = rosterPlayerIds.filter((playerId) => !answered.has(playerId));
+  if (!openPlayerIds.length) return [];
+
+  const [{ data: guardianRows, error: guardianErr }, { data: playerUserRows, error: playerUsersErr }] =
+    await Promise.all([
+      admin.from('player_guardians').select('user_id').in('player_id', openPlayerIds),
+      admin.from('player_users').select('user_id').in('player_id', openPlayerIds),
+    ]);
+  if (guardianErr) throw guardianErr;
+  if (playerUsersErr) throw playerUsersErr;
+
+  const recipients = dedupeRecipientUserIds([
+    ...(guardianRows || []).map((row) => row.user_id),
+    ...(playerUserRows || []).map((row) => row.user_id),
+  ]);
+  console.log('[reminderPipeline] open RSVP recipients resolved', {
+    eventId: event.id,
+    rosterCount: rosterPlayerIds.length,
+    answeredCount: answered.size,
+    openCount: openPlayerIds.length,
+    recipientCount: recipients.length,
+  });
+  return recipients;
 }
 
 function parseJobPayload(raw) {
@@ -600,7 +683,10 @@ async function processOneJob(admin, job) {
     recipients = targetedRecipients;
   } else {
     try {
-      recipients = await fetchReminderRecipientUserIdsForTeamSeason(admin, event.team_season_id);
+      recipients =
+        !isMatchday && !isCarpool
+          ? await fetchOpenRsvpRecipientUserIds(admin, event)
+          : await fetchReminderRecipientUserIdsForTeamSeason(admin, event.team_season_id);
     } catch (e) {
       const msg = e && e.message ? e.message : String(e);
       await failJobWithRetry(admin, job, msg);
