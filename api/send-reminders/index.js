@@ -196,6 +196,27 @@ async function ensureUpcomingReminderJobs(admin) {
     if (settingBool(row, 'match_second_reminder_enabled', 'match_second_enabled', true)) {
       slots.push(['match_second', settingMinutes(row, 'match_second_reminder_minutes_before', 'match_second_minutes_before', 1440)]);
     }
+    const expectedDedupeKeys = new Set(
+      slots.map(([slot, minutes]) => `event:${event.id}:${slot}_${minutes}`),
+    );
+    const obsoleteIds = existing
+      .filter(
+        (job) =>
+          job.kind === 'match' &&
+          (job.status === 'pending' || job.status === 'failed') &&
+          String(job.dedupe_key || '').startsWith(`event:${event.id}:match`) &&
+          !expectedDedupeKeys.has(job.dedupe_key),
+      )
+      .map((job) => job.id);
+    if (obsoleteIds.length) {
+      const { error } = await admin.from('notification_jobs').delete().in('id', obsoleteIds);
+      if (error) throw error;
+      console.log('[reminderPipeline] obsolete match reminders removed', {
+        eventId: event.id,
+        removed: obsoleteIds.length,
+      });
+    }
+
     for (const [slot, minutes] of slots) {
       const reminderKey = `${slot}_${minutes}`;
       const dedupeKey = `event:${event.id}:${reminderKey}`;
