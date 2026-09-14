@@ -11,6 +11,8 @@ const { assertStagingSafeToRunOutbound } = require('../../lib/stagingGuards');
 
 /** Idempotente Batches; mehrfaches Aufrufen möglich (Claim + messages-Dedupe). */
 const JOB_BATCH_LIMIT = 50;
+/** Keine alten Reminder nach einem Cron-Ausfall gesammelt nachsenden. */
+const MAX_REMINDER_DELAY_MS = 2 * 60 * 60 * 1000;
 
 function formatTimeDe(iso) {
   if (!iso) return '--:--';
@@ -622,6 +624,15 @@ async function runNotificationJobsWorker(admin) {
 
     processed += 1;
     const job = claimed;
+    const scheduledAt = Date.parse(String(job.send_at || ''));
+    if (Number.isFinite(scheduledAt) && Date.now() - scheduledAt > MAX_REMINDER_DELAY_MS) {
+      console.warn('[send-reminders] stale job skipped', {
+        jobId: job.id,
+        send_at_utc: job.send_at,
+      });
+      await completeJob(admin, job.id);
+      continue;
+    }
     try {
       const r = await processOneJob(admin, job);
       if (r.ok) sent += 1;
