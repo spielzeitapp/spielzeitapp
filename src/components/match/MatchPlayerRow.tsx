@@ -74,7 +74,7 @@ export const MatchPlayerRow: React.FC<{
     const nameParts = playerNameParts(player);
     const content = (
       <>
-        <div className="relative -mb-2.5 mr-2 h-[74px] w-[60px] shrink-0 self-end overflow-hidden">
+        <div className="relative -mb-2.5 mr-2 h-[74px] w-[60px] shrink-0 self-end overflow-hidden max-[359px]:mr-1 max-[359px]:h-[66px] max-[359px]:w-[46px]">
           <img
             src={mediaSrc}
             alt=""
@@ -85,20 +85,20 @@ export const MatchPlayerRow: React.FC<{
             }}
           />
         </div>
-        <span className="sz-club-number-divider w-11 shrink-0 border-l pl-2 text-[25px] font-black leading-none text-white">
+        <span className="sz-club-number-divider w-11 shrink-0 border-l pl-2 text-[25px] font-black leading-none text-white max-[359px]:w-8 max-[359px]:pl-1.5 max-[359px]:text-[21px]">
           {number ?? "–"}
         </span>
-        <span className="min-w-0 flex-1 pl-2">
-          <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 sm:text-[14px]">
+        <span className="min-w-0 flex-1 pl-2 max-[359px]:pl-1.5">
+          <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 max-[359px]:text-[11px] sm:text-[14px]">
             {nameParts.first}
           </span>
-          <span className="block truncate text-[17px] font-black leading-tight text-white sm:text-[18px]">
+          <span className="block truncate text-[17px] font-black leading-tight text-white max-[359px]:line-clamp-2 max-[359px]:whitespace-normal max-[359px]:break-words max-[359px]:text-[14px] sm:text-[18px]">
             {nameParts.family || premiumPlayerDisplayName(player)}
           </span>
           {!hideSubline ? <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span> : null}
         </span>
         {trailing ? (
-          <span className="ml-1 flex shrink-0 items-center">{trailing}</span>
+          <span className="ml-1 flex shrink-0 items-center max-[359px]:ml-0.5 max-[359px]:origin-right max-[359px]:scale-[0.9]">{trailing}</span>
         ) : (
           <span className="ml-1 flex max-w-[7.25rem] shrink-0 flex-col items-end gap-1">
             <PlayerSpecialStatusBadges
@@ -112,7 +112,7 @@ export const MatchPlayerRow: React.FC<{
       </>
     );
     const className = [
-      "flex min-h-[78px] w-full items-center overflow-hidden rounded-[15px] border px-2.5 text-left transition active:scale-[0.99]",
+      "flex min-h-[78px] w-full min-w-0 max-w-full items-center overflow-hidden rounded-[15px] border px-2.5 text-left transition active:scale-[0.99] max-[359px]:px-1.5",
       "sz-club-list-card sz-club-surface sz-club-surface--quiet",
       selected
         ? "border-emerald-500/55 shadow-[0_8px_26px_rgba(5,150,105,0.16),0_0_18px_rgba(16,185,129,0.10)]"
