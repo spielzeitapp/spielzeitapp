@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { TrainingAttendanceStats } from '../lib/trainingAttendance';
 import {
+  computeTrainingHistoryForPlayer,
   EMPTY_TRAINING_STATS,
-  loadPlayerTrainingStats,
-  loadPlayerTrainingStatsAcrossSeasons,
+  loadPlayerTrainingHistory,
+  loadPlayerTrainingHistoryAcrossSeasons,
+  type PlayerTrainingSession,
 } from '../lib/trainingStatsLoader';
 import { useDemoMode } from '../demo/DemoContext';
 import { isDemoPlayerId } from '../demo/demoPlayers';
 import {
   getDemoPastTrainingEvents,
-  getDemoPlayerTrainingStatsFromAttendance,
 } from '../demo/demoTrainingStats';
 
 /**
@@ -26,6 +27,7 @@ export function usePlayerTrainingStats(
   const mode = options?.mode ?? 'season';
   const careerSeasonIds = options?.careerSeasonIds;
   const [stats, setStats] = useState<TrainingAttendanceStats>(EMPTY_TRAINING_STATS);
+  const [sessions, setSessions] = useState<PlayerTrainingSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +39,7 @@ export function usePlayerTrainingStats(
   const load = useCallback(async () => {
     if (!enabled) {
       setStats(EMPTY_TRAINING_STATS);
+      setSessions([]);
       setError(null);
       setLoading(false);
       return;
@@ -44,6 +47,7 @@ export function usePlayerTrainingStats(
     const pid = (playerId ?? '').trim();
     if (!pid) {
       setStats(EMPTY_TRAINING_STATS);
+      setSessions([]);
       setError(null);
       return;
     }
@@ -51,9 +55,18 @@ export function usePlayerTrainingStats(
     if (demo || isDemoPlayerId(pid)) {
       if (demo) {
         const past = getDemoPastTrainingEvents(demo.data.events);
-        setStats(getDemoPlayerTrainingStatsFromAttendance(pid, past, demo.attendanceRows));
+        const byEvent = new Map<string, string>();
+        for (const row of demo.attendanceRows) {
+          if (row.player_id.toLowerCase() === pid.toLowerCase()) {
+            byEvent.set(row.event_id.toLowerCase(), row.status);
+          }
+        }
+        const history = computeTrainingHistoryForPlayer(past, byEvent);
+        setStats(history.stats);
+        setSessions(history.sessions);
       } else {
         setStats(EMPTY_TRAINING_STATS);
+        setSessions([]);
       }
       setError(null);
       setLoading(false);
@@ -65,18 +78,24 @@ export function usePlayerTrainingStats(
     try {
       if (mode === 'career') {
         const ids = careerSeasonIds?.filter(Boolean) ?? [];
-        setStats(await loadPlayerTrainingStatsAcrossSeasons(pid, ids));
+        const history = await loadPlayerTrainingHistoryAcrossSeasons(pid, ids);
+        setStats(history.stats);
+        setSessions(history.sessions);
       } else {
         const sid = (teamSeasonId ?? '').trim();
         if (!sid) {
           setStats(EMPTY_TRAINING_STATS);
+          setSessions([]);
         } else {
-          setStats(await loadPlayerTrainingStats(pid, sid));
+          const history = await loadPlayerTrainingHistory(pid, sid);
+          setStats(history.stats);
+          setSessions(history.sessions);
         }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setStats(EMPTY_TRAINING_STATS);
+      setSessions([]);
     } finally {
       setLoading(false);
     }
@@ -86,5 +105,5 @@ export function usePlayerTrainingStats(
     void load();
   }, [load]);
 
-  return { stats, loading, error, refetch: load };
+  return { stats, sessions, loading, error, refetch: load };
 }
