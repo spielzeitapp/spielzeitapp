@@ -72,6 +72,8 @@ export const MatchPlayerRow: React.FC<{
   if (layout === "team-roster") {
     const mediaSrc = player.cutout_url?.trim() || premiumPlayerAvatarSrc(player);
     const nameParts = playerNameParts(player);
+    const familyName = nameParts.family || premiumPlayerDisplayName(player);
+    const compactFamilyName = familyName.length >= 12;
     const content = (
       <>
         <div className="relative -mb-2.5 mr-2 h-[74px] w-[60px] shrink-0 self-end overflow-hidden max-[359px]:mr-1 max-[359px]:h-[66px] max-[359px]:w-[46px]">
@@ -89,11 +91,17 @@ export const MatchPlayerRow: React.FC<{
           {number ?? "–"}
         </span>
         <span className="min-w-0 flex-1 pl-2 max-[359px]:pl-1.5">
-          <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 max-[359px]:text-[11px] sm:text-[14px]">
+          <span className="block whitespace-normal break-words text-[13px] font-semibold leading-tight text-white/55 max-[359px]:text-[11px] sm:text-[14px]">
             {nameParts.first}
           </span>
-          <span className="block truncate text-[17px] font-black leading-tight text-white max-[359px]:line-clamp-2 max-[359px]:whitespace-normal max-[359px]:break-words max-[359px]:text-[14px] sm:text-[18px]">
-            {nameParts.family || premiumPlayerDisplayName(player)}
+          <span
+            className={`block whitespace-normal break-words font-black leading-tight tracking-tight text-white ${
+              compactFamilyName
+                ? 'text-[14px] sm:text-[16px]'
+                : 'text-[17px] max-[359px]:text-[14px] sm:text-[18px]'
+            }`}
+          >
+            {familyName}
           </span>
           {!hideSubline ? <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span> : null}
         </span>
