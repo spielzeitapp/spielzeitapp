@@ -13,24 +13,44 @@ type Props = {
 };
 
 const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
+const GOALKEEPER_PLACEHOLDER = "/avatars/player-placeholder-goalkeeper.png";
+
+function isGoalkeeper(player: PlayerItem): boolean {
+  const position = (player.position ?? "").trim().toLocaleLowerCase("de");
+  return (
+    player.jersey_number === 1 ||
+    player.jersey_number === 21 ||
+    position === "tw" ||
+    position === "torwart" ||
+    position === "tormann" ||
+    position === "goalkeeper" ||
+    position.startsWith("tor")
+  );
+}
+
+function playerPlaceholder(player: PlayerItem): string {
+  return isGoalkeeper(player) ? GOALKEEPER_PLACEHOLDER : PLAYER_PLACEHOLDER;
+}
 
 function demoPlayerMedia(player: PlayerItem): string {
   return getDemoPlayerPortraitUrl(player.jersey_number, `${player.id}|${player.display_name ?? ""}`);
 }
 
-function playerMedia(player: PlayerItem, isDemo: boolean): { src: string; isCutout: boolean; isUpperBodyDemo: boolean } {
+function playerMedia(player: PlayerItem, isDemo: boolean): { src: string; fallbackSrc: string; isCutout: boolean; isUpperBodyDemo: boolean } {
+  const fallbackSrc = playerPlaceholder(player);
   const cutout = (player.cutout_url ?? "").trim();
-  if (cutout) return { src: cutout, isCutout: true, isUpperBodyDemo: false };
+  if (cutout) return { src: cutout, fallbackSrc, isCutout: true, isUpperBodyDemo: false };
   const avatar = (player.avatar_url ?? "").trim();
   if (avatar) {
     return {
       src: avatar,
+      fallbackSrc,
       isCutout: false,
       isUpperBodyDemo: isDemoUpperBodyPortraitUrl(avatar),
     };
   }
-  if (isDemo) return { src: demoPlayerMedia(player), isCutout: false, isUpperBodyDemo: true };
-  return { src: PLAYER_PLACEHOLDER, isCutout: false, isUpperBodyDemo: true };
+  if (isDemo) return { src: demoPlayerMedia(player), fallbackSrc, isCutout: false, isUpperBodyDemo: true };
+  return { src: fallbackSrc, fallbackSrc, isCutout: false, isUpperBodyDemo: true };
 }
 
 function playerCardName(player: PlayerItem): string {
@@ -132,7 +152,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                 alt=""
                 onError={(event) => {
                   event.currentTarget.onerror = null;
-                  event.currentTarget.src = PLAYER_PLACEHOLDER;
+                  event.currentTarget.src = media.fallbackSrc;
                 }}
                 className={`absolute inset-0 h-full w-full transition duration-300 ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
                   media.isCutout
@@ -192,7 +212,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
                     alt=""
                     onError={(event) => {
                       event.currentTarget.onerror = null;
-                      event.currentTarget.src = PLAYER_PLACEHOLDER;
+                      event.currentTarget.src = media.fallbackSrc;
                     }}
                     className={`h-full w-full object-bottom ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
                       media.isCutout
