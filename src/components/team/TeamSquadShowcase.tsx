@@ -179,7 +179,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
       </div>
 
       {players.length > 1 ? (
-        <div className="mb-3 mt-1 flex justify-center gap-1.5" aria-label="Spieler auswählen">
+        <div className="mb-3 mt-1 flex items-center justify-center gap-1.5" aria-label="Spieler oder Trainer auswählen">
           {players.map((player, index) => (
             <button
               key={`showcase-dot-${player.id}`}
@@ -192,6 +192,19 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               aria-current={activeIndex === index ? "true" : undefined}
             />
           ))}
+          {onSwipePastEnd ? (
+            <>
+              <span className="mx-0.5 h-3 w-px bg-white/30" aria-hidden />
+              <button
+                type="button"
+                onClick={onSwipePastEnd}
+                className="sz-club-surface flex h-5 min-w-7 items-center justify-center rounded-full border px-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white/70 transition active:scale-95"
+                aria-label="Trainer anzeigen"
+              >
+                TR
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
 
