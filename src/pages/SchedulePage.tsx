@@ -1819,11 +1819,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   isTraining={et === 'training'}
                                   context="hero"
                                   onOpen={() => {
-                                    const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
-                                    if (et === 'training' && (pill === 'no' || pill === 'sick' || pill === 'injured' || pill === 'laz')) {
-                                      setTrainingRejoinModalEvent(ev);
-                                      return;
-                                    }
                                     setAttendanceModalEvent(ev);
                                   }}
                                 />
@@ -2080,11 +2075,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           status={attendanceMergedToPillStatus(attendanceStatusMerged)}
                           isTraining={et === 'training'}
                           onOpen={() => {
-                            const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
-                            if (et === 'training' && (pill === 'no' || pill === 'sick' || pill === 'injured' || pill === 'laz')) {
-                              setTrainingRejoinModalEvent(ev);
-                              return;
-                            }
                             setAttendanceModalEvent(ev);
                           }}
                         />
@@ -2543,6 +2533,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                     const isSick = current === 'sick';
                     const isInjured = current === 'injured';
                     const canceled = current === 'no';
+                    const isUnavailable = canceled || isSick || isInjured || isLaz;
                     const cutoffPassed = isTrainingAbsenceDeadlinePassed(
                       attendanceModalEvent.starts_at,
                       attendanceModalEvent.training_absence_deadline_disabled,
@@ -2566,7 +2557,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             ? 'Absage jederzeit möglich.'
                             : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
                         </p>
-                        {!cancelAllowed && !canceled ? (
+                        {!cancelAllowed && !isUnavailable ? (
                           <p className="text-xs text-amber-200/90 mt-1">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
 
@@ -2582,9 +2573,22 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           />
                         </div>
 
-                        <div
-                          className={`mt-6 grid gap-3 ${myLinkedPlayerIsLaz ? 'grid-cols-3' : 'grid-cols-2'}`}
-                        >
+                        <div className="mt-6 grid grid-cols-2 gap-3">
+                          {isUnavailable ? (
+                            <Button
+                              type="button"
+                              variant="positive"
+                              onClick={() => {
+                                if (!attendanceModalEvent) return;
+                                setAttendance(attendanceModalEvent.id, 'yes').catch((e) =>
+                                  console.error('[ATTENDANCE]', e),
+                                );
+                              }}
+                              className="col-span-2 w-full py-3 px-5 text-sm"
+                            >
+                              Wieder dabei
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             variant="negative"
@@ -2636,7 +2640,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   console.error('[ATTENDANCE]', e),
                                 );
                               }}
-                              className={`w-full py-3 px-5 text-sm font-semibold ${attendanceLazModalButtonClass(isLaz)}`}
+                              className={`col-span-2 w-full py-3 px-5 text-sm font-semibold ${attendanceLazModalButtonClass(isLaz)}`}
                             >
                               LAZ
                             </Button>
