@@ -211,7 +211,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           >
             {MATCH_MIN.map((m) => (
               <option key={m} value={m}>
-                {m === 4320 ? '3 Tage' : m === 2880 ? '48 Stunden' : m === 1440 ? '24 Stunden' : m === 720 ? '12 Stunden' : `${m === 1440 ? '24 Stunden' : m === 720 ? '12 Stunden' : m === 180 ? '3 Stunden' : `${m} Min`}`}
+                {m === 4320 ? '3 Tage' : m === 2880 ? '48 Stunden' : m === 1440 ? '24 Stunden' : m === 720 ? '12 Stunden' : `${m} Min`}
               </option>
             ))}
           </select>
@@ -235,7 +235,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           >
             {MATCH2_MIN.map((m) => (
               <option key={m} value={m}>
-                {m} Min
+                {m === 1440 ? '24 Stunden' : m === 720 ? '12 Stunden' : m === 180 ? '3 Stunden' : `${m} Min`}
               </option>
             ))}
           </select>
