@@ -83,6 +83,7 @@ import { getDemoMatchLite, getDemoMatchStatus } from '../demo/demoMatchState';
 import { getDemoLiveEventRows } from '../demo/demoLiveRuntime';
 import {
   dsPrimaryCtaClass,
+  dsActionButtonClass,
   dsRsvpChoiceClass,
   dsRsvpLazChoiceClass,
   dsScheduleGlassButtonClass,
@@ -1124,7 +1125,7 @@ export const EventDetailPage: React.FC = () => {
   }, [loadEventAttendance]);
 
   const handleRsvp = useCallback(
-    async (status: 'yes' | 'no' | 'sick' | 'external_training', _reason?: string) => {
+    async (status: 'yes' | 'no' | 'sick' | 'injured' | 'external_training', _reason?: string) => {
       console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
         caller: 'EventDetailPage.handleRsvp',
         table: isDemo ? 'demo-local' : 'event_attendance',
@@ -4233,48 +4234,56 @@ export const EventDetailPage: React.FC = () => {
                         {!trainingCancellationAllowed &&
                         rsvpStatus !== 'no' &&
                         rsvpStatus !== 'sick' &&
+                        rsvpStatus !== 'injured' &&
                         rsvpStatus !== 'external_training' ? (
                           <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
                         <div
-                          className={`mt-3 grid ${linkedPlayerIsLaz ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'} ${DS_STAT_GRID_GAP}`}
+                          className={`mt-3 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}
                         >
-                          <button
-                            type="button"
-                            className={dsRsvpChoiceClass(
-                              'yes',
-                              rsvpStatus !== 'no' &&
-                                rsvpStatus !== 'sick' &&
-                                rsvpStatus !== 'external_training',
-                            )}
-                            onClick={() => void handleRsvp('yes')}
-                          >
-                            <ThumbsUp className="h-4 w-4" aria-hidden />
-                            Dabei
-                          </button>
+                          {rsvpStatus === 'no' ||
+                          rsvpStatus === 'sick' ||
+                          rsvpStatus === 'injured' ||
+                          rsvpStatus === 'external_training' ? (
+                            <button
+                              type="button"
+                              className={`${dsRsvpChoiceClass('yes', true)} col-span-2`}
+                              onClick={() => void handleRsvp('yes')}
+                            >
+                              <ThumbsUp className="h-4 w-4" aria-hidden />
+                              Wieder dabei
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             disabled={!trainingCancellationAllowed && rsvpStatus !== 'no'}
-                            className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
+                            className={`${dsRsvpChoiceClass('no', rsvpStatus === 'no')} col-span-2`}
                             onClick={() => {
                               if (!trainingCancellationAllowed && rsvpStatus !== 'no') return;
                               void handleRsvp('no');
                             }}
                           >
                             <ThumbsDown className="h-4 w-4" aria-hidden />
-                            Absagen
+                            Abwesend
                           </button>
                           <button
                             type="button"
-                            className={dsRsvpChoiceClass('yes', rsvpStatus === 'sick')}
+                            className={`${dsActionButtonClass('sick', rsvpStatus === 'sick')} !h-11 !rounded-[16px] !text-sm`}
                             onClick={() => void handleRsvp('sick')}
                           >
                             Krank
                           </button>
+                          <button
+                            type="button"
+                            className={`${dsActionButtonClass('injured', rsvpStatus === 'injured')} !h-11 !rounded-[16px] !text-sm`}
+                            onClick={() => void handleRsvp('injured')}
+                          >
+                            Verletzt
+                          </button>
                           {linkedPlayerIsLaz ? (
                             <button
                               type="button"
-                              className={dsRsvpLazChoiceClass(rsvpStatus === 'external_training')}
+                              className={`${dsRsvpLazChoiceClass(rsvpStatus === 'external_training')} col-span-2`}
                               onClick={() => void handleRsvp('external_training')}
                             >
                               LAZ
@@ -4404,14 +4413,50 @@ export const EventDetailPage: React.FC = () => {
                   placeholder="z. B. Krankheit, keine Zeit, etc."
                 />
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {rsvpStatus === 'no' ||
+                rsvpStatus === 'sick' ||
+                rsvpStatus === 'injured' ||
+                rsvpStatus === 'external_training' ? (
+                  <Button
+                    variant="positive"
+                    className="col-span-2"
+                    onClick={() => handleRsvp('yes')}
+                  >
+                    Wieder dabei
+                  </Button>
+                ) : null}
                 <Button
                   variant="negative"
+                  className="col-span-2"
                   disabled={!trainingCancellationAllowed || rsvpStatus === 'no'}
                   onClick={() => handleRsvp('no', cancelReason)}
                 >
-                  Absagen
+                  Abwesend
                 </Button>
+                <Button
+                  variant="soft"
+                  className={dsActionButtonClass('sick', rsvpStatus === 'sick')}
+                  onClick={() => handleRsvp('sick', cancelReason)}
+                >
+                  Krank
+                </Button>
+                <Button
+                  variant="soft"
+                  className={dsActionButtonClass('injured', rsvpStatus === 'injured')}
+                  onClick={() => handleRsvp('injured', cancelReason)}
+                >
+                  Verletzt
+                </Button>
+                {linkedPlayerIsLaz ? (
+                  <Button
+                    variant="soft"
+                    className={`${dsRsvpLazChoiceClass(rsvpStatus === 'external_training')} col-span-2`}
+                    onClick={() => handleRsvp('external_training')}
+                  >
+                    LAZ
+                  </Button>
+                ) : null}
               </div>
             </>
           ) : (
