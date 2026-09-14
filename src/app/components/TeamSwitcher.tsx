@@ -23,6 +23,14 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem, activeId: string | null):
   );
 }
 
+function compactLabelForTeamSeason(ts: SessionTeamSeasonItem | undefined): string {
+  const ageGroup = ts?.age_group?.trim();
+  if (ageGroup) return ageGroup.toUpperCase();
+
+  const fallback = ts?.display_name ?? ts?.team?.name ?? '';
+  return fallback.match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase() ?? 'Team';
+}
+
 export type TeamSwitcherProps = {
   /** kompakt im App-Header */
   compact?: boolean;
@@ -78,23 +86,56 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
     setSelectedTeamSeasonId(id);
   };
 
-  const selectClass = compact
-    ? 'inline-flex w-[min(28vw,6.5rem)] min-w-0 appearance-none truncate rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[10px] font-medium text-white/90 sm:w-auto sm:max-w-[11rem] sm:text-[11px]'
-    : 'inline-flex max-w-[min(100%,12.5rem)] min-w-0 appearance-none items-center gap-1 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-xs font-medium text-white/90 shadow-sm text-left sm:max-w-xs';
-
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={[selectClass, className].filter(Boolean).join(' ')}
-      aria-label="Team/Saison wählen"
-    >
+  const options = (
+    <>
       <option value="">Team wählen</option>
       {teamSeasons.map((ts) => (
         <option key={ts.id} value={ts.id}>
           {labelForTeamSeason(ts, selectedTeamSeasonId)}
         </option>
       ))}
+    </>
+  );
+
+  if (compact) {
+    const visibleTeamSeason = teamSeasons.find((ts) => ts.id === value);
+
+    return (
+      <label
+        className={[
+          'relative inline-flex h-8 min-w-[3.75rem] shrink-0 items-center justify-center gap-1 rounded-full border border-white/15 bg-black/45 px-2.5 text-[11px] font-bold text-white/95 shadow-sm',
+          className,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <span aria-hidden>{compactLabelForTeamSeason(visibleTeamSeason)}</span>
+        <span className="text-[9px] text-white/55" aria-hidden>▼</span>
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          aria-label="Team/Saison wählen"
+        >
+          {options}
+        </select>
+      </label>
+    );
+  }
+
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={[
+        'inline-flex max-w-[min(100%,12.5rem)] min-w-0 appearance-none items-center gap-1 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-left text-xs font-medium text-white/90 shadow-sm sm:max-w-xs',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      aria-label="Team/Saison wählen"
+    >
+      {options}
     </select>
   );
 };
