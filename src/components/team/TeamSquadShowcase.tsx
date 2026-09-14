@@ -10,6 +10,8 @@ type Props = {
   ownPlayerIds: Set<string>;
   onPlayerClick: (player: PlayerItem) => void;
   onSwipePastEnd?: () => void;
+  trainerCount?: number;
+  onTrainerSelect?: (index: number) => void;
 };
 
 const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
@@ -66,7 +68,13 @@ function playerCardFamilyName(player: PlayerItem): string {
   return nameParts.slice(1).join(" ") || "";
 }
 
-export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onSwipePastEnd }) => {
+export const TeamSquadShowcase: React.FC<Props> = ({
+  players,
+  onPlayerClick,
+  onSwipePastEnd,
+  trainerCount = 0,
+  onTrainerSelect,
+}) => {
   const demo = useDemoMode();
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const swipeStartRef = useRef<{ x: number; atEnd: boolean } | null>(null);
@@ -179,7 +187,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
       </div>
 
       {players.length > 1 ? (
-        <div className="mb-3 mt-1 flex justify-center gap-1.5" aria-label="Spieler auswählen">
+        <div className="mb-3 mt-1 flex items-center justify-center gap-1.5" aria-label="Spieler oder Trainer auswählen">
           {players.map((player, index) => (
             <button
               key={`showcase-dot-${player.id}`}
@@ -192,6 +200,20 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               aria-current={activeIndex === index ? "true" : undefined}
             />
           ))}
+          {trainerCount > 0 && onTrainerSelect ? (
+            <>
+              <span className="mx-0.5 h-3 w-px bg-white/30" aria-hidden />
+              {Array.from({ length: trainerCount }, (_, index) => (
+                <button
+                  key={`trainer-continuation-${index}`}
+                  type="button"
+                  onClick={() => onTrainerSelect(index)}
+                  className="h-2 w-3 rounded-full bg-white/35 transition hover:bg-white/55 active:scale-90"
+                  aria-label={`Trainer ${index + 1} anzeigen`}
+                />
+              ))}
+            </>
+          ) : null}
         </div>
       ) : null}
 

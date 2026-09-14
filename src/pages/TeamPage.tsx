@@ -46,15 +46,6 @@ import { useDemoMode } from "../demo/DemoContext";
 import { useInternalBasePath } from "../demo/demoPaths";
 import { buildDemoSeasonMatchBoard } from "../demo/demoMatchState";
 import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
-import {
-  DEMO_MELK_AGE_GROUP,
-  DEMO_MELK_HERO_URL,
-  DEMO_MELK_LOGO_URL,
-  DEMO_MELK_PLAYERS,
-  DEMO_MELK_QUERY_VALUE,
-  DEMO_MELK_SEASON,
-  DEMO_MELK_TEAM_NAME,
-} from "../demo/demoMelk";
 import { useAvailabilityPermissions } from "../hooks/useAvailabilityPermissions";
 import { getOurTeamDisplayName, getOurTeamLogoUrl } from "../lib/teamLogos";
 
@@ -162,7 +153,6 @@ export const TeamPage: React.FC = () => {
   }, [searchParams]);
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
-  const isMelkDemo = isDemo && searchParams.get("club") === DEMO_MELK_QUERY_VALUE;
   const basePath = useInternalBasePath();
   const { selectedTeamSeason, selectedMembership, loading: sessionLoading } = useSession();
   const {
@@ -189,13 +179,11 @@ export const TeamPage: React.FC = () => {
   const role = isDemo ? "trainer" : sessionRole;
   const tsLoading = isDemo ? false : tsLoadingRaw;
   const tsError = isDemo ? null : tsErrorRaw;
-  const teamLabel = isMelkDemo
-    ? `${DEMO_MELK_TEAM_NAME} · ${DEMO_MELK_SEASON}`
-    : isDemo
-      ? `${demo!.data.teamName} · ${demo!.data.seasonLabel}`
+  const teamLabel = isDemo
+    ? `${demo!.data.teamName} · ${demo!.data.seasonLabel}`
     : sessionTeamLabel;
-  const teamLine = isMelkDemo ? DEMO_MELK_TEAM_NAME : isDemo ? demo!.data.teamName : sessionTeamLine;
-  const seasonLine = isMelkDemo ? DEMO_MELK_SEASON : isDemo ? demo!.data.seasonLabel : sessionSeasonLine;
+  const teamLine = isDemo ? demo!.data.teamName : sessionTeamLine;
+  const seasonLine = isDemo ? demo!.data.seasonLabel : sessionSeasonLine;
 
   const {
     players: livePlayers,
@@ -205,7 +193,7 @@ export const TeamPage: React.FC = () => {
   } = usePlayers(isDemo ? null : (readTeamSeasonId ?? teamSeasonId), {
     mode: canManageRoster(normalizeRole(role)) || isHistoryReadOnly ? "all" : "active",
   });
-  const players = isMelkDemo ? DEMO_MELK_PLAYERS : isDemo ? demo!.players : livePlayers;
+  const players = isDemo ? demo!.players : livePlayers;
   /** Saisonweite Trainingsbeteiligung: nur active — auch im Archiv. */
   const trainingRosterPlayers = useMemo(
     () => players.filter((p) => (p.status ?? "active") === "active"),
@@ -292,7 +280,6 @@ export const TeamPage: React.FC = () => {
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const heroTeamName = useMemo(() => {
-    if (isMelkDemo) return DEMO_MELK_TEAM_NAME;
     if (isDemo) return demo!.data.teamName;
     if (teamLine?.trim()) return teamLine.trim();
     const fromTs = selectedTeamSeason?.team?.name?.trim();
@@ -306,10 +293,9 @@ export const TeamPage: React.FC = () => {
       return label;
     }
     return "Team";
-  }, [teamLine, selectedTeamSeason, teamLabel, isDemo, isMelkDemo, demo]);
+  }, [teamLine, selectedTeamSeason, teamLabel, isDemo, demo]);
 
   const heroSeason = useMemo(() => {
-    if (isMelkDemo) return DEMO_MELK_SEASON;
     if (isDemo) return demo!.data.seasonLabel;
     if (seasonLine?.trim() && seasonLine.trim() !== "—") return seasonLine.trim();
     const fromTs = selectedTeamSeason?.season?.name?.trim();
@@ -319,27 +305,21 @@ export const TeamPage: React.FC = () => {
     if (mid.length >= 2) return mid[mid.length - 1]?.trim() || "—";
     const m = /\(([^)]+)\)/.exec(label);
     return m?.[1]?.trim() ?? "—";
-  }, [seasonLine, selectedTeamSeason, teamLabel, isDemo, isMelkDemo, demo]);
+  }, [seasonLine, selectedTeamSeason, teamLabel, isDemo, demo]);
 
   const heroAgeGroup = useMemo(() => {
-    if (isMelkDemo) return DEMO_MELK_AGE_GROUP;
     if (isDemo) return "U12";
     const viewedSeason = teamSeasons.find((season) => season.id === readTeamSeasonId);
     const explicit = viewedSeason?.age_group?.trim() || selectedTeamSeason?.age_group?.trim();
     if (explicit) return explicit.toUpperCase();
     const parsed = /\bU\s*\d{1,2}\b/i.exec(`${heroTeamName} ${teamLabel ?? ""}`)?.[0];
     return parsed?.replace(/\s+/g, "").toUpperCase() ?? "TEAM";
-  }, [isDemo, isMelkDemo, teamSeasons, readTeamSeasonId, selectedTeamSeason, heroTeamName, teamLabel]);
+  }, [isDemo, teamSeasons, readTeamSeasonId, selectedTeamSeason, heroTeamName, teamLabel]);
 
   const teamPhotoUrl = useMemo(() => readTeamPhotoUrl(teamPhoto), [teamPhoto]);
   const heroPhotoSrc = useMemo(
-    () =>
-      isMelkDemo
-        ? DEMO_MELK_HERO_URL
-        : teamPhotoUrl && teamPhotoUrl.length > 0
-          ? teamPhotoUrl
-          : TEAM_HERO_PLACEHOLDER,
-    [teamPhotoUrl, isMelkDemo],
+    () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : TEAM_HERO_PLACEHOLDER),
+    [teamPhotoUrl],
   );
   useEffect(() => {
     if (isDemo || !teamSeasonId) {
@@ -816,6 +796,7 @@ export const TeamPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<TeamTabId>(readInitialTeamTab);
   const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
+  const [trainerStartIndex, setTrainerStartIndex] = useState(0);
 
   const clearPlayerDetailState = () => {
     setSelectedProfilePlayer(null);
@@ -915,7 +896,6 @@ export const TeamPage: React.FC = () => {
         teamSeasonId={teamSeasonId}
         teamSeasonLabel={teamLabel}
         teamName={heroTeamName}
-        teamLogoUrl={isMelkDemo ? DEMO_MELK_LOGO_URL : undefined}
         photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
         canManage={canManagePlayers}
         initialTab={profileInitialTab}
@@ -1000,30 +980,6 @@ export const TeamPage: React.FC = () => {
       className="page team-page min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-0 pb-36 sm:px-4 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
-      {isDemo ? (
-        <div className="mx-3 rounded-2xl border border-white/10 bg-black/55 p-3 sm:mx-0" data-testid="demo-club-preview-switcher">
-          <label className="flex items-center justify-between gap-3 text-[12px] font-semibold text-white/75">
-            <span>Demo-Verein</span>
-            <select
-              value={isMelkDemo ? DEMO_MELK_QUERY_VALUE : "rohrbach"}
-              onChange={(event) => {
-                const next = new URLSearchParams(searchParams);
-                if (event.target.value === DEMO_MELK_QUERY_VALUE) next.set("club", DEMO_MELK_QUERY_VALUE);
-                else next.delete("club");
-                next.set("tab", "squad");
-                setSearchParams(next, { replace: true });
-              }}
-              className={`min-h-10 rounded-xl border bg-black/70 px-3 text-[13px] font-bold text-white outline-none ${
-                isMelkDemo ? "border-blue-400/55 focus:ring-2 focus:ring-yellow-400/35" : "border-red-500/35 focus:ring-2 focus:ring-red-500/35"
-              }`}
-              aria-label="Verein für Demo-Vorschau auswählen"
-            >
-              <option value="rohrbach">SPG Rohrbach U12</option>
-              <option value={DEMO_MELK_QUERY_VALUE}>SC Melk Frauen</option>
-            </select>
-          </label>
-        </div>
-      ) : null}
       {/* Team Hero */}
       <PremiumCard matchday showAmbientGlow className="!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x">
       <div className="relative h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
@@ -1041,7 +997,7 @@ export const TeamPage: React.FC = () => {
           className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[repeating-linear-gradient(90deg,transparent,transparent_14px,rgba(255,255,255,0.04)_14px,rgba(255,255,255,0.04)_16px)]"
           aria-hidden
         />
-        <div className={`pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full blur-3xl ${isMelkDemo ? "bg-blue-600/30" : "bg-red-600/20"}`} aria-hidden />
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-red-600/20 blur-3xl" aria-hidden />
         <div className="relative z-10 flex h-full min-h-[220px] flex-col justify-end p-4 sm:min-h-[280px] sm:p-6">
           {canManagePlayers ? (
             <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
@@ -1079,18 +1035,14 @@ export const TeamPage: React.FC = () => {
           ) : null}
           <div className="flex items-end gap-3 sm:gap-4">
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
-              <img
-                src={isMelkDemo ? DEMO_MELK_LOGO_URL : getOurTeamLogoUrl()}
-                alt={isMelkDemo ? "SC Melk Wappen" : "SPG Rohrbach Wappen"}
-                className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]"
-              />
+              <img src={getOurTeamLogoUrl()} alt="SPG Rohrbach Wappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
             </div>
             <div className="min-w-0 flex-1 pb-1">
               <p className="truncate text-[27px] font-black uppercase leading-none tracking-tight text-white drop-shadow-lg sm:text-[34px]">
-                {tsLoading ? "Lade Team…" : isMelkDemo ? DEMO_MELK_TEAM_NAME : getOurTeamDisplayName()}
+                {tsLoading ? "Lade Team…" : getOurTeamDisplayName()}
               </p>
               <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
-                <span className={isMelkDemo ? "text-yellow-400" : "text-red-400"}>{heroAgeGroup}</span> · Saison {heroSeason}
+                <span className="text-red-400">{heroAgeGroup}</span> · Saison {heroSeason}
                 {isHistoryReadOnly ? " · Archiv" : ""}
               </p>
             </div>
@@ -1175,9 +1127,7 @@ export const TeamPage: React.FC = () => {
                 kind="filter"
                 active={activeTab === tab.id}
                 onClick={() => handleTeamTabChange(tab.id)}
-                className={`min-w-0 px-1.5 text-[10px] sm:px-2.5 sm:text-[12px] ${
-                  isMelkDemo && activeTab === tab.id ? "demo-melk-active-tab" : ""
-                }`}
+                className="min-w-0 px-1.5 text-[10px] sm:px-2.5 sm:text-[12px]"
               >
                 {tab.label}
               </PremiumTab>
@@ -1194,11 +1144,7 @@ export const TeamPage: React.FC = () => {
         )}
       </GlassCard>
 
-      {isMelkDemo ? (
-        <p className="mx-3 mt-3 rounded-xl border border-blue-400/25 bg-blue-950/25 px-3 py-2 text-[11px] leading-relaxed text-blue-100/80 sm:mx-0">
-          Personalisierte Präsentationsdemo: Mannschaftsfoto und Wappen nach der öffentlichen SC-Melk-Webseite; Profilnamen und Einzelporträts sind fiktive Demo-Inhalte.
-        </p>
-      ) : isDemo ? <DemoAiDisclosure className="mt-3" /> : null}
+      {isDemo ? <DemoAiDisclosure className="mt-3" /> : null}
 
       {activeTab === "squad" ? (
       <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
@@ -1251,8 +1197,15 @@ export const TeamPage: React.FC = () => {
                 players={showcasePlayers}
                 ownPlayerIds={ownPlayerIds}
                 onPlayerClick={openPlayerProfile}
-                onSwipePastEnd={() => handleTeamTabChange("trainers")}
-                clubTheme={isMelkDemo ? "melk" : "default"}
+                onSwipePastEnd={() => {
+                  setTrainerStartIndex(0);
+                  handleTeamTabChange("trainers");
+                }}
+                trainerCount={staffRows.length}
+                onTrainerSelect={(index) => {
+                  setTrainerStartIndex(index);
+                  handleTeamTabChange("trainers");
+                }}
               />
             </>
           )}
@@ -1299,6 +1252,7 @@ export const TeamPage: React.FC = () => {
               ) : null}
               <TeamTrainerShowcase
                 trainers={staffRows}
+                initialIndex={trainerStartIndex}
                 onSwipePastStart={() => handleTeamTabChange("squad")}
                 onTrainerClick={(row) =>
                   navigate(`${basePath}/team/trainer/${encodeURIComponent(row.user_id)}`)
