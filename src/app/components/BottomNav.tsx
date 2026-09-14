@@ -176,18 +176,30 @@ export const BottomNav: React.FC = () => {
 
   React.useEffect(() => {
     const updateVisualViewportOffset = () => setVisualViewportBottomOffset(readVisualViewportBottomOffset());
-    updateVisualViewportOffset();
+    const updateWhenVisible = () => {
+      if (document.visibilityState === 'visible') updateVisualViewportOffset();
+    };
+    const delayedUpdates = [0, 100, 300, 750].map((delay) =>
+      window.setTimeout(updateVisualViewportOffset, delay),
+    );
     window.addEventListener('orientationchange', updateVisualViewportOffset);
     window.addEventListener('resize', updateVisualViewportOffset);
+    window.addEventListener('pageshow', updateVisualViewportOffset);
+    window.addEventListener('focus', updateVisualViewportOffset);
+    document.addEventListener('visibilitychange', updateWhenVisible);
     window.visualViewport?.addEventListener('resize', updateVisualViewportOffset);
     window.visualViewport?.addEventListener('scroll', updateVisualViewportOffset);
     return () => {
+      delayedUpdates.forEach((timer) => window.clearTimeout(timer));
       window.removeEventListener('orientationchange', updateVisualViewportOffset);
       window.removeEventListener('resize', updateVisualViewportOffset);
+      window.removeEventListener('pageshow', updateVisualViewportOffset);
+      window.removeEventListener('focus', updateVisualViewportOffset);
+      document.removeEventListener('visibilitychange', updateWhenVisible);
       window.visualViewport?.removeEventListener('resize', updateVisualViewportOffset);
       window.visualViewport?.removeEventListener('scroll', updateVisualViewportOffset);
     };
-  }, []);
+  }, [pathname]);
 
   const handleLiveTabReclick = () => {
     // Während eines Trainer-Workflows darf ein versehentlicher Tap durch das
