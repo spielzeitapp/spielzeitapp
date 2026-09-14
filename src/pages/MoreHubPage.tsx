@@ -514,10 +514,6 @@ export const MoreHubPage: React.FC = () => {
                       <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                     </button>
                   )}
-                  <HubRowLink to="/app/mehr/trainer/erinnerungen" className={subRowClass} isDemo={isDemo}>
-                    <span>Erinnerungen</span>
-                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                  </HubRowLink>
                     </>
                   ) : null}
                   {showManagerLink && (
@@ -568,6 +564,25 @@ export const MoreHubPage: React.FC = () => {
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </HubRowLink>
         )}
+
+        {showTrainerTools ? (
+          <HubRowLink
+            to="/app/mehr/trainer/erinnerungen"
+            className={dsPanelRowClass()}
+            isDemo={isDemo}
+          >
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex items-center gap-3">
+                <Bell className="h-5 w-5 text-red-400" aria-hidden />
+                <span>Automatische Erinnerungen</span>
+              </span>
+              <span className="pl-8 text-[11px] font-normal text-white/45">
+                Training, Match, Push und Badge einstellen
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+          </HubRowLink>
+        ) : null}
 
         <HubRowLink to="/app/profile" className={dsPanelRowClass()} isDemo={isDemo}>
           <span className="flex min-w-0 flex-col gap-0.5">
