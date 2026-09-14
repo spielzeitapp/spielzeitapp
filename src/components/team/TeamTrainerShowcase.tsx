@@ -6,6 +6,7 @@ type Props = {
   trainers: TeamStaffMember[];
   onTrainerClick: (trainer: TeamStaffMember) => void;
   onSwipePastStart?: () => void;
+  initialIndex?: number;
 };
 
 function trainerInitials(trainer: TeamStaffMember): string {
@@ -16,15 +17,23 @@ function trainerInitials(trainer: TeamStaffMember): string {
     .toUpperCase() || "TR";
 }
 
-export const TeamTrainerShowcase: React.FC<Props> = ({ trainers, onTrainerClick, onSwipePastStart }) => {
+export const TeamTrainerShowcase: React.FC<Props> = ({
+  trainers,
+  onTrainerClick,
+  onSwipePastStart,
+  initialIndex = 0,
+}) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const swipeStartRef = useRef<{ x: number; atStart: boolean } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    setActiveIndex(0);
-    sliderRef.current?.scrollTo({ left: 0 });
-  }, [trainers]);
+    const nextIndex = Math.min(Math.max(0, initialIndex), Math.max(0, trainers.length - 1));
+    setActiveIndex(nextIndex);
+    const slider = sliderRef.current;
+    const card = slider?.querySelectorAll<HTMLElement>("[data-trainer-card]")[nextIndex];
+    if (slider && card) slider.scrollTo({ left: Math.max(0, card.offsetLeft - 12) });
+  }, [initialIndex, trainers]);
 
   const updateActiveCard = () => {
     const slider = sliderRef.current;

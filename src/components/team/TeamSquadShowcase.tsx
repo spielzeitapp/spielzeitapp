@@ -10,6 +10,8 @@ type Props = {
   ownPlayerIds: Set<string>;
   onPlayerClick: (player: PlayerItem) => void;
   onSwipePastEnd?: () => void;
+  trainerCount?: number;
+  onTrainerSelect?: (index: number) => void;
 };
 
 const PLAYER_PLACEHOLDER = "/avatars/player-placeholder.png";
@@ -66,7 +68,13 @@ function playerCardFamilyName(player: PlayerItem): string {
   return nameParts.slice(1).join(" ") || "";
 }
 
-export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onSwipePastEnd }) => {
+export const TeamSquadShowcase: React.FC<Props> = ({
+  players,
+  onPlayerClick,
+  onSwipePastEnd,
+  trainerCount = 0,
+  onTrainerSelect,
+}) => {
   const demo = useDemoMode();
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const swipeStartRef = useRef<{ x: number; atEnd: boolean } | null>(null);
@@ -192,17 +200,18 @@ export const TeamSquadShowcase: React.FC<Props> = ({ players, onPlayerClick, onS
               aria-current={activeIndex === index ? "true" : undefined}
             />
           ))}
-          {onSwipePastEnd ? (
+          {trainerCount > 0 && onTrainerSelect ? (
             <>
               <span className="mx-0.5 h-3 w-px bg-white/30" aria-hidden />
-              <button
-                type="button"
-                onClick={onSwipePastEnd}
-                className="sz-club-surface flex h-5 min-w-7 items-center justify-center rounded-full border px-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white/70 transition active:scale-95"
-                aria-label="Trainer anzeigen"
-              >
-                TR
-              </button>
+              {Array.from({ length: trainerCount }, (_, index) => (
+                <button
+                  key={`trainer-continuation-${index}`}
+                  type="button"
+                  onClick={() => onTrainerSelect(index)}
+                  className="h-2 w-3 rounded-full bg-white/35 transition hover:bg-white/55 active:scale-90"
+                  aria-label={`Trainer ${index + 1} anzeigen`}
+                />
+              ))}
             </>
           ) : null}
         </div>

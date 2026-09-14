@@ -796,6 +796,7 @@ export const TeamPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<TeamTabId>(readInitialTeamTab);
   const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
+  const [trainerStartIndex, setTrainerStartIndex] = useState(0);
 
   const clearPlayerDetailState = () => {
     setSelectedProfilePlayer(null);
@@ -1196,7 +1197,15 @@ export const TeamPage: React.FC = () => {
                 players={showcasePlayers}
                 ownPlayerIds={ownPlayerIds}
                 onPlayerClick={openPlayerProfile}
-                onSwipePastEnd={() => handleTeamTabChange("trainers")}
+                onSwipePastEnd={() => {
+                  setTrainerStartIndex(0);
+                  handleTeamTabChange("trainers");
+                }}
+                trainerCount={staffRows.length}
+                onTrainerSelect={(index) => {
+                  setTrainerStartIndex(index);
+                  handleTeamTabChange("trainers");
+                }}
               />
             </>
           )}
@@ -1243,6 +1252,7 @@ export const TeamPage: React.FC = () => {
               ) : null}
               <TeamTrainerShowcase
                 trainers={staffRows}
+                initialIndex={trainerStartIndex}
                 onSwipePastStart={() => handleTeamTabChange("squad")}
                 onTrainerClick={(row) =>
                   navigate(`${basePath}/team/trainer/${encodeURIComponent(row.user_id)}`)
