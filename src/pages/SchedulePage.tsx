@@ -1490,7 +1490,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                   ) : null}
                 </div>
                 <div className={`${managerSimpleMode ? 'hidden' : 'mt-1.5 flex'} max-w-full flex-col gap-1.5`}>
-                  {teamSeasons.length > 1 ? (
+                  {forcePublicView || isDemo || normalizedUiRole === 'fan' ? (teamSeasons.length > 1 ? (
                     <label className="block min-w-0">
                       <span className="sr-only">Saison anzeigen</span>
                       <select
@@ -1539,7 +1539,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                     >
                       <span className="truncate">{teamSeasonSubtitle}</span>
                     </div>
-                  )}
+                  )) : null}
                   {isHistoryReadOnly ? (
                     <p className="text-[11px] text-amber-200/90">{softLockMessage}</p>
                   ) : null}
