@@ -4,6 +4,7 @@ import { PlayerSpecialStatusBadges } from '../player/PlayerSpecialStatusBadges';
 import {
   activityRateColorClass,
   averageQualifiedTeamRatePct,
+  getTrainingTeamBasis,
   getValuableTrainingCount,
   hasTrainingActivityBasis,
   hasTrainingTeamBasis,
@@ -52,7 +53,7 @@ function formatTrainingBasisLine(row: TrainingRankingRow, sessionsCount: number)
 function formatTeamLine(row: TrainingRankingRow): string {
   const { stats } = row;
   if (!hasTrainingTeamBasis(stats)) return 'Teamtraining: Keine Trainingsbasis';
-  const basis = stats.present + stats.absent;
+  const basis = getTrainingTeamBasis(stats);
   return `Trainingsquote: ${stats.teamRatePct} % · ${stats.present} von ${basis}`;
 }
 
@@ -323,7 +324,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
         <>
           <SectionTitle
             as="h2"
-            subtitle="Ø Trainingsbeteiligung = Mittel je Training (Dabei / Dabei+Abwesend). Ø Trainingsquote = Mittel der Spieler-Saisonquoten. Trainingskaiser bewertet Aktivität: Dabei + LAZ."
+            subtitle="Ø Trainingsbeteiligung = Mittel je Training (Dabei / Dabei+Abwesend+LAZ). Ø Trainingsquote = Mittel der Spieler-Saisonquoten. Krank und Verletzt zählen neutral."
             subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
             className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
           >

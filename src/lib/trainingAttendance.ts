@@ -20,7 +20,7 @@ export type TrainingAttendanceDbStatus =
   | 'external_training';
 
 export type TrainingAttendanceStats = {
-  /** Individuelle Team-Trainingsbeteiligung: yes / (yes + no) */
+  /** Individuelle Vereinstrainingsquote: yes / (yes + no + external) */
   teamRatePct: number;
   /** Individuelle Trainingsaktivität: (yes + external) / (yes + external + no) */
   activityRatePct: number;
@@ -142,14 +142,14 @@ function pct(num: number, denom: number): number {
 
 /** Exakte Session-Quote (ohne Rundung) für Durchschnittsbildung. */
 export function computeSessionParticipationPctExact(
-  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent'>,
+  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent' | 'external'>,
 ): number | null {
-  return pctExact(counts.present, counts.present + counts.absent);
+  return pctExact(counts.present, counts.present + counts.absent + counts.external);
 }
 
-/** Mannschafts-/Einzeltraining: Dabei / (Dabei + Abwesend). Anzeige gerundet. */
+/** Vereinstrainingsquote: Dabei / (Dabei + Abwesend + LAZ). Krank/Verletzt neutral. */
 export function computeSessionParticipationPct(
-  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent'>,
+  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent' | 'external'>,
 ): number | null {
   const exact = computeSessionParticipationPctExact(counts);
   return exact != null ? Math.round(exact) : null;
@@ -190,7 +190,7 @@ export function countTrainingOverviewFromStatuses(
 
 /**
  * Profil-Auswertung (vergangene Einheiten, bereits aufgelöste Status).
- * Krank, Verletzt und LAZ nicht im Nenner der Team-Quote (neutral).
+ * Krank und Verletzt sind neutral. LAZ zählt zur wertbaren Basis, aber nur bei Aktivität positiv.
  */
 export function computeTrainingAttendanceStats(
   sessionStatuses: TrainingAttendanceStatus[],
@@ -209,7 +209,7 @@ export function computeTrainingAttendanceStats(
     else if (st === 'external') external += 1;
   }
 
-  const teamDenom = present + absent;
+  const teamDenom = present + external + absent;
   const activityDenom = present + external + absent;
 
   return {

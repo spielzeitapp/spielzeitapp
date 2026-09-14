@@ -27,7 +27,7 @@ export function getValuableTrainingCount(stats: TrainingAttendanceStats): number
 }
 
 export function getTrainingTeamBasis(stats: TrainingAttendanceStats): number {
-  return stats.present + stats.absent;
+  return getValuableTrainingCount(stats);
 }
 
 export function getTrainingActivityBasis(stats: TrainingAttendanceStats): number {

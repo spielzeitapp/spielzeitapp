@@ -80,7 +80,7 @@ export function DemoTourSeasonPage(): React.ReactElement {
           <span className="font-semibold text-white">ca. {metrics.seasonAvg} %</span>
         </p>
         <p className="text-[11px] leading-snug text-white/40">
-          Session = Mittel der Dabei/(Dabei+Abwesend) je Training · Saison = Mittel der persönlichen
+          Session = Mittel der Dabei/(Dabei+Abwesend+LAZ) je Training · Saison = Mittel der persönlichen
           Quoten.
         </p>
         {journey.localTraining || journey.localMatchReady ? (
