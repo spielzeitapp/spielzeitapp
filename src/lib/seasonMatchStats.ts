@@ -477,7 +477,10 @@ type BoardMatchRow = VisibleSeasonMatch & {
 export async function fetchSeasonMatchBoard(
   teamSeasonId: string,
   recentLimit = 10,
-  opts?: { includeOrphanMatches?: boolean },
+  opts?: {
+    includeOrphanMatches?: boolean;
+    competition?: 'all' | 'regular' | 'tournament';
+  },
 ): Promise<SeasonMatchBoard> {
   const sid = teamSeasonId.trim();
   const empty: SeasonMatchBoard = {
@@ -493,20 +496,41 @@ export async function fetchSeasonMatchBoard(
   });
   if (validIds.size === 0) return empty;
 
+  const competition = opts?.competition ?? 'all';
+  let selectedIds = [...validIds];
+  if (competition !== 'all') {
+    const { data: tournamentLinks, error: tournamentLinksError } = await supabase
+      .from('tournament_matches')
+      .select('match_id')
+      .in('match_id', selectedIds);
+    if (tournamentLinksError) return empty;
+    const tournamentIds = new Set(
+      (tournamentLinks ?? [])
+        .map((row) => String((row as { match_id?: string | null }).match_id ?? '').trim())
+        .filter(Boolean),
+    );
+    selectedIds = selectedIds.filter((matchId) =>
+      competition === 'tournament' ? tournamentIds.has(matchId) : !tournamentIds.has(matchId),
+    );
+    if (selectedIds.length === 0) return empty;
+  }
+
+  const selectedIdSet = new Set(selectedIds);
+
   const [matchesRes, isHomeByMatchId, eventMetaByMatchId] = await Promise.all([
     supabase
       .from('matches')
       .select('id, opponent, match_date, status, score_home, score_away, location')
       .eq('team_season_id', sid)
-      .in('id', [...validIds])
+      .in('id', selectedIds)
       .order('match_date', { ascending: false }),
-    fetchIsHomeByMatchId(sid, validIds),
-    fetchEventMetaByMatchId(sid, validIds),
+    fetchIsHomeByMatchId(sid, selectedIdSet),
+    fetchEventMetaByMatchId(sid, selectedIdSet),
   ]);
 
   if (matchesRes.error) return empty;
 
-  const rows = ((matchesRes.data ?? []) as BoardMatchRow[]).filter((row) => validIds.has(row.id));
+  const rows = ((matchesRes.data ?? []) as BoardMatchRow[]).filter((row) => selectedIdSet.has(row.id));
 
   const all: SeasonMatchCardData[] = rows.map((row) => {
     const isHome = isHomeByMatchId.get(row.id) ?? eventMetaByMatchId.get(row.id)?.isHome ?? null;
