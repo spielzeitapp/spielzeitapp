@@ -1,0 +1,173 @@
+name: Deploy Supabase reminders
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - .github/workflows/supabase-reminders.yml
+      - .github/workflows/reminder-dispatch.yml
+      - supabase/functions/send-reminders/index.ts
+      - supabase/migrations/20260915213000_supabase_only_reminder_cron.sql
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-reminders-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy and verify Supabase reminder worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      MIGRATION_VERSION: "20260915213000"
+      MIGRATION_FILE: supabase/migrations/20260915213000_supabase_only_reminder_cron.sql
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select guarded target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_NAME" = "develop" ]; then
+            echo "PROJECT_REF=acbaecjzoabafbsjrzvr" >> "$GITHUB_ENV"
+            echo "EXPECTED_PROJECT_NAME=spielzeitapp-staging" >> "$GITHUB_ENV"
+          elif [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "PROJECT_REF=shxugattqatahckhspwk" >> "$GITHUB_ENV"
+            echo "EXPECTED_PROJECT_NAME=spielzeitapp-nsg" >> "$GITHUB_ENV"
+          else
+            echo "::error::Unsupported branch: $GITHUB_REF_NAME"
+            exit 1
+          fi
+
+      - name: Verify project and apply migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const version = process.env.MIGRATION_VERSION;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body}`);
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+            const migration = fs.readFileSync(process.env.MIGRATION_FILE, 'utf8');
+            await query(`${migration}\nINSERT INTO supabase_migrations.schema_migrations (version) VALUES ('${version}') ON CONFLICT DO NOTHING;`);
+            console.log(`Migration applied to ${expectedName}.`);
+          })().catch((error) => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Deploy Edge Function
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@2.106.0 functions deploy send-reminders \
+            --project-ref "$PROJECT_REF" \
+            --no-verify-jwt
+
+      - name: Configure and verify Supabase cron
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const version = process.env.MIGRATION_VERSION;
+          const base = 'https://api.supabase.com/v1';
+          const functionUrl = `https://${ref}.supabase.co/functions/v1/send-reminders`;
+
+          async function query(sql) {
+            const response = await fetch(`${base}/projects/${ref}/database/query`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: sql }),
+            });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`Database query failed (${response.status}): ${body}`);
+            return body ? JSON.parse(body) : null;
+          }
+
+          (async () => {
+            await query(`SELECT public.configure_send_reminders_cron('${functionUrl}');`);
+            const rows = await query(`
+              SELECT
+                EXISTS (
+                  SELECT 1 FROM cron.job
+                  WHERE jobname = 'send-reminders-job'
+                    AND schedule = '* * * * *'
+                    AND active = true
+                    AND command LIKE '%${ref}.supabase.co/functions/v1/send-reminders%'
+                ) AS cron_ready,
+                EXISTS (
+                  SELECT 1 FROM supabase_migrations.schema_migrations
+                  WHERE version = '${version}'
+                ) AS migration_recorded,
+                to_regprocedure('public.configure_send_reminders_cron(text)') IS NOT NULL AS configure_function_ready;
+            `);
+            const check = rows?.[0];
+            if (!check || check.cron_ready !== true || check.migration_recorded !== true || check.configure_function_ready !== true) {
+              throw new Error(`Supabase reminder verification failed: ${JSON.stringify(check)}`);
+            }
+            console.log(`SUPABASE_REMINDER_CRON_OK (${expectedName})`);
+          })().catch((error) => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Process due reminders now
+        shell: bash
+        run: |
+          set -euo pipefail
+          response_file="$(mktemp)"
+          status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data '{}' \
+            "https://$PROJECT_REF.supabase.co/functions/v1/send-reminders")"
+          cat "$response_file"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::send-reminders returned HTTP $status"
+            exit 1
+          fi
+          jq -e '.ok == true' "$response_file" >/dev/null
