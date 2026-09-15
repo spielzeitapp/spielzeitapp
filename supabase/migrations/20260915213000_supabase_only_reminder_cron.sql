@@ -62,39 +62,4 @@ GRANT EXECUTE ON FUNCTION public.configure_send_reminders_cron(text) TO service_
 COMMENT ON FUNCTION public.configure_send_reminders_cron(text) IS
   'Konfiguriert den einzigen minütlichen Reminder-Cron auf die Supabase Edge Function.';
 
--- Vorhandene zukünftige Termine neu synchronisieren. Dadurch wird auch ein bereits fälliger,
--- bisher nicht versendeter Reminder kontrolliert auf now()+2 Minuten gesetzt.
-DO $$
-DECLARE
-  r record;
-BEGIN
-  IF to_regprocedure('public.sync_notification_jobs_for_event(uuid)') IS NULL THEN
-    RAISE EXCEPTION 'sync_notification_jobs_for_event(uuid) fehlt';
-  END IF;
-
-  FOR r IN
-    SELECT id
-    FROM public.events
-    WHERE COALESCE(status, 'upcoming') = 'upcoming'
-      AND starts_at > now()
-  LOOP
-    PERFORM public.sync_notification_jobs_for_event(r.id);
-  END LOOP;
-END;
-$$;
-
--- sync_notification_jobs_for_event klemmt überfällige, aber noch sinnvolle Erinnerungen auf
--- now()+2 Minuten. Für diesen einmaligen Reparaturlauf werden genau diese Jobs sofort fällig,
--- damit der anschließend gestartete Worker den verpassten Reminder direkt verarbeitet.
-UPDATE public.notification_jobs j
-SET send_at = now(),
-    updated_at = now()
-FROM public.events e
-WHERE e.id = j.event_id
-  AND j.status = 'pending'
-  AND COALESCE(e.status, 'upcoming') = 'upcoming'
-  AND e.starts_at > now()
-  AND j.send_at > now()
-  AND j.send_at <= now() + interval '3 minutes';
-
 SELECT pg_notify('pgrst', 'reload schema');
