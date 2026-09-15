@@ -112,7 +112,7 @@ function PlayerProfileHeroCard(props: Props) {
               cutoutSrc
                 ? "origin-bottom translate-x-[9%] translate-y-[3%] scale-[1.08] object-contain sm:translate-x-[7%]"
                 : isUpperBodyDemo
-                  ? "origin-bottom translate-x-[9%] translate-y-[9%] scale-[1.24] object-contain sm:translate-x-[7%]"
+                  ? "origin-top translate-x-[9%] scale-[1.18] object-contain object-top sm:translate-x-[7%]"
                   : "object-cover object-[62%_top]"
             }`}
             onError={() => setImageOk(false)}
