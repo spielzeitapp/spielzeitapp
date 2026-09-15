@@ -76,7 +76,7 @@ export const MatchPlayerRow: React.FC<{
     const compactFamilyName = familyName.length >= 12;
     const content = (
       <>
-        <div className="relative -mb-2.5 mr-2 h-[74px] w-[60px] shrink-0 self-end overflow-hidden max-[359px]:mr-1 max-[359px]:h-[66px] max-[359px]:w-[46px]">
+        <div className="relative mr-2 h-[58px] w-[58px] shrink-0 self-end overflow-hidden max-[359px]:mr-1 max-[359px]:h-[54px] max-[359px]:w-[46px]">
           <img
             src={mediaSrc}
             alt=""
@@ -120,7 +120,7 @@ export const MatchPlayerRow: React.FC<{
       </>
     );
     const className = [
-      "flex min-h-[78px] w-full min-w-0 max-w-full items-center overflow-hidden rounded-[15px] border px-2.5 text-left transition active:scale-[0.99] max-[359px]:px-1.5",
+      "flex min-h-[68px] w-full min-w-0 max-w-full items-center overflow-hidden rounded-[15px] border px-2.5 text-left transition active:scale-[0.99] max-[359px]:px-1.5",
       "sz-club-list-card sz-club-surface sz-club-surface--quiet",
       selected
         ? "border-emerald-500/55 shadow-[0_8px_26px_rgba(5,150,105,0.16),0_0_18px_rgba(16,185,129,0.10)]"
