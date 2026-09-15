@@ -10,6 +10,7 @@ import {
 type Props = {
   summary: SeasonMatchSummary;
   loading?: boolean;
+  title?: string;
 };
 
 function StatIconHandshake({ className = STAT_ICON_WATERMARK_CLASS }: { className?: string }) {
@@ -24,7 +25,7 @@ function StatIconXCircle({ className = STAT_ICON_WATERMARK_CLASS }: { className?
   return <XCircle className={className} strokeWidth={1.6} aria-hidden />;
 }
 
-export const SeasonMatchSummaryCard: React.FC<Props> = ({ summary, loading = false }) => {
+export const SeasonMatchSummaryCard: React.FC<Props> = ({ summary, loading = false, title = 'Saisonbilanz' }) => {
   const total = summary.wins + summary.draws + summary.losses;
   const wPct = total > 0 ? (summary.wins / total) * 100 : 0;
   const dPct = total > 0 ? (summary.draws / total) * 100 : 0;
@@ -63,8 +64,8 @@ export const SeasonMatchSummaryCard: React.FC<Props> = ({ summary, loading = fal
 
   return (
     <div className="overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3 py-3.5">
-      <h3 className="mb-3 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
-        Saisonbilanz
+      <h3 className="sz-club-profile-accent mb-3 text-[12px] font-extrabold uppercase tracking-[0.18em]">
+        {title}
       </h3>
 
       {total === 0 ? (
