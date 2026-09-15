@@ -90,7 +90,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({
               data-trainer-card
               type="button"
               onClick={() => onTrainerClick(trainer)}
-              className="sz-club-showcase-card group relative aspect-[3/4] w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]"
+              className="sz-club-showcase-card group relative aspect-square w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]"
             >
               <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
               <span className="absolute left-5 top-5 z-10 text-[56px] font-black uppercase leading-none tracking-[-0.06em] text-white/90 sm:text-[66px]">
@@ -100,10 +100,14 @@ export const TeamTrainerShowcase: React.FC<Props> = ({
                 <img
                   src={photo}
                   alt=""
-                  className={`absolute inset-0 h-full w-full transition duration-300 group-hover:scale-[1.02] ${
+                  style={{
+                    WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 58%, transparent 76%)",
+                    maskImage: "linear-gradient(to bottom, #000 0%, #000 58%, transparent 76%)",
+                  }}
+                  className={`absolute inset-0 h-full w-full transition duration-300 ${
                     trainer.cutout_url
-                      ? "origin-bottom scale-[1.38] object-contain object-bottom group-hover:scale-[1.43]"
-                      : "object-cover object-top"
+                      ? "origin-top scale-[1.78] object-contain object-top group-hover:scale-[1.82]"
+                      : "origin-top object-cover object-top group-hover:scale-[1.02]"
                   }`}
                 />
               ) : (
