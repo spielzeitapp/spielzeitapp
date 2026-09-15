@@ -32,7 +32,9 @@ export function usePlayerStats(
 ) {
   const demo = useDemoMode();
   const [stats, setStats] = useState<PlayerSeasonStats>(EMPTY_STATS);
+  const [tournamentStats, setTournamentStats] = useState<PlayerSeasonStats>(EMPTY_STATS);
   const [lastMatches, setLastMatches] = useState<PlayerLastMatchRow[]>([]);
+  const [lastTournamentMatches, setLastTournamentMatches] = useState<PlayerLastMatchRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +42,9 @@ export function usePlayerStats(
     const pid = playerId?.trim();
     if (!pid) {
       setStats(EMPTY_STATS);
+      setTournamentStats(EMPTY_STATS);
       setLastMatches([]);
+      setLastTournamentMatches([]);
       setError(null);
       setIsLoading(false);
       return;
@@ -48,7 +52,9 @@ export function usePlayerStats(
 
     if (demo || isDemoPlayerId(pid)) {
       setStats(getDemoPlayerSeasonStats(pid));
+      setTournamentStats(EMPTY_STATS);
       setLastMatches(getDemoPlayerLastMatches(pid));
+      setLastTournamentMatches([]);
       setError(null);
       setIsLoading(false);
       return;
@@ -56,7 +62,9 @@ export function usePlayerStats(
 
     if (mode === 'season' && !teamSeasonId?.trim()) {
       setStats(EMPTY_STATS);
+      setTournamentStats(EMPTY_STATS);
       setLastMatches([]);
+      setLastTournamentMatches([]);
       setError(null);
       setIsLoading(false);
       return;
@@ -65,7 +73,13 @@ export function usePlayerStats(
     setIsLoading(true);
     setError(null);
     void (async () => {
-      const { stats: nextStats, lastMatches: lm, error: err } = await getPlayerStats({
+      const {
+        stats: nextStats,
+        tournamentStats: nextTournamentStats,
+        lastMatches: lm,
+        lastTournamentMatches: tournamentLm,
+        error: err,
+      } = await getPlayerStats({
         playerId: pid,
         mode,
         teamSeasonId,
@@ -75,11 +89,15 @@ export function usePlayerStats(
       if (err) {
         setError(err);
         setStats(EMPTY_STATS);
+        setTournamentStats(EMPTY_STATS);
         setLastMatches([]);
+        setLastTournamentMatches([]);
         return;
       }
       setStats(nextStats);
+      setTournamentStats(nextTournamentStats);
       setLastMatches(lm);
+      setLastTournamentMatches(tournamentLm);
       setError(null);
     })();
     return () => {
@@ -90,10 +108,12 @@ export function usePlayerStats(
   return useMemo(
     () => ({
       data: stats,
+      tournamentData: tournamentStats,
       lastMatches,
+      lastTournamentMatches,
       isLoading,
       error,
     }),
-    [stats, lastMatches, isLoading, error],
+    [stats, tournamentStats, lastMatches, lastTournamentMatches, isLoading, error],
   );
 }
