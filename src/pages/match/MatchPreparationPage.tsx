@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
@@ -51,7 +52,6 @@ import {
 } from '../../lib/premiumDesignSystem';
 import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
-import { getDemoTrainingParticipationPct } from '../../demo/demoPlayers';
 import { dbStatusToTrainingAttendance } from '../../lib/trainingAttendance';
 import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
 import { normalizeRole } from '../../lib/roles';
@@ -586,7 +586,6 @@ export const MatchPreparationPage: React.FC = () => {
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
           const disabled = !squadEditable || status === 'absent';
-          const trainPct = isDemo ? getDemoTrainingParticipationPct(p.id) : null;
           return (
             <div key={p.id} className={disabled ? 'opacity-70' : ''}>
               <MatchPlayerRow
@@ -594,10 +593,24 @@ export const MatchPreparationPage: React.FC = () => {
                 layout="team-roster"
                 selected={selected}
                 status={status === 'absent' ? 'no' : selected ? 'yes' : 'open'}
-                rightLabel={
-                  status === 'absent' ? 'Abwesend' : selected ? '✓ IM KADER' : 'NICHT IM KADER'
+                hideSubline
+                trailing={
+                  <span
+                    className={`inline-flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border ${
+                      selected
+                        ? 'border-emerald-400/25 bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]'
+                        : 'border-red-400/15 bg-red-950/45 text-red-300'
+                    }`}
+                    title={selected ? 'Im Kader' : 'Nicht im Kader'}
+                  >
+                    {selected ? (
+                      <ThumbsUp className="h-4 w-4" aria-hidden />
+                    ) : (
+                      <ThumbsDown className="h-4 w-4" aria-hidden />
+                    )}
+                    <span className="sr-only">{selected ? 'Im Kader' : 'Nicht im Kader'}</span>
+                  </span>
                 }
-                metricHint={trainPct != null ? `Training ${trainPct} %` : null}
                 onClick={disabled ? undefined : () => togglePlayer(p.id, status)}
               />
             </div>
@@ -741,7 +754,7 @@ export const MatchPreparationPage: React.FC = () => {
           ))}
         </div>
 
-        {renderSection('Verfügbar', grouped.available, 'available')}
+        {renderSection('Kaderliste', grouped.available, 'available')}
         {renderSection('Offen', grouped.open, 'open')}
         {renderSection('Abgesagt', grouped.absent, 'absent')}
 
@@ -778,26 +791,6 @@ export const MatchPreparationPage: React.FC = () => {
           />
         ) : null}
 
-        <section className={`flex flex-col ${DS_SECTION_GAP}`}>
-          <h2 className={dsSectionLabelClass()}>Matchkader: {selectedPlayersForSquad.length} Spieler</h2>
-          {selectedPlayersForSquad.length === 0 ? (
-            <p className="text-xs text-white/45">Noch keine Spieler ausgewählt.</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {selectedPlayersForSquad.map((id) => {
-                const p = players.find((x) => x.id === id);
-                return (
-                  <span
-                    key={id}
-                    className="rounded-full border border-red-500/35 bg-red-950/35 px-2.5 py-0.5 text-[11px] font-semibold text-red-200"
-                  >
-                    {premiumPlayerDisplayName(p ?? { display_name: id })}
-                  </span>
-                );
-              })}
-            </div>
-          )}
-        </section>
       </main>
 
       <div
