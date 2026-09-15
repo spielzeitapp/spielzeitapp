@@ -35,11 +35,11 @@ const ACHIEVEMENT_ICONS = [
   COACH_STAT_TILES.goalsFor,
 ] as const;
 
-function FlameWatermark({ className = 'h-[4.75rem] w-[4.75rem] text-red-400/[0.18]' }: { className?: string }) {
+function FlameWatermark({ className = 'sz-club-stat-watermark h-[4.75rem] w-[4.75rem]' }: { className?: string }) {
   return <Flame className={className} strokeWidth={1.6} aria-hidden />;
 }
 
-function GemWatermark({ className = 'h-[4.75rem] w-[4.75rem] text-red-400/[0.18]' }: { className?: string }) {
+function GemWatermark({ className = 'sz-club-stat-watermark h-[4.75rem] w-[4.75rem]' }: { className?: string }) {
   return <Gem className={className} strokeWidth={1.4} aria-hidden />;
 }
 
@@ -49,13 +49,19 @@ type Props = {
   teamName: string;
   players: PlayerItem[];
   stats: TeamSeasonCoachStats;
+  tournamentStats: TeamSeasonCoachStats;
   seasonSummary: SeasonMatchSummary;
+  tournamentSummary: SeasonMatchSummary;
   statsLoading: boolean;
   statsError: string | null;
   matchDetails: SeasonMatchCardData[];
   recentMatches: SeasonMatchCardData[];
+  tournamentMatches: SeasonMatchCardData[];
+  recentTournamentMatches: SeasonMatchCardData[];
   matchesLoading: boolean;
   matchesError: string | null;
+  tournamentLoading: boolean;
+  tournamentError: string | null;
   achievements: CoachSeasonAchievements;
   canManage: boolean;
   onEdit: () => void;
@@ -67,13 +73,19 @@ export const TrainerProfileBody: React.FC<Props> = ({
   teamName,
   players,
   stats,
+  tournamentStats,
   seasonSummary,
+  tournamentSummary,
   statsLoading,
   statsError,
   matchDetails,
   recentMatches,
+  tournamentMatches,
+  recentTournamentMatches,
   matchesLoading,
   matchesError,
+  tournamentLoading,
+  tournamentError,
   achievements,
   canManage,
   onEdit,
@@ -130,7 +142,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
                 className={[
                   'min-h-[34px] flex-1 rounded-lg px-1 py-1.5 text-[12px] font-bold transition-all sm:min-h-[38px] sm:px-1.5',
                   active
-                    ? 'border border-red-500/40 bg-red-600/25 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)]'
+                    ? 'sz-club-selected-soft border text-white'
                     : 'border border-transparent text-white/60 hover:text-white/80',
                 ].join(' ')}
               >
@@ -158,6 +170,25 @@ export const TrainerProfileBody: React.FC<Props> = ({
           {!statsLoading && !statsError ? (
             <TrainerBalanceCard wins={stats.wins} draws={stats.draws} losses={stats.losses} />
           ) : null}
+          {!tournamentLoading && !tournamentError && tournamentStats.matches > 0 ? (
+            <div className="mt-5">
+              <h3 className="sz-club-profile-accent mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em]">
+                Turnierstatistik
+              </h3>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
+                <ProfileStatTile icon={<COACH_STAT_TILES.games />} label="Turnierspiele" value={String(tournamentStats.matches)} />
+                <ProfileStatTile icon={<COACH_STAT_TILES.wins />} label="Siege" value={String(tournamentStats.wins)} />
+                <ProfileStatTile icon={<COACH_STAT_TILES.goalsFor />} label="Tore Team" value={String(tournamentStats.goalsFor)} />
+                <ProfileStatTile icon={<COACH_STAT_TILES.goalsAgainst />} label="Gegentore" value={String(tournamentStats.goalsAgainst)} />
+              </div>
+              <TrainerBalanceCard
+                title="Turnierbilanz"
+                wins={tournamentStats.wins}
+                draws={tournamentStats.draws}
+                losses={tournamentStats.losses}
+              />
+            </div>
+          ) : null}
           {statsError ? (
             <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
           ) : null}
@@ -169,14 +200,14 @@ export const TrainerProfileBody: React.FC<Props> = ({
 
       {activeTab === 'matches' ? (
         <div className="space-y-4">
-          <SeasonMatchSummaryCard summary={seasonSummary} loading={matchesLoading || statsLoading} />
+          <SeasonMatchSummaryCard title="Spielbilanz" summary={seasonSummary} loading={matchesLoading || statsLoading} />
 
           {matchesError ? (
             <p className="text-center text-[11px] text-amber-400/95">{matchesError}</p>
           ) : null}
 
           <div>
-            <h3 className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+            <h3 className="sz-club-icon mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em]">
               Letzte Spiele
             </h3>
             {matchesLoading ? (
@@ -204,6 +235,33 @@ export const TrainerProfileBody: React.FC<Props> = ({
               </ul>
             )}
           </div>
+
+          {!tournamentLoading && tournamentSummary.played > 0 ? (
+            <div className="space-y-3 pt-2">
+              <SeasonMatchSummaryCard title="Turnierbilanz" summary={tournamentSummary} />
+              {tournamentError ? (
+                <p className="text-center text-[11px] text-amber-400/95">{tournamentError}</p>
+              ) : null}
+              <div>
+                <h3 className="sz-club-icon mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em]">
+                  Letzte Turnierspiele
+                </h3>
+                {recentTournamentMatches.length === 0 ? (
+                  <p className="text-center text-[12px] text-white/60">
+                    {tournamentMatches.length > 0 ? "Noch keine abgeschlossenen Turnierspiele" : "Noch keine Turnierspiele erfasst."}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {recentTournamentMatches.map((match) => (
+                      <li key={match.id}>
+                        <SeasonMatchCard match={match} ourTeamName={teamName} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
