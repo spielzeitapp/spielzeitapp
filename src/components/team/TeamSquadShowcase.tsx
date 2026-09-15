@@ -230,9 +230,9 @@ export const TeamSquadShowcase: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => onPlayerClick(player)}
-                className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[78px] w-full items-center overflow-hidden rounded-[14px] border px-2.5 text-left transition active:scale-[0.99]"
+                className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border px-2.5 text-left transition active:scale-[0.99]"
               >
-                <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
+                <div className="relative mr-2.5 h-[58px] w-[58px] shrink-0 self-end overflow-hidden">
                   <img
                     src={media.src}
                     alt=""
