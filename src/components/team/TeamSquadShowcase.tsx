@@ -147,7 +147,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
               data-showcase-card
               type="button"
               onClick={() => onPlayerClick(player)}
-              className="sz-club-showcase-card group relative aspect-[3/4] w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]"
+              className="sz-club-showcase-card group relative aspect-[5/6] w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]"
             >
               <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
               {number != null ? (
@@ -168,10 +168,10 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                 }}
                 className={`absolute inset-0 h-full w-full transition duration-300 ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
                   media.isCutout
-                    ? "origin-top scale-[1.35] object-contain object-top group-hover:scale-[1.39]"
+                    ? "origin-top scale-[1.48] object-contain object-top group-hover:scale-[1.52]"
                     : media.isUpperBodyDemo
-                      ? "origin-top scale-[0.92] object-contain object-top group-hover:scale-[0.95]"
-                    : "origin-top scale-[0.96] object-cover object-top group-hover:scale-[0.99]"
+                      ? "origin-top scale-[1.02] object-contain object-top group-hover:scale-[1.05]"
+                    : "origin-top scale-[0.99] object-cover object-top group-hover:scale-[1.02]"
                 }`}
               />
               <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
