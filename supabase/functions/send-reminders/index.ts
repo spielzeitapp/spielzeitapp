@@ -11,7 +11,6 @@ import webpush from "npm:web-push@3.6.7";
 
 const JOB_BATCH_LIMIT = 50;
 const VIENNA_TZ = "Europe/Vienna";
-const MAX_REMINDER_DELAY_MS = 2 * 60 * 60 * 1000;
 
 type JobRow = {
   id: string;
@@ -154,7 +153,6 @@ async function ensureUpcomingReminderJobs(
 
     if (kind === "training" && settingBool(settings, "training_reminder_enabled", "training_enabled", true)) {
       const sendAt = trainingReminderAt(event.starts_at);
-      if (Date.parse(sendAt) < now.getTime() - MAX_REMINDER_DELAY_MS) continue;
       const dedupeKey = `event:${event.id}:training_day_1100`;
       const completed = existing.some(
         (job) => job.kind === "training" && (job.status === "sent" || job.status === "processing"),
@@ -209,13 +207,20 @@ async function ensureUpcomingReminderJobs(
     if (settingBool(settings, "match_second_reminder_enabled", "match_second_enabled", true)) {
       slots.push(["match_second", settingMinutes(settings, "match_second_reminder_minutes_before", "match_second_minutes_before", 1440)]);
     }
+    const missingOverdueSlots = slots
+      .filter(([slot, minutes]) => {
+        const dedupeKey = `event:${event.id}:${slot}_${minutes}`;
+        return !existing.some((job) => job.dedupe_key === dedupeKey) && baseMs - minutes * 60 * 1000 <= now.getTime();
+      })
+      .sort((left, right) => left[1] - right[1]);
+    const overdueSlotToCreate = missingOverdueSlots[0]?.[0] ?? null;
     for (const [slot, minutes] of slots) {
       const reminderKey = `${slot}_${minutes}`;
       const dedupeKey = `event:${event.id}:${reminderKey}`;
       if (existing.some((job) => job.dedupe_key === dedupeKey)) continue;
       const idealMs = baseMs - minutes * 60 * 1000;
-      if (idealMs < now.getTime() - MAX_REMINDER_DELAY_MS) continue;
-      const sendAt = new Date(Math.max(idealMs, now.getTime() + 2 * 60 * 1000)).toISOString();
+      if (idealMs <= now.getTime() && slot !== overdueSlotToCreate) continue;
+      const sendAt = new Date(Math.max(idealMs, now.getTime())).toISOString();
       const { error } = await supabase.from("notification_jobs").insert({
         event_id: event.id,
         team_id: teamId,
