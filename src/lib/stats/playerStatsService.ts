@@ -309,7 +309,12 @@ function resolveMatchDurationMinutes(match: MatchRow, finalSec: number): number 
   return Math.floor(Math.max(0, finalSec) / 60);
 }
 
-async function fetchFinishedMatches(teamSeasonId: string): Promise<{ data: MatchRow[]; error: string | null }> {
+type PlayerMatchCompetition = 'regular' | 'tournament';
+
+async function fetchFinishedMatches(
+  teamSeasonId: string,
+  competition: PlayerMatchCompetition = 'regular',
+): Promise<{ data: MatchRow[]; error: string | null }> {
   const tid = teamSeasonId?.trim();
   if (!tid) return { data: [], error: null };
 
@@ -318,12 +323,28 @@ async function fetchFinishedMatches(teamSeasonId: string): Promise<{ data: Match
   const validIds = await fetchValidSeasonMatchIds(tid);
   if (validIds.size === 0) return { data: [], error: null };
 
+  const { data: tournamentLinks, error: tournamentLinksError } = await supabase
+    .from('tournament_matches')
+    .select('match_id')
+    .in('match_id', [...validIds]);
+  if (tournamentLinksError) return { data: [], error: tournamentLinksError.message };
+
+  const tournamentMatchIds = new Set(
+    (tournamentLinks ?? [])
+      .map((row) => String((row as { match_id?: string | null }).match_id ?? '').trim())
+      .filter(Boolean),
+  );
+  const selectedIds = [...validIds].filter((matchId) =>
+    competition === 'tournament' ? tournamentMatchIds.has(matchId) : !tournamentMatchIds.has(matchId),
+  );
+  if (selectedIds.length === 0) return { data: [], error: null };
+
   const { data, error } = await supabase
     .from('matches')
     .select('id, opponent, match_date, status, score_home, score_away, live_elapsed_seconds, planned_match_minutes')
     .eq('team_season_id', tid)
     .eq('status', 'finished')
-    .in('id', [...validIds])
+    .in('id', selectedIds)
     .order('match_date', { ascending: false });
   if (error) return { data: [], error: error.message };
   return { data: (data ?? []) as MatchRow[], error: null };
@@ -516,34 +537,36 @@ export async function getPlayerProfileStatsBundle(
   teamSeasonId: string,
 ): Promise<{
   stats: PlayerSeasonStats;
+  tournamentStats: PlayerSeasonStats;
   lastMatches: PlayerLastMatchRow[];
+  lastTournamentMatches: PlayerLastMatchRow[];
   error: string | null;
 }> {
-  const { data: matches, error: mErr } = await fetchFinishedMatches(teamSeasonId);
+  const [regularResult, tournamentResult] = await Promise.all([
+    fetchFinishedMatches(teamSeasonId, 'regular'),
+    fetchFinishedMatches(teamSeasonId, 'tournament'),
+  ]);
+  const mErr = regularResult.error ?? tournamentResult.error;
   if (mErr) {
     return {
       stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, averageMinutesPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      tournamentStats: { ...EMPTY_PLAYER_STATS },
       lastMatches: [],
+      lastTournamentMatches: [],
       error: mErr,
     };
   }
-  const matchIds = matches.map((m) => m.id);
-  if (matchIds.length === 0) {
-    return {
-      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, averageMinutesPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
-      lastMatches: [],
-      error: null,
-    };
-  }
-
-  const [events, snapshots, lineupFallback] = await Promise.all([
-    fetchEventsForMatches(matchIds),
-    fetchKickoffSnapshots(matchIds),
-    fetchLineupFallbackPlayerSets(matchIds),
+  const [regular, tournament] = await Promise.all([
+    aggregateMatchesForPlayer(playerId, regularResult.data),
+    aggregateMatchesForPlayer(playerId, tournamentResult.data),
   ]);
-
-  const { stats, lastMatches } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback);
-  return { stats, lastMatches, error: null };
+  return {
+    stats: regular.stats,
+    tournamentStats: tournament.stats,
+    lastMatches: regular.lastMatches,
+    lastTournamentMatches: tournament.lastMatches,
+    error: regular.error ?? tournament.error,
+  };
 }
 
 const EMPTY_PLAYER_STATS: PlayerSeasonStats = {
@@ -672,29 +695,46 @@ export async function getPlayerCareerStatsBundle(
   playerId: string,
 ): Promise<{
   stats: PlayerSeasonStats;
+  tournamentStats: PlayerSeasonStats;
   lastMatches: PlayerLastMatchRow[];
+  lastTournamentMatches: PlayerLastMatchRow[];
   error: string | null;
 }> {
   const { data: seasonIds, error: listErr } = await listPlayerTeamSeasonIds(playerId);
-  if (listErr) return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: listErr };
+  if (listErr) return { stats: { ...EMPTY_PLAYER_STATS }, tournamentStats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], lastTournamentMatches: [], error: listErr };
   if (seasonIds.length === 0) {
-    return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: null };
+    return { stats: { ...EMPTY_PLAYER_STATS }, tournamentStats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], lastTournamentMatches: [], error: null };
   }
 
-  const byId = new Map<string, MatchRow>();
+  const regularById = new Map<string, MatchRow>();
+  const tournamentById = new Map<string, MatchRow>();
   for (const sid of seasonIds) {
-    const { data, error } = await fetchFinishedMatches(sid);
-    if (error) return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error };
-    for (const m of data) byId.set(m.id, m);
+    const [regular, tournament] = await Promise.all([
+      fetchFinishedMatches(sid, 'regular'),
+      fetchFinishedMatches(sid, 'tournament'),
+    ]);
+    const error = regular.error ?? tournament.error;
+    if (error) return { stats: { ...EMPTY_PLAYER_STATS }, tournamentStats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], lastTournamentMatches: [], error };
+    for (const m of regular.data) regularById.set(m.id, m);
+    for (const m of tournament.data) tournamentById.set(m.id, m);
   }
 
-  const matches = [...byId.values()].sort((a, b) => {
+  const sortMatches = (rows: MatchRow[]) => rows.sort((a, b) => {
     const da = a.match_date ?? '';
     const db = b.match_date ?? '';
     return db.localeCompare(da);
   });
-
-  return aggregateMatchesForPlayer(playerId, matches);
+  const [regular, tournament] = await Promise.all([
+    aggregateMatchesForPlayer(playerId, sortMatches([...regularById.values()])),
+    aggregateMatchesForPlayer(playerId, sortMatches([...tournamentById.values()])),
+  ]);
+  return {
+    stats: regular.stats,
+    tournamentStats: tournament.stats,
+    lastMatches: regular.lastMatches,
+    lastTournamentMatches: tournament.lastMatches,
+    error: regular.error ?? tournament.error,
+  };
 }
 
 /**
@@ -707,15 +747,17 @@ export async function getPlayerStats(input: {
   teamSeasonId?: string | null;
 }): Promise<{
   stats: PlayerSeasonStats;
+  tournamentStats: PlayerSeasonStats;
   lastMatches: PlayerLastMatchRow[];
+  lastTournamentMatches: PlayerLastMatchRow[];
   error: string | null;
 }> {
   const pid = input.playerId?.trim();
-  if (!pid) return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: null };
+  if (!pid) return { stats: { ...EMPTY_PLAYER_STATS }, tournamentStats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], lastTournamentMatches: [], error: null };
   if (input.mode === 'career') {
     return getPlayerCareerStatsBundle(pid);
   }
   const tid = input.teamSeasonId?.trim();
-  if (!tid) return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: null };
+  if (!tid) return { stats: { ...EMPTY_PLAYER_STATS }, tournamentStats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], lastTournamentMatches: [], error: null };
   return getPlayerProfileStatsBundle(pid, tid);
 }
