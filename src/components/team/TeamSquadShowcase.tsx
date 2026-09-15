@@ -162,12 +162,16 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = media.fallbackSrc;
                 }}
+                style={{
+                  WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 62%, transparent 76%)",
+                  maskImage: "linear-gradient(to bottom, #000 0%, #000 62%, transparent 76%)",
+                }}
                 className={`absolute inset-0 h-full w-full transition duration-300 ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
                   media.isCutout
-                    ? "origin-bottom scale-[1.55] object-contain object-bottom group-hover:scale-[1.6]"
+                    ? "origin-top scale-[1.35] object-contain object-top group-hover:scale-[1.39]"
                     : media.isUpperBodyDemo
-                      ? "object-contain object-bottom group-hover:scale-[1.02]"
-                    : "object-cover object-center group-hover:scale-[1.02]"
+                      ? "origin-top scale-[0.92] object-contain object-top group-hover:scale-[0.95]"
+                    : "origin-top scale-[0.96] object-cover object-top group-hover:scale-[0.99]"
                 }`}
               />
               <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
