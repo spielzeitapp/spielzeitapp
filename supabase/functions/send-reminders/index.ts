@@ -5,8 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * (gleicher Stack wie `api/push/send-team.js` / Direkt-Push).
  * Edge Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (wie Backend).
  *
- * Hinweis: Nur einen Scheduler nutzen (Supabase-Cron auf diese Function **oder** Vercel-Cron auf
- * `/api/send-reminders`) — sonst doppelte Pushes.
+ * Einziger Scheduler: Supabase pg_cron ruft diese Edge Function auf.
  */
 import webpush from "npm:web-push@3.6.7";
 
@@ -30,7 +29,220 @@ type EventRow = {
   opponent?: string | null;
   notes?: string | null;
   match_id?: string | null;
+  type?: string | null;
+  kind?: string | null;
 };
+
+type ReminderSettingsRow = Record<string, unknown> & { team_season_id: string };
+
+function settingBool(
+  row: ReminderSettingsRow | undefined,
+  longKey: string,
+  shortKey: string,
+  fallback: boolean,
+): boolean {
+  const value = row?.[longKey] ?? row?.[shortKey];
+  return value == null ? fallback : value === true || value === "true" || value === 1;
+}
+
+function settingMinutes(
+  row: ReminderSettingsRow | undefined,
+  longKey: string,
+  shortKey: string,
+  fallback: number,
+): number {
+  const value = Number(row?.[longKey] ?? row?.[shortKey]);
+  return Number.isFinite(value) && value >= 0 ? Math.floor(value) : fallback;
+}
+
+function zonedParts(instant: Date): Record<string, string> {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: VIENNA_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instant);
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]));
+}
+
+/** 11:00 Europe/Vienna am lokalen Kalendertag des Trainings als UTC-Instant. */
+function trainingReminderAt(eventStartIso: string): string {
+  const eventParts = zonedParts(new Date(eventStartIso));
+  const wallClockUtc = Date.UTC(
+    Number(eventParts.year),
+    Number(eventParts.month) - 1,
+    Number(eventParts.day),
+    11,
+  );
+  const probeParts = zonedParts(new Date(wallClockUtc));
+  const representedAsUtc = Date.UTC(
+    Number(probeParts.year),
+    Number(probeParts.month) - 1,
+    Number(probeParts.day),
+    Number(probeParts.hour),
+    Number(probeParts.minute),
+    Number(probeParts.second),
+  );
+  return new Date(wallClockUtc - (representedAsUtc - wallClockUtc)).toISOString();
+}
+
+/**
+ * Repariert fehlende Jobs für zukünftige Termine. Damit bleiben auch importierte oder ältere
+ * Events zuverlässig, selbst wenn beim Anlegen kein Client-Job geschrieben wurde.
+ */
+async function ensureUpcomingReminderJobs(
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ inserted: number; normalized: number }> {
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: events, error: eventsError } = await supabase
+    .from("events")
+    .select("id, team_season_id, starts_at, status, type, kind")
+    .or("status.eq.upcoming,status.is.null")
+    .gt("starts_at", now.toISOString())
+    .lte("starts_at", horizon)
+    .limit(500);
+  if (eventsError) throw eventsError;
+  if (!events?.length) return { inserted: 0, normalized: 0 };
+
+  const seasonIds = [...new Set(events.map((event) => event.team_season_id).filter(Boolean))];
+  const eventIds = events.map((event) => event.id);
+  const [seasonResult, settingsResult, jobsResult] = await Promise.all([
+    supabase.from("team_seasons").select("id, team_id").in("id", seasonIds),
+    supabase.from("team_notification_settings").select("*").in("team_season_id", seasonIds),
+    supabase
+      .from("notification_jobs")
+      .select("id, event_id, kind, dedupe_key, status")
+      .in("event_id", eventIds),
+  ]);
+  if (seasonResult.error) throw seasonResult.error;
+  if (settingsResult.error) throw settingsResult.error;
+  if (jobsResult.error) throw jobsResult.error;
+
+  const teamBySeason = new Map(
+    (seasonResult.data ?? []).map((row: { id: string; team_id: string }) => [row.id, row.team_id]),
+  );
+  const settingsBySeason = new Map(
+    ((settingsResult.data ?? []) as ReminderSettingsRow[]).map((row) => [row.team_season_id, row]),
+  );
+  const jobsByEvent = new Map<string, Array<Record<string, unknown>>>();
+  for (const job of jobsResult.data ?? []) {
+    const list = jobsByEvent.get(job.event_id) ?? [];
+    list.push(job);
+    jobsByEvent.set(job.event_id, list);
+  }
+
+  let inserted = 0;
+  let normalized = 0;
+  for (const event of events as EventRow[]) {
+    if (!event.starts_at) continue;
+    const teamId = teamBySeason.get(event.team_season_id);
+    if (!teamId) continue;
+    const settings = settingsBySeason.get(event.team_season_id);
+    const rawType = String(event.type || event.kind || "").toLowerCase();
+    const kind = rawType === "training"
+      ? "training"
+      : rawType === "event" || rawType === "other"
+        ? rawType
+        : "match";
+    const existing = jobsByEvent.get(event.id) ?? [];
+
+    if (kind === "training" && settingBool(settings, "training_reminder_enabled", "training_enabled", true)) {
+      const sendAt = trainingReminderAt(event.starts_at);
+      const dedupeKey = `event:${event.id}:training_day_1100`;
+      const completed = existing.some(
+        (job) => job.kind === "training" && (job.status === "sent" || job.status === "processing"),
+      );
+      const exactCurrent = existing.find(
+        (job) => job.dedupe_key === dedupeKey && (job.status === "pending" || job.status === "failed"),
+      );
+      if (exactCurrent?.status === "pending") continue;
+      const current = exactCurrent ?? existing.find(
+        (job) => job.kind === "training" && (job.status === "pending" || job.status === "failed"),
+      );
+      if (completed) continue;
+      const payload = {
+        reminderKey: "training_day_1100",
+        reminder_type: "training_day_1100",
+        offsetMinutes: 0,
+        schedule: "training_day_1100",
+        baseTimeIso: event.starts_at,
+      };
+      if (current) {
+        const { error } = await supabase.from("notification_jobs").update({
+          send_at: sendAt,
+          status: "pending",
+          dedupe_key: dedupeKey,
+          payload,
+          updated_at: now.toISOString(),
+        }).eq("id", current.id);
+        if (error) throw error;
+        normalized += 1;
+      } else {
+        const { error } = await supabase.from("notification_jobs").insert({
+          event_id: event.id,
+          team_id: teamId,
+          kind: "training",
+          send_at: sendAt,
+          payload,
+          status: "pending",
+          dedupe_key: dedupeKey,
+        });
+        if (error && error.code !== "23505") throw error;
+        if (!error) inserted += 1;
+      }
+      continue;
+    }
+
+    if (kind !== "match") continue;
+    const baseMs = Date.parse(event.starts_at);
+    const slots: Array<[string, number]> = [];
+    if (settingBool(settings, "match_reminder_enabled", "match_enabled", true)) {
+      slots.push(["match", settingMinutes(settings, "match_reminder_minutes_before", "match_minutes_before", 2880)]);
+    }
+    if (settingBool(settings, "match_second_reminder_enabled", "match_second_enabled", true)) {
+      slots.push(["match_second", settingMinutes(settings, "match_second_reminder_minutes_before", "match_second_minutes_before", 1440)]);
+    }
+    const missingOverdueSlots = slots
+      .filter(([slot, minutes]) => {
+        const dedupeKey = `event:${event.id}:${slot}_${minutes}`;
+        return !existing.some((job) => job.dedupe_key === dedupeKey) && baseMs - minutes * 60 * 1000 <= now.getTime();
+      })
+      .sort((left, right) => left[1] - right[1]);
+    const overdueSlotToCreate = missingOverdueSlots[0]?.[0] ?? null;
+    for (const [slot, minutes] of slots) {
+      const reminderKey = `${slot}_${minutes}`;
+      const dedupeKey = `event:${event.id}:${reminderKey}`;
+      if (existing.some((job) => job.dedupe_key === dedupeKey)) continue;
+      const idealMs = baseMs - minutes * 60 * 1000;
+      if (idealMs <= now.getTime() && slot !== overdueSlotToCreate) continue;
+      const sendAt = new Date(Math.max(idealMs, now.getTime())).toISOString();
+      const { error } = await supabase.from("notification_jobs").insert({
+        event_id: event.id,
+        team_id: teamId,
+        kind: "match",
+        send_at: sendAt,
+        payload: {
+          reminderKey,
+          reminder_type: reminderKey,
+          offsetMinutes: minutes,
+          baseTimeIso: event.starts_at,
+        },
+        status: "pending",
+        dedupe_key: dedupeKey,
+      });
+      if (error && error.code !== "23505") throw error;
+      if (!error) inserted += 1;
+    }
+  }
+
+  console.log("[send-reminders] reconciliation complete", { inserted, normalized });
+  return { inserted, normalized };
+}
 
 type SubRow = {
   endpoint: string;
@@ -305,9 +517,10 @@ async function filterUnansweredMatchRecipients(
     .eq("event_id", event.id);
   if (attendanceError) throw attendanceError;
 
+  const answeredStatuses = new Set(["yes", "no", "sick", "injured", "external_training"]);
   const answeredPlayerIds = new Set(
     (attendanceRows ?? [])
-      .filter((row: { status?: string | null }) => row.status === "yes" || row.status === "no")
+      .filter((row: { status?: string | null }) => answeredStatuses.has(String(row.status ?? "")))
       .map((row: { player_id: string }) => row.player_id),
   );
 
@@ -402,20 +615,25 @@ serve(async () => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    const reconciliation = await ensureUpcomingReminderJobs(supabase);
     const now = new Date().toISOString();
 
-    const { data: jobs } = await supabase
+    const { data: jobs, error: jobsError } = await supabase
       .from("notification_jobs")
       .select("*")
       .eq("status", "pending")
       .lte("send_at", now)
       .limit(JOB_BATCH_LIMIT);
+    if (jobsError) throw jobsError;
 
     if (!jobs || jobs.length === 0) {
-      return new Response(JSON.stringify({ ok: true, processed: 0 }));
+      return new Response(JSON.stringify({ ok: true, processed: 0, completed: 0, failed: 0, reconciliation }));
     }
 
     console.log("Jobs gefunden:", jobs.length);
+    let processed = 0;
+    let completed = 0;
+    let failed = 0;
 
     for (const job of jobs as JobRow[]) {
       const { data: claimed, error: claimErr } = await supabase
@@ -431,6 +649,7 @@ serve(async () => {
 
       if (claimErr) {
         console.error("[send-reminders] claim error", { jobId: job.id, message: claimErr.message });
+        failed += 1;
         continue;
       }
       if (!claimed) {
@@ -439,6 +658,7 @@ serve(async () => {
       }
 
       const locked = claimed as JobRow;
+      processed += 1;
 
       try {
         const { data: event } = await supabase
@@ -572,14 +792,19 @@ serve(async () => {
 
         console.log("[send-reminders] job complete", { jobId: locked.id });
         await completeJob(supabase, locked.id);
+        completed += 1;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[send-reminders] job failed", { jobId: locked.id, error: msg });
         await failJob(supabase, locked.id, msg);
+        failed += 1;
       }
     }
 
-    return new Response(JSON.stringify({ ok: true }));
+    return new Response(JSON.stringify({ ok: failed === 0, processed, completed, failed, reconciliation }), {
+      status: failed === 0 ? 200 : 500,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("FATAL:", msg);
