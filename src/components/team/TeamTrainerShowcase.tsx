@@ -106,7 +106,7 @@ export const TeamTrainerShowcase: React.FC<Props> = ({
                   }}
                   className={`absolute inset-0 h-full w-full transition duration-300 ${
                     trainer.cutout_url
-                      ? "origin-top scale-[1.78] object-contain object-top group-hover:scale-[1.82]"
+                      ? "origin-top scale-[1.42] object-contain object-top group-hover:scale-[1.46]"
                       : "origin-top object-cover object-top group-hover:scale-[1.02]"
                   }`}
                 />
