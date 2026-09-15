@@ -80,7 +80,7 @@ export const MatchPlayerRow: React.FC<{
           <img
             src={mediaSrc}
             alt=""
-            className={`h-full w-full object-top ${player.cutout_url?.trim() ? "origin-top scale-[1.72] object-contain" : "object-cover"}`}
+            className="h-full w-full origin-top scale-[1.75] object-contain object-top"
             onError={(event) => {
               event.currentTarget.onerror = null;
               event.currentTarget.src = "/avatars/player-placeholder.png";
