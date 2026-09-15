@@ -86,7 +86,20 @@ export const TrainerProfilePage: React.FC = () => {
     trainings,
     loading: boardLoadingLive,
     error: boardErrorLive,
-  } = useSeasonMatchBoard(isDemo ? null : teamSeasonId);
+  } = useSeasonMatchBoard(isDemo ? null : teamSeasonId, 10, {
+    competition: "regular",
+  });
+
+  const {
+    summary: tournamentSummary,
+    recent: recentTournamentMatches,
+    finishedMatches: tournamentMatches,
+    loading: tournamentLoading,
+    error: tournamentError,
+  } = useSeasonMatchBoard(isDemo ? null : teamSeasonId, 10, {
+    competition: "tournament",
+    includeTrainings: false,
+  });
 
   const boardLoading = isDemo ? false : boardLoadingLive;
   const boardError = isDemo ? null : boardErrorLive;
@@ -103,6 +116,20 @@ export const TrainerProfilePage: React.FC = () => {
       pointsPerGame: isDemo ? 2.1 : seasonSummary.pointsPerGame,
     }),
     [seasonSummary, trainings, isDemo],
+  );
+
+  const tournamentStats = useMemo(
+    () => ({
+      trainings: 0,
+      matches: isDemo ? 0 : tournamentSummary.played,
+      wins: isDemo ? 0 : tournamentSummary.wins,
+      draws: isDemo ? 0 : tournamentSummary.draws,
+      losses: isDemo ? 0 : tournamentSummary.losses,
+      goalsFor: isDemo ? 0 : tournamentSummary.goalsFor,
+      goalsAgainst: isDemo ? 0 : tournamentSummary.goalsAgainst,
+      pointsPerGame: isDemo ? "–" : tournamentSummary.pointsPerGame,
+    }),
+    [tournamentSummary, isDemo],
   );
 
   const statsLoading = boardLoading;
@@ -320,13 +347,19 @@ export const TrainerProfilePage: React.FC = () => {
                 teamName={teamName}
                 players={players}
                 stats={stats}
+                tournamentStats={tournamentStats}
                 seasonSummary={seasonSummary}
+                tournamentSummary={tournamentSummary}
                 statsLoading={statsLoading}
                 statsError={statsError}
                 matchDetails={coachMatches}
                 recentMatches={recentMatches}
+                tournamentMatches={tournamentMatches}
+                recentTournamentMatches={recentTournamentMatches}
                 matchesLoading={matchesLoading}
                 matchesError={matchesError}
+                tournamentLoading={tournamentLoading}
+                tournamentError={tournamentError}
                 achievements={achievements}
                 canManage={canManage}
                 onEdit={() => trainerEditor.openEditTrainerForm(member)}
