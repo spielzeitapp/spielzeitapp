@@ -240,9 +240,9 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = media.fallbackSrc;
                     }}
-                    className={`h-full w-full object-bottom ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
+                    className={`h-full w-full object-top ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
                       media.isCutout
-                        ? "origin-bottom scale-[1.45] object-contain"
+                        ? "origin-top scale-[1.72] object-contain"
                         : media.isUpperBodyDemo
                           ? "object-contain"
                           : "object-cover"
