@@ -4,9 +4,10 @@ type Props = {
   wins: number;
   draws: number;
   losses: number;
+  title?: string;
 };
 
-export const TrainerBalanceCard: React.FC<Props> = ({ wins, draws, losses }) => {
+export const TrainerBalanceCard: React.FC<Props> = ({ wins, draws, losses, title = 'Trainerbilanz' }) => {
   const total = wins + draws + losses;
   const wPct = total > 0 ? (wins / total) * 100 : 0;
   const dPct = total > 0 ? (draws / total) * 100 : 0;
@@ -14,7 +15,7 @@ export const TrainerBalanceCard: React.FC<Props> = ({ wins, draws, losses }) => 
 
   return (
     <div className="mt-4 overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3 py-3.5">
-      <h3 className="mb-3 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">Trainerbilanz</h3>
+      <h3 className="sz-club-profile-accent mb-3 text-[12px] font-extrabold uppercase tracking-[0.18em]">{title}</h3>
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
           <div className="text-[22px] font-bold tabular-nums leading-none text-emerald-400">{wins}</div>
