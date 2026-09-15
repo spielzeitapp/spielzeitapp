@@ -240,13 +240,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = media.fallbackSrc;
                     }}
-                    className={`h-full w-full object-bottom ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
-                      media.isCutout
-                        ? "origin-bottom scale-[1.45] object-contain"
-                        : media.isUpperBodyDemo
-                          ? "object-contain"
-                          : "object-cover"
-                    }`}
+                    className={`h-full w-full origin-top scale-[1.75] object-contain object-top ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""}`}
                   />
                 </div>
                 <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">
