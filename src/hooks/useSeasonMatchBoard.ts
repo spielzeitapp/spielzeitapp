@@ -31,13 +31,19 @@ const EMPTY_BOARD: SeasonMatchBoard = {
 export function useSeasonMatchBoard(
   teamSeasonId: string | null,
   recentLimit = 10,
-  opts?: { includeOrphanMatches?: boolean },
+  opts?: {
+    includeOrphanMatches?: boolean;
+    competition?: 'all' | 'regular' | 'tournament';
+    includeTrainings?: boolean;
+  },
 ) {
   const [board, setBoard] = useState<SeasonMatchBoard>(EMPTY_BOARD);
   const [trainings, setTrainings] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const includeOrphanMatches = opts?.includeOrphanMatches === true;
+  const competition = opts?.competition ?? 'all';
+  const includeTrainings = opts?.includeTrainings !== false;
 
   const refetch = useCallback(async () => {
     const sid = (teamSeasonId ?? '').trim();
@@ -53,8 +59,8 @@ export function useSeasonMatchBoard(
     setError(null);
     try {
       const [next, trainingCount] = await Promise.all([
-        fetchSeasonMatchBoard(sid, recentLimit, { includeOrphanMatches }),
-        countPastTeamTrainings(sid),
+        fetchSeasonMatchBoard(sid, recentLimit, { includeOrphanMatches, competition }),
+        includeTrainings ? countPastTeamTrainings(sid) : Promise.resolve(0),
       ]);
       setBoard(next);
       setTrainings(trainingCount);
@@ -65,7 +71,7 @@ export function useSeasonMatchBoard(
     } finally {
       setLoading(false);
     }
-  }, [teamSeasonId, recentLimit, includeOrphanMatches]);
+  }, [teamSeasonId, recentLimit, includeOrphanMatches, competition, includeTrainings]);
 
   useEffect(() => {
     void refetch();
