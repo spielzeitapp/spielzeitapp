@@ -1623,7 +1623,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
           ) : null}
 
           <div
-            className="schedule-page__filters flex w-full min-w-0 flex-col gap-1 overflow-x-hidden"
+            className="schedule-page__filters mb-3 flex w-full min-w-0 flex-col gap-1 overflow-x-hidden"
             aria-label="Termine Filter"
           >
             <div className="flex flex-col gap-1">
