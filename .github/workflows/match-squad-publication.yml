@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/match-squad-publication.yml"
       - "supabase/migrations/20260916143000_match_squad_publication.sql"
+      - "supabase/migrations/20260916173000_match_squad_custom_messages.sql"
       - "supabase/functions/send-reminders/index.ts"
 
 permissions:
@@ -22,8 +23,8 @@ jobs:
     timeout-minutes: 10
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      MIGRATION_VERSION: "20260916143000"
-      MIGRATION_FILE: supabase/migrations/20260916143000_match_squad_publication.sql
+      MIGRATION_VERSION: "20260916173000"
+      MIGRATION_FILE: supabase/migrations/20260916173000_match_squad_custom_messages.sql
     steps:
       - uses: actions/checkout@v4
 
@@ -82,6 +83,7 @@ jobs:
               SELECT
                 to_regclass('public.match_squad_publications') IS NOT NULL AS publication_table,
                 to_regprocedure('public.publish_match_squad(uuid)') IS NOT NULL AS publish_rpc,
+                to_regprocedure('public.publish_match_squad(uuid,text,text)') IS NOT NULL AS custom_message_rpc,
                 EXISTS (
                   SELECT 1 FROM pg_class
                   WHERE oid = 'public.match_squad_publications'::regclass AND relrowsecurity
