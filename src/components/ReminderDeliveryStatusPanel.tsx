@@ -46,7 +46,7 @@ export const ReminderDeliveryStatusPanel: React.FC<Props> = ({ teamSeasonId }) =
     if (!session?.access_token) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/reminders/status?team_season_id=${encodeURIComponent(teamSeasonId)}`, {
+      const res = await fetch(`/api/push/send-team?team_season_id=${encodeURIComponent(teamSeasonId)}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await res.json();

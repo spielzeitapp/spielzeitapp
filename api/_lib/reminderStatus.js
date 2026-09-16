@@ -11,7 +11,7 @@ function unique(values) {
   return [...new Set((values || []).filter(Boolean))];
 }
 
-export default async function handler(req, res) {
+export async function handleReminderStatus(req, res) {
   if (req.method !== "GET") return res.status(405).json({ ok: false, error: "Method not allowed" });
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ ok: false, error: "Server-Konfiguration fehlt" });

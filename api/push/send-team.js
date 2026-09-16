@@ -9,6 +9,7 @@ import {
   getVapidSendResponseDebug,
   logVapidBeforeSend,
 } from "./_vapid.js";
+import { handleReminderStatus } from "../_lib/reminderStatus.js";
 
 function normalizeMembershipRole(roleStr) {
   const s = String(roleStr ?? "")
@@ -244,6 +245,9 @@ async function resolveOpenUnremindedRecipients(supabase, teamSeasonId, eventId) 
 
 export default async function handler(req, res) {
   try {
+    if (req.method === "GET") {
+      return handleReminderStatus(req, res);
+    }
     if (req.method !== "POST") {
       return res.status(405).json({ ok: false, error: "Method not allowed" });
     }
