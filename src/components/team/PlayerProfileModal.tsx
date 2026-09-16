@@ -15,6 +15,7 @@ import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
 import {
   listPlayerSeasonOptions,
+  type PlayerLastMatchRow,
   type PlayerSeasonOption,
 } from "../../lib/stats/playerStatsService";
 import { useDemoMode } from "../../demo/DemoContext";
@@ -38,6 +39,8 @@ import {
   ProfileTrainingKaiserStatus,
 } from "./profile/ProfileTrainingExtras";
 import { TrainerParentAccessHint } from "./TrainerParentAccessHint";
+import { SeasonMatchCard } from "./SeasonMatchCard";
+import type { SeasonMatchCardData } from "../../lib/seasonMatchStats";
 
 const PROFILE_GLASS_PANEL =
   "overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet";
@@ -82,40 +85,8 @@ export type PlayerProfileModalProps = {
 
 export type ProfileTab = "overview" | "matches" | "achievements" | "training";
 
-const APPEARANCE_MATCH_CARD_CLASS =
-  "relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3 py-3";
-
-const APPEARANCE_MATCH_SCORE_CLASS =
-  "relative shrink-0 overflow-hidden rounded-xl border sz-club-surface sz-club-surface--quiet px-2.5 py-1.5 text-[22px] font-bold tabular-nums leading-none text-white";
-
 const EINSATZ_MINUTES_CHIP_CLASS =
   "sz-club-accent-chip inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[12px] font-extrabold uppercase tracking-wide text-white/90";
-
-function appearancePitchWatermarkSrc(): string {
-  const b = import.meta.env.BASE_URL || "/";
-  const base = b.endsWith("/") ? b : `${b}/`;
-  return `${base}icons/pitch-red.svg`;
-}
-
-function AppearancePitchWatermark() {
-  const src = `url("${appearancePitchWatermarkSrc()}")`;
-  return (
-    <span
-      className="sz-club-stat-watermark pointer-events-none absolute -right-1 -top-1 block h-[4.75rem] w-[4.75rem] bg-current"
-      style={{
-        WebkitMaskImage: src,
-        WebkitMaskPosition: "center",
-        WebkitMaskRepeat: "no-repeat",
-        WebkitMaskSize: "contain",
-        maskImage: src,
-        maskPosition: "center",
-        maskRepeat: "no-repeat",
-        maskSize: "contain",
-      }}
-      aria-hidden
-    />
-  );
-}
 
 function displayFullName(p: PlayerItem): string {
   const first = (p.first_name ?? "").trim();
@@ -233,6 +204,28 @@ function EinsatzBadge({ kind, label }: { kind: "full" | "sub_in" | "bank" | "par
     return <span className={`${base} border-emerald-500/45 bg-emerald-950/50 text-emerald-100`}>{label}</span>;
   }
   return <span className={EINSATZ_MINUTES_CHIP_CLASS}>{label}</span>;
+}
+
+function playerAppearanceMatchCardData(m: PlayerLastMatchRow): SeasonMatchCardData {
+  const home = m.isHome ?? true;
+  const teamGoals = home ? m.scoreHome : m.scoreAway;
+  const oppGoals = home ? m.scoreAway : m.scoreHome;
+  const outcome = teamGoals > oppGoals ? "win" : teamGoals === oppGoals ? "draw" : "loss";
+  return {
+    id: m.match_id,
+    opponent: m.opponent,
+    match_date: m.date,
+    status: "finished",
+    score_home: m.scoreHome,
+    score_away: m.scoreAway,
+    teamGoals,
+    oppGoals,
+    outcome,
+    eventId: null,
+    location: m.location,
+    isHome: m.isHome,
+    displayStatus: outcome,
+  };
 }
 
 const TAB_CONFIG: { id: ProfileTab; label: string }[] = [
@@ -1172,20 +1165,17 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   {lastMatches.length > 0 ? (
                     <ul className="space-y-2.5">
                       {lastMatches.map((m) => (
-                        <li key={m.match_id} className={APPEARANCE_MATCH_CARD_CLASS}>
-                          <div className="pointer-events-none absolute inset-0 sz-club-card-glow" aria-hidden />
-                          <AppearancePitchWatermark />
-                          <div className="relative flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="text-[12px] font-semibold uppercase tracking-wide text-white/65">{m.dateLabel}</div>
-                              <div className="mt-1 truncate text-[17px] font-bold leading-tight text-white">{m.opponent}</div>
-                            </div>
-                            <div className={APPEARANCE_MATCH_SCORE_CLASS}>{m.result}</div>
-                          </div>
-                          <div className="relative mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                            <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
-                            <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals}</span>
-                          </div>
+                        <li key={m.match_id}>
+                          <SeasonMatchCard
+                            match={playerAppearanceMatchCardData(m)}
+                            ourTeamName={teamName ?? "SPG Rohrbach"}
+                            footerSlot={
+                              <>
+                                <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
+                                <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals}</span>
+                              </>
+                            }
+                          />
                         </li>
                       ))}
                     </ul>
@@ -1198,20 +1188,17 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       </h4>
                       <ul className="space-y-2.5">
                         {lastTournamentMatches.map((m) => (
-                          <li key={m.match_id} className={APPEARANCE_MATCH_CARD_CLASS}>
-                            <div className="pointer-events-none absolute inset-0 sz-club-card-glow" aria-hidden />
-                            <AppearancePitchWatermark />
-                            <div className="relative flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="text-[12px] font-semibold uppercase tracking-wide text-white/65">{m.dateLabel}</div>
-                                <div className="mt-1 truncate text-[17px] font-bold leading-tight text-white">{m.opponent}</div>
-                              </div>
-                              <div className={APPEARANCE_MATCH_SCORE_CLASS}>{m.result}</div>
-                            </div>
-                            <div className="relative mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                              <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
-                              <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals}</span>
-                            </div>
+                          <li key={m.match_id}>
+                            <SeasonMatchCard
+                              match={playerAppearanceMatchCardData(m)}
+                              ourTeamName={teamName ?? "SPG Rohrbach"}
+                              footerSlot={
+                                <>
+                                  <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
+                                  <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals}</span>
+                                </>
+                              }
+                            />
                           </li>
                         ))}
                       </ul>
