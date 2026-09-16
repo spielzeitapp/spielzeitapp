@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import { fetchValidSeasonMatchIds } from '../seasonMatchStats';
+import { fetchIsHomeByMatchId, fetchValidSeasonMatchIds } from '../seasonMatchStats';
 import { formatTeamSeasonDisplayLabel, resolveCurrentAgeGroup } from '../seasonLifecycle';
 import {
   computePlayerPlaytimeFromEvents,
@@ -38,6 +38,10 @@ export type PlayerLastMatchRow = {
   badgeKind: 'full' | 'sub_in' | 'bank' | 'partial';
   badgeLabel: string;
   subInDisplayMinute: number | null;
+  scoreHome: number;
+  scoreAway: number;
+  isHome: boolean | null;
+  location: string | null;
 };
 
 const KICKOFF_SNAPSHOT = 'kickoff';
@@ -67,6 +71,8 @@ type MatchRow = {
   score_away: number | null;
   live_elapsed_seconds: number | null;
   planned_match_minutes: number | null;
+  location: string | null;
+  isHome?: boolean | null;
 };
 
 type EventRow = {
@@ -341,13 +347,18 @@ async function fetchFinishedMatches(
 
   const { data, error } = await supabase
     .from('matches')
-    .select('id, opponent, match_date, status, score_home, score_away, live_elapsed_seconds, planned_match_minutes')
+    .select('id, opponent, match_date, status, score_home, score_away, live_elapsed_seconds, planned_match_minutes, location')
     .eq('team_season_id', tid)
     .eq('status', 'finished')
     .in('id', selectedIds)
     .order('match_date', { ascending: false });
   if (error) return { data: [], error: error.message };
-  return { data: (data ?? []) as MatchRow[], error: null };
+  const rows = (data ?? []) as MatchRow[];
+  const isHomeByMatchId = await fetchIsHomeByMatchId(tid, new Set(selectedIds));
+  return {
+    data: rows.map((row) => ({ ...row, isHome: isHomeByMatchId.get(row.id) ?? null })),
+    error: null,
+  };
 }
 
 async function fetchEventsForMatches(matchIds: string[]): Promise<EventRow[]> {
@@ -468,6 +479,10 @@ function aggregateForPlayer(
       badgeKind: badge.badgeKind,
       badgeLabel: badge.badgeLabel,
       subInDisplayMinute: badge.subInDisplayMinute,
+      scoreHome: sh,
+      scoreAway: sa,
+      isHome: m.isHome ?? null,
+      location: m.location ?? null,
     });
   }
 
