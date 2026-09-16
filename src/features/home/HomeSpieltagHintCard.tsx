@@ -11,6 +11,7 @@ import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -41,7 +42,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
     event.starts_at && !Number.isNaN(new Date(event.starts_at).getTime())
       ? formatMeetupTimeOnlyDe(event.starts_at)
       : '—';
-  const meetingTime =
+  const rawMeetingTime =
     event.meeting_at && !Number.isNaN(new Date(event.meeting_at).getTime())
       ? formatMeetupTimeOnlyDe(event.meeting_at)
       : null;
@@ -76,6 +77,8 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
+  const meetingTime = canSeeMeetup(viewerRole) ? rawMeetingTime : null;
   const basePath = useInternalBasePath();
 
   const announcementTiming = status === 'today' || status === 'tomorrow' ? status : null;

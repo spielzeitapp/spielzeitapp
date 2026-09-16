@@ -67,18 +67,20 @@ export const AudienceMatchdayDetailCard: React.FC<Props> = ({
       </CardTitle>
 
       <div className="relative z-[1]">
-        <InfoRow icon={<Clock className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Treffpunkt">
-          {showMeetup && meetupTime ? (
-            <div className="flex flex-col gap-0.5">
-              <span className="tabular-nums">{meetupTime}</span>
-              {meetupPlaceLine.trim() ? (
-                <span className="text-[13px] font-normal text-white/75">{meetupPlaceLine.trim()}</span>
-              ) : null}
-            </div>
-          ) : (
-            <span className="text-white/45">–</span>
-          )}
-        </InfoRow>
+        {showMeetup ? (
+          <InfoRow icon={<Clock className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Treffpunkt">
+            {meetupTime ? (
+              <div className="flex flex-col gap-0.5">
+                <span className="tabular-nums">{meetupTime}</span>
+                {meetupPlaceLine.trim() ? (
+                  <span className="text-[13px] font-normal text-white/75">{meetupPlaceLine.trim()}</span>
+                ) : null}
+              </div>
+            ) : (
+              <span className="text-white/45">–</span>
+            )}
+          </InfoRow>
+        ) : null}
 
         <InfoRow icon={<MapPin className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Spielort">
           {placeLine || addressLine ? (

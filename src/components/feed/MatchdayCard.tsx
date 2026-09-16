@@ -10,6 +10,8 @@ import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../match/matchCardLabels';
 import { MatchCardGameCore } from '../match/MatchCardGameCore';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { useSession } from '../../auth/useSession';
+import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 
 type MatchdayCardProps = {
   event: EventRow;
@@ -24,6 +26,9 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
   statusLabel = 'HEUTE IST MATCHDAY',
 }) => {
   const basePath = useInternalBasePath();
+  const { backendRole, membershipRole } = useSession();
+  const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
+  const viewerCanSeeMeetup = canSeeMeetup(viewerRole);
   const enc = formatVisibleMatchEncounter({
     isHome: event.is_home,
     ourTeamName: getOurTeamDisplayName(),
@@ -137,8 +142,9 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-            <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
+          <div className={`grid grid-cols-1 gap-3 ${viewerCanSeeMeetup ? 'sm:grid-cols-2' : ''} sm:gap-4`}>
+            {viewerCanSeeMeetup ? (
+              <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600/20 text-red-400">
                   <Clock className="h-4 w-4" strokeWidth={2.25} aria-hidden />
@@ -148,7 +154,8 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
                   <p className="mt-1 truncate text-sm font-semibold text-white">{meetLine}</p>
                 </div>
               </div>
-            </div>
+              </div>
+            ) : null}
             <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
               <div className="flex items-start gap-2.5">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600/20 text-red-400">

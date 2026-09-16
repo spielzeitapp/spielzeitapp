@@ -18,6 +18,8 @@ import {
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { utcIsoToViennaTimeHHmm } from '../../lib/viennaTime';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { useSession } from '../../auth/useSession';
+import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -87,6 +89,9 @@ export function ChampionshipMatchChangedFeedPostCard({
   onFeedPostDeleted,
 }: Props) {
   const basePath = useInternalBasePath();
+  const { backendRole, membershipRole } = useSession();
+  const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
+  const viewerCanSeeMeetup = canSeeMeetup(viewerRole);
   const payload = parseChampionshipMatchChangedPayload(post.payload);
   const deepLink =
     payload?.deep_link ||
@@ -119,9 +124,9 @@ export function ChampionshipMatchChangedFeedPostCard({
         <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-white/80">
           {post.caption?.trim() || 'Der Termin wurde aktualisiert.'}
         </p>
-        {meetup || payload?.location ? (
+        {(viewerCanSeeMeetup && meetup) || payload?.location ? (
           <ul className="mt-2 space-y-0.5 text-[12px] text-white/65">
-            {meetup ? <li>Treffpunkt: {meetup}</li> : null}
+            {viewerCanSeeMeetup && meetup ? <li>Treffpunkt: {meetup}</li> : null}
             {payload?.location ? <li>Spielort: {payload.location}</li> : null}
           </ul>
         ) : null}

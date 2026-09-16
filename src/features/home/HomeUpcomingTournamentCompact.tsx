@@ -10,6 +10,8 @@ import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { PremiumCard } from '../../ui';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { useSession } from '../../auth/useSession';
+import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 
 type Props = {
   pick: HomeSportingCardPick;
@@ -17,6 +19,9 @@ type Props = {
 
 export const HomeUpcomingTournamentCompact: React.FC<Props> = ({ pick }) => {
   const basePath = useInternalBasePath();
+  const { backendRole, membershipRole } = useSession();
+  const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
+  const viewerCanSeeMeetup = canSeeMeetup(viewerRole);
   const { event, status } = pick;
   const title =
     safeText(
@@ -83,7 +88,7 @@ export const HomeUpcomingTournamentCompact: React.FC<Props> = ({ pick }) => {
               {dateLine}
               {timeLine ? ` · Beginn ${timeLine}` : ''}
             </span>
-            {meetupLine ? (
+            {viewerCanSeeMeetup && meetupLine ? (
               <span className="inline-flex items-center gap-1">
                 <Users className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
                 Treffpunkt {meetupLine}

@@ -74,12 +74,12 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
   const imgClass = hero
     ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]'
     : compact
-      ? 'h-[60px] w-[60px] shrink-0'
+      ? 'h-[50px] w-[50px] shrink-0 min-[390px]:h-[60px] min-[390px]:w-[60px]'
       : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
     ? 'mt-1 w-full max-w-[min(200px,46vw)] text-[17px] font-bold leading-snug text-white min-[390px]:text-[17px] sm:max-w-[220px] sm:text-[17px]'
     : compact
-      ? 'mt-0.5 w-full min-w-0 max-w-full px-0.5 text-center text-[11px] font-semibold leading-tight text-white'
+      ? 'mt-0.5 w-full min-w-0 max-w-full px-0.5 text-center text-[10px] font-semibold leading-tight text-white min-[390px]:text-[11px]'
       : 'mt-0.5 max-w-[184px] text-[17px] font-semibold leading-snug text-white sm:max-w-[200px]';
 
   const imgNode = logoUrl ? (
@@ -185,7 +185,7 @@ export function MatchCardKickoffBlock({
   const timeClass = hero
     ? 'mt-3 text-[2.75rem] sm:text-[3.35rem] font-black leading-none tracking-tight text-white tabular-nums drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]'
     : compactScheduleHero
-      ? 'mt-0.5 whitespace-nowrap text-[34px] font-extrabold leading-none text-white tabular-nums drop-shadow-[0_2px_12px_rgba(185,60,75,0.18)] min-[390px]:text-[38px]'
+      ? 'mt-0.5 whitespace-nowrap text-[30px] font-extrabold leading-none text-white tabular-nums drop-shadow-[0_2px_12px_rgba(185,60,75,0.18)] min-[390px]:text-[38px]'
       : 'mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums';
 
   return (
@@ -358,12 +358,14 @@ export function MatchCardGameCore({
 
       <div
         className={`${gridMt} grid ${
-          compactTeamLayout ? 'grid-cols-[1.16fr_auto_1.16fr]' : 'grid-cols-[1.02fr_auto_1.02fr]'
+          compactTeamLayout
+            ? 'grid-cols-[minmax(0,1fr)_minmax(70px,auto)_minmax(0,1fr)] min-[390px]:grid-cols-[minmax(0,1.16fr)_minmax(78px,auto)_minmax(0,1.16fr)]'
+            : 'grid-cols-[1.02fr_auto_1.02fr]'
         } items-center ${gridGap} ${hero ? 'min-h-[140px] sm:min-h-[160px]' : ''}`}
       >
         <div
           className={`flex min-h-0 min-w-0 flex-col items-center justify-center text-center ${
-            compactTeamLayout ? 'border-r border-white/[0.02] py-0.5 pr-2 sm:pr-2.5' : 'border-r border-white/[0.12] py-2 pr-3 sm:pr-5'
+            compactTeamLayout ? 'border-r border-white/[0.02] py-0.5 pr-1 min-[390px]:pr-2 sm:pr-2.5' : 'border-r border-white/[0.12] py-2 pr-3 sm:pr-5'
           }`}
         >
           {hero && leftColumnLabel ? (
@@ -383,7 +385,7 @@ export function MatchCardGameCore({
             hero
               ? 'max-w-[min(300px,min(94vw,100%))]'
               : compactTeamLayout
-                ? 'max-w-[92px] sm:max-w-[104px]'
+                ? 'max-w-[78px] min-[390px]:max-w-[92px] sm:max-w-[104px]'
                 : 'max-w-[118px] sm:max-w-[134px]'
           }`}
         >
@@ -407,7 +409,7 @@ export function MatchCardGameCore({
 
         <div
           className={`flex min-h-0 min-w-0 flex-col items-center justify-center text-center ${
-            compactTeamLayout ? 'border-l border-white/[0.02] py-0.5 pl-2 sm:pl-2.5' : 'border-l border-white/[0.12] py-2 pl-3 sm:pl-5'
+            compactTeamLayout ? 'border-l border-white/[0.02] py-0.5 pl-1 min-[390px]:pl-2 sm:pl-2.5' : 'border-l border-white/[0.12] py-2 pl-3 sm:pl-5'
           }`}
         >
           {hero && rightColumnLabel ? (
