@@ -2,6 +2,7 @@ import { parseLiveFeedPayload, type LiveFeedPayload } from './liveFeedTypes';
 import { parseLineupFeedPayload, type LineupFeedPayload } from './lineupFeedTypes';
 import { parseResultFeedPayload, type ResultFeedPayload } from './resultFeedTypes';
 import type { NextMatchFeedPayload } from './nextMatchFeedTypes';
+import { parseSquadFeedPayload, type SquadFeedPayload } from './squadFeedTypes';
 
 export type MatchdayFeedPayload = {
   display_home_name: string;
@@ -71,12 +72,14 @@ export type NextMatchFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & {
 export type LiveFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & { payload: LiveFeedPayload };
 
 export type LineupFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & { payload: LineupFeedPayload };
+export type SquadFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & { payload: SquadFeedPayload };
 
 export type ClassifiedFeedPost =
   | { kind: 'matchday'; post: TeamFeedPostRow }
   | { kind: 'next_match'; post: NextMatchFeedPostRow }
   | { kind: 'live'; post: LiveFeedPostRow }
   | { kind: 'lineup'; post: LineupFeedPostRow }
+  | { kind: 'squad'; post: SquadFeedPostRow }
   | { kind: 'image'; post: TeamFeedPostDbRow }
   | { kind: 'video'; post: TeamFeedPostDbRow }
   | { kind: 'result'; post: ResultFeedPostRow }
@@ -116,6 +119,11 @@ export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost
     const lpl = parseLineupFeedPayload(row.payload);
     if (!lpl) return null;
     return { kind: 'lineup', post: { ...row, payload: lpl } };
+  }
+  if (mt === 'squad' || pk === 'squad_published') {
+    const squad = parseSquadFeedPayload(row.payload);
+    if (!squad) return null;
+    return { kind: 'squad', post: { ...row, payload: squad } };
   }
   if (mt === 'next_match' || pk === 'next_match_auto') {
     const npl = parseMatchdayPayload(row.payload);

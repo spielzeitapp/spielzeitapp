@@ -677,9 +677,10 @@ serve(async () => {
           : {};
         const isMatchday = p.automation === "matchday_post";
         const isCarpool = p.automation === "carpool";
+        const isSquad = p.automation === "squad";
         const st = String(event.status ?? "upcoming").toLowerCase();
 
-        if (isMatchday || isCarpool) {
+        if (isMatchday || isCarpool || isSquad) {
           if (st === "finished" || st === "canceled" || st === "cancelled") {
             await completeJob(supabase, locked.id);
             continue;
@@ -716,11 +717,11 @@ serve(async () => {
               (value): value is string => typeof value === "string" && value.trim().length > 0,
             )
           : [];
-        if (isCarpool && targetedRecipients.length > 0) {
+        if ((isCarpool || isSquad) && targetedRecipients.length > 0) {
           uniqueUserIds = [...new Set(targetedRecipients)];
         }
 
-        if (jobKind === "match" && !isMatchday && !isCarpool) {
+        if (jobKind === "match" && !isMatchday && !isCarpool && !isSquad) {
           uniqueUserIds = await filterUnansweredMatchRecipients(
             supabase,
             event as EventRow,
@@ -733,16 +734,18 @@ serve(async () => {
         let linkPath: string;
         let eventType: string | null = null;
 
-        if (isMatchday || isCarpool) {
+        if (isMatchday || isCarpool || isSquad) {
           uxTitle = typeof p.pushTitle === "string" && p.pushTitle.trim()
             ? p.pushTitle.trim()
             : isCarpool
               ? "Fahrgemeinschaft"
+              : isSquad
+                ? "Kader veröffentlicht"
               : "Matchday";
           uxMessage = typeof p.pushBody === "string" ? p.pushBody : "";
           const rawLink = typeof p.linkPath === "string" ? p.linkPath.trim() : "";
           linkPath = rawLink || reminderAppDeepLink(jobKind, event as EventRow);
-          eventType = isCarpool ? "carpool" : "matchday";
+          eventType = isCarpool ? "carpool" : isSquad ? "squad" : "matchday";
         } else {
           const reminderKey =
             typeof p.reminderKey === "string"

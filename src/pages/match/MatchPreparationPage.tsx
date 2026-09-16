@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
@@ -55,6 +54,11 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { dbStatusToTrainingAttendance } from '../../lib/trainingAttendance';
 import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
 import { normalizeRole } from '../../lib/roles';
+import {
+  getMatchSquadPublication,
+  publishMatchSquad,
+  type MatchSquadPublication,
+} from '../../lib/matchSquadPublication';
 
 type MatchRowLite = {
   id: string;
@@ -106,6 +110,9 @@ export const MatchPreparationPage: React.FC = () => {
     null,
   );
   const [squadSaveBusy, setSquadSaveBusy] = useState(false);
+  const [squadPublishBusy, setSquadPublishBusy] = useState(false);
+  const [squadPublishMessage, setSquadPublishMessage] = useState<string | null>(null);
+  const [squadPublication, setSquadPublication] = useState<MatchSquadPublication | null>(null);
   const [tournamentSquadIds, setTournamentSquadIds] = useState<string[]>([]);
   const [tournamentEventId, setTournamentEventId] = useState<string | null>(null);
   const [tournamentContextReady, setTournamentContextReady] = useState(false);
@@ -210,6 +217,18 @@ export const MatchPreparationPage: React.FC = () => {
       cancelled = true;
     };
   }, [matchId, isDemo, demo]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!matchId || isDemo) {
+      setSquadPublication(null);
+      return () => { cancelled = true; };
+    }
+    void getMatchSquadPublication(matchId).then((result) => {
+      if (!cancelled && !result.error) setSquadPublication(result.data);
+    });
+    return () => { cancelled = true; };
+  }, [matchId, isDemo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -449,6 +468,13 @@ export const MatchPreparationPage: React.FC = () => {
     [grouped.available.length, grouped.open.length, grouped.absent.length, selectedPlayersForSquad.length],
   );
 
+  const publishedSelectionMatches = useMemo(() => {
+    if (!squadPublication) return false;
+    const published = [...squadPublication.selected_player_ids].sort();
+    const selected = [...selectedPlayersForSquad].sort();
+    return published.length === selected.length && published.every((id, index) => id === selected[index]);
+  }, [squadPublication, selectedPlayersForSquad]);
+
   useEffect(() => {
     if (selectionInitialized) return;
     if (matchLoading || playersLoading || attendanceLoading || !tournamentContextReady) return;
@@ -604,9 +630,9 @@ export const MatchPreparationPage: React.FC = () => {
                     title={selected ? 'Im Kader' : 'Nicht im Kader'}
                   >
                     {selected ? (
-                      <ThumbsUp className="h-4 w-4" aria-hidden />
+                      <span className="text-sm font-black" aria-hidden>K</span>
                     ) : (
-                      <ThumbsDown className="h-4 w-4" aria-hidden />
+                      <span className="text-sm font-black text-white/55" aria-hidden>–</span>
                     )}
                     <span className="sr-only">{selected ? 'Im Kader' : 'Nicht im Kader'}</span>
                   </span>
@@ -649,6 +675,31 @@ export const MatchPreparationPage: React.FC = () => {
     navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(matchId)}`, {
       state: { selectedPlayers: selectedPlayersForSquad },
     });
+  };
+
+  const onPublishSquad = async () => {
+    if (!matchId || selectedPlayersForSquad.length === 0 || squadPublishBusy || squadSaveBusy) return;
+    setSquadPublishMessage(null);
+    setSquadPublishBusy(true);
+    const saved = await persistSquadSelection(selectedPlayersForSquad);
+    if (!saved) {
+      setSquadPublishBusy(false);
+      return;
+    }
+    if (isDemo) {
+      setSquadPublishMessage('Demo: Kader veröffentlicht.');
+      setSquadPublishBusy(false);
+      return;
+    }
+    const result = await publishMatchSquad(matchId);
+    setSquadPublishBusy(false);
+    if (!result.ok) {
+      setSquadPublishMessage(result.error ?? 'Kader konnte nicht veröffentlicht werden.');
+      return;
+    }
+    const refreshed = await getMatchSquadPublication(matchId);
+    if (!refreshed.error) setSquadPublication(refreshed.data);
+    setSquadPublishMessage('Kader veröffentlicht · Eltern wurden benachrichtigt · Feedpost erstellt.');
   };
 
   return (
@@ -800,20 +851,40 @@ export const MatchPreparationPage: React.FC = () => {
           paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
-          <span className="text-[11px] font-medium text-white/45">
-            Ausgewählt: {selectedPlayersForSquad.length}
-          </span>
-          <button
-            type="button"
-            disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || !squadEditable}
-            onClick={() => void onContinueToLineup()}
-            className={dsPrimaryCtaClass()}
-          >
-            {persisting || squadSaveBusy ? 'Speichern…' : 'Weiter zur Aufstellung'}
-          </button>
+        <div className="mx-auto flex max-w-xl flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] font-medium text-white/45">
+              Ausgewählt: {selectedPlayersForSquad.length}
+            </span>
+            <span className={`text-[11px] font-bold ${publishedSelectionMatches ? 'text-emerald-300' : 'text-amber-200'}`}>
+              {publishedSelectionMatches ? 'Kader veröffentlicht' : squadPublication ? 'Änderungen nicht veröffentlicht' : 'Noch nicht veröffentlicht'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches}
+              onClick={() => void onPublishSquad()}
+              className={dsPrimaryCtaClass()}
+            >
+              {squadPublishBusy ? 'Veröffentliche…' : squadPublication ? 'Kader aktualisieren' : 'Kader veröffentlichen'}
+            </button>
+            <button
+              type="button"
+              disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable}
+              onClick={() => void onContinueToLineup()}
+              className={dsSecondaryCtaClass()}
+            >
+              {persisting || squadSaveBusy ? 'Speichern…' : 'Zur Aufstellung'}
+            </button>
+          </div>
         </div>
         {persistError ? <p className="mx-auto mt-1 max-w-xl text-xs text-red-400">{persistError}</p> : null}
+        {squadPublishMessage ? (
+          <p className={`mx-auto mt-1 max-w-xl text-xs ${squadPublishMessage.startsWith('Kader veröffentlicht') || squadPublishMessage.startsWith('Demo:') ? 'text-emerald-300' : 'text-red-400'}`}>
+            {squadPublishMessage}
+          </p>
+        ) : null}
       </div>
 
       {lineupRemoveConfirm ? (
