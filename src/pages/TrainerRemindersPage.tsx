@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import { TeamReminderSettingsPanel } from '../components/TeamReminderSettingsPanel';
+import { ReminderDeliveryStatusPanel } from '../components/ReminderDeliveryStatusPanel';
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
@@ -28,7 +29,10 @@ export const TrainerRemindersPage: React.FC = () => {
         <h1 className="text-2xl font-bold tracking-tight text-white">Erinnerungen</h1>
         <p className="text-sm text-white/60">Automatische Termin-Erinnerungen fürs Team</p>
         {selectedTeamSeasonId ? (
-          <TeamReminderSettingsPanel teamSeasonId={selectedTeamSeasonId} embedded />
+          <>
+            <TeamReminderSettingsPanel teamSeasonId={selectedTeamSeasonId} embedded />
+            <ReminderDeliveryStatusPanel teamSeasonId={selectedTeamSeasonId} />
+          </>
         ) : (
           <p className="text-sm text-white/55">Kein Team/Saison gewählt.</p>
         )}
