@@ -110,18 +110,24 @@ export function getDemoPlayerLastMatches(playerId: string): PlayerLastMatchRow[]
   const count = Math.min(3, p.appearances);
   return Array.from({ length: count }, (_, i) => {
     const goals = i === 0 ? Math.min(p.goals, 1) : i === 1 && p.goals > 1 ? 1 : 0;
+    const result = i === 0 ? '3:1' : i === 1 ? '2:1' : '1:1';
+    const [scoreHome, scoreAway] = result.split(':').map(Number);
     return {
       match_id: `demo-lm-${playerId}-${i}`,
       opponent: opponents[i] ?? 'Gegner Demo',
       date: null,
       dateLabel: `Spiel ${i + 1}`,
-      result: i === 0 ? '3:1' : i === 1 ? '2:1' : '1:1',
+      result,
       minutes: 48,
       goals,
       wasStarter: true,
       badgeKind: 'full' as const,
       badgeLabel: 'Durchgespielt',
       subInDisplayMinute: null,
+      scoreHome,
+      scoreAway,
+      isHome: true,
+      location: 'Sportplatz Rohrbach',
     };
   });
 }
