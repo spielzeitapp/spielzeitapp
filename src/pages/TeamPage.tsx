@@ -204,6 +204,7 @@ export const TeamPage: React.FC = () => {
   const refetchPlayers = isDemo ? (async () => {}) : refetchPlayersLive;
 
   const roleNormalized = normalizeRole(role);
+  const isFan = !isDemo && roleNormalized === "fan";
   /** Demo: Kader ansehen wie Trainer, aber keine Roster-Writes. */
   const canManagePlayers = !isDemo && canManageRoster(roleNormalized) && !isHistoryReadOnly;
   const canViewTrainingKaiser = isDemo || canManageMatches(roleNormalized);
@@ -797,6 +798,10 @@ export const TeamPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TeamTabId>(readInitialTeamTab);
   const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
   const [trainerStartIndex, setTrainerStartIndex] = useState(0);
+  const visibleTeamTabs = useMemo(
+    () => TEAM_TABS.filter((tab) => !isFan || tab.id !== "training"),
+    [isFan],
+  );
 
   const clearPlayerDetailState = () => {
     setSelectedProfilePlayer(null);
@@ -830,6 +835,11 @@ export const TeamPage: React.FC = () => {
 
     if (!tab) return;
 
+    if (isFan && tab === "training") {
+      handleTeamTabChange("squad");
+      return;
+    }
+
     if (navState?.clearSelectedPlayer) {
       clearPlayerDetailState();
     }
@@ -838,7 +848,7 @@ export const TeamPage: React.FC = () => {
     if (hasNavState) {
       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
     }
-  }, [searchParams, location.state, location.pathname, location.search, navigate]);
+  }, [searchParams, location.state, location.pathname, location.search, navigate, isFan]);
 
   const sortedPlayers = useMemo(() => {
     const list = players.filter((p) => {
@@ -1121,7 +1131,7 @@ export const TeamPage: React.FC = () => {
       >
         {tabsReady ? (
           <PremiumTabTrack className="min-w-0">
-            {TEAM_TABS.map((tab) => (
+            {visibleTeamTabs.map((tab) => (
               <PremiumTab
                 key={tab.id}
                 kind="filter"
@@ -1263,7 +1273,7 @@ export const TeamPage: React.FC = () => {
         </PremiumCard>
       ) : null}
 
-      {activeTab === "training" ? (
+      {!isFan && activeTab === "training" ? (
         <>
           {returnToTrainingEvent ? (
             <button

@@ -2686,11 +2686,15 @@ export const EventDetailPage: React.FC = () => {
                                   id: r.player_id ?? `lineup-${idx}`,
                                   display_name: p?.display_name ?? p?.name ?? 'Spieler',
                                   name: p?.name ?? p?.display_name ?? 'Spieler',
+                                  first_name: p?.first_name ?? null,
+                                  last_name: p?.last_name ?? null,
                                   position: p?.position ?? null,
                                   avatar_url: p?.avatar_url ?? null,
+                                  cutout_url: p?.cutout_url ?? null,
                                   jersey_number: p?.jersey_number ?? null,
                                 }}
                                 rightLabel={(r.slot ?? '').trim() || null}
+                                layout="team-roster"
                               />
                             </li>
                           );
@@ -2709,10 +2713,14 @@ export const EventDetailPage: React.FC = () => {
                                   id: r.player_id ?? `bench-${idx}`,
                                   display_name: p?.display_name ?? p?.name ?? 'Spieler',
                                   name: p?.name ?? p?.display_name ?? 'Spieler',
+                                  first_name: p?.first_name ?? null,
+                                  last_name: p?.last_name ?? null,
                                   position: p?.position ?? null,
                                   avatar_url: p?.avatar_url ?? null,
+                                  cutout_url: p?.cutout_url ?? null,
                                   jersey_number: p?.jersey_number ?? null,
                                 }}
+                                layout="team-roster"
                               />
                             </li>
                           );
@@ -2757,7 +2765,8 @@ export const EventDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.055] to-transparent">
+              {!isFan ? (
+                <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.055] to-transparent">
                 <div className="flex items-end justify-between gap-3 border-b border-white/[0.08] px-3.5 py-3">
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/90">Einsatzminuten</p>
@@ -2811,7 +2820,8 @@ export const EventDetailPage: React.FC = () => {
                     })}
                   </ul>
                 )}
-              </section>
+                </section>
+              ) : null}
             </div>
           ) : null}
 
