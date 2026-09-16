@@ -11,6 +11,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 type Props = {
   match: SeasonMatchCardData;
   ourTeamName: string;
+  footerSlot?: React.ReactNode;
 };
 
 function compactTeamName(name: string | null | undefined): string {
@@ -98,7 +99,7 @@ function headerBadge(match: SeasonMatchCardData): string {
   return 'Geplant';
 }
 
-export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
+export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlot }) => {
   const navigate = useNavigate();
   const basePath = useInternalBasePath();
   const href = seasonMatchCardHref(match.eventId, basePath, match.id);
@@ -126,8 +127,8 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
         ? getClubLogo(our)
         : getClubLogo(oppName);
 
-  const h = match.teamGoals;
-  const a = match.oppGoals;
+  const h = match.score_home ?? match.teamGoals;
+  const a = match.score_away ?? match.oppGoals;
   const scoreStr =
     match.displayStatus === 'live'
       ? 'Live'
@@ -164,9 +165,9 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
   return (
     <div
       className={[
-        'group relative w-full min-w-0 overflow-hidden rounded-[30px] border border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)] outline-none backdrop-blur-sm transition-transform duration-200 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)]',
+        'sz-club-surface sz-club-surface--hero group relative w-full min-w-0 overflow-hidden rounded-[30px] border outline-none backdrop-blur-sm transition-transform duration-200',
         clickable
-          ? 'cursor-pointer hover:border-red-500/35 hover:shadow-[0_12px_44px_rgba(255,0,0,0.26)] active:scale-[0.99]'
+          ? 'sz-club-focus cursor-pointer active:scale-[0.99]'
           : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -183,12 +184,12 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
           : undefined
       }
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.12),transparent_55%)] opacity-90" />
+      <div className="sz-club-page-hero-glow pointer-events-none absolute inset-0 opacity-90" />
 
       <div className="relative px-3.5 pb-2.5 pt-3 sm:px-4 sm:pb-3 sm:pt-3.5">
         <div className="mb-1 flex items-start justify-between gap-2">
           <div className="flex w-[44px] shrink-0 flex-col items-center justify-center gap-0 text-center">
-            <span className="text-[11px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">
+            <span className="sz-club-icon text-[11px] font-semibold uppercase leading-none tracking-[0.12em]">
               {weekdayBadge}
             </span>
             <span className="text-[26px] font-bold tabular-nums leading-none text-white">{dayBig}</span>
@@ -197,7 +198,11 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
               <span className="text-[10px] font-medium leading-tight text-white/40">{yearSmall}</span>
             ) : null}
           </div>
-          <span className="shrink-0 rounded-md border border-red-950/80 bg-black/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
+          <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] ${
+            match.displayStatus === 'live'
+              ? 'border-red-500/40 bg-red-500/15 text-red-200'
+              : 'sz-club-selected-soft'
+          }`}>
             {headerBadge(match)}
           </span>
         </div>
@@ -216,7 +221,9 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
           </div>
 
           <div className="flex min-w-0 flex-col items-center justify-start px-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.32em] text-red-300">
+            <span className={`text-[10px] font-bold uppercase tracking-[0.32em] ${
+              match.displayStatus === 'live' ? 'text-red-300' : 'sz-club-icon'
+            }`}>
               {match.outcome != null ? 'Endstand' : match.displayStatus === 'live' ? 'Live' : 'Anpfiff'}
             </span>
             <span className="mt-0.5 text-center text-[2rem] font-extrabold leading-none tracking-tight text-white tabular-nums sm:text-[2.2rem]">
@@ -263,13 +270,18 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName }) => {
             <div className="flex shrink-0 items-center gap-1 text-white/45">
               <span className="text-[10px] font-medium">Details</span>
               <ChevronRight
-                className="h-5 w-5 transition-colors group-hover:text-red-300/90"
+                className="sz-club-icon h-5 w-5 transition-colors"
                 strokeWidth={2}
                 aria-hidden
               />
             </div>
           ) : null}
         </div>
+        {footerSlot ? (
+          <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/[0.07] pt-2">
+            {footerSlot}
+          </div>
+        ) : null}
       </div>
     </div>
   );
