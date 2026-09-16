@@ -142,6 +142,7 @@ function parseBody(req) {
 
 function recipientRolesForGroup(group) {
   if (group === "self") return null;
+  if (group === "open_unreminded") return ["parent", "player"];
   if (group === "parents") return ["parent"];
   if (group === "players") return ["player"];
   if (group === "all") return ["parent", "player"];
@@ -150,6 +151,95 @@ function recipientRolesForGroup(group) {
 
 function isSelfRecipientGroup(group) {
   return group === "self";
+}
+
+function uniqueIds(values) {
+  return [...new Set((values || []).filter(Boolean))];
+}
+
+async function resolveOpenUnremindedRecipients(supabase, teamSeasonId, eventId) {
+  if (!eventId) throw new Error("related_event_id required for open_unreminded");
+
+  const { data: event, error: eventErr } = await supabase
+    .from("events")
+    .select("id, team_season_id")
+    .eq("id", eventId)
+    .eq("team_season_id", teamSeasonId)
+    .maybeSingle();
+  if (eventErr) throw eventErr;
+  if (!event) throw new Error("Termin nicht gefunden oder gehört nicht zum gewählten Team");
+
+  const { data: roster, error: rosterErr } = await supabase
+    .from("team_season_players")
+    .select("player_id, status, is_active, left_at")
+    .eq("team_season_id", teamSeasonId);
+  if (rosterErr) throw rosterErr;
+  const playerIds = uniqueIds((roster || [])
+    .filter((r) => r.is_active !== false && !r.left_at && String(r.status || "active").toLowerCase() === "active")
+    .map((r) => r.player_id));
+  if (!playerIds.length) return { userIds: [], openPlayers: 0, alreadyAutoReminded: 0 };
+
+  const { data: attendance, error: attendanceErr } = await supabase
+    .from("event_attendance")
+    .select("player_id, status")
+    .eq("event_id", eventId)
+    .in("player_id", playerIds);
+  if (attendanceErr) throw attendanceErr;
+  const answeredStatuses = new Set(["yes", "no", "sick", "injured", "external_training"]);
+  const answered = new Set((attendance || [])
+    .filter((r) => answeredStatuses.has(String(r.status || "").toLowerCase()))
+    .map((r) => r.player_id));
+  const openPlayerIds = playerIds.filter((id) => !answered.has(id));
+  if (!openPlayerIds.length) return { userIds: [], openPlayers: 0, alreadyAutoReminded: 0 };
+
+  const [{ data: guardians, error: guardianErr }, { data: playerUsers, error: playerUserErr }] = await Promise.all([
+    supabase.from("player_guardians").select("user_id").in("player_id", openPlayerIds),
+    supabase.from("player_users").select("user_id").in("player_id", openPlayerIds),
+  ]);
+  if (guardianErr) throw guardianErr;
+  if (playerUserErr) throw playerUserErr;
+  const openUserIds = uniqueIds([...(guardians || []).map((r) => r.user_id), ...(playerUsers || []).map((r) => r.user_id)]);
+
+  const { data: jobs, error: jobsErr } = await supabase
+    .from("notification_jobs")
+    .select("id, sent_at, payload")
+    .eq("event_id", eventId)
+    .eq("kind", "match")
+    .eq("status", "sent")
+    .order("sent_at", { ascending: false });
+  if (jobsErr) throw jobsErr;
+  const reminderJob = (jobs || []).find((job) => {
+    const p = job.payload && typeof job.payload === "object" ? job.payload : {};
+    return !p.automation;
+  });
+  if (!openUserIds.length) return { userIds: [], openPlayers: openPlayerIds.length, alreadyAutoReminded: 0 };
+
+  const { data: manualDelivered, error: manualErr } = await supabase
+    .from("notifications")
+    .select("user_id")
+    .eq("event_id", eventId)
+    .eq("event_type", "manual_reminder_followup")
+    .in("user_id", openUserIds);
+  if (manualErr) throw manualErr;
+  let delivered = [];
+  if (reminderJob) {
+    const deliveredResult = await supabase
+      .from("notifications")
+      .select("user_id")
+      .eq("source_notification_job_id", reminderJob.id)
+      .in("user_id", openUserIds);
+    if (deliveredResult.error) throw deliveredResult.error;
+    delivered = deliveredResult.data || [];
+  }
+  const deliveredIds = new Set([
+    ...(delivered || []).map((r) => r.user_id),
+    ...(manualDelivered || []).map((r) => r.user_id),
+  ]);
+  return {
+    userIds: openUserIds.filter((id) => !deliveredIds.has(id)),
+    openPlayers: openPlayerIds.length,
+    alreadyAutoReminded: (delivered || []).length,
+  };
 }
 
 export default async function handler(req, res) {
@@ -218,7 +308,7 @@ export default async function handler(req, res) {
         ok: false,
         step: "validate",
         error:
-          "team_season_id and recipient_group (parents|players|all|self) required",
+          "team_season_id and recipient_group (parents|players|all|self|open_unreminded) required",
       });
     }
     if (!title || !textBody) {
@@ -308,6 +398,24 @@ export default async function handler(req, res) {
       } else if (globalRole === "admin") {
         userIdToRole.set(user.id, "admin");
       }
+    } else if (recipient_group === "open_unreminded") {
+      let resolved;
+      try {
+        resolved = await resolveOpenUnremindedRecipients(
+          supabase,
+          team_season_id,
+          related_event_id,
+        );
+      } catch (error) {
+        return res.status(400).json({
+          ok: false,
+          step: "open_unreminded",
+          error: error?.message || String(error),
+        });
+      }
+      userIds = resolved.userIds;
+      var openPlayers = resolved.openPlayers;
+      var alreadyAutoReminded = resolved.alreadyAutoReminded;
     } else {
       const { data: memRows, error: memErr } = await supabase
         .from("memberships")
@@ -349,6 +457,11 @@ export default async function handler(req, res) {
         failed: 0,
         results: [],
         messagesSaved: 0,
+        openPlayers: openPlayers ?? 0,
+        alreadyAutoReminded: alreadyAutoReminded ?? 0,
+        hint: recipient_group === "open_unreminded"
+          ? "Niemand zusätzlich erinnert: Alle offenen Rückmeldungen wurden bereits automatisch erreicht oder es gibt keine offenen Rückmeldungen."
+          : undefined,
         vapidDebug: getVapidSendResponseDebug(),
       });
     }
@@ -391,6 +504,8 @@ export default async function handler(req, res) {
         link: url,
         type: "manual",
         read: false,
+        ...(related_event_id ? { event_id: related_event_id } : {}),
+        ...(recipient_group === "open_unreminded" ? { event_type: "manual_reminder_followup" } : {}),
       }));
       const { error: nInsErr } = await supabase.from("notifications").insert(notifRows);
       if (nInsErr) {

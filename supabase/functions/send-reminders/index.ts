@@ -356,6 +356,7 @@ async function sendReminderWebPushes(
   body: string,
   urlRaw: string,
   jobId: string,
+  eventId: string,
 ): Promise<void> {
   const url = normalizePushAppUrl(urlRaw);
   console.log("Reminder send:", { jobId, title, userCount: userIds.length });
@@ -443,6 +444,16 @@ async function sendReminderWebPushes(
         { TTL: 86400 },
       );
       sentOk += 1;
+      const { error: logError } = await supabase.from("notification_dispatch_log").upsert({
+        user_id: uid,
+        event_id: eventId,
+        reminder_key: `job:${jobId}`,
+        channel: "push",
+      }, {
+        onConflict: "user_id,event_id,reminder_key,channel",
+        ignoreDuplicates: true,
+      });
+      if (logError) console.warn("[send-reminders] push dispatch log", logError.message);
       console.log("[send-reminders] webpush ok", { jobId, userId: uid, endpointPrefix: epPrefix });
     } catch (err: unknown) {
       sentFail += 1;
@@ -784,6 +795,19 @@ serve(async () => {
 
         if (error) throw error;
 
+        if (uniqueUserIds.length > 0) {
+          const { error: logError } = await supabase.from("notification_dispatch_log").upsert(
+            uniqueUserIds.map((userId) => ({
+              user_id: userId,
+              event_id: event.id,
+              reminder_key: `job:${locked.id}`,
+              channel: "in_app",
+            })),
+            { onConflict: "user_id,event_id,reminder_key,channel", ignoreDuplicates: true },
+          );
+          if (logError) console.warn("[send-reminders] inbox dispatch log", logError.message);
+        }
+
         await sendReminderWebPushes(
           supabase,
           uniqueUserIds,
@@ -791,6 +815,7 @@ serve(async () => {
           uxMessage,
           linkPath,
           locked.id,
+          event.id,
         );
 
         console.log("[send-reminders] job complete", { jobId: locked.id });
