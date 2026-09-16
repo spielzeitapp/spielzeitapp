@@ -26,6 +26,7 @@ import { useEvents, type EventRow } from '../hooks/useEvents';
 import { isEventPubliclyVisible } from '../lib/championshipVisibility';
 import { useEventsAttendance, type AttendanceStatus } from '../hooks/useEventsAttendance';
 import { usePlayers } from '../hooks/usePlayers';
+import { useMatchSquadStatus } from '../hooks/useMatchSquadStatus';
 import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
@@ -1359,6 +1360,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     viewOnlyPlayer: isViewOnlyPlayer,
   });
   const myAttendancePlayerIds = isDemo ? [demo!.selfPlayerId] : liveAttendancePlayerIds;
+  const personalSquadStatusByMatchId = useMatchSquadStatus(
+    isDemo ? [] : displayEvents.map((event) => event.match_id ?? '').filter(Boolean),
+    myAttendancePlayerIds,
+  );
 
   /**
    * Training „Wieder dabei“: status = yes in event_attendance speichern (UPSERT).
@@ -1921,6 +1926,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                         ? 'no'
                                         : null
                                   }
+                                  squadStatus={ev.match_id ? personalSquadStatusByMatchId[ev.match_id] ?? null : null}
                                   onOpenAttendance={
                                     heroShowsTrainerStats
                                       ? // Trainer: Teilnehmerübersicht (wer dabei/offen/abgesagt) im Termin-Detail

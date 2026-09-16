@@ -10,6 +10,7 @@ export const FEED_POST_PRIORITY = {
   result_post: 110,
   live_match: 100,
   lineup_auto: 95,
+  squad_published: 92,
   matchday_today: 90,
   matchday_tomorrow: 80,
   next_match: 70,
@@ -143,6 +144,10 @@ export function getFeedPostPriority(
 
   if (pk === 'lineup_auto' || mt === 'lineup') {
     return FEED_POST_PRIORITY.lineup_auto;
+  }
+
+  if (pk === 'squad_published' || mt === 'squad') {
+    return FEED_POST_PRIORITY.squad_published;
   }
 
   if (pk === 'matchday_today_auto') {

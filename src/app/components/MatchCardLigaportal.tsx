@@ -71,6 +71,8 @@ type MatchCardLigaportalProps = {
   role?: string | null;
   /** Aktueller Zu-/Absage-Status (für Anzeige auf der Card). */
   attendanceStatus?: 'yes' | 'no' | null;
+  /** Nach bewusster Kaderveröffentlichung: persönlicher Status ersetzt den RSVP-Daumen optisch. */
+  squadStatus?: 'selected' | 'not_selected' | null;
   /** Wird aufgerufen wenn Nutzer auf "Zu-/Absage" klickt (öffnet Modal). */
   onOpenAttendance?: () => void;
   /** Für Trainer/Admin: Counts für Zu-/Absagen-Übersicht (Zugesagt / Abgesagt / Offen). */
@@ -128,6 +130,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   onDelete,
   role,
   attendanceStatus,
+  squadStatus,
   onOpenAttendance,
   attendanceCounts,
   isPublicView = false,
@@ -258,9 +261,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const showManageButtons = canManage && (onEdit || onDelete);
   const showAttendanceChip =
-    (role === 'parent' || role === 'player') && onOpenAttendance && !suppressInlineAttendanceChip;
+    (role === 'parent' || role === 'player') && (onOpenAttendance || squadStatus) && !suppressInlineAttendanceChip;
 
-  const attendanceChipClass = isTrainingCard
+  const attendanceChipClass = !isTrainingCard && squadStatus === 'selected'
+    ? 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-300/45 bg-emerald-600/90 text-white shadow-[0_0_14px_rgba(16,185,129,0.3)] transition-all duration-200'
+    : !isTrainingCard && squadStatus === 'not_selected'
+      ? 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-zinc-700/75 text-white/70 transition-all duration-200'
+    : isTrainingCard
     ? attendanceStatus === 'no'
       ? 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-400/35 bg-red-600/80 text-white shadow-[0_0_12px_rgba(239,68,68,0.25)] transition-all duration-200'
       : 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-400/35 bg-emerald-600/80 text-white shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all duration-200'
@@ -270,7 +277,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         ? 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-400/35 bg-red-600/80 text-white shadow-[0_0_12px_rgba(239,68,68,0.25)] transition-all duration-200'
         : 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-zinc-700/60 text-white/80 transition-all duration-200';
 
-  const attendanceChipAria = isTrainingCard
+  const attendanceChipAria = !isTrainingCard && squadStatus === 'selected'
+    ? 'Im Kader'
+    : !isTrainingCard && squadStatus === 'not_selected'
+      ? 'Nicht im Kader'
+    : isTrainingCard
     ? attendanceStatus === 'no'
       ? 'Abgesagt'
       : 'Dabei'
@@ -839,7 +850,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           aria-label={attendanceChipAria}
           title={attendanceChipAria}
         >
-          {attendanceStatus === 'yes' || (isTrainingCard && attendanceStatus !== 'no') ? (
+          {!isTrainingCard && squadStatus ? (
+            <span className="text-sm font-black" aria-hidden>{squadStatus === 'selected' ? 'K' : '–'}</span>
+          ) : attendanceStatus === 'yes' || (isTrainingCard && attendanceStatus !== 'no') ? (
             <ThumbsUp className="h-4 w-4" strokeWidth={2} aria-hidden />
           ) : attendanceStatus === 'no' ? (
             <ThumbsDown className="h-4 w-4" strokeWidth={2} aria-hidden />

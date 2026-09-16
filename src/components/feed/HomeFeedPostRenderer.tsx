@@ -8,6 +8,7 @@ import { ResultFeedPostCard } from './ResultFeedPostCard';
 import { NextMatchFeedPostCard } from './NextMatchFeedPostCard';
 import { LiveFeedPostCard } from './LiveFeedPostCard';
 import { LineupFeedPostCard } from './LineupFeedPostCard';
+import { SquadFeedPostCard } from './SquadFeedPostCard';
 import { TournamentCompletionFeedPostCard } from './TournamentCompletionFeedPostCard';
 import {
   ChampionshipMatchChangedFeedPostCard,
@@ -72,6 +73,19 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
   if (item.kind === 'lineup') {
     return (
       <LineupFeedPostCard
+        post={item.post}
+        liveEvent={linkedEvent}
+        eventStatus={linkedEventStatus}
+        teamLabel={teamLabel}
+        seasonLabel={seasonLabel}
+        staffCanDelete={staffCanDelete}
+        onFeedPostDeleted={onFeedPostDeleted}
+      />
+    );
+  }
+  if (item.kind === 'squad') {
+    return (
+      <SquadFeedPostCard
         post={item.post}
         liveEvent={linkedEvent}
         eventStatus={linkedEventStatus}

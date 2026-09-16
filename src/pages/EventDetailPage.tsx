@@ -27,6 +27,7 @@ import { usePlayers } from '../hooks/usePlayers';
 import { useHistoricalTrainingRoster } from '../hooks/useHistoricalTrainingRoster';
 import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
+import { useMatchSquadStatus } from '../hooks/useMatchSquadStatus';
 import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { assertTeamSeasonWritable, getTeamSeasonWritableState } from '../lib/seasonTransition';
@@ -600,6 +601,10 @@ export const EventDetailPage: React.FC = () => {
     viewOnlyPlayer: isViewOnlyPlayer,
   });
   const myAttendancePlayerIds = isDemo && demo ? [demo.selfPlayerId] : liveAttendancePlayerIds;
+  const personalSquadStatusByMatchId = useMatchSquadStatus(
+    isDemo || !event?.match_id ? [] : [event.match_id],
+    myAttendancePlayerIds,
+  );
   const playerId = myAttendancePlayerIds[0] ?? null;
   const { isLazPlayer: linkedPlayerIsLazLive } = useLinkedPlayerIsLaz(isDemo ? null : playerId);
   const linkedPlayerIsLaz = isDemo
@@ -3899,6 +3904,7 @@ export const EventDetailPage: React.FC = () => {
               meetupAt={event.meeting_at}
               showMeetup={showMeetup}
               role={effectiveRole}
+              squadStatus={event.match_id ? personalSquadStatusByMatchId[event.match_id] ?? null : null}
               isPublicView={true}
             />
           </div>
