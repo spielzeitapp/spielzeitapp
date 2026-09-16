@@ -33,6 +33,7 @@ import { matchFeedCtaLabel, resolveMatchGameHref } from '../../lib/matchFeedLink
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -175,6 +176,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
+  const viewerCanSeeMeetup = canSeeMeetup(viewerRole);
   const basePath = useInternalBasePath();
 
   const gameHref = useMemo(
@@ -349,7 +352,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           kickoffTime={kickoffTime}
           ageGroup={posterAgeGroup}
           matchDate={matchDate}
-          meetingTime={meetingTime}
+        meetingTime={viewerCanSeeMeetup ? meetingTime : null}
           locationLine={locationLine}
           venueLabel={venueLabel}
           status={posterStatus}

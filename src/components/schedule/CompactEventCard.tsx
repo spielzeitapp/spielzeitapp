@@ -558,10 +558,12 @@ export function CompactEventCard({
     );
   }
 
-  const listGridCols = 'grid-cols-[78px_46px_minmax(0,1fr)_48px_20px]';
+  const listGridCols = hasTrailing
+    ? 'grid-cols-[68px_40px_minmax(0,1fr)_40px_18px] min-[390px]:grid-cols-[78px_46px_minmax(0,1fr)_48px_20px]'
+    : 'grid-cols-[68px_40px_minmax(0,1fr)_18px] min-[390px]:grid-cols-[78px_46px_minmax(0,1fr)_20px]';
 
   const listIconColumn = (
-    <div className="flex w-[46px] shrink-0 items-center justify-center self-center">
+    <div className="flex w-[40px] shrink-0 items-center justify-center self-center min-[390px]:w-[46px]">
       {iconSlot}
     </div>
   );
@@ -595,7 +597,7 @@ export function CompactEventCard({
       }
     >
       <div className={dsScheduleListPanelGlowClass()} aria-hidden />
-      <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
+      <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[68px] min-[390px]:!w-[78px]`}>
         <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
         <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
         <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
@@ -606,9 +608,11 @@ export function CompactEventCard({
 
       <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5">{listTextColumn}</div>
 
-      <div className="relative z-[1] flex w-[48px] shrink-0 items-center justify-center self-center">
-        {hasTrailing ? <div className="min-w-0 [&>*]:origin-center">{trailing}</div> : null}
-      </div>
+      {hasTrailing ? (
+        <div className="relative z-[1] flex w-[40px] shrink-0 items-center justify-center self-center min-[390px]:w-[48px]">
+          <div className="min-w-0 [&>*]:origin-center">{trailing}</div>
+        </div>
+      ) : null}
 
       <div className="relative z-[1] flex w-5 shrink-0 items-center justify-center self-center">
         {clickable ? (

@@ -434,8 +434,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroMatchMetaUhr = 'mt-0.5 text-[10px] font-medium leading-tight text-white/80';
   const heroInfoTilesGrid =
     'mt-1 grid h-[74px] grid-cols-[1.08fr_1fr_1.12fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
-  const audienceInfoTilesGrid =
-    'grid h-auto min-h-[64px] w-full grid-cols-[1fr_1fr_1.18fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
+  const audienceInfoTilesGrid = `grid h-auto min-h-[64px] w-full ${
+    canSeeSensitiveInfo ? 'grid-cols-[1fr_1fr_1.18fr]' : 'grid-cols-[1fr_1.18fr]'
+  } items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]`;
   const audienceMeetupTimeClass =
     'w-full min-w-0 whitespace-normal text-[11px] font-semibold tabular-nums leading-none text-white';
   const audienceMeetupUhrClass =
@@ -586,22 +587,24 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const renderAudienceInfoTilesRow = () => (
     <div className={audienceInfoTilesGrid} onClick={(e) => e.stopPropagation()}>
-      {renderAudienceInfoTile(
-        <Clock strokeWidth={2} aria-hidden />,
-        'TREFFPUNKT',
-        audienceMeetupTimeLine,
-        audienceMeetupUhrLine,
-        false,
-        !(canSeeSensitiveInfo && meetupTimeOnly),
-        audienceMeetupTimeClass,
-        audienceMeetupUhrClass,
-      )}
+      {canSeeSensitiveInfo
+        ? renderAudienceInfoTile(
+            <Clock strokeWidth={2} aria-hidden />,
+            'TREFFPUNKT',
+            audienceMeetupTimeLine,
+            audienceMeetupUhrLine,
+            false,
+            !meetupTimeOnly,
+            audienceMeetupTimeClass,
+            audienceMeetupUhrClass,
+          )
+        : null}
       {renderAudienceInfoTile(
         <MapPin strokeWidth={2} aria-hidden />,
         'SPIELORT',
         audienceSpielortLines.line2,
         audienceSpielortLines.line3,
-        true,
+        canSeeSensitiveInfo,
         !placeLine,
       )}
       {matchPhase === 'live' ? (

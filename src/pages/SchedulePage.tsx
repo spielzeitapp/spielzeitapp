@@ -351,7 +351,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   const canManage = forcePublicView || isHistoryReadOnly ? false : canManageMatches(normalizedUiRole);
   /** Admin-Writes in der Demo gesperrt — Anzeige wie Trainer bleibt. */
   const canMutateSchedule = canManage && !isDemo;
-  const showMeetupForRole = forcePublicView ? true : canSeeMeetup(normalizedUiRole); // Öffentlich: Treffpunkt für alle
+  // Treffpunkt ist eine interne Teaminformation: nur Spieler, Eltern und Staff.
+  // Fans sowie die öffentliche Spielplanansicht sehen weder Uhrzeit noch Platzhalter.
+  const showMeetupForRole = !forcePublicView && canSeeMeetup(normalizedUiRole);
   const ourTeamName = isDemo ? demo!.data.teamName : getOurTeamDisplayName();
 
   /** Tick + Broadcast: Live-Karte ohne Reload nach Anpfiff/Tor/Ende. */
@@ -1449,7 +1451,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     >
       <div className="schedule-page__scroll min-w-0 overflow-x-hidden">
         <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
-          <div className="mx-auto mt-1 max-w-3xl space-y-2 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-1 sm:mt-2 sm:space-y-4 sm:pt-2">
+          <div className="mx-auto mt-3 max-w-3xl space-y-2 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-1 sm:mt-2 sm:space-y-4 sm:pt-2">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
