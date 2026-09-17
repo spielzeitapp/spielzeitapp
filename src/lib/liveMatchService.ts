@@ -1083,25 +1083,24 @@ export async function saveMatchSquadOnly(
   const writable = await assertMatchTeamSeasonWritable(matchId);
   if (!writable.ok) return { error: writable.message };
 
-  const { data: lineupRows, error: lineupErr } = await supabase
-    .from('match_lineup')
-    .select('slot, player_id')
-    .eq('match_id', matchId);
-
-  if (lineupErr) return { error: lineupErr.message };
-
-  const squadSet = new Set(uniqueSquad);
-  const bySlot: Partial<Record<FieldSlotId, string>> = {};
-  for (const row of (lineupRows ?? []) as { slot?: string | null; player_id?: string | null }[]) {
-    const slotRaw = String(row.slot ?? '').trim().toUpperCase();
-    const slot = slotRaw as FieldSlotId;
-    const pid = String(row.player_id ?? '').trim();
-    if (!pid || LIVE_FIELD_SLOT_ORDER.indexOf(slot) === -1) continue;
-    if (squadSet.has(pid)) bySlot[slot] = pid;
+  const { data, error } = await supabase.rpc('save_match_squad_only', {
+    p_match_id: matchId,
+    p_player_ids: uniqueSquad,
+  });
+  if (error) return { error: error.message };
+  const result = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+  if (result.ok !== true) {
+    const code = String(result.error ?? 'save_failed');
+    const friendly = code === 'empty_squad'
+      ? 'Bitte mindestens einen Spieler in den Kader aufnehmen.'
+      : code === 'forbidden'
+        ? 'Keine Berechtigung zum Speichern des Kaders.'
+        : code === 'match_not_found'
+          ? 'Spiel wurde nicht gefunden.'
+          : 'Kader konnte nicht gespeichert werden.';
+    return { error: friendly };
   }
-
-  const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => bySlot[s] ?? '');
-  return replaceMatchLineupAndBench(matchId, startingPlayerIds, uniqueSquad);
+  return { error: null };
 }
 
 /** Lineup + Bank komplett ersetzen (Feld-Slots + Bank). */
