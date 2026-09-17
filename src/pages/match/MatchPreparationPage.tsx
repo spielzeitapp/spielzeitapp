@@ -87,6 +87,14 @@ function playerStatusFromAttendance(value: 'yes' | 'no' | null): PrepStatus {
   return 'open';
 }
 
+function squadSelectedMessage(opponent: string | null | undefined): string {
+  return `Der Kader für das Spiel gegen ${opponent?.trim() || 'den Gegner'} wurde veröffentlicht. Du bist dabei!`;
+}
+
+function squadNotSelectedMessage(opponent: string | null | undefined): string {
+  return `Für das Spiel gegen ${opponent?.trim() || 'den Gegner'} bist du diesmal nicht im Kader.`;
+}
+
 export const MatchPreparationPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -113,6 +121,9 @@ export const MatchPreparationPage: React.FC = () => {
   const [squadPublishBusy, setSquadPublishBusy] = useState(false);
   const [squadPublishMessage, setSquadPublishMessage] = useState<string | null>(null);
   const [squadPublication, setSquadPublication] = useState<MatchSquadPublication | null>(null);
+  const [squadMessageDialogOpen, setSquadMessageDialogOpen] = useState(false);
+  const [selectedSquadMessage, setSelectedSquadMessage] = useState('');
+  const [notSelectedSquadMessage, setNotSelectedSquadMessage] = useState('');
   const [tournamentSquadIds, setTournamentSquadIds] = useState<string[]>([]);
   const [tournamentEventId, setTournamentEventId] = useState<string | null>(null);
   const [tournamentContextReady, setTournamentContextReady] = useState(false);
@@ -677,8 +688,19 @@ export const MatchPreparationPage: React.FC = () => {
     });
   };
 
+  const openSquadMessageDialog = () => {
+    setSquadPublishMessage(null);
+    setSelectedSquadMessage(squadSelectedMessage(matchRow?.opponent));
+    setNotSelectedSquadMessage(squadNotSelectedMessage(matchRow?.opponent));
+    setSquadMessageDialogOpen(true);
+  };
+
   const onPublishSquad = async () => {
     if (!matchId || selectedPlayersForSquad.length === 0 || squadPublishBusy || squadSaveBusy) return;
+    if (!selectedSquadMessage.trim() || !notSelectedSquadMessage.trim()) {
+      setSquadPublishMessage('Bitte beide persönlichen Nachrichten ausfüllen.');
+      return;
+    }
     setSquadPublishMessage(null);
     setSquadPublishBusy(true);
     const saved = await persistSquadSelection(selectedPlayersForSquad);
@@ -688,10 +710,14 @@ export const MatchPreparationPage: React.FC = () => {
     }
     if (isDemo) {
       setSquadPublishMessage('Demo: Kader veröffentlicht.');
+      setSquadMessageDialogOpen(false);
       setSquadPublishBusy(false);
       return;
     }
-    const result = await publishMatchSquad(matchId);
+    const result = await publishMatchSquad(matchId, {
+      selected: selectedSquadMessage,
+      notSelected: notSelectedSquadMessage,
+    });
     setSquadPublishBusy(false);
     if (!result.ok) {
       setSquadPublishMessage(result.error ?? 'Kader konnte nicht veröffentlicht werden.');
@@ -699,7 +725,8 @@ export const MatchPreparationPage: React.FC = () => {
     }
     const refreshed = await getMatchSquadPublication(matchId);
     if (!refreshed.error) setSquadPublication(refreshed.data);
-    setSquadPublishMessage('Kader veröffentlicht · Eltern wurden benachrichtigt · Feedpost erstellt.');
+    setSquadMessageDialogOpen(false);
+    setSquadPublishMessage('Kader veröffentlicht · Spieler und Eltern wurden benachrichtigt · Feedpost erstellt.');
   };
 
   return (
@@ -864,7 +891,7 @@ export const MatchPreparationPage: React.FC = () => {
             <button
               type="button"
               disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches}
-              onClick={() => void onPublishSquad()}
+              onClick={openSquadMessageDialog}
               className={dsPrimaryCtaClass()}
             >
               {squadPublishBusy ? 'Veröffentliche…' : squadPublication ? 'Kader aktualisieren' : 'Kader veröffentlichen'}
@@ -886,6 +913,72 @@ export const MatchPreparationPage: React.FC = () => {
           </p>
         ) : null}
       </div>
+
+      {squadMessageDialogOpen ? (
+        <div
+          className="fixed inset-0 z-[110] flex min-h-dvh items-center justify-center overflow-y-auto bg-black/85 px-4 py-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="squad-message-dialog-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-red-500/25 bg-[rgba(18,18,22,0.98)] p-4 shadow-2xl">
+            <p className={dsBrandKickerClass()}>Kader veröffentlichen</p>
+            <h2 id="squad-message-dialog-title" className="mt-1 text-lg font-black text-white">
+              Persönliche Nachrichten
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-white/55">
+              Die Nachricht geht als Push und in die App an die verknüpften Spieler- und Elternkonten.
+            </p>
+
+            <label className="mt-4 block text-xs font-bold text-emerald-300" htmlFor="selected-squad-message">
+              Für Spieler im Kader
+            </label>
+            <textarea
+              id="selected-squad-message"
+              value={selectedSquadMessage}
+              maxLength={500}
+              rows={3}
+              disabled={squadPublishBusy}
+              onChange={(event) => setSelectedSquadMessage(event.target.value)}
+              className="mt-1 w-full resize-none rounded-xl border border-emerald-400/20 bg-black/35 px-3 py-2.5 text-sm leading-relaxed text-white outline-none transition focus:border-emerald-400/60"
+            />
+
+            <label className="mt-3 block text-xs font-bold text-amber-200" htmlFor="not-selected-squad-message">
+              Für Spieler nicht im Kader
+            </label>
+            <textarea
+              id="not-selected-squad-message"
+              value={notSelectedSquadMessage}
+              maxLength={500}
+              rows={3}
+              disabled={squadPublishBusy}
+              onChange={(event) => setNotSelectedSquadMessage(event.target.value)}
+              className="mt-1 w-full resize-none rounded-xl border border-amber-300/20 bg-black/35 px-3 py-2.5 text-sm leading-relaxed text-white outline-none transition focus:border-amber-300/60"
+            />
+
+            {squadPublishMessage ? <p className="mt-2 text-xs text-red-400">{squadPublishMessage}</p> : null}
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={squadPublishBusy}
+                onClick={() => setSquadMessageDialogOpen(false)}
+                className={dsSecondaryCtaClass()}
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                disabled={squadPublishBusy || !selectedSquadMessage.trim() || !notSelectedSquadMessage.trim()}
+                onClick={() => void onPublishSquad()}
+                className={dsPrimaryCtaClass()}
+              >
+                {squadPublishBusy ? 'Wird gesendet…' : 'Veröffentlichen & senden'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {lineupRemoveConfirm ? (
         <div
