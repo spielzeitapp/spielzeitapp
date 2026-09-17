@@ -76,14 +76,13 @@ export const SquadFeedPostCard: React.FC<Props> = ({
           ? <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
           : null}
       />
-      <FeedPostTypeBadge>Kader</FeedPostTypeBadge>
+      <FeedPostTypeBadge>Spieltag</FeedPostTypeBadge>
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
           <div className="relative min-w-0 space-y-3">
             <div className="text-center">
-              <p className="sz-club-feed-accent-text text-[11px] font-black uppercase tracking-[0.28em]">Spieltag</p>
-              <h3 className="mt-1 text-[28px] font-black uppercase italic tracking-tight text-white">Unser Kader</h3>
+              <h3 className="text-[28px] font-black uppercase italic tracking-tight text-white">Unser Kader</h3>
             </div>
             <div className={FEED_MATCH_GRID_CLASS}>
               <div className={FEED_MATCH_TEAM_COL_CLASS}>
