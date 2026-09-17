@@ -445,9 +445,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroMatchMetaUhr = 'mt-0.5 text-[10px] font-medium leading-tight text-white/80';
   const heroInfoTilesGrid =
     'mt-1 grid h-[74px] grid-cols-[1.08fr_1fr_1.12fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
-  const audienceInfoTilesGrid = `grid h-auto min-h-[64px] w-full ${
-    canSeeSensitiveInfo ? 'grid-cols-[1fr_1fr_1.18fr]' : 'grid-cols-[1fr_1.18fr]'
-  } items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]`;
+  // Flex statt Auto-Height-CSS-Grid: ältere iOS-Safari-Versionen (iPhone 7/8)
+  // berechnen `height: 100%` in dieser Grid-Zeile teilweise mit 0 px und blenden
+  // dadurch Treffpunkt, Spielort und Details aus.
+  const audienceInfoTilesGrid =
+    'flex min-h-[68px] w-full items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
   const audienceMeetupTimeClass =
     'w-full min-w-0 whitespace-normal text-[11px] font-semibold tabular-nums leading-none text-white';
   const audienceMeetupUhrClass =
@@ -568,7 +570,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     line2Class?: string,
     line3Class?: string,
   ) => (
-    <div className={`${heroMatchMetaTile} ${withBorder ? heroMatchMetaTileBorder : ''}`}>
+    <div className={`${heroMatchMetaTile} min-h-[68px] flex-1 basis-0 ${withBorder ? heroMatchMetaTileBorder : ''}`}>
       <span className={`${heroMatchMetaIcon} ${muted ? 'text-white/20' : ''}`}>{icon}</span>
       <span className={`${heroMatchMetaLabel} ${muted ? 'text-white/25' : ''}`}>{label}</span>
       <div className={heroMatchMetaValueWrap}>
@@ -622,7 +624,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         <div
           role={audienceCanOpenLive ? 'button' : undefined}
           tabIndex={audienceCanOpenLive ? 0 : undefined}
-          className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 overflow-hidden bg-red-950/25 pr-5 ${audienceCanOpenLive ? 'cursor-pointer shadow-[inset_0_0_18px_rgba(220,38,38,0.08)]' : 'pointer-events-none opacity-50'}`}
+          className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-h-[68px] min-w-0 flex-1 basis-0 overflow-hidden bg-red-950/25 pr-5 ${audienceCanOpenLive ? 'cursor-pointer shadow-[inset_0_0_18px_rgba(220,38,38,0.08)]' : 'pointer-events-none opacity-50'}`}
           onClick={
             audienceCanOpenLive
               ? (e) => {
@@ -664,7 +666,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         <div
           role={isClickable ? 'button' : undefined}
           tabIndex={isClickable ? 0 : undefined}
-          className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 overflow-hidden pr-5 ${isClickable ? 'cursor-pointer' : ''}`}
+          className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-h-[68px] min-w-0 flex-1 basis-0 overflow-hidden pr-5 ${isClickable ? 'cursor-pointer' : ''}`}
           onClick={
             isClickable
               ? (e) => {
@@ -701,7 +703,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         <div
           role={isClickable ? 'button' : undefined}
           tabIndex={isClickable ? 0 : undefined}
-          className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 overflow-hidden bg-emerald-950/20 pr-5 ${isClickable ? 'cursor-pointer shadow-[inset_0_0_20px_rgba(16,185,129,0.06)]' : ''}`}
+          className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-h-[68px] min-w-0 flex-1 basis-0 overflow-hidden bg-emerald-950/20 pr-5 ${isClickable ? 'cursor-pointer shadow-[inset_0_0_20px_rgba(16,185,129,0.06)]' : ''}`}
           onClick={
             isClickable
               ? (e) => {
