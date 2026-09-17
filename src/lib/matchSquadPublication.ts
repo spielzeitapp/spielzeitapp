@@ -20,13 +20,20 @@ export async function getMatchSquadPublication(matchId: string): Promise<{
   return { data: (data as MatchSquadPublication | null) ?? null, error: error?.message ?? null };
 }
 
-export async function publishMatchSquad(matchId: string): Promise<{
+export async function publishMatchSquad(
+  matchId: string,
+  messages: { selected: string; notSelected: string },
+): Promise<{
   ok: boolean;
   error: string | null;
   version?: number;
   publishedAt?: string;
 }> {
-  const { data, error } = await supabase.rpc('publish_match_squad', { p_match_id: matchId });
+  const { data, error } = await supabase.rpc('publish_match_squad', {
+    p_match_id: matchId,
+    p_selected_message: messages.selected.trim(),
+    p_not_selected_message: messages.notSelected.trim(),
+  });
   if (error) return { ok: false, error: error.message };
   const result = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
   if (result.ok !== true) {
