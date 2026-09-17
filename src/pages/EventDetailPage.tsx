@@ -3547,7 +3547,7 @@ export const EventDetailPage: React.FC = () => {
     Boolean(sessionUser?.id) &&
     !['finished', 'canceled', 'cancelled'].includes(safeText(event.status).toLowerCase()) &&
     ['parent', 'player', 'trainer', 'admin'].includes(effectiveRole) &&
-    ((event.kind === 'match' && event.is_home === false) || event.kind === 'tournament');
+    (event.kind === 'match' || event.kind === 'tournament');
   const carpoolingCard = showCarpooling && sessionUser?.id ? (
     <EventCarpoolCard
       eventId={event.id}
