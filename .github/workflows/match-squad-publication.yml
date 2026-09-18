@@ -9,6 +9,7 @@ on:
       - "supabase/migrations/20260916173000_match_squad_custom_messages.sql"
       - "supabase/migrations/20260917183000_atomic_match_squad_save.sql"
       - "supabase/migrations/20260918100000_notification_jobs_allow_squad_jobs.sql"
+      - "supabase/migrations/20260918104500_drop_legacy_notification_jobs_unique_index.sql"
       - "supabase/functions/send-reminders/index.ts"
 
 permissions:
@@ -25,8 +26,8 @@ jobs:
     timeout-minutes: 10
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      MIGRATION_VERSION: "20260918100000"
-      MIGRATION_FILE: supabase/migrations/20260918100000_notification_jobs_allow_squad_jobs.sql
+      MIGRATION_VERSION: "20260918104500"
+      MIGRATION_FILE: supabase/migrations/20260918104500_drop_legacy_notification_jobs_unique_index.sql
     steps:
       - uses: actions/checkout@v4
 
@@ -93,6 +94,7 @@ jobs:
                   WHERE conrelid = 'public.notification_jobs'::regclass
                     AND conname = 'notification_jobs_unique'
                 ) AS legacy_job_constraint_removed,
+                to_regclass('public.notification_jobs_unique') IS NULL AS legacy_job_index_removed,
                 to_regclass('public.idx_notification_jobs_dedupe_key_unique') IS NOT NULL AS dedupe_index_present,
                 EXISTS (
                   SELECT 1 FROM pg_class
