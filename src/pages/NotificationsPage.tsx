@@ -5,6 +5,11 @@ import { useNotificationsInboxRealtime } from '../hooks/useNotificationsInboxRea
 import { formatRelativeNotificationTime } from '../lib/notifications/format';
 import { supabase } from '../lib/supabaseClient';
 import { INBOX_SYNC_EVENT, notifyNotificationsReadChanged } from '../lib/notificationsReadState';
+import {
+  dsPageAtmosphereClass,
+  dsPageContentClass,
+  dsPageShellClass,
+} from '../lib/premiumDesignSystem';
 
 type NotificationRow = {
   id: string;
@@ -46,6 +51,17 @@ function resolveAppPath(link: string | null | undefined): string | null {
   if (p === '/termine' || p === 'termine') return '/app/termine';
   const sub = p.startsWith('/') ? p : `/${p}`;
   return `/app${sub}`;
+}
+
+function getSquadNotificationTone(n: NotificationRow): 'selected' | 'not-selected' | null {
+  if (n.event_type === 'squad') {
+    return n.title.trim().toLowerCase() === 'du bist im kader' ? 'selected' : 'not-selected';
+  }
+  const title = n.title.trim().toLowerCase();
+  const message = n.message.trim().toLowerCase();
+  if (title === 'du bist im kader') return 'selected';
+  if (title === 'kader veröffentlicht' && message.includes('nicht im kader')) return 'not-selected';
+  return null;
 }
 
 export const NotificationsPage: React.FC = () => {
@@ -190,15 +206,9 @@ export const NotificationsPage: React.FC = () => {
     );
 
   return (
-    <div
-      className="page notifications-page min-h-[60vh] w-full px-4 py-8 sm:px-5"
-      style={{
-        background:
-          'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)',
-        boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
-      }}
-    >
-      <div className="mx-auto max-w-[560px] space-y-5">
+    <div className={dsPageShellClass('page notifications-page w-full px-4 py-8 sm:px-5')}>
+      <div className={dsPageAtmosphereClass()} aria-hidden />
+      <div className={dsPageContentClass('mx-auto max-w-[560px] space-y-5')}>
         <div className="flex items-start justify-between gap-3 px-0.5">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Nachrichten</h1>
@@ -242,14 +252,21 @@ export const NotificationsPage: React.FC = () => {
             {items.map((n) => {
               const interactive = canOpen(n);
               const isUnread = n.read !== true;
+              const squadTone = getSquadNotificationTone(n);
+              const isSelectedSquad = squadTone === 'selected';
+              const isNotSelectedSquad = squadTone === 'not-selected';
               return (
                 <li key={n.id}>
                   <Card
                     className={[
-                      'border px-4 py-3.5 text-white backdrop-blur-sm transition-all duration-200',
-                      isUnread
-                        ? 'border-red-500/35 bg-red-950/30 shadow-[0_0_24px_rgba(239,68,68,0.08)]'
-                        : 'border-white/[0.08] bg-white/[0.04] opacity-[0.92]',
+                      'relative overflow-hidden rounded-[22px] border px-4 py-3.5 text-white backdrop-blur-sm transition-all duration-200',
+                      isSelectedSquad
+                        ? 'border-emerald-400/25 bg-[linear-gradient(135deg,rgba(3,34,26,0.70),rgba(15,15,18,0.96)_58%,rgba(58,18,24,0.36))] shadow-[0_0_28px_rgba(16,185,129,0.08)]'
+                        : isNotSelectedSquad
+                          ? 'border-amber-300/20 bg-[linear-gradient(135deg,rgba(48,36,8,0.42),rgba(15,15,18,0.96)_58%,rgba(58,18,24,0.28))]'
+                          : isUnread
+                            ? 'border-red-400/20 bg-[linear-gradient(135deg,rgba(58,18,24,0.38),rgba(15,15,18,0.96)_68%)] shadow-[0_0_24px_rgba(239,68,68,0.05)]'
+                            : 'border-white/[0.08] bg-[rgba(18,18,20,0.88)] opacity-[0.92]',
                       interactive ? 'cursor-pointer active:scale-[0.99]' : '',
                       interactive ? 'hover:border-white/20 hover:bg-white/[0.06]' : '',
                     ].join(' ')}
@@ -265,6 +282,30 @@ export const NotificationsPage: React.FC = () => {
                     role={interactive ? 'button' : undefined}
                     tabIndex={interactive ? 0 : undefined}
                   >
+                    {squadTone && (
+                      <div className="mb-3 flex items-center gap-2 border-b border-white/[0.07] pb-2.5">
+                        <span
+                          className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border text-sm font-black ${
+                            isSelectedSquad
+                              ? 'border-emerald-300/30 bg-emerald-500/[0.18] text-emerald-300'
+                              : 'border-amber-300/25 bg-amber-400/10 text-amber-200'
+                          }`}
+                          aria-hidden
+                        >
+                          K
+                        </span>
+                        <div>
+                          <p
+                            className={`text-[9px] font-bold uppercase tracking-[0.22em] ${
+                              isSelectedSquad ? 'text-emerald-300' : 'text-amber-200'
+                            }`}
+                          >
+                            Kadernachricht
+                          </p>
+                          <p className="mt-0.5 text-[10px] text-white/45">Persönlich für Spieler und Eltern</p>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <h2 className="text-[15px] font-semibold leading-snug tracking-tight text-white">{n.title}</h2>
@@ -280,7 +321,15 @@ export const NotificationsPage: React.FC = () => {
                           {formatRelativeNotificationTime(n.created_at)}
                         </time>
                         {isUnread && (
-                          <span className="rounded-md bg-red-500/90 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                          <span
+                            className={`rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white ${
+                              isSelectedSquad
+                                ? 'bg-emerald-500/90'
+                                : isNotSelectedSquad
+                                  ? 'bg-amber-500/85'
+                                  : 'bg-red-500/90'
+                            }`}
+                          >
                             Neu
                           </span>
                         )}
