@@ -100,7 +100,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
         headerClassName="bg-black/25"
         actions={staffCanDelete && onFeedPostDeleted ? (
           <div className="flex items-center gap-2">
-            {post.post_kind === 'event_poster_manual' && post.event_id ? (
+            {['event_poster_manual', 'trainer_image', 'manual_image'].includes(post.post_kind) ? (
               <FeedPostEditButton post={post} onUpdated={onFeedPostDeleted} />
             ) : null}
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
