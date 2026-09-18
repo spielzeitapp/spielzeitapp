@@ -25,6 +25,33 @@ export function cloneMatchLineupVariant(draft: MatchLineupVariantDraft): MatchLi
   };
 }
 
+/**
+ * Eine lokal gespeicherte Variante darf die aktuelle Kaderauswahl aus Supabase
+ * nicht verkleinern. Entfernte Spieler verschwinden aus den Slots; neu
+ * nominierte Spieler bleiben im Kader und erscheinen dadurch auf der Bank.
+ */
+export function reconcileMatchLineupVariantSquad(
+  draft: MatchLineupVariantDraft,
+  currentSquadIds: readonly string[],
+): MatchLineupVariantDraft {
+  const squadIds = [
+    ...new Set(currentSquadIds.map((id) => String(id ?? '').trim()).filter(Boolean)),
+  ];
+  const squadSet = new Set(squadIds);
+  const slots = { ...draft.slots };
+
+  for (const slot of Object.keys(slots) as FieldSlotId[]) {
+    const playerId = String(slots[slot] ?? '').trim();
+    slots[slot] = playerId && squadSet.has(playerId) ? playerId : null;
+  }
+
+  return {
+    slots,
+    squadIds,
+    formationId: draft.formationId,
+  };
+}
+
 export function readMatchLineupVariants(matchId: string): StoredMatchLineupVariants | null {
   try {
     const raw = window.localStorage.getItem(storageKey(matchId));
