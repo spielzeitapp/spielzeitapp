@@ -98,14 +98,23 @@ export const SquadFeedPostCard: React.FC<Props> = ({
             <div className="sz-club-feed-inset rounded-2xl border px-2 py-3 backdrop-blur-md">
               <FeedSectionHeader icon="K" label={`${p.players.length} Spieler im Kader`} />
               <ul className="mt-2 grid grid-cols-2 gap-1.5">
-                {p.players.map((player) => (
-                  <li key={player.player_id} className="flex min-w-0 items-center gap-2 rounded-xl bg-white/[0.04] px-2 py-2">
-                    <span className="sz-club-feed-number-badge inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-black">
-                      {player.jersey_number ?? 'K'}
-                    </span>
-                    <span className="min-w-0 break-words text-[12px] font-bold leading-tight text-white">{player.name}</span>
-                  </li>
-                ))}
+                {p.players.map((player) => {
+                  const compactName = player.name.trim().length >= 17;
+                  return (
+                    <li key={player.player_id} className="flex min-w-0 items-center gap-2 rounded-xl bg-white/[0.04] px-2 py-2">
+                      <span className="sz-club-feed-number-badge inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-black">
+                        {player.jersey_number ?? 'K'}
+                      </span>
+                      <span
+                        className={`min-w-0 break-normal font-bold leading-[1.16] tracking-tight text-white [overflow-wrap:normal] [word-break:normal] ${
+                          compactName ? 'text-[10px] sm:text-[11px]' : 'text-[12px]'
+                        }`}
+                      >
+                        {player.name}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <FeedGameCtaLink to={p.deep_link}>Zum Spiel</FeedGameCtaLink>
