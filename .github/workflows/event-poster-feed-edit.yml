@@ -1,0 +1,95 @@
+name: Event poster feed editing
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - ".github/workflows/event-poster-feed-edit.yml"
+      - "supabase/migrations/20260918142000_update_event_poster_feed_post.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: event-poster-feed-edit-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply and verify event poster editing
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      MIGRATION_VERSION: "20260918142000"
+      MIGRATION_FILE: supabase/migrations/20260918142000_update_event_poster_feed_post.sql
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select guarded target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_NAME" = "develop" ]; then
+            echo "SUPABASE_PROJECT_REF=acbaecjzoabafbsjrzvr" >> "$GITHUB_ENV"
+            echo "EXPECTED_PROJECT_NAME=spielzeitapp-staging" >> "$GITHUB_ENV"
+          elif [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "SUPABASE_PROJECT_REF=shxugattqatahckhspwk" >> "$GITHUB_ENV"
+            echo "EXPECTED_PROJECT_NAME=spielzeitapp-nsg" >> "$GITHUB_ENV"
+          else
+            echo "::error::Unsupported branch: $GITHUB_REF_NAME"
+            exit 1
+          fi
+
+      - name: Apply and verify migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const version = process.env.MIGRATION_VERSION;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body}`);
+            return body ? JSON.parse(body) : null;
+          }
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+            const migration = fs.readFileSync(process.env.MIGRATION_FILE, 'utf8');
+            await query(`${migration}\nINSERT INTO supabase_migrations.schema_migrations (version) VALUES ('${version}') ON CONFLICT DO NOTHING;`);
+            const result = await query(`
+              SELECT
+                to_regprocedure('public.update_event_poster_feed_post(uuid,text,text)') IS NOT NULL AS edit_rpc,
+                EXISTS (
+                  SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '${version}'
+                ) AS migration_recorded;
+            `);
+            if (!result?.[0]?.edit_rpc || !result?.[0]?.migration_recorded) {
+              throw new Error('Event poster editing verification failed.');
+            }
+            console.log(`EVENT_POSTER_FEED_EDIT_OK (${expectedName})`);
+          })().catch((error) => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
