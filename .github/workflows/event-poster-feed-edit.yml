@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/event-poster-feed-edit.yml"
       - "supabase/migrations/20260918142000_update_event_poster_feed_post.sql"
+      - "supabase/migrations/20260918221000_allow_edit_legacy_trainer_images.sql"
 
 permissions:
   contents: read
@@ -21,8 +22,8 @@ jobs:
     timeout-minutes: 10
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      MIGRATION_VERSION: "20260918142000"
-      MIGRATION_FILE: supabase/migrations/20260918142000_update_event_poster_feed_post.sql
+      MIGRATION_VERSION: "20260918221000"
+      MIGRATION_FILE: supabase/migrations/20260918221000_allow_edit_legacy_trainer_images.sql
     steps:
       - uses: actions/checkout@v4
 
