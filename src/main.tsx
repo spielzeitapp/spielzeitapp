@@ -9,6 +9,7 @@ import { AuthProvider } from './auth/AuthProvider';
 import { registerServiceWorkerInboxBridge } from './lib/pushInboxBridge';
 import { registerDeploymentRefresh } from './lib/deploymentRefresh';
 import { ClubThemeProvider } from './theme/ClubThemeProvider';
+import { DeploymentUpdatePrompt } from './components/DeploymentUpdatePrompt';
 
 registerServiceWorkerInboxBridge();
 registerDeploymentRefresh();
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <ManifestSync />
+      <DeploymentUpdatePrompt />
       <AuthProvider>
         <SessionProvider>
           <ClubThemeProvider>
