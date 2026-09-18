@@ -16,6 +16,7 @@ import {
   FEED_STADIUM_ARTICLE_SHADOW,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
+import { FeedPostEditButton } from './FeedPostEditButton';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -97,11 +98,14 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
         seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
-        actions={
-          staffCanDelete && onFeedPostDeleted ? (
+        actions={staffCanDelete && onFeedPostDeleted ? (
+          <div className="flex items-center gap-2">
+            {post.post_kind === 'event_poster_manual' && post.event_id ? (
+              <FeedPostEditButton post={post} onUpdated={onFeedPostDeleted} />
+            ) : null}
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
-          ) : null
-        }
+          </div>
+        ) : null}
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div
