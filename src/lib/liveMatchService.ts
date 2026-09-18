@@ -863,11 +863,12 @@ export async function updateGoalScorer(
   return { error: null };
 }
 
-/** Korrigiert die Spieler eines atomar gespeicherten Wechsel-Events. */
+/** Korrigiert Minute und Spieler eines atomar gespeicherten Wechsel-Events. */
 export async function updateSubstitutionPlayers(
   eventId: string,
   outgoingPlayerId: string,
   incomingPlayerId: string,
+  timestamp: number,
 ): Promise<{ error: string | null }> {
   const id = eventId.trim();
   const outId = outgoingPlayerId.trim();
@@ -876,6 +877,7 @@ export async function updateSubstitutionPlayers(
   if (!outId) return { error: 'Bitte den auswechselnden Spieler auswählen.' };
   if (!inId) return { error: 'Bitte den einwechselnden Spieler auswählen.' };
   if (outId === inId) return { error: 'Raus und Rein müssen unterschiedliche Spieler sein.' };
+  if (!Number.isFinite(timestamp) || timestamp < 0) return { error: 'Bitte eine gültige Spielminute eingeben.' };
   if (isDemoMatchEventId(id)) {
     return { error: 'Demo-Ereignisse können nicht nachträglich bearbeitet werden.' };
   }
@@ -896,7 +898,11 @@ export async function updateSubstitutionPlayers(
   if (!writable.ok) return { error: writable.message };
   const { error } = await supabase
     .from('match_events')
-    .update({ player_id: outId, payload: { player_in_id: inId } })
+    .update({
+      minute: clampEffectiveMatchSeconds(timestamp),
+      player_id: outId,
+      payload: { player_in_id: inId },
+    })
     .eq('id', id);
   if (error) {
     console.error('[liveMatchService] updateSubstitutionPlayers', error);

@@ -1534,6 +1534,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [editingSubstitutionEvent, setEditingSubstitutionEvent] = useState<MatchEngineEvent | null>(null);
   const [editingSubstitutionOutId, setEditingSubstitutionOutId] = useState('');
   const [editingSubstitutionInId, setEditingSubstitutionInId] = useState('');
+  const [editingSubstitutionMinute, setEditingSubstitutionMinute] = useState('');
   const [editingSubstitutionSaving, setEditingSubstitutionSaving] = useState(false);
   const liveEditDialogOpen = Boolean(editingGoalEvent || editingSubstitutionEvent);
 
@@ -3617,13 +3618,17 @@ export const LiveMatchScreen: React.FC = () => {
     if (!editingSubstitutionEvent || editingSubstitutionEvent.type !== 'substitution') {
       return { outgoing: [] as RosterPlayer[], incoming: [] as RosterPlayer[] };
     }
+    const editedMinute = Number(editingSubstitutionMinute);
+    const editedTimestamp = Number.isInteger(editedMinute) && editedMinute >= 0
+      ? editedMinute * 60
+      : editingSubstitutionEvent.timestamp;
     const before = substitutionPlayersBeforeEvent({
       kickoffPlayerIds: liveLineupBasePlayerIds,
       squadPlayerIds,
       savedBenchPlayerIds,
       events,
       eventId: editingSubstitutionEvent.id,
-      eventTimestamp: editingSubstitutionEvent.timestamp,
+      eventTimestamp: editedTimestamp,
     });
     const outgoingIds = new Set(before.fieldPlayerIds);
     const incomingIds = new Set(before.benchPlayerIds);
@@ -3633,6 +3638,7 @@ export const LiveMatchScreen: React.FC = () => {
     };
   }, [
     editingSubstitutionEvent,
+    editingSubstitutionMinute,
     liveLineupBasePlayerIds,
     squadPlayerIds,
     savedBenchPlayerIds,
@@ -3644,16 +3650,22 @@ export const LiveMatchScreen: React.FC = () => {
     const event = editingSubstitutionEvent;
     const outId = editingSubstitutionOutId.trim();
     const inId = editingSubstitutionInId.trim();
+    const minute = Number(editingSubstitutionMinute);
     if (!event || event.type !== 'substitution' || editingSubstitutionSaving) return;
     if (!canControlLiveMatch || calendarFinalized || !effectiveMatchId) return;
     if (!outId || !inId || outId === inId) {
       setSaveError('Bitte unterschiedliche Spieler für Raus und Rein auswählen.');
       return;
     }
+    if (!Number.isInteger(minute) || minute < 0 || minute > plannedMatchMinutes) {
+      setSaveError(`Bitte eine ganze Spielminute zwischen 0 und ${plannedMatchMinutes} eingeben.`);
+      return;
+    }
+    const timestamp = minute * 60;
 
     const nextEvents = events.map((item) =>
       item.id === event.id
-        ? { ...item, playerId: outId, swapWithPlayerId: inId }
+        ? { ...item, timestamp, playerId: outId, swapWithPlayerId: inId }
         : item,
     );
     const currentInvalid = firstInvalidAtomicSubstitution({
@@ -3677,7 +3689,7 @@ export const LiveMatchScreen: React.FC = () => {
     setSaveError(null);
     const originalOutId = String(event.playerId ?? '').trim();
     const originalInId = String(event.swapWithPlayerId ?? '').trim();
-    const { error } = await updateSubstitutionPlayers(event.id, outId, inId);
+    const { error } = await updateSubstitutionPlayers(event.id, outId, inId, timestamp);
     if (error) {
       setSaveError(error);
       setEditingSubstitutionSaving(false);
@@ -3696,7 +3708,7 @@ export const LiveMatchScreen: React.FC = () => {
       beforeBenchIds: savedBenchPlayerIds,
     });
     if (syncResult.error) {
-      const rollback = await updateSubstitutionPlayers(event.id, originalOutId, originalInId);
+      const rollback = await updateSubstitutionPlayers(event.id, originalOutId, originalInId, event.timestamp);
       setSaveError(
         rollback.error
           ? `${syncResult.error} Rücksetzen fehlgeschlagen: ${rollback.error}`
@@ -3725,6 +3737,7 @@ export const LiveMatchScreen: React.FC = () => {
     editingSubstitutionEvent,
     editingSubstitutionOutId,
     editingSubstitutionInId,
+    editingSubstitutionMinute,
     editingSubstitutionSaving,
     canControlLiveMatch,
     calendarFinalized,
@@ -3735,6 +3748,7 @@ export const LiveMatchScreen: React.FC = () => {
     currentMatchSeconds,
     startingPlayerIds,
     savedBenchPlayerIds,
+    plannedMatchMinutes,
     queueRealtimeReload,
   ]);
 
@@ -4068,6 +4082,7 @@ export const LiveMatchScreen: React.FC = () => {
         setEditingSubstitutionEvent(atomic);
         setEditingSubstitutionOutId(outId);
         setEditingSubstitutionInId(inId);
+        setEditingSubstitutionMinute(String(displayMatchMinuteFromEffectiveSeconds(atomic.timestamp)));
         setEditingSubstitutionSaving(false);
         setSaveError(null);
       };
@@ -7144,11 +7159,39 @@ export const LiveMatchScreen: React.FC = () => {
                 Wechsel korrigieren
               </h3>
               <p className="mt-1 text-center text-sm text-white/50">
-                {formatMinute(editingSubstitutionEvent.timestamp)} · Spieler neu zuordnen
+                Minute und Spieler korrigieren
               </p>
             </div>
 
             <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-4 pb-4 [-webkit-overflow-scrolling:touch]">
+              <section className="mb-4">
+                <label
+                  htmlFor="substitution-edit-minute"
+                  className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-white/70"
+                >
+                  Spielminute
+                </label>
+                <div className="flex items-center gap-3 rounded-2xl border border-white/12 bg-black/35 px-4 py-3">
+                  <input
+                    id="substitution-edit-minute"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={plannedMatchMinutes}
+                    step={1}
+                    value={editingSubstitutionMinute}
+                    disabled={editingSubstitutionSaving}
+                    onChange={(event) => setEditingSubstitutionMinute(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-2xl font-black tabular-nums text-white outline-none disabled:opacity-50"
+                    aria-describedby="substitution-edit-minute-hint"
+                  />
+                  <span className="shrink-0 text-sm font-bold text-white/55">Minute</span>
+                </div>
+                <p id="substitution-edit-minute-hint" className="mt-1.5 text-xs text-white/45">
+                  Erlaubt: 0 bis {plannedMatchMinutes} Minuten
+                </p>
+              </section>
+
               <section>
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-red-300/90">
                   Raus · Spieler am Feld
@@ -7205,7 +7248,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </p>
               ) : null}
               <p className="mb-3 truncate text-center text-[12px] font-semibold text-white/70">
-                Raus {rosterById.get(editingSubstitutionOutId)?.name ?? '…'} → Rein{' '}
+                {editingSubstitutionMinute || '…'}' · Raus {rosterById.get(editingSubstitutionOutId)?.name ?? '…'} → Rein{' '}
                 {rosterById.get(editingSubstitutionInId)?.name ?? '…'}
               </p>
               <button
@@ -7213,6 +7256,7 @@ export const LiveMatchScreen: React.FC = () => {
                 disabled={
                   !editingSubstitutionOutId ||
                   !editingSubstitutionInId ||
+                  editingSubstitutionMinute === '' ||
                   editingSubstitutionOutId === editingSubstitutionInId ||
                   editingSubstitutionSaving
                 }
