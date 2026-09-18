@@ -64,6 +64,7 @@ import { normalizeRole } from '../../lib/roles';
 import {
   cloneMatchLineupVariant,
   readMatchLineupVariants,
+  reconcileMatchLineupVariantSquad,
   writeMatchLineupVariants,
   type MatchLineupVariantDraft,
   type MatchLineupVariantNumber,
@@ -436,10 +437,16 @@ export const MatchLineupPage: React.FC = () => {
     const stored = readMatchLineupVariants(matchId);
     if (stored) {
       const selected = stored.startVariant;
-      const selectedDraft = cloneMatchLineupVariant(stored.variants[selected]);
-      setVariantDrafts({
-        1: cloneMatchLineupVariant(stored.variants[1]),
-        2: cloneMatchLineupVariant(stored.variants[2]),
+      const reconciledVariants = {
+        1: reconcileMatchLineupVariantSquad(stored.variants[1], canonical.squadIds),
+        2: reconcileMatchLineupVariantSquad(stored.variants[2], canonical.squadIds),
+      };
+      const selectedDraft = cloneMatchLineupVariant(reconciledVariants[selected]);
+      setVariantDrafts(reconciledVariants);
+      writeMatchLineupVariants(matchId, {
+        version: 1,
+        startVariant: selected,
+        variants: reconciledVariants,
       });
       setStartVariant(selected);
       setVisibleVariant(selected);
