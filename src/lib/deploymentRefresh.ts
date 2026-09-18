@@ -1,7 +1,9 @@
 const CHECK_THROTTLE_MS = 30_000;
+export const DEPLOYMENT_UPDATE_EVENT = 'spz:deployment-update-available';
 
 let lastCheckAt = 0;
 let reloadStarted = false;
+let pendingDeploymentEntry: string | null = null;
 
 function entryScriptPath(doc: Document): string | null {
   const scripts = Array.from(doc.querySelectorAll<HTMLScriptElement>('script[type="module"][src]'));
@@ -35,14 +37,25 @@ async function checkForNewDeployment(): Promise<void> {
     const latestEntry = entryScriptPath(latestDocument);
     if (!latestEntry || latestEntry === currentEntry) return;
 
-    const reloadKey = `spz_deployment_reload:${latestEntry}`;
-    if (sessionStorage.getItem(reloadKey) === '1') return;
-    sessionStorage.setItem(reloadKey, '1');
-    reloadStarted = true;
-    window.location.reload();
+    if (sessionStorage.getItem(`spz_deployment_reload:${latestEntry}`) === '1') return;
+    pendingDeploymentEntry = latestEntry;
+    window.dispatchEvent(
+      new CustomEvent(DEPLOYMENT_UPDATE_EVENT, { detail: { entry: latestEntry } }),
+    );
   } catch {
     // Offline/Netzwerkfehler: Beim nächsten Öffnen erneut prüfen.
   }
+}
+
+export function getPendingDeploymentEntry(): string | null {
+  return pendingDeploymentEntry;
+}
+
+export function refreshToDeployment(entry: string): void {
+  if (!entry || reloadStarted) return;
+  sessionStorage.setItem(`spz_deployment_reload:${entry}`, '1');
+  reloadStarted = true;
+  window.location.reload();
 }
 
 /** Aktualisiert eine länger geöffnete iOS-/Android-Web-App auf den neuesten Vercel-Build. */
