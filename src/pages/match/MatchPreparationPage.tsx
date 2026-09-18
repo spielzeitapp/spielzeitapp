@@ -587,7 +587,7 @@ export const MatchPreparationPage: React.FC = () => {
   };
 
   const togglePlayer = (playerId: string, status: PrepStatus) => {
-    if (!squadEditable || status === 'absent') return;
+    if (!squadEditable || status === 'absent' || squadSaveBusy) return;
     setSelectionInitialized(true);
     if (selectedSet.has(playerId)) {
       if (lineupPlayerIds.has(playerId)) {
@@ -603,7 +603,11 @@ export const MatchPreparationPage: React.FC = () => {
       void persistSquadSelection(nextSquad);
       return;
     }
-    setSelectedPlayers((prev) => (prev.includes(playerId) ? prev : [...prev, playerId]));
+    const nextSquad = [...new Set([...selectedPlayersForSquad, playerId])];
+    setSelectedPlayers(nextSquad);
+    void persistSquadSelection(nextSquad).then((saved) => {
+      if (!saved) setSelectedPlayers(selectedPlayersForSquad);
+    });
   };
 
   const confirmRemoveFromLineupAndSquad = async () => {
@@ -622,7 +626,7 @@ export const MatchPreparationPage: React.FC = () => {
       <div className={`flex flex-col ${DS_LIST_GAP}`}>
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
-          const disabled = !squadEditable || status === 'absent';
+          const disabled = !squadEditable || status === 'absent' || squadSaveBusy;
           return (
             <div key={p.id} className={disabled ? 'opacity-70' : ''}>
               <MatchPlayerRow
