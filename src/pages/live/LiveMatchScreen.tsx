@@ -1903,7 +1903,13 @@ export const LiveMatchScreen: React.FC = () => {
       finalSecond: playtimeFinalSecond,
       fallbackStartingPlayerIds: startingPlayerIds,
       savedBenchPlayerIds,
-      previousPlaytimesByPlayerId: prevPlaytimesRef.current,
+      // Der Schutz gegen kurzzeitiges Zurückspringen ist nur bei laufender Uhr sinnvoll.
+      // Nach Spielende bzw. bei Korrekturen müssen niedrigere, neu berechnete Zeiten
+      // (z. B. Wechsel von 52' auf 30') sofort übernommen werden.
+      previousPlaytimesByPlayerId:
+        matchRow?.status === 'live' && isRunning && !matchIsFinished
+          ? prevPlaytimesRef.current
+          : undefined,
       isLiveMatchRunning: matchRow?.status === 'live' && isRunning && !matchIsFinished,
     });
     prevPlaytimesRef.current = state.playtimeSecondsByPlayerId;
@@ -3731,6 +3737,9 @@ export const LiveMatchScreen: React.FC = () => {
 
     const fieldAfter = syncResult.startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0);
     const benchAfter = getBenchPlayers(syncResult.squadPlayerIds, fieldAfter, savedBenchPlayerIds);
+    // Eine Korrektur darf Einsatzzeiten auch verkürzen. Den bisherigen Live-Zwischenstand
+    // deshalb vor dem Replay verwerfen, damit die Anzeige unmittelbar neu berechnet wird.
+    prevPlaytimesRef.current = {};
     setEvents(nextEvents);
     setStartingPlayerIds(syncResult.startingPlayerIds);
     setSquadPlayerIds(syncResult.squadPlayerIds);
