@@ -7,9 +7,11 @@ import './index.css';
 import { SessionProvider } from './auth/useSession';
 import { AuthProvider } from './auth/AuthProvider';
 import { registerServiceWorkerInboxBridge } from './lib/pushInboxBridge';
+import { registerDeploymentRefresh } from './lib/deploymentRefresh';
 import { ClubThemeProvider } from './theme/ClubThemeProvider';
 
 registerServiceWorkerInboxBridge();
+registerDeploymentRefresh();
 
 /** Wird in index.html vor dem React-Load gesetzt: Produktions-Domains = true, sonst false. */
 const isInternalDomain =
