@@ -54,13 +54,22 @@ export const FeedClubName: React.FC<Props> = ({
   const { line1, line2 } = parseClubDisplayName(fullName);
   const v = variantClass[variant];
   const alignClass = align === 'center' ? 'items-center text-center' : 'items-start text-left';
+  const compactLongLine1 = variant === 'compact' && line1.length >= 12;
 
   if (!line1 && !line2) return null;
 
   return (
     <div className={`flex min-w-0 flex-col ${v.wrap} ${alignClass} ${className}`.trim()}>
-      <span className={v.line1}>{line1 || 'Team'}</span>
-      {line2 ? <span className={v.line2}>{line2}</span> : null}
+      <span
+        className={`${v.line1} [overflow-wrap:normal] [word-break:normal] ${
+          compactLongLine1 ? '!whitespace-nowrap !text-[9px] !tracking-[-0.015em]' : ''
+        }`}
+      >
+        {line1 || 'Team'}
+      </span>
+      {line2 ? (
+        <span className={`${v.line2} [overflow-wrap:normal] [word-break:normal]`}>{line2}</span>
+      ) : null}
     </div>
   );
 };
