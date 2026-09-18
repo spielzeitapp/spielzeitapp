@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { uploadStorageObject } from './storageUpload';
+import { optimizeFeedPosterFile } from './feedPosterImage';
 import type {
   EventFeedPosterSource,
   EventFeedPostOffset,
@@ -129,13 +130,15 @@ export async function uploadEventPoster(params: {
   userId: string | null;
   previousStoragePath?: string | null;
 }): Promise<{ storagePath: string | null; error: string | null }> {
-  const file = params.file;
-  if (!POSTER_IMAGE_TYPES.has(file.type)) {
+  const originalFile = params.file;
+  if (!POSTER_IMAGE_TYPES.has(originalFile.type)) {
     return { storagePath: null, error: 'Nur JPG, PNG oder WebP.' };
   }
-  if (file.size > MAX_POSTER_BYTES) {
+  if (originalFile.size > MAX_POSTER_BYTES) {
     return { storagePath: null, error: 'Poster maximal 10 MB.' };
   }
+
+  const file = await optimizeFeedPosterFile(originalFile);
 
   const objectPath = buildEventPosterStoragePath(params.teamSeasonId, params.eventId, extForMime(file.type));
   if (!objectPath) return { storagePath: null, error: 'Ungültiger Upload-Pfad.' };
@@ -143,7 +146,7 @@ export async function uploadEventPoster(params: {
   const { error: upErr } = await uploadStorageObject(TEAM_FEED_BUCKET, objectPath, file, {
     upsert: false,
     contentType: file.type,
-    cacheControl: '3600',
+    cacheControl: '604800',
   });
   if (upErr) return { storagePath: null, error: upErr.message };
 
