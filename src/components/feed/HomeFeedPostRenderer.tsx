@@ -24,6 +24,7 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: (postId: string) => void;
+  onFeedPostUpdated?: () => void;
 };
 
 export const HomeFeedPostRenderer: React.FC<Props> = ({
@@ -34,6 +35,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted: notifyFeedPostDeleted,
+  onFeedPostUpdated,
 }) => {
   const eventId = (item.post.event_id ?? '').trim();
   const linkedEvent = eventId ? eventById.get(eventId) ?? null : null;
@@ -128,6 +130,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }
@@ -171,6 +174,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
       seasonLabel={seasonLabel}
       staffCanDelete={staffCanDelete}
       onFeedPostDeleted={onFeedPostDeleted}
+      onFeedPostUpdated={onFeedPostUpdated}
     />
   );
 };

@@ -3,6 +3,7 @@ import type { ResultFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
+import { ResultFeedPostEditButton } from './ResultFeedPostEditButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
@@ -10,6 +11,7 @@ import { FeedClubName } from './FeedClubName';
 import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
 import {
   FEED_POST_BODY_CLASS,
+  FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
   FeedGameCtaLink,
   FeedMatchDateVenueLine,
@@ -31,6 +33,7 @@ import { VIENNA_TZ } from '../../lib/viennaTime';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -38,6 +41,7 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
+  onFeedPostUpdated?: () => void;
 };
 
 function likeStorageKey(postId: string): string {
@@ -154,10 +158,22 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
+  onFeedPostUpdated,
 }) => {
   const p = post.payload;
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
+  const customImageSrc = useFeedMediaSrc(post.media_url);
+  const hasCustomImage = Boolean(post.media_url?.trim());
+
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageFailed(false);
+    setImageAspectRatio(null);
+  }, [post.media_url]);
 
   useEffect(() => {
     try {
@@ -221,18 +237,85 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     const outcome = await shareFeedContent({
       title,
       text: `${text}\n${url}`,
+      fetchUrl: hasCustomImage ? customImageSrc : null,
+      fileName: hasCustomImage ? `spielzeit-ergebnis-${post.id.slice(0, 8)}.webp` : undefined,
+      mimeType: hasCustomImage ? 'image/webp' : undefined,
     });
     if (outcome === 'aborted') return;
     if (outcome === 'shared') setShareHint('Geteilt.');
     else if (outcome === 'copied') setShareHint('Text kopiert.');
     else setShareHint('Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2400);
-  }, [post.caption, p.away_score, p.away_team_name, gameHref, p.home_score, p.home_team_name]);
+  }, [post.caption, post.id, p.away_score, p.away_team_name, gameHref, p.home_score, p.home_team_name, hasCustomImage, customImageSrc]);
 
   const matchMetaLine = buildFeedMatchMetaLine(
     pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name),
     getMatchTypeLabel(p.match_type ?? undefined) || null,
   );
+
+  const headerActions = staffCanDelete && onFeedPostDeleted ? (
+    <div className="flex items-center gap-2">
+      <ResultFeedPostEditButton post={post} onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
+      <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+    </div>
+  ) : null;
+
+  if (hasCustomImage) {
+    return (
+      <FeedPostArticleShell className="" style={{ boxShadow: presentation.articleShadow }} data-feed-result-card="custom-image-v1">
+        <FeedPostHeader
+          teamLabel={teamLabel}
+          seasonLabel={seasonLabel}
+          whenLabel={whenLabel}
+          headerClassName="bg-black/25"
+          actions={headerActions}
+        />
+        <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
+          <div
+            className="sz-club-feed-media-frame relative max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y bg-black sm:rounded-2xl sm:border"
+            style={{ aspectRatio: imageAspectRatio ?? 4 / 5 }}
+          >
+            {customImageSrc && !imageFailed ? (
+              <img
+                src={customImageSrc}
+                alt={`Siegerbild: ${p.home_team_name} ${p.home_score}:${p.away_score} ${p.away_team_name}`}
+                className={`h-full w-full object-contain transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                loading="lazy"
+                decoding="async"
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                    setImageAspectRatio(image.naturalWidth / image.naturalHeight);
+                  }
+                  setImageLoaded(true);
+                }}
+                onError={() => setImageFailed(true)}
+              />
+            ) : null}
+            {!imageLoaded ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(160deg,rgba(42,12,17,0.55),rgba(0,0,0,0.96))] text-xs font-medium text-white/45">
+                {imageFailed ? 'Bild konnte nicht geladen werden.' : 'Bild wird geladen…'}
+              </div>
+            ) : null}
+          </div>
+
+          {captionTrim ? (
+            <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>
+              <FeedCaption text={captionTrim} />
+            </div>
+          ) : null}
+
+          <div className="px-2 pt-2 sm:px-0">
+            <FeedGameCtaLink to={gameHref}>Zur Zusammenfassung</FeedGameCtaLink>
+          </div>
+
+          <FeedPostActionsFooter shareHint={shareHint}>
+            <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter />
+          </FeedPostActionsFooter>
+        </div>
+      </FeedPostArticleShell>
+    );
+  }
 
   return (
     <FeedPostArticleShell
@@ -247,11 +330,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
-        actions={
-          staffCanDelete && onFeedPostDeleted ? (
-            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
-          ) : null
-        }
+        actions={headerActions}
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>

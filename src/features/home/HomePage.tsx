@@ -261,6 +261,9 @@ export const HomePage: React.FC = () => {
     });
     void refetchFeed();
   }, [refetchFeed]);
+  const handleFeedPostUpdated = useCallback(() => {
+    void refetchFeed();
+  }, [refetchFeed]);
   const staffCanDeleteFeed =
     !isDemoMode && !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
 
@@ -437,6 +440,7 @@ export const HomePage: React.FC = () => {
                       seasonLabel={null}
                       staffCanDelete={staffCanDeleteFeed}
                       onFeedPostDeleted={handleFeedPostDeleted}
+                      onFeedPostUpdated={handleFeedPostUpdated}
                     />
                   ))}
                 </div>
@@ -520,6 +524,7 @@ export const HomePage: React.FC = () => {
                           seasonLabel={seasonBadge}
                           staffCanDelete={staffCanDeleteFeed}
                           onFeedPostDeleted={handleFeedPostDeleted}
+                          onFeedPostUpdated={handleFeedPostUpdated}
                         />
                       </React.Fragment>
                     );

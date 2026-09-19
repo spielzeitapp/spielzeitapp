@@ -24,13 +24,14 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
+  onFeedPostUpdated?: () => void;
 };
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
 }
 
-export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabel, staffCanDelete, onFeedPostDeleted }) => {
+export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabel, staffCanDelete, onFeedPostDeleted, onFeedPostUpdated }) => {
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -101,7 +102,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
         actions={staffCanDelete && onFeedPostDeleted ? (
           <div className="flex items-center gap-2">
             {['event_poster_manual', 'trainer_image', 'manual_image'].includes(post.post_kind) ? (
-              <FeedPostEditButton post={post} onUpdated={onFeedPostDeleted} />
+              <FeedPostEditButton post={post} onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
             ) : null}
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
           </div>

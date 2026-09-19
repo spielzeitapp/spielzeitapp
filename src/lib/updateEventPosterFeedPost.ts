@@ -13,7 +13,7 @@ function imageExtension(mime: string): string {
   return 'jpg';
 }
 
-async function uploadTrainerFeedImage(teamSeasonId: string, original: File): Promise<{ path: string | null; error: string | null }> {
+export async function uploadTeamFeedImage(teamSeasonId: string, original: File): Promise<{ path: string | null; error: string | null }> {
   if (!IMAGE_TYPES.has(original.type)) return { path: null, error: 'Nur JPG, PNG oder WebP.' };
   if (original.size > MAX_IMAGE_BYTES) return { path: null, error: 'Bild maximal 10 MB.' };
   const season = teamSeasonId.trim().replace(/^\/+|\/+$/g, '');
@@ -51,7 +51,7 @@ export async function updateEventPosterFeedPost(params: {
       }
       mediaPath = uploaded.storagePath;
     } else {
-      const uploaded = await uploadTrainerFeedImage(params.post.team_season_id, params.file);
+      const uploaded = await uploadTeamFeedImage(params.post.team_season_id, params.file);
       if (uploaded.error || !uploaded.path) {
         return { error: uploaded.error ?? 'Das neue Bild konnte nicht hochgeladen werden.' };
       }
