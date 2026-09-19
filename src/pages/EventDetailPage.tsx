@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 55867)
+Total output lines: 4854
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -1131,11 +1134,13 @@ export const EventDetailPage: React.FC = () => {
 
   const handleRsvp = useCallback(
     async (status: 'yes' | 'no' | 'sick' | 'injured' | 'external_training', _reason?: string) => {
+      const shouldResetToOpen = rsvpStatus === status;
       console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
         caller: 'EventDetailPage.handleRsvp',
         table: isDemo ? 'demo-local' : 'event_attendance',
         eventId,
         status,
+        action: shouldResetToOpen ? 'reset-to-open' : 'set-status',
         effectiveRole,
       });
       let resolvedPlayerId = playerId ?? null;
@@ -1143,6 +1148,19 @@ export const EventDetailPage: React.FC = () => {
 
       if (isDemo && demo) {
         if (!resolvedPlayerId) resolvedPlayerId = demo.selfPlayerId;
+        if (shouldResetToOpen) {
+          demo.setDemoAttendance(eventId, resolvedPlayerId, null);
+          setRsvpStatus(null);
+          setEventAttendanceByPlayerId((prev) => {
+            const next = { ...prev };
+            delete next[(resolvedPlayerId ?? '').toLowerCase()];
+            return next;
+          });
+          setAttendanceModalOpen(false);
+          setCancelReason('');
+          await loadEventAttendance();
+          return;
+        }
         if (status === 'external_training' && event?.kind === 'training') {
           const p = players.find((x) => x.id === resolvedPlayerId);
           if (!p?.is_laz_player) return;
@@ -1173,6 +1191,25 @@ export const EventDetailPage: React.FC = () => {
       }
       if (!resolvedPlayerId) return;
 
+      if (shouldResetToOpen) {
+        const result = await supabase
+          .from('event_attendance')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('player_id', resolvedPlayerId);
+        if (result.error) return;
+        setRsvpStatus(null);
+        setEventAttendanceByPlayerId((prev) => {
+          const next = { ...prev };
+          delete next[(resolvedPlayerId ?? '').toLowerCase()];
+          return next;
+        });
+        setAttendanceModalOpen(false);
+        setCancelReason('');
+        await loadEventAttendance();
+        return;
+      }
+
       if (status === 'external_training' && event?.kind === 'training') {
         const { data: lazRow, error: lazErr } = await supabase
           .from('players')
@@ -1202,7 +1239,7 @@ export const EventDetailPage: React.FC = () => {
       setCancelReason('');
       await loadEventAttendance();
     },
-    [eventId, playerId, effectiveRole, loadEventAttendance, event?.kind, isDemo, demo, players]
+    [eventId, playerId, rsvpStatus, effectiveRole, loadEventAttendance, event?.kind, isDemo, demo, players]
   );
 
   /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. */
@@ -2521,388 +2558,7 @@ export const EventDetailPage: React.FC = () => {
 
               <div className="relative w-full min-w-0 overflow-hidden rounded-[1.75rem] border border-red-500/30 bg-black shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_32px_rgba(220,38,38,0.16)]">
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#000000] via-[#100304] to-[#050505]" />
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.04),transparent_42%),radial-gradient(ellipse_at_bottom,rgba(150,18,24,0.09),transparent_58%)]" />
-                <div className="pointer-events-none absolute inset-0 opacity-60 [background:linear-gradient(180deg,rgba(0,0,0,0.28)_0%,rgba(0,0,0,0.6)_46%,rgba(0,0,0,0.9)_100%)]" />
-
-                <div className="relative z-10 px-3 py-1.5 sm:px-4 sm:py-2">
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(5.5rem,auto)_minmax(0,1fr)] items-start gap-x-1.5">
-                    <div className="flex min-w-0 flex-col items-center text-center">
-                      <img
-                        src={homeLogoSrc}
-                        alt=""
-                        className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11"
-                        onError={(e) => {
-                          const img = e.currentTarget;
-                          if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
-                          img.src = '/logos/placeholder-shield-a.png';
-                        }}
-                      />
-                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
-                        {homeSplit.prefix || ' '}
-                      </p>
-                      <p className="mt-0.5 w-full min-w-0 text-center text-[13px] font-semibold leading-[1.2] text-white break-words sm:text-[15px]">
-                        {homeSplit.name || homeTeamName}
-                      </p>
-                    </div>
-
-                    <div className="flex min-w-0 flex-col items-center px-1 text-center">
-                      <p className="text-[10px] font-semibold text-white/82">
-                        {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
-                      </p>
-                      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.34em] text-red-300/88">ENDSTAND</p>
-                      <p className="mt-0.5 text-[2.45rem] font-black leading-none tabular-nums text-white sm:text-[2.72rem]">
-                        {scoreStr}
-                      </p>
-                      {savedOrEngineBracket ? (
-                        <p className="mt-0 text-[11px] tabular-nums leading-tight text-white/58">{savedOrEngineBracket}</p>
-                      ) : null}
-                      {homeAway ? (
-                        <span
-                          className={`mt-0.5 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                            event.is_home === true
-                              ? 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                              : 'border-amber-500/35 bg-amber-500/12 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.18)]'
-                          }`}
-                        >
-                          {homeAway}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="flex min-w-0 flex-col items-center text-center">
-                      <img
-                        src={awayLogoSrc}
-                        alt=""
-                        className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11"
-                        onError={(e) => {
-                          const img = e.currentTarget;
-                          if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
-                          img.src = '/logos/placeholder-shield-a.png';
-                        }}
-                      />
-                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
-                        {awaySplit.prefix || ' '}
-                      </p>
-                      <p className="mt-0.5 w-full min-w-0 text-center text-[13px] font-semibold leading-[1.2] text-white break-words sm:text-[15px]">
-                        {awaySplit.name || awayTeamName}
-                      </p>
-                    </div>
-                  </div>
-                  {venue ? (
-                    <div className="mt-2 flex items-center justify-center gap-1.5 border-t border-white/[0.07] pt-2 text-center text-[12px] text-white/55">
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-red-300/70" aria-hidden />
-                      <span className="min-w-0 truncate">{venue}</span>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div className="mt-0.5 flex justify-center">
-            <div className="inline-flex min-h-[36px] w-full max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-black/25 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {renderTabButton('overview', 'Spielbericht')}
-              {renderTabButton('lineup', 'Aufstellung')}
-              {renderTabButton('timeline', 'Liveticker')}
-              {renderTabButton('stats', 'Statistik')}
-            </div>
-          </div>
-          {canTrainerManageEvent ? (
-            <div className="mt-1 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setReportEditOpen(true)}
-                className="inline-flex h-[42px] items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-white/85 transition hover:border-red-400/35 hover:shadow-[0_0_12px_rgba(220,38,38,0.2)] active:scale-[0.99]"
-              >
-                <Pencil className="h-3.5 w-3.5" aria-hidden />
-                Spielbericht bearbeiten
-              </button>
-            </div>
-          ) : null}
-
-          {matchLoading ? <p className="text-sm text-white/70">Lade Spielbericht…</p> : null}
-          {matchError ? (
-            <div className="rounded-2xl border border-red-500/25 bg-red-950/40 p-3 text-sm text-red-100">
-              {matchError}
-            </div>
-          ) : null}
-
-          {finishedTab === 'overview' ? (
-            <div className="rounded-2xl border border-white/10 bg-black/45 p-4 text-white/85 shadow-[0_12px_28px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm">
-              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht</p>
-              <div className="mt-1.5 divide-y divide-white/[0.07] text-[13px]">
-                <div className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="shrink-0 text-white/70">⚽ Ergebnis</span>
-                  <span className="text-right font-semibold text-white/95 tabular-nums">
-                    {scoreHome} : {scoreAway}
-                  </span>
-                </div>
-                {hasManualPeriodScores ? (
-                  <p className="py-2 text-[12px] text-white/50">Endstand aus Abschnitten</p>
-                ) : null}
-                {savedOrEngineBracket ? (
-                  <div className="flex items-center justify-between gap-4 py-3.5">
-                    <span className="shrink-0 text-white/70">⏱ Abschnitte</span>
-                    <span className="text-right text-sm tabular-nums text-white/88">{savedOrEngineBracket}</span>
-                  </div>
-                ) : null}
-                {reportGoalScorerLines.length > 0 ? (
-                  <div className="py-3.5">
-                    <p className="text-white/70">⚽ Torschützen</p>
-                    <div className="mt-1.5 space-y-1">
-                      {reportGoalScorerLines.map((line, i) => (
-                        <p key={`${line.name}-${line.team}-${i}`} className="text-[13px]">
-                          <span className="text-white/85">{line.name}</span>
-                          <span className="text-white/50"> · {line.team}</span>
-                          {line.minute ? <span className="text-white/55"> · {line.minute}</span> : null}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="shrink-0 text-white/70">🕒 Datum</span>
-                  <span className="max-w-[min(100%,14rem)] text-right text-white/90 sm:max-w-none">
-                    {formatEventDateTimeLabel(event.starts_at)}
-                  </span>
-                </div>
-                {venue ? (
-                  <div className="flex items-center justify-between gap-4 py-3.5">
-                    <span className="shrink-0 text-white/70">Spielort</span>
-                    <span className="max-w-[min(100%,14rem)] text-right text-white/90 sm:max-w-none">{venue}</span>
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="shrink-0 text-white/70">🏟 Heim/Auswärts</span>
-                  <span className="text-white/90">{homeAway ?? '—'}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="shrink-0 text-white/70">⚽ Tore</span>
-                  <span className="tabular-nums text-white/90">{goalCount}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="shrink-0 text-white/70">🔁 Wechsel</span>
-                  <span className="tabular-nums text-white/90">{subCount}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="shrink-0 text-white/70">🟨/🟥 Karten</span>
-                  <span className="tabular-nums text-white/90">
-                    {yellowCardCount} / {redCardCount}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="shrink-0 text-white/70">🏆 Bewerb</span>
-                  <span className="text-right text-white/90">
-                    {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {finishedTab === 'lineup' ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75">
-              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Kader</p>
-              {lineupLoading ? <p className="mt-2 text-[14px] text-white/70">Lade Aufstellung…</p> : null}
-              {lineupError ? <p className="mt-2 text-[14px] text-red-200">{lineupError}</p> : null}
-              {!lineupLoading && !lineupError ? (
-                lineupRows.length === 0 && benchRows.length === 0 ? (
-                  <p className="mt-2 text-[14px] text-white/70">Keine Aufstellung gespeichert.</p>
-                ) : (
-                  <div className="mt-2 grid gap-3">
-                    <div>
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Startelf</p>
-                      <ul className="mt-1.5 space-y-2 rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.04] p-2 shadow-[0_0_20px_rgba(16,185,129,0.08)]">
-                        {lineupRows.map((r, idx) => {
-                          const p = players.find((x) => x.id === r.player_id);
-                          return (
-                            <li key={`${r.player_id ?? 'na'}-${idx}`}>
-                              <MatchPlayerRow
-                                player={{
-                                  id: r.player_id ?? `lineup-${idx}`,
-                                  display_name: p?.display_name ?? p?.name ?? 'Spieler',
-                                  name: p?.name ?? p?.display_name ?? 'Spieler',
-                                  first_name: p?.first_name ?? null,
-                                  last_name: p?.last_name ?? null,
-                                  position: p?.position ?? null,
-                                  avatar_url: p?.avatar_url ?? null,
-                                  cutout_url: p?.cutout_url ?? null,
-                                  jersey_number: p?.jersey_number ?? null,
-                                }}
-                                rightLabel={(r.slot ?? '').trim() || null}
-                                layout="team-roster"
-                              />
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Bank</p>
-                      <ul className="mt-1.5 space-y-2 rounded-2xl border border-white/10 bg-black/25 p-2 shadow-[0_0_16px_rgba(0,0,0,0.35)]">
-                        {benchRows.map((r, idx) => {
-                          const p = players.find((x) => x.id === r.player_id);
-                          return (
-                            <li key={`${r.player_id ?? 'na'}-${idx}`}>
-                              <MatchPlayerRow
-                                player={{
-                                  id: r.player_id ?? `bench-${idx}`,
-                                  display_name: p?.display_name ?? p?.name ?? 'Spieler',
-                                  name: p?.name ?? p?.display_name ?? 'Spieler',
-                                  first_name: p?.first_name ?? null,
-                                  last_name: p?.last_name ?? null,
-                                  position: p?.position ?? null,
-                                  avatar_url: p?.avatar_url ?? null,
-                                  cutout_url: p?.cutout_url ?? null,
-                                  jersey_number: p?.jersey_number ?? null,
-                                }}
-                                layout="team-roster"
-                              />
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  </div>
-                )
-              ) : null}
-            </div>
-          ) : null}
-
-          {finishedTab === 'stats' ? (
-            <div className="rounded-[1.5rem] border border-red-500/20 bg-black/55 p-4 text-white/75 shadow-[0_16px_38px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <p className="text-[12px] font-black uppercase tracking-[0.2em] text-red-300/85">Spielstatistik</p>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-[14px]">
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
-                  <p className="text-[11px] font-medium text-white/55">Tore Heim</p>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreHome}</p>
-                </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
-                  <p className="text-[11px] font-medium text-white/55">Tore Auswärts</p>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreAway}</p>
-                </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
-                  <p className="text-[11px] font-medium text-white/55">Wechsel</p>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{subCount}</p>
-                </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
-                  <p className="text-[11px] font-medium text-white/55">Ereignisse</p>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{totalEvents}</p>
-                </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
-                  <p className="text-[11px] font-medium text-white/55">Torschützen</p>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{ownGoalScorerEntries.length}</p>
-                </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
-                  <p className="text-[11px] font-medium text-white/55">Gelbe Karten</p>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-white">
-                    {timelineEvents.filter((x) => ['yellow_card', 'card_yellow', 'yellow'].includes(String(x.type ?? '').toLowerCase())).length}
-                  </p>
-                </div>
-              </div>
-
-              {!isFan ? (
-                <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.055] to-transparent">
-                <div className="flex items-end justify-between gap-3 border-b border-white/[0.08] px-3.5 py-3">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/90">Einsatzminuten</p>
-                    <p className="mt-0.5 text-[11px] text-white/45">Startaufstellung und alle Wechsel</p>
-                  </div>
-                  {playedMatchMinutes > 0 ? (
-                    <span className="shrink-0 rounded-full border border-red-400/25 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold tabular-nums text-red-100">
-                      {playedMatchMinutes} Min. Spielzeit
-                    </span>
-                  ) : null}
-                </div>
-
-                {playtimeRows.length === 0 || playedMatchMinutes === 0 ? (
-                  <p className="px-3.5 py-4 text-[13px] leading-relaxed text-white/55">
-                    Für dieses Spiel sind keine vollständigen Live-Spielzeiten gespeichert.
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-white/[0.065]">
-                    {playtimeRows.map((row) => {
-                      const minutes = Math.min(playedMatchMinutes, Math.max(0, Math.round(row.seconds / 60)));
-                      const share = playedMatchMinutes > 0 ? Math.min(100, (minutes / playedMatchMinutes) * 100) : 0;
-                      return (
-                        <li key={row.id} className="px-3 py-2.5">
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-black/55 text-[12px] font-black text-white/80">
-                              {row.avatarUrl ? (
-                                <img src={row.avatarUrl} alt="" className="h-full w-full object-cover" />
-                              ) : row.jerseyNumber != null ? (
-                                row.jerseyNumber
-                              ) : (
-                                row.name.slice(0, 1).toUpperCase()
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex min-w-0 items-center justify-between gap-3">
-                                <p className="min-w-0 truncate text-[13px] font-semibold text-white/90">{row.name}</p>
-                                <p className="shrink-0 text-[15px] font-black tabular-nums text-white">
-                                  {minutes} <span className="text-[10px] font-bold uppercase text-white/45">Min.</span>
-                                </p>
-                              </div>
-                              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-red-700 via-red-500 to-red-300 shadow-[0_0_8px_rgba(239,68,68,0.42)]"
-                                  style={{ width: `${share}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-                </section>
-              ) : null}
-            </div>
-          ) : null}
-
-          {finishedTab === 'timeline' ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Liveticker</p>
-                <span className="text-[12px] text-white/45">{timelineEvents.length} Ereignisse</span>
-              </div>
-              {timelineEvents.length === 0 ? (
-                <p className="text-[14px] text-white/70">Noch keine Ereignisse erfasst.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {tickerRows.map((row, index) => {
-                    const r = row.items[0];
-                    const t0 = normalizeSubEventType(row.items[0]?.type);
-                    const t1 = row.items[1] ? normalizeSubEventType(row.items[1]?.type) : '';
-                    const stadiumGoal = normalizeMatchEventGoalType(r.type);
-                    const t = String(r.type ?? '').toLowerCase();
-                    const isAtomicSubstitution = row.items.length === 1 && t0 === 'substitution';
-                    const isPairSwitch = row.items.length === 2 && t0 === 'sub_out' && t1 === 'sub_in';
-                    const isPosSwap = t0 === 'position_swap';
-                    const isSwitch =
-                      isAtomicSubstitution ||
-                      isPairSwitch ||
-                      (!isPosSwap && (t0 === 'sub_out' || t0 === 'sub_in'));
-                    const name = playerName(r.player_id);
-                    const switchOutName = isAtomicSubstitution
-                      ? playerName(row.items[0]?.player_id ?? null)
-                      : isPairSwitch
-                        ? playerName(row.items[0]?.player_id ?? null)
-                        : t0 === 'sub_out'
-                          ? name
-                          : null;
-                    const switchInName = isAtomicSubstitution
-                      ? playerName(substitutionInPlayerIdFromRow(row.items[0]!) || null)
-                      : isPairSwitch
-                        ? playerName(row.items[1]?.player_id ?? null)
-                        : t0 === 'sub_in'
-                          ? name
-                          : null;
-                    const swapWithId =
-                      isPosSwap && r.payload && typeof r.payload === 'object'
-                        ? String((r.payload as Record<string, unknown>).swap_player_id ?? '').trim()
-                        : '';
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.04),transpar…5867 tokens truncated…';
                     const swapWithName = swapWithId ? playerName(swapWithId) : null;
                     const minuteSourceSec = isPairSwitch
                       ? Math.max(matchEventStoredSeconds(row.items[0]!), matchEventStoredSeconds(row.items[1]!))
@@ -3995,24 +3651,31 @@ export const EventDetailPage: React.FC = () => {
             ) : loadingRsvp ? (
               <p className="text-[14px] text-white/70">Lade Status…</p>
             ) : (
-              <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
-                <button
-                  type="button"
-                  className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
-                  onClick={() => void handleRsvp('yes')}
-                >
-                  <ThumbsUp className="h-4 w-4" aria-hidden />
-                  Zusage
-                </button>
-                <button
-                  type="button"
-                  className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
-                  onClick={() => void handleRsvp('no')}
-                >
-                  <ThumbsDown className="h-4 w-4" aria-hidden />
-                  Absage
-                </button>
-              </div>
+              <>
+                <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                  <button
+                    type="button"
+                    className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
+                    onClick={() => void handleRsvp('yes')}
+                  >
+                    <ThumbsUp className="h-4 w-4" aria-hidden />
+                    Zusage
+                  </button>
+                  <button
+                    type="button"
+                    className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
+                    onClick={() => void handleRsvp('no')}
+                  >
+                    <ThumbsDown className="h-4 w-4" aria-hidden />
+                    Absage
+                  </button>
+                </div>
+                {rsvpStatus === 'yes' || rsvpStatus === 'no' ? (
+                  <p className="text-center text-[12px] text-white/48">
+                    Aktive Auswahl erneut tippen = Offen
+                  </p>
+                ) : null}
+              </>
             )}
           </Card>
         ) : null}
