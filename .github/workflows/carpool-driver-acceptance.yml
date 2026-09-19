@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/carpool-driver-acceptance.yml"
       - "supabase/migrations/20260919204500_carpool_driver_acceptance.sql"
+      - "supabase/migrations/20260919215500_carpool_driver_display_name.sql"
 
 permissions:
   contents: read
@@ -21,8 +22,8 @@ jobs:
     timeout-minutes: 10
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      MIGRATION_VERSION: "20260919204500"
-      MIGRATION_FILE: supabase/migrations/20260919204500_carpool_driver_acceptance.sql
+      MIGRATION_VERSION: "20260919215500"
+      MIGRATION_FILE: supabase/migrations/20260919215500_carpool_driver_display_name.sql
     steps:
       - uses: actions/checkout@v4
 
@@ -82,18 +83,22 @@ jobs:
 
             const result = await query(`
               SELECT
-                to_regprocedure('public.accept_event_carpool_request(uuid,uuid)') IS NOT NULL AS accept_rpc,
-                to_regprocedure('public.validate_event_carpool_reservation()') IS NOT NULL AS validation_function,
-                to_regprocedure('public.enqueue_event_carpool_notification()') IS NOT NULL AS notification_function,
+                to_regprocedure('public.resolve_event_carpool_driver_name(uuid,text)') IS NOT NULL AS resolver,
+                to_regprocedure('public.normalize_event_carpool_driver_name()') IS NOT NULL AS normalizer,
+                EXISTS (
+                  SELECT 1 FROM pg_trigger
+                  WHERE tgname = 'trg_event_carpool_offer_00_driver_name'
+                    AND NOT tgisinternal
+                ) AS normalization_trigger,
                 EXISTS (
                   SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '${version}'
                 ) AS migration_recorded;
             `);
-            if (!result?.[0]?.accept_rpc || !result?.[0]?.validation_function ||
-                !result?.[0]?.notification_function || !result?.[0]?.migration_recorded) {
-              throw new Error('Carpool driver acceptance verification failed.');
+            if (!result?.[0]?.resolver || !result?.[0]?.normalizer ||
+                !result?.[0]?.normalization_trigger || !result?.[0]?.migration_recorded) {
+              throw new Error('Carpool driver name verification failed.');
             }
-            console.log(`CARPOOL_DRIVER_ACCEPTANCE_OK (${expectedName})`);
+            console.log(`CARPOOL_DRIVER_NAME_OK (${expectedName})`);
           })().catch((error) => {
             console.error(error.message);
             process.exit(1);
