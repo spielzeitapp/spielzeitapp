@@ -16,7 +16,7 @@ SET driver_name = 'Familie ' || coalesce(
     JOIN public.players pl ON pl.id = pg.player_id
     WHERE pg.user_id = o.driver_user_id
       AND nullif(btrim(pl.last_name), '') IS NOT NULL
-    ORDER BY pg.created_at, pl.id
+    ORDER BY pl.id
     LIMIT 1
   )
 )
@@ -33,7 +33,7 @@ WHERE lower(btrim(o.driver_name)) = 'familie'
       JOIN public.players pl ON pl.id = pg.player_id
       WHERE pg.user_id = o.driver_user_id
         AND nullif(btrim(pl.last_name), '') IS NOT NULL
-      ORDER BY pg.created_at, pl.id
+      ORDER BY pl.id
       LIMIT 1
     )
   ) IS NOT NULL;
