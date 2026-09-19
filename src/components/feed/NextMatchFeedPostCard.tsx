@@ -29,6 +29,8 @@ import { matchFeedCtaLabel, resolveMatchGameHref } from '../../lib/matchFeedLink
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
+import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 
 type Props = {
   post: NextMatchFeedPostRow;
@@ -38,6 +40,7 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
+  onFeedPostUpdated?: () => void;
 };
 
 const PLACEHOLDER = '/logos/placeholder-shield-a.png';
@@ -99,6 +102,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
+  onFeedPostUpdated,
 }) => {
   const p = post.payload;
   const displayHomeName = normalizeOefbImportedTeamName(p.display_home_name) || p.display_home_name;
@@ -180,13 +184,19 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
         headerClassName="bg-black/25"
         actions={
           staffCanDelete && onFeedPostDeleted ? (
-            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+            <div className="flex items-center gap-2">
+              <AutoFeedPostMediaEditButton post={post} title="Ankündigungsbild" onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
+              <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+            </div>
           ) : null
         }
       />
       <FeedPostTypeBadge>Ankündigung</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
+        {post.media_url?.trim() ? (
+          <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Ankündigungsbild" />
+        ) : (
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
 
@@ -244,6 +254,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
             </div>
           </div>
         </div>
+        )}
 
         {post.caption?.trim() ? (
           <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>

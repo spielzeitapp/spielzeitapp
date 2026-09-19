@@ -56,6 +56,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }
@@ -69,6 +70,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }
@@ -82,6 +84,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }
@@ -95,6 +98,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }
@@ -108,6 +112,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }
@@ -142,6 +147,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }
@@ -153,6 +159,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }
@@ -164,6 +171,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}
+        onFeedPostUpdated={onFeedPostUpdated}
       />
     );
   }

@@ -34,6 +34,8 @@ import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { canSeeMeetup, normalizeRole } from '../../lib/roles';
+import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
+import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -44,6 +46,7 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
+  onFeedPostUpdated?: () => void;
 };
 
 function likeStorageKey(postId: string): string {
@@ -88,6 +91,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
+  onFeedPostUpdated,
 }) => {
   const p = post.payload as MatchdayFeedPayload;
   const displayHomeName = normalizeOefbImportedTeamName(p.display_home_name) || p.display_home_name;
@@ -330,7 +334,10 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
         headerClassName="bg-black/25"
         actions={
           staffCanDelete && onFeedPostDeleted ? (
-            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+            <div className="flex items-center gap-2">
+              <AutoFeedPostMediaEditButton post={post} title="Spieltagbild" onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
+              <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+            </div>
           ) : null
         }
       />
@@ -343,6 +350,9 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
       </FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
+        {post.media_url?.trim() ? (
+          <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Spieltagbild" />
+        ) : (
         <MatchdayPosterCard
           ref={posterCaptureRef}
           homeTeamName={displayHomeName}
@@ -362,6 +372,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           announcementTiming={announcementTiming}
           playerImageUrl={posterPlayerImageUrl}
         />
+        )}
 
         {post.caption?.trim() ? (
           <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>
