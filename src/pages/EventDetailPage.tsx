@@ -1121,11 +1121,13 @@ export const EventDetailPage: React.FC = () => {
 
   const handleRsvp = useCallback(
     async (status: 'yes' | 'no' | 'sick' | 'injured' | 'external_training', _reason?: string) => {
+      const shouldResetToOpen = rsvpStatus === status;
       console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
         caller: 'EventDetailPage.handleRsvp',
         table: isDemo ? 'demo-local' : 'event_attendance',
         eventId,
         status,
+        action: shouldResetToOpen ? 'reset-to-open' : 'set-status',
         effectiveRole,
       });
       let resolvedPlayerId = playerId ?? null;
@@ -1133,6 +1135,19 @@ export const EventDetailPage: React.FC = () => {
 
       if (isDemo && demo) {
         if (!resolvedPlayerId) resolvedPlayerId = demo.selfPlayerId;
+        if (shouldResetToOpen) {
+          demo.setDemoAttendance(eventId, resolvedPlayerId, null);
+          setRsvpStatus(null);
+          setEventAttendanceByPlayerId((prev) => {
+            const next = { ...prev };
+            delete next[(resolvedPlayerId ?? '').toLowerCase()];
+            return next;
+          });
+          setAttendanceModalOpen(false);
+          setCancelReason('');
+          await loadEventAttendance();
+          return;
+        }
         if (status === 'external_training' && event?.kind === 'training') {
           const p = players.find((x) => x.id === resolvedPlayerId);
           if (!p?.is_laz_player) return;
@@ -1163,6 +1178,25 @@ export const EventDetailPage: React.FC = () => {
       }
       if (!resolvedPlayerId) return;
 
+      if (shouldResetToOpen) {
+        const result = await supabase
+          .from('event_attendance')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('player_id', resolvedPlayerId);
+        if (result.error) return;
+        setRsvpStatus(null);
+        setEventAttendanceByPlayerId((prev) => {
+          const next = { ...prev };
+          delete next[(resolvedPlayerId ?? '').toLowerCase()];
+          return next;
+        });
+        setAttendanceModalOpen(false);
+        setCancelReason('');
+        await loadEventAttendance();
+        return;
+      }
+
       if (status === 'external_training' && event?.kind === 'training') {
         const { data: lazRow, error: lazErr } = await supabase
           .from('players')
@@ -1192,7 +1226,7 @@ export const EventDetailPage: React.FC = () => {
       setCancelReason('');
       await loadEventAttendance();
     },
-    [eventId, playerId, effectiveRole, loadEventAttendance, event?.kind, isDemo, demo, players]
+    [eventId, playerId, rsvpStatus, effectiveRole, loadEventAttendance, event?.kind, isDemo, demo, players]
   );
 
   /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. */
@@ -3985,24 +4019,31 @@ export const EventDetailPage: React.FC = () => {
             ) : loadingRsvp ? (
               <p className="text-[14px] text-white/70">Lade Status…</p>
             ) : (
-              <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
-                <button
-                  type="button"
-                  className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
-                  onClick={() => void handleRsvp('yes')}
-                >
-                  <ThumbsUp className="h-4 w-4" aria-hidden />
-                  Zusage
-                </button>
-                <button
-                  type="button"
-                  className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
-                  onClick={() => void handleRsvp('no')}
-                >
-                  <ThumbsDown className="h-4 w-4" aria-hidden />
-                  Absage
-                </button>
-              </div>
+              <>
+                <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                  <button
+                    type="button"
+                    className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
+                    onClick={() => void handleRsvp('yes')}
+                  >
+                    <ThumbsUp className="h-4 w-4" aria-hidden />
+                    Zusage
+                  </button>
+                  <button
+                    type="button"
+                    className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
+                    onClick={() => void handleRsvp('no')}
+                  >
+                    <ThumbsDown className="h-4 w-4" aria-hidden />
+                    Absage
+                  </button>
+                </div>
+                {rsvpStatus === 'yes' || rsvpStatus === 'no' ? (
+                  <p className="text-center text-[12px] text-white/48">
+                    Aktive Auswahl erneut tippen = Offen
+                  </p>
+                ) : null}
+              </>
             )}
           </Card>
         ) : null}

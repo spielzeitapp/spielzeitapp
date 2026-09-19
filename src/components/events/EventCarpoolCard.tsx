@@ -15,7 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import { profileDisplayName, useProfile } from '../../auth/useProfile';
+import { useProfile } from '../../auth/useProfile';
 import { meetupUtcIsoOnViennaEventDay, utcIsoToViennaTimeHHmm } from '../../lib/viennaTime';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import { Card } from '../../app/components/ui/Card';
@@ -70,6 +70,22 @@ function playerName(player: PlayerItem | undefined): string {
     [player.first_name, player.last_name].filter(Boolean).join(' ').trim() ||
     'Spieler'
   );
+}
+
+function familyDriverName(
+  profile: { last_name?: string | null } | null,
+  myPlayerIds: string[],
+  playerById: Map<string, PlayerItem>,
+): string {
+  const profileLastName = (profile?.last_name ?? '').trim();
+  if (profileLastName) return `Familie ${profileLastName}`;
+
+  for (const playerId of myPlayerIds) {
+    const lastName = (playerById.get(playerId)?.last_name ?? '').trim();
+    if (lastName) return `Familie ${lastName}`;
+  }
+
+  return 'Familie';
 }
 
 function friendlyError(value: unknown): string {
@@ -141,6 +157,10 @@ export const EventCarpoolCard: React.FC<Props> = ({
         .map((id) => ({ id, name: playerName(playerById.get(id)) }))
         .sort((a, b) => a.name.localeCompare(b.name, 'de-AT')),
     [myPlayerIds, playerById],
+  );
+  const ownDriverName = useMemo(
+    () => familyDriverName(profile, myPlayerIds, playerById),
+    [profile, myPlayerIds, playerById],
   );
 
   const load = useCallback(async () => {
@@ -220,6 +240,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
     setBusy(true);
     setError(null);
     const payload = {
+      driver_name: ownDriverName,
       departure_at: meetupUtcIsoOnViennaEventDay(eventStartsAt, offerTime),
       departure_location: offerLocation.trim(),
       seat_count: seatCount,
@@ -232,7 +253,6 @@ export const EventCarpoolCard: React.FC<Props> = ({
           ...payload,
           event_id: eventId,
           driver_user_id: currentUserId,
-          driver_name: profileDisplayName(profile) ?? 'Familie',
         });
     setBusy(false);
     if (result.error) {
@@ -327,6 +347,22 @@ export const EventCarpoolCard: React.FC<Props> = ({
     else await load();
   };
 
+  const acceptRequest = async (row: CarpoolRequest) => {
+    if (!ownOffer) return;
+    setBusy(true);
+    setError(null);
+    const { error: acceptError } = await supabase.rpc('accept_event_carpool_request', {
+      p_offer_id: ownOffer.id,
+      p_request_id: row.id,
+    });
+    setBusy(false);
+    if (acceptError) {
+      setError(friendlyError(acceptError));
+      return;
+    }
+    await load();
+  };
+
   const playerActionCandidates = myPlayers.filter((player) => {
     if (playerAction?.kind === 'reserve') return !reservations.some((row) => row.player_id === player.id);
     return (
@@ -380,7 +416,6 @@ export const EventCarpoolCard: React.FC<Props> = ({
               const offerReservations = reservations.filter((row) => row.offer_id === offer.id);
               const freeSeats = Math.max(0, offer.seat_count - offerReservations.length);
               const isOwn = offer.driver_user_id === currentUserId;
-              const ownReservations = offerReservations.filter((row) => myPlayerIds.includes(row.player_id));
               const hasUnreservedOwnPlayer = myPlayers.some(
                 (player) => !reservations.some((row) => row.player_id === player.id),
               );
@@ -422,22 +457,37 @@ export const EventCarpoolCard: React.FC<Props> = ({
                   </div>
                   {offer.note ? <p className="mt-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5 text-[14px] leading-relaxed text-white/70">{offer.note}</p> : null}
                   {offerReservations.length > 0 ? (
-                    <div className="mt-3 flex items-start gap-2 border-t border-white/[0.07] pt-3 text-[14px] text-white/72">
-                      <Users className="sz-club-accent-text mt-0.5 h-4 w-4 shrink-0" />
-                      <span>Mitfahrer: {offerReservations.map((row) => playerName(playerById.get(row.player_id))).join(', ')}</span>
+                    <div className="mt-3 border-t border-white/[0.07] pt-3 text-[14px] text-white/72">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Users className="sz-club-accent-text h-4 w-4 shrink-0" />
+                        <span className="font-semibold">Mitfahrer</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {offerReservations.map((row) => {
+                          const canRemovePassenger = isOwn || canManage || myPlayerIds.includes(row.player_id);
+                          return (
+                            <span
+                              key={row.id}
+                              className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[14px] font-medium text-white/80"
+                            >
+                              {playerName(playerById.get(row.player_id))}
+                              {canRemovePassenger ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  className="ml-0.5 text-white/45 hover:text-white"
+                                  onClick={() => void cancelReservation(row)}
+                                  aria-label={`Mitfahrt für ${playerName(playerById.get(row.player_id))} zurücknehmen`}
+                                >
+                                  ×
+                                </button>
+                              ) : null}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
                   ) : null}
-                  {ownReservations.map((reservation) => (
-                    <button
-                      key={reservation.id}
-                      type="button"
-                      disabled={busy}
-                      className={`mt-3 w-full ${dsSecondaryCtaClass()}`}
-                      onClick={() => void cancelReservation(reservation)}
-                    >
-                      Reservierung für {playerName(playerById.get(reservation.player_id))} zurücknehmen
-                    </button>
-                  ))}
                   {freeSeats > 0 && hasUnreservedOwnPlayer ? (
                     <button type="button" disabled={busy} className={`mt-3 w-full ${dsPrimaryCtaClass()}`} onClick={() => openPlayerAction({ kind: 'reserve', offerId: offer.id })}>
                       <UserPlus className="h-4 w-4" aria-hidden /> Platz reservieren
@@ -450,14 +500,41 @@ export const EventCarpoolCard: React.FC<Props> = ({
             {requests.length > 0 ? (
               <div className="rounded-xl border border-amber-300/16 bg-amber-400/[0.06] px-3 py-2.5">
                 <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-amber-200/80">Platz gesucht</p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <div className="mt-2 grid gap-2">
                   {requests.map((request) => {
                     const own = myPlayerIds.includes(request.player_id);
+                    const ownOfferReservations = ownOffer
+                      ? reservations.filter((row) => row.offer_id === ownOffer.id).length
+                      : 0;
+                    const canAccept = Boolean(ownOffer && ownOfferReservations < ownOffer.seat_count && !own);
                     return (
-                      <span key={request.id} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[14px] font-medium text-white/80">
-                        {playerName(playerById.get(request.player_id))}
-                        {own ? <button type="button" disabled={busy} className="ml-0.5 text-white/45 hover:text-white" onClick={() => void cancelRequest(request)} aria-label="Platzgesuch zurücknehmen">×</button> : null}
-                      </span>
+                      <div
+                        key={request.id}
+                        className="flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+                      >
+                        <span className="min-w-0 truncate text-[14px] font-medium text-white/84">
+                          {playerName(playerById.get(request.player_id))}
+                        </span>
+                        {own ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            className="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold text-white/58 hover:bg-white/[0.06] hover:text-white"
+                            onClick={() => void cancelRequest(request)}
+                          >
+                            Zurücknehmen
+                          </button>
+                        ) : canAccept ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            className="shrink-0 rounded-lg border border-emerald-400/25 bg-emerald-500/14 px-3 py-1.5 text-[12px] font-bold text-emerald-300 active:scale-95"
+                            onClick={() => void acceptRequest(request)}
+                          >
+                            Mitnehmen
+                          </button>
+                        ) : null}
+                      </div>
                     );
                   })}
                 </div>
