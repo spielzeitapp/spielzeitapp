@@ -3,7 +3,7 @@ import type { ResultFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
-import { ResultFeedPostEditButton } from './ResultFeedPostEditButton';
+import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
@@ -255,7 +255,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
   const headerActions = staffCanDelete && onFeedPostDeleted ? (
     <div className="flex items-center gap-2">
-      <ResultFeedPostEditButton post={post} onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
+      <AutoFeedPostMediaEditButton post={post} title="Siegerbild" onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
       <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
     </div>
   ) : null;

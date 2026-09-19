@@ -4,6 +4,8 @@ import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import type { TournamentCompletionFeedPayload } from '../../lib/tournamentCompletionFeed';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
+import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
+import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -11,6 +13,7 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
+  onFeedPostUpdated?: () => void;
 };
 
 function parsePayload(raw: unknown): TournamentCompletionFeedPayload | null {
@@ -26,6 +29,7 @@ export function TournamentCompletionFeedPostCard({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
+  onFeedPostUpdated,
 }: Props) {
   const payload = parsePayload(post.payload);
   const caption = post.caption?.trim() || 'Turnier abgeschlossen';
@@ -42,12 +46,18 @@ export function TournamentCompletionFeedPostCard({
           </span>
         </span>
         {staffCanDelete ? (
-          <FeedPostDeleteButton
-            input={toFeedPostDeleteInput(post)}
-            onDeleted={() => onFeedPostDeleted?.()}
-          />
+          <div className="flex items-center gap-2">
+            <AutoFeedPostMediaEditButton post={post} title="Turnierbild" onUpdated={onFeedPostUpdated ?? (() => onFeedPostDeleted?.())} />
+            <FeedPostDeleteButton
+              input={toFeedPostDeleteInput(post)}
+              onDeleted={() => onFeedPostDeleted?.()}
+            />
+          </div>
         ) : null}
       </div>
+      {post.media_url?.trim() ? (
+        <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Turnierbild" />
+      ) : null}
       <div className="px-3 py-3">
         <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/88">{caption}</p>
         {payload?.results && payload.results.length > 0 ? (

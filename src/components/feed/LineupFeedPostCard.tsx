@@ -38,6 +38,8 @@ import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
+import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 
 type Props = {
   post: LineupFeedPostRow;
@@ -47,6 +49,7 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
+  onFeedPostUpdated?: () => void;
 };
 
 /** 8 statt 7: FairPlay-Formationen haben einen Zusatzspieler (FP-Slot). */
@@ -75,6 +78,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
+  onFeedPostUpdated,
 }) => {
   const p = post.payload;
   const [liked, setLiked] = useState(false);
@@ -177,13 +181,19 @@ export const LineupFeedPostCard: React.FC<Props> = ({
         headerClassName="bg-black/25"
         actions={
           staffCanDelete && onFeedPostDeleted ? (
-            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+            <div className="flex items-center gap-2">
+              <AutoFeedPostMediaEditButton post={post} title="Aufstellungsbild" onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
+              <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+            </div>
           ) : null
         }
       />
       <FeedPostTypeBadge>Aufstellung</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
+        {post.media_url?.trim() ? (
+          <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Aufstellungsbild" />
+        ) : (
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
 
@@ -274,6 +284,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
             </div>
           </div>
         </div>
+        )}
 
         {post.caption?.trim() ? (
           <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>

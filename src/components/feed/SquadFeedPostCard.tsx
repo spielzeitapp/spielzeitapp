@@ -23,6 +23,8 @@ import {
   FeedStadiumHeroBackdrop,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
+import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
+import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 
 type Props = {
   post: SquadFeedPostRow;
@@ -32,6 +34,7 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
+  onFeedPostUpdated?: () => void;
 };
 
 export const SquadFeedPostCard: React.FC<Props> = ({
@@ -41,6 +44,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
+  onFeedPostUpdated,
 }) => {
   const p = post.payload;
   const [liked, setLiked] = useState(false);
@@ -72,12 +76,18 @@ export const SquadFeedPostCard: React.FC<Props> = ({
         seasonLabel={seasonLabel}
         whenLabel={formatDateTimeMediumDeVienna(post.created_at)}
         headerClassName="bg-black/25"
-        actions={staffCanDelete && onFeedPostDeleted
-          ? <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
-          : null}
+        actions={staffCanDelete && onFeedPostDeleted ? (
+          <div className="flex items-center gap-2">
+            <AutoFeedPostMediaEditButton post={post} title="Kaderbild" onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
+            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+          </div>
+        ) : null}
       />
       <FeedPostTypeBadge>Spieltag</FeedPostTypeBadge>
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
+        {post.media_url?.trim() ? (
+          <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Kaderbild" />
+        ) : (
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
           <div className="relative min-w-0 space-y-3">
@@ -120,6 +130,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
             <FeedGameCtaLink to={p.deep_link}>Zum Spiel</FeedGameCtaLink>
           </div>
         </div>
+        )}
         <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}><FeedCaption text={post.caption} /></div>
       </div>
       <FeedPostActionsFooter shareHint={shareHint}>

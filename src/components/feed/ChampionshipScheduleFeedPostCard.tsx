@@ -20,6 +20,8 @@ import { utcIsoToViennaTimeHHmm } from '../../lib/viennaTime';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { useSession } from '../../auth/useSession';
 import { canSeeMeetup, normalizeRole } from '../../lib/roles';
+import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
+import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -27,6 +29,7 @@ type Props = {
   seasonLabel?: string | null;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
+  onFeedPostUpdated?: () => void;
 };
 
 export function ChampionshipScheduleFeedPostCard({
@@ -35,6 +38,7 @@ export function ChampionshipScheduleFeedPostCard({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
+  onFeedPostUpdated,
 }: Props) {
   const basePath = useInternalBasePath();
   const payload = parseChampionshipSchedulePayload(post.payload);
@@ -48,12 +52,18 @@ export function ChampionshipScheduleFeedPostCard({
       <div className={FEED_POST_HEADER_CLASS}>
         <FeedCardHeaderBrand teamLabel={teamLabel} seasonLabel={seasonBadge} />
         {staffCanDelete ? (
-          <FeedPostDeleteButton
-            input={toFeedPostDeleteInput(post)}
-            onDeleted={() => onFeedPostDeleted?.()}
-          />
+          <div className="flex items-center gap-2">
+            <AutoFeedPostMediaEditButton post={post} title="Spielplanbild" onUpdated={onFeedPostUpdated ?? (() => onFeedPostDeleted?.())} />
+            <FeedPostDeleteButton
+              input={toFeedPostDeleteInput(post)}
+              onDeleted={() => onFeedPostDeleted?.()}
+            />
+          </div>
         ) : null}
       </div>
+      {post.media_url?.trim() ? (
+        <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Spielplanbild" />
+      ) : null}
       <div className={`${FEED_POST_BODY_CLASS} px-3 py-3 sm:px-4`}>
         <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-200/90">
           <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
@@ -87,6 +97,7 @@ export function ChampionshipMatchChangedFeedPostCard({
   seasonLabel,
   staffCanDelete,
   onFeedPostDeleted,
+  onFeedPostUpdated,
 }: Props) {
   const basePath = useInternalBasePath();
   const { backendRole, membershipRole } = useSession();
@@ -104,12 +115,18 @@ export function ChampionshipMatchChangedFeedPostCard({
       <div className={FEED_POST_HEADER_CLASS}>
         <FeedCardHeaderBrand teamLabel={teamLabel} seasonLabel={seasonLabel} />
         {staffCanDelete ? (
-          <FeedPostDeleteButton
-            input={toFeedPostDeleteInput(post)}
-            onDeleted={() => onFeedPostDeleted?.()}
-          />
+          <div className="flex items-center gap-2">
+            <AutoFeedPostMediaEditButton post={post} title="Terminbild" onUpdated={onFeedPostUpdated ?? (() => onFeedPostDeleted?.())} />
+            <FeedPostDeleteButton
+              input={toFeedPostDeleteInput(post)}
+              onDeleted={() => onFeedPostDeleted?.()}
+            />
+          </div>
         ) : null}
       </div>
+      {post.media_url?.trim() ? (
+        <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Bild zur Terminänderung" />
+      ) : null}
       <div className={`${FEED_POST_BODY_CLASS} px-3 py-3 sm:px-4`}>
         <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-200/90">
           <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
