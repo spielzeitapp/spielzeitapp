@@ -15,7 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import { useProfile } from '../../auth/useProfile';
+import { profileDisplayName, type ProfileRow, useProfile } from '../../auth/useProfile';
 import { meetupUtcIsoOnViennaEventDay, utcIsoToViennaTimeHHmm } from '../../lib/viennaTime';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import { Card } from '../../app/components/ui/Card';
@@ -73,7 +73,7 @@ function playerName(player: PlayerItem | undefined): string {
 }
 
 function familyDriverName(
-  profile: { last_name?: string | null } | null,
+  profile: ProfileRow | null,
   myPlayerIds: string[],
   playerById: Map<string, PlayerItem>,
 ): string {
@@ -85,7 +85,7 @@ function familyDriverName(
     if (lastName) return `Familie ${lastName}`;
   }
 
-  return 'Familie';
+  return profileDisplayName(profile) ?? 'Fahrer';
 }
 
 function friendlyError(value: unknown): string {
