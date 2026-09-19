@@ -117,16 +117,26 @@ type KindFilterId = ScheduleKindFilterId;
 type TimeFilterId = ScheduleTimeFilterId;
 type TimeBucketId = 'upcoming' | 'past';
 
-function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
-  const s = e.status ?? 'upcoming';
-  if (s === 'live') return 'live';
-  if (s === 'finished' || s === 'canceled') return 'finished';
-  return 'upcoming';
+function isFinishedMatchStatus(value: string | null | undefined): boolean {
+  const status = String(value ?? '').trim().toLowerCase();
+  return status === 'finished' || status === 'ended' || status === 'completed';
 }
 
-function getTimeBucket(e: EventRow, now: Date): TimeBucketId {
+function getTimeBucket(
+  e: EventRow,
+  now: Date,
+  matchStatus?: string | null,
+  treatFinishedMatchAsPast = false,
+): TimeBucketId {
   const status = e.status ?? 'upcoming';
   if (status === 'finished' || status === 'canceled') return 'past';
+  if (
+    treatFinishedMatchAsPast &&
+    getEffectiveEventType(e) === 'game' &&
+    isFinishedMatchStatus(matchStatus)
+  ) {
+    return 'past';
+  }
   if (status === 'live') return 'upcoming';
   const et = getEffectiveEventType(e);
   if (et === 'training' || et === 'event' || et === 'other' || et === 'tournament') {
@@ -1070,18 +1080,21 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     });
 
     const bucketForView = (event: EventRow): TimeBucketId =>
-      normalizedUiRole === 'fan'
-        ? getEventTab(event) === 'finished'
-          ? 'past'
-          : 'upcoming'
-        : getTimeBucket(event, now);
+      getTimeBucket(
+        event,
+        now,
+        event.match_id ? matchStatusById[event.match_id] : null,
+        !canManage,
+      );
 
     const compareUpcoming = (a: EventRow, b: EventRow) => {
       const reviewA = Boolean(
+        canManage &&
         a.match_id &&
           isMatchReviewPending({ eventStatus: a.status, matchStatus: matchStatusById[a.match_id] }),
       );
       const reviewB = Boolean(
+        canManage &&
         b.match_id &&
           isMatchReviewPending({ eventStatus: b.status, matchStatus: matchStatusById[b.match_id] }),
       );
@@ -1106,9 +1119,11 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
         return (b.starts_at ?? '').localeCompare(a.starts_at ?? '');
       }
       const reviewA =
+        canManage &&
         a.match_id &&
         isMatchReviewPending({ eventStatus: a.status, matchStatus: matchStatusById[a.match_id] });
       const reviewB =
+        canManage &&
         b.match_id &&
         isMatchReviewPending({ eventStatus: b.status, matchStatus: matchStatusById[b.match_id] });
       if (reviewA !== reviewB) return reviewA ? -1 : 1;
@@ -1118,15 +1133,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
       return (a.starts_at ?? '').localeCompare(b.starts_at ?? '');
     });
 
-    // Fan: nur Spiele.
-    if (normalizedUiRole === 'fan') {
-      if (timeFilter === 'upcoming') {
-        return sorted.filter((e) => getEventTab(e) !== 'finished');
-      }
-      return sorted.filter((e) => getEventTab(e) === 'finished');
-    }
-    return sorted.filter((e) => getTimeBucket(e, now) === timeFilter);
-  }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById]);
+    return sorted.filter((event) => bucketForView(event) === timeFilter);
+  }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById, canManage]);
 
   const showHeroCard = useMemo(() => {
     if (displayEvents.length === 0) return false;
@@ -1773,6 +1781,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             : undefined;
                         const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
                         const matchReviewPending = Boolean(
+                          canManage &&
                           ev.match_id &&
                             isMatchReviewPending({
                               eventStatus: ev.status,
@@ -1780,7 +1789,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             }),
                         );
                         const isFinishedMatch =
-                          et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
+                          et === 'game' &&
+                          Boolean(ev.match_id) &&
+                          (ev.status === 'finished' ||
+                            (!canManage && isFinishedMatchStatus(matchStatusById[ev.match_id!])));
                         const publicWrap = forcePublicView
                           ? {
                               onClick: (e: React.MouseEvent) => {
@@ -2050,7 +2062,11 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         canShowRsvpUi
                           ? attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null
                           : undefined;
-                      const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
+                      const isFinishedMatch =
+                        et === 'game' &&
+                        Boolean(ev.match_id) &&
+                        (ev.status === 'finished' ||
+                          (!canManage && isFinishedMatchStatus(matchStatusById[ev.match_id!])));
                       const showCompactTrainerStats =
                         normalizedUiRole !== 'fan' && !managerSimpleMode && !forcePublicView && !isFinishedMatch && canManage;
                       const showCompactParentPill =
@@ -2090,13 +2106,14 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                       const opponentLogo = ev.opponent_logo_url ?? null;
                       const matchScoreRow = ev.match_id ? matchScoreById[ev.match_id] : undefined;
                       const matchReviewPending = Boolean(
+                        canManage &&
                         ev.match_id &&
                           isMatchReviewPending({
                             eventStatus: ev.status,
                             matchStatus: matchStatusById[ev.match_id],
                           }),
                       );
-                      const showPastResultCard = et === 'game' && ev.status === 'finished';
+                      const showPastResultCard = isFinishedMatch;
                       if (showPastResultCard) {
                         return (
                           <React.Fragment key={ev.id}>

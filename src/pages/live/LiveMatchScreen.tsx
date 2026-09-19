@@ -3668,7 +3668,7 @@ export const LiveMatchScreen: React.FC = () => {
     const inId = editingSubstitutionInId.trim();
     const minute = Number(editingSubstitutionMinute);
     if (!event || event.type !== 'substitution' || editingSubstitutionSaving) return;
-    if (!canControlLiveMatch || calendarFinalized || !effectiveMatchId) return;
+    if (!canControlLiveMatch || !effectiveMatchId) return;
     if (!outId || !inId || outId === inId) {
       setSaveError('Bitte unterschiedliche Spieler für Raus und Rein auswählen.');
       return;
@@ -3759,7 +3759,6 @@ export const LiveMatchScreen: React.FC = () => {
     editingSubstitutionMinute,
     editingSubstitutionSaving,
     canControlLiveMatch,
-    calendarFinalized,
     effectiveMatchId,
     events,
     liveLineupBasePlayerIds,
@@ -4095,7 +4094,7 @@ export const LiveMatchScreen: React.FC = () => {
         ? substitutionOutInIds(atomic).inId
         : String(row.items[1]?.playerId ?? '').trim();
       const line = formatSubstitutionTickerLine(rosterById, outId, inId);
-      const canEditSubstitution = Boolean(canControlLiveMatch && !calendarFinalized && atomic);
+      const canEditSubstitution = Boolean(canControlLiveMatch && atomic);
       const openSubstitutionEdit = () => {
         if (!atomic) return;
         setEditingSubstitutionEvent(atomic);
@@ -4151,9 +4150,7 @@ export const LiveMatchScreen: React.FC = () => {
 
     const ev = row.items[0];
     const canEditGoal =
-      canControlLiveMatch &&
-      !calendarFinalized &&
-      (ev.type === 'goal' || ev.type === 'goal_away');
+      canControlLiveMatch && (ev.type === 'goal' || ev.type === 'goal_away');
     const openGoalEdit = () => {
       setEditingGoalEvent(ev);
       setEditingGoalScorerId(ev.playerId ?? '');
