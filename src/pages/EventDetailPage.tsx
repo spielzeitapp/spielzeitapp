@@ -1198,21 +1198,42 @@ export const EventDetailPage: React.FC = () => {
   /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. */
   const handleTrainerRsvp = useCallback(
     async (targetPlayerId: string, status: 'yes' | 'no') => {
+      const pidKey = (targetPlayerId ?? '').toLowerCase();
+      const shouldResetToOpen = eventAttendanceByPlayerId[pidKey] === status;
       console.log('[ATTENDANCE FLOW] handleTrainerRsvp invoked', {
         caller: 'EventDetailPage.handleTrainerRsvp',
         table: isDemo ? 'demo-local' : 'event_attendance',
         eventId,
         targetPlayerId,
         status,
+        action: shouldResetToOpen ? 'reset-to-open' : 'set-status',
       });
       if (!eventId || !canTrainerManageEvent) return;
 
       if (isDemo && demo) {
-        demo.setDemoAttendance(eventId, targetPlayerId, status);
-        setEventAttendanceByPlayerId((prev) => ({
-          ...prev,
-          [(targetPlayerId ?? '').toLowerCase()]: status,
-        }));
+        demo.setDemoAttendance(eventId, targetPlayerId, shouldResetToOpen ? null : status);
+        setEventAttendanceByPlayerId((prev) => {
+          const next = { ...prev };
+          if (shouldResetToOpen) delete next[pidKey];
+          else next[pidKey] = status;
+          return next;
+        });
+        await loadEventAttendance();
+        return;
+      }
+
+      if (shouldResetToOpen) {
+        const result = await supabase
+          .from('event_attendance')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('player_id', targetPlayerId);
+        if (result.error) return;
+        setEventAttendanceByPlayerId((prev) => {
+          const next = { ...prev };
+          delete next[pidKey];
+          return next;
+        });
         await loadEventAttendance();
         return;
       }
@@ -1230,10 +1251,10 @@ export const EventDetailPage: React.FC = () => {
       });
       const result = await upsertEventAttendanceMinimal(supabase, payload);
       if (result.error) return;
-      setEventAttendanceByPlayerId((prev) => ({ ...prev, [(targetPlayerId ?? '').toLowerCase()]: status }));
+      setEventAttendanceByPlayerId((prev) => ({ ...prev, [pidKey]: status }));
       await loadEventAttendance();
     },
-    [eventId, event?.kind, canTrainerManageEvent, loadEventAttendance, isDemo, demo]
+    [eventId, canTrainerManageEvent, eventAttendanceByPlayerId, loadEventAttendance, isDemo, demo]
   );
 
   const getMatchRsvpDisplay = useCallback(
@@ -4180,8 +4201,10 @@ export const EventDetailPage: React.FC = () => {
                                                 ? 'bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]'
                                                 : 'bg-white/[0.045] text-white/45 hover:text-emerald-300'
                                             }`}
-                                            aria-label={`${premiumPlayerDisplayName(player)} auf Dabei setzen`}
-                                            title="Dabei"
+                                            aria-label={`${premiumPlayerDisplayName(player)} ${
+                                              bucket === 'yes' ? 'wieder auf Offen setzen' : 'auf Dabei setzen'
+                                            }`}
+                                            title={bucket === 'yes' ? 'Wieder auf Offen setzen' : 'Dabei'}
                                           >
                                             <ThumbsUp className="h-4 w-4" aria-hidden />
                                           </button>
@@ -4193,8 +4216,10 @@ export const EventDetailPage: React.FC = () => {
                                                 ? 'bg-red-950/80 text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.16)]'
                                                 : 'bg-white/[0.045] text-white/45 hover:text-[#FF8D98]'
                                             }`}
-                                            aria-label={`${premiumPlayerDisplayName(player)} auf Abwesend setzen`}
-                                            title="Abwesend"
+                                            aria-label={`${premiumPlayerDisplayName(player)} ${
+                                              bucket === 'no' ? 'wieder auf Offen setzen' : 'auf Abwesend setzen'
+                                            }`}
+                                            title={bucket === 'no' ? 'Wieder auf Offen setzen' : 'Abwesend'}
                                           >
                                             <ThumbsDown className="h-4 w-4" aria-hidden />
                                           </button>
