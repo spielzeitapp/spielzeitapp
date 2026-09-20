@@ -68,7 +68,7 @@ export const InternalLayout: React.FC = () => {
   const demo = useDemoMode();
   const isDemo = Boolean(demo) || location.pathname.startsWith('/demo');
   const { user } = useAuth();
-  const { memberships, loading: sessionLoading, backendRole, previewRole } = useSession();
+  const { memberships, loading: sessionLoading, membershipError, backendRole, previewRole } = useSession();
   const [gateChecking, setGateChecking] = useState(true);
   /** user.id whose invite/onboarding gate already allowed the app shell (render). */
   const [gatePassedUserId, setGatePassedUserId] = useState<string | null>(null);
@@ -171,6 +171,14 @@ export const InternalLayout: React.FC = () => {
 
       if (!user || sessionLoading) {
         if (alive) setGateChecking(true);
+        return;
+      }
+
+      // Bei einem Teamdaten-Timeout die angemeldete App nicht dauerhaft blockieren.
+      // Die Datenrechte bleiben weiterhin durch Auth und Supabase-RLS geschützt.
+      if (membershipError) {
+        console.warn('[OnboardingGate] membership load failed — allowing app shell', membershipError);
+        if (alive) allowAppShell();
         return;
       }
 
@@ -294,6 +302,7 @@ export const InternalLayout: React.FC = () => {
     onExemptPath,
     user,
     sessionLoading,
+    membershipError,
     backendRole,
     previewRole,
     memberships,
