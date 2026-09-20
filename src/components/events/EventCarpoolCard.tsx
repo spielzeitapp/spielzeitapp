@@ -54,6 +54,7 @@ type CarpoolPickupDetail = {
   pickup_at: string;
   pickup_location: string;
   message: string | null;
+  confirmed_at: string | null;
 };
 
 type PlayerChoice = { id: string; name: string };
@@ -196,7 +197,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
           .eq('event_id', eventId),
         supabase
           .from('event_carpool_pickup_details')
-          .select('reservation_id,pickup_at,pickup_location,message')
+          .select('reservation_id,pickup_at,pickup_location,message,confirmed_at')
           .eq('event_id', eventId),
       ]);
       if (offerResult.error) throw offerResult.error;
@@ -423,6 +424,21 @@ export const EventCarpoolCard: React.FC<Props> = ({
     await load();
   };
 
+  const confirmPickupDetails = async (reservation: CarpoolReservation) => {
+    setBusy(true);
+    setError(null);
+    const { error: confirmError } = await supabase.rpc('confirm_event_carpool_pickup', {
+      p_reservation_id: reservation.id,
+    });
+    setBusy(false);
+    if (confirmError) {
+      setError(friendlyError(confirmError));
+      return;
+    }
+    setNotice(`Die Abholung für ${playerName(playerById.get(reservation.player_id))} wurde bestätigt.`);
+    await load();
+  };
+
   const playerActionCandidates = myPlayers.filter((player) => {
     if (playerAction?.kind === 'reserve') return !reservations.some((row) => row.player_id === player.id);
     return (
@@ -586,6 +602,27 @@ export const EventCarpoolCard: React.FC<Props> = ({
                                   <span><Clock3 className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />Abholung {timeLabel(detail.pickup_at)} Uhr</span>
                                   <span><MapPin className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />{detail.pickup_location}</span>
                                   {detail.message ? <span className="text-white/58">{detail.message}</span> : null}
+                                  <div className="mt-1 flex items-center justify-between gap-2">
+                                    {detail.confirmed_at ? (
+                                      <span className="inline-flex w-fit rounded-full border border-emerald-400/25 bg-emerald-500/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-emerald-300">
+                                        Bestätigt
+                                      </span>
+                                    ) : isOwn ? (
+                                      <span className="inline-flex w-fit rounded-full border border-amber-300/20 bg-amber-400/[0.08] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-amber-200/85">
+                                        Bestätigung offen
+                                      </span>
+                                    ) : null}
+                                    {!isOwn && myPlayerIds.includes(row.player_id) && !detail.confirmed_at ? (
+                                      <button
+                                        type="button"
+                                        disabled={busy}
+                                        className="ml-auto inline-flex min-h-[38px] items-center rounded-xl border border-emerald-400/30 bg-emerald-500/16 px-3 text-[12px] font-bold text-emerald-200 active:scale-95 disabled:opacity-50"
+                                        onClick={() => void confirmPickupDetails(row)}
+                                      >
+                                        Abholung bestätigen
+                                      </button>
+                                    ) : null}
+                                  </div>
                                 </div>
                               ) : null}
                             </div>
