@@ -452,7 +452,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
   return (
     <>
       <Card
-        className="sz-club-surface sz-club-surface--hero relative flex flex-col gap-3 overflow-hidden border"
+        className="sz-club-surface sz-club-surface--hero relative flex min-w-0 flex-col gap-3 overflow-hidden border !px-3 sm:!px-6"
         style={{ borderColor: 'rgb(var(--club-primary-rgb) / 0.34)' }}
       >
         <span
@@ -495,7 +495,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
         </button>
 
         {expanded ? (
-          <div className="flex flex-col gap-3 border-t border-white/[0.07] pt-3">
+          <div className="flex min-w-0 flex-col gap-3 border-t border-white/[0.07] pt-3">
             {error ? (
               <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-[13px] text-red-200">
                 {error}
@@ -519,7 +519,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
                 (player) => !reservations.some((row) => row.player_id === player.id),
               );
               return (
-                <section key={offer.id} className="rounded-2xl border border-white/[0.09] bg-black/25 p-3.5">
+                <section key={offer.id} className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-white/[0.09] bg-black/25 p-3 sm:p-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-[17px] font-bold text-white">
@@ -556,25 +556,25 @@ export const EventCarpoolCard: React.FC<Props> = ({
                   </div>
                   {offer.note ? <p className="mt-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5 text-[14px] leading-relaxed text-white/70">{offer.note}</p> : null}
                   {offerReservations.length > 0 ? (
-                    <div className="mt-3 border-t border-white/[0.07] pt-3 text-[14px] text-white/72">
+                    <div className="mt-3 min-w-0 border-t border-white/[0.07] pt-3 text-[14px] text-white/72">
                       <div className="mb-2 flex items-center gap-2">
                         <Users className="sz-club-accent-text h-4 w-4 shrink-0" />
                         <span className="font-semibold">Mitfahrer</span>
                       </div>
-                      <div className="grid gap-2">
+                      <div className="grid min-w-0 gap-2">
                         {offerReservations.map((row) => {
                           const canRemovePassenger = isOwn || canManage || myPlayerIds.includes(row.player_id);
                           const detail = pickupDetails.find((item) => item.reservation_id === row.id);
                           return (
                             <div
                               key={row.id}
-                              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"
+                              className="min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"
                             >
-                              <div className="flex min-h-[34px] items-center justify-between gap-2">
+                              <div className="grid min-h-[34px] min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                                 <span className="min-w-0 truncate font-semibold text-white/88">
                                   {playerName(playerById.get(row.player_id))}
                                 </span>
-                                <span className="flex shrink-0 items-center gap-1">
+                                <span className="flex min-w-0 shrink-0 items-center gap-1">
                                   {isOwn ? (
                                     <button
                                       type="button"
@@ -600,7 +600,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
                                 </span>
                               </div>
                               {detail ? (
-                                <div className="mt-2 grid gap-1 border-t border-white/[0.07] pt-2 text-[13px] leading-relaxed text-white/65">
+                                <div className="mt-2 grid min-w-0 gap-1 border-t border-white/[0.07] pt-2 text-[13px] leading-relaxed text-white/65 [&>span]:min-w-0 [&>span]:break-words">
                                   <span><Clock3 className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />Abholung {timeLabel(detail.pickup_at)} Uhr</span>
                                   <span><MapPin className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />{detail.pickup_location}</span>
                                   {detail.message ? <span className="text-white/58">{detail.message}</span> : null}
