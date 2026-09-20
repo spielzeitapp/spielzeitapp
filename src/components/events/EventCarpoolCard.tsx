@@ -349,6 +349,8 @@ export const EventCarpoolCard: React.FC<Props> = ({
   };
 
   const cancelReservation = async (row: CarpoolReservation) => {
+    const name = playerName(playerById.get(row.player_id));
+    if (!window.confirm(`${name} wirklich aus dieser Fahrgemeinschaft entfernen?`)) return;
     setBusy(true);
     const { error: deleteError } = await supabase
       .from('event_carpool_reservations')
