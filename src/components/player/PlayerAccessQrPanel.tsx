@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import QRCode from 'qrcode';
 import { supabase } from '../../lib/supabaseClient';
 import { isPlayerQrAccessEnabled } from '../../lib/playerAccessFeature';
@@ -17,6 +18,7 @@ import {
 type Props = {
   playerId: string;
   playerName: string;
+  collapsible?: boolean;
 };
 
 type ActiveInvite = {
@@ -39,8 +41,13 @@ function formatExpiresAtDe(iso: string): string {
   }
 }
 
-export const PlayerAccessQrPanel: React.FC<Props> = ({ playerId, playerName }) => {
+export const PlayerAccessQrPanel: React.FC<Props> = ({
+  playerId,
+  playerName,
+  collapsible = false,
+}) => {
   const featureOn = isPlayerQrAccessEnabled();
+  const [expanded, setExpanded] = useState(!collapsible);
   const [active, setActive] = useState<ActiveInvite | null>(null);
   const [credentials, setCredentials] = useState<LoginCredentialsStatus | null>(null);
   const [visiblePin, setVisiblePin] = useState<string | null>(null);
@@ -236,26 +243,56 @@ export const PlayerAccessQrPanel: React.FC<Props> = ({ playerId, playerName }) =
 
   const accessActive = credentials?.active === true;
   const loginCode = credentials?.login_code ?? null;
+  const contentVisible = !collapsible || expanded;
 
   return (
     <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
-      <p className="text-[13px] font-semibold text-white">Spielerzugang</p>
-      <p className="mt-1 text-[11px] leading-relaxed text-white/65">
-        QR-Code für die erste Einrichtung. Code + PIN für spätere Anmeldung, falls die App gelöscht wurde.
-      </p>
-      <p className="mt-1.5 text-[10px] leading-relaxed text-white/50">
-        Termine, Team, Feed und Liveticker sichtbar. Zu-/Absagen bleiben bei den Eltern.
-      </p>
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="flex min-h-[44px] w-full items-center justify-between gap-3 text-left"
+          aria-expanded={expanded}
+        >
+          <span className="text-[13px] font-semibold text-white">Spielerzugang</span>
+          <span className="flex items-center gap-2">
+            <span
+              className={`rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] ${
+                accessActive
+                  ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200/90'
+                  : 'border-white/10 bg-white/5 text-white/50'
+              }`}
+            >
+              {loadingStatus ? 'Lädt…' : accessActive ? 'Aktiv' : 'Nicht aktiv'}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-white/55 transition-transform ${expanded ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
+          </span>
+        </button>
+      ) : (
+        <p className="text-[13px] font-semibold text-white">Spielerzugang</p>
+      )}
 
-      {error ? (
-        <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-2 text-[11px] text-red-200">
-          {error}
-        </p>
-      ) : null}
+      {contentVisible ? (
+        <>
+          <p className="mt-1 text-[11px] leading-relaxed text-white/65">
+            QR-Code für die erste Einrichtung. Code + PIN für spätere Anmeldung, falls die App gelöscht wurde.
+          </p>
+          <p className="mt-1.5 text-[10px] leading-relaxed text-white/50">
+            Termine, Team, Feed und Liveticker sichtbar. Zu-/Absagen bleiben bei den Eltern.
+          </p>
 
-      {hint ? <p className="mt-2 text-[11px] text-emerald-300/90">{hint}</p> : null}
+          {error ? (
+            <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-2 text-[11px] text-red-200">
+              {error}
+            </p>
+          ) : null}
 
-      <div className="mt-3 space-y-3">
+          {hint ? <p className="mt-2 text-[11px] text-emerald-300/90">{hint}</p> : null}
+
+          <div className="mt-3 space-y-3">
         {loadingStatus ? (
           <p className="text-[11px] text-white/50">Lade Zugangsstatus…</p>
         ) : accessActive && loginCode ? (
@@ -397,7 +434,9 @@ export const PlayerAccessQrPanel: React.FC<Props> = ({ playerId, playerName }) =
             {revoking ? '…' : 'Zugang sperren'}
           </button>
         ) : null}
-      </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 };

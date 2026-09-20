@@ -510,7 +510,11 @@ export const ProfilePage: React.FC = () => {
                           </span>
                         )}
                         {isPlayerQrAccessEnabled() ? (
-                          <PlayerAccessQrPanel playerId={child.id} playerName={child.name} />
+                          <PlayerAccessQrPanel
+                            playerId={child.id}
+                            playerName={child.name}
+                            collapsible
+                          />
                         ) : null}
                       </li>
                     ))}
