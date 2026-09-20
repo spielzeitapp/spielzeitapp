@@ -49,6 +49,13 @@ type CarpoolRequest = {
   requested_by: string;
 };
 
+type CarpoolPickupDetail = {
+  reservation_id: string;
+  pickup_at: string;
+  pickup_location: string;
+  message: string | null;
+};
+
 type PlayerChoice = { id: string; name: string };
 
 type Props = {
@@ -125,9 +132,11 @@ export const EventCarpoolCard: React.FC<Props> = ({
   const [offers, setOffers] = useState<CarpoolOffer[]>([]);
   const [reservations, setReservations] = useState<CarpoolReservation[]>([]);
   const [requests, setRequests] = useState<CarpoolRequest[]>([]);
+  const [pickupDetails, setPickupDetails] = useState<CarpoolPickupDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<CarpoolOffer | null>(null);
@@ -140,6 +149,10 @@ export const EventCarpoolCard: React.FC<Props> = ({
     { kind: 'reserve'; offerId: string } | { kind: 'request' } | null
   >(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
+  const [pickupReservation, setPickupReservation] = useState<CarpoolReservation | null>(null);
+  const [pickupTime, setPickupTime] = useState('');
+  const [pickupLocation, setPickupLocation] = useState('');
+  const [pickupMessage, setPickupMessage] = useState('');
 
   const changeOfferSeats = (delta: number) => {
     const current = Number.parseInt(offerSeats, 10);
@@ -167,7 +180,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
     setLoading(true);
     setError(null);
     try {
-      const [offerResult, reservationResult, requestResult] = await Promise.all([
+      const [offerResult, reservationResult, requestResult, pickupResult] = await Promise.all([
         supabase
           .from('event_carpool_offers')
           .select('id,event_id,driver_user_id,driver_name,departure_at,departure_location,seat_count,return_included,note')
@@ -181,13 +194,19 @@ export const EventCarpoolCard: React.FC<Props> = ({
           .from('event_carpool_requests')
           .select('id,event_id,player_id,requested_by')
           .eq('event_id', eventId),
+        supabase
+          .from('event_carpool_pickup_details')
+          .select('reservation_id,pickup_at,pickup_location,message')
+          .eq('event_id', eventId),
       ]);
       if (offerResult.error) throw offerResult.error;
       if (reservationResult.error) throw reservationResult.error;
       if (requestResult.error) throw requestResult.error;
+      if (pickupResult.error) throw pickupResult.error;
       setOffers((offerResult.data ?? []) as CarpoolOffer[]);
       setReservations((reservationResult.data ?? []) as CarpoolReservation[]);
       setRequests((requestResult.data ?? []) as CarpoolRequest[]);
+      setPickupDetails((pickupResult.data ?? []) as CarpoolPickupDetail[]);
     } catch (cause) {
       setError(friendlyError(cause));
     } finally {
@@ -360,6 +379,47 @@ export const EventCarpoolCard: React.FC<Props> = ({
       setError(friendlyError(acceptError));
       return;
     }
+    setNotice(`${playerName(playerById.get(row.player_id))} wurde deiner Fahrt hinzugefügt. Beide Familien erhalten eine Bestätigung.`);
+    await load();
+  };
+
+  const openPickupModal = (reservation: CarpoolReservation, offer: CarpoolOffer) => {
+    const detail = pickupDetails.find((row) => row.reservation_id === reservation.id);
+    setPickupReservation(reservation);
+    setPickupTime(
+      detail ? utcIsoToViennaTimeHHmm(detail.pickup_at) : utcIsoToViennaTimeHHmm(offer.departure_at),
+    );
+    setPickupLocation(detail?.pickup_location ?? offer.departure_location);
+    setPickupMessage(detail?.message ?? '');
+    setError(null);
+  };
+
+  const savePickupDetails = async () => {
+    if (!pickupReservation) return;
+    if (!/^\d{2}:\d{2}$/.test(pickupTime)) {
+      setError('Bitte eine gültige Abholzeit eingeben.');
+      return;
+    }
+    if (!pickupLocation.trim()) {
+      setError('Bitte einen Abholort eingeben.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error: pickupError } = await supabase.rpc('set_event_carpool_pickup_details', {
+      p_reservation_id: pickupReservation.id,
+      p_pickup_at: meetupUtcIsoOnViennaEventDay(eventStartsAt, pickupTime),
+      p_pickup_location: pickupLocation.trim(),
+      p_message: pickupMessage.trim() || null,
+    });
+    setBusy(false);
+    if (pickupError) {
+      setError(friendlyError(pickupError));
+      return;
+    }
+    const name = playerName(playerById.get(pickupReservation.player_id));
+    setPickupReservation(null);
+    setNotice(`Die Abholinfo für ${name} wurde gesendet.`);
     await load();
   };
 
@@ -423,6 +483,11 @@ export const EventCarpoolCard: React.FC<Props> = ({
                 {error}
               </div>
             ) : null}
+            {notice ? (
+              <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-200">
+                {notice}
+              </div>
+            ) : null}
 
             {!loading && offers.length === 0 ? (
               <p className="text-[14px] leading-relaxed text-white/68">Noch keine Fahrt angeboten.</p>
@@ -478,27 +543,52 @@ export const EventCarpoolCard: React.FC<Props> = ({
                         <Users className="sz-club-accent-text h-4 w-4 shrink-0" />
                         <span className="font-semibold">Mitfahrer</span>
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="grid gap-2">
                         {offerReservations.map((row) => {
                           const canRemovePassenger = isOwn || canManage || myPlayerIds.includes(row.player_id);
+                          const detail = pickupDetails.find((item) => item.reservation_id === row.id);
                           return (
-                            <span
+                            <div
                               key={row.id}
-                              className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[14px] font-medium text-white/80"
+                              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"
                             >
-                              {playerName(playerById.get(row.player_id))}
-                              {canRemovePassenger ? (
-                                <button
-                                  type="button"
-                                  disabled={busy}
-                                  className="ml-0.5 text-white/45 hover:text-white"
-                                  onClick={() => void cancelReservation(row)}
-                                  aria-label={`Mitfahrt für ${playerName(playerById.get(row.player_id))} zurücknehmen`}
-                                >
-                                  ×
-                                </button>
+                              <div className="flex min-h-[34px] items-center justify-between gap-2">
+                                <span className="min-w-0 truncate font-semibold text-white/88">
+                                  {playerName(playerById.get(row.player_id))}
+                                </span>
+                                <span className="flex shrink-0 items-center gap-1">
+                                  {isOwn ? (
+                                    <button
+                                      type="button"
+                                      disabled={busy}
+                                      className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/12 px-2.5 text-[12px] font-bold text-emerald-300"
+                                      onClick={() => openPickupModal(row, offer)}
+                                    >
+                                      <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                                      {detail ? 'Ändern' : 'Abholung'}
+                                    </button>
+                                  ) : null}
+                                  {canRemovePassenger ? (
+                                    <button
+                                      type="button"
+                                      disabled={busy}
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white"
+                                      onClick={() => void cancelReservation(row)}
+                                      aria-label={`Mitfahrt für ${playerName(playerById.get(row.player_id))} zurücknehmen`}
+                                    >
+                                      ×
+                                    </button>
+                                  ) : null}
+                                </span>
+                              </div>
+                              {detail ? (
+                                <div className="mt-2 grid gap-1 border-t border-white/[0.07] pt-2 text-[13px] leading-relaxed text-white/65">
+                                  <span><Clock3 className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />Abholung {timeLabel(detail.pickup_at)} Uhr</span>
+                                  <span><MapPin className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />{detail.pickup_location}</span>
+                                  {detail.message ? <span className="text-white/58">{detail.message}</span> : null}
+                                </div>
                               ) : null}
-                            </span>
+                            </div>
                           );
                         })}
                       </div>
@@ -576,6 +666,44 @@ export const EventCarpoolCard: React.FC<Props> = ({
           </div>
         ) : null}
       </Card>
+
+      <Modal
+        open={Boolean(pickupReservation)}
+        title="Abholung vereinbaren"
+        titleClassName="!text-[22px] !font-bold !tracking-[-0.02em]"
+        onClose={() => !busy && setPickupReservation(null)}
+        footer={
+          <div className="grid w-full grid-cols-2 gap-2">
+            <button type="button" className={`${dsSecondaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => setPickupReservation(null)}>Abbrechen</button>
+            <button type="button" className={`${dsPrimaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => void savePickupDetails()}>{busy ? 'Sendet…' : 'Speichern & senden'}</button>
+          </div>
+        }
+      >
+        <div className="grid gap-4 pb-1">
+          <p className="text-[14px] leading-relaxed text-white/65">
+            Diese Information erhält nur die Familie von {playerName(playerById.get(pickupReservation?.player_id ?? ''))}.
+          </p>
+          <label className="grid gap-2 text-[15px] font-bold text-white/90">
+            Abholzeit
+            <span className="relative block">
+              <Clock3 className="sz-club-accent-text pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2" aria-hidden />
+              <input type="time" value={pickupTime} onChange={(event) => setPickupTime(event.target.value)} className="input min-h-[54px] w-full rounded-[16px] border-white/[0.16] bg-white/[0.055] pl-12 pr-4 text-[17px] font-semibold text-white [color-scheme:dark]" />
+            </span>
+          </label>
+          <label className="grid gap-2 text-[15px] font-bold text-white/90">
+            Abholort
+            <span className="relative block">
+              <MapPin className="sz-club-accent-text pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2" aria-hidden />
+              <input type="text" maxLength={240} value={pickupLocation} onChange={(event) => setPickupLocation(event.target.value)} placeholder="z. B. Bäckerei, 16:20 Uhr" className="input min-h-[54px] w-full rounded-[16px] border-white/[0.16] bg-white/[0.055] pl-12 pr-4 text-[17px] font-medium text-white placeholder:text-white/42" />
+            </span>
+          </label>
+          <label className="grid gap-2 text-[15px] font-bold text-white/90">
+            Persönliche Nachricht (optional)
+            <textarea maxLength={500} rows={3} value={pickupMessage} onChange={(event) => setPickupMessage(event.target.value)} placeholder="z. B. Bitte vor dem Haus warten, ich melde mich kurz." className="input min-h-[92px] w-full resize-none rounded-[16px] border-white/[0.16] bg-white/[0.055] px-4 py-3.5 text-[16px] font-medium leading-relaxed text-white placeholder:text-white/42" />
+          </label>
+          {error ? <p className="text-[13px] text-red-300">{error}</p> : null}
+        </div>
+      </Modal>
 
       <Modal
         open={offerModalOpen}
