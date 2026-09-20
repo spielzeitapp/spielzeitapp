@@ -8,6 +8,7 @@ on:
       - "supabase/migrations/20260919204500_carpool_driver_acceptance.sql"
       - "supabase/migrations/20260919215500_carpool_driver_display_name.sql"
       - "supabase/migrations/20260920123000_carpool_pickup_messages_and_reminders.sql"
+      - "supabase/migrations/20260920151500_carpool_pickup_confirmation.sql"
 
 permissions:
   contents: read
@@ -23,8 +24,8 @@ jobs:
     timeout-minutes: 10
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      MIGRATION_VERSION: "20260920123000"
-      MIGRATION_FILE: supabase/migrations/20260920123000_carpool_pickup_messages_and_reminders.sql
+      MIGRATION_VERSION: "20260920151500"
+      MIGRATION_FILE: supabase/migrations/20260920151500_carpool_pickup_confirmation.sql
     steps:
       - uses: actions/checkout@v4
 
@@ -85,23 +86,23 @@ jobs:
             const result = await query(`
               SELECT
                 to_regclass('public.event_carpool_pickup_details') IS NOT NULL AS pickup_table,
-                to_regprocedure('public.set_event_carpool_pickup_details(uuid,timestamp with time zone,text,text)') IS NOT NULL AS pickup_rpc,
-                to_regprocedure('public.refresh_event_carpool_rider_reminder(uuid)') IS NOT NULL AS rider_reminder,
+                to_regprocedure('public.confirm_event_carpool_pickup(uuid)') IS NOT NULL AS confirmation_rpc,
                 EXISTS (
-                  SELECT 1 FROM pg_trigger
-                  WHERE tgname = 'trg_event_carpool_driver_confirmation'
-                    AND NOT tgisinternal
-                ) AS driver_confirmation_trigger,
+                  SELECT 1 FROM information_schema.columns
+                  WHERE table_schema = 'public'
+                    AND table_name = 'event_carpool_pickup_details'
+                    AND column_name = 'confirmed_at'
+                ) AS confirmation_column,
                 EXISTS (
                   SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '${version}'
                 ) AS migration_recorded;
             `);
-            if (!result?.[0]?.pickup_table || !result?.[0]?.pickup_rpc ||
-                !result?.[0]?.rider_reminder || !result?.[0]?.driver_confirmation_trigger ||
+            if (!result?.[0]?.pickup_table || !result?.[0]?.confirmation_rpc ||
+                !result?.[0]?.confirmation_column ||
                 !result?.[0]?.migration_recorded) {
-              throw new Error('Carpool pickup and reminder verification failed.');
+              throw new Error('Carpool pickup confirmation verification failed.');
             }
-            console.log(`CARPOOL_PICKUP_REMINDERS_OK (${expectedName})`);
+            console.log(`CARPOOL_PICKUP_CONFIRMATION_OK (${expectedName})`);
           })().catch((error) => {
             console.error(error.message);
             process.exit(1);
