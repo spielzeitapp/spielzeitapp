@@ -56,6 +56,22 @@ const HOME_FEED_FILTERS: Array<{ value: HomeFeedFilter; label: string }> = [
 function homeFeedCategory(item: ClassifiedFeedPost): Exclude<HomeFeedFilter, 'all'> | 'other' {
   const postKind = (item.post.post_kind ?? '').trim().toLowerCase();
   const mediaType = (item.post.media_type ?? '').trim().toLowerCase();
+  const caption = (item.post.caption ?? '').trim().toLocaleLowerCase('de-AT');
+  const rawPayload = item.post.payload;
+  const payload = rawPayload && typeof rawPayload === 'object' ? (rawPayload as Record<string, unknown>) : null;
+  const legacyTypeHints = [
+    payload?.feed_type,
+    payload?.poster_kind,
+    payload?.template,
+    payload?.template_key,
+    payload?.post_kind,
+  ]
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.trim().toLowerCase());
+
+  const legacyTextMatches = (pattern: RegExp) => pattern.test(caption);
+  const legacyHintMatches = (...hints: string[]) =>
+    legacyTypeHints.some((value) => hints.some((hint) => value.includes(hint)));
 
   if (
     ['matchday', 'next_match', 'live'].includes(item.kind) ||
@@ -68,16 +84,32 @@ function homeFeedCategory(item: ClassifiedFeedPost): Exclude<HomeFeedFilter, 'al
       'next_match_auto',
       'live_auto',
     ].includes(postKind) ||
-    ['matchday', 'next_match', 'live'].includes(mediaType)
+    ['matchday', 'next_match', 'live'].includes(mediaType) ||
+    legacyHintMatches('spieltag', 'matchday', 'next_match', 'event_poster') ||
+    legacyTextMatches(/\b(spieltag|matchday|spielankündigung)\b|\b(empfängt|gastiert|spielt|tritt)\s+(heute|morgen)\b|\b(heute|morgen)\s+(gegen|bei|zu gast)\b/)
   ) {
     return 'matchday';
   }
-  if (item.kind === 'squad' || postKind === 'squad_published' || mediaType === 'squad') return 'squad';
-  if (item.kind === 'lineup' || postKind === 'lineup_auto' || mediaType === 'lineup') return 'lineup';
+  if (
+    item.kind === 'squad' ||
+    postKind === 'squad_published' ||
+    mediaType === 'squad' ||
+    legacyHintMatches('squad', 'kader') ||
+    legacyTextMatches(/\b(unser|der|im)\s+kader\b|\bmatchkader\b|\baufgebot\b/)
+  ) return 'squad';
+  if (
+    item.kind === 'lineup' ||
+    postKind === 'lineup_auto' ||
+    mediaType === 'lineup' ||
+    legacyHintMatches('lineup', 'aufstellung', 'startelf') ||
+    legacyTextMatches(/\baufstellung\b|\bstartelf\b/)
+  ) return 'lineup';
   if (
     ['result', 'tournament_completion'].includes(item.kind) ||
     ['result_auto', 'tournament_completion_manual'].includes(postKind) ||
-    ['result', 'tournament_completion'].includes(mediaType)
+    ['result', 'tournament_completion'].includes(mediaType) ||
+    legacyHintMatches('result', 'ergebnis', 'endstand') ||
+    legacyTextMatches(/\b(endstand|ergebnis|schlusspfiff|sieg|niederlage|unentschieden)\b|\b(gewinnt|verliert)\b/)
   ) {
     return 'result';
   }
