@@ -366,6 +366,16 @@
     inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.045) !important;
 }
 
+/* Social-Feed auf Handys: Beitrag wirklich randlos wie Instagram/Facebook. */
+@media (max-width: 639px) {
+  .app-home .home-feed-edge > .sz-club-feed-shell {
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
 .sz-club-feed-media-frame {
   border-color: rgb(var(--club-border-rgb) / 0.38) !important;
   box-shadow:

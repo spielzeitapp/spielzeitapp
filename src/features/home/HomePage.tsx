@@ -431,7 +431,10 @@ export const HomePage: React.FC = () => {
               ) : (
                 <div className="min-w-0 space-y-4">
                   {visibleActivePosts.map((item) => (
-                    <div key={item.post.id} className="-mx-3 min-w-0 sm:-mx-4 md:mx-0">
+                    <div
+                      key={item.post.id}
+                      className="home-feed-edge relative left-1/2 min-w-0 w-[100dvw] -translate-x-1/2 sm:-mx-4 sm:left-auto sm:w-auto sm:translate-x-0 md:mx-0"
+                    >
                       <HomeFeedPostRenderer
                         item={item}
                         eventById={eventById}
@@ -517,7 +520,7 @@ export const HomePage: React.FC = () => {
                             <div className="h-px flex-1 bg-white/10" />
                           </div>
                         ) : null}
-                        <div className="-mx-3 min-w-0 sm:-mx-4 md:mx-0">
+                        <div className="home-feed-edge relative left-1/2 min-w-0 w-[100dvw] -translate-x-1/2 sm:-mx-4 sm:left-auto sm:w-auto sm:translate-x-0 md:mx-0">
                           <HomeFeedPostRenderer
                             item={item}
                             eventById={eventById}
