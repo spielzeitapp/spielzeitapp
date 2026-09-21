@@ -106,20 +106,25 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
         if (alive) setPhotoByPlayer({});
         return;
       }
-      const { data, error: photoErr } = await supabase
-        .from('players')
-        .select('id, avatar_url')
-        .in('id', ids);
+      const [avatarResult, cutoutResult] = await Promise.all([
+        supabase.from('player_avatars').select('player_id, avatar_url').in('player_id', ids),
+        supabase.from('players').select('id, cutout_url').in('id', ids),
+      ]);
       if (!alive) return;
-      if (photoErr || !data) {
+      if (avatarResult.error && cutoutResult.error) {
         setPhotoByPlayer({});
         return;
       }
       const map: Record<string, string> = {};
-      for (const row of data as Array<{ id?: string; avatar_url?: string | null }>) {
-        const id = String(row.id ?? '');
+      for (const row of (avatarResult.data ?? []) as Array<{ player_id?: string; avatar_url?: string | null }>) {
+        const id = String(row.player_id ?? '');
         const url = String(row.avatar_url ?? '').trim();
         if (id && url) map[id] = url;
+      }
+      for (const row of (cutoutResult.data ?? []) as Array<{ id?: string; cutout_url?: string | null }>) {
+        const id = String(row.id ?? '');
+        const url = String(row.cutout_url ?? '').trim();
+        if (id && url && !map[id]) map[id] = url;
       }
       setPhotoByPlayer(map);
     }
@@ -130,6 +135,10 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   }, [rows]);
 
   const linkedCount = useMemo(() => rows.filter((r) => r.parent_count > 0).length, [rows]);
+  const pushActiveCount = useMemo(
+    () => rows.filter((r) => r.parents.some((parent) => parent.push_active === true)).length,
+    [rows],
+  );
   const missingCount = useMemo(
     () =>
       rows.filter((r) => r.parent_count === 0 && (openInviteByPlayer[r.player_id] ?? 0) === 0)
@@ -242,6 +251,9 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
               </span>
               <span className="text-amber-300">
                 <span className="font-bold">{missingCount}</span> ohne Eltern
+              </span>
+              <span className="text-emerald-300">
+                <span className="font-bold">{pushActiveCount}</span> Push aktiv
               </span>
             </div>
           </GlassCard>
