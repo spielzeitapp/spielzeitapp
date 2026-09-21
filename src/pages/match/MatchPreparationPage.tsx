@@ -113,6 +113,9 @@ export const MatchPreparationPage: React.FC = () => {
   const [persisting, setPersisting] = useState(false);
   const [persistError, setPersistError] = useState<string | null>(null);
   const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
+  const [attendanceEventId, setAttendanceEventId] = useState<string | null>(null);
+  const [trainerExcludedPlayerIds, setTrainerExcludedPlayerIds] = useState<Set<string>>(() => new Set());
+  const [excludeConfirm, setExcludeConfirm] = useState<{ playerId: string; name: string } | null>(null);
   const [lineupPlayerIds, setLineupPlayerIds] = useState<Set<string>>(() => new Set());
   const [lineupRemoveConfirm, setLineupRemoveConfirm] = useState<{ playerId: string; name: string } | null>(
     null,
@@ -359,12 +362,15 @@ export const MatchPreparationPage: React.FC = () => {
       const lite = demo.getDemoMatch(matchId);
       const eventId = lite?.event_id;
       if (!eventId) {
+        setAttendanceEventId(null);
         setAttendanceByPlayerId({});
+        setTrainerExcludedPlayerIds(new Set());
         setAttendanceLoading(false);
         return () => {
           cancelled = true;
         };
       }
+      setAttendanceEventId(eventId);
       const bucket = demo.getAttendanceByEventIds([eventId])[eventId];
       const byPlayer: Record<string, 'yes' | 'no'> = {};
       for (const [pid, raw] of Object.entries(bucket?.availabilityByPlayerId ?? {})) {
@@ -391,23 +397,28 @@ export const MatchPreparationPage: React.FC = () => {
         setAttendanceLoading(false);
         return;
       }
+      setAttendanceEventId(eventId);
       const { data, error } = await supabase
         .from('event_attendance')
-        .select('player_id, status')
+        .select('player_id, status, note')
         .eq('event_id', eventId);
       if (cancelled) return;
       if (error) {
         setAttendanceByPlayerId({});
+        setTrainerExcludedPlayerIds(new Set());
         setAttendanceError(error.message);
       } else {
         const byPlayer: Record<string, 'yes' | 'no'> = {};
-        for (const row of (data ?? []) as Array<{ player_id: string | null; status: unknown }>) {
+        const excluded = new Set<string>();
+        for (const row of (data ?? []) as Array<{ player_id: string | null; status: unknown; note?: string | null }>) {
           const pid = String(row.player_id ?? '').toLowerCase();
           if (!pid) continue;
           const status = normalizeAttendanceStatus(row.status);
           if (status) byPlayer[pid] = status;
+          if (row.note === 'trainer_not_selected') excluded.add(pid);
         }
         setAttendanceByPlayerId(byPlayer);
+        setTrainerExcludedPlayerIds(excluded);
       }
       setAttendanceLoading(false);
     })();
@@ -619,6 +630,87 @@ export const MatchPreparationPage: React.FC = () => {
     await persistSquadSelection(nextSquad);
   };
 
+  const excludePlayerFromMatch = async () => {
+    if (!excludeConfirm || !attendanceEventId || squadSaveBusy) return;
+    const playerId = excludeConfirm.playerId;
+    setSquadSaveBusy(true);
+    setPersistError(null);
+    if (isDemo && demo) {
+      demo.setDemoAttendance(attendanceEventId, playerId, 'no');
+      const nextSquad = selectedPlayersForSquad.filter((id) => id !== playerId);
+      applyRemoveFromSquad(playerId);
+      setAttendanceByPlayerId((prev) => ({ ...prev, [playerId.toLowerCase()]: 'no' }));
+      setTrainerExcludedPlayerIds((prev) => new Set(prev).add(playerId.toLowerCase()));
+      setExcludeConfirm(null);
+      setSquadSaveBusy(false);
+      await persistSquadSelection(nextSquad);
+      return;
+    }
+    const { error } = await supabase.from('event_attendance').upsert(
+      {
+        event_id: attendanceEventId,
+        player_id: playerId,
+        status: 'no',
+        note: 'trainer_not_selected',
+      },
+      { onConflict: 'event_id,player_id' },
+    );
+    if (error) {
+      setSquadSaveBusy(false);
+      setPersistError(`Spieler konnte nicht abgemeldet werden: ${error.message}`);
+      return;
+    }
+    const nextSquad = selectedPlayersForSquad.filter((id) => id !== playerId);
+    applyRemoveFromSquad(playerId);
+    setAttendanceByPlayerId((prev) => ({ ...prev, [playerId.toLowerCase()]: 'no' }));
+    setTrainerExcludedPlayerIds((prev) => new Set(prev).add(playerId.toLowerCase()));
+    setExcludeConfirm(null);
+    setSquadSaveBusy(false);
+    await persistSquadSelection(nextSquad);
+  };
+
+  const restorePlayerToOpen = async (playerId: string) => {
+    if (!attendanceEventId || squadSaveBusy) return;
+    setSquadSaveBusy(true);
+    setPersistError(null);
+    if (isDemo && demo) {
+      demo.setDemoAttendance(attendanceEventId, playerId, null);
+      setSquadSaveBusy(false);
+      setAttendanceByPlayerId((prev) => {
+        const next = { ...prev };
+        delete next[playerId.toLowerCase()];
+        return next;
+      });
+      setTrainerExcludedPlayerIds((prev) => {
+        const next = new Set(prev);
+        next.delete(playerId.toLowerCase());
+        return next;
+      });
+      return;
+    }
+    const { error } = await supabase
+      .from('event_attendance')
+      .delete()
+      .eq('event_id', attendanceEventId)
+      .eq('player_id', playerId)
+      .eq('note', 'trainer_not_selected');
+    setSquadSaveBusy(false);
+    if (error) {
+      setPersistError(`Status konnte nicht zurückgesetzt werden: ${error.message}`);
+      return;
+    }
+    setAttendanceByPlayerId((prev) => {
+      const next = { ...prev };
+      delete next[playerId.toLowerCase()];
+      return next;
+    });
+    setTrainerExcludedPlayerIds((prev) => {
+      const next = new Set(prev);
+      next.delete(playerId.toLowerCase());
+      return next;
+    });
+  };
+
   const renderSection = (title: string, list: typeof players, status: PrepStatus) => (
     <section className={`flex flex-col ${DS_SECTION_GAP}`}>
       <h2 className={dsSectionLabelClass()}>{title}</h2>
@@ -626,7 +718,8 @@ export const MatchPreparationPage: React.FC = () => {
       <div className={`flex flex-col ${DS_LIST_GAP}`}>
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
-          const disabled = !squadEditable || status === 'absent' || squadSaveBusy;
+          const trainerExcluded = trainerExcludedPlayerIds.has(p.id.toLowerCase());
+          const disabled = !squadEditable || (status === 'absent' && !trainerExcluded) || squadSaveBusy;
           return (
             <div key={p.id} className={disabled ? 'opacity-70' : ''}>
               <MatchPlayerRow
@@ -636,24 +729,28 @@ export const MatchPreparationPage: React.FC = () => {
                 status={status === 'absent' ? 'no' : selected ? 'yes' : 'open'}
                 hideSubline
                 trailing={
-                  <span
-                    className={`inline-flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border ${
-                      selected
-                        ? 'border-emerald-400/25 bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]'
-                        : 'border-red-400/15 bg-red-950/45 text-red-300'
-                    }`}
-                    title={selected ? 'Im Kader' : 'Nicht im Kader'}
-                  >
-                    {selected ? (
-                      <span className="text-sm font-black" aria-hidden>K</span>
-                    ) : (
-                      <span className="text-sm font-black text-white/55" aria-hidden>–</span>
-                    )}
-                    <span className="sr-only">{selected ? 'Im Kader' : 'Nicht im Kader'}</span>
-                  </span>
+                  trainerExcluded ? (
+                    <span className="inline-flex min-h-[34px] items-center rounded-xl border border-amber-300/20 bg-amber-950/45 px-2 text-[10px] font-bold text-amber-200">
+                      Trainer
+                    </span>
+                  ) : (
+                    <span className={`inline-flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border ${selected ? 'border-emerald-400/25 bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]' : 'border-red-400/15 bg-red-950/45 text-red-300'}`} title={selected ? 'Im Kader' : 'Nicht im Kader'}>
+                      <span className={`text-sm font-black ${selected ? '' : 'text-white/55'}`} aria-hidden>{selected ? 'K' : '–'}</span>
+                      <span className="sr-only">{selected ? 'Im Kader' : 'Nicht im Kader'}</span>
+                    </span>
+                  )
                 }
-                onClick={disabled ? undefined : () => togglePlayer(p.id, status)}
+                onClick={disabled ? undefined : trainerExcluded ? () => void restorePlayerToOpen(p.id) : () => togglePlayer(p.id, status)}
               />
+              {status === 'open' && !selected && !disabled ? (
+                <button
+                  type="button"
+                  onClick={() => setExcludeConfirm({ playerId: p.id, name: premiumPlayerDisplayName(p) })}
+                  className="mt-1.5 w-full rounded-xl border border-red-400/15 bg-red-950/25 px-3 py-2 text-xs font-semibold text-red-200/90"
+                >
+                  Für dieses Match nicht berücksichtigen
+                </button>
+              ) : null}
             </div>
           );
         })}
@@ -1014,6 +1111,23 @@ export const MatchPreparationPage: React.FC = () => {
                 className={`flex-1 min-h-11 ${dsPrimaryCtaClass()}`}
               >
                 {squadSaveBusy ? 'Entfernen…' : 'Entfernen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {excludeConfirm ? (
+        <div className="fixed inset-0 z-[115] flex min-h-dvh items-center justify-center bg-black/85 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="exclude-player-title">
+          <div className="w-full max-w-sm rounded-2xl border border-red-500/25 bg-[rgba(18,18,22,0.98)] p-4 shadow-xl">
+            <h2 id="exclude-player-title" className="text-base font-bold text-white">Nicht berücksichtigen?</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/70">
+              {excludeConfirm.name} wird aus dem Kader entfernt und erhält für dieses Match keine weitere Rückmelde-Erinnerung. Die Aktion wird als Trainerentscheidung gekennzeichnet.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" disabled={squadSaveBusy} onClick={() => setExcludeConfirm(null)} className={`min-h-11 ${dsSecondaryCtaClass()}`}>Abbrechen</button>
+              <button type="button" disabled={squadSaveBusy} onClick={() => void excludePlayerFromMatch()} className={`min-h-11 ${dsPrimaryCtaClass()}`}>
+                {squadSaveBusy ? 'Speichern…' : 'Bestätigen'}
               </button>
             </div>
           </div>
