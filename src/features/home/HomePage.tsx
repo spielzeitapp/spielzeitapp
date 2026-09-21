@@ -380,6 +380,11 @@ export const HomePage: React.FC = () => {
     [visibleActivePosts, feedFilter],
   );
 
+  const filteredHistoricPosts = useMemo(
+    () => visibleHistoricPosts.filter((item) => matchesHomeFeedFilter(item, feedFilter)),
+    [visibleHistoricPosts, feedFilter],
+  );
+
   const showNoUpcomingMatchEmpty =
     matchSectionReady && !sportingPick && visibleActivePosts.length === 0;
 
@@ -530,7 +535,7 @@ export const HomePage: React.FC = () => {
                   title="Noch keine Beiträge"
                   description="Am Spieltag erscheint der Matchday-Post. Trainer posten Fotos/Videos oben."
                 />
-              ) : filteredActivePosts.length === 0 ? (
+              ) : filteredActivePosts.length === 0 && filteredHistoricPosts.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-center">
                   <p className="text-sm font-semibold text-white/75">Keine passenden Beiträge gefunden.</p>
                   <button
@@ -601,20 +606,20 @@ export const HomePage: React.FC = () => {
               </PremiumEmptyState>
             ) : null}
 
-            {!feedBusy && visibleHistoricPosts.length > 0 ? (
+            {!feedBusy && filteredHistoricPosts.length > 0 ? (
               <section className="min-w-0 space-y-3 pt-3" aria-label="Saison-Chronik">
                 <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
                   Chronik
                 </SectionTitle>
                 <div className="min-w-0 space-y-4">
-                  {visibleHistoricPosts.map((item, index) => {
+                  {filteredHistoricPosts.map((item, index) => {
                     const seasonId = (item.post.team_season_id ?? '').trim();
                     const meta = seasonId ? seasonMetaById.get(seasonId) : undefined;
                     const seasonBadge = meta?.seasonBadge ?? null;
                     const historicTeamLabel = meta?.teamLabel || 'Team';
                     const prevSeasonId =
                       index > 0
-                        ? (visibleHistoricPosts[index - 1]?.post.team_season_id ?? '').trim()
+                        ? (filteredHistoricPosts[index - 1]?.post.team_season_id ?? '').trim()
                         : '';
                     const showSeasonDivider =
                       Boolean(seasonBadge) && Boolean(seasonId) && seasonId !== prevSeasonId;
