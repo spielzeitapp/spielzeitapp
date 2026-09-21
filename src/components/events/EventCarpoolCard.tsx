@@ -570,8 +570,8 @@ export const EventCarpoolCard: React.FC<Props> = ({
                               key={row.id}
                               className="min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"
                             >
-                              <div className="grid min-h-[34px] min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                                <span className="min-w-0 truncate font-semibold text-white/88">
+                              <div className="grid min-h-[34px] min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+                                <span className="min-w-0 break-words py-1 text-[15px] font-semibold leading-tight text-white/88">
                                   {playerName(playerById.get(row.player_id))}
                                 </span>
                                 <span className="flex min-w-0 shrink-0 items-center gap-1">
