@@ -431,17 +431,18 @@ export const HomePage: React.FC = () => {
               ) : (
                 <div className="min-w-0 space-y-4">
                   {visibleActivePosts.map((item) => (
-                    <HomeFeedPostRenderer
-                      key={item.post.id}
-                      item={item}
-                      eventById={eventById}
-                      finishedEventIds={finishedFeedEventIds}
-                      teamLabel={activeTeamLabel}
-                      seasonLabel={null}
-                      staffCanDelete={staffCanDeleteFeed}
-                      onFeedPostDeleted={handleFeedPostDeleted}
-                      onFeedPostUpdated={handleFeedPostUpdated}
-                    />
+                    <div key={item.post.id} className="-mx-3 min-w-0 sm:-mx-4 md:mx-0">
+                      <HomeFeedPostRenderer
+                        item={item}
+                        eventById={eventById}
+                        finishedEventIds={finishedFeedEventIds}
+                        teamLabel={activeTeamLabel}
+                        seasonLabel={null}
+                        staffCanDelete={staffCanDeleteFeed}
+                        onFeedPostDeleted={handleFeedPostDeleted}
+                        onFeedPostUpdated={handleFeedPostUpdated}
+                      />
+                    </div>
                   ))}
                 </div>
               )}
@@ -516,16 +517,18 @@ export const HomePage: React.FC = () => {
                             <div className="h-px flex-1 bg-white/10" />
                           </div>
                         ) : null}
-                        <HomeFeedPostRenderer
-                          item={item}
-                          eventById={eventById}
-                          finishedEventIds={finishedFeedEventIds}
-                          teamLabel={historicTeamLabel}
-                          seasonLabel={seasonBadge}
-                          staffCanDelete={staffCanDeleteFeed}
-                          onFeedPostDeleted={handleFeedPostDeleted}
-                          onFeedPostUpdated={handleFeedPostUpdated}
-                        />
+                        <div className="-mx-3 min-w-0 sm:-mx-4 md:mx-0">
+                          <HomeFeedPostRenderer
+                            item={item}
+                            eventById={eventById}
+                            finishedEventIds={finishedFeedEventIds}
+                            teamLabel={historicTeamLabel}
+                            seasonLabel={seasonBadge}
+                            staffCanDelete={staffCanDeleteFeed}
+                            onFeedPostDeleted={handleFeedPostDeleted}
+                            onFeedPostUpdated={handleFeedPostUpdated}
+                          />
+                        </div>
                       </React.Fragment>
                     );
                   })}
