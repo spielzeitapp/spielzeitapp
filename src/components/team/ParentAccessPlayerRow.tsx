@@ -90,24 +90,26 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
       density="compact"
       tone="utility"
       onClick={onOpen}
-      trailing={<ChevronRight className="h-5 w-5 text-white/35" aria-hidden />}
-      footer={
-        <div className="space-y-1.5">
-          <div className="flex min-w-0 items-center justify-between gap-3 text-[12px]">
-            <span className="min-w-0 truncate text-white/70">{parentLine}</span>
+      className="py-2.5"
+      sublineClassName="mt-0.5 truncate text-[11px] font-medium text-white/48"
+      trailing={
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="min-w-0 text-right">
             <span
-              className={pushActiveCount > 0 ? 'flex shrink-0 items-center gap-1.5 font-semibold text-emerald-300' : 'flex shrink-0 items-center gap-1.5 text-white/42'}
+              className={pushActiveCount > 0
+                ? 'flex items-center justify-end gap-1 text-[11px] font-semibold text-emerald-300'
+                : 'flex items-center justify-end gap-1 text-[11px] font-medium text-white/45'}
             >
-              <PushIcon className="h-3.5 w-3.5" aria-hidden />
-              {pushLabel}
+              <PushIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="max-w-[112px] truncate">{pushLabel}</span>
+            </span>
+            <span className="mt-1 block max-w-[112px] truncate text-[10px] text-white/38">
+              {parentLine} · {appLine.primary}
             </span>
           </div>
-          <p className="truncate text-[11px] text-white/45">
-            {appLine.primary}
-            {appLine.secondary ? ` · ${appLine.secondary}` : ''}
-          </p>
+          <ChevronRight className="h-5 w-5 shrink-0 text-white/35" aria-hidden />
         </div>
       }
-    />
+     />
   );
 }
