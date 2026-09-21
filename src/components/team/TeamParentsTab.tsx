@@ -116,14 +116,14 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
         return;
       }
       const map: Record<string, string> = {};
-      for (const row of (avatarResult.data ?? []) as Array<{ player_id?: string; avatar_url?: string | null }>) {
-        const id = String(row.player_id ?? '');
-        const url = String(row.avatar_url ?? '').trim();
-        if (id && url) map[id] = url;
-      }
       for (const row of (cutoutResult.data ?? []) as Array<{ id?: string; cutout_url?: string | null }>) {
         const id = String(row.id ?? '');
         const url = String(row.cutout_url ?? '').trim();
+        if (id && url) map[id] = url;
+      }
+      for (const row of (avatarResult.data ?? []) as Array<{ player_id?: string; avatar_url?: string | null }>) {
+        const id = String(row.player_id ?? '');
+        const url = String(row.avatar_url ?? '').trim();
         if (id && url && !map[id]) map[id] = url;
       }
       setPhotoByPlayer(map);
