@@ -1,20 +1,20 @@
 import React from 'react';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
-const WORDMARK_PATH = `${import.meta.env.BASE_URL || '/'}intro/spielzeitapp-wordmark-angular.jpeg`;
+const WORDMARK_PATH = `${import.meta.env.BASE_URL || '/'}intro/spielzeitapp-wordmark-angular.png`;
 
 type WordmarkProps = {
   className?: string;
   label?: string;
 };
 
-/** Offizielle Wortmarke mit kantigem roten A; schwarzer Bildgrund wird auf dunklen Flächen ausgeblendet. */
+/** Offizielle Wortmarke mit kantigem roten A und echtem transparentem Hintergrund. */
 export function SpielzeitAppWordmark({ className = '', label = 'SpielzeitApp' }: WordmarkProps) {
   return (
     <img
       src={WORDMARK_PATH}
       alt={label}
-      className={`block h-auto object-contain mix-blend-screen ${className}`}
+      className={`block h-auto object-contain ${className}`}
       width={689}
       height={141}
       decoding="async"
