@@ -53,12 +53,40 @@ const HOME_FEED_FILTERS: Array<{ value: HomeFeedFilter; label: string }> = [
   { value: 'media', label: 'Fotos & Videos' },
 ];
 
+function homeFeedCategory(item: ClassifiedFeedPost): Exclude<HomeFeedFilter, 'all'> | 'other' {
+  const postKind = (item.post.post_kind ?? '').trim().toLowerCase();
+  const mediaType = (item.post.media_type ?? '').trim().toLowerCase();
+
+  if (
+    ['matchday', 'next_match', 'live'].includes(item.kind) ||
+    [
+      'event_poster_auto',
+      'event_poster_manual',
+      'matchday_auto',
+      'matchday_today_auto',
+      'matchday_tomorrow_auto',
+      'next_match_auto',
+      'live_auto',
+    ].includes(postKind) ||
+    ['matchday', 'next_match', 'live'].includes(mediaType)
+  ) {
+    return 'matchday';
+  }
+  if (item.kind === 'squad' || postKind === 'squad_published' || mediaType === 'squad') return 'squad';
+  if (item.kind === 'lineup' || postKind === 'lineup_auto' || mediaType === 'lineup') return 'lineup';
+  if (
+    ['result', 'tournament_completion'].includes(item.kind) ||
+    ['result_auto', 'tournament_completion_manual'].includes(postKind) ||
+    ['result', 'tournament_completion'].includes(mediaType)
+  ) {
+    return 'result';
+  }
+  if (item.kind === 'image' || item.kind === 'video') return 'media';
+  return 'other';
+}
+
 function matchesHomeFeedFilter(item: ClassifiedFeedPost, filter: HomeFeedFilter): boolean {
-  if (filter === 'all') return true;
-  if (filter === 'matchday') return ['matchday', 'next_match', 'live'].includes(item.kind);
-  if (filter === 'result') return ['result', 'tournament_completion'].includes(item.kind);
-  if (filter === 'media') return item.kind === 'image' || item.kind === 'video';
-  return item.kind === filter;
+  return filter === 'all' || homeFeedCategory(item) === filter;
 }
 
 function filterVisibleFeedPosts(
