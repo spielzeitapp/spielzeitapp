@@ -15,7 +15,6 @@ import { getPlayerAppStatusDisplay } from '../lib/playerAppStatus';
 import { supabase } from '../lib/supabaseClient';
 import { PlayerGuardiansPanel } from '../components/team/PlayerGuardiansPanel';
 import { PlayerAccessQrPanel } from '../components/player/PlayerAccessQrPanel';
-import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import {
   buildParentReminderWhatsAppText,
@@ -55,6 +54,7 @@ export const ParentAccessPlayerPage: React.FC = () => {
   );
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoFailed, setPhotoFailed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,7 +76,8 @@ export const ParentAccessPlayerPage: React.FC = () => {
       if (!alive) return;
       const avatar = String((avatarResult.data as { avatar_url?: string | null } | null)?.avatar_url ?? '').trim();
       const player = playerResult.data as { avatar_url?: string | null; cutout_url?: string | null } | null;
-      const url = avatar || String(player?.avatar_url ?? '').trim() || String(player?.cutout_url ?? '').trim();
+      const url = String(player?.cutout_url ?? '').trim() || String(player?.avatar_url ?? '').trim() || avatar;
+      setPhotoFailed(false);
       setPhotoUrl(url || null);
     })();
     return () => {
@@ -92,6 +93,13 @@ export const ParentAccessPlayerPage: React.FC = () => {
   }
 
   const playerName = row?.player_name ?? 'Spieler';
+  const nameParts = playerName.trim().split(/\s+/).filter(Boolean);
+  const firstName = nameParts[0] || 'Spieler';
+  const familyName = nameParts.slice(1).join(' ');
+  const goalkeeper = row?.jersey_number === 1 || row?.jersey_number === 21;
+  const fallbackPhoto = goalkeeper
+    ? '/avatars/player-placeholder-goalkeeper.png'
+    : '/avatars/player-placeholder.png';
   const appDisplay = getPlayerAppStatusDisplay(
     appStatus?.app_status ?? 'not_setup',
     appStatus?.last_used_at ?? null,
@@ -155,22 +163,32 @@ export const ParentAccessPlayerPage: React.FC = () => {
         </span>
       </Link>
 
-      <PremiumPlayerCard
-        player={{
-          id: playerId,
-          display_name: playerName,
-          jersey_number: row?.jersey_number ?? null,
-          photo_url: photoUrl,
-        }}
-        subline={[
-          row?.jersey_number != null ? `#${row.jersey_number}` : 'ohne Nummer',
-          teamLabelWithStatus,
-        ].filter(Boolean).join(' · ')}
-        density="compact"
-        tone="utility"
-        className="py-3"
-        nameClassName="text-[19px] font-extrabold leading-tight text-white"
-      />
+      <div className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[88px] w-full items-center overflow-hidden rounded-[16px] border px-3">
+        <div className="relative mr-3 h-[78px] w-[64px] shrink-0 self-end overflow-hidden">
+          <img
+            src={!photoFailed && photoUrl ? photoUrl : fallbackPhoto}
+            alt=""
+            onError={() => setPhotoFailed(true)}
+            className="h-full w-full origin-top scale-[1.75] object-contain object-top"
+          />
+        </div>
+        <span className="sz-club-number-divider w-14 shrink-0 border-l pl-3 text-[30px] font-black leading-none text-white">
+          {row?.jersey_number ?? '–'}
+        </span>
+        <span className="min-w-0 flex-1 pl-3">
+          <span className="block truncate text-[14px] font-semibold leading-tight text-white/55">
+            {firstName}
+          </span>
+          <span className="block truncate text-[20px] font-black leading-tight text-white">
+            {familyName || playerName}
+          </span>
+          {teamLabelWithStatus ? (
+            <span className="mt-1 block truncate text-[11px] font-medium text-white/45">
+              {teamLabelWithStatus}
+            </span>
+          ) : null}
+        </span>
+      </div>
 
       {linksLoading && !row ? (
         <p className="text-[14px] text-white/60">Lade Spieler…</p>
