@@ -2,9 +2,9 @@
  * Compact roster row for Eltern & Spielerzugänge.
  */
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
-import { premiumPlayerInitials } from '../../lib/premiumPlayerCard';
+import { Bell, BellOff, ChevronRight } from 'lucide-react';
 import type { PlayerParentLinkRow } from '../../hooks/useTeamPlayerParentLinks';
+import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
 import {
   formatPlayerAppLastUsed,
   type PlayerAppStatus,
@@ -67,36 +67,47 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
     openInviteCount,
   });
   const appLine = playerAppStatusLine(appStatus, lastUsedAt);
-  const initials = premiumPlayerInitials(row.player_name);
   const src = (photoUrl ?? '').trim();
+  const pushActiveCount = row.parents.filter((parent) => parent.push_active === true).length;
+  const pushLabel = row.parent_count <= 0
+    ? 'Kein Elternzugang'
+    : pushActiveCount === row.parent_count
+      ? 'Push aktiv'
+      : pushActiveCount > 0
+        ? `${pushActiveCount}/${row.parent_count} Push aktiv`
+        : 'Push nicht aktiviert';
+  const PushIcon = pushActiveCount > 0 ? Bell : BellOff;
 
   return (
-    <button
-      type="button"
+    <PremiumPlayerCard
+      player={{
+        id: row.player_id,
+        display_name: row.player_name,
+        jersey_number: row.jersey_number,
+        photo_url: src || null,
+      }}
+      subline={row.jersey_number != null ? `#${row.jersey_number}` : 'ohne Nummer'}
+      density="compact"
+      tone="utility"
       onClick={onOpen}
-      className="flex w-full min-h-[72px] items-center gap-3 rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-2.5 text-left transition hover:border-white/16 hover:bg-black/45 active:scale-[0.995]"
-    >
-      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/12 bg-gradient-to-br from-red-950/55 to-black/70">
-        {src ? (
-          <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center text-[13px] font-bold uppercase tracking-wide text-white/75">
-            {initials}
-          </span>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold text-white">{row.player_name}</p>
-        <p className="mt-0.5 text-[12px] text-white/55">
-          {row.jersey_number != null ? `#${row.jersey_number}` : 'ohne Nummer'}
-        </p>
-        <p className="mt-0.5 truncate text-[12px] text-white/70">{parentLine}</p>
-        <p className="truncate text-[11px] text-white/45">
-          {appLine.primary}
-          {appLine.secondary ? ` · ${appLine.secondary}` : ''}
-        </p>
-      </div>
-      <ChevronRight className="h-5 w-5 shrink-0 text-white/35" aria-hidden />
-    </button>
+      trailing={<ChevronRight className="h-5 w-5 text-white/35" aria-hidden />}
+      footer={
+        <div className="space-y-1.5">
+          <div className="flex min-w-0 items-center justify-between gap-3 text-[12px]">
+            <span className="min-w-0 truncate text-white/70">{parentLine}</span>
+            <span
+              className={pushActiveCount > 0 ? 'flex shrink-0 items-center gap-1.5 font-semibold text-emerald-300' : 'flex shrink-0 items-center gap-1.5 text-white/42'}
+            >
+              <PushIcon className="h-3.5 w-3.5" aria-hidden />
+              {pushLabel}
+            </span>
+          </div>
+          <p className="truncate text-[11px] text-white/45">
+            {appLine.primary}
+            {appLine.secondary ? ` · ${appLine.secondary}` : ''}
+          </p>
+        </div>
+      }
+    />
   );
 }
