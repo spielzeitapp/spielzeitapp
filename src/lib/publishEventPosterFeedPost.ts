@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import type { EventRow } from '../hooks/useEvents';
 import type { EventFeedPostOffset, EventFeedSettingsRow } from '../types/eventFeedSettings';
 import { formatDateTimeMediumDeVienna } from './notifications/format';
+import { buildMatchFeedCaptionDraft } from './matchFeedCaptions';
 
 export function eventPosterManualDedupeKey(eventId: string): string {
   return `event_feed:${eventId.trim()}:manual`;
@@ -25,11 +26,19 @@ function eventPosterTitle(event: Pick<EventRow, 'kind' | 'type' | 'opponent' | '
 }
 
 export function buildEventPosterFeedCaption(
-  event: Pick<EventRow, 'kind' | 'type' | 'opponent' | 'starts_at' | 'location' | 'notes'>,
+  event: Pick<EventRow, 'kind' | 'type' | 'opponent' | 'is_home' | 'starts_at' | 'location' | 'notes'>,
   captionOverride?: string | null,
 ): string {
   const override = captionOverride?.trim();
   if (override) return override;
+  if (event.kind === 'match') {
+    return buildMatchFeedCaptionDraft('matchday', {
+      opponent: event.opponent,
+      is_home: event.is_home,
+      starts_at: event.starts_at,
+      location: event.location,
+    });
+  }
   const lines = [eventPosterTitle(event), formatDateTimeMediumDeVienna(event.starts_at)];
   const loc = (event.location ?? '').trim();
   if (loc) lines.push(loc);

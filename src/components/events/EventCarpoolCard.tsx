@@ -590,11 +590,12 @@ export const EventCarpoolCard: React.FC<Props> = ({
                                     <button
                                       type="button"
                                       disabled={busy}
-                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white"
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-red-300/70 hover:bg-red-500/10 hover:text-red-200"
                                       onClick={() => void cancelReservation(row)}
-                                      aria-label={`Mitfahrt für ${playerName(playerById.get(row.player_id))} zurücknehmen`}
+                                      aria-label={`Mitfahrt für ${playerName(playerById.get(row.player_id))} löschen`}
+                                      title="Mitfahrt löschen"
                                     >
-                                      ×
+                                      <Trash2 className="h-4 w-4" aria-hidden />
                                     </button>
                                   ) : null}
                                 </span>
