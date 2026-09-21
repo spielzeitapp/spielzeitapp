@@ -7,15 +7,15 @@ import { ChevronLeft } from 'lucide-react';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { normalizeRole, canViewParentLinks } from '../lib/roles';
 import { dsPanelRowClass } from '../lib/premiumDesignSystem';
-import { PageShell, SectionTitle } from '../ui';
+import { PageShell } from '../ui';
 import { cn } from '../ui/lib/cn';
 import { useTeamPlayerParentLinks } from '../hooks/useTeamPlayerParentLinks';
 import { useTeamPlayerAppStatus } from '../hooks/useTeamPlayerAppStatus';
 import { getPlayerAppStatusDisplay } from '../lib/playerAppStatus';
-import { premiumPlayerInitials } from '../lib/premiumPlayerCard';
 import { supabase } from '../lib/supabaseClient';
 import { PlayerGuardiansPanel } from '../components/team/PlayerGuardiansPanel';
 import { PlayerAccessQrPanel } from '../components/player/PlayerAccessQrPanel';
+import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import {
   buildParentReminderWhatsAppText,
@@ -61,13 +61,22 @@ export const ParentAccessPlayerPage: React.FC = () => {
     let alive = true;
     if (!playerId) return;
     void (async () => {
-      const { data } = await supabase
-        .from('players')
-        .select('avatar_url')
-        .eq('id', playerId)
-        .maybeSingle();
+      const [avatarResult, playerResult] = await Promise.all([
+        supabase
+          .from('player_avatars')
+          .select('avatar_url')
+          .eq('player_id', playerId)
+          .maybeSingle(),
+        supabase
+          .from('players')
+          .select('avatar_url, cutout_url')
+          .eq('id', playerId)
+          .maybeSingle(),
+      ]);
       if (!alive) return;
-      const url = String((data as { avatar_url?: string | null } | null)?.avatar_url ?? '').trim();
+      const avatar = String((avatarResult.data as { avatar_url?: string | null } | null)?.avatar_url ?? '').trim();
+      const player = playerResult.data as { avatar_url?: string | null; cutout_url?: string | null } | null;
+      const url = avatar || String(player?.avatar_url ?? '').trim() || String(player?.cutout_url ?? '').trim();
       setPhotoUrl(url || null);
     })();
     return () => {
@@ -83,7 +92,6 @@ export const ParentAccessPlayerPage: React.FC = () => {
   }
 
   const playerName = row?.player_name ?? 'Spieler';
-  const initials = premiumPlayerInitials(playerName);
   const appDisplay = getPlayerAppStatusDisplay(
     appStatus?.app_status ?? 'not_setup',
     appStatus?.last_used_at ?? null,
@@ -147,24 +155,22 @@ export const ParentAccessPlayerPage: React.FC = () => {
         </span>
       </Link>
 
-      <div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3">
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-white/12 bg-gradient-to-br from-red-950/55 to-black/70">
-          {photoUrl ? (
-            <img src={photoUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center text-[16px] font-bold text-white/75">
-              {initials}
-            </span>
-          )}
-        </div>
-        <div className="min-w-0">
-          <SectionTitle className="[&>h2]:text-xl [&>h2]:normal-case">{playerName}</SectionTitle>
-          <p className="mt-0.5 text-[13px] text-white/60">
-            {row?.jersey_number != null ? `#${row.jersey_number}` : 'ohne Nummer'}
-            {teamLabelWithStatus ? ` · ${teamLabelWithStatus}` : ''}
-          </p>
-        </div>
-      </div>
+      <PremiumPlayerCard
+        player={{
+          id: playerId,
+          display_name: playerName,
+          jersey_number: row?.jersey_number ?? null,
+          photo_url: photoUrl,
+        }}
+        subline={[
+          row?.jersey_number != null ? `#${row.jersey_number}` : 'ohne Nummer',
+          teamLabelWithStatus,
+        ].filter(Boolean).join(' · ')}
+        density="compact"
+        tone="utility"
+        className="py-3"
+        nameClassName="text-[19px] font-extrabold leading-tight text-white"
+      />
 
       {linksLoading && !row ? (
         <p className="text-[14px] text-white/60">Lade Spieler…</p>

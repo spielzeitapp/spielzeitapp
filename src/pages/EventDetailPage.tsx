@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Bus,
+  CalendarDays,
   CalendarPlus,
   Clapperboard,
   ChevronDown,
@@ -4449,24 +4450,44 @@ export const EventDetailPage: React.FC = () => {
             {feedSectionExpanded ? (
               <div className="flex flex-col gap-3 pt-1">
                 <div className="grid gap-2 text-[13px]">
-                  <div className="rounded-xl border border-red-400/20 bg-red-500/[0.07] px-3 py-2.5">
-                    <p className="font-semibold text-white">Spieltag</p>
-                    <p className="mt-0.5 leading-snug text-white/60">
-                      Poster, Feed-Text und automatische Veröffentlichung stellst du hier ein.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
-                    <p className="font-semibold text-white">Kader</p>
-                    <p className="mt-0.5 leading-snug text-white/60">
-                      Wird erst mit „Kader veröffentlichen“ in der Match-Vorbereitung gepostet.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
-                    <p className="font-semibold text-white">Aufstellung</p>
-                    <p className="mt-0.5 leading-snug text-white/60">
-                      Eigener Beitrag; wird mit der gespeicherten Startaufstellung frühestens 60 Minuten vor Anpfiff veröffentlicht.
-                    </p>
-                  </div>
+                  {[
+                    {
+                      icon: CalendarDays,
+                      title: 'Spieltag-Post',
+                      text: 'Poster, Text und Zeitpunkt für die Veröffentlichung festlegen.',
+                      active: true,
+                    },
+                    {
+                      icon: Users,
+                      title: 'Kader-Post',
+                      text: 'Wird beim Veröffentlichen des Kaders aus der Match-Vorbereitung erstellt.',
+                      active: false,
+                    },
+                    {
+                      icon: ClipboardList,
+                      title: 'Aufstellungs-Post',
+                      text: 'Wird mit der gespeicherten Startaufstellung frühestens 60 Minuten vor Anpfiff veröffentlicht.',
+                      active: false,
+                    },
+                  ].map(({ icon: Icon, title, text, active }) => (
+                    <div
+                      key={title}
+                      className={active
+                        ? 'flex items-start gap-3 rounded-xl border border-red-400/25 bg-gradient-to-r from-red-500/[0.11] to-red-950/[0.04] px-3 py-3'
+                        : 'flex items-start gap-3 rounded-xl border border-white/[0.08] bg-black/25 px-3 py-3'}
+                    >
+                      <span className={active
+                        ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-400/25 bg-red-500/15 text-red-300'
+                        : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/55'}
+                      >
+                        <Icon className="h-[18px] w-[18px]" aria-hidden />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-bold text-white">{title}</p>
+                        <p className="mt-0.5 leading-snug text-white/58">{text}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <p className="pt-1 text-[12px] font-medium uppercase tracking-[0.16em] text-red-300/75">
                   Einstellungen für den Spieltag-Post
