@@ -1,10 +1,9 @@
 /**
  * Compact roster row for Eltern & Spielerzugänge.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Bell, BellOff, ChevronRight } from 'lucide-react';
 import type { PlayerParentLinkRow } from '../../hooks/useTeamPlayerParentLinks';
-import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
 import {
   formatPlayerAppLastUsed,
   type PlayerAppStatus,
@@ -68,6 +67,14 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
   });
   const appLine = playerAppStatusLine(appStatus, lastUsedAt);
   const src = (photoUrl ?? '').trim();
+  const [imageFailed, setImageFailed] = useState(false);
+  const nameParts = row.player_name.trim().split(/\s+/).filter(Boolean);
+  const firstName = nameParts[0] || 'Spieler';
+  const familyName = nameParts.slice(1).join(' ');
+  const goalkeeper = row.jersey_number === 1 || row.jersey_number === 21;
+  const fallbackSrc = goalkeeper
+    ? '/avatars/player-placeholder-goalkeeper.png'
+    : '/avatars/player-placeholder.png';
   const pushActiveCount = row.parents.filter((parent) => parent.push_active === true).length;
   const pushLabel = row.parent_count <= 0
     ? 'Kein Elternzugang'
@@ -79,36 +86,40 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
   const PushIcon = pushActiveCount > 0 ? Bell : BellOff;
 
   return (
-    <PremiumPlayerCard
-      player={{
-        id: row.player_id,
-        display_name: row.player_name,
-        jersey_number: row.jersey_number,
-        photo_url: src || null,
-      }}
-      subline={row.jersey_number != null ? `#${row.jersey_number}` : 'ohne Nummer'}
-      density="compact"
-      tone="utility"
+    <button
+      type="button"
       onClick={onOpen}
-      className="py-2.5"
-      nameClassName="text-[15px] font-bold leading-tight text-white"
-      sublineClassName="mt-0.5 text-[11px] font-medium text-white/48"
-      details={
-        <div className="space-y-0.5">
-          <span
-            className={pushActiveCount > 0
-              ? 'flex items-center gap-1 text-[11px] font-semibold text-emerald-300'
-              : 'flex items-center gap-1 text-[11px] font-medium text-white/45'}
-          >
-            <PushIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {pushLabel}
-          </span>
-          <p className="text-[10px] leading-snug text-white/40">
-            {parentLine} · {appLine.primary}
-          </p>
-        </div>
-      }
-      trailing={<ChevronRight className="h-5 w-5 shrink-0 text-white/35" aria-hidden />}
-    />
+      className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[82px] w-full items-center overflow-hidden rounded-[14px] border px-2.5 text-left transition active:scale-[0.99]"
+    >
+      <div className="relative mr-2.5 h-[72px] w-[58px] shrink-0 self-end overflow-hidden">
+        <img
+          src={!imageFailed && src ? src : fallbackSrc}
+          alt=""
+          onError={() => setImageFailed(true)}
+          className="h-full w-full origin-top scale-[1.75] object-contain object-top"
+        />
+      </div>
+      <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">
+        {row.jersey_number ?? '–'}
+      </span>
+      <span className="min-w-0 flex-1 pl-2.5">
+        <span className="block truncate text-[13px] font-semibold leading-tight text-white/55">
+          {firstName}
+        </span>
+        <span className="block truncate text-[17px] font-black leading-tight text-white">
+          {familyName || row.player_name}
+        </span>
+        <span
+          className={pushActiveCount > 0
+            ? 'mt-1 flex items-center gap-1 truncate text-[10px] font-semibold leading-tight text-emerald-300'
+            : 'mt-1 flex items-center gap-1 truncate text-[10px] font-medium leading-tight text-white/42'}
+          title={`${pushLabel} · ${parentLine} · ${appLine.primary}`}
+        >
+          <PushIcon className="h-3 w-3 shrink-0" aria-hidden />
+          <span className="truncate">{pushLabel} · {parentLine}</span>
+        </span>
+      </span>
+      <ChevronRight className="ml-2 h-5 w-5 shrink-0 text-white/65" aria-hidden />
+    </button>
   );
 }
