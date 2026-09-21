@@ -224,7 +224,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
             onChange={(e) => update('match_second_enabled', e.target.checked)}
             className="rounded border-white/20"
           />
-          <span>Zweite Match-Erinnerung</span>
+          <span className="font-semibold">Zweite Match-Kader-Erinnerung</span>
         </label>
         <div className="flex flex-wrap items-center gap-2 pl-6">
           <span className="text-white/60">Vorher</span>
