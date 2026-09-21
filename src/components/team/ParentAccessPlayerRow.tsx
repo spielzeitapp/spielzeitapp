@@ -91,25 +91,24 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
       tone="utility"
       onClick={onOpen}
       className="py-2.5"
-      sublineClassName="mt-0.5 truncate text-[11px] font-medium text-white/48"
-      trailing={
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="min-w-0 text-right">
-            <span
-              className={pushActiveCount > 0
-                ? 'flex items-center justify-end gap-1 text-[11px] font-semibold text-emerald-300'
-                : 'flex items-center justify-end gap-1 text-[11px] font-medium text-white/45'}
-            >
-              <PushIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span className="max-w-[112px] truncate">{pushLabel}</span>
-            </span>
-            <span className="mt-1 block max-w-[112px] truncate text-[10px] text-white/38">
-              {parentLine} · {appLine.primary}
-            </span>
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-white/35" aria-hidden />
+      nameClassName="text-[15px] font-bold leading-tight text-white"
+      sublineClassName="mt-0.5 text-[11px] font-medium text-white/48"
+      details={
+        <div className="space-y-0.5">
+          <span
+            className={pushActiveCount > 0
+              ? 'flex items-center gap-1 text-[11px] font-semibold text-emerald-300'
+              : 'flex items-center gap-1 text-[11px] font-medium text-white/45'}
+          >
+            <PushIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {pushLabel}
+          </span>
+          <p className="text-[10px] leading-snug text-white/40">
+            {parentLine} · {appLine.primary}
+          </p>
         </div>
       }
-     />
+      trailing={<ChevronRight className="h-5 w-5 shrink-0 text-white/35" aria-hidden />}
+    />
   );
 }

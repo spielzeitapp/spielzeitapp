@@ -29,6 +29,7 @@ type Props = {
   selected?: boolean;
   onClick?: () => void;
   trailing?: React.ReactNode;
+  details?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
   nameClassName?: string;
@@ -91,6 +92,7 @@ export const PremiumPlayerCard: React.FC<Props> = ({
   selected = false,
   onClick,
   trailing,
+  details,
   footer,
   className = '',
   nameClassName,
@@ -127,6 +129,7 @@ export const PremiumPlayerCard: React.FC<Props> = ({
         <div className="min-w-0 flex-1 py-0.5 pr-1">
           <p className={nameClassName ?? premiumPlayerNameClass()}>{name}</p>
           <p className={sublineClassName ?? premiumPlayerSublineClass()}>{sub}</p>
+          {details ? <div className="mt-1.5 min-w-0">{details}</div> : null}
         </div>
         {trailing ? <div className="flex shrink-0 flex-col items-end justify-center pl-0.5">{trailing}</div> : null}
       </div>
