@@ -3,6 +3,7 @@ import { uploadStorageObject } from './storageUpload';
 import { optimizeFeedPosterFile } from './feedPosterImage';
 import type {
   EventFeedPosterSource,
+  MatchFeedAssetKind,
   EventFeedPostOffset,
   EventFeedSettingsRow,
   UpsertEventFeedSettingsInput,
@@ -48,6 +49,12 @@ function mapRow(raw: Record<string, unknown>): EventFeedSettingsRow {
     post_mode: postMode === 'auto' ? 'auto' : 'manual_only',
     prefer_custom_poster: raw.prefer_custom_poster !== false,
     caption_override: typeof raw.caption_override === 'string' ? raw.caption_override : null,
+    squad_poster_storage_path: typeof raw.squad_poster_storage_path === 'string' ? raw.squad_poster_storage_path : null,
+    squad_caption_override: typeof raw.squad_caption_override === 'string' ? raw.squad_caption_override : null,
+    squad_feed_enabled: raw.squad_feed_enabled !== false,
+    lineup_poster_storage_path: typeof raw.lineup_poster_storage_path === 'string' ? raw.lineup_poster_storage_path : null,
+    lineup_caption_override: typeof raw.lineup_caption_override === 'string' ? raw.lineup_caption_override : null,
+    lineup_feed_enabled: raw.lineup_feed_enabled !== false,
     created_by: typeof raw.created_by === 'string' ? raw.created_by : null,
     created_at: String(raw.created_at ?? ''),
     updated_at: String(raw.updated_at ?? ''),
@@ -66,11 +73,16 @@ function extForMime(mime: string): string {
   return 'jpg';
 }
 
-export function buildEventPosterStoragePath(teamSeasonId: string, eventId: string, ext: string): string | null {
+export function buildEventPosterStoragePath(
+  teamSeasonId: string,
+  eventId: string,
+  ext: string,
+  kind: MatchFeedAssetKind = 'matchday',
+): string | null {
   const ts = sanitizeSegment(teamSeasonId);
   const ev = sanitizeSegment(eventId);
   if (!ts || !ev) return null;
-  return `posters/${ts}/${ev}/${crypto.randomUUID()}.${ext}`;
+  return `posters/${ts}/${ev}/${kind}/${crypto.randomUUID()}.${ext}`;
 }
 
 export async function loadEventFeedSettings(eventId: string): Promise<EventFeedSettingsRow | null> {
@@ -104,6 +116,12 @@ export async function upsertEventFeedSettings(
   if (input.post_mode !== undefined) payload.post_mode = input.post_mode;
   if (input.prefer_custom_poster !== undefined) payload.prefer_custom_poster = input.prefer_custom_poster;
   if (input.caption_override !== undefined) payload.caption_override = input.caption_override;
+  if (input.squad_poster_storage_path !== undefined) payload.squad_poster_storage_path = input.squad_poster_storage_path;
+  if (input.squad_caption_override !== undefined) payload.squad_caption_override = input.squad_caption_override;
+  if (input.squad_feed_enabled !== undefined) payload.squad_feed_enabled = input.squad_feed_enabled;
+  if (input.lineup_poster_storage_path !== undefined) payload.lineup_poster_storage_path = input.lineup_poster_storage_path;
+  if (input.lineup_caption_override !== undefined) payload.lineup_caption_override = input.lineup_caption_override;
+  if (input.lineup_feed_enabled !== undefined) payload.lineup_feed_enabled = input.lineup_feed_enabled;
   if (input.created_by !== undefined) payload.created_by = input.created_by;
 
   const { data, error } = await supabase
@@ -129,6 +147,7 @@ export async function uploadEventPoster(params: {
   file: File;
   userId: string | null;
   previousStoragePath?: string | null;
+  kind?: MatchFeedAssetKind;
 }): Promise<{ storagePath: string | null; error: string | null }> {
   const originalFile = params.file;
   if (!POSTER_IMAGE_TYPES.has(originalFile.type)) {
@@ -140,7 +159,8 @@ export async function uploadEventPoster(params: {
 
   const file = await optimizeFeedPosterFile(originalFile);
 
-  const objectPath = buildEventPosterStoragePath(params.teamSeasonId, params.eventId, extForMime(file.type));
+  const kind = params.kind ?? 'matchday';
+  const objectPath = buildEventPosterStoragePath(params.teamSeasonId, params.eventId, extForMime(file.type), kind);
   if (!objectPath) return { storagePath: null, error: 'Ungültiger Upload-Pfad.' };
 
   const { error: upErr } = await uploadStorageObject(TEAM_FEED_BUCKET, objectPath, file, {
@@ -150,12 +170,15 @@ export async function uploadEventPoster(params: {
   });
   if (upErr) return { storagePath: null, error: upErr.message };
 
+  const posterPatch = kind === 'squad'
+    ? { squad_poster_storage_path: objectPath }
+    : kind === 'lineup'
+      ? { lineup_poster_storage_path: objectPath }
+      : { poster_url: objectPath, poster_storage_path: objectPath, poster_source: 'custom' as const };
   const { data, error } = await upsertEventFeedSettings({
     event_id: params.eventId,
     team_season_id: params.teamSeasonId,
-    poster_url: objectPath,
-    poster_storage_path: objectPath,
-    poster_source: 'custom',
+    ...posterPatch,
     created_by: params.userId,
   });
   if (error) {
@@ -165,23 +188,33 @@ export async function uploadEventPoster(params: {
   if (params.previousStoragePath && params.previousStoragePath !== objectPath) {
     await removeEventPosterStorage(params.previousStoragePath);
   }
-  return { storagePath: data?.poster_storage_path ?? objectPath, error: null };
+  const savedPath = kind === 'squad'
+    ? data?.squad_poster_storage_path
+    : kind === 'lineup'
+      ? data?.lineup_poster_storage_path
+      : data?.poster_storage_path;
+  return { storagePath: savedPath ?? objectPath, error: null };
 }
 
 export async function clearEventPoster(params: {
   eventId: string;
   teamSeasonId: string;
   storagePath?: string | null;
+  kind?: MatchFeedAssetKind;
 }): Promise<{ error: string | null }> {
   if (params.storagePath) {
     await removeEventPosterStorage(params.storagePath);
   }
+  const kind = params.kind ?? 'matchday';
+  const posterPatch = kind === 'squad'
+    ? { squad_poster_storage_path: null }
+    : kind === 'lineup'
+      ? { lineup_poster_storage_path: null }
+      : { poster_url: null, poster_storage_path: null, poster_source: 'none' as const };
   const { error } = await upsertEventFeedSettings({
     event_id: params.eventId,
     team_season_id: params.teamSeasonId,
-    poster_url: null,
-    poster_storage_path: null,
-    poster_source: 'none',
+    ...posterPatch,
   });
   return { error };
 }

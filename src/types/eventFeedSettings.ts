@@ -1,4 +1,5 @@
 export type EventFeedPosterSource = 'custom' | 'generated' | 'none';
+export type MatchFeedAssetKind = 'matchday' | 'squad' | 'lineup';
 export type EventFeedPostMode = 'manual_only' | 'auto';
 /** Kalendertage vor Termin (0 = Veranstaltungstag) oder sofort beim Feed-Laden. */
 export type EventFeedPostOffset = number | 'immediate';
@@ -15,6 +16,12 @@ export type EventFeedSettingsRow = {
   post_mode: EventFeedPostMode;
   prefer_custom_poster: boolean;
   caption_override: string | null;
+  squad_poster_storage_path: string | null;
+  squad_caption_override: string | null;
+  squad_feed_enabled: boolean;
+  lineup_poster_storage_path: string | null;
+  lineup_caption_override: string | null;
+  lineup_feed_enabled: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -31,5 +38,11 @@ export type UpsertEventFeedSettingsInput = {
   post_mode?: EventFeedPostMode;
   prefer_custom_poster?: boolean;
   caption_override?: string | null;
+  squad_poster_storage_path?: string | null;
+  squad_caption_override?: string | null;
+  squad_feed_enabled?: boolean;
+  lineup_poster_storage_path?: string | null;
+  lineup_caption_override?: string | null;
+  lineup_feed_enabled?: boolean;
   created_by?: string | null;
 };

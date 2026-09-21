@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Send, Trash2 } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
-import type { EventFeedPostMode, EventFeedPostOffset, EventFeedSettingsRow } from '../../types/eventFeedSettings';
+import type {
+  EventFeedPostMode,
+  EventFeedPostOffset,
+  EventFeedSettingsRow,
+  MatchFeedAssetKind,
+} from '../../types/eventFeedSettings';
 import {
   clearEventPoster,
   loadEventFeedSettings,
@@ -47,7 +52,12 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [settings, setSettings] = useState<EventFeedSettingsRow | null>(null);
+  const [activeKind, setActiveKind] = useState<MatchFeedAssetKind>('matchday');
   const [captionOverride, setCaptionOverride] = useState('');
+  const [squadCaptionOverride, setSquadCaptionOverride] = useState('');
+  const [lineupCaptionOverride, setLineupCaptionOverride] = useState('');
+  const [squadFeedEnabled, setSquadFeedEnabled] = useState(true);
+  const [lineupFeedEnabled, setLineupFeedEnabled] = useState(true);
   const [preferCustomPoster, setPreferCustomPoster] = useState(true);
   const [postMode, setPostMode] = useState<EventFeedPostMode>('manual_only');
   const [autoPostEnabled, setAutoPostEnabled] = useState(false);
@@ -57,11 +67,26 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
   const [manualPublished, setManualPublished] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const posterPath = settings?.poster_storage_path ?? settings?.poster_url ?? null;
+  const posterPath = activeKind === 'squad'
+    ? settings?.squad_poster_storage_path ?? null
+    : activeKind === 'lineup'
+      ? settings?.lineup_poster_storage_path ?? null
+      : settings?.poster_storage_path ?? settings?.poster_url ?? null;
   const previewSrc = useFeedMediaSrc(posterPath);
   const isAutoMode = postMode === 'auto';
   const autoActive = isAutoMode && autoPostEnabled;
-  const canEnableAuto = Boolean(posterPath);
+  const canEnableAuto = Boolean(settings?.poster_storage_path ?? settings?.poster_url);
+  const activeLabel = activeKind === 'squad' ? 'Kader' : activeKind === 'lineup' ? 'Aufstellung' : 'Spieltag';
+  const activeCaption = activeKind === 'squad'
+    ? squadCaptionOverride
+    : activeKind === 'lineup'
+      ? lineupCaptionOverride
+      : captionOverride;
+  const setActiveCaption = activeKind === 'squad'
+    ? setSquadCaptionOverride
+    : activeKind === 'lineup'
+      ? setLineupCaptionOverride
+      : setCaptionOverride;
 
   const reload = useCallback(async () => {
     if (!event.id) return;
@@ -73,6 +98,10 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
     ]);
     setSettings(row);
     setCaptionOverride(row?.caption_override ?? '');
+    setSquadCaptionOverride(row?.squad_caption_override ?? '');
+    setLineupCaptionOverride(row?.lineup_caption_override ?? '');
+    setSquadFeedEnabled(row?.squad_feed_enabled !== false);
+    setLineupFeedEnabled(row?.lineup_feed_enabled !== false);
     setPreferCustomPoster(row?.prefer_custom_poster !== false);
     setPostMode(row?.post_mode === 'auto' ? 'auto' : 'manual_only');
     setAutoPostEnabled(Boolean(row?.auto_post_enabled));
@@ -117,6 +146,7 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
       file,
       userId,
       previousStoragePath: posterPath,
+      kind: activeKind,
     });
     setUploading(false);
     if (upErr || !storagePath) {
@@ -129,6 +159,34 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
 
   const onSaveSettings = async () => {
     if (!event.team_season_id) return;
+
+    if (activeKind !== 'matchday') {
+      setSaving(true);
+      setError(null);
+      setStatusMessage(null);
+      const { error: saveErr } = await upsertEventFeedSettings({
+        event_id: event.id,
+        team_season_id: event.team_season_id,
+        ...(activeKind === 'squad'
+          ? {
+              squad_caption_override: squadCaptionOverride.trim() || null,
+              squad_feed_enabled: squadFeedEnabled,
+            }
+          : {
+              lineup_caption_override: lineupCaptionOverride.trim() || null,
+              lineup_feed_enabled: lineupFeedEnabled,
+            }),
+        created_by: userId,
+      });
+      setSaving(false);
+      if (saveErr) {
+        setError(saveErr);
+        return;
+      }
+      setStatusMessage(`${activeLabel}-Einstellungen gespeichert.`);
+      await reload();
+      return;
+    }
 
     const effectiveMode: EventFeedPostMode = isAutoMode && autoPostEnabled && canEnableAuto ? 'auto' : 'manual_only';
     const effectiveAuto = effectiveMode === 'auto';
@@ -174,13 +232,14 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
       eventId: event.id,
       teamSeasonId: event.team_season_id,
       storagePath: posterPath,
+      kind: activeKind,
     });
     setSaving(false);
     if (delErr) {
       setError(delErr);
       return;
     }
-    if (autoActive) {
+    if (activeKind === 'matchday' && autoActive) {
       await upsertEventFeedSettings({
         event_id: event.id,
         team_season_id: event.team_season_id,
@@ -232,8 +291,62 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
       <div className="flex flex-col gap-3">
         {loading ? <p className="text-[14px] text-white/70">Lade Einstellungen…</p> : null}
 
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-black/30 p-1">
+            {([
+              ['matchday', 'Spieltag'],
+              ['squad', 'Kader'],
+              ['lineup', 'Aufstellung'],
+            ] as const).map(([kind, label]) => (
+              <button
+                key={kind}
+                type="button"
+                onClick={() => {
+                  setActiveKind(kind);
+                  setError(null);
+                  setStatusMessage(null);
+                }}
+                className={`min-h-[40px] rounded-lg px-1.5 text-[12px] font-semibold transition-colors ${
+                  activeKind === kind
+                    ? 'bg-red-600/90 text-white shadow-sm'
+                    : 'text-white/55 hover:bg-white/[0.05] hover:text-white/85'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {activeKind !== 'matchday' ? (
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+              <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-white/90">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={activeKind === 'squad' ? squadFeedEnabled : lineupFeedEnabled}
+                  onChange={(ev) => {
+                    if (activeKind === 'squad') setSquadFeedEnabled(ev.target.checked);
+                    else setLineupFeedEnabled(ev.target.checked);
+                  }}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border border-white/25 bg-black/30"
+                />
+                <span>
+                  <span className="block font-semibold">
+                    {activeKind === 'squad'
+                      ? 'Beim Veröffentlichen auch Kader-Post erstellen'
+                      : 'Aufstellungs-Post automatisch erstellen'}
+                  </span>
+                  <span className="mt-1 block text-[12px] leading-snug text-white/55">
+                    {activeKind === 'squad'
+                      ? 'Der Beitrag entsteht gemeinsam mit der bewussten Kaderfreigabe.'
+                      : 'Sobald die Startaufstellung gespeichert ist, wird sie frühestens 60 Minuten vor Anpfiff veröffentlicht.'}
+                  </span>
+                </span>
+              </label>
+            </div>
+          ) : null}
+
           <div className="rounded-xl border border-white/10 bg-black/25 p-3">
-            <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/55">Poster</p>
+            <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/55">{activeLabel}-Poster</p>
             {previewSrc ? (
               <div className="mb-3 overflow-hidden rounded-lg border border-white/10 bg-black/40">
                 <img
@@ -284,30 +397,30 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
 
           <div>
             <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/55">
-              Eigener Feed-Text
+              Feed-Text zu {activeKind === 'lineup' ? 'der Aufstellung' : activeKind === 'squad' ? 'dem Kader' : 'dem Spieltag'}
             </label>
             <textarea
-              value={captionOverride}
-              onChange={(ev) => setCaptionOverride(ev.target.value)}
+              value={activeCaption}
+              onChange={(ev) => setActiveCaption(ev.target.value)}
               rows={3}
               placeholder="Optional — leer = Titel, Datum/Uhrzeit, Ort"
               className={`${inputClass} min-h-[4.5rem] resize-y`}
             />
           </div>
 
-          <label className="flex cursor-pointer items-start gap-2 text-[14px] text-white/90">
+          {activeKind === 'matchday' ? <label className="flex cursor-pointer items-start gap-2 text-[14px] text-white/90">
             <input
               type="checkbox"
               checked={preferCustomPoster}
               onChange={(ev) => setPreferCustomPoster(ev.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border border-white/25 bg-black/30"
             />
-            <span>Eigenes Poster bevorzugen</span>
-          </label>
+            <span>Eigenes Spieltagsposter bevorzugen</span>
+          </label> : null}
 
-          <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+          {activeKind === 'matchday' ? <div className="rounded-xl border border-white/10 bg-black/25 p-3">
             <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/55">
-              Automatische Veröffentlichung
+              Spieltag automatisch veröffentlichen
             </p>
 
             <div className="mb-3 flex rounded-lg border border-white/10 bg-black/30 p-0.5">
@@ -387,13 +500,13 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
                 Im manuellen Modus kannst du das Poster unten jederzeit selbst im Feed veröffentlichen.
               </p>
             )}
-          </div>
+          </div> : null}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button variant="primary" size="sm" disabled={saving || uploading} onClick={() => void onSaveSettings()}>
               {saving ? 'Speichern…' : 'Einstellungen speichern'}
             </Button>
-            <Button
+            {activeKind === 'matchday' ? <Button
               variant="soft"
               size="sm"
               disabled={!posterPath || publishing || manualPublished}
@@ -402,10 +515,10 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
             >
               <Send className="h-4 w-4" aria-hidden />
               {publishing ? 'Veröffentliche…' : 'Jetzt im Feed posten'}
-            </Button>
+            </Button> : null}
           </div>
 
-          {manualPublished ? (
+          {activeKind === 'matchday' && manualPublished ? (
             <p className="text-[13px] text-amber-200/90">Dieses Poster wurde bereits manuell im Feed veröffentlicht.</p>
           ) : null}
           {statusMessage ? <p className="text-[13px] text-emerald-300/95">{statusMessage}</p> : null}

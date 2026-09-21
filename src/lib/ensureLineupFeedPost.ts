@@ -874,10 +874,44 @@ export async function ensureLineupFeedPostForMatch(
     is_home: typeof isHomeRaw === 'boolean' ? isHomeRaw : null,
   };
 
-  const caption = buildAutoLineupFeedCaption({
+  const defaultCaption = buildAutoLineupFeedCaption({
     formation: lineupData.formation,
     startsAtIso: starts_at,
   });
+  let caption = defaultCaption;
+  let customMediaUrl: string | null = null;
+  if (eventId) {
+    const { data: feedSettings, error: feedSettingsError } = await supabase
+      .from('event_feed_settings')
+      .select('lineup_caption_override, lineup_poster_storage_path, lineup_feed_enabled')
+      .eq('event_id', eventId)
+      .maybeSingle();
+    if (feedSettingsError) {
+      lineupFeedDevWarn('[LINEUP FEED]', 'custom feed settings unavailable', {
+        matchId: mid,
+        eventId,
+        error: feedSettingsError.message,
+      });
+    } else {
+      const lineupFeedEnabled = (feedSettings as { lineup_feed_enabled?: boolean | null } | null)
+        ?.lineup_feed_enabled !== false;
+      if (!lineupFeedEnabled) {
+        lineupFeedExit('lineup feed disabled', {
+          matchId: mid,
+          eventId,
+          teamSeasonId,
+          dedupeKey: dedupe_key,
+          reason: 'disabled',
+        });
+        return { ok: true, created: false, reason: 'disabled' };
+      }
+      const customCaption = (feedSettings as { lineup_caption_override?: string | null } | null)
+        ?.lineup_caption_override?.trim();
+      caption = customCaption || defaultCaption;
+      customMediaUrl = (feedSettings as { lineup_poster_storage_path?: string | null } | null)
+        ?.lineup_poster_storage_path?.trim() || null;
+    }
+  }
 
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData?.session?.user?.id ?? null;
@@ -891,7 +925,7 @@ export async function ensureLineupFeedPostForMatch(
     payload,
     dedupe_key,
     media_type: 'lineup',
-    media_url: null,
+    media_url: customMediaUrl,
     thumbnail_url: null,
     duration_seconds: null,
     created_by: uid,
