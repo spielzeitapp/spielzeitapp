@@ -21,6 +21,7 @@ import {
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { Button } from '../../app/components/ui/Button';
 import { Card } from '../../app/components/ui/Card';
+import { buildMatchFeedCaptionDraft } from '../../lib/matchFeedCaptions';
 
 type Props = {
   event: EventRow;
@@ -97,9 +98,9 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
       isEventPosterManualFeedPublished(event.id),
     ]);
     setSettings(row);
-    setCaptionOverride(row?.caption_override ?? '');
-    setSquadCaptionOverride(row?.squad_caption_override ?? '');
-    setLineupCaptionOverride(row?.lineup_caption_override ?? '');
+    setCaptionOverride(row?.caption_override?.trim() || buildMatchFeedCaptionDraft('matchday', event));
+    setSquadCaptionOverride(row?.squad_caption_override?.trim() || buildMatchFeedCaptionDraft('squad', event));
+    setLineupCaptionOverride(row?.lineup_caption_override?.trim() || buildMatchFeedCaptionDraft('lineup', event));
     setSquadFeedEnabled(row?.squad_feed_enabled !== false);
     setLineupFeedEnabled(row?.lineup_feed_enabled !== false);
     setPreferCustomPoster(row?.prefer_custom_poster !== false);
@@ -108,7 +109,7 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
     setSelectedOffsets(parseEventFeedPostOffsets(row?.post_offsets_days ?? []));
     setManualPublished(published);
     setLoading(false);
-  }, [event.id]);
+  }, [event.id, event.is_home, event.location, event.opponent, event.starts_at]);
 
   useEffect(() => {
     if (embedded) void reload();
@@ -403,9 +404,12 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
               value={activeCaption}
               onChange={(ev) => setActiveCaption(ev.target.value)}
               rows={3}
-              placeholder="Optional — leer = Titel, Datum/Uhrzeit, Ort"
+              placeholder="Beschreibung für den Feed"
               className={`${inputClass} min-h-[4.5rem] resize-y`}
             />
+            <p className="mt-1.5 text-[11px] leading-snug text-white/45">
+              Mit den Matchdaten vorausgefüllt und jederzeit bearbeitbar.
+            </p>
           </div>
 
           {activeKind === 'matchday' ? <label className="flex cursor-pointer items-start gap-2 text-[14px] text-white/90">
