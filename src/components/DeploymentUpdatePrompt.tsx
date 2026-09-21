@@ -35,11 +35,11 @@ export const DeploymentUpdatePrompt: React.FC = () => {
         <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-red-300/90 to-transparent" />
         <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/20 blur-3xl" />
 
-        <div className="relative mx-auto flex h-[74px] w-[74px] items-center justify-center rounded-[24px] border border-white/10 bg-black/35 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_30px_rgba(0,0,0,0.38)]">
-          <img src={appIcon} alt="" className="h-full w-full object-contain" aria-hidden />
+        <div className="relative mx-auto flex h-[96px] w-[96px] items-center justify-center">
+          <img src={appIcon} alt="" className="h-[92px] w-[92px] object-contain drop-shadow-[0_12px_26px_rgba(0,0,0,0.42)]" aria-hidden />
         </div>
 
-        <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-red-300">
+        <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.24em] text-red-300">
           Update bereit
         </p>
         <h2 id="deployment-update-title" className="mt-1.5 text-[24px] font-black leading-tight tracking-tight">
