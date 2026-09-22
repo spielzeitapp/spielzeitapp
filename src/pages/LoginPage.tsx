@@ -45,7 +45,9 @@ const inputClass =
 const lockedEmailDisplayClass =
   'flex h-12 w-full items-center rounded-xl border border-white/10 bg-[#1b1d22] pl-11 pr-4 text-[16px] text-white select-none [user-select:none]';
 
-const LOGIN_TIMEOUT_MS = 15_000;
+// Staging-Auth kann nach einem Cold Start samt Turnstile-Prüfung deutlich länger
+// als 15 Sekunden brauchen. Erst danach als echte Zeitüberschreitung behandeln.
+const LOGIN_TIMEOUT_MS = 45_000;
 
 class LoginTimeoutError extends Error {
   constructor() {
@@ -265,7 +267,7 @@ export const LoginPage: React.FC = () => {
       console.error('[login] sign-in request failed', loginError);
       setError(
         loginError instanceof LoginTimeoutError
-          ? 'Die Anmeldung dauert zu lange. Bitte Internetverbindung prüfen und erneut versuchen.'
+          ? 'Die Anmeldung dauert ungewöhnlich lange. Bitte Seite neu laden und erneut versuchen.'
           : 'Die Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.',
       );
     } finally {
