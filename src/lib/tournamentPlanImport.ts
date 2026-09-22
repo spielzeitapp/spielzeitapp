@@ -2610,16 +2610,41 @@ async function analyzeTournamentLiveWithClientFallback(
   serverResult?: AnalyzeTournamentUrlResult | null,
 ): Promise<AnalyzeTournamentUrlResult> {
   if (serverResult?.ok) return serverResult;
-  if (
-    serverResult &&
-    !serverResult.ok &&
-    serverResult.failure?.provider === 'tournament-live' &&
-    serverResult.failure.code !== 'unsupported_host'
-  ) {
-    return serverResult;
-  }
   try {
-    return analyzeResultFromTournamentLive(await analyzeTournamentLiveUrl(trimmed));
+    const clientResult = analyzeResultFromTournamentLive(await analyzeTournamentLiveUrl(trimmed));
+    if (clientResult.ok) return clientResult;
+
+    // The server and the browser do not always see the same TURNIERlive response
+    // (redirects/CORS/CDN). Keep the more useful server failure, but record that
+    // the browser fallback really ran instead of returning before it was tried.
+    if (serverResult && !serverResult.ok) {
+      return {
+        ...serverResult,
+        failure: serverResult.failure
+          ? {
+              ...serverResult.failure,
+              diagnostics: {
+                ...serverResult.failure.diagnostics,
+                browserFallbackAttempted: true,
+                browserFallbackError: clientResult.error ?? clientResult.failure?.message ?? null,
+              },
+            }
+          : serverResult.failure,
+      };
+    }
+    return {
+      ...clientResult,
+      failure: clientResult.failure
+        ? {
+            ...clientResult.failure,
+            diagnostics: {
+              ...clientResult.failure.diagnostics,
+              browserFallbackAttempted: true,
+              browserFallbackError: clientResult.error ?? clientResult.failure.message,
+            },
+          }
+        : clientResult.failure,
+    };
   } catch (err) {
     if (serverResult && !serverResult.ok) return serverResult;
     const extracted = extractTournamentLiveKeyFromUrl(trimmed);

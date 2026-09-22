@@ -571,9 +571,14 @@ export async function analyzeTournamentLiveUrl(
   const tryGet = async (path: string) => {
     const endpoint = `${TOURNAMENT_LIVE_API_BASE}${path}`;
     attemptedEndpoints.push(endpoint);
-    const res = await fetchJson(endpoint, fetchImpl);
-    if (res.status > 0) apiReachable = true;
-    return res;
+    try {
+      const res = await fetchJson(endpoint, fetchImpl);
+      if (res.status > 0) apiReachable = true;
+      return res;
+    } catch {
+      // One slow TURNIERlive endpoint must not abort the complete fallback chain.
+      return { ok: false, status: 0, json: null, finalUrl: endpoint };
+    }
   };
 
   const tryShortLink = async (matchingKey: string) => {
