@@ -78,6 +78,11 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
   const autoActive = isAutoMode && autoPostEnabled;
   const canEnableAuto = Boolean(settings?.poster_storage_path ?? settings?.poster_url);
   const activeLabel = activeKind === 'squad' ? 'Kader' : activeKind === 'lineup' ? 'Aufstellung' : 'Spieltag';
+  const activeDescription = activeKind === 'squad'
+    ? 'Poster und Feedtext für die Kaderfreigabe festlegen.'
+    : activeKind === 'lineup'
+      ? 'Poster und Feedtext für die automatische Veröffentlichung der Startaufstellung festlegen.'
+      : 'Poster, Feedtext und Zeitpunkt der Veröffentlichung festlegen.';
   const activeCaption = activeKind === 'squad'
     ? squadCaptionOverride
     : activeKind === 'lineup'
@@ -315,6 +320,13 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
                 {label}
               </button>
             ))}
+          </div>
+
+          <div className="rounded-xl border border-red-400/20 bg-gradient-to-r from-red-500/[0.09] to-red-950/[0.03] px-3 py-2.5">
+            <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-red-300/75">
+              Einstellungen für den {activeLabel}-Post
+            </p>
+            <p className="mt-1 text-[13px] leading-snug text-white/65">{activeDescription}</p>
           </div>
 
           {activeKind !== 'matchday' ? (
