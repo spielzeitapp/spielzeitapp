@@ -3,7 +3,6 @@ import { fetchLineupForLiveMatch, fetchMatchById, LIVE_FIELD_SLOT_ORDER } from '
 import { isU11FormationId, type U11FormationId } from './matchFormations';
 import type { FieldSlotId } from '../types/match';
 import {
-  buildAutoLineupFeedCaption,
   dedupeKeyForLineupMatch,
   lineupFeedFriendlyPositionLabel,
   sanitizeLineupFeedPlayerName,
@@ -11,6 +10,7 @@ import {
   type LineupFeedPlayer,
 } from './lineupFeedTypes';
 import { lineupFeedDevLog, lineupFeedDevWarn } from './lineupFeedDebug';
+import { buildMatchFeedCaptionDraft } from './matchFeedCaptions';
 
 export type EnsureLineupFeedPostResult =
   | { ok: true; created: boolean; reason?: string }
@@ -668,7 +668,7 @@ export async function ensureLineupFeedPostForMatch(
 
   const { data: evRaw, error: evErr } = await supabase
     .from('events')
-    .select('id, starts_at, is_home')
+    .select('id, starts_at, is_home, opponent, location')
     .eq('match_id', mid)
     .order('starts_at', { ascending: false })
     .limit(1)
@@ -874,9 +874,16 @@ export async function ensureLineupFeedPostForMatch(
     is_home: typeof isHomeRaw === 'boolean' ? isHomeRaw : null,
   };
 
-  const defaultCaption = buildAutoLineupFeedCaption({
-    formation: lineupData.formation,
-    startsAtIso: starts_at,
+  const eventForCaption = evRaw as {
+    is_home?: boolean | null;
+    opponent?: string | null;
+    location?: string | null;
+  } | null;
+  const defaultCaption = buildMatchFeedCaptionDraft('lineup', {
+    opponent: eventForCaption?.opponent?.trim() || match.opponent?.trim() || null,
+    is_home: typeof eventForCaption?.is_home === 'boolean' ? eventForCaption.is_home : null,
+    starts_at,
+    location: eventForCaption?.location?.trim() || match.location?.trim() || null,
   });
   let caption = defaultCaption;
   let customMediaUrl: string | null = null;

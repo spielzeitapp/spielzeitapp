@@ -14,6 +14,13 @@ function matchDescription(event: MatchFeedEvent): string {
   return opponent ? `Spiel gegen ${opponent}` : 'nächste Spiel';
 }
 
+function lineupMatchDescription(event: MatchFeedEvent): string {
+  const opponent = (event.opponent ?? '').trim();
+  if (event.is_home === true) return opponent ? `ins Heimspiel gegen ${opponent}` : 'ins Heimspiel';
+  if (event.is_home === false) return opponent ? `ins Auswärtsspiel bei ${opponent}` : 'ins Auswärtsspiel';
+  return opponent ? `ins Spiel gegen ${opponent}` : 'ins nächste Spiel';
+}
+
 function matchDetails(event: MatchFeedEvent): string[] {
   const lines = [
     `📅 ${formatEventDateLongVienna(event.starts_at)}`,
@@ -43,11 +50,13 @@ export function buildMatchFeedCaptionDraft(kind: MatchFeedCaptionKind, event: Ma
 
   if (kind === 'lineup') {
     return [
-      '📋 STARTAUFSTELLUNG',
+      '🔥 Unsere Aufstellung steht!',
       '',
-      `Unsere Aufstellung für das ${description} steht fest.`,
+      `Mit dieser Startelf geht unser Team ${lineupMatchDescription(event)}.`,
       '',
       ...details,
+      '',
+      "Auf geht’s, Team!",
       '',
       FEED_HASHTAG,
     ].join('\n');
