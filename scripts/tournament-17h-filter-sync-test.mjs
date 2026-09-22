@@ -6,6 +6,8 @@
  * (no DB / network).
  */
 
+import { readFileSync } from 'node:fs';
+
 let failed = 0;
 
 function assert(condition, message) {
@@ -209,6 +211,12 @@ assert(ids.join(',') === 'tl:1,tl:2,tl:3', 'no duplicate external match ids');
 
 assert(true, 'post-match sync hook exists (syncOfficialPlanAfterTournamentMatchFinish)');
 assert(true, 'own score protected by import skip of existing own match_id slots');
+const importSource = readFileSync(new URL('../src/lib/tournamentPlanImport.ts', import.meta.url), 'utf8');
+assert(
+  importSource.includes("existingSlot.source === 'manual_override'") &&
+    importSource.includes('!manuallyCorrected'),
+  'manual own-match corrections stay protected during later syncs',
+);
 assert(true, 'foreign results updated via official slot upsert on sync');
 assert(true, 'public page reads same tournament slots after sync');
 

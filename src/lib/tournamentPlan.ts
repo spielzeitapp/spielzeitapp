@@ -1078,6 +1078,7 @@ export async function updateOwnTournamentSlotSchedule(params: {
   opponentName?: string | null;
   provider?: string | null;
   externalMatchId?: string | null;
+  source?: 'spielzeitapp' | 'manual_override';
 }): Promise<{ error: string | null }> {
   const payload: Record<string, unknown> = {
     kickoff_at: params.kickoffAtIso,
@@ -1089,6 +1090,7 @@ export async function updateOwnTournamentSlotSchedule(params: {
     provider: safeOptionalText(params.provider),
     external_match_id: safeOptionalText(params.externalMatchId),
   };
+  if (params.source) payload.source = params.source;
   const opponentName = safeOptionalText(params.opponentName);
   if (opponentName) payload.opponent_name = opponentName;
 

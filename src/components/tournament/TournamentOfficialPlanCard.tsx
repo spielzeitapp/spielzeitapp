@@ -49,6 +49,7 @@ type Props = {
   onUrlUpdated: (url: string | null) => void;
   onImportComplete: () => void;
   onScrollToAliases?: () => void;
+  onManualAddMatch?: () => void;
   /** Kompakte Darstellung im Trainer-Accordion ohne eigene Card-Hülle. */
   embedded?: boolean;
   /** Externer Trigger für Import/QR/Link-Workflow (z. B. aus Überblick). */
@@ -71,6 +72,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   onUrlUpdated,
   onImportComplete,
   onScrollToAliases,
+  onManualAddMatch,
   embedded = false,
   workflowRequest = null,
 }) => {
@@ -604,6 +606,10 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             onEditLink={() => {
               setImportSheetOpen(false);
               openEditor();
+            }}
+            onManualAddMatch={() => {
+              setImportSheetOpen(false);
+              onManualAddMatch?.();
             }}
           />
 

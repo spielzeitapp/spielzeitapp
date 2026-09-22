@@ -73,6 +73,7 @@ export function TournamentOwnMatchEditSheet({
         opponentName: opp,
         provider: slot.provider,
         externalMatchId: slot.external_match_id,
+        source: 'manual_override',
       });
       if (slotRes.error) {
         setError(slotRes.error);
@@ -82,6 +83,7 @@ export function TournamentOwnMatchEditSheet({
       if (slot.match_id) {
         const matchRes = await updateMatchRow(slot.match_id, {
           opponent: opp,
+          match_date: kickoffIso,
         });
         if (matchRes.error) {
           setError(matchRes.error);

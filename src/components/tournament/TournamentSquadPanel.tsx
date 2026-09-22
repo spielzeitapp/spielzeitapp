@@ -244,6 +244,8 @@ export function TournamentSquadPanel({
                   selected={inSquad}
                   status={status === 'available' ? 'yes' : status === 'absent' ? 'no' : 'open'}
                   rightLabel={inSquad ? 'Im Kader' : undefined}
+                  layout="team-roster"
+                  hideSubline
                   onClick={disabled ? undefined : () => toggleSquadPlayer(p.id)}
                 />
               </div>

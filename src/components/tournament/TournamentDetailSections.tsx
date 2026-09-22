@@ -954,6 +954,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
                 void reload();
               }}
               onScrollToAliases={scrollToTeamAliases}
+              onManualAddMatch={openMatchModal}
             />
           </TournamentTrainerAdminSection>
           <TournamentTrainerAdminSection title="Turnier-Aliase">

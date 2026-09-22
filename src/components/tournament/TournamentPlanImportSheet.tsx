@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { FileDown } from 'lucide-react';
+import { AlertTriangle, FileDown, ShieldCheck } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import {
   buildTournamentPlanImportPreviewSummary,
@@ -27,6 +27,7 @@ type Props = {
   onAddAlias: () => void;
   onRetry?: () => void;
   onEditLink?: () => void;
+  onManualAddMatch?: () => void;
 };
 
 export const TournamentPlanImportSheet: React.FC<Props> = ({
@@ -43,6 +44,7 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
   onAddAlias,
   onRetry,
   onEditLink,
+  onManualAddMatch,
 }) => {
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -78,7 +80,7 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
         <div className="modalHeader">
           <div id="tournament-plan-import-title" className="modalTitle flex items-center gap-2 text-white">
             <FileDown className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
-            Turnierplan erkannt
+            {error ? 'Turnierplan nicht verfügbar' : 'Turnierplan erkannt'}
           </div>
           <button type="button" className="modalClose" onClick={onClose} aria-label="Schließen" disabled={importing}>
             ×
@@ -90,26 +92,39 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
             <p className="text-[14px] text-white/70">Turnierplan wird analysiert…</p>
           ) : error ? (
             <>
-              {!analyzeFailure ? (
-                <p className="text-[13px] text-red-300/90" role="alert">
-                  {error}
-                </p>
-              ) : null}
+              <div className="rounded-2xl border border-amber-500/25 bg-amber-950/20 px-3.5 py-3.5" role="alert">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" strokeWidth={2} aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-bold text-white">Automatischer Import derzeit nicht möglich</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-white/68">
+                      Der Anbieter liefert aktuell keinen vollständigen Spielplan. Bereits gespeicherte Spiele,
+                      Live-Ergebnisse und Torschützen bleiben unverändert.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-950/20 px-2.5 py-2 text-[12px] font-semibold text-emerald-200/90">
+                  <ShieldCheck className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+                  Vorhandene Turnierdaten sind geschützt
+                </div>
+              </div>
               {showIncompleteActions ? (
                 <div className="flex flex-col gap-2">
+                  {onManualAddMatch ? (
+                    <AppButton variant="primary" onClick={onManualAddMatch} className="w-full">
+                      Turnierspiel manuell ergänzen
+                    </AppButton>
+                  ) : null}
                   {onRetry ? (
-                    <AppButton variant="primary" onClick={onRetry} className="w-full">
-                      Erneut versuchen
+                    <AppButton variant="secondary" onClick={onRetry} className="w-full">
+                      Erneut prüfen
                     </AppButton>
                   ) : null}
                   {onEditLink ? (
                     <AppButton variant="secondary" onClick={onEditLink} className="w-full">
-                      QR/Link bearbeiten
+                      QR oder Link ändern
                     </AppButton>
                   ) : null}
-                  <AppButton variant="secondary" onClick={onClose} className="w-full">
-                    Spiele manuell anlegen
-                  </AppButton>
                 </div>
               ) : null}
               <details className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
@@ -167,16 +182,18 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <AppButton variant="secondary" onClick={onClose} disabled={importing} className="w-full sm:w-auto">
-              Abbrechen
+              {error ? 'Schließen' : 'Abbrechen'}
             </AppButton>
-            <AppButton
-              variant="primary"
-              onClick={onImport}
-              disabled={loading || importing || !analysis || Boolean(error)}
-              className="w-full sm:w-auto"
-            >
-              {importing ? 'Importieren…' : 'Turnierplan importieren'}
-            </AppButton>
+            {!error ? (
+              <AppButton
+                variant="primary"
+                onClick={onImport}
+                disabled={loading || importing || !analysis}
+                className="w-full sm:w-auto"
+              >
+                {importing ? 'Importieren…' : 'Turnierplan importieren'}
+              </AppButton>
+            ) : null}
           </div>
         </div>
       </div>
