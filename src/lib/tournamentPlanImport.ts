@@ -2100,6 +2100,7 @@ export async function computeTournamentPlanRefreshPreview(params: {
     score_home?: number;
     score_away?: number;
     is_own_team?: boolean | null;
+    source?: string | null;
     external_match_id?: string | null;
     home_team?: string | null;
     away_team?: string | null;
@@ -2799,6 +2800,7 @@ export async function importTournamentPlanFromAnalysis(params: {
     score_home?: number;
     score_away?: number;
     is_own_team?: boolean | null;
+    source?: string | null;
     external_match_id?: string | null;
     home_team?: string | null;
     away_team?: string | null;
@@ -2951,7 +2953,12 @@ export async function importTournamentPlanFromAnalysis(params: {
 
       if (existingIsOwn && existingSlot) {
         skippedMatches += 1;
-        if ((existingSlot.match_status ?? 'upcoming').toLowerCase() === 'upcoming' && existingSlot.id) {
+        const manuallyCorrected = existingSlot.source === 'manual_override';
+        if (
+          !manuallyCorrected &&
+          (existingSlot.match_status ?? 'upcoming').toLowerCase() === 'upcoming' &&
+          existingSlot.id
+        ) {
           await updateOwnTournamentSlotSchedule({
             slotId: existingSlot.id,
             kickoffAtIso: kickoffIso,

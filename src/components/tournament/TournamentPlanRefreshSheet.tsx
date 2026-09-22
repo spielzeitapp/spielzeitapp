@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import {
   countOwnTeamMatchesInAnalysis,
@@ -79,11 +79,22 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
             <p className="text-[14px] text-white/70">Turnierplan wird geladen…</p>
           ) : error ? (
             <>
-              {!analyzeFailure ? (
-                <p className="text-[13px] text-red-300/90" role="alert">
-                  {error}
-                </p>
-              ) : null}
+              <div className="rounded-2xl border border-amber-500/25 bg-amber-950/20 px-3.5 py-3.5" role="alert">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" strokeWidth={2} aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-bold text-white">Aktualisierung derzeit nicht möglich</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-white/68">
+                      Der Anbieter liefert aktuell keinen vollständigen Spielplan. Die vorhandenen Spiele und alle
+                      Eingaben aus der SpielzeitApp bleiben erhalten.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-950/20 px-2.5 py-2 text-[12px] font-semibold text-emerald-200/90">
+                  <ShieldCheck className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+                  Keine vorhandenen Daten werden überschrieben
+                </div>
+              </div>
               <details className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
                 <summary className="cursor-pointer text-[12px] text-white/45">Technische Details</summary>
                 <div className="mt-2">
@@ -123,16 +134,18 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <AppButton variant="secondary" onClick={onClose} disabled={importing} className="w-full sm:w-auto">
-              Abbrechen
+              {error ? 'Schließen' : 'Abbrechen'}
             </AppButton>
-            <AppButton
-              variant="primary"
-              onClick={onImport}
-              disabled={loading || importing || !preview || Boolean(error) || !canImport}
-              className="w-full sm:w-auto"
-            >
-              {importing ? 'Aktualisieren…' : 'Aktualisieren'}
-            </AppButton>
+            {!error ? (
+              <AppButton
+                variant="primary"
+                onClick={onImport}
+                disabled={loading || importing || !preview || !canImport}
+                className="w-full sm:w-auto"
+              >
+                {importing ? 'Aktualisieren…' : 'Aktualisieren'}
+              </AppButton>
+            ) : null}
           </div>
         </div>
       </div>

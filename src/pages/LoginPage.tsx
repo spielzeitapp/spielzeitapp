@@ -45,6 +45,33 @@ const inputClass =
 const lockedEmailDisplayClass =
   'flex h-12 w-full items-center rounded-xl border border-white/10 bg-[#1b1d22] pl-11 pr-4 text-[16px] text-white select-none [user-select:none]';
 
+// Staging-Auth kann nach einem Cold Start samt Turnstile-Prüfung deutlich länger
+// als 15 Sekunden brauchen. Erst danach als echte Zeitüberschreitung behandeln.
+const LOGIN_TIMEOUT_MS = 45_000;
+
+class LoginTimeoutError extends Error {
+  constructor() {
+    super('LOGIN_TIMEOUT');
+    this.name = 'LoginTimeoutError';
+  }
+}
+
+async function signInWithTimeout(
+  credentials: Parameters<typeof supabase.auth.signInWithPassword>[0],
+) {
+  let timeoutId: number | undefined;
+  try {
+    return await Promise.race([
+      supabase.auth.signInWithPassword(credentials),
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new LoginTimeoutError()), LOGIN_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  }
+}
+
 function stashTokenIfValid(raw: string | null | undefined): string | null {
   const token = normalizeParentInviteToken(raw ?? '');
   if (!isParentInviteTokenShape(token)) return null;
@@ -201,43 +228,53 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password,
-      options: captchaToken ? { captchaToken } : undefined,
-    });
-    setCaptchaToken(null);
-    setCaptchaResetKey((value) => value + 1);
-    setLoading(false);
-    if (signInError) {
-      setError(signInError.message);
-      return;
+    try {
+      const { data: signInData, error: signInError } = await signInWithTimeout({
+        email: trimmedEmail,
+        password,
+        options: captchaToken ? { captchaToken } : undefined,
+      });
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      clearAccountScopedClientState();
+
+      const recoveredMeta = readParentInviteTokenFromUserMetadata(signInData.user);
+      if (recoveredMeta) stashParentInviteToken(recoveredMeta);
+      ensureParentInviteContextFromNext(nextSafe);
+      stashTokenIfValid(orphanT);
+      if (lockedInviteEmail) stashParentInviteEmail(lockedInviteEmail);
+
+      const dest = await resolvePostAuthDestination({
+        user: signInData.user,
+        next: nextSafe,
+        from: safeFromState,
+        // Invite wins over splash inside resolvePostAuthDestination.
+        consciousLogin: !isParentInviteFlow,
+        parentInviteFlowHint: isParentInviteFlow,
+      });
+
+      clearEmailConfirmFlow();
+
+      if (dest.hardReplace) {
+        window.location.replace(dest.path);
+        return;
+      }
+      navigate(dest.path, { replace: true });
+    } catch (loginError) {
+      console.error('[login] sign-in request failed', loginError);
+      setError(
+        loginError instanceof LoginTimeoutError
+          ? 'Die Anmeldung dauert ungewöhnlich lange. Bitte Seite neu laden und erneut versuchen.'
+          : 'Die Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.',
+      );
+    } finally {
+      setCaptchaToken(null);
+      setCaptchaResetKey((value) => value + 1);
+      setLoading(false);
     }
-
-    clearAccountScopedClientState();
-
-    const recoveredMeta = readParentInviteTokenFromUserMetadata(signInData.user);
-    if (recoveredMeta) stashParentInviteToken(recoveredMeta);
-    ensureParentInviteContextFromNext(nextSafe);
-    stashTokenIfValid(orphanT);
-    if (lockedInviteEmail) stashParentInviteEmail(lockedInviteEmail);
-
-    const dest = await resolvePostAuthDestination({
-      user: signInData.user,
-      next: nextSafe,
-      from: safeFromState,
-      // Invite wins over splash inside resolvePostAuthDestination.
-      consciousLogin: !isParentInviteFlow,
-      parentInviteFlowHint: isParentInviteFlow,
-    });
-
-    clearEmailConfirmFlow();
-
-    if (dest.hardReplace) {
-      window.location.replace(dest.path);
-      return;
-    }
-    navigate(dest.path, { replace: true });
   };
 
   const openNormalLogin = () => {
