@@ -4198,7 +4198,7 @@ export const LiveMatchScreen: React.FC = () => {
       return (
         <div
           key={row.key}
-          className={`flex min-h-0 items-stretch gap-2 rounded-xl border border-zinc-600/40 bg-zinc-950/88 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] md:gap-2 md:px-2.5 md:py-2 ${
+          className={`flex min-h-[54px] items-center gap-2 border-b border-white/10 px-2 py-1.5 last:border-b-0 md:px-2.5 ${
             canEditSubstitution
               ? 'cursor-pointer touch-manipulation focus:outline-none focus:ring-2 focus:ring-red-500/70'
               : ''
@@ -4218,13 +4218,10 @@ export const LiveMatchScreen: React.FC = () => {
           tabIndex={canEditSubstitution ? 0 : undefined}
           aria-label={canEditSubstitution ? `${line} bearbeiten` : undefined}
         >
-          <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-600/50 bg-zinc-900 text-base text-zinc-200"
-            aria-hidden
-          >
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center text-lg text-zinc-300" aria-hidden>
             ⇄
           </div>
-          <div className="min-w-0 flex-1 py-0.5">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Wechsel</p>
               {canEditSubstitution ? (
@@ -4233,7 +4230,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </span>
               ) : null}
             </div>
-            <p className="mt-1 text-[13px] font-semibold leading-snug text-zinc-200">{line}</p>
+            <p className="mt-0.5 text-[13px] font-semibold leading-snug text-zinc-200">{line}</p>
           </div>
         </div>
       );
@@ -4256,10 +4253,13 @@ export const LiveMatchScreen: React.FC = () => {
       setSaveError(null);
     };
     const openTickerEdit = canEditPositionSwap ? openPositionSwapEdit : openGoalEdit;
+    const isTickerGoal = ev.type === 'goal' || ev.type === 'goal_away';
+    const scorer = ev.playerId ? rosterById.get(ev.playerId)?.name : null;
+    const score = isTickerGoal ? goalScoreBadgeByEventId.get(ev.id) : null;
     return (
       <div
         key={row.key}
-        className={`w-full min-w-0 ${canEditGoal || canEditPositionSwap ? 'cursor-pointer rounded-xl focus-within:ring-2 focus-within:ring-red-500/70' : ''}`}
+        className={`flex min-h-[54px] w-full min-w-0 items-center gap-2 border-b border-white/10 px-2 py-1.5 last:border-b-0 ${canEditGoal || canEditPositionSwap ? 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500/70' : ''}`}
         onClick={canEditGoal || canEditPositionSwap ? openTickerEdit : undefined}
         onKeyDown={
           canEditGoal || canEditPositionSwap
@@ -4275,7 +4275,26 @@ export const LiveMatchScreen: React.FC = () => {
         tabIndex={canEditGoal || canEditPositionSwap ? 0 : undefined}
         aria-label={canEditGoal || canEditPositionSwap ? `${eventLabel(ev)} bearbeiten` : undefined}
       >
-        {renderTimelineRow(ev, 0, 1, true, true, spectatorView, true)}
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center text-lg text-zinc-200" aria-hidden>
+          {eventIcon(ev.type)}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-bold leading-snug text-white">
+            {isTickerGoal
+              ? `Tor ${ev.type === 'goal' ? stadiumHomeDisplay : stadiumAwayDisplay}`
+              : ev.type === 'position_swap'
+                ? positionSwapPrimaryLine(ev) ?? 'Positionswechsel'
+                : parentLiveEventDescription(ev)}
+          </span>
+          <span className="mt-0.5 block text-[11px] leading-snug text-zinc-400">
+            {isTickerGoal ? scorer ?? 'Ohne Torschütze' : ev.type === 'position_swap' ? 'Positionswechsel' : eventLabel(ev)}
+          </span>
+        </span>
+        {score ? (
+          <span className="shrink-0 rounded-lg bg-red-950/80 px-2 py-1 text-[11px] font-bold tabular-nums text-white">{score}</span>
+        ) : canEditGoal || canEditPositionSwap ? (
+          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-red-300/80">Ändern</span>
+        ) : null}
       </div>
     );
   };
@@ -4290,7 +4309,7 @@ export const LiveMatchScreen: React.FC = () => {
         <div className="absolute top-1.5 bottom-0 left-1/2 w-px -translate-x-1/2 bg-zinc-600/45" aria-hidden />
       ) : null;
     return (
-      <li key={group.groupKey} className="relative flex gap-0 pb-1.5 last:pb-0 md:pb-2">
+      <li key={group.groupKey} className="relative flex gap-0 border-b border-white/10 py-0.5 last:border-b-0">
         <div className="flex w-10 shrink-0 flex-col items-end pr-0.5 pt-0.5 md:w-12 md:pr-1">
           <span className="text-xs font-bold tabular-nums leading-none text-white md:text-sm">{group.minuteLabel}</span>
         </div>
@@ -4298,7 +4317,7 @@ export const LiveMatchScreen: React.FC = () => {
           {lineConnector}
           <div className="relative z-10 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-500" aria-hidden />
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
+        <div className="min-w-0 flex-1">
           {group.segments.map((seg) => renderTrainerTickerSegment(seg))}
         </div>
       </li>
@@ -5740,7 +5759,7 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'events' && (
           <div className="flex min-h-0 flex-1 flex-col gap-3 px-1 pb-1 sm:px-2">
-            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/12 bg-black/50 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:grid-cols-4">
+            <div className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-black/40 p-1" role="group" aria-label="Liveticker filtern">
               {(
                 [
                   ['all', 'Alle'],
@@ -5753,10 +5772,11 @@ export const LiveMatchScreen: React.FC = () => {
                   key={key}
                   type="button"
                   onClick={() => setEventsFilter(key)}
-                  className={`min-h-[44px] rounded-xl px-2 py-2 text-[12px] font-extrabold tracking-tight transition-colors sm:min-h-[48px] sm:text-sm ${
+                  aria-pressed={eventsFilter === key}
+                  className={`min-h-[42px] rounded-lg px-1 py-1.5 text-[11px] font-bold tracking-tight transition-colors min-[380px]:text-xs ${
                     eventsFilter === key
-                      ? 'border border-red-500/45 bg-gradient-to-b from-red-600/90 to-red-950/90 text-white shadow-[0_0_20px_rgba(220,38,38,0.25)]'
-                      : 'border border-transparent text-white/50 hover:border-white/10 hover:bg-white/[0.05] hover:text-white/85'
+                      ? 'bg-red-700 text-white'
+                      : 'text-white/65 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
                   {label}
@@ -5772,7 +5792,7 @@ export const LiveMatchScreen: React.FC = () => {
                 Keine Einträge für diesen Filter.
               </p>
             ) : (
-              <ul className="min-h-0 flex-1 touch-pan-y space-y-0 overflow-y-auto overscroll-y-contain rounded-2xl border border-zinc-600/30 bg-black/55 px-1.5 py-2 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:px-2 sm:py-3">
+              <ul className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain rounded-xl border border-zinc-600/25 bg-black/45 px-1.5 py-1 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:px-2">
                 {trainerTickerGroups.map((g, i, arr) => renderTrainerTickerMinuteGroup(g, i, arr.length))}
               </ul>
             )}

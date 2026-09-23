@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ResultFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
@@ -18,7 +18,6 @@ import {
   FeedMatchMetaBadge,
   FeedPostHeader,
   FeedPostActionsFooter,
-  FeedSectionHeader,
   FeedStandardActions,
   FeedStadiumHeroBackdrop,
   FEED_HERO_TITLE_CLASS,
@@ -34,6 +33,7 @@ import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
+import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -166,6 +166,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
+  const resultPosterRef = useRef<HTMLDivElement | null>(null);
+  const posterBlobRef = useRef<Blob | null>(null);
   const customImageSrc = useFeedMediaSrc(post.media_url);
   const hasCustomImage = Boolean(post.media_url?.trim());
 
@@ -193,6 +195,23 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   const captionTrim = post.caption?.trim() ?? '';
 
   const groupedScorers = useMemo(() => groupScorersByPlayer(p.scorers), [p.scorers]);
+
+  // Das automatisch gerenderte Ergebnis wird bereits vor dem Tippen auf „Teilen“
+  // als PNG vorbereitet. Auf iOS muss navigator.share zeitnah zum Tap starten.
+  useEffect(() => {
+    posterBlobRef.current = null;
+    if (hasCustomImage) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      const poster = resultPosterRef.current;
+      if (!poster) return;
+      void matchdayPosterDomToPngBlob(poster).then((blob) => {
+        if (active) posterBlobRef.current = blob;
+      });
+    }, 350);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [hasCustomImage, p.home_score, p.away_score, p.home_team_name, p.away_team_name,
+    p.home_logo_url, p.away_logo_url, p.scorers, p.starts_at, p.location]);
 
   const presentation = resultPresentation(p.result_state);
 
@@ -233,10 +252,17 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     const path = gameHref.startsWith('/') ? gameHref : `/${gameHref}`;
     const url = `${window.location.origin}${base}${path}`;
     const title = 'SpielzeitApp · Ergebnis';
-    const text = `${post.caption}\n${p.home_team_name} ${p.home_score}:${p.away_score} ${p.away_team_name}`;
+    const scorerLine = groupedScorers.length > 0
+      ? `\nTorschützen: ${groupedScorers.map((scorer) => `${scorer.playerName}${scorer.minutes.length ? ` (${scorer.minutes.join(', ')})` : ''}`).join(' · ')}`
+      : '';
+    const text = `${post.caption}\n${p.home_team_name} ${p.home_score}:${p.away_score} ${p.away_team_name}${scorerLine}`;
+    const posterFile = !hasCustomImage && posterBlobRef.current
+      ? new File([posterBlobRef.current], `spielzeit-endstand-${post.id.slice(0, 8)}.png`, { type: 'image/png' })
+      : null;
     const outcome = await shareFeedContent({
       title,
       text: `${text}\n${url}`,
+      file: posterFile,
       fetchUrl: hasCustomImage ? customImageSrc : null,
       fileName: hasCustomImage ? `spielzeit-ergebnis-${post.id.slice(0, 8)}.webp` : undefined,
       mimeType: hasCustomImage ? 'image/webp' : undefined,
@@ -246,7 +272,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     else if (outcome === 'copied') setShareHint('Text kopiert.');
     else setShareHint('Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2400);
-  }, [post.caption, post.id, p.away_score, p.away_team_name, gameHref, p.home_score, p.home_team_name, hasCustomImage, customImageSrc]);
+  }, [post.caption, post.id, p.away_score, p.away_team_name, gameHref, p.home_score, p.home_team_name, hasCustomImage, customImageSrc, groupedScorers]);
 
   const matchMetaLine = buildFeedMatchMetaLine(
     pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name),
@@ -334,9 +360,9 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
-          <FeedStadiumHeroBackdrop />
-
-          <div className="relative min-w-0 space-y-3">
+          <div ref={resultPosterRef} className="relative min-w-0 space-y-3 overflow-hidden rounded-xl bg-[#140808] px-1.5 py-2 sm:px-2.5 sm:py-3">
+            <FeedStadiumHeroBackdrop />
+            <div className="relative min-w-0 space-y-3">
             <FeedMatchMetaBadge line={matchMetaLine} />
 
             <div className={FEED_MATCH_GRID_CLASS}>
@@ -379,37 +405,24 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             {groupedScorers.length > 0 ? (
-              <div className="sz-club-feed-inset rounded-2xl border px-2 py-2.5 backdrop-blur-md sm:px-3 sm:py-3">
-                <FeedSectionHeader icon="⚽" label="Torschützen" />
-                <ul className="space-y-1">
+              <div className="rounded-xl border border-red-500/30 bg-black/70 px-3 py-3 sm:px-4">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-300">⚽ Unsere Torschützen</p>
+                <ul className="space-y-1.5">
                   {groupedScorers.map((scorer) => (
-                    <li
-                      key={scorer.playerName.toLocaleLowerCase('de-AT')}
-                      className="flex min-w-0 items-start gap-2 rounded-lg bg-white/[0.03] px-2 py-1.5 sm:px-2.5"
-                    >
-                      <span className="mt-0.5 shrink-0 text-[11px] leading-none opacity-90" aria-hidden>
-                        ⚽
+                    <li key={scorer.playerName.toLocaleLowerCase('de-AT')} className="flex min-w-0 items-baseline justify-between gap-2 text-[12px] font-semibold leading-snug text-white sm:text-[14px]">
+                      <span className="min-w-0 break-words">{scorer.playerName}</span>
+                      <span className="shrink-0 tabular-nums text-red-200">
+                        {scorer.minutes.length > 0 ? scorer.minutes.join(' · ') : `${scorer.goalCount} ${scorer.goalCount === 1 ? 'Tor' : 'Tore'}`}
                       </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-baseline justify-between gap-2">
-                          <span className="min-w-0 break-words text-[13px] font-semibold leading-snug text-white sm:text-[14px]">
-                            {scorer.playerName}
-                          </span>
-                          <span className="sz-club-feed-accent-text shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] sm:text-[11px]">
-                            {scorer.goalCount} {scorer.goalCount === 1 ? 'Tor' : 'Tore'}
-                          </span>
-                        </div>
-                        {scorer.minutes.length > 0 ? (
-                          <p className="mt-0.5 text-[10px] font-semibold tabular-nums leading-snug text-white/55 sm:text-[11px]">
-                            {scorer.minutes.join(' · ')}
-                          </p>
-                        ) : null}
-                      </div>
                     </li>
                   ))}
                 </ul>
               </div>
             ) : null}
+
+            <p className="pb-0.5 text-center text-[10px] font-black uppercase tracking-[0.13em] text-red-200/90">#GEMEINSAMEINTEAM</p>
+            </div>
+          </div>
 
             {captionTrim ? (
               <div className="sz-club-feed-inset mt-0.5 rounded-2xl border px-2 py-2 sm:px-2.5 sm:py-2.5">
@@ -425,7 +438,6 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             <div className="pt-1">
               <FeedGameCtaLink to={gameHref}>Zur Zusammenfassung</FeedGameCtaLink>
             </div>
-          </div>
         </div>
       </div>
 
