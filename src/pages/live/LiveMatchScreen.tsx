@@ -59,6 +59,7 @@ import {
   saveMatchEvent,
   updateGoalScorer,
   updateSubstitutionPlayers,
+  updatePositionSwap,
   updateMatchRow,
   matchEventDbRowToEngine,
   type LiveMatchRow,
@@ -1546,7 +1547,12 @@ export const LiveMatchScreen: React.FC = () => {
   const [editingSubstitutionInId, setEditingSubstitutionInId] = useState('');
   const [editingSubstitutionMinute, setEditingSubstitutionMinute] = useState('');
   const [editingSubstitutionSaving, setEditingSubstitutionSaving] = useState(false);
-  const liveEditDialogOpen = Boolean(editingGoalEvent || editingSubstitutionEvent);
+  const [editingPositionSwapEvent, setEditingPositionSwapEvent] = useState<MatchEngineEvent | null>(null);
+  const [editingPositionSwapFirstId, setEditingPositionSwapFirstId] = useState('');
+  const [editingPositionSwapSecondId, setEditingPositionSwapSecondId] = useState('');
+  const [editingPositionSwapMinute, setEditingPositionSwapMinute] = useState('');
+  const [editingPositionSwapSaving, setEditingPositionSwapSaving] = useState(false);
+  const liveEditDialogOpen = Boolean(editingGoalEvent || editingSubstitutionEvent || editingPositionSwapEvent);
 
   useEffect(() => {
     document.body.toggleAttribute('data-live-edit-dialog-open', liveEditDialogOpen);
@@ -3662,6 +3668,91 @@ export const LiveMatchScreen: React.FC = () => {
     roster,
   ]);
 
+  const positionSwapEditPlayers = useMemo(() => {
+    if (!editingPositionSwapEvent) return [] as RosterPlayer[];
+    const minute = Number(editingPositionSwapMinute);
+    const timestamp = Number.isInteger(minute) && minute >= 0
+      ? minute * 60 : editingPositionSwapEvent.timestamp;
+    const previous = sortMatchEventsChronologically(events).filter((item) =>
+      item.id !== editingPositionSwapEvent.id && item.timestamp <= timestamp,
+    );
+    const replay = replaySubstitutionEventsOnSlots(liveLineupBasePlayerIds, previous, timestamp, {
+      squadPlayerIds,
+    });
+    const ids = new Set(getOnFieldIdsInSlotOrder(replay.slots));
+    return roster.filter((player) => ids.has(player.id));
+  }, [editingPositionSwapEvent, editingPositionSwapMinute, events, liveLineupBasePlayerIds, squadPlayerIds, roster]);
+
+  const applyPositionSwapReplay = useCallback(async (nextEvents: MatchEngineEvent[]) => {
+    if (!effectiveMatchId) return 'Kein Match.';
+    const result = await syncFinalLineupBenchFromEventReplay({
+      matchId: effectiveMatchId,
+      kickoffStartingPlayerIds: liveLineupBasePlayerIds,
+      squadPlayerIds,
+      events: sortMatchEventsChronologically(nextEvents),
+      atMatchSecond: resolveReplayAtMatchSecond(nextEvents, currentMatchSeconds),
+      fallbackStartingPlayerIds: startingPlayerIds,
+      beforeFieldIds: startingPlayerIds.filter(Boolean),
+      beforeBenchIds: savedBenchPlayerIds,
+    });
+    if (result.error) return result.error;
+    const fieldAfter = result.startingPlayerIds.filter(Boolean);
+    const benchAfter = getBenchPlayers(result.squadPlayerIds, fieldAfter, savedBenchPlayerIds);
+    setEvents(nextEvents);
+    setStartingPlayerIds(result.startingPlayerIds);
+    setSquadPlayerIds(result.squadPlayerIds);
+    setSavedBenchPlayerIds(benchAfter);
+    setLineupData({ startingPlayerIds: result.startingPlayerIds, squadPlayerIds: result.squadPlayerIds, savedBenchPlayerIds: benchAfter });
+    queueRealtimeReload();
+    return null;
+  }, [effectiveMatchId, liveLineupBasePlayerIds, squadPlayerIds, currentMatchSeconds, startingPlayerIds, savedBenchPlayerIds, queueRealtimeReload]);
+
+  const saveEditedPositionSwap = useCallback(async () => {
+    const event = editingPositionSwapEvent;
+    const first = editingPositionSwapFirstId.trim();
+    const second = editingPositionSwapSecondId.trim();
+    const minute = Number(editingPositionSwapMinute);
+    if (!event || !canControlLiveMatch || editingPositionSwapSaving) return;
+    if (!first || !second || first === second || !positionSwapEditPlayers.some((p) => p.id === first) ||
+        !positionSwapEditPlayers.some((p) => p.id === second)) {
+      setSaveError('Bitte zwei unterschiedliche Spieler auswählen, die zu dieser Minute am Feld stehen.');
+      return;
+    }
+    if (!Number.isInteger(minute) || minute < 0 || minute > plannedMatchMinutes) {
+      setSaveError(`Bitte eine ganze Spielminute zwischen 0 und ${plannedMatchMinutes} eingeben.`);
+      return;
+    }
+    setEditingPositionSwapSaving(true);
+    setSaveError(null);
+    const nextEvents = events.map((item) => item.id === event.id
+      ? { ...item, timestamp: minute * 60, playerId: first, swapWithPlayerId: second }
+      : item);
+    const { error } = await updatePositionSwap(event.id, first, second, minute * 60, event.fairPlayAnchorSlot);
+    if (error) { setSaveError(error); setEditingPositionSwapSaving(false); return; }
+    const replayError = await applyPositionSwapReplay(nextEvents);
+    if (replayError) {
+      const rollback = await updatePositionSwap(event.id, event.playerId ?? '', event.swapWithPlayerId ?? '', event.timestamp, event.fairPlayAnchorSlot);
+      setSaveError(rollback.error ? `${replayError} Rücksetzen fehlgeschlagen: ${rollback.error}` : `${replayError} Änderung zurückgesetzt.`);
+      queueRealtimeReload();
+    } else setEditingPositionSwapEvent(null);
+    setEditingPositionSwapSaving(false);
+  }, [editingPositionSwapEvent, editingPositionSwapFirstId, editingPositionSwapSecondId, editingPositionSwapMinute,
+    editingPositionSwapSaving, canControlLiveMatch, positionSwapEditPlayers, plannedMatchMinutes, events, applyPositionSwapReplay, queueRealtimeReload]);
+
+  const deleteEditedPositionSwap = useCallback(async () => {
+    const event = editingPositionSwapEvent;
+    if (!event || !canControlLiveMatch || editingPositionSwapSaving) return;
+    setEditingPositionSwapSaving(true);
+    setSaveError(null);
+    const { error } = await deleteMatchEventById(event.id);
+    if (error) { setSaveError(error); setEditingPositionSwapSaving(false); return; }
+    const replayError = await applyPositionSwapReplay(events.filter((item) => item.id !== event.id));
+    if (replayError) setSaveError(`${replayError} Bitte Aufstellung prüfen.`);
+    else setEditingPositionSwapEvent(null);
+    queueRealtimeReload();
+    setEditingPositionSwapSaving(false);
+  }, [editingPositionSwapEvent, editingPositionSwapSaving, canControlLiveMatch, events, applyPositionSwapReplay, queueRealtimeReload]);
+
   const saveEditedSubstitution = useCallback(async () => {
     const event = editingSubstitutionEvent;
     const outId = editingSubstitutionOutId.trim();
@@ -4149,8 +4240,16 @@ export const LiveMatchScreen: React.FC = () => {
     }
 
     const ev = row.items[0];
-    const canEditGoal =
-      canControlLiveMatch && (ev.type === 'goal' || ev.type === 'goal_away');
+    const canEditGoal = canControlLiveMatch && (ev.type === 'goal' || ev.type === 'goal_away');
+    const canEditPositionSwap = canControlLiveMatch && ev.type === 'position_swap';
+    const openPositionSwapEdit = () => {
+      setEditingPositionSwapEvent(ev);
+      setEditingPositionSwapFirstId(ev.playerId ?? '');
+      setEditingPositionSwapSecondId(ev.swapWithPlayerId ?? '');
+      setEditingPositionSwapMinute(String(displayMatchMinuteFromEffectiveSeconds(ev.timestamp)));
+      setSaveError(null);
+    };
+    const openTickerEdit = canEditPositionSwap ? openPositionSwapEdit : openGoalEdit;
     const openGoalEdit = () => {
       setEditingGoalEvent(ev);
       setEditingGoalScorerId(ev.playerId ?? '');
@@ -4160,21 +4259,21 @@ export const LiveMatchScreen: React.FC = () => {
     return (
       <div
         key={row.key}
-        className={`w-full min-w-0 ${canEditGoal ? 'cursor-pointer rounded-xl focus-within:ring-2 focus-within:ring-red-500/70' : ''}`}
-        onClick={canEditGoal ? openGoalEdit : undefined}
+        className={`w-full min-w-0 ${canEditGoal || canEditPositionSwap ? 'cursor-pointer rounded-xl focus-within:ring-2 focus-within:ring-red-500/70' : ''}`}
+        onClick={canEditGoal || canEditPositionSwap ? openTickerEdit : undefined}
         onKeyDown={
-          canEditGoal
+          canEditGoal || canEditPositionSwap
             ? (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  openGoalEdit();
+                  openTickerEdit();
                 }
               }
             : undefined
         }
-        role={canEditGoal ? 'button' : undefined}
-        tabIndex={canEditGoal ? 0 : undefined}
-        aria-label={canEditGoal ? `${eventLabel(ev)} bearbeiten` : undefined}
+        role={canEditGoal || canEditPositionSwap ? 'button' : undefined}
+        tabIndex={canEditGoal || canEditPositionSwap ? 0 : undefined}
+        aria-label={canEditGoal || canEditPositionSwap ? `${eventLabel(ev)} bearbeiten` : undefined}
       >
         {renderTimelineRow(ev, 0, 1, true, true, spectatorView, true)}
       </div>
@@ -7139,6 +7238,57 @@ export const LiveMatchScreen: React.FC = () => {
                 className="mt-2 min-h-[46px] w-full rounded-2xl border border-white/15 text-sm font-semibold text-white/80 disabled:opacity-40"
               >
                 Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editingPositionSwapEvent?.type === 'position_swap' ? (
+        <div className="fixed inset-0 z-[10020] flex min-h-dvh flex-col justify-end bg-black/80 pt-[var(--app-header-offset)] backdrop-blur-sm" role="presentation"
+          onClick={() => { if (!editingPositionSwapSaving) setEditingPositionSwapEvent(null); }}>
+          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#141414] shadow-2xl"
+            onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="position-swap-edit-title">
+            <div className="shrink-0 px-4 pb-3 pt-4">
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+              <button type="button" disabled={editingPositionSwapSaving} onClick={() => setEditingPositionSwapEvent(null)}
+                className="mb-3 min-h-[44px] rounded-2xl border border-white/10 bg-black/35 px-3 text-sm font-bold text-white/85">← Zurück zum Livespiel</button>
+              <h3 id="position-swap-edit-title" className="text-center text-lg font-bold">Positionswechsel korrigieren</h3>
+            </div>
+            <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-4 pb-4">
+              <label htmlFor="position-swap-edit-minute" className="mb-2 block text-xs font-bold uppercase text-white/70">Spielminute</label>
+              <input id="position-swap-edit-minute" type="number" inputMode="numeric" min={0} max={plannedMatchMinutes} step={1}
+                value={editingPositionSwapMinute} disabled={editingPositionSwapSaving}
+                onChange={(event) => setEditingPositionSwapMinute(event.target.value)}
+                className="mb-4 min-h-[52px] w-full rounded-xl border border-white/15 bg-black/35 px-4 text-xl font-bold text-white" />
+              {([['Spieler 1', editingPositionSwapFirstId, setEditingPositionSwapFirstId],
+                 ['Spieler 2', editingPositionSwapSecondId, setEditingPositionSwapSecondId]] as const).map(([label, selected, select]) => (
+                <section key={label} className="mb-4">
+                  <p className="mb-2 text-xs font-bold uppercase text-white/70">{label} · am Feld</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {positionSwapEditPlayers.map((player) => (
+                      <button key={`${label}-${player.id}`} type="button" disabled={editingPositionSwapSaving}
+                        onClick={() => select(player.id)}
+                        className={`min-h-[46px] rounded-xl border px-2 py-2 text-left text-xs font-bold ${selected === player.id
+                          ? 'border-red-400 bg-red-700 text-white' : 'border-white/10 bg-white/[0.06] text-white/85'}`}>
+                        {player.number || '–'} · {player.name}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+            <div className="shrink-0 border-t border-white/10 bg-black/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-3">
+              {saveError ? <p className="mb-2 text-sm text-amber-200" role="alert">{saveError}</p> : null}
+              <button type="button" disabled={editingPositionSwapSaving || !editingPositionSwapFirstId || !editingPositionSwapSecondId || editingPositionSwapFirstId === editingPositionSwapSecondId}
+                onClick={() => void saveEditedPositionSwap()}
+                className="min-h-[52px] w-full rounded-2xl bg-red-600 font-bold text-white disabled:opacity-35">
+                {editingPositionSwapSaving ? 'Wird gespeichert…' : 'Änderung speichern'}
+              </button>
+              <button type="button" disabled={editingPositionSwapSaving} onClick={() => {
+                if (window.confirm('Diesen Positionswechsel wirklich löschen?')) void deleteEditedPositionSwap();
+              }} className="mt-2 min-h-[46px] w-full rounded-2xl border border-red-500/40 text-sm font-bold text-red-300 disabled:opacity-40">
+                Positionswechsel löschen
               </button>
             </div>
           </div>

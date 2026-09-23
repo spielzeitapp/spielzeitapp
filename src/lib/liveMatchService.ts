@@ -911,6 +911,35 @@ export async function updateSubstitutionPlayers(
   return { error: null };
 }
 
+/** Korrigiert einen Positionswechsel, einschließlich der FairPlay-Ankerdaten. */
+export async function updatePositionSwap(
+  eventId: string,
+  playerId: string,
+  swapPlayerId: string,
+  timestamp: number,
+  fairPlayAnchorSlot?: FieldSlotId,
+): Promise<{ error: string | null }> {
+  const id = eventId.trim();
+  const first = playerId.trim();
+  const second = swapPlayerId.trim();
+  if (!id || !first || !second || first === second) return { error: 'Bitte zwei unterschiedliche Spieler auswählen.' };
+  if (!Number.isFinite(timestamp) || timestamp < 0) return { error: 'Bitte eine gültige Spielminute eingeben.' };
+  if (isDemoMatchEventId(id)) return { error: 'Demo-Ereignisse können nicht nachträglich bearbeitet werden.' };
+  const { data, error: loadError } = await supabase.from('match_events')
+    .select('match_id, type, payload').eq('id', id).maybeSingle();
+  if (loadError) return { error: loadError.message };
+  const row = data as { match_id?: string; type?: string; payload?: Record<string, unknown> } | null;
+  if (!row?.match_id || row.type !== 'position_swap') return { error: 'Positionswechsel wurde nicht gefunden.' };
+  const writable = await assertMatchTeamSeasonWritable(row.match_id);
+  if (!writable.ok) return { error: writable.message };
+  const payload: Record<string, unknown> = { ...(row.payload ?? {}), swap_player_id: second };
+  if (fairPlayAnchorSlot) payload.anchor_slot = fairPlayAnchorSlot;
+  const { error } = await supabase.from('match_events').update({
+    minute: clampEffectiveMatchSeconds(timestamp), player_id: first, payload,
+  }).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
 export async function saveMatchEvents(
   payloads: InsertMatchEventPayload[],
 ): Promise<{ ids: string[]; error: string | null }> {
