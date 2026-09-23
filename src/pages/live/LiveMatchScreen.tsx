@@ -4249,13 +4249,13 @@ export const LiveMatchScreen: React.FC = () => {
       setEditingPositionSwapMinute(String(displayMatchMinuteFromEffectiveSeconds(ev.timestamp)));
       setSaveError(null);
     };
-    const openTickerEdit = canEditPositionSwap ? openPositionSwapEdit : openGoalEdit;
     const openGoalEdit = () => {
       setEditingGoalEvent(ev);
       setEditingGoalScorerId(ev.playerId ?? '');
       setEditingGoalSaving(false);
       setSaveError(null);
     };
+    const openTickerEdit = canEditPositionSwap ? openPositionSwapEdit : openGoalEdit;
     return (
       <div
         key={row.key}
