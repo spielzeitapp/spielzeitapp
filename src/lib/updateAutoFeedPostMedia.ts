@@ -6,12 +6,14 @@ export type AutoFeedPostMediaRow = {
   id: string;
   team_season_id: string;
   media_url?: string | null;
+  caption: string;
 };
 
 type UpdateAutoFeedPostMediaParams = {
   post: AutoFeedPostMediaRow;
   file?: File | null;
   remove?: boolean;
+  caption: string;
 };
 
 export async function updateAutoFeedPostMedia(
@@ -28,13 +30,12 @@ export async function updateAutoFeedPostMedia(
       return { error: uploaded.error ?? 'Das Bild konnte nicht hochgeladen werden.' };
     }
     nextPath = uploaded.path;
-  } else {
-    return { error: 'Bitte zuerst ein Bild auswählen.' };
   }
 
-  const { data, error } = await supabase.rpc('update_auto_feed_post_media', {
+  const { data, error } = await supabase.rpc('update_auto_feed_post', {
     p_post_id: params.post.id,
     p_media_url: nextPath,
+    p_caption: params.caption.trim(),
   });
 
   if (error) {

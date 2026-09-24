@@ -305,7 +305,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
   const headerActions = staffCanDelete && onFeedPostDeleted ? (
     <div className="flex items-center gap-2">
-      <AutoFeedPostMediaEditButton post={post} title="Siegerbild" onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
+      <AutoFeedPostMediaEditButton post={post} title="Siegerbild" initialCaption={captionTrim} onUpdated={onFeedPostUpdated ?? onFeedPostDeleted} />
       <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
     </div>
   ) : null;
