@@ -9,6 +9,7 @@ type Props = {
   onEdit?: () => void;
   onReschedule?: () => void;
   onCancel?: () => void;
+  cancelLabel?: string;
   onDelete?: () => void;
   layout?: 'scroll' | 'grid';
 };
@@ -21,6 +22,7 @@ export function CenterQuickActionBar({
   onEdit,
   onReschedule,
   onCancel,
+  cancelLabel = 'Training absagen',
   onDelete,
   layout = 'scroll',
 }: Props) {
@@ -51,7 +53,7 @@ export function CenterQuickActionBar({
         {onShare ? <ActionChip icon={Share2} label="Teilen" onClick={() => void handleShare()} layout={layout} /> : null}
         {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten" onClick={onEdit} layout={layout} /> : null}
         {onReschedule ? <ActionChip icon={CalendarClock} label="Verschieben" onClick={onReschedule} layout={layout} /> : null}
-        {onCancel ? <ActionChip icon={XCircle} label="Training absagen" onClick={onCancel} danger layout={layout} /> : null}
+        {onCancel ? <ActionChip icon={XCircle} label={cancelLabel} onClick={onCancel} danger layout={layout} /> : null}
         {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={onDelete} danger layout={layout} /> : null}
       </div>
       {shareHint ? (
@@ -83,11 +85,11 @@ function ActionChip({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex shrink-0 items-center justify-center gap-2 touch-manipulation transition active:scale-[0.98] ${
+      className={`inline-flex min-w-0 shrink-0 items-center justify-center gap-2 text-center leading-tight touch-manipulation transition active:scale-[0.98] ${
         layout === 'grid'
-          ? 'sz-club-event-action min-h-[50px] w-full rounded-[15px] px-3 py-2.5 text-[14px] font-bold'
+          ? 'sz-club-event-action min-h-[56px] w-full rounded-[15px] border px-2 py-2.5 text-[14px] font-bold'
           : 'min-h-[34px] rounded-full px-3 py-1.5 text-[11px] font-semibold'
-      } ${danger ? 'border border-red-400/35 bg-red-950/35 text-red-200 hover:bg-red-900/45' : layout === 'grid' ? 'text-white/90' : 'border border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.05)] text-white/88 hover:border-[rgba(255,71,71,0.3)] hover:bg-[rgba(255,71,71,0.1)]'}`}
+      } ${danger ? layout === 'grid' ? 'border-red-400/35 text-red-100 hover:border-red-400/60' : 'border border-red-400/35 bg-red-950/35 text-red-200 hover:bg-red-900/45' : layout === 'grid' ? 'text-white/90' : 'border border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.05)] text-white/88 hover:border-[rgba(255,71,71,0.3)] hover:bg-[rgba(255,71,71,0.1)]'}`}
     >
       <Icon className={`${layout === 'grid' ? 'h-[18px] w-[18px]' : 'h-3.5 w-3.5'} shrink-0 ${danger ? 'text-red-300' : 'sz-club-accent-text'}`} strokeWidth={2.25} aria-hidden />
       {label}

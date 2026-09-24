@@ -320,6 +320,39 @@ function formatEventDateTimeLabel(iso: string): string {
   }).format(d);
 }
 
+function appendPersonalPushText(template: string, addition: string): string {
+  const extra = addition.trim();
+  return extra ? `${template}\n\n${extra}` : template;
+}
+
+function eventStartMinuteChanged(before: string, after: string): boolean {
+  return Math.floor(new Date(before).getTime() / 60_000) !==
+    Math.floor(new Date(after).getTime() / 60_000);
+}
+
+function cancellationPushText(event: EventRow, addition: string): string {
+  const eventLabel = event.kind === 'training'
+    ? 'Das Training'
+    : `Das Spiel gegen ${event.opponent || 'den Gegner'}`;
+  return appendPersonalPushText(
+    `${eventLabel} am ${formatEventDateTimeLabel(event.starts_at)} Uhr wurde abgesagt.`,
+    addition,
+  );
+}
+
+function reschedulePushText(event: EventRow, newStartsAt: string, newLocation: string | null, addition: string): string {
+  const eventLabel = event.kind === 'training'
+    ? 'Training'
+    : `Spiel gegen ${event.opponent || 'den Gegner'}`;
+  const locationNote = newLocation !== event.location
+    ? ` Neuer Ort: ${newLocation || 'wird bekannt gegeben'}.`
+    : '';
+  return appendPersonalPushText(
+    `${eventLabel} wurde von ${formatEventDateTimeLabel(event.starts_at)} Uhr auf ${formatEventDateTimeLabel(newStartsAt)} Uhr verschoben.${locationNote}`,
+    addition,
+  );
+}
+
 function normalizeEventStatus(s: string | null): EventStatus {
   const v = (s ?? '').trim().toLowerCase();
   if (v === 'live') return 'live';
@@ -419,7 +452,7 @@ export const EventDetailPage: React.FC = () => {
   const [deletingEvent, setDeletingEvent] = useState(false);
   const [trainingCancelOpen, setTrainingCancelOpen] = useState(false);
   const [trainingCancelBusy, setTrainingCancelBusy] = useState(false);
-  const [trainingCancelReason, setTrainingCancelReason] = useState('');
+  const [cancellationPushExtra, setCancellationPushExtra] = useState('');
   const [trainingCancelError, setTrainingCancelError] = useState<string | null>(null);
   const [trainingCancelFeedback, setTrainingCancelFeedback] = useState<string | null>(null);
   const [trainingPushRetryAvailable, setTrainingPushRetryAvailable] = useState(false);
@@ -433,6 +466,7 @@ export const EventDetailPage: React.FC = () => {
   const [editSheetEventType, setEditSheetEventType] = useState<'event' | 'other'>('event');
   const [editTitle, setEditTitle] = useState('');
   const [editDateTime, setEditDateTime] = useState('');
+  const [reschedulePushExtra, setReschedulePushExtra] = useState('');
   const [editEndTime, setEditEndTime] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editLocationAddress, setEditLocationAddress] = useState('');
@@ -1425,6 +1459,7 @@ export const EventDetailPage: React.FC = () => {
     setEditSheetEventType((e.type === 'other' ? 'other' : 'event') as 'event' | 'other');
     setEditTitle(noteFields.title);
     setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
+    setReschedulePushExtra('');
     setEditEndTime(noteFields.endTime);
     setEditLocation(parsedLocation.place);
     setEditLocationAddress(parsedLocation.address);
@@ -1480,6 +1515,7 @@ export const EventDetailPage: React.FC = () => {
     setEditSheetEventType('event');
     setEditTitle('');
     setEditDateTime('');
+    setReschedulePushExtra('');
     setEditEndTime('');
     setEditLocation('');
     setEditLocationAddress('');
@@ -1510,7 +1546,7 @@ export const EventDetailPage: React.FC = () => {
       setEditError('Ungültiges Datumsformat.');
       return;
     }
-    if (editEvent.kind === 'match' && editEvent.match_id && startsAt !== editEvent.starts_at) {
+    if (editEvent.kind === 'match' && editEvent.match_id && eventStartMinuteChanged(editEvent.starts_at, startsAt)) {
       if (editEvent.status !== 'upcoming') {
         setEditError('Ein gestartetes oder abgeschlossenes Spiel kann nicht verschoben werden.');
         return;
@@ -1712,7 +1748,7 @@ export const EventDetailPage: React.FC = () => {
       }
     }
 
-    if (editEvent.kind === 'match' && editEvent.match_id && startsAt !== editEvent.starts_at) {
+    if (editEvent.kind === 'match' && editEvent.match_id && eventStartMinuteChanged(editEvent.starts_at, startsAt)) {
       const { data: updatedMatch, error: matchDateError } = await supabase.from('matches')
         .update({ match_date: startsAt })
         .eq('id', editEvent.match_id).select('id');
@@ -1750,16 +1786,11 @@ export const EventDetailPage: React.FC = () => {
       });
     }
 
-    const moved = editEvent.status === 'upcoming' && startsAt !== editEvent.starts_at &&
+    const moved = editEvent.status === 'upcoming' && eventStartMinuteChanged(editEvent.starts_at, startsAt) &&
       (editEvent.kind === 'training' || editEvent.kind === 'match');
     closeEditModal();
     await loadEvent();
     if (moved) {
-      const format = (iso: string) => new Intl.DateTimeFormat('de-AT', {
-        timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      }).format(new Date(iso));
-      const label = editEvent.kind === 'training' ? 'Training' : `Spiel gegen ${editEvent.opponent || 'den Gegner'}`;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) throw new Error('Bitte erneut anmelden und die Nachricht manuell senden.');
@@ -1770,7 +1801,7 @@ export const EventDetailPage: React.FC = () => {
             team_season_id: editEvent.team_season_id,
             recipient_group: 'all',
             title: `${editEvent.kind === 'training' ? 'Training' : 'Spiel'} verschoben`,
-            body: `${label} wurde von ${format(editEvent.starts_at)} Uhr auf ${format(startsAt)} Uhr verschoben.${locationVal !== editEvent.location ? ` Neuer Ort: ${locationVal || 'wird bekannt gegeben'}.` : ''}`,
+            body: reschedulePushText(editEvent, startsAt, locationVal, reschedulePushExtra),
             url: `${basePath}/events/${encodeURIComponent(editEvent.id)}`,
             related_event_id: editEvent.id,
           }),
@@ -1785,7 +1816,7 @@ export const EventDetailPage: React.FC = () => {
       }
     }
     setSavingEdit(false);
-  }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent, isDemo, basePath]);
+  }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, reschedulePushExtra, closeEditModal, loadEvent, isDemo, basePath]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
@@ -1816,11 +1847,6 @@ export const EventDetailPage: React.FC = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Sitzung abgelaufen. Bitte erneut anmelden und Push senden.');
-      const dateLabel = new Intl.DateTimeFormat('de-AT', {
-        timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      }).format(new Date(event.starts_at));
-      const reason = trainingCancelReason.trim();
       const response = await fetch('/api/push/send-team', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
@@ -1828,7 +1854,7 @@ export const EventDetailPage: React.FC = () => {
           team_season_id: event.team_season_id,
           recipient_group: 'all',
           title: `${event.kind === 'training' ? 'Training' : 'Spiel'} abgesagt`,
-          body: `${event.kind === 'training' ? 'Das Training' : `Das Spiel gegen ${event.opponent || 'den Gegner'}`} am ${dateLabel} Uhr wurde abgesagt.${reason ? ` Grund: ${reason}` : ''}`,
+          body: cancellationPushText(event, cancellationPushExtra),
           url: `${basePath}/events/${encodeURIComponent(event.id)}`,
           related_event_id: event.id,
         }),
@@ -1854,7 +1880,7 @@ export const EventDetailPage: React.FC = () => {
     } finally {
       setTrainingCancelBusy(false);
     }
-  }, [event, canTrainerManageEvent, isDemo, trainingCancelReason, basePath]);
+  }, [event, canTrainerManageEvent, isDemo, cancellationPushExtra, basePath]);
 
   const handleCancelTraining = useCallback(async () => {
     if (!event || (event.kind !== 'training' && event.kind !== 'match') || !canTrainerManageEvent || isDemo ||
@@ -4034,11 +4060,12 @@ export const EventDetailPage: React.FC = () => {
               coverUrl={(event as { training_cover_url?: unknown }).training_cover_url}
             />
             <CenterQuickActionBar
+              layout="grid"
               onAddToCalendar={() => void handleAddSingleEventToCalendar()}
               onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
               onReschedule={canTrainerManageEvent && event.status === 'upcoming' ? () => openEditModal(event) : undefined}
               onCancel={canTrainerManageEvent && (event.status === 'upcoming' || event.status === 'live')
-                ? () => { setTrainingCancelError(null); setTrainingCancelOpen(true); }
+                ? () => { setTrainingCancelError(null); setCancellationPushExtra(''); setTrainingCancelOpen(true); }
                 : undefined}
               onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
             />
@@ -4124,13 +4151,14 @@ export const EventDetailPage: React.FC = () => {
         {event.kind === 'match' ? (
           <CenterQuickActionBar
             layout="grid"
+            cancelLabel="Spiel absagen"
             onAddToCalendar={() => void handleAddSingleEventToCalendar()}
             onNavigate={canStartNavigation ? handleStartNavigation : undefined}
             showNavigation={canStartNavigation}
             onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
             onReschedule={canTrainerManageEvent && event.status === 'upcoming' ? () => openEditModal(event) : undefined}
             onCancel={canTrainerManageEvent && event.status === 'upcoming'
-              ? () => { setTrainingCancelError(null); setTrainingCancelOpen(true); }
+              ? () => { setTrainingCancelError(null); setCancellationPushExtra(''); setTrainingCancelOpen(true); }
               : undefined}
             onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
           />
@@ -4816,10 +4844,14 @@ export const EventDetailPage: React.FC = () => {
               hour: '2-digit', minute: '2-digit',
             }).format(new Date(event.starts_at))} Uhr wird abgesagt. Der Termin erscheint unter „Vergangene“ und zählt nicht für die Statistik. Eltern und Spieler erhalten sofort eine Team-Nachricht und, falls aktiviert, eine Push-Benachrichtigung.
           </p>
+          <div className="mt-3 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] text-white/80">
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-white/50">Nachrichtenvorschau</p>
+            <p className="whitespace-pre-wrap">{cancellationPushText(event, cancellationPushExtra)}</p>
+          </div>
           <label className="mt-3 block text-[13px] text-white/80">
-            Grund für die Absage (optional)
-            <textarea value={trainingCancelReason} onChange={(e) => setTrainingCancelReason(e.target.value)}
-              maxLength={500} rows={2} placeholder="z. B. Platz gesperrt"
+            Zusätzliche Nachricht (optional)
+            <textarea value={cancellationPushExtra} onChange={(e) => setCancellationPushExtra(e.target.value)}
+              maxLength={500} rows={3} placeholder="z. B. Der Platz ist gesperrt. Nächstes Training wie gewohnt am Donnerstag."
               className="mt-1 block w-full rounded-xl border border-white/20 bg-black/35 px-3 py-2 text-white placeholder:text-white/35" />
           </label>
           {trainingCancelError ? <p role="alert" className="mt-2 text-[13px] text-red-300">{trainingCancelError}</p> : null}
@@ -4874,9 +4906,25 @@ export const EventDetailPage: React.FC = () => {
         >
           <form id="event-detail-edit-form" onSubmit={handleEditSubmit} className="space-y-4">
             {editEvent?.status === 'upcoming' && (editEvent.kind === 'match' || editEvent.kind === 'training') ? (
-              <p className="rounded-xl border border-amber-400/25 bg-amber-950/20 px-3 py-2 text-[13px] text-amber-100">
-                Wenn du Datum oder Uhrzeit änderst, erhalten Eltern und Spieler nach dem Speichern eine Nachricht und, falls aktiviert, einen Push.
-              </p>
+              <section className="rounded-xl border border-amber-400/25 bg-amber-950/20 px-3 py-3 text-[13px] text-amber-100">
+                <p>Bei geändertem Datum oder geänderter Uhrzeit wird nach dem Speichern diese Nachricht an Eltern und Spieler versendet:</p>
+                <p className="mt-2 whitespace-pre-wrap rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-white/85">
+                  {(() => {
+                    const previewStartsAt = parseViennaDateTimeLocalToUtcIso(editDateTime);
+                    if (!previewStartsAt || !eventStartMinuteChanged(editEvent.starts_at, previewStartsAt)) return 'Datum/Uhrzeit noch unverändert – kein Push beim Speichern.';
+                    const previewLocation = editUseExternalLocation || !editVenue
+                      ? combineLocationParts(editLocation, editLocationAddress)
+                      : locationTextFromVenue(editVenue);
+                    return reschedulePushText(editEvent, previewStartsAt, previewLocation, reschedulePushExtra);
+                  })()}
+                </p>
+                <label className="mt-3 block text-white/85">
+                  Zusätzliche Nachricht (optional)
+                  <textarea value={reschedulePushExtra} onChange={(e) => setReschedulePushExtra(e.target.value)}
+                    maxLength={500} rows={2} placeholder="z. B. Bitte die neue Treffpunktzeit beachten."
+                    className="mt-1 block w-full rounded-xl border border-white/20 bg-black/35 px-3 py-2 text-white placeholder:text-white/35" />
+                </label>
+              </section>
             ) : null}
             <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Basisdaten</p>
