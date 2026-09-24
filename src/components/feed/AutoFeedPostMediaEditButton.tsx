@@ -7,14 +7,16 @@ type Props = {
   post: AutoFeedPostMediaRow;
   onUpdated: () => void;
   title?: string;
+  initialCaption?: string;
 };
 
-export const AutoFeedPostMediaEditButton: React.FC<Props> = ({ post, onUpdated, title = 'Autopost-Bild' }) => {
+export const AutoFeedPostMediaEditButton: React.FC<Props> = ({ post, onUpdated, title = 'Autopost-Bild', initialCaption }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [caption, setCaption] = useState(initialCaption ?? post.caption ?? '');
   const hasCustomImage = Boolean(post.media_url?.trim());
 
   const close = () => {
@@ -28,7 +30,7 @@ export const AutoFeedPostMediaEditButton: React.FC<Props> = ({ post, onUpdated, 
     setBusy(true);
     setError(null);
     try {
-      const result = await updateAutoFeedPostMedia({ post, file, remove });
+      const result = await updateAutoFeedPostMedia({ post, file, remove, caption });
       if (result.error) {
         setError(result.error);
         return;
@@ -48,31 +50,29 @@ export const AutoFeedPostMediaEditButton: React.FC<Props> = ({ post, onUpdated, 
         onClick={() => {
           setFile(null);
           setError(null);
+          setCaption(initialCaption ?? post.caption ?? '');
           setOpen(true);
         }}
         className="inline-flex min-h-[36px] min-w-[36px] shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/50 p-2 text-white/85 backdrop-blur-sm transition hover:border-red-400/40 hover:bg-black/70"
-        aria-label={`${title} bearbeiten`}
-        title={`${title} bearbeiten`}
+        aria-label="Beitrag bearbeiten"
+        title="Beitrag bearbeiten"
       >
         <Pencil className="h-4 w-4" aria-hidden />
       </button>
 
       {open ? createPortal(
         <div
-          className="fixed inset-0 z-[1100] flex items-end justify-center bg-black/80 pt-[max(1rem,env(safe-area-inset-top,0px))] backdrop-blur-sm sm:items-center sm:p-5"
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/80 px-4 py-[max(1rem,env(safe-area-inset-top,0px))] backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby={`auto-feed-image-dialog-${post.id}`}
         >
-          <div className="flex max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top,0px)))] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-red-500/30 bg-[#100d11] shadow-2xl sm:max-h-[92dvh] sm:rounded-[28px]">
+          <div className="flex max-h-[min(88dvh,680px)] w-full max-w-lg flex-col overflow-hidden rounded-[24px] border border-red-500/30 bg-[#100d11] shadow-2xl">
             <div className="min-h-0 overflow-y-auto overscroll-contain p-5 pb-4 [-webkit-overflow-scrolling:touch]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.22em] text-red-400">Autopost bearbeiten</p>
-                  <h2 id={`auto-feed-image-dialog-${post.id}`} className="mt-1 text-2xl font-black text-white">{title} ändern</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-white/60">
-                    Das eigene Bild ersetzt die automatische Grafik. Alle Daten und der Beitrag bleiben gespeichert.
-                  </p>
+                  <h2 id={`auto-feed-image-dialog-${post.id}`} className="mt-1 text-xl font-black text-white">Beitrag bearbeiten</h2>
                 </div>
                 <button type="button" onClick={close} className="shrink-0 rounded-full border border-white/10 p-2 text-white/70" aria-label="Schließen">
                   <X className="h-5 w-5" aria-hidden />
@@ -82,7 +82,7 @@ export const AutoFeedPostMediaEditButton: React.FC<Props> = ({ post, onUpdated, 
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="mt-6 flex min-h-[82px] w-full items-center gap-4 rounded-2xl border border-dashed border-red-400/40 bg-red-950/20 px-4 text-left text-white"
+                className="mt-4 flex min-h-[68px] w-full items-center gap-4 rounded-2xl border border-dashed border-red-400/40 bg-red-950/20 px-4 text-left text-white"
               >
                 <span className="rounded-xl bg-red-600/20 p-3 text-red-300"><ImagePlus className="h-6 w-6" aria-hidden /></span>
                 <span className="min-w-0">
@@ -96,6 +96,16 @@ export const AutoFeedPostMediaEditButton: React.FC<Props> = ({ post, onUpdated, 
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
+
+              <label htmlFor={`auto-feed-caption-${post.id}`} className="mt-4 block text-sm font-bold text-white/85">Begleittext</label>
+              <textarea
+                id={`auto-feed-caption-${post.id}`}
+                value={caption}
+                onChange={(event) => setCaption(event.target.value)}
+                rows={4}
+                maxLength={2000}
+                className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-base text-white outline-none focus:border-red-400/60"
               />
 
               {hasCustomImage ? (
@@ -117,10 +127,10 @@ export const AutoFeedPostMediaEditButton: React.FC<Props> = ({ post, onUpdated, 
               <button
                 type="button"
                 onClick={() => void runUpdate(false)}
-                disabled={busy || !file}
+                disabled={busy || (!file && caption.trim() === (post.caption ?? '').trim())}
                 className="min-h-[54px] rounded-2xl bg-gradient-to-r from-red-800 to-red-600 font-black text-white disabled:opacity-50"
               >
-                {busy ? 'Speichern…' : 'Bild speichern'}
+                {busy ? 'Speichern…' : 'Änderungen speichern'}
               </button>
             </div>
           </div>
