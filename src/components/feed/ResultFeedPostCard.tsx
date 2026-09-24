@@ -34,6 +34,7 @@ import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
+import { buildAutoResultCaption } from '../../lib/resultFeedTypes';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -192,7 +193,30 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   );
   const matchDateLabel = useMemo(() => formatResultMatchDate(p.starts_at), [p.starts_at]);
   const venueLabel = useMemo(() => formatFeedVenueShort(p.location), [p.location]);
-  const captionTrim = post.caption?.trim() ?? '';
+  const captionTrim = useMemo(() => {
+    const saved = post.caption?.trim() ?? '';
+    const ownSaved = p.our_team_name?.trim() ?? '';
+    const ownSeason = teamLabel.trim();
+    if (!saved || !ownSaved || !ownSeason || ownSaved === ownSeason) return saved;
+    const opponent = p.is_home ? p.away_team_name : p.home_team_name;
+    const generated = buildAutoResultCaption({
+      ourTeamName: ownSaved,
+      opponentName: opponent,
+      homeScore: p.home_score,
+      awayScore: p.away_score,
+      resultState: p.result_state,
+    });
+    // Nur unveränderte Vorlagentexte berichtigen; individuelle Texte behalten ihren Wortlaut.
+    return saved === generated
+      ? buildAutoResultCaption({
+          ourTeamName: ownSeason,
+          opponentName: opponent,
+          homeScore: p.home_score,
+          awayScore: p.away_score,
+          resultState: p.result_state,
+        })
+      : saved;
+  }, [post.caption, p.our_team_name, p.is_home, p.home_team_name, p.away_team_name, p.home_score, p.away_score, p.result_state, teamLabel]);
 
   const groupedScorers = useMemo(() => groupScorersByPlayer(p.scorers), [p.scorers]);
 
@@ -255,7 +279,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     const scorerLine = groupedScorers.length > 0
       ? `\nTorschützen: ${groupedScorers.map((scorer) => `${scorer.playerName}${scorer.minutes.length ? ` (${scorer.minutes.join(', ')})` : ''}`).join(' · ')}`
       : '';
-    const text = `${post.caption}\n${p.home_team_name} ${p.home_score}:${p.away_score} ${p.away_team_name}${scorerLine}`;
+    const text = `${captionTrim}\n${p.home_team_name} ${p.home_score}:${p.away_score} ${p.away_team_name}${scorerLine}`;
     const posterFile = !hasCustomImage && posterBlobRef.current
       ? new File([posterBlobRef.current], `spielzeit-endstand-${post.id.slice(0, 8)}.png`, { type: 'image/png' })
       : null;
@@ -272,7 +296,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     else if (outcome === 'copied') setShareHint('Text kopiert.');
     else setShareHint('Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2400);
-  }, [post.caption, post.id, p.away_score, p.away_team_name, gameHref, p.home_score, p.home_team_name, hasCustomImage, customImageSrc, groupedScorers]);
+  }, [captionTrim, post.id, p.away_score, p.away_team_name, gameHref, p.home_score, p.home_team_name, hasCustomImage, customImageSrc, groupedScorers]);
 
   const matchMetaLine = buildFeedMatchMetaLine(
     pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name),

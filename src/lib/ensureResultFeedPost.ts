@@ -10,6 +10,7 @@ import {
   type ResultFeedScorer,
 } from './resultFeedTypes';
 import { formatFullLocation, splitCombinedLocation } from './eventLocation';
+import { resolveTeamSeasonLabelParts } from './seasonLifecycle';
 
 export type EnsureResultFeedPostResult =
   | { ok: true; created: boolean; reason?: string }
@@ -25,13 +26,15 @@ function dedupeKeyForMatch(matchId: string): string {
 
 type TeamSeasonJoinRow = {
   team_id: string | null;
+  display_name: string | null;
+  age_group: string | null;
   teams: { name: string | null } | { name: string | null }[] | null;
 };
 
 async function resolveTeamForSeason(teamSeasonId: string): Promise<{ teamId: string; name: string } | null> {
   const { data: tsRow, error: tsErr } = await supabase
     .from('team_seasons')
-    .select('team_id, teams(name)')
+    .select('team_id, display_name, age_group, teams(name)')
     .eq('id', teamSeasonId)
     .maybeSingle();
 
@@ -40,7 +43,12 @@ async function resolveTeamForSeason(teamSeasonId: string): Promise<{ teamId: str
     const raw = row.teams;
     const t = Array.isArray(raw) ? raw[0] : raw;
     const nameFromJoin = (t?.name != null ? String(t.name).trim() : '') || '';
-    return { teamId: row.team_id, name: nameFromJoin || 'Unser Team' };
+    const name = resolveTeamSeasonLabelParts({
+      displayName: row.display_name,
+      ageGroup: row.age_group,
+      teamName: nameFromJoin,
+    }).teamLine;
+    return { teamId: row.team_id, name: name || 'Unser Team' };
   }
 
   rfLog('resolveTeamForSeason: join failed or empty, fallback team_id only', {
