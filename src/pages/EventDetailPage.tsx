@@ -46,6 +46,7 @@ import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
+import { FinishedMatchScorers } from '../components/match/FinishedMatchScorers';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
@@ -124,7 +125,7 @@ import {
   parsePeriodScores,
   sumPeriodScoresTriplet,
 } from '../lib/matchEventScores';
-import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
+import { combineLocationParts, formatFeedVenueShort, splitCombinedLocation } from '../lib/eventLocation';
 import {
   eventNotesTitle,
   eventTrainingEndDisplay,
@@ -1817,8 +1818,8 @@ export const EventDetailPage: React.FC = () => {
     const scoreHome = displayedScore.home;
     const scoreAway = displayedScore.away;
     const venue = (() => {
-      const parsed = splitCombinedLocation(matchRowLite?.location ?? event.location ?? '');
-      return (parsed.place ?? '').trim() || (matchRowLite?.location ?? event.location ?? '').trim() || null;
+      const raw = matchRowLite?.location ?? event.location ?? '';
+      return formatFeedVenueShort(raw) || splitCombinedLocation(raw).place || null;
     })();
     const homeAway = event.is_home === true ? 'Heim' : event.is_home === false ? 'Auswärts' : null;
     const enc = formatVisibleMatchEncounter({
@@ -1842,6 +1843,10 @@ export const EventDetailPage: React.FC = () => {
         ? getOurTeamLogoUrl()
         : getClubLogo(opponentName, { logoUrl: event.opponent_logo_url ?? undefined });
     const scoreStr = `${scoreHome}:${scoreAway}`;
+    const finishedDate = formatHeroDateParts(event.starts_at);
+    const finishedYear = event.starts_at && !Number.isNaN(new Date(event.starts_at).getTime())
+      ? new Intl.DateTimeFormat('de-AT', { year: 'numeric', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at))
+      : '';
 
     const renderTabButton = (id: 'overview' | 'lineup' | 'timeline' | 'stats', label: string) => (
       <button
@@ -2004,6 +2009,12 @@ export const EventDetailPage: React.FC = () => {
       team: r.teamLabel,
       minute: r.minute,
     }));
+    const finishedOwnScorers = timelineEvents
+      .filter((r) => normalizeMatchEventGoalType(r.type) === (event.is_home === false ? 'goal_away' : 'goal'))
+      .map((r) => ({
+        name: playerName(r.player_id) ?? 'Ohne Torschütze',
+        minute: `${finishedReportMinuteDisplayFromDb(r.minute) ?? 0}′`,
+      }));
 
     const goalCount = timelineEvents.filter((r) => normalizeMatchEventGoalType(r.type)).length;
     const tickerRows = (() => {
@@ -2527,123 +2538,106 @@ export const EventDetailPage: React.FC = () => {
 
     return (
       <div className="min-h-screen text-white [background:radial-gradient(circle_at_50%_0%,rgba(127,18,25,0.26),transparent_34%),linear-gradient(180deg,#090707_0%,#170304_48%,#090000_100%)]">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 overflow-x-hidden px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
-          <div className="flex flex-col gap-2">
-            <Link to={`${basePath}/termine`} className="text-[14px] text-white/80 hover:text-white">
-              ← Zurück zum Spielplan
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 overflow-x-hidden px-2 py-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
+          <div>
+            <Link to={`${basePath}/termine`} className="inline-flex min-h-10 items-center rounded-xl border border-white/15 bg-black/70 px-3.5 text-sm font-bold text-white">
+              <span className="mr-2 text-red-400">←</span> Termine
             </Link>
           </div>
 
-          <div className="mb-1 w-full min-w-0">
-            <section className="mb-1 w-full pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
-              <div className="mb-1.5 flex items-start justify-between gap-2 px-0.5">
-                <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/90">Spielbericht</h2>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="rounded-md border border-red-500/35 bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
-                    BEENDET
-                  </span>
-                  {canTrainerManageEvent ? (
-                    <button
-                      type="button"
-                      className="text-[11px] font-medium text-red-300/70 underline-offset-2 hover:text-red-200 hover:underline"
-                      onClick={() => setDeleteConfirmOpen(true)}
-                    >
-                      Termin löschen
-                    </button>
-                  ) : null}
+          <section className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)]">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
+            <div className="relative px-3 pb-3 pt-3 sm:px-4">
+              <div className="grid grid-cols-[58px_minmax(0,1fr)_66px] items-center gap-2">
+                <div className="flex w-[58px] flex-col items-center border-r border-white/10 pr-2 text-center leading-none">
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-red-300">{finishedDate.wd}</span>
+                  <span className="mt-0.5 text-[30px] font-black tabular-nums text-white">{finishedDate.day}</span>
+                  <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{finishedDate.mon}</span>
+                  <span className="mt-0.5 text-[10px] text-white/45">{finishedYear}</span>
                 </div>
+                <p className="min-w-0 rounded-full border border-red-500/40 bg-red-950/70 px-2 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-red-50">
+                  {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
+                </p>
+                <span className="rounded-full border border-white/20 bg-white/[0.07] px-2 py-1 text-center text-[9px] font-black uppercase tracking-wider text-white/75">Beendet</span>
               </div>
-
-              <div className="relative w-full min-w-0 overflow-hidden rounded-[1.75rem] border border-red-500/30 bg-black shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_32px_rgba(220,38,38,0.16)]">
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#000000] via-[#100304] to-[#050505]" />
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.04),transparent_42%),radial-gradient(ellipse_at_bottom,rgba(150,18,24,0.09),transparent_58%)]" />
-                <div className="pointer-events-none absolute inset-0 opacity-60 [background:linear-gradient(180deg,rgba(0,0,0,0.28)_0%,rgba(0,0,0,0.6)_46%,rgba(0,0,0,0.9)_100%)]" />
-
-                <div className="relative z-10 px-3 py-1.5 sm:px-4 sm:py-2">
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(5.5rem,auto)_minmax(0,1fr)] items-start gap-x-1.5">
-                    <div className="flex min-w-0 flex-col items-center text-center">
+              <div className="mt-2 flex justify-center">
+                <span className="rounded-full border border-red-500/40 bg-red-950/70 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-red-50">Endstand</span>
+              </div>
+              <div className="mt-3 flex items-start justify-between gap-1.5">
+                  <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
                       <img
                         src={homeLogoSrc}
                         alt=""
-                        className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11"
+                        className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24"
                         onError={(e) => {
                           const img = e.currentTarget;
                           if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
                           img.src = '/logos/placeholder-shield-a.png';
                         }}
                       />
-                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
+                      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">
                         {homeSplit.prefix || ' '}
                       </p>
-                      <p className="mt-0.5 w-full min-w-0 text-center text-[13px] font-semibold leading-[1.2] text-white break-words sm:text-[15px]">
+                      <p className="mt-0.5 w-full min-w-0 text-center text-[16px] font-bold leading-[1.2] text-white break-words sm:text-lg">
                         {homeSplit.name || homeTeamName}
                       </p>
                     </div>
 
-                    <div className="flex min-w-0 flex-col items-center px-1 text-center">
-                      <p className="text-[10px] font-semibold text-white/82">
-                        {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
-                      </p>
-                      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.34em] text-red-300/88">ENDSTAND</p>
-                      <p className="mt-0.5 text-[2.45rem] font-black leading-none tabular-nums text-white sm:text-[2.72rem]">
+                    <div className="flex min-w-0 flex-1 flex-col items-center pt-1 text-center">
+                      <p className={`whitespace-nowrap font-black leading-none tabular-nums text-white ${scoreStr.length >= 4 ? 'text-[2.65rem] min-[390px]:text-[3.25rem] sm:text-[4rem]' : 'text-[3.2rem] min-[390px]:text-[4rem] sm:text-[4.5rem]'}`}>
                         {scoreStr}
                       </p>
                       {savedOrEngineBracket ? (
                         <p className="mt-0 text-[11px] tabular-nums leading-tight text-white/58">{savedOrEngineBracket}</p>
                       ) : null}
-                      {homeAway ? (
-                        <span
-                          className={`mt-0.5 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                            event.is_home === true
-                              ? 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                              : 'border-amber-500/35 bg-amber-500/12 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.18)]'
-                          }`}
-                        >
-                          {homeAway}
-                        </span>
-                      ) : null}
                     </div>
 
-                    <div className="flex min-w-0 flex-col items-center text-center">
+                    <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
                       <img
                         src={awayLogoSrc}
                         alt=""
-                        className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11"
+                        className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24"
                         onError={(e) => {
                           const img = e.currentTarget;
                           if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
                           img.src = '/logos/placeholder-shield-a.png';
                         }}
                       />
-                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
+                      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">
                         {awaySplit.prefix || ' '}
                       </p>
-                      <p className="mt-0.5 w-full min-w-0 text-center text-[13px] font-semibold leading-[1.2] text-white break-words sm:text-[15px]">
+                      <p className="mt-0.5 w-full min-w-0 text-center text-[16px] font-bold leading-[1.2] text-white break-words sm:text-lg">
                         {awaySplit.name || awayTeamName}
                       </p>
                     </div>
-                  </div>
-                  {venue ? (
-                    <div className="mt-2 flex items-center justify-center gap-1.5 border-t border-white/[0.07] pt-2 text-center text-[12px] text-white/55">
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-red-300/70" aria-hidden />
-                      <span className="min-w-0 truncate">{venue}</span>
-                    </div>
-                  ) : null}
-                </div>
               </div>
-            </section>
-          </div>
+              <FinishedMatchScorers scorers={finishedOwnScorers} ownGoals={event.is_home === false ? scoreAway : scoreHome} />
+              {venue ? (
+                <div className="mt-3 flex min-h-11 items-center gap-2 border-t border-white/10 px-1 pt-2.5 text-[14px] font-semibold text-white/68">
+                  <MapPin className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
+                  <span className="min-w-0 truncate">{venue}</span>
+                </div>
+              ) : null}
+            </div>
+          </section>
 
           <div className="mt-0.5 flex justify-center">
             <div className="inline-flex min-h-[36px] w-full max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-black/25 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {renderTabButton('overview', 'Spielbericht')}
+              {renderTabButton('overview', 'Übersicht')}
               {renderTabButton('lineup', 'Aufstellung')}
               {renderTabButton('timeline', 'Liveticker')}
               {renderTabButton('stats', 'Statistik')}
             </div>
           </div>
           {canTrainerManageEvent ? (
-            <div className="mt-1 flex justify-end">
+            <div className="mt-1 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(true)}
+                className="text-[11px] font-medium text-red-300/70 underline-offset-2 hover:text-red-200 hover:underline"
+              >
+                Termin löschen
+              </button>
               <button
                 type="button"
                 onClick={() => setReportEditOpen(true)}

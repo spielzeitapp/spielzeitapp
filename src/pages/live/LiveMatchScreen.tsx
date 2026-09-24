@@ -88,6 +88,7 @@ import {
 } from '../../lib/minimumPlaytime';
 import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
+import { FinishedMatchScorers } from '../../components/match/FinishedMatchScorers';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import { PremiumPlayerCard } from '../../components/player/PremiumPlayerCard';
@@ -1851,6 +1852,16 @@ export const LiveMatchScreen: React.FC = () => {
 
   const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
   const eventsSortedAsc = useMemo(() => sortMatchEventsChronologically(events), [events]);
+  const finishedOwnScorers = useMemo(
+    () =>
+      eventsSortedAsc
+        .filter((ev) => ev.type === (sides.isOwnTeamHome ? 'goal' : 'goal_away'))
+        .map((ev) => ({
+          name: ev.playerId ? rosterById.get(ev.playerId)?.name?.trim() || 'Ohne Torschütze' : 'Ohne Torschütze',
+          minute: `${displayMatchMinuteFromEffectiveSeconds(ev.timestamp)}′`,
+        })),
+    [eventsSortedAsc, rosterById, sides.isOwnTeamHome],
+  );
 
   const kickoffSnapshotWarnedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -5014,6 +5025,12 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                {matchIsFinished ? (
+                  <FinishedMatchScorers
+                    scorers={finishedOwnScorers}
+                    ownGoals={sides.isOwnTeamHome ? displayScoreHome : displayScoreAway}
+                  />
+                ) : null}
                 {matchIsFinished && finishedMatchVenue ? (
                   <div className="mt-3 flex min-h-11 items-center gap-2 border-t border-white/10 px-1 pt-2.5 text-[14px] font-semibold text-white/68">
                     <MapPin className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
