@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import {
   computeSessionParticipationPct,
@@ -12,7 +13,7 @@ import {
   ATTENDANCE_ACTION_LAZ_ON,
   ATTENDANCE_STAT_BOX_LAZ,
 } from '../../lib/attendanceColors';
-import { DS_LIST_GAP, DS_TEXT_MUTED, type DsChipTone } from '../../lib/premiumDesignSystem';
+import { DS_TEXT_MUTED, type DsChipTone } from '../../lib/premiumDesignSystem';
 import { useDemoMode } from '../../demo/DemoContext';
 import { PlayerSpecialStatusBadges } from '../player/PlayerSpecialStatusBadges';
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
@@ -66,7 +67,7 @@ const STAT_GRID_MAIN: {
 ];
 
 const STAT_BOX_BASE =
-  'flex min-h-[5.5rem] flex-col items-center justify-center rounded-[20px] border px-3.5 py-3.5 text-center';
+  'flex min-h-[4.75rem] flex-col items-center justify-center rounded-[16px] border px-2 py-2.5 text-center';
 
 const STAT_BOX_TONE: Record<DsChipTone, string> = {
   present:
@@ -90,9 +91,9 @@ const PARTICIPATION_BOX =
   'border-[rgba(255,255,255,0.1)] bg-[radial-gradient(ellipse_90%_80%_at_50%_0%,rgba(220,38,38,0.08)_0%,rgba(11,10,12,0.98)_55%,rgba(7,7,9,0.99)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_18px_rgba(220,38,38,0.06),0_8px_24px_rgba(0,0,0,0.38)]';
 
 const STAT_LABEL_CLASS =
-  'text-[8px] font-medium uppercase tracking-[0.1em] text-[#8E8E93] leading-[1.45]';
+  'text-[9px] font-medium uppercase tracking-[0.08em] text-[#8E8E93] leading-[1.45]';
 
-const STAT_VALUE_CLASS = 'mt-2.5 text-[28px] font-bold tabular-nums leading-none tracking-tight text-inherit';
+const STAT_VALUE_CLASS = 'mt-1.5 text-[25px] font-bold tabular-nums leading-none tracking-tight text-inherit';
 
 function trainingStatBoxClass(tone: DsChipTone | 'participation'): string {
   if (tone === 'participation') return [STAT_BOX_BASE, PARTICIPATION_BOX].join(' ');
@@ -104,7 +105,7 @@ function trainingActionButtonClass(
   active?: boolean,
 ): string {
   const base =
-    'flex h-[34px] min-h-[34px] w-full min-w-0 items-center justify-center rounded-[12px] border border-transparent px-1.5 text-[10px] font-semibold leading-tight transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-45 sm:text-[11px]';
+    'flex min-h-[42px] w-full min-w-0 items-center justify-center rounded-[12px] border border-transparent px-1.5 text-[12px] font-semibold leading-tight transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-45';
   const tones: Record<typeof tone, { idle: string; on: string }> = {
     present: {
       idle: ATTENDANCE_ACTION_GLASS_IDLE,
@@ -131,7 +132,7 @@ function trainingActionButtonClass(
 }
 
 const TRAINING_BADGE_CLASS =
-  '!inline-flex !h-[20px] !max-w-[4.25rem] shrink-0 !px-1.5 !text-[8px] !font-bold !uppercase !tracking-[0.07em] !leading-none';
+  '!inline-flex !h-[22px] !max-w-[5.5rem] shrink-0 !px-2 !text-[9px] !font-bold !uppercase !tracking-[0.04em] !leading-none';
 
 export const TrainingAttendancePanel: React.FC<Props> = ({
   players,
@@ -142,6 +143,11 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   readOnly = false,
 }) => {
   const demo = useDemoMode();
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const chooseStatus = (playerId: string, status: TrainingAttendanceStatus) => {
+    onSetStatus(playerId, status);
+    setExpandedPlayerId(null);
+  };
   const counts = useMemo(() => {
     const statuses = players.map((p) => getStatus(p.id));
     return countTrainingAttendanceByStatus(statuses);
@@ -161,8 +167,8 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   );
 
   return (
-    <div className={`flex w-full min-w-0 flex-col gap-5 ${className}`}>
-      <div className="grid w-full grid-cols-2 gap-2.5">
+    <div className={`flex w-full min-w-0 flex-col gap-4 ${className}`}>
+      <div className="grid w-full grid-cols-3 gap-2">
         {STAT_GRID_MAIN.map(({ key, label, tone }) => (
           <div key={key} className={trainingStatBoxClass(tone)}>
             <span className={STAT_LABEL_CLASS}>{label}</span>
@@ -182,17 +188,26 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
       ) : players.length === 0 ? (
         <p className={`text-sm ${DS_TEXT_MUTED}`}>Keine Spieler im Kader.</p>
       ) : (
-        <ul className={`-mx-2.5 flex w-[calc(100%+1.25rem)] flex-col sm:-mx-3 sm:w-[calc(100%+1.5rem)] ${DS_LIST_GAP} pb-1`}>
+        <ul className="flex w-full flex-col gap-2 pb-1">
           {sorted.map((player) => {
             const status = getStatus(player.id);
             const media = playerMedia(player, Boolean(demo));
             const isUnavailable = status !== 'present';
+            const expanded = expandedPlayerId === player.id && !readOnly;
+            const playerName = `${playerCardName(player)} ${playerCardFamilyName(player)}`.trim();
 
             return (
               <li key={player.id} className="w-full min-w-0">
-                <div className="sz-club-list-card sz-club-surface sz-club-surface--quiet w-full overflow-hidden rounded-[14px] border">
-                  <div className="flex min-h-[78px] w-full items-center px-2.5">
-                    <div className="relative -mb-2.5 mr-2.5 h-[68px] w-[58px] shrink-0 self-end overflow-hidden">
+                <div className={`sz-club-list-card sz-club-surface sz-club-surface--quiet w-full overflow-hidden rounded-[15px] border ${expanded ? 'border-red-500/40' : ''}`}>
+                  <button
+                    type="button"
+                    disabled={readOnly}
+                    aria-expanded={readOnly ? undefined : expanded}
+                    aria-label={`${playerName}: ${trainingAttendanceLabel(status)}${readOnly ? '' : ', Status ändern'}`}
+                    onClick={() => setExpandedPlayerId(expanded ? null : player.id)}
+                    className="flex min-h-[66px] w-full items-center px-2.5 text-left disabled:cursor-default"
+                  >
+                    <div className="relative mr-2 h-[56px] w-[48px] shrink-0 self-end overflow-hidden">
                       <img
                         src={media.src}
                         alt=""
@@ -200,52 +215,51 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                           event.currentTarget.onerror = null;
                           event.currentTarget.src = media.fallbackSrc;
                         }}
-                        className={`h-full w-full object-bottom ${media.isUpperBodyDemo ? 'sz-club-placeholder-player' : ''} ${
+                        className={`h-full w-full origin-top scale-[1.55] object-contain object-top ${media.isUpperBodyDemo ? 'sz-club-placeholder-player' : ''} ${
                           media.isCutout
-                            ? 'origin-bottom scale-[1.45] object-contain'
+                            ? ''
                             : media.isUpperBodyDemo
                               ? 'object-contain'
                               : 'object-cover'
                         }`}
                       />
                     </div>
-                    <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">
+                    <span className="sz-club-number-divider w-10 shrink-0 border-l pl-2 text-[23px] font-black leading-none text-white">
                       {player.jersey_number ?? '–'}
                     </span>
-                    <span className="min-w-0 flex-1 pl-2.5">
-                      <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 sm:text-[14px]">
+                    <span className="min-w-0 flex-1 pl-2">
+                      <span className="block truncate text-[12px] font-semibold leading-tight text-white/55">
                         {playerCardName(player)}
                       </span>
-                      <span className="block truncate text-[17px] font-black leading-tight text-white sm:text-[18px]">
+                      <span className="block truncate text-[16px] font-black leading-tight text-white sm:text-[18px]">
                         {playerCardFamilyName(player) || playerCardName(player)}
                       </span>
                     </span>
-                    <div className="ml-2 flex shrink-0 flex-col items-end gap-1">
-                      <div className="flex items-center justify-end gap-1">
-                        <PlayerSpecialStatusBadges
-                          isLaz={player.is_laz_player}
-                          isInjured={player.is_injured}
-                          size="xs"
-                        />
-                        {(player.status ?? 'active') === 'paused' ? (
-                          <span className="shrink-0 rounded-full border border-amber-400/35 bg-amber-500/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-100/95">
-                            Pausiert
-                          </span>
-                        ) : null}
-                      </div>
+                    <div className="ml-1 flex shrink-0 flex-col items-end gap-1">
                       <PremiumStatusBadge
                         label={trainingAttendanceLabel(status)}
                         tone={statusTone(status)}
                         className={TRAINING_BADGE_CLASS}
                       />
+                      <PlayerSpecialStatusBadges
+                        isLaz={player.is_laz_player}
+                        isInjured={player.is_injured}
+                        size="xs"
+                      />
+                      {(player.status ?? 'active') === 'paused' ? (
+                        <span className="text-[9px] font-bold uppercase text-amber-200">Pausiert</span>
+                      ) : null}
                     </div>
-                  </div>
-                  {!readOnly ? (
-                    <div className="grid grid-cols-2 gap-1.5 border-t border-white/[0.06] px-2.5 pb-2.5 pt-2.5">
+                    {!readOnly ? <ChevronDown className={`ml-1 h-4 w-4 shrink-0 text-white/45 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden /> : null}
+                  </button>
+                  {expanded ? (
+                    <div className="border-t border-white/[0.08] px-2.5 pb-2.5 pt-2">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/50">Status wählen</p>
+                      <div className="grid grid-cols-2 gap-1.5">
                       {isUnavailable ? (
                         <button
                           type="button"
-                          onClick={() => onSetStatus(player.id, 'present')}
+                          onClick={() => chooseStatus(player.id, 'present')}
                           className={`${trainingActionButtonClass('present', true)} col-span-2`}
                         >
                           Wieder dabei
@@ -254,7 +268,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                       <button
                         type="button"
                         disabled={status === 'absent'}
-                        onClick={() => onSetStatus(player.id, 'absent')}
+                        onClick={() => chooseStatus(player.id, 'absent')}
                         className={trainingActionButtonClass('absent', status === 'absent')}
                       >
                         Abwesend
@@ -262,7 +276,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                       <button
                         type="button"
                         disabled={status === 'sick'}
-                        onClick={() => onSetStatus(player.id, 'sick')}
+                        onClick={() => chooseStatus(player.id, 'sick')}
                         className={trainingActionButtonClass('sick', status === 'sick')}
                       >
                         Krank
@@ -270,7 +284,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                       <button
                         type="button"
                         disabled={status === 'injured'}
-                        onClick={() => onSetStatus(player.id, 'injured')}
+                        onClick={() => chooseStatus(player.id, 'injured')}
                         className={trainingActionButtonClass('injured', status === 'injured')}
                       >
                         Verletzt
@@ -278,11 +292,12 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                       <button
                         type="button"
                         disabled={status === 'external'}
-                        onClick={() => onSetStatus(player.id, 'external')}
+                        onClick={() => chooseStatus(player.id, 'external')}
                         className={trainingActionButtonClass('external', status === 'external')}
                       >
                         LAZ
                       </button>
+                      </div>
                     </div>
                   ) : null}
                 </div>
