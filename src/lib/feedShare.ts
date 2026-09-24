@@ -8,13 +8,15 @@ export async function shareFeedContent(opts: {
   text: string;
   /** Bereits signierte oder öffentliche URL zum Abrufen der Datei (optional). */
   fetchUrl?: string | null;
+  /** Bereits im Browser erzeugte Grafik für den Datei-Share. */
+  file?: File | null;
   fileName?: string;
   mimeType?: string;
 }): Promise<FeedShareOutcome> {
   const { title, text, fetchUrl, fileName = 'spielzeit-share.bin', mimeType } = opts;
 
-  let file: File | null = null;
-  if (fetchUrl) {
+  let file: File | null = opts.file ?? null;
+  if (!file && fetchUrl) {
     try {
       const res = await fetch(fetchUrl);
       if (res.ok) {
