@@ -13,6 +13,7 @@ export async function fetchValidSeasonMatchIds(
 ): Promise<Set<string>> {
   const sid = teamSeasonId.trim();
   const valid = new Set<string>();
+  const canceledMatchIds = new Set<string>();
   if (!sid) return valid;
 
   const { data: matchEvents, error: matchEvErr } = await supabase
@@ -25,7 +26,11 @@ export async function fetchValidSeasonMatchIds(
   if (!matchEvErr) {
     for (const row of matchEvents ?? []) {
       const mid = (row as { match_id?: string | null }).match_id;
-      if (!mid || isInactiveEventStatus((row as { status?: string | null }).status)) continue;
+      if (!mid) continue;
+      if (isInactiveEventStatus((row as { status?: string | null }).status)) {
+        canceledMatchIds.add(String(mid));
+        continue;
+      }
       valid.add(String(mid));
     }
   }
@@ -64,7 +69,7 @@ export async function fetchValidSeasonMatchIds(
     if (!smErr) {
       for (const row of seasonMatches ?? []) {
         const mid = (row as { id?: string }).id;
-        if (mid) valid.add(String(mid));
+        if (mid && !canceledMatchIds.has(String(mid))) valid.add(String(mid));
       }
     }
   }

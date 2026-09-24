@@ -227,6 +227,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const isMatch = effectiveEventType === 'game';
   const kickoffHeaderLabel = reviewPending
     ? 'NACHARBEIT'
+    : status === 'canceled'
+      ? 'ABGESAGT'
     : showScore && status === 'finished'
       ? 'ENDSTAND'
       : status === 'live'
@@ -325,7 +327,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
   const heroDateParts = formatHeroDateParts(startsAt);
 
-  const matchPhase: 'pre_meetup' | 'pre_kickoff' | 'live' | 'finished' = (() => {
+  const matchPhase: 'pre_meetup' | 'pre_kickoff' | 'live' | 'finished' | 'canceled' = (() => {
+    if (status === 'canceled') return 'canceled';
     if (reviewPending) return 'finished';
     if (status === 'finished' || status === 'completed' || status === 'ended') return 'finished';
     if (status === 'live' || status === 'running' || liveIsRunning === true) return 'live';
@@ -393,6 +396,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   /** Trainer-Hero: Kartenklick (nicht Live-Kachel) → Event oder Vorbereitung. */
   const handleTrainerScheduleHeroClick = () => {
     if (!isTrainerScheduleHero) return;
+    if (status === 'canceled') {
+      if (eventId && onNavigate) onNavigate(eventId);
+      return;
+    }
     if (matchPhase === 'live' || isLineupReady) {
       if (onScheduleHeroGoLive) onScheduleHeroGoLive();
       else if ((scheduleHeroMatchId ?? '').trim()) navigateToLiveMatch();
@@ -1037,7 +1044,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     {matchTypeLabel}
                   </span>
                 ) : null}
-                {matchPhase === 'live' ? (
+                {matchPhase === 'canceled' ? (
+                  <span className="rounded-full border border-red-400/40 bg-red-950/45 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-100">Abgesagt</span>
+                ) : matchPhase === 'live' ? (
                   <span className="inline-flex items-center gap-1 rounded-full border border-red-400/30 bg-red-950/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-red-400 shadow-[0_0_10px_rgba(220,38,38,0.22)]">
                     <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-red-400" aria-hidden />
                     LIVE
@@ -1084,7 +1093,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               ) : null}
             </div>
             </div>
-            {renderAudienceInfoTilesRow()}
+            {status !== 'canceled' ? renderAudienceInfoTilesRow() : null}
           </div>
           ) : (
           <div className="relative z-[1] flex min-h-0 w-full">
@@ -1135,7 +1144,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     {matchTypeLabel}
                   </span>
                 ) : null}
-                {matchPhase === 'live' ? (
+                {matchPhase === 'canceled' ? (
+                  <span className="rounded-full border border-red-400/40 bg-red-950/45 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-100">Abgesagt</span>
+                ) : matchPhase === 'live' ? (
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-900/30 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.20)] animate-pulse">
                     <Radio className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
                     LIVE
@@ -1186,7 +1197,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               ) : null}
 
               {/* ── Info Tiles (Schedule Hero only, Trainer) ── */}
-              {scheduleNextMatchHero ? (
+              {scheduleNextMatchHero && status !== 'canceled' ? (
                 <div className={heroInfoTilesGrid} onClick={(e) => e.stopPropagation()}>
                   {canSeeSensitiveInfo && meetupTimeOnly ? (
                     <div className={heroMatchMetaTile}>

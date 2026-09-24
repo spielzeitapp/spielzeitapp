@@ -417,6 +417,13 @@ export const EventDetailPage: React.FC = () => {
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingEvent, setDeletingEvent] = useState(false);
+  const [trainingCancelOpen, setTrainingCancelOpen] = useState(false);
+  const [trainingCancelBusy, setTrainingCancelBusy] = useState(false);
+  const [trainingCancelReason, setTrainingCancelReason] = useState('');
+  const [trainingCancelError, setTrainingCancelError] = useState<string | null>(null);
+  const [trainingCancelFeedback, setTrainingCancelFeedback] = useState<string | null>(null);
+  const [trainingPushRetryAvailable, setTrainingPushRetryAvailable] = useState(false);
+  const [reschedulePushFeedback, setReschedulePushFeedback] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<EventRow | null>(null);
   const [editOpponent, setEditOpponent] = useState('');
@@ -965,7 +972,7 @@ export const EventDetailPage: React.FC = () => {
       setMatchLinkError(null);
       return;
     }
-    if (!event || event.kind !== 'match' || !canTrainerManageEvent || event.match_id) {
+    if (!event || event.kind !== 'match' || event.status === 'canceled' || !canTrainerManageEvent || event.match_id) {
       setMatchLinkBusy(false);
       setMatchLinkError(null);
       return;
@@ -1032,6 +1039,7 @@ export const EventDetailPage: React.FC = () => {
   }, [
     event?.id,
     event?.kind,
+    event?.status,
     event?.match_id,
     event?.team_season_id,
     event?.starts_at,
@@ -1502,6 +1510,18 @@ export const EventDetailPage: React.FC = () => {
       setEditError('Ungültiges Datumsformat.');
       return;
     }
+    if (editEvent.kind === 'match' && editEvent.match_id && startsAt !== editEvent.starts_at) {
+      if (editEvent.status !== 'upcoming') {
+        setEditError('Ein gestartetes oder abgeschlossenes Spiel kann nicht verschoben werden.');
+        return;
+      }
+      const { data: linkedMatch, error: matchReadError } = await supabase.from('matches')
+        .select('status, live_is_running, live_started_at').eq('id', editEvent.match_id).maybeSingle();
+      if (matchReadError || !linkedMatch || linkedMatch.status !== 'upcoming' || linkedMatch.live_is_running || linkedMatch.live_started_at) {
+        setEditError('Spielstatus konnte nicht geprüft werden oder das Spiel wurde bereits gestartet.');
+        return;
+      }
+    }
     const needsInternalAssignment =
       !editUseExternalLocation &&
       (editEvent.kind === 'training' || (editEvent.kind === 'match' && editEvent.is_home === true));
@@ -1692,6 +1712,18 @@ export const EventDetailPage: React.FC = () => {
       }
     }
 
+    if (editEvent.kind === 'match' && editEvent.match_id && startsAt !== editEvent.starts_at) {
+      const { data: updatedMatch, error: matchDateError } = await supabase.from('matches')
+        .update({ match_date: startsAt })
+        .eq('id', editEvent.match_id).select('id');
+      if (matchDateError || !updatedMatch?.length) {
+        setEditError(`Termin gespeichert, Matchdatum konnte nicht synchronisiert werden: ${matchDateError?.message || 'Keine Berechtigung oder Match nicht gefunden'}. Bitte den Support informieren.`);
+        setSavingEdit(false);
+        await loadEvent();
+        return;
+      }
+    }
+
     const wasPublishedChampionship =
       String(editEvent.fixture_status ?? '').toLowerCase() === 'published';
     if (wasPublishedChampionship) {
@@ -1718,10 +1750,42 @@ export const EventDetailPage: React.FC = () => {
       });
     }
 
-    setSavingEdit(false);
+    const moved = editEvent.status === 'upcoming' && startsAt !== editEvent.starts_at &&
+      (editEvent.kind === 'training' || editEvent.kind === 'match');
     closeEditModal();
     await loadEvent();
-  }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent, isDemo]);
+    if (moved) {
+      const format = (iso: string) => new Intl.DateTimeFormat('de-AT', {
+        timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      }).format(new Date(iso));
+      const label = editEvent.kind === 'training' ? 'Training' : `Spiel gegen ${editEvent.opponent || 'den Gegner'}`;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error('Bitte erneut anmelden und die Nachricht manuell senden.');
+        const response = await fetch('/api/push/send-team', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            team_season_id: editEvent.team_season_id,
+            recipient_group: 'all',
+            title: `${editEvent.kind === 'training' ? 'Training' : 'Spiel'} verschoben`,
+            body: `${label} wurde von ${format(editEvent.starts_at)} Uhr auf ${format(startsAt)} Uhr verschoben.${locationVal !== editEvent.location ? ` Neuer Ort: ${locationVal || 'wird bekannt gegeben'}.` : ''}`,
+            url: `${basePath}/events/${encodeURIComponent(editEvent.id)}`,
+            related_event_id: editEvent.id,
+          }),
+        });
+        const push = await response.json() as { ok?: boolean; skipped?: boolean; error?: string; sent?: number; notificationsInserted?: number };
+        if (!response.ok || push.ok !== true) throw new Error(push.error || `HTTP ${response.status}`);
+        setReschedulePushFeedback(push.skipped
+          ? 'Termin verschoben. Auf Test ist der Push-Versand deaktiviert.'
+          : `Termin verschoben. ${push.sent ?? 0} Push-Gerät(e) und ${push.notificationsInserted ?? 0} In-App-Benachrichtigung(en) erreicht.`);
+      } catch (pushError) {
+        setReschedulePushFeedback(`Termin verschoben, Push fehlgeschlagen: ${pushError instanceof Error ? pushError.message : 'Unbekannter Fehler'}`);
+      }
+    }
+    setSavingEdit(false);
+  }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent, isDemo, basePath]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
@@ -1744,6 +1808,87 @@ export const EventDetailPage: React.FC = () => {
     setDeleteConfirmOpen(false);
     navigate(`${basePath}/termine`);
   }, [eventId, event, canTrainerManageEvent, navigate, isDemo, basePath]);
+
+  const sendTrainingCancellationPush = useCallback(async () => {
+    if (!event || (event.kind !== 'training' && event.kind !== 'match') || !canTrainerManageEvent || isDemo) return;
+    setTrainingCancelBusy(true);
+    setTrainingPushRetryAvailable(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Sitzung abgelaufen. Bitte erneut anmelden und Push senden.');
+      const dateLabel = new Intl.DateTimeFormat('de-AT', {
+        timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      }).format(new Date(event.starts_at));
+      const reason = trainingCancelReason.trim();
+      const response = await fetch('/api/push/send-team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          team_season_id: event.team_season_id,
+          recipient_group: 'all',
+          title: `${event.kind === 'training' ? 'Training' : 'Spiel'} abgesagt`,
+          body: `${event.kind === 'training' ? 'Das Training' : `Das Spiel gegen ${event.opponent || 'den Gegner'}`} am ${dateLabel} Uhr wurde abgesagt.${reason ? ` Grund: ${reason}` : ''}`,
+          url: `${basePath}/events/${encodeURIComponent(event.id)}`,
+          related_event_id: event.id,
+        }),
+      });
+      const result = await response.json() as {
+        ok?: boolean; skipped?: boolean; error?: string; sent?: number; failed?: number;
+        totalRecipients?: number; messagesSaved?: number; notificationsInserted?: number;
+      };
+      if (!response.ok || result.ok !== true) throw new Error(result.error || `HTTP ${response.status}`);
+      if (result.skipped) {
+        setTrainingCancelFeedback(`${event.kind === 'training' ? 'Training' : 'Spiel'} abgesagt. Auf Test ist der Push-Versand deaktiviert.`);
+      } else {
+        const sent = result.sent ?? 0;
+        const failed = result.failed ?? 0;
+        setTrainingCancelFeedback(
+          `${event.kind === 'training' ? 'Training' : 'Spiel'} abgesagt. ${sent} Push-Gerät(e) erreicht, ${result.notificationsInserted ?? 0} In-App-Benachrichtigung(en) und ${result.messagesSaved ?? 0} Team-Nachricht(en) gespeichert.${failed ? ` ${failed} Push-Versuch(e) fehlgeschlagen.` : ''}`,
+        );
+        setTrainingPushRetryAvailable(sent === 0 && failed > 0);
+      }
+    } catch (pushError) {
+      setTrainingCancelFeedback(`${event.kind === 'training' ? 'Training' : 'Spiel'} abgesagt, Push fehlgeschlagen: ${pushError instanceof Error ? pushError.message : 'Unbekannter Fehler'}`);
+      setTrainingPushRetryAvailable(true);
+    } finally {
+      setTrainingCancelBusy(false);
+    }
+  }, [event, canTrainerManageEvent, isDemo, trainingCancelReason, basePath]);
+
+  const handleCancelTraining = useCallback(async () => {
+    if (!event || (event.kind !== 'training' && event.kind !== 'match') || !canTrainerManageEvent || isDemo ||
+        !(event.status === 'upcoming' || (event.kind === 'training' && event.status === 'live'))) return;
+    setTrainingCancelBusy(true);
+    setTrainingCancelError(null);
+    try {
+      const writable = await assertTeamSeasonWritable(event.team_season_id);
+      if (!writable.ok) throw new Error(writable.message);
+      if (event.kind === 'match' && event.match_id) {
+        const { data: linkedMatch, error: matchReadError } = await supabase.from('matches')
+          .select('status, live_is_running, live_started_at').eq('id', event.match_id).maybeSingle();
+        if (matchReadError || !linkedMatch || linkedMatch.status !== 'upcoming' || linkedMatch.live_is_running || linkedMatch.live_started_at) {
+          throw new Error('Das Spiel wurde bereits gestartet oder der Spielstatus ist nicht prüfbar.');
+        }
+      }
+      const { data, error: updateError } = await supabase.from('events')
+        .update({ status: 'canceled' })
+        .eq('id', event.id)
+        .eq('team_season_id', event.team_season_id)
+        .eq('kind', event.kind)
+        .eq('status', event.status)
+        .select('id');
+      if (updateError) throw updateError;
+      if (!data?.length) throw new Error('Der Termin wurde inzwischen geändert. Bitte die Seite neu laden.');
+      setEvent((previous) => previous ? { ...previous, status: 'canceled' } : previous);
+      setTrainingCancelOpen(false);
+    } catch (cancelError) {
+      setTrainingCancelError(cancelError instanceof Error ? cancelError.message : 'Termin konnte nicht abgesagt werden.');
+      setTrainingCancelBusy(false);
+      return;
+    }
+    await sendTrainingCancellationPush();
+  }, [event, canTrainerManageEvent, isDemo, sendTrainingCancellationPush]);
 
   if (!eventId) {
     return (
@@ -3885,13 +4030,29 @@ export const EventDetailPage: React.FC = () => {
               title={eventCompactTitle}
               startsAt={event.starts_at}
               location={event.location}
+              status={event.status}
               coverUrl={(event as { training_cover_url?: unknown }).training_cover_url}
             />
             <CenterQuickActionBar
               onAddToCalendar={() => void handleAddSingleEventToCalendar()}
               onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
+              onReschedule={canTrainerManageEvent && event.status === 'upcoming' ? () => openEditModal(event) : undefined}
+              onCancel={canTrainerManageEvent && (event.status === 'upcoming' || event.status === 'live')
+                ? () => { setTrainingCancelError(null); setTrainingCancelOpen(true); }
+                : undefined}
               onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
             />
+            {event.status === 'canceled' && trainingCancelFeedback ? (
+              <div role="status" className="rounded-xl border border-red-400/30 bg-red-950/30 px-3 py-3 text-[13px] text-red-100">
+                <p>{trainingCancelFeedback}</p>
+                {trainingPushRetryAvailable && canTrainerManageEvent ? (
+                  <AppButton variant="secondary" className="mt-2" disabled={trainingCancelBusy}
+                    onClick={() => void sendTrainingCancellationPush()}>
+                    {trainingCancelBusy ? 'Sende Push…' : 'Push erneut senden'}
+                  </AppButton>
+                ) : null}
+              </div>
+            ) : null}
             {event.team_season_id ? (
               <TrainingDetailSections
                 eventId={event.id}
@@ -3901,9 +4062,9 @@ export const EventDetailPage: React.FC = () => {
                 trainingTitle={eventCompactTitle}
                 trainingTopics={eventDetailsPrimary}
                 trainingLocation={event.location}
-                canManage={canTrainerManageEvent}
+                canManage={canTrainerManageEvent && event.status !== 'canceled'}
                 canViewHistory={canTrainerViewEvent && !seasonWritable}
-                trainerAttendanceSection={trainingTrainerAttendanceSection}
+                trainerAttendanceSection={event.status === 'canceled' ? null : trainingTrainerAttendanceSection}
               />
             ) : null}
           </>
@@ -3967,8 +4128,26 @@ export const EventDetailPage: React.FC = () => {
             onNavigate={canStartNavigation ? handleStartNavigation : undefined}
             showNavigation={canStartNavigation}
             onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
+            onReschedule={canTrainerManageEvent && event.status === 'upcoming' ? () => openEditModal(event) : undefined}
+            onCancel={canTrainerManageEvent && event.status === 'upcoming'
+              ? () => { setTrainingCancelError(null); setTrainingCancelOpen(true); }
+              : undefined}
             onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
           />
+        ) : null}
+
+        {(event.kind === 'match' || event.kind === 'training') && reschedulePushFeedback ? (
+          <p role="status" className="rounded-xl border border-amber-400/30 bg-amber-950/25 px-3 py-2 text-[13px] text-amber-100">
+            {reschedulePushFeedback}
+          </p>
+        ) : null}
+        {event.kind === 'match' && event.status === 'canceled' ? (
+          <div role="status" className="rounded-xl border border-red-400/35 bg-red-950/35 px-3 py-3 text-center text-[14px] font-bold uppercase tracking-widest text-red-100">
+            Spiel abgesagt
+          </div>
+        ) : null}
+        {event.kind === 'match' && event.status === 'canceled' && trainingCancelFeedback ? (
+          <p role="status" className="rounded-xl border border-red-400/30 bg-red-950/25 px-3 py-2 text-[13px] text-red-100">{trainingCancelFeedback}</p>
         ) : null}
 
         {isEventOrOther ? (
@@ -4016,7 +4195,7 @@ export const EventDetailPage: React.FC = () => {
 
         {isTournament ? carpoolingCard : null}
 
-        {isAudienceMatchDetail && canShowSelfRsvp ? (
+        {isAudienceMatchDetail && event.status !== 'canceled' && canShowSelfRsvp ? (
           <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
             <CardTitle>Zu-/Absagen</CardTitle>
             {!playerId ? (
@@ -4076,7 +4255,7 @@ export const EventDetailPage: React.FC = () => {
           </div>
         ) : null}
 
-        {isAudienceMatchDetail ? (
+        {isAudienceMatchDetail && event.status !== 'canceled' ? (
           <AudienceMatchdayDetailCard
             showMeetup={showMeetup}
             meetupAt={event.meeting_at}
@@ -4095,6 +4274,8 @@ export const EventDetailPage: React.FC = () => {
         ) : null}
 
         {!isFan &&
+        !(isTraining && event.status === 'canceled') &&
+        !(event.kind === 'match' && event.status === 'canceled') &&
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
         !(isTournament && canTrainerViewEvent) &&
         !(isTraining && canTrainerViewEvent) ? (
@@ -4428,7 +4609,7 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         ) : null}
 
-        {event.kind === 'match' && canTrainerManageEvent && (
+        {event.kind === 'match' && event.status !== 'canceled' && canTrainerManageEvent && (
           <Card className="mt-6 flex flex-col gap-2 overflow-hidden">
             <button
               type="button"
@@ -4617,6 +4798,33 @@ export const EventDetailPage: React.FC = () => {
           <p className="text-[14px] text-white/75">{calendarActionError}</p>
         </Modal>
         <Modal
+          isOpen={trainingCancelOpen}
+          title={`${event.kind === 'training' ? 'Training' : 'Spiel'} absagen und Push senden?`}
+          onClose={() => { if (!trainingCancelBusy) setTrainingCancelOpen(false); }}
+          footer={
+            <div className="flex justify-end gap-2">
+              <AppButton variant="secondary" disabled={trainingCancelBusy} onClick={() => setTrainingCancelOpen(false)}>Zurück</AppButton>
+              <AppButton variant="danger" disabled={trainingCancelBusy} onClick={() => void handleCancelTraining()}>
+                {trainingCancelBusy ? 'Bitte warten…' : 'Absagen und Push senden'}
+              </AppButton>
+            </div>
+          }
+        >
+          <p className="text-[14px] text-white/75">
+            {event.kind === 'training' ? eventCompactTitle : `Spiel gegen ${event.opponent || 'den Gegner'}`} am {new Intl.DateTimeFormat('de-AT', {
+              timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            }).format(new Date(event.starts_at))} Uhr wird abgesagt. Der Termin erscheint unter „Vergangene“ und zählt nicht für die Statistik. Eltern und Spieler erhalten sofort eine Team-Nachricht und, falls aktiviert, eine Push-Benachrichtigung.
+          </p>
+          <label className="mt-3 block text-[13px] text-white/80">
+            Grund für die Absage (optional)
+            <textarea value={trainingCancelReason} onChange={(e) => setTrainingCancelReason(e.target.value)}
+              maxLength={500} rows={2} placeholder="z. B. Platz gesperrt"
+              className="mt-1 block w-full rounded-xl border border-white/20 bg-black/35 px-3 py-2 text-white placeholder:text-white/35" />
+          </label>
+          {trainingCancelError ? <p role="alert" className="mt-2 text-[13px] text-red-300">{trainingCancelError}</p> : null}
+        </Modal>
+        <Modal
           isOpen={deleteConfirmOpen}
           title={isTournament ? 'Turnier wirklich löschen?' : isTraining ? 'Trainingstermin wirklich löschen?' : 'Termin löschen?'}
           onClose={() => {
@@ -4665,6 +4873,11 @@ export const EventDetailPage: React.FC = () => {
           }
         >
           <form id="event-detail-edit-form" onSubmit={handleEditSubmit} className="space-y-4">
+            {editEvent?.status === 'upcoming' && (editEvent.kind === 'match' || editEvent.kind === 'training') ? (
+              <p className="rounded-xl border border-amber-400/25 bg-amber-950/20 px-3 py-2 text-[13px] text-amber-100">
+                Wenn du Datum oder Uhrzeit änderst, erhalten Eltern und Spieler nach dem Speichern eine Nachricht und, falls aktiviert, einen Push.
+              </p>
+            ) : null}
             <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Basisdaten</p>
               <div className="space-y-3">
