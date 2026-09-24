@@ -389,6 +389,7 @@ export function ScheduleHeroEventCard({
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
             <p className="text-[20px] font-bold leading-[1.05] text-white min-[375px]:text-[21px]">{trainingMainTitle}</p>
+            {ev.status === 'canceled' ? <span className="text-[11px] font-bold uppercase tracking-wide text-red-300">Abgesagt</span> : null}
             <p className="mt-1 line-clamp-2 text-[15px] leading-[1.15] text-white/[0.78]">
               {trainingLocationLine}
             </p>

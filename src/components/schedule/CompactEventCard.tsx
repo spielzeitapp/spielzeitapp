@@ -270,6 +270,7 @@ export function CompactEventCard({
                   {trainingTitleLines.top}
                   {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
                 </p>
+                {ev.status === 'canceled' ? <span className="text-[11px] font-bold uppercase tracking-wide text-red-300">Abgesagt</span> : null}
               </div>
             ) : et === 'game' ? (
               <div className="min-w-0 flex-1">
@@ -279,6 +280,7 @@ export function CompactEventCard({
                 >
                   {oppName}
                 </p>
+                {ev.status === 'canceled' ? <span className="text-[11px] font-bold uppercase tracking-wide text-red-300">Abgesagt</span> : null}
                 <GameCompactMeta
                   isHome={ev.is_home}
                   matchType={ev.match_type}
@@ -368,6 +370,7 @@ export function CompactEventCard({
           <p className={titleClamp} lang="de">
             {oppName}
           </p>
+          {ev.status === 'canceled' ? <span className="text-[11px] font-bold uppercase tracking-wide text-red-300">Abgesagt</span> : null}
           <GameCompactMeta isHome={ev.is_home} matchType={ev.match_type} className="mt-0.5" />
           {reviewPending ? (
             <span className="mt-1 inline-flex rounded-full border border-amber-400/35 bg-amber-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-100/95">
@@ -381,6 +384,7 @@ export function CompactEventCard({
             {trainingTitleLines.top}
             {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
           </p>
+          {ev.status === 'canceled' ? <span className="text-[11px] font-bold uppercase tracking-wide text-red-300">Abgesagt</span> : null}
         </>
       ) : et === 'tournament' ? (
         <p className={titleClamp} lang="de">
@@ -538,6 +542,7 @@ export function CompactEventCard({
             {trainingTitleLines.top}
             {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
           </p>
+          {ev.status === 'canceled' ? <span className="text-[11px] font-bold uppercase tracking-wide text-red-300">Abgesagt</span> : null}
           <p className="mt-0.5 line-clamp-2 text-[15px] leading-snug text-white/[0.72]">
             {venueOnly ?? '—'}
           </p>

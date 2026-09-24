@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarPlus, MapPin, Pencil, Share2, Trash2 } from 'lucide-react';
+import { CalendarClock, CalendarPlus, MapPin, Pencil, Share2, Trash2, XCircle } from 'lucide-react';
 
 type Props = {
   onAddToCalendar: () => void;
@@ -7,6 +7,8 @@ type Props = {
   showNavigation?: boolean;
   onShare?: () => Promise<boolean>;
   onEdit?: () => void;
+  onReschedule?: () => void;
+  onCancel?: () => void;
   onDelete?: () => void;
   layout?: 'scroll' | 'grid';
 };
@@ -17,6 +19,8 @@ export function CenterQuickActionBar({
   showNavigation = false,
   onShare,
   onEdit,
+  onReschedule,
+  onCancel,
   onDelete,
   layout = 'scroll',
 }: Props) {
@@ -46,6 +50,8 @@ export function CenterQuickActionBar({
         ) : null}
         {onShare ? <ActionChip icon={Share2} label="Teilen" onClick={() => void handleShare()} layout={layout} /> : null}
         {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten" onClick={onEdit} layout={layout} /> : null}
+        {onReschedule ? <ActionChip icon={CalendarClock} label="Verschieben" onClick={onReschedule} layout={layout} /> : null}
+        {onCancel ? <ActionChip icon={XCircle} label="Training absagen" onClick={onCancel} danger layout={layout} /> : null}
         {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={onDelete} danger layout={layout} /> : null}
       </div>
       {shareHint ? (

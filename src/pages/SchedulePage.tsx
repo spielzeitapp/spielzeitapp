@@ -1804,10 +1804,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             }
                           : {};
                         const heroShowsTrainerStats =
-                          !forcePublicView && !managerSimpleMode && !isFinishedMatch && canManage;
+                          ev.status !== 'canceled' && !forcePublicView && !managerSimpleMode && !isFinishedMatch && canManage;
                         const heroShowsParentPill =
                           !forcePublicView &&
-                          !isFinishedMatch &&
+                          !isFinishedMatch && ev.status !== 'canceled' &&
                           canShowRsvpUi;
                         const heroTopRight =
                           normalizedUiRole === 'fan'
@@ -1864,6 +1864,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         const heroGoLive =
                           !managerSimpleMode &&
                           et === 'game' &&
+                          ev.status !== 'canceled' &&
                           ev.match_id &&
                           !forcePublicView &&
                           (heroIsLive || matchReviewPending || (Boolean(heroShowsTrainerStats) && heroLineupReady))
@@ -1872,7 +1873,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         const opponentLogo = ev.opponent_logo_url ?? null;
                         if (et === 'game') {
                           const heroSectionLabel =
-                            timeFilter === 'past'
+                            ev.status === 'canceled'
+                              ? 'Abgesagtes Spiel'
+                              : timeFilter === 'past'
                               ? pastHeroLabelForEffectiveType(et)
                               : isFinishedMatch || matchReviewPending
                                 ? 'Letztes Spiel'
@@ -1963,7 +1966,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           <div key={ev.id} className="w-full" {...publicWrap}>
                             <EventHeroCard
                               label={
-                                timeFilter === 'past'
+                                ev.status === 'canceled'
+                                  ? et === 'training' ? 'Abgesagtes Training' : 'Abgesagter Termin'
+                                  : timeFilter === 'past'
                                   ? pastHeroLabelForEffectiveType(et)
                                   : heroLabelForEffectiveType(et)
                               }
@@ -2068,11 +2073,11 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         (ev.status === 'finished' ||
                           (!canManage && isFinishedMatchStatus(matchStatusById[ev.match_id!])));
                       const showCompactTrainerStats =
-                        normalizedUiRole !== 'fan' && !managerSimpleMode && !forcePublicView && !isFinishedMatch && canManage;
+                        ev.status !== 'canceled' && normalizedUiRole !== 'fan' && !managerSimpleMode && !forcePublicView && !isFinishedMatch && canManage;
                       const showCompactParentPill =
                         normalizedUiRole !== 'fan' &&
                         !forcePublicView &&
-                        !isFinishedMatch &&
+                        !isFinishedMatch && ev.status !== 'canceled' &&
                         canShowRsvpUi;
                       const compactTrailing = showCompactTrainerStats ? (
                         <button

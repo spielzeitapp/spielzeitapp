@@ -9,9 +9,10 @@ type Props = {
   startsAt: string;
   location: unknown;
   coverUrl?: unknown;
+  status?: string | null;
 };
 
-export function TrainingCompactHero({ title, startsAt, location, coverUrl }: Props) {
+export function TrainingCompactHero({ title, startsAt, location, coverUrl, status }: Props) {
   void coverUrl;
   const timeLabel = formatTimeHHmmDe(startsAt);
   const dateLabel = formatTournamentDayDate(startsAt) || '—';
@@ -31,6 +32,11 @@ export function TrainingCompactHero({ title, startsAt, location, coverUrl }: Pro
         </div>
         <TrainingPlayerIcon variant="hero" className="h-16 w-16" />
         <div className="min-w-0">
+          {status === 'canceled' ? (
+            <span className="mb-1.5 inline-flex rounded-full border border-red-400/45 bg-red-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-red-100">
+              Training abgesagt
+            </span>
+          ) : null}
           <p className="truncate text-[18px] font-extrabold leading-tight text-white">{title}</p>
           <p className="mt-1 flex items-center gap-1.5 text-[12px] font-semibold text-white/75">
             <Clock3 className="h-3.5 w-3.5 shrink-0 text-red-300" aria-hidden />
