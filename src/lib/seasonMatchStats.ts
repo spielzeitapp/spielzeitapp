@@ -461,7 +461,7 @@ function compareMatchDateDesc(a: SeasonMatchCardData, b: SeasonMatchCardData): n
   return db - da;
 }
 
-/** Zielroute für Saison-Spielkarten — Event-Detail bevorzugt, sonst Match-Detail. */
+/** Zielroute für Saison-Spielkarten — Event-Detail bevorzugt, sonst aktuelle Spielübersicht. */
 export function seasonMatchCardHref(
   eventId: string | null | undefined,
   base: '/app' | '/demo' = '/app',
@@ -470,7 +470,7 @@ export function seasonMatchCardHref(
   const eid = (eventId ?? '').trim();
   if (eid) return `${base}/events/${encodeURIComponent(eid)}`;
   const mid = (matchId ?? '').trim();
-  if (mid) return `${base}/match/${encodeURIComponent(mid)}`;
+  if (mid) return `${base}/live?matchId=${encodeURIComponent(mid)}`;
   return null;
 }
 
