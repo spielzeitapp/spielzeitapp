@@ -38,6 +38,8 @@ type Props = {
   matchInfo?: {
     homeTeam: string;
     awayTeam: string;
+    homeLogoUrl?: string | null;
+    awayLogoUrl?: string | null;
     date?: string;
     location?: string | null;
     score?: string;
@@ -224,14 +226,25 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   if (mode === 'analysis') {
     const filters = Object.entries(SCENE_TYPES).filter(([key]) => visibleVideos.some(v => (v.scene_type ?? 'other') === key));
     return <section aria-label="Spielanalyse" className="mx-auto max-w-2xl space-y-5 pb-8 text-white">
-      <header className="rounded-[22px] border border-red-500/25 bg-gradient-to-b from-red-950/45 to-zinc-950 p-5 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-red-300">Spielanalyse · {matchInfo?.date ?? 'Spiel'}</p>
-        {matchInfo?.score && <p className="mt-3 text-5xl font-black tabular-nums tracking-tight text-white">{matchInfo.score.replace(':', ' : ')}</p>}
-        <div className="mt-3 flex items-center justify-between gap-4 text-sm font-semibold">
-          <span className="w-2/5 text-left">{matchInfo?.homeTeam ?? 'Heim'}</span>
-          <span className="text-xs font-medium text-white/45">{matchInfo?.location || 'Spiel'}</span>
-          <span className="w-2/5 text-right">{matchInfo?.awayTeam ?? 'Gast'}</span>
+      <header className="rounded-[22px] border border-red-500/30 bg-[radial-gradient(ellipse_at_50%_55%,rgba(105,23,23,0.36),transparent_72%),linear-gradient(140deg,#1c0b0c,#0d0b0d_60%,#230c0e)] p-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-300">Spielanalyse · {matchInfo?.date ?? 'Spiel'}</p>
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-white/55">Endstand</p>
+        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+          <div className="flex min-w-0 flex-col items-center gap-2">
+            <div className="flex h-[70px] w-[70px] items-center justify-center rounded-full bg-black/30 p-1.5 sm:h-20 sm:w-20">
+              {matchInfo?.homeLogoUrl ? <img src={matchInfo.homeLogoUrl} alt="" className="max-h-full max-w-full object-contain" /> : <span className="text-3xl" aria-hidden>⚽</span>}
+            </div>
+            <span className="min-h-[34px] w-full break-words text-center text-xs font-bold leading-tight sm:text-sm">{matchInfo?.homeTeam ?? 'Heim'}</span>
+          </div>
+          <p className="self-center pb-8 text-4xl font-black tabular-nums tracking-tight text-white sm:text-5xl">{matchInfo?.score?.replace(':', ' : ') ?? '– : –'}</p>
+          <div className="flex min-w-0 flex-col items-center gap-2">
+            <div className="flex h-[70px] w-[70px] items-center justify-center rounded-full bg-black/30 p-1.5 sm:h-20 sm:w-20">
+              {matchInfo?.awayLogoUrl ? <img src={matchInfo.awayLogoUrl} alt="" className="max-h-full max-w-full object-contain" /> : <span className="text-3xl" aria-hidden>⚽</span>}
+            </div>
+            <span className="min-h-[34px] w-full break-words text-center text-xs font-bold leading-tight sm:text-sm">{matchInfo?.awayTeam ?? 'Gast'}</span>
+          </div>
         </div>
+        {matchInfo?.location && <p className="mt-1 border-t border-white/10 pt-3 text-xs text-white/55">{matchInfo.location}</p>}
       </header>
 
       {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
