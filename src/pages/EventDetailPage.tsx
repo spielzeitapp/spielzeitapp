@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Bus,
@@ -41,6 +41,7 @@ import { getClubLogo, getOurTeamDisplayName, getOurTeamLogoUrl, isPlaceholderLog
 import { setOpponentLogoForSeason } from '../lib/championshipFixtures';
 import { OpponentLogoField } from '../components/events';
 import {
+  formatVisibleClubName,
   formatVisibleMatchEncounter,
   normalizeOefbImportedTeamName,
 } from '../lib/oefbTeamNameNormalize';
@@ -448,6 +449,24 @@ function sortPlayersByRsvpBuckets(players: PlayerItem[], getStatus: (playerId: s
 
 export const EventDetailPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
+
+  // Die App scrollt im eigenen .appMain-Container; beim Routenwechsel bleibt
+  // dessen alte Position sonst erhalten (besonders nach einem Spielerprofil).
+  useLayoutEffect(() => {
+    const resetScroll = () => {
+      document.querySelector<HTMLElement>('.appMain')?.scrollTo(0, 0);
+      window.scrollTo(0, 0);
+    };
+    resetScroll();
+    const frame = requestAnimationFrame(resetScroll);
+    const afterPaint = window.setTimeout(resetScroll, 80);
+    const afterRestore = window.setTimeout(resetScroll, 250);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(afterPaint);
+      window.clearTimeout(afterRestore);
+    };
+  }, [eventId]);
   const navigate = useNavigate();
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
@@ -2007,7 +2026,7 @@ export const EventDetailPage: React.FC = () => {
       opponentName,
     });
     const compactOurTeamName = enc.ourTeam;
-    const compactOpponentName = compactTeamNameForMatchHeader(enc.opponent);
+    const compactOpponentName = compactTeamNameForMatchHeader(formatVisibleClubName(enc.opponent));
     /** Links im Spielbericht = Stadion-Heim → DB type goal; rechts = Stadion-Auswärts → goal_away (unabhängig von event.is_home). */
     const homeTeamName = event.is_home === false ? compactOpponentName : compactOurTeamName;
     const awayTeamName = event.is_home === false ? compactOurTeamName : compactOpponentName;
