@@ -313,9 +313,9 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       </header>}
 
       {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div><h2 className="text-xl font-bold">Spielszenen</h2><p className="text-sm text-white/55">{visibleVideos.length} {visibleVideos.length === 1 ? 'hochgeladene Szene' : 'hochgeladene Szenen'}</p></div>
-        {canManage && !demoMode && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-expanded={uploadOpen} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-500/45 bg-red-950/45 px-3 text-sm font-semibold text-red-100"><UploadCloud size={17} aria-hidden /> Szene hinzufügen <ChevronDown size={16} className={uploadOpen ? 'rotate-180' : ''} aria-hidden /></button>}
+        {canManage && !demoMode && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-expanded={uploadOpen} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-red-500/35 bg-gradient-to-b from-[#48151a] to-[#230a0e] px-3.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors hover:border-red-400/60"><UploadCloud size={17} className="text-red-300" aria-hidden /> Szene hinzufügen <ChevronDown size={16} className={uploadOpen ? 'rotate-180' : ''} aria-hidden /></button>}
       </div>
 
       {canManage && !demoMode && uploadOpen && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">
@@ -332,8 +332,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       </div>}
 
       {loading ? <p className="text-sm text-white/60">Spielszenen werden geladen …</p> : visibleVideos.length === 0 ? <p className="rounded-2xl border border-white/10 bg-zinc-950/70 p-6 text-sm text-white/65">Hier erscheinen deine Analyseszenen mit Bild und Kategorie, sobald du den ersten Clip hochgeladen hast.</p> : <>
-        <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">
-          {[['all', 'Alle'], ...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold ${analysisFilter === key ? 'border-red-400 bg-red-600 text-white' : 'border-white/15 bg-zinc-900 text-white/75'}`}>{label}</button>)}
+        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Szenen filtern">
+          {[['all', 'Alle'], ...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-11 shrink-0 rounded-2xl border px-4 text-sm font-bold transition-colors ${analysisFilter === key ? 'border-red-400/50 bg-gradient-to-b from-[#9b2532] to-[#711c27] text-white shadow-[0_3px_14px_rgba(150,27,42,0.24)]' : 'border-white/15 bg-[#19171a] text-white/75 hover:border-red-400/35 hover:text-white'}`}>{label}</button>)}
         </div>
         <div ref={sceneSliderRef} onScroll={updateActiveScene} className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Spielszenen seitlich durchblättern">
           {filteredVideos.map(video => <article data-scene-card key={video.id} className={`min-w-0 shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,0.25)] ${filteredVideos.length === 1 ? 'w-full' : 'w-[84%] sm:w-[48%]'}`}>
@@ -345,8 +345,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
             <div className="flex items-start justify-between gap-2 px-4 py-3">
               <div className="min-w-0 space-y-1"><p className="text-xs font-semibold uppercase tracking-wide text-red-300">{SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'}</p><h3 className="break-words text-base font-bold leading-tight" title={video.title}>{video.title}</h3>{video.analysis_note && <p className="line-clamp-2 text-sm text-white/55">{video.analysis_note}</p>}</div>
               {canManage && !demoMode && <div className="flex shrink-0 gap-1" aria-label="Szene verwalten">
-                <button type="button" aria-label={`${video.title} bearbeiten`} title="Bearbeiten" onClick={() => { setEditTitle(video.title); setSceneType(video.scene_type ?? 'other'); setSceneMinute(video.scene_minute?.toString() ?? ''); setAnalysisNote(video.analysis_note ?? ''); setEditingId(video.id); }} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white"><Pencil size={18} aria-hidden /></button>
-                <button type="button" aria-label={`${video.title} löschen`} title="Löschen" disabled={busy} onClick={() => void deleteVideo(video)} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-red-300 hover:bg-red-500/10 disabled:opacity-50"><Trash2 size={18} aria-hidden /></button>
+                <button type="button" aria-label={`${video.title} bearbeiten`} title="Bearbeiten" onClick={() => { setEditTitle(video.title); setSceneType(video.scene_type ?? 'other'); setSceneMinute(video.scene_minute?.toString() ?? ''); setAnalysisNote(video.analysis_note ?? ''); setEditingId(video.id); }} className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/85 transition-colors hover:border-red-400/40 hover:bg-red-950/30"><Pencil size={18} aria-hidden /></button>
+                <button type="button" aria-label={`${video.title} löschen`} title="Löschen" disabled={busy} onClick={() => void deleteVideo(video)} className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-red-400/25 bg-red-950/20 text-red-300 transition-colors hover:border-red-400/50 hover:bg-red-950/45 disabled:opacity-50"><Trash2 size={18} aria-hidden /></button>
               </div>}
             </div>
             {editingId === video.id && <div className="space-y-2 border-t border-white/10 p-3 text-sm">
