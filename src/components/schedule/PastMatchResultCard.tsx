@@ -8,6 +8,7 @@ import { formatCompactListWeekdayAbbrev } from './scheduleEventViewUtils';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { dsScheduleListPanelClass } from '../../lib/premiumDesignSystem';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
+import { MatchTypeHeading } from '../match/MatchTypeHeading';
 
 export type PastMatchResultCardProps = {
   ev: EventRow;
@@ -254,9 +255,7 @@ export function PastMatchResultCard({
             {yearSmall ? <span className="text-[11px] font-medium leading-tight text-white/48">{yearSmall}</span> : null}
           </div>
           <div className="flex min-w-0 justify-center pt-0.5">
-            <span className="min-w-0 text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
-              {matchTypeLabel}
-            </span>
+            <MatchTypeHeading label={matchTypeLabel} />
           </div>
           <span aria-hidden="true" />
         </div>

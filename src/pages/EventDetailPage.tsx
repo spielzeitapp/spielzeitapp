@@ -52,6 +52,7 @@ import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { FinishedMatchScorers } from '../components/match/FinishedMatchScorers';
 import { MatchVideosPanel } from '../components/match/MatchVideosPanel';
+import { MatchTypeHeading } from '../components/match/MatchTypeHeading';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
@@ -2725,9 +2726,7 @@ export const EventDetailPage: React.FC = () => {
                   <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{finishedDate.mon}</span>
                   <span className="mt-0.5 text-[10px] text-white/45">{finishedYear}</span>
                 </div>
-                <p className="min-w-0 text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
-                  {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
-                </p>
+                <MatchTypeHeading label={event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'} />
                 <span aria-hidden="true" />
               </div>
               <div className="mt-2 flex justify-center">

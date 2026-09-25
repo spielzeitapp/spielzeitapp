@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronDown, Clapperboard, LockKeyhole, MapPin, Pencil, Play, Send, Trash2, UploadCloud, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
+import { MatchTypeHeading } from './MatchTypeHeading';
 
 type MatchVideo = {
   id: string;
@@ -266,7 +267,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
               <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{datePart({ month: 'short' })}</span>
               <span className="mt-0.5 text-[10px] text-white/45">{datePart({ year: 'numeric' })}</span>
             </div>
-            <p className="min-w-0 text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">{matchInfo?.matchType || 'Meisterschaftsspiel'}</p>
+            <MatchTypeHeading label={matchInfo?.matchType || 'Meisterschaftsspiel'} />
             <span aria-hidden="true" />
           </div>
           <div className="mt-2 flex justify-center"><span className="rounded-full border border-red-500/40 bg-red-950/70 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-red-50">Endstand</span></div>

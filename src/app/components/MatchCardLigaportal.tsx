@@ -22,6 +22,7 @@ import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
+import { MatchTypeHeading } from '../../components/match/MatchTypeHeading';
 import { MatchLiveAccessActionSheet } from '../../components/match/MatchLiveAccessActionSheet';
 import { formatHeroDateParts, scheduleMetaTimeDisplay } from '../../components/schedule/scheduleEventViewUtils';
 import { isMatchPreparationAccessible } from '../../lib/matchPreparationAccess';
@@ -977,9 +978,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             /* ── Finished Hero (simplified — result + CTA, Trainer) ── */
             <div className="relative z-[1] flex flex-col items-center gap-1.5 px-1 py-1">
               {matchTypeLabel ? (
-                <span className="text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
-                  {matchTypeLabel}
-                </span>
+                <MatchTypeHeading label={matchTypeLabel} />
               ) : null}
               <MatchCardGameCore
                 headerTitle={null}
@@ -1037,9 +1036,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             <div className="flex min-w-0 flex-col">
               <div className="flex flex-wrap items-center justify-center gap-1.5 pb-0.5">
                 {matchTypeLabel ? (
-                  <span className="text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
-                    {matchTypeLabel}
-                  </span>
+                  <MatchTypeHeading label={matchTypeLabel} />
                 ) : null}
                 {matchPhase === 'canceled' ? (
                   <span className="rounded-full border border-red-400/40 bg-red-950/45 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-100">Abgesagt</span>
@@ -1132,9 +1129,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {/* Match-Type Badge + Phase Badge */}
               <div className="flex flex-wrap items-center justify-center gap-1.5 pb-0.5">
                 {matchTypeLabel ? (
-                  <span className="text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
-                    {matchTypeLabel}
-                  </span>
+                  <MatchTypeHeading label={matchTypeLabel} />
                 ) : null}
                 {matchPhase === 'canceled' ? (
                   <span className="rounded-full border border-red-400/40 bg-red-950/45 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-100">Abgesagt</span>

@@ -68,6 +68,7 @@ import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
 import { forceReleaseBodyScrollLocks, lockBodyScroll } from '../../lib/bodyScrollLock';
 import { getMatchSides } from '../../lib/matchSides';
 import { getMatchTypeLabel } from '../../components/match/matchCardLabels';
+import { MatchTypeHeading } from '../../components/match/MatchTypeHeading';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
@@ -4837,9 +4838,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
                   <div className="flex justify-center">
-                    <p className="min-w-0 text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
-                      {matchTypeDisplay}
-                    </p>
+                    <MatchTypeHeading label={matchTypeDisplay} />
                   </div>
                   <div aria-hidden="true" />
                 </div>
