@@ -307,12 +307,14 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
               <span className="absolute inset-0 flex items-center justify-center bg-black/5"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/65 ring-1 ring-white/45"><Play size={22} fill="white" aria-hidden /></span></span>
               {video.scene_minute != null && <span className="absolute right-2 top-2 rounded-lg bg-black/75 px-2 py-1 text-xs font-semibold">{video.scene_minute}'</span>}
             </button>
-            <div className="space-y-1 px-4 py-3"><p className="text-xs font-semibold uppercase tracking-wide text-red-300">{SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'}</p><h3 className="text-base font-bold leading-tight" title={video.title}>{video.title}</h3>{video.analysis_note && <p className="line-clamp-2 text-sm text-white/55">{video.analysis_note}</p>}</div>
+            <div className="flex items-start justify-between gap-2 px-4 py-3">
+              <div className="min-w-0 space-y-1"><p className="text-xs font-semibold uppercase tracking-wide text-red-300">{SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'}</p><h3 className="break-words text-base font-bold leading-tight" title={video.title}>{video.title}</h3>{video.analysis_note && <p className="line-clamp-2 text-sm text-white/55">{video.analysis_note}</p>}</div>
+              {canManage && !demoMode && <div className="flex shrink-0 gap-1" aria-label="Szene verwalten">
+                <button type="button" aria-label={`${video.title} bearbeiten`} title="Bearbeiten" onClick={() => { setEditTitle(video.title); setSceneType(video.scene_type ?? 'other'); setSceneMinute(video.scene_minute?.toString() ?? ''); setAnalysisNote(video.analysis_note ?? ''); setEditingId(video.id); }} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white"><Pencil size={18} aria-hidden /></button>
+                <button type="button" aria-label={`${video.title} löschen`} title="Löschen" disabled={busy} onClick={() => void deleteVideo(video)} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-red-300 hover:bg-red-500/10 disabled:opacity-50"><Trash2 size={18} aria-hidden /></button>
+              </div>}
+            </div>
             {playingId === video.id && playingUrl && <video key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" className="w-full" />}
-            {canManage && !demoMode && <div className="flex flex-wrap gap-2 px-4 pb-4 text-sm">
-              <button type="button" onClick={() => { setEditTitle(video.title); setSceneType(video.scene_type ?? 'other'); setSceneMinute(video.scene_minute?.toString() ?? ''); setAnalysisNote(video.analysis_note ?? ''); setEditingId(video.id); }} className="min-h-11 rounded-xl border border-white/15 px-3">Bearbeiten</button>
-              <button type="button" disabled={busy} onClick={() => void deleteVideo(video)} className="min-h-11 rounded-xl border border-red-500/30 px-3 text-red-200">Löschen</button>
-            </div>}
             {editingId === video.id && <div className="space-y-2 border-t border-white/10 p-3 text-sm">
               <input aria-label="Titel" value={editTitle} onChange={e => setEditTitle(e.target.value)} maxLength={120} className="min-h-10 w-full rounded-lg border border-white/15 bg-zinc-900 px-2" />
               <select aria-label="Kategorie" value={sceneType} onChange={e => setSceneType(e.target.value)} className="min-h-10 w-full rounded-lg border border-white/15 bg-zinc-900 px-2">{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select>
