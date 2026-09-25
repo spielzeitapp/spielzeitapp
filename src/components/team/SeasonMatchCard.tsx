@@ -47,13 +47,13 @@ function splitPrefixAndName(full: string): { prefix: string; name: string } {
   return { prefix: first, name: parts.slice(1).join(' ') };
 }
 
-function TeamLogoBlock({ src, label }: { src: string; label: string }) {
+function TeamLogoBlock({ src, label, prominent = false }: { src: string; label: string; prominent?: boolean }) {
   return (
     <img
       src={src}
       alt=""
       aria-hidden
-      className="h-10 w-10 shrink-0 object-contain [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.14))] sm:h-11 sm:w-11"
+      className={`${prominent ? 'h-12 w-12 sm:h-14 sm:w-14' : 'h-10 w-10 sm:h-11 sm:w-11'} shrink-0 object-contain [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.14))]`}
       onError={(e) => {
         const img = e.currentTarget as HTMLImageElement;
         if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
@@ -186,6 +186,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
       }
     >
       <div className="sz-club-page-hero-glow pointer-events-none absolute inset-0 opacity-90" />
+      {appearance ? <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(106,16,20,0.18),transparent_70%)]" /> : null}
 
       <div className={`relative px-3.5 sm:px-4 ${appearance ? 'pb-3 pt-3' : 'pb-2.5 pt-3 sm:pb-3 sm:pt-3.5'}`}>
         <div className={`flex justify-between gap-2 ${appearance ? 'mb-2 items-center' : 'mb-1 items-start'}`}>
@@ -213,7 +214,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
 
         <div className={`grid grid-cols-[1fr_auto_1fr] items-start gap-x-2 ${appearance ? 'border-t border-white/[0.07] pt-3' : ''}`}>
           <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
-            <TeamLogoBlock src={homeLogoSrc} label={homeName} />
+            <TeamLogoBlock src={homeLogoSrc} label={homeName} prominent={appearance} />
             {homeSplit.prefix ? (
               <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                 {homeSplit.prefix}
@@ -230,7 +231,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
             }`}>
               {match.outcome != null ? 'Endstand' : match.displayStatus === 'live' ? 'Live' : 'Anpfiff'}
             </span>
-            <span className="mt-1 text-center text-[2.3rem] font-extrabold leading-none tracking-tight text-white tabular-nums sm:text-[2.5rem]">
+            <span className={`mt-1 text-center font-extrabold leading-none tracking-tight text-white tabular-nums ${appearance ? 'text-[2.65rem] sm:text-[2.9rem]' : 'text-[2.3rem] sm:text-[2.5rem]'}`}>
               {scoreStr}
             </span>
             <span
@@ -241,7 +242,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
           </div>
 
           <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
-            <TeamLogoBlock src={awayLogoSrc} label={awayName} />
+            <TeamLogoBlock src={awayLogoSrc} label={awayName} prominent={appearance} />
             {awaySplit.prefix ? (
               <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                 {awaySplit.prefix}
