@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Clapperboard, LockKeyhole, Play, Send, Trash2, UploadCloud } from 'lucide-react';
+import { Clapperboard, LockKeyhole, Pencil, Play, Send, Trash2, UploadCloud } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
@@ -40,6 +40,11 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [category, setCategory] = useState('highlights');
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState('highlights');
+  const [composerId, setComposerId] = useState<string | null>(null);
+  const [caption, setCaption] = useState('');
 
   const reload = useCallback(async () => {
     const { data, error: loadError } = await supabase.from('match_videos')
@@ -92,15 +97,43 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     setPlayingId(video.id); setPlayingUrl(data.signedUrl);
   };
 
+  const openComposer = async (video: MatchVideo) => {
+    if (!canManage || demoMode || busy) return;
+    setError(null);
+    setCaption(video.title);
+    setComposerId(video.id);
+    if (video.visibility === 'team') {
+      const { data, error: captionError } = await supabase.from('team_feed_posts')
+        .select('caption').eq('dedupe_key', `match_video:${video.id}`).maybeSingle();
+      if (captionError) setError('Der bisherige Feed-Text konnte nicht geladen werden.');
+      else if (data) setCaption(data.caption ?? '');
+    }
+  };
+
+  const saveDetails = async (video: MatchVideo) => {
+    if (!canManage || demoMode || busy || !editTitle.trim()) return;
+    setBusy(true); setError(null);
+    try {
+      const { error: editError } = await supabase.rpc('update_match_video_details', {
+        p_video_id: video.id, p_title: editTitle.trim(), p_category: editCategory,
+      });
+      if (editError) throw editError;
+      setEditingId(null);
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : 'Video konnte nicht geändert werden.'); }
+    finally { setBusy(false); }
+  };
+
   const publish = async (video: MatchVideo) => {
     if (!canManage || demoMode || busy) return;
-    if (!window.confirm(`„${video.title}“ für Eltern und Spieler dieses Teams im Feed freigeben? Fans erhalten keinen Zugriff.`)) return;
+    if (!caption.trim()) { setError('Bitte einen Text für den Feed eingeben.'); return; }
+    if (video.visibility === 'staff' && !window.confirm(`„${video.title}“ für Eltern und Spieler dieses Teams freigeben? Fans erhalten keinen Zugriff.`)) return;
     setBusy(true); setError(null);
     const { error: publishError } = await supabase.rpc('publish_match_video', {
-      p_video_id: video.id, p_caption: video.title,
+      p_video_id: video.id, p_caption: caption.trim(),
     });
     if (publishError) setError(publishError.message);
-    else await reload();
+    else { setComposerId(null); await reload(); }
     setBusy(false);
   };
 
@@ -129,6 +162,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       const { error: deleteError } = await supabase.from('match_videos').delete().eq('id', video.id);
       if (deleteError) throw deleteError;
       if (playingId === video.id) { setPlayingId(null); setPlayingUrl(null); }
+      if (composerId === video.id) setComposerId(null);
+      if (editingId === video.id) setEditingId(null);
       await reload();
     } catch (e) { setError(e instanceof Error ? e.message : 'Video konnte nicht gelöscht werden. Bitte erneut versuchen.'); }
     finally { setBusy(false); }
@@ -153,11 +188,23 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : videos.length === 0 ? <p className="rounded-xl border border-white/10 p-5 text-sm text-white/70">Noch keine für dich freigegebenen Videos zu diesem Spiel.</p> :
       <div className="space-y-3">{videos.map(video => <article key={video.id} className="rounded-2xl border border-white/10 bg-zinc-900/80 p-4">
         <div className="flex items-start justify-between gap-3"><div><div className="text-xs font-medium text-red-300">{CATEGORIES[video.category] ?? 'Video'}</div><h3 className="mt-1 font-semibold">{video.title}</h3></div><span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-xs">{video.visibility === 'team' ? 'Im Team-Feed' : 'Nur Trainer'}</span></div>
+        {canManage && !demoMode && editingId === video.id && <div className="mt-3 space-y-3 rounded-xl border border-white/15 p-3">
+          <label className="block text-sm">Titel<input value={editTitle} onChange={e => setEditTitle(e.target.value)} maxLength={120} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-950 px-3 text-base text-white" /></label>
+          <label className="block text-sm">Kategorie<select value={editCategory} onChange={e => setEditCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-950 px-3 text-base text-white">{Object.entries(CATEGORIES).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+          <div className="flex flex-wrap gap-2"><button type="button" disabled={busy || !editTitle.trim()} onClick={() => void saveDetails(video)} className="min-h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold disabled:opacity-50">Speichern</button><button type="button" onClick={() => setEditingId(null)} className="min-h-11 rounded-xl border border-white/15 px-4 text-sm">Abbrechen</button></div>
+        </div>}
         {playingId === video.id && playingUrl && <video key={playingUrl} src={playingUrl} controls playsInline preload="metadata" className="mt-3 w-full rounded-xl" />}
         <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => void play(video)} className="flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-3 text-sm"><Play size={16} aria-hidden /> Abspielen</button>
-          {canManage && (video.visibility === 'staff' ? <button type="button" disabled={busy} onClick={() => void publish(video)} className="flex min-h-11 items-center gap-2 rounded-xl border border-red-500/50 px-3 text-sm text-red-200 disabled:opacity-50"><Send size={16} aria-hidden /> Im Feed teilen</button> : <button type="button" disabled={busy} onClick={() => void unpublish(video)} className="min-h-11 rounded-xl border border-white/15 px-3 text-sm disabled:opacity-50">Freigabe zurücknehmen</button>)}
+          {canManage && !demoMode && <button type="button" disabled={busy} onClick={() => { setEditTitle(video.title); setEditCategory(video.category); setEditingId(video.id); }} className="flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-3 text-sm disabled:opacity-50"><Pencil size={16} aria-hidden /> Titel bearbeiten</button>}
+          {canManage && (video.visibility === 'staff' ? <button type="button" disabled={busy} onClick={() => void openComposer(video)} className="flex min-h-11 items-center gap-2 rounded-xl border border-red-500/50 px-3 text-sm text-red-200 disabled:opacity-50"><Send size={16} aria-hidden /> Im Feed teilen</button> : <button type="button" disabled={busy} onClick={() => void unpublish(video)} className="min-h-11 rounded-xl border border-white/15 px-3 text-sm disabled:opacity-50">Freigabe zurücknehmen</button>)}
+          {canManage && !demoMode && video.visibility === 'team' && <button type="button" disabled={busy} onClick={() => void openComposer(video)} className="min-h-11 rounded-xl border border-white/15 px-3 text-sm disabled:opacity-50">Feed-Text bearbeiten</button>}
           {canManage && !demoMode && <button type="button" disabled={busy} onClick={() => void deleteVideo(video)} className="flex min-h-11 items-center gap-2 rounded-xl border border-red-500/40 px-3 text-sm text-red-200 disabled:opacity-50"><Trash2 size={16} aria-hidden /> Löschen</button>}
         </div>
+        {canManage && !demoMode && composerId === video.id && <div className="mt-3 space-y-3 rounded-xl border border-red-500/30 bg-zinc-950 p-3">
+          <label className="block text-sm">Text für den Team-Feed<textarea value={caption} onChange={e => setCaption(e.target.value)} maxLength={500} rows={3} className="mt-1 w-full rounded-xl border border-white/15 bg-zinc-900 p-3 text-base text-white" /></label>
+          <p className="text-xs text-white/60">Sichtbar für Eltern und Spieler dieses Teams. Fans erhalten keinen Zugriff.</p>
+          <div className="flex flex-wrap gap-2"><button type="button" disabled={busy || !caption.trim()} onClick={() => void publish(video)} className="min-h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold disabled:opacity-50">{video.visibility === 'team' ? 'Feed-Text speichern' : 'Im Team-Feed veröffentlichen'}</button><button type="button" onClick={() => setComposerId(null)} className="min-h-11 rounded-xl border border-white/15 px-4 text-sm">Abbrechen</button></div>
+        </div>}
       </article>)}</div>}
   </section>;
 };
