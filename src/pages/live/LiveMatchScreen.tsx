@@ -4817,7 +4817,7 @@ export const LiveMatchScreen: React.FC = () => {
                 }}
               />
               <div className={`relative z-[1] w-full px-3 ${matchIsFinished ? 'pb-3 pt-3' : 'pb-1 pt-1.5'} sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
-                <div className={`grid items-center gap-2 ${matchIsFinished ? 'grid-cols-[58px_minmax(0,1fr)_66px]' : 'grid-cols-[1fr_auto_1fr]'}`}>
+                <div className={`grid items-center gap-2 ${matchIsFinished ? 'grid-cols-[58px_minmax(0,1fr)_58px]' : 'grid-cols-[1fr_auto_1fr]'}`}>
                   <div className="min-w-0">
                     {matchIsFinished && finishedMatchDay ? (
                       <div className="flex w-[58px] flex-col items-center justify-center border-r border-white/10 pr-2 text-center leading-none">
@@ -4837,17 +4837,11 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
                   <div className="flex justify-center">
-                    <p className="whitespace-nowrap rounded-full border border-red-500/40 bg-red-950/70 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-red-50 shadow-[0_0_20px_rgba(220,38,38,0.18)] min-[390px]:px-3 min-[390px]:text-[10px] sm:text-[11px]">
+                    <p className="min-w-0 text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
                       {matchTypeDisplay}
                     </p>
                   </div>
-                  <div className="flex justify-end">
-                    {matchIsFinished ? (
-                      <span className="rounded-full border border-white/18 bg-white/[0.07] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/75 sm:text-[10px]">
-                        Beendet
-                      </span>
-                    ) : null}
-                  </div>
+                  <div aria-hidden="true" />
                 </div>
 
                 <div className={`flex justify-center ${matchIsFinished ? 'mt-2' : 'mt-1.5'}`}>

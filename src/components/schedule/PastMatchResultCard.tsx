@@ -210,9 +210,6 @@ export function PastMatchResultCard({
           </div>
         </div>
 
-        <span className="absolute right-3 top-2.5 rounded-md border border-red-950/80 bg-black/45 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[#E8C4C8]">
-          Beendet
-        </span>
         {clickable ? <ChevronRight className="absolute bottom-4 right-3 h-5 w-5 text-white/30" strokeWidth={2} aria-hidden /> : null}
       </div>
     );
@@ -243,7 +240,7 @@ export function PastMatchResultCard({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.12),transparent_55%)] opacity-90" />
 
       <div className="relative px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4">
-        <div className="mb-2 grid grid-cols-[52px_minmax(0,1fr)_auto] items-start gap-2">
+        <div className="mb-2 grid grid-cols-[52px_minmax(0,1fr)_52px] items-center gap-2">
           <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
             <span className="text-[12px] font-bold uppercase leading-none tracking-[0.12em] text-[#D36C7B]">
               {weekdayBadge}
@@ -257,13 +254,11 @@ export function PastMatchResultCard({
             {yearSmall ? <span className="text-[11px] font-medium leading-tight text-white/48">{yearSmall}</span> : null}
           </div>
           <div className="flex min-w-0 justify-center pt-0.5">
-            <span className="max-w-full truncate rounded-full border border-red-500/35 bg-red-950/65 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-red-50 sm:text-[10px]">
+            <span className="min-w-0 text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
               {matchTypeLabel}
             </span>
           </div>
-          <span className="shrink-0 rounded-lg border border-red-800/60 bg-black/55 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-red-100">
-            Beendet
-          </span>
+          <span aria-hidden="true" />
         </div>
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-2.5">

@@ -977,8 +977,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             /* ── Finished Hero (simplified — result + CTA, Trainer) ── */
             <div className="relative z-[1] flex flex-col items-center gap-1.5 px-1 py-1">
               {matchTypeLabel ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/20 bg-red-950/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.10em] text-red-100/90">
-                  <Trophy className="h-3 w-3 text-red-300/80" strokeWidth={2} aria-hidden />
+                <span className="text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
                   {matchTypeLabel}
                 </span>
               ) : null}
@@ -1006,7 +1005,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 compactDetailGame={false}
                 suppressCompactScheduleFooter
               />
-              <p className="text-[11px] font-medium text-white/40">Spiel beendet</p>
               {isClickable ? (
                 <button
                   type="button"
@@ -1039,8 +1037,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             <div className="flex min-w-0 flex-col">
               <div className="flex flex-wrap items-center justify-center gap-1.5 pb-0.5">
                 {matchTypeLabel ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] px-2.5 py-[3px] text-[9px] font-bold uppercase tracking-wide text-white/80">
-                    <Trophy className="h-2.5 w-2.5 text-red-400/60" strokeWidth={2} aria-hidden />
+                  <span className="text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
                     {matchTypeLabel}
                   </span>
                 ) : null}
@@ -1055,10 +1052,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/15 bg-emerald-900/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-emerald-400/70">
                     <Radio className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
                     BALD LIVE
-                  </span>
-                ) : matchPhase === 'finished' ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white/40">
-                    BEENDET
                   </span>
                 ) : null}
               </div>
@@ -1139,8 +1132,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {/* Match-Type Badge + Phase Badge */}
               <div className="flex flex-wrap items-center justify-center gap-1.5 pb-0.5">
                 {matchTypeLabel ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] px-2.5 py-[3px] text-[9px] font-bold uppercase tracking-wide text-white/80">
-                    <Trophy className="h-2.5 w-2.5 text-red-400/60" strokeWidth={2} aria-hidden />
+                  <span className="text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">
                     {matchTypeLabel}
                   </span>
                 ) : null}
@@ -1155,10 +1147,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/15 bg-emerald-900/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-emerald-400/70">
                     <Radio className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
                     BALD LIVE
-                  </span>
-                ) : matchPhase === 'finished' ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white/40">
-                    BEENDET
                   </span>
                 ) : null}
               </div>

@@ -266,7 +266,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
               <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{datePart({ month: 'short' })}</span>
               <span className="mt-0.5 text-[10px] text-white/45">{datePart({ year: 'numeric' })}</span>
             </div>
-            <p className="min-w-0 rounded-full border border-red-500/40 bg-red-950/70 px-2 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-red-50">{matchInfo?.matchType || 'Meisterschaftsspiel'}</p>
+            <p className="min-w-0 text-center text-[12px] font-black uppercase tracking-[0.1em] text-red-100 min-[390px]:text-[13px]">{matchInfo?.matchType || 'Meisterschaftsspiel'}</p>
             <span aria-hidden="true" />
           </div>
           <div className="mt-2 flex justify-center"><span className="rounded-full border border-red-500/40 bg-red-950/70 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-red-50">Endstand</span></div>
