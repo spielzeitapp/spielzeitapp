@@ -243,7 +243,7 @@ export function PastMatchResultCard({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.12),transparent_55%)] opacity-90" />
 
       <div className="relative px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4">
-        <div className="mb-2 grid grid-cols-[52px_minmax(0,1fr)_52px] items-center gap-2">
+        <div className="mb-2 grid grid-cols-[52px_minmax(0,1fr)_52px] items-start gap-2">
           <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
             <span className="text-[12px] font-bold uppercase leading-none tracking-[0.12em] text-[#D36C7B]">
               {weekdayBadge}

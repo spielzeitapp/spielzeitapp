@@ -281,18 +281,18 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       {showResultHeader && <header className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)]">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
         <div className="relative px-3 pb-3 pt-3 sm:px-4">
-          <div className="grid grid-cols-[58px_minmax(0,1fr)_58px] items-center gap-2">
+          <div className="grid grid-cols-[58px_minmax(0,1fr)_58px] items-start gap-2">
             <div className="flex w-[58px] flex-col items-center border-r border-white/10 pr-2 text-center leading-none">
               <span className="text-[11px] font-black uppercase tracking-[0.18em] text-red-300">{datePart({ weekday: 'short' })}</span>
               <span className="mt-0.5 text-[30px] font-black tabular-nums text-white">{datePart({ day: '2-digit' }) || '–'}</span>
               <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{datePart({ month: 'short' })}</span>
               <span className="mt-0.5 text-[10px] text-white/45">{datePart({ year: 'numeric' })}</span>
             </div>
-            <MatchTypeHeading label={matchInfo?.matchType || 'Meisterschaftsspiel'} ageGroup={matchInfo?.ageGroup} />
+            <div className="flex justify-center pt-0.5"><MatchTypeHeading label={matchInfo?.matchType || 'Meisterschaftsspiel'} ageGroup={matchInfo?.ageGroup} /></div>
             <span aria-hidden="true" />
           </div>
-          <div className="mt-2 flex justify-center"><span className="text-[14px] font-black uppercase tracking-[0.2em] text-white">Endstand</span></div>
-          <div className="mt-3 flex items-start justify-between gap-1.5">
+          <div className="mt-3 flex justify-center"><span className="text-[14px] font-black uppercase tracking-[0.2em] text-white">Endstand</span></div>
+          <div className="mt-2 flex items-start justify-between gap-1.5">
             <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
               <img src={matchInfo?.homeLogoUrl || '/logos/placeholder-shield-a.png'} alt="" className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = '/logos/placeholder-shield-a.png'; }} />
               <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">{home.prefix || ' '}</p>

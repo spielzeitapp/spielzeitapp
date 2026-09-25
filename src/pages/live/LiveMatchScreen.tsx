@@ -4763,14 +4763,14 @@ export const LiveMatchScreen: React.FC = () => {
         <div
           className={`${layoutShell} ${
             matchIsFinished
-              ? 'px-2 pb-1 pt-3 md:px-4 md:pb-1 md:pt-3'
+              ? 'px-2 pb-1 pt-1.5 md:px-4 md:pb-1 md:pt-1.5'
               : spectatorView
                 ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0'
                 : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
           }`}
         >
           {matchboardVisible && matchIsFinished ? (
-            <div className="mb-2 flex items-center px-1">
+            <div className="mb-1 flex items-center px-1">
               <button
                 type="button"
                 onClick={() => navigate(`${basePath}/termine`)}
@@ -4818,7 +4818,7 @@ export const LiveMatchScreen: React.FC = () => {
                 }}
               />
               <div className={`relative z-[1] w-full px-3 ${matchIsFinished ? 'pb-3 pt-3' : 'pb-1 pt-1.5'} sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
-                <div className={`grid items-center gap-2 ${matchIsFinished ? 'grid-cols-[58px_minmax(0,1fr)_58px]' : 'grid-cols-[1fr_auto_1fr]'}`}>
+                <div className={`grid gap-2 ${matchIsFinished ? 'grid-cols-[58px_minmax(0,1fr)_58px] items-start' : 'grid-cols-[1fr_auto_1fr] items-center'}`}>
                   <div className="min-w-0">
                     {matchIsFinished && finishedMatchDay ? (
                       <div className="flex w-[58px] flex-col items-center justify-center border-r border-white/10 pr-2 text-center leading-none">
@@ -4837,13 +4837,13 @@ export const LiveMatchScreen: React.FC = () => {
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex justify-center">
+                  <div className={`flex justify-center ${matchIsFinished ? 'pt-0.5' : ''}`}>
                     <MatchTypeHeading label={matchTypeDisplay} ageGroup={matchTeamSeason?.age_group} />
                   </div>
                   <div aria-hidden="true" />
                 </div>
 
-                <div className={`flex justify-center ${matchIsFinished ? 'mt-2' : 'mt-1.5'}`}>
+                <div className={`flex justify-center ${matchIsFinished ? 'mt-3' : 'mt-1.5'}`}>
                   <div className={matchIsFinished ? 'text-[14px] font-black uppercase tracking-[0.2em] text-white' : liveBadgeClassName}>
                     {hasClockStarted && !matchIsFinished ? (
                       <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
@@ -4882,7 +4882,7 @@ export const LiveMatchScreen: React.FC = () => {
                 {/* Logo + Namen unter Logo | Score + Labels + Perioden | Logo + Namen */}
                 <div
                   className={`flex items-start justify-between gap-1.5 sm:gap-2.5 ${
-                    isPaused && !matchIsFinished ? 'mt-1.5' : matchIsFinished ? 'mt-3' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
+                    isPaused && !matchIsFinished ? 'mt-1.5' : matchIsFinished ? 'mt-2' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
                   <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
