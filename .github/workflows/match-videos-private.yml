@@ -1,0 +1,85 @@
+name: Private match videos migration
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - '.github/workflows/match-videos-private.yml'
+      - 'supabase/migrations/20260925090000_match_videos_private.sql'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: match-videos-private-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      MIGRATION_VERSION: '20260925090000'
+      MIGRATION_FILE: supabase/migrations/20260925090000_match_videos_private.sql
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select guarded target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_NAME" = "develop" ]; then
+            echo "SUPABASE_PROJECT_REF=acbaecjzoabafbsjrzvr" >> "$GITHUB_ENV"
+            echo "EXPECTED_PROJECT_NAME=spielzeitapp-staging" >> "$GITHUB_ENV"
+          elif [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "SUPABASE_PROJECT_REF=shxugattqatahckhspwk" >> "$GITHUB_ENV"
+            echo "EXPECTED_PROJECT_NAME=spielzeitapp-nsg" >> "$GITHUB_ENV"
+          else
+            exit 1
+          fi
+      - name: Apply and verify migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const version = process.env.MIGRATION_VERSION;
+          const base = 'https://api.supabase.com/v1';
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body}`);
+            return body ? JSON.parse(body) : null;
+          }
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST', body: JSON.stringify({ query: sql }),
+            });
+          }
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+            const existing = await query(`SELECT EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '${version}') AS applied`);
+            if (!existing?.[0]?.applied) {
+              const migration = fs.readFileSync(process.env.MIGRATION_FILE, 'utf8');
+              await query(`${migration}\nINSERT INTO supabase_migrations.schema_migrations (version) VALUES ('${version}') ON CONFLICT DO NOTHING;`);
+            }
+            const result = await query(`SELECT to_regclass('public.match_videos') IS NOT NULL AS video_table,
+              (SELECT NOT public FROM storage.buckets WHERE id='match-videos') AS private_bucket,
+              to_regprocedure('public.publish_match_video(uuid,text)') IS NOT NULL AS publish_rpc,
+              EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='${version}') AS migration_recorded`);
+            if (!result?.[0]?.video_table || !result?.[0]?.private_bucket || !result?.[0]?.publish_rpc || !result?.[0]?.migration_recorded) {
+              throw new Error('Match video migration verification failed');
+            }
+            console.log(`MATCH_VIDEOS_OK (${expectedName})`);
+          })().catch(error => { console.error(error.message); process.exit(1); });
+          NODE
