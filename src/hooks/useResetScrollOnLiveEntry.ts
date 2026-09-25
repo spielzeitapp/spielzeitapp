@@ -48,6 +48,7 @@ export function useResetScrollOnLiveEntry(
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
+      document.querySelector<HTMLElement>('.appMain')?.scrollTo(0, 0);
       for (const ref of containerRefs) {
         const el = ref.current;
         if (el) el.scrollTop = 0;
