@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Clapperboard, LockKeyhole, MapPin, Pencil, Play, Send, Trash2, UploadCloud } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ChevronDown, Clapperboard, LockKeyhole, MapPin, Pencil, Play, Send, Trash2, UploadCloud, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
@@ -84,6 +85,18 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const filteredVideos = mode === 'analysis' && analysisFilter !== 'all'
     ? visibleVideos.filter(video => (video.scene_type ?? 'other') === analysisFilter)
     : visibleVideos;
+  const activeScene = mode === 'analysis' ? videos.find(video => video.id === playingId) : null;
+
+  useEffect(() => {
+    if (mode !== 'analysis' || !playingId) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setPlayingId(null); setPlayingUrl(null); }
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', onEscape); };
+  }, [mode, playingId]);
 
   const reload = useCallback(async () => {
     const { data, error: loadError } = await supabase.from('match_videos')
@@ -300,13 +313,13 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">
           {[['all', 'Alle'], ...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold ${analysisFilter === key ? 'border-red-400 bg-red-600 text-white' : 'border-white/15 bg-zinc-900 text-white/75'}`}>{label}</button>)}
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {filteredVideos.map(video => <article key={video.id} className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,0.25)]">
-            {playingId === video.id && playingUrl ? <video key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" className="aspect-video w-full bg-black object-contain" /> : <button type="button" onClick={() => void play(video)} aria-label={`${video.title} abspielen`} className="relative block aspect-video w-full overflow-hidden bg-gradient-to-br from-red-950 via-zinc-900 to-black">
+        <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Spielszenen seitlich durchblättern">
+          {filteredVideos.map(video => <article key={video.id} className={`min-w-0 shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,0.25)] ${filteredVideos.length === 1 ? 'w-full' : 'w-[84%] sm:w-[48%]'}`}>
+            <button type="button" onClick={() => void play(video)} aria-label={`${video.title} abspielen`} className="relative block aspect-video w-full overflow-hidden bg-gradient-to-br from-red-950 via-zinc-900 to-black">
               {previewUrls[video.id] && <video src={`${previewUrls[video.id]}#t=0.1`} muted playsInline preload="metadata" className="h-full w-full object-contain" />}
               <span className="absolute inset-0 flex items-center justify-center bg-black/5"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/65 ring-1 ring-white/45"><Play size={22} fill="white" aria-hidden /></span></span>
               {video.scene_minute != null && <span className="absolute right-2 top-2 rounded-lg bg-black/75 px-2 py-1 text-xs font-semibold">{video.scene_minute}'</span>}
-            </button>}
+            </button>
             <div className="flex items-start justify-between gap-2 px-4 py-3">
               <div className="min-w-0 space-y-1"><p className="text-xs font-semibold uppercase tracking-wide text-red-300">{SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'}</p><h3 className="break-words text-base font-bold leading-tight" title={video.title}>{video.title}</h3>{video.analysis_note && <p className="line-clamp-2 text-sm text-white/55">{video.analysis_note}</p>}</div>
               {canManage && !demoMode && <div className="flex shrink-0 gap-1" aria-label="Szene verwalten">
@@ -324,6 +337,16 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           </article>)}
         </div>
       </>}
+      {activeScene && playingUrl && createPortal(
+        <div className="fixed inset-0 z-[11000] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={`${activeScene.title} abspielen`}>
+          <div className="flex min-h-16 items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top,0px)]">
+            <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wider text-red-400">{SCENE_TYPES[activeScene.scene_type ?? 'other'] ?? 'Spielszenen'}{activeScene.scene_minute != null ? ` · ${activeScene.scene_minute}'` : ''}</p><h2 className="truncate text-lg font-bold">{activeScene.title}</h2></div>
+            <button type="button" onClick={() => { setPlayingId(null); setPlayingUrl(null); }} aria-label="Video schließen" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10"><X size={22} aria-hidden /></button>
+          </div>
+          <div className="flex min-h-0 flex-1 items-center justify-center bg-black"><video key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" className="max-h-full w-full object-contain" /></div>
+          {activeScene.analysis_note && <p className="px-4 py-3 text-sm text-white/70">{activeScene.analysis_note}</p>}
+          <div className="pb-[env(safe-area-inset-bottom,0px)]" />
+        </div>, document.body)}
     </section>;
   }
 
