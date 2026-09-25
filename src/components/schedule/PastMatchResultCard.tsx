@@ -12,6 +12,7 @@ import { MatchTypeHeading } from '../match/MatchTypeHeading';
 
 export type PastMatchResultCardProps = {
   ev: EventRow;
+  ageGroup?: string | null;
   ourTeamName: string;
   opponentLogoUrl?: string | null;
   /** Aus `matches.score_home` / `score_away` (Heim : Auswärts), bei gültigen Abschnitten Summe aus period_scores. */
@@ -87,6 +88,7 @@ function TeamLogoBlock({ src, label }: { src: string; label: string }) {
  */
 export function PastMatchResultCard({
   ev,
+  ageGroup,
   ourTeamName: _ourTeamNameProp,
   opponentLogoUrl,
   scoreHome,
@@ -255,7 +257,7 @@ export function PastMatchResultCard({
             {yearSmall ? <span className="text-[11px] font-medium leading-tight text-white/48">{yearSmall}</span> : null}
           </div>
           <div className="flex min-w-0 justify-center pt-0.5">
-            <MatchTypeHeading label={matchTypeLabel} />
+            <MatchTypeHeading label={matchTypeLabel} ageGroup={ageGroup} />
           </div>
           <span aria-hidden="true" />
         </div>

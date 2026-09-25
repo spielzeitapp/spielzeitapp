@@ -1890,6 +1890,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                 {timeFilter === 'past' && isFinishedMatch ? (
                                   <PastMatchResultCard
                                     ev={ev}
+                                    ageGroup={teamSeasons.find((ts) => ts.id === ev.team_season_id)?.age_group}
                                     ourTeamName={ourTeamName}
                                     opponentLogoUrl={opponentLogo}
                                     scoreHome={matchScore?.scoreHome ?? null}
@@ -2125,6 +2126,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             {allListSectionHeading}
                             <PastMatchResultCard
                               ev={ev}
+                              ageGroup={teamSeasons.find((ts) => ts.id === ev.team_season_id)?.age_group}
                               ourTeamName={ourTeamName}
                               opponentLogoUrl={opponentLogo}
                               scoreHome={matchScoreRow?.scoreHome ?? null}

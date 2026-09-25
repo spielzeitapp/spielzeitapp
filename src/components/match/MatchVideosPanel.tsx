@@ -46,6 +46,7 @@ type Props = {
     date?: string;
     dateIso?: string | null;
     matchType?: string;
+    ageGroup?: string | null;
     periodScore?: string;
     location?: string | null;
     score?: string;
@@ -267,7 +268,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
               <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{datePart({ month: 'short' })}</span>
               <span className="mt-0.5 text-[10px] text-white/45">{datePart({ year: 'numeric' })}</span>
             </div>
-            <MatchTypeHeading label={matchInfo?.matchType || 'Meisterschaftsspiel'} />
+            <MatchTypeHeading label={matchInfo?.matchType || 'Meisterschaftsspiel'} ageGroup={matchInfo?.ageGroup} />
             <span aria-hidden="true" />
           </div>
           <div className="mt-2 flex justify-center"><span className="rounded-full border border-red-500/40 bg-red-950/70 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-red-50">Endstand</span></div>

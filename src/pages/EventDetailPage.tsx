@@ -2726,7 +2726,7 @@ export const EventDetailPage: React.FC = () => {
                   <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{finishedDate.mon}</span>
                   <span className="mt-0.5 text-[10px] text-white/45">{finishedYear}</span>
                 </div>
-                <MatchTypeHeading label={event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'} />
+                <MatchTypeHeading label={event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'} ageGroup={eventTeamSeason?.age_group} />
                 <span aria-hidden="true" />
               </div>
               <div className="mt-2 flex justify-center">
