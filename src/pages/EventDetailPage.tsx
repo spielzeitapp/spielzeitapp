@@ -140,7 +140,7 @@ import {
   scheduleMetaTimeDisplay,
 } from '../components/schedule/scheduleEventViewUtils';
 import { normalizeEventKind, normalizeEventTypeField } from '../lib/eventTypeUtils';
-import { formatMeetupTimeOnlyDe } from '../components/match/matchCardLabels';
+import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../components/match/matchCardLabels';
 import {
   buildMapsNavigationUrl,
   openMapsNavigation,
@@ -204,6 +204,8 @@ const EVENTS_SELECT =
 function getDomainEventLabel(event: EventRow): string {
   const t = safeText(event.type).toLowerCase();
   if (event.kind === 'match') {
+    const matchLabel = getMatchTypeLabel(event.match_type);
+    if (matchLabel) return matchLabel;
     if (!t || t === 'game') return 'Meisterschaftsspiel';
     if (t === 'friendly') return 'Freundschaftsspiel';
     if (t === 'cup') return 'Pokal';
@@ -2726,14 +2728,14 @@ export const EventDetailPage: React.FC = () => {
                   <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{finishedDate.mon}</span>
                   <span className="mt-0.5 text-[10px] text-white/45">{finishedYear}</span>
                 </div>
-                <div className="flex justify-center pt-0.5"><MatchTypeHeading label={event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'} ageGroup={eventTeamSeason?.age_group} /></div>
+                <div className="flex justify-center pt-0.5"><MatchTypeHeading label={getDomainEventLabel(event)} ageGroup={eventTeamSeason?.age_group} /></div>
                 <span aria-hidden="true" />
               </div>
               <div className="mt-3 flex justify-center">
                 <span className="text-[14px] font-black uppercase tracking-[0.2em] text-white">Endstand</span>
               </div>
               <div className="mt-2 flex items-start justify-between gap-1.5">
-                  <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
+                  <div className="flex w-[34%] min-w-0 flex-col items-center text-center">
                       <img
                         src={homeLogoSrc}
                         alt=""
@@ -2747,7 +2749,7 @@ export const EventDetailPage: React.FC = () => {
                       <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">
                         {homeSplit.prefix || ' '}
                       </p>
-                      <p className="mt-0.5 w-full min-w-0 text-center text-[16px] font-bold leading-[1.2] text-white break-words sm:text-lg">
+                      <p className="mt-0.5 w-full min-w-0 whitespace-nowrap text-center text-[clamp(10px,3.1vw,14px)] font-bold leading-[1.2] tracking-tight text-white sm:text-lg">
                         {homeSplit.name || homeTeamName}
                       </p>
                     </div>
@@ -2761,7 +2763,7 @@ export const EventDetailPage: React.FC = () => {
                       ) : null}
                     </div>
 
-                    <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
+                    <div className="flex w-[34%] min-w-0 flex-col items-center text-center">
                       <img
                         src={awayLogoSrc}
                         alt=""
@@ -2775,7 +2777,7 @@ export const EventDetailPage: React.FC = () => {
                       <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">
                         {awaySplit.prefix || ' '}
                       </p>
-                      <p className="mt-0.5 w-full min-w-0 text-center text-[16px] font-bold leading-[1.2] text-white break-words sm:text-lg">
+                      <p className="mt-0.5 w-full min-w-0 whitespace-nowrap text-center text-[clamp(10px,3.1vw,14px)] font-bold leading-[1.2] tracking-tight text-white sm:text-lg">
                         {awaySplit.name || awayTeamName}
                       </p>
                     </div>
