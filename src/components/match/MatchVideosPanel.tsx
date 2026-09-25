@@ -302,11 +302,11 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {filteredVideos.map(video => <article key={video.id} className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,0.25)]">
-            <button type="button" onClick={() => void play(video)} aria-label={`${video.title} abspielen`} className="relative block aspect-video w-full overflow-hidden bg-gradient-to-br from-red-950 via-zinc-900 to-black">
+            {playingId === video.id && playingUrl ? <video key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" className="aspect-video w-full bg-black object-contain" /> : <button type="button" onClick={() => void play(video)} aria-label={`${video.title} abspielen`} className="relative block aspect-video w-full overflow-hidden bg-gradient-to-br from-red-950 via-zinc-900 to-black">
               {previewUrls[video.id] && <video src={`${previewUrls[video.id]}#t=0.1`} muted playsInline preload="metadata" className="h-full w-full object-contain" />}
               <span className="absolute inset-0 flex items-center justify-center bg-black/5"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/65 ring-1 ring-white/45"><Play size={22} fill="white" aria-hidden /></span></span>
               {video.scene_minute != null && <span className="absolute right-2 top-2 rounded-lg bg-black/75 px-2 py-1 text-xs font-semibold">{video.scene_minute}'</span>}
-            </button>
+            </button>}
             <div className="flex items-start justify-between gap-2 px-4 py-3">
               <div className="min-w-0 space-y-1"><p className="text-xs font-semibold uppercase tracking-wide text-red-300">{SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'}</p><h3 className="break-words text-base font-bold leading-tight" title={video.title}>{video.title}</h3>{video.analysis_note && <p className="line-clamp-2 text-sm text-white/55">{video.analysis_note}</p>}</div>
               {canManage && !demoMode && <div className="flex shrink-0 gap-1" aria-label="Szene verwalten">
@@ -314,7 +314,6 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
                 <button type="button" aria-label={`${video.title} löschen`} title="Löschen" disabled={busy} onClick={() => void deleteVideo(video)} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-red-300 hover:bg-red-500/10 disabled:opacity-50"><Trash2 size={18} aria-hidden /></button>
               </div>}
             </div>
-            {playingId === video.id && playingUrl && <video key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" className="w-full" />}
             {editingId === video.id && <div className="space-y-2 border-t border-white/10 p-3 text-sm">
               <input aria-label="Titel" value={editTitle} onChange={e => setEditTitle(e.target.value)} maxLength={120} className="min-h-10 w-full rounded-lg border border-white/15 bg-zinc-900 px-2" />
               <select aria-label="Kategorie" value={sceneType} onChange={e => setSceneType(e.target.value)} className="min-h-10 w-full rounded-lg border border-white/15 bg-zinc-900 px-2">{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select>
