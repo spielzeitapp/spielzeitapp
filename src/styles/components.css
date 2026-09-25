@@ -383,6 +383,23 @@
     0 0 24px rgb(var(--club-primary-rgb) / 0.15);
 }
 
+.sz-feed-video-frame {
+  aspect-ratio: 4 / 5;
+}
+
+.sz-feed-video-frame--landscape {
+  aspect-ratio: 16 / 9;
+}
+
+.sz-feed-video-frame:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+}
+
 .sz-club-feed-poster-background {
   background:
     radial-gradient(ellipse 72% 62% at 98% 52%, rgb(var(--club-primary-rgb) / 0.36), transparent 72%),

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Bus,
+  BarChart3,
   CalendarDays,
   CalendarPlus,
   Clapperboard,
@@ -9,6 +10,7 @@ import {
   ChevronRight,
   ChevronUp,
   ClipboardList,
+  FileText,
   Clock3,
   MapPin,
   Navigation,
@@ -16,6 +18,7 @@ import {
   Pencil,
   Pizza,
   Radio,
+  Shirt,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -47,6 +50,7 @@ import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { FinishedMatchScorers } from '../components/match/FinishedMatchScorers';
+import { MatchVideosPanel } from '../components/match/MatchVideosPanel';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
@@ -495,7 +499,7 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
-  const [finishedTab, setFinishedTab] = useState<'overview' | 'lineup' | 'timeline' | 'stats'>('overview');
+  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos'>('hub');
   const [matchRowLite, setMatchRowLite] = useState<{
     id: string;
     status: string | null;
@@ -2019,20 +2023,13 @@ export const EventDetailPage: React.FC = () => {
       ? new Intl.DateTimeFormat('de-AT', { year: 'numeric', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at))
       : '';
 
-    const renderTabButton = (id: 'overview' | 'lineup' | 'timeline' | 'stats', label: string) => (
-      <button
-        type="button"
-        onClick={() => setFinishedTab(id)}
-        className={[
-          'shrink-0 whitespace-nowrap rounded-lg border px-3 py-2 text-[12px] font-medium transition-all min-h-[32px]',
-          finishedTab === id
-            ? 'border-red-400/30 bg-white/[0.1] font-semibold text-white shadow-[0_0_10px_rgba(220,38,38,0.16)]'
-            : 'border-transparent text-white/75 hover:bg-white/[0.04] hover:text-white/90',
-        ].join(' ')}
-      >
-        {label}
-      </button>
-    );
+    const finishedModules = [
+      { id: 'overview', label: 'Übersicht', detail: 'Spielbericht', icon: FileText },
+      { id: 'lineup', label: 'Aufstellung', detail: 'Formation', icon: Shirt },
+      { id: 'timeline', label: 'Liveticker', detail: 'Spielverlauf', icon: Radio },
+      { id: 'stats', label: 'Statistik', detail: 'Einsatzzeiten', icon: BarChart3 },
+      ...(event.match_id ? [{ id: 'videos', label: 'Videos', detail: 'Highlights & Spielszenen', icon: Clapperboard }] : []),
+    ] as const;
 
     const finishedMinuteLabel = (raw: number | null) => {
       const m = finishedReportMinuteDisplayFromDb(raw) ?? 0;
@@ -2792,15 +2789,19 @@ export const EventDetailPage: React.FC = () => {
             </div>
           </section>
 
-          <div className="mt-0.5 flex justify-center">
-            <div className="inline-flex min-h-[36px] w-full max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-black/25 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {renderTabButton('overview', 'Übersicht')}
-              {renderTabButton('lineup', 'Aufstellung')}
-              {renderTabButton('timeline', 'Liveticker')}
-              {renderTabButton('stats', 'Statistik')}
-            </div>
-          </div>
-          {canTrainerManageEvent ? (
+          {finishedTab === 'hub' ? (
+            <nav aria-label="Spielbereiche" className="grid grid-cols-2 gap-2.5">
+              {finishedModules.map(({ id, label, detail, icon: Icon }) => (
+                <button key={id} type="button" onClick={() => setFinishedTab(id)} className="flex min-h-[98px] items-center gap-3 rounded-[18px] border border-white/10 bg-zinc-950/80 px-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-red-400/40">
+                  <Icon className="h-8 w-8 shrink-0 text-red-400" aria-hidden />
+                  <span className="min-w-0"><span className="block text-base font-bold text-white">{label}</span><span className="mt-1 block text-xs text-white/50">{detail}</span></span>
+                </button>
+              ))}
+            </nav>
+          ) : (
+            <button type="button" onClick={() => setFinishedTab('hub')} className="inline-flex min-h-11 items-center rounded-xl border border-white/15 bg-black/60 px-4 text-sm font-semibold text-white">← Spielübersicht</button>
+          )}
+          {finishedTab === 'overview' && canTrainerManageEvent ? (
             <div className="mt-1 flex items-center justify-end gap-3">
               <button
                 type="button"
@@ -2820,11 +2821,15 @@ export const EventDetailPage: React.FC = () => {
             </div>
           ) : null}
 
-          {matchLoading ? <p className="text-sm text-white/70">Lade Spielbericht…</p> : null}
+          {finishedTab !== 'hub' && matchLoading ? <p className="text-sm text-white/70">Lade Spielbericht…</p> : null}
           {matchError ? (
             <div className="rounded-2xl border border-red-500/25 bg-red-950/40 p-3 text-sm text-red-100">
               {matchError}
             </div>
+          ) : null}
+
+          {finishedTab === 'videos' && event.match_id ? (
+            <MatchVideosPanel matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
           ) : null}
 
           {finishedTab === 'overview' ? (
