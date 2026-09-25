@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Clapperboard, LockKeyhole, Play, Send, UploadCloud } from 'lucide-react';
+import { Clapperboard, LockKeyhole, Play, Send, Trash2, UploadCloud } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
@@ -114,6 +114,26 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     setBusy(false);
   };
 
+  const deleteVideo = async (video: MatchVideo) => {
+    if (!canManage || demoMode || busy) return;
+    if (!window.confirm(`„${video.title}“ endgültig löschen? ${video.visibility === 'team' ? 'Der Beitrag verschwindet auch aus dem Team-Feed. ' : ''}Bereits heruntergeladene Kopien bleiben davon unberührt.`)) return;
+    setBusy(true); setError(null);
+    try {
+      // Withdraw access first, including any feed reference, before removing the file.
+      if (video.visibility === 'team') {
+        const { error: revokeError } = await supabase.rpc('unpublish_match_video', { p_video_id: video.id });
+        if (revokeError) throw revokeError;
+      }
+      const { error: storageError } = await supabase.storage.from('match-videos').remove([video.object_path]);
+      if (storageError) throw storageError;
+      const { error: deleteError } = await supabase.from('match_videos').delete().eq('id', video.id);
+      if (deleteError) throw deleteError;
+      if (playingId === video.id) { setPlayingId(null); setPlayingUrl(null); }
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : 'Video konnte nicht gelöscht werden. Bitte erneut versuchen.'); }
+    finally { setBusy(false); }
+  };
+
   return <section aria-label="Videos zum Spiel" className="mx-auto max-w-2xl space-y-4 pb-8 text-white">
     <div className="rounded-2xl border border-red-500/25 bg-gradient-to-b from-red-950/35 to-zinc-950 p-4">
       <h2 className="flex items-center gap-2 text-xl font-bold"><Clapperboard className="text-red-400" aria-hidden /> Videos zum Spiel</h2>
@@ -136,6 +156,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         {playingId === video.id && playingUrl && <video key={playingUrl} src={playingUrl} controls playsInline preload="metadata" className="mt-3 w-full rounded-xl" />}
         <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => void play(video)} className="flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-3 text-sm"><Play size={16} aria-hidden /> Abspielen</button>
           {canManage && (video.visibility === 'staff' ? <button type="button" disabled={busy} onClick={() => void publish(video)} className="flex min-h-11 items-center gap-2 rounded-xl border border-red-500/50 px-3 text-sm text-red-200 disabled:opacity-50"><Send size={16} aria-hidden /> Im Feed teilen</button> : <button type="button" disabled={busy} onClick={() => void unpublish(video)} className="min-h-11 rounded-xl border border-white/15 px-3 text-sm disabled:opacity-50">Freigabe zurücknehmen</button>)}
+          {canManage && !demoMode && <button type="button" disabled={busy} onClick={() => void deleteVideo(video)} className="flex min-h-11 items-center gap-2 rounded-xl border border-red-500/40 px-3 text-sm text-red-200 disabled:opacity-50"><Trash2 size={16} aria-hidden /> Löschen</button>}
         </div>
       </article>)}</div>}
   </section>;
