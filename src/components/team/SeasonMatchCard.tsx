@@ -12,6 +12,7 @@ type Props = {
   match: SeasonMatchCardData;
   ourTeamName: string;
   footerSlot?: React.ReactNode;
+  variant?: 'standard' | 'appearance';
 };
 
 function compactTeamName(name: string | null | undefined): string {
@@ -98,7 +99,8 @@ function headerBadge(match: SeasonMatchCardData): string {
   return 'Geplant';
 }
 
-export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlot }) => {
+export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlot, variant = 'standard' }) => {
+  const appearance = variant === 'appearance';
   const navigate = useNavigate();
   const basePath = useInternalBasePath();
   const href = seasonMatchCardHref(match.eventId, basePath, match.id);
@@ -164,7 +166,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
   return (
     <div
       className={[
-        'sz-club-surface sz-club-surface--hero group relative w-full min-w-0 overflow-hidden rounded-[30px] border outline-none backdrop-blur-sm transition-transform duration-200',
+        `sz-club-surface sz-club-surface--hero group relative w-full min-w-0 overflow-hidden border outline-none backdrop-blur-sm transition-transform duration-200 ${appearance ? 'rounded-[22px]' : 'rounded-[30px]'}`,
         clickable
           ? 'sz-club-focus cursor-pointer active:scale-[0.99]'
           : 'cursor-default',
@@ -185,18 +187,19 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
     >
       <div className="sz-club-page-hero-glow pointer-events-none absolute inset-0 opacity-90" />
 
-      <div className="relative px-3.5 pb-2.5 pt-3 sm:px-4 sm:pb-3 sm:pt-3.5">
-        <div className="mb-1 flex items-start justify-between gap-2">
-          <div className="flex w-[44px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+      <div className={`relative px-3.5 sm:px-4 ${appearance ? 'pb-3 pt-3' : 'pb-2.5 pt-3 sm:pb-3 sm:pt-3.5'}`}>
+        <div className={`flex justify-between gap-2 ${appearance ? 'mb-2 items-center' : 'mb-1 items-start'}`}>
+          <div className={`flex shrink-0 items-center justify-center ${appearance ? 'gap-1.5' : 'w-[44px] flex-col gap-0 text-center'}`}>
             <span className="sz-club-icon text-[11px] font-semibold uppercase leading-none tracking-[0.12em]">
               {weekdayBadge}
             </span>
-            <span className="text-[26px] font-bold tabular-nums leading-none text-white">{dayBig}</span>
+            <span className={`${appearance ? 'text-[15px]' : 'text-[26px]'} font-bold tabular-nums leading-none text-white`}>{dayBig}</span>
             <span className="text-[11px] font-medium leading-tight text-white/60">{monSmall || '—'}</span>
             {yearSmall ? (
-              <span className="text-[10px] font-medium leading-tight text-white/40">{yearSmall}</span>
+              <span className={`${appearance ? 'text-[11px]' : 'text-[10px]'} font-medium leading-tight text-white/40`}>{yearSmall}</span>
             ) : null}
           </div>
+          {appearance && homeAwayLabel ? <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-red-300/80">{homeAwayLabel}</span> : null}
           {match.outcome == null ? (
             <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] ${
               match.displayStatus === 'live'
@@ -208,7 +211,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
           ) : null}
         </div>
 
-        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-2">
+        <div className={`grid grid-cols-[1fr_auto_1fr] items-start gap-x-2 ${appearance ? 'border-t border-white/[0.07] pt-3' : ''}`}>
           <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
             <TeamLogoBlock src={homeLogoSrc} label={homeName} />
             {homeSplit.prefix ? (
@@ -216,7 +219,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
                 {homeSplit.prefix}
               </div>
             ) : null}
-            <p className="mt-0.5 line-clamp-2 min-w-0 max-w-full text-center text-[14px] font-semibold leading-tight text-white sm:text-[15px]">
+            <p className={`mt-0.5 line-clamp-2 min-w-0 max-w-full text-center font-semibold leading-tight text-white ${appearance ? 'text-[13px] sm:text-[14px]' : 'text-[14px] sm:text-[15px]'}`}>
               {homeSplit.name || homeName}
             </p>
           </div>
@@ -244,7 +247,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
                 {awaySplit.prefix}
               </div>
             ) : null}
-            <p className="mt-0.5 line-clamp-2 min-w-0 max-w-full text-center text-[14px] font-semibold leading-tight text-white sm:text-[15px]">
+            <p className={`mt-0.5 line-clamp-2 min-w-0 max-w-full text-center font-semibold leading-tight text-white ${appearance ? 'text-[13px] sm:text-[14px]' : 'text-[14px] sm:text-[15px]'}`}>
               {awaySplit.name || awayName}
             </p>
           </div>
@@ -252,7 +255,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
 
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/[0.07] pt-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            {homeAwayLabel ? (
+            {homeAwayLabel && !appearance ? (
               <span
                 className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                   match.isHome === true
@@ -269,7 +272,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
           </div>
           {clickable ? (
             <div className="flex shrink-0 items-center gap-1 text-white/45">
-              <span className="text-[10px] font-medium">Details</span>
+              <span className="text-[11px] font-semibold">{appearance ? 'Zum Spiel' : 'Details'}</span>
               <ChevronRight
                 className="sz-club-icon h-5 w-5 transition-colors"
                 strokeWidth={2}
