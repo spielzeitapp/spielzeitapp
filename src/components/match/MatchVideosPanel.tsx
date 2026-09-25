@@ -291,7 +291,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
             <MatchTypeHeading label={matchInfo?.matchType || 'Meisterschaftsspiel'} ageGroup={matchInfo?.ageGroup} />
             <span aria-hidden="true" />
           </div>
-          <div className="mt-2 flex justify-center"><span className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300">Endstand</span></div>
+          <div className="mt-2 flex justify-center"><span className="text-[14px] font-black uppercase tracking-[0.2em] text-white">Endstand</span></div>
           <div className="mt-3 flex items-start justify-between gap-1.5">
             <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
               <img src={matchInfo?.homeLogoUrl || '/logos/placeholder-shield-a.png'} alt="" className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = '/logos/placeholder-shield-a.png'; }} />
@@ -313,9 +313,9 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       </header>}
 
       {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <div><h2 className="text-xl font-bold">Spielszenen</h2><p className="text-sm text-white/55">{visibleVideos.length} {visibleVideos.length === 1 ? 'hochgeladene Szene' : 'hochgeladene Szenen'}</p></div>
-        {canManage && !demoMode && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-expanded={uploadOpen} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-red-500/35 bg-gradient-to-b from-[#48151a] to-[#230a0e] px-3.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors hover:border-red-400/60"><UploadCloud size={17} className="text-red-300" aria-hidden /> Szene hinzufügen <ChevronDown size={16} className={uploadOpen ? 'rotate-180' : ''} aria-hidden /></button>}
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0"><h2 className="text-[19px] font-bold leading-tight min-[390px]:text-xl">Spielszenen</h2><p className="text-[12px] text-white/55 min-[390px]:text-sm">{visibleVideos.length} {visibleVideos.length === 1 ? 'hochgeladene Szene' : 'hochgeladene Szenen'}</p></div>
+        {canManage && !demoMode && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-label="Szene hinzufügen" aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl border border-red-500/35 bg-gradient-to-b from-[#48151a] to-[#230a0e] px-2.5 text-[13px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors hover:border-red-400/60 min-[390px]:px-3 min-[390px]:text-sm"><UploadCloud size={17} className="shrink-0 text-red-300" aria-hidden /> Hinzufügen <ChevronDown size={15} className={uploadOpen ? 'rotate-180' : ''} aria-hidden /></button>}
       </div>
 
       {canManage && !demoMode && uploadOpen && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">

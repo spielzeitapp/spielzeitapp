@@ -276,7 +276,7 @@ export function PastMatchResultCard({
           </div>
 
           <div className="flex min-w-[5rem] flex-col items-center justify-start px-0.5 pt-1">
-            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-red-300">Endstand</span>
+            <span className="text-[13px] font-black uppercase tracking-[0.18em] text-white">Endstand</span>
             <span
               className={`mt-1 text-center font-black leading-none tracking-tight text-white tabular-nums ${wideScore ? 'text-[2.3rem] sm:text-[2.65rem]' : 'text-[2.7rem] sm:text-5xl'}`}
               style={{ fontVariantNumeric: 'tabular-nums' }}

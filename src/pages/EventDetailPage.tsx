@@ -2730,7 +2730,7 @@ export const EventDetailPage: React.FC = () => {
                 <span aria-hidden="true" />
               </div>
               <div className="mt-2 flex justify-center">
-                <span className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300">Endstand</span>
+                <span className="text-[14px] font-black uppercase tracking-[0.2em] text-white">Endstand</span>
               </div>
               <div className="mt-3 flex items-start justify-between gap-1.5">
                   <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
