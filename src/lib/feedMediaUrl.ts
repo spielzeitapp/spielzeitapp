@@ -45,6 +45,8 @@ function cacheUrl(raw: string, url: string): string {
 export function getCachedFeedMediaUrl(raw: string | null | undefined): string | null {
   const s = raw?.trim();
   if (!s) return null;
+  // Youth match clips are short-lived and revocable; never persist a signed URL.
+  if (s.startsWith('match-videos/')) return null;
   if (isAbsoluteFeedMediaUrl(s) && !/\/object\/public\/team-feed\//i.test(s)) return s;
   return readCachedUrl(s);
 }
@@ -61,6 +63,10 @@ export function isAbsoluteFeedMediaUrl(raw: string | null | undefined): boolean 
 export async function resolveFeedMediaUrl(raw: string | null | undefined): Promise<string | null> {
   const s = raw?.trim();
   if (!s) return null;
+  if (s.startsWith('match-videos/')) {
+    const { data, error } = await supabase.storage.from('match-videos').createSignedUrl(s.slice('match-videos/'.length), 300);
+    return error ? null : data?.signedUrl ?? null;
+  }
   const cached = getCachedFeedMediaUrl(s);
   if (cached) return cached;
   if (isAbsoluteFeedMediaUrl(s)) {
