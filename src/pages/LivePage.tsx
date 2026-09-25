@@ -62,6 +62,17 @@ export const LivePage: React.FC = () => {
     }
     let cancelled = false;
     void (async () => {
+      const { data: requestedMatch } = await supabase
+        .from('matches')
+        .select('status')
+        .eq('id', matchIdParam)
+        .maybeSingle();
+      if (cancelled) return;
+      // Ein gezielt geöffnetes vergangenes Spiel darf nie auf das aktuelle Livespiel springen.
+      if (requestedMatch?.status === 'finished') {
+        setRedirectLiveMatchId(null);
+        return;
+      }
       const { data } = await supabase
         .from('matches')
         .select('id')
