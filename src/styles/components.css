@@ -387,6 +387,10 @@
   aspect-ratio: 4 / 5;
 }
 
+.sz-feed-video-frame--landscape {
+  aspect-ratio: 16 / 9;
+}
+
 .sz-feed-video-frame:fullscreen {
   width: 100vw;
   height: 100vh;

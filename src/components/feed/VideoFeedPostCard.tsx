@@ -52,6 +52,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [nativeControls, setNativeControls] = useState(false);
+  const [landscape, setLandscape] = useState(false);
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
 
@@ -212,6 +213,11 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
     seekNearStart(v);
   }, [hasServerPoster]);
 
+  const onVideoMetadata = useCallback(() => {
+    const v = videoRef.current;
+    if (v?.videoWidth && v.videoHeight) setLandscape(v.videoWidth > v.videoHeight);
+  }, []);
+
   return (
     <FeedPostArticleShell
       ref={wrapRef}
@@ -236,7 +242,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
       <div className={FEED_POST_BODY_CLASS}>
         <div
           ref={videoShellRef}
-          className="sz-club-feed-media-frame sz-feed-video-frame relative w-full min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
+          className={`sz-club-feed-media-frame sz-feed-video-frame relative w-full min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-b from-zinc-900 via-zinc-950 to-black ${landscape ? 'sz-feed-video-frame--landscape' : ''}`}
         >
           {srcLoaded && resolvedSrc ? (
             <video
@@ -251,6 +257,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
               onPlay={syncPlaying}
               onPause={syncPlaying}
               onLoadedData={onVideoLoadedData}
+              onLoadedMetadata={onVideoMetadata}
             />
           ) : (
             <div className="flex h-full min-h-[200px] w-full items-center justify-center bg-gradient-to-b from-zinc-900 to-black px-4 text-center text-xs text-white/55">
