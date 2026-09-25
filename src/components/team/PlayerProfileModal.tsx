@@ -86,7 +86,7 @@ export type PlayerProfileModalProps = {
 export type ProfileTab = "overview" | "matches" | "achievements" | "training";
 
 const EINSATZ_MINUTES_CHIP_CLASS =
-  "sz-club-accent-chip inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[12px] font-extrabold uppercase tracking-wide text-white/90";
+  "inline-flex shrink-0 items-center rounded-full border border-white/15 bg-white/[0.05] px-2.5 py-0.5 text-[12px] font-semibold uppercase tracking-wide text-white/70";
 
 function displayFullName(p: PlayerItem): string {
   const first = (p.first_name ?? "").trim();
