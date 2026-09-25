@@ -4,7 +4,7 @@
  * Sichtbare Namen ohne Altersklassenmarkierung „U11“ (Display only).
  */
 
-import { normalizeOefbImportedTeamName } from './oefbTeamNameNormalize';
+import { formatVisibleClubName, normalizeOefbImportedTeamName } from './oefbTeamNameNormalize';
 
 export type MatchSides = {
   homeTeamName: string;
@@ -18,7 +18,7 @@ export function getMatchSides(params: {
   opponentName: string;
 }): MatchSides {
   const own = normalizeOefbImportedTeamName(params.ownTeamName) || 'Unser Team';
-  const opp = normalizeOefbImportedTeamName(params.opponentName) || 'Gegner';
+  const opp = formatVisibleClubName(params.opponentName) || 'Gegner';
   if (params.isHome === true) {
     return { homeTeamName: own, awayTeamName: opp, isOwnTeamHome: true };
   }
