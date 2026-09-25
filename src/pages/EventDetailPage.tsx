@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Bus,
   BarChart3,
+  ChartNoAxesCombined,
   CalendarDays,
   CalendarPlus,
   Clapperboard,
@@ -499,7 +500,7 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
-  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos'>('hub');
+  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos' | 'analysis'>('hub');
   const [matchRowLite, setMatchRowLite] = useState<{
     id: string;
     status: string | null;
@@ -2029,6 +2030,7 @@ export const EventDetailPage: React.FC = () => {
       { id: 'timeline', label: 'Liveticker', detail: 'Spielverlauf', icon: Radio },
       { id: 'stats', label: 'Statistik', detail: 'Einsatzzeiten', icon: BarChart3 },
       ...(event.match_id ? [{ id: 'videos', label: 'Videos', detail: 'Highlights & Spielszenen', icon: Clapperboard }] : []),
+      ...(event.match_id && canTrainerManageEvent ? [{ id: 'analysis', label: 'Spielanalyse', detail: 'Analysierte Spielszenen', icon: ChartNoAxesCombined }] : []),
     ] as const;
 
     const finishedMinuteLabel = (raw: number | null) => {
@@ -2830,6 +2832,9 @@ export const EventDetailPage: React.FC = () => {
 
           {finishedTab === 'videos' && event.match_id ? (
             <MatchVideosPanel matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
+          ) : null}
+          {finishedTab === 'analysis' && event.match_id && canTrainerManageEvent ? (
+            <MatchVideosPanel mode="analysis" matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
           ) : null}
 
           {finishedTab === 'overview' ? (

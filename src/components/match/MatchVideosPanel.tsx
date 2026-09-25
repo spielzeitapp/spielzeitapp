@@ -16,7 +16,7 @@ type MatchVideo = {
 
 const CATEGORIES: Record<string, string> = {
   highlights: 'Highlights', goals: 'Tore', chances: 'Chancen',
-  defence: 'Abwehr', player: 'Spielerszene',
+  defence: 'Abwehr', player: 'Spielerszene', analysis: 'Spielanalyse',
 };
 const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
 const VIDEO_EXT: Record<string, string> = {
@@ -28,6 +28,7 @@ type Props = {
   teamSeasonId: string;
   canManage: boolean;
   demoMode?: boolean;
+  mode?: 'videos' | 'analysis';
   matchInfo?: {
     homeTeam: string;
     awayTeam: string;
@@ -46,7 +47,7 @@ const initialFeedText = (video: MatchVideo, matchInfo?: Props['matchInfo']) => {
   return lines.join('\n').slice(0, 500);
 };
 
-export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo }) => {
+export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo, mode = 'videos' }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [videos, setVideos] = useState<MatchVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +62,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [editCategory, setEditCategory] = useState('highlights');
   const [composerId, setComposerId] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
+  const visibleVideos = videos.filter(video => mode === 'analysis' ? video.category === 'analysis' : video.category !== 'analysis');
 
   const reload = useCallback(async () => {
     const { data, error: loadError } = await supabase.from('match_videos')
@@ -87,7 +89,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     try {
       const { error: insertError } = await supabase.from('match_videos').insert({
         id, match_id: matchId, team_season_id: teamSeasonId,
-        object_path: objectPath, title: title.trim(), category, visibility: 'staff',
+        object_path: objectPath, title: title.trim(), category: mode === 'analysis' ? 'analysis' : category, visibility: 'staff',
       });
       if (insertError) throw insertError;
       const { error: uploadError } = await uploadStorageObject('match-videos', objectPath, file, {
@@ -185,24 +187,24 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     finally { setBusy(false); }
   };
 
-  return <section aria-label="Videos zum Spiel" className="mx-auto max-w-2xl space-y-4 pb-8 text-white">
+  return <section aria-label={mode === 'analysis' ? 'Spielanalyse' : 'Videos zum Spiel'} className="mx-auto max-w-2xl space-y-4 pb-8 text-white">
     <div className="rounded-2xl border border-red-500/25 bg-gradient-to-b from-red-950/35 to-zinc-950 p-4">
-      <h2 className="flex items-center gap-2 text-xl font-bold"><Clapperboard className="text-red-400" aria-hidden /> Videos zum Spiel</h2>
-      <p className="mt-1 text-sm text-white/65">Highlights und Spielszenen zu diesem Match.</p>
+      <h2 className="flex items-center gap-2 text-xl font-bold"><Clapperboard className="text-red-400" aria-hidden /> {mode === 'analysis' ? 'Spielanalyse' : 'Videos zum Spiel'}</h2>
+      <p className="mt-1 text-sm text-white/65">{mode === 'analysis' ? 'Analysierte Szenen zu diesem Match. Kennzahlen werden nur aus erfassten Spieldaten angezeigt.' : 'Highlights und Spielszenen zu diesem Match.'}</p>
     </div>
 
     {canManage && !demoMode && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">
       <div className="flex items-center gap-2 text-sm font-semibold"><LockKeyhole size={17} aria-hidden /> Neues Video – zunächst nur für Trainer</div>
       <label className="block text-sm">Titel<input value={title} onChange={e => setTitle(e.target.value)} maxLength={120} placeholder="z. B. Alle Highlights" className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base text-white" /></label>
-      <label className="block text-sm">Kategorie<select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base text-white">{Object.entries(CATEGORIES).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+      {mode === 'videos' ? <label className="block text-sm">Kategorie<select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base text-white">{Object.entries(CATEGORIES).filter(([value]) => value !== 'analysis').map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label> : null}
       <input ref={fileRef} type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" onChange={e => void upload(e.target.files?.[0])} />
-      <button type="button" disabled={busy || !title.trim()} onClick={() => fileRef.current?.click()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 font-semibold disabled:opacity-50"><UploadCloud size={18} aria-hidden />{busy ? 'Bitte warten …' : 'Highlight hochladen'}</button>
+      <button type="button" disabled={busy || !title.trim()} onClick={() => fileRef.current?.click()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 font-semibold disabled:opacity-50"><UploadCloud size={18} aria-hidden />{busy ? 'Bitte warten …' : mode === 'analysis' ? 'Analyseszene hochladen' : 'Highlight hochladen'}</button>
       <p className="text-xs text-white/55">MP4, MOV oder WebM · maximal 150 MB · kein komplettes Rohspiel.</p>
     </div>}
 
     {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
-    {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : videos.length === 0 ? <p className="rounded-xl border border-white/10 p-5 text-sm text-white/70">Noch keine für dich freigegebenen Videos zu diesem Spiel.</p> :
-      <div className="space-y-3">{videos.map(video => <article key={video.id} className="rounded-2xl border border-white/10 bg-zinc-900/80 p-4">
+    {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : visibleVideos.length === 0 ? <p className="rounded-xl border border-white/10 p-5 text-sm text-white/70">{mode === 'analysis' ? 'Noch keine Analyseszenen zu diesem Spiel vorhanden.' : 'Noch keine für dich freigegebenen Videos zu diesem Spiel.'}</p> :
+      <div className="space-y-3">{visibleVideos.map(video => <article key={video.id} className="rounded-2xl border border-white/10 bg-zinc-900/80 p-4">
         <div className="flex items-start justify-between gap-3"><div><div className="text-xs font-medium text-red-300">{CATEGORIES[video.category] ?? 'Video'}</div><h3 className="mt-1 font-semibold">{video.title}</h3></div><span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-xs">{video.visibility === 'team' ? 'Im Team-Feed' : 'Nur Trainer'}</span></div>
         {canManage && !demoMode && editingId === video.id && <div className="mt-3 space-y-3 rounded-xl border border-white/15 p-3">
           <label className="block text-sm">Titel<input value={editTitle} onChange={e => setEditTitle(e.target.value)} maxLength={120} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-950 px-3 text-base text-white" /></label>

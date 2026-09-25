@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChartNoAxesCombined, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -1409,7 +1409,7 @@ export const LiveMatchScreen: React.FC = () => {
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   const matchTypeDisplay = getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
-  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos'>('hub');
+  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos' | 'analysis'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
     const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
@@ -5283,6 +5283,15 @@ export const LiveMatchScreen: React.FC = () => {
                   </span>
                 </button>
               ) : null}
+              {matchIsFinished && effectiveMatchId && matchRow?.team_season_id && canControlLiveMatch ? (
+                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left !min-h-[98px]`} onClick={() => setMainTab('analysis')}>
+                  <ChartNoAxesCombined className="h-8 w-8 shrink-0 text-red-400" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-bold text-white">Spielanalyse</span>
+                    <span className="mt-1 block text-xs font-medium text-white/48">Analysierte Spielszenen</span>
+                  </span>
+                </button>
+              ) : null}
             </nav>
           ) : mainTab !== 'lineup' ? (
             <div className={liveModuleBackBar} aria-label="Zurück zum Live Hub">
@@ -5325,6 +5334,9 @@ export const LiveMatchScreen: React.FC = () => {
               location: matchRow.location,
             }}
           />
+        )}
+        {mainTab === 'analysis' && effectiveMatchId && matchRow?.team_season_id && canControlLiveMatch && (
+          <MatchVideosPanel mode="analysis" matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} canManage demoMode={isDemo} matchInfo={{ homeTeam: stadiumHomeDisplay, awayTeam: stadiumAwayDisplay, date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date, score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined, location: matchRow.location }} />
         )}
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
