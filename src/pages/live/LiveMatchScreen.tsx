@@ -4755,9 +4755,7 @@ export const LiveMatchScreen: React.FC = () => {
           mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
         } ${
           mainTab === 'hub'
-            ? matchIsFinished
-              ? 'shrink-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
-              : 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+            ? 'flex min-h-0 flex-1 touch-pan-y flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
             : 'shrink-0'
         }`}
       >
@@ -5243,7 +5241,7 @@ export const LiveMatchScreen: React.FC = () => {
 
           {mainTab === 'hub' ? (
             <nav
-              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${matchIsFinished ? 'mt-3 pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
+              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${matchIsFinished ? 'mt-3 pb-[var(--app-bottomnav-pad)] lg:pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
               aria-label="Live Hub"
             >
               <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('overview')}>
