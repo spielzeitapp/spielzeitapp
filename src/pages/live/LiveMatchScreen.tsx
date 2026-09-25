@@ -5314,7 +5314,19 @@ export const LiveMatchScreen: React.FC = () => {
         }`}
       >
         {mainTab === 'videos' && effectiveMatchId && matchRow?.team_season_id && (
-          <MatchVideosPanel matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} canManage={canControlLiveMatch} demoMode={isDemo} />
+          <MatchVideosPanel
+            matchId={effectiveMatchId}
+            teamSeasonId={matchRow.team_season_id}
+            canManage={canControlLiveMatch}
+            demoMode={isDemo}
+            matchInfo={{
+              homeTeam: stadiumHomeDisplay,
+              awayTeam: stadiumAwayDisplay,
+              date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date,
+              score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined,
+              location: matchRow.location,
+            }}
+          />
         )}
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>

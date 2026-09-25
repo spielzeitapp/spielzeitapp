@@ -28,9 +28,25 @@ type Props = {
   teamSeasonId: string;
   canManage: boolean;
   demoMode?: boolean;
+  matchInfo?: {
+    homeTeam: string;
+    awayTeam: string;
+    date?: string;
+    location?: string | null;
+    score?: string;
+  };
 };
 
-export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false }) => {
+const initialFeedText = (video: MatchVideo, matchInfo?: Props['matchInfo']) => {
+  const lines = [video.title.trim()];
+  if (matchInfo?.homeTeam && matchInfo.awayTeam) lines.push(`${matchInfo.homeTeam} – ${matchInfo.awayTeam}`);
+  if (matchInfo?.date) lines.push(`Spiel vom ${matchInfo.date}`);
+  if (matchInfo?.score) lines.push(`Endstand: ${matchInfo.score}`);
+  if (matchInfo?.location?.trim()) lines.push(`Spielort: ${matchInfo.location.trim()}`);
+  return lines.join('\n').slice(0, 500);
+};
+
+export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [videos, setVideos] = useState<MatchVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,7 +116,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const openComposer = async (video: MatchVideo) => {
     if (!canManage || demoMode || busy) return;
     setError(null);
-    setCaption(video.title);
+    setCaption(initialFeedText(video, matchInfo));
     setComposerId(video.id);
     if (video.visibility === 'team') {
       const { data, error: captionError } = await supabase.from('team_feed_posts')
