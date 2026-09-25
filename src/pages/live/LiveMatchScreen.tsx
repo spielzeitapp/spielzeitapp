@@ -4844,7 +4844,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
 
                 <div className={`flex justify-center ${matchIsFinished ? 'mt-2' : 'mt-1.5'}`}>
-                  <div className={liveBadgeClassName}>
+                  <div className={matchIsFinished ? 'text-[11px] font-black uppercase tracking-[0.28em] text-red-300' : liveBadgeClassName}>
                     {hasClockStarted && !matchIsFinished ? (
                       <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
                         ●

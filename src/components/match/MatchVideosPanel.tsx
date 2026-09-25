@@ -81,12 +81,32 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [sceneMinute, setSceneMinute] = useState('');
   const [analysisNote, setAnalysisNote] = useState('');
   const [analysisFilter, setAnalysisFilter] = useState('all');
+  const [activeSceneIndex, setActiveSceneIndex] = useState(0);
+  const sceneSliderRef = useRef<HTMLDivElement>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const visibleVideos = videos.filter(video => mode === 'analysis' ? video.category === 'analysis' : video.category !== 'analysis');
   const filteredVideos = mode === 'analysis' && analysisFilter !== 'all'
     ? visibleVideos.filter(video => (video.scene_type ?? 'other') === analysisFilter)
     : visibleVideos;
+  const selectScene = (index: number) => {
+    const slider = sceneSliderRef.current;
+    const card = slider?.querySelectorAll<HTMLElement>('[data-scene-card]')[index];
+    if (slider && card) slider.scrollTo({ left: card.offsetLeft - slider.offsetLeft, behavior: 'smooth' });
+    setActiveSceneIndex(index);
+  };
+  const updateActiveScene = () => {
+    const slider = sceneSliderRef.current;
+    if (!slider) return;
+    const cards = Array.from(slider.querySelectorAll<HTMLElement>('[data-scene-card]'));
+    const index = cards.reduce((best, card, current) =>
+      Math.abs(card.offsetLeft - slider.offsetLeft - slider.scrollLeft) < Math.abs(cards[best].offsetLeft - slider.offsetLeft - slider.scrollLeft) ? current : best, 0);
+    setActiveSceneIndex(index);
+  };
+  useEffect(() => {
+    setActiveSceneIndex(0);
+    sceneSliderRef.current?.scrollTo({ left: 0 });
+  }, [analysisFilter]);
   const activeScene = mode === 'analysis' ? videos.find(video => video.id === playingId) : null;
 
   useEffect(() => {
@@ -271,7 +291,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
             <MatchTypeHeading label={matchInfo?.matchType || 'Meisterschaftsspiel'} ageGroup={matchInfo?.ageGroup} />
             <span aria-hidden="true" />
           </div>
-          <div className="mt-2 flex justify-center"><span className="rounded-full border border-red-500/40 bg-red-950/70 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-red-50">Endstand</span></div>
+          <div className="mt-2 flex justify-center"><span className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300">Endstand</span></div>
           <div className="mt-3 flex items-start justify-between gap-1.5">
             <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
               <img src={matchInfo?.homeLogoUrl || '/logos/placeholder-shield-a.png'} alt="" className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = '/logos/placeholder-shield-a.png'; }} />
@@ -315,8 +335,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">
           {[['all', 'Alle'], ...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold ${analysisFilter === key ? 'border-red-400 bg-red-600 text-white' : 'border-white/15 bg-zinc-900 text-white/75'}`}>{label}</button>)}
         </div>
-        <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Spielszenen seitlich durchblättern">
-          {filteredVideos.map(video => <article key={video.id} className={`min-w-0 shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,0.25)] ${filteredVideos.length === 1 ? 'w-full' : 'w-[84%] sm:w-[48%]'}`}>
+        <div ref={sceneSliderRef} onScroll={updateActiveScene} className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Spielszenen seitlich durchblättern">
+          {filteredVideos.map(video => <article data-scene-card key={video.id} className={`min-w-0 shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,0.25)] ${filteredVideos.length === 1 ? 'w-full' : 'w-[84%] sm:w-[48%]'}`}>
             <button type="button" onClick={() => void play(video)} aria-label={`${video.title} abspielen`} className="relative block aspect-video w-full overflow-hidden bg-gradient-to-br from-red-950 via-zinc-900 to-black">
               {previewUrls[video.id] && <video src={`${previewUrls[video.id]}#t=0.1`} muted playsInline preload="metadata" className="h-full w-full object-contain" />}
               <span className="absolute inset-0 flex items-center justify-center bg-black/5"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/65 ring-1 ring-white/45"><Play size={22} fill="white" aria-hidden /></span></span>
@@ -338,6 +358,9 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
             </div>}
           </article>)}
         </div>
+        {filteredVideos.length > 1 && <div className="flex items-center justify-center gap-1.5" aria-label="Spielszenen auswählen">
+          {filteredVideos.map((video, index) => <button key={video.id} type="button" onClick={() => selectScene(index)} aria-label={`Szene ${index + 1} von ${filteredVideos.length} anzeigen`} aria-current={activeSceneIndex === index ? 'true' : undefined} className={`h-2 rounded-full transition-all ${activeSceneIndex === index ? 'sz-club-slider-dot-active w-5' : 'w-2 bg-white/25 hover:bg-white/45'}`} />)}
+        </div>}
       </>}
       {activeScene && playingUrl && createPortal(
         <div className="fixed inset-0 z-[11000] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={`${activeScene.title} abspielen`}>
