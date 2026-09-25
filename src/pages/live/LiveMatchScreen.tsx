@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChartNoAxesCombined, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -68,6 +68,7 @@ import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
 import { forceReleaseBodyScrollLocks, lockBodyScroll } from '../../lib/bodyScrollLock';
 import { getMatchSides } from '../../lib/matchSides';
 import { getMatchTypeLabel } from '../../components/match/matchCardLabels';
+import { MatchTypeHeading } from '../../components/match/MatchTypeHeading';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
@@ -1409,7 +1410,7 @@ export const LiveMatchScreen: React.FC = () => {
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   const matchTypeDisplay = getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
-  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos'>('hub');
+  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos' | 'analysis'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
     const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
@@ -4762,14 +4763,14 @@ export const LiveMatchScreen: React.FC = () => {
         <div
           className={`${layoutShell} ${
             matchIsFinished
-              ? 'px-2 pb-1 pt-3 md:px-4 md:pb-1 md:pt-3'
+              ? 'px-2 pb-1 pt-1.5 md:px-4 md:pb-1 md:pt-1.5'
               : spectatorView
                 ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0'
                 : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
           }`}
         >
           {matchboardVisible && matchIsFinished ? (
-            <div className="mb-2 flex items-center px-1">
+            <div className="mb-1 flex items-center px-1">
               <button
                 type="button"
                 onClick={() => navigate(`${basePath}/termine`)}
@@ -4817,7 +4818,7 @@ export const LiveMatchScreen: React.FC = () => {
                 }}
               />
               <div className={`relative z-[1] w-full px-3 ${matchIsFinished ? 'pb-3 pt-3' : 'pb-1 pt-1.5'} sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
-                <div className={`grid items-center gap-2 ${matchIsFinished ? 'grid-cols-[58px_minmax(0,1fr)_66px]' : 'grid-cols-[1fr_auto_1fr]'}`}>
+                <div className={`grid gap-2 ${matchIsFinished ? 'grid-cols-[58px_minmax(0,1fr)_58px] items-start' : 'grid-cols-[1fr_auto_1fr] items-center'}`}>
                   <div className="min-w-0">
                     {matchIsFinished && finishedMatchDay ? (
                       <div className="flex w-[58px] flex-col items-center justify-center border-r border-white/10 pr-2 text-center leading-none">
@@ -4836,22 +4837,14 @@ export const LiveMatchScreen: React.FC = () => {
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex justify-center">
-                    <p className="whitespace-nowrap rounded-full border border-red-500/40 bg-red-950/70 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-red-50 shadow-[0_0_20px_rgba(220,38,38,0.18)] min-[390px]:px-3 min-[390px]:text-[10px] sm:text-[11px]">
-                      {matchTypeDisplay}
-                    </p>
+                  <div className={`flex justify-center ${matchIsFinished ? 'pt-0.5' : ''}`}>
+                    <MatchTypeHeading label={matchTypeDisplay} ageGroup={matchTeamSeason?.age_group} />
                   </div>
-                  <div className="flex justify-end">
-                    {matchIsFinished ? (
-                      <span className="rounded-full border border-white/18 bg-white/[0.07] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/75 sm:text-[10px]">
-                        Beendet
-                      </span>
-                    ) : null}
-                  </div>
+                  <div aria-hidden="true" />
                 </div>
 
-                <div className={`flex justify-center ${matchIsFinished ? 'mt-2' : 'mt-1.5'}`}>
-                  <div className={liveBadgeClassName}>
+                <div className={`flex justify-center ${matchIsFinished ? 'mt-3' : 'mt-1.5'}`}>
+                  <div className={matchIsFinished ? 'text-[14px] font-black uppercase tracking-[0.2em] text-white' : liveBadgeClassName}>
                     {hasClockStarted && !matchIsFinished ? (
                       <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
                         ●
@@ -4889,7 +4882,7 @@ export const LiveMatchScreen: React.FC = () => {
                 {/* Logo + Namen unter Logo | Score + Labels + Perioden | Logo + Namen */}
                 <div
                   className={`flex items-start justify-between gap-1.5 sm:gap-2.5 ${
-                    isPaused && !matchIsFinished ? 'mt-1.5' : matchIsFinished ? 'mt-3' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
+                    isPaused && !matchIsFinished ? 'mt-1.5' : matchIsFinished ? 'mt-2' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
                   <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
@@ -5283,6 +5276,15 @@ export const LiveMatchScreen: React.FC = () => {
                   </span>
                 </button>
               ) : null}
+              {matchIsFinished && effectiveMatchId && matchRow?.team_season_id && canControlLiveMatch ? (
+                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left !min-h-[98px]`} onClick={() => setMainTab('analysis')}>
+                  <ChartNoAxesCombined className="h-8 w-8 shrink-0 text-red-400" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-bold text-white">Spielanalyse</span>
+                    <span className="mt-1 block text-xs font-medium text-white/48">Analysierte Spielszenen</span>
+                  </span>
+                </button>
+              ) : null}
             </nav>
           ) : mainTab !== 'lineup' ? (
             <div className={liveModuleBackBar} aria-label="Zurück zum Live Hub">
@@ -5325,6 +5327,9 @@ export const LiveMatchScreen: React.FC = () => {
               location: matchRow.location,
             }}
           />
+        )}
+        {mainTab === 'analysis' && effectiveMatchId && matchRow?.team_season_id && canControlLiveMatch && (
+          <MatchVideosPanel mode="analysis" matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} canManage demoMode={isDemo} matchInfo={{ homeTeam: stadiumHomeDisplay, awayTeam: stadiumAwayDisplay, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date, dateIso: calendarStartsAt || matchRow.match_date, matchType: matchTypeDisplay, ageGroup: matchTeamSeason?.age_group, periodScore: showPeriodScoreLine ? periodScoreLine : undefined, score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined, location: finishedMatchVenue }} />
         )}
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>

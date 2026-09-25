@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Bus,
   BarChart3,
+  ChartNoAxesCombined,
   CalendarDays,
   CalendarPlus,
   Clapperboard,
@@ -51,6 +52,7 @@ import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { FinishedMatchScorers } from '../components/match/FinishedMatchScorers';
 import { MatchVideosPanel } from '../components/match/MatchVideosPanel';
+import { MatchTypeHeading } from '../components/match/MatchTypeHeading';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
@@ -499,7 +501,7 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
-  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos'>('hub');
+  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos' | 'analysis'>('hub');
   const [matchRowLite, setMatchRowLite] = useState<{
     id: string;
     status: string | null;
@@ -2029,6 +2031,7 @@ export const EventDetailPage: React.FC = () => {
       { id: 'timeline', label: 'Liveticker', detail: 'Spielverlauf', icon: Radio },
       { id: 'stats', label: 'Statistik', detail: 'Einsatzzeiten', icon: BarChart3 },
       ...(event.match_id ? [{ id: 'videos', label: 'Videos', detail: 'Highlights & Spielszenen', icon: Clapperboard }] : []),
+      ...(event.match_id && canTrainerManageEvent ? [{ id: 'analysis', label: 'Spielanalyse', detail: 'Analysierte Spielszenen', icon: ChartNoAxesCombined }] : []),
     ] as const;
 
     const finishedMinuteLabel = (raw: number | null) => {
@@ -2706,7 +2709,7 @@ export const EventDetailPage: React.FC = () => {
 
     return (
       <div className="min-h-screen text-white [background:radial-gradient(circle_at_50%_0%,rgba(127,18,25,0.26),transparent_34%),linear-gradient(180deg,#090707_0%,#170304_48%,#090000_100%)]">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 overflow-x-hidden px-2 py-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 overflow-x-hidden px-2 py-2 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
           <div>
             <Link to={`${basePath}/termine`} className="inline-flex min-h-10 items-center rounded-xl border border-white/15 bg-black/70 px-3.5 text-sm font-bold text-white">
               <span className="mr-2 text-red-400">←</span> Termine
@@ -2716,22 +2719,20 @@ export const EventDetailPage: React.FC = () => {
           <section className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)]">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
             <div className="relative px-3 pb-3 pt-3 sm:px-4">
-              <div className="grid grid-cols-[58px_minmax(0,1fr)_66px] items-center gap-2">
+              <div className="grid grid-cols-[58px_minmax(0,1fr)_58px] items-start gap-2">
                 <div className="flex w-[58px] flex-col items-center border-r border-white/10 pr-2 text-center leading-none">
                   <span className="text-[11px] font-black uppercase tracking-[0.18em] text-red-300">{finishedDate.wd}</span>
                   <span className="mt-0.5 text-[30px] font-black tabular-nums text-white">{finishedDate.day}</span>
                   <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{finishedDate.mon}</span>
                   <span className="mt-0.5 text-[10px] text-white/45">{finishedYear}</span>
                 </div>
-                <p className="min-w-0 rounded-full border border-red-500/40 bg-red-950/70 px-2 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-red-50">
-                  {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
-                </p>
-                <span className="rounded-full border border-white/20 bg-white/[0.07] px-2 py-1 text-center text-[9px] font-black uppercase tracking-wider text-white/75">Beendet</span>
+                <div className="flex justify-center pt-0.5"><MatchTypeHeading label={event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'} ageGroup={eventTeamSeason?.age_group} /></div>
+                <span aria-hidden="true" />
               </div>
-              <div className="mt-2 flex justify-center">
-                <span className="rounded-full border border-red-500/40 bg-red-950/70 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-red-50">Endstand</span>
+              <div className="mt-3 flex justify-center">
+                <span className="text-[14px] font-black uppercase tracking-[0.2em] text-white">Endstand</span>
               </div>
-              <div className="mt-3 flex items-start justify-between gap-1.5">
+              <div className="mt-2 flex items-start justify-between gap-1.5">
                   <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
                       <img
                         src={homeLogoSrc}
@@ -2830,6 +2831,9 @@ export const EventDetailPage: React.FC = () => {
 
           {finishedTab === 'videos' && event.match_id ? (
             <MatchVideosPanel matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
+          ) : null}
+          {finishedTab === 'analysis' && event.match_id && canTrainerManageEvent ? (
+            <MatchVideosPanel mode="analysis" showResultHeader={false} matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
           ) : null}
 
           {finishedTab === 'overview' ? (
