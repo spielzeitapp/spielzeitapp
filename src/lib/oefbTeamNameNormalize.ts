@@ -26,6 +26,12 @@ export function normalizeOefbImportedTeamName(raw: string | null | undefined): s
   return s;
 }
 
+/** Einheitlicher Anzeigename, auch wenn ältere Matchdaten nur den Ortsnamen enthalten. */
+export function formatVisibleClubName(raw: string | null | undefined): string {
+  const name = normalizeOefbImportedTeamName(raw);
+  return /^loosdorf$/i.test(name) ? 'ASK Loosdorf' : name;
+}
+
 /** Kurzhinweis für die Importvorschau, wenn sich der Gegnername ändert. */
 export function describeOefbOpponentCorrection(
   existingOpponent: string | null | undefined,
@@ -61,7 +67,7 @@ export function formatVisibleMatchEncounter(opts: {
     normalizeOefbImportedTeamName(opts.ourTeamName) ||
     (opts.fallbackOur ?? 'Heim');
   const opponent =
-    normalizeOefbImportedTeamName(opts.opponentName) ||
+    formatVisibleClubName(opts.opponentName) ||
     (opts.fallbackOpponent ?? 'Gegner');
   const home = opts.isHome === false ? opponent : ourTeam;
   const away = opts.isHome === false ? ourTeam : opponent;
