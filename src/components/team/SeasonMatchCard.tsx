@@ -95,7 +95,6 @@ function statusBadge(match: SeasonMatchCardData): { label: string; className: st
 
 function headerBadge(match: SeasonMatchCardData): string {
   if (match.displayStatus === 'live') return 'Live';
-  if (match.outcome != null) return 'Beendet';
   return 'Geplant';
 }
 
@@ -133,7 +132,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
     match.displayStatus === 'live'
       ? 'Live'
       : h != null && a != null
-        ? `${h} : ${a}`
+        ? `${h}:${a}`
         : '– : –';
 
   const iso = match.match_date;
@@ -198,13 +197,15 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
               <span className="text-[10px] font-medium leading-tight text-white/40">{yearSmall}</span>
             ) : null}
           </div>
-          <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] ${
-            match.displayStatus === 'live'
-              ? 'border-red-500/40 bg-red-500/15 text-red-200'
-              : 'sz-club-selected-soft'
-          }`}>
-            {headerBadge(match)}
-          </span>
+          {match.outcome == null ? (
+            <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] ${
+              match.displayStatus === 'live'
+                ? 'border-red-500/40 bg-red-500/15 text-red-200'
+                : 'sz-club-selected-soft'
+            }`}>
+              {headerBadge(match)}
+            </span>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-2">
@@ -221,12 +222,12 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
           </div>
 
           <div className="flex min-w-0 flex-col items-center justify-start px-0.5">
-            <span className={`text-[10px] font-bold uppercase tracking-[0.32em] ${
+            <span className={`text-[12px] font-bold uppercase tracking-[0.16em] ${
               match.displayStatus === 'live' ? 'text-red-300' : 'sz-club-icon'
             }`}>
               {match.outcome != null ? 'Endstand' : match.displayStatus === 'live' ? 'Live' : 'Anpfiff'}
             </span>
-            <span className="mt-0.5 text-center text-[2rem] font-extrabold leading-none tracking-tight text-white tabular-nums sm:text-[2.2rem]">
+            <span className="mt-1 text-center text-[2.3rem] font-extrabold leading-none tracking-tight text-white tabular-nums sm:text-[2.5rem]">
               {scoreStr}
             </span>
             <span
