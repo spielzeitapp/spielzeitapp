@@ -1167,12 +1167,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       {lastMatches.map((m) => (
                         <li key={m.match_id}>
                           <SeasonMatchCard
+                            variant="appearance"
                             match={playerAppearanceMatchCardData(m)}
                             ourTeamName={teamName ?? "SPG Rohrbach"}
                             footerSlot={
                               <>
-                                <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
-                                <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals}</span>
+                                <EinsatzBadge kind={m.badgeKind} label={m.badgeKind === "bank" ? m.badgeLabel : `${m.minutes} Min`} />
+                                <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals} {m.goals === 1 ? "Tor" : "Tore"}</span>
                               </>
                             }
                           />
@@ -1190,12 +1191,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                         {lastTournamentMatches.map((m) => (
                           <li key={m.match_id}>
                             <SeasonMatchCard
+                              variant="appearance"
                               match={playerAppearanceMatchCardData(m)}
                               ourTeamName={teamName ?? "SPG Rohrbach"}
                               footerSlot={
                                 <>
-                                  <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
-                                  <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals}</span>
+                                  <EinsatzBadge kind={m.badgeKind} label={m.badgeKind === "bank" ? m.badgeLabel : `${m.minutes} Min`} />
+                                  <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals} {m.goals === 1 ? "Tor" : "Tore"}</span>
                                 </>
                               }
                             />
