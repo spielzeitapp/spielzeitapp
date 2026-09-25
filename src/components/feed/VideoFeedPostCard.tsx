@@ -236,13 +236,12 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
       <div className={FEED_POST_BODY_CLASS}>
         <div
           ref={videoShellRef}
-          className="sz-club-feed-media-frame relative w-full min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
-          style={{ aspectRatio: '9 / 16' }}
+          className="sz-club-feed-media-frame sz-feed-video-frame relative w-full min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
         >
           {srcLoaded && resolvedSrc ? (
             <video
               ref={videoRef}
-              className="h-full w-full object-cover bg-zinc-900"
+              className="h-full w-full object-contain bg-black"
               src={resolvedSrc}
               poster={posterAttr}
               muted={muted}
