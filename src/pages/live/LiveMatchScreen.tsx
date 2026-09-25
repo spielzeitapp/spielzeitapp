@@ -5336,7 +5336,7 @@ export const LiveMatchScreen: React.FC = () => {
           />
         )}
         {mainTab === 'analysis' && effectiveMatchId && matchRow?.team_season_id && canControlLiveMatch && (
-          <MatchVideosPanel mode="analysis" matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} canManage demoMode={isDemo} matchInfo={{ homeTeam: stadiumHomeDisplay, awayTeam: stadiumAwayDisplay, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date, score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined, location: matchRow.location }} />
+          <MatchVideosPanel mode="analysis" matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} canManage demoMode={isDemo} matchInfo={{ homeTeam: stadiumHomeDisplay, awayTeam: stadiumAwayDisplay, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date, dateIso: calendarStartsAt || matchRow.match_date, matchType: matchTypeDisplay, periodScore: showPeriodScoreLine ? periodScoreLine : undefined, score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined, location: finishedMatchVenue }} />
         )}
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>

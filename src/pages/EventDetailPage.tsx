@@ -2834,7 +2834,7 @@ export const EventDetailPage: React.FC = () => {
             <MatchVideosPanel matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
           ) : null}
           {finishedTab === 'analysis' && event.match_id && canTrainerManageEvent ? (
-            <MatchVideosPanel mode="analysis" matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
+            <MatchVideosPanel mode="analysis" showResultHeader={false} matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
           ) : null}
 
           {finishedTab === 'overview' ? (

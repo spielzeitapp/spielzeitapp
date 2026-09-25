@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Clapperboard, LockKeyhole, Pencil, Play, Send, Trash2, UploadCloud } from 'lucide-react';
+import { ChevronDown, Clapperboard, LockKeyhole, MapPin, Pencil, Play, Send, Trash2, UploadCloud } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
@@ -35,12 +35,16 @@ type Props = {
   canManage: boolean;
   demoMode?: boolean;
   mode?: 'videos' | 'analysis';
+  showResultHeader?: boolean;
   matchInfo?: {
     homeTeam: string;
     awayTeam: string;
     homeLogoUrl?: string | null;
     awayLogoUrl?: string | null;
     date?: string;
+    dateIso?: string | null;
+    matchType?: string;
+    periodScore?: string;
     location?: string | null;
     score?: string;
   };
@@ -55,7 +59,7 @@ const initialFeedText = (video: MatchVideo, matchInfo?: Props['matchInfo']) => {
   return lines.join('\n').slice(0, 500);
 };
 
-export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo, mode = 'videos' }) => {
+export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo, mode = 'videos', showResultHeader = true }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [videos, setVideos] = useState<MatchVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -225,27 +229,53 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
 
   if (mode === 'analysis') {
     const filters = Object.entries(SCENE_TYPES).filter(([key]) => visibleVideos.some(v => (v.scene_type ?? 'other') === key));
+    const matchDate = matchInfo?.dateIso ? new Date(matchInfo.dateIso) : null;
+    const hasDate = Boolean(matchDate && !Number.isNaN(matchDate.getTime()));
+    const datePart = (options: Intl.DateTimeFormatOptions) => hasDate
+      ? new Intl.DateTimeFormat('de-AT', { ...options, timeZone: 'Europe/Vienna' }).format(matchDate as Date).replace('.', '').toUpperCase()
+      : '';
+    const teamParts = (name: string) => {
+      const words = name.trim().split(/\s+/);
+      return words.length > 1 && /^[A-ZÄÖÜ0-9]{2,6}$/.test(words[0])
+        ? { prefix: words[0], name: words.slice(1).join(' ') }
+        : { prefix: '', name };
+    };
+    const home = teamParts(matchInfo?.homeTeam ?? 'Heim');
+    const away = teamParts(matchInfo?.awayTeam ?? 'Gast');
     return <section aria-label="Spielanalyse" className="mx-auto max-w-2xl space-y-5 pb-8 text-white">
-      <header className="rounded-[22px] border border-red-500/30 bg-[radial-gradient(ellipse_at_50%_55%,rgba(105,23,23,0.36),transparent_72%),linear-gradient(140deg,#1c0b0c,#0d0b0d_60%,#230c0e)] p-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-300">Spielanalyse · {matchInfo?.date ?? 'Spiel'}</p>
-        <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-white/55">Endstand</p>
-        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-          <div className="flex min-w-0 flex-col items-center gap-2">
-            <div className="flex h-[70px] w-[70px] items-center justify-center rounded-full bg-black/30 p-1.5 sm:h-20 sm:w-20">
-              {matchInfo?.homeLogoUrl ? <img src={matchInfo.homeLogoUrl} alt="" className="max-h-full max-w-full object-contain" /> : <span className="text-3xl" aria-hidden>⚽</span>}
+      {showResultHeader && <header className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)]">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
+        <div className="relative px-3 pb-3 pt-3 sm:px-4">
+          <div className="grid grid-cols-[58px_minmax(0,1fr)_66px] items-center gap-2">
+            <div className="flex w-[58px] flex-col items-center border-r border-white/10 pr-2 text-center leading-none">
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-red-300">{datePart({ weekday: 'short' })}</span>
+              <span className="mt-0.5 text-[30px] font-black tabular-nums text-white">{datePart({ day: '2-digit' }) || '–'}</span>
+              <span className="mt-0.5 text-[11px] font-bold uppercase text-white/65">{datePart({ month: 'short' })}</span>
+              <span className="mt-0.5 text-[10px] text-white/45">{datePart({ year: 'numeric' })}</span>
             </div>
-            <span className="min-h-[34px] w-full break-words text-center text-xs font-bold leading-tight sm:text-sm">{matchInfo?.homeTeam ?? 'Heim'}</span>
+            <p className="min-w-0 rounded-full border border-red-500/40 bg-red-950/70 px-2 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-red-50">{matchInfo?.matchType || 'Meisterschaftsspiel'}</p>
+            <span className="rounded-full border border-white/20 bg-white/[0.07] px-2 py-1 text-center text-[9px] font-black uppercase tracking-wider text-white/75">Beendet</span>
           </div>
-          <p className="self-center pb-8 text-4xl font-black tabular-nums tracking-tight text-white sm:text-5xl">{matchInfo?.score?.replace(':', ' : ') ?? '– : –'}</p>
-          <div className="flex min-w-0 flex-col items-center gap-2">
-            <div className="flex h-[70px] w-[70px] items-center justify-center rounded-full bg-black/30 p-1.5 sm:h-20 sm:w-20">
-              {matchInfo?.awayLogoUrl ? <img src={matchInfo.awayLogoUrl} alt="" className="max-h-full max-w-full object-contain" /> : <span className="text-3xl" aria-hidden>⚽</span>}
+          <div className="mt-2 flex justify-center"><span className="rounded-full border border-red-500/40 bg-red-950/70 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-red-50">Endstand</span></div>
+          <div className="mt-3 flex items-start justify-between gap-1.5">
+            <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
+              <img src={matchInfo?.homeLogoUrl || '/logos/placeholder-shield-a.png'} alt="" className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = '/logos/placeholder-shield-a.png'; }} />
+              <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">{home.prefix || ' '}</p>
+              <p className="mt-0.5 w-full min-w-0 break-words text-center text-[16px] font-bold leading-[1.2] text-white sm:text-lg">{home.name}</p>
             </div>
-            <span className="min-h-[34px] w-full break-words text-center text-xs font-bold leading-tight sm:text-sm">{matchInfo?.awayTeam ?? 'Gast'}</span>
+            <div className="flex min-w-0 flex-1 flex-col items-center pt-1 text-center">
+              <p className={`whitespace-nowrap font-black leading-none tabular-nums text-white ${!matchInfo?.score || matchInfo.score.length >= 4 ? 'text-[2.65rem] min-[390px]:text-[3.25rem] sm:text-[4rem]' : 'text-[3.2rem] min-[390px]:text-[4rem] sm:text-[4.5rem]'}`}>{matchInfo?.score ?? '–:–'}</p>
+              {matchInfo?.periodScore && <p className="mt-0 text-[11px] tabular-nums leading-tight text-white/58">{matchInfo.periodScore}</p>}
+            </div>
+            <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
+              <img src={matchInfo?.awayLogoUrl || '/logos/placeholder-shield-a.png'} alt="" className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = '/logos/placeholder-shield-a.png'; }} />
+              <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">{away.prefix || ' '}</p>
+              <p className="mt-0.5 w-full min-w-0 break-words text-center text-[16px] font-bold leading-[1.2] text-white sm:text-lg">{away.name}</p>
+            </div>
           </div>
+          {matchInfo?.location && <div className="mt-3 flex min-h-11 items-center gap-2 border-t border-white/10 px-1 pt-2.5 text-[14px] font-semibold text-white/68"><MapPin className="h-5 w-5 shrink-0 text-red-400" aria-hidden /><span className="min-w-0 truncate">{matchInfo.location}</span></div>}
         </div>
-        {matchInfo?.location && <p className="mt-1 border-t border-white/10 pt-3 text-xs text-white/55">{matchInfo.location}</p>}
-      </header>
+      </header>}
 
       {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
       <div className="flex items-center justify-between gap-3">
