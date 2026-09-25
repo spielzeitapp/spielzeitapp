@@ -7,6 +7,7 @@ import { getClubLogo } from '../../lib/teamLogos';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { useInternalBasePath } from '../../demo/demoPaths';
+import { formatVisibleClubName } from '../../lib/oefbTeamNameNormalize';
 
 type Props = {
   match: SeasonMatchCardData;
@@ -110,7 +111,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
     if (href) navigate(href);
   };
 
-  const oppName = (match.opponent ?? 'Gegner').trim() || 'Gegner';
+  const oppName = formatVisibleClubName(match.opponent) || 'Gegner';
   const our = (ourTeamName ?? '').trim() || 'Unser Team';
   const homeName = compactTeamName(match.isHome === true ? our : match.isHome === false ? oppName : our);
   const awayName = compactTeamName(match.isHome === true ? oppName : match.isHome === false ? our : oppName);
