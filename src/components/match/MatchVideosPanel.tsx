@@ -261,7 +261,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
             <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
               <img src={matchInfo?.homeLogoUrl || '/logos/placeholder-shield-a.png'} alt="" className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = '/logos/placeholder-shield-a.png'; }} />
               <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">{home.prefix || ' '}</p>
-              <p className="mt-0.5 w-full min-w-0 break-words text-center text-[16px] font-bold leading-[1.2] text-white sm:text-lg">{home.name}</p>
+              <p className={`mt-0.5 w-full min-w-0 text-center font-bold leading-[1.2] text-white ${home.name.length > 13 ? 'text-[12px] sm:text-base' : 'text-[16px] sm:text-lg'}`}>{home.name}</p>
             </div>
             <div className="flex min-w-0 flex-1 flex-col items-center pt-1 text-center">
               <p className={`whitespace-nowrap font-black leading-none tabular-nums text-white ${!matchInfo?.score || matchInfo.score.length >= 4 ? 'text-[2.65rem] min-[390px]:text-[3.25rem] sm:text-[4rem]' : 'text-[3.2rem] min-[390px]:text-[4rem] sm:text-[4.5rem]'}`}>{matchInfo?.score ?? '–:–'}</p>
@@ -270,7 +270,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
             <div className="flex w-[31%] min-w-0 flex-col items-center text-center">
               <img src={matchInfo?.awayLogoUrl || '/logos/placeholder-shield-a.png'} alt="" className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = '/logos/placeholder-shield-a.png'; }} />
               <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">{away.prefix || ' '}</p>
-              <p className="mt-0.5 w-full min-w-0 break-words text-center text-[16px] font-bold leading-[1.2] text-white sm:text-lg">{away.name}</p>
+              <p className={`mt-0.5 w-full min-w-0 text-center font-bold leading-[1.2] text-white ${away.name.length > 13 ? 'text-[12px] sm:text-base' : 'text-[16px] sm:text-lg'}`}>{away.name}</p>
             </div>
           </div>
           {matchInfo?.location && <div className="mt-3 flex min-h-11 items-center gap-2 border-t border-white/10 px-1 pt-2.5 text-[14px] font-semibold text-white/68"><MapPin className="h-5 w-5 shrink-0 text-red-400" aria-hidden /><span className="min-w-0 truncate">{matchInfo.location}</span></div>}
@@ -300,18 +300,18 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">
           {[['all', 'Alle'], ...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold ${analysisFilter === key ? 'border-red-400 bg-red-600 text-white' : 'border-white/15 bg-zinc-900 text-white/75'}`}>{label}</button>)}
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {filteredVideos.map(video => <article key={video.id} className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {filteredVideos.map(video => <article key={video.id} className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,0.25)]">
             <button type="button" onClick={() => void play(video)} aria-label={`${video.title} abspielen`} className="relative block aspect-video w-full overflow-hidden bg-gradient-to-br from-red-950 via-zinc-900 to-black">
               {previewUrls[video.id] && <video src={`${previewUrls[video.id]}#t=0.1`} muted playsInline preload="metadata" className="h-full w-full object-contain" />}
-              <span className="absolute bottom-2 left-2 rounded-full bg-black/75 p-2"><Play size={17} aria-hidden /></span>
+              <span className="absolute inset-0 flex items-center justify-center bg-black/5"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/65 ring-1 ring-white/45"><Play size={22} fill="white" aria-hidden /></span></span>
               {video.scene_minute != null && <span className="absolute right-2 top-2 rounded-lg bg-black/75 px-2 py-1 text-xs font-semibold">{video.scene_minute}'</span>}
             </button>
-            <div className="space-y-1 px-3 py-3"><p className="text-xs font-semibold text-red-300">{SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'}</p><h3 className="truncate text-sm font-bold" title={video.title}>{video.title}</h3>{video.analysis_note && <p className="line-clamp-2 text-xs text-white/55">{video.analysis_note}</p>}</div>
+            <div className="space-y-1 px-4 py-3"><p className="text-xs font-semibold uppercase tracking-wide text-red-300">{SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'}</p><h3 className="text-base font-bold leading-tight" title={video.title}>{video.title}</h3>{video.analysis_note && <p className="line-clamp-2 text-sm text-white/55">{video.analysis_note}</p>}</div>
             {playingId === video.id && playingUrl && <video key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" className="w-full" />}
-            {canManage && !demoMode && <div className="flex flex-wrap gap-2 px-3 pb-3 text-xs">
-              <button type="button" onClick={() => { setEditTitle(video.title); setSceneType(video.scene_type ?? 'other'); setSceneMinute(video.scene_minute?.toString() ?? ''); setAnalysisNote(video.analysis_note ?? ''); setEditingId(video.id); }} className="min-h-9 rounded-lg border border-white/15 px-2">Bearbeiten</button>
-              <button type="button" disabled={busy} onClick={() => void deleteVideo(video)} className="min-h-9 rounded-lg border border-red-500/30 px-2 text-red-200">Löschen</button>
+            {canManage && !demoMode && <div className="flex flex-wrap gap-2 px-4 pb-4 text-sm">
+              <button type="button" onClick={() => { setEditTitle(video.title); setSceneType(video.scene_type ?? 'other'); setSceneMinute(video.scene_minute?.toString() ?? ''); setAnalysisNote(video.analysis_note ?? ''); setEditingId(video.id); }} className="min-h-11 rounded-xl border border-white/15 px-3">Bearbeiten</button>
+              <button type="button" disabled={busy} onClick={() => void deleteVideo(video)} className="min-h-11 rounded-xl border border-red-500/30 px-3 text-red-200">Löschen</button>
             </div>}
             {editingId === video.id && <div className="space-y-2 border-t border-white/10 p-3 text-sm">
               <input aria-label="Titel" value={editTitle} onChange={e => setEditTitle(e.target.value)} maxLength={120} className="min-h-10 w-full rounded-lg border border-white/15 bg-zinc-900 px-2" />
