@@ -5,7 +5,6 @@ import {
   BarChart3,
   CalendarDays,
   CalendarPlus,
-  Clapperboard,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -50,7 +49,6 @@ import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { FinishedMatchScorers } from '../components/match/FinishedMatchScorers';
-import { MatchVideosPanel } from '../components/match/MatchVideosPanel';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
@@ -2028,7 +2026,6 @@ export const EventDetailPage: React.FC = () => {
       { id: 'lineup', label: 'Aufstellung', detail: 'Formation', icon: Shirt },
       { id: 'timeline', label: 'Liveticker', detail: 'Spielverlauf', icon: Radio },
       { id: 'stats', label: 'Statistik', detail: 'Einsatzzeiten', icon: BarChart3 },
-      ...(event.match_id ? [{ id: 'videos', label: 'Videos', detail: 'Highlights & Spielszenen', icon: Clapperboard }] : []),
     ] as const;
 
     const finishedMinuteLabel = (raw: number | null) => {
@@ -2826,10 +2823,6 @@ export const EventDetailPage: React.FC = () => {
             <div className="rounded-2xl border border-red-500/25 bg-red-950/40 p-3 text-sm text-red-100">
               {matchError}
             </div>
-          ) : null}
-
-          {finishedTab === 'videos' && event.match_id ? (
-            <MatchVideosPanel matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
           ) : null}
 
           {finishedTab === 'overview' ? (
