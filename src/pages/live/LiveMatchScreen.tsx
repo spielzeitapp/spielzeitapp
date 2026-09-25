@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BarChart3, ChartNoAxesCombined, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
@@ -1422,6 +1422,14 @@ export const LiveMatchScreen: React.FC = () => {
   const [lineupPanelView, setLineupPanelView] = useState<'live' | 'kickoff'>('live');
   const [kickoffDisplayMode, setKickoffDisplayMode] = useState<'pitch' | 'list'>('pitch');
   const lineupScrollRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    if (mainTab !== 'lineup') return;
+    const scrollArea = lineupScrollRef.current;
+    if (!scrollArea) return;
+    scrollArea.scrollTop = 0;
+    const frame = requestAnimationFrame(() => { scrollArea.scrollTop = 0; });
+    return () => cancelAnimationFrame(frame);
+  }, [mainTab, lineupPanelView, kickoffDisplayMode]);
   const [posSwapSlotA, setPosSwapSlotA] = useState<FieldSlotId | null>(null);
   const [posSwapSlotB, setPosSwapSlotB] = useState<FieldSlotId | null>(null);
   const [posSwapConfirmOpen, setPosSwapConfirmOpen] = useState(false);
@@ -5475,7 +5483,7 @@ export const LiveMatchScreen: React.FC = () => {
                     }}
                     className={dsLineupViewTabClass('live', lineupPanelView === 'live')}
                   >
-                    LIVE
+                    {matchIsFinished ? 'ENDE' : 'LIVE'}
                   </button>
                   <button
                     type="button"
@@ -5548,9 +5556,9 @@ export const LiveMatchScreen: React.FC = () => {
                       </div>
                     ) : (
                       <div className="flex flex-col gap-0.5">
-                        <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
+                        <p className="text-[15px] font-semibold leading-tight text-white/90">{matchIsFinished ? 'Endaufstellung' : 'Mannschaft am Feld'}</p>
                         <p className="text-[12px] leading-snug text-white/52">
-                          Stand jetzt im Spiel · {currentFieldPlayerCount} Spieler am Feld
+                          {matchIsFinished ? 'Stand beim Abpfiff' : 'Stand jetzt im Spiel'} · {currentFieldPlayerCount} Spieler am Feld
                         </p>
                         {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
                           <p className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-snug text-amber-300/90">
@@ -5580,7 +5588,7 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
             <div
               ref={lineupScrollRef}
-              className="live-lineup-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-1.5 pt-0 [-webkit-overflow-scrolling:touch] sm:px-2"
+              className="live-lineup-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-1.5 pt-0 [overflow-anchor:none] [-webkit-overflow-scrolling:touch] sm:px-2"
               style={{
                 paddingBottom:
                   lineupPanelView === 'kickoff'
