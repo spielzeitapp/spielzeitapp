@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BarChart3, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, BarChart3, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -89,6 +89,7 @@ import {
 import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { FinishedMatchScorers } from '../../components/match/FinishedMatchScorers';
+import { MatchVideosPanel } from '../../components/match/MatchVideosPanel';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import { PremiumPlayerCard } from '../../components/player/PremiumPlayerCard';
@@ -987,9 +988,19 @@ export const LiveMatchScreen: React.FC = () => {
   const [scoreHome, setScoreHome] = useState(0);
   const [scoreAway, setScoreAway] = useState(0);
 
-  const { selectedTeamSeason, canAccess, backendRole } = useSession();
+  const { selectedTeamSeason, teamSeasons, memberships, backendRole } = useSession();
+  const matchTeamSeason = useMemo(
+    () => teamSeasons.find((teamSeason) => teamSeason.id === matchRow?.team_season_id) ?? null,
+    [teamSeasons, matchRow?.team_season_id],
+  );
+  const matchMembershipRole = normalizeRole(
+    memberships.find((membership) => membership.team_season_id === matchRow?.team_season_id)?.role ?? null,
+  );
   const canControlLiveMatch =
-    isDemo || canAccess('match_admin') || String(backendRole ?? '').trim().toLowerCase() === 'admin';
+    isDemo ||
+    String(backendRole ?? '').trim().toLowerCase() === 'admin' ||
+    matchMembershipRole === 'trainer' ||
+    matchMembershipRole === 'admin';
 
   useEffect(() => {
     let cancelled = false;
@@ -1108,7 +1119,7 @@ export const LiveMatchScreen: React.FC = () => {
     return m;
   }, [safePlayers]);
 
-  const canManagePlayers = canManageRoster(normalizeRole(backendRole ?? null));
+  const canManagePlayers = canControlLiveMatch && canManageRoster(matchMembershipRole || normalizeRole(backendRole ?? null));
 
   const [kickoffProfilePlayer, setKickoffProfilePlayer] = useState<PlayerItem | null>(null);
 
@@ -1380,7 +1391,7 @@ export const LiveMatchScreen: React.FC = () => {
   /** Demo hat keine Session-Team-Saison — Teamname kommt aus den Demo-Fixtures. */
   const ownTeamName = isDemo
     ? demo?.data.teamName ?? HOME_FALLBACK
-    : selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
+    : matchTeamSeason?.team?.name ?? selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
   const homeNameRaw = ownTeamName;
   const headerOpponent = opponentLabel;
   const sides = useMemo(
@@ -1398,7 +1409,7 @@ export const LiveMatchScreen: React.FC = () => {
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   const matchTypeDisplay = getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
-  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time'>('hub');
+  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
     const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
@@ -1741,8 +1752,8 @@ export const LiveMatchScreen: React.FC = () => {
   useEffect(() => {
     if (canControlLiveMatch || isDemo) return;
     const teamSeasonId =
-      String(selectedTeamSeason?.id ?? '').trim() ||
-      String(matchRow?.team_season_id ?? '').trim();
+      String(matchRow?.team_season_id ?? '').trim() ||
+      String(selectedTeamSeason?.id ?? '').trim();
     if (!teamSeasonId || !effectiveMatchId) return;
 
     let cancelled = false;
@@ -5265,6 +5276,15 @@ export const LiveMatchScreen: React.FC = () => {
                   </span>
                 </button>
               ) : null}
+              {matchIsFinished && effectiveMatchId && matchRow?.team_season_id ? (
+                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left !min-h-[98px]`} onClick={() => setMainTab('videos')}>
+                  <Clapperboard className="h-8 w-8 shrink-0 text-red-400" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-bold text-white">Videos</span>
+                    <span className="mt-1 block text-xs font-medium text-white/48">Highlights &amp; Spielszenen</span>
+                  </span>
+                </button>
+              ) : null}
             </nav>
           ) : mainTab !== 'lineup' ? (
             <div className={liveModuleBackBar} aria-label="Zurück zum Live Hub">
@@ -5293,6 +5313,21 @@ export const LiveMatchScreen: React.FC = () => {
                 : 'flex-1 overflow-y-auto px-2 py-3 pt-2 pb-[calc(140px+env(safe-area-inset-bottom,0px))] md:px-4 md:py-4 lg:px-5'
         }`}
       >
+        {mainTab === 'videos' && effectiveMatchId && matchRow?.team_season_id && (
+          <MatchVideosPanel
+            matchId={effectiveMatchId}
+            teamSeasonId={matchRow.team_season_id}
+            canManage={canControlLiveMatch}
+            demoMode={isDemo}
+            matchInfo={{
+              homeTeam: stadiumHomeDisplay,
+              awayTeam: stadiumAwayDisplay,
+              date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date,
+              score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined,
+              location: matchRow.location,
+            }}
+          />
+        )}
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
             {tournamentNavContext?.nextSlot ? (
