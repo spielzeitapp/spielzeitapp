@@ -93,7 +93,6 @@ import { FinishedMatchScorers } from '../../components/match/FinishedMatchScorer
 import { MatchVideosPanel } from '../../components/match/MatchVideosPanel';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
-import { PremiumPlayerCard } from '../../components/player/PremiumPlayerCard';
 import {
   DS_JERSEY_COMPACT,
   DS_JERSEY_STARTER,
@@ -912,44 +911,20 @@ function KickoffRosterPlayerCard({
   positionShort,
   rosterPosition,
   jerseyNumber,
-  avatarUrl,
   variant,
   onClick,
 }: KickoffRosterPlayerCardProps) {
   const isStarter = variant === 'starter';
   const { short: posShort, full: posFull } = kickoffPositionParts(positionShort, rosterPosition);
-  const subline = `${posShort} · ${posFull}`;
-  const num =
-    typeof jerseyNumber === 'number'
-      ? jerseyNumber
-      : typeof jerseyNumber === 'string' && jerseyNumber.trim()
-        ? Number(jerseyNumber)
-        : undefined;
-
   return (
-    <PremiumPlayerCard
-      tone="matchday"
-      active={isStarter}
-      player={{
-        display_name: name,
-        position: positionShort,
-        jersey_number: Number.isFinite(num) ? num : undefined,
-        avatar_url: avatarUrl ?? undefined,
-      }}
-      subline={subline}
-      density="compact"
-      onClick={onClick}
-      className={isStarter ? '' : 'opacity-[0.94]'}
-      trailing={
-        <KickoffSquadJerseyBadge
-          name={name}
-          positionLabel={posShort}
-          jerseyNumber={jerseyNumber}
-          compact={!isStarter}
-          matchday
-        />
-      }
-    />
+    <button type="button" disabled={!onClick} onClick={onClick}
+      className="flex min-h-[68px] w-full items-center gap-3 rounded-2xl border border-white/10 bg-[#101013] px-3 py-2 text-left shadow-[inset_3px_0_0_rgba(239,68,68,0.7)] transition hover:border-red-400/35 disabled:cursor-default">
+      <KickoffSquadJerseyBadge name={name} positionLabel={posShort} jerseyNumber={jerseyNumber} compact={!isStarter} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] font-bold text-white">{name}</span>
+        <span className="mt-0.5 block truncate text-xs text-white/55">{posShort} · {posFull}</span>
+      </span>
+    </button>
   );
 }
 
@@ -1446,6 +1421,7 @@ export const LiveMatchScreen: React.FC = () => {
   /** Aufstellung: Live-Feld vs. Startaufstellung-Snapshot (read-only). */
   const [lineupPanelView, setLineupPanelView] = useState<'live' | 'kickoff'>('live');
   const [kickoffDisplayMode, setKickoffDisplayMode] = useState<'pitch' | 'list'>('pitch');
+  const lineupScrollRef = useRef<HTMLDivElement | null>(null);
   const [posSwapSlotA, setPosSwapSlotA] = useState<FieldSlotId | null>(null);
   const [posSwapSlotB, setPosSwapSlotB] = useState<FieldSlotId | null>(null);
   const [posSwapConfirmOpen, setPosSwapConfirmOpen] = useState(false);
@@ -5495,6 +5471,7 @@ export const LiveMatchScreen: React.FC = () => {
                       clearSubstitutionToast();
                       setLineupPanelView('live');
                       setLineupPositionMode(false);
+                      if (lineupScrollRef.current) lineupScrollRef.current.scrollTop = 0;
                     }}
                     className={dsLineupViewTabClass('live', lineupPanelView === 'live')}
                   >
@@ -5508,12 +5485,13 @@ export const LiveMatchScreen: React.FC = () => {
                       setLineupPanelView('kickoff');
                       setLineupPositionMode(false);
                       setFormationSheetOpen(false);
+                      if (lineupScrollRef.current) lineupScrollRef.current.scrollTop = 0;
                     }}
                     className={dsLineupViewTabClass('kickoff', lineupPanelView === 'kickoff')}
                   >
                     START
                   </button>
-                  {canControlLiveMatch && lineupPanelView === 'live' ? (
+                  {canControlLiveMatch && lineupPanelView === 'live' && !matchIsFinished ? (
                     <>
                       <button
                         type="button"
@@ -5553,12 +5531,15 @@ export const LiveMatchScreen: React.FC = () => {
                       <div className="flex flex-col gap-1.5">
                         <p className={dsCardTitleClass()}>Startaufstellung</p>
                         <p className={dsMetaTextClass()}>
-                          Vor Anpfiff · Snapshot vom Spielbeginn
+                          Aufstellung beim Anpfiff
                         </p>
                         <div className="flex gap-2 pt-1" role="group" aria-label="Darstellung der Startaufstellung">
                           {(['pitch', 'list'] as const).map((mode) => (
                             <button key={mode} type="button" aria-pressed={kickoffDisplayMode === mode}
-                              onClick={() => setKickoffDisplayMode(mode)}
+                              onClick={() => {
+                                setKickoffDisplayMode(mode);
+                                if (lineupScrollRef.current) lineupScrollRef.current.scrollTop = 0;
+                              }}
                               className={`rounded-full border px-4 py-1.5 text-xs font-bold ${kickoffDisplayMode === mode ? 'border-red-500 bg-red-900/50 text-white' : 'border-white/15 bg-white/5 text-white/65'}`}>
                               {mode === 'pitch' ? 'Spielfeld' : 'Liste'}
                             </button>
@@ -5598,6 +5579,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
             <div
+              ref={lineupScrollRef}
               className="live-lineup-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-1.5 pt-0 [-webkit-overflow-scrolling:touch] sm:px-2"
               style={{
                 paddingBottom:
@@ -5781,22 +5763,26 @@ export const LiveMatchScreen: React.FC = () => {
                   kickoffBenchRows.length === 0 ? (
                     <p className="text-[12px] text-white/45">Keine weiteren Spieler im Kader</p>
                   ) : (
-                    <ul className={`flex flex-col ${DS_LIST_GAP} pb-2`}>
+                    <ul className="grid grid-cols-2 gap-2 pb-2 sm:grid-cols-3">
                       {kickoffBenchRows.map((row, idx) => {
                         const posLabel = getPositionLabel(row.position) || '–';
                         const fullBenchName = String(row.display_name || 'Spieler').trim() || 'Spieler';
                         const pid = String(row.id ?? '').trim();
                         return (
-                          <li key={`kickoff-bench-row-${row.id || idx}`} className="w-full">
-                            <KickoffRosterPlayerCard
-                              name={fullBenchName}
-                              positionShort={posLabel}
-                              rosterPosition={row.position}
-                              jerseyNumber={row.jersey_number}
-                              avatarUrl={row.avatar_url}
-                              variant="bench"
-                              onClick={pid ? () => openKickoffPlayerProfile(pid) : undefined}
-                            />
+                          <li key={`kickoff-bench-row-${row.id || idx}`}>
+                            <button type="button" disabled={!pid} onClick={pid ? () => openKickoffPlayerProfile(pid) : undefined}
+                              className={`flex w-full flex-col items-center justify-start text-center disabled:cursor-default ${matchdayBenchTileClass()}`}>
+                              <LeibchenJersey
+                                lastName={mobileLineupName(fullBenchName)}
+                                number={row.jersey_number ?? '–'}
+                                position={posLabel}
+                                variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                                size="compact"
+                                pitchStyleBack
+                                className="!h-[3.28rem] !w-[2.55rem]"
+                              />
+                              <span className="mt-1.5 line-clamp-2 text-[11px] font-medium leading-snug text-white/85">{fullBenchName}</span>
+                            </button>
                           </li>
                         );
                       })}
