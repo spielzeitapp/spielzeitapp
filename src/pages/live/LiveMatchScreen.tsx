@@ -429,7 +429,7 @@ const spectatorTabBtnCompactActive = `${trainerTabBtnActive} border-white/10`;
 const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:text-white/85';
 
 /** Live Hub: große Touch-Ziele, kein Mini-Tab-Gefühl. */
-const hubNavSpectator = 'mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2.5';
+const hubNavSpectator = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
 const hubNavTrainer = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
 const hubNavBtn = dsLiveHubNavBtnClass();
 const liveModuleBackBar =
@@ -1445,6 +1445,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [lineupPositionMode, setLineupPositionMode] = useState(false);
   /** Aufstellung: Live-Feld vs. Startaufstellung-Snapshot (read-only). */
   const [lineupPanelView, setLineupPanelView] = useState<'live' | 'kickoff'>('live');
+  const [kickoffDisplayMode, setKickoffDisplayMode] = useState<'pitch' | 'list'>('pitch');
   const [posSwapSlotA, setPosSwapSlotA] = useState<FieldSlotId | null>(null);
   const [posSwapSlotB, setPosSwapSlotB] = useState<FieldSlotId | null>(null);
   const [posSwapConfirmOpen, setPosSwapConfirmOpen] = useState(false);
@@ -2231,6 +2232,13 @@ export const LiveMatchScreen: React.FC = () => {
         return n.length > 0 && n !== '—';
       }).length
     : 0;
+  const kickoffPitchSlots = useMemo(() => {
+    const result = {} as Record<FieldSlotId, string | null>;
+    for (const row of kickoffSafeLineupRows) {
+      result[row.slot] = row.display_name === '—' ? null : row.id;
+    }
+    return result;
+  }, [kickoffSafeLineupRows]);
 
   /** Bank beim Anpfiff (Kader minus Startaufstellung-Snapshot) — nur Ansicht in der Startaufstellungs-Ansicht. */
   // TODO: future: best lineup / successful lineup analytics
@@ -5547,6 +5555,15 @@ export const LiveMatchScreen: React.FC = () => {
                         <p className={dsMetaTextClass()}>
                           Vor Anpfiff · Snapshot vom Spielbeginn
                         </p>
+                        <div className="flex gap-2 pt-1" role="group" aria-label="Darstellung der Startaufstellung">
+                          {(['pitch', 'list'] as const).map((mode) => (
+                            <button key={mode} type="button" aria-pressed={kickoffDisplayMode === mode}
+                              onClick={() => setKickoffDisplayMode(mode)}
+                              className={`rounded-full border px-4 py-1.5 text-xs font-bold ${kickoffDisplayMode === mode ? 'border-red-500 bg-red-900/50 text-white' : 'border-white/15 bg-white/5 text-white/65'}`}>
+                              {mode === 'pitch' ? 'Spielfeld' : 'Liste'}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     ) : (
                       <div className="flex flex-col gap-0.5">
@@ -5595,7 +5612,29 @@ export const LiveMatchScreen: React.FC = () => {
                     Zur Startaufstellung liegen noch keine Daten vor.
                   </p>
                 ) : (
-                  <ul className={`flex flex-col ${DS_LIST_GAP} pb-1`}>
+                  kickoffDisplayMode === 'pitch' && canRenderLivePitch ? (
+                    <div className="mx-auto w-full max-w-xl pb-2">
+                      <LineupFormationPitch
+                        formationId={pitchFormationId}
+                        displayMode="lineup-fullscreen"
+                        slots={kickoffPitchSlots}
+                        interactive={false}
+                        className="w-full"
+                        renderSlotContent={({ slot, label, playerId, isGk }) => {
+                          if (!playerId) return null;
+                          const player = rosterById.get(playerId) ?? null;
+                          return <PitchPlayerMarker
+                            lastName={mobileLineupName(player?.displayName ?? player?.name ?? 'Spieler')}
+                            number={player?.number ?? '–'}
+                            positionBadge={getPositionLabel(label) || '–'}
+                            variant={isGk ? 'goalkeeper' : 'field'}
+                            mode="pitch"
+                            fullscreenLineup
+                          />;
+                        }}
+                      />
+                    </div>
+                  ) : <ul className={`flex flex-col ${DS_LIST_GAP} pb-1`}>
                     <li className="sr-only">Startaufstellung, Snapshot vom Spielbeginn — Spielerliste</li>
                     {kickoffSafeLineupRows
                       .filter((row) => {
