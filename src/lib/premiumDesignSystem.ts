@@ -564,21 +564,21 @@ export function dsSegmentTabClass(active: boolean): string {
 /** Termine Zeitraum-Filter (Alle / Kommende / Vergangene). */
 export function dsScheduleFilterTabClass(active: boolean): string {
   return [
-    'min-h-[44px] flex-1 basis-0 rounded-[14px] px-1.5 text-[11px] font-semibold tracking-[0.01em] transition-all duration-150 sm:min-h-[36px] sm:px-2.5 sm:text-[12px]',
+    'min-h-[44px] flex-1 basis-0 rounded-[14px] px-1.5 text-[11px] font-bold uppercase tracking-[0.03em] transition-all duration-150 sm:min-h-[36px] sm:px-2.5 sm:text-[12px]',
     active
       ? `border sz-club-schedule-filter-active ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
-      : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
+      : 'border border-transparent text-white/90 hover:bg-[rgba(14,14,18,0.75)] hover:text-white',
   ].join(' ');
 }
 
 /** Termine Terminart-Filter: 4 gleichmäßige Pills, kein Abschneiden auf iPhone. */
 export function dsScheduleKindFilterTabClass(active: boolean): string {
   return [
-    'min-h-[44px] min-w-0 flex-1 basis-0 truncate rounded-[14px] px-1 text-[11px] font-semibold tracking-[0.01em] transition-all duration-150',
+    'min-h-[44px] min-w-0 flex-1 basis-0 truncate rounded-[14px] px-1 text-[11px] font-bold uppercase tracking-[0.03em] transition-all duration-150',
     'sm:min-h-[36px] sm:px-2.5 sm:text-[12px]',
     active
       ? `border sz-club-schedule-filter-active ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
-      : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
+      : 'border border-transparent text-white/90 hover:bg-[rgba(14,14,18,0.75)] hover:text-white',
   ].join(' ');
 }
 
