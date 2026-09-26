@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Clapperboard, ImagePlus, Link2, Send, Trophy, Video, X } from 'lucide-react';
+import { Bell, Camera, Clapperboard, ImagePlus, Link2, Send, Trophy, Video, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
@@ -59,14 +59,16 @@ export const HomeFeedComposer: React.FC<Props> = ({
   demoMode = false,
 }) => {
   const [busy, setBusy] = useState(false);
-  const [phase, setPhase] = useState<'idle' | 'uploading' | 'saving'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'uploading' | 'saving' | 'notifying'>('idle');
   const [uploadPct, setUploadPct] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [publishFeedback, setPublishFeedback] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [draftFile, setDraftFile] = useState<File | null>(null);
   const [draftKind, setDraftKind] = useState<'image' | 'video' | null>(null);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const [linkEnabled, setLinkEnabled] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
   const [ctaLabel, setCtaLabel] = useState('Livestream ansehen');
   const [ctaUrl, setCtaUrl] = useState('');
   const progressTimerRef = useRef<number | null>(null);
@@ -99,6 +101,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
     setCaption('');
     clearDraft();
     setLinkEnabled(false);
+    setPushEnabled(false);
     setCtaLabel('Livestream ansehen');
     setCtaUrl('');
   }, [clearDraft]);
@@ -169,6 +172,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
     }
 
     setError(null);
+    setPublishFeedback(null);
     setBusy(true);
     setPhase('uploading');
     startFakeUploadProgress();
@@ -303,9 +307,42 @@ export const HomeFeedComposer: React.FC<Props> = ({
         throw new Error(insErr.message);
       }
 
+      // Der Beitrag ist ab hier gespeichert. Ein Push-Fehler darf ihn nicht als
+      // fehlgeschlagen anzeigen oder den bereits hochgeladenen Anhang entfernen.
+      let feedback = 'Beitrag veröffentlicht – ohne Push.';
+      if (pushEnabled) {
+        setPhase('notifying');
+        try {
+          const accessToken = authSnap?.session?.access_token;
+          if (!accessToken) throw new Error('Sitzung abgelaufen.');
+          const response = await fetch('/api/push/send-team', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({
+              team_season_id: teamSeasonId,
+              recipient_group: 'feed',
+              title: draftKind === 'video' ? 'Neues Video im Team-Feed' : 'Neuer Beitrag im Team-Feed',
+              body: cap.slice(0, 160),
+              url: '/app/home',
+            }),
+          });
+          const result = await response.json() as {
+            ok?: boolean; skipped?: boolean; error?: string; sent?: number;
+            failed?: number; notificationsInserted?: number;
+          };
+          if (!response.ok || result.ok !== true) throw new Error(result.error || `HTTP ${response.status}`);
+          feedback = result.skipped
+            ? 'Beitrag veröffentlicht. Auf Test ist der Push-Versand deaktiviert.'
+            : `Beitrag veröffentlicht. ${result.sent ?? 0} Push-Gerät(e) erreicht, ${result.notificationsInserted ?? 0} In-App-Benachrichtigung(en) gespeichert.${result.failed ? ` ${result.failed} Push-Versuch(e) fehlgeschlagen.` : ''}`;
+        } catch (pushError) {
+          feedback = `Beitrag veröffentlicht, aber Push fehlgeschlagen: ${pushError instanceof Error ? pushError.message : 'Unbekannter Fehler'}`;
+        }
+      }
+
       setUploadPct(100);
       resetComposerFields();
       setComposerExpanded(false);
+      setPublishFeedback(feedback);
       onPosted();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -328,6 +365,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
     linkEnabled,
     membershipRole,
     onPosted,
+    pushEnabled,
     resetComposerFields,
     startFakeUploadProgress,
     teamId,
@@ -338,7 +376,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
   if (!canStaffManageTeamFeed(backendRole, membershipRole)) return null;
 
   const statusLabel =
-    phase === 'uploading' ? 'Datei wird hochgeladen…' : phase === 'saving' ? 'Beitrag wird gespeichert…' : null;
+    phase === 'uploading' ? 'Datei wird hochgeladen…' : phase === 'saving' ? 'Beitrag wird gespeichert…' : phase === 'notifying' ? 'Benachrichtigung wird versendet…' : null;
 
   return (
     <PremiumCard
@@ -388,6 +426,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
               <span className="text-base font-bold tracking-tight text-white">+ Beitrag erstellen</span>
             </div>
             <p className="mt-1 text-xs leading-snug text-white/50">Foto oder Video posten</p>
+            {publishFeedback ? <p className="mt-2 text-xs leading-snug text-white/75" role="status">{publishFeedback}</p> : null}
           </button>
         ) : (
         <div className="relative pr-10">
@@ -521,6 +560,21 @@ export const HomeFeedComposer: React.FC<Props> = ({
             ) : null}
           </div>
 
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setPushEnabled((value) => !value)}
+            aria-pressed={pushEnabled}
+            className="mt-3 flex min-h-[48px] w-full touch-manipulation items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-3 text-left disabled:opacity-45"
+          >
+            <Bell className="h-4 w-4 shrink-0 text-red-300" aria-hidden />
+            <span className="flex-1 text-[13px] font-semibold text-white/90">Mit Push veröffentlichen</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${pushEnabled ? 'bg-red-600/80 text-white' : 'bg-white/10 text-white/45'}`}>
+              {pushEnabled ? 'An' : 'Aus'}
+            </span>
+          </button>
+          <p className="mt-1 pl-1 text-[11px] text-white/45">Eltern, Spieler und Fans erhalten eine In-App-Nachricht; Push bei aktivierter Freigabe.</p>
+
           {busy && phase === 'uploading' ? (
             <div className="mt-3" aria-live="polite">
               <div className="h-2 overflow-hidden rounded-full bg-white/10">
@@ -533,7 +587,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
             </div>
           ) : null}
 
-          {statusLabel && phase === 'saving' ? (
+          {statusLabel && (phase === 'saving' || phase === 'notifying') ? (
             <p className="mt-2 text-center text-xs font-medium text-red-200/90">{statusLabel}</p>
           ) : null}
 
