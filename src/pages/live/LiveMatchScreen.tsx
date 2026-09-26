@@ -6069,8 +6069,11 @@ export const LiveMatchScreen: React.FC = () => {
                 )}
               </div>
             </section>
-            <p className="mb-1 text-[13px] text-gray-400">Effektive Spielzeit (ohne Pausen)</p>
-            <ul className="space-y-1.5">
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <h3 className="text-[12px] font-black uppercase tracking-[0.16em] text-white">Spielerliste</h3>
+              <span className="text-[11px] text-white/50">Effektive Spielzeit · ohne Pausen</span>
+            </div>
+            <ul className="space-y-2">
               {squadRosterForPlaytimeList.map((p) => {
                 const sec = playtimes[p.id] ?? 0;
                 const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
@@ -6082,53 +6085,45 @@ export const LiveMatchScreen: React.FC = () => {
                   <li
                     key={p.id}
                     className={[
-                      'flex min-h-[46px] items-center gap-2 rounded-lg border px-2 py-1.5',
+                      'relative overflow-hidden rounded-2xl border px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
                       isActive
                         ? isFairPlayExtra
-                          ? 'border-amber-500/45 bg-amber-950/18 ring-1 ring-amber-400/35'
-                          : lowOnField
-                            ? 'border-emerald-500/50 bg-emerald-950/20 ring-1 ring-amber-500/30'
-                            : 'border-emerald-600/40 bg-emerald-950/12'
-                        : 'border-zinc-700/40 bg-zinc-950/90',
+                          ? 'border-amber-400/45 bg-[linear-gradient(110deg,rgba(16,9,12,0.98),rgba(77,34,20,0.55))]'
+                          : 'border-red-500/40 bg-[linear-gradient(110deg,rgba(12,10,14,0.98),rgba(83,15,27,0.48))]'
+                        : 'border-white/12 bg-[linear-gradient(110deg,rgba(12,12,16,0.98),rgba(36,17,24,0.72))]',
                     ].join(' ')}
                   >
-                    <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
-                      {isActive ? (
-                        <span
-                          className={[
-                            'h-2 w-2 rounded-full shadow-[0_0_6px_rgba(16,185,129,0.45)]',
-                            isFairPlayExtra ? 'bg-amber-400/95' : 'bg-emerald-500/90',
-                          ].join(' ')}
+                    <div className="relative flex min-w-0 items-center gap-2.5">
+                      <div className="h-14 w-12 shrink-0 overflow-hidden rounded-xl bg-black/45 ring-1 ring-white/10">
+                        <img
+                          src={rosterById.get(p.id)?.avatarUrl || (p.number === 1 || p.number === 21
+                            ? '/avatars/player-placeholder-goalkeeper.png'
+                            : '/avatars/player-placeholder.png')}
+                          alt=""
+                          className="h-full w-full object-cover object-top"
+                          loading="lazy"
                         />
-                      ) : (
-                        <span className="h-2 w-2 rounded-full bg-zinc-500/80" />
-                      )}
-                      <span className={`h-2.5 w-2.5 rounded-full ${ampelDot(st)}`} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-semibold text-white">
-                        {p.number || '–'} · {p.name}
-                        {isFairPlayExtra ? (
-                          <span className="ml-1.5 inline-flex rounded border border-amber-400/50 bg-amber-500/20 px-1 py-px text-[9px] font-black text-amber-100">
-                            +1
+                      </div>
+                      <span className="w-8 shrink-0 border-r border-red-400/35 pr-2 text-center text-xl font-black tabular-nums text-white">
+                        {p.number || '–'}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] font-extrabold leading-tight text-white">{p.name}</p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <span className={`h-2 w-2 shrink-0 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-white/35'}`} aria-hidden />
+                          <span className={`h-2 w-2 shrink-0 rounded-full ${ampelDot(st)}`} aria-hidden />
+                          <span className={`truncate text-[10px] font-extrabold uppercase tracking-[0.1em] ${isActive ? 'text-emerald-300' : 'text-white/55'}`}>
+                            {isFairPlayExtra && isActive ? 'Am Feld · Zusatz' : isActive ? 'Am Feld' : 'Auf der Bank'}
                           </span>
-                        ) : null}
-                      </p>
-                      <p
-                        className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] ${
-                          isActive
-                            ? isFairPlayExtra
-                              ? 'text-amber-200/95'
-                              : 'text-emerald-300'
-                            : 'text-zinc-500'
-                        }`}
-                      >
-                        {isFairPlayExtra && isActive
-                          ? 'Am Feld · Zusatz'
-                          : isActive
-                            ? 'Am Feld'
-                            : 'Auf der Bank'}
-                      </p>
+                          {isFairPlayExtra ? <span className="rounded border border-amber-400/45 bg-amber-500/15 px-1 text-[9px] font-black text-amber-100">+1</span> : null}
+                          {lowOnField ? <span className="text-[10px] font-bold text-amber-300">!</span> : null}
+                        </div>
+                      </div>
+                      <span className={`shrink-0 font-mono text-[15px] font-bold tabular-nums ${isActive ? 'text-white' : 'text-white/60'}`}>
+                        {formatClock(sec)}
+                      </span>
+                    </div>
+                    <div className="ml-[5.625rem] min-w-0">
                       {minimumPlaytimeEnabled ? (
                         (() => {
                           const minSt = getMinimumPlaytimePlayerStatus(sec, minimumPlaytimeMinutes);
@@ -6197,13 +6192,6 @@ export const LiveMatchScreen: React.FC = () => {
                         })()
                       ) : null}
                     </div>
-                    <span
-                      className={`shrink-0 font-mono text-base font-semibold tabular-nums tracking-tight ${
-                        isActive ? 'text-red-400/90' : 'text-zinc-500'
-                      }`}
-                    >
-                      {formatClock(sec)}
-                    </span>
                   </li>
                 );
               })}
