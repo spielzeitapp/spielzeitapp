@@ -6096,7 +6096,7 @@ export const LiveMatchScreen: React.FC = () => {
                     <div className="relative flex min-w-0 items-center gap-2.5">
                       <div className="h-14 w-12 shrink-0 overflow-hidden rounded-xl bg-black/45 ring-1 ring-white/10">
                         <img
-                          src={rosterById.get(p.id)?.avatarUrl || (p.number === 1 || p.number === 21
+                          src={rosterById.get(p.id)?.cutoutUrl || rosterById.get(p.id)?.avatarUrl || (p.number === 1 || p.number === 21
                             ? '/avatars/player-placeholder-goalkeeper.png'
                             : '/avatars/player-placeholder.png')}
                           alt=""
