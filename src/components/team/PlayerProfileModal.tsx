@@ -938,10 +938,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     type="button"
                     onClick={() => setProfileTab(t.id)}
                     className={[
-                      "min-h-[34px] flex-1 whitespace-nowrap rounded-lg px-1 py-1.5 text-[11px] font-bold transition-all sm:min-h-[38px] sm:px-1.5 sm:text-[12px]",
+                      "min-h-[34px] flex-1 whitespace-nowrap rounded-lg px-1 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.03em] text-white transition-all sm:min-h-[38px] sm:px-1.5 sm:text-[12px]",
                       active
-                        ? "sz-club-tab-active border text-white"
-                        : "border border-transparent text-white/60 hover:text-white/80",
+                        ? "sz-club-tab-active border"
+                        : "border border-transparent hover:bg-white/5",
                     ].join(" ")}
                   >
                     {t.label}
