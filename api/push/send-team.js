@@ -143,6 +143,7 @@ function parseBody(req) {
 
 function recipientRolesForGroup(group) {
   if (group === "self") return null;
+  if (group === "feed") return ["parent", "player", "fan"];
   if (group === "open_unreminded") return ["parent", "player"];
   if (group === "parents") return ["parent"];
   if (group === "players") return ["player"];
@@ -312,7 +313,7 @@ export default async function handler(req, res) {
         ok: false,
         step: "validate",
         error:
-          "team_season_id and recipient_group (parents|players|all|self|open_unreminded) required",
+          "team_season_id and recipient_group (parents|players|all|feed|self|open_unreminded) required",
       });
     }
     if (!title || !textBody) {
@@ -442,7 +443,7 @@ export default async function handler(req, res) {
               return r && wantedRoles.includes(r);
             })
             .map((m) => m.user_id)
-            .filter(Boolean),
+            .filter((id) => id && (recipient_group !== "feed" || id !== user.id)),
         ),
       ];
 
