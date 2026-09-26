@@ -8,6 +8,7 @@ import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { parseClubDisplayName, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { getClubLogo, getTeamInitials } from '../../lib/teamLogos';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
+import { MatchTypeHeading } from '../match/MatchTypeHeading';
 import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
@@ -74,15 +75,8 @@ export function MatchCenterNextMatchCard({ event, ourTeamName, now }: Props) {
         <p className="text-[12px] font-black uppercase tracking-[0.22em] text-red-300/90">
           Nächstes Spiel
         </p>
-        <div className="mt-1 flex items-center gap-2">
-          {matchLabel ? (
-            <p className="text-[13px] font-semibold text-white/55">{matchLabel}</p>
-          ) : null}
-          {ageGroup ? (
-            <span className="rounded-full border border-red-400/25 bg-red-950/35 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.13em] text-red-300">
-              {ageGroup}
-            </span>
-          ) : null}
+        <div className="mt-1 flex min-w-0 justify-center py-1">
+          <MatchTypeHeading label={matchLabel ?? 'Spiel'} ageGroup={ageGroup} />
         </div>
       </div>
 
