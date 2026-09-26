@@ -53,8 +53,8 @@ export function CenterQuickActionBar({
         {onShare ? <ActionChip icon={Share2} label="Teilen" onClick={() => void handleShare()} layout={layout} /> : null}
         {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten" onClick={onEdit} layout={layout} /> : null}
         {onReschedule ? <ActionChip icon={CalendarClock} label="Verschieben" onClick={onReschedule} layout={layout} /> : null}
-        {onCancel ? <ActionChip icon={XCircle} label={cancelLabel} onClick={onCancel} danger layout={layout} /> : null}
-        {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={onDelete} danger layout={layout} /> : null}
+        {onCancel ? <ActionChip icon={XCircle} label={cancelLabel} onClick={onCancel} dangerTone="cancel" layout={layout} /> : null}
+        {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={onDelete} dangerTone="delete" layout={layout} /> : null}
       </div>
       {shareHint ? (
         <span
@@ -72,13 +72,13 @@ function ActionChip({
   icon: Icon,
   label,
   onClick,
-  danger = false,
+  dangerTone,
   layout = 'scroll',
 }: {
   icon: typeof CalendarPlus;
   label: string;
   onClick: () => void;
-  danger?: boolean;
+  dangerTone?: 'cancel' | 'delete';
   layout?: 'scroll' | 'grid';
 }) {
   return (
@@ -89,9 +89,9 @@ function ActionChip({
         layout === 'grid'
           ? 'sz-club-event-action min-h-[56px] w-full rounded-[15px] border px-2 py-2.5 text-[14px] font-bold'
           : 'min-h-[34px] rounded-full px-3 py-1.5 text-[11px] font-semibold'
-      } ${danger ? layout === 'grid' ? 'sz-club-event-action--danger text-rose-100' : 'border border-red-400/35 bg-red-950/35 text-red-200 hover:bg-red-900/45' : layout === 'grid' ? 'text-white/90' : 'border border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.05)] text-white/88 hover:border-[rgba(255,71,71,0.3)] hover:bg-[rgba(255,71,71,0.1)]'}`}
+      } ${dangerTone ? layout === 'grid' ? 'sz-club-event-action--danger text-white/90' : 'border border-red-400/35 bg-red-950/35 text-red-200 hover:bg-red-900/45' : layout === 'grid' ? 'text-white/90' : 'border border-[rgba(255,71,71,0.18)] bg-[rgba(255,71,71,0.05)] text-white/88 hover:border-[rgba(255,71,71,0.3)] hover:bg-[rgba(255,71,71,0.1)]'}`}
     >
-      <Icon className={`${layout === 'grid' ? 'h-[18px] w-[18px]' : 'h-3.5 w-3.5'} shrink-0 ${danger ? 'text-red-300' : 'sz-club-accent-text'}`} strokeWidth={2.25} aria-hidden />
+      <Icon className={`${layout === 'grid' ? 'h-[18px] w-[18px]' : 'h-3.5 w-3.5'} shrink-0 ${dangerTone === 'cancel' ? 'text-amber-300' : dangerTone === 'delete' ? 'text-rose-300' : 'sz-club-accent-text'}`} strokeWidth={2.25} aria-hidden />
       {label}
     </button>
   );
