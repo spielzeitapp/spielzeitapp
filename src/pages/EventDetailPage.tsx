@@ -4957,7 +4957,7 @@ export const EventDetailPage: React.FC = () => {
                 </label>
               </section>
             ) : null}
-            <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+            <section className="eventEditSection rounded-xl border p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Basisdaten</p>
               <div className="space-y-3">
                 <div>
@@ -5027,7 +5027,7 @@ export const EventDetailPage: React.FC = () => {
               </div>
             </section>
 
-            <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+            <section className="eventEditSection rounded-xl border p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Zeiten</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
@@ -5070,7 +5070,7 @@ export const EventDetailPage: React.FC = () => {
               </div>
             </section>
 
-            <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+            <section className="eventEditSection rounded-xl border p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Ort</p>
               {editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true) ? (
                 <label className="mb-3 flex cursor-pointer items-start gap-2 text-sm text-[var(--text-main)]">
@@ -5139,7 +5139,7 @@ export const EventDetailPage: React.FC = () => {
               ) : null}
             </section>
 
-            <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+            <section className="eventEditSection rounded-xl border p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Details</p>
               <textarea
                 value={editDetails}
