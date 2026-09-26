@@ -9,6 +9,7 @@ interface ModalProps {
   title?: string;
   /** Zusätzliche Klassen für den Titel (z. B. größere Typo im Match-Editor). */
   titleClassName?: string;
+  className?: string;
   onClose: () => void;
   children: React.ReactNode;
   /** Sticky footer (e.g. Abbrechen / Speichern). Buttons bleiben sichtbar. */
@@ -20,6 +21,7 @@ export const Modal: React.FC<ModalProps> = ({
   open,
   title,
   titleClassName,
+  className,
   onClose,
   children,
   footer,
@@ -64,7 +66,7 @@ export const Modal: React.FC<ModalProps> = ({
       role="presentation"
     >
       <div
-        className="modalSheet"
+        className={['modalSheet', className ?? ''].filter(Boolean).join(' ')}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
