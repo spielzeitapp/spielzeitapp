@@ -649,14 +649,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const avgMinutesPerGameDisplay = useMemo(() => {
     const v = Number(stats.averageMinutesPerGame);
-    if (!Number.isFinite(v)) return "0.0";
-    return v.toFixed(1);
+    if (!Number.isFinite(v)) return "0";
+    return String(Math.round(v));
   }, [stats.averageMinutesPerGame]);
 
   const tournamentAvgMinutesDisplay = useMemo(() => {
     const v = Number(tournamentStats.averageMinutesPerGame);
-    if (!Number.isFinite(v)) return "0.0";
-    return v.toFixed(1);
+    if (!Number.isFinite(v)) return "0";
+    return String(Math.round(v));
   }, [tournamentStats.averageMinutesPerGame]);
 
   const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
