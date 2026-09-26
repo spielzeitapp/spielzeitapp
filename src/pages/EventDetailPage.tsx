@@ -4922,19 +4922,20 @@ export const EventDetailPage: React.FC = () => {
         <Modal
           isOpen={editModalOpen}
           title="Termin bearbeiten"
+          className="eventEditModal"
           onClose={closeEditModal}
           footer={
-            <div className="sticky bottom-0 -mx-1 flex justify-end gap-2 border-t border-white/[0.08] bg-[rgba(10,10,14,0.96)] px-1 pt-3">
-              <AppButton variant="secondary" onClick={closeEditModal} className="min-h-[46px]">
+            <div className="flex w-full min-w-0 gap-2.5">
+              <AppButton variant="secondary" onClick={closeEditModal} className="min-h-[46px] min-w-0 flex-1 rounded-xl border border-white/15">
                 Abbrechen
               </AppButton>
-              <AppButton type="submit" form="event-detail-edit-form" variant="primary" disabled={savingEdit} className="min-h-[46px]">
+              <AppButton type="submit" form="event-detail-edit-form" variant="primary" disabled={savingEdit} className="min-h-[46px] min-w-0 flex-1 rounded-xl">
                 {savingEdit ? 'Speichern…' : 'Speichern'}
               </AppButton>
             </div>
           }
         >
-          <form id="event-detail-edit-form" onSubmit={handleEditSubmit} className="space-y-4">
+          <form id="event-detail-edit-form" onSubmit={handleEditSubmit} className="min-w-0 space-y-4">
             {editEvent?.status === 'upcoming' && (editEvent.kind === 'match' || editEvent.kind === 'training') ? (
               <section className="rounded-xl border border-amber-400/25 bg-amber-950/20 px-3 py-3 text-[13px] text-amber-100">
                 <p>Bei geändertem Datum oder geänderter Uhrzeit wird nach dem Speichern diese Nachricht an Eltern und Spieler versendet:</p>
