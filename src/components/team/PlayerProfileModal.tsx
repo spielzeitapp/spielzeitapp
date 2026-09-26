@@ -38,7 +38,6 @@ import {
   ProfileTrainingAwardsSection,
   ProfileTrainingKaiserStatus,
 } from "./profile/ProfileTrainingExtras";
-import { TrainerParentAccessHint } from "./TrainerParentAccessHint";
 import { SeasonMatchCard } from "./SeasonMatchCard";
 import type { SeasonMatchCardData } from "../../lib/seasonMatchStats";
 
@@ -928,11 +927,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             </PlayerSpecialSettingsAccordion>
           ) : null}
 
-          {/* Staff-only: kompakter Hinweis — volle Verwaltung unter Mehr → Eltern & Spielerzugänge */}
-          {canManage && teamSeasonId && !demo ? (
-            <TrainerParentAccessHint teamSeasonId={teamSeasonId} playerId={player.id} />
-          ) : null}
-
           {/* Sticky tabs */}
           <div className="sticky top-0 z-10 -mx-3 mb-3 border-b sz-club-divider bg-[linear-gradient(180deg,rgba(8,8,10,0.96)_0%,rgba(0,0,0,0.88)_100%)] px-1 py-1 backdrop-blur-md sm:-mx-4">
             <div className="sz-club-tab-track flex gap-1 rounded-xl border p-0.5">
@@ -1133,10 +1127,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   />
                   <ProfileTrainingAwardsSection />
                 </>
-              ) : null}
-
-              {canManage && teamSeasonId ? (
-                <TrainerParentAccessHint teamSeasonId={teamSeasonId} playerId={player.id} />
               ) : null}
 
             </>
