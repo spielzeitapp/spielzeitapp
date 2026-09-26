@@ -1137,7 +1137,7 @@ export const TeamPage: React.FC = () => {
                 kind="filter"
                 active={activeTab === tab.id}
                 onClick={() => handleTeamTabChange(tab.id)}
-                className="min-w-0 px-1.5 text-[10px] sm:px-2.5 sm:text-[12px]"
+                className="min-w-0 px-1.5 text-[11px] font-bold uppercase tracking-[0.03em] sm:px-2.5 sm:text-[13px]"
               >
                 {tab.label}
               </PremiumTab>
