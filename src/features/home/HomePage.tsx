@@ -561,7 +561,7 @@ export const HomePage: React.FC = () => {
                 </div>
               ) : feedBusy ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
-              ) : visibleActivePosts.length === 0 ? (
+              ) : visibleActivePosts.length === 0 && visibleHistoricPosts.length === 0 ? (
                 <PremiumEmptyState
                   variant="subtle"
                   title="Noch keine Beiträge"

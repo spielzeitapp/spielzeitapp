@@ -141,13 +141,17 @@ function mapRow(r: EventDbRow): EventRow {
   };
 }
 
-export function useEvents(teamSeasonId: string | null) {
+export function useEvents(teamSeasonId: string | readonly string[] | null) {
+  const seasonIdsKey = typeof teamSeasonId === 'string'
+    ? teamSeasonId
+    : [...new Set((teamSeasonId ?? []).filter(Boolean))].join(',');
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!teamSeasonId) {
+    const seasonIds = seasonIdsKey.split(',').filter(Boolean);
+    if (seasonIds.length === 0) {
       setEvents([]);
       setLoading(false);
       setError(null);
@@ -156,12 +160,13 @@ export function useEvents(teamSeasonId: string | null) {
     setLoading(true);
     setError(null);
 
-    const run = (select: string) =>
-      supabase
-        .from("events")
-        .select(select)
-        .eq("team_season_id", teamSeasonId)
-        .order("starts_at", { ascending: true });
+    const run = (select: string) => {
+      const query = supabase.from("events").select(select);
+      return (seasonIds.length === 1
+        ? query.eq("team_season_id", seasonIds[0])
+        : query.in("team_season_id", seasonIds)
+      ).order("starts_at", { ascending: true });
+    };
 
     let res = await run(EVENTS_SELECT_FULL);
     if (res.error && OPTIONAL_COL_ERR.test(String(res.error.message ?? ""))) {
@@ -188,7 +193,7 @@ export function useEvents(teamSeasonId: string | null) {
       setEvents(mapped);
     }
     setLoading(false);
-  }, [teamSeasonId]);
+  }, [seasonIdsKey]);
 
   useEffect(() => {
     load().catch((e) => {

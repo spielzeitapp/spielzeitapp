@@ -1,10 +1,11 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import type { SessionTeamSeasonItem } from '../../auth/useSession';
 import {
   formatTeamSeasonCompactSwitcherLabel,
   isSeasonActive,
+  isSeasonArchived,
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 
@@ -55,6 +56,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
   hideWhenSingle = false,
 }) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const {
     teamSeasons,
     selectedTeamSeasonId,
@@ -63,6 +65,17 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
     setViewTeamSeasonId,
     memberships,
   } = useSession();
+
+  const showTeamOnlySwitcher = compact && (pathname === '/app' || pathname === '/app/home' || pathname === '/app/termine');
+  React.useEffect(() => {
+    if (!showTeamOnlySwitcher || !viewTeamSeasonId || !selectedTeamSeasonId) return;
+    const viewed = teamSeasons.find((ts) => ts.id === viewTeamSeasonId);
+    const active = teamSeasons.find((ts) => ts.id === selectedTeamSeasonId);
+    if (!viewed || !active || !isSeasonArchived(viewed.status)) return;
+    if (String(viewed.team?.id ?? viewed.team_id) === String(active.team?.id ?? active.team_id)) {
+      setViewTeamSeasonId(null);
+    }
+  }, [showTeamOnlySwitcher, viewTeamSeasonId, selectedTeamSeasonId, teamSeasons, setViewTeamSeasonId]);
 
   if (teamSeasons.length === 0) {
     if (hideWhenSingle) return null;
@@ -106,6 +119,54 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
   );
   const ownTeamSeasons = teamSeasons.filter((ts) => ownTeamSeasonIds.has(ts.id));
   const favoriteTeamSeasons = teamSeasons.filter((ts) => !ownTeamSeasonIds.has(ts.id));
+  const teamGroups = new Map<string, SessionTeamSeasonItem[]>();
+  for (const ts of teamSeasons) {
+    const key = String(ts.team?.id ?? ts.team_id ?? ts.id);
+    teamGroups.set(key, [...(teamGroups.get(key) ?? []), ts]);
+  }
+
+  if (showTeamOnlySwitcher) {
+    if (teamGroups.size <= 1) return null;
+    const current = teamSeasons.find((ts) => ts.id === value);
+    const currentKey = String(current?.team?.id ?? current?.team_id ?? current?.id ?? '');
+    const groups = [...teamGroups.entries()].map(([key, seasons]) => {
+      const preferred = seasons.find((ts) => ts.id === selectedTeamSeasonId)
+        ?? seasons.find((ts) => isSeasonActive(ts.status))
+        ?? seasons.find((ts) => !/archiv/i.test(ts.status ?? ''))
+        ?? seasons[0];
+      return {
+        key,
+        seasonId: preferred.id,
+        label: preferred.team?.name?.trim() || preferred.display_name?.trim() || 'Mannschaft',
+        own: seasons.some((ts) => ownTeamSeasonIds.has(ts.id)),
+      };
+    });
+    const selectedGroup = groups.find((group) => group.key === currentKey);
+    return (
+      <label className="relative inline-flex h-8 min-w-[5.75rem] max-w-[7.75rem] shrink-0 items-center justify-center gap-1 rounded-full border border-white/15 bg-black/45 px-2 text-[10px] font-bold text-white/95 shadow-sm sm:max-w-[10rem] sm:px-2.5 sm:text-[11px]">
+        <span className="min-w-0 truncate" aria-hidden>{selectedGroup?.label ?? 'Team wählen'}</span>
+        <span className="shrink-0 text-[9px] text-white/55" aria-hidden>▼</span>
+        <select
+          value={selectedGroup?.seasonId ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          aria-label="Mannschaft wählen"
+        >
+          <optgroup label="Meine Mannschaften">
+            {groups.filter((group) => group.own).map((group) => (
+              <option key={group.key} value={group.seasonId}>{group.label}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Favoriten">
+            {groups.filter((group) => !group.own).map((group) => (
+              <option key={group.key} value={group.seasonId}>{group.label}</option>
+            ))}
+          </optgroup>
+          <option value="__manage_favorites__">＋ Favoriten verwalten</option>
+        </select>
+      </label>
+    );
+  }
 
   const options = (
     <>
