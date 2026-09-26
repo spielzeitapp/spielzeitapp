@@ -1207,6 +1207,24 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   min-width: 0;
 }
 
+.eventEditModal .eventEditSection {
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  border-color: rgb(var(--club-border-rgb) / 0.27);
+  background: linear-gradient(145deg, rgba(16, 16, 20, 0.98), rgb(var(--club-primary-rgb) / 0.07));
+}
+
+.eventEditModal .eventEditSection > p:first-child {
+  color: rgb(var(--club-accent-rgb) / 0.8);
+}
+
+.eventEditModal .eventEditSection .grid {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
 .eventEditModal input,
 .eventEditModal textarea,
 .eventEditModal select {
@@ -1221,6 +1239,10 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   font-size: 16px;
 }
 
+.eventEditModal input[type='checkbox'] {
+  accent-color: rgb(var(--club-accent-rgb));
+}
+
 @media (max-width: 639px) {
   .modalSheet.eventEditModal {
     height: calc(100% - var(--modal-nav-gap));
@@ -1228,6 +1250,13 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 
   .eventEditModal .modalFooter {
     padding-bottom: 14px;
+  }
+
+  /* iOS reserves the native date/time control's intrinsic width even inside a grid. */
+  .eventEditModal .eventEditSection input[type='time'],
+  .eventEditModal .eventEditSection input[type='datetime-local'] {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
   }
 }
 
