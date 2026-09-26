@@ -247,8 +247,18 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   const effectiveTeamSeasonId = isDemo
     ? demo!.data.teamSeasonId
     : (teamSeasonId ?? (user ? null : publicTeamId));
+  const visibleTeamSeasonIds = useMemo(() => {
+    if (!effectiveTeamSeasonId || isDemo || managerSimpleMode || isHistoryReadOnly || !user) return effectiveTeamSeasonId;
+    const selected = teamSeasons.find((season) => season.id === effectiveTeamSeasonId);
+    const selectedTeamId = selected?.team?.id ?? selected?.team_id;
+    if (selectedTeamId == null) return effectiveTeamSeasonId;
+    const sameTeamIds = teamSeasons
+      .filter((season) => String(season.team?.id ?? season.team_id ?? '') === String(selectedTeamId))
+      .map((season) => season.id);
+    return sameTeamIds.length > 1 ? sameTeamIds : effectiveTeamSeasonId;
+  }, [effectiveTeamSeasonId, isDemo, managerSimpleMode, isHistoryReadOnly, user, teamSeasons]);
   const { events: rawEventsLive, loading: eLoadingLive, error: eErrorLive, refetch: refetchLive } =
-    useEvents(isDemo ? null : effectiveTeamSeasonId);
+    useEvents(isDemo ? null : visibleTeamSeasonIds);
   const rawEvents = isDemo ? demo!.data.events : rawEventsLive;
   const eLoading = isDemo ? false : eLoadingLive;
   const eError = isDemo ? null : eErrorLive;
@@ -1756,6 +1766,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                     >
                       {(() => {
                         const ev = heroEvent;
+                        const isArchivedEvent = isSeasonArchived(
+                          teamSeasons.find((season) => season.id === ev.team_season_id)?.status,
+                        );
                         const evAttendance = attendanceByEventId[ev.id];
                         const yesRaw = evAttendance?.yes ?? 0;
                         const no = evAttendance?.no ?? 0;
@@ -1781,7 +1794,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             : undefined;
                         const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
                         const matchReviewPending = Boolean(
-                          canManage &&
+                          canManage && !isArchivedEvent &&
                           ev.match_id &&
                             isMatchReviewPending({
                               eventStatus: ev.status,
@@ -1804,10 +1817,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             }
                           : {};
                         const heroShowsTrainerStats =
-                          ev.status !== 'canceled' && !forcePublicView && !managerSimpleMode && !isFinishedMatch && canManage;
+                          ev.status !== 'canceled' && !isArchivedEvent && !forcePublicView && !managerSimpleMode && !isFinishedMatch && canManage;
                         const heroShowsParentPill =
                           !forcePublicView &&
-                          !isFinishedMatch && ev.status !== 'canceled' &&
+                          !isArchivedEvent && !isFinishedMatch && ev.status !== 'canceled' &&
                           canShowRsvpUi;
                         const heroTopRight =
                           normalizedUiRole === 'fan'
@@ -1851,7 +1864,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             : (id: string) => {
                                 if (managerSimpleMode) {
                                   const target = events.find((event) => event.id === id);
-                                  if (target && canMutateSchedule) openEditModal(target);
+                                  if (target && canMutateSchedule && !isArchivedEvent) openEditModal(target);
                                   return;
                                 }
                                 if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
@@ -2028,6 +2041,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                       </h3>
                     ) : null}
                     {furtherEvents.map((ev, index) => {
+                      const isArchivedEvent = isSeasonArchived(
+                        teamSeasons.find((season) => season.id === ev.team_season_id)?.status,
+                      );
                       const nowForList = new Date();
                       const listBucket = getTimeBucket(ev, nowForList);
                       const previousEvent = index > 0 ? furtherEvents[index - 1] : null;
@@ -2074,11 +2090,11 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         (ev.status === 'finished' ||
                           (!canManage && isFinishedMatchStatus(matchStatusById[ev.match_id!])));
                       const showCompactTrainerStats =
-                        ev.status !== 'canceled' && normalizedUiRole !== 'fan' && !managerSimpleMode && !forcePublicView && !isFinishedMatch && canManage;
+                        ev.status !== 'canceled' && !isArchivedEvent && normalizedUiRole !== 'fan' && !managerSimpleMode && !forcePublicView && !isFinishedMatch && canManage;
                       const showCompactParentPill =
                         normalizedUiRole !== 'fan' &&
                         !forcePublicView &&
-                        !isFinishedMatch && ev.status !== 'canceled' &&
+                        !isArchivedEvent && !isFinishedMatch && ev.status !== 'canceled' &&
                         canShowRsvpUi;
                       const compactTrailing = showCompactTrainerStats ? (
                         <button
@@ -2112,7 +2128,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                       const opponentLogo = ev.opponent_logo_url ?? null;
                       const matchScoreRow = ev.match_id ? matchScoreById[ev.match_id] : undefined;
                       const matchReviewPending = Boolean(
-                        canManage &&
+                        canManage && !isArchivedEvent &&
                         ev.match_id &&
                           isMatchReviewPending({
                             eventStatus: ev.status,
@@ -2137,7 +2153,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                               onNavigate={(id) => {
                                 if (managerSimpleMode) {
                                   const target = events.find((event) => event.id === id);
-                                  if (target && canMutateSchedule) openEditModal(target);
+                                  if (target && canMutateSchedule && !isArchivedEvent) openEditModal(target);
                                   return;
                                 }
                                 navigate(`${basePath}/events/${id}`);
@@ -2160,7 +2176,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             onNavigate={(id) => {
                               if (managerSimpleMode) {
                                 const target = events.find((event) => event.id === id);
-                                if (target && canMutateSchedule) openEditModal(target);
+                                if (target && canMutateSchedule && !isArchivedEvent) openEditModal(target);
                                 return;
                               }
                               if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
