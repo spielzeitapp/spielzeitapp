@@ -9,7 +9,7 @@ export type RosterPlayer = {
   jerseyNumber: number | null;
   position: string | null;
   avatarUrl: string | null;
-  cutoutUrl: string | null;
+  cutoutUrl?: string | null;
 };
 
 export function playerItemToRoster(p: PlayerItem): RosterPlayer {
