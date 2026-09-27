@@ -72,7 +72,10 @@ export function useTeamTrainingRanking(
     try {
       if (useDemoData && demo) {
         const pastEvents = getDemoPastTrainingEvents(demo.data.events);
-        const playerIds = squadPlayers.map((p) => p.id);
+        // Beim ersten Laden kann die Teamseite noch einen leeren Kader liefern.
+        // Die Demo hat einen eigenen stabilen Kader für die historischen Rückmeldungen.
+        const demoSquad = squadPlayers.length > 0 ? squadPlayers : demo.players.filter((p) => (p.status ?? 'active') === 'active');
+        const playerIds = demoSquad.map((p) => p.id);
         const statsByPlayerId = buildDemoStatsByPlayerId(
           playerIds,
           pastEvents,
@@ -83,7 +86,7 @@ export function useTeamTrainingRanking(
           playerIds,
           demo.attendanceRows,
         );
-        const ranking = buildTrainingRanking(squadPlayers, statsByPlayerId, pastEvents.length);
+        const ranking = buildTrainingRanking(demoSquad, statsByPlayerId, pastEvents.length);
         setResult({
           ...ranking,
           teamParticipationPct: computeDemoSquadParticipationPct(sessionParticipations),

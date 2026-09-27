@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
@@ -17,6 +17,7 @@ import {
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { FeedPostEditButton } from './FeedPostEditButton';
+import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -37,6 +38,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
+  const brandedImageRef = useRef<HTMLDivElement>(null);
   const resolvedSrc = useFeedMediaSrc(post.media_url);
 
   useEffect(() => {
@@ -69,12 +71,16 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
     const lower = (post.media_url ?? '').toLowerCase();
     const ext = lower.endsWith('.png') ? 'png' : lower.endsWith('.webp') ? 'webp' : 'jpg';
     const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    const brandedBlob = post.id.startsWith('df-') && brandedImageRef.current
+      ? await matchdayPosterDomToPngBlob(brandedImageRef.current)
+      : null;
     const outcome = await shareFeedContent({
       title,
       text,
-      fetchUrl: resolvedSrc,
-      fileName: `spielzeit-feed-${post.id.slice(0, 8)}.${ext}`,
-      mimeType: mime,
+      fetchUrl: brandedBlob ? null : resolvedSrc,
+      file: brandedBlob ? new File([brandedBlob], `spielzeit-feed-${post.id.slice(0, 8)}.png`, { type: 'image/png' }) : null,
+      fileName: brandedBlob ? `spielzeit-feed-${post.id.slice(0, 8)}.png` : `spielzeit-feed-${post.id.slice(0, 8)}.${ext}`,
+      mimeType: brandedBlob ? 'image/png' : mime,
     });
     if (outcome === 'aborted') return;
     if (outcome === 'shared') {
@@ -110,6 +116,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div
+          ref={brandedImageRef}
           className="sz-club-feed-media-frame relative max-h-[min(78vh,720px)] w-full overflow-hidden rounded-none border-y bg-black sm:rounded-2xl sm:border"
           style={{ aspectRatio: imageAspectRatio ?? 4 / 5 }}
         >
@@ -129,6 +136,12 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
               }}
               onError={() => setImageFailed(true)}
             />
+          ) : null}
+          {post.id.startsWith('df-') && imageLoaded ? (
+            <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-xl border border-white/20 bg-black/80 px-2.5 py-1.5 text-white shadow-xl backdrop-blur-sm" aria-label="SpielzeitApp Demo">
+              <img src="/logos/nsg-goelsental.png" alt="" className="h-9 w-9 object-contain" />
+              <span className="text-sm font-extrabold tracking-tight">Spielzeit<span className="text-red-400">App</span></span>
+            </div>
           ) : null}
           {!imageLoaded ? (
             <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(160deg,rgba(42,12,17,0.55),rgba(0,0,0,0.96))] text-xs font-medium text-white/45">

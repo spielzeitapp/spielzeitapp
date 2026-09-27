@@ -72,6 +72,18 @@ export const demoFixtures: DemoFixtures = {
       rsvpOpen: 0,
     },
     {
+      id: 'ev-game-past-older',
+      kind: 'game',
+      title: 'Meisterschaft',
+      startsAt: '2026-08-15T10:00:00+02:00',
+      location: 'Sportplatz Rohrbach',
+      opponent: 'SV Langenrohr U12',
+      isHome: true,
+      rsvpYes: 11,
+      rsvpNo: 1,
+      rsvpOpen: 0,
+    },
+    {
       id: 'ev-train-next',
       kind: 'training',
       title: 'Training',

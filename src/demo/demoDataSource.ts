@@ -8,6 +8,7 @@ export const DEMO_TEAM_SEASON_ID = '00000000-demo-4000-8000-teamseasonu12';
 export const DEMO_TEAM_ID = '00000000-demo-4000-8000-teamrohrbach';
 export const DEMO_MATCH_ID_LIVE = '00000000-demo-4000-8000-matchloosdorf';
 export const DEMO_MATCH_ID_PAST = '00000000-demo-4000-8000-matchstveit';
+export const DEMO_MATCH_ID_PAST_OLDER = '00000000-demo-4000-8000-matchlangenrohr';
 
 const TEAM = demoFixtures.teamName;
 const SEASON = demoFixtures.seasonLabel;
@@ -18,6 +19,7 @@ export const DEMO_EVENT_TIMES = {
   'ev-train-canceled': () => ({ starts: demoOffsetIso(-14, 17, 0), ends: demoOffsetIso(-14, 18, 20) }),
   'ev-train-past': () => ({ starts: demoOffsetIso(-7, 17, 0), ends: demoOffsetIso(-7, 18, 20) }),
   'ev-game-past': () => ({ starts: demoOffsetIso(-4, 10, 0), meeting: demoOffsetIso(-4, 9, 15) }),
+  'ev-game-past-older': () => ({ starts: demoOffsetIso(-12, 10, 0), meeting: demoOffsetIso(-12, 9, 15) }),
   'ev-train-next': () => ({ starts: demoOffsetIso(2, 17, 0), ends: demoOffsetIso(2, 18, 20) }),
   'ev-train-follow': () => ({ starts: demoOffsetIso(9, 17, 0), ends: demoOffsetIso(9, 18, 20) }),
   'ev-game-next': () => ({
@@ -117,6 +119,7 @@ export function buildDemoEvents(): EventRow[] {
     if (canceled) status = 'canceled';
     else if (kind === 'match' && ev.id === 'ev-game-next') status = 'upcoming';
     else if (kind === 'match' && ev.id === 'ev-game-past') status = 'finished';
+    else if (kind === 'match' && ev.id === 'ev-game-past-older') status = 'finished';
     else if (kind === 'match' && ev.id === 'ev-game-away') status = 'upcoming';
     else if (ev.id === 'ev-train-past' || ev.id === 'ev-info') status = 'finished';
     else if (ev.id.startsWith('ev-train-h')) status = 'finished';
@@ -141,6 +144,8 @@ export function buildDemoEvents(): EventRow[] {
           ? DEMO_MATCH_ID_LIVE
           : ev.id === 'ev-game-past'
             ? DEMO_MATCH_ID_PAST
+            : ev.id === 'ev-game-past-older'
+              ? DEMO_MATCH_ID_PAST_OLDER
             : ev.id === 'ev-game-away'
               ? '00000000-demo-4000-8000-matchsknaway'
               : null,
@@ -223,8 +228,7 @@ export function buildDemoFeedPosts(): {
         caption: 'Elterninformation – Saisonstart im Vereinsheim Rohrbach. Bitte Zusagen prüfen.',
         created_at: tInfo.starts,
         event_id: 'ev-info',
-        // Neutrale Platzhalter-Grafik (kein Kinderfoto)
-        media_url: '/icons/pitch.svg',
+        media_url: '/feed/demo-u12-team-moment.webp',
         payload: {},
       }),
     },
@@ -251,6 +255,7 @@ export function buildDemoFeedPosts(): {
           location: 'Sportplatz Rohrbach',
           match_id: DEMO_MATCH_ID_PAST,
           event_id: 'ev-game-past',
+          matchday_player_image_url: '/feed/demo-matchday-player-01.webp',
           deep_link: '/demo/events/ev-game-past',
         },
       },
@@ -353,8 +358,8 @@ export function buildDemoFeedPosts(): {
           team_season_id: DEMO_TEAM_SEASON_ID,
           home_team_name: our,
           away_team_name: loosdorf,
-          home_logo_url: '',
-          away_logo_url: '',
+          home_logo_url: '/logos/nsg-goelsental.png',
+          away_logo_url: '/logos/loosdorf.png',
           starts_at: tGameNext.starts,
           location: 'Sportplatz Rohrbach',
           match_type: 'championship',
@@ -381,8 +386,8 @@ export function buildDemoFeedPosts(): {
           team_season_id: DEMO_TEAM_SEASON_ID,
           home_team_name: our,
           away_team_name: stVeit,
-          home_logo_url: '',
-          away_logo_url: '',
+          home_logo_url: '/logos/nsg-goelsental.png',
+          away_logo_url: '/logos/placeholder-shield-a.png',
           home_score: 3,
           away_score: 1,
           match_type: 'championship',
@@ -403,6 +408,41 @@ export function buildDemoFeedPosts(): {
       },
     },
     {
+      kind: 'result',
+      post: {
+        ...basePost({
+          id: 'df-result-older',
+          post_kind: 'result_auto',
+          media_type: 'result',
+          caption: `Rückblick · ${our} – SV Langenrohr U12 1:1. Gemeinsam weiterarbeiten.`,
+          created_at: demoOffsetIso(-12, 12, 15),
+          event_id: 'ev-game-past-older',
+          payload: {},
+        }),
+        payload: {
+          match_id: DEMO_MATCH_ID_PAST_OLDER,
+          event_id: 'ev-game-past-older',
+          team_season_id: DEMO_TEAM_SEASON_ID,
+          home_team_name: our,
+          away_team_name: 'SV Langenrohr U12',
+          home_logo_url: '/logos/nsg-goelsental.png',
+          away_logo_url: '/logos/sv-langenrohr-v2.png',
+          home_score: 1,
+          away_score: 1,
+          match_type: 'championship',
+          starts_at: DEMO_EVENT_TIMES['ev-game-past-older']().starts,
+          meeting_at: null,
+          location: 'Sportplatz Rohrbach',
+          scorers: [{ player_name: 'Lena M.', minute_label: "32'" }],
+          period_scores: null,
+          result_state: 'draw',
+          our_team_name: our,
+          is_home: true,
+          deep_link: '/demo/events/ev-game-past-older',
+        },
+      },
+    },
+    {
       kind: 'image',
       post: basePost({
         id: 'df-tournament-info',
@@ -411,7 +451,7 @@ export function buildDemoFeedPosts(): {
         caption: 'Turnierausblick: Das nächste U12-Turnier steht im Kalender. Treffpunkt, Spielplan und Rückmeldungen findet ihr direkt beim Termin.',
         created_at: demoOffsetIso(-2, 16, 0),
         event_id: 'ev-tournament',
-        media_url: '/icons/pitch.svg',
+        media_url: '/feed/demo-u12-training.webp',
       }),
     },
     {
