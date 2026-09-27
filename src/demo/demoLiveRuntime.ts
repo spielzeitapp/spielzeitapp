@@ -108,6 +108,18 @@ export type BootDemoLiveAsLiveOptions = {
 /** Alle Demo-Match-IDs (siehe demoDataSource / demoMatchState). */
 const DEMO_MATCH_ID_PREFIX = '00000000-demo-';
 const DEMO_EVENT_ID_PREFIX = 'demo-live-ev-';
+const DEMO_FINISHED_MATCH_EVENTS: Record<string, Array<Pick<DemoLiveEventRow, 'type' | 'minute' | 'player_id'>>> = {
+  '00000000-demo-4000-8000-matchstveit': [
+    { type: 'goal', minute: 18 * 60, player_id: 'p10' },
+    { type: 'goal_away', minute: 29 * 60, player_id: null },
+    { type: 'goal', minute: 41 * 60, player_id: 'p08' },
+    { type: 'goal', minute: 43 * 60, player_id: 'p06' },
+  ],
+  '00000000-demo-4000-8000-matchlangenrohr': [
+    { type: 'goal_away', minute: 20 * 60, player_id: null },
+    { type: 'goal', minute: 32 * 60, player_id: 'p07' },
+  ],
+};
 
 const MATCH_PATCH_KEYS = new Set<string>([
   'opponent',
@@ -436,7 +448,20 @@ export function deleteDemoLiveEvent(eventId: string | null | undefined): boolean
 
 export function getDemoLiveEventRows(matchId: string | null | undefined): DemoLiveEventRow[] {
   const s = activeSessionFor(matchId);
-  if (!s) return [];
+  if (!s) {
+    const id = normId(matchId);
+    const history = DEMO_FINISHED_MATCH_EVENTS[id] ?? [];
+    return history.map((event, index) => ({
+      id: `${DEMO_EVENT_ID_PREFIX}history-${id.slice(-8)}-${index}`,
+      match_id: id,
+      type: event.type,
+      minute: event.minute,
+      period: null,
+      player_id: event.player_id,
+      created_at: new Date(Date.UTC(2026, 8, 15, 10, index)).toISOString(),
+      payload: null,
+    }));
+  }
   return [...s.events].sort(
     (a, b) => (a.minute ?? 0) - (b.minute ?? 0) || a.created_at.localeCompare(b.created_at),
   );
