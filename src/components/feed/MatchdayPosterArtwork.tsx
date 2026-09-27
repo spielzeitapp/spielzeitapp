@@ -27,7 +27,7 @@ function PosterLogo({ src, alt }: { src: string; alt: string }) {
     <img
       src={imgSrc}
       alt={alt}
-      className="h-[clamp(2.9rem,14vw,4.35rem)] w-[clamp(2.9rem,14vw,4.35rem)] shrink-0 object-contain sm:h-[5.15rem] sm:w-[5.15rem]"
+      className="h-[clamp(2.4rem,13cqw,4.35rem)] w-[clamp(2.4rem,13cqw,4.35rem)] shrink-0 object-contain"
       style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.72))' }}
       loading="lazy"
       onError={() => {
@@ -52,7 +52,7 @@ function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
       <img
         src={playerImageUrl}
         alt=""
-        className="absolute bottom-0 right-[-18%] h-[110%] w-[95%] object-contain object-bottom object-right sm:right-[-14%]"
+        className="absolute bottom-0 right-[-20%] h-[78%] w-[78%] object-contain object-bottom object-right"
         style={{ filter: 'drop-shadow(-12px 8px 24px rgba(0,0,0,0.9))' }}
         loading="lazy"
         onError={() => setFailed(true)}
@@ -82,7 +82,7 @@ function TeamMark({ name, logoUrl }: { name: string; logoUrl: string }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center">
       <PosterLogo src={logoUrl} alt={name} />
-      <p className="mt-1 min-h-[2.25rem] w-full break-words text-center text-[clamp(0.56rem,2.5vw,0.86rem)] font-black uppercase leading-[1.08] tracking-[-0.01em] text-white">
+      <p className="mt-1 min-h-[2em] w-full break-words text-center text-[clamp(0.5rem,2.5cqw,0.86rem)] font-black uppercase leading-[1.08] tracking-[-0.01em] text-white">
         {name}
       </p>
     </div>
@@ -142,25 +142,25 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     const teamPrefix = teamSuffix ? cleanHashtag.slice(0, -teamSuffix.length) : cleanHashtag;
 
     return (
-      <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white">
+      <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white [container-type:inline-size]">
         <GraphicBackground />
         {playerUrl ? <PosterPlayerLayer playerImageUrl={playerUrl} /> : null}
 
-        <div className="relative z-[2] flex h-full flex-col px-[6%] pb-[4.5%] pt-[4.5%]">
+        <div className="relative z-[2] flex h-full flex-col px-[6%] pb-[4%] pt-[4.5%]">
           <header className="shrink-0">
-            <p className="mb-1 text-[clamp(0.38rem,1.9vw,0.55rem)] font-bold uppercase tracking-[0.36em] text-white/64">
+            <p className="mb-1 text-[clamp(0.38rem,1.7cqw,0.55rem)] font-bold uppercase tracking-[0.25em] text-white/80">
               {statusLabel}
             </p>
             <h2
-              className="whitespace-nowrap text-[clamp(3.1rem,17.2vw,5.15rem)] font-black uppercase leading-[0.78] tracking-[-0.055em] text-white"
+              className="whitespace-nowrap text-[clamp(2rem,14cqw,5rem)] font-black uppercase leading-[0.9] tracking-[-0.055em] text-white"
               style={{ textShadow: '0 6px 24px rgba(0,0,0,0.82)' }}
             >
               {title}
             </h2>
-            <div className="mt-2 flex w-[50%] items-center gap-3">
+            <div className="mt-[2%] flex w-[52%] items-center gap-2">
               <div className="sz-club-feed-accent-line h-[3px] flex-1" />
               {ageGroup ? (
-                <span className="sz-club-feed-accent-text text-[clamp(1.55rem,7.5vw,2.25rem)] font-black uppercase leading-none tracking-[-0.04em]">
+                <span className="sz-club-feed-accent-text text-[clamp(1.2rem,6cqw,2.25rem)] font-black uppercase leading-none tracking-[-0.04em]">
                   {ageGroup}
                 </span>
               ) : null}
@@ -168,31 +168,31 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             </div>
           </header>
 
-          <div className="mt-[4%] flex w-[62%] shrink-0 items-start gap-1 px-1 py-1">
+          <div className="mt-[4%] flex w-[59%] shrink-0 items-start gap-1 py-1">
             <TeamMark name={homeTeamName} logoUrl={homeLogoUrl} />
-            <div className="flex w-8 shrink-0 flex-col items-center pt-3 sm:w-11 sm:pt-5">
-              <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
-              <span className="sz-club-feed-accent-text my-0.5 text-[clamp(1.3rem,6.5vw,1.9rem)] font-black uppercase leading-none">VS</span>
-              <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
+            <div className="flex w-[12%] shrink-0 flex-col items-center pt-[5%]">
+              <div className="sz-club-feed-accent-line h-[5cqw] w-[2px] rotate-[28deg]" />
+              <span className="sz-club-feed-accent-text my-0.5 text-[clamp(0.9rem,5cqw,1.9rem)] font-black uppercase leading-none">VS</span>
+              <div className="sz-club-feed-accent-line h-[5cqw] w-[2px] rotate-[28deg]" />
             </div>
             <TeamMark name={awayTeamName} logoUrl={awayLogoUrl} />
           </div>
 
-          <div className="mt-auto mb-[13%] w-[52%] space-y-2 sm:space-y-3">
+          <div className="mt-auto w-[58%] space-y-[1.4cqw]">
             {competition ? (
-              <div className="flex items-center gap-1.5 text-[clamp(0.46rem,2.2vw,0.62rem)] font-bold uppercase tracking-[0.11em] text-white/64">
+              <div className="flex items-center gap-1.5 text-[clamp(0.45rem,2cqw,0.62rem)] font-bold uppercase tracking-[0.08em] text-white/80">
                 <Trophy className="sz-club-feed-accent-text h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
                 <span className="line-clamp-2 leading-tight">{competition}</span>
               </div>
             ) : null}
-            {venueLine ? <p className="sz-club-feed-accent-text text-[clamp(0.52rem,2.5vw,0.7rem)] font-black tracking-[0.15em]">{venueLine}</p> : null}
+            {venueLine ? <p className="sz-club-feed-accent-text text-[clamp(0.5rem,2.3cqw,0.7rem)] font-black tracking-[0.12em]">{venueLine}</p> : null}
             {matchDate ? (
-              <div className="sz-club-feed-accent-border border-y-2 py-1.5">
-                <p className="text-[clamp(1.15rem,6.2vw,1.7rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">{matchDate}</p>
+              <div className="sz-club-feed-accent-border border-y-2 py-[1cqw]">
+                <p className="text-[clamp(1rem,5.5cqw,1.7rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">{matchDate}</p>
               </div>
             ) : null}
-            <div className={matchDate ? '' : 'sz-club-feed-accent-border border-y-2 py-1.5'}>
-              <p className="flex items-baseline gap-1 text-[clamp(1.25rem,6.5vw,1.8rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">
+            <div className={matchDate ? '' : 'sz-club-feed-accent-border border-y-2 py-[1cqw]'}>
+              <p className="flex items-baseline gap-1 text-[clamp(1.1rem,5.8cqw,1.8rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">
                 {heroOverride?.main ?? kickoff}
                 {heroSuffix ? (
                   <span className="text-[0.42em] tracking-[0.04em] text-white/76">{heroSuffix}</span>
@@ -201,28 +201,28 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             </div>
             {location && location !== '—' ? (
               <div>
-                <div className="sz-club-feed-accent-text mb-0.5 flex items-center gap-1 text-[clamp(0.45rem,2.1vw,0.6rem)] font-black uppercase tracking-[0.16em]">
+                <div className="sz-club-feed-accent-text mb-0.5 flex items-center gap-1 text-[clamp(0.45rem,2cqw,0.6rem)] font-black uppercase tracking-[0.12em]">
                   <MapPin className="h-3 w-3" strokeWidth={2.5} aria-hidden /> ORT
                 </div>
-                <p className="line-clamp-3 text-[clamp(0.68rem,3.4vw,0.92rem)] font-black uppercase leading-[1.08] text-white">{location}</p>
+                <p className="line-clamp-2 text-[clamp(0.62rem,3cqw,0.92rem)] font-black uppercase leading-[1.08] text-white">{location}</p>
               </div>
             ) : null}
             {meetingTime ? (
-              <div className="flex items-center gap-1 text-[clamp(0.45rem,2.1vw,0.6rem)] font-bold uppercase tracking-[0.11em] text-white/62">
+              <div className="flex items-center gap-1 text-[clamp(0.45rem,2cqw,0.6rem)] font-bold uppercase tracking-[0.08em] text-white/80">
                 <Clock className="sz-club-feed-accent-text h-3 w-3" strokeWidth={2.5} aria-hidden /> Treffpunkt {meetingTime}
               </div>
             ) : null}
             {statusBadge ? <p className="sz-club-feed-accent-text font-black uppercase tracking-[0.16em]">{statusBadge}</p> : null}
           </div>
 
-          <footer className="absolute inset-x-[4%] bottom-[3.2%] z-[3]">
+          <footer className="relative z-[3] mt-[3%] shrink-0">
             <p
-              className="whitespace-nowrap text-center text-[clamp(1.48rem,7.8vw,2.3rem)] font-black italic uppercase leading-none tracking-[-0.045em]"
+              className="whitespace-nowrap text-center text-[clamp(0.9rem,4.7cqw,2rem)] font-black italic uppercase leading-none tracking-[-0.045em]"
               style={{ textShadow: '0 4px 14px rgba(0,0,0,0.95)' }}
             >
               <span className="text-white">#{teamPrefix}</span><span className="sz-club-feed-accent-text">{teamSuffix}</span>
             </p>
-            <div className="sz-club-feed-accent-fade mt-1.5 h-[3px] w-full" />
+            <div className="sz-club-feed-accent-fade mt-[1%] h-[2px] w-full" />
           </footer>
         </div>
       </div>
