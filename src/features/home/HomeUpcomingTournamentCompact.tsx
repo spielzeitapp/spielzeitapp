@@ -66,7 +66,7 @@ export const HomeUpcomingTournamentCompact: React.FC<Props> = ({ pick }) => {
     <PremiumCard
       as="section"
       matchday
-      className="border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(22,22,24,0.98)] to-[rgba(12,8,10,0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_28px_rgba(0,0,0,0.45)]"
+      className="sz-club-accent-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_28px_rgba(0,0,0,0.45)]"
       aria-label="Nächstes Turnier"
     >
       <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-amber-500/10 blur-2xl" />
@@ -84,24 +84,24 @@ export const HomeUpcomingTournamentCompact: React.FC<Props> = ({ pick }) => {
           <p className="text-[15px] font-semibold leading-snug text-white">{title}</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/62">
             <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
+              <Clock className="sz-club-accent-text h-3.5 w-3.5 shrink-0" aria-hidden />
               {dateLine}
               {timeLine ? ` · Beginn ${timeLine}` : ''}
             </span>
             {viewerCanSeeMeetup && meetupLine ? (
               <span className="inline-flex items-center gap-1">
-                <Users className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
+                <Users className="sz-club-accent-text h-3.5 w-3.5 shrink-0" aria-hidden />
                 Treffpunkt {meetupLine}
               </span>
             ) : null}
             {placeShort ? (
               <span className="inline-flex min-w-0 items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
+                <MapPin className="sz-club-accent-text h-3.5 w-3.5 shrink-0" aria-hidden />
                 <span className="min-w-0 break-words">{placeShort}</span>
               </span>
             ) : null}
           </div>
-          <span className="text-[12px] font-semibold text-red-300/90">Turnier öffnen</span>
+          <span className="sz-club-accent-text text-[12px] font-semibold">Turnier öffnen</span>
         </div>
         <div className="flex shrink-0 items-center self-center pr-1 text-white/32">
           <ChevronRight className="h-5 w-5" strokeWidth={2.2} aria-hidden />

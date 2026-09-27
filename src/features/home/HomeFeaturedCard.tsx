@@ -28,16 +28,16 @@ function NextEventHero({ event, now }: { event: EventRow; now: Date }) {
 
   return (
     <PremiumCard className="p-6">
-      <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-400/90">Nächster Termin</p>
+      <p className="sz-club-accent-text text-[11px] font-bold uppercase tracking-[0.22em]">Nächster Termin</p>
       <p className="mt-3 text-2xl font-bold text-white">{label}</p>
       <p className="mt-2 text-base text-white/80">{when}</p>
       <p className="mt-1 text-base text-white/60">{place}</p>
-      <p className="mt-4 text-lg font-semibold text-red-400">{countdown}</p>
+      <p className="sz-club-accent-text mt-4 text-lg font-semibold">{countdown}</p>
       <Link
         to={`${basePath}/events/${event.id}`}
         className={cn(
           dsSecondaryCtaClass(),
-          'mt-5 flex min-h-[48px] w-full items-center justify-center border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20',
+          'sz-club-accent-control mt-5 flex min-h-[48px] w-full items-center justify-center',
         )}
       >
         Details &amp; Zu-/Absage

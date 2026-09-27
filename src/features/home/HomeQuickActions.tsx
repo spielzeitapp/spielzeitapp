@@ -17,7 +17,7 @@ export const HomeQuickActions: React.FC = () => {
             variant="interactive"
             className="flex min-h-[88px] flex-col items-center justify-center gap-2 py-4 text-center text-sm font-semibold text-white"
           >
-            <MessageSquare className="h-6 w-6 text-red-500" strokeWidth={2} aria-hidden />
+            <MessageSquare className="sz-club-accent-text h-6 w-6" strokeWidth={2} aria-hidden />
             Nachrichten
           </PremiumCard>
         </Link>
@@ -26,7 +26,7 @@ export const HomeQuickActions: React.FC = () => {
             variant="interactive"
             className="flex min-h-[88px] flex-col items-center justify-center gap-2 py-4 text-center text-sm font-semibold text-white"
           >
-            <Users className="h-6 w-6 text-red-500" strokeWidth={2} aria-hidden />
+            <Users className="sz-club-accent-text h-6 w-6" strokeWidth={2} aria-hidden />
             Team
           </PremiumCard>
         </Link>
@@ -35,7 +35,7 @@ export const HomeQuickActions: React.FC = () => {
             variant="interactive"
             className="flex min-h-[88px] flex-col items-center justify-center gap-2 py-4 text-center text-sm font-semibold text-white"
           >
-            <CalendarDays className="h-6 w-6 text-red-500" strokeWidth={2} aria-hidden />
+            <CalendarDays className="sz-club-accent-text h-6 w-6" strokeWidth={2} aria-hidden />
             Termine
           </PremiumCard>
         </Link>
@@ -44,7 +44,7 @@ export const HomeQuickActions: React.FC = () => {
             variant="interactive"
             className="flex min-h-[88px] flex-col items-center justify-center gap-2 py-4 text-center text-sm font-semibold text-white"
           >
-            <Radio className="h-6 w-6 text-red-500" strokeWidth={2} aria-hidden />
+            <Radio className="sz-club-accent-text h-6 w-6" strokeWidth={2} aria-hidden />
             Live
           </PremiumCard>
         </Link>

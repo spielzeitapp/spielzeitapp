@@ -382,21 +382,17 @@ export const HomeFeedComposer: React.FC<Props> = ({
     <PremiumCard
       as="section"
       matchday
-      className="border-red-500/35 p-[1px] shadow-2xl"
-      style={{
-        boxShadow:
-          '0 0 0 1px rgba(220,38,38,0.12), 0 16px 40px rgba(0,0,0,0.55), 0 0 48px -12px rgba(220,38,38,0.25)',
-      }}
+      className="sz-club-accent-panel p-[1px] shadow-2xl"
       aria-label="Beitrag erstellen"
     >
       <div
-        className={`rounded-[1.35rem] bg-gradient-to-b from-[#1a0a0a] via-[#0c0c0c] to-[#080404] px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-2.5'}`}
+        className={`rounded-[1.35rem] bg-[linear-gradient(180deg,rgb(var(--club-primary-rgb)/0.2),#0c0c0c_38%,#080808)] px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-2.5'}`}
         style={{
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
         }}
       >
         <div
-          className={`pointer-events-none absolute inset-x-0 top-0 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgba(220,38,38,0.2),transparent)] opacity-90 ${composerExpanded ? 'h-24' : 'h-14'}`}
+          className={`pointer-events-none absolute inset-x-0 top-0 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgb(var(--club-primary-rgb)/0.24),transparent)] opacity-90 ${composerExpanded ? 'h-24' : 'h-14'}`}
         />
 
         <input
@@ -422,7 +418,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
             aria-expanded={composerExpanded}
           >
             <div className="flex items-center gap-2">
-              <Clapperboard className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
+              <Clapperboard className="sz-club-accent-text h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
               <span className="text-base font-bold tracking-tight text-white">+ Beitrag erstellen</span>
             </div>
             <p className="mt-1 text-xs leading-snug text-white/50">Foto oder Video posten</p>
@@ -440,7 +436,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
             <X className="h-4 w-4" strokeWidth={2} aria-hidden />
           </button>
           <div className="flex items-center gap-2">
-            <Clapperboard className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
+            <Clapperboard className="sz-club-accent-text h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
             <h2 className="text-base font-bold tracking-tight text-white">+ Beitrag erstellen</h2>
           </div>
           <p className="mt-1 text-xs leading-snug text-white/50">
@@ -452,18 +448,18 @@ export const HomeFeedComposer: React.FC<Props> = ({
               type="button"
               disabled={busy}
               onClick={onPickImage}
-              className="flex min-h-[48px] touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl border border-red-500/25 bg-red-950/35 px-2 py-2.5 text-center text-xs font-semibold text-red-100 transition active:scale-[0.98] disabled:opacity-45"
+              className="sz-club-accent-control flex min-h-[48px] touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2.5 text-center text-xs font-semibold transition active:scale-[0.98] disabled:opacity-45"
             >
-              <ImagePlus className="h-5 w-5 text-red-300" strokeWidth={2} aria-hidden />
+              <ImagePlus className="sz-club-accent-text h-5 w-5" strokeWidth={2} aria-hidden />
               Foto posten
             </button>
             <button
               type="button"
               disabled={busy}
               onClick={onPickVideo}
-              className="flex min-h-[48px] touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl border border-red-500/25 bg-red-950/35 px-2 py-2.5 text-center text-xs font-semibold text-red-100 transition active:scale-[0.98] disabled:opacity-45"
+              className="sz-club-accent-control flex min-h-[48px] touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2.5 text-center text-xs font-semibold transition active:scale-[0.98] disabled:opacity-45"
             >
-              <Video className="h-5 w-5 text-red-300" strokeWidth={2} aria-hidden />
+              <Video className="sz-club-accent-text h-5 w-5" strokeWidth={2} aria-hidden />
               Video posten
             </button>
           </div>
@@ -501,7 +497,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
               maxLength={500}
               rows={3}
               placeholder="Was möchtest du teilen?"
-              className="w-full resize-none rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-red-500/40 focus:outline-none focus:ring-1 focus:ring-red-500/30 disabled:opacity-50"
+              className="sz-club-field w-full resize-none rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 disabled:opacity-50"
             />
           </label>
 
@@ -513,12 +509,12 @@ export const HomeFeedComposer: React.FC<Props> = ({
               className="flex min-h-[40px] w-full touch-manipulation items-center gap-2 text-left disabled:opacity-45"
               aria-pressed={linkEnabled}
             >
-              <Link2 className="h-4 w-4 shrink-0 text-red-300" strokeWidth={2} aria-hidden />
+              <Link2 className="sz-club-accent-text h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
               <span className="flex-1 text-[13px] font-semibold text-white/90">Link hinzufügen</span>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
                   linkEnabled
-                    ? 'bg-red-600/80 text-white'
+                    ? 'sz-club-toggle-on'
                     : 'bg-white/10 text-white/45'
                 }`}
               >
@@ -536,7 +532,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
                     disabled={busy}
                     maxLength={FEED_CTA_LABEL_MAX}
                     placeholder="Livestream ansehen"
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-red-500/40 focus:outline-none focus:ring-1 focus:ring-red-500/30 disabled:opacity-50"
+                    className="sz-club-field w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 disabled:opacity-50"
                     autoComplete="off"
                   />
                 </label>
@@ -548,7 +544,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
                     onChange={(e) => setCtaUrl(e.target.value)}
                     disabled={busy}
                     placeholder="https://…"
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-red-500/40 focus:outline-none focus:ring-1 focus:ring-red-500/30 disabled:opacity-50"
+                    className="sz-club-field w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-white/35 disabled:opacity-50"
                     autoComplete="off"
                     inputMode="url"
                   />
@@ -567,9 +563,9 @@ export const HomeFeedComposer: React.FC<Props> = ({
             aria-pressed={pushEnabled}
             className="mt-3 flex min-h-[48px] w-full touch-manipulation items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-3 text-left disabled:opacity-45"
           >
-            <Bell className="h-4 w-4 shrink-0 text-red-300" aria-hidden />
+            <Bell className="sz-club-accent-text h-4 w-4 shrink-0" aria-hidden />
             <span className="flex-1 text-[13px] font-semibold text-white/90">Mit Push veröffentlichen</span>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${pushEnabled ? 'bg-red-600/80 text-white' : 'bg-white/10 text-white/45'}`}>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${pushEnabled ? 'sz-club-toggle-on' : 'bg-white/10 text-white/45'}`}>
               {pushEnabled ? 'An' : 'Aus'}
             </span>
           </button>
@@ -579,7 +575,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
             <div className="mt-3" aria-live="polite">
               <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-red-600 to-red-400 transition-[width] duration-150"
+                  className="sz-club-progress h-full rounded-full transition-[width] duration-150"
                   style={{ width: `${uploadPct}%` }}
                 />
               </div>
@@ -588,14 +584,14 @@ export const HomeFeedComposer: React.FC<Props> = ({
           ) : null}
 
           {statusLabel && (phase === 'saving' || phase === 'notifying') ? (
-            <p className="mt-2 text-center text-xs font-medium text-red-200/90">{statusLabel}</p>
+            <p className="sz-club-accent-text mt-2 text-center text-xs font-medium">{statusLabel}</p>
           ) : null}
 
           <button
             type="button"
             disabled={busy || !draftFile || !userId}
             onClick={() => void publish()}
-            className="mt-4 flex min-h-[50px] w-full touch-manipulation items-center justify-center gap-2 rounded-2xl border border-red-500/40 bg-gradient-to-b from-red-600 to-red-900 px-4 text-sm font-bold text-white shadow-lg transition active:brightness-95 disabled:opacity-40"
+            className="sz-club-primary mt-4 flex min-h-[50px] w-full touch-manipulation items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold transition active:brightness-95 disabled:opacity-40"
           >
             <Send className="h-4 w-4 shrink-0" strokeWidth={2.2} aria-hidden />
             Veröffentlichen

@@ -3,9 +3,60 @@ import { uploadStorageObject } from './storageUpload';
 
 export type ClubBranding = { logo_url: string | null; primary_color: string | null; secondary_color: string | null; accent_color: string | null };
 export const DEFAULT_CLUB_BRANDING: ClubBranding = { logo_url: null, primary_color: '#111114', secondary_color: '#FFFFFF', accent_color: '#C82333' };
+
+export function normalizeBrandColor(value: string | null | undefined): string | null {
+  const normalized = String(value ?? '').trim().toUpperCase();
+  return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : null;
+}
+
+export function hexToRgbChannels(value: string): string {
+  const normalized = normalizeBrandColor(value) ?? '#000000';
+  return [1, 3, 5].map((index) => parseInt(normalized.slice(index, index + 2), 16)).join(' ');
+}
+
 export function readableTextColor(hex: string): string {
-  const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const normalized = normalizeBrandColor(hex) ?? '#000000';
+  const rgb = [1, 3, 5].map(i => parseInt(normalized.slice(i, i + 2), 16) / 255).map(c => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
   return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722 > 0.179 ? '#111114' : '#FFFFFF';
+}
+
+/** Branding des Vereins laden, zu dem die aktuell betrachtete Mannschaftssaison gehört. */
+export async function getClubBrandingForTeamSeason(teamSeasonId: string): Promise<{ data: ClubBranding | null; error: string | null }> {
+  const { data: teamSeason, error: teamSeasonError } = await supabase
+    .from('team_seasons')
+    .select('team_id')
+    .eq('id', teamSeasonId)
+    .maybeSingle();
+  if (teamSeasonError) return { data: null, error: teamSeasonError.message };
+  const teamId = (teamSeason as { team_id?: string | null } | null)?.team_id;
+  if (!teamId) return { data: null, error: null };
+
+  const { data: team, error: teamError } = await supabase
+    .from('teams')
+    .select('club_id')
+    .eq('id', teamId)
+    .maybeSingle();
+  if (teamError) return { data: null, error: teamError.message };
+  const clubId = (team as { club_id?: string | null } | null)?.club_id;
+  if (!clubId) return { data: null, error: null };
+
+  const { data: club, error: clubError } = await supabase
+    .from('clubs')
+    .select('logo_url, primary_color, secondary_color, accent_color')
+    .eq('id', clubId)
+    .maybeSingle();
+  if (clubError) return { data: null, error: clubError.message };
+  if (!club) return { data: null, error: null };
+  const row = club as ClubBranding;
+  return {
+    data: {
+      logo_url: row.logo_url ?? null,
+      primary_color: normalizeBrandColor(row.primary_color),
+      secondary_color: normalizeBrandColor(row.secondary_color),
+      accent_color: normalizeBrandColor(row.accent_color),
+    },
+    error: null,
+  };
 }
 export async function getClubBranding(clubId: string): Promise<{ data: ClubBranding | null; error: string | null }> {
   const { data, error } = await supabase.rpc('admin_get_club_branding', { p_club_id: clubId });

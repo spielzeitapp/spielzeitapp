@@ -63,10 +63,10 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({
     <PremiumCard
       as="section"
       matchday
-      className="border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(22,22,24,0.98)] to-[rgba(12,8,10,0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_28px_rgba(0,0,0,0.45)]"
+      className="sz-club-accent-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_28px_rgba(0,0,0,0.45)]"
       aria-label="Nächstes Spiel"
     >
-      <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-red-600/12 blur-2xl" />
+      <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-[rgb(var(--club-primary-rgb)/0.16)] blur-2xl" />
       <Link
         to={eventLink}
         className="relative flex min-h-[80px] items-stretch gap-3 px-3 py-3.5 pr-2 transition-colors hover:bg-white/[0.02] active:bg-white/[0.04]"
@@ -77,7 +77,7 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({
               className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
                 reviewPending
                   ? 'border-amber-400/35 bg-amber-950/50 text-amber-100/95'
-                  : 'border-red-500/35 bg-red-950/50 text-red-200/95'
+                  : 'sz-club-accent-control'
               }`}
             >
               {titleLine}
@@ -93,12 +93,12 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/62">
             <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
+              <Clock className="sz-club-accent-text h-3.5 w-3.5 shrink-0" aria-hidden />
               {timeStr}
             </span>
             {placeShort ? (
               <span className="inline-flex min-w-0 items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
+                <MapPin className="sz-club-accent-text h-3.5 w-3.5 shrink-0" aria-hidden />
                 <span className="min-w-0 break-words">{placeShort}</span>
               </span>
             ) : null}

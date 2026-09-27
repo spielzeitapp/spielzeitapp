@@ -36,10 +36,10 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ teamName, backendRole })
             Spielzeit
           </span>
           <span
-            className="text-[clamp(1.35rem,5.5vw,1.65rem)] text-[#f87171]"
+            className="sz-club-accent-text text-[clamp(1.35rem,5.5vw,1.65rem)]"
             style={{
               textShadow:
-                '0 1px 0 rgba(0,0,0,0.4), 0 3px 14px rgba(0,0,0,0.75), 0 0 18px rgba(220,38,38,0.18)',
+                '0 1px 0 rgba(0,0,0,0.4), 0 3px 14px rgba(0,0,0,0.75), 0 0 18px rgb(var(--club-primary-rgb) / 0.22)',
             }}
           >
             App
@@ -48,7 +48,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ teamName, backendRole })
         <p className={`mt-1 truncate text-[13px] sm:text-sm ${dsSublineClass()}`}>{teamName}</p>
       </div>
       {staffShort ? (
-        <span className="shrink-0 rounded-full border border-red-500/35 bg-red-950/45 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-200/95">
+        <span className="sz-club-accent-control shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide">
           {staffShort}
         </span>
       ) : null}

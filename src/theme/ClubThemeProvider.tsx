@@ -1,6 +1,12 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useSession } from "../auth/useSession";
+import {
+  getClubBrandingForTeamSeason,
+  hexToRgbChannels,
+  readableTextColor,
+  type ClubBranding,
+} from "../lib/clubBranding";
 
 export type ClubThemeKey = "black-red" | "blue-yellow" | "green-white" | "black-white";
 
@@ -10,6 +16,7 @@ type ClubPalette = {
   border: string;
   secondary: string;
   onPrimary: string;
+  onAccent: string;
 };
 
 const CLUB_PALETTES: Record<ClubThemeKey, ClubPalette> = {
@@ -19,6 +26,7 @@ const CLUB_PALETTES: Record<ClubThemeKey, ClubPalette> = {
     border: "255 64 80",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
+    onAccent: "#ffffff",
   },
   "blue-yellow": {
     primary: "22 87 168",
@@ -26,6 +34,7 @@ const CLUB_PALETTES: Record<ClubThemeKey, ClubPalette> = {
     border: "37 125 255",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
+    onAccent: "#111114",
   },
   "green-white": {
     primary: "22 130 74",
@@ -33,6 +42,7 @@ const CLUB_PALETTES: Record<ClubThemeKey, ClubPalette> = {
     border: "34 197 94",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
+    onAccent: "#111114",
   },
   "black-white": {
     primary: "82 82 91",
@@ -40,6 +50,7 @@ const CLUB_PALETTES: Record<ClubThemeKey, ClubPalette> = {
     border: "212 212 216",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
+    onAccent: "#111114",
   },
 };
 
@@ -66,22 +77,53 @@ export function resolveClubThemeKey(teamName: string, search: string): ClubTheme
 export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const location = useLocation();
   const { selectedTeamSeason, viewTeamSeason } = useSession();
-  const teamName = (viewTeamSeason ?? selectedTeamSeason)?.team?.name ?? "";
+  const activeTeamSeason = viewTeamSeason ?? selectedTeamSeason;
+  const teamName = activeTeamSeason?.team?.name ?? "";
+  const teamSeasonId = activeTeamSeason?.id ?? null;
+  const [storedBranding, setStoredBranding] = useState<ClubBranding | null>(null);
   const themeKey = useMemo(
     () => resolveClubThemeKey(teamName, location.search),
     [location.search, teamName],
   );
 
   useEffect(() => {
+    let cancelled = false;
+    setStoredBranding(null);
+    if (!teamSeasonId || location.pathname.startsWith('/demo') || location.search.includes("clubTheme=")) {
+      return () => { cancelled = true; };
+    }
+    void getClubBrandingForTeamSeason(teamSeasonId).then((result) => {
+      if (cancelled) return;
+      if (result.error) console.warn('[ClubThemeProvider] branding could not be loaded:', result.error);
+      setStoredBranding(result.data);
+    });
+    return () => { cancelled = true; };
+  }, [location.pathname, location.search, teamSeasonId]);
+
+  useEffect(() => {
     const root = document.documentElement;
-    const palette = CLUB_PALETTES[themeKey];
-    root.dataset.clubTheme = themeKey;
+    const fallback = CLUB_PALETTES[themeKey];
+    const primaryHex = storedBranding?.primary_color;
+    const accentHex = storedBranding?.accent_color;
+    const secondaryHex = storedBranding?.secondary_color;
+    const palette: ClubPalette = primaryHex || accentHex || secondaryHex
+      ? {
+          primary: hexToRgbChannels(primaryHex ?? '#7A1D2A'),
+          accent: hexToRgbChannels(accentHex ?? primaryHex ?? '#FF4050'),
+          border: hexToRgbChannels(accentHex ?? primaryHex ?? '#FF4050'),
+          secondary: hexToRgbChannels(secondaryHex ?? '#FFFFFF'),
+          onPrimary: readableTextColor(primaryHex ?? '#7A1D2A'),
+          onAccent: readableTextColor(accentHex ?? primaryHex ?? '#FF4050'),
+        }
+      : fallback;
+    root.dataset.clubTheme = storedBranding ? 'custom' : themeKey;
     root.style.setProperty("--club-primary-rgb", palette.primary);
     root.style.setProperty("--club-accent-rgb", palette.accent);
     root.style.setProperty("--club-border-rgb", palette.border);
     root.style.setProperty("--club-secondary-rgb", palette.secondary);
     root.style.setProperty("--club-on-primary", palette.onPrimary);
-  }, [themeKey]);
+    root.style.setProperty("--club-on-accent", palette.onAccent);
+  }, [storedBranding, themeKey]);
 
   return (
     <>

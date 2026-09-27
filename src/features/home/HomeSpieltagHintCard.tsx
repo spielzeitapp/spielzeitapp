@@ -116,7 +116,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
       <div className="mt-2.5 flex flex-wrap gap-2">
         <Link
           to={gameHref}
-          className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-red-600/90 px-4 text-sm font-bold text-white shadow-[0_4px_16px_rgba(185,28,28,0.35)] transition hover:bg-red-500 sm:flex-initial sm:min-w-[8.5rem]"
+          className="sz-club-primary inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center rounded-xl border px-4 text-sm font-bold transition sm:flex-initial sm:min-w-[8.5rem]"
         >
           {reviewPending ? 'Ergebnis prüfen' : 'Zum Spiel'}
         </Link>

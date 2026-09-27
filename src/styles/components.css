@@ -182,6 +182,38 @@
   color: rgb(var(--club-accent-rgb) / 0.78);
 }
 
+.sz-club-accent-control {
+  border-color: rgb(var(--club-border-rgb) / 0.42);
+  color: rgb(var(--club-accent-rgb) / 0.94);
+  background: rgb(var(--club-primary-rgb) / 0.24);
+}
+
+.sz-club-accent-control:hover:not(:disabled) {
+  border-color: rgb(var(--club-border-rgb) / 0.62);
+  background: rgb(var(--club-primary-rgb) / 0.34);
+}
+
+.sz-club-accent-panel {
+  border-color: rgb(var(--club-border-rgb) / 0.3);
+  background: linear-gradient(145deg, rgba(18, 18, 21, 0.98), rgb(var(--club-primary-rgb) / 0.12));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.52), 0 0 42px -14px rgb(var(--club-primary-rgb) / 0.3);
+}
+
+.sz-club-field:focus {
+  border-color: rgb(var(--club-border-rgb) / 0.55);
+  box-shadow: 0 0 0 1px rgb(var(--club-accent-rgb) / 0.3);
+  outline: none;
+}
+
+.sz-club-toggle-on {
+  color: var(--club-on-accent);
+  background: rgb(var(--club-accent-rgb) / 0.88);
+}
+
+.sz-club-progress {
+  background: linear-gradient(90deg, rgb(var(--club-primary-rgb)), rgb(var(--club-accent-rgb)));
+}
+
 .sz-club-avatar {
   border-color: rgb(var(--club-accent-rgb) / 0.52);
   background: rgba(10, 10, 12, 0.96);
