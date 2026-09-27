@@ -27,7 +27,7 @@ function PosterLogo({ src, alt }: { src: string; alt: string }) {
     <img
       src={imgSrc}
       alt={alt}
-      className="h-[4.35rem] w-[4.35rem] shrink-0 object-contain sm:h-[5.15rem] sm:w-[5.15rem]"
+      className="h-[clamp(2.9rem,14vw,4.35rem)] w-[clamp(2.9rem,14vw,4.35rem)] shrink-0 object-contain sm:h-[5.15rem] sm:w-[5.15rem]"
       style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.72))' }}
       loading="lazy"
       onError={() => {
@@ -170,7 +170,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
 
           <div className="mt-[4%] flex w-[62%] shrink-0 items-start gap-1 px-1 py-1">
             <TeamMark name={homeTeamName} logoUrl={homeLogoUrl} />
-            <div className="flex w-9 shrink-0 flex-col items-center pt-5 sm:w-11">
+            <div className="flex w-8 shrink-0 flex-col items-center pt-3 sm:w-11 sm:pt-5">
               <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
               <span className="sz-club-feed-accent-text my-0.5 text-[clamp(1.3rem,6.5vw,1.9rem)] font-black uppercase leading-none">VS</span>
               <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
