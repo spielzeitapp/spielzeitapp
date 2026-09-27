@@ -157,7 +157,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             >
               {title}
             </h2>
-            <div className="mt-2 flex w-[64%] items-center gap-3">
+            <div className="mt-2 flex w-[50%] items-center gap-3">
               <div className="sz-club-feed-accent-line h-[3px] flex-1" />
               {ageGroup ? (
                 <span className="sz-club-feed-accent-text text-[clamp(1.55rem,7.5vw,2.25rem)] font-black uppercase leading-none tracking-[-0.04em]">
