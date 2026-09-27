@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Smartphone, X } from 'lucide-react';
+import { Check, EllipsisVertical, Share, Smartphone, SquarePlus, X } from 'lucide-react';
 import { isStandaloneDisplayMode } from '../lib/pwaDisplayMode';
 
 const DISMISSED_KEY = 'spielzeitapp-home-guide-dismissed-until';
@@ -30,9 +30,10 @@ export function HomeScreenGuide({ compact = false }: { compact?: boolean }) {
 
   const steps = ios
     ? safari
-      ? ['In Safari auf Teilen tippen (Quadrat mit Pfeil).', 'Zum Home-Bildschirm auswählen.', 'Falls angezeigt, Als Web-App öffnen aktivieren und Hinzufügen tippen.']
+      ? ['In Safari unten auf Teilen tippen.', 'Zum Home-Bildschirm auswählen.', 'Falls angezeigt, Als Web-App öffnen aktivieren und Hinzufügen tippen.']
       : ['spielzeitapp.at in Safari öffnen.', 'Auf Teilen tippen und Zum Home-Bildschirm auswählen.', 'Hinzufügen tippen.']
     : ['Im Browser das Menü ⋮ öffnen.', 'App installieren oder Zum Startbildschirm hinzufügen auswählen.', 'Bestätigen und die App über das neue Symbol öffnen.'];
+  const StepIcons = ios ? [safari ? Share : Smartphone, SquarePlus, Check] : [EllipsisVertical, SquarePlus, Check];
 
   return (
     <section aria-label="SpielzeitApp zum Home-Bildschirm hinzufügen" className={compact
@@ -51,7 +52,8 @@ export function HomeScreenGuide({ compact = false }: { compact?: boolean }) {
           <ol>{steps.map((step, index) => (
             <li key={step} className="flex items-center gap-3 border-b border-white/10 py-2.5 last:border-0">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600 font-bold text-white">{index + 1}</span>
-              <span>{step}</span>
+              <span className="min-w-0 flex-1">{step}</span>
+              {React.createElement(StepIcons[index], { className: 'h-5 w-5 shrink-0 text-white', 'aria-hidden': true })}
             </li>
           ))}</ol>
         </div>
