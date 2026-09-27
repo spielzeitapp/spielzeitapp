@@ -1608,7 +1608,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                 {!forcePublicView && normalizedUiRole !== 'fan' && !isDemo && !managerSimpleMode ? (
                   <Link
                     to="/app/spielplan"
-                    className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] shrink-0 items-center gap-1.5 px-3 text-[12px] no-underline sm:h-10`}
+                    className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-[14px] border px-3 text-[12px] font-semibold no-underline sm:h-10"
                     title="Spielplan"
                     aria-label="Spielplan öffnen"
                   >
@@ -1619,7 +1619,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                 {canShowCalendarActions ? (
                   <button
                     type="button"
-                    className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] shrink-0 items-center gap-1.5 px-3 text-[12px] sm:h-10`}
+                    className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-[14px] border px-3 text-[12px] font-semibold sm:h-10"
                     title="Kalender abonnieren"
                     onClick={() => setCalendarSheetOpen(true)}
                   >
@@ -1631,7 +1631,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                 <button
                   type="button"
                   onClick={() => navigate(internalPath(basePath, '/termine/calendar'))}
-                  className={`${dsScheduleGlassButtonClass()} inline-flex h-11 min-h-[44px] w-11 shrink-0 items-center justify-center sm:h-10 sm:w-10`}
+                  className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] w-11 shrink-0 items-center justify-center rounded-[14px] border sm:h-10 sm:w-10"
                   aria-label="Kalenderansicht"
                   title="Kalenderansicht"
                 >
