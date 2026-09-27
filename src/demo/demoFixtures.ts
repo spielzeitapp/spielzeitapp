@@ -82,7 +82,7 @@ export const demoFixtures: DemoFixtures = {
       rsvpNo: 2,
       rsvpOpen: 1,
       linkedTrainingId: 'tr-main',
-      notes: 'Trainer: Markus Demo · Schwerpunkt 1 gegen 1 und schnelles Umschalten',
+      notes: 'U12 Training · Schwerpunkt: 1 gegen 1 und schnelles Umschalten',
     },
     {
       id: 'ev-train-follow',
@@ -95,7 +95,7 @@ export const demoFixtures: DemoFixtures = {
       rsvpNo: 2,
       rsvpOpen: 0,
       linkedTrainingId: 'tr-main',
-      notes: 'Trainer: Markus Demo · Passspiel unter Druck',
+      notes: 'U12 Training · Schwerpunkt: Passspiel unter Druck',
     },
     {
       id: 'ev-train-canceled',

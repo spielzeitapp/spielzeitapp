@@ -95,7 +95,7 @@ export function buildDemoTrainingHistoryEventRows(): EventRow[] {
       meeting_at: null,
       status: 'finished' as const,
       attendance_mode: 'opt_in' as const,
-      notes: 'Trainer: Markus Demo',
+      notes: 'U12 Training',
       match_id: null,
       series_id: null,
       training_absence_deadline_disabled: null,

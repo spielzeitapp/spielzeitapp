@@ -163,7 +163,7 @@ export const LivePage: React.FC = () => {
 
   /** Demo: LIVE-Route mit Match-ID → Session aus Prep booten (Turnier + Meisterschaft). */
   useEffect(() => {
-    if (!isDemo || !demo || !matchIdParam) return;
+    if (!isDemo || !demo || !matchIdParam || matchIdParam.startsWith('demo-lm-')) return;
     if (demo.liveRuntimeMatchId === matchIdParam) return;
     if (
       demo.liveRuntimeMatchId &&
@@ -182,6 +182,11 @@ export const LivePage: React.FC = () => {
         replace
       />
     );
+  }
+
+  // Ältere Demo-Profillinks enthielten lokale Pseudo-IDs und dürfen niemals an die DB gehen.
+  if (isDemo && matchIdParam?.startsWith('demo-lm-')) {
+    return <Navigate to={`${basePath}/live?matchId=${encodeURIComponent(DEMO_MATCH_ID_LIVE)}`} replace />;
   }
 
   if (matchIdParam) {

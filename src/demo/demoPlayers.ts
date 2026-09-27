@@ -6,7 +6,7 @@
 import type { PlayerItem } from '../hooks/usePlayers';
 import { getDemoPlayerPortraitUrl } from '../lib/playerDemoPortrait';
 import type { PlayerLastMatchRow, PlayerSeasonStats } from '../lib/stats/playerStatsService';
-import { DEMO_TEAM_SEASON_ID } from './demoDataSource';
+import { DEMO_MATCH_ID_PAST, DEMO_TEAM_SEASON_ID } from './demoDataSource';
 import { demoFixtures } from './demoFixtures';
 import type { DemoPlayer } from './demoTypes';
 
@@ -107,13 +107,14 @@ export function getDemoPlayerLastMatches(playerId: string): PlayerLastMatchRow[]
   const p = getDemoFixturePlayer(playerId);
   if (!p || p.appearances <= 0) return [];
   const opponents = ['SC St. Veit U12', 'SV Loosdorf U12', 'SKN Nachwuchs U12'] as const;
-  const count = Math.min(3, p.appearances);
+  // Nur das vorhandene fiktive Rückblickspiel verlinken – keine Pseudo-Match-IDs.
+  const count = 1;
   return Array.from({ length: count }, (_, i) => {
     const goals = i === 0 ? Math.min(p.goals, 1) : i === 1 && p.goals > 1 ? 1 : 0;
     const result = i === 0 ? '3:1' : i === 1 ? '2:1' : '1:1';
     const [scoreHome, scoreAway] = result.split(':').map(Number);
     return {
-      match_id: `demo-lm-${playerId}-${i}`,
+      match_id: DEMO_MATCH_ID_PAST,
       opponent: opponents[i] ?? 'Gegner Demo',
       date: null,
       dateLabel: `Spiel ${i + 1}`,

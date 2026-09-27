@@ -5,6 +5,7 @@ import { safeText } from '../../lib/safeText';
 export const MATCH_TYPE_LABELS: Record<string, string> = {
   game: 'Meisterschaftsspiel',
   league: 'Meisterschaftsspiel',
+  championship: 'Meisterschaftsspiel',
   friendly: 'Testspiel',
   tournament: 'Turnier',
   test: 'Testspiel',

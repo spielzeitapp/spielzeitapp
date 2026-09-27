@@ -19,15 +19,7 @@ import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
 import { useDemoMode } from '../demo/DemoContext';
 import { DemoAiDisclosure } from '../demo/components/DemoAiDisclosure';
-import { DEMO_TOUR_STATIONS } from '../demo/demoTourConfig';
-import {
-  canResumeDemoTour,
-  getDemoTourSnapshot,
-  pauseDemoTour,
-  resetDemoTourState,
-  resumeOrStartDemoTour,
-  subscribeDemoTour,
-} from '../demo/demoTourState';
+import { resetDemoTourState } from '../demo/demoTourState';
 
 const RESET_CONFIRM =
   'Demo zurücksetzen? Alle lokalen Änderungen wie Zusagen, Aufstellungen, LIVE-Ereignisse und Ergebnisse werden auf den Ausgangszustand zurückgesetzt.';
@@ -35,22 +27,6 @@ const RESET_CONFIRM =
 function DemoHelpCard(): React.ReactElement {
   const demo = useDemoMode();
   const navigate = useNavigate();
-  const [phase, setPhase] = useState(() => getDemoTourSnapshot().phase);
-
-  useEffect(() => subscribeDemoTour(() => setPhase(getDemoTourSnapshot().phase)), []);
-
-  const start = () => {
-    navigate('/demo/tour/what');
-  };
-  const resume = () => {
-    const snap = resumeOrStartDemoTour();
-    const station = DEMO_TOUR_STATIONS[snap.stepIndex];
-    if (station) navigate(station.path);
-  };
-  const exploreFree = () => {
-    pauseDemoTour();
-    navigate('/demo/home');
-  };
   const reset = () => {
     if (!demo?.resetAllDemo) return;
     if (!window.confirm(RESET_CONFIRM)) return;
@@ -59,51 +35,15 @@ function DemoHelpCard(): React.ReactElement {
     navigate('/demo/home', { replace: true });
   };
 
-  const showResume = canResumeDemoTour(phase);
-
   return (
     <PremiumCard variant="subtle" showAmbientGlow={false}>
       <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-400/90">Demo-Hilfe</p>
-      <h2 className="mt-1 text-[16px] font-semibold text-white">Rundgang &amp; Zurücksetzen</h2>
+      <h2 className="mt-1 text-[16px] font-semibold text-white">Demo selbst entdecken</h2>
       <p className="mt-1 text-[12px] leading-snug text-white/55">
-        Kein Login erforderlich. Alle Aktionen bleiben lokal in dieser Demo. Tour-Fortschritt und
-        lokale Änderungen bleiben in der Browser-Session erhalten (auch nach Reload).
+        Kein Login erforderlich. Schau dir Home, Termine, Team und Live in deinem Tempo an.
+        Änderungen bleiben nur in dieser Browser-Session.
       </p>
       <div className="mt-3 flex flex-col gap-2">
-        {showResume ? (
-          <button
-            type="button"
-            onClick={resume}
-            className={`${dsPrimaryCtaClass()} inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
-          >
-            Geführte Demo fortsetzen
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={start}
-            className={`${dsPrimaryCtaClass()} inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full px-4 text-[13px] font-semibold`}
-          >
-            Geführte Demo starten
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            resetDemoTourState();
-            navigate('/demo/tour/what');
-          }}
-          className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full px-4 text-[12px] font-semibold`}
-        >
-          Rundgang neu starten
-        </button>
-        <button
-          type="button"
-          onClick={exploreFree}
-          className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full px-4 text-[12px] font-semibold`}
-        >
-          Demo frei erkunden
-        </button>
         <button
           type="button"
           onClick={reset}

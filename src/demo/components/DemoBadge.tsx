@@ -1,22 +1,13 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DEMO_TOUR_STATIONS } from '../demoTourConfig';
-import {
-  canResumeDemoTour,
-  dismissDemoTour,
-  getDemoTourSnapshot,
-  pauseDemoTour,
-  resumeOrStartDemoTour,
-  startDemoTour,
-  subscribeDemoTour,
-} from '../demoTourState';
+import { resetDemoTourState } from '../demoTourState';
 import { useDemoMode } from '../DemoContext';
 
 const RESET_CONFIRM =
   'Demo zurücksetzen? Alle lokalen Änderungen wie Zusagen, Aufstellungen, LIVE-Ereignisse und Ergebnisse werden auf den Ausgangszustand zurückgesetzt.';
 
 /**
- * Klickbares DEMO-Badge mit Hilfe-Menü (Rundgang / Reset).
+ * Klickbares DEMO-Badge mit Hinweis und Reset.
  */
 export function DemoBadge(): React.ReactElement {
   const demo = useDemoMode();
@@ -24,9 +15,6 @@ export function DemoBadge(): React.ReactElement {
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
-  const [tourPhase, setTourPhase] = useState(() => getDemoTourSnapshot().phase);
-
-  useEffect(() => subscribeDemoTour(() => setTourPhase(getDemoTourSnapshot().phase)), []);
 
   useEffect(() => {
     if (!open) return;
@@ -44,46 +32,21 @@ export function DemoBadge(): React.ReactElement {
     };
   }, [open]);
 
-  const startTour = useCallback(() => {
-    startDemoTour();
-    navigate(DEMO_TOUR_STATIONS[0].path);
-    setOpen(false);
-  }, [navigate]);
-
-  const continueTour = useCallback(() => {
-    const snap = resumeOrStartDemoTour();
-    const station = DEMO_TOUR_STATIONS[snap.stepIndex];
-    if (station) navigate(station.path);
-    setOpen(false);
-  }, [navigate]);
-
-  const endTour = useCallback(() => {
-    pauseDemoTour();
-    setOpen(false);
-  }, []);
-
-  const exploreFree = useCallback(() => {
-    pauseDemoTour();
-    setOpen(false);
-  }, []);
-
   const resetDemo = useCallback(() => {
     if (!demo?.resetAllDemo) return;
     if (!window.confirm(RESET_CONFIRM)) return;
     demo.resetAllDemo();
-    dismissDemoTour();
+    resetDemoTourState();
     navigate('/demo/home', { replace: true });
     setOpen(false);
   }, [demo, navigate]);
-
-  const showResume = canResumeDemoTour(tourPhase);
 
   return (
     <div className="relative shrink-0" ref={rootRef}>
       <button
         type="button"
         className="rounded border border-white/20 bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/70 touch-manipulation hover:bg-white/10 hover:text-white"
-        title="Demo-Hilfe: Rundgang und Zurücksetzen"
+        title="Demo-Hilfe und Zurücksetzen"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
@@ -100,18 +63,9 @@ export function DemoBadge(): React.ReactElement {
           <p className="px-2.5 pb-1 pt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">
             Demo-Hilfe
           </p>
-          {showResume ? (
-            <MenuItem label="Geführte Demo fortsetzen" onClick={continueTour} />
-          ) : (
-            <MenuItem label="Geführte Demo starten" onClick={startTour} />
-          )}
-          {tourPhase === 'active' ? <MenuItem label="Rundgang beenden" onClick={endTour} /> : null}
-          <MenuItem label="Rundgang neu starten" onClick={startTour} />
-          <MenuItem label="Demo frei erkunden" onClick={exploreFree} />
-          <div className="my-1 border-t border-white/10" />
           <MenuItem label="Demo zurücksetzen" onClick={resetDemo} danger />
           <p className="px-2.5 pb-1.5 pt-1 text-[10px] leading-snug text-white/35">
-            Alle Aktionen bleiben lokal in dieser Demo. Reload stellt den Ausgangszustand wieder her.
+            Alle Aktionen bleiben lokal in dieser Demo. Entdecke die Bereiche frei und setze sie bei Bedarf zurück.
           </p>
           <p className="px-2.5 pb-1.5 pt-0.5 text-[10px] leading-snug text-white/35">
             Alle dargestellten Spieler, Trainer, Namen und Porträtfotos sind vollständig fiktive,
