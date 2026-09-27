@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { getTeamParentHomeAppUsage, homeAppUsageLabel } from '../../lib/homeAppUsage';
 import { dsPrimaryCtaClass, dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
 import {
   fetchTeamPlayerParentLinks,
@@ -61,6 +62,15 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
   defaultInviteOpen = false,
 }) => {
   const [parents, setParents] = useState<ParentLinkInfo[]>(parentsProp ?? []);
+  const [homeUsage, setHomeUsage] = useState<Map<string, string> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setHomeUsage(null);
+    void getTeamParentHomeAppUsage(teamSeasonId)
+      .then(usage => { if (alive) setHomeUsage(usage); })
+      .catch(() => { if (alive) setHomeUsage(null); });
+    return () => { alive = false; };
+  }, [teamSeasonId]);
   const [loading, setLoading] = useState(parentsProp == null);
   const [error, setError] = useState<string | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -343,6 +353,7 @@ export const PlayerGuardiansPanel: React.FC<PlayerGuardiansPanelProps> = ({
                     {masked ? (
                       <p className="mt-0.5 truncate text-[12px] text-white/55">{masked}</p>
                     ) : null}
+                    {homeUsage ? <p className="mt-1 text-[11px] text-sky-200/75">{homeAppUsageLabel(homeUsage.get(parent.user_id))}</p> : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <span className="rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200/90">
