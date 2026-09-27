@@ -269,46 +269,46 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
             />
           </label>
 
-          <PremiumTabTrack className="min-w-0">
+          <PremiumTabTrack className="!grid min-w-0 grid-cols-2 gap-1.5 overflow-visible p-1 sm:grid-cols-5">
             <PremiumTab
               kind="filter"
               active={filter === 'all'}
               onClick={() => setFilter('all')}
-              className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
+              className="min-w-0 !basis-auto px-2 py-2 text-[11px] leading-tight sm:text-[12px]"
             >
-              Alle ({rows.length})
+              <span className="block">Alle</span><span className="block">({rows.length})</span>
             </PremiumTab>
             <PremiumTab
               kind="filter"
               active={filter === 'missing'}
               onClick={() => setFilter('missing')}
-              className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
+              className="min-w-0 !basis-auto px-2 py-2 text-[11px] leading-tight sm:text-[12px]"
             >
-              Eltern fehlen ({missingCount})
+              <span className="block">Eltern fehlen</span><span className="block">({missingCount})</span>
             </PremiumTab>
             <PremiumTab
               kind="filter"
               active={filter === 'open'}
               onClick={() => setFilter('open')}
-              className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
+              className="min-w-0 !basis-auto px-2 py-2 text-[11px] leading-tight sm:text-[12px]"
             >
-              Einladung offen ({openInvitePlayerCount})
+              <span className="block">Einladung offen</span><span className="block">({openInvitePlayerCount})</span>
             </PremiumTab>
             <PremiumTab
               kind="filter"
               active={filter === 'linked'}
               onClick={() => setFilter('linked')}
-              className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
+              className="min-w-0 !basis-auto px-2 py-2 text-[11px] leading-tight sm:text-[12px]"
             >
-              Eltern verknüpft ({linkedCount})
+              <span className="block">Eltern verknüpft</span><span className="block">({linkedCount})</span>
             </PremiumTab>
             <PremiumTab
               kind="filter"
               active={filter === 'app_missing'}
               onClick={() => setFilter('app_missing')}
-              className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
+              className="col-span-2 min-w-0 !basis-auto px-2 py-2 text-[11px] leading-tight sm:col-span-1 sm:text-[12px]"
             >
-              Spieler-App fehlt ({appMissingCount})
+              <span className="block">Spieler-App fehlt</span><span className="block">({appMissingCount})</span>
             </PremiumTab>
           </PremiumTabTrack>
 
