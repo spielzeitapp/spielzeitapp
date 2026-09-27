@@ -124,7 +124,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
     {
       id: DEMO_MATCH_ID_PAST,
       team_season_id: DEMO_TEAM_SEASON_ID,
-      opponent: 'SC St. Veit U12',
+      opponent: 'USG Alpenvorland U12',
       status: 'finished',
       live_started_at: null,
       is_home: true,

@@ -168,7 +168,7 @@ export function buildDemoFeedPosts(): {
 } {
   const our = TEAM;
   const loosdorf = 'SV Loosdorf U12';
-  const stVeit = 'SC St. Veit U12';
+  const alpenvorland = 'USG Alpenvorland U12';
   const tInfo = DEMO_EVENT_TIMES['ev-info']();
   const tTrainPast = DEMO_EVENT_TIMES['ev-train-past']();
   const tGamePast = DEMO_EVENT_TIMES['ev-game-past']();
@@ -240,15 +240,15 @@ export function buildDemoFeedPosts(): {
         team_id: DEMO_TEAM_ID,
         event_id: 'ev-game-past',
         post_kind: 'matchday_auto',
-        caption: `Spieltag · ${our} gegen ${stVeit}. Treffpunkt 09:15 Uhr am Sportplatz.`,
+        caption: `Spieltag · ${our} gegen ${alpenvorland}. Treffpunkt 09:15 Uhr am Sportplatz.`,
         created_at: demoOffsetIso(-5, 18, 0),
         media_type: 'matchday',
         payload: {
           display_home_name: our,
-          display_away_name: stVeit,
+          display_away_name: alpenvorland,
           our_team_name: our,
           is_home: true,
-          opponent_logo_url: null,
+          opponent_logo_url: '/logos/usg-alpenvorland.png',
           match_type: 'championship',
           kickoff_iso: tGamePast.starts,
           meeting_iso: tGamePast.meeting ?? null,
@@ -335,7 +335,7 @@ export function buildDemoFeedPosts(): {
           starts_at: tGamePast.starts,
           deep_link: '/demo/events/ev-game-past',
           our_team_name: our,
-          opponent_name: stVeit,
+          opponent_name: alpenvorland,
           is_home: true,
         },
       },
@@ -375,7 +375,7 @@ export function buildDemoFeedPosts(): {
           id: 'df-result',
           post_kind: 'result_auto',
           media_type: 'result',
-          caption: `Endergebnis ${our} – ${stVeit} 3:1`,
+          caption: `Endergebnis ${our} – ${alpenvorland} 3:1`,
           created_at: demoOffsetIso(-4, 11, 45),
           event_id: 'ev-game-past',
           payload: {},
@@ -385,9 +385,9 @@ export function buildDemoFeedPosts(): {
           event_id: 'ev-game-past',
           team_season_id: DEMO_TEAM_SEASON_ID,
           home_team_name: our,
-          away_team_name: stVeit,
+          away_team_name: alpenvorland,
           home_logo_url: '/logos/nsg-goelsental.png',
-          away_logo_url: '/logos/placeholder-shield-a.png',
+          away_logo_url: '/logos/usg-alpenvorland.png',
           home_score: 3,
           away_score: 1,
           match_type: 'championship',
