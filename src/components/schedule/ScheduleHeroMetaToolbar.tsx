@@ -22,20 +22,10 @@ type Props = {
 
 const labelClass = 'mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none';
 
-function ctaStripClass(variant: ScheduleHeroCtaVariant): string {
-  if (variant === 'training') {
-    return 'bg-gradient-to-b from-teal-500/90 to-emerald-700/95 shadow-[0_0_14px_rgba(16,185,129,0.28)] text-white';
-  }
-  if (variant === 'game') {
-    return 'bg-gradient-to-b from-red-500/95 to-red-700/95 shadow-[0_0_14px_rgba(220,38,38,0.28)] text-white';
-  }
-  if (variant === 'tournament') {
-    return 'bg-gradient-to-b from-purple-500/90 to-purple-800/95 shadow-[0_0_14px_rgba(168,85,247,0.24)] text-white';
-  }
-  if (variant === 'event') {
-    return 'bg-gradient-to-b from-blue-500/85 to-blue-800/95 shadow-[0_0_14px_rgba(59,130,246,0.22)] text-white';
-  }
-  return 'text-white/80 opacity-[0.82] hover:bg-white/[0.03] hover:opacity-95';
+function ctaStripClass(_variant: ScheduleHeroCtaVariant): string {
+  // Der Pfeil ist eine Navigation, kein Statusindikator: alle Terminarten
+  // verwenden dieselbe Vereinsfarbe. Typ und Status stehen bereits im Inhalt.
+  return 'sz-club-schedule-chevron text-white';
 }
 
 function splitMetaValue(value: string): { primary: string; showUhr: boolean } {
