@@ -1592,7 +1592,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         <button
                           type="button"
                           onClick={() => navigate(`${basePath}/fan-onboarding`)}
-                          className="shrink-0 rounded-lg border border-red-500/30 bg-red-950/30 px-2.5 py-1 text-xs font-semibold text-red-100"
+                          className="sz-club-accent-control shrink-0 rounded-[var(--radius-btn)] border px-2.5 py-1 text-xs font-semibold"
                         >
                           Teams wählen
                         </button>
@@ -1828,7 +1828,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                             : heroShowsTrainerStats ? (
                                 <button
                                   type="button"
-                                  className="inline-flex items-center justify-center rounded-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
+                                  className="inline-flex items-center justify-center rounded-[var(--radius-btn)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb)/0.7)] focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -2099,7 +2099,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                       const compactTrailing = showCompactTrainerStats ? (
                         <button
                           type="button"
-                          className="inline-flex items-center justify-center rounded-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
+                          className="inline-flex items-center justify-center rounded-[var(--radius-btn)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb)/0.7)] focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
                           aria-label="Teilnehmerübersicht öffnen"
                           onClick={(e) => {
                             e.preventDefault();

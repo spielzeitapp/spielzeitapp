@@ -220,7 +220,7 @@ export function ScheduleHeroEventCard({
 
   const dateBlock = (
     <div className="pointer-events-none absolute left-2 top-2 z-[2] flex max-w-[48%] flex-col items-start gap-1 rounded-xl border border-white/18 bg-black/68 px-3 py-2.5 text-left shadow-md backdrop-blur-md sm:left-3 sm:top-3 sm:max-w-[42%]">
-      <span className="text-[11px] font-black uppercase leading-none tracking-[0.12em] text-[#B85C68] sm:text-xs">
+      <span className="sz-club-accent-text text-[11px] font-black uppercase leading-none tracking-[0.12em] sm:text-xs">
         {wd}
       </span>
       <span className="text-3xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-4xl">
@@ -241,7 +241,7 @@ export function ScheduleHeroEventCard({
   /** Match-Hero: Datum in Zeile über Teams (nicht absolute — siehe gameBody). */
   const gameDateBadgeRow = (
     <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0.5 rounded-xl border border-white/18 bg-black/68 px-2 py-2 text-left shadow-md backdrop-blur-md max-[359px]:px-1.5 max-[359px]:py-1.5 sm:gap-1 sm:px-2.5 sm:py-2">
-      <span className="text-[10px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-[11px]">
+      <span className="sz-club-accent-text text-[10px] font-black uppercase leading-none tracking-[0.12em] sm:text-[11px]">
         {wd}
       </span>
       <span className="text-2xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-3xl">
@@ -633,7 +633,7 @@ export function ScheduleHeroEventCard({
       <div
         role="button"
         tabIndex={0}
-        className="h-full w-full cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/80"
+        className="h-full w-full cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb)/0.7)] focus-visible:ring-offset-2 focus-visible:ring-offset-black/80"
         onClick={handleCardClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {

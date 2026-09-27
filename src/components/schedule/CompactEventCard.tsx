@@ -87,11 +87,10 @@ function gameHomeAwayChipClass(isHome: boolean | null | undefined): string {
   if (isHome === true) {
     return [
       GAME_CHIP_BASE_CLASS,
-      'border border-[rgba(73,190,139,0.38)] bg-[rgba(12,50,38,0.82)] text-[#7FE3B2]',
-      'shadow-[0_0_10px_rgba(73,190,139,0.16)]',
+      'sz-club-accent-control border',
     ].join(' ');
   }
-  return [GAME_CHIP_BASE_CLASS, 'border border-red-500/35 text-red-300/95'].join(' ');
+  return [GAME_CHIP_BASE_CLASS, 'border border-white/20 bg-black/30 text-white/75'].join(' ');
 }
 
 function gameMatchTypeDisplayLine(

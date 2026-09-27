@@ -180,7 +180,7 @@ export function PastMatchResultCard({
         }
       >
         <div className="flex w-[64px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
-          <span className="text-[12px] font-semibold uppercase leading-none tracking-widest text-red-400">{weekdayBadge}</span>
+          <span className="sz-club-accent-text text-[12px] font-semibold uppercase leading-none tracking-widest">{weekdayBadge}</span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{dayBig}</span>
           <span className="text-[12px] leading-tight text-white/60">{monSmall || '—'}</span>
           {yearSmall ? <span className="text-[10px] font-medium leading-tight text-white/40">{yearSmall}</span> : null}
@@ -221,9 +221,9 @@ export function PastMatchResultCard({
   return (
     <div
       className={[
-        'group relative w-full min-w-0 overflow-hidden rounded-[26px] border border-red-500/25 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)] outline-none backdrop-blur-sm transition-transform duration-200 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)]',
+        'group relative w-full min-w-0 overflow-hidden rounded-[var(--radius-card)] border border-[rgb(var(--club-border-rgb)/0.3)] bg-[linear-gradient(145deg,rgb(var(--club-primary-rgb)/0.25),#08080a_44%,rgb(var(--club-primary-rgb)/0.16))] shadow-[0_10px_40px_rgb(var(--club-primary-rgb)/0.14)] outline-none backdrop-blur-sm transition-transform duration-200 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)]',
         clickable
-          ? 'cursor-pointer hover:border-red-500/35 hover:shadow-[0_12px_44px_rgba(255,0,0,0.26)] active:scale-[0.99]'
+          ? 'cursor-pointer hover:border-[rgb(var(--club-border-rgb)/0.5)] hover:shadow-[0_12px_44px_rgb(var(--club-primary-rgb)/0.24)] active:scale-[0.99]'
           : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -240,12 +240,12 @@ export function PastMatchResultCard({
           : undefined
       }
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.12),transparent_55%)] opacity-90" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgb(var(--club-primary-rgb)/0.16),transparent_55%)] opacity-90" />
 
       <div className="relative px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4">
         <div className="mb-2 grid grid-cols-[52px_minmax(0,1fr)_52px] items-start gap-2">
           <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
-            <span className="text-[12px] font-bold uppercase leading-none tracking-[0.12em] text-[#D36C7B]">
+            <span className="sz-club-accent-text text-[12px] font-bold uppercase leading-none tracking-[0.12em]">
               {weekdayBadge}
             </span>
             <span className="text-[34px] font-black tabular-nums leading-none text-white">
@@ -314,7 +314,7 @@ export function PastMatchResultCard({
           </div>
           {clickable ? (
             <ChevronRight
-              className="h-6 w-6 shrink-0 text-red-300/80 transition-colors group-hover:text-red-200"
+              className="sz-club-accent-text h-6 w-6 shrink-0 transition-colors"
               strokeWidth={2}
               aria-hidden
             />

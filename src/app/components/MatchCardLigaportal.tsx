@@ -443,9 +443,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     'flex h-full min-h-0 min-w-0 flex-col items-center justify-center px-0.5 py-1 text-center sm:px-1';
   const heroMatchMetaTileBorder = 'border-l border-white/[0.05]';
   const heroMatchMetaIcon =
-    'flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]';
+    'sz-club-accent-text flex h-[18px] shrink-0 items-center [&_svg]:h-[18px] [&_svg]:w-[18px]';
   const heroMatchMetaLabel =
-    'mt-1 w-full whitespace-nowrap px-0.5 text-[9px] font-semibold uppercase tracking-[0.03em] leading-none text-red-400/80';
+    'sz-club-accent-text mt-1 w-full whitespace-nowrap px-0.5 text-[9px] font-semibold uppercase tracking-[0.03em] leading-none';
   const heroMatchMetaValueWrap = 'mt-0.5 flex w-full min-w-0 max-w-full flex-col items-center';
   const heroMatchMetaSub =
     'w-full min-w-0 max-w-full break-words text-[9.5px] font-medium leading-tight text-white/80';
@@ -477,7 +477,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     return `w-full min-w-0 whitespace-normal break-words hyphens-auto ${size} font-medium ${primary ? 'text-white' : 'text-white/80'}`;
   };
   const heroLivePrepareStripe =
-    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-red-700/85';
+    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-[rgb(var(--club-primary-rgb)/0.9)]';
   const audienceDetailsStripe =
     'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-gradient-to-b from-teal-500/90 to-emerald-700/95 shadow-[0_0_16px_rgba(16,185,129,0.28)]';
 
@@ -830,7 +830,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 e.stopPropagation();
                 onEdit();
               }}
-              className="rounded-full bg-red-700/80 px-2.5 py-0.5 text-xs text-white shrink-0"
+              className="sz-club-primary shrink-0 rounded-full border px-2.5 py-0.5 text-xs"
             >
               Bearbeiten
             </button>
@@ -842,7 +842,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="rounded-full bg-red-800/80 px-2.5 py-0.5 text-xs text-white shrink-0"
+              className="shrink-0 rounded-full border border-white/15 bg-black/45 px-2.5 py-0.5 text-xs text-white/80 hover:bg-white/10"
             >
               Löschen
             </button>
@@ -1103,7 +1103,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {!isAudienceHeroRole && showAttendanceCounts && attendanceCounts ? (
                 <button
                   type="button"
-                  className="mt-2.5 inline-flex items-center justify-center rounded-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
+                  className="mt-2.5 inline-flex items-center justify-center rounded-[var(--radius-btn)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb)/0.7)] focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenAttendance?.();
