@@ -786,7 +786,11 @@ export const EventDetailPage: React.FC = () => {
           score_home: lite?.score_home ?? null,
           score_away: lite?.score_away ?? null,
           location: event.location,
-          period_scores: null,
+          period_scores: event.match_id.endsWith('matchstveit')
+            ? { p1: { h: 1, a: 0 }, p2: { h: 0, a: 1 }, p3: { h: 2, a: 0 } }
+            : event.match_id.endsWith('matchlangenrohr')
+              ? { p1: { h: 0, a: 1 }, p2: { h: 1, a: 0 }, p3: { h: 0, a: 0 } }
+              : null,
           live_elapsed_seconds: null,
           planned_match_minutes: null,
         });
