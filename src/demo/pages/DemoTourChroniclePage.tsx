@@ -50,7 +50,7 @@ export function DemoTourChroniclePage(): React.ReactElement {
     }
     list.push({
       title: 'Matchkader & Aufstellung',
-      detail: '12 Spieler · Formation 1-3-3-1 · lokal in der Demo',
+      detail: '12 Spieler · Formation 1-3-3 · lokal in der Demo',
     });
     if (live) {
       list.push({

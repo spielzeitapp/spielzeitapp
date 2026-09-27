@@ -5,7 +5,6 @@
 
 import type { FieldSlotId } from '../types/match';
 import type { U11FormationId } from '../lib/matchFormations';
-import { DEFAULT_FAIRPLAY_FORMATION } from '../lib/matchFormations';
 import {
   computeSeasonMatchSummary,
   type SeasonMatchBoard,
@@ -50,7 +49,7 @@ function emptySlots(): Record<FieldSlotId, string | null> {
   return { GK: null, LB: null, RB: null, CM: null, LW: null, RW: null, ST: null, FP: null };
 }
 
-/** Initiale 1-3-3-1 Aufstellung (8er FairPlay) – IDs aus demoPlayers p01–p12. */
+/** Reguläre 1-3-3 Aufstellung (7er Fußball) – der FP-Slot bleibt für FairPlay frei. */
 function seedFairPlayLineup(): Pick<DemoMatchPrepState, 'squadPlayerIds' | 'slots' | 'formationId'> {
   const slots = emptySlots();
   slots.GK = 'p01';
@@ -60,11 +59,10 @@ function seedFairPlayLineup(): Pick<DemoMatchPrepState, 'squadPlayerIds' | 'slot
   slots.LW = 'p06';
   slots.ST = 'p10';
   slots.RW = 'p08';
-  slots.FP = 'p07'; // Lena M. (Startformation)
-  const starters = ['p01', 'p02', 'p03', 'p04', 'p06', 'p07', 'p08', 'p10'];
-  const bench = ['p05', 'p09', 'p11', 'p12'];
+  const starters = ['p01', 'p02', 'p03', 'p04', 'p06', 'p08', 'p10'];
+  const bench = ['p05', 'p07', 'p09', 'p11', 'p12'];
   return {
-    formationId: '1-3-3-1',
+    formationId: '1-3-3',
     slots,
     squadPlayerIds: [...starters, ...bench],
   };
@@ -79,11 +77,10 @@ function seedAwayLineup(): Pick<DemoMatchPrepState, 'squadPlayerIds' | 'slots' |
   slots.LW = 'p09';
   slots.ST = 'p11';
   slots.RW = 'p08';
-  slots.FP = 'p07';
-  const starters = ['p01', 'p12', 'p04', 'p02', 'p09', 'p11', 'p08', 'p07'];
-  const bench = ['p03', 'p05', 'p06', 'p10'];
+  const starters = ['p01', 'p12', 'p04', 'p02', 'p09', 'p11', 'p08'];
+  const bench = ['p03', 'p05', 'p06', 'p07', 'p10'];
   return {
-    formationId: DEFAULT_FAIRPLAY_FORMATION,
+    formationId: '1-3-3',
     slots,
     squadPlayerIds: [...starters, ...bench],
   };
@@ -99,7 +96,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
       live_started_at: null,
       is_home: true,
       event_id: 'ev-game-next',
-      u11_formation_id: '1-3-3-1',
+      u11_formation_id: '1-3-3',
       minimum_playtime_enabled: true,
       minimum_playtime_minutes: 20,
       planned_match_minutes: 50,
@@ -115,7 +112,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
       live_started_at: null,
       is_home: false,
       event_id: 'ev-game-away',
-      u11_formation_id: DEFAULT_FAIRPLAY_FORMATION,
+      u11_formation_id: '1-3-3',
       minimum_playtime_enabled: false,
       minimum_playtime_minutes: 20,
       planned_match_minutes: 50,
@@ -131,7 +128,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
       live_started_at: null,
       is_home: true,
       event_id: 'ev-game-past',
-      u11_formation_id: '1-3-3-1',
+      u11_formation_id: '1-3-3',
       minimum_playtime_enabled: true,
       minimum_playtime_minutes: 20,
       planned_match_minutes: 50,

@@ -432,7 +432,7 @@ export function getDemoTournamentMatchLite(matchId: string | null | undefined): 
     live_is_running: false,
     live_period: null,
     period_scores: null,
-    u11_formation_id: '1-3-3-1',
+    u11_formation_id: '1-3-3',
     minimum_playtime_enabled: false,
     minimum_playtime_minutes: null,
     planned_match_minutes: slot.planned_minutes,
@@ -452,7 +452,7 @@ export function getDemoTournamentAsDemoMatchLite(matchId: string | null | undefi
     live_started_at: lite.live_started_at,
     is_home: true,
     event_id: DEMO_TOURNAMENT_EVENT_ID,
-    u11_formation_id: (lite.u11_formation_id as U11FormationId) || '1-3-3-1',
+    u11_formation_id: (lite.u11_formation_id as U11FormationId) || '1-3-3',
     minimum_playtime_enabled: Boolean(lite.minimum_playtime_enabled),
     minimum_playtime_minutes: lite.minimum_playtime_minutes ?? 20,
     planned_match_minutes: lite.planned_match_minutes ?? TOURNAMENT_DEFAULT_PLANNED_MINUTES,
@@ -463,7 +463,7 @@ export function getDemoTournamentAsDemoMatchLite(matchId: string | null | undefi
 }
 
 /**
- * Standard-Aufstellung 1-3-3-1 aus Meisterschafts-Seed, gefiltert auf aktuellen Turnierkader.
+ * Standard-Aufstellung 1-3-3 aus Meisterschafts-Seed, gefiltert auf aktuellen Turnierkader.
  */
 export function buildDemoTournamentDefaultPrep(matchId: string | null | undefined): DemoMatchPrepState | null {
   const mid = String(matchId ?? '').trim();
@@ -473,7 +473,7 @@ export function buildDemoTournamentDefaultPrep(matchId: string | null | undefine
   const base = buildInitialDemoMatchStates()[DEMO_MATCH_ID_LIVE];
   if (!base) {
     return {
-      formationId: '1-3-3-1',
+      formationId: '1-3-3',
       slots: {
         GK: null,
         LB: null,
