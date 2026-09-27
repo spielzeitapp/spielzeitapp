@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, Compass, PlayCircle, Smartphone, Trophy } from 'lucide-react';
+import { ChevronRight, Compass, PlayCircle, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
 import {
@@ -11,6 +11,7 @@ import { DEMO_TOUR_WHAT_PATH, DEMO_TOUR_WELCOME_BENEFIT, DEMO_TOUR_WELCOME_HEADL
 import { isStandaloneDisplayMode } from '../../lib/pwaDisplayMode';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
+import { HomeScreenGuide } from '../../components/HomeScreenGuide';
 
 const WELCOME_HERO_PATH = `${import.meta.env.BASE_URL || '/'}intro/welcome-clean-numbers.jpg`;
 
@@ -463,17 +464,7 @@ export const WelcomeScreen: React.FC = () => {
                 App-Modus aktiv.
               </p>
             ) : (
-              <div className="flex items-start gap-1.5 px-0.5 pt-1 text-left text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
-                <Smartphone
-                  className="mt-px h-3.5 w-3.5 shrink-0 text-zinc-300 sm:mt-0.5 sm:h-4 sm:w-4"
-                  strokeWidth={2.15}
-                  aria-hidden
-                />
-                <p>
-                  <span className="font-semibold text-red-500">Tipp:</span> Teilen → Zum Home-Bildschirm
-                  hinzufügen.
-                </p>
-              </div>
+              <HomeScreenGuide compact />
             )
           ) : null}
         </div>

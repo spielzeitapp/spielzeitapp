@@ -5,6 +5,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
+import { ClubBrandingFields } from './ClubBrandingFields';
+import { DEFAULT_CLUB_BRANDING, saveClubBranding, type ClubBranding } from '../lib/clubBranding';
 import {
   createPlatformClub,
   isPlatformAdminRole,
@@ -31,6 +33,8 @@ export function ManagerClubsPage(): React.ReactElement {
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [branding, setBranding] = useState<ClubBranding>(DEFAULT_CLUB_BRANDING);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -58,6 +62,15 @@ export function ManagerClubsPage(): React.ReactElement {
     setBusy(true);
     setError(null);
     const res = await createPlatformClub({ name, shortName: shortName || null });
+    if (res.data) {
+      const saved = await saveClubBranding(res.data.id, branding, logoFile);
+      if (saved.error) {
+        setBusy(false);
+        setError(`Verein angelegt, aber Logo/Farben konnten nicht gespeichert werden: ${saved.error}. Öffne den Verein über die Liste und speichere sie erneut.`);
+        await reload();
+        return;
+      }
+    }
     setBusy(false);
     if (res.error || !res.data) {
       setError(res.error ?? 'Anlegen fehlgeschlagen.');
@@ -151,6 +164,7 @@ export function ManagerClubsPage(): React.ReactElement {
               />
             </label>
           </div>
+          <ClubBrandingFields value={branding} onChange={setBranding} logoFile={logoFile} onLogoFile={setLogoFile} />
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="submit"

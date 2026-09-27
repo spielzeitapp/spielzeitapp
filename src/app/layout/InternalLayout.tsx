@@ -12,6 +12,7 @@ import { useSyncPendingProfile } from '../../auth/useSyncPendingProfile';
 import { useSyncProfileFromUserMetadata } from '../../auth/useSyncProfileFromUserMetadata';
 import { TabletSidebar } from '../components/TabletSidebar';
 import { PushOnboardingPrompt } from '../../components/PushOnboardingPrompt';
+import { HomeScreenGuide } from '../../components/HomeScreenGuide';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/roles';
 import { useDemoMode } from '../../demo/DemoContext';
 import {
@@ -356,6 +357,7 @@ export const InternalLayout: React.FC = () => {
       <div className="lg:hidden">{isTouchLayout ? <BottomNav /> : null}</div>
       <div className="lg:hidden">{isTouchLayout && !isDemo ? <AppFab /> : null}</div>
       {!isDemo ? <PushOnboardingPrompt /> : null}
+      {!isDemo && !blockContent && !isOnboardingExemptPath(location.pathname) ? <HomeScreenGuide /> : null}
     </AppBackground>
   );
 };
