@@ -48,11 +48,11 @@ function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-[inherit]" aria-hidden>
-      <div className="sz-club-feed-primary-glow absolute bottom-[-6%] right-[-18%] h-[69%] w-[88%] rounded-full blur-3xl" />
+      <div className="sz-club-feed-primary-glow absolute bottom-[-6%] right-[-18%] h-[74%] w-[72%] rounded-full blur-3xl" />
       <img
         src={playerImageUrl}
         alt=""
-        className="absolute bottom-0 right-[-3%] h-[68%] w-[61%] object-contain object-bottom object-right sm:right-0 sm:h-[70%]"
+        className="absolute bottom-0 right-[-18%] h-[110%] w-[95%] object-contain object-bottom object-right sm:right-[-14%]"
         style={{ filter: 'drop-shadow(-12px 8px 24px rgba(0,0,0,0.9))' }}
         loading="lazy"
         onError={() => setFailed(true)}
@@ -82,7 +82,7 @@ function TeamMark({ name, logoUrl }: { name: string; logoUrl: string }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center">
       <PosterLogo src={logoUrl} alt={name} />
-      <p className="mt-1 min-h-[2.25rem] w-full break-words text-center text-[clamp(0.64rem,2.8vw,0.95rem)] font-black uppercase leading-[1.08] tracking-[-0.01em] text-white">
+      <p className="mt-1 min-h-[2.25rem] w-full break-words text-center text-[clamp(0.56rem,2.5vw,0.86rem)] font-black uppercase leading-[1.08] tracking-[-0.01em] text-white">
         {name}
       </p>
     </div>
@@ -168,7 +168,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             </div>
           </header>
 
-          <div className="mt-[4%] flex w-full shrink-0 items-start gap-2 rounded-lg bg-black/45 px-1 py-1 backdrop-blur-[2px]">
+          <div className="mt-[4%] flex w-[68%] shrink-0 items-start gap-1 rounded-lg bg-black/35 px-1 py-1">
             <TeamMark name={homeTeamName} logoUrl={homeLogoUrl} />
             <div className="flex w-9 shrink-0 flex-col items-center pt-5 sm:w-11">
               <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
@@ -178,11 +178,11 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             <TeamMark name={awayTeamName} logoUrl={awayLogoUrl} />
           </div>
 
-          <div className="mt-auto mb-[13%] w-[48%] space-y-2.5 sm:space-y-3">
+          <div className="mt-auto mb-[13%] w-[52%] space-y-2 sm:space-y-3">
             {competition ? (
               <div className="flex items-center gap-1.5 text-[clamp(0.46rem,2.2vw,0.62rem)] font-bold uppercase tracking-[0.11em] text-white/64">
                 <Trophy className="sz-club-feed-accent-text h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
-                <span className="truncate">{competition}</span>
+                <span className="line-clamp-2 leading-tight">{competition}</span>
               </div>
             ) : null}
             {venueLine ? <p className="sz-club-feed-accent-text text-[clamp(0.52rem,2.5vw,0.7rem)] font-black tracking-[0.15em]">{venueLine}</p> : null}
