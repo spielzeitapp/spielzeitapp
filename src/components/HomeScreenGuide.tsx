@@ -30,8 +30,8 @@ export function HomeScreenGuide({ compact = false }: { compact?: boolean }) {
 
   const steps = ios
     ? safari
-      ? ['In Safari unten auf Teilen tippen.', 'Zum Home-Bildschirm auswählen.', 'Falls angezeigt, Als Web-App öffnen aktivieren und Hinzufügen tippen.']
-      : ['spielzeitapp.at in Safari öffnen.', 'Auf Teilen tippen und Zum Home-Bildschirm auswählen.', 'Hinzufügen tippen.']
+      ? ['In Safari unten auf Teilen tippen.', 'Im Teilen-Menü nach oben wischen oder Mehr anzeigen tippen. Dann Zum Home-Bildschirm auswählen.', 'Falls angezeigt, Als Web-App öffnen aktivieren und Hinzufügen tippen.']
+      : ['spielzeitapp.at in Safari öffnen.', 'Auf Teilen tippen, im Menü nach oben wischen oder Mehr anzeigen tippen und Zum Home-Bildschirm auswählen.', 'Hinzufügen tippen.']
     : ['Im Browser das Menü ⋮ öffnen.', 'App installieren oder Zum Startbildschirm hinzufügen auswählen.', 'Bestätigen und die App über das neue Symbol öffnen.'];
   const StepIcons = ios ? [safari ? Share : Smartphone, SquarePlus, Check] : [EllipsisVertical, SquarePlus, Check];
 
