@@ -157,7 +157,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             >
               {title}
             </h2>
-            <div className="mt-2 flex items-center gap-3">
+            <div className="mt-2 flex w-[64%] items-center gap-3">
               <div className="sz-club-feed-accent-line h-[3px] flex-1" />
               {ageGroup ? (
                 <span className="sz-club-feed-accent-text text-[clamp(1.55rem,7.5vw,2.25rem)] font-black uppercase leading-none tracking-[-0.04em]">
@@ -168,7 +168,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             </div>
           </header>
 
-          <div className="mt-[4%] flex w-[68%] shrink-0 items-start gap-1 rounded-lg bg-black/35 px-1 py-1">
+          <div className="mt-[4%] flex w-[62%] shrink-0 items-start gap-1 px-1 py-1">
             <TeamMark name={homeTeamName} logoUrl={homeLogoUrl} />
             <div className="flex w-9 shrink-0 flex-col items-center pt-5 sm:w-11">
               <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
