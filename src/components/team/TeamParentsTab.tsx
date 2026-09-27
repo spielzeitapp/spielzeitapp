@@ -22,6 +22,7 @@ import {
 } from '../../lib/playerAppStatus';
 import { listParentLinkInvitesForPlayer } from '../../lib/parentLinkInvites';
 import { supabase } from '../../lib/supabaseClient';
+import { getTeamParentHomeAppUsage, homeAppUsageLabel } from '../../lib/homeAppUsage';
 import {
   ParentAccessPlayerRow,
   type ParentAccessRosterFilter,
@@ -62,6 +63,20 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   const [search, setSearch] = useState('');
   const [openInviteByPlayer, setOpenInviteByPlayer] = useState<Record<string, number>>({});
   const [photoByPlayer, setPhotoByPlayer] = useState<Record<string, string>>({});
+  const [homeUsage, setHomeUsage] = useState<Map<string, string> | null>(null);
+  const [homeUsageError, setHomeUsageError] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setHomeUsage(null);
+    setHomeUsageError(false);
+    if (teamSeasonId) {
+      void getTeamParentHomeAppUsage(teamSeasonId)
+        .then((usage) => { if (alive) setHomeUsage(usage); })
+        .catch(() => { if (alive) setHomeUsageError(true); });
+    }
+    return () => { alive = false; };
+  }, [teamSeasonId]);
 
   useEffect(() => {
     if (!focusPlayerId) return;
@@ -255,8 +270,10 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
               <span className="text-emerald-300">
                 <span className="font-bold">{pushActiveCount}</span> Push aktiv
               </span>
+              {homeUsage && <span className="text-sky-300"><span className="font-bold">{new Set(rows.flatMap(r => r.parents.map(p => p.user_id)).filter(id => homeUsage.has(id))).size}</span> Eltern über Home-Icon</span>}
             </div>
           </GlassCard>
+          {homeUsageError ? <p className="text-[12px] text-amber-200">Home-Icon-Status derzeit nicht verfügbar.</p> : null}
 
           <label className="block min-w-0">
             <span className="sr-only">Spieler suchen</span>
@@ -330,6 +347,7 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                   <li key={row.player_id}>
                     <ParentAccessPlayerRow
                       row={row}
+                      homeUsageLabel={homeUsage && row.parents.length ? row.parents.map(parent => `${parent.name || parent.email || 'Elternteil'}: ${homeAppUsageLabel(homeUsage.get(parent.user_id))}`).join(' · ') : undefined}
                       openInviteCount={openInviteByPlayer[row.player_id] ?? 0}
                       appStatus={app?.app_status}
                       lastUsedAt={app?.last_used_at ?? null}

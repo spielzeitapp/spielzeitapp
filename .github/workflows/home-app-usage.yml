@@ -1,0 +1,70 @@
+name: Home app usage migration
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - '.github/workflows/home-app-usage.yml'
+      - 'supabase/migrations/20260927194500_home_app_usage.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: home-app-usage-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      MIGRATION_VERSION: '20260927194500'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select guarded project
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_NAME" = develop ]; then
+            echo 'SUPABASE_PROJECT_REF=acbaecjzoabafbsjrzvr' >> "$GITHUB_ENV"
+            echo 'EXPECTED_PROJECT_NAME=spielzeitapp-staging' >> "$GITHUB_ENV"
+          elif [ "$GITHUB_REF_NAME" = main ]; then
+            echo 'SUPABASE_PROJECT_REF=shxugattqatahckhspwk' >> "$GITHUB_ENV"
+            echo 'EXPECTED_PROJECT_NAME=spielzeitapp-nsg' >> "$GITHUB_ENV"
+          else
+            exit 1
+          fi
+      - name: Apply and verify migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { SUPABASE_ACCESS_TOKEN: token, SUPABASE_PROJECT_REF: ref, EXPECTED_PROJECT_NAME: name, MIGRATION_VERSION: version } = process.env;
+          async function request(path, options = {}) {
+            const response = await fetch('https://api.supabase.com/v1' + path, { ...options, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`${path} failed (${response.status}): ${body}`);
+            return body ? JSON.parse(body) : null;
+          }
+          const query = sql => request(`/projects/${ref}/database/query`, { method: 'POST', body: JSON.stringify({ query: sql }) });
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== name) throw new Error('Project guard failed');
+            const rows = await query(`SELECT EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='${version}') AS applied`);
+            if (!rows?.[0]?.applied) {
+              const sql = fs.readFileSync('supabase/migrations/20260927194500_home_app_usage.sql', 'utf8');
+              await query(`${sql}\nINSERT INTO supabase_migrations.schema_migrations (version) VALUES ('${version}') ON CONFLICT DO NOTHING;`);
+            }
+            const verified = await query(`SELECT to_regclass('public.home_app_usage') IS NOT NULL AS table_ready,
+              to_regprocedure('public.record_home_app_open()') IS NOT NULL AS recorder,
+              to_regprocedure('public.get_team_parent_home_app_usage(uuid)') IS NOT NULL AS reader,
+              EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='${version}') AS recorded`);
+            if (!verified?.[0]?.table_ready || !verified[0].recorder || !verified[0].reader || !verified[0].recorded) throw new Error('Migration verification failed');
+            console.log(`HOME_APP_USAGE_OK (${name})`);
+          })().catch(error => { console.error(error.message); process.exit(1); });
+          NODE

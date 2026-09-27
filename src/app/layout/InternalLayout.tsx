@@ -13,6 +13,7 @@ import { useSyncProfileFromUserMetadata } from '../../auth/useSyncProfileFromUse
 import { TabletSidebar } from '../components/TabletSidebar';
 import { PushOnboardingPrompt } from '../../components/PushOnboardingPrompt';
 import { HomeScreenGuide } from '../../components/HomeScreenGuide';
+import { recordHomeAppOpen } from '../../lib/homeAppUsage';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/roles';
 import { useDemoMode } from '../../demo/DemoContext';
 import {
@@ -94,6 +95,10 @@ export const InternalLayout: React.FC = () => {
 
   useSyncPendingProfile(isDemo ? null : user ?? null);
   useSyncProfileFromUserMetadata(isDemo ? null : user ?? null);
+
+  useEffect(() => {
+    if (!isDemo && user?.id) void recordHomeAppOpen(user.id);
+  }, [isDemo, user?.id]);
 
   const onExemptPath = isOnboardingExemptPath(location.pathname);
 

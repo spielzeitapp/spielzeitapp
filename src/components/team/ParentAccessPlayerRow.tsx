@@ -56,11 +56,12 @@ type ParentAccessPlayerRowProps = {
   appStatus?: PlayerAppStatus;
   lastUsedAt?: string | null;
   photoUrl?: string | null;
+  homeUsageLabel?: string;
   onOpen: () => void;
 };
 
 export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.ReactElement {
-  const { row, openInviteCount, appStatus, lastUsedAt, photoUrl, onOpen } = props;
+  const { row, openInviteCount, appStatus, lastUsedAt, photoUrl, homeUsageLabel, onOpen } = props;
   const parentLine = parentStatusLine({
     parentCount: row.parent_count,
     openInviteCount,
@@ -118,6 +119,7 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
           <PushIcon className="h-3 w-3 shrink-0" aria-hidden />
           <span className="truncate">{pushLabel} · {parentLine}</span>
         </span>
+        {homeUsageLabel ? <span className="mt-1 block truncate text-[10px] text-sky-200/75" title={homeUsageLabel}>{homeUsageLabel}</span> : null}
       </span>
       <ChevronRight className="ml-2 h-5 w-5 shrink-0 text-white/65" aria-hidden />
     </button>
