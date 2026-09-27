@@ -110,14 +110,14 @@ const DEMO_MATCH_ID_PREFIX = '00000000-demo-';
 const DEMO_EVENT_ID_PREFIX = 'demo-live-ev-';
 const DEMO_FINISHED_MATCH_EVENTS: Record<string, Array<Pick<DemoLiveEventRow, 'type' | 'minute' | 'player_id'>>> = {
   '00000000-demo-4000-8000-matchstveit': [
-    { type: 'goal', minute: 18 * 60, player_id: 'p10' },
-    { type: 'goal_away', minute: 29 * 60, player_id: null },
-    { type: 'goal', minute: 41 * 60, player_id: 'p08' },
-    { type: 'goal', minute: 43 * 60, player_id: 'p06' },
+    { type: 'goal', minute: 17 * 60, player_id: 'p10' },
+    { type: 'goal_away', minute: 28 * 60, player_id: null },
+    { type: 'goal', minute: 40 * 60, player_id: 'p08' },
+    { type: 'goal', minute: 42 * 60, player_id: 'p06' },
   ],
   '00000000-demo-4000-8000-matchlangenrohr': [
-    { type: 'goal_away', minute: 20 * 60, player_id: null },
-    { type: 'goal', minute: 32 * 60, player_id: 'p07' },
+    { type: 'goal_away', minute: 19 * 60, player_id: null },
+    { type: 'goal', minute: 31 * 60, player_id: 'p07' },
   ],
 };
 
