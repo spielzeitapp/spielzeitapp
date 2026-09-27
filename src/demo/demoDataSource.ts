@@ -291,7 +291,7 @@ export function buildDemoFeedPosts(): {
           id: 'df-lineup',
           post_kind: 'lineup_auto',
           media_type: 'lineup',
-          caption: 'Startaufstellung veröffentlicht · Formation 1-3-3-1',
+          caption: 'Startaufstellung veröffentlicht · Formation 1-3-3',
           created_at: demoOffsetIso(-5, 20, 0),
           event_id: 'ev-game-past',
           payload: {},
