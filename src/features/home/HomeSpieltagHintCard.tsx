@@ -46,6 +46,10 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
     event.starts_at && !Number.isNaN(new Date(event.starts_at).getTime())
       ? formatMeetupTimeOnlyDe(event.starts_at)
       : '—';
+  const matchDate =
+    event.starts_at && !Number.isNaN(new Date(event.starts_at).getTime())
+      ? new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(event.starts_at))
+      : null;
   const rawMeetingTime =
     event.meeting_at && !Number.isNaN(new Date(event.meeting_at).getTime())
       ? formatMeetupTimeOnlyDe(event.meeting_at)
@@ -99,6 +103,8 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         homeLogoUrl={homeLogo}
         awayLogoUrl={awayLogo}
         kickoffTime={kickoff}
+        ageGroup={basePath === '/demo' ? 'U12' : null}
+        matchDate={matchDate}
         meetingTime={meetingTime}
         locationLine={locationLine}
         venueLabel={venueLabel}
