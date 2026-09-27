@@ -21,8 +21,9 @@ export const DEMO_EVENT_TIMES = {
   'ev-train-next': () => ({ starts: demoOffsetIso(2, 17, 0), ends: demoOffsetIso(2, 18, 20) }),
   'ev-train-follow': () => ({ starts: demoOffsetIso(9, 17, 0), ends: demoOffsetIso(9, 18, 20) }),
   'ev-game-next': () => ({
-    starts: demoMinutesFromNowIso(-48),
-    meeting: demoMinutesFromNowIso(-93),
+    // Das Demo-Spiel läuft beim Einstieg bereits rund 18 Minuten.
+    starts: demoMinutesFromNowIso(-19),
+    meeting: demoMinutesFromNowIso(-64),
   }),
   'ev-tournament': () => ({ starts: demoOffsetIso(14, 9, 0), ends: demoOffsetIso(14, 16, 0) }),
   'ev-teamabend': () => ({ starts: demoOffsetIso(20, 18, 0), ends: demoOffsetIso(20, 20, 0) }),
@@ -165,10 +166,8 @@ export function buildDemoFeedPosts(): {
   const stVeit = 'SC St. Veit U12';
   const tInfo = DEMO_EVENT_TIMES['ev-info']();
   const tTrainPast = DEMO_EVENT_TIMES['ev-train-past']();
-  const tTrainNext = DEMO_EVENT_TIMES['ev-train-next']();
   const tGamePast = DEMO_EVENT_TIMES['ev-game-past']();
   const tGameNext = DEMO_EVENT_TIMES['ev-game-next']();
-  const tTournament = DEMO_EVENT_TIMES['ev-tournament']();
 
   const all: ClassifiedFeedPost[] = [
     {
@@ -187,32 +186,16 @@ export function buildDemoFeedPosts(): {
       }),
     },
     {
-      kind: 'next_match',
-      post: {
-        ...basePost({
-          id: 'df-next-training',
-          post_kind: 'next_match_auto',
-          media_type: 'next_match',
-          caption: 'Nächstes Training · 1 gegen 1 und schnelles Umschalten',
-          created_at: demoOffsetIso(1, 8, 0),
-          event_id: 'ev-train-next',
-          payload: {},
-        }),
-        payload: {
-          display_home_name: our,
-          display_away_name: 'Training',
-          our_team_name: our,
-          is_home: true,
-          opponent_logo_url: null,
-          match_type: null,
-          kickoff_iso: tTrainNext.starts,
-          meeting_iso: null,
-          location: 'Sportplatz Rohrbach',
-          match_id: null,
-          event_id: 'ev-train-next',
-          deep_link: '/demo/events/ev-train-next',
-        },
-      },
+      kind: 'image',
+      post: basePost({
+        id: 'df-training-preview',
+        post_kind: 'manual_image',
+        media_type: 'image',
+        caption: 'Nächstes Training: 1 gegen 1 und schnelles Umschalten. Bitte die Teilnahme im Termin bestätigen. Der Trainingsplan ist für die Trainer am Platz abrufbar.',
+        created_at: demoOffsetIso(-1, 18, 0),
+        event_id: 'ev-train-next',
+        media_url: '/icons/pitch.svg',
+      }),
     },
     {
       kind: 'championship_match_changed',
@@ -220,7 +203,7 @@ export function buildDemoFeedPosts(): {
         id: 'df-schedule-change',
         post_kind: 'championship_match_changed',
         media_type: 'championship_match_changed',
-        caption: 'Terminänderung: Training beginnt um 17:00 (statt 16:45).',
+        caption: 'Terminänderung: Das Training beginnt um 17:00 statt um 16:45 Uhr. Alle Familien sehen die aktuelle Uhrzeit im Termin.',
         created_at: demoOffsetIso(-8, 9, 30),
         event_id: 'ev-train-past',
         payload: {
@@ -248,12 +231,12 @@ export function buildDemoFeedPosts(): {
     {
       kind: 'matchday',
       post: {
-        id: 'df-squad',
+        id: 'df-matchday-past',
         team_season_id: DEMO_TEAM_SEASON_ID,
         team_id: DEMO_TEAM_ID,
         event_id: 'ev-game-past',
         post_kind: 'matchday_auto',
-        caption: `Kader freigegeben · vs. ${stVeit}`,
+        caption: `Spieltag · ${our} gegen ${stVeit}. Treffpunkt 09:15 Uhr am Sportplatz.`,
         created_at: demoOffsetIso(-5, 18, 0),
         media_type: 'matchday',
         payload: {
@@ -273,13 +256,42 @@ export function buildDemoFeedPosts(): {
       },
     },
     {
+      kind: 'squad',
+      post: {
+        ...basePost({
+          id: 'df-squad-live',
+          post_kind: 'squad_published',
+          media_type: 'squad',
+          caption: `Kader für das heutige Heimspiel gegen ${loosdorf} veröffentlicht. Die Rückmeldungen sind berücksichtigt.`,
+          created_at: demoMinutesFromNowIso(-150),
+          event_id: 'ev-game-next',
+        }),
+        payload: {
+          match_id: DEMO_MATCH_ID_LIVE,
+          event_id: 'ev-game-next',
+          team_season_id: DEMO_TEAM_SEASON_ID,
+          our_team_name: our,
+          opponent_name: loosdorf,
+          is_home: true,
+          starts_at: tGameNext.starts,
+          deep_link: '/demo/events/ev-game-next',
+          players: demoFixtures.players.map((p) => ({
+            player_id: p.id,
+            name: `${p.firstName} ${p.lastName}`,
+            jersey_number: p.jersey,
+          })),
+          version: 1,
+        },
+      },
+    },
+    {
       kind: 'lineup',
       post: {
         ...basePost({
           id: 'df-lineup',
           post_kind: 'lineup_auto',
           media_type: 'lineup',
-          caption: 'Aufstellung fertig · Formation 2-3-1',
+          caption: 'Startaufstellung veröffentlicht · Formation 1-3-3-1',
           created_at: demoOffsetIso(-5, 20, 0),
           event_id: 'ev-game-past',
           payload: {},
@@ -331,7 +343,7 @@ export function buildDemoFeedPosts(): {
           post_kind: 'live_auto',
           media_type: 'live',
           caption: `LIVE · ${our} – ${loosdorf}`,
-          created_at: demoMinutesFromNowIso(-45),
+          created_at: demoMinutesFromNowIso(-19),
           event_id: 'ev-game-next',
           payload: {},
         }),
@@ -380,7 +392,7 @@ export function buildDemoFeedPosts(): {
           scorers: [
             { player_name: 'Elias F.', minute_label: "18'" },
             { player_name: 'Noah K.', minute_label: "41'" },
-            { player_name: 'Jonas W.', minute_label: "62'" },
+            { player_name: 'Jonas W.', minute_label: "43'" },
           ],
           period_scores: null,
           result_state: 'win',
@@ -391,20 +403,15 @@ export function buildDemoFeedPosts(): {
       },
     },
     {
-      kind: 'tournament_completion',
+      kind: 'image',
       post: basePost({
-        id: 'df-tournament',
-        post_kind: 'tournament_completion_manual',
-        media_type: 'tournament_completion',
-        caption: 'U12-Sommerturnier St. Veit · Gruppe Platz 2, Finale am Nachmittag.',
-        created_at: demoOffsetIso(-3, 16, 0),
+        id: 'df-tournament-info',
+        post_kind: 'manual_image',
+        media_type: 'image',
+        caption: 'Turnierausblick: Das nächste U12-Turnier steht im Kalender. Treffpunkt, Spielplan und Rückmeldungen findet ihr direkt beim Termin.',
+        created_at: demoOffsetIso(-2, 16, 0),
         event_id: 'ev-tournament',
-        payload: {
-          tournament_name: demoFixtures.tournament.name,
-          location: demoFixtures.tournament.location,
-          deep_link: '/demo/events/ev-tournament',
-          event_id: 'ev-tournament',
-        },
+        media_url: '/icons/pitch.svg',
       }),
     },
     {
