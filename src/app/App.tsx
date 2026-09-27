@@ -76,12 +76,6 @@ import { PublicTeamTournamentPage } from '../pages/public/PublicTeamTournamentPa
 import { DemoLayout } from '../demo/DemoLayout';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
-import { DemoTourWhatPage } from '../demo/pages/DemoTourWhatPage';
-import { DemoTourCreateTrainingPage } from '../demo/pages/DemoTourCreateTrainingPage';
-import { DemoTourCreateMatchPage } from '../demo/pages/DemoTourCreateMatchPage';
-import { DemoTourParentRsvpPage } from '../demo/pages/DemoTourParentRsvpPage';
-import { DemoTourChroniclePage } from '../demo/pages/DemoTourChroniclePage';
-import { DemoTourSeasonPage } from '../demo/pages/DemoTourSeasonPage';
 import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
 
 /** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
@@ -244,13 +238,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
           <Route path="live" element={<LivePage />} />
-          <Route path="tour/what" element={<DemoTourWhatPage />} />
-          <Route path="tour/create-training" element={<DemoTourCreateTrainingPage />} />
-          <Route path="tour/create-match" element={<DemoTourCreateMatchPage />} />
-          <Route path="tour/parent-training" element={<DemoTourParentRsvpPage />} />
-          <Route path="tour/parent-match" element={<DemoTourParentRsvpPage />} />
-          <Route path="tour/chronicle" element={<DemoTourChroniclePage />} />
-          <Route path="tour/season" element={<DemoTourSeasonPage />} />
+          <Route path="tour/*" element={<Navigate to="/demo/home" replace />} />
           <Route path="mehr" element={<MoreLayout />}>
             <Route index element={<MorePage />} />
           </Route>
@@ -412,13 +400,7 @@ function PublicRoutes(): React.ReactElement {
           <Route path="event" element={<DemoEventPage />} />
           <Route path="turnier" element={<DemoTournamentPage />} />
           <Route path="live" element={<LivePage />} />
-          <Route path="tour/what" element={<DemoTourWhatPage />} />
-          <Route path="tour/create-training" element={<DemoTourCreateTrainingPage />} />
-          <Route path="tour/create-match" element={<DemoTourCreateMatchPage />} />
-          <Route path="tour/parent-training" element={<DemoTourParentRsvpPage />} />
-          <Route path="tour/parent-match" element={<DemoTourParentRsvpPage />} />
-          <Route path="tour/chronicle" element={<DemoTourChroniclePage />} />
-          <Route path="tour/season" element={<DemoTourSeasonPage />} />
+          <Route path="tour/*" element={<Navigate to="/demo/home" replace />} />
           <Route path="mehr" element={<MoreLayout />}>
             <Route index element={<MorePage />} />
           </Route>

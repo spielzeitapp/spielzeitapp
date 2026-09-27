@@ -82,7 +82,7 @@ function TeamMark({ name, logoUrl }: { name: string; logoUrl: string }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center">
       <PosterLogo src={logoUrl} alt={name} />
-      <p className="mt-1 line-clamp-2 min-h-[2.25rem] w-full break-words text-center text-[clamp(0.72rem,3.6vw,0.95rem)] font-black uppercase leading-[1.04] tracking-[-0.01em] text-white">
+      <p className="mt-1 min-h-[2.25rem] w-full break-words text-center text-[clamp(0.64rem,2.8vw,0.95rem)] font-black uppercase leading-[1.08] tracking-[-0.01em] text-white">
         {name}
       </p>
     </div>
@@ -168,7 +168,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             </div>
           </header>
 
-          <div className="mt-[4%] flex w-[58%] shrink-0 items-start gap-2">
+          <div className={`mt-[4%] flex shrink-0 items-start gap-2 ${playerUrl ? 'w-[66%]' : 'w-full'}`}>
             <TeamMark name={homeTeamName} logoUrl={homeLogoUrl} />
             <div className="flex w-9 shrink-0 flex-col items-center pt-5 sm:w-11">
               <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
