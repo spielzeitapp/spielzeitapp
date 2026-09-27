@@ -144,6 +144,23 @@
   background: rgb(var(--club-primary-rgb) / 0.25);
 }
 
+/* Navigation bleibt über alle Terminarten gleich, statt Grün/Rot als
+   vermeintliche Teilnahme- oder Dringlichkeitsanzeige zu verwenden. */
+.sz-club-schedule-chevron {
+  background: linear-gradient(180deg, rgb(var(--club-primary-rgb) / 0.94), rgb(var(--club-primary-rgb) / 0.7));
+  box-shadow: 0 0 16px rgb(var(--club-primary-rgb) / 0.24);
+}
+
+.sz-club-schedule-chevron:hover,
+.sz-club-schedule-chevron:focus-visible {
+  background: linear-gradient(180deg, rgb(var(--club-primary-rgb) / 1), rgb(var(--club-primary-rgb) / 0.82));
+}
+
+.sz-club-schedule-chevron:focus-visible {
+  outline: 2px solid rgb(var(--club-accent-rgb) / 0.8);
+  outline-offset: -3px;
+}
+
 .sz-club-primary {
   border-color: rgb(var(--club-primary-rgb) / 0.34);
   color: var(--club-on-primary);

@@ -426,7 +426,7 @@ export function ScheduleHeroEventCard({
     isClickable && onNavigate ? (
       <button
         type="button"
-        className="flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] bg-gradient-to-b from-teal-500/90 to-emerald-700/95 text-white shadow-[0_0_16px_rgba(16,185,129,0.28)] transition-colors hover:brightness-110"
+        className="sz-club-schedule-chevron flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] text-white transition-colors hover:brightness-110"
         aria-label={et === 'tournament' ? 'Turnier öffnen' : 'Termin öffnen'}
         onClick={(e) => {
           e.stopPropagation();
