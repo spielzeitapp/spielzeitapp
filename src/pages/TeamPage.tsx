@@ -1007,7 +1007,7 @@ export const TeamPage: React.FC = () => {
           className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[repeating-linear-gradient(90deg,transparent,transparent_14px,rgba(255,255,255,0.04)_14px,rgba(255,255,255,0.04)_16px)]"
           aria-hidden
         />
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-red-600/20 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[rgb(var(--club-primary-rgb)/0.2)] blur-3xl" aria-hidden />
         <div className="relative z-10 flex h-full min-h-[220px] flex-col justify-end p-4 sm:min-h-[280px] sm:p-6">
           {canManagePlayers ? (
             <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
@@ -1036,9 +1036,9 @@ export const TeamPage: React.FC = () => {
                   teamPhotoInputRef.current?.click();
                 }}
                 title={isHistoryReadOnly ? softLockMessage ?? "Archiv: nur Lesen" : "Mannschaftsfoto"}
-                className="h-9 gap-1 px-2.5 backdrop-blur-sm hover:border-red-400/40 hover:bg-black/60 sm:h-8"
+                className="h-9 gap-1 px-2.5 backdrop-blur-sm hover:border-[rgb(var(--club-accent-rgb)/0.4)] hover:bg-black/60 sm:h-8"
               >
-                <Camera className="h-4 w-4 shrink-0 text-red-300/95" aria-hidden />
+                <Camera className="h-4 w-4 shrink-0 text-[rgb(var(--club-accent-rgb)/0.95)]" aria-hidden />
                 <span className="text-[11px] font-medium text-white/85">Foto</span>
               </AppButton>
             </div>
@@ -1052,7 +1052,7 @@ export const TeamPage: React.FC = () => {
                 {tsLoading ? "Lade Team…" : getOurTeamDisplayName()}
               </p>
               <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
-                <span className="text-red-400">{heroAgeGroup}</span> · Saison {heroSeason}
+                <span className="sz-club-accent-text">{heroAgeGroup}</span> · Saison {heroSeason}
                 {isHistoryReadOnly ? " · Archiv" : ""}
               </p>
             </div>
@@ -1279,7 +1279,7 @@ export const TeamPage: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate(returnToTrainingEvent)}
-              className="mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-[13px] font-bold text-red-100 transition-colors hover:bg-red-500/15"
+              className="sz-club-accent-control mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-bold transition-colors"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden />
               Zurück zum Trainingstermin
@@ -1326,7 +1326,7 @@ export const TeamPage: React.FC = () => {
 
               {upcomingMatches.length > 0 ? (
                 <div>
-                  <p className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                  <p className="sz-club-accent-text mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em]">
                     Nächstes Spiel
                   </p>
                   <SeasonMatchCard match={upcomingMatches[0]} ourTeamName={heroTeamName} />
@@ -1334,7 +1334,7 @@ export const TeamPage: React.FC = () => {
               ) : null}
 
               <div>
-                <p className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                <p className="sz-club-accent-text mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em]">
                   Letzte Spiele
                 </p>
                 {seasonMatchesLoading ? (

@@ -59,9 +59,9 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
 
   const teamHeader = resolveTrainerTeamHeader(teamName, teamSeasonLabel);
   return (
-    <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-red-500/40 bg-[linear-gradient(145deg,#151517_0%,#070708_58%,#10080a_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55),0_0_20px_rgba(122,29,42,0.08)] ring-1 ring-red-500/10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(220,38,38,0.12),transparent_50%)]" aria-hidden />
-      <div className="absolute inset-0 opacity-10 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgba(239,68,68,0.12)_17px,transparent_18px)]" aria-hidden />
+    <div className="relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border border-[rgb(var(--club-accent-rgb)/0.4)] bg-[linear-gradient(145deg,#151517_0%,#070708_58%,#10080a_100%)] shadow-[0_14px_42px_rgba(0,0,0,0.55),0_0_20px_rgb(var(--club-primary-rgb)/0.08)] ring-1 ring-[rgb(var(--club-accent-rgb)/0.1)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgb(var(--club-primary-rgb)/0.12),transparent_50%)]" aria-hidden />
+      <div className="absolute inset-0 opacity-10 [background-image:repeating-linear-gradient(130deg,transparent_0,transparent_16px,rgb(var(--club-accent-rgb)/0.12)_17px,transparent_18px)]" aria-hidden />
 
       <p
         className="absolute left-5 top-[6.25rem] z-[4] select-none text-[clamp(5.5rem,25vw,8.25rem)] font-black leading-[0.7] tracking-[-0.07em] text-white/[0.18] sm:left-8 sm:top-[6.65rem]"
@@ -98,7 +98,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
           </p>
           {teamHeader.ageGroup || teamHeader.season ? (
             <p className="mt-1.5 text-[11px] font-black uppercase leading-none tracking-[0.12em] text-white/72 sm:text-[12px]">
-              {teamHeader.ageGroup ? <span className="text-red-400">{teamHeader.ageGroup}</span> : null}
+              {teamHeader.ageGroup ? <span className="sz-club-accent-text">{teamHeader.ageGroup}</span> : null}
               {teamHeader.ageGroup && teamHeader.season ? <span className="text-white/45"> · </span> : null}
               {teamHeader.season ? <span>{teamHeader.season}</span> : null}
             </p>

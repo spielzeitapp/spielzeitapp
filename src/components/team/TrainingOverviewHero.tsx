@@ -70,7 +70,7 @@ export const TrainingOverviewHero: React.FC<Props> = ({
         aria-hidden
       />
       <div className="relative w-full">
-        <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.18em] text-red-300/75">
+        <p className="sz-club-accent-text whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.18em]">
           <span className="mr-1" aria-hidden>
             ⚽
           </span>
@@ -89,7 +89,7 @@ export const TrainingOverviewHero: React.FC<Props> = ({
               <p className="mt-1 text-[10px] leading-snug text-white/35">{trainingsSubLabel}</p>
             </div>
 
-            <div className="min-w-0 border-x border-[rgba(220,38,38,0.14)] px-2 sm:px-3">
+            <div className="min-w-0 border-x border-[rgb(var(--club-accent-rgb)/0.14)] px-2 sm:px-3">
               <p className="whitespace-nowrap text-[10px] font-medium text-white/35">Ø Trainingsbeteiligung</p>
               <p className="mt-1 text-[26px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[28px]">
                 {participationLabel}

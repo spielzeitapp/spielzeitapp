@@ -59,7 +59,7 @@ export const TeamTrainingSessionsList: React.FC<Props> = ({
             <li key={session.eventId}>
               <Link
                 to={`${basePath}/events/${session.eventId}`}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-[rgba(220,38,38,0.14)] bg-[rgba(8,8,10,0.72)] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[rgba(220,38,38,0.32)] hover:bg-[rgba(12,8,10,0.88)] hover:shadow-[0_0_20px_rgba(220,38,38,0.1)]"
+                className="group flex items-center justify-between gap-3 rounded-xl border border-[rgb(var(--club-accent-rgb)/0.14)] bg-[rgba(8,8,10,0.72)] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[rgb(var(--club-accent-rgb)/0.32)] hover:bg-[rgba(12,8,10,0.88)] hover:shadow-[0_0_20px_rgb(var(--club-accent-rgb)/0.1)]"
               >
                 <div className="min-w-0 flex-1">
                   <p className="whitespace-nowrap text-[13px] font-semibold text-white group-hover:text-white">
