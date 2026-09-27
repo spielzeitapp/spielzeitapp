@@ -13,13 +13,14 @@ import {
 import {
   DEMO_MATCH_ID_LIVE,
   DEMO_MATCH_ID_PAST,
+  DEMO_MATCH_ID_PAST_OLDER,
   DEMO_TEAM_SEASON_ID,
 } from './demoDataSource';
 import { getDemoLiveRuntimeScore, getDemoLiveRuntimeSnapshot } from './demoLiveRuntime';
 
 export const DEMO_MATCH_ID_AWAY = '00000000-demo-4000-8000-matchsknaway';
 
-export { DEMO_MATCH_ID_LIVE, DEMO_MATCH_ID_PAST };
+export { DEMO_MATCH_ID_LIVE, DEMO_MATCH_ID_PAST, DEMO_MATCH_ID_PAST_OLDER };
 
 export type DemoMatchLite = {
   id: string;
@@ -136,6 +137,22 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
       score_home: 3,
       score_away: 1,
     },
+    {
+      id: DEMO_MATCH_ID_PAST_OLDER,
+      team_season_id: DEMO_TEAM_SEASON_ID,
+      opponent: 'SV Langenrohr U12',
+      status: 'finished',
+      live_started_at: null,
+      is_home: true,
+      event_id: 'ev-game-past-older',
+      u11_formation_id: '1-3-3',
+      minimum_playtime_enabled: true,
+      minimum_playtime_minutes: 20,
+      planned_match_minutes: 50,
+      auto_matchday_feed_enabled: false,
+      score_home: 1,
+      score_away: 1,
+    },
   ];
 }
 
@@ -193,6 +210,7 @@ export function buildInitialDemoMatchStates(): Record<string, DemoMatchPrepState
     [DEMO_MATCH_ID_LIVE]: { ...home, publishedLocal: false },
     [DEMO_MATCH_ID_AWAY]: { ...away, publishedLocal: false },
     [DEMO_MATCH_ID_PAST]: { ...past, publishedLocal: true },
+    [DEMO_MATCH_ID_PAST_OLDER]: { ...past, publishedLocal: true },
   };
 }
 

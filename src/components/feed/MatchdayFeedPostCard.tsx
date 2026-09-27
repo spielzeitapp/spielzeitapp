@@ -36,6 +36,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
+import { getDemoMatchLite } from '../../demo/demoMatchState';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -120,10 +121,18 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   const eventStatus = linkedEventStatus ?? liveEvent?.status ?? 'upcoming';
   const matchId = liveEvent?.match_id ?? p.match_id;
+  const basePath = useInternalBasePath();
 
   useEffect(() => {
     if (eventStatus !== 'finished' || !matchId) {
       setScores(null);
+      return;
+    }
+    if (basePath === '/demo') {
+      const match = getDemoMatchLite(matchId);
+      setScores(match?.score_home != null && match.score_away != null
+        ? { home: match.score_home, away: match.score_away }
+        : null);
       return;
     }
     let cancelled = false;
@@ -143,7 +152,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [eventStatus, matchId]);
+  }, [eventStatus, matchId, basePath]);
 
   const posterStatus: MatchdayPosterVisualStatus = useMemo(() => {
     if (eventStatus === 'live') return 'live';
@@ -182,7 +191,6 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
   const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
   const viewerCanSeeMeetup = canSeeMeetup(viewerRole);
-  const basePath = useInternalBasePath();
 
   const gameHref = useMemo(
     () =>

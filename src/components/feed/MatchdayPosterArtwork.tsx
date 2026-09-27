@@ -168,7 +168,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             </div>
           </header>
 
-          <div className={`mt-[4%] flex shrink-0 items-start gap-2 ${playerUrl ? 'w-[66%]' : 'w-full'}`}>
+          <div className="mt-[4%] flex w-full shrink-0 items-start gap-2 rounded-lg bg-black/45 px-1 py-1 backdrop-blur-[2px]">
             <TeamMark name={homeTeamName} logoUrl={homeLogoUrl} />
             <div className="flex w-9 shrink-0 flex-col items-center pt-5 sm:w-11">
               <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />

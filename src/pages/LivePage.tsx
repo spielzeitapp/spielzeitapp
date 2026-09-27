@@ -11,7 +11,7 @@ import { cn } from '../ui/lib/cn';
 import { dsPrimaryCtaClass } from '../lib/premiumDesignSystem';
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath } from '../demo/demoPaths';
-import { DEMO_MATCH_ID_LIVE } from '../demo/demoMatchState';
+import { DEMO_MATCH_ID_LIVE, DEMO_MATCH_ID_PAST, DEMO_MATCH_ID_PAST_OLDER } from '../demo/demoMatchState';
 
 type LiveMatchRow = {
   id: string;
@@ -163,7 +163,8 @@ export const LivePage: React.FC = () => {
 
   /** Demo: LIVE-Route mit Match-ID → Session aus Prep booten (Turnier + Meisterschaft). */
   useEffect(() => {
-    if (!isDemo || !demo || !matchIdParam || matchIdParam.startsWith('demo-lm-')) return;
+    if (!isDemo || !demo || !matchIdParam || matchIdParam.startsWith('demo-lm-') ||
+      matchIdParam === DEMO_MATCH_ID_PAST || matchIdParam === DEMO_MATCH_ID_PAST_OLDER) return;
     if (demo.liveRuntimeMatchId === matchIdParam) return;
     if (
       demo.liveRuntimeMatchId &&
@@ -187,6 +188,11 @@ export const LivePage: React.FC = () => {
   // Ältere Demo-Profillinks enthielten lokale Pseudo-IDs und dürfen niemals an die DB gehen.
   if (isDemo && matchIdParam?.startsWith('demo-lm-')) {
     return <Navigate to={`${basePath}/live?matchId=${encodeURIComponent(DEMO_MATCH_ID_LIVE)}`} replace />;
+  }
+
+  // Das historische Demospiel hat einen Ergebnisbericht, aber keine laufende Live-Session.
+  if (isDemo && (matchIdParam === DEMO_MATCH_ID_PAST || matchIdParam === DEMO_MATCH_ID_PAST_OLDER)) {
+    return <Navigate to={`${basePath}/events/${matchIdParam === DEMO_MATCH_ID_PAST ? 'ev-game-past' : 'ev-game-past-older'}`} replace />;
   }
 
   if (matchIdParam) {
