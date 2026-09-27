@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Share2 } from 'lucide-react';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
@@ -12,6 +12,8 @@ import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { canSeeMeetup, normalizeRole } from '../../lib/roles';
+import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
+import { shareFeedContent } from '../../lib/feedShare';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -21,6 +23,8 @@ type Props = {
 export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false }) => {
   const { event, status } = pick;
   const [shareHint, setShareHint] = useState<string | null>(null);
+  const posterRef = useRef<HTMLDivElement>(null);
+  const basePath = useInternalBasePath();
   const enc = formatVisibleMatchEncounter({
     isHome: event.is_home,
     ourTeamName: getOurTeamDisplayName(),
@@ -51,27 +55,21 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
 
   const eventUrl =
     typeof window !== 'undefined'
-      ? new URL(`app/events/${event.id}`, `${window.location.origin}${import.meta.env.BASE_URL || '/'}`).href
+      ? new URL(`${basePath.slice(1)}/events/${event.id}`, `${window.location.origin}${import.meta.env.BASE_URL || '/'}`).href
       : '';
 
   const onShare = useCallback(async () => {
     if (!eventUrl) return;
     const title = 'SpielzeitApp · Spieltag';
     const text = `${ourClub} vs. ${opponent} · Anpfiff ${kickoff}`;
-    try {
-      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-        const data: ShareData = { title, text, url: eventUrl };
-        if (typeof navigator.canShare !== 'function' || navigator.canShare(data)) {
-          await navigator.share(data);
-          return;
-        }
-      }
-      await navigator.clipboard.writeText(`${text}\n${eventUrl}`);
-      setShareHint('Link kopiert.');
-    } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') return;
-      setShareHint('Teilen nicht möglich.');
-    }
+    const blob = posterRef.current ? await matchdayPosterDomToPngBlob(posterRef.current) : null;
+    const result = await shareFeedContent({
+      title,
+      text: `${text}\n${eventUrl}`,
+      file: blob ? new File([blob], 'spielzeit-spieltag.png', { type: 'image/png' }) : null,
+    });
+    if (result === 'aborted') return;
+    setShareHint(result === 'shared' ? 'Geteilt.' : result === 'copied' ? 'Link kopiert.' : 'Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2200);
   }, [eventUrl, kickoff, opponent, ourClub]);
 
@@ -79,7 +77,6 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
   const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
   const meetingTime = canSeeMeetup(viewerRole) ? rawMeetingTime : null;
-  const basePath = useInternalBasePath();
 
   const announcementTiming = status === 'today' || status === 'tomorrow' ? status : null;
   const gameHref = reviewPending && event.match_id
@@ -95,6 +92,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
   return (
     <section className="min-w-0" aria-label="Spieltag">
       <MatchdayPosterCard
+        ref={posterRef}
         compact
         homeTeamName={homeName}
         awayTeamName={awayName}
@@ -107,6 +105,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         status="today"
         matchType={event.match_type}
         announcementTiming={announcementTiming}
+        playerImageUrl={basePath === '/demo' ? '/feed/demo-matchday-player-01.webp' : null}
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
         <Link
