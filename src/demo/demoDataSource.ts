@@ -255,7 +255,7 @@ export function buildDemoFeedPosts(): {
           location: 'Sportplatz Rohrbach',
           match_id: DEMO_MATCH_ID_PAST,
           event_id: 'ev-game-past',
-          matchday_player_image_url: '/feed/demo-matchday-player-reference.png',
+          matchday_player_image_url: '/feed/demo-matchday-player-reference.webp',
           deep_link: '/demo/events/ev-game-past',
         },
       },

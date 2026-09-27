@@ -105,7 +105,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         status="today"
         matchType={event.match_type}
         announcementTiming={announcementTiming}
-        playerImageUrl={basePath === '/demo' ? '/feed/demo-matchday-player-reference.png' : null}
+        playerImageUrl={basePath === '/demo' ? '/feed/demo-matchday-player-reference.webp' : null}
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
         <Link
