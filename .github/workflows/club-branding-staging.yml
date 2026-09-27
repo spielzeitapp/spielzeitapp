@@ -1,0 +1,62 @@
+name: Club branding migration on staging
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/club-branding-staging.yml'
+      - 'supabase/migrations/20260927100000_club_branding_step1.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: club-branding-staging
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: acbaecjzoabafbsjrzvr
+      EXPECTED_PROJECT_NAME: spielzeitapp-staging
+      MIGRATION_VERSION: '20260927100000'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migration to verified staging project
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = develop
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { SUPABASE_ACCESS_TOKEN: token, SUPABASE_PROJECT_REF: ref, EXPECTED_PROJECT_NAME: name, MIGRATION_VERSION: version } = process.env;
+          const base = 'https://api.supabase.com/v1';
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, { ...options, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body}`);
+            return body ? JSON.parse(body) : null;
+          }
+          const query = sql => request(`/projects/${ref}/database/query`, { method: 'POST', body: JSON.stringify({ query: sql }) });
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== name) throw new Error(`Staging guard failed: ${project.name} (${project.id})`);
+            const rows = await query(`SELECT EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='${version}') AS applied`);
+            if (!rows?.[0]?.applied) {
+              const sql = fs.readFileSync('supabase/migrations/20260927100000_club_branding_step1.sql', 'utf8');
+              await query(`${sql}\nINSERT INTO supabase_migrations.schema_migrations (version) VALUES ('${version}') ON CONFLICT DO NOTHING;`);
+            }
+            const verified = await query(`SELECT
+              to_regprocedure('public.admin_set_club_branding(uuid,text,text,text,text)') IS NOT NULL AS setter,
+              to_regprocedure('public.admin_get_club_branding(uuid)') IS NOT NULL AS getter,
+              EXISTS (SELECT 1 FROM storage.buckets WHERE id='club-logos' AND public) AS logo_bucket,
+              EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='${version}') AS recorded`);
+            if (!verified?.[0]?.setter || !verified[0].getter || !verified[0].logo_bucket || !verified[0].recorded) throw new Error('Club branding staging verification failed');
+            console.log(`CLUB_BRANDING_OK (${name})`);
+          })().catch(error => { console.error(error.message); process.exit(1); });
+          NODE

@@ -33,6 +33,8 @@ import {
 } from '../lib/seasonLifecycle';
 import { ManagerClubVenueGrantsPanel } from './ManagerClubVenueGrantsPanel';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
+import { ClubBrandingFields } from './ClubBrandingFields';
+import { DEFAULT_CLUB_BRANDING, getClubBranding, saveClubBranding, type ClubBranding } from '../lib/clubBranding';
 
 function seasonContextLabel(s: ClubDetail['team_seasons'][number]): string {
   return formatTeamSeasonContextLabel(
@@ -74,6 +76,8 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [busy, setBusy] = useState(false);
   const [editName, setEditName] = useState('');
   const [editShort, setEditShort] = useState('');
+  const [branding, setBranding] = useState<ClubBranding>(DEFAULT_CLUB_BRANDING);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDeleteName, setConfirmDeleteName] = useState('');
   const [showDelete, setShowDelete] = useState(false);
@@ -97,10 +101,11 @@ export function ManagerClubDetailPage(): React.ReactElement {
     if (!clubId) return;
     setLoading(true);
     setError(null);
-    const [res, modulesRes] = await Promise.all([getPlatformClub(clubId), listClubModules(clubId)]);
+    const [res, modulesRes, brandingRes] = await Promise.all([getPlatformClub(clubId), listClubModules(clubId), getClubBranding(clubId)]);
+    if (brandingRes.data) setBranding(brandingRes.data);
     setDetail(res.data);
     setModules(modulesRes.data);
-    setError(res.error ?? modulesRes.error);
+    setError(res.error ?? modulesRes.error ?? brandingRes.error);
     if (res.data) {
       setEditName(res.data.name);
       setEditShort(res.data.short_name ?? '');
@@ -153,10 +158,15 @@ export function ManagerClubDetailPage(): React.ReactElement {
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
     if (!clubId) return;
-    await run(
-      async () => updatePlatformClub({ clubId, name: editName, shortName: editShort || null }),
-      'Stammdaten gespeichert.',
-    );
+    setBusy(true);
+    setError(null);
+    const updated = await updatePlatformClub({ clubId, name: editName, shortName: editShort || null });
+    const saved = updated.error ? { error: updated.error } : await saveClubBranding(clubId, branding, logoFile);
+    setBusy(false);
+    if (saved.error) { setError(saved.error); return; }
+    setLogoFile(null);
+    setSuccess('Stammdaten, Logo und Farben gespeichert.');
+    await reload();
   }
 
   async function onArchive() {
@@ -332,6 +342,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 />
               </label>
             </div>
+            <ClubBrandingFields value={branding} onChange={setBranding} logoFile={logoFile} onLogoFile={setLogoFile} />
             <button
               type="submit"
               disabled={busy}
