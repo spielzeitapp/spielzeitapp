@@ -46,6 +46,10 @@ import {
 import { dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
+import { OefbCompetitionTable } from '../components/schedule/OefbCompetitionTable';
+import { SPG_ROHRBACH_TEAM_ID } from '../lib/teamLogos';
+
+const U13_OPO_URL = 'https://www.oefb.at/bewerbe/Bewerb/232775?JHG-West-Mitte-U13-OPO';
 
 function canManageChampionship(effectiveRole: string, backendRole: string): boolean {
   if ((backendRole ?? '').trim().toLowerCase() === 'admin') return true;
@@ -97,6 +101,7 @@ const chipActive = 'border-red-400/45 bg-red-950/55 text-white';
 export const TeamSchedulePage: React.FC = () => {
   const {
     selectedTeamSeasonId,
+    selectedTeamSeason,
     effectiveRole,
     backendRole,
   } = useSession();
@@ -115,6 +120,7 @@ export const TeamSchedulePage: React.FC = () => {
   const [catalogLogoMap, setCatalogLogoMap] = useState<Map<string, string>>(new Map());
   const [pdfBusy, setPdfBusy] = useState<'champ' | 'season' | 'filtered' | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [showTable, setShowTable] = useState(false);
 
   const ourTeamName = getOurTeamDisplayName();
 
@@ -381,6 +387,14 @@ export const TeamSchedulePage: React.FC = () => {
   const emptyAfterFilter =
     !loading && filterActive && filteredChampionship.length === 0 && filteredOther.length === 0;
 
+  // Pilotbewerb: nur SPG Rohrbach U13 in der Saison 2026/27. Andere Teams benötigen ihre eigene ÖFB-ID.
+  const tableCompetitionId =
+    selectedTeamSeason?.team?.id === SPG_ROHRBACH_TEAM_ID &&
+    /^U\s*13\b/i.test(ageGroup ?? '') &&
+    (seasonName ?? '').includes('2026/27')
+      ? '232775'
+      : null;
+
   const setHomeAway = (homeAway: ScheduleHomeAwayFilter) => setFilter({ homeAway });
 
   return (
@@ -398,6 +412,19 @@ export const TeamSchedulePage: React.FC = () => {
       </Link>
 
       <SectionTitle subtitle={subtitle || undefined}>{headerTitle}</SectionTitle>
+
+      {tableCompetitionId ? (
+        <div className="flex gap-2" role="tablist" aria-label="Meisterschaftsansicht">
+          <button type="button" role="tab" aria-selected={!showTable} onClick={() => setShowTable(false)}
+            className={cn(chipBase, !showTable ? chipActive : chipIdle)}>Spielplan</button>
+          <button type="button" role="tab" aria-selected={showTable} onClick={() => setShowTable(true)}
+            className={cn(chipBase, showTable ? chipActive : chipIdle)}>Tabelle</button>
+        </div>
+      ) : null}
+
+      {showTable && tableCompetitionId ? (
+        <OefbCompetitionTable competitionId={tableCompetitionId} sourceUrl={U13_OPO_URL} ourTeam="SPG Rohrbach" />
+      ) : <>
 
       {!selectedTeamSeasonId ? (
         <p className="text-sm text-white/55">Bitte Team / Saison wählen.</p>
@@ -617,6 +644,7 @@ export const TeamSchedulePage: React.FC = () => {
           ) : null}
         </>
       )}
+      </>}
     </PageShell>
   );
 };
