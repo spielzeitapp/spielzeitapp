@@ -83,9 +83,11 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [showDelete, setShowDelete] = useState(false);
 
   const [teamName, setTeamName] = useState('');
-  const [teamAge, setTeamAge] = useState('U13');
+  const [teamAge, setTeamAge] = useState('U12');
   const [seasonTeamId, setSeasonTeamId] = useState('');
+  const [newSeasonName, setNewSeasonName] = useState('2026/27');
   const [seasonName, setSeasonName] = useState('2026/27');
+  const [existingSeasonAge, setExistingSeasonAge] = useState('');
   const [staffTeamSeasonId, setStaffTeamSeasonId] = useState('');
   const [staffRole, setStaffRole] = useState<'trainer' | 'co_trainer' | 'head_coach'>('head_coach');
   const [clubAdminEmail, setClubAdminEmail] = useState('');
@@ -167,6 +169,43 @@ export function ManagerClubDetailPage(): React.ReactElement {
     setLogoFile(null);
     setSuccess('Stammdaten, Logo und Farben gespeichert.');
     await reload();
+  }
+
+  async function onCreateTeamSeason(e: React.FormEvent) {
+    e.preventDefault();
+    if (!clubId || !teamName.trim() || !teamAge.trim() || !newSeasonName.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      // Both existing RPCs are idempotent. Retrying after a partial failure
+      // resumes with the same team instead of creating another one.
+      const team = await adminCreateTeam({ clubId, name: teamName.trim(), ageGroup: teamAge.trim() });
+      if (team.error || !team.data?.team_id) {
+        setError(team.error ?? 'Mannschaft konnte nicht angelegt werden.');
+        return;
+      }
+      setSeasonTeamId(team.data.team_id);
+      const season = await adminEnsureTeamSeason({
+        teamId: team.data.team_id,
+        seasonName: newSeasonName.trim(),
+        status: 'active',
+        ageGroup: teamAge.trim(),
+      });
+      if (season.error || !season.data?.team_season_id) {
+        await reload();
+        setError(`Mannschaft gespeichert, Saison noch nicht verbunden: ${season.error ?? 'Unbekannter Fehler'}. Du kannst denselben Schritt erneut speichern.`);
+        return;
+      }
+      const teamSeasonId = String(season.data.team_season_id);
+      setStaffTeamSeasonId(teamSeasonId);
+      setGrantTeamSeasonId(teamSeasonId);
+      setTeamName('');
+      setSuccess(`${team.data.status === 'exists' ? 'Vorhandene Mannschaft verwendet' : 'Mannschaft angelegt'} · Saison ${newSeasonName.trim()} ${season.data.status === 'exists' ? 'bereits vorhanden' : 'angelegt'}. Als Nächstes kannst du Kader und Trainer ergänzen.`);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onArchive() {
@@ -318,6 +357,27 @@ export function ManagerClubDetailPage(): React.ReactElement {
         <p className="text-[14px] text-slate-600">{loading ? 'Laden…' : 'Verein nicht gefunden.'}</p>
       ) : (
         <>
+          {detail.status === 'active' ? (
+            <form id="club-team-season-setup" onSubmit={onCreateTeamSeason} className="rounded-2xl border border-red-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-red-700">Einrichtung · Schritt 2</p>
+              <h2 className="mt-1 text-[17px] font-semibold text-slate-900">Mannschaft und Saison anlegen</h2>
+              <p className="mt-1 text-[13px] text-slate-600">Die Mannschaft wird diesem Verein zugeordnet. Die Saison wird direkt mit ihr verbunden und aktiviert.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <label className="text-[13px] font-medium text-slate-700">Mannschaftsname *
+                  <input required value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="z. B. SPG Rohrbach" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
+                </label>
+                <label className="text-[13px] font-medium text-slate-700">Altersklasse *
+                  <input required value={teamAge} onChange={(e) => setTeamAge(e.target.value)} placeholder="z. B. U12" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
+                </label>
+                <label className="text-[13px] font-medium text-slate-700">Aktuelle Saison *
+                  <input required value={newSeasonName} onChange={(e) => setNewSeasonName(e.target.value)} placeholder="z. B. 2026/27" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
+                </label>
+              </div>
+              <button type="submit" disabled={busy} className="mt-4 min-h-[44px] rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50">
+                {busy ? 'Speichern…' : 'Mannschaft und Saison speichern'}
+              </button>
+            </form>
+          ) : null}
           <form
             onSubmit={onSave}
             className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
@@ -521,56 +581,19 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!clubId || !teamName.trim()) return;
-                  void run(async () => {
-                    const res = await adminCreateTeam({
-                      clubId,
-                      name: teamName.trim(),
-                      ageGroup: teamAge.trim() || null,
-                    });
-                    return { error: res.error };
-                  }, 'Mannschaft gespeichert.');
-                }}
-              >
-                <p className="text-[13px] font-semibold text-slate-800">Mannschaft anlegen</p>
-                <input
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  placeholder="Name"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                />
-                <input
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  placeholder="Altersklasse (z. B. U13)"
-                  value={teamAge}
-                  onChange={(e) => setTeamAge(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  disabled={busy || !teamName.trim()}
-                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
-                >
-                  Mannschaft speichern
-                </button>
-              </form>
-
-              <form
-                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
                   if (!seasonTeamId || !seasonName.trim()) return;
                   void run(async () => {
                     const res = await adminEnsureTeamSeason({
                       teamId: seasonTeamId,
                       seasonName: seasonName.trim(),
                       status: 'active',
-                      ageGroup: teamAge.trim() || null,
+                      ageGroup: existingSeasonAge.trim() || null,
                     });
                     return { error: res.error };
                   }, 'Saison gespeichert.');
                 }}
               >
-                <p className="text-[13px] font-semibold text-slate-800">Saison sicherstellen</p>
+                <p className="text-[13px] font-semibold text-slate-800">Weitere Saison für bestehende Mannschaft</p>
                 <select
                   className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
                   value={seasonTeamId}
@@ -588,6 +611,12 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   placeholder="Saison (z. B. 2026/27)"
                   value={seasonName}
                   onChange={(e) => setSeasonName(e.target.value)}
+                />
+                <input
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  placeholder="Altersklasse (optional, z. B. U13)"
+                  value={existingSeasonAge}
+                  onChange={(e) => setExistingSeasonAge(e.target.value)}
                 />
                 <button
                   type="submit"
