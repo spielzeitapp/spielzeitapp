@@ -8,7 +8,7 @@ const AGE_GROUP_SLUG_PREFIX = /^u\d{1,2}[a-z]?-/i;
 /**
  * Öffentlicher Slug aus dem Roh-Teamnamen (lowercase, Bindestriche).
  * „U11 SPG Rohrbach“ → u11-spg-rohrbach (Legacy-kompatibel).
- * Muss mit der Auflösung in `api/calendar/teamIcsCore.js` übereinstimmen.
+ * Muss mit der Auflösung in `api/_lib/teamIcsCore.js` übereinstimmen.
  */
 export function teamCalendarSlugFromTeamName(name: string): string {
   return String(name ?? '')
