@@ -123,7 +123,7 @@
 }
 
 .sz-club-schedule-toolbar-action svg {
-  color: rgb(var(--club-accent-rgb) / 0.88);
+  color: rgb(var(--club-accent-text-rgb));
 }
 
 .sz-club-schedule-toolbar-action:hover,
@@ -179,12 +179,12 @@
 }
 
 .sz-club-accent-text {
-  color: rgb(var(--club-accent-rgb) / 0.78);
+  color: rgb(var(--club-accent-text-rgb));
 }
 
 .sz-club-accent-control {
   border-color: rgb(var(--club-border-rgb) / 0.42);
-  color: rgb(var(--club-accent-rgb) / 0.94);
+  color: rgb(var(--club-accent-text-rgb));
   background: rgb(var(--club-primary-rgb) / 0.24);
 }
 
@@ -269,7 +269,7 @@
 }
 
 .sz-club-event-section-icon {
-  color: rgb(var(--club-accent-rgb) / 0.88);
+  color: rgb(var(--club-accent-text-rgb));
   border: 1px solid rgb(var(--club-border-rgb) / 0.2);
   background: rgb(var(--club-primary-rgb) / 0.09);
 }
@@ -381,7 +381,7 @@
 }
 
 .sz-club-profile-accent {
-  color: rgb(var(--club-accent-rgb) / 0.92);
+  color: rgb(var(--club-accent-text-rgb));
 }
 
 .sz-club-profile-nav:hover {
@@ -400,7 +400,7 @@
 
 .sz-club-accent-icon {
   border-color: rgb(var(--club-primary-rgb) / 0.3);
-  color: rgb(var(--club-accent-rgb) / 0.94);
+  color: rgb(var(--club-accent-text-rgb));
   background-color: rgb(var(--club-primary-rgb) / 0.26);
 }
 
@@ -432,11 +432,11 @@
 }
 
 .sz-club-link {
-  color: rgb(var(--club-accent-rgb) / 0.9);
+  color: rgb(var(--club-accent-text-rgb));
 }
 
 .sz-club-link:hover {
-  color: rgb(var(--club-accent-rgb));
+  color: rgb(var(--club-accent-text-rgb));
 }
 
 .sz-club-stat-watermark {
@@ -511,7 +511,7 @@
 }
 
 .sz-club-feed-accent-text {
-  color: rgb(var(--club-accent-rgb) / 0.94) !important;
+  color: rgb(var(--club-accent-text-rgb)) !important;
 }
 
 .sz-club-feed-accent-line {
@@ -524,13 +524,13 @@
 
 .sz-club-feed-badge {
   border-color: rgb(var(--club-accent-rgb) / 0.38) !important;
-  color: rgb(var(--club-accent-rgb) / 0.94) !important;
+  color: rgb(var(--club-accent-text-rgb)) !important;
   background-color: rgb(var(--club-primary-rgb) / 0.28) !important;
   box-shadow: 0 0 16px rgb(var(--club-primary-rgb) / 0.18) !important;
 }
 
 .sz-club-feed-text-gradient {
-  color: rgb(var(--club-accent-rgb) / 0.96);
+  color: rgb(var(--club-accent-text-rgb));
   text-shadow: 0 0 18px rgb(var(--club-primary-rgb) / 0.42);
 }
 
@@ -843,9 +843,9 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 }
 
 .bottom-tabs .tab.active {
-  color: var(--primary);
+  color: rgb(var(--club-accent-text-rgb));
   font-weight: 600;
-  background: rgba(220, 38, 38, 0.12);
+  background: rgb(var(--club-accent-rgb) / 0.12);
 }
 
 .liveTimer {
@@ -1299,7 +1299,7 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 }
 
 .eventEditModal .eventEditSection > p:first-child {
-  color: rgb(var(--club-accent-rgb) / 0.8);
+  color: rgb(var(--club-accent-text-rgb));
 }
 
 .eventEditModal .eventEditSection .grid {
