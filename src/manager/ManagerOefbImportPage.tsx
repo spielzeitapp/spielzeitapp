@@ -13,7 +13,6 @@ import {
   isSeasonArchived,
 } from '../lib/seasonLifecycle';
 import {
-  DEFAULT_OEFB_SCHEDULE_URL,
   fetchOefbScheduleFixtures,
   importOefbChampionshipFixtures,
   previewOefbChampionshipImport,
@@ -22,8 +21,6 @@ import {
 } from '../lib/championshipFixtures';
 import { formatVisibleMatchEncounter } from '../lib/oefbTeamNameNormalize';
 import { getTeamSeasonWritableState } from '../lib/seasonTransition';
-import { supabase } from '../lib/supabaseClient';
-
 import { supabase } from '../lib/supabaseClient';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import type { ManagerWorkMode } from './managerWorkMode';
@@ -112,7 +109,8 @@ export function ManagerOefbImportPage(): React.ReactElement {
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
 
-  const [importUrl, setImportUrl] = useState(DEFAULT_OEFB_SCHEDULE_URL);
+  // Keine fremde Mannschaft vorausfüllen: der Admin muss die URL der Zielsaison bestätigen.
+  const [importUrl, setImportUrl] = useState('');
   const [previewRows, setPreviewRows] = useState<OefbImportPreviewRow[]>([]);
   const [previewFixtures, setPreviewFixtures] = useState<OefbImportedFixture[]>([]);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -154,6 +152,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     const team = Array.isArray(ts.teams) ? ts.teams[0] : ts.teams;
     const season = Array.isArray(ts.seasons) ? ts.seasons[0] : ts.seasons;
     const teamName = team?.name ? String(team.name) : null;
+    const status = String(ts.status ?? 'active');
     const displayName =
       formatTeamSeasonContextLabel({
         displayName: String(ts.display_name ?? '').trim() || null,
@@ -163,7 +162,6 @@ export function ManagerOefbImportPage(): React.ReactElement {
         status,
       }) ||
       'Saison';
-    const status = String(ts.status ?? 'active');
     setMeta({
       displayName,
       status,

@@ -525,7 +525,11 @@ export function ManagerClubDetailPage(): React.ReactElement {
               ) : (
                 <ul className="mt-2 space-y-1 text-[13px] text-slate-800">
                   {detail.team_seasons.map((s) => (
-                    <li key={s.id}>{seasonContextLabel(s)}</li>
+                    <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
+                      <span>{seasonContextLabel(s)}</span>
+                      <Link to={`/manager/saisons/${encodeURIComponent(s.id)}/kader`} className="font-semibold text-red-700 hover:underline">Kader</Link>
+                      <Link to={`/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`} className="font-semibold text-red-700 hover:underline">ÖFB-Spiele</Link>
+                    </li>
                   ))}
                 </ul>
               )}
