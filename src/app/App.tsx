@@ -55,6 +55,7 @@ import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { ManagerLayout } from '../manager/ManagerLayout';
 import { ManagerDashboardPage } from '../manager/ManagerDashboardPage';
 import { ManagerHomeRoute } from '../manager/ManagerHomeRoute';
+import { ManagerSplashScreen, ManagerWelcomeScreen } from '../manager/ManagerIntroScreens';
 import { ManagerPlatzbelegungPage } from '../manager/ManagerPlatzbelegungPage';
 import { ManagerTrainingLibraryPage } from '../manager/ManagerTrainingLibraryPage';
 import { ManagerTrainingSessionsPage } from '../manager/ManagerTrainingSessionsPage';
@@ -326,6 +327,8 @@ function InternalRoutes(): React.ReactElement {
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/manager/login" element={<LoginPage />} />
+      <Route path="/manager/intro/splash" element={<RequireAuth><ManagerSplashScreen /></RequireAuth>} />
+      <Route path="/manager/intro/welcome" element={<RequireAuth><ManagerWelcomeScreen /></RequireAuth>} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin/dashboard" element={<RequireAuth><AdminDashboardPage /></RequireAuth>} />
       <Route path="/admin/setup" element={<SetupAdminPage />} />

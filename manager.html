@@ -5,6 +5,13 @@
     <script>
       // The Manager needs its own static document metadata before iOS installs it.
       window.__HOST_IS_INTERNAL__ = true;
+      // A fresh launch from the Manager home icon gets its own intro flow.
+      if (window.location.pathname === '/manager') {
+        var params = new URLSearchParams(window.location.search);
+        if (!window.location.search || params.get('entry') === 'platform') {
+          window.history.replaceState(window.history.state, '', '/manager/intro/splash');
+        }
+      }
     </script>
     <title>Spielzeit Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
