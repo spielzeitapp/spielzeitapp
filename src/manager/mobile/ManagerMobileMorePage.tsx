@@ -55,7 +55,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
         <MoreLink to="/app/home" icon={ChevronRight} title="Zur SpielzeitApp" detail="Die App für Team, Eltern und Fans öffnen" />
       </section>
 
-      <button type="button" onClick={async () => { await signOut(); navigate('/login', { replace: true }); }} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-semibold text-white/45"><LogOut className="h-4 w-4" />Abmelden</button>
+      <button type="button" onClick={async () => { await signOut(); navigate('/manager/login?next=%2Fmanager%3Fentry%3Dplatform', { replace: true }); }} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-semibold text-white/45"><LogOut className="h-4 w-4" />Abmelden</button>
     </div>
   );
 }
