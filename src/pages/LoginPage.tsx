@@ -123,7 +123,7 @@ export const LoginPage: React.FC = () => {
   const isParentInviteFlow = Boolean(
     !parentInviteDismissed && (
       pendingInvitePath ||
-      nextSafe ||
+      (nextSafe && pathLooksLikeParentInvite(nextSafe)) ||
       orphanTokenValid ||
       metaToken ||
       readStashedParentInviteEmail() ||
@@ -143,6 +143,9 @@ export const LoginPage: React.FC = () => {
     !(isParentInviteFlow && isAppIntroEntryPath(fromStatePath))
       ? fromStatePath
       : null;
+  const isManagerLogin = [nextFromQuery, safeFromState].some(
+    (path) => path === '/manager' || path?.startsWith('/manager/') || path?.startsWith('/manager?'),
+  );
 
   const playerLoginEnabled = isPlayerQrAccessEnabled();
   const lockedInviteEmail = useMemo(() => {
@@ -294,11 +297,18 @@ export const LoginPage: React.FC = () => {
         <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-red-600/10 blur-3xl" />
 
         <header className="relative">
-          <SpielzeitAppBrand
-            className="max-w-[76vw]"
-            iconClassName="h-[4.25rem] w-[4.25rem]"
-            wordmarkClassName="w-[10rem] min-[390px]:w-[11rem]"
-          />
+          {isManagerLogin ? (
+            <div className="flex items-center gap-3" aria-label="Spielzeit Manager">
+              <img src="/manager-icon-192.png" alt="" className="h-[4.25rem] w-[4.25rem] rounded-2xl" />
+              <span className="text-xl font-black tracking-tight text-white">Spielzeit <span className="text-red-500">Manager</span></span>
+            </div>
+          ) : (
+            <SpielzeitAppBrand
+              className="max-w-[76vw]"
+              iconClassName="h-[4.25rem] w-[4.25rem]"
+              wordmarkClassName="w-[10rem] min-[390px]:w-[11rem]"
+            />
+          )}
           <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">
             Willkommen zurück
           </h1>
@@ -309,7 +319,9 @@ export const LoginPage: React.FC = () => {
             ? 'E-Mail bestätigt. Melde dich jetzt an, um die Einladung anzunehmen.'
             : isParentInviteFlow
               ? 'Mit der eingeladenen E-Mail anmelden, um die Eltern-Einladung fortzusetzen.'
-              : 'Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.'}
+              : isManagerLogin
+                ? 'Melde dich mit deinem bestehenden SpielzeitApp-Konto im Manager an.'
+                : 'Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.'}
         </p>
         {isParentInviteFlow ? (
           <button
@@ -433,7 +445,7 @@ export const LoginPage: React.FC = () => {
           </Button>
         </form>
 
-        {playerLoginEnabled && !isParentInviteFlow ? (
+        {playerLoginEnabled && !isParentInviteFlow && !isManagerLogin ? (
           <div className="relative mt-5 border-t border-white/10 pt-5">
             <button
               type="button"
@@ -449,7 +461,7 @@ export const LoginPage: React.FC = () => {
         ) : null}
 
         <div className="relative mt-4 flex flex-col gap-2.5">
-          {!isParentInviteFlow && window.location.hostname !== 'spielzeitapp.at' ? (
+          {!isParentInviteFlow && !isManagerLogin && window.location.hostname !== 'spielzeitapp.at' ? (
             <>
               <Link
                 to="/demo"
@@ -463,7 +475,7 @@ export const LoginPage: React.FC = () => {
             </>
           ) : null}
 
-          {!isParentInviteFlow ? (
+          {!isParentInviteFlow && !isManagerLogin ? (
             <p className="mt-1 text-center text-sm text-white/55">
               Noch kein Konto?{' '}
               <Link
