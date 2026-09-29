@@ -9,7 +9,7 @@
  * Secrets stay server-side. Invite links forced to Staging origin for develop.
  */
 import { createClient } from '@supabase/supabase-js';
-import { sendParentInviteEmail } from '../_lib/sendParentInviteEmail.js';
+import { sendParentInviteEmail, sendStaffInviteEmail } from '../_lib/sendParentInviteEmail.js';
 
 const STAGING_ORIGIN = 'https://app.spielzeitapp.at';
 const LIVE_ORIGIN_RE = /^https:\/\/(www\.)?spielzeitapp\.at$/i;
@@ -32,6 +32,52 @@ function normalizeEmail(raw) {
   return String(raw ?? '')
     .trim()
     .toLowerCase();
+}
+
+async function handleStaffInvite(req, res, { body, supabaseUrl, anonKey, admin }) {
+  const teamSeasonId = String(body.team_season_id ?? '').trim();
+  const email = normalizeEmail(body.email);
+  const role = String(body.role ?? '').trim();
+  if (!teamSeasonId || !isValidEmail(email) || !['head_coach', 'trainer', 'co_trainer'].includes(role)) {
+    return res.status(400).json({ ok: false, error: 'Ungültige E-Mail, Saison oder Trainerrolle.' });
+  }
+  const origin = resolveInviteOrigin();
+  if (!origin.ok) return res.status(403).json({ ok: false, error: origin.error });
+  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) return res.status(401).json({ ok: false, error: 'Anmeldung erforderlich.' });
+  const { data: { user }, error: authError } = await admin.auth.getUser(token);
+  if (authError || !user?.id) return res.status(401).json({ ok: false, error: 'Ungültige Sitzung.' });
+
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  // Die bestehende Plattformadmin-RPC prüft Berechtigung, Saison und Rolle.
+  const { data, error } = await userClient.rpc('admin_prepare_team_staff_invite', {
+    p_team_season_id: teamSeasonId, p_email: email, p_role: role,
+  });
+  if (error) return res.status(403).json({ ok: false, error: error.message });
+  if (data?.status === 'assigned') return res.status(200).json({ ok: true, status: 'assigned', email_sent: false });
+  if (data?.status !== 'pending' || !data.invite_id) {
+    return res.status(500).json({ ok: false, error: 'Einladung konnte nicht vorbereitet werden.' });
+  }
+
+  const { data: season, error: seasonError } = await admin.from('team_seasons')
+    .select('display_name, age_group, teams ( name ), seasons ( name )')
+    .eq('id', teamSeasonId).maybeSingle();
+  if (seasonError || !season) return res.status(500).json({ ok: false, status: 'pending', error: 'Saisonbezeichnung konnte nicht geladen werden.' });
+  const team = Array.isArray(season.teams) ? season.teams[0] : season.teams;
+  const year = Array.isArray(season.seasons) ? season.seasons[0] : season.seasons;
+  const teamName = [season.display_name || team?.name || 'Mannschaft', season.age_group, year?.name]
+    .filter(Boolean).join(' · ');
+  const labels = { head_coach: 'Cheftrainer', trainer: 'Trainer', co_trainer: 'Co-Trainer' };
+  const registerUrl = `${origin.origin}/register?email=${encodeURIComponent(email)}`;
+  const mail = await sendStaffInviteEmail({ to: email, registerUrl, teamName, roleLabel: labels[role] });
+  if (!mail.ok) {
+    return res.status(502).json({ ok: false, status: 'pending', email_sent: false, error: 'Rolle vorbereitet, E-Mail-Versand fehlgeschlagen. Bitte erneut senden.' });
+  }
+  await userClient.rpc('admin_mark_team_staff_invite_sent', { p_invite_id: data.invite_id });
+  return res.status(200).json({ ok: true, status: 'pending', email_sent: true });
 }
 
 function isValidEmail(email) {
@@ -276,6 +322,10 @@ export default async function handler(req, res) {
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    if (String(body.action || '') === 'staff_invite') {
+      return handleStaffInvite(req, res, { body, supabaseUrl, anonKey, admin });
+    }
 
     if (String(body.action || '') === 'complete_signup') {
       return handleCompleteSignup(req, res, { supabaseUrl, serviceKey, admin });

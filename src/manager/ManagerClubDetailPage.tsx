@@ -12,6 +12,8 @@ import {
   adminAssignTeamSeasonStaff,
   adminCreateTeam,
   adminEnsureTeamSeason,
+  adminInviteTeamStaffByEmail,
+  adminListTeamStaffInvites,
   adminListGrantableVenues,
   adminLookupUserByEmail,
   archivePlatformClub,
@@ -26,6 +28,7 @@ import {
   type ClubDetail,
   type GrantableVenue,
   type ClubModule,
+  type PendingTeamStaffInvite,
 } from '../lib/platformClubAdmin';
 import {
   formatClubTeamOptionLabel,
@@ -94,6 +97,8 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [clubAdminLookup, setClubAdminLookup] = useState<AdminUserLookup | null>(null);
   const [trainerEmail, setTrainerEmail] = useState('');
   const [trainerLookup, setTrainerLookup] = useState<AdminUserLookup | null>(null);
+  const [staffInvites, setStaffInvites] = useState<PendingTeamStaffInvite[]>([]);
+  const [staffInviteError, setStaffInviteError] = useState<string | null>(null);
   const [grantTeamSeasonId, setGrantTeamSeasonId] = useState('');
   const [grantableVenues, setGrantableVenues] = useState<GrantableVenue[]>([]);
   const [modules, setModules] = useState<ClubModule[]>([]);
@@ -134,6 +139,20 @@ export function ManagerClubDetailPage(): React.ReactElement {
     if (!staffTeamSeasonId && detail.team_seasons[0]) setStaffTeamSeasonId(detail.team_seasons[0].id);
     if (!grantTeamSeasonId && detail.team_seasons[0]) setGrantTeamSeasonId(detail.team_seasons[0].id);
   }, [detail, seasonTeamId, staffTeamSeasonId, grantTeamSeasonId]);
+
+  const reloadStaffInvites = useCallback(async (teamSeasonId: string) => {
+    const result = await adminListTeamStaffInvites(teamSeasonId);
+    if (result.error) setStaffInviteError(result.error);
+    else {
+      setStaffInviteError(null);
+      setStaffInvites(result.data);
+    }
+  }, []);
+
+  useEffect(() => {
+    setStaffInvites([]);
+    if (allowed && staffTeamSeasonId) void reloadStaffInvites(staffTeamSeasonId);
+  }, [allowed, staffTeamSeasonId, reloadStaffInvites]);
 
   if (sessionLoading) {
     return <p className="text-[14px] text-slate-600">Sitzung wird geladen…</p>;
@@ -248,6 +267,28 @@ export function ManagerClubDetailPage(): React.ReactElement {
     setClubAdminLookup(res.data);
   }
 
+  async function inviteTrainer() {
+    if (!staffTeamSeasonId || !trainerEmail.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    const result = await adminInviteTeamStaffByEmail({
+      teamSeasonId: staffTeamSeasonId, email: trainerEmail, role: staffRole,
+    });
+    setBusy(false);
+    if (result.error) {
+      setError(result.error);
+      await reloadStaffInvites(staffTeamSeasonId);
+      return;
+    }
+    setSuccess(result.status === 'assigned'
+      ? 'Bestehender Benutzer direkt als Trainer zugeordnet.'
+      : 'Einladung gesendet. Nach Bestätigung der E-Mail wird die Trainerrolle automatisch zugeordnet.');
+    setTrainerLookup(null);
+    setTrainerEmail('');
+    await Promise.all([reload(), reloadStaffInvites(staffTeamSeasonId)]);
+  }
+
   async function lookupTrainer() {
     setError(null);
     setSuccess(null);
@@ -258,7 +299,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
       return;
     }
     if (!res.data || res.data.status === 'not_found' || !res.data.user_id) {
-      setError('Kein Benutzer mit dieser E-Mail gefunden.');
+      setSuccess('Noch kein Konto vorhanden. Du kannst diese Adresse jetzt als Trainer einladen.');
       return;
     }
     setTrainerLookup(res.data);
@@ -698,10 +739,10 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   }, 'Trainer der Mannschaft zugeordnet.');
                 }}
               >
-                <p className="text-[13px] font-semibold text-slate-800">Trainer einer Mannschaft zuordnen</p>
+                <p className="text-[13px] font-semibold text-slate-800">Trainer zuordnen oder einladen</p>
                 <p className="text-[12px] text-slate-500">
-                  Ordnet den gesuchten Benutzer als Trainer, Co-Trainer oder Cheftrainer der
-                  gewählten Team-Saison zu. Das ist keine Vereinsadminrolle.
+                  Bestehende Konten direkt zuordnen oder neue Trainer per E-Mail einladen.
+                  Die Rolle gilt nur für diese Mannschaftssaison und ist keine Vereinsadminrolle.
                 </p>
                 <select
                   className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
@@ -760,6 +801,20 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 >
                   Trainer zuordnen
                 </button>
+                <button type="button" disabled={busy || !staffTeamSeasonId || !trainerEmail.trim()}
+                  onClick={() => void inviteTrainer()}
+                  className="ml-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-[13px] font-semibold text-red-800 disabled:opacity-50">
+                  {busy ? 'Bitte warten…' : 'Per E-Mail einladen'}
+                </button>
+                {staffInviteError ? <p role="alert" className="text-[12px] text-red-700">{staffInviteError}</p> : null}
+                {staffInvites.filter((invite) => !invite.accepted_at).length > 0 ? (
+                  <div className="space-y-1 pt-2 text-[12px] text-slate-700">
+                    <p className="font-semibold">Offene Einladungen</p>
+                    {staffInvites.filter((invite) => !invite.accepted_at).map((invite) => (
+                      <p key={invite.id}>{invite.email} · {staffRoleLabel(invite.role)} · {invite.sent_at ? 'E-Mail gesendet' : 'Versand ausstehend'}</p>
+                    ))}
+                  </div>
+                ) : null}
               </form>
             </div>
           </section>

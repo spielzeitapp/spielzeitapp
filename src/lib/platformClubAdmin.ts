@@ -311,6 +311,50 @@ export async function adminAssignTeamSeasonStaff(input: {
   return { data: (data ?? null) as Record<string, unknown> | null, error: null };
 }
 
+export type PendingTeamStaffInvite = {
+  id: string;
+  email: string;
+  role: string;
+  created_at: string;
+  sent_at: string | null;
+  accepted_at: string | null;
+  accepted_user_id: string | null;
+};
+
+export async function adminListTeamStaffInvites(teamSeasonId: string): Promise<{
+  data: PendingTeamStaffInvite[]; error: string | null;
+}> {
+  const { data, error } = await supabase.rpc('admin_list_team_staff_invites', {
+    p_team_season_id: teamSeasonId,
+  });
+  if (error) return { data: [], error: rpcErrorMessage(error) };
+  return { data: (data ?? []) as PendingTeamStaffInvite[], error: null };
+}
+
+export async function adminInviteTeamStaffByEmail(input: {
+  teamSeasonId: string;
+  email: string;
+  role: 'head_coach' | 'trainer' | 'co_trainer';
+}): Promise<{ status: 'pending' | 'assigned' | null; error: string | null }> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session?.access_token) {
+    return { status: null, error: 'Bitte erneut anmelden.' };
+  }
+  try {
+    const response = await fetch('/api/parent/send-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ action: 'staff_invite', team_season_id: input.teamSeasonId,
+        email: input.email.trim(), role: input.role }),
+    });
+    const result = await response.json() as { ok?: boolean; status?: string; error?: string };
+    if (!response.ok || !result.ok) return { status: null, error: result.error ?? 'Einladung konnte nicht gesendet werden.' };
+    return { status: result.status === 'assigned' ? 'assigned' : 'pending', error: null };
+  } catch {
+    return { status: null, error: 'Einladung konnte nicht gesendet werden.' };
+  }
+}
+
 export type AdminUserLookup = {
   status: string;
   user_id?: string;

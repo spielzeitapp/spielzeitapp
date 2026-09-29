@@ -131,6 +131,19 @@ export async function sendParentInviteEmail(opts) {
   const html = buildParentInviteEmailHtml({ acceptUrl });
   const text = buildParentInviteEmailText({ acceptUrl });
 
+  return sendDirectInviteEmail({ to, subject, html, text });
+}
+
+/** Gemeinsamer bestehender Mailtransport für Eltern- und Trainer-Einladungen. */
+export async function sendDirectInviteEmail(opts) {
+  const to = String(opts.to || '').trim().toLowerCase();
+  const subject = String(opts.subject || '').trim();
+  const html = String(opts.html || '');
+  const text = String(opts.text || '');
+  if (!to || !subject || !html || !text) {
+    return { ok: false, provider: null, error: 'invalid_input', configured: isDirectMailConfigured() };
+  }
+
   const smtp = getWorld4YouSmtpConfig();
   if (smtp) {
     try {
@@ -208,4 +221,30 @@ export async function sendParentInviteEmail(opts) {
   }
 
   return { ok: false, provider: null, error: 'no_mailer_configured', configured: false };
+}
+
+export async function sendStaffInviteEmail(opts) {
+  const name = String(opts.teamName || 'deine Mannschaft').trim();
+  const role = String(opts.roleLabel || 'Trainer').trim();
+  const registerUrl = String(opts.registerUrl || '').trim();
+  if (!registerUrl.startsWith('https://')) {
+    return { ok: false, provider: null, error: 'invalid_input', configured: isDirectMailConfigured() };
+  }
+  const subject = `Einladung als ${role} zu SpielzeitApp`;
+  const text = [
+    'Deine Einladung zu SpielzeitApp', '',
+    `Du wurdest als ${role} für ${name} eingeladen.`,
+    'Registriere dich mit dieser E-Mail-Adresse und bestätige sie. Danach wird deine Trainerrolle automatisch zugeordnet.',
+    '', registerUrl, '',
+    'Falls du schon ein Konto hast, melde dich mit dieser E-Mail-Adresse an.',
+    'Falls du diese Einladung nicht erwartest, kannst du die Nachricht ignorieren.',
+  ].join('\n');
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#171717">
+    <h1 style="font-size:24px">Einladung zu SpielzeitApp</h1>
+    <p>Du wurdest als <strong>${escapeHtml(role)}</strong> für <strong>${escapeHtml(name)}</strong> eingeladen.</p>
+    <p>Registriere dich mit dieser E-Mail-Adresse und bestätige sie. Deine Trainerrolle wird danach automatisch zugeordnet.</p>
+    <p><a href="${escapeHtml(registerUrl)}" style="display:inline-block;padding:14px 22px;background:#b91c1c;color:white;border-radius:8px;text-decoration:none">Registrieren</a></p>
+    <p>Falls du bereits ein Konto hast, melde dich mit dieser E-Mail-Adresse an. Falls du die Einladung nicht erwartest, ignoriere sie bitte.</p>
+  </div>`;
+  return sendDirectInviteEmail({ to: opts.to, subject, html, text });
 }
