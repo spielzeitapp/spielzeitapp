@@ -536,6 +536,11 @@ export default async function handler(req, res) {
       });
     }
 
+    const deployEnv = String(process.env.APP_ENV || process.env.VITE_APP_ENV || "").trim().toLowerCase();
+    if (process.env.STAGING_DISABLE_OUTBOUND === "true" || deployEnv === "staging" || deployEnv === "test") {
+      return res.status(200).json({ ok: true, skipped: true, reason: "Staging outbound disabled", sent: 0 });
+    }
+
     const body = parseBody(req);
     if (body && body.debugParents === true) {
       return await runParentsDebugTest(req, res, body);
