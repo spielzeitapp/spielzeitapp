@@ -20,8 +20,15 @@ import {
   type OefbImportedFixture,
 } from '../lib/championshipFixtures';
 import { formatVisibleMatchEncounter } from '../lib/oefbTeamNameNormalize';
+import {
+  adminSaveOefbTableSettings,
+  getOefbTableSettings,
+  parseOefbCompetitionUrl,
+  type OefbTableSettings,
+} from '../lib/oefbTableSettings';
 import { getTeamSeasonWritableState } from '../lib/seasonTransition';
 import { supabase } from '../lib/supabaseClient';
+import { OefbCompetitionTable } from '../components/schedule/OefbCompetitionTable';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import type { ManagerWorkMode } from './managerWorkMode';
 
@@ -119,6 +126,12 @@ export function ManagerOefbImportPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [tableUrl, setTableUrl] = useState('');
+  const [tableTeamName, setTableTeamName] = useState('');
+  const [savedTable, setSavedTable] = useState<OefbTableSettings | null>(null);
+  const [tableBusy, setTableBusy] = useState(false);
+  const [tableError, setTableError] = useState<string | null>(null);
+  const [tableNotice, setTableNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!seasonId) return;
@@ -134,6 +147,26 @@ export function ManagerOefbImportPage(): React.ReactElement {
     setInfo(null);
     setError(null);
   }, [seasonId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSavedTable(null);
+    setTableUrl('');
+    setTableTeamName('');
+    setTableError(null);
+    setTableNotice(null);
+    if (!allowed || !seasonId) return;
+    void getOefbTableSettings(seasonId).then((result) => {
+      if (cancelled) return;
+      if (result.error) setTableError(result.error);
+      if (result.data) {
+        setSavedTable(result.data);
+        setTableUrl(result.data.sourceUrl);
+        setTableTeamName(result.data.teamName);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [allowed, seasonId]);
 
   const loadMeta = useCallback(async () => {
     if (!seasonId) {
@@ -286,6 +319,30 @@ export function ManagerOefbImportPage(): React.ReactElement {
     if (!preview.error) setPreviewRows(preview.rows);
   };
 
+  const onSaveTable = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!seasonId || workMode !== 'platform_admin' || backendRole?.trim().toLowerCase() !== 'admin' || tableBusy) return;
+    setTableError(null);
+    setTableNotice(null);
+    if (!parseOefbCompetitionUrl(tableUrl) || !tableTeamName.trim()) {
+      setTableError('Bitte einen ÖFB-Bewerbslink und den eigenen Mannschaftsnamen eingeben.');
+      return;
+    }
+    setTableBusy(true);
+    try {
+      const saved = await adminSaveOefbTableSettings({ teamSeasonId: seasonId, sourceUrl: tableUrl, teamName: tableTeamName });
+      if (saved.error) setTableError(saved.error);
+      else {
+        setSavedTable(saved.data);
+        setTableNotice('ÖFB-Tabelle für diese Mannschaftssaison gespeichert. Die App lädt den aktuellen Stand vom ÖFB.');
+      }
+    } catch (cause) {
+      setTableError(cause instanceof Error ? cause.message : 'Tabelle konnte nicht gespeichert werden.');
+    } finally {
+      setTableBusy(false);
+    }
+  };
+
   if (!allowed) return <Navigate to="/manager" replace />;
   if (!seasonId) return <Navigate to="/manager/saisons" replace />;
 
@@ -334,6 +391,25 @@ export function ManagerOefbImportPage(): React.ReactElement {
               Saisons bleiben unverändert.
             </p>
           )}
+        </section>
+      ) : null}
+
+      {meta && workMode === 'platform_admin' && backendRole?.trim().toLowerCase() === 'admin' ? (
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
+          <div>
+            <h2 className="text-[16px] font-semibold text-slate-900">ÖFB-Tabelle der Saison</h2>
+            <p className="mt-1 text-[12px] text-slate-600">Bewerbslink speichern; die Tabelle wird in der App regelmäßig aktuell vom ÖFB geladen. Ohne Zuordnung erscheint kein Tabellen-Tab.</p>
+          </div>
+          <form onSubmit={(event) => void onSaveTable(event)} className="space-y-3">
+            <label className="block text-[13px] font-semibold text-slate-800" htmlFor="oefb-table-url">ÖFB-Bewerbslink</label>
+            <input id="oefb-table-url" type="url" value={tableUrl} onChange={(e) => setTableUrl(e.target.value)} placeholder="https://www.oefb.at/bewerbe/Bewerb/232775" disabled={tableBusy} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[14px] text-slate-900" />
+            <label className="block text-[13px] font-semibold text-slate-800" htmlFor="oefb-table-team">Eigener Mannschaftsname in der Tabelle</label>
+            <input id="oefb-table-team" value={tableTeamName} onChange={(e) => setTableTeamName(e.target.value)} placeholder="z. B. SPG Rohrbach" disabled={tableBusy} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[14px] text-slate-900" />
+            <button type="submit" disabled={tableBusy || !tableUrl.trim() || !tableTeamName.trim()} className="rounded-xl bg-red-700 px-4 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">{tableBusy ? 'Speichern…' : 'Tabelle zuordnen'}</button>
+          </form>
+          {tableError ? <p role="alert" className="text-[13px] text-red-700">{tableError}</p> : null}
+          {tableNotice ? <p role="status" className="text-[13px] text-emerald-700">{tableNotice}</p> : null}
+          {savedTable ? <div className="rounded-xl bg-slate-900 p-3"><OefbCompetitionTable competitionId={savedTable.competitionId} sourceUrl={savedTable.sourceUrl} ourTeam={savedTable.teamName} /></div> : null}
         </section>
       ) : null}
 
