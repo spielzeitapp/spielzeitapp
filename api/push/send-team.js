@@ -256,19 +256,10 @@ export default async function handler(req, res) {
     const deployEnv = String(process.env.APP_ENV || process.env.VITE_APP_ENV || "")
       .trim()
       .toLowerCase();
-    if (
+    const stagingOutboundDisabled =
       process.env.STAGING_DISABLE_OUTBOUND === "true" ||
       deployEnv === "staging" ||
-      deployEnv === "test"
-    ) {
-      console.warn("[push/send-team] blocked in staging");
-      return res.status(200).json({
-        ok: true,
-        skipped: true,
-        reason: "Staging outbound disabled",
-        sent: 0,
-      });
-    }
+      deployEnv === "test";
 
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return res.status(500).json({
@@ -451,6 +442,29 @@ export default async function handler(req, res) {
         const r = normalizeMembershipRole(m.role);
         if (m.user_id && r) userIdToRole.set(m.user_id, r);
       }
+    }
+
+    if (stagingOutboundDisabled) {
+      // The staging exception is limited to one verified parent account, one
+      // rescheduled event, and the sender's existing team authorization.
+      const testParentUserId = "1dd13364-fa41-46f3-a86b-2ca4305cf88a";
+      const isReschedule = recipient_group === "all" &&
+        Boolean(related_event_id) &&
+        /^(Spiel|Training) verschoben$/.test(title);
+      const allowed = isReschedule &&
+        userIds.includes(testParentUserId) &&
+        userIdToRole.get(testParentUserId) === "parent";
+      if (!allowed) {
+        console.warn("[push/send-team] blocked in staging");
+        return res.status(200).json({
+          ok: true,
+          skipped: true,
+          reason: "Staging outbound disabled",
+          sent: 0,
+          notificationsInserted: 0,
+        });
+      }
+      userIds = [testParentUserId];
     }
 
     if (userIds.length === 0) {
