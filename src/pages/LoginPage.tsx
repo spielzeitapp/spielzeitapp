@@ -116,7 +116,8 @@ export const LoginPage: React.FC = () => {
     fromStatePath && pathLooksLikeParentInvite(fromStatePath) && isSafeAuthRedirectPath(fromStatePath)
       ? fromStatePath.split('?')[0] || fromStatePath
       : null;
-  const nextSafe = nextFromQuery || fromInvitePath || pendingInvitePath;
+  const nextSafe = nextFromQuery || fromInvitePath || pendingInvitePath ||
+    (location.pathname === '/manager/login' ? '/manager?entry=platform' : null);
 
   const orphanTokenValid = isParentInviteTokenShape(normalizeParentInviteToken(orphanT ?? ''));
   const metaToken = readParentInviteTokenFromUserMetadata(user);
