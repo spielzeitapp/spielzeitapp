@@ -154,19 +154,17 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
           {MANAGER_NAV_SECTIONS.filter((section) => {
             if (platformGlobal) return section.id === 'platform';
             if (section.id === 'platform') return false;
-            if (workMode === 'trainer') return section.id === 'overview' || section.id === 'sport';
-            return true;
+            return !(workMode === 'trainer' && section.hideInTrainerMode);
           }).map((section) => {
             const items = section.items.filter(
               (item) =>
                 navItemVisibleForWorkMode(item, workMode) &&
-                (workMode !== 'trainer' || item.status === 'ready') &&
                 !item.platformGlobalOnly &&
                 isModuleEnabled(item.moduleKey),
             );
             if (items.length === 0) return null;
             return (
-            <div key={section.id} className="mb-4">
+            <div key={section.id} className={`mb-4 ${workMode === 'trainer' && section.id !== 'overview' && section.id !== 'sport' ? 'hidden lg:block' : ''}`}>
               <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                 {section.label}
               </p>
@@ -201,7 +199,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
                     );
                   }
                   return (
-                    <li key={item.id}>
+                    <li key={item.id} className={workMode === 'trainer' ? 'hidden lg:list-item' : ''}>
                       <span
                         className="flex cursor-default items-center justify-between gap-2 rounded-lg px-3 py-2 text-[13px] text-white/35"
                         title="Demnächst"
@@ -219,6 +217,17 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
             );
           })}
         </nav>
+
+        <div className="hidden shrink-0 space-y-1 border-t border-white/10 p-3 lg:block">
+          <Link
+            to={MANAGER_TO_APP_HOME_PATH}
+            onClick={closeOnNav}
+            className="flex min-h-[42px] w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-[12px] font-semibold text-white/80 hover:bg-white/10 hover:text-white"
+          >
+            <AppHomeIcon className="h-4 w-4 shrink-0 object-contain" />
+            Zur SpielzeitApp
+          </Link>
+        </div>
 
       </aside>
     </>
