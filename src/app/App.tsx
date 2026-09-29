@@ -325,6 +325,7 @@ function InternalRoutes(): React.ReactElement {
         </Route>
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+      <Route path="/manager/login" element={<LoginPage />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin/dashboard" element={<RequireAuth><AdminDashboardPage /></RequireAuth>} />
       <Route path="/admin/setup" element={<SetupAdminPage />} />

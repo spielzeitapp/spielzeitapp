@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
         input: {
           main: resolve(__dirname, "index.html"),
           app: resolve(__dirname, "app.html"),
+          manager: resolve(__dirname, "manager.html"),
         },
         onwarn(warning, defaultHandler) {
           if (

@@ -143,7 +143,7 @@ export const LoginPage: React.FC = () => {
     !(isParentInviteFlow && isAppIntroEntryPath(fromStatePath))
       ? fromStatePath
       : null;
-  const isManagerLogin = [nextFromQuery, safeFromState].some(
+  const isManagerLogin = location.pathname === '/manager/login' || [nextFromQuery, safeFromState].some(
     (path) => path === '/manager' || path?.startsWith('/manager/') || path?.startsWith('/manager?'),
   );
 

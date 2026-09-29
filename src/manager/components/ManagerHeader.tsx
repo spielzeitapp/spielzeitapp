@@ -135,7 +135,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
 
   const onLogout = async () => {
     await signOut();
-    navigate('/login', { replace: true });
+    navigate('/manager/login?next=%2Fmanager%3Fentry%3Dplatform', { replace: true });
   };
 
   const roleHint = isTrainerMode

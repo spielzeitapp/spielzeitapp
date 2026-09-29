@@ -34,7 +34,7 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedBacke
     // Manager destination in the URL so signing in returns to its own icon.
     if (location.pathname === '/manager' || location.pathname.startsWith('/manager/')) {
       const next = `${location.pathname}${location.search}`;
-      return <Navigate to={`/login?next=${encodeURIComponent(next)}`} state={{ from: location }} replace />;
+      return <Navigate to={`/manager/login?next=${encodeURIComponent(next)}`} state={{ from: location }} replace />;
     }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
