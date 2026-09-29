@@ -236,6 +236,39 @@ function sameInstant(a: string | null | undefined, b: string | null | undefined)
   return String(a ?? '').trim() === String(b ?? '').trim();
 }
 
+function viennaDay(iso: string): string {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Vienna', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+/** Vorsichtiger Dublettenhinweis für manuell angelegte Spiele ohne ÖFB-ID. */
+async function findSameDayMatch(teamSeasonId: string, fixture: OefbImportedFixture): Promise<{
+  id: string | null; error: string | null;
+}> {
+  const timestamp = Date.parse(fixture.starts_at);
+  if (!Number.isFinite(timestamp)) return { id: null, error: null };
+  // UTC-Fenster breiter als ein Wiener Kalendertag, danach exakter Tagesvergleich.
+  const { data, error } = await supabase.from('events')
+    .select('id, opponent, is_home, starts_at')
+    .eq('team_season_id', teamSeasonId)
+    .eq('kind', 'match')
+    .gte('starts_at', new Date(timestamp - 36 * 60 * 60 * 1000).toISOString())
+    .lte('starts_at', new Date(timestamp + 36 * 60 * 60 * 1000).toISOString());
+  if (error) return { id: null, error: error.message };
+  const name = normalizeOpponentKey(fixture.opponent);
+  const day = viennaDay(fixture.starts_at);
+  const match = (data ?? []).find((row) =>
+    normalizeOpponentKey(normalizeOefbImportedTeamName(row.opponent)) === name &&
+    viennaDay(row.starts_at) === day &&
+    (row.is_home == null || row.is_home === fixture.is_home));
+  return { id: match?.id ?? null, error: null };
+}
+
 /**
  * Saisonbezogene Vorschau (ohne Writes): Neu / Aktualisierung / vorhanden / geschützt / Fehler.
  * Dublettenschlüssel: (team_season_id, external_source=oefb, external_id).
@@ -243,6 +276,8 @@ function sameInstant(a: string | null | undefined, b: string | null | undefined)
 export async function previewOefbChampionshipImport(opts: {
   teamSeasonId: string;
   fixtures: OefbImportedFixture[];
+  /** Einrichtung: bestehende ÖFB-Termine nur anzeigen, niemals verändern. */
+  insertOnly?: boolean;
 }): Promise<OefbImportPreviewResult> {
   const emptyCounts = { new: 0, update: 0, existing: 0, protected: 0, error: 0, writable: 0 };
   const writableGate = await assertTeamSeasonWritable(opts.teamSeasonId);
@@ -251,6 +286,7 @@ export async function previewOefbChampionshipImport(opts: {
   }
 
   const rows: OefbImportPreviewRow[] = [];
+  const seenExternalIds = new Set<string>();
   for (const raw of opts.fixtures) {
     const f = normalizeOefbImportedFixture(raw);
     if (!f.external_id || !f.opponent || !f.starts_at) {
@@ -267,11 +303,56 @@ export async function previewOefbChampionshipImport(opts: {
       continue;
     }
 
+    if (seenExternalIds.has(f.external_id)) {
+      rows.push({
+        fixture: f,
+        status: 'error',
+        statusLabel: 'Doppelt in ÖFB-Daten',
+        existingEventId: null,
+        existingFixtureStatus: null,
+        message: 'Diese ÖFB-Spiel-ID kommt in der Vorschau mehrfach vor und wird nur einmal berücksichtigt.',
+        nameCorrection: null,
+        willWrite: false,
+      });
+      continue;
+    }
+    seenExternalIds.add(f.external_id);
+
     const found = await selectChampionshipRows(opts.teamSeasonId, f.external_id);
     if (found.error) {
       return { rows: [], counts: emptyCounts, error: found.error };
     }
     const existing = found.data[0] ?? null;
+    if (existing && opts.insertOnly) {
+      rows.push({
+        fixture: f,
+        status: 'existing',
+        statusLabel: 'Bereits vorhanden',
+        existingEventId: existing.id,
+        existingFixtureStatus: existing.fixture_status,
+        message: 'Wird nicht verändert – auch Kickoff, Gegner, Ort und Metadaten bleiben erhalten.',
+        nameCorrection: null,
+        willWrite: false,
+      });
+      continue;
+    }
+    if (!existing && opts.insertOnly) {
+      const sameDay = await findSameDayMatch(opts.teamSeasonId, f);
+      if (sameDay.error) return { rows: [], counts: emptyCounts, error: sameDay.error };
+      if (sameDay.id) {
+        rows.push({
+          fixture: f,
+          status: 'protected',
+          statusLabel: 'Mögliche Dublette',
+          existingEventId: sameDay.id,
+          existingFixtureStatus: null,
+          message: 'Am selben Tag gibt es bereits ein Spiel gegen diesen Gegner. Bitte manuell prüfen; der Import überspringt es.',
+          nameCorrection: null,
+          willWrite: false,
+        });
+        continue;
+      }
+    }
     if (!existing) {
       rows.push({
         fixture: f,
@@ -353,21 +434,49 @@ export async function importOefbChampionshipFixtures(opts: {
   teamSeasonId: string;
   fixtures: OefbImportedFixture[];
   createdBy: string | null;
-}): Promise<{ inserted: number; updated: number; skippedProtected: number; error: string | null }> {
+  /** Einrichtung: nur neue ÖFB-IDs einfügen; vorhandene Events unangetastet lassen. */
+  insertOnly?: boolean;
+}): Promise<{ inserted: number; updated: number; skippedProtected: number; skippedExisting: number; error: string | null }> {
   let inserted = 0;
   let updated = 0;
   let skippedProtected = 0;
+  let skippedExisting = 0;
 
   const writableGate = await assertTeamSeasonWritable(opts.teamSeasonId);
   if (!writableGate.ok) {
-    return { inserted: 0, updated: 0, skippedProtected: 0, error: writableGate.message };
+    return { inserted: 0, updated: 0, skippedProtected: 0, skippedExisting: 0, error: writableGate.message };
   }
 
   const clubId = await resolveClubIdFromTeamSeason(opts.teamSeasonId);
+  const seenExternalIds = new Set<string>();
 
   for (const raw of opts.fixtures) {
     const f = normalizeOefbImportedFixture(raw);
     if (!f.external_id || !f.opponent || !f.starts_at) continue;
+    if (seenExternalIds.has(f.external_id)) continue;
+    seenExternalIds.add(f.external_id);
+
+    const found = await selectChampionshipRows(opts.teamSeasonId, f.external_id);
+    if (found.error) {
+      return { inserted, updated, skippedProtected, skippedExisting, error: found.error };
+    }
+    const existing = found.data[0] ?? null;
+
+    // Nochmals unmittelbar beim Schreiben prüfen: eine veraltete Vorschau darf
+    // bereits angelegte Spiele nicht nachträglich bearbeiten.
+    if (existing && opts.insertOnly) {
+      skippedExisting += 1;
+      continue;
+    }
+    if (!existing && opts.insertOnly) {
+      const sameDay = await findSameDayMatch(opts.teamSeasonId, f);
+      if (sameDay.error) return { inserted, updated, skippedProtected, skippedExisting, error: sameDay.error };
+      if (sameDay.id) {
+        skippedExisting += 1;
+        continue;
+      }
+    }
+
     const logo = resolveOpponentLogoForStorage(f.opponent, f.opponent_logo_url);
     if (clubId) {
       await ensureOpponentCatalogEntry({
@@ -378,12 +487,6 @@ export async function importOefbChampionshipFixtures(opts: {
         externalId: f.external_id,
       });
     }
-
-    const found = await selectChampionshipRows(opts.teamSeasonId, f.external_id);
-    if (found.error) {
-      return { inserted, updated, skippedProtected, error: found.error };
-    }
-    const existing = found.data[0] ?? null;
 
     if (existing) {
       const protectedRow = isProtectedManualStatus(existing.fixture_status);
@@ -418,7 +521,7 @@ export async function importOefbChampionshipFixtures(opts: {
         delete patch.opponent_logo_url;
         ({ error: updErr } = await supabase.from('events').update(patch).eq('id', existing.id));
       }
-      if (updErr) return { inserted, updated, skippedProtected, error: updErr.message };
+      if (updErr) return { inserted, updated, skippedProtected, skippedExisting, error: updErr.message };
       updated += 1;
       await safeTryApplyHomeDefault(existing.id, Boolean(f.is_home));
       continue;
@@ -461,16 +564,16 @@ export async function importOefbChampionshipFixtures(opts: {
     }
     if (insErr) {
       if (isMissingColumnError(insErr.message)) {
-        return { inserted, updated, skippedProtected, error: migrationHint() };
+        return { inserted, updated, skippedProtected, skippedExisting, error: migrationHint() };
       }
-      return { inserted, updated, skippedProtected, error: insErr.message };
+      return { inserted, updated, skippedProtected, skippedExisting, error: insErr.message };
     }
     inserted += 1;
     const newId = insertedRow ? String((insertedRow as { id: string }).id) : '';
     await safeTryApplyHomeDefault(newId, Boolean(f.is_home));
   }
 
-  return { inserted, updated, skippedProtected, error: null };
+  return { inserted, updated, skippedProtected, skippedExisting, error: null };
 }
 
 export async function updateChampionshipFixture(

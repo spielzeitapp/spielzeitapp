@@ -111,6 +111,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
 
   // Keine fremde Mannschaft vorausfüllen: der Admin muss die URL der Zielsaison bestätigen.
   const [importUrl, setImportUrl] = useState('');
+  const [oefbTeamName, setOefbTeamName] = useState('');
   const [previewRows, setPreviewRows] = useState<OefbImportPreviewRow[]>([]);
   const [previewFixtures, setPreviewFixtures] = useState<OefbImportedFixture[]>([]);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -123,6 +124,16 @@ export function ManagerOefbImportPage(): React.ReactElement {
     if (!seasonId) return;
     setViewTeamSeasonId(seasonId);
   }, [seasonId, setViewTeamSeasonId]);
+
+  useEffect(() => {
+    setImportUrl('');
+    setOefbTeamName('');
+    setPreviewRows([]);
+    setPreviewFixtures([]);
+    setConfirmed(false);
+    setInfo(null);
+    setError(null);
+  }, [seasonId]);
 
   const loadMeta = useCallback(async () => {
     if (!seasonId) {
@@ -185,7 +196,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     return c;
   }, [previewRows]);
 
-  const canPreview = Boolean(seasonId) && !archived && !writableMessage && !previewBusy && !importBusy;
+  const canPreview = Boolean(seasonId && meta) && !loadingMeta && !archived && !writableMessage && !previewBusy && !importBusy;
   const canImport =
     canPreview &&
     confirmed &&
@@ -204,6 +215,10 @@ export function ManagerOefbImportPage(): React.ReactElement {
       setConfirmed(false);
       return;
     }
+    if (!oefbTeamName.trim()) {
+      setError('Bitte den Mannschaftsnamen laut ÖFB-Spielplan eingeben, damit Heim und Auswärts richtig erkannt werden.');
+      return;
+    }
     setPreviewBusy(true);
     setError(null);
     setInfo(null);
@@ -211,12 +226,9 @@ export function ManagerOefbImportPage(): React.ReactElement {
     setPreviewRows([]);
     setPreviewFixtures([]);
 
-    const teamHints = [meta?.teamName, meta?.ageGroup, 'SPG Rohrbach', 'Rohrbach'].filter(
-      (x): x is string => Boolean(x && String(x).trim()),
-    );
     const fetched = await fetchOefbScheduleFixtures({
       url,
-      ourTeamHints: teamHints.length ? teamHints : ['SPG Rohrbach', 'Rohrbach'],
+      ourTeamHints: [oefbTeamName.trim()],
     });
     if (fetched.error) {
       setPreviewBusy(false);
@@ -232,6 +244,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     const preview = await previewOefbChampionshipImport({
       teamSeasonId: seasonId,
       fixtures: fetched.fixtures,
+      insertOnly: true,
     });
     setPreviewBusy(false);
     if (preview.error) {
@@ -241,7 +254,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     setPreviewFixtures(fetched.fixtures);
     setPreviewRows(preview.rows);
     setInfo(
-      `${preview.rows.length} Spiele erkannt · ${preview.counts.new} neu · ${preview.counts.update} Aktualisierung · ${preview.counts.existing} vorhanden · ${preview.counts.protected} geschützt · ${preview.counts.error} Fehler`,
+      `${preview.rows.length} Spiele erkannt · ${preview.counts.new} neu · ${preview.counts.existing} vorhanden · ${preview.counts.protected} mögliche Dubletten (übersprungen) · ${preview.counts.error} Fehler`,
     );
   };
 
@@ -253,6 +266,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
       teamSeasonId: seasonId,
       fixtures: previewFixtures,
       createdBy: user?.id ?? null,
+      insertOnly: true,
     });
     setImportBusy(false);
     if (res.error) {
@@ -260,13 +274,14 @@ export function ManagerOefbImportPage(): React.ReactElement {
       return;
     }
     setInfo(
-      `Import abgeschlossen: ${res.inserted} neu, ${res.updated} aktualisiert, ${res.skippedProtected} geschützt (Kickoff/Ort unverändert).`,
+      `Import abgeschlossen: ${res.inserted} neu, ${res.skippedExisting} vorhandene Spiele unverändert gelassen.`,
     );
     setConfirmed(false);
     // Vorschau nach Import neu laden
     const preview = await previewOefbChampionshipImport({
       teamSeasonId: seasonId,
       fixtures: previewFixtures,
+      insertOnly: true,
     });
     if (!preview.error) setPreviewRows(preview.rows);
   };
@@ -274,7 +289,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
   if (!allowed) return <Navigate to="/manager" replace />;
   if (!seasonId) return <Navigate to="/manager/saisons" replace />;
 
-  const teamLabel = meta?.teamName ?? meta?.displayName ?? 'Eigene Mannschaft';
+  const teamLabel = oefbTeamName.trim() || meta?.teamName || meta?.displayName || 'Eigene Mannschaft';
 
   return (
     <div className="space-y-5">
@@ -288,7 +303,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
           </h1>
           <p className="mt-1 max-w-3xl text-[14px] text-slate-600">
             Vorschau vor dem Schreiben. Dubletten werden saisonbezogen über die ÖFB-ID erkannt.
-            Vereinbarte oder veröffentlichte Termine bleiben geschützt.
+            Dieser Einrichtungsimport legt nur neue Spiele an und verändert vorhandene Termine nicht.
           </p>
         </div>
       </div>
@@ -338,6 +353,8 @@ export function ManagerOefbImportPage(): React.ReactElement {
             onChange={(e) => {
               setImportUrl(e.target.value);
               setConfirmed(false);
+              setPreviewRows([]);
+              setPreviewFixtures([]);
             }}
             placeholder="https://vereine.oefb.at/…/Spiele"
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[14px] text-slate-900 outline-none focus:border-red-400"
@@ -346,6 +363,18 @@ export function ManagerOefbImportPage(): React.ReactElement {
             Bitte die Mannschafts-URL aus dem ÖFB-Vereinsbereich verwenden. Ohne gültige URL wird
             nichts abgerufen.
           </p>
+          <label className="block text-[13px] font-semibold text-slate-800" htmlFor="oefb-team-name">
+            Eigener Mannschaftsname laut ÖFB
+          </label>
+          <input
+            id="oefb-team-name"
+            value={oefbTeamName}
+            onChange={(e) => { setOefbTeamName(e.target.value); setConfirmed(false); setPreviewRows([]); setPreviewFixtures([]); }}
+            placeholder={meta.teamName ?? 'z. B. NSG Gölsental'}
+            disabled={previewBusy || importBusy}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[14px] text-slate-900 outline-none focus:border-red-400"
+          />
+          <p className="text-[12px] text-slate-500">Dieser Name bestimmt die Heim-/Auswärts-Zuordnung. Bitte in der Vorschau kontrollieren.</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -391,14 +420,11 @@ export function ManagerOefbImportPage(): React.ReactElement {
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-800">
               {counts.new} neu
             </span>
-            <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 font-semibold text-sky-900">
-              {counts.update} Aktualisierung
-            </span>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-semibold text-slate-700">
               {counts.existing} vorhanden
             </span>
             <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-900">
-              {counts.protected} geschützt
+              {counts.protected} mögliche Dubletten
             </span>
             {counts.error > 0 ? (
               <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 font-semibold text-red-800">
@@ -481,9 +507,8 @@ export function ManagerOefbImportPage(): React.ReactElement {
               onChange={(e) => setConfirmed(e.target.checked)}
             />
             <span>
-              Ich habe die Vorschau geprüft. Neue und aktualisierbare Spiele dürfen in die Zielsaison
-              geschrieben werden. Geschützte Termine (vereinbart/veröffentlicht) behalten Kickoff, Ort
-              und Status — sichtbare Bezeichnungen (ohne „U11“) dürfen trotzdem bereinigt werden.
+              Ich habe die Vorschau geprüft. Nur neue ÖFB-Spiele dürfen in die Zielsaison angelegt
+              werden. Bereits vorhandene Termine bleiben vollständig unverändert.
             </span>
           </label>
 
