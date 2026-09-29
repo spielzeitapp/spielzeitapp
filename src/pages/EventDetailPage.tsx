@@ -1779,6 +1779,36 @@ export const EventDetailPage: React.FC = () => {
       }
     }
 
+    const moved = editEvent.status === 'upcoming' && eventStartMinuteChanged(editEvent.starts_at, startsAt) &&
+      (editEvent.kind === 'training' || editEvent.kind === 'match');
+    if (moved) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error('Bitte erneut anmelden und die Nachricht manuell senden.');
+        const response = await fetch('/api/push/send-team', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            team_season_id: editEvent.team_season_id,
+            recipient_group: 'all',
+            title: `${editEvent.kind === 'training' ? 'Training' : 'Spiel'} verschoben`,
+            body: reschedulePushText(editEvent, startsAt, locationVal, reschedulePushExtra),
+            url: `${basePath}/events/${encodeURIComponent(editEvent.id)}`,
+            related_event_id: editEvent.id,
+          }),
+        });
+        const push = await response.json() as { ok?: boolean; skipped?: boolean; error?: string; sent?: number; notificationsInserted?: number; messagesSaved?: number; hint?: string };
+        if (!response.ok || push.ok !== true) throw new Error(push.error || `HTTP ${response.status}`);
+        setReschedulePushFeedback(push.skipped
+          ? 'Termin verschoben. Auf Test ist der Push-Versand deaktiviert.'
+          : (push.sent ?? 0) === 0 && (push.notificationsInserted ?? 0) === 0 && (push.messagesSaved ?? 0) === 0
+            ? `Termin gespeichert, aber niemand benachrichtigt.${push.hint ? ` ${push.hint}` : ' Bitte Empfänger und Push-Einstellungen prüfen.'}`
+            : `Termin verschoben. ${push.sent ?? 0} Push-Gerät(e) und ${push.notificationsInserted ?? 0} In-App-Benachrichtigung(en) erreicht.`);
+      } catch (pushError) {
+        setReschedulePushFeedback(`Termin verschoben, Push fehlgeschlagen: ${pushError instanceof Error ? pushError.message : 'Unbekannter Fehler'}`);
+      }
+    }
+
     if (editEvent.kind === 'match' && editEvent.match_id && eventStartMinuteChanged(editEvent.starts_at, startsAt)) {
       const { data: updatedMatch, error: matchDateError } = await supabase.from('matches')
         .update({ match_date: startsAt })
@@ -1817,35 +1847,8 @@ export const EventDetailPage: React.FC = () => {
       });
     }
 
-    const moved = editEvent.status === 'upcoming' && eventStartMinuteChanged(editEvent.starts_at, startsAt) &&
-      (editEvent.kind === 'training' || editEvent.kind === 'match');
     closeEditModal();
     await loadEvent();
-    if (moved) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error('Bitte erneut anmelden und die Nachricht manuell senden.');
-        const response = await fetch('/api/push/send-team', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({
-            team_season_id: editEvent.team_season_id,
-            recipient_group: 'all',
-            title: `${editEvent.kind === 'training' ? 'Training' : 'Spiel'} verschoben`,
-            body: reschedulePushText(editEvent, startsAt, locationVal, reschedulePushExtra),
-            url: `${basePath}/events/${encodeURIComponent(editEvent.id)}`,
-            related_event_id: editEvent.id,
-          }),
-        });
-        const push = await response.json() as { ok?: boolean; skipped?: boolean; error?: string; sent?: number; notificationsInserted?: number };
-        if (!response.ok || push.ok !== true) throw new Error(push.error || `HTTP ${response.status}`);
-        setReschedulePushFeedback(push.skipped
-          ? 'Termin verschoben. Auf Test ist der Push-Versand deaktiviert.'
-          : `Termin verschoben. ${push.sent ?? 0} Push-Gerät(e) und ${push.notificationsInserted ?? 0} In-App-Benachrichtigung(en) erreicht.`);
-      } catch (pushError) {
-        setReschedulePushFeedback(`Termin verschoben, Push fehlgeschlagen: ${pushError instanceof Error ? pushError.message : 'Unbekannter Fehler'}`);
-      }
-    }
     setSavingEdit(false);
   }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, reschedulePushExtra, closeEditModal, loadEvent, isDemo, basePath]);
 
