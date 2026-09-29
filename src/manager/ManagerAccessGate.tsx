@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
 import { canAccessManager } from './canAccessManager';
@@ -40,6 +40,7 @@ function GatePanel({
  * Saison-Hinweise erscheinen im Dashboard (nicht als Block).
  */
 export function ManagerAccessGate({ children }: Props): React.ReactElement {
+  const location = useLocation();
   const { user: authUser } = useAuth();
   const { loading, memberships, backendRole, teamSeasons } = useSession();
 
@@ -53,11 +54,15 @@ export function ManagerAccessGate({ children }: Props): React.ReactElement {
     memberships: membershipInputs,
   });
 
-  const effectiveMode = resolveEffectiveWorkMode({
+  const storedMode = resolveEffectiveWorkMode({
     userId: authUser?.id,
     backendRole,
     memberships: membershipInputs,
   });
+  const platformIconEntry = location.pathname === '/manager' &&
+    new URLSearchParams(location.search).get('entry') === 'platform' &&
+    availableModes.includes('platform_admin');
+  const effectiveMode = platformIconEntry ? 'platform_admin' : storedMode;
 
   const trainerSeasonIds = filterTrainerStaffTeamSeasonIds(membershipInputs);
   const hasTrainerContext =

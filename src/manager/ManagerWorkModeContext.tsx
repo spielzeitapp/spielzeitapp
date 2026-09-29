@@ -9,7 +9,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession, type SessionTeamSeasonItem } from '../auth/useSession';
 import {
@@ -64,6 +64,7 @@ export function ManagerWorkModeProvider({
   children: React.ReactNode;
 }): React.ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: authUser } = useAuth();
   const {
     backendRole,
@@ -100,6 +101,18 @@ export function ManagerWorkModeProvider({
 
   useEffect(() => {
     if (loading || !authUser?.id) return;
+    const platformIconEntry = location.pathname === '/manager' &&
+      new URLSearchParams(location.search).get('entry') === 'platform';
+    if (platformIconEntry) {
+      if (availableModes.includes('platform_admin')) {
+        setWorkModeState('platform_admin');
+        writeStoredWorkMode(authUser.id, 'platform_admin');
+        navigate('/manager/plattform', { replace: true });
+      } else {
+        navigate('/manager', { replace: true });
+      }
+      return;
+    }
     setWorkModeState(
       resolveEffectiveWorkMode({
         userId: authUser.id,
@@ -107,7 +120,7 @@ export function ManagerWorkModeProvider({
         memberships: membershipInputs,
       }),
     );
-  }, [loading, authUser?.id, backendRole, membershipInputs]);
+  }, [loading, authUser?.id, backendRole, membershipInputs, availableModes, location.pathname, location.search, navigate]);
 
   const trainerSeasonIds = useMemo(
     () => new Set(filterTrainerStaffTeamSeasonIds(membershipInputs)),
