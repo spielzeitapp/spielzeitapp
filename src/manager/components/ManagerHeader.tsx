@@ -14,7 +14,6 @@ import {
 } from '../../lib/seasonLifecycle';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { AppHomeIcon, MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
-import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
 
 type Props = {
   onOpenSidebar: () => void;
@@ -150,19 +149,22 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#090909]/[0.98] text-white backdrop-blur-md pt-[env(safe-area-inset-top)]">
       <div className="relative flex min-h-[72px] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
-        <div className="hidden sm:block"><ManagerMenuButton onClick={onOpenSidebar} /></div>
+        <ManagerMenuButton onClick={onOpenSidebar} />
 
         <div className="min-w-0 flex-1">
-          <SpielzeitAppBrand
-            className="max-w-[48vw] sm:hidden"
-            iconClassName="h-10 w-10"
-            wordmarkClassName="w-[7.7rem]"
-          />
+          <p className="truncate text-[16px] font-black tracking-tight text-white sm:hidden">Spielzeit Manager</p>
           <p className="hidden truncate text-[18px] font-bold tracking-tight text-white sm:block sm:text-[20px]">Manager</p>
-          <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.16em] text-red-300/60 sm:hidden">Manager · {roleHint.replace(/_/g, ' ')}</p>
+          <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-red-300 sm:hidden">{roleHint.replace(/_/g, ' ')}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+          <Link
+            to={MANAGER_TO_APP_HOME_PATH}
+            className="inline-flex h-11 min-h-[44px] items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 text-[11px] font-semibold text-white sm:hidden"
+            aria-label="Zur SpielzeitApp wechseln"
+          >
+            <AppHomeIcon className="h-4 w-4 shrink-0 object-contain" /> App
+          </Link>
           <Link
             to={MANAGER_TO_APP_HOME_PATH}
             className="hidden h-11 min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 text-[12px] font-semibold text-white shadow-sm hover:bg-white/10 sm:inline-flex lg:hidden"

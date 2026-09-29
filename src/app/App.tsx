@@ -54,6 +54,7 @@ import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { ManagerLayout } from '../manager/ManagerLayout';
 import { ManagerDashboardPage } from '../manager/ManagerDashboardPage';
+import { ManagerHomeRoute } from '../manager/ManagerHomeRoute';
 import { ManagerPlatzbelegungPage } from '../manager/ManagerPlatzbelegungPage';
 import { ManagerTrainingLibraryPage } from '../manager/ManagerTrainingLibraryPage';
 import { ManagerTrainingSessionsPage } from '../manager/ManagerTrainingSessionsPage';
@@ -351,7 +352,7 @@ function InternalRoutes(): React.ReactElement {
           </RequireAuth>
         }
       >
-        <Route index element={<ManagerDashboardPage />} />
+        <Route index element={<ManagerHomeRoute />} />
         <Route path="dashboard" element={<ManagerDashboardPage />} />
         <Route path="termine" element={<ManagerMobileSchedulePage />} />
         <Route path="teams" element={<ManagerMobileTeamsPage />} />

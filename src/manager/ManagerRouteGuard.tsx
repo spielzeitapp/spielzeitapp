@@ -16,7 +16,8 @@ export function ManagerRouteGuard({ children }: Props): React.ReactElement {
   const { workMode, availableModes, switchToAdministration, isTrainerMode, supportSession } = useManagerWorkMode();
   const { isModuleEnabled, loading: modulesLoading } = useManagerClubModules();
 
-  const platformRoute = location.pathname.startsWith('/manager/plattform') || location.pathname.startsWith('/manager/vereine');
+  const platformRoute = location.pathname.startsWith('/manager/plattform') ||
+    location.pathname.startsWith('/manager/vereine') || location.pathname === '/manager/mehr';
   if (workMode === 'platform_admin' && !supportSession && !platformRoute) {
     return <Navigate to="/manager/plattform" replace />;
   }

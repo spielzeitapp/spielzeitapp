@@ -12,6 +12,7 @@ const ALLOWED_APP_PATH_PREFIXES = [
   '/login',
   '/register',
   '/forgot-password',
+  '/manager',
 ] as const;
 
 /** Standard nach „Zur App“ / App-Einstieg ohne Invite oder Deep Link. */

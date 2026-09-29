@@ -433,7 +433,7 @@ export const MoreHubPage: React.FC = () => {
                         <span className="flex min-w-0 flex-col gap-0.5">
                           <span>Trainingsplanung</span>
                           <span className="text-[11px] font-normal leading-snug text-white/45">
-                            Pläne ansehen oder ein Training vorbereiten
+                            Öffnet den Manager zum Planen und Vorbereiten
                           </span>
                         </span>
                       </span>
@@ -456,17 +456,6 @@ export const MoreHubPage: React.FC = () => {
                   )}
                     </>
                   ) : null}
-                  {showManagerLink && (
-                    <HubRowLink to="/manager" className={subRowClass} isDemo={isDemo}>
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span>Spielzeit Manager öffnen</span>
-                        <span className="text-[11px] font-normal leading-snug text-white/45">
-                          Bestehende Anmeldung bleibt erhalten
-                        </span>
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
-                    </HubRowLink>
-                  )}
                   {showPreviewLink && (
                     <HubRowLink to="/app/mehr/trainer/preview" className={subRowClass} isDemo={isDemo}>
                       <span className="flex min-w-0 flex-col gap-0.5">
@@ -483,6 +472,18 @@ export const MoreHubPage: React.FC = () => {
             )}
           </div>
         )}
+
+        {showManagerLink ? (
+          <HubRowLink to="/manager" className={dsPanelRowClass()} isDemo={isDemo}>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="font-semibold">Spielzeit Manager öffnen</span>
+              <span className="text-[11px] font-normal leading-snug text-white/45">
+                Eigener Bereich für Verwaltung und Planung · Anmeldung bleibt erhalten
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-white/40" aria-hidden />
+          </HubRowLink>
+        ) : null}
 
         {(effectiveRole === 'parent' ||
           normalizeRole(effectiveRole) === 'parent' ||
