@@ -151,10 +151,13 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
       <div className="relative flex min-h-[72px] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <img src="/manager-icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-lg sm:hidden" />
+          <div className="min-w-0">
           <p className="truncate text-[16px] font-black tracking-tight text-white sm:hidden">Spielzeit Manager</p>
           <p className="hidden truncate text-[18px] font-bold tracking-tight text-white sm:block sm:text-[20px]">Manager</p>
           <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-red-300 sm:hidden">{roleHint.replace(/_/g, ' ')}</p>
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
