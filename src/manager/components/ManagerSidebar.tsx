@@ -20,7 +20,6 @@ import {
 import { MANAGER_NAV_SECTIONS } from '../managerNav';
 import { navItemVisibleForWorkMode } from '../managerWorkMode';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
-import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
 import { useManagerClubModules } from '../ManagerClubModulesContext';
 
 /** Bestehende mobile App-Startseite (ohne Logout). */
@@ -134,11 +133,8 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
       >
         <div className="flex h-[72px] shrink-0 items-center justify-between gap-2 border-b border-white/10 px-5 pt-[env(safe-area-inset-top)] lg:pt-0">
           <Link to={platformGlobal ? '/manager/plattform' : '/manager'} className="flex min-w-0 items-center gap-2" onClick={closeOnNav}>
-            <SpielzeitAppBrand
-              className="max-w-[13rem]"
-              iconClassName="h-9 w-9"
-              wordmarkClassName="w-[9rem]"
-            />
+            <img src="/manager-icon-192.png" alt="" className="h-9 w-9 rounded-lg" />
+            <span className="truncate text-[16px] font-bold">Spielzeit Manager</span>
           </Link>
           <button
             type="button"
@@ -150,18 +146,6 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
           </button>
         </div>
 
-        {/* Mobile: klarer App-Wechsel ganz oben */}
-        <div className="border-b border-white/10 p-3 lg:hidden">
-          <Link
-            to={MANAGER_TO_APP_HOME_PATH}
-            onClick={closeOnNav}
-            className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg border border-red-500/40 bg-red-600 px-3 py-2.5 text-[13px] font-semibold text-white hover:bg-red-700"
-          >
-            <AppHomeIcon className="h-5 w-5 shrink-0 object-contain" />
-            Zur SpielzeitApp
-          </Link>
-        </div>
-
         <p className="px-5 pt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">
           {workMode === 'trainer' ? 'Trainer' : supportSession ? 'Support' : workMode === 'platform_admin' ? 'Plattform' : 'Verein'}
         </p>
@@ -170,11 +154,13 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
           {MANAGER_NAV_SECTIONS.filter((section) => {
             if (platformGlobal) return section.id === 'platform';
             if (section.id === 'platform') return false;
-            return !(workMode === 'trainer' && section.hideInTrainerMode);
+            if (workMode === 'trainer') return section.id === 'overview' || section.id === 'sport';
+            return true;
           }).map((section) => {
             const items = section.items.filter(
               (item) =>
                 navItemVisibleForWorkMode(item, workMode) &&
+                (workMode !== 'trainer' || item.status === 'ready') &&
                 !item.platformGlobalOnly &&
                 isModuleEnabled(item.moduleKey),
             );
@@ -234,16 +220,6 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
           })}
         </nav>
 
-        <div className="hidden shrink-0 space-y-1 border-t border-white/10 p-3 lg:block">
-          <Link
-            to={MANAGER_TO_APP_HOME_PATH}
-            onClick={closeOnNav}
-            className="flex w-full min-h-[42px] items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-[12px] font-semibold text-white/80 hover:bg-white/10 hover:text-white"
-          >
-            <AppHomeIcon className="h-4 w-4 shrink-0 object-contain" />
-            Zur SpielzeitApp
-          </Link>
-        </div>
       </aside>
     </>
   );

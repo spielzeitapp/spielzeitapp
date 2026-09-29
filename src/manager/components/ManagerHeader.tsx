@@ -13,7 +13,7 @@ import {
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
-import { AppHomeIcon, MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
+import { ManagerMenuButton } from './ManagerSidebar';
 
 type Props = {
   onOpenSidebar: () => void;
@@ -158,23 +158,6 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <Link
-            to={MANAGER_TO_APP_HOME_PATH}
-            className="inline-flex h-11 min-h-[44px] items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 text-[11px] font-semibold text-white sm:hidden"
-            aria-label="Zur SpielzeitApp wechseln"
-          >
-            <AppHomeIcon className="h-4 w-4 shrink-0 object-contain" /> App
-          </Link>
-          <Link
-            to={MANAGER_TO_APP_HOME_PATH}
-            className="hidden h-11 min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 text-[12px] font-semibold text-white shadow-sm hover:bg-white/10 sm:inline-flex lg:hidden"
-            aria-label="Zur SpielzeitApp"
-            title="Zur SpielzeitApp"
-          >
-            <AppHomeIcon className="h-4 w-4 shrink-0 object-contain" />
-            <span className="hidden min-[380px]:inline">Zur App</span>
-          </Link>
-
           <Link to="/manager/mehr" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 sm:hidden" aria-label="Profil und Einstellungen">
             <UserRound className="h-5 w-5" />
           </Link>
