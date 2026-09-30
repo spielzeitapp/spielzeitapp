@@ -239,7 +239,7 @@ export function ManagerMenuButton({ onClick }: { onClick: () => void }): React.R
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white shadow-sm hover:bg-white/10 lg:hidden"
+      className="hidden h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white shadow-sm hover:bg-white/10 sm:inline-flex lg:hidden"
       aria-label="Menü öffnen"
     >
       <Menu className="h-5 w-5" strokeWidth={2} aria-hidden />

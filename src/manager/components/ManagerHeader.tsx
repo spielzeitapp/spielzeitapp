@@ -13,7 +13,8 @@ import {
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
-import { AppHomeIcon, MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
+import { MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
+import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
 type Props = {
   onOpenSidebar: () => void;
@@ -148,29 +149,28 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#090909]/[0.98] text-white backdrop-blur-md pt-[env(safe-area-inset-top)]">
-      <div className="relative flex min-h-[72px] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
+      <div className="relative flex min-h-[60px] items-center gap-2 px-3 py-2 sm:min-h-[72px] sm:gap-3 sm:py-2.5 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <img src="/manager-icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-lg sm:hidden" />
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+          <img src="/manager-icon-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl sm:hidden" />
           <div className="min-w-0">
-          <p className="truncate text-[16px] font-black tracking-tight text-white sm:hidden">Spielzeit Manager</p>
-          <p className="hidden truncate text-[18px] font-bold tracking-tight text-white sm:block sm:text-[20px]">Manager</p>
-          <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-red-300 sm:hidden">{roleHint.replace(/_/g, ' ')}</p>
+            <p className="truncate text-[16px] font-black tracking-tight text-white sm:hidden">Spielzeit <span className="text-red-400">Manager</span></p>
+            <p className="hidden truncate text-[18px] font-bold tracking-tight text-white sm:block sm:text-[20px]">Manager</p>
+            <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-red-300 sm:hidden">{roleHint.replace(/_/g, ' ')}</p>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <Link
             to={MANAGER_TO_APP_HOME_PATH}
-            className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.05] px-2 text-[11px] font-bold text-white sm:hidden"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white shadow-sm sm:hidden"
             aria-label="Zur SpielzeitApp wechseln"
             title="Zur SpielzeitApp"
           >
-            <AppHomeIcon className="h-5 w-5 shrink-0 object-contain" />
-            <span className="max-[359px]:sr-only">App</span>
+            <img src={spielzeitappIcon} alt="" className="h-6 w-6 object-contain" />
           </Link>
-          <Link to="/manager/mehr" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 sm:hidden" aria-label="Profil und Einstellungen">
+          <Link to="/manager/mehr" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 sm:hidden" aria-label="Profil und Einstellungen">
             <UserRound className="h-5 w-5" />
           </Link>
 
@@ -256,11 +256,11 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
       ) : null}
 
       {headerTeamSeasons.length > 1 ? (
-        <div className="border-t border-white/10 px-3 py-2 sm:hidden">
+        <div className="border-t border-white/10 px-3 py-1.5 sm:hidden">
           <select
             value={selectValue}
             onChange={(e) => onContextChange(e.target.value)}
-            className="manager-header-select w-full rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[12px] font-semibold text-white"
+            className="manager-header-select min-h-10 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] font-semibold text-white"
             aria-label="Team und Saison wählen"
           >
             {headerTeamSeasons.map((ts) => (
