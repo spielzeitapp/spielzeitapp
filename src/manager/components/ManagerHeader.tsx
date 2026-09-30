@@ -14,6 +14,7 @@ import {
 } from '../../lib/seasonLifecycle';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
+import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
 type Props = {
@@ -148,31 +149,39 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         : (membershipRole || backendRole || '').trim();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#090909]/[0.98] text-white backdrop-blur-md pt-[env(safe-area-inset-top)]">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[rgba(6,6,8,0.88)] text-white shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65)] backdrop-blur-xl backdrop-saturate-150 pt-[env(safe-area-inset-top)] supports-[backdrop-filter]:bg-[rgba(6,6,8,0.72)] sm:bg-[#090909]/[0.98] sm:shadow-none">
       <div className="relative flex min-h-[60px] items-center gap-2 px-3 py-2 sm:min-h-[72px] sm:gap-3 sm:py-2.5 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
-          <img src="/manager-icon-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl sm:hidden" />
+          <img src="/manager-icon-192.png" alt="" className="h-11 w-11 shrink-0 rounded-xl sm:hidden" />
           <div className="min-w-0">
             <p className="truncate text-[16px] font-black tracking-tight text-white sm:hidden">Spielzeit <span className="text-red-400">Manager</span></p>
             <p className="hidden truncate text-[18px] font-bold tracking-tight text-white sm:block sm:text-[20px]">Manager</p>
-            <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-red-300 sm:hidden">{roleHint.replace(/_/g, ' ')}</p>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <Link
-            to={MANAGER_TO_APP_HOME_PATH}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.04] text-white shadow-sm sm:hidden"
-            aria-label="Zur SpielzeitApp wechseln"
-            title="Zur SpielzeitApp"
-          >
-            <img src={spielzeitappIcon} alt="" className="h-[54px] w-[54px] max-w-none shrink-0 -translate-x-[3px] translate-y-[8px] object-contain" />
-          </Link>
-          <Link to="/manager/mehr" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 sm:hidden" aria-label="Profil und Einstellungen">
-            <UserRound className="h-5 w-5" />
-          </Link>
+          <div className="flex flex-col items-end gap-0.5 sm:hidden">
+            <div className="flex items-center gap-1.5">
+              <Link
+                to={MANAGER_TO_APP_HOME_PATH}
+                className={`${dsGlassIconButtonClass()} overflow-hidden`}
+                aria-label="Zur SpielzeitApp wechseln"
+                title="Zur SpielzeitApp"
+              >
+                <img src={spielzeitappIcon} alt="" className="h-[50px] w-[50px] max-w-none shrink-0 -translate-x-[3px] translate-y-[7px] object-contain" />
+              </Link>
+              <Link to="/manager/mehr" className={dsGlassIconButtonClass()} aria-label="Profil und Einstellungen">
+                <UserRound className="h-[1.1rem] w-[1.1rem]" />
+              </Link>
+            </div>
+            {roleHint ? (
+              <span className={`${dsTrainerPillClass()} !max-w-[9rem]`} title={roleHint.replace(/_/g, ' ')}>
+                {roleHint.replace(/_/g, ' ')}
+              </span>
+            ) : null}
+          </div>
 
           {headerTeamSeasons.length > 1 ? (
             <label className="hidden min-w-0 sm:block">
