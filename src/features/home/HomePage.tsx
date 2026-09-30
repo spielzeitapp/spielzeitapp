@@ -39,7 +39,6 @@ import {
 } from '../../ui';
 import { cn } from '../../ui/lib/cn';
 import { useDemoMode } from '../../demo/DemoContext';
-import { canAccessManager } from '../../manager/canAccessManager';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
 
@@ -153,7 +152,6 @@ export const HomePage: React.FC = () => {
     selectedTeamSeason,
     teamSeasons,
     backendRole,
-    memberships,
     membershipRole,
     effectiveRole,
   } = useSession();
@@ -432,13 +430,6 @@ export const HomePage: React.FC = () => {
       className="page app-home min-h-[60vh] w-full max-w-none min-w-0 px-3 pb-[max(9rem,calc(7.5rem+env(safe-area-inset-bottom,0px)))] pt-4 sm:px-4 sm:pt-5 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
-      {!isDemoMode && canAccessManager(backendRole, memberships ?? []) ? (
-        <Link to="/manager" className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-white/10 bg-[#111114] px-3 text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)]">
-          <img src="/manager-icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-lg" />
-          <span className="min-w-0 flex-1"><span className="block text-[13px] font-bold">Spielzeit Manager</span><span className="block text-[11px] text-white/50">Planung und Verwaltung öffnen</span></span>
-          <span className="text-[12px] font-semibold text-red-300">Öffnen</span>
-        </Link>
-      ) : null}
       {sessionPending && !teamSeasonId && <p className="text-sm text-white/50">Laden…</p>}
 
       {!sessionPending && !teamSeasonId && !FEED_DEMO && (
