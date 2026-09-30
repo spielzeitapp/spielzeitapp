@@ -235,7 +235,16 @@ export const Header: React.FC = () => {
                           aria-label="Spielzeit Manager öffnen"
                           title="Spielzeit Manager"
                         >
-                          <span className="text-[19px] font-black leading-none text-red-400" aria-hidden>M</span>
+                          <span
+                            className="h-7 w-7 shrink-0 rounded-full bg-no-repeat"
+                            style={{
+                              // Exakter M-Ausschnitt aus dem vorhandenen Manager-Icon (512 px).
+                              backgroundImage: 'url(/manager-icon-512.png)',
+                              backgroundSize: '72px 72px',
+                              backgroundPosition: '-43px -43px',
+                            }}
+                            aria-hidden
+                          />
                         </Link>
                       ) : null}
                       <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
