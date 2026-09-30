@@ -160,6 +160,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
       : isAdministrationMode
         ? 'Vereinsadmin'
         : (membershipRole || backendRole || '').trim();
+  const mobileRoleLabel = roleHint === 'Plattformadmin' ? 'Admin' : roleHint.replace(/_/g, ' ');
 
   return (
     <>
@@ -193,7 +194,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             </div>
             {roleHint ? (
               <span className={`${dsTrainerPillClass()} !max-w-none`} title={roleHint.replace(/_/g, ' ')}>
-                {roleHint.replace(/_/g, ' ')}
+                {mobileRoleLabel}
               </span>
             ) : null}
           </div>
