@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftRight, Headphones, LogOut, UserRound, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
@@ -42,6 +42,19 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
  */
 export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   const navigate = useNavigate();
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const updateHeight = () => setHeaderHeight(header.getBoundingClientRect().height);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
   const { user: authUser } = useAuth();
   const {
     teamSeasons,
@@ -149,7 +162,9 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         : (membershipRole || backendRole || '').trim();
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[rgba(6,6,8,0.88)] text-white shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65)] backdrop-blur-xl backdrop-saturate-150 pt-[env(safe-area-inset-top)] supports-[backdrop-filter]:bg-[rgba(6,6,8,0.72)] sm:bg-[#090909]/[0.98] sm:shadow-none">
+    <>
+    <div aria-hidden className="shrink-0 sm:hidden" style={{ height: headerHeight || 'calc(60px + env(safe-area-inset-top))' }} />
+    <header ref={headerRef} className="fixed inset-x-0 top-0 z-30 shrink-0 border-b border-white/10 bg-[#060608] text-white shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65)] pt-[env(safe-area-inset-top)] sm:sticky sm:inset-x-auto sm:bg-[#090909]/[0.98] sm:shadow-none sm:backdrop-blur-md">
       <div className="relative flex min-h-[60px] items-center gap-2 px-3 py-2 sm:min-h-[72px] sm:gap-3 sm:py-2.5 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
@@ -177,7 +192,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
               </Link>
             </div>
             {roleHint ? (
-              <span className={`${dsTrainerPillClass()} !max-w-[9rem]`} title={roleHint.replace(/_/g, ' ')}>
+              <span className={`${dsTrainerPillClass()} !max-w-none`} title={roleHint.replace(/_/g, ' ')}>
                 {roleHint.replace(/_/g, ' ')}
               </span>
             ) : null}
@@ -281,5 +296,6 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         </div>
       ) : null}
     </header>
+    </>
   );
 }
