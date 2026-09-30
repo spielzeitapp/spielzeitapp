@@ -52,6 +52,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
         {workMode === 'platform_admin' && !supportSession ? <MoreLink to="/manager/vereine" icon={Shield} title="Vereine verwalten" detail="Vereine und Mannschaften einrichten" /> : null}
         {workMode === 'club_admin' || supportSession ?
           <MoreLink to="/manager/saisons" icon={Monitor} title="Vollständige Verwaltung" detail="Saisonen, Kader und ÖFB-Import im Manager" /> : null}
+        <MoreLink to="/app/home" icon={ChevronRight} title="Zur SpielzeitApp" detail="Team und Termine öffnen" />
         <a href="/manager-install.html" className="flex min-h-[72px] items-center gap-3 border-b border-white/[0.07] px-4">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-950/35 text-red-300"><Monitor className="h-5 w-5" /></span>
           <span className="min-w-0 flex-1"><span className="block text-[14px] font-bold">Manager-Icon hinzufügen</span><span className="mt-0.5 block text-[11px] text-white/45">Eigenes Icon für den Home-Bildschirm</span></span>
