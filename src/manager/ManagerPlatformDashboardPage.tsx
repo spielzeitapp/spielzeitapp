@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
   AlertTriangle,
+  ArrowRight,
   Building2,
   CalendarCheck2,
   ShieldCheck,
@@ -77,7 +78,53 @@ export function ManagerPlatformDashboardPage(): React.ReactElement {
   const needsAttention = activeClubs.filter((club) => club.active_season_count === 0 || club.staff_admin_count === 0);
 
   return (
-    <div className="w-full max-w-none space-y-5">
+    <>
+    <div className="min-h-full space-y-5 bg-[#050506] px-4 pb-8 pt-6 text-white md:hidden">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-red-400">Plattform</p>
+          <h1 className="mt-2 text-[26px] font-black leading-tight tracking-tight">Deine Verwaltung</h1>
+          <p className="mt-2 text-[13px] leading-5 text-white/55">Vereine und Mannschaften im Überblick.</p>
+        </div>
+        <button type="button" onClick={() => void reload()} className="min-h-11 shrink-0 rounded-xl border border-white/15 bg-white/[0.05] px-3 text-[12px] font-semibold text-white/80">Aktualisieren</button>
+      </div>
+
+      {error ? <p role="alert" className="rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-[13px] text-red-100">{error}</p> : null}
+      {loading ? <p className="text-[13px] text-white/55">Plattformdaten werden geladen…</p> : null}
+      {stats ? (
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'Vereine', value: stats.active_clubs, icon: Building2 },
+            { label: 'Teams', value: stats.teams, icon: UsersRound },
+            { label: 'Spieler', value: stats.active_players, icon: UserRound },
+            { label: 'Zu prüfen', value: stats.clubs_without_active_season, icon: AlertTriangle },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="min-h-[112px] rounded-2xl border border-white/[0.09] bg-gradient-to-br from-[#171719] to-[#0d0d10] p-4">
+              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.1em] text-white/55"><span>{label}</span><Icon className="h-4 w-4 text-red-400" aria-hidden /></div>
+              <p className="mt-4 text-[30px] font-black leading-none text-white">{value}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[16px] font-black">Vereine</h2>
+          <Link to="/manager/vereine" className="inline-flex min-h-11 items-center gap-1 text-[12px] font-bold text-red-300">Alle ansehen <ArrowRight className="h-4 w-4" aria-hidden /></Link>
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
+          {activeClubs.map((club) => (
+            <Link key={club.id} to={`/manager/vereine/${encodeURIComponent(club.id)}`} className="flex min-h-[76px] items-center gap-3 border-b border-white/[0.08] px-4 last:border-0">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-950/40 text-red-300"><Building2 className="h-5 w-5" aria-hidden /></span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-[14px] font-bold">{club.name}</span><span className="mt-0.5 block text-[11px] text-white/50">{club.team_count} Teams · {club.active_player_count} Spieler</span></span>
+              {club.active_season_count === 0 || club.staff_admin_count === 0 ? <AlertTriangle className="h-4 w-4 text-amber-400" aria-label="Einrichtung prüfen" /> : <ArrowRight className="h-4 w-4 text-white/35" aria-hidden />}
+            </Link>
+          ))}
+          {!loading && activeClubs.length === 0 ? <p className="p-5 text-[13px] text-white/50">Noch keine aktiven Vereine.</p> : null}
+        </div>
+      </section>
+    </div>
+    <div className="hidden w-full max-w-none space-y-5 md:block">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-700/80">Plattform</p>
@@ -180,5 +227,6 @@ export function ManagerPlatformDashboardPage(): React.ReactElement {
         </section>
       ) : null}
     </div>
+    </>
   );
 }

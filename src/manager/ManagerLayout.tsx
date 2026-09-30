@@ -24,6 +24,7 @@ export function ManagerLayout(): React.ReactElement {
   const mobileAppRoute =
     location.pathname === '/manager' ||
     location.pathname === '/manager/dashboard' ||
+    location.pathname === '/manager/plattform' ||
     location.pathname.startsWith('/manager/termine') ||
     location.pathname.startsWith('/manager/platzbelegung') ||
     location.pathname.startsWith('/manager/teams') ||
