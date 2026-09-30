@@ -168,7 +168,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             aria-label="Zur SpielzeitApp wechseln"
             title="Zur SpielzeitApp"
           >
-            <img src={spielzeitappIcon} alt="" className="h-[54px] w-[54px] max-w-none shrink-0 translate-y-[6px] object-contain" />
+            <img src={spielzeitappIcon} alt="" className="h-[54px] w-[54px] max-w-none shrink-0 -translate-x-[3px] translate-y-[8px] object-contain" />
           </Link>
           <Link to="/manager/mehr" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/80 sm:hidden" aria-label="Profil und Einstellungen">
             <UserRound className="h-5 w-5" />
