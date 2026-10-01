@@ -4678,6 +4678,7 @@ export const LiveMatchScreen: React.FC = () => {
   };
 
   /** Höhe unter globalem App-Header (main pt, safe-area-korrekt); Matchboard+Hub fix, Module scrollen (inkl. pb für Bottom-Nav). */
+  const videoScreenActive = mainTab === 'videos' || mainTab === 'analysis';
   const liveShellOuter = 'live-shell-viewport relative flex flex-col overflow-hidden text-white';
   const wechselScreenActive = Boolean(canControlLiveMatch && wechselSheetOpen && !matchIsFinished);
 
@@ -4708,7 +4709,7 @@ export const LiveMatchScreen: React.FC = () => {
           }}
         />
       ) : null}
-    <div className={`${liveShellOuter} ${mainTab === 'videos' || mainTab === 'analysis' ? '-mx-4 w-[calc(100%+2rem)] sm:mx-0 sm:w-full' : ''} ${mainTab === 'lineup' ? 'live-lineup-fullscreen' : ''}`}>
+    <div className={`${liveShellOuter} ${videoScreenActive ? '-mx-6 w-[calc(100%+3rem)] sm:mx-0 sm:w-full' : ''} ${mainTab === 'lineup' ? 'live-lineup-fullscreen' : ''}`}>
       <style>{`@keyframes liveSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes liveSubOut{from{opacity:.92;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}`}</style>
       {mainTab === 'lineup' ? (
         <style>{`@media (max-width: 639px){
@@ -4725,7 +4726,8 @@ export const LiveMatchScreen: React.FC = () => {
       ) : null}
       {!wechselScreenActive ? (
       <>
-      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+      <div aria-hidden className={`pointer-events-none absolute inset-0 z-0 ${videoScreenActive ? 'bg-[linear-gradient(180deg,#070708_0%,#170507_45%,#070708_100%)]' : ''}`}>
+        {!videoScreenActive && <>
         <div
           className="absolute inset-0 bg-cover opacity-[0.22] brightness-[0.42] saturate-[0.72]"
           style={{
@@ -4740,6 +4742,7 @@ export const LiveMatchScreen: React.FC = () => {
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E")`,
           }}
         />
+        </>}
       </div>
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
       <header
