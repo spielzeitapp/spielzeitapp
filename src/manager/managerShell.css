@@ -45,6 +45,20 @@ body:has(.manager-shell) {
   color: var(--manager-text);
 }
 
+/* iOS can leave a strip below the 100dvh manager shell around the Home indicator.
+   Match the mobile app background there without changing the desktop work area. */
+@media (max-width: 767px) {
+  html:has(.manager-shell),
+  body:has(.manager-shell),
+  #root:has(.manager-shell) {
+    background-color: #050506;
+  }
+
+  .manager-shell {
+    --manager-bg: #050506;
+  }
+}
+
 /* Content column only — never wrap sidebar+header */
 .manager-shell__content {
   width: 100%;
