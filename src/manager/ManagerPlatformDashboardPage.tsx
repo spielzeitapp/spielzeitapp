@@ -96,10 +96,11 @@ export function ManagerPlatformDashboardPage(): React.ReactElement {
           {[
             { label: 'Vereine', value: stats.active_clubs, icon: Building2 },
             { label: 'Teams', value: stats.teams, icon: UsersRound },
+            { label: 'Registrierte Nutzer', value: stats.registered_users, icon: UserRound },
             { label: 'Spieler', value: stats.active_players, icon: UserRound },
-            { label: 'Zu prüfen', value: stats.clubs_without_active_season, icon: AlertTriangle },
-          ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="min-h-[112px] rounded-2xl border border-white/[0.09] bg-gradient-to-br from-[#171719] to-[#0d0d10] p-4">
+            { label: 'Zu prüfen', value: stats.clubs_without_active_season, icon: AlertTriangle, wide: true },
+          ].map(({ label, value, icon: Icon, wide }) => (
+            <div key={label} className={`min-h-[112px] rounded-2xl border border-white/[0.09] bg-gradient-to-br from-[#171719] to-[#0d0d10] p-4 ${wide ? 'col-span-2' : ''}`}>
               <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.1em] text-white/55"><span>{label}</span><Icon className="h-4 w-4 text-red-400" aria-hidden /></div>
               <p className="mt-4 text-[30px] font-black leading-none text-white">{value}</p>
             </div>
@@ -150,7 +151,7 @@ export function ManagerPlatformDashboardPage(): React.ReactElement {
       {stats ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Aktive Vereine" value={stats.active_clubs} hint={`${stats.archived_clubs} archiviert`} icon={<Building2 className="h-5 w-5" />} />
-          <StatCard label="Benutzer" value={stats.users} hint={`${stats.active_players} aktive Spieler`} icon={<UserRound className="h-5 w-5" />} />
+          <StatCard label="Registrierte Nutzer" value={stats.registered_users} hint={`${stats.users} mit Teamzuordnung`} icon={<UserRound className="h-5 w-5" />} />
           <StatCard label="Mannschaften" value={stats.teams} hint={`${stats.active_seasons} aktive Saisonen`} icon={<UsersRound className="h-5 w-5" />} />
           <StatCard
             label="Einrichtung prüfen"

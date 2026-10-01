@@ -30,6 +30,7 @@ export type PlatformDashboardStats = {
   teams: number;
   active_seasons: number;
   users: number;
+  registered_users: number;
   active_players: number;
   clubs_without_active_season: number;
 };
