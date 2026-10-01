@@ -5314,6 +5314,10 @@ export const LiveMatchScreen: React.FC = () => {
             matchInfo={{
               homeTeam: stadiumHomeDisplay,
               awayTeam: stadiumAwayDisplay,
+              homeLogoUrl: homeLogoSrc,
+              awayLogoUrl: awayLogoSrc,
+              ageGroup: matchTeamSeason?.age_group,
+              matchType: matchTypeDisplay,
               date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date,
               score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined,
               location: matchRow.location,
