@@ -321,14 +321,14 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : orderedVideos.length === 0 ? <p className="rounded-2xl border border-white/10 bg-zinc-950/70 p-6 text-sm text-white/65">{canManage ? 'Noch keine Videos in diesem Bereich. Über + Szene oder + Video kannst du deinen ersten Export hochladen.' : 'Noch keine freigegebenen Videos in diesem Bereich.'}</p> :
       <div className={sceneView ? 'space-y-4' : 'grid grid-cols-2 gap-3'}>{orderedVideos.map((video, index) => <article key={video.id} className={`relative min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 ${sceneView ? 'grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] items-center gap-1 p-1.5' : index === 0 ? 'col-span-2' : ''} ${editingId === video.id || composerId === video.id ? 'col-span-2' : ''}`}>
         {canManage && !demoMode && <button type="button" onClick={() => setActionsId(current => current === video.id ? null : video.id)} aria-label={`${video.title}: Aktionen`} aria-expanded={actionsId === video.id} className="absolute right-0 top-0 z-10 flex h-11 w-8 items-center justify-center rounded-lg text-white/65 hover:bg-white/10"><MoreVertical size={19} aria-hidden /></button>}
-        <button type="button" onClick={() => {setActionsId(null);void play(video);}} aria-label={`${video.title} abspielen`} className="relative block aspect-video w-full overflow-hidden rounded-xl bg-gradient-to-br from-red-950 via-zinc-900 to-black">
+        <button type="button" onClick={() => {setActionsId(null);void play(video);}} aria-label={`${video.title} abspielen`} className="relative isolate block aspect-video w-full overflow-hidden rounded-xl bg-gradient-to-br from-red-950 via-zinc-900 to-black">
           {previewUrls[video.id] && <video src={`${previewUrls[video.id]}#t=0.1`} muted playsInline preload="metadata" onLoadedMetadata={e => {
             const seconds = e.currentTarget.duration;
             if (Number.isFinite(seconds)) setDurations(current => ({...current,[video.id]: `${Math.floor(seconds / 60).toString().padStart(2,'0')}:${Math.floor(seconds % 60).toString().padStart(2,'0')}`}));
-          }} className="h-full w-full object-cover" />}
-          <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/65 ring-1 ring-white/45"><Play size={20} fill="white" aria-hidden /></span></span>
-          {durations[video.id] && <span className="absolute bottom-2 right-2 rounded-lg bg-black/80 px-2 py-1 text-xs tabular-nums">{durations[video.id]}</span>}
-          {video.scene_minute != null && <span className="absolute left-2 top-2 rounded-lg bg-black/80 px-2 py-1 text-xs">{video.scene_minute}. Minute</span>}
+          }} className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover" />}
+          <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center [transform:translateZ(0)]"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/65 ring-1 ring-white/45"><Play size={20} fill="white" aria-hidden /></span></span>
+          {durations[video.id] && <span className="pointer-events-none absolute bottom-2 right-2 z-20 rounded-lg bg-black/80 px-2 py-1 text-xs tabular-nums">{durations[video.id]}</span>}
+          {video.scene_minute != null && <span className="pointer-events-none absolute left-2 top-2 z-20 rounded-lg bg-black/80 px-2 py-1 text-xs">{video.scene_minute}. Minute</span>}
         </button>
         <div className={`min-w-0 space-y-2 p-3 ${canManage && !demoMode ? 'pr-7' : ''} ${sceneView && (editingId === video.id || composerId === video.id) ? 'col-span-2' : ''}`}>
           <h3 className="break-words text-sm font-bold leading-tight sm:text-base">{video.title}</h3>
