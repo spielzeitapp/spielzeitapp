@@ -46,6 +46,7 @@ function GemWatermark({ className = 'sz-club-stat-watermark h-[4.75rem] w-[4.75r
 type Props = {
   member: TeamStaffMember;
   teamSeasonId: string;
+  teamSeasonLabel: string;
   teamName: string;
   players: PlayerItem[];
   stats: TeamSeasonCoachStats;
@@ -70,6 +71,7 @@ type Props = {
 export const TrainerProfileBody: React.FC<Props> = ({
   member,
   teamSeasonId,
+  teamSeasonLabel,
   teamName,
   players,
   stats,
@@ -127,11 +129,14 @@ export const TrainerProfileBody: React.FC<Props> = ({
   const ratedTrainingsValue = trainingBusy
     ? '…'
     : String(ratedTrainingsCount > 0 ? ratedTrainingsCount : stats.trainings);
+  const season = /\b20\d{2}\/\d{2}\b/.exec(teamSeasonLabel)?.[0];
+  const ageGroup = /\bU\d+\b/i.exec(teamSeasonLabel)?.[0]?.toUpperCase();
+  const seasonChipLabel = [season, ageGroup].filter(Boolean).join(' · ') || teamSeasonLabel;
 
   return (
     <>
-      <div className="sticky top-0 z-10 -mx-3 mb-4 mt-4 border-b border-white/10 bg-[linear-gradient(180deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.82)_100%)] px-1 py-1.5 backdrop-blur-md sm:-mx-4">
-        <div className="flex gap-1 rounded-xl border border-white/10 bg-black/40 p-0.5">
+      <div className="sticky top-0 z-10 -mx-3 mb-3 border-b sz-club-divider bg-[linear-gradient(180deg,rgba(8,8,10,0.96)_0%,rgba(0,0,0,0.88)_100%)] px-1 py-1 backdrop-blur-md sm:-mx-4">
+        <div className="sz-club-tab-track flex gap-1 rounded-xl border p-0.5">
           {TABS.map((t) => {
             const active = activeTab === t.id;
             return (
@@ -140,10 +145,10 @@ export const TrainerProfileBody: React.FC<Props> = ({
                 type="button"
                 onClick={() => setActiveTab(t.id)}
                 className={[
-                  'min-h-[34px] flex-1 rounded-lg px-1 py-1.5 text-[12px] font-bold transition-all sm:min-h-[38px] sm:px-1.5',
+                  'min-h-[34px] flex-1 whitespace-nowrap rounded-lg px-1 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.03em] text-white transition-all sm:min-h-[38px] sm:px-1.5 sm:text-[12px]',
                   active
-                    ? 'sz-club-selected-soft border text-white'
-                    : 'border border-transparent text-white/60 hover:text-white/80',
+                    ? 'sz-club-tab-active border'
+                    : 'border border-transparent hover:bg-white/5',
                 ].join(' ')}
               >
                 {t.label}
@@ -151,6 +156,12 @@ export const TrainerProfileBody: React.FC<Props> = ({
             );
           })}
         </div>
+      </div>
+
+      <div className="-mx-1 mb-3 px-1">
+        <span className="sz-club-tab-active inline-flex rounded-full border px-3 py-1.5 text-[11px] font-bold text-white" aria-label={`Aktuelle Saison: ${seasonChipLabel}`}>
+          {seasonChipLabel}
+        </span>
       </div>
 
       {activeTab === 'overview' ? (

@@ -344,6 +344,7 @@ export const TrainerProfilePage: React.FC = () => {
               <TrainerProfileBody
                 member={member}
                 teamSeasonId={teamSeasonId}
+                teamSeasonLabel={teamSeasonLabel}
                 teamName={teamName}
                 players={players}
                 stats={stats}
