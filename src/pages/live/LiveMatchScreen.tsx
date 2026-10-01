@@ -4708,7 +4708,7 @@ export const LiveMatchScreen: React.FC = () => {
           }}
         />
       ) : null}
-    <div className={`${liveShellOuter} ${mainTab === 'lineup' ? 'live-lineup-fullscreen' : ''}`}>
+    <div className={`${liveShellOuter} ${mainTab === 'videos' || mainTab === 'analysis' ? '-mx-4 w-[calc(100%+2rem)] sm:mx-0 sm:w-full' : ''} ${mainTab === 'lineup' ? 'live-lineup-fullscreen' : ''}`}>
       <style>{`@keyframes liveSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes liveSubOut{from{opacity:.92;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}`}</style>
       {mainTab === 'lineup' ? (
         <style>{`@media (max-width: 639px){
@@ -5278,7 +5278,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ) : null}
             </nav>
-          ) : mainTab !== 'lineup' ? (
+          ) : mainTab !== 'lineup' && mainTab !== 'videos' && mainTab !== 'analysis' ? (
             <div className={liveModuleBackBar} aria-label="Zurück zum Live Hub">
               <button
                 type="button"
@@ -5307,6 +5307,7 @@ export const LiveMatchScreen: React.FC = () => {
       >
         {mainTab === 'videos' && effectiveMatchId && matchRow?.team_season_id && (
           <MatchVideosPanel
+            onBack={() => setMainTab('hub')}
             matchId={effectiveMatchId}
             teamSeasonId={matchRow.team_season_id}
             canManage={canControlLiveMatch}
@@ -5326,7 +5327,7 @@ export const LiveMatchScreen: React.FC = () => {
           />
         )}
         {mainTab === 'analysis' && effectiveMatchId && matchRow?.team_season_id && canControlLiveMatch && (
-          <MatchVideosPanel mode="analysis" matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} canManage demoMode={isDemo} matchInfo={{ homeTeam: stadiumHomeDisplay, awayTeam: stadiumAwayDisplay, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date, dateIso: calendarStartsAt || matchRow.match_date, matchType: matchTypeDisplay, ageGroup: matchTeamSeason?.age_group, periodScore: showPeriodScoreLine ? periodScoreLine : undefined, score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined, location: finishedMatchVenue }} />
+          <MatchVideosPanel onBack={() => setMainTab('hub')} mode="analysis" matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} canManage demoMode={isDemo} matchInfo={{ homeTeam: stadiumHomeDisplay, awayTeam: stadiumAwayDisplay, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date, dateIso: calendarStartsAt || matchRow.match_date, matchType: matchTypeDisplay, ageGroup: matchTeamSeason?.age_group, periodScore: showPeriodScoreLine ? periodScoreLine : undefined, score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined, location: finishedMatchVenue }} />
         )}
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
