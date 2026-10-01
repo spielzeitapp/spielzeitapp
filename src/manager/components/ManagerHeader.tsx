@@ -178,14 +178,17 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <div className="mr-1 flex items-start gap-7 sm:hidden">
+          <div className="mr-1 flex items-start gap-3 sm:hidden">
             <Link
               to={MANAGER_TO_APP_HOME_PATH}
-              className={`${dsGlassIconButtonClass()} overflow-hidden`}
-              aria-label="Zur SpielzeitApp wechseln"
-              title="Zur SpielzeitApp"
+              className="flex min-w-[56px] flex-col items-center gap-1 text-white/75 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              aria-label="Zurück zur SpielzeitApp"
+              title="Zurück zur SpielzeitApp"
             >
-              <img src={spielzeitappIcon} alt="" className="h-[50px] w-[50px] max-w-none shrink-0 -translate-x-[3px] translate-y-[7px] object-contain" />
+              <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-[#141416] shadow-[0_4px_16px_rgba(0,0,0,0.45)]">
+                <img src={spielzeitappIcon} alt="" className="h-[60px] w-[60px] max-w-none shrink-0 object-contain" />
+              </span>
+              <span className="text-[10px] font-semibold leading-none">Zur App</span>
             </Link>
             <div className="flex flex-col items-end gap-0.5">
               <Link to="/manager/mehr" className={dsGlassIconButtonClass()} aria-label="Profil und Einstellungen">

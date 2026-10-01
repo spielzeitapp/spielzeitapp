@@ -2,8 +2,8 @@
  * ADMIN-ORG.1 – Vereinsübersicht für Plattformadmins.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import { ClubBrandingFields } from './ClubBrandingFields';
 import { DEFAULT_CLUB_BRANDING, saveClubBranding, type ClubBranding } from '../lib/clubBranding';
@@ -21,6 +21,7 @@ function statusChip(status: string): string {
 
 export function ManagerClubsPage(): React.ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const { backendRole, loading: sessionLoading } = useSession();
   const allowed = isPlatformAdminRole(backendRole);
 
@@ -35,6 +36,20 @@ export function ManagerClubsPage(): React.ReactElement {
   const [busy, setBusy] = useState(false);
   const [branding, setBranding] = useState<ClubBranding>(DEFAULT_CLUB_BRANDING);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const createFormRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    setShowCreate(new URLSearchParams(location.search).get('neu') === '1');
+  }, [location.search]);
+
+  useEffect(() => {
+    if (showCreate) createFormRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [showCreate]);
+
+  const closeCreate = () => {
+    setShowCreate(false);
+    if (new URLSearchParams(location.search).has('neu')) navigate('/manager/vereine', { replace: true });
+  };
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -136,8 +151,9 @@ export function ManagerClubsPage(): React.ReactElement {
 
       {showCreate ? (
         <form
+          ref={createFormRef}
           onSubmit={onCreate}
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+          className="scroll-mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
         >
           <h2 className="text-[16px] font-semibold text-slate-900">Neuen Verein anlegen</h2>
           <p className="mt-1 text-[13px] text-slate-600">
@@ -175,7 +191,7 @@ export function ManagerClubsPage(): React.ReactElement {
             </button>
             <button
               type="button"
-              onClick={() => setShowCreate(false)}
+              onClick={closeCreate}
               className="inline-flex min-h-[44px] items-center rounded-full border border-slate-200 px-4 text-[13px] font-semibold text-slate-700"
             >
               Abbrechen
