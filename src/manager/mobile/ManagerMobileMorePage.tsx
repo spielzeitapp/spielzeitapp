@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, ChevronRight, History, LayoutTemplate, LogOut, MapPinned, Monitor, Shield } from 'lucide-react';
+import { ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
@@ -46,8 +46,6 @@ export function ManagerMobileMorePage(): React.ReactElement {
         {isTrainerMode ? <>
           <MoreLink to="/manager/training/vorlagen" icon={LayoutTemplate} title="Vorlagen" detail="Trainingspläne wiederverwenden" />
           <MoreLink to="/manager/training/chronik" icon={History} title="Trainingschronik" detail="Vergangene Einheiten" />
-          <MoreLink to="/manager/platzbelegung" icon={MapPinned} title="Platzbelegung" detail="Plätze und Zeiten" />
-          <MoreLink to="/manager/training/bibliothek" icon={BookOpen} title="Übungsbibliothek" detail="Übungen suchen" />
         </> : null}
         {workMode === 'platform_admin' && !supportSession ? <MoreLink to="/manager/vereine" icon={Shield} title="Vereine verwalten" detail="Vereine und Mannschaften einrichten" /> : null}
         {workMode === 'club_admin' || supportSession ?

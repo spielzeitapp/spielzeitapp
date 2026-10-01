@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Building2, Dumbbell, Home, MoreHorizontal, CalendarDays, Users } from 'lucide-react';
+import { BookOpen, Building2, Dumbbell, Home, MapPinned, MoreHorizontal, CalendarDays, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 
@@ -17,9 +17,9 @@ export function ManagerMobileNav(): React.ReactElement {
     { label: 'Vereine', to: '/manager/vereine', icon: Building2 },
     { label: 'Mehr', to: '/manager/mehr', icon: MoreHorizontal },
   ] : workMode === 'trainer' ? [
-    { label: 'Start', to: '/manager', icon: Home },
     { label: 'Planung', to: '/manager/training/einheiten', icon: Dumbbell },
     { label: 'Übungen', to: '/manager/training/bibliothek', icon: BookOpen },
+    { label: 'Plätze', to: '/manager/platzbelegung', icon: MapPinned },
     { label: 'Mehr', to: '/manager/mehr', icon: MoreHorizontal },
   ] : [
     { label: 'Home', to: '/manager', icon: Home },
@@ -39,7 +39,10 @@ export function ManagerMobileNav(): React.ReactElement {
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" aria-hidden />
         <span className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-[rgb(var(--club-accent-rgb,220_38_38)/0.12)] blur-xl" aria-hidden />
         {links.map(({ label, to, icon: Icon }) => {
-        const active = activeFor(pathname, to);
+        const active = activeFor(pathname, to) || (
+          workMode === 'trainer' && label === 'Mehr' &&
+          (pathname.startsWith('/manager/training/vorlagen') || pathname.startsWith('/manager/training/chronik'))
+        );
         return (
           <Link
             key={label}
