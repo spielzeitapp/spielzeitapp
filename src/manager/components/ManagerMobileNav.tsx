@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Building2, Dumbbell, Home, MapPinned, MoreHorizontal, CalendarDays, Plus, Users } from 'lucide-react';
+import { BookOpen, Building2, Dumbbell, Home, LayoutDashboard, MapPinned, MoreHorizontal, CalendarDays, Plus, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 
@@ -16,7 +16,7 @@ export function ManagerMobileNav(): React.ReactElement {
   const { workMode, supportSession } = useManagerWorkMode();
   const platformGlobal = workMode === 'platform_admin' && !supportSession;
   const links = platformGlobal ? [
-    { label: 'Plattform', to: '/manager/plattform', icon: Home },
+    { label: 'Dashboard', to: '/manager/plattform', icon: LayoutDashboard },
     { label: 'Vereine', to: '/manager/vereine', icon: Building2 },
     { label: 'Neu', to: '/manager/vereine?neu=1', icon: Plus },
     { label: 'Mehr', to: '/manager/mehr', icon: MoreHorizontal },

@@ -15,7 +15,6 @@ import {
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
-import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
 type Props = {
   onOpenSidebar: () => void;
@@ -181,14 +180,11 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
           <div className="mr-1 flex items-start gap-3 sm:hidden">
             <Link
               to={MANAGER_TO_APP_HOME_PATH}
-              className="flex min-w-[56px] flex-col items-center gap-1 text-white/75 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              className="flex h-[52px] w-[52px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-[#141416] shadow-[0_4px_16px_rgba(0,0,0,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
               aria-label="Zurück zur SpielzeitApp"
               title="Zurück zur SpielzeitApp"
             >
-              <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-[#141416] shadow-[0_4px_16px_rgba(0,0,0,0.45)]">
-                <img src={spielzeitappIcon} alt="" className="h-[60px] w-[60px] max-w-none shrink-0 object-contain" />
-              </span>
-              <span className="text-[10px] font-semibold leading-none">Zur App</span>
+              <img src="/icon-192.png" alt="" className="h-[52px] w-[52px] shrink-0 rounded-full object-contain" />
             </Link>
             <div className="flex flex-col items-end gap-0.5">
               <Link to="/manager/mehr" className={dsGlassIconButtonClass()} aria-label="Profil und Einstellungen">
