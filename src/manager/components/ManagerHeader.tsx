@@ -178,25 +178,25 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <div className="flex flex-col items-end gap-0.5 sm:hidden">
-            <div className="flex items-center gap-1.5">
-              <Link
-                to={MANAGER_TO_APP_HOME_PATH}
-                className={`${dsGlassIconButtonClass()} overflow-hidden`}
-                aria-label="Zur SpielzeitApp wechseln"
-                title="Zur SpielzeitApp"
-              >
-                <img src={spielzeitappIcon} alt="" className="h-[50px] w-[50px] max-w-none shrink-0 -translate-x-[3px] translate-y-[7px] object-contain" />
-              </Link>
+          <div className="mr-1 flex items-start gap-7 sm:hidden">
+            <Link
+              to={MANAGER_TO_APP_HOME_PATH}
+              className={`${dsGlassIconButtonClass()} overflow-hidden`}
+              aria-label="Zur SpielzeitApp wechseln"
+              title="Zur SpielzeitApp"
+            >
+              <img src={spielzeitappIcon} alt="" className="h-[50px] w-[50px] max-w-none shrink-0 -translate-x-[3px] translate-y-[7px] object-contain" />
+            </Link>
+            <div className="flex flex-col items-end gap-0.5">
               <Link to="/manager/mehr" className={dsGlassIconButtonClass()} aria-label="Profil und Einstellungen">
                 <UserRound className="h-[1.1rem] w-[1.1rem]" />
               </Link>
+              {roleHint ? (
+                <span className={`${dsTrainerPillClass()} !max-w-none !px-2`} title={roleHint.replace(/_/g, ' ')}>
+                  {mobileRoleLabel}
+                </span>
+              ) : null}
             </div>
-            {roleHint ? (
-              <span className={`${dsTrainerPillClass()} !max-w-none`} title={roleHint.replace(/_/g, ' ')}>
-                {mobileRoleLabel}
-              </span>
-            ) : null}
           </div>
 
           {headerTeamSeasons.length > 1 ? (
