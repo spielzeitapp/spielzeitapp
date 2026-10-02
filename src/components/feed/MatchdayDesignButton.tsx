@@ -76,14 +76,14 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
         </div>
         <div className="min-h-0 overflow-y-auto overscroll-contain p-4">
           <div className="grid grid-cols-2 gap-2" role="group" aria-label="Vorlage wählen">
-            {(['clean', 'player'] as const).map(template => <button key={template} type="button" aria-pressed={draft.template === template}
+            {(['clean', 'player'] as const).map(template => <button key={template} type="button" disabled={busy} aria-pressed={draft.template === template}
               onClick={() => setDraft(template === 'clean' ? CLEAN_MATCHDAY_DESIGN : options[0]!)}
               className={`min-h-[48px] rounded-xl border font-bold ${draft.template === template ? 'border-red-500 bg-red-900/60' : 'border-white/20'}`}>
               {template === 'clean' ? 'Ohne Spieler' : 'Mit Spieler'}
             </button>)}
           </div>
           {draft.template === 'player' ? <label className="mt-3 block text-sm font-semibold">Spielermotiv
-            <select value={draft.imageUrl ?? ''} onChange={e => setDraft(options.find(c => c.imageUrl === e.target.value)!)} className="mt-2 min-h-[48px] w-full rounded-xl border border-white/20 bg-black p-3 text-base">
+            <select disabled={busy} value={draft.imageUrl ?? ''} onChange={e => setDraft(options.find(c => c.imageUrl === e.target.value)!)} className="mt-2 min-h-[48px] w-full rounded-xl border border-white/20 bg-black p-3 text-base">
               {options.map(c => <option key={c.imageUrl} value={c.imageUrl!}>{c.playerName ?? 'Spielerfoto'}</option>)}
             </select>
           </label> : null}
