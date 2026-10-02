@@ -15,6 +15,9 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 import { shareFeedContent } from '../../lib/feedShare';
+import { useMatchdayDesign } from '../../hooks/useMatchdayDesign';
+import { MatchdayDesignButton } from '../../components/feed/MatchdayDesignButton';
+import type { MatchdayPosterCardProps } from '../../components/feed/MatchdayPosterCard';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -31,6 +34,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const posterRef = useRef<HTMLDivElement>(null);
   const basePath = useInternalBasePath();
+  const designState = useMatchdayDesign(event.id, event.team_season_id, basePath === '/demo');
   const enc = formatVisibleMatchEncounter({
     isHome: event.is_home,
     ourTeamName: getOurTeamDisplayName(),
@@ -113,8 +117,18 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         basePath,
       });
 
+  const posterProps: MatchdayPosterCardProps = {
+    compact: true, homeTeamName: homeName, awayTeamName: awayName,
+    homeLogoUrl: homeLogo, awayLogoUrl: awayLogo, kickoffTime: kickoff,
+    ageGroup: ageGroup ?? (basePath === '/demo' ? 'U12' : null), matchDate,
+    meetingTime, locationLine, venueLabel, status: 'today', matchType: event.match_type,
+    announcementTiming,
+  };
   return (
     <section className="min-w-0" aria-label="Spieltag">
+      {viewerIsStaff || basePath === '/demo' ? <div className="mb-2 flex justify-end">
+        <MatchdayDesignButton {...designState} poster={posterProps} teamSeasonId={event.team_season_id} demo={basePath === '/demo'} />
+      </div> : null}
       {canDelete && viewerIsStaff && basePath !== '/demo' ? (
         <div className="mb-2 flex justify-end">
           <button type="button" disabled={deleting} onClick={() => void onDelete()}
@@ -127,6 +141,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
       ) : null}
       {deleteError ? <p role="alert" className="mb-2 text-sm text-red-400">{deleteError}</p> : null}
       <MatchdayPosterCard
+        {...posterProps}
         ref={posterRef}
         compact
         homeTeamName={homeName}
@@ -142,7 +157,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         status="today"
         matchType={event.match_type}
         announcementTiming={announcementTiming}
-        playerImageUrl={null}
+        playerImageUrl={designState.design.template === 'player' ? designState.design.imageUrl : null}
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
         <Link

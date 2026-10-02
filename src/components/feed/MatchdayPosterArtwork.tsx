@@ -53,7 +53,7 @@ function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
       <img
         src={playerImageUrl}
         alt=""
-        className="absolute bottom-0 right-[-18%] h-[110%] w-[95%] object-contain object-bottom object-right sm:right-[-14%]"
+        className="absolute bottom-[9%] right-[-7%] h-[87%] w-[66%] object-contain object-bottom object-right"
         style={{ filter: 'drop-shadow(-12px 8px 24px rgba(0,0,0,0.9))' }}
         loading="lazy"
         onError={() => setFailed(true)}
@@ -201,7 +201,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     }
 
     return (
-      <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white">
+      <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white" style={{ containerType: 'inline-size' }}>
         <GraphicBackground />
         {playerUrl ? <PosterPlayerLayer playerImageUrl={playerUrl} /> : null}
 
@@ -211,7 +211,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
               {statusLabel}
             </p>
             <h2
-              className="sz-matchday-display whitespace-nowrap text-[clamp(3.1rem,17.2vw,5.15rem)] font-black uppercase leading-[0.78] tracking-[-0.055em] text-white"
+              className="sz-matchday-display whitespace-nowrap text-[14cqw] uppercase leading-none tracking-[-0.025em] text-white"
               style={{ textShadow: '0 6px 24px rgba(0,0,0,0.82)' }}
             >
               {title}
@@ -219,7 +219,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             <div className="mt-2 flex w-[50%] items-center gap-3">
               <div className="sz-club-feed-accent-line h-[3px] flex-1" />
               {ageGroup ? (
-                <span className="sz-matchday-display sz-club-feed-accent-text text-[clamp(1.55rem,7.5vw,2.25rem)] font-black uppercase leading-none tracking-[-0.04em]">
+                <span className="sz-matchday-display sz-club-feed-accent-text text-[8cqw] uppercase leading-none tracking-[-0.025em]">
                   {ageGroup}
                 </span>
               ) : null}
@@ -237,7 +237,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             <TeamMark name={awayTeamName} logoUrl={awayLogoUrl} />
           </div>
 
-          <div className="mt-auto mb-[13%] w-[52%] space-y-2 sm:space-y-3">
+          <div className="mt-auto mb-[15%] w-[52%] space-y-[2cqw]">
             {competition ? (
               <div className="flex items-center gap-1.5 text-[clamp(0.46rem,2.2vw,0.62rem)] font-bold uppercase tracking-[0.11em] text-white/64">
                 <Trophy className="sz-club-feed-accent-text h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
@@ -247,11 +247,11 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             {venueLine ? <p className="sz-club-feed-accent-text text-[clamp(0.52rem,2.5vw,0.7rem)] font-black tracking-[0.15em]">{venueLine}</p> : null}
             {matchDate ? (
               <div className="sz-club-feed-accent-border border-y-2 py-1.5">
-                <p className="text-[clamp(1.15rem,6.2vw,1.7rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">{matchDate}</p>
+                <p className="sz-matchday-display text-[4.8cqw] tabular-nums uppercase leading-none">{matchDate}</p>
               </div>
             ) : null}
             <div className={matchDate ? '' : 'sz-club-feed-accent-border border-y-2 py-1.5'}>
-              <p className="flex items-baseline gap-1 text-[clamp(1.25rem,6.5vw,1.8rem)] font-black tabular-nums uppercase leading-none tracking-[-0.035em]">
+              <p className="sz-matchday-display flex items-baseline gap-1 text-[6cqw] tabular-nums uppercase leading-none">
                 {heroOverride?.main ?? kickoff}
                 {heroSuffix ? (
                   <span className="text-[0.42em] tracking-[0.04em] text-white/76">{heroSuffix}</span>
@@ -263,7 +263,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
                 <div className="sz-club-feed-accent-text mb-0.5 flex items-center gap-1 text-[clamp(0.45rem,2.1vw,0.6rem)] font-black uppercase tracking-[0.16em]">
                   <MapPin className="h-3 w-3" strokeWidth={2.5} aria-hidden /> ORT
                 </div>
-                <p className="line-clamp-3 text-[clamp(0.68rem,3.4vw,0.92rem)] font-black uppercase leading-[1.08] text-white">{location}</p>
+                <p className="sz-matchday-display text-[3.3cqw] uppercase leading-[1.15] text-white">{location}</p>
               </div>
             ) : null}
             {meetingTime ? (
@@ -276,7 +276,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
 
           <footer className="absolute inset-x-[4%] bottom-[3.2%] z-[3]">
             <p
-              className="sz-matchday-display whitespace-nowrap text-center text-[clamp(1.48rem,7.8vw,2.3rem)] font-black italic uppercase leading-none tracking-[-0.045em]"
+              className="sz-matchday-display whitespace-nowrap text-center text-[5cqw] italic uppercase leading-none tracking-[-0.025em]"
               style={{ textShadow: '0 4px 14px rgba(0,0,0,0.95)' }}
             >
               <span className="text-white">#{teamPrefix}</span><span className="sz-club-feed-accent-text">{teamSuffix}</span>

@@ -37,6 +37,9 @@ import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 import { getDemoMatchLite } from '../../demo/demoMatchState';
+import { useMatchdayDesign } from '../../hooks/useMatchdayDesign';
+import { MatchdayDesignButton } from './MatchdayDesignButton';
+import type { MatchdayPosterCardProps } from './MatchdayPosterCard';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -179,6 +182,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
   const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
   const viewerCanSeeMeetup = canSeeMeetup(viewerRole);
+  const designState = useMatchdayDesign(p.event_id, post.team_season_id, basePath === '/demo');
 
   const gameHref = useMemo(
     () =>
@@ -318,6 +322,13 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     }
   }, [liked, post.id]);
 
+  const posterProps: MatchdayPosterCardProps = {
+    homeTeamName: displayHomeName, awayTeamName: displayAwayName,
+    homeLogoUrl, awayLogoUrl, kickoffTime, ageGroup: posterAgeGroup, matchDate,
+    meetingTime: viewerCanSeeMeetup ? meetingTime : null, locationLine, venueLabel,
+    status: posterStatus, homeScore: scores?.home ?? null, awayScore: scores?.away ?? null,
+    matchType: p.match_type, announcementTiming,
+  };
   return (
     <FeedPostArticleShell
       className=""
@@ -346,10 +357,14 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
       </FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
+        {!post.media_url?.trim() && (viewerIsStaff || basePath === '/demo') ? <div className="mb-2 flex justify-end">
+          <MatchdayDesignButton {...designState} poster={posterProps} teamSeasonId={post.team_season_id} demo={basePath === '/demo'} />
+        </div> : null}
         {post.media_url?.trim() ? (
           <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Spieltagbild" />
         ) : (
         <MatchdayPosterCard
+          {...posterProps}
           ref={posterCaptureRef}
           homeTeamName={displayHomeName}
           awayTeamName={displayAwayName}
@@ -366,7 +381,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           awayScore={scores?.away ?? null}
           matchType={p.match_type}
           announcementTiming={announcementTiming}
-          playerImageUrl={null}
+          playerImageUrl={designState.design.template === 'player' ? designState.design.imageUrl : null}
         />
         )}
 
