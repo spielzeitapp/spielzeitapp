@@ -19,7 +19,8 @@ export function playerItemToRoster(p: PlayerItem): RosterPlayer {
     displayName: p.display_name,
     jerseyNumber: p.jersey_number ?? null,
     position: p.position ?? null,
-    avatarUrl: p.avatar_url ?? null,
+    // Match lists use the same current player photo as Team/Kader.
+    avatarUrl: p.cutout_url?.trim() || p.avatar_url?.trim() || null,
   };
 }
 
