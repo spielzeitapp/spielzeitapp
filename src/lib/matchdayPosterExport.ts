@@ -26,6 +26,7 @@ export async function waitForPosterImages(root: HTMLElement): Promise<void> {
 export async function matchdayPosterDomToPngBlob(root: HTMLElement): Promise<Blob | null> {
   try {
     await waitForPosterImages(root);
+    await document.fonts.ready;
     const blob = await toBlob(root, {
       pixelRatio: Math.min(2.5, Math.max(2, typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2)),
       cacheBust: true,
