@@ -48,7 +48,7 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
     if (!ref.current) return;
     setBusy(true); setError(null);
     try {
-      const blob = await matchdayPosterDomToPngBlob(ref.current, 1080);
+      const blob = await matchdayPosterDomToPngBlob(ref.current, 1080, 1350);
       if (!blob) throw new Error('Bild konnte nicht erstellt werden.');
       const url = URL.createObjectURL(blob);
       setExported({ url, file: new File([blob], 'spielzeit-spieltag.png', { type: 'image/png' }) });
