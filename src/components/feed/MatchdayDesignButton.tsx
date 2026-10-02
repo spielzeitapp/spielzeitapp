@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Download, Palette, X } from 'lucide-react';
+import { Download, Palette, Share2, X } from 'lucide-react';
 import { MatchdayPosterCard, type MatchdayPosterCardProps } from './MatchdayPosterCard';
 import { CLEAN_MATCHDAY_DESIGN, DEMO_MATCHDAY_DESIGNS, type MatchdayDesign } from '../../lib/matchdayDesign';
 import { listRoster } from '../../lib/rosterService';
@@ -22,7 +22,12 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
   const [choices, setChoices] = useState(DEMO_MATCHDAY_DESIGNS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exported, setExported] = useState<{ url: string; file: File } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setExported(null);
+  }, [draft, open, poster.kickoffTime, poster.matchDate, poster.homeScore, poster.awayScore, poster.status]);
+  useEffect(() => () => { if (exported) URL.revokeObjectURL(exported.url); }, [exported]);
   useEffect(() => {
     if (!open) return;
     let active = true;
@@ -43,14 +48,20 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
     if (!ref.current) return;
     setBusy(true); setError(null);
     try {
-      const blob = await matchdayPosterDomToPngBlob(ref.current);
+      const blob = await matchdayPosterDomToPngBlob(ref.current, 1080);
       if (!blob) throw new Error('Bild konnte nicht erstellt werden.');
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'spielzeit-spieltag.png';
-      document.body.appendChild(a); a.click(); a.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setExported({ url, file: new File([blob], 'spielzeit-spieltag.png', { type: 'image/png' }) });
     } catch (e) { setError(e instanceof Error ? e.message : 'Export fehlgeschlagen.'); }
     finally { setBusy(false); }
+  };
+  const share = async () => {
+    if (!exported) return;
+    setBusy(true); setError(null);
+    try { await navigator.share({ files: [exported.file] }); }
+    catch (e) {
+      if (!(e instanceof Error && e.name === 'AbortError')) setError('Teilen nicht möglich. Bitte das Bild herunterladen.');
+    } finally { setBusy(false); }
   };
   return <>
     <button type="button" disabled={loading} onClick={() => { setDraft(design); setError(null); setOpen(true); }}
@@ -80,7 +91,13 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
           <div className="mx-auto w-full max-w-[340px] overflow-hidden rounded-xl" aria-label="Autopost-Vorschau">
             <MatchdayPosterCard {...poster} ref={ref} playerImageUrl={draft.template === 'player' ? draft.imageUrl : null} />
           </div>
-          <button type="button" onClick={() => void download()} disabled={busy} className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-white/20"><Download className="h-4 w-4" />Vorschaubild herunterladen</button>
+          <button type="button" onClick={() => void download()} disabled={busy} className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-white/20"><Download className="h-4 w-4" />{busy ? 'Bitte warten…' : 'Bild für Feed & WhatsApp erstellen'}</button>
+          {exported ? <div className="mt-3 space-y-2">
+            <p role="status" className="text-sm text-white/75">Bild ist bereit · 1080 × 1350 Pixel</p>
+            <details className="text-sm text-white/75"><summary className="cursor-pointer py-2">Exportiertes Bild ansehen</summary><img src={exported.url} alt="Exportiertes Spieltagsbild" className="mx-auto mt-2 w-full max-w-[340px] rounded-xl" /></details>
+            <a href={exported.url} download={exported.file.name} className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-red-700 font-bold"><Download className="h-4 w-4" />Bild herunterladen</a>
+            {typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [exported.file] }) ? <button type="button" disabled={busy} onClick={() => void share()} className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-white/20"><Share2 className="h-4 w-4" />Bild teilen</button> : <p className="text-xs text-white/65">Das heruntergeladene Bild kannst du in WhatsApp oder Facebook auswählen.</p>}
+          </div> : null}
           {loadError || error ? <p role="alert" className="mt-3 text-sm text-red-300">{error ?? loadError}</p> : null}
           {demo ? <p className="mt-3 text-xs text-amber-200">Demo: Die Auswahl gilt nur hier während dieser Sitzung, ohne Datenbank-Schreibzugriff.</p> : null}
         </div>

@@ -23,12 +23,16 @@ export async function waitForPosterImages(root: HTMLElement): Promise<void> {
  * Rendert das sichtbare MatchdayPosterCard-Root (HTMLElement) als PNG-Blob.
  * Reine Client-Logik — kein Storage.
  */
-export async function matchdayPosterDomToPngBlob(root: HTMLElement): Promise<Blob | null> {
+export async function matchdayPosterDomToPngBlob(root: HTMLElement, outputWidth?: number): Promise<Blob | null> {
   try {
     await waitForPosterImages(root);
     await document.fonts.ready;
+    const bounds = root.getBoundingClientRect();
+    const output = outputWidth && bounds.width > 0 && bounds.height > 0
+      ? { canvasWidth: outputWidth, canvasHeight: Math.round(outputWidth * bounds.height / bounds.width), pixelRatio: 1 }
+      : { pixelRatio: Math.min(2.5, Math.max(2, window.devicePixelRatio || 2)) };
     const blob = await toBlob(root, {
-      pixelRatio: Math.min(2.5, Math.max(2, typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2)),
+      ...output,
       cacheBust: true,
       backgroundColor: '#140808',
     });
