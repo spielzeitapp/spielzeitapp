@@ -472,6 +472,56 @@ export const HomePage: React.FC = () => {
           </SectionTitle>
           <p className={cn(dsSublineClass(), 'text-[12px] sm:text-[13px]')}>{teamSeasonLine}</p>
 
+          <div className="relative flex min-h-[40px] items-center justify-between gap-3">
+            <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
+              Feed-Filter
+            </SectionTitle>
+            <button
+              type="button"
+              onClick={() => setFeedFilterOpen((open) => !open)}
+              className={cn(
+                'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition',
+                feedFilter === 'all'
+                  ? 'border-white/10 bg-white/[0.035] text-white/65 hover:bg-white/[0.07]'
+                  : 'border-red-500/45 bg-red-500/12 text-red-300',
+              )}
+              aria-label="Feed filtern"
+              aria-expanded={feedFilterOpen}
+            >
+              <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
+              {feedFilter !== 'all' ? (
+                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#090909]" aria-hidden />
+              ) : null}
+            </button>
+
+            {feedFilterOpen ? (
+              <div className="absolute right-0 top-11 z-30 w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-red-500/30 bg-[#0d0b0d]/[0.98] p-1.5 shadow-2xl backdrop-blur-xl">
+                <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
+                  Beiträge anzeigen
+                </p>
+                {HOME_FEED_FILTERS.map((option) => {
+                  const active = feedFilter === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setFeedFilter(option.value);
+                        setFeedFilterOpen(false);
+                      }}
+                      className={cn(
+                        'flex min-h-[44px] w-full items-center justify-between rounded-xl px-3 text-left text-sm font-semibold transition',
+                        active ? 'bg-red-500/15 text-white' : 'text-white/72 hover:bg-white/[0.06] hover:text-white',
+                      )}
+                    >
+                      <span>{option.label}</span>
+                      {active ? <Check className="h-4 w-4 text-red-400" strokeWidth={2.5} aria-hidden /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
           <div className="min-w-0 space-y-3">
             {teamSeasonId && teamId && !isHistoryReadOnly ? (
               <HomeFeedComposer
@@ -490,7 +540,7 @@ export const HomePage: React.FC = () => {
               </p>
             ) : null}
 
-            {spieltagHintPick ? (
+            {spieltagHintPick && (feedFilter === 'all' || feedFilter === 'matchday') ? (
               <HomeSpieltagHintCard
                 pick={spieltagHintPick}
                 reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
@@ -503,56 +553,6 @@ export const HomePage: React.FC = () => {
             ) : null}
 
             <section className="min-w-0 space-y-3 pt-2 sm:pt-1" aria-label="Aktueller Team-Feed">
-              <div className="relative flex min-h-[40px] items-center justify-between gap-3">
-                <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
-                  Im Feed
-                </SectionTitle>
-                <button
-                  type="button"
-                  onClick={() => setFeedFilterOpen((open) => !open)}
-                  className={cn(
-                    'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition',
-                    feedFilter === 'all'
-                      ? 'border-white/10 bg-white/[0.035] text-white/65 hover:bg-white/[0.07]'
-                      : 'border-red-500/45 bg-red-500/12 text-red-300',
-                  )}
-                  aria-label="Feed filtern"
-                  aria-expanded={feedFilterOpen}
-                >
-                  <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
-                  {feedFilter !== 'all' ? (
-                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#090909]" aria-hidden />
-                  ) : null}
-                </button>
-
-                {feedFilterOpen ? (
-                  <div className="absolute right-0 top-11 z-30 w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-red-500/30 bg-[#0d0b0d]/[0.98] p-1.5 shadow-2xl backdrop-blur-xl">
-                    <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
-                      Beiträge anzeigen
-                    </p>
-                    {HOME_FEED_FILTERS.map((option) => {
-                      const active = feedFilter === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => {
-                            setFeedFilter(option.value);
-                            setFeedFilterOpen(false);
-                          }}
-                          className={cn(
-                            'flex min-h-[44px] w-full items-center justify-between rounded-xl px-3 text-left text-sm font-semibold transition',
-                            active ? 'bg-red-500/15 text-white' : 'text-white/72 hover:bg-white/[0.06] hover:text-white',
-                          )}
-                        >
-                          <span>{option.label}</span>
-                          {active ? <Check className="h-4 w-4 text-red-400" strokeWidth={2.5} aria-hidden /> : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
               {teamFeedError ? (
                 <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
                   <p className="text-sm text-white/70">{teamFeedError}</p>
@@ -566,7 +566,7 @@ export const HomePage: React.FC = () => {
                 </div>
               ) : feedBusy ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
-              ) : visibleActivePosts.length === 0 && visibleHistoricPosts.length === 0 ? (
+              ) : spieltagHintPick && (feedFilter === 'all' || feedFilter === 'matchday') && filteredActivePosts.length === 0 && filteredHistoricPosts.length === 0 ? null : visibleActivePosts.length === 0 && visibleHistoricPosts.length === 0 ? (
                 <PremiumEmptyState
                   variant="subtle"
                   title="Noch keine Beiträge"
