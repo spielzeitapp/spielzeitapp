@@ -494,6 +494,11 @@ export const HomePage: React.FC = () => {
               <HomeSpieltagHintCard
                 pick={spieltagHintPick}
                 reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
+                canDelete={staffCanDeleteFeed}
+                onDeleted={(matchId) => {
+                  setDisabledMatchdayMatchIds((current) => new Set([...current, matchId]));
+                  void refetchFeed();
+                }}
               />
             ) : null}
 

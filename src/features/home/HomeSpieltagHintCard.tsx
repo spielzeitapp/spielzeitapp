@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Share2 } from 'lucide-react';
+import { Share2, Trash2 } from 'lucide-react';
+import { removeAutomaticMatchdayPost } from '../../lib/autoMatchdayFeedEnabled';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -18,11 +19,15 @@ import { shareFeedContent } from '../../lib/feedShare';
 type Props = {
   pick: HomeMatchCardPick;
   reviewPending?: boolean;
+  canDelete?: boolean;
+  onDeleted?: (matchId: string) => void;
 };
 
-export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false }) => {
+export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false, canDelete = false, onDeleted }) => {
   const { event, status } = pick;
   const [shareHint, setShareHint] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const posterRef = useRef<HTMLDivElement>(null);
   const basePath = useInternalBasePath();
   const enc = formatVisibleMatchEncounter({
@@ -79,6 +84,20 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const onDelete = async () => {
+    if (!canDelete || !viewerIsStaff || deleting || basePath === '/demo') return;
+    if (!window.confirm('Automatischen Spieltag-Beitrag für alle löschen? Er wird für dieses Spiel nicht erneut erstellt. Das Spiel selbst bleibt erhalten.')) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await removeAutomaticMatchdayPost(event.match_id ?? '');
+      onDeleted?.(event.match_id!);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Beitrag konnte nicht gelöscht werden.');
+    } finally {
+      setDeleting(false);
+    }
+  };
   const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
   const meetingTime = canSeeMeetup(viewerRole) ? rawMeetingTime : null;
 
@@ -95,6 +114,17 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
 
   return (
     <section className="min-w-0" aria-label="Spieltag">
+      {canDelete && viewerIsStaff && basePath !== '/demo' ? (
+        <div className="mb-2 flex justify-end">
+          <button type="button" disabled={deleting} onClick={() => void onDelete()}
+            className="inline-flex min-h-[44px] touch-manipulation items-center gap-2 rounded-xl border border-white/15 bg-black/50 px-3 text-sm font-semibold text-amber-200 disabled:opacity-45"
+            aria-label="Automatischen Spieltag-Beitrag löschen">
+            <Trash2 className="h-4 w-4" aria-hidden />
+            {deleting ? 'Wird gelöscht…' : 'Beitrag löschen'}
+          </button>
+        </div>
+      ) : null}
+      {deleteError ? <p role="alert" className="mb-2 text-sm text-red-400">{deleteError}</p> : null}
       <MatchdayPosterCard
         ref={posterRef}
         compact

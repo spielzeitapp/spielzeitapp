@@ -1,6 +1,22 @@
 import type { EventRow } from '../hooks/useEvents';
 import type { ClassifiedFeedPost } from './matchdayFeedTypes';
 import { supabase } from './supabaseClient';
+import { updateMatchRow } from './liveMatchService';
+
+/** Remove the generated announcement globally, without deleting the match. */
+export async function removeAutomaticMatchdayPost(matchId: string): Promise<void> {
+  const id = matchId?.trim();
+  if (!id) throw new Error('Dieser Beitrag ist noch keinem Spiel zugeordnet.');
+  const { error } = await updateMatchRow(id, { auto_matchday_feed_enabled: false });
+  if (error) throw new Error(error);
+  // RLS can silently update zero rows. Never report success without verifying.
+  const { data, error: readError } = await supabase.from('matches')
+    .select('id, auto_matchday_feed_enabled').eq('id', id).maybeSingle();
+  if (readError) throw new Error(readError.message);
+  if (data?.auto_matchday_feed_enabled !== false) {
+    throw new Error('Beitrag konnte nicht gelöscht werden. Bitte Berechtigung prüfen und erneut versuchen.');
+  }
+}
 
 /** Match-IDs mit deaktivierter Spieltag-Automatisierung (Hero + Spielankündigungen). */
 export async function loadAutoMatchdayFeedDisabledMatchIds(
