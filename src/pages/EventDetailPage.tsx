@@ -2176,7 +2176,7 @@ export const EventDetailPage: React.FC = () => {
           id,
           name: (player?.display_name ?? player?.name ?? 'Spieler').trim(),
           jerseyNumber: player?.jersey_number ?? null,
-          avatarUrl: player?.avatar_url ?? null,
+          avatarUrl: player?.cutout_url?.trim() || player?.avatar_url?.trim() || null,
           position: player?.position ?? null,
           seconds: Math.max(0, playtimeSecondsByPlayerId[id] ?? 0),
         };
@@ -3063,8 +3063,8 @@ export const EventDetailPage: React.FC = () => {
                         return (
                           <li key={row.id} className="relative overflow-hidden rounded-2xl border border-red-500/40 bg-[linear-gradient(110deg,rgba(12,10,14,0.98),rgba(83,15,27,0.48))] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                             <div className="relative flex min-w-0 items-center gap-2.5">
-                              <div className="h-14 w-12 shrink-0 overflow-hidden rounded-xl bg-black/45 ring-1 ring-white/10">
-                                <img src={row.avatarUrl || placeholder} alt="" className="h-full w-full object-cover object-top" loading="lazy"
+                              <div className="relative h-[58px] w-[58px] shrink-0 self-end overflow-hidden">
+                                <img src={row.avatarUrl || placeholder} alt="" className="h-full w-full origin-top scale-[1.75] object-contain object-top" loading="lazy"
                                   onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = placeholder; }} />
                               </div>
                               <span className="w-8 shrink-0 border-r border-red-400/35 pr-2 text-center text-xl font-black tabular-nums text-white">
