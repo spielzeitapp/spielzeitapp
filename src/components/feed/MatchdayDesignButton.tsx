@@ -46,7 +46,8 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
       const blob = await matchdayPosterDomToPngBlob(ref.current);
       if (!blob) throw new Error('Bild konnte nicht erstellt werden.');
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'spielzeit-spieltag.png'; a.click();
+      const a = document.createElement('a'); a.href = url; a.download = 'spielzeit-spieltag.png';
+      document.body.appendChild(a); a.click(); a.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) { setError(e instanceof Error ? e.message : 'Export fehlgeschlagen.'); }
     finally { setBusy(false); }

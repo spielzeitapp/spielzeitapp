@@ -203,87 +203,43 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     return (
       <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white" style={{ containerType: 'inline-size' }}>
         <GraphicBackground />
-        {playerUrl ? <PosterPlayerLayer playerImageUrl={playerUrl} /> : null}
-
-        <div className="relative z-[2] flex h-full flex-col px-[6%] pb-[4.5%] pt-[4.5%]">
-          <header className="shrink-0">
-            <p className="mb-1 text-[clamp(0.38rem,1.9vw,0.55rem)] font-bold uppercase tracking-[0.36em] text-white/64">
-              {statusLabel}
-            </p>
-            <h2
-              className="sz-matchday-display whitespace-nowrap text-[14cqw] uppercase leading-none tracking-[-0.025em] text-white"
-              style={{ textShadow: '0 6px 24px rgba(0,0,0,0.82)' }}
-            >
-              {title}
-            </h2>
-            <div className="mt-2 flex w-[50%] items-center gap-3">
-              <div className="sz-club-feed-accent-line h-[3px] flex-1" />
-              {ageGroup ? (
-                <span className="sz-matchday-display sz-club-feed-accent-text text-[8cqw] uppercase leading-none tracking-[-0.025em]">
-                  {ageGroup}
-                </span>
-              ) : null}
-              <div className="sz-club-feed-accent-line h-[3px] flex-1" />
-            </div>
+        <PosterPlayerLayer playerImageUrl={playerUrl} />
+        <div className="relative z-[2] flex h-full flex-col px-[6%] pb-[16%] pt-[6%]">
+          <header className="w-[60%]">
+            <p className="text-[2cqw] font-bold uppercase tracking-[0.18em]">{competition || statusLabel}</p>
+            <h2 className="sz-matchday-display mt-[2cqw] text-[13cqw] uppercase leading-none tracking-[-0.025em]">{title}</h2>
+            {ageGroup ? <div className="mt-[1.5cqw] flex items-center gap-[2cqw]">
+              <span className="sz-club-feed-accent-line h-[2px] flex-1" />
+              <span className="sz-matchday-display sz-club-feed-accent-text text-[7.5cqw] leading-none">{ageGroup}</span>
+              <span className="sz-club-feed-accent-line h-[2px] flex-1" />
+            </div> : null}
           </header>
-
-          <div className="mt-[4%] flex w-[62%] shrink-0 items-start gap-1 px-1 py-1">
-            <TeamMark name={homeTeamName} logoUrl={homeLogoUrl} />
-            <div className="flex w-8 shrink-0 flex-col items-center pt-3 sm:w-11 sm:pt-5">
-              <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
-              <span className="sz-club-feed-accent-text my-0.5 text-[clamp(1.3rem,6.5vw,1.9rem)] font-black uppercase leading-none">VS</span>
-              <div className="sz-club-feed-accent-line h-8 w-[2px] rotate-[28deg]" />
-            </div>
-            <TeamMark name={awayTeamName} logoUrl={awayLogoUrl} />
+          <div className="mt-[4cqw] flex w-[60%] items-start gap-[1cqw]">
+            {[{ name: homeTeamName, logo: homeLogoUrl }, { name: awayTeamName, logo: awayLogoUrl }].map((team, i) => <React.Fragment key={i}>
+              {i === 1 ? <span className="sz-matchday-display sz-club-feed-accent-text mt-[6cqw] text-[5cqw] italic">VS</span> : null}
+              <div className="flex min-w-0 flex-1 flex-col items-center">
+                <img src={team.logo || PLACEHOLDER} alt={team.name} className="h-[18cqw] w-[18cqw] object-contain" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = PLACEHOLDER; }} />
+                <p className="sz-matchday-display mt-[1.5cqw] w-full text-center text-[2.9cqw] uppercase leading-[1.2]">{team.name}</p>
+              </div>
+            </React.Fragment>)}
           </div>
-
-          <div className="mt-auto mb-[15%] w-[52%] space-y-[2cqw]">
-            {competition ? (
-              <div className="flex items-center gap-1.5 text-[clamp(0.46rem,2.2vw,0.62rem)] font-bold uppercase tracking-[0.11em] text-white/64">
-                <Trophy className="sz-club-feed-accent-text h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
-                <span className="line-clamp-2 leading-tight">{competition}</span>
-              </div>
-            ) : null}
-            {venueLine ? <p className="sz-club-feed-accent-text text-[clamp(0.52rem,2.5vw,0.7rem)] font-black tracking-[0.15em]">{venueLine}</p> : null}
-            {matchDate ? (
-              <div className="sz-club-feed-accent-border border-y-2 py-1.5">
-                <p className="sz-matchday-display text-[4.8cqw] tabular-nums uppercase leading-none">{matchDate}</p>
-              </div>
-            ) : null}
-            <div className={matchDate ? '' : 'sz-club-feed-accent-border border-y-2 py-1.5'}>
-              <p className="sz-matchday-display flex items-baseline gap-1 text-[6cqw] tabular-nums uppercase leading-none">
-                {heroOverride?.main ?? kickoff}
-                {heroSuffix ? (
-                  <span className="text-[0.42em] tracking-[0.04em] text-white/76">{heroSuffix}</span>
-                ) : null}
-              </p>
-            </div>
-            {location && location !== '—' ? (
-              <div>
-                <div className="sz-club-feed-accent-text mb-0.5 flex items-center gap-1 text-[clamp(0.45rem,2.1vw,0.6rem)] font-black uppercase tracking-[0.16em]">
-                  <MapPin className="h-3 w-3" strokeWidth={2.5} aria-hidden /> ORT
-                </div>
-                <p className="sz-matchday-display text-[3.3cqw] uppercase leading-[1.15] text-white">{location}</p>
-              </div>
-            ) : null}
-            {meetingTime ? (
-              <div className="flex items-center gap-1 text-[clamp(0.45rem,2.1vw,0.6rem)] font-bold uppercase tracking-[0.11em] text-white/62">
-                <Clock className="sz-club-feed-accent-text h-3 w-3" strokeWidth={2.5} aria-hidden /> Treffpunkt {meetingTime}
-              </div>
-            ) : null}
-            {statusBadge ? <p className="sz-club-feed-accent-text font-black uppercase tracking-[0.16em]">{statusBadge}</p> : null}
-          </div>
-
-          <footer className="absolute inset-x-[4%] bottom-[3.2%] z-[3]">
-            <p
-              className="sz-matchday-display whitespace-nowrap text-center text-[5cqw] italic uppercase leading-none tracking-[-0.025em]"
-              style={{ textShadow: '0 4px 14px rgba(0,0,0,0.95)' }}
-            >
-              <span className="text-white">#{teamPrefix}</span><span className="sz-club-feed-accent-text">{teamSuffix}</span>
+          <div className="mt-auto w-[52%] space-y-[2cqw] pt-[4cqw]">
+            {venueLine ? <p className="sz-club-feed-accent-text text-[2cqw] font-bold tracking-[0.1em]">{venueLine}</p> : null}
+            <p className="sz-matchday-display text-[7cqw] uppercase leading-none">
+              {heroOverride?.main ?? kickoff}{heroSuffix ? <span className="ml-[1cqw] text-[0.6em]">{heroSuffix}</span> : null}
             </p>
-            <div className="sz-club-feed-accent-fade mt-1.5 h-[3px] w-full" />
-          </footer>
+            <div className="sz-club-feed-accent-line h-[2px] w-full" />
+            {matchDate ? <p className="sz-matchday-display text-[4cqw] uppercase leading-tight">{matchDate}</p> : null}
+            {location && location !== '—' ? <p className="sz-matchday-display text-[3cqw] uppercase leading-[1.2]">{location}</p> : null}
+            {meetingTime ? <p className="text-[2cqw] font-semibold leading-tight">Treffpunkt {meetingTime}</p> : null}
+            {statusBadge ? <p className="sz-club-feed-accent-text text-[2cqw] font-bold">{statusBadge}</p> : null}
+          </div>
         </div>
+        <footer className="absolute inset-x-[5%] bottom-[5%] z-[3]">
+          <p className="sz-matchday-display text-center text-[5cqw] italic uppercase leading-none">
+            <span>#{teamPrefix}</span><span className="sz-club-feed-accent-text">{teamSuffix}</span>
+          </p>
+        </footer>
       </div>
     );
   },
