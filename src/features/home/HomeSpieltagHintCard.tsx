@@ -21,9 +21,10 @@ type Props = {
   reviewPending?: boolean;
   canDelete?: boolean;
   onDeleted?: (matchId: string) => void;
+  ageGroup?: string | null;
 };
 
-export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false, canDelete = false, onDeleted }) => {
+export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false, canDelete = false, onDeleted, ageGroup = null }) => {
   const { event, status } = pick;
   const [shareHint, setShareHint] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -133,7 +134,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         homeLogoUrl={homeLogo}
         awayLogoUrl={awayLogo}
         kickoffTime={kickoff}
-        ageGroup={basePath === '/demo' ? 'U12' : null}
+        ageGroup={ageGroup ?? (basePath === '/demo' ? 'U12' : null)}
         matchDate={matchDate}
         meetingTime={meetingTime}
         locationLine={locationLine}

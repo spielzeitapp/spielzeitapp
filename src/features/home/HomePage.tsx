@@ -543,6 +543,7 @@ export const HomePage: React.FC = () => {
             {spieltagHintPick && (feedFilter === 'all' || feedFilter === 'matchday') ? (
               <HomeSpieltagHintCard
                 pick={spieltagHintPick}
+                ageGroup={teamSeasonLine.match(/\bU\d+\b/i)?.[0]?.toUpperCase() ?? null}
                 reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
                 canDelete={staffCanDeleteFeed}
                 onDeleted={(matchId) => {

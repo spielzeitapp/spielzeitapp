@@ -64,7 +64,7 @@ function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
 function GraphicBackground() {
   return (
     <div className="sz-club-feed-poster-background pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] bg-[#050505]" aria-hidden>
-      <div className="sz-club-feed-poster-lines absolute inset-0" />
+      <img src={posterAssetUrl('feed/matchday-clean-background.jpg')} alt="" className="sz-matchday-reference-background absolute inset-0 h-full w-full object-cover" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_80%_at_50%_42%,transparent_42%,rgba(0,0,0,0.58)_100%)]" />
     </div>
   );
@@ -140,6 +140,58 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     const cleanHashtag = hashtag.replace(/^#/, '');
     const teamSuffix = cleanHashtag.toUpperCase().endsWith('EINTEAM') ? 'EINTEAM' : '';
     const teamPrefix = teamSuffix ? cleanHashtag.slice(0, -teamSuffix.length) : cleanHashtag;
+
+    // Centered matchday layout when no portrait has been selected. Container
+    // units keep the feed and exported image identical at every screen width.
+    if (!playerUrl) {
+      const team = (name: string, logo: string) => (
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-[2cqw]">
+          <div className="flex h-[24cqw] w-[24cqw] items-center justify-center">
+            <img src={logo || PLACEHOLDER} alt={name} className="h-full w-full object-contain"
+              onError={(e) => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = PLACEHOLDER; }} />
+          </div>
+          <p className="w-full break-words text-center text-[4.1cqw] font-extrabold uppercase leading-[1.12] tracking-tight">{name}</p>
+        </div>
+      );
+      return (
+        <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white" style={{ containerType: 'inline-size' }}>
+          <GraphicBackground />
+          <div className="relative z-[2] flex min-h-full flex-col items-center px-[6%] pb-[5%] pt-[6%] text-center">
+            <header className="w-full">
+              <div className="flex items-center justify-center gap-[2cqw]">
+                <span className="sz-club-feed-accent-line h-[2px] min-w-[5cqw] flex-1" />
+                <p className="text-[2.45cqw] font-bold uppercase leading-tight tracking-[0.15em]">
+                  {ageGroup ? <><span className="sz-club-feed-accent-text font-black">{ageGroup}</span><span> · </span></> : null}{competition || 'SPIELTAG'}
+                </p>
+                <span className="sz-club-feed-accent-line h-[2px] min-w-[5cqw] flex-1" />
+              </div>
+              <h2 className="mt-[3cqw] text-[17cqw] font-black uppercase leading-none tracking-[-0.06em]">{title}</h2>
+              <div className="sz-club-feed-accent-line mx-auto mt-[2cqw] h-[3px] w-[88%]" />
+            </header>
+            <div className="mt-[5cqw] flex w-full items-start gap-[3cqw]">
+              {team(homeTeamName, homeLogoUrl)}
+              <span className="sz-club-feed-accent-text mt-[9cqw] text-[6cqw] font-black italic leading-none">VS</span>
+              {team(awayTeamName, awayLogoUrl)}
+            </div>
+            <div className="mt-[5cqw] w-full space-y-[2cqw]">
+              <p className="text-[10cqw] font-black uppercase leading-none tracking-tight">
+                {heroOverride?.main ?? kickoff}{heroSuffix ? <span className="ml-[2cqw] text-[0.65em]">{heroSuffix}</span> : null}
+              </p>
+              <div className="sz-club-feed-accent-line mx-auto h-[2px] w-[74%]" />
+              {matchDate ? <p className="text-[3.7cqw] font-bold uppercase tracking-[0.12em]">{matchDate}</p> : null}
+              {location && location !== '—' ? <p className="break-words text-[3cqw] font-bold uppercase leading-tight tracking-[0.1em]">{location}</p> : null}
+              {meetingTime ? <p className="text-[2.4cqw] font-semibold uppercase tracking-wider text-white/75">Treffpunkt {meetingTime}</p> : null}
+              {statusBadge ? <p className="sz-club-feed-accent-text text-[2.6cqw] font-bold uppercase">{statusBadge}</p> : null}
+            </div>
+            <footer className="mt-auto w-full pt-[5cqw]">
+              <p className="text-[4cqw] font-black italic uppercase leading-tight tracking-tight">
+                <span>#{teamPrefix}</span><span className="sz-club-feed-accent-text">{teamSuffix}</span>
+              </p>
+            </footer>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white">
