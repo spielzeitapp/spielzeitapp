@@ -3007,27 +3007,27 @@ export const EventDetailPage: React.FC = () => {
             <div className="rounded-[1.5rem] border border-red-500/20 bg-black/55 p-4 text-white/75 shadow-[0_16px_38px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]">
               <p className="text-[12px] font-black uppercase tracking-[0.2em] text-red-300/85">Spielstatistik</p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[14px]">
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                <div className="rounded-xl border border-red-500/25 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Tore Heim</p>
                   <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreHome}</p>
                 </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                <div className="rounded-xl border border-red-500/25 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Tore Auswärts</p>
                   <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreAway}</p>
                 </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                <div className="rounded-xl border border-red-500/25 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Wechsel</p>
                   <p className="mt-1 text-2xl font-black tabular-nums text-white">{subCount}</p>
                 </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                <div className="rounded-xl border border-red-500/25 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Ereignisse</p>
                   <p className="mt-1 text-2xl font-black tabular-nums text-white">{totalEvents}</p>
                 </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                <div className="rounded-xl border border-red-500/25 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Torschützen</p>
                   <p className="mt-1 text-2xl font-black tabular-nums text-white">{ownGoalScorerEntries.length}</p>
                 </div>
-                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                <div className="rounded-xl border border-red-500/25 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Gelbe Karten</p>
                   <p className="mt-1 text-2xl font-black tabular-nums text-white">
                     {timelineEvents.filter((x) => ['yellow_card', 'card_yellow', 'yellow'].includes(String(x.type ?? '').toLowerCase())).length}
@@ -3036,60 +3036,53 @@ export const EventDetailPage: React.FC = () => {
               </div>
 
               {!isFan ? (
-                <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.055] to-transparent">
-                <div className="flex items-end justify-between gap-3 border-b border-white/[0.08] px-3.5 py-3">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/90">Einsatzminuten</p>
-                    <p className="mt-0.5 text-[11px] text-white/45">Startaufstellung und alle Wechsel</p>
+                <section className="mt-4">
+                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                    <div>
+                      <h3 className="text-[12px] font-black uppercase tracking-[0.16em] text-white">Spielerliste</h3>
+                      <p className="mt-1 text-[11px] text-white/50">Effektive Spielzeit · ohne Pausen</p>
+                    </div>
+                    {playedMatchMinutes > 0 ? (
+                      <span className="shrink-0 rounded-full border border-red-400/25 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold tabular-nums text-red-100">
+                        {playedMatchMinutes} Min. Spielzeit
+                      </span>
+                    ) : null}
                   </div>
-                  {playedMatchMinutes > 0 ? (
-                    <span className="shrink-0 rounded-full border border-red-400/25 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold tabular-nums text-red-100">
-                      {playedMatchMinutes} Min. Spielzeit
-                    </span>
-                  ) : null}
-                </div>
-
-                {playtimeRows.length === 0 || playedMatchMinutes === 0 ? (
-                  <p className="px-3.5 py-4 text-[13px] leading-relaxed text-white/55">
-                    Für dieses Spiel sind keine vollständigen Live-Spielzeiten gespeichert.
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-white/[0.065]">
-                    {playtimeRows.map((row) => {
-                      const minutes = Math.min(playedMatchMinutes, Math.max(0, Math.round(row.seconds / 60)));
-                      const share = playedMatchMinutes > 0 ? Math.min(100, (minutes / playedMatchMinutes) * 100) : 0;
-                      return (
-                        <li key={row.id} className="px-3 py-2.5">
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-black/55 text-[12px] font-black text-white/80">
-                              {row.avatarUrl ? (
-                                <img src={row.avatarUrl} alt="" className="h-full w-full object-cover" />
-                              ) : row.jerseyNumber != null ? (
-                                row.jerseyNumber
-                              ) : (
-                                row.name.slice(0, 1).toUpperCase()
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex min-w-0 items-center justify-between gap-3">
-                                <p className="min-w-0 truncate text-[13px] font-semibold text-white/90">{row.name}</p>
-                                <p className="shrink-0 text-[15px] font-black tabular-nums text-white">
-                                  {minutes} <span className="text-[10px] font-bold uppercase text-white/45">Min.</span>
-                                </p>
+                  {playtimeRows.length === 0 || playedMatchMinutes === 0 ? (
+                    <p className="py-4 text-[13px] leading-relaxed text-white/55">
+                      Für dieses Spiel sind keine vollständigen Live-Spielzeiten gespeichert.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {playtimeRows.map((row) => {
+                        const seconds = Math.floor(Math.max(0, row.seconds));
+                        const clock = `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+                        const placeholder = row.jerseyNumber === 1 || row.jerseyNumber === 21
+                          ? '/avatars/player-placeholder-goalkeeper.png'
+                          : '/avatars/player-placeholder.png';
+                        return (
+                          <li key={row.id} className="relative overflow-hidden rounded-2xl border border-red-500/40 bg-[linear-gradient(110deg,rgba(12,10,14,0.98),rgba(83,15,27,0.48))] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                            <div className="relative flex min-w-0 items-center gap-2.5">
+                              <div className="h-14 w-12 shrink-0 overflow-hidden rounded-xl bg-black/45 ring-1 ring-white/10">
+                                <img src={row.avatarUrl || placeholder} alt="" className="h-full w-full object-cover object-top" loading="lazy"
+                                  onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = placeholder; }} />
                               </div>
-                              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-red-700 via-red-500 to-red-300 shadow-[0_0_8px_rgba(239,68,68,0.42)]"
-                                  style={{ width: `${share}%` }}
-                                />
+                              <span className="w-8 shrink-0 border-r border-red-400/35 pr-2 text-center text-xl font-black tabular-nums text-white">
+                                {row.jerseyNumber ?? '–'}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[14px] font-extrabold leading-tight text-white">{row.name}</p>
+                                <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-white/55">Einsatzzeit</p>
                               </div>
+                              <span className="shrink-0 font-mono text-[15px] font-bold tabular-nums text-white" aria-label={`${Math.floor(seconds / 60)} Minuten ${seconds % 60} Sekunden Einsatzzeit`}>
+                                {clock}
+                              </span>
                             </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </section>
               ) : null}
             </div>
