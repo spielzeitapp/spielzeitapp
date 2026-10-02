@@ -74,16 +74,6 @@ function formatMatchDate(iso: string): string {
   }).format(d);
 }
 
-function legacyDemoPlayerImage(eventId: string): string {
-  const candidates = ['/feed/demo-matchday-player-01.webp', '/feed/test-player-daniel.PNG'];
-  let hash = 2166136261;
-  for (let index = 0; index < eventId.length; index += 1) {
-    hash ^= eventId.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return candidates[(hash >>> 0) % candidates.length]!;
-}
-
 export const MatchdayFeedPostCard: React.FC<Props> = ({
   post,
   liveEvent,
@@ -182,8 +172,6 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     .join(' ')
     .match(/\bU\d+\b/i)?.[0]
     ?.toUpperCase() ?? null;
-  const posterPlayerImageUrl =
-    p.matchday_player_image_url?.trim() || legacyDemoPlayerImage(p.event_id);
 
   const venueLabel = (liveEvent?.is_home ?? p.is_home) === false ? 'Auswärtsspiel' : 'Heimspiel';
 
@@ -378,7 +366,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           awayScore={scores?.away ?? null}
           matchType={p.match_type}
           announcementTiming={announcementTiming}
-          playerImageUrl={posterPlayerImageUrl}
+          playerImageUrl={null}
         />
         )}
 

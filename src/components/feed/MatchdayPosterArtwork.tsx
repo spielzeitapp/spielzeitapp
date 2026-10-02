@@ -147,7 +147,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     if (!playerUrl) {
       const team = (name: string, logo: string) => (
         <div className="flex min-w-0 flex-1 flex-col items-center gap-[2cqw]">
-          <div className="flex h-[24cqw] w-[24cqw] items-center justify-center">
+          <div className="flex h-[28cqw] w-[28cqw] items-center justify-center">
             <img src={logo || PLACEHOLDER} alt={name} className="h-full w-full object-contain"
               onError={(e) => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = PLACEHOLDER; }} />
           </div>
@@ -157,7 +157,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
       return (
         <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white" style={{ containerType: 'inline-size' }}>
           <GraphicBackground />
-          <div className="relative z-[2] flex min-h-full flex-col items-center px-[6%] pb-[5%] pt-[6%] text-center">
+          <div className="relative z-[2] flex h-full flex-col items-center px-[6%] pb-[5%] pt-[6%] text-center">
             <header className="w-full">
               <div className="flex items-center justify-center gap-[2cqw]">
                 <span className="sz-club-feed-accent-line h-[2px] min-w-[5cqw] flex-1" />
