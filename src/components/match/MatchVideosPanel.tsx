@@ -101,21 +101,24 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const [durations, setDurations] = useState<Record<string, string>>({});
   const sceneView = view !== 'highlights';
-  const visibleVideos = videos.filter(video => sceneView ? video.category === 'analysis' : video.category !== 'analysis');
+  const sceneKind = (video: MatchVideo) => video.scene_type && video.scene_type !== 'other'
+    ? video.scene_type : /^(?:\d+:\d+\s+)?tor(?:\s*\d+)?\b/i.test(video.title.trim()) ? 'goal' : 'other';
+  const visibleVideos = videos.filter(video => view === 'highlights' ? video.category !== 'analysis'
+    : view === 'analysis' ? video.category === 'analysis' && Boolean(video.analysis_note?.trim())
+    : video.category === 'analysis');
   const filteredVideos = sceneView && analysisFilter !== 'all'
-    ? visibleVideos.filter(video => (video.scene_type ?? 'other') === analysisFilter)
+    ? visibleVideos.filter(video => sceneKind(video) === analysisFilter)
     : visibleVideos;
   const orderedVideos = [...filteredVideos].sort((a, b) => sceneView
     ? (a.scene_minute ?? Infinity) - (b.scene_minute ?? Infinity)
     : Number(/^alle highlights$/i.test(b.title.trim())) - Number(/^alle highlights$/i.test(a.title.trim())));
-  // Imported scene clips form a playlist; exported complete highlight reels remain separate.
-  const sequenceVideos = videos.filter(video => video.category !== 'highlights').sort((a, b) =>
+  // The playlist uses clips uploaded to Highlights. Analysis exports are a separate view.
+  const sequenceVideos = videos.filter(video => video.category !== 'analysis' && !/^alle highlights$/i.test(video.title.trim())).sort((a, b) =>
     (a.scene_minute ?? Infinity) - (b.scene_minute ?? Infinity) || a.created_at.localeCompare(b.created_at));
   const playlistVideos = playlistIds.map(id => videos.find(video => video.id === id)).filter((video): video is MatchVideo => Boolean(video));
-  const playlistKind = (video: MatchVideo) => video.category === 'analysis'
-    ? (video.scene_type && video.scene_type !== 'other' ? video.scene_type : /\btor(?:\s*\d+)?\b/i.test(video.title) ? 'goal' : 'other')
+  const playlistKind = (video: MatchVideo) => video.category === 'analysis' ? sceneKind(video)
     : video.category === 'goals' ? 'goal' : video.category === 'chances' ? 'shot'
-    : video.category === 'defence' ? 'defence' : 'other';
+    : video.category === 'defence' ? 'defence' : sceneKind(video);
   const matchingPlaylistVideos = playlistVideos.filter(video =>
     (chapterFilter === 'all' || playlistKind(video) === chapterFilter) &&
     `${video.title} ${SCENE_TYPES[playlistKind(video)] ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
@@ -123,7 +126,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const chapters = [...(activeScene?.chapters ?? [])].sort((a, b) => a.second - b.second);
   const matchingChapters = chapters.filter(chapter => (chapterFilter === 'all' || chapter.kind === chapterFilter) && `${chapter.title} ${SCENE_TYPES[chapter.kind] ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
   const videoLabel = (video: MatchVideo) => video.category === 'analysis'
-    ? SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'
+    ? SCENE_TYPES[sceneKind(video)] ?? 'Weitere Szenen'
     : CATEGORIES[video.category] ?? 'Highlights';
   const switchView = (next: typeof view) => {
     setActionsId(null); setView(next); setAnalysisFilter('all'); setUploadOpen(false); setEditingId(null); setComposerId(null);
@@ -371,9 +374,9 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
     <div className="flex items-center justify-between gap-2">
       <div><h2 className="text-xl font-bold">{view === 'highlights' ? 'Highlights' : view === 'scenes' ? 'Spielszenen' : 'Spielanalyse'}</h2><p className="text-xs text-white/55">{visibleVideos.length} {sceneView ? 'Szenen' : 'Videos'}</p></div>
-      {canManage && !demoMode && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/60 bg-red-950/70 px-3 text-sm font-bold"><Plus size={18} aria-hidden /> {sceneView ? 'Szene' : 'Video'} </button>}
+      {canManage && !demoMode && view !== 'analysis' && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/60 bg-red-950/70 px-3 text-sm font-bold"><Plus size={18} aria-hidden /> {sceneView ? 'Szene' : 'Video'} </button>}
     </div>
-    {canManage && !demoMode && uploadOpen && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">
+    {canManage && !demoMode && view !== 'analysis' && uploadOpen && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">
       <p className="flex items-center gap-2 text-sm font-semibold"><LockKeyhole size={17} aria-hidden /> Zunächst nur für Trainer sichtbar</p>
       {!sceneView && <label className="block text-sm">Pro-Soccer-Export<select aria-label="Highlight-Vorlage" defaultValue="" onChange={e => {
         const preset = e.target.value; if (!preset) return;
@@ -385,14 +388,13 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       <button type="button" disabled={busy || !title.trim() || (sceneView && !validMinute)} onClick={() => fileRef.current?.click()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 font-semibold disabled:opacity-50"><UploadCloud size={18} aria-hidden />{busy ? 'Bitte warten …' : 'Video auswählen und hochladen'}</button>
       <p className="text-xs text-white/55">MP4, MOV oder WebM · maximal 150 MB pro Video.</p>
     </div>}
-    {view === 'highlights' && sequenceVideos.length > 0 && <div className="space-y-2 rounded-2xl border border-red-500/30 bg-red-950/30 p-4">
-      <h3 className="text-lg font-bold">Highlights aus Spielszenen</h3>
-      <p className="text-sm text-white/70">{sequenceVideos.length} Clips aus diesem Spiel nacheinander abspielen. Neue Clips erscheinen automatisch in der Liste.</p>
-      <button type="button" onClick={playPlaylist} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-red-600 px-4 font-bold"><Play size={18} fill="white" aria-hidden /> Alle abspielen</button>
-    </div>}
-    {view === 'analysis' && <p className="rounded-xl border border-white/10 bg-zinc-950/70 p-4 text-sm text-white/65">Szenen und Trainerkommentare zu diesem Spiel. Ein automatischer Import des technischen Pro-Soccer-Berichts ist noch nicht eingerichtet.</p>}
+    {view === 'highlights' && sequenceVideos.length > 0 && <button type="button" onClick={playPlaylist} className="flex min-h-20 w-full items-center gap-4 rounded-2xl border border-red-500/35 bg-red-950/30 p-4 text-left">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-600"><Play size={20} fill="white" aria-hidden /></span>
+      <span className="min-w-0"><span className="block font-bold">Alle Highlights abspielen</span><span className="block text-sm text-white/65">{sequenceVideos.length} Clips nacheinander · Szenen auswählen</span></span>
+    </button>}
+    {view === 'analysis' && <p className="rounded-xl border border-white/10 bg-zinc-950/70 p-4 text-sm text-white/65">Hier erscheinen Szenen mit Trainerkommentar. Öffne eine Spielszene, wähle „Bearbeiten“ und ergänze deine Beobachtung.</p>}
     {sceneView && filters.length > 0 && <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">{[['all','Alle'],...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-11 shrink-0 rounded-xl border px-4 text-sm font-bold ${analysisFilter === key ? 'border-red-400/50 bg-red-800' : 'border-white/15 bg-zinc-950 text-white/70'}`}>{label}</button>)}</div>}
-    {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : orderedVideos.length === 0 ? <p className="rounded-2xl border border-white/10 bg-zinc-950/70 p-6 text-sm text-white/65">{canManage ? 'Noch keine Videos in diesem Bereich. Über + Szene oder + Video kannst du deinen ersten Export hochladen.' : 'Noch keine freigegebenen Videos in diesem Bereich.'}</p> :
+    {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : orderedVideos.length === 0 ? <p className="rounded-2xl border border-white/10 bg-zinc-950/70 p-6 text-sm text-white/65">{view === 'analysis' ? 'Noch keine Szenen mit Trainerkommentar.' : canManage ? 'Noch keine Clips in diesem Bereich. Mit + Video oder + Szene kannst du einen Clip hochladen.' : 'Noch keine freigegebenen Videos in diesem Bereich.'}</p> :
       <div className={sceneView ? 'space-y-4' : 'grid grid-cols-2 gap-3'}>{orderedVideos.map((video, index) => <article key={video.id} className={`relative min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 ${sceneView ? 'grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] items-center gap-1 p-1.5' : index === 0 ? 'col-span-2' : ''} ${editingId === video.id || composerId === video.id ? 'col-span-2' : ''}`}>
         {canManage && !demoMode && <button type="button" onClick={() => setActionsId(current => current === video.id ? null : video.id)} aria-label={`${video.title}: Aktionen`} aria-expanded={actionsId === video.id} className="absolute right-0 top-0 z-10 flex h-11 w-8 items-center justify-center rounded-lg text-white/65 hover:bg-white/10"><MoreVertical size={19} aria-hidden /></button>}
         <button type="button" onClick={() => {setActionsId(null);void play(video);}} aria-label={`${video.title} abspielen`} className="relative isolate block aspect-video w-full overflow-hidden rounded-xl bg-gradient-to-br from-red-950 via-zinc-900 to-black">
