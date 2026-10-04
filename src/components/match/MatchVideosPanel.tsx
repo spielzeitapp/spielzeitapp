@@ -23,7 +23,7 @@ type MatchVideo = {
 
 const CATEGORIES: Record<string, string> = {
   highlights: 'Highlights', goals: 'Tore', chances: 'Schüsse / Chancen',
-  defence: 'Abwehr', player: 'Spielerszene', analysis: 'Spielanalyse',
+  defence: 'Abwehr', player: 'Spielerszene', scenes: 'Spielszenen', analysis: 'Once / Analyse',
 };
 const SCENE_TYPES: Record<string, string> = {
   goal: 'Tore', shot: 'Schüsse', save: 'Paraden', corner: 'Ecken', defence: 'Abwehr', other: 'Weitere Szenen',
@@ -103,20 +103,19 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const sceneView = view !== 'highlights';
   const sceneKind = (video: MatchVideo) => video.scene_type && video.scene_type !== 'other'
     ? video.scene_type : /^(?:\d+:\d+\s+)?tor(?:\s*\d+)?\b/i.test(video.title.trim()) ? 'goal' : 'other';
-  const visibleVideos = videos.filter(video => view === 'highlights' ? video.category !== 'analysis'
-    : view === 'analysis' ? video.category === 'analysis' && Boolean(video.analysis_note?.trim())
-    : video.category === 'analysis');
-  const filteredVideos = sceneView && analysisFilter !== 'all'
+  const visibleVideos = videos.filter(video => view === 'highlights' ? video.category !== 'analysis' && video.category !== 'scenes'
+    : video.category === view);
+  const filteredVideos = view === 'scenes' && analysisFilter !== 'all'
     ? visibleVideos.filter(video => sceneKind(video) === analysisFilter)
     : visibleVideos;
   const orderedVideos = [...filteredVideos].sort((a, b) => sceneView
     ? (a.scene_minute ?? Infinity) - (b.scene_minute ?? Infinity)
     : Number(/^alle highlights$/i.test(b.title.trim())) - Number(/^alle highlights$/i.test(a.title.trim())));
   // The playlist uses clips uploaded to Highlights. Analysis exports are a separate view.
-  const sequenceVideos = videos.filter(video => video.category !== 'analysis' && !/^alle highlights$/i.test(video.title.trim())).sort((a, b) =>
+  const sequenceVideos = videos.filter(video => video.category !== 'analysis' && video.category !== 'scenes' && !/^alle highlights$/i.test(video.title.trim())).sort((a, b) =>
     (a.scene_minute ?? Infinity) - (b.scene_minute ?? Infinity) || a.created_at.localeCompare(b.created_at));
   const playlistVideos = playlistIds.map(id => videos.find(video => video.id === id)).filter((video): video is MatchVideo => Boolean(video));
-  const playlistKind = (video: MatchVideo) => video.category === 'analysis' ? sceneKind(video)
+  const playlistKind = (video: MatchVideo) => video.category === 'scenes' ? sceneKind(video)
     : video.category === 'goals' ? 'goal' : video.category === 'chances' ? 'shot'
     : video.category === 'defence' ? 'defence' : sceneKind(video);
   const matchingPlaylistVideos = playlistVideos.filter(video =>
@@ -125,13 +124,13 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const activeScene = videos.find(video => video.id === playingId);
   const chapters = [...(activeScene?.chapters ?? [])].sort((a, b) => a.second - b.second);
   const matchingChapters = chapters.filter(chapter => (chapterFilter === 'all' || chapter.kind === chapterFilter) && `${chapter.title} ${SCENE_TYPES[chapter.kind] ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
-  const videoLabel = (video: MatchVideo) => video.category === 'analysis'
+  const videoLabel = (video: MatchVideo) => video.category === 'scenes'
     ? SCENE_TYPES[sceneKind(video)] ?? 'Weitere Szenen'
     : CATEGORIES[video.category] ?? 'Highlights';
   const switchView = (next: typeof view) => {
     setActionsId(null); setView(next); setAnalysisFilter('all'); setUploadOpen(false); setEditingId(null); setComposerId(null);
   };
-  useEffect(() => { switchView(mode === 'analysis' ? 'scenes' : 'highlights'); }, [mode, matchId]);
+  useEffect(() => { switchView(mode === 'analysis' ? 'analysis' : 'highlights'); }, [mode, matchId]);
 
   useEffect(() => {
     if (!playingId) return;
@@ -179,10 +178,10 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     try {
       const { error: insertError } = await supabase.from('match_videos').insert({
         id, match_id: matchId, team_season_id: teamSeasonId,
-        object_path: objectPath, title: title.trim(), category: sceneView ? 'analysis' : category,
-        scene_type: sceneView ? sceneType : null,
-        scene_minute: sceneView && sceneMinute.trim() ? Number(sceneMinute) : null,
-        analysis_note: sceneView ? analysisNote.trim() || null : null,
+        object_path: objectPath, title: title.trim(), category: view === 'highlights' ? category : view,
+        scene_type: view === 'scenes' ? sceneType : null,
+        scene_minute: view === 'scenes' && sceneMinute.trim() ? Number(sceneMinute) : null,
+        analysis_note: view === 'scenes' ? analysisNote.trim() || null : null,
         visibility: 'staff',
       });
       if (insertError) throw insertError;
@@ -232,7 +231,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   };
 
   const changeChapter = async (video: MatchVideo, action: 'add' | 'delete', id?: string) => {
-    if (!canManage || demoMode || chapterBusy || video.category === 'analysis') return;
+    if (!canManage || demoMode || chapterBusy || video.category === 'analysis' || video.category === 'scenes') return;
     const second = Math.floor(playerRef.current?.currentTime ?? 0);
     if (action === 'add' && (!Number.isFinite(second) || second < 0 || second > 3600)) {
       setChapterError('Bitte eine Stelle im Highlight bis 60 Minuten auswählen.');
@@ -270,7 +269,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     if (!canManage || demoMode || busy || !editTitle.trim()) return;
     setBusy(true); setError(null);
     try {
-      const { error: editError } = video.category === 'analysis'
+      const { error: editError } = video.category === 'scenes'
         ? await supabase.rpc('update_match_analysis_scene', {
           p_video_id: video.id, p_title: editTitle.trim(), p_scene_type: sceneType,
           p_scene_minute: sceneMinute.trim() ? Number(sceneMinute) : null, p_analysis_note: analysisNote.trim(),
@@ -374,27 +373,27 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
     <div className="flex items-center justify-between gap-2">
       <div><h2 className="text-xl font-bold">{view === 'highlights' ? 'Highlights' : view === 'scenes' ? 'Spielszenen' : 'Spielanalyse'}</h2><p className="text-xs text-white/55">{visibleVideos.length} {sceneView ? 'Szenen' : 'Videos'}</p></div>
-      {canManage && !demoMode && view !== 'analysis' && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/60 bg-red-950/70 px-3 text-sm font-bold"><Plus size={18} aria-hidden /> {sceneView ? 'Szene' : 'Video'} </button>}
+      {canManage && !demoMode && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/60 bg-red-950/70 px-3 text-sm font-bold"><Plus size={18} aria-hidden /> {view === 'scenes' ? 'Szene' : view === 'analysis' ? 'Analyse' : 'Video'} </button>}
     </div>
-    {canManage && !demoMode && view !== 'analysis' && uploadOpen && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">
+    {canManage && !demoMode && uploadOpen && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">
       <p className="flex items-center gap-2 text-sm font-semibold"><LockKeyhole size={17} aria-hidden /> Zunächst nur für Trainer sichtbar</p>
       {!sceneView && <label className="block text-sm">Pro-Soccer-Export<select aria-label="Highlight-Vorlage" defaultValue="" onChange={e => {
         const preset = e.target.value; if (!preset) return;
         setTitle(preset); setCategory(preset.startsWith('Tor-') ? 'goals' : preset.startsWith('Schuss-') ? 'chances' : preset.startsWith('Defensiv-') ? 'defence' : 'highlights');
       }} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base"><option value="">Vorlage auswählen (optional)</option>{['Alle Highlights','Tor-Highlights','Schuss-Highlights','Paraden-Highlights','Angriffs-Highlights','Defensiv-Highlights'].map(label => <option key={label}>{label}</option>)}</select></label>}
-      <label className="block text-sm">Titel<input value={title} onChange={e => setTitle(e.target.value)} maxLength={120} placeholder={sceneView ? 'z. B. Parade in der 18. Minute' : 'z. B. Alle Highlights'} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base" /></label>
-      {sceneView ? sceneFields : <label className="block text-sm">Kategorie<select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(CATEGORIES).filter(([key]) => key !== 'analysis').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label>}
+      <label className="block text-sm">Titel<input value={title} onChange={e => setTitle(e.target.value)} maxLength={120} placeholder={view === 'scenes' ? 'z. B. Parade in der 18. Minute' : view === 'analysis' ? 'z. B. Once Spielanalyse' : 'z. B. Alle Highlights'} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base" /></label>
+      {view === 'scenes' ? sceneFields : view === 'analysis' ? null : <label className="block text-sm">Kategorie<select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(CATEGORIES).filter(([key]) => key !== 'analysis' && key !== 'scenes').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label>}
       <input ref={fileRef} type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" onChange={e => void upload(e.target.files?.[0])} />
-      <button type="button" disabled={busy || !title.trim() || (sceneView && !validMinute)} onClick={() => fileRef.current?.click()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 font-semibold disabled:opacity-50"><UploadCloud size={18} aria-hidden />{busy ? 'Bitte warten …' : 'Video auswählen und hochladen'}</button>
+      <button type="button" disabled={busy || !title.trim() || (view === 'scenes' && !validMinute)} onClick={() => fileRef.current?.click()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 font-semibold disabled:opacity-50"><UploadCloud size={18} aria-hidden />{busy ? 'Bitte warten …' : 'Video auswählen und hochladen'}</button>
       <p className="text-xs text-white/55">MP4, MOV oder WebM · maximal 150 MB pro Video.</p>
     </div>}
     {view === 'highlights' && sequenceVideos.length > 0 && <button type="button" onClick={playPlaylist} className="flex min-h-20 w-full items-center gap-4 rounded-2xl border border-red-500/35 bg-red-950/30 p-4 text-left">
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-600"><Play size={20} fill="white" aria-hidden /></span>
       <span className="min-w-0"><span className="block font-bold">Alle Highlights abspielen</span><span className="block text-sm text-white/65">{sequenceVideos.length} Clips nacheinander · Szenen auswählen</span></span>
     </button>}
-    {view === 'analysis' && <p className="rounded-xl border border-white/10 bg-zinc-950/70 p-4 text-sm text-white/65">Hier erscheinen Szenen mit Trainerkommentar. Öffne eine Spielszene, wähle „Bearbeiten“ und ergänze deine Beobachtung.</p>}
-    {sceneView && filters.length > 0 && <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">{[['all','Alle'],...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-11 shrink-0 rounded-xl border px-4 text-sm font-bold ${analysisFilter === key ? 'border-red-400/50 bg-red-800' : 'border-white/15 bg-zinc-950 text-white/70'}`}>{label}</button>)}</div>}
-    {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : orderedVideos.length === 0 ? <p className="rounded-2xl border border-white/10 bg-zinc-950/70 p-6 text-sm text-white/65">{view === 'analysis' ? 'Noch keine Szenen mit Trainerkommentar.' : canManage ? 'Noch keine Clips in diesem Bereich. Mit + Video oder + Szene kannst du einen Clip hochladen.' : 'Noch keine freigegebenen Videos in diesem Bereich.'}</p> :
+    {view === 'analysis' && <p className="rounded-xl border border-white/10 bg-zinc-950/70 p-4 text-sm text-white/65">Bearbeitete Videos und Auswertungen, zum Beispiel Exporte aus Once. Die Analyse entsteht dort; hier kannst du das Ergebnis zum Spiel speichern und für das Team freigeben.</p>}
+    {view === 'scenes' && filters.length > 0 && <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">{[['all','Alle'],...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-11 shrink-0 rounded-xl border px-4 text-sm font-bold ${analysisFilter === key ? 'border-red-400/50 bg-red-800' : 'border-white/15 bg-zinc-950 text-white/70'}`}>{label}</button>)}</div>}
+    {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : orderedVideos.length === 0 ? <p className="rounded-2xl border border-white/10 bg-zinc-950/70 p-6 text-sm text-white/65">{view === 'analysis' ? 'Noch keine bearbeitete Analyse hochgeladen.' : canManage ? 'Noch keine Clips in diesem Bereich. Mit + Video oder + Szene kannst du einen Clip hochladen.' : 'Noch keine freigegebenen Videos in diesem Bereich.'}</p> :
       <div className={sceneView ? 'space-y-4' : 'grid grid-cols-2 gap-3'}>{orderedVideos.map((video, index) => <article key={video.id} className={`relative min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 ${sceneView ? 'grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] items-center gap-1 p-1.5' : index === 0 ? 'col-span-2' : ''} ${editingId === video.id || composerId === video.id ? 'col-span-2' : ''}`}>
         {canManage && !demoMode && <button type="button" onClick={() => setActionsId(current => current === video.id ? null : video.id)} aria-label={`${video.title}: Aktionen`} aria-expanded={actionsId === video.id} className="absolute right-0 top-0 z-10 flex h-11 w-8 items-center justify-center rounded-lg text-white/65 hover:bg-white/10"><MoreVertical size={19} aria-hidden /></button>}
         <button type="button" onClick={() => {setActionsId(null);void play(video);}} aria-label={`${video.title} abspielen`} className="relative isolate block aspect-video w-full overflow-hidden rounded-xl bg-gradient-to-br from-red-950 via-zinc-900 to-black">
@@ -421,8 +420,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           </>}
           {canManage && !demoMode && editingId === video.id && <div className="space-y-3 border-t border-white/10 pt-3">
             <label className="block text-sm">Titel<input value={editTitle} onChange={e => setEditTitle(e.target.value)} maxLength={120} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base" /></label>
-            {video.category === 'analysis' ? sceneFields : <label className="block text-sm">Kategorie<select value={editCategory} onChange={e => setEditCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(CATEGORIES).filter(([key]) => key !== 'analysis').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label>}
-            <div className="flex gap-2"><button type="button" disabled={busy || !editTitle.trim() || (video.category === 'analysis' && !validMinute)} onClick={() => void saveDetails(video)} className="min-h-11 rounded-xl bg-red-600 px-3 text-sm disabled:opacity-50">Speichern</button><button type="button" onClick={() => setEditingId(null)} className="min-h-11 rounded-xl border border-white/15 px-3 text-sm">Abbrechen</button></div>
+            {video.category === 'scenes' ? sceneFields : video.category === 'analysis' ? null : <label className="block text-sm">Kategorie<select value={editCategory} onChange={e => setEditCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(CATEGORIES).filter(([key]) => key !== 'analysis' && key !== 'scenes').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label>}
+            <div className="flex gap-2"><button type="button" disabled={busy || !editTitle.trim() || (video.category === 'scenes' && !validMinute)} onClick={() => void saveDetails(video)} className="min-h-11 rounded-xl bg-red-600 px-3 text-sm disabled:opacity-50">Speichern</button><button type="button" onClick={() => setEditingId(null)} className="min-h-11 rounded-xl border border-white/15 px-3 text-sm">Abbrechen</button></div>
           </div>}
           {canManage && !demoMode && composerId === video.id && <div className="space-y-3 border-t border-white/10 pt-3">
             <label className="block text-sm">Text für den Team-Feed<textarea value={caption} onChange={e => setCaption(e.target.value)} maxLength={500} rows={4} className="mt-1 w-full rounded-xl border border-white/15 bg-zinc-900 p-3 text-base" /></label>
@@ -435,7 +434,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       <div className="flex min-h-16 items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top,0px)]"><div className="min-w-0"><p className="text-xs text-red-400">{videoLabel(activeScene)}</p><h2 className="truncate text-lg font-bold">{activeScene.title}</h2></div><button type="button" onClick={() => {setPlayingId(null);setPlayingUrl(null);setPlaylistIds([]);}} aria-label="Video schließen" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-white/20"><X size={22} aria-hidden /></button></div>
       <div className="flex min-h-0 flex-1 flex-col landscape:flex-row">
         <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center bg-black"><video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" onEnded={nextPlaylistScene} className="max-h-full w-full object-contain" /></div>
-        {(playlistIds.length > 0 || activeScene.category !== 'analysis') && <aside className="hidden min-h-0 flex-col bg-zinc-950 landscape:flex landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:shrink-0 landscape:border-l landscape:border-white/15" aria-label="Szenen im Highlight">
+        {(playlistIds.length > 0 || (activeScene.category !== 'analysis' && activeScene.category !== 'scenes')) && <aside className="hidden min-h-0 flex-col bg-zinc-950 landscape:flex landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:shrink-0 landscape:border-l landscape:border-white/15" aria-label="Szenen im Highlight">
           <div className="space-y-2 border-b border-white/10 p-3">
             <h3 className="font-bold">{playlistIds.length > 0 ? 'Szenen im Spiel' : 'Szenen im Highlight'}</h3>
             <input type="search" value={chapterQuery} onChange={e => setChapterQuery(e.target.value)} placeholder="Szene suchen" aria-label="Szene suchen" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base" />
