@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, LockKeyhole, Maximize2, MoreVertical, Pencil, Play, Plus, Send, Trash2, UploadCloud } from 'lucide-react';
+import { ArrowLeft, List, LockKeyhole, Maximize2, Minimize2, MoreVertical, Pencil, Play, Plus, Send, Trash2, UploadCloud } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
@@ -81,6 +81,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
   const [currentSecond, setCurrentSecond] = useState(0);
   const [playlistIds, setPlaylistIds] = useState<string[]>([]);
+  const [theaterMode, setTheaterMode] = useState(false);
+  const [theaterScenesOpen, setTheaterScenesOpen] = useState(false);
   const [chapterKind, setChapterKind] = useState('other');
   const [chapterTitle, setChapterTitle] = useState('');
   const [chapterQuery, setChapterQuery] = useState('');
@@ -140,11 +142,14 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { setPlayingId(null); setPlayingUrl(null); }
+      if (event.key === 'Escape') {
+        if (theaterMode) { setTheaterMode(false); setTheaterScenesOpen(false); }
+        else { setPlayingId(null); setPlayingUrl(null); setPlaylistIds([]); }
+      }
     };
     window.addEventListener('keydown', onEscape);
     return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', onEscape); };
-  }, [playingId]);
+  }, [playingId, theaterMode]);
 
   const reload = useCallback(async () => {
     const { data, error: loadError } = await supabase.from('match_videos')
@@ -202,7 +207,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
 
   const play = async (video: MatchVideo, keepPlaylist = false) => {
     setPlayingId(null); setPlayingUrl(null); setCurrentSecond(0); setError(null); setChapterError(null);
-    if (!keepPlaylist) { setPlaylistIds([]); setChapterQuery(''); setChapterFilter('all'); }
+    if (!keepPlaylist) { setPlaylistIds([]); setChapterQuery(''); setChapterFilter('all'); setTheaterMode(false); setTheaterScenesOpen(false); }
     setChapterTitle('');
     const { data, error: signError } = await supabase.storage.from('match-videos')
       .createSignedUrl(video.object_path, 300);
@@ -226,23 +231,12 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     if (next) void play(next, true);
   };
 
-  const openVideoFullscreen = async () => {
-    const player = playerRef.current;
-    if (!player) return;
-    const iosPlayer = player as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
-    try {
-      if (typeof iosPlayer.webkitEnterFullscreen === 'function') iosPlayer.webkitEnterFullscreen();
-      else if (player.requestFullscreen) await player.requestFullscreen();
-    } catch {
-      setChapterError('Vollbild konnte nicht gestartet werden.');
-    }
-  };
-
   const jumpToChapter = (second: number) => {
     const player = playerRef.current;
     if (!player) return;
     player.currentTime = second;
     setCurrentSecond(second);
+    setTheaterScenesOpen(false);
     void player.play().catch(() => {});
   };
 
@@ -447,25 +441,31 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         </div>
       </article>)}</div>}
     {activeScene && playingUrl && createPortal(<div className="fixed inset-0 z-[11000] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={`${activeScene.title} abspielen`}>
-      <div className="flex min-h-16 items-center gap-2 border-b border-white/10 px-3 pt-[env(safe-area-inset-top,0px)]">
+      {!theaterMode && <div className="flex min-h-16 items-center gap-2 border-b border-white/10 px-3 pt-[env(safe-area-inset-top,0px)]">
         <button type="button" onClick={() => {setPlayingId(null);setPlayingUrl(null);setPlaylistIds([]);}} aria-label="Zurück zu Spielvideos" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full"><ArrowLeft size={22} aria-hidden /></button>
         <div className="min-w-0 flex-1 text-center"><p className="text-xs text-red-400">{videoLabel(activeScene)}</p><h2 className="truncate text-lg font-bold">{playlistIds.length > 0 ? 'Alle Highlights' : activeScene.title}</h2></div><span className="w-11 shrink-0" aria-hidden />
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col landscape:flex-row">
-        <div className={`relative flex min-h-0 min-w-0 items-center justify-center bg-black ${showSceneList ? 'aspect-video w-full shrink-0 landscape:aspect-auto landscape:w-auto landscape:flex-1 landscape:shrink' : 'flex-1'}`}>
+      </div>}
+      <div className={theaterMode ? 'relative flex min-h-0 flex-1 bg-black' : 'relative flex min-h-0 flex-1 flex-col landscape:flex-row'}>
+        <div className={`relative flex min-h-0 min-w-0 items-center justify-center bg-black ${theaterMode ? `flex-1 ${theaterScenesOpen && showSceneList ? 'landscape:mr-[38%]' : ''}` : showSceneList ? 'aspect-video w-full shrink-0 landscape:aspect-auto landscape:w-auto landscape:flex-1 landscape:shrink' : 'flex-1'}`}>
           <video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" onEnded={nextPlaylistScene} onTimeUpdate={e => setCurrentSecond(Math.floor(e.currentTarget.currentTime))} className="h-full w-full object-contain" />
-          <button type="button" onClick={() => void openVideoFullscreen()} aria-label="Video im Vollbild anzeigen" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white ring-1 ring-white/30"><Maximize2 size={20} aria-hidden /></button>
+          {theaterMode ? <div className="absolute left-3 right-3 top-[env(safe-area-inset-top,0px)] z-10 flex items-center justify-between gap-2 pt-2">
+            <button type="button" onClick={() => {setTheaterMode(false);setTheaterScenesOpen(false);}} aria-label="App-Vollbild verlassen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/70 text-white ring-1 ring-white/30"><ArrowLeft size={22} aria-hidden /></button>
+            <div className="flex items-center gap-2">
+              {showSceneList && <button type="button" onClick={() => setTheaterScenesOpen(open => !open)} aria-expanded={theaterScenesOpen} aria-controls="match-video-scenes" className="flex min-h-11 items-center gap-2 rounded-full bg-black/75 px-4 font-semibold text-white ring-1 ring-white/30"><List size={19} aria-hidden /> Szenen</button>}
+              <button type="button" onClick={() => {setTheaterMode(false);setTheaterScenesOpen(false);}} aria-label="App-Vollbild verkleinern" className="flex h-11 w-11 items-center justify-center rounded-full bg-black/70 text-white ring-1 ring-white/30"><Minimize2 size={20} aria-hidden /></button>
+            </div>
+          </div> : <button type="button" onClick={() => {setTheaterMode(true);setTheaterScenesOpen(false);}} aria-label="App-Vollbild mit Szenenauswahl anzeigen" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white ring-1 ring-white/30"><Maximize2 size={20} aria-hidden /></button>}
         </div>
-        {showSceneList && <aside className="flex min-h-0 w-full flex-1 flex-col border-t border-white/15 bg-zinc-950 landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:flex-none landscape:border-l landscape:border-t-0" aria-label="Szenen im Highlight">
+        {showSceneList && (!theaterMode || theaterScenesOpen) && <aside id="match-video-scenes" className={theaterMode ? 'absolute bottom-0 right-0 z-20 flex max-h-[55vh] w-full flex-col border-t border-white/20 bg-zinc-950/95 shadow-2xl landscape:top-0 landscape:max-h-none landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:border-l landscape:border-t-0' : 'flex min-h-0 w-full flex-1 flex-col border-t border-white/15 bg-zinc-950 landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:flex-none landscape:border-l landscape:border-t-0'} aria-label="Szenen im Highlight">
           <div className="space-y-2 border-b border-white/10 p-3">
-            <h3 className="font-bold">{playlistIds.length > 0 ? 'Szenen im Spiel' : 'Szenen im Highlight'}</h3>
+            <div className="flex items-center justify-between gap-2"><h3 className="font-bold">{playlistIds.length > 0 ? 'Szenen im Spiel' : 'Szenen im Highlight'}</h3>{theaterMode && <button type="button" onClick={() => setTheaterScenesOpen(false)} className="min-h-11 rounded-lg px-3 text-sm text-white/75">Schließen</button>}</div>
             <input type="search" value={chapterQuery} onChange={e => setChapterQuery(e.target.value)} placeholder="Szene suchen" aria-label="Szene suchen" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base" />
             <select value={chapterFilter} onChange={e => setChapterFilter(e.target.value)} aria-label="Szenen filtern" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base">
               <option value="all">Alle Szenen</option>{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
             </select>
           </div>
           {playlistIds.length > 0 ? <div className="min-h-0 flex-1 overflow-y-auto p-2">
-            {matchingPlaylistVideos.length === 0 ? <p className="p-3 text-sm text-white/60">Keine passende Szene gefunden.</p> : matchingPlaylistVideos.map(video => <button key={video.id} type="button" onClick={() => void play(video, true)} aria-current={video.id === playingId ? 'true' : undefined} className={`flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-left text-sm ${video.id === playingId ? 'bg-red-900/50' : 'hover:bg-white/10'}`}>
+            {matchingPlaylistVideos.length === 0 ? <p className="p-3 text-sm text-white/60">Keine passende Szene gefunden.</p> : matchingPlaylistVideos.map(video => <button key={video.id} type="button" onClick={() => {setTheaterScenesOpen(false);void play(video, true);}} aria-current={video.id === playingId ? 'true' : undefined} className={`flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-left text-sm ${video.id === playingId ? 'bg-red-900/50' : 'hover:bg-white/10'}`}>
               <span className="shrink-0 font-bold tabular-nums text-red-400">{video.scene_minute != null ? `${video.scene_minute}′` : `${playlistIds.indexOf(video.id) + 1}.`}</span>
               <span className="min-w-0"><span className="block truncate font-semibold">{video.title}</span><span className="text-xs text-white/55">{SCENE_TYPES[playlistKind(video)] ?? 'Weitere Szenen'}</span></span>
             </button>)}
@@ -488,8 +488,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           </div>}
         </aside>}
       </div>
-      {activeScene.analysis_note && <p className="max-h-40 overflow-y-auto whitespace-pre-wrap px-4 py-3 text-sm text-white/70">{activeScene.analysis_note}</p>}
-      <div className="pb-[env(safe-area-inset-bottom,0px)]" />
+      {!theaterMode && activeScene.analysis_note && <p className="max-h-40 overflow-y-auto whitespace-pre-wrap px-4 py-3 text-sm text-white/70">{activeScene.analysis_note}</p>}
+      {!theaterMode && <div className="pb-[env(safe-area-inset-bottom,0px)]" />}
     </div>,document.body)}
   </section>;
 };
