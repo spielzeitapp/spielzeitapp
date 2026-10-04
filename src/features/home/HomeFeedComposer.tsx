@@ -1,8 +1,8 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Camera, Clapperboard, ImagePlus, Link2, Send, Trophy, Video, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import { uploadStorageObject } from '../../lib/storageUpload';
+import { uploadFeedMedia } from '../../lib/feedMediaUpload';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import {
   FEED_CTA_LABEL_FALLBACK,
@@ -71,24 +71,11 @@ export const HomeFeedComposer: React.FC<Props> = ({
   const [pushEnabled, setPushEnabled] = useState(false);
   const [ctaLabel, setCtaLabel] = useState('Livestream ansehen');
   const [ctaUrl, setCtaUrl] = useState('');
-  const progressTimerRef = useRef<number | null>(null);
+  const uploadControllerRef = useRef<AbortController | null>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   const vidInputRef = useRef<HTMLInputElement>(null);
 
-  const clearProgressTimer = useCallback(() => {
-    if (progressTimerRef.current != null) {
-      window.clearInterval(progressTimerRef.current);
-      progressTimerRef.current = null;
-    }
-  }, []);
-
-  const startFakeUploadProgress = useCallback(() => {
-    clearProgressTimer();
-    setUploadPct(4);
-    progressTimerRef.current = window.setInterval(() => {
-      setUploadPct((p) => (p < 88 ? p + Math.max(2, Math.round((92 - p) / 14)) : p));
-    }, 160);
-  }, [clearProgressTimer]);
+  useEffect(() => () => uploadControllerRef.current?.abort(), []);
 
   const clearDraft = useCallback(() => {
     setDraftFile(null);
@@ -175,7 +162,9 @@ export const HomeFeedComposer: React.FC<Props> = ({
     setPublishFeedback(null);
     setBusy(true);
     setPhase('uploading');
-    startFakeUploadProgress();
+    setUploadPct(0);
+    const controller = new AbortController();
+    uploadControllerRef.current = controller;
 
     const folder = draftKind === 'video' ? 'videos' : 'images';
     const ext = extForMime(draftFile.type, draftKind);
@@ -185,7 +174,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
       setBusy(false);
       setPhase('idle');
       setUploadPct(0);
-      clearProgressTimer();
+      uploadControllerRef.current = null;
       return;
     }
     const objectPath = `${folder}/${seasonSeg}/${crypto.randomUUID()}.${ext}`.replace(/\/+/g, '/');
@@ -212,31 +201,12 @@ export const HomeFeedComposer: React.FC<Props> = ({
         contentType,
       });
 
-      const { error: upErr } = await uploadStorageObject(TEAM_FEED_BUCKET, objectPath, fileForUpload, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType,
+      await uploadFeedMedia(fileForUpload, objectPath, {
+        signal: controller.signal,
+        onProgress: setUploadPct,
       });
-      if (upErr) {
-        const se = upErr as {
-          message: string;
-          status?: number;
-          statusCode?: string;
-          error?: string;
-          details?: string;
-        };
-        console.error('[HomeFeedComposer][storage-upload] fehlgeschlagen', {
-          message: se.message,
-          statusCode: se.statusCode,
-          status: se.status,
-          error: se.error,
-          details: se.details,
-        });
-        throw new Error(se.message);
-      }
-
-      clearProgressTimer();
-      setUploadPct(92);
+      uploadControllerRef.current = null;
+      setUploadPct(100);
       setPhase('saving');
 
       const cap = caption.trim() || (draftKind === 'video' ? 'Neues Video' : 'Neues Foto');
@@ -251,7 +221,6 @@ export const HomeFeedComposer: React.FC<Props> = ({
           setBusy(false);
           setPhase('idle');
           setUploadPct(0);
-          clearProgressTimer();
           return;
         }
         if (!urlRes.url) {
@@ -259,7 +228,6 @@ export const HomeFeedComposer: React.FC<Props> = ({
           setBusy(false);
           setPhase('idle');
           setUploadPct(0);
-          clearProgressTimer();
           return;
         }
         insertCtaUrl = urlRes.url;
@@ -347,7 +315,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      clearProgressTimer();
+      uploadControllerRef.current = null;
       setBusy(false);
       setPhase('idle');
       setUploadPct(0);
@@ -356,7 +324,6 @@ export const HomeFeedComposer: React.FC<Props> = ({
     backendRole,
     busy,
     caption,
-    clearProgressTimer,
     ctaLabel,
     ctaUrl,
     demoMode,
@@ -367,7 +334,6 @@ export const HomeFeedComposer: React.FC<Props> = ({
     onPosted,
     pushEnabled,
     resetComposerFields,
-    startFakeUploadProgress,
     teamId,
     teamSeasonId,
     userId,
@@ -579,7 +545,12 @@ export const HomeFeedComposer: React.FC<Props> = ({
                   style={{ width: `${uploadPct}%` }}
                 />
               </div>
-              <p className="mt-1.5 text-center text-[11px] text-white/50">{Math.min(99, uploadPct)} %</p>
+              <p className="mt-1.5 text-center text-[11px] text-white/50">{uploadPct} % · {uploadPct === 100 ? 'Upload wird bestätigt…' : 'Datei wird hochgeladen…'}</p>
+              <p className="mt-1 text-center text-[11px] text-white/50">App geöffnet lassen und Bildschirm nicht sperren.</p>
+              <button type="button" onClick={() => uploadControllerRef.current?.abort()}
+                className="mt-2 min-h-[44px] w-full rounded-xl border border-white/20 text-sm text-white">
+                Upload abbrechen
+              </button>
             </div>
           ) : null}
 
