@@ -4,6 +4,8 @@ import { ArrowLeft, LockKeyhole, MoreVertical, Pencil, Play, Plus, Send, Trash2,
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
+type Chapter = { id: string; second: number; kind: string; title: string };
+
 type MatchVideo = {
   id: string;
   match_id: string;
@@ -14,6 +16,7 @@ type MatchVideo = {
   scene_type: string | null;
   scene_minute: number | null;
   analysis_note: string | null;
+  chapters: Chapter[];
   visibility: 'staff' | 'team';
   created_at: string;
 };
@@ -25,6 +28,7 @@ const CATEGORIES: Record<string, string> = {
 const SCENE_TYPES: Record<string, string> = {
   goal: 'Tore', shot: 'Schüsse', save: 'Paraden', corner: 'Ecken', defence: 'Abwehr', other: 'Weitere Szenen',
 };
+const chapterTime = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
 const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
 const VIDEO_EXT: Record<string, string> = {
   'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm',
@@ -66,6 +70,7 @@ const initialFeedText = (video: MatchVideo, matchInfo?: Props['matchInfo']) => {
 
 export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo, mode = 'videos', showResultHeader = true, onBack }) => {
   const fileRef = useRef<HTMLInputElement>(null);
+  const playerRef = useRef<HTMLVideoElement>(null);
   const [videos, setVideos] = useState<MatchVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -74,6 +79,12 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [category, setCategory] = useState('highlights');
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const [chapterKind, setChapterKind] = useState('other');
+  const [chapterTitle, setChapterTitle] = useState('');
+  const [chapterQuery, setChapterQuery] = useState('');
+  const [chapterFilter, setChapterFilter] = useState('all');
+  const [chapterBusy, setChapterBusy] = useState(false);
+  const [chapterError, setChapterError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editCategory, setEditCategory] = useState('highlights');
@@ -97,6 +108,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     ? (a.scene_minute ?? Infinity) - (b.scene_minute ?? Infinity)
     : Number(/^alle highlights$/i.test(b.title.trim())) - Number(/^alle highlights$/i.test(a.title.trim())));
   const activeScene = videos.find(video => video.id === playingId);
+  const chapters = [...(activeScene?.chapters ?? [])].sort((a, b) => a.second - b.second);
+  const matchingChapters = chapters.filter(chapter => (chapterFilter === 'all' || chapter.kind === chapterFilter) && `${chapter.title} ${SCENE_TYPES[chapter.kind] ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
   const videoLabel = (video: MatchVideo) => video.category === 'analysis'
     ? SCENE_TYPES[video.scene_type ?? 'other'] ?? 'Weitere Szenen'
     : CATEGORIES[video.category] ?? 'Highlights';
@@ -118,7 +131,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
 
   const reload = useCallback(async () => {
     const { data, error: loadError } = await supabase.from('match_videos')
-      .select('id,match_id,team_season_id,object_path,title,category,scene_type,scene_minute,analysis_note,visibility,created_at')
+      .select('id,match_id,team_season_id,object_path,title,category,scene_type,scene_minute,analysis_note,chapters,visibility,created_at')
       .eq('match_id', matchId).order('created_at', { ascending: false });
     if (loadError) setError('Spielvideos konnten nicht geladen werden. Ist die Datenbank-Erweiterung bereits eingerichtet?');
     else {
@@ -171,7 +184,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   };
 
   const play = async (video: MatchVideo) => {
-    setPlayingId(null); setPlayingUrl(null); setError(null);
+    setPlayingId(null); setPlayingUrl(null); setError(null); setChapterError(null); setChapterQuery(''); setChapterFilter('all'); setChapterTitle('');
     const { data, error: signError } = await supabase.storage.from('match-videos')
       .createSignedUrl(video.object_path, 300);
     if (signError || !data?.signedUrl) {
@@ -179,6 +192,35 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       return;
     }
     setPlayingId(video.id); setPlayingUrl(data.signedUrl);
+  };
+
+  const jumpToChapter = (second: number) => {
+    const player = playerRef.current;
+    if (!player) return;
+    player.currentTime = second;
+    void player.play().catch(() => {});
+  };
+
+  const changeChapter = async (video: MatchVideo, action: 'add' | 'delete', id?: string) => {
+    if (!canManage || demoMode || chapterBusy || video.category === 'analysis') return;
+    const second = Math.floor(playerRef.current?.currentTime ?? 0);
+    if (action === 'add' && (!Number.isFinite(second) || second < 0 || second > 3600)) {
+      setChapterError('Bitte eine Stelle im Highlight bis 60 Minuten auswählen.');
+      return;
+    }
+    setChapterBusy(true); setChapterError(null);
+    const { data, error: saveError } = await supabase.rpc('change_match_video_chapter', {
+      p_video_id: video.id, p_action: action, p_chapter_id: id ?? null,
+      p_second: action === 'add' ? second : null,
+      p_kind: action === 'add' ? chapterKind : null,
+      p_title: action === 'add' ? chapterTitle.trim() || SCENE_TYPES[chapterKind] : null,
+    });
+    if (saveError) setChapterError(saveError.message);
+    else {
+      setVideos(current => current.map(item => item.id === video.id ? { ...item, chapters: (data ?? []) as Chapter[] } : item));
+      if (action === 'add') setChapterTitle('');
+    }
+    setChapterBusy(false);
   };
 
   const openComposer = async (video: MatchVideo) => {
@@ -357,7 +399,34 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       </article>)}</div>}
     {activeScene && playingUrl && createPortal(<div className="fixed inset-0 z-[11000] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={`${activeScene.title} abspielen`}>
       <div className="flex min-h-16 items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top,0px)]"><div className="min-w-0"><p className="text-xs text-red-400">{videoLabel(activeScene)}</p><h2 className="truncate text-lg font-bold">{activeScene.title}</h2></div><button type="button" onClick={() => {setPlayingId(null);setPlayingUrl(null);}} aria-label="Video schließen" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-white/20"><X size={22} aria-hidden /></button></div>
-      <div className="flex min-h-0 flex-1 items-center justify-center bg-black"><video key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" className="max-h-full w-full object-contain" /></div>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <div className="flex min-h-0 flex-1 items-center justify-center bg-black"><video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" className="max-h-full w-full object-contain" /></div>
+        {activeScene.category !== 'analysis' && <aside className="flex max-h-[45vh] min-h-0 w-full flex-col border-t border-white/15 bg-zinc-950 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0" aria-label="Szenen im Highlight">
+          <div className="space-y-2 border-b border-white/10 p-3">
+            <h3 className="font-bold">Szenen im Highlight</h3>
+            <input type="search" value={chapterQuery} onChange={e => setChapterQuery(e.target.value)} placeholder="Szene suchen" aria-label="Szene suchen" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base" />
+            <select value={chapterFilter} onChange={e => setChapterFilter(e.target.value)} aria-label="Szenen filtern" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base">
+              <option value="all">Alle Szenen</option>{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+            {chapters.length === 0 ? <p className="p-3 text-sm text-white/60">Noch keine Zeitmarken. Trainer können Szenen beim Abspielen markieren.</p> : matchingChapters.length === 0 ? <p className="p-3 text-sm text-white/60">Keine passende Szene gefunden.</p> : matchingChapters.map(chapter => <div key={chapter.id} className="flex items-center gap-1 rounded-xl hover:bg-white/10">
+              <button type="button" onClick={() => jumpToChapter(chapter.second)} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 px-3 text-left text-sm" aria-label={`Zu ${chapterTime(chapter.second)} ${chapter.title} springen`}>
+                <span className="shrink-0 font-bold tabular-nums text-red-400">{chapterTime(chapter.second)}</span>
+                <span className="min-w-0 truncate">{chapter.title}</span>
+              </button>
+              {canManage && !demoMode && <button type="button" disabled={chapterBusy} onClick={() => void changeChapter(activeScene, 'delete', chapter.id)} aria-label={`Zeitmarke ${chapter.title} löschen`} className="flex min-h-11 min-w-11 items-center justify-center text-white/60 disabled:opacity-50"><Trash2 size={16} aria-hidden /></button>}
+            </div>)}
+          </div>
+          {canManage && !demoMode && <div className="space-y-2 border-t border-white/10 p-3">
+            <p className="text-xs text-white/65">Video an der gewünschten Stelle pausieren, dann markieren.</p>
+            <select value={chapterKind} onChange={e => setChapterKind(e.target.value)} aria-label="Kategorie der neuen Szene" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base">{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select>
+            <input value={chapterTitle} onChange={e => setChapterTitle(e.target.value)} maxLength={80} placeholder="Titel (optional)" aria-label="Titel der neuen Szene" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base" />
+            <button type="button" disabled={chapterBusy} onClick={() => void changeChapter(activeScene, 'add')} className="min-h-11 w-full rounded-xl bg-red-600 px-3 font-semibold disabled:opacity-50">{chapterBusy ? 'Speichert …' : 'Aktuelle Stelle markieren'}</button>
+            {chapterError && <p role="alert" className="text-sm text-amber-300">{chapterError}</p>}
+          </div>}
+        </aside>}
+      </div>
       {activeScene.analysis_note && <p className="max-h-40 overflow-y-auto whitespace-pre-wrap px-4 py-3 text-sm text-white/70">{activeScene.analysis_note}</p>}
       <div className="pb-[env(safe-area-inset-bottom,0px)]" />
     </div>,document.body)}
