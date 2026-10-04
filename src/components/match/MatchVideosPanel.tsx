@@ -431,9 +431,9 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       </article>)}</div>}
     {activeScene && playingUrl && createPortal(<div className="fixed inset-0 z-[11000] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={`${activeScene.title} abspielen`}>
       <div className="flex min-h-16 items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top,0px)]"><div className="min-w-0"><p className="text-xs text-red-400">{videoLabel(activeScene)}</p><h2 className="truncate text-lg font-bold">{activeScene.title}</h2></div><button type="button" onClick={() => {setPlayingId(null);setPlayingUrl(null);setPlaylistIds([]);}} aria-label="Video schließen" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-white/20"><X size={22} aria-hidden /></button></div>
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="flex min-h-0 flex-1 items-center justify-center bg-black"><video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" onEnded={nextPlaylistScene} className="max-h-full w-full object-contain" /></div>
-        {(playlistIds.length > 0 || activeScene.category !== 'analysis') && <aside className="flex max-h-[45vh] min-h-0 w-full flex-col border-t border-white/15 bg-zinc-950 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0" aria-label="Szenen im Highlight">
+      <div className="flex min-h-0 flex-1 flex-col landscape:flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center bg-black"><video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" onEnded={nextPlaylistScene} className="max-h-full w-full object-contain" /></div>
+        {(playlistIds.length > 0 || activeScene.category !== 'analysis') && <aside className="hidden min-h-0 flex-col bg-zinc-950 landscape:flex landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:shrink-0 landscape:border-l landscape:border-white/15" aria-label="Szenen im Highlight">
           <div className="space-y-2 border-b border-white/10 p-3">
             <h3 className="font-bold">{playlistIds.length > 0 ? 'Szenen im Spiel' : 'Szenen im Highlight'}</h3>
             <input type="search" value={chapterQuery} onChange={e => setChapterQuery(e.target.value)} placeholder="Szene suchen" aria-label="Szene suchen" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base" />
