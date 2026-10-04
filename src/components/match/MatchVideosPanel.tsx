@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, LockKeyhole, MoreVertical, Pencil, Play, Plus, Send, Trash2, UploadCloud, X } from 'lucide-react';
+import { ArrowLeft, LockKeyhole, Maximize2, MoreVertical, Pencil, Play, Plus, Send, Trash2, UploadCloud } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
@@ -79,6 +79,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [category, setCategory] = useState('highlights');
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const [currentSecond, setCurrentSecond] = useState(0);
   const [playlistIds, setPlaylistIds] = useState<string[]>([]);
   const [chapterKind, setChapterKind] = useState('other');
   const [chapterTitle, setChapterTitle] = useState('');
@@ -122,7 +123,9 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     (chapterFilter === 'all' || playlistKind(video) === chapterFilter) &&
     `${video.title} ${SCENE_TYPES[playlistKind(video)] ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
   const activeScene = videos.find(video => video.id === playingId);
+  const showSceneList = Boolean(activeScene && (playlistIds.length > 0 || (activeScene.category !== 'analysis' && activeScene.category !== 'scenes')));
   const chapters = [...(activeScene?.chapters ?? [])].sort((a, b) => a.second - b.second);
+  const activeChapterId = [...chapters].reverse().find(chapter => chapter.second <= currentSecond)?.id;
   const matchingChapters = chapters.filter(chapter => (chapterFilter === 'all' || chapter.kind === chapterFilter) && `${chapter.title} ${SCENE_TYPES[chapter.kind] ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
   const videoLabel = (video: MatchVideo) => video.category === 'scenes'
     ? SCENE_TYPES[sceneKind(video)] ?? 'Weitere Szenen'
@@ -198,7 +201,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   };
 
   const play = async (video: MatchVideo, keepPlaylist = false) => {
-    setPlayingId(null); setPlayingUrl(null); setError(null); setChapterError(null);
+    setPlayingId(null); setPlayingUrl(null); setCurrentSecond(0); setError(null); setChapterError(null);
     if (!keepPlaylist) { setPlaylistIds([]); setChapterQuery(''); setChapterFilter('all'); }
     setChapterTitle('');
     const { data, error: signError } = await supabase.storage.from('match-videos')
@@ -223,10 +226,23 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     if (next) void play(next, true);
   };
 
+  const openVideoFullscreen = async () => {
+    const player = playerRef.current;
+    if (!player) return;
+    const iosPlayer = player as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+    try {
+      if (typeof iosPlayer.webkitEnterFullscreen === 'function') iosPlayer.webkitEnterFullscreen();
+      else if (player.requestFullscreen) await player.requestFullscreen();
+    } catch {
+      setChapterError('Vollbild konnte nicht gestartet werden.');
+    }
+  };
+
   const jumpToChapter = (second: number) => {
     const player = playerRef.current;
     if (!player) return;
     player.currentTime = second;
+    setCurrentSecond(second);
     void player.play().catch(() => {});
   };
 
@@ -431,10 +447,16 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         </div>
       </article>)}</div>}
     {activeScene && playingUrl && createPortal(<div className="fixed inset-0 z-[11000] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={`${activeScene.title} abspielen`}>
-      <div className="flex min-h-16 items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top,0px)]"><div className="min-w-0"><p className="text-xs text-red-400">{videoLabel(activeScene)}</p><h2 className="truncate text-lg font-bold">{activeScene.title}</h2></div><button type="button" onClick={() => {setPlayingId(null);setPlayingUrl(null);setPlaylistIds([]);}} aria-label="Video schließen" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-white/20"><X size={22} aria-hidden /></button></div>
+      <div className="flex min-h-16 items-center gap-2 border-b border-white/10 px-3 pt-[env(safe-area-inset-top,0px)]">
+        <button type="button" onClick={() => {setPlayingId(null);setPlayingUrl(null);setPlaylistIds([]);}} aria-label="Zurück zu Spielvideos" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full"><ArrowLeft size={22} aria-hidden /></button>
+        <div className="min-w-0 flex-1 text-center"><p className="text-xs text-red-400">{videoLabel(activeScene)}</p><h2 className="truncate text-lg font-bold">{playlistIds.length > 0 ? 'Alle Highlights' : activeScene.title}</h2></div><span className="w-11 shrink-0" aria-hidden />
+      </div>
       <div className="flex min-h-0 flex-1 flex-col landscape:flex-row">
-        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center bg-black"><video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" onEnded={nextPlaylistScene} className="max-h-full w-full object-contain" /></div>
-        {(playlistIds.length > 0 || (activeScene.category !== 'analysis' && activeScene.category !== 'scenes')) && <aside className="hidden min-h-0 flex-col bg-zinc-950 landscape:flex landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:shrink-0 landscape:border-l landscape:border-white/15" aria-label="Szenen im Highlight">
+        <div className={`relative flex min-h-0 min-w-0 items-center justify-center bg-black ${showSceneList ? 'aspect-video w-full shrink-0 landscape:aspect-auto landscape:w-auto landscape:flex-1 landscape:shrink' : 'flex-1'}`}>
+          <video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" onEnded={nextPlaylistScene} onTimeUpdate={e => setCurrentSecond(Math.floor(e.currentTarget.currentTime))} className="h-full w-full object-contain" />
+          <button type="button" onClick={() => void openVideoFullscreen()} aria-label="Video im Vollbild anzeigen" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white ring-1 ring-white/30"><Maximize2 size={20} aria-hidden /></button>
+        </div>
+        {showSceneList && <aside className="flex min-h-0 w-full flex-1 flex-col border-t border-white/15 bg-zinc-950 landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:flex-none landscape:border-l landscape:border-t-0" aria-label="Szenen im Highlight">
           <div className="space-y-2 border-b border-white/10 p-3">
             <h3 className="font-bold">{playlistIds.length > 0 ? 'Szenen im Spiel' : 'Szenen im Highlight'}</h3>
             <input type="search" value={chapterQuery} onChange={e => setChapterQuery(e.target.value)} placeholder="Szene suchen" aria-label="Szene suchen" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base" />
@@ -448,10 +470,11 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
               <span className="min-w-0"><span className="block truncate font-semibold">{video.title}</span><span className="text-xs text-white/55">{SCENE_TYPES[playlistKind(video)] ?? 'Weitere Szenen'}</span></span>
             </button>)}
           </div> : <div className="min-h-0 flex-1 overflow-y-auto p-2">
-            {chapters.length === 0 ? <p className="p-3 text-sm text-white/60">Noch keine Zeitmarken. Trainer können Szenen beim Abspielen markieren.</p> : matchingChapters.length === 0 ? <p className="p-3 text-sm text-white/60">Keine passende Szene gefunden.</p> : matchingChapters.map(chapter => <div key={chapter.id} className="flex items-center gap-1 rounded-xl hover:bg-white/10">
-              <button type="button" onClick={() => jumpToChapter(chapter.second)} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 px-3 text-left text-sm" aria-label={`Zu ${chapterTime(chapter.second)} ${chapter.title} springen`}>
+            {chapters.length === 0 ? <p className="p-3 text-sm text-white/60">Noch keine Zeitmarken. Trainer können Szenen beim Abspielen markieren.</p> : matchingChapters.length === 0 ? <p className="p-3 text-sm text-white/60">Keine passende Szene gefunden.</p> : matchingChapters.map(chapter => <div key={chapter.id} className={`flex items-center gap-1 rounded-xl ${chapter.id === activeChapterId ? 'bg-white/15' : 'hover:bg-white/10'}`}>
+              <button type="button" onClick={() => jumpToChapter(chapter.second)} aria-current={chapter.id === activeChapterId ? 'true' : undefined} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 px-3 text-left text-sm" aria-label={`Zu ${chapterTime(chapter.second)} ${chapter.title} springen`}>
                 <span className="shrink-0 font-bold tabular-nums text-red-400">{chapterTime(chapter.second)}</span>
-                <span className="min-w-0 truncate">{chapter.title}</span>
+                <span className="min-w-0 flex-1 truncate">{chapter.title}</span>
+                {chapter.id === activeChapterId && <span aria-hidden className="text-lg">✓</span>}
               </button>
               {canManage && !demoMode && <button type="button" disabled={chapterBusy} onClick={() => void changeChapter(activeScene, 'delete', chapter.id)} aria-label={`Zeitmarke ${chapter.title} löschen`} className="flex min-h-11 min-w-11 items-center justify-center text-white/60 disabled:opacity-50"><Trash2 size={16} aria-hidden /></button>}
             </div>)}
