@@ -610,6 +610,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   } = usePlayerTrainingStats(player.id, statsSeasonId, canViewTrainingParticipation, {
     mode: statsMode,
     careerSeasonIds,
+    availabilityKey: `${player.is_injured}:${player.injured_since}:${player.injured_until}`,
   });
 
   const rankingSeasonId =
@@ -757,7 +758,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     setIsInjuredPlayer(next);
     const patch = next
       ? { is_injured: true as const, injured_since: nowIso, injured_until: null as string | null }
-      : { is_injured: false as const, injured_since: null as string | null, injured_until: nowIso };
+      : { is_injured: false as const, injured_since: player.injured_since ?? null, injured_until: nowIso };
     const { ok, error } = await updatePlayerMasterFlags({
       playerId: player.id,
       teamSeasonId: teamSeasonId ?? player.team_season_id,
@@ -917,7 +918,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               />
               <SpecialSettingToggleRow
                 label="Verletzt"
-                hint="Langzeit-Ausfall: zukünftige Trainings und Spiele ohne Eintrag werden automatisch als verletzt geführt."
+                hint="Langzeit-Ausfall: Trainings und Spiele im Verletzungszeitraum werden automatisch als verletzt geführt, auch bei einer älteren Zusage."
                 checked={injuredToggleChecked}
                 disabled={injuredSaving}
                 error={injuredError}

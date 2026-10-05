@@ -21,11 +21,12 @@ export function usePlayerTrainingStats(
   playerId: string | null,
   teamSeasonId: string | null,
   enabled = true,
-  options?: { mode?: 'season' | 'career'; careerSeasonIds?: string[] },
+  options?: { mode?: 'season' | 'career'; careerSeasonIds?: string[]; availabilityKey?: string },
 ) {
   const demo = useDemoMode();
   const mode = options?.mode ?? 'season';
   const careerSeasonIds = options?.careerSeasonIds;
+  const availabilityKey = options?.availabilityKey;
   const [stats, setStats] = useState<TrainingAttendanceStats>(EMPTY_TRAINING_STATS);
   const [sessions, setSessions] = useState<PlayerTrainingSession[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,7 +62,8 @@ export function usePlayerTrainingStats(
             byEvent.set(row.event_id.toLowerCase(), row.status);
           }
         }
-        const history = computeTrainingHistoryForPlayer(past, byEvent);
+        const history = computeTrainingHistoryForPlayer(past, byEvent, Date.now(),
+          demo.players.find((p) => p.id.toLowerCase() === pid.toLowerCase()));
         setStats(history.stats);
         setSessions(history.sessions);
       } else {
@@ -99,7 +101,7 @@ export function usePlayerTrainingStats(
     } finally {
       setLoading(false);
     }
-  }, [enabled, playerId, teamSeasonId, mode, careerKey, demo, demoAttendanceKey]);
+  }, [enabled, playerId, teamSeasonId, mode, careerKey, demo, demoAttendanceKey, availabilityKey]);
 
   useEffect(() => {
     void load();

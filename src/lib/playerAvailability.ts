@@ -25,22 +25,20 @@ export function isPlayerAutoInjuredForEvent(
   eventStartsAtIso: string | null | undefined,
   nowMs: number = Date.now(),
 ): boolean {
-  if (!player?.is_injured) return false;
-  if (!isUpcomingEvent(eventStartsAtIso, nowMs)) return false;
-
-  const starts = Date.parse(eventStartsAtIso!);
+  if (!player || !eventStartsAtIso) return false;
+  const starts = Date.parse(eventStartsAtIso);
   if (!Number.isFinite(starts)) return false;
-
-  if (player.injured_since) {
-    const since = Date.parse(player.injured_since);
-    if (Number.isFinite(since) && starts < since) return false;
+  const since = Date.parse(player.injured_since ?? '');
+  const until = Date.parse(player.injured_until ?? '');
+  // Ohne bekannten Beginn dürfen ältere Termine nicht rückwirkend umgedeutet werden.
+  if (!Number.isFinite(since)) {
+    return Boolean(player.is_injured && starts >= nowMs &&
+      (!Number.isFinite(until) || starts <= until));
   }
-
-  if (player.injured_until) {
-    const until = Date.parse(player.injured_until);
-    if (Number.isFinite(until) && starts > until) return false;
-  }
-
+  if (starts < since) return false;
+  if (Number.isFinite(until) && starts > until) return false;
+  // Ein abgeschlossener, datierter Ausfall bleibt auch nach Genesung gültig.
+  if (!player.is_injured && !Number.isFinite(until)) return false;
   return true;
 }
 
@@ -56,20 +54,20 @@ export function resolvePlayerAvailabilityStatusLabel(
 
 export type MatchRsvpDisplayStatus = 'yes' | 'no' | 'sick' | 'injured' | 'external_training' | 'unset';
 
-/** Spiel-/Turnier-RSVP: explizite Zeile hat Vorrang; sonst Verletzten-Flag für Zukunft. */
+/** Datierter Verletzungsausfall hat Vorrang vor älteren Zusagen. */
 export function resolveMatchEventRsvpStatus(
   rawDbStatus: string | null | undefined,
   player: PlayerAvailabilityFlags | null | undefined,
   eventStartsAtIso: string | null | undefined,
   nowMs: number = Date.now(),
 ): MatchRsvpDisplayStatus {
+  if (isPlayerAutoInjuredForEvent(player, eventStartsAtIso, nowMs)) return 'injured';
   const s = String(rawDbStatus ?? '').trim().toLowerCase();
   if (s === 'yes') return 'yes';
   if (s === 'no') return 'no';
   if (s === 'sick') return 'sick';
   if (s === 'injured') return 'injured';
   if (s === 'external_training') return 'external_training';
-  if (player && isPlayerAutoInjuredForEvent(player, eventStartsAtIso, nowMs)) return 'injured';
   return 'unset';
 }
 

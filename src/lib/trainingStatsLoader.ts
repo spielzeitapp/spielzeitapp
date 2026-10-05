@@ -6,6 +6,21 @@ import {
 } from './trainingAttendance';
 import { isPastTrainingEvent } from './eventFilters';
 import { supabase } from './supabaseClient';
+import { type PlayerAvailabilityFlags } from './playerAvailability';
+
+export async function fetchTrainingPlayerAvailability(
+  playerIds: string[],
+): Promise<Record<string, PlayerAvailabilityFlags>> {
+  if (playerIds.length === 0) return {};
+  const { data, error } = await supabase.from('players')
+    .select('id, is_injured, injured_since, injured_until').in('id', playerIds);
+  if (error) throw error;
+  return Object.fromEntries((data ?? []).map((p) => [String(p.id).toLowerCase(), {
+    is_injured: p.is_injured === true,
+    injured_since: p.injured_since,
+    injured_until: p.injured_until,
+  }]));
+}
 
 export type PastTrainingEvent = { id: string; starts_at: string };
 
@@ -60,6 +75,7 @@ export function computeTrainingStatsForPlayer(
   eventRows: PastTrainingEvent[],
   attendanceByEventId: Map<string, string>,
   nowMs: number = Date.now(),
+  player?: PlayerAvailabilityFlags,
 ): TrainingAttendanceStats {
   if (eventRows.length === 0) return { ...EMPTY_TRAINING_STATS };
   const sessionStatuses = eventRows.map((ev) =>
@@ -67,6 +83,7 @@ export function computeTrainingStatsForPlayer(
       attendanceByEventId.get(String(ev.id).toLowerCase()),
       ev.starts_at,
       nowMs,
+      player,
     ),
   );
   return computeTrainingAttendanceStats(sessionStatuses);
@@ -76,6 +93,7 @@ export function computeTrainingHistoryForPlayer(
   eventRows: PastTrainingEvent[],
   attendanceByEventId: Map<string, string>,
   nowMs: number = Date.now(),
+  player?: PlayerAvailabilityFlags,
 ): PlayerTrainingHistory {
   const sessions = eventRows.map((ev) => ({
     eventId: ev.id,
@@ -84,6 +102,7 @@ export function computeTrainingHistoryForPlayer(
       attendanceByEventId.get(String(ev.id).toLowerCase()),
       ev.starts_at,
       nowMs,
+      player,
     ),
   }));
   return {
@@ -117,7 +136,8 @@ export async function loadPlayerTrainingHistory(
     statusByEvent.set(String(row.event_id).toLowerCase(), row.status);
   }
 
-  return computeTrainingHistoryForPlayer(events, statusByEvent);
+  const availability = await fetchTrainingPlayerAvailability([pid]);
+  return computeTrainingHistoryForPlayer(events, statusByEvent, Date.now(), availability[pid.toLowerCase()]);
 }
 
 export async function loadPlayerTrainingStats(
@@ -164,9 +184,10 @@ export async function loadTeamPlayersTrainingStats(
   }
 
   const nowMs = Date.now();
+  const availability = await fetchTrainingPlayerAvailability(normalizedIds);
   for (const id of normalizedIds) {
     const attMap = attendanceByPlayer.get(id.toLowerCase()) ?? new Map();
-    statsByPlayerId.set(id, computeTrainingStatsForPlayer(events, attMap, nowMs));
+    statsByPlayerId.set(id, computeTrainingStatsForPlayer(events, attMap, nowMs, availability[id.toLowerCase()]));
   }
 
   return { events, statsByPlayerId };
@@ -209,5 +230,6 @@ export async function loadPlayerTrainingHistoryAcrossSeasons(
     const row = r as { event_id: string; status: string };
     statusByEvent.set(String(row.event_id).toLowerCase(), row.status);
   }
-  return computeTrainingHistoryForPlayer(events, statusByEvent);
+  const availability = await fetchTrainingPlayerAvailability([pid]);
+  return computeTrainingHistoryForPlayer(events, statusByEvent, Date.now(), availability[pid.toLowerCase()]);
 }
