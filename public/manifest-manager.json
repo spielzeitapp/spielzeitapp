@@ -2,7 +2,7 @@
   "id": "/manager",
   "name": "Spielzeit Manager",
   "short_name": "Manager",
-  "start_url": "/manager?entry=platform",
+  "start_url": "/manager/video",
   "scope": "/",
   "display": "standalone",
   "background_color": "#090909",
