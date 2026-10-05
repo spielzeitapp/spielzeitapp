@@ -516,6 +516,13 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         </div>
       </article>)}</div>}
     {activeScene && playingUrl && createPortal(<div className="fixed inset-0 z-[11000] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={`${activeScene.title} abspielen`}>
+      {theaterMode && <div className="flex min-h-14 items-center justify-between gap-2 border-b border-white/10 bg-zinc-950 px-3 pt-[env(safe-area-inset-top,0px)]">
+        <button type="button" onClick={() => {setTheaterMode(false);setTheaterScenesOpen(false);}} aria-label="App-Vollbild verlassen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"><ArrowLeft size={22} aria-hidden /></button>
+        <div className="flex items-center gap-2">
+          {showSceneList && <button type="button" onClick={() => setTheaterScenesOpen(open => !open)} aria-expanded={theaterScenesOpen} aria-controls="match-video-scenes" className="flex min-h-11 items-center gap-2 rounded-full border border-white/25 px-4 font-semibold text-white"><List size={19} aria-hidden /> Szenen</button>}
+          <button type="button" onClick={() => {setTheaterMode(false);setTheaterScenesOpen(false);}} aria-label="App-Vollbild verkleinern" className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 text-white"><Minimize2 size={20} aria-hidden /></button>
+        </div>
+      </div>}
       {!theaterMode && <div className="flex min-h-16 items-center gap-2 border-b border-white/10 px-3 pt-[env(safe-area-inset-top,0px)]">
         <button type="button" onClick={() => {setPlayingId(null);setPlayingUrl(null);setPlaylistIds([]);}} aria-label="Zurück zu Spielvideos" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full"><ArrowLeft size={22} aria-hidden /></button>
         <div className="min-w-0 flex-1 text-center"><p className="text-xs text-red-400">{videoLabel(activeScene)}</p><h2 className="truncate text-lg font-bold">{playlistIds.length > 0 ? 'Alle Highlights' : activeScene.title}</h2></div><span className="w-11 shrink-0" aria-hidden />
@@ -523,13 +530,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       <div className={theaterMode ? 'relative flex min-h-0 flex-1 bg-black' : 'relative flex min-h-0 flex-1 flex-col landscape:flex-row'}>
         <div className={`relative flex min-h-0 min-w-0 items-center justify-center bg-black ${theaterMode ? `flex-1 ${theaterScenesOpen && showSceneList ? 'landscape:mr-[38%]' : ''}` : showSceneList ? 'aspect-video w-full shrink-0 landscape:aspect-auto landscape:w-auto landscape:flex-1 landscape:shrink' : 'flex-1'}`}>
           <video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" onEnded={nextPlaylistScene} onTimeUpdate={e => setCurrentSecond(Math.floor(e.currentTarget.currentTime))} className="h-full w-full object-contain" />
-          {theaterMode ? <div className="absolute left-3 right-3 top-[env(safe-area-inset-top,0px)] z-10 flex items-center justify-between gap-2 pt-2">
-            <button type="button" onClick={() => {setTheaterMode(false);setTheaterScenesOpen(false);}} aria-label="App-Vollbild verlassen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/70 text-white ring-1 ring-white/30"><ArrowLeft size={22} aria-hidden /></button>
-            <div className="flex items-center gap-2">
-              {showSceneList && <button type="button" onClick={() => setTheaterScenesOpen(open => !open)} aria-expanded={theaterScenesOpen} aria-controls="match-video-scenes" className="flex min-h-11 items-center gap-2 rounded-full bg-black/75 px-4 font-semibold text-white ring-1 ring-white/30"><List size={19} aria-hidden /> Szenen</button>}
-              <button type="button" onClick={() => {setTheaterMode(false);setTheaterScenesOpen(false);}} aria-label="App-Vollbild verkleinern" className="flex h-11 w-11 items-center justify-center rounded-full bg-black/70 text-white ring-1 ring-white/30"><Minimize2 size={20} aria-hidden /></button>
-            </div>
-          </div> : <button type="button" onClick={() => {setTheaterMode(true);setTheaterScenesOpen(false);}} aria-label="App-Vollbild mit Szenenauswahl anzeigen" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white ring-1 ring-white/30"><Maximize2 size={20} aria-hidden /></button>}
+          {!theaterMode && <button type="button" onClick={() => {setTheaterMode(true);setTheaterScenesOpen(false);}} aria-label="App-Vollbild mit Szenenauswahl anzeigen" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white ring-1 ring-white/30"><Maximize2 size={20} aria-hidden /></button>}
         </div>
         {showSceneList && (!theaterMode || theaterScenesOpen) && <aside id="match-video-scenes" className={theaterMode ? 'absolute bottom-0 right-0 z-20 flex max-h-[55vh] w-full flex-col border-t border-white/20 bg-zinc-950/95 shadow-2xl landscape:top-0 landscape:max-h-none landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:border-l landscape:border-t-0' : 'flex min-h-0 w-full flex-1 flex-col border-t border-white/15 bg-zinc-950 landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:flex-none landscape:border-l landscape:border-t-0'} aria-label="Szenen im Highlight">
           <div className="space-y-2 border-b border-white/10 p-3">
