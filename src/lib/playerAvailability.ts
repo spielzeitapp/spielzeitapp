@@ -73,6 +73,31 @@ export function resolveMatchEventRsvpStatus(
   return 'unset';
 }
 
+/** Match-/Event-Karten: nur aktiver Kader; Verletzte separat, niemals offen. */
+export function matchScheduleCardCounts(params: {
+  rosterPlayerIds: string[];
+  availabilityByPlayerId?: Record<string, string | null | undefined>;
+  startsAtIso?: string | null;
+  playerAvailabilityById?: Record<string, PlayerAvailabilityFlags | undefined>;
+  nowMs?: number;
+}): { yes: number; no: number; open: number; injured: number } {
+  const counts = { yes: 0, no: 0, open: 0, injured: 0 };
+  const nowMs = params.nowMs ?? Date.now();
+  for (const key of new Set(params.rosterPlayerIds.map((id) => id.toLowerCase()))) {
+    const status = resolveMatchEventRsvpStatus(
+      params.availabilityByPlayerId?.[key],
+      params.playerAvailabilityById?.[key],
+      params.startsAtIso,
+      nowMs,
+    );
+    if (status === 'yes') counts.yes += 1;
+    else if (status === 'injured') counts.injured += 1;
+    else if (status === 'unset') counts.open += 1;
+    else counts.no += 1;
+  }
+  return counts;
+}
+
 export function playerAvailabilityFromItem(player: {
   is_injured?: boolean;
   injured_since?: string | null;

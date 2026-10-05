@@ -89,7 +89,7 @@ import {
   type VenueRow,
 } from '../lib/venues';
 import { trainingScheduleCardCounts } from '../lib/trainingAttendance';
-import { buildPlayerAvailabilityMap } from '../lib/playerAvailability';
+import { buildPlayerAvailabilityMap, matchScheduleCardCounts } from '../lib/playerAvailability';
 import {
   formatPeriodScoresBracket,
   parsePeriodScores,
@@ -1736,9 +1736,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           teamSeasons.find((season) => season.id === ev.team_season_id)?.status,
                         );
                         const evAttendance = attendanceByEventId[ev.id];
-                        const yesRaw = evAttendance?.yes ?? 0;
-                        const no = evAttendance?.no ?? 0;
-                        const open = Math.max(0, rosterPlayerIds.length - yesRaw - no);
                         const et = getEffectiveEventType(ev);
                         const countsForCard =
                           et === 'training'
@@ -1748,7 +1745,12 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                 startsAtIso: ev.starts_at,
                                 playerAvailabilityById,
                               })
-                            : { yes: yesRaw, no, open };
+                            : matchScheduleCardCounts({
+                                rosterPlayerIds,
+                                availabilityByPlayerId: evAttendance?.availabilityByPlayerId,
+                                startsAtIso: ev.starts_at,
+                                playerAvailabilityById,
+                              });
                         const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                         const myStatusFromDb =
                           canShowRsvpUi &&
@@ -2028,9 +2030,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         </h3>
                       ) : null;
                       const evAttendance = attendanceByEventId[ev.id];
-                      const yesRaw = evAttendance?.yes ?? 0;
-                      const no = evAttendance?.no ?? 0;
-                      const open = Math.max(0, rosterPlayerIds.length - yesRaw - no);
                       const et = getEffectiveEventType(ev);
                       const countsForCard =
                         et === 'training'
@@ -2040,7 +2039,12 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                               startsAtIso: ev.starts_at,
                               playerAvailabilityById,
                             })
-                          : { yes: yesRaw, no, open };
+                          : matchScheduleCardCounts({
+                              rosterPlayerIds,
+                              availabilityByPlayerId: evAttendance?.availabilityByPlayerId,
+                              startsAtIso: ev.starts_at,
+                              playerAvailabilityById,
+                            });
                       const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                       const myStatusFromDb =
                         canShowRsvpUi &&
