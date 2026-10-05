@@ -26,7 +26,8 @@ function ensureManifestLink(href: string): void {
 
 /**
  * Setzt das PWA-Manifest nach Domain und Route:
- * - spielzeitapp.at / app.spielzeitapp.at → /manifest-trainer.json (start_url /app)
+ * - /manager → eigenes Manager-Manifest (start_url /manager)
+ * - spielzeitapp.at / app.spielzeitapp.at sonst → /manifest-trainer.json (start_url /app)
  * - localhost / andere Hosts auf /app → /manifest-trainer.json
  * - sonst → /manifest.json (nur lokale Public-Dev-Variante)
  */
@@ -34,12 +35,21 @@ export function ManifestSync(): null {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const href = isInternalDomain()
+    const manager = pathname.startsWith('/manager');
+    const href = manager
+      ? '/manifest-manager.json'
+      : isInternalDomain()
       ? '/manifest-trainer.json'
       : pathname.startsWith('/app')
         ? '/manifest-trainer.json'
         : '/manifest.json';
     ensureManifestLink(href);
+    const icon = document.querySelector('head link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
+    if (icon) icon.href = manager ? '/manager-apple-touch-icon.png' : '/apple-touch-icon.png';
+    const title = document.querySelector('head meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
+    if (title) title.content = manager ? 'Spielzeit Manager' : 'SpielzeitApp';
+    if (manager) document.title = 'Spielzeit Manager';
+    else if (document.title === 'Spielzeit Manager') document.title = 'SpielzeitApp';
   }, [pathname]);
 
   return null;
