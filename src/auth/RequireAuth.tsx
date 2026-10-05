@@ -33,7 +33,7 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedBacke
     const next = location.pathname.startsWith('/manager')
       ? `?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`
       : '';
-    return <Navigate to={`/login${next}`} state={{ from: location }} replace />;
+    return <Navigate to={`${next ? '/manager/login' : '/login'}${next}`} state={{ from: location }} replace />;
   }
 
   if (allowedBackendRoles != null && allowedBackendRoles.length > 0) {
