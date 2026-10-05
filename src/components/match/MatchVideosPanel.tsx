@@ -108,6 +108,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
   const [goalEvents, setGoalEvents] = useState<GoalEvent[]>([]);
   const [editTitleAuto, setEditTitleAuto] = useState(false);
+  const [uploadTitleAuto, setUploadTitleAuto] = useState(false);
   const [annotationPlayerId, setAnnotationPlayerId] = useState('');
   const [annotationAssistId, setAnnotationAssistId] = useState('');
   const [annotationEventId, setAnnotationEventId] = useState('');
@@ -330,6 +331,11 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   };
 
   useEffect(() => {
+    if (!uploadOpen || view !== 'scenes' || !uploadTitleAuto) return;
+    setTitle(suggestSceneTitle(sceneType, annotationPlayerId, annotationAssistId));
+  }, [uploadOpen, view, uploadTitleAuto, sceneType, annotationPlayerId, annotationAssistId, annotationEventId, matchPlayers, goalEvents, matchInfo?.score]);
+
+  useEffect(() => {
     if (!editingId || !editTitleAuto) return;
     setEditTitle(suggestSceneTitle(sceneType, annotationPlayerId, annotationAssistId));
   }, [editingId, editTitleAuto, sceneType, annotationPlayerId, annotationAssistId, annotationEventId, matchPlayers, goalEvents, matchInfo?.score]);
@@ -483,7 +489,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
     <div className="flex items-center justify-between gap-2">
       <div><h2 className="text-xl font-bold">{view === 'highlights' ? 'Highlights' : view === 'scenes' ? 'Spielszenen' : 'Spielanalyse'}</h2><p className="text-xs text-white/55">{visibleVideos.length} {sceneView ? 'Szenen' : 'Videos'}</p></div>
-      {canManage && !demoMode && <button type="button" onClick={() => setUploadOpen(open => !open)} aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/60 bg-red-950/70 px-3 text-sm font-bold"><Plus size={18} aria-hidden /> {view === 'scenes' ? 'Szene' : view === 'analysis' ? 'Analyse' : 'Video'} </button>}
+      {canManage && !demoMode && <button type="button" onClick={() => { const opening = !uploadOpen; setUploadOpen(opening); setUploadTitleAuto(opening && view === 'scenes' && !title.trim()); }} aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/60 bg-red-950/70 px-3 text-sm font-bold"><Plus size={18} aria-hidden /> {view === 'scenes' ? 'Szene' : view === 'analysis' ? 'Analyse' : 'Video'} </button>}
     </div>
     {canManage && !demoMode && uploadOpen && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">
       <p className="flex items-center gap-2 text-sm font-semibold"><LockKeyhole size={17} aria-hidden /> Zunächst nur für Trainer sichtbar</p>
@@ -491,9 +497,9 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         const preset = e.target.value; if (!preset) return;
         setTitle(preset); setCategory(preset.startsWith('Tor-') ? 'goals' : preset.startsWith('Schuss-') ? 'chances' : preset.startsWith('Defensiv-') ? 'defence' : 'highlights');
       }} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base"><option value="">Vorlage auswählen (optional)</option>{['Alle Highlights','Tor-Highlights','Schuss-Highlights','Paraden-Highlights','Angriffs-Highlights','Defensiv-Highlights'].map(label => <option key={label}>{label}</option>)}</select></label>}
-      <label className="block text-sm">Titel<input value={title} onChange={e => setTitle(e.target.value)} maxLength={120} placeholder={view === 'scenes' ? 'z. B. Parade in der 18. Minute' : view === 'analysis' ? 'z. B. Once Spielanalyse' : 'z. B. Alle Highlights'} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base" /></label>
+      <label className="block text-sm">Titel<input value={title} onChange={e => { setUploadTitleAuto(false); setTitle(e.target.value); }} maxLength={120} placeholder={view === 'scenes' ? 'z. B. Parade in der 18. Minute' : view === 'analysis' ? 'z. B. Once Spielanalyse' : 'z. B. Alle Highlights'} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base" /></label>
       {view === 'scenes' ? sceneFields : view === 'analysis' ? null : <><label className="block text-sm">Kategorie<select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(CATEGORIES).filter(([key]) => key !== 'analysis' && key !== 'scenes').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="block text-sm">Szenenart<select value={sceneType} onChange={e => setSceneType(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="block text-sm">Spielminute (optional)<input type="number" min="0" max="200" value={sceneMinute} onChange={e => setSceneMinute(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base" /></label></>}
-      {view !== 'analysis' && <div className="space-y-2">{participantFields}<button type="button" onClick={() => setTitle(suggestSceneTitle(sceneType, annotationPlayerId, annotationAssistId))} className="min-h-11 rounded-xl border border-red-500/40 px-3 text-sm text-red-300">Titel aus Szene vorschlagen</button></div>}
+      {view !== 'analysis' && <div className="space-y-2">{participantFields}<button type="button" onClick={() => { setUploadTitleAuto(true); setTitle(suggestSceneTitle(sceneType, annotationPlayerId, annotationAssistId)); }} className="min-h-11 rounded-xl border border-red-500/40 px-3 text-sm text-red-300">Titel aus Szene vorschlagen</button></div>}
       <input ref={fileRef} type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" onChange={e => void upload(e.target.files?.[0])} />
       <button type="button" disabled={busy || !title.trim() || (view !== 'analysis' && !validMinute)} onClick={() => fileRef.current?.click()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 font-semibold disabled:opacity-50"><UploadCloud size={18} aria-hidden />{busy ? 'Bitte warten …' : 'Video auswählen und hochladen'}</button>
       <p className="text-xs text-white/55">MP4, MOV oder WebM · maximal 150 MB pro Video.</p>
