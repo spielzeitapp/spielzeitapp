@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * Einziger Scheduler: Supabase pg_cron ruft diese Edge Function auf.
  */
 import webpush from "npm:web-push@3.6.7";
+import { filterLinkedReminderUsers, isEligibleForReminder } from "./recipientEligibility.ts";
 
 const JOB_BATCH_LIMIT = 50;
 const VIENNA_TZ = "Europe/Vienna";
@@ -517,22 +518,21 @@ function reminderAppDeepLink(kind: string, event: EventRow): string {
   return `/app/events/${event.id}`;
 }
 
-async function filterUnansweredMatchRecipients(
+async function filterParticipationReminderRecipients(
   supabase: ReturnType<typeof createClient>,
   event: EventRow,
   userIds: string[],
+  kind: string,
 ): Promise<string[]> {
+  if (userIds.length === 0) return [];
   const { data: attendanceRows, error: attendanceError } = await supabase
     .from("event_attendance")
     .select("player_id, status")
     .eq("event_id", event.id);
   if (attendanceError) throw attendanceError;
 
-  const answeredStatuses = new Set(["yes", "no", "sick", "injured", "external_training"]);
-  const answeredPlayerIds = new Set(
-    (attendanceRows ?? [])
-      .filter((row: { status?: string | null }) => answeredStatuses.has(String(row.status ?? "")))
-      .map((row: { player_id: string }) => row.player_id),
+  const statusByPlayer = new Map<string, string>(
+    (attendanceRows ?? []).map((row: { player_id: string; status: string }) => [row.player_id, row.status]),
   );
 
   const { data: rosterRows, error: rosterError } = await supabase
@@ -542,6 +542,19 @@ async function filterUnansweredMatchRecipients(
     .is("left_at", null);
   if (rosterError) throw rosterError;
   const rosterIds = new Set((rosterRows ?? []).map((row: { player_id: string }) => row.player_id));
+  const eligiblePlayerIds = new Set<string>();
+  if (rosterIds.size > 0) {
+    const { data: players, error: playersError } = await supabase
+      .from("players")
+      .select("id, is_injured, injured_since, injured_until")
+      .in("id", [...rosterIds]);
+    if (playersError) throw playersError;
+    for (const player of players ?? []) {
+      if (isEligibleForReminder(kind, statusByPlayer.get(player.id), player, event.starts_at)) {
+        eligiblePlayerIds.add(player.id);
+      }
+    }
+  }
 
   const [{ data: guardianRows, error: guardianError }, { data: playerUserRows, error: playerUserError }] =
     await Promise.all([
@@ -559,10 +572,9 @@ async function filterUnansweredMatchRecipients(
     playersByUser.set(row.user_id, current);
   }
 
-  return userIds.filter((userId) => {
-    const playerIds = [...(playersByUser.get(userId) ?? [])];
-    return playerIds.length > 0 && playerIds.some((playerId) => !answeredPlayerIds.has(playerId));
-  });
+  // Preserve existing training notifications for staff/unlinked members;
+  // match RSVP prompts remain restricted to linked players/parents.
+  return filterLinkedReminderUsers(userIds, playersByUser, eligiblePlayerIds, kind === "training");
 }
 
 function buildReminderUxCopy(
@@ -732,12 +744,19 @@ serve(async () => {
           uniqueUserIds = [...new Set(targetedRecipients)];
         }
 
-        if (jobKind === "match" && !isMatchday && !isCarpool && !isSquad) {
-          uniqueUserIds = await filterUnansweredMatchRecipients(
+        if ((jobKind === "match" || jobKind === "training") && !isMatchday && !isCarpool && !isSquad) {
+          uniqueUserIds = await filterParticipationReminderRecipients(
             supabase,
             event as EventRow,
             uniqueUserIds,
+            jobKind,
           );
+        }
+
+        if (uniqueUserIds.length === 0) {
+          await completeJob(supabase, locked.id);
+          completed += 1;
+          continue;
         }
 
         let uxTitle: string;

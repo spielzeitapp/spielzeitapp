@@ -6,7 +6,7 @@ on:
     paths:
       - .github/workflows/supabase-reminders.yml
       - .github/workflows/reminder-dispatch.yml
-      - supabase/functions/send-reminders/index.ts
+      - supabase/functions/send-reminders/**
       - supabase/migrations/20260915213000_supabase_only_reminder_cron.sql
   workflow_dispatch:
 
