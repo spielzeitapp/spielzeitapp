@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeftRight, Headphones, LogOut, UserRound, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { useProfile, getDisplayFirstName, profileDisplayName } from '../../auth/useProfile';
@@ -41,6 +41,7 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
  */
 export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: authUser } = useAuth();
   const {
     teamSeasons,
@@ -136,7 +137,8 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
 
   const onLogout = async () => {
     await signOut();
-    navigate('/login', { replace: true });
+    const next = encodeURIComponent(`${location.pathname}${location.search}`);
+    navigate(`/manager/login?next=${next}`, { replace: true });
   };
 
   const roleHint = isTrainerMode
