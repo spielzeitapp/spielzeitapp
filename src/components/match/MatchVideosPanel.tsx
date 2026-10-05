@@ -46,6 +46,7 @@ type Props = {
   demoMode?: boolean;
   mode?: 'videos' | 'analysis';
   showResultHeader?: boolean;
+  wide?: boolean;
   onBack?: () => void;
   matchInfo?: {
     homeTeam: string;
@@ -73,7 +74,7 @@ const initialFeedText = (video: MatchVideo, matchInfo?: Props['matchInfo']) => {
   return lines.join('\n').slice(0, 500);
 };
 
-export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo, mode = 'videos', showResultHeader = true, onBack }) => {
+export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo, mode = 'videos', showResultHeader = true, wide = false, onBack }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const playerRef = useRef<HTMLVideoElement>(null);
   const [videos, setVideos] = useState<MatchVideo[]>([]);
@@ -428,7 +429,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     </div>
     <label className="block text-sm">Trainerkommentar<textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)} maxLength={1000} rows={2} className="mt-1 w-full rounded-xl border border-white/15 bg-zinc-900 p-3 text-base" /></label>
   </>;
-  return <section aria-label="Spielvideos" className="mx-auto max-w-2xl space-y-3 pb-[calc(100px+env(safe-area-inset-bottom,0px))] text-white">
+  return <section aria-label="Spielvideos" className={`mx-auto ${wide ? 'max-w-5xl' : 'max-w-2xl'} space-y-3 pb-[calc(100px+env(safe-area-inset-bottom,0px))] text-white`}>
     {showResultHeader && matchInfo && <header className="relative overflow-hidden rounded-3xl border border-[rgb(var(--club-border-rgb)/0.3)] bg-[linear-gradient(145deg,rgb(var(--club-primary-rgb)/0.25),#08080a_44%,rgb(var(--club-primary-rgb)/0.16))] px-3 py-3 shadow-[0_10px_40px_rgb(var(--club-primary-rgb)/0.14)] sm:p-5">
       {onBack && <button type="button" onClick={onBack} aria-label="Zurück zum Livespiel" className="absolute left-2 top-2 flex h-11 w-11 items-center justify-center rounded-full text-white/65 hover:bg-white/10"><ArrowLeft size={18} aria-hidden /></button>}
       <div className="px-9 text-center">
