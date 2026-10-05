@@ -123,7 +123,7 @@ export const LoginPage: React.FC = () => {
   const isParentInviteFlow = Boolean(
     !parentInviteDismissed && (
       pendingInvitePath ||
-      nextSafe ||
+      (nextSafe && pathLooksLikeParentInvite(nextSafe)) ||
       orphanTokenValid ||
       metaToken ||
       readStashedParentInviteEmail() ||
