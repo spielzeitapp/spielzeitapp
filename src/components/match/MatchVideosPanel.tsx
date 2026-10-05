@@ -129,7 +129,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     ? (a.scene_minute ?? Infinity) - (b.scene_minute ?? Infinity)
     : Number(/^alle highlights$/i.test(b.title.trim())) - Number(/^alle highlights$/i.test(a.title.trim())));
   // Individual scene clips form the playlist. Already edited exports remain separate.
-  const sequenceVideos = videos.filter(video => video.category !== 'analysis' && !/^(?:alle|tor|schuss|paraden|angriffs|defensiv)-?highlights$/i.test(video.title.trim())).sort((a, b) =>
+  const sequenceVideos = videos.filter(video => video.category !== 'analysis' && !/^(?:alle|tor|schuss|paraden|angriffs|defensiv)[\s-]*highlights$/i.test(video.title.trim())).sort((a, b) =>
     (a.scene_minute ?? Infinity) - (b.scene_minute ?? Infinity) || a.created_at.localeCompare(b.created_at));
   const playlistVideos = playlistIds.map(id => videos.find(video => video.id === id)).filter((video): video is MatchVideo => Boolean(video));
   const playlistKind = (video: MatchVideo) => video.category === 'scenes' ? sceneKind(video)
