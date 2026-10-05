@@ -154,3 +154,20 @@ body:has(.manager-shell) {
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   scrollbar-width: thin;
 }
+
+/* Desktop video library uses the full Manager content area, while the shared
+   mobile match panel keeps its compact width in the player app. */
+.manager-video-page [aria-label='Spielvideos'] {
+  width: 100%;
+  max-width: none;
+  padding-bottom: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .manager-video-page [aria-label='Spielvideos'] > nav button {
+    font-size: 0.95rem;
+  }
+  .manager-video-page [aria-label='Spielvideos'] > nav {
+    margin-bottom: 1.25rem;
+  }
+}
