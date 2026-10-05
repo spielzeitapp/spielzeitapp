@@ -1,0 +1,14 @@
+{
+  "id": "/manager",
+  "name": "Spielzeit Manager",
+  "short_name": "Manager",
+  "start_url": "/manager/video",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#090909",
+  "theme_color": "#090909",
+  "icons": [
+    { "src": "/manager-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/manager-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
