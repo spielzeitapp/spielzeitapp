@@ -150,7 +150,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     ? SCENE_TYPES[sceneKind(video)] ?? 'Weitere Szenen'
     : CATEGORIES[video.category] ?? 'Highlights';
   const switchView = (next: typeof view) => {
-    setActionsId(null); setView(next); setAnalysisFilter('all'); setUploadOpen(false); setEditingId(null); setComposerId(null);
+    setActionsId(null); setView(next); setAnalysisFilter('all'); setUploadOpen(false); setUploadTitleAuto(false); setTitle(''); setEditingId(null); setComposerId(null);
   };
   useEffect(() => { switchView(mode === 'analysis' ? 'analysis' : 'highlights'); }, [mode, matchId]);
 
