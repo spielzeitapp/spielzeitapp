@@ -77,6 +77,8 @@ const initialFeedText = (video: MatchVideo, matchInfo?: Props['matchInfo']) => {
 export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canManage, demoMode = false, matchInfo, mode = 'videos', showResultHeader = true, wide = false, onBack }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const playerRef = useRef<HTMLVideoElement>(null);
+  const playRequestRef = useRef(0);
+  useEffect(() => () => { playRequestRef.current += 1; }, []);
   const [videos, setVideos] = useState<MatchVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -161,7 +163,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (theaterMode) { setTheaterMode(false); setTheaterScenesOpen(false); }
-        else { setPlayingId(null); setPlayingUrl(null); setPlaylistIds([]); }
+        else { playRequestRef.current += 1; setPlayingId(null); setPlayingUrl(null); setPlaylistIds([]); }
       }
     };
     window.addEventListener('keydown', onEscape);
@@ -244,16 +246,19 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   };
 
   const play = async (video: MatchVideo, keepPlaylist = false) => {
-    setPlayingId(null); setPlayingUrl(null); setCurrentSecond(0); setError(null); setChapterError(null);
+    // Keep the dialog and video element mounted while the next signed URL loads.
+    const request = ++playRequestRef.current;
+    setError(null); setChapterError(null);
     if (!keepPlaylist) { setPlaylistIds([]); setPlaylistTitle('Alle Highlights'); setChapterQuery(''); setChapterFilter('all'); setTheaterMode(false); setTheaterScenesOpen(false); }
     setChapterTitle(''); setChapterEditId(null); setChapterManageOpen(false);
     const { data, error: signError } = await supabase.storage.from('match-videos')
       .createSignedUrl(video.object_path, 300);
+    if (request !== playRequestRef.current) return;
     if (signError || !data?.signedUrl) {
       setError('Video derzeit nicht verfügbar oder keine Freigabe.');
       return;
     }
-    setPlayingId(video.id); setPlayingUrl(data.signedUrl);
+    setCurrentSecond(0); setPlayingId(video.id); setPlayingUrl(data.signedUrl);
   };
 
   const playPlaylist = (kind: 'all' | 'goal' | 'save') => {
@@ -406,7 +411,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const unpublish = async (video: MatchVideo) => {
     if (!canManage || demoMode || busy) return;
     if (!window.confirm('Freigabe zurücknehmen und Feed-Beitrag entfernen? Bereits heruntergeladene Kopien bleiben davon unberührt.')) return;
-    setBusy(true); setError(null); setPlayingUrl(null); setPlayingId(null);
+    setBusy(true); setError(null); playRequestRef.current += 1; setPlayingUrl(null); setPlayingId(null);
     const { error: unpublishError } = await supabase.rpc('unpublish_match_video', { p_video_id: video.id });
     if (unpublishError) setError(unpublishError.message);
     else await reload();
@@ -427,7 +432,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       if (storageError) throw storageError;
       const { error: deleteError } = await supabase.from('match_videos').delete().eq('id', video.id);
       if (deleteError) throw deleteError;
-      if (playingId === video.id) { setPlayingId(null); setPlayingUrl(null); }
+      if (playingId === video.id) { playRequestRef.current += 1; setPlayingId(null); setPlayingUrl(null); }
       if (composerId === video.id) setComposerId(null);
       if (editingId === video.id) setEditingId(null);
       await reload();
@@ -570,12 +575,13 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         </div>
       </div>}
       {!theaterMode && <div className="flex min-h-16 items-center gap-2 border-b border-white/10 px-3 pt-[env(safe-area-inset-top,0px)]">
-        <button type="button" onClick={() => {setPlayingId(null);setPlayingUrl(null);setPlaylistIds([]);}} aria-label="Zurück zu Spielvideos" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full"><ArrowLeft size={22} aria-hidden /></button>
+        <button type="button" onClick={() => {playRequestRef.current += 1;setPlayingId(null);setPlayingUrl(null);setPlaylistIds([]);}} aria-label="Zurück zu Spielvideos" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full"><ArrowLeft size={22} aria-hidden /></button>
         <div className="min-w-0 flex-1 text-center"><p className="text-xs text-red-400">{videoLabel(activeScene)}</p><h2 className="truncate text-lg font-bold">{playlistIds.length > 0 ? playlistTitle : activeScene.title}</h2></div><span className="w-11 shrink-0" aria-hidden />
       </div>}
       <div className={theaterMode ? 'relative flex min-h-0 flex-1 bg-black' : 'relative flex min-h-0 flex-1 flex-col landscape:flex-row'}>
         <div className={`relative flex min-h-0 min-w-0 items-center justify-center bg-black ${theaterMode ? `flex-1 ${theaterScenesOpen && showSceneList ? 'landscape:mr-[38%]' : ''}` : showSceneList ? 'aspect-video w-full shrink-0 landscape:aspect-auto landscape:w-auto landscape:flex-1 landscape:shrink' : 'flex-1'}`}>
-          <video ref={playerRef} key={playingUrl} src={playingUrl} controls autoPlay playsInline preload="metadata" onEnded={nextPlaylistScene} onTimeUpdate={e => setCurrentSecond(Math.floor(e.currentTarget.currentTime))} className="h-full w-full object-contain" />
+          <video ref={playerRef} src={playingUrl} controls autoPlay playsInline preload="auto" onLoadedMetadata={e => { void e.currentTarget.play().catch(() => {}); }} onEnded={nextPlaylistScene} onTimeUpdate={e => setCurrentSecond(Math.floor(e.currentTarget.currentTime))} className="h-full w-full object-contain" />
+          {error && <p role="alert" className="absolute bottom-16 left-3 right-3 rounded-xl bg-zinc-900/95 p-3 text-sm text-amber-100">{error}</p>}
           {!theaterMode && <button type="button" onClick={() => {setTheaterMode(true);setTheaterScenesOpen(false);}} aria-label="App-Vollbild mit Szenenauswahl anzeigen" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white ring-1 ring-white/30"><Maximize2 size={20} aria-hidden /></button>}
         </div>
         {showSceneList && (!theaterMode || theaterScenesOpen) && <aside id="match-video-scenes" className={theaterMode ? 'absolute bottom-0 right-0 z-20 flex max-h-[55vh] w-full flex-col border-t border-white/20 bg-zinc-950/95 shadow-2xl landscape:top-0 landscape:max-h-none landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:border-l landscape:border-t-0' : 'flex min-h-0 w-full flex-1 flex-col border-t border-white/15 bg-zinc-950 landscape:h-full landscape:w-[38%] landscape:max-w-[420px] landscape:flex-none landscape:border-l landscape:border-t-0'} aria-label="Szenen im Highlight">
