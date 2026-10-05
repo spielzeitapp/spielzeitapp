@@ -227,6 +227,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
             <AppHomeIcon className="h-4 w-4 shrink-0 object-contain" />
             Zur SpielzeitApp
           </Link>
+          <a href="/manager-install.html" className="flex min-h-[42px] w-full items-center justify-center rounded-lg border border-red-500/40 bg-red-950/30 px-3 py-2.5 text-[12px] font-semibold text-white hover:bg-red-950/50">Manager auf PC installieren</a>
         </div>
 
       </aside>
