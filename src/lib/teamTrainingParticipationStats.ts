@@ -7,7 +7,8 @@ import {
   type TrainingAttendanceStatus,
 } from './trainingAttendance';
 import type { PastTrainingEvent } from './trainingStatsLoader';
-import { fetchPastTrainingEvents } from './trainingStatsLoader';
+import { fetchPastTrainingEvents, fetchTrainingPlayerAvailability } from './trainingStatsLoader';
+import type { PlayerAvailabilityFlags } from './playerAvailability';
 import { supabase } from './supabaseClient';
 
 export type TrainingSessionParticipation = {
@@ -43,6 +44,7 @@ export function buildSessionParticipations(
   activePlayerIds: string[],
   attendanceByEventId: Map<string, Map<string, string>>,
   nowMs: number = Date.now(),
+  playerAvailabilityById: Record<string, PlayerAvailabilityFlags> = {},
 ): TrainingSessionParticipation[] {
   const roster = activePlayerIds.map((id) => id.trim().toLowerCase()).filter(Boolean);
 
@@ -50,7 +52,7 @@ export function buildSessionParticipations(
     const eventKey = String(ev.id).toLowerCase();
     const byPlayer = attendanceByEventId.get(eventKey) ?? new Map<string, string>();
     const statuses = roster.map((playerId) =>
-      resolveTrainingAttendanceStatusForStats(byPlayer.get(playerId), ev.starts_at, nowMs),
+      resolveTrainingAttendanceStatusForStats(byPlayer.get(playerId), ev.starts_at, nowMs, playerAvailabilityById[playerId]),
     );
     const { participationPct, ...counts } = computeEventParticipationFromStatuses(statuses);
     return {
@@ -99,7 +101,8 @@ export async function loadSquadTrainingParticipation(
     map.set(String(r.player_id).toLowerCase(), r.status);
   }
 
-  const sessions = buildSessionParticipations(events, playerIds, attendanceByEventId);
+  const availability = await fetchTrainingPlayerAvailability(playerIds);
+  const sessions = buildSessionParticipations(events, playerIds, attendanceByEventId, Date.now(), availability);
   return {
     squadParticipationPct: computeSquadParticipationPct(sessions),
     sessions,

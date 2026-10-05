@@ -19,18 +19,18 @@ for (const flags of [{ is_injured: false }, { ...injured, injured_until: '2026-1
   assert.deepEqual(matchScheduleCardCounts({ ...params, playerAvailabilityById: { 'player-11': flags } }),
     { yes: 9, no: 0, open: 3, injured: 0 });
 }
-// Past events are not rewritten by today's injury flag.
+// A dated injury remains in effect when the event has started/passed.
 assert.deepEqual(matchScheduleCardCounts({ ...params, nowMs: Date.parse('2026-10-07T00:00:00Z') }),
-  { yes: 9, no: 0, open: 3, injured: 0 });
+  { yes: 9, no: 0, open: 2, injured: 1 });
 for (const status of ['no', 'sick', 'external_training']) {
   assert.deepEqual(matchScheduleCardCounts({ ...params,
     availabilityByPlayerId: { ...availabilityByPlayerId, 'player-9': status } }),
     { yes: 9, no: 1, open: 1, injured: 1 });
 }
-// Matchcenter's explicit RSVP precedence is preserved.
+// A stale yes cannot override the injury interval.
 assert.deepEqual(matchScheduleCardCounts({ ...params,
   availabilityByPlayerId: { ...availabilityByPlayerId, 'player-11': 'yes' } }),
-  { yes: 10, no: 0, open: 2, injured: 0 });
+  { yes: 9, no: 0, open: 2, injured: 1 });
 // Stale attendance from players outside the active roster cannot inflate counts.
 assert.deepEqual(matchScheduleCardCounts({ ...params,
   rosterPlayerIds: [...rosterPlayerIds, 'PLAYER-0'],

@@ -80,7 +80,8 @@ function normalizeTrainingResolveOptions(
 }
 
 /**
- * Live-/Termin-UI: fehlende Zeile = Dabei, außer Spieler ist für zukünftiges Event als verletzt markiert.
+ * Datierter Verletzungsausfall gilt auch nach Beginn und vor einer älteren Zusage.
+ * Sonst: fehlende Zeile = Dabei.
  */
 export function resolveTrainingAttendanceStatus(
   rawDbStatus: string | null | undefined,
@@ -88,9 +89,6 @@ export function resolveTrainingAttendanceStatus(
   legacyNowMs?: number,
 ): TrainingAttendanceStatus {
   const opts = normalizeTrainingResolveOptions(options, legacyNowMs);
-  const mapped = dbStatusToTrainingAttendance(rawDbStatus);
-  if (mapped) return mapped;
-
   const nowMs = opts.nowMs ?? Date.now();
   if (
     opts.player &&
@@ -98,18 +96,19 @@ export function resolveTrainingAttendanceStatus(
   ) {
     return 'injured';
   }
-  return 'present';
-}
-
-/** Statistik: nur vergangene Trainings; fehlende Zeile = Dabei (kein Verletzten-Auto-Status). */
-export function resolveTrainingAttendanceStatusForStats(
-  rawDbStatus: string | null | undefined,
-  _eventStartsAtIso?: string | null,
-  _nowMs?: number,
-): TrainingAttendanceStatus {
   const mapped = dbStatusToTrainingAttendance(rawDbStatus);
   if (mapped) return mapped;
   return 'present';
+}
+
+/** Statistik: gleicher datierter Ausfall wie im Trainingscenter. */
+export function resolveTrainingAttendanceStatusForStats(
+  rawDbStatus: string | null | undefined,
+  eventStartsAtIso?: string | null,
+  nowMs?: number,
+  player?: PlayerAvailabilityFlags | null,
+): TrainingAttendanceStatus {
+  return resolveTrainingAttendanceStatus(rawDbStatus, { eventStartsAtIso, nowMs, player });
 }
 
 export function trainingAttendanceToDb(status: TrainingAttendanceStatus): TrainingAttendanceDbStatus | null {
