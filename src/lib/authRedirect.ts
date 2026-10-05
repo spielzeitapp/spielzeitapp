@@ -12,6 +12,7 @@ const ALLOWED_APP_PATH_PREFIXES = [
   '/login',
   '/register',
   '/forgot-password',
+  '/manager',
 ] as const;
 
 /** Standard nach „Zur App“ / App-Einstieg ohne Invite oder Deep Link. */
@@ -25,8 +26,9 @@ export function isSafeAuthRedirectPath(path: string): boolean {
   if (trimmed.startsWith('//')) return false;
   if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return false;
   if (trimmed.includes('\\') || trimmed.includes('@')) return false;
+  const pathname = trimmed.split(/[?#]/, 1)[0];
   return ALLOWED_APP_PATH_PREFIXES.some(
-    (p) => trimmed === p || trimmed.startsWith(`${p}/`) || (p === '/app' && trimmed.startsWith('/app')),
+    (p) => pathname === p || pathname.startsWith(`${p}/`) || (p === '/app' && pathname.startsWith('/app')),
   );
 }
 
