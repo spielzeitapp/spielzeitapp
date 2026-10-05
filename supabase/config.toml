@@ -1,0 +1,3 @@
+# Both deployment workflows retain JWT verification; pg_cron uses its Vault JWT.
+[functions.send-reminders]
+verify_jwt = true

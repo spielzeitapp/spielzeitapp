@@ -8,6 +8,7 @@ on:
       - ".github/workflows/production-reminder-release.yml"
       - "supabase/migrations/20260904113000_training_1100_match_rsvp_reminders.sql"
       - "supabase/functions/send-reminders/**"
+      - "supabase/config.toml"
 
 permissions:
   contents: read
@@ -110,5 +111,5 @@ jobs:
       - name: Deploy reminder function
         shell: bash
         run: |
-          npx --yes supabase@2.16.0 functions deploy send-reminders \
+          npx --yes supabase@2.106.0 functions deploy send-reminders \
             --project-ref "$SUPABASE_PROJECT_REF"
