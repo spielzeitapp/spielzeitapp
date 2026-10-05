@@ -243,7 +243,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                       />
                       <PlayerSpecialStatusBadges
                         isLaz={player.is_laz_player}
-                        isInjured={player.is_injured}
+                        isInjured={player.is_injured && status !== 'injured'}
                         size="xs"
                       />
                       {(player.status ?? 'active') === 'paused' ? (
