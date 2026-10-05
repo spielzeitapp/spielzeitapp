@@ -7,6 +7,7 @@ on:
       - .github/workflows/supabase-reminders.yml
       - .github/workflows/reminder-dispatch.yml
       - supabase/functions/send-reminders/**
+      - supabase/config.toml
       - supabase/migrations/20260915213000_supabase_only_reminder_cron.sql
   workflow_dispatch:
 
@@ -101,8 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           npx --yes supabase@2.106.0 functions deploy send-reminders \
-            --project-ref "$PROJECT_REF" \
-            --no-verify-jwt
+            --project-ref "$PROJECT_REF"
 
       - name: Configure and verify Supabase cron
         shell: bash
@@ -129,6 +129,10 @@ jobs:
 
           (async () => {
             await query(`SELECT public.configure_send_reminders_cron('${functionUrl}');`);
+            // Resolve the public project JWT inside Vault, never embed it in logs or cron text.
+            const cronCommand = `SELECT net.http_post(url := '${functionUrl}', headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='send_reminders_anon_jwt' LIMIT 1)), body := '{}'::jsonb) AS request_id;`;
+            const sqlCommand = cronCommand.replaceAll("'", "''");
+            await query(`SELECT cron.alter_job(jobid, command := '${sqlCommand}') FROM cron.job WHERE jobname='send-reminders-job';`);
             const rows = await query(`
               SELECT
                 EXISTS (
@@ -137,6 +141,7 @@ jobs:
                     AND schedule = '* * * * *'
                     AND active = true
                     AND command LIKE '%${ref}.supabase.co/functions/v1/send-reminders%'
+                    AND command LIKE '%send_reminders_anon_jwt%'
                 ) AS cron_ready,
                 EXISTS (
                   SELECT 1 FROM supabase_migrations.schema_migrations
@@ -159,15 +164,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          response_file="$(mktemp)"
-          status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
-            --request POST \
-            --header 'Content-Type: application/json' \
-            --data '{}' \
-            "https://$PROJECT_REF.supabase.co/functions/v1/send-reminders")"
-          cat "$response_file"
-          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
-            echo "::error::send-reminders returned HTTP $status"
-            exit 1
-          fi
-          jq -e '.ok == true' "$response_file" >/dev/null
+          node <<'NODE'
+          (async () => {
+            const ref = process.env.PROJECT_REF;
+            const keyResponse = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: "SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='send_reminders_anon_jwt' LIMIT 1" }),
+            });
+            if (!keyResponse.ok) throw new Error('Could not load cron authentication from Vault');
+            const key = (await keyResponse.json())?.[0]?.decrypted_secret;
+            if (!key) throw new Error('Missing send_reminders_anon_jwt in Vault');
+            const response = await fetch(`https://${ref}.supabase.co/functions/v1/send-reminders`, {
+              method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: '{}',
+            });
+            const result = await response.json();
+            if (!response.ok || result.ok !== true) throw new Error(`Reminder verification failed: HTTP ${response.status}`);
+            console.log(JSON.stringify(result));
+          })().catch((error) => { console.error(error.message); process.exit(1); });
+          NODE
