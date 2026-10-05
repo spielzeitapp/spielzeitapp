@@ -4,7 +4,9 @@ import { ArrowLeft, List, LockKeyhole, Maximize2, Minimize2, MoreVertical, Penci
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
-type Chapter = { id: string; second: number; kind: string; title: string };
+type Chapter = { id: string; second: number; kind: string; title: string; player_id?: string | null; assist_player_id?: string | null; match_event_id?: string | null };
+type MatchPlayer = { id: string; first_name: string; last_name: string; jersey_number: number | null };
+type GoalEvent = { id: string; minute: number | null; player_id: string | null };
 
 type MatchVideo = {
   id: string;
@@ -15,6 +17,9 @@ type MatchVideo = {
   category: string;
   scene_type: string | null;
   scene_minute: number | null;
+  scene_player_id: string | null;
+  assist_player_id: string | null;
+  linked_match_event_id: string | null;
   analysis_note: string | null;
   chapters: Chapter[];
   visibility: 'staff' | 'team';
@@ -98,6 +103,14 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [sceneMinute, setSceneMinute] = useState('');
   const [analysisNote, setAnalysisNote] = useState('');
   const [analysisFilter, setAnalysisFilter] = useState('all');
+  const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
+  const [goalEvents, setGoalEvents] = useState<GoalEvent[]>([]);
+  const [annotationPlayerId, setAnnotationPlayerId] = useState('');
+  const [annotationAssistId, setAnnotationAssistId] = useState('');
+  const [annotationEventId, setAnnotationEventId] = useState('');
+  const [chapterEditId, setChapterEditId] = useState<string | null>(null);
+  const [chapterEditTitle, setChapterEditTitle] = useState('');
+  const [chapterManageOpen, setChapterManageOpen] = useState(false);
   const [view, setView] = useState<'highlights' | 'scenes' | 'analysis'>(mode === 'analysis' ? 'scenes' : 'highlights');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [actionsId, setActionsId] = useState<string | null>(null);
@@ -123,12 +136,12 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     : video.category === 'defence' ? 'defence' : sceneKind(video);
   const matchingPlaylistVideos = playlistVideos.filter(video =>
     (chapterFilter === 'all' || playlistKind(video) === chapterFilter) &&
-    `${video.title} ${SCENE_TYPES[playlistKind(video)] ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
+    `${video.title} ${SCENE_TYPES[playlistKind(video)] ?? ''} ${matchPlayers.find(p => p.id === video.scene_player_id)?.first_name ?? ''} ${matchPlayers.find(p => p.id === video.scene_player_id)?.last_name ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
   const activeScene = videos.find(video => video.id === playingId);
   const showSceneList = Boolean(activeScene && (playlistIds.length > 0 || (activeScene.category !== 'analysis' && activeScene.category !== 'scenes')));
   const chapters = [...(activeScene?.chapters ?? [])].sort((a, b) => a.second - b.second);
   const activeChapterId = [...chapters].reverse().find(chapter => chapter.second <= currentSecond)?.id;
-  const matchingChapters = chapters.filter(chapter => (chapterFilter === 'all' || chapter.kind === chapterFilter) && `${chapter.title} ${SCENE_TYPES[chapter.kind] ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
+  const matchingChapters = chapters.filter(chapter => (chapterFilter === 'all' || chapter.kind === chapterFilter) && `${chapter.title} ${SCENE_TYPES[chapter.kind] ?? ''} ${matchPlayers.find(p => p.id === chapter.player_id)?.first_name ?? ''} ${matchPlayers.find(p => p.id === chapter.player_id)?.last_name ?? ''}`.toLocaleLowerCase('de').includes(chapterQuery.trim().toLocaleLowerCase('de')));
   const videoLabel = (video: MatchVideo) => video.category === 'scenes'
     ? SCENE_TYPES[sceneKind(video)] ?? 'Weitere Szenen'
     : CATEGORIES[video.category] ?? 'Highlights';
@@ -153,7 +166,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
 
   const reload = useCallback(async () => {
     const { data, error: loadError } = await supabase.from('match_videos')
-      .select('id,match_id,team_season_id,object_path,title,category,scene_type,scene_minute,analysis_note,chapters,visibility,created_at')
+      .select('id,match_id,team_season_id,object_path,title,category,scene_type,scene_minute,scene_player_id,assist_player_id,linked_match_event_id,analysis_note,chapters,visibility,created_at')
       .eq('match_id', matchId).order('created_at', { ascending: false });
     if (loadError) setError('Spielvideos konnten nicht geladen werden. Ist die Datenbank-Erweiterung bereits eingerichtet?');
     else {
@@ -171,6 +184,24 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   }, [matchId]);
 
   useEffect(() => { setLoading(true); void reload(); }, [reload]);
+
+  useEffect(() => {
+    if (!canManage || demoMode) return;
+    let cancelled = false;
+    const loadMatchPlayers = async () => {
+      const [playersResult, squadResult, goalsResult] = await Promise.all([
+        supabase.from('players').select('id,first_name,last_name,jersey_number').eq('team_season_id', teamSeasonId).order('last_name'),
+        supabase.from('match_squad_publications').select('selected_player_ids').eq('match_id', matchId).maybeSingle(),
+        supabase.from('match_events').select('id,minute,player_id').eq('match_id', matchId).eq('type', 'goal').order('minute'),
+      ]);
+      if (cancelled) return;
+      const ids = squadResult.data?.selected_player_ids as string[] | undefined;
+      setMatchPlayers(((playersResult.data ?? []) as MatchPlayer[]).filter(p => !ids || ids.includes(p.id)));
+      setGoalEvents((goalsResult.data ?? []) as GoalEvent[]);
+    };
+    void loadMatchPlayers();
+    return () => { cancelled = true; };
+  }, [canManage, demoMode, matchId, teamSeasonId]);
 
   const upload = async (file: File | undefined) => {
     if (!file || !canManage || demoMode || busy) return;
@@ -208,7 +239,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const play = async (video: MatchVideo, keepPlaylist = false) => {
     setPlayingId(null); setPlayingUrl(null); setCurrentSecond(0); setError(null); setChapterError(null);
     if (!keepPlaylist) { setPlaylistIds([]); setChapterQuery(''); setChapterFilter('all'); setTheaterMode(false); setTheaterScenesOpen(false); }
-    setChapterTitle('');
+    setChapterTitle(''); setChapterEditId(null); setChapterManageOpen(false);
     const { data, error: signError } = await supabase.storage.from('match-videos')
       .createSignedUrl(video.object_path, 300);
     if (signError || !data?.signedUrl) {
@@ -262,6 +293,35 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     setChapterBusy(false);
   };
 
+  const playerName = (id?: string | null) => {
+    const player = matchPlayers.find(item => item.id === id);
+    return player ? `${player.first_name} ${player.last_name}` : '';
+  };
+
+  const suggestSceneTitle = (kind: string, playerId: string, assistId: string) => {
+    const label = ({ goal: 'Tor', shot: 'Schuss', save: 'Parade', corner: 'Ecke', defence: 'Abwehraktion', other: 'Spielszene' } as Record<string, string>)[kind] ?? 'Spielszene';
+    return `${label}${playerName(playerId) ? ` – ${playerName(playerId)}` : ''}${kind === 'goal' && playerName(assistId) ? ` (Vorlage: ${playerName(assistId)})` : ''}`;
+  };
+
+  const annotateScene = async (video: MatchVideo, chapterId: string | null, sceneTitle: string) => {
+    const { data, error: annotationError } = await supabase.rpc('annotate_match_video_scene', {
+      p_video_id: video.id, p_chapter_id: chapterId, p_title: sceneTitle.trim(),
+      p_kind: sceneType, p_player_id: annotationPlayerId || null,
+      p_assist_player_id: sceneType === 'goal' ? annotationAssistId || null : null,
+      p_match_event_id: sceneType === 'goal' ? annotationEventId || null : null,
+    });
+    if (annotationError) throw annotationError;
+    if (chapterId) setVideos(current => current.map(item => item.id === video.id ? { ...item, chapters: (data ?? []) as Chapter[] } : item));
+  };
+
+  const saveChapterDetails = async (video: MatchVideo) => {
+    if (!chapterEditId || !chapterEditTitle.trim() || chapterBusy || !canManage || demoMode) return;
+    setChapterBusy(true); setChapterError(null);
+    try { await annotateScene(video, chapterEditId, chapterEditTitle); setChapterEditId(null); }
+    catch (e) { setChapterError(e instanceof Error ? e.message : 'Zeitmarke konnte nicht geändert werden.'); }
+    finally { setChapterBusy(false); }
+  };
+
   const openComposer = async (video: MatchVideo) => {
     if (!canManage || demoMode || busy) return;
     setError(null);
@@ -288,6 +348,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           p_video_id: video.id, p_title: editTitle.trim(), p_category: editCategory,
         });
       if (editError) throw editError;
+      if (video.category !== 'analysis') await annotateScene(video, null, editTitle);
       setEditingId(null);
       await reload();
     } catch (e) { setError(e instanceof Error ? e.message : 'Video konnte nicht geändert werden.'); }
@@ -346,6 +407,14 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     return parts ? { prefix: parts[1], name: parts[2] } : { prefix: '', name: team.trim() };
   };
   const validMinute = sceneMinute.trim() === '' || (Number.isInteger(Number(sceneMinute)) && Number(sceneMinute) >= 0 && Number(sceneMinute) <= 200);
+  const participantFields = <>
+    <label className="block text-sm">Spieler aus dem Matchkader<select value={annotationPlayerId} onChange={e => {setAnnotationPlayerId(e.target.value);setAnnotationEventId('');}} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base"><option value="">Ohne Spielerzuordnung</option>{matchPlayers.map(player => <option key={player.id} value={player.id}>{player.first_name} {player.last_name}{player.jersey_number != null ? ` · #${player.jersey_number}` : ''}</option>)}</select></label>
+    {sceneType === 'goal' && <>
+      <label className="block text-sm">Vorlage (optional)<select value={annotationAssistId} onChange={e => setAnnotationAssistId(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base"><option value="">Keine Vorlage zuordnen</option>{matchPlayers.filter(player => player.id !== annotationPlayerId).map(player => <option key={player.id} value={player.id}>{player.first_name} {player.last_name}</option>)}</select></label>
+      <label className="block text-sm">Vorhandenes Tor verknüpfen (optional)<select value={annotationEventId} onChange={e => setAnnotationEventId(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base"><option value="">Kein Torereignis verknüpft</option>{goalEvents.filter(event => !event.player_id || event.player_id === annotationPlayerId).map(event => <option key={event.id} value={event.id}>{event.minute ?? '–'}′ · {playerName(event.player_id) || 'Tor ohne Torschützen'}</option>)}</select></label>
+    </>}
+    <p className="text-xs text-white/55">Videozuordnungen verändern die Torstatistik nicht. Ein bestehendes Tor kannst du oben verknüpfen.</p>
+  </>;
   const sceneFields = <>
     <div className="grid grid-cols-[minmax(0,1fr)_100px] gap-2">
       <label className="block text-sm">Kategorie<select aria-label="Szenenkategorie" value={sceneType} onChange={e => setSceneType(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -418,11 +487,12 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
         <div className={`min-w-0 space-y-2 p-3 ${canManage && !demoMode ? 'pr-7' : ''} ${sceneView && (editingId === video.id || composerId === video.id) ? 'col-span-2' : ''}`}>
           <h3 className="break-words text-sm font-bold leading-tight sm:text-base">{video.title}</h3>
           {sceneView && <p className="text-xs text-white/65">{video.scene_minute != null && <span>{video.scene_minute}′ · </span>}{videoLabel(video)}</p>}
+          {video.scene_player_id && <p className="text-xs text-red-300">{playerName(video.scene_player_id)}{video.assist_player_id && ` · Vorlage: ${playerName(video.assist_player_id)}`}</p>}
           {video.analysis_note && <p className={`whitespace-pre-wrap break-words text-sm text-white/60 ${view === 'analysis' ? '' : 'line-clamp-2'}`}>{video.analysis_note}</p>}
           {canManage && !demoMode && video.visibility === 'staff' && <p className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-xs text-white/65"><LockKeyhole size={12} className="shrink-0" aria-hidden />Nur Trainer</p>}
           {canManage && !demoMode && actionsId === video.id && <>
             <div className="flex flex-wrap gap-1">
-              <button type="button" disabled={busy} aria-label={`${video.title} bearbeiten`} title="Bearbeiten" onClick={() => {setActionsId(null);setEditingId(video.id);setEditTitle(video.title);setEditCategory(video.category);setSceneType(video.scene_type ?? 'other');setSceneMinute(video.scene_minute?.toString() ?? '');setAnalysisNote(video.analysis_note ?? '');setComposerId(null);}} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/15 disabled:opacity-50"><Pencil size={17} aria-hidden /></button>
+              <button type="button" disabled={busy} aria-label={`${video.title} bearbeiten`} title="Bearbeiten" onClick={() => {setActionsId(null);setEditingId(video.id);setEditTitle(video.title);setEditCategory(video.category);setSceneType(video.scene_type ?? 'other');setSceneMinute(video.scene_minute?.toString() ?? '');setAnalysisNote(video.analysis_note ?? '');setAnnotationPlayerId(video.scene_player_id ?? '');setAnnotationAssistId(video.assist_player_id ?? '');setAnnotationEventId(video.linked_match_event_id ?? '');setComposerId(null);}} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/15 disabled:opacity-50"><Pencil size={17} aria-hidden /></button>
               <button type="button" disabled={busy} aria-label={`${video.title} im Feed teilen`} title="Im Feed teilen" onClick={() => {setActionsId(null);setEditingId(null);void openComposer(video);}} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-red-500/35 text-red-300 disabled:opacity-50"><Send size={17} aria-hidden /></button>
               <button type="button" disabled={busy} aria-label={`${video.title} löschen`} title="Löschen" onClick={() => {setActionsId(null);void deleteVideo(video);}} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-red-500/35 text-red-300 disabled:opacity-50"><Trash2 size={17} aria-hidden /></button>
             </div>
@@ -431,6 +501,11 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           {canManage && !demoMode && editingId === video.id && <div className="space-y-3 border-t border-white/10 pt-3">
             <label className="block text-sm">Titel<input value={editTitle} onChange={e => setEditTitle(e.target.value)} maxLength={120} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base" /></label>
             {video.category === 'scenes' ? sceneFields : video.category === 'analysis' ? null : <label className="block text-sm">Kategorie<select value={editCategory} onChange={e => setEditCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(CATEGORIES).filter(([key]) => key !== 'analysis' && key !== 'scenes').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label>}
+            {video.category !== 'analysis' && <div className="space-y-2">
+              {video.category !== 'scenes' && <label className="block text-sm">Szenentyp<select value={sceneType} onChange={e => setSceneType(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 text-base">{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label>}
+              {participantFields}
+              <button type="button" onClick={() => setEditTitle(suggestSceneTitle(sceneType, annotationPlayerId, annotationAssistId))} className="min-h-11 rounded-xl border border-red-500/40 px-3 text-sm text-red-300">Titel vorschlagen</button>
+            </div>}
             <div className="flex gap-2"><button type="button" disabled={busy || !editTitle.trim() || (video.category === 'scenes' && !validMinute)} onClick={() => void saveDetails(video)} className="min-h-11 rounded-xl bg-red-600 px-3 text-sm disabled:opacity-50">Speichern</button><button type="button" onClick={() => setEditingId(null)} className="min-h-11 rounded-xl border border-white/15 px-3 text-sm">Abbrechen</button></div>
           </div>}
           {canManage && !demoMode && composerId === video.id && <div className="space-y-3 border-t border-white/10 pt-3">
@@ -476,15 +551,28 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
                 <span className="min-w-0 flex-1 truncate">{chapter.title}</span>
                 {chapter.id === activeChapterId && <span aria-hidden className="text-lg">✓</span>}
               </button>
-              {canManage && !demoMode && <button type="button" disabled={chapterBusy} onClick={() => void changeChapter(activeScene, 'delete', chapter.id)} aria-label={`Zeitmarke ${chapter.title} löschen`} className="flex min-h-11 min-w-11 items-center justify-center text-white/60 disabled:opacity-50"><Trash2 size={16} aria-hidden /></button>}
+              {canManage && !demoMode && !theaterMode && <button type="button" onClick={() => {setChapterEditId(chapter.id);setChapterEditTitle(chapter.title);setSceneType(chapter.kind);setAnnotationPlayerId(chapter.player_id ?? '');setAnnotationAssistId(chapter.assist_player_id ?? '');setAnnotationEventId(chapter.match_event_id ?? '');setChapterManageOpen(false);}} aria-label={`Zeitmarke ${chapter.title} bearbeiten`} className="flex min-h-11 min-w-11 items-center justify-center text-white/60"><Pencil size={16} aria-hidden /></button>}
+              {canManage && !demoMode && !theaterMode && <button type="button" disabled={chapterBusy} onClick={() => void changeChapter(activeScene, 'delete', chapter.id)} aria-label={`Zeitmarke ${chapter.title} löschen`} className="flex min-h-11 min-w-11 items-center justify-center text-white/60 disabled:opacity-50"><Trash2 size={16} aria-hidden /></button>}
             </div>)}
+            {chapterEditId && !theaterMode && <div className="space-y-2 rounded-xl border border-red-500/35 bg-zinc-900 p-3">
+              <h4 className="font-semibold">Zeitmarke bearbeiten</h4>
+              <label className="block text-sm">Szenentyp<select value={sceneType} onChange={e => setSceneType(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/20 bg-zinc-950 px-3 text-base">{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+              {participantFields}
+              <label className="block text-sm">Titel<input value={chapterEditTitle} onChange={e => setChapterEditTitle(e.target.value)} maxLength={120} className="mt-1 min-h-11 w-full rounded-xl border border-white/20 bg-zinc-950 px-3 text-base" /></label>
+              <button type="button" onClick={() => setChapterEditTitle(suggestSceneTitle(sceneType, annotationPlayerId, annotationAssistId))} className="min-h-11 rounded-xl border border-red-500/40 px-3 text-sm text-red-300">Titel vorschlagen</button>
+              <div className="flex gap-2"><button type="button" disabled={chapterBusy || !chapterEditTitle.trim()} onClick={() => void saveChapterDetails(activeScene)} className="min-h-11 rounded-xl bg-red-600 px-3 font-semibold disabled:opacity-50">Speichern</button><button type="button" onClick={() => setChapterEditId(null)} className="min-h-11 rounded-xl border border-white/20 px-3">Abbrechen</button></div>
+              {chapterError && <p role="alert" className="text-sm text-amber-300">{chapterError}</p>}
+            </div>}
           </div>}
-          {canManage && !demoMode && playlistIds.length === 0 && <div className="space-y-2 border-t border-white/10 p-3">
+          {canManage && !demoMode && !theaterMode && playlistIds.length === 0 && <div className="space-y-2 border-t border-white/10 p-3">
+            <button type="button" onClick={() => setChapterManageOpen(open => !open)} aria-expanded={chapterManageOpen} className="min-h-11 w-full rounded-xl border border-red-500/40 px-3 text-left text-sm font-semibold text-red-300">{chapterManageOpen ? 'Bearbeitung schließen' : '+ Szene markieren'}</button>
+            {chapterManageOpen && <div className="space-y-2">
             <p className="text-xs text-white/65">Video an der gewünschten Stelle pausieren, dann markieren.</p>
             <select value={chapterKind} onChange={e => setChapterKind(e.target.value)} aria-label="Kategorie der neuen Szene" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base">{Object.entries(SCENE_TYPES).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select>
             <input value={chapterTitle} onChange={e => setChapterTitle(e.target.value)} maxLength={80} placeholder="Titel (optional)" aria-label="Titel der neuen Szene" className="min-h-11 w-full rounded-xl border border-white/20 bg-zinc-900 px-3 text-base" />
             <button type="button" disabled={chapterBusy} onClick={() => void changeChapter(activeScene, 'add')} className="min-h-11 w-full rounded-xl bg-red-600 px-3 font-semibold disabled:opacity-50">{chapterBusy ? 'Speichert …' : 'Aktuelle Stelle markieren'}</button>
             {chapterError && <p role="alert" className="text-sm text-amber-300">{chapterError}</p>}
+            </div>}
           </div>}
         </aside>}
       </div>
