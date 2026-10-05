@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BarChart3, ChartNoAxesCombined, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, BarChart3, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -1385,7 +1385,7 @@ export const LiveMatchScreen: React.FC = () => {
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   const matchTypeDisplay = getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
-  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos' | 'analysis'>('hub');
+  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
     const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
@@ -5260,25 +5260,17 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ) : null}
               {matchIsFinished && effectiveMatchId && matchRow?.team_season_id ? (
-                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left !min-h-[98px]`} onClick={() => setMainTab('videos')}>
+                <button type="button" className={`${hubNavBtn} col-span-2 !justify-start gap-3 !rounded-[18px] !px-4 text-left !min-h-[98px]`} onClick={() => setMainTab('videos')}>
                   <Clapperboard className="h-8 w-8 shrink-0 text-red-400" aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className="block text-base font-bold text-white">Videos</span>
-                    <span className="mt-1 block text-xs font-medium text-white/48">Highlights &amp; Spielszenen</span>
+                    <span className="mt-1 block text-xs font-medium text-white/48">Highlights · Spielszenen · Analyse</span>
                   </span>
                 </button>
               ) : null}
-              {matchIsFinished && effectiveMatchId && matchRow?.team_season_id && canControlLiveMatch ? (
-                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left !min-h-[98px]`} onClick={() => setMainTab('analysis')}>
-                  <ChartNoAxesCombined className="h-8 w-8 shrink-0 text-red-400" aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-base font-bold text-white">Spielanalyse</span>
-                    <span className="mt-1 block text-xs font-medium text-white/48">Analysierte Spielszenen</span>
-                  </span>
-                </button>
-              ) : null}
+
             </nav>
-          ) : mainTab !== 'lineup' ? (
+          ) : mainTab !== 'lineup' && mainTab !== 'videos' ? (
             <div className={liveModuleBackBar} aria-label="Zurück zum Live Hub">
               <button
                 type="button"
@@ -5307,6 +5299,7 @@ export const LiveMatchScreen: React.FC = () => {
       >
         {mainTab === 'videos' && effectiveMatchId && matchRow?.team_season_id && (
           <MatchVideosPanel
+            onBack={() => setMainTab('hub')}
             matchId={effectiveMatchId}
             teamSeasonId={matchRow.team_season_id}
             canManage={canControlLiveMatch}
@@ -5314,14 +5307,16 @@ export const LiveMatchScreen: React.FC = () => {
             matchInfo={{
               homeTeam: stadiumHomeDisplay,
               awayTeam: stadiumAwayDisplay,
+              homeLogoUrl: homeLogoSrc,
+              awayLogoUrl: awayLogoSrc,
+              ageGroup: matchTeamSeason?.age_group,
+              matchType: matchTypeDisplay,
               date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date,
+              periodScore: showPeriodScoreLine ? periodScoreLine : undefined,
               score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined,
               location: matchRow.location,
             }}
           />
-        )}
-        {mainTab === 'analysis' && effectiveMatchId && matchRow?.team_season_id && canControlLiveMatch && (
-          <MatchVideosPanel mode="analysis" matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} canManage demoMode={isDemo} matchInfo={{ homeTeam: stadiumHomeDisplay, awayTeam: stadiumAwayDisplay, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: kickoffDateTime.date === 'Noch offen' ? undefined : kickoffDateTime.date, dateIso: calendarStartsAt || matchRow.match_date, matchType: matchTypeDisplay, ageGroup: matchTeamSeason?.age_group, periodScore: showPeriodScoreLine ? periodScoreLine : undefined, score: matchIsFinished && eventIsHome != null ? `${displayScoreHome}:${displayScoreAway}` : undefined, location: finishedMatchVenue }} />
         )}
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
