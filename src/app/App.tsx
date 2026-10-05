@@ -68,6 +68,7 @@ import { ManagerOefbImportPage } from '../manager/ManagerOefbImportPage';
 import { ManagerClubsPage } from '../manager/ManagerClubsPage';
 import { ManagerClubDetailPage } from '../manager/ManagerClubDetailPage';
 import { ManagerPlatformDashboardPage } from '../manager/ManagerPlatformDashboardPage';
+import { ManagerMatchVideosPage } from '../manager/ManagerMatchVideosPage';
 import { ManagerMobileSchedulePage } from '../manager/mobile/ManagerMobileSchedulePage';
 import { ManagerMobileTeamsPage } from '../manager/mobile/ManagerMobileTeamsPage';
 import { ManagerMobileMorePage } from '../manager/mobile/ManagerMobileMorePage';
@@ -362,6 +363,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="teams" element={<ManagerMobileTeamsPage />} />
         <Route path="mehr" element={<ManagerMobileMorePage />} />
         <Route path="platzbelegung" element={<ManagerPlatzbelegungPage />} />
+        <Route path="video" element={<ManagerMatchVideosPage />} />
         <Route path="saisons" element={<ManagerSeasonsPage />} />
         <Route path="saisons/:seasonId/kader" element={<ManagerSeasonRosterPage />} />
         <Route path="saisons/:seasonId/oefb-import" element={<ManagerOefbImportPage />} />
