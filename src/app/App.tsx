@@ -344,6 +344,7 @@ function InternalRoutes(): React.ReactElement {
           </RequireAuth>
         }
       />
+      <Route path="/manager/login" element={<LoginPage />} />
       <Route
         path="/manager"
         element={
