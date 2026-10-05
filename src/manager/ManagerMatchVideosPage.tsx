@@ -71,7 +71,7 @@ export function ManagerMatchVideosPage(): React.ReactElement {
     {error && <p role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{error}</p>}
     {loading ? <p className="text-sm text-slate-600">Spiele werden geladen …</p> :
       !selectedMatch ? <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Für diese Mannschaft ist noch kein Spiel angelegt.</p> :
-      <div className="rounded-3xl border border-[#301719] bg-[#100608] px-4 py-6 shadow-[0_18px_48px_rgba(20,8,10,0.15)] sm:px-7 lg:px-9 lg:py-8">
+      <div className="rounded-3xl border border-slate-200 bg-white px-4 py-6 shadow-sm sm:px-7 lg:px-9 lg:py-8">
         <MatchVideosPanel key={selectedMatch.id} matchId={selectedMatch.id} teamSeasonId={selectedMatch.team_season_id}
           canManage mode="videos" wide showResultHeader={false}
           matchInfo={{
