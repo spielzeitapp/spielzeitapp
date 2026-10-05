@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight, LogOut, Monitor, UserRound } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
 import { useSession } from '../../auth/useSession';
@@ -13,6 +13,7 @@ function MoreLink({ to, icon: Icon, title, detail }: { to: string; icon: React.C
 
 export function ManagerMobileMorePage(): React.ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { signOut } = useSession();
   const { profile } = useProfile(user?.id);
@@ -32,7 +33,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
         <MoreLink to="/manager/saisons" icon={Monitor} title="Desktop-Manager" detail="Alle weiteren Funktionen am Computer" />
       </section>
 
-      <button type="button" onClick={async () => { await signOut(); navigate('/login', { replace: true }); }} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-semibold text-white/45"><LogOut className="h-4 w-4" />Abmelden</button>
+      <button type="button" onClick={async () => { await signOut(); const next = encodeURIComponent(`${location.pathname}${location.search}`); navigate(`/manager/login?next=${next}`, { replace: true }); }} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-semibold text-white/45"><LogOut className="h-4 w-4" />Abmelden</button>
     </div>
   );
 }
