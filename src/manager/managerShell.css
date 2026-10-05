@@ -171,3 +171,63 @@ body:has(.manager-shell) {
     margin-bottom: 1.25rem;
   }
 }
+
+/* The shared MatchVideosPanel is dark in the mobile app. In the Manager the
+   library follows the light cards used by training and scheduling. The player
+   dialog is portaled outside this page and deliberately stays dark. */
+.manager-video-page section[aria-label='Spielvideos'] {
+  color: #0f172a;
+}
+.manager-video-page section[aria-label='Spielvideos'] > nav {
+  border-color: #e2e8f0;
+}
+.manager-video-page section[aria-label='Spielvideos'] > nav button {
+  color: #64748b;
+}
+.manager-video-page section[aria-label='Spielvideos'] > nav button[aria-pressed='true'] {
+  color: #b91c1c;
+  border-color: #dc2626;
+}
+.manager-video-page section[aria-label='Spielvideos'] :is(h2, h3, label) {
+  color: #0f172a;
+}
+.manager-video-page section[aria-label='Spielvideos'] p,
+.manager-video-page section[aria-label='Spielvideos'] [class*='text-white/'] {
+  color: #64748b;
+}
+.manager-video-page section[aria-label='Spielvideos'] [class*='text-red-300'] {
+  color: #b91c1c;
+}
+.manager-video-page section[aria-label='Spielvideos'] [class*='border-white/'] {
+  border-color: #e2e8f0;
+}
+.manager-video-page section[aria-label='Spielvideos'] article,
+.manager-video-page section[aria-label='Spielvideos'] [class*='bg-zinc-950'] {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+.manager-video-page section[aria-label='Spielvideos'] article {
+  background-color: #fff;
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.06);
+}
+.manager-video-page section[aria-label='Spielvideos'] [class*='bg-red-950'] {
+  background-color: #fff1f2;
+}
+.manager-video-page section[aria-label='Spielvideos'] [class*='bg-red-800'] {
+  background-color: #b91c1c;
+  color: #fff;
+}
+.manager-video-page section[aria-label='Spielvideos'] button[class*='bg-red-600'] {
+  color: #fff;
+}
+.manager-video-page section[aria-label='Spielvideos'] button[aria-label$='abspielen'] {
+  background: #111827;
+  color: #fff;
+}
+.manager-video-page section[aria-label='Spielvideos'] button[aria-label$='abspielen'] > span,
+.manager-video-page section[aria-label='Spielvideos'] button[aria-label$='abspielen'] > span span {
+  color: #fff;
+}
+.manager-video-page section[aria-label='Spielvideos'] button[aria-label$='Aktionen'] {
+  color: #64748b;
+}
