@@ -77,7 +77,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
       { id: 'matches', label: 'Spiele', status: 'planned' },
       { id: 'tournaments', label: 'Turniere', status: 'planned' },
       { id: 'venues', label: 'Platzbelegung', to: '/manager/platzbelegung', status: 'ready', moduleKey: 'venues' },
-      { id: 'video', label: 'Video & Analyse', status: 'planned' },
+      { id: 'video', label: 'Video & Analyse', to: '/manager/video', status: 'ready' },
     ],
   },
   {
