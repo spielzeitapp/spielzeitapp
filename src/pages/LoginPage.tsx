@@ -144,6 +144,9 @@ export const LoginPage: React.FC = () => {
       ? fromStatePath
       : null;
 
+  const managerLogin = location.pathname === '/manager/login' ||
+    Boolean(nextSafe?.startsWith('/manager') || safeFromState?.startsWith('/manager'));
+
   const playerLoginEnabled = isPlayerQrAccessEnabled();
   const lockedInviteEmail = useMemo(() => {
     if (parentInviteDismissed) return '';
@@ -294,13 +297,20 @@ export const LoginPage: React.FC = () => {
         <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-red-600/10 blur-3xl" />
 
         <header className="relative">
-          <SpielzeitAppBrand
-            className="max-w-[76vw]"
-            iconClassName="h-[4.25rem] w-[4.25rem]"
-            wordmarkClassName="w-[10rem] min-[390px]:w-[11rem]"
-          />
+          {managerLogin ? (
+            <div className="flex items-center gap-3">
+              <img src="/manager-icon-192.png" alt="" className="h-[4.25rem] w-[4.25rem] rounded-xl" />
+              <span className="text-xl font-bold tracking-tight text-white">Spielzeit Manager</span>
+            </div>
+          ) : (
+            <SpielzeitAppBrand
+              className="max-w-[76vw]"
+              iconClassName="h-[4.25rem] w-[4.25rem]"
+              wordmarkClassName="w-[10rem] min-[390px]:w-[11rem]"
+            />
+          )}
           <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">
-            Willkommen zurück
+            {managerLogin ? 'Manager-Anmeldung' : 'Willkommen zurück'}
           </h1>
         </header>
 
