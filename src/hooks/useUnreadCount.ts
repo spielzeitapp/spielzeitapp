@@ -12,7 +12,7 @@ import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
  * Nur `public.notifications` mit read = false (keine messages-Tabelle).
  * Homescreen-Badge nicht bei Fokus/Visibility/Route wegsyncen — nur bei echtem Count oder Read-Events.
  */
-export function useUnreadCount(userId: string | undefined | null): number {
+export function useUnreadCount(userId: string | undefined | null, scope: 'inbox' | 'feed' = 'inbox'): number {
   const [count, setCount] = useState(0);
 
   const refresh = useCallback(async () => {
@@ -22,22 +22,23 @@ export function useUnreadCount(userId: string | undefined | null): number {
       return;
     }
     try {
-      const { count: n, error } = await supabase
+      const { data, error } = await supabase
         .from('notifications')
-        .select('id', { count: 'exact', head: true })
+        .select('event_type')
         .eq('user_id', userId)
         .eq('read', false);
       if (error) {
         console.warn('[useUnreadCount]', error.message ?? error);
         return;
       }
-      const next = n ?? 0;
-      setCount(next);
-      void syncAppBadge(next);
+      const rows = data ?? [];
+      const feedCount = rows.filter(row => row.event_type === 'feed_post').length;
+      setCount(scope === 'feed' ? feedCount : rows.length - feedCount);
+      void syncAppBadge(rows.length);
     } catch (e) {
       console.warn('[useUnreadCount]', e);
     }
-  }, [userId]);
+  }, [userId, scope]);
 
   useEffect(() => {
     void refresh();
@@ -77,7 +78,7 @@ export function useUnreadCount(userId: string | undefined | null): number {
     };
   }, [refresh]);
 
-  useNotificationsInboxRealtime(userId ?? null, refresh, 'badge');
+  useNotificationsInboxRealtime(userId ?? null, refresh, `badge-${scope}`);
 
   return count;
 }

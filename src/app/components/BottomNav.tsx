@@ -151,6 +151,7 @@ export const BottomNav: React.FC = () => {
   const { effectiveRole } = useSession();
   const demo = useDemoMode();
   const unreadCount = useUnreadCount(user?.id);
+  const feedUnreadCount = useUnreadCount(user?.id, 'feed');
   const termineNavLabel = normalizeRole(effectiveRole) === 'fan' ? 'Spielplan' : 'Termine';
   const isDemo = Boolean(demo) || pathname.startsWith('/demo');
   const appTabsResolved =
@@ -266,7 +267,7 @@ export const BottomNav: React.FC = () => {
               iconFile={t.iconFile}
               isLiveTab={t.live}
               liveMatchActive={t.live ? liveActiveForNav : false}
-              badgeCount={t.to === '/app/mehr' || t.to === '/demo/mehr' ? mehrBadge : undefined}
+              badgeCount={t.to === '/app/home' && !isDemo ? feedUnreadCount : t.to === '/app/mehr' || t.to === '/demo/mehr' ? mehrBadge : undefined}
               onReclick={t.live ? handleLiveTabReclick : undefined}
             />
           ))}

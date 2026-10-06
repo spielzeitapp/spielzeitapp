@@ -684,6 +684,33 @@ serve(async () => {
       processed += 1;
 
       try {
+        // Auto-feed markers already exist transactionally with the post.
+        // Sending a push must never create a second message-inbox entry.
+        if (locked.payload?.automation === "feed_post") {
+          const postId = String(locked.payload.feedPostId ?? "");
+          const { data: post, error: postError } = await supabase.from("team_feed_posts")
+            .select("id").eq("id", postId).maybeSingle();
+          if (postError) throw postError;
+          const { data: markers, error: markerError } = await supabase.from("notifications")
+            .select("user_id,read").eq("source_notification_job_id", locked.id)
+            .eq("event_type", "feed_post");
+          if (markerError) throw markerError;
+          if (!post) {
+            await supabase.from("notifications").update({ read: true })
+              .eq("source_notification_job_id", locked.id).eq("event_type", "feed_post");
+          } else {
+            const userIds = [...new Set((markers ?? [])
+              .filter(row => !row.read && row.user_id).map(row => String(row.user_id)))];
+            await sendReminderWebPushes(supabase, userIds,
+              String(locked.payload.pushTitle ?? "Neuer Feed-Beitrag"),
+              String(locked.payload.pushBody ?? ""), "/app/home", locked.id,
+              String(locked.event_id ?? ""));
+          }
+          await completeJob(supabase, locked.id);
+          completed += 1;
+          continue;
+        }
+
         const { data: event } = await supabase
           .from("events")
           .select(

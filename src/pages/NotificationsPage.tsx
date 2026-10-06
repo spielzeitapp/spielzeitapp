@@ -89,6 +89,7 @@ export const NotificationsPage: React.FC = () => {
         .from('notifications')
         .select('id, team_id, title, message, link, type, event_type, event_id, created_at, read')
         .eq('user_id', uid)
+        .or('event_type.is.null,event_type.neq.feed_post')
         .order('created_at', { ascending: false });
 
       if (qErr) {
