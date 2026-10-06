@@ -247,6 +247,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
           {srcLoaded && resolvedSrc ? (
             <video
               ref={videoRef}
+              data-whatsapp-status-video
               className="h-full w-full object-contain bg-black"
               src={resolvedSrc}
               poster={posterAttr}

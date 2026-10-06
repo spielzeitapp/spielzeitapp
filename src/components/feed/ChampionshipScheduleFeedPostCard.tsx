@@ -1,4 +1,5 @@
 import React from 'react';
+import { FeedPostShareActions } from './FeedPostShareActions';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CalendarDays } from 'lucide-react';
 import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
@@ -87,6 +88,7 @@ export function ChampionshipScheduleFeedPostCard({
         </div>
         <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
       </div>
+      <FeedPostShareActions post={post} />
     </article>
   );
 }
@@ -157,6 +159,7 @@ export function ChampionshipMatchChangedFeedPostCard({
         </div>
         <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
       </div>
+      <FeedPostShareActions post={post} />
     </article>
   );
 }

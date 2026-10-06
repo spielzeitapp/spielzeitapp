@@ -343,7 +343,7 @@ export function FeedStandardActions({
   commentHref = '/app/nachrichten',
   className = '',
   inFooter = false,
-  whatsAppStatus = false,
+  whatsAppStatus = true,
 }: {
   liked: boolean;
   onToggleLike: () => void;
@@ -389,7 +389,7 @@ export function FeedStandardActions({
         Teilen
       </button>
     </div>
-    {whatsAppStatus ? <FeedWhatsAppStatusButton /> : null}
+    {whatsAppStatus ? <FeedWhatsAppStatusButton onShareFallback={onShare} /> : null}
     </>
   );
 }

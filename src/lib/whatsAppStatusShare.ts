@@ -1,6 +1,16 @@
 import { matchdayPosterDomToPngBlob } from './matchdayPosterExport';
 
 export async function prepareWhatsAppStatusFile(root: HTMLElement): Promise<File | null> {
+  const video = root.querySelector<HTMLVideoElement>('[data-whatsapp-status-video]');
+  const videoSrc = video?.currentSrc || video?.src;
+  if (videoSrc) {
+    const response = await fetch(videoSrc);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    if (!blob.type.startsWith('video/') || blob.size < 64) return null;
+    const ext = blob.type === 'video/webm' ? 'webm' : blob.type === 'video/quicktime' ? 'mov' : 'mp4';
+    return new File([blob], `spielzeit-status.${ext}`, { type: blob.type });
+  }
   const image = root.querySelector<HTMLImageElement>('[data-whatsapp-status-image]');
   if (image?.src) {
     const response = await fetch(image.src);
@@ -16,7 +26,7 @@ export async function prepareWhatsAppStatusFile(root: HTMLElement): Promise<File
   return blob && blob.size > 64 ? new File([blob], 'spielzeit-status.png', { type: 'image/png' }) : null;
 }
 
-/** Nur die Datei: keine Caption, kein technischer Link und kein automatisches Senden. */
+/** Nur die Bild-/Videodatei: keine Caption, kein technischer Link und kein automatisches Senden. */
 export async function shareWhatsAppStatusFile(file: File): Promise<'shared' | 'aborted' | 'downloaded'> {
   const data: ShareData = { files: [file] };
   try {

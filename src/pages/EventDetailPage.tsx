@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Bus,
   BarChart3,
-  ChartNoAxesCombined,
   CalendarDays,
   CalendarPlus,
   Clapperboard,
@@ -522,7 +521,7 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
-  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos' | 'analysis'>('hub');
+  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos'>('hub');
   const [matchRowLite, setMatchRowLite] = useState<{
     id: string;
     status: string | null;
@@ -2058,8 +2057,7 @@ export const EventDetailPage: React.FC = () => {
       { id: 'lineup', label: 'Aufstellung', detail: 'Formation', icon: Shirt },
       { id: 'timeline', label: 'Liveticker', detail: 'Spielverlauf', icon: Radio },
       { id: 'stats', label: 'Statistik', detail: 'Einsatzzeiten', icon: BarChart3 },
-      ...(event.match_id ? [{ id: 'videos', label: 'Videos', detail: 'Highlights & Spielszenen', icon: Clapperboard }] : []),
-      ...(event.match_id && canTrainerManageEvent ? [{ id: 'analysis', label: 'Spielanalyse', detail: 'Analysierte Spielszenen', icon: ChartNoAxesCombined }] : []),
+      ...(event.match_id ? [{ id: 'videos', label: 'Videos', detail: 'Highlights · Spielszenen · Analyse', icon: Clapperboard }] : []),
     ] as const;
 
     const finishedMinuteLabel = (raw: number | null) => {
@@ -2821,9 +2819,9 @@ export const EventDetailPage: React.FC = () => {
           {finishedTab === 'hub' ? (
             <nav aria-label="Spielbereiche" className="grid grid-cols-2 gap-2.5">
               {finishedModules.map(({ id, label, detail, icon: Icon }) => (
-                <button key={id} type="button" onClick={() => setFinishedTab(id)} className="flex min-h-[98px] items-center gap-3 rounded-[18px] border border-white/10 bg-zinc-950/80 px-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-red-400/40">
+                <button key={id} type="button" onClick={() => setFinishedTab(id)} className={`flex min-h-[98px] items-center gap-3 rounded-[18px] border border-white/[0.08] bg-[rgba(12,12,16,0.9)] px-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_4px_22px_rgba(0,0,0,0.42)] backdrop-blur-xl transition hover:border-red-400/40 ${id === 'videos' ? 'col-span-2' : ''}`}>
                   <Icon className="h-8 w-8 shrink-0 text-red-400" aria-hidden />
-                  <span className="min-w-0"><span className="block text-base font-bold text-white">{label}</span><span className="mt-1 block text-xs text-white/50">{detail}</span></span>
+                  <span className="min-w-0"><span className="block text-base font-bold text-white">{label}</span><span className="mt-1 block text-xs font-medium text-white/48">{detail}</span></span>
                 </button>
               ))}
             </nav>
@@ -2858,10 +2856,7 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
 
           {finishedTab === 'videos' && event.match_id ? (
-            <MatchVideosPanel matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
-          ) : null}
-          {finishedTab === 'analysis' && event.match_id && canTrainerManageEvent ? (
-            <MatchVideosPanel mode="analysis" showResultHeader={false} matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
+            <MatchVideosPanel onBack={() => setFinishedTab('hub')} matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
           ) : null}
 
           {finishedTab === 'overview' ? (
