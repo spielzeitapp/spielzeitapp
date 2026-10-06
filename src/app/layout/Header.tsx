@@ -264,8 +264,8 @@ export const Header: React.FC = () => {
                         </svg>
                       </Link>
                       {isStaff && staffBackendBadge ? (
-                        <span className={dsTrainerPillClass()} title={staffBackendBadge}>
-                          {staffBackendBadge}
+                        <span className={dsTrainerPillClass()} title={roleLabel ?? staffBackendBadge}>
+                          {roleLabel ?? staffBackendBadge}
                         </span>
                       ) : null}
                     </div>

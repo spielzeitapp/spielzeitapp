@@ -11,6 +11,7 @@ import { Card, CardTitle } from '../app/components/ui/Card';
 import { PushNotificationsButton } from '../components/PushNotificationsButton';
 import { PlayerAccessQrPanel } from '../components/player/PlayerAccessQrPanel';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
+import { resolveAvailableWorkModes, writeStoredWorkMode, workModeHomePath, type ManagerWorkMode } from '../manager/managerWorkMode';
 import { isSeasonActive } from '../lib/seasonLifecycle';
 import {
   labelPartsFromTeamSeasonLike,
@@ -74,6 +75,7 @@ export const ProfilePage: React.FC = () => {
     selectedTeamSeason,
     selectedTeamSeasonId,
     selectedMembership,
+    memberships,
     signOut,
     hasPendingPlayerRequest,
     loading: sessionLoading,
@@ -90,6 +92,12 @@ export const ProfilePage: React.FC = () => {
   const [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false);
   const [mountPushUi, setMountPushUi] = useState(false);
 
+  const availableWorkModes = resolveAvailableWorkModes({ backendRole, memberships });
+  const openWorkMode = (mode: ManagerWorkMode) => {
+    if (!authUser?.id || sessionLoading || !availableWorkModes.includes(mode)) return;
+    writeStoredWorkMode(authUser.id, mode);
+    navigate(workModeHomePath(mode));
+  };
   const currentUIView = effectiveRole;
   const isAdminToolsVisible = backendRole === 'admin' && currentUIView === 'admin';
 
@@ -446,16 +454,32 @@ export const ProfilePage: React.FC = () => {
           )}
 
           <p className="mt-3 text-sm text-[var(--text-sub)]">
-            Backend-Rolle:{' '}
+            Rolle im Team:{' '}
             <span className="font-medium text-[var(--text-main)]">{profileBackendRoleLabel}</span>
           </p>
 
           <p className="mt-1 text-sm text-[var(--text-sub)]">
-            UI-Ansicht:{' '}
+            Aktuelle App-Ansicht:{' '}
             <span className="font-medium text-[var(--text-main)]">
               {uiViewLabel}
             </span>
           </p>
+
+          {backendRole === 'admin' && (
+            <p className="mt-2 text-sm text-[var(--text-sub)]">Zusätzliche Berechtigung: <span className="font-medium text-[var(--text-main)]">Plattformadmin</span></p>
+          )}
+
+          {!sessionLoading && availableWorkModes.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-semibold">Arbeitsbereich wählen</p>
+              {availableWorkModes.map((mode) => (
+                <button key={mode} type="button" onClick={() => openWorkMode(mode)}
+                  className="min-h-[44px] w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-left text-sm font-medium text-white hover:bg-red-500/20">
+                  {mode === 'platform_admin' ? 'Zur Plattformverwaltung' : mode === 'club_admin' ? 'Zur Vereinsverwaltung' : 'Zum Trainerbereich'}
+                </button>
+              ))}
+            </div>
+          )}
 
           {hasPendingPlayerRequest && effectiveRole === 'fan' && (
             <p className="mt-2 text-xs text-amber-300">
