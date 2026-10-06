@@ -1,7 +1,8 @@
 export type FeedShareOutcome = 'shared' | 'copied' | 'aborted' | 'failed';
 
 /**
- * Web Share API mit Datei (wenn möglich), sonst Text+URL, sonst Zwischenablage.
+ * Datei + Text (wenn möglich), sonst Text / Zwischenablage.
+ * fetchUrl ist ausschließlich eine interne Download-URL, niemals ein Share-Link.
  */
 export async function shareFeedContent(opts: {
   title: string;
@@ -34,13 +35,11 @@ export async function shareFeedContent(opts: {
   const tryShareWithFile = async (): Promise<boolean> => {
     if (!file || typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
     const withFile: ShareData = { files: [file], title, text };
-    const withAll: ShareData = { files: [file], title, text, url: fetchUrl ?? undefined };
     const candidates: ShareData[] = [];
     if (typeof navigator.canShare === 'function') {
-      if (navigator.canShare(withAll)) candidates.push(withAll);
       if (navigator.canShare(withFile)) candidates.push(withFile);
     }
-    if (candidates.length === 0) candidates.push(withAll, withFile);
+    if (candidates.length === 0) candidates.push(withFile);
     for (const data of candidates) {
       try {
         await navigator.share(data);
@@ -54,9 +53,7 @@ export async function shareFeedContent(opts: {
 
   const tryShareText = async (): Promise<boolean> => {
     if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
-    const textAndLink = fetchUrl ? `${text}\n${fetchUrl}` : text;
-    const candidates: ShareData[] = [{ title, text: textAndLink }];
-    if (fetchUrl) candidates.unshift({ title, text, url: fetchUrl });
+    const candidates: ShareData[] = [{ title, text }];
     for (const data of candidates) {
       try {
         if (typeof navigator.canShare === 'function' && !navigator.canShare(data)) continue;
@@ -80,8 +77,7 @@ export async function shareFeedContent(opts: {
     return 'aborted';
   }
   try {
-    const clip = fetchUrl ? `${text}\n${fetchUrl}` : text;
-    await navigator.clipboard.writeText(clip);
+    await navigator.clipboard.writeText(text);
     return 'copied';
   } catch {
     return 'failed';

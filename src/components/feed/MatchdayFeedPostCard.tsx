@@ -37,6 +37,7 @@ import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 import { getDemoMatchLite } from '../../demo/demoMatchState';
+import { buildMatchdayShareText } from '../../lib/matchdayShareText';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -205,21 +206,11 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   );
 
   const onShare = useCallback(async () => {
-    const base = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '');
-    const path = gameHref.startsWith('/') ? gameHref : `/${gameHref}`;
-    const url = `${window.location.origin}${base}${path}`;
-    const kickDate = new Date(p.kickoff_iso);
-    const datePart = Number.isNaN(kickDate.getTime())
-      ? ''
-      : ` · ${new Intl.DateTimeFormat('de-AT', {
-          timeZone: VIENNA_TZ,
-          weekday: 'short',
-          day: 'numeric',
-          month: 'short',
-        }).format(kickDate)}`;
-    const text = `${post.caption}\n${displayHomeName} vs. ${displayAwayName}${datePart} · Anpfiff ${kickoffTime}`;
+    const text = buildMatchdayShareText({
+      home: displayHomeName, away: displayAwayName, startsAt: p.kickoff_iso,
+      location: locationLine, isHome: liveEvent?.is_home ?? p.is_home,
+    });
     const title = 'SpielzeitApp · Matchday';
-    const textAndLink = `${text}\n${url}`;
 
     let posterBlob: Blob | null = null;
     if (posterCaptureRef.current) {
@@ -232,18 +223,16 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
       const file = new File([posterBlob], `spielzeit-matchday-${p.event_id.slice(0, 8)}.png`, {
         type: 'image/png',
       });
-      const withAll: ShareData = { files: [file], title, text, url };
-      const withText: ShareData = { files: [file], title, text: textAndLink };
+      const withText: ShareData = { files: [file], title, text };
       const withTitle: ShareData = { files: [file], title };
       const filesOnly: ShareData = { files: [file] };
       const ordered: ShareData[] = [];
       if (typeof navigator.canShare === 'function') {
-        if (navigator.canShare(withAll)) ordered.push(withAll);
         if (navigator.canShare(withText)) ordered.push(withText);
         if (navigator.canShare(withTitle)) ordered.push(withTitle);
         if (navigator.canShare(filesOnly)) ordered.push(filesOnly);
       }
-      if (ordered.length === 0) ordered.push(withAll, withText, withTitle, filesOnly);
+      if (ordered.length === 0) ordered.push(withText, withTitle, filesOnly);
       for (const data of ordered) {
         try {
           await navigator.share(data);
@@ -257,13 +246,10 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
     const tryNativeTextShare = async (): Promise<boolean> => {
       if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
-      const withUrl: ShareData = { title, text, url };
-      const textOnly: ShareData = { title, text: textAndLink };
+      const textOnly: ShareData = { title, text };
       const can = typeof navigator.canShare === 'function' ? navigator.canShare.bind(navigator) : () => true;
       const candidates: ShareData[] = [];
-      if (can(withUrl)) candidates.push(withUrl);
-      else if (can(textOnly)) candidates.push(textOnly);
-      else candidates.push(withUrl, textOnly);
+      if (can(textOnly)) candidates.push(textOnly);
       for (const data of candidates) {
         try {
           await navigator.share(data);
@@ -301,8 +287,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
       /* Fallback: Text */
     }
     try {
-      await navigator.clipboard.writeText(textAndLink);
-      setShareHint('Text & Link kopiert.');
+      await navigator.clipboard.writeText(text);
+      setShareHint('Text kopiert.');
       window.setTimeout(() => setShareHint(null), 2500);
     } catch {
       setShareHint('Teilen nicht möglich.');
@@ -316,6 +302,9 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     p.event_id,
     kickoffTime,
     gameHref,
+    locationLine,
+    liveEvent?.is_home,
+    p.is_home,
   ]);
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
