@@ -328,6 +328,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             {customImageSrc && !imageFailed ? (
               <img
                 src={customImageSrc}
+                data-whatsapp-status-image
                 alt={`Siegerbild: ${p.home_team_name} ${p.home_score}:${p.away_score} ${p.away_team_name}`}
                 className={`h-full w-full object-contain transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                 loading="lazy"
@@ -360,7 +361,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           </div>
 
           <FeedPostActionsFooter shareHint={shareHint}>
-            <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter />
+            <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter whatsAppStatus />
           </FeedPostActionsFooter>
         </div>
       </FeedPostArticleShell>
@@ -383,7 +384,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         actions={headerActions}
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
-        <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
+        <div data-whatsapp-status-poster className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <div ref={resultPosterRef} className="relative min-w-0 space-y-3 overflow-hidden rounded-xl bg-[#140808] px-1.5 py-2 sm:px-2.5 sm:py-3">
             <FeedStadiumHeroBackdrop />
             <div className="relative min-w-0 space-y-3">
@@ -470,7 +471,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           liked={liked}
           onToggleLike={onToggleLike}
           onShare={() => void onShare()}
-          inFooter
+          inFooter whatsAppStatus
         />
       </FeedPostActionsFooter>
     </FeedPostArticleShell>

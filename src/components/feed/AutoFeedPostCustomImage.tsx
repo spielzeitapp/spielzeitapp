@@ -26,6 +26,7 @@ export const AutoFeedPostCustomImage: React.FC<Props> = ({ mediaUrl, alt }) => {
       {src && !failed ? (
         <img
           src={src}
+          data-whatsapp-status-image
           alt={alt}
           className={`h-full w-full object-contain transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
           loading="lazy"

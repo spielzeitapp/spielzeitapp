@@ -390,7 +390,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           liked={liked}
           onToggleLike={onToggleLike}
           onShare={() => void onShare()}
-          inFooter
+          inFooter whatsAppStatus
         />
       </FeedPostActionsFooter>
     </FeedPostArticleShell>

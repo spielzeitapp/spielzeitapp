@@ -8,6 +8,7 @@ import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { MatchdayPosterCard } from '../../components/feed/MatchdayPosterCard';
+import { FeedWhatsAppStatusButton } from '../../components/feed/FeedWhatsAppStatusButton';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
@@ -121,7 +122,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
     announcementTiming,
   };
   return (
-    <section className="min-w-0" aria-label="Spieltag">
+    <section data-whatsapp-status-root className="min-w-0" aria-label="Spieltag">
       {viewerIsStaff || basePath === '/demo' ? <div className="mb-2 flex justify-end">
         <MatchdayDesignButton {...designState} poster={posterProps} teamSeasonId={event.team_season_id} demo={basePath === '/demo'} />
       </div> : null}
@@ -172,6 +173,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         </button>
       </div>
       {shareHint ? <p className="mt-1.5 text-center text-[12px] text-white/60">{shareHint}</p> : null}
+      <FeedWhatsAppStatusButton />
     </section>
   );
 };

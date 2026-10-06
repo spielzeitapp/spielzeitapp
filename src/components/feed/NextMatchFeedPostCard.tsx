@@ -197,7 +197,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
         {post.media_url?.trim() ? (
           <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Ankündigungsbild" />
         ) : (
-        <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
+        <div data-whatsapp-status-poster className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
 
           <div className="relative space-y-3">
@@ -268,7 +268,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
             liked={liked}
             onToggleLike={onToggleLike}
             onShare={() => void onShare()}
-            inFooter
+            inFooter whatsAppStatus
         />
       </FeedPostActionsFooter>
     </FeedPostArticleShell>
