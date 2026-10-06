@@ -17,7 +17,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
   const { user } = useAuth();
   const { signOut } = useSession();
   const { profile } = useProfile(user?.id);
-  const { isTrainerMode } = useManagerWorkMode();
+  const { isTrainerMode, workMode, availableModes, setWorkMode, supportSession } = useManagerWorkMode();
   const name = getDisplayFirstName(profile) || profileDisplayName(profile) || user?.email?.split('@')[0] || 'Funktionär';
 
   return (
@@ -25,8 +25,23 @@ export function ManagerMobileMorePage(): React.ReactElement {
       <ManagerMobilePageTitle eyebrow="Manager" title="Mehr" />
       <section className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-950/50 to-[#111114] p-4">
         <span className="grid h-14 w-14 place-items-center rounded-full border border-white/15 bg-red-600 text-xl font-black">{name.charAt(0).toUpperCase()}</span>
-        <span><span className="block text-[17px] font-black">{name}</span><span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-red-200/70">{isTrainerMode ? 'Trainer' : 'Vereinsfunktionär'}</span></span>
+        <span><span className="block text-[17px] font-black">{name}</span><span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-red-200/70">{workMode === 'platform_admin' ? 'Plattformadmin' : isTrainerMode ? 'Trainer' : 'Vereinsadmin'}</span></span>
       </section>
+
+      {availableModes.length > 1 && !supportSession ? (
+        <section className="mt-5 rounded-2xl border border-white/[0.09] bg-[#111114] p-4">
+          <h2 className="text-[14px] font-bold">Arbeitsbereich wählen</h2>
+          <p className="mt-1 text-[11px] text-white/50">Deine Berechtigungen bleiben gleich. Du wechselst nur die Manager-Ansicht.</p>
+          <div className="mt-3 grid gap-2">
+            {availableModes.map((mode) => {
+              const label = mode === 'platform_admin' ? 'Plattformverwaltung' : mode === 'club_admin' ? 'Vereinsverwaltung' : 'Trainerbereich';
+              return <button key={mode} type="button" onClick={() => setWorkMode(mode)}
+                aria-current={workMode === mode ? 'page' : undefined}
+                className={`min-h-11 rounded-xl border px-3 text-left text-[13px] font-semibold ${workMode === mode ? 'border-red-500 bg-red-950/40 text-white' : 'border-white/10 text-white/70'}`}>{label}{workMode === mode ? ' · aktiv' : ''}</button>;
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
         <MoreLink to="/app/profile" icon={UserRound} title="Profil" detail="Persönliche Daten und Konto" />

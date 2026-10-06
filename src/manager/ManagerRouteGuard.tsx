@@ -17,7 +17,7 @@ export function ManagerRouteGuard({ children }: Props): React.ReactElement {
   const { isModuleEnabled, loading: modulesLoading } = useManagerClubModules();
 
   const platformRoute = location.pathname.startsWith('/manager/plattform') || location.pathname.startsWith('/manager/vereine');
-  if (workMode === 'platform_admin' && !supportSession && !platformRoute) {
+  if (workMode === 'platform_admin' && !supportSession && !platformRoute && location.pathname !== '/manager/mehr') {
     return <Navigate to="/manager/plattform" replace />;
   }
 
