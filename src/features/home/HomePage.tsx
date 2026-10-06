@@ -1,3 +1,4 @@
+import { notifyNotificationsReadChanged, INBOX_SYNC_EVENT } from '../../lib/notificationsReadState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, SlidersHorizontal } from 'lucide-react';
@@ -416,6 +417,33 @@ export const HomePage: React.FC = () => {
     () => visibleHistoricPosts.filter((item) => matchesHomeFeedFilter(item, feedFilter)),
     [visibleHistoricPosts, feedFilter],
   );
+
+  // Read only feed markers whose posts are rendered in this Home view.
+  const displayedFeedPostIds = [...new Set([
+    ...filteredActivePosts.map(item => item.post.id),
+    ...(spieltagHintPick && (feedFilter === 'all' || feedFilter === 'matchday')
+      ? activePosts.filter(item => isHomeHeroDuplicateFeedPost(item, spieltagHintPick.event.id, spieltagHintPick.event.match_id)).map(item => item.post.id)
+      : []),
+  ])].join(',');
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (isDemoMode || !userId || !displayedFeedPostIds || teamFeedLoading) return;
+    const markDisplayed = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const { data, error } = await supabase.from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('user_id', userId).eq('event_type', 'feed_post').eq('read', false)
+        .in('kind', displayedFeedPostIds.split(',')).select('id');
+      if (!error && data?.length) notifyNotificationsReadChanged();
+    };
+    void markDisplayed();
+    window.addEventListener(INBOX_SYNC_EVENT, markDisplayed);
+    document.addEventListener('visibilitychange', markDisplayed);
+    return () => {
+      window.removeEventListener(INBOX_SYNC_EVENT, markDisplayed);
+      document.removeEventListener('visibilitychange', markDisplayed);
+    };
+  }, [isDemoMode, session?.user?.id, displayedFeedPostIds, teamFeedLoading]);
 
   const showNoUpcomingMatchEmpty =
     matchSectionReady && !sportingPick && visibleActivePosts.length === 0;
