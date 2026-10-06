@@ -15,6 +15,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 import { shareFeedContent } from '../../lib/feedShare';
+import { buildMatchdayShareText } from '../../lib/matchdayShareText';
 import { useMatchdayDesign } from '../../hooks/useMatchdayDesign';
 import { MatchdayDesignButton } from '../../components/feed/MatchdayDesignButton';
 import type { MatchdayPosterCardProps } from '../../components/feed/MatchdayPosterCard';
@@ -67,25 +68,20 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
   const locationLine = formatFeedVenueShort(event.location ?? event.address) ?? '—';
   const venueLabel = isHome ? 'Heimspiel' : 'Auswärtsspiel';
 
-  const eventUrl =
-    typeof window !== 'undefined'
-      ? new URL(`${basePath.slice(1)}/events/${event.id}`, `${window.location.origin}${import.meta.env.BASE_URL || '/'}`).href
-      : '';
-
   const onShare = useCallback(async () => {
-    if (!eventUrl) return;
     const title = 'SpielzeitApp · Spieltag';
-    const text = `${ourClub} vs. ${opponent} · Anpfiff ${kickoff}`;
+    const text = buildMatchdayShareText({ home: homeName, away: awayName,
+      startsAt: event.starts_at ?? '', location: locationLine, isHome });
     const blob = posterRef.current ? await matchdayPosterDomToPngBlob(posterRef.current) : null;
     const result = await shareFeedContent({
       title,
-      text: `${text}\n${eventUrl}`,
+      text,
       file: blob ? new File([blob], 'spielzeit-spieltag.png', { type: 'image/png' }) : null,
     });
     if (result === 'aborted') return;
-    setShareHint(result === 'shared' ? 'Geteilt.' : result === 'copied' ? 'Link kopiert.' : 'Teilen nicht möglich.');
+    setShareHint(result === 'shared' ? 'Geteilt.' : result === 'copied' ? 'Text kopiert.' : 'Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2200);
-  }, [eventUrl, kickoff, opponent, ourClub]);
+  }, [homeName, awayName, event.starts_at, locationLine, isHome]);
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);

@@ -3,6 +3,7 @@ import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { shareFeedContent } from '../../lib/feedShare';
+import { compactMatchdayCaption } from '../../lib/matchdayShareText';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { FeedPostCtaButton } from './FeedPostCtaButton';
@@ -67,7 +68,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
 
   const onShare = useCallback(async () => {
     const title = 'SpielzeitApp · Foto';
-    const text = post.caption?.trim() || 'Team-Foto';
+    const text = compactMatchdayCaption(post.caption ?? '') || 'Team-Foto';
     const lower = (post.media_url ?? '').toLowerCase();
     const ext = lower.endsWith('.png') ? 'png' : lower.endsWith('.webp') ? 'webp' : 'jpg';
     const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
