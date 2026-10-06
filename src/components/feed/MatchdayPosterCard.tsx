@@ -98,6 +98,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
     return (
       <div
         ref={ref}
+        data-whatsapp-status-poster
         className="sz-club-feed-media-frame relative w-full overflow-hidden rounded-none border-y p-[1px] sm:rounded-3xl sm:border"
       >
         <MatchdayPosterArtwork

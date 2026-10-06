@@ -88,7 +88,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
         {post.media_url?.trim() ? (
           <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Kaderbild" />
         ) : (
-        <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
+        <div data-whatsapp-status-poster className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
           <div className="relative min-w-0 space-y-3">
             <div className="text-center">
@@ -134,7 +134,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
         <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}><FeedCaption text={post.caption} /></div>
       </div>
       <FeedPostActionsFooter shareHint={shareHint}>
-        <FeedStandardActions liked={liked} onToggleLike={() => setLiked((v) => !v)} onShare={() => void onShare()} inFooter />
+        <FeedStandardActions liked={liked} onToggleLike={() => setLiked((v) => !v)} onShare={() => void onShare()} inFooter whatsAppStatus />
       </FeedPostActionsFooter>
     </FeedPostArticleShell>
   );

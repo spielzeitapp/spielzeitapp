@@ -124,6 +124,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
           {resolvedSrc && !imageFailed ? (
             <img
               src={resolvedSrc}
+              data-whatsapp-status-image
               alt=""
               className={`h-full w-full object-contain transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
@@ -160,7 +161,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
         <FeedPostCtaButton ctaUrl={post.cta_url} ctaLabel={post.cta_label} />
 
         <FeedPostActionsFooter shareHint={shareHint}>
-          <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter />
+          <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter whatsAppStatus />
         </FeedPostActionsFooter>
       </div>
     </FeedPostArticleShell>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, ClipboardList, Heart, MapPin, MessageCircle, Share2, Trophy } from 'lucide-react';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
+import { FeedWhatsAppStatusButton } from './FeedWhatsAppStatusButton';
 
 export const FEED_HASHTAG = '#GEMEINSAMEINTEAM';
 
@@ -342,6 +343,7 @@ export function FeedStandardActions({
   commentHref = '/app/nachrichten',
   className = '',
   inFooter = false,
+  whatsAppStatus = false,
 }: {
   liked: boolean;
   onToggleLike: () => void;
@@ -351,9 +353,11 @@ export function FeedStandardActions({
   className?: string;
   /** Innerhalb von FeedPostActionsFooter — kein doppelter Top-Border. */
   inFooter?: boolean;
+  whatsAppStatus?: boolean;
 }) {
   const rowClass = inFooter ? FEED_ACTIONS_ROW_BASE : FEED_ACTIONS_ROW_CLASS;
   return (
+    <>
     <div
       className={`${rowClass} ${className}`.trim()}
       style={inFooter ? undefined : { boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.05)' }}
@@ -385,6 +389,8 @@ export function FeedStandardActions({
         Teilen
       </button>
     </div>
+    {whatsAppStatus ? <FeedWhatsAppStatusButton /> : null}
+    </>
   );
 }
 
