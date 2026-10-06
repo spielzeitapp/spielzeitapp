@@ -19,6 +19,12 @@ try {
   globalThis.fetch = async url => { assert.equal(url, signed); return new Response(blob); };
   const file = await prepareWhatsAppStatusFile({ querySelector: selector => selector.includes('-image') ? { src: signed } : null });
   assert.equal(file.type, 'image/png');
+  const videoBlob = new Blob(['video'.repeat(40)], { type: 'video/mp4' });
+  globalThis.fetch = async url => { assert.equal(url, signed); return new Response(videoBlob); };
+  const videoFile = await prepareWhatsAppStatusFile({ querySelector: selector => selector.includes('-video') ? { currentSrc: signed } : null });
+  assert.equal(videoFile.name, 'spielzeit-status.mp4');
+  assert.equal(videoFile.type, 'video/mp4');
+  globalThis.fetch = async () => new Response(blob);
   let shared;
   setNavigator({ canShare: () => true, share: async data => { shared = data; } });
   assert.equal(await shareWhatsAppStatusFile(file), 'shared');
@@ -51,5 +57,14 @@ try {
 for (const name of ['Matchday', 'Result', 'NextMatch', 'Lineup', 'Live', 'Squad', 'Image']) {
   const card = readFileSync(new URL('../src/components/feed/' + name + 'FeedPostCard.tsx', import.meta.url), 'utf8');
   assert.match(card, /inFooter whatsAppStatus/);
+}
+const typography = readFileSync(new URL('../src/components/feed/feedTypography.tsx', import.meta.url), 'utf8');
+assert.match(typography, /whatsAppStatus = true/);
+assert.match(typography, /onShareFallback={onShare}/);
+const videoCard = readFileSync(new URL('../src/components/feed/VideoFeedPostCard.tsx', import.meta.url), 'utf8');
+assert.match(videoCard, /data-whatsapp-status-video/);
+for (const name of ['ChampionshipSchedule', 'TournamentCompletion']) {
+  const card = readFileSync(new URL('../src/components/feed/' + name + 'FeedPostCard.tsx', import.meta.url), 'utf8');
+  assert.match(card, /<FeedPostShareActions post={post}/);
 }
 console.log('PASS: status shares image only, poster rendering, cancellation, download fallback, all graphic feed cards');

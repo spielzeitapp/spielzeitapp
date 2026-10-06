@@ -1,4 +1,5 @@
 import React from 'react';
+import { FeedPostShareActions } from './FeedPostShareActions';
 import { Trophy } from 'lucide-react';
 import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import type { TournamentCompletionFeedPayload } from '../../lib/tournamentCompletionFeed';
@@ -73,6 +74,7 @@ export function TournamentCompletionFeedPostCard({
           </ul>
         ) : null}
       </div>
+      <FeedPostShareActions post={post} />
     </article>
   );
 }
