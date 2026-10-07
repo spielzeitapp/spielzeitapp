@@ -2857,7 +2857,7 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
 
           {finishedTab === 'videos' && event.match_id ? (
-            <MatchVideosPanel onBack={() => setFinishedTab('hub')} matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
+            <MatchVideosPanel showResultHeader={false} matchId={event.match_id} teamSeasonId={event.team_season_id} canManage={canTrainerManageEvent} demoMode={isDemo} matchInfo={{ homeTeam: homeTeamName, awayTeam: awayTeamName, homeLogoUrl: homeLogoSrc, awayLogoUrl: awayLogoSrc, date: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at)), location: venue, score: scoreStr }} />
           ) : null}
 
           {finishedTab === 'overview' ? (
