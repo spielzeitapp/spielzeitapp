@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, List, LockKeyhole, Maximize2, Minimize2, MoreVertical, Pencil, Play, Plus, Send, Trash2, UploadCloud } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { MatchVideoTransferActions } from './MatchVideoTransferActions';
 import { uploadStorageObject } from '../../lib/storageUpload';
 
 type Chapter = { id: string; second: number; kind: string; title: string; player_id?: string | null; assist_player_id?: string | null; match_event_id?: string | null };
@@ -119,6 +120,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
   const [view, setView] = useState<'highlights' | 'scenes' | 'analysis'>(mode === 'analysis' ? 'scenes' : 'highlights');
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [shareUpload, setShareUpload] = useState(true);
   const [actionsId, setActionsId] = useState<string | null>(null);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const [durations, setDurations] = useState<Record<string, string>>({});
@@ -239,6 +241,10 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       }
       if (view !== 'analysis' && (annotationPlayerId || annotationAssistId || annotationEventId)) {
         await annotateScene({ id } as MatchVideo, null, title.trim());
+      }
+      if (shareUpload) {
+        const { error: releaseError } = await supabase.rpc('release_match_video', { p_video_id: id });
+        if (releaseError) throw new Error('Video hochgeladen, aber noch nicht freigegeben. Bitte am Clip auf Freigeben tippen.');
       }
       setTitle(''); setSceneMinute(''); setAnalysisNote(''); setAnnotationPlayerId(''); setAnnotationAssistId(''); setAnnotationEventId(''); setAnalysisFilter('all'); setUploadOpen(false); await reload();
     } catch (e) { setError(e instanceof Error ? e.message : 'Upload fehlgeschlagen.'); }
@@ -398,7 +404,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const publish = async (video: MatchVideo) => {
     if (!canManage || demoMode || busy) return;
     if (!caption.trim()) { setError('Bitte einen Text für den Feed eingeben.'); return; }
-    if (video.visibility === 'staff' && !window.confirm(`„${video.title}“ für Eltern und Spieler dieses Teams freigeben? Fans erhalten keinen Zugriff.`)) return;
+    if (video.visibility === 'staff' && !window.confirm(`„${video.title}“ für Eltern, Spieler und Fans dieses Teams freigeben?`)) return;
     setBusy(true); setError(null);
     const { error: publishError } = await supabase.rpc('publish_match_video', {
       p_video_id: video.id, p_caption: caption.trim(),
@@ -406,6 +412,17 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     if (publishError) setError(publishError.message);
     else { setComposerId(null); await reload(); }
     setBusy(false);
+  };
+
+  const release = async (video: MatchVideo) => {
+    if (!canManage || demoMode || busy) return;
+    setBusy(true); setError(null);
+    try {
+      const { error: releaseError } = await supabase.rpc('release_match_video', { p_video_id: video.id });
+      if (releaseError) throw releaseError;
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : 'Freigabe fehlgeschlagen.'); }
+    finally { setBusy(false); }
   };
 
   const unpublish = async (video: MatchVideo) => {
@@ -496,10 +513,10 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
     <div className="flex items-center justify-between gap-2">
       <div><h2 className="text-xl font-bold">{view === 'highlights' ? 'Highlights' : view === 'scenes' ? 'Spielszenen' : 'Spielanalyse'}</h2><p className="text-xs text-white/55">{visibleVideos.length} {sceneView ? 'Szenen' : 'Videos'}{view !== 'analysis' && ' · nach Spielminute sortiert'}</p></div>
-      {canManage && !demoMode && <button type="button" onClick={() => { const opening = !uploadOpen; setUploadOpen(opening); setUploadTitleAuto(opening && view === 'scenes' && !title.trim()); }} aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/60 bg-red-950/70 px-3 text-sm font-bold"><Plus size={18} aria-hidden /> {view === 'scenes' ? 'Szene' : view === 'analysis' ? 'Analyse' : 'Video'} </button>}
+      {canManage && !demoMode && <button type="button" onClick={() => { const opening = !uploadOpen; setUploadOpen(opening); if (opening) setShareUpload(view !== 'analysis'); setUploadTitleAuto(opening && view === 'scenes' && !title.trim()); }} aria-expanded={uploadOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/60 bg-red-950/70 px-3 text-sm font-bold"><Plus size={18} aria-hidden /> {view === 'scenes' ? 'Szene' : view === 'analysis' ? 'Analyse' : 'Video'} </button>}
     </div>
     {canManage && !demoMode && uploadOpen && <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950 p-4">
-      <p className="flex items-center gap-2 text-sm font-semibold"><LockKeyhole size={17} aria-hidden /> Zunächst nur für Trainer sichtbar</p>
+      <label className="flex min-h-11 items-start gap-2 text-sm"><input type="checkbox" checked={shareUpload} onChange={e => setShareUpload(e.target.checked)} className="mt-1 h-4 w-4" /><span>Für Eltern, Spieler und Fans freigeben<span className="mt-1 block text-xs text-white/60">Mit Download und Teilen. Ohne Häkchen bleibt das Video nur für Trainer sichtbar.</span></span></label>
       {!sceneView && <label className="block text-sm">Pro-Soccer-Export<select aria-label="Highlight-Vorlage" defaultValue="" onChange={e => {
         const preset = e.target.value; if (!preset) return;
         setTitle(preset); setCategory(preset.startsWith('Tor-') ? 'goals' : preset.startsWith('Schuss-') ? 'chances' : preset.startsWith('Defensiv-') ? 'defence' : 'highlights');
@@ -517,7 +534,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-600"><Play size={18} fill="white" aria-hidden /></span>
           <span className="min-w-0"><span className="block font-bold">{label} abspielen</span><span className="block text-sm text-white/65">{count} {count === 1 ? 'Clip' : 'Clips'} nacheinander · Szenen auswählen</span></span>
         </button>)}
-      <p className="px-1 text-xs text-white/55">Neue Spielszenen erscheinen automatisch. Spieler und Eltern sehen nur freigegebene Clips.</p>
+      <p className="px-1 text-xs text-white/55">Neue Spielszenen erscheinen automatisch. Eltern, Spieler und Fans sehen freigegebene Clips und können sie herunterladen oder teilen.</p>
     </div>}
     {view === 'analysis' && <p className="rounded-xl border border-white/10 bg-zinc-950/70 p-4 text-sm text-white/65">Bearbeitete Videos und Auswertungen, zum Beispiel Exporte aus Once. Die Analyse entsteht dort; hier kannst du das Ergebnis zum Spiel speichern und für das Team freigeben.</p>}
     {view === 'scenes' && filters.length > 0 && <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">{[['all','Alle'],...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-11 shrink-0 rounded-xl border px-4 text-sm font-bold ${analysisFilter === key ? 'border-red-400/50 bg-red-800' : 'border-white/15 bg-zinc-950 text-white/70'}`}>{label}</button>)}</div>}
@@ -539,6 +556,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           {video.scene_player_id && <p className="text-xs text-red-300">{playerName(video.scene_player_id)}{video.assist_player_id && ` · Vorlage: ${playerName(video.assist_player_id)}`}</p>}
           {video.analysis_note && <p className={`whitespace-pre-wrap break-words text-sm text-white/60 ${view === 'analysis' ? '' : 'line-clamp-2'}`}>{video.analysis_note}</p>}
           {canManage && !demoMode && video.visibility === 'staff' && <p className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-xs text-white/65"><LockKeyhole size={12} className="shrink-0" aria-hidden />Nur Trainer</p>}
+          {video.visibility === 'team' && <p className="text-xs text-emerald-300">Für Eltern, Spieler und Fans freigegeben</p>}
+          {canManage && !demoMode && video.visibility === 'staff' && <button type="button" disabled={busy} onClick={() => void release(video)} className="min-h-11 rounded-xl border border-emerald-500/40 px-3 text-xs font-semibold text-emerald-200 disabled:opacity-50">Freigeben</button>}
           {canManage && !demoMode && actionsId === video.id && <>
             <div className="flex flex-wrap gap-1">
               <button type="button" disabled={busy} aria-label={`${video.title} bearbeiten`} title="Bearbeiten" onClick={() => {setActionsId(null);setEditingId(video.id);setEditTitle(video.title);setEditTitleAuto(!video.title.trim() || /^(?:Tor(?: zum \d+:\d+)?|Schuss|Parade|Ecke|Abwehraktion|Spielszene)(?:\s*[–-]\s*.+)?$/i.test(video.title.trim()));setEditCategory(video.category);setSceneType(video.scene_type ?? 'other');setSceneMinute(video.scene_minute?.toString() ?? '');setAnalysisNote(video.analysis_note ?? '');setAnnotationPlayerId(video.scene_player_id ?? '');setAnnotationAssistId(video.assist_player_id ?? '');setAnnotationEventId(video.linked_match_event_id ?? '');setComposerId(null);}} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/15 disabled:opacity-50"><Pencil size={17} aria-hidden /></button>
@@ -561,10 +580,11 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           </div>}
           {canManage && !demoMode && composerId === video.id && <div className="space-y-3 border-t border-white/10 pt-3">
             <label className="block text-sm">Text für den Team-Feed<textarea value={caption} onChange={e => setCaption(e.target.value)} maxLength={500} rows={4} className="mt-1 w-full rounded-xl border border-white/15 bg-zinc-900 p-3 text-base" /></label>
-            <p className="text-xs text-white/60">Für Eltern und Spieler dieses Teams. Fans erhalten keinen Zugriff.</p>
+            <p className="text-xs text-white/60">Für Eltern, Spieler und Fans dieses Teams.</p>
             <div className="flex flex-wrap gap-2"><button type="button" disabled={busy || !caption.trim()} onClick={() => void publish(video)} className="min-h-11 rounded-xl bg-red-600 px-3 text-sm disabled:opacity-50">{video.visibility === 'team' ? 'Feed-Text speichern' : 'Im Team-Feed veröffentlichen'}</button><button type="button" onClick={() => setComposerId(null)} className="min-h-11 rounded-xl border border-white/15 px-3 text-sm">Abbrechen</button></div>
           </div>}
         </div>
+        {!demoMode && <MatchVideoTransferActions objectPath={video.object_path} title={video.title} className={sceneView ? 'col-span-2' : ''} />}
       </article>)}</div>}
     {activeScene && playingUrl && createPortal(<div className="fixed inset-0 z-[11000] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={`${activeScene.title} abspielen`}>
       {theaterMode && <div className="flex min-h-14 items-center justify-between gap-2 border-b border-white/10 bg-zinc-950 px-3 pt-[env(safe-area-inset-top,0px)]">
