@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, List, LockKeyhole, Maximize2, Minimize2, MoreVertical, Pencil, Play, Plus, Send, Trash2, UploadCloud } from 'lucide-react';
+import { ArrowLeft, List, LockKeyhole, Maximize2, Minimize2, MoreVertical, Pause, Pencil, Play, Plus, Send, Trash2, UploadCloud, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { MatchVideoTransferActions } from './MatchVideoTransferActions';
 import { uploadStorageObject } from '../../lib/storageUpload';
@@ -79,6 +79,12 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const fileRef = useRef<HTMLInputElement>(null);
   const playerRef = useRef<HTMLVideoElement>(null);
   const playRequestRef = useRef(0);
+  const signedPlaybackRef = useRef(new Map<string, { url: string; expiresAt: number }>());
+  const playbackWantedRef = useRef(true);
+  const [playerPaused, setPlayerPaused] = useState(false);
+  const [playerMuted, setPlayerMuted] = useState(false);
+  const [playerDuration, setPlayerDuration] = useState(0);
+  const [nextPlaybackUrl, setNextPlaybackUrl] = useState<string | null>(null);
   useEffect(() => () => { playRequestRef.current += 1; }, []);
   const [videos, setVideos] = useState<MatchVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -251,20 +257,58 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     finally { setBusy(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
+  const resumePlayer = (player: HTMLVideoElement) => {
+    const request = playRequestRef.current;
+    void player.play().catch((reason: { name?: string }) => {
+      if (request !== playRequestRef.current || !playbackWantedRef.current || reason?.name === 'AbortError') return;
+      setPlayerPaused(true);
+      setError('Wiedergabe wurde vom Gerät angehalten. Bitte auf Play tippen.');
+    });
+  };
+  const getPlaybackUrl = async (video: MatchVideo) => {
+    const cached = signedPlaybackRef.current.get(video.object_path);
+    if (cached && cached.expiresAt > Date.now()) return cached.url;
+    const { data, error: signError } = await supabase.storage.from('match-videos').createSignedUrl(video.object_path, 300);
+    if (signError || !data?.signedUrl) throw new Error('Video derzeit nicht verfügbar oder keine Freigabe.');
+    signedPlaybackRef.current.set(video.object_path, { url: data.signedUrl, expiresAt: Date.now() + 240_000 });
+    return data.signedUrl;
+  };
+  // Prepare the next source before ended fires, not after returning to iOS' replay screen.
+  useEffect(() => {
+    let cancelled = false;
+    setNextPlaybackUrl(null);
+    const index = playlistIds.indexOf(playingId ?? '');
+    const next = index >= 0 ? videos.find(video => video.id === playlistIds[index + 1]) : undefined;
+    if (next) void getPlaybackUrl(next).then(url => {
+      if (!cancelled) setNextPlaybackUrl(url);
+    }).catch(() => { /* The actual transition reports a signing failure. */ });
+    return () => { cancelled = true; };
+  }, [playingId, playlistIds, videos]);
   const play = async (video: MatchVideo, keepPlaylist = false) => {
     // Keep the dialog and video element mounted while the next signed URL loads.
     const request = ++playRequestRef.current;
     setError(null); setChapterError(null);
     if (!keepPlaylist) { setPlaylistIds([]); setPlaylistTitle('Alle Highlights'); setChapterQuery(''); setChapterFilter('all'); setTheaterMode(false); setTheaterScenesOpen(false); }
     setChapterTitle(''); setChapterEditId(null); setChapterManageOpen(false);
-    const { data, error: signError } = await supabase.storage.from('match-videos')
-      .createSignedUrl(video.object_path, 300);
-    if (request !== playRequestRef.current) return;
-    if (signError || !data?.signedUrl) {
-      setError('Video derzeit nicht verfügbar oder keine Freigabe.');
+    const cached = signedPlaybackRef.current.get(video.object_path);
+    let url: string;
+    try {
+      // No await on the prepared path: keep play() in the ended/click event.
+      url = cached && cached.expiresAt > Date.now() ? cached.url : await getPlaybackUrl(video);
+    } catch {
+      if (request === playRequestRef.current) setError('Video derzeit nicht verfügbar oder keine Freigabe.');
       return;
     }
-    setCurrentSecond(0); setPlayingId(video.id); setPlayingUrl(data.signedUrl);
+    if (request !== playRequestRef.current) return;
+    playbackWantedRef.current = true;
+    setCurrentSecond(0); setPlayerDuration(0); setPlayerPaused(false);
+    setPlayingId(video.id); setPlayingUrl(url);
+    const player = playerRef.current;
+    if (player) {
+      player.src = url;
+      player.load();
+      resumePlayer(player);
+    }
   };
 
   const playPlaylist = (kind: 'all' | 'goal' | 'save') => {
@@ -279,7 +323,8 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
   const nextPlaylistScene = () => {
     const index = playlistIds.indexOf(playingId ?? '');
     const next = videos.find(video => video.id === playlistIds[index + 1]);
-    if (next) void play(next, true);
+    if (index >= 0 && next) void play(next, true);
+    else { playbackWantedRef.current = false; setPlayerPaused(true); }
   };
 
   const jumpToChapter = (second: number) => {
@@ -600,7 +645,35 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       </div>}
       <div className={theaterMode ? 'relative flex min-h-0 flex-1 bg-black' : 'relative flex min-h-0 flex-1 flex-col landscape:flex-row'}>
         <div className={`relative flex min-h-0 min-w-0 items-center justify-center bg-black ${theaterMode ? `flex-1 ${theaterScenesOpen && showSceneList ? 'landscape:mr-[38%]' : ''}` : showSceneList ? 'aspect-video w-full shrink-0 landscape:aspect-auto landscape:w-auto landscape:flex-1 landscape:shrink' : 'flex-1'}`}>
-          <video ref={playerRef} src={playingUrl} controls autoPlay playsInline preload="auto" onLoadedMetadata={e => { void e.currentTarget.play().catch(() => {}); }} onEnded={nextPlaylistScene} onTimeUpdate={e => setCurrentSecond(Math.floor(e.currentTarget.currentTime))} className="h-full w-full object-contain" />
+          <video ref={playerRef} src={playingUrl} controls={playlistIds.length === 0} autoPlay playsInline preload="auto"
+            onLoadedMetadata={e => { setPlayerDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0); if (playbackWantedRef.current) resumePlayer(e.currentTarget); }}
+            onPlay={() => { setPlayerPaused(false); setError(null); }}
+            onPause={() => setPlayerPaused(true)}
+            onEnded={nextPlaylistScene}
+            onTimeUpdate={e => setCurrentSecond(Math.floor(e.currentTarget.currentTime))}
+            onError={() => setError('Dieser Clip konnte nicht geladen werden. Bitte eine andere Szene wählen oder erneut versuchen.')}
+            className="h-full w-full object-contain" />
+          {playlistIds.length > 0 && <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center gap-2 bg-gradient-to-t from-black via-black/80 to-transparent px-3 pb-2 pt-5">
+            <button type="button" aria-label={playerPaused ? 'Wiedergabe fortsetzen' : 'Wiedergabe pausieren'} onClick={() => {
+              const player = playerRef.current;
+              if (!player) return;
+              if (player.paused) { playbackWantedRef.current = true; resumePlayer(player); }
+              else { playbackWantedRef.current = false; player.pause(); }
+            }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/60">
+              {playerPaused ? <Play size={21} aria-hidden /> : <Pause size={21} aria-hidden />}
+            </button>
+            <span className="text-xs tabular-nums">{chapterTime(currentSecond)}</span>
+            <input type="range" min="0" max={playerDuration || 1} step="0.1" value={Math.min(currentSecond, playerDuration || 1)} aria-label="Position im Clip" onChange={e => {
+              if (playerRef.current) { playerRef.current.currentTime = Number(e.target.value); setCurrentSecond(Number(e.target.value)); }
+            }} className="min-w-0 flex-1 accent-red-500" />
+            <span className="text-xs tabular-nums">{chapterTime(playerDuration)}</span>
+            <button type="button" aria-label={playerMuted ? 'Ton einschalten' : 'Ton ausschalten'} onClick={() => {
+              if (playerRef.current) { playerRef.current.muted = !playerRef.current.muted; setPlayerMuted(playerRef.current.muted); }
+            }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/60">
+              {playerMuted ? <VolumeX size={20} aria-hidden /> : <Volume2 size={20} aria-hidden />}
+            </button>
+          </div>}
+          {nextPlaybackUrl && <video src={nextPlaybackUrl} muted playsInline preload="auto" aria-hidden className="pointer-events-none absolute h-px w-px opacity-0" />}
           {error && <p role="alert" className="absolute bottom-16 left-3 right-3 rounded-xl bg-zinc-900/95 p-3 text-sm text-amber-100">{error}</p>}
           {!theaterMode && <button type="button" onClick={() => {setTheaterMode(true);setTheaterScenesOpen(false);}} aria-label="App-Vollbild mit Szenenauswahl anzeigen" className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white ring-1 ring-white/30"><Maximize2 size={20} aria-hidden /></button>}
         </div>
@@ -654,3 +727,4 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     </div>,document.body)}
   </section>;
 };
+
