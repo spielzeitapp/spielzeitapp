@@ -483,7 +483,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
     </div>
     <label className="block text-sm">Trainerkommentar<textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)} maxLength={1000} rows={2} className="mt-1 w-full rounded-xl border border-white/15 bg-zinc-900 p-3 text-base" /></label>
   </>;
-  return <section aria-label="Spielvideos" className={`mx-auto ${wide ? 'max-w-5xl' : 'max-w-2xl'} space-y-3 pb-[calc(100px+env(safe-area-inset-bottom,0px))] text-white`}>
+  return <section aria-label="Spielvideos" className={`mx-auto w-full min-w-0 ${wide ? 'max-w-5xl' : 'max-w-2xl'} overflow-x-hidden space-y-3 pb-[calc(100px+env(safe-area-inset-bottom,0px))] text-white`}>
     {showResultHeader && matchInfo && <header className="relative overflow-hidden rounded-3xl border border-[rgb(var(--club-border-rgb)/0.3)] bg-[linear-gradient(145deg,rgb(var(--club-primary-rgb)/0.25),#08080a_44%,rgb(var(--club-primary-rgb)/0.16))] px-3 py-3 shadow-[0_10px_40px_rgb(var(--club-primary-rgb)/0.14)] sm:p-5">
       {onBack && <button type="button" onClick={onBack} aria-label="Zurück zum Livespiel" className="absolute left-2 top-2 flex h-11 w-11 items-center justify-center rounded-full text-white/65 hover:bg-white/10"><ArrowLeft size={18} aria-hidden /></button>}
       <div className="px-9 text-center">
@@ -507,7 +507,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       </div>
       {matchInfo.location && <p className="mt-2 border-t border-white/10 pt-2 text-sm font-medium text-white/75">{matchInfo.location}</p>}
     </header>}
-    <nav aria-label="Videoansicht" className="grid grid-cols-3 border-b border-white/10">
+    <nav aria-label="Videoansicht" className="grid w-full min-w-0 grid-cols-3 border-b border-white/10">
       {([['highlights','Highlights'],['scenes','Spielszenen'],['analysis','Analyse']] as const).map(([key,label]) => <button key={key} type="button" onClick={() => switchView(key)} aria-pressed={view === key} className={`min-h-11 min-w-0 border-b-2 px-1 text-xs font-extrabold uppercase tracking-wide sm:text-sm ${view === key ? 'border-red-500 text-red-400' : 'border-transparent text-white/70'}`}>{label}</button>)}
     </nav>
     {error && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">{error}</p>}
@@ -537,9 +537,9 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       <p className="px-1 text-xs text-white/55">Neue Spielszenen erscheinen automatisch. Eltern, Spieler und Fans sehen freigegebene Clips und können sie herunterladen oder teilen.</p>
     </div>}
     {view === 'analysis' && <p className="rounded-xl border border-white/10 bg-zinc-950/70 p-4 text-sm text-white/65">Bearbeitete Videos und Auswertungen, zum Beispiel Exporte aus Once. Die Analyse entsteht dort; hier kannst du das Ergebnis zum Spiel speichern und für das Team freigeben.</p>}
-    {view === 'scenes' && filters.length > 0 && <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">{[['all','Alle'],...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-11 shrink-0 rounded-xl border px-4 text-sm font-bold ${analysisFilter === key ? 'border-red-400/50 bg-red-800' : 'border-white/15 bg-zinc-950 text-white/70'}`}>{label}</button>)}</div>}
+    {view === 'scenes' && filters.length > 0 && <div className="flex w-full min-w-0 gap-2 overflow-x-auto pb-1" aria-label="Szenen filtern">{[['all','Alle'],...filters].map(([key,label]) => <button key={key} type="button" onClick={() => setAnalysisFilter(key)} aria-pressed={analysisFilter === key} className={`min-h-11 shrink-0 rounded-xl border px-4 text-sm font-bold ${analysisFilter === key ? 'border-red-400/50 bg-red-800' : 'border-white/15 bg-zinc-950 text-white/70'}`}>{label}</button>)}</div>}
     {loading ? <p className="text-sm text-white/60">Videos werden geladen …</p> : orderedVideos.length === 0 ? <p className="rounded-2xl border border-white/10 bg-zinc-950/70 p-6 text-sm text-white/65">{view === 'analysis' ? 'Noch keine bearbeitete Analyse hochgeladen.' : canManage ? 'Noch keine Clips in diesem Bereich. Mit + Video oder + Szene kannst du einen Clip hochladen.' : 'Noch keine freigegebenen Videos in diesem Bereich.'}</p> :
-      <div className={sceneView ? 'space-y-4' : 'grid grid-cols-2 gap-3'}>{orderedVideos.map((video, index) => <article key={video.id} className={`relative min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 ${sceneView ? 'grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] items-center gap-1 p-1.5' : index === 0 ? 'col-span-2' : ''} ${editingId === video.id || composerId === video.id ? 'col-span-2' : ''}`}>
+      <div className={sceneView ? 'w-full min-w-0 space-y-3' : 'grid w-full min-w-0 grid-cols-2 gap-3'}>{orderedVideos.map((video, index) => <article key={video.id} className={`relative min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 ${sceneView ? 'grid w-full grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] items-center gap-1 p-1.5' : index === 0 ? 'col-span-2' : ''} ${editingId === video.id || composerId === video.id ? 'col-span-2' : ''}`}>
         {canManage && !demoMode && <button type="button" onClick={() => setActionsId(current => current === video.id ? null : video.id)} aria-label={`${video.title}: Aktionen`} aria-expanded={actionsId === video.id} className="absolute right-0 top-0 z-10 flex h-11 w-8 items-center justify-center rounded-lg text-white/65 hover:bg-white/10"><MoreVertical size={19} aria-hidden /></button>}
         <button type="button" onClick={() => {setActionsId(null);void play(video);}} aria-label={`${video.title} abspielen`} className="relative isolate block aspect-video w-full overflow-hidden rounded-xl bg-gradient-to-br from-red-950 via-zinc-900 to-black">
           {previewUrls[video.id] && <video src={`${previewUrls[video.id]}#t=0.1`} muted playsInline preload="metadata" onLoadedMetadata={e => {
@@ -556,7 +556,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
           {video.scene_player_id && <p className="text-xs text-red-300">{playerName(video.scene_player_id)}{video.assist_player_id && ` · Vorlage: ${playerName(video.assist_player_id)}`}</p>}
           {video.analysis_note && <p className={`whitespace-pre-wrap break-words text-sm text-white/60 ${view === 'analysis' ? '' : 'line-clamp-2'}`}>{video.analysis_note}</p>}
           {canManage && !demoMode && video.visibility === 'staff' && <p className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-xs text-white/65"><LockKeyhole size={12} className="shrink-0" aria-hidden />Nur Trainer</p>}
-          {video.visibility === 'team' && <p className="text-xs text-emerald-300">Für Eltern, Spieler und Fans freigegeben</p>}
+          {video.visibility === 'team' && <p className="text-[10px] text-emerald-300" title="Für Eltern, Spieler und Fans freigegeben">Freigegeben</p>}
           {canManage && !demoMode && video.visibility === 'staff' && <button type="button" disabled={busy} onClick={() => void release(video)} className="min-h-11 rounded-xl border border-emerald-500/40 px-3 text-xs font-semibold text-emerald-200 disabled:opacity-50">Freigeben</button>}
           {canManage && !demoMode && actionsId === video.id && <>
             <div className="flex flex-wrap gap-1">
