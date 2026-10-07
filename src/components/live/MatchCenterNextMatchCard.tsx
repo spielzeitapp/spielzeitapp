@@ -19,6 +19,12 @@ type Props = {
   now: Date;
 };
 
+function teamNameClass(name: string) {
+  const longestWord = Math.max(...name.split(/\s+/).map((word) => word.length));
+  const size = longestWord > 10 ? 'text-[11px] sm:text-[14px]' : 'text-[14px] sm:text-[15px]';
+  return `w-full text-center ${size} font-black leading-[1.2] text-white [overflow-wrap:anywhere]`;
+}
+
 function TeamLogoMark({
   name,
   logoUrl,
@@ -81,10 +87,10 @@ export function MatchCenterNextMatchCard({ event, ourTeamName, now }: Props) {
       </div>
 
       <div className="relative min-w-0 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 sm:gap-3">
             <div className="flex min-w-0 flex-col items-center gap-2">
               <TeamLogoMark name={homeTeam} logoUrl={homeLogoUrl} />
-              <p className="line-clamp-2 w-full text-center text-[14px] font-black leading-[1.15] text-white sm:text-[15px]">
+              <p className={teamNameClass(homeTeam)}>
                 {homeTeam}
               </p>
             </div>
@@ -95,7 +101,7 @@ export function MatchCenterNextMatchCard({ event, ourTeamName, now }: Props) {
             </div>
             <div className="flex min-w-0 flex-col items-center gap-2">
               <TeamLogoMark name={awayTeam} logoUrl={awayLogoUrl} />
-              <p className="line-clamp-2 w-full text-center text-[14px] font-black leading-[1.15] text-white sm:text-[15px]">
+              <p className={teamNameClass(awayTeam)}>
                 {awayTeam}
               </p>
             </div>
