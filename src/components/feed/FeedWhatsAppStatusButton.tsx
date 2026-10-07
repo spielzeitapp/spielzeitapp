@@ -7,7 +7,7 @@ export function FeedWhatsAppStatusButton({ onShareFallback }: { onShareFallback?
   const file = useRef<File | null>(null);
   const generation = useRef(0);
   const [busy, setBusy] = useState(false);
-  const [hint, setHint] = useState('Im Teilen-Menü WhatsApp auswählen; Bilder und Videos auch für „Mein Status“.');
+  const [hint, setHint] = useState('');
   const prepare = useCallback(async () => {
     const root = wrapper.current?.closest<HTMLElement>('article, [data-whatsapp-status-root]');
     if (!root) return;
@@ -59,12 +59,12 @@ export function FeedWhatsAppStatusButton({ onShareFallback }: { onShareFallback?
     }
     if (!file.current) {
       await prepare();
-      setHint(file.current ? 'Datei bereit – tippe erneut und wähle WhatsApp.' : 'Datei noch nicht verfügbar. Bitte erneut versuchen.');
+      setHint(file.current ? 'Datei bereit – tippe erneut und wähle die gewünschte App.' : 'Datei noch nicht verfügbar. Bitte erneut versuchen.');
       return;
     }
     try {
       const outcome = await shareWhatsAppStatusFile(file.current);
-      if (outcome === 'downloaded') setHint('Datei heruntergeladen – anschließend in WhatsApp auswählen.');
+      if (outcome === 'downloaded') setHint('Datei heruntergeladen – anschließend in der gewünschten App auswählen.');
     } catch {
       setHint('Teilen nicht möglich. Bitte erneut versuchen.');
     }
@@ -73,10 +73,10 @@ export function FeedWhatsAppStatusButton({ onShareFallback }: { onShareFallback?
   return <div ref={wrapper} className="border-t border-white/[0.06] px-3 pb-3 pt-2 sm:px-4">
     <button type="button" disabled={busy} onClick={() => void onClick()}
       className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-950/30 px-3 text-[13px] font-semibold text-emerald-200 disabled:opacity-50"
-      aria-label="Beitrag über WhatsApp teilen">
+      aria-label="Story / Status teilen">
       <Share2 className="h-4 w-4" aria-hidden />
-      {busy ? 'Datei wird vorbereitet…' : 'WhatsApp'}
+      {busy ? 'Datei wird vorbereitet…' : 'Story / Status teilen'}
     </button>
-    <p className="mt-1.5 text-center text-[10px] leading-snug text-white/50" role="status">{hint}</p>
+    {hint ? <p className="mt-1.5 text-center text-[10px] leading-snug text-white/50" role="status">{hint}</p> : null}
   </div>;
 }

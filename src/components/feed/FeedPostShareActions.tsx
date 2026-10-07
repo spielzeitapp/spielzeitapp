@@ -19,7 +19,7 @@ export function FeedPostShareActions({ post }: { post: TeamFeedPostDbRow }) {
   };
   return <div className="border-t border-white/[0.06]">
     <button type="button" onClick={() => void onShare()} className="flex min-h-[44px] w-full items-center justify-center gap-2 text-sm font-semibold text-white/80">
-      <Share2 className="h-4 w-4" aria-hidden /> Teilen
+      <Share2 className="h-4 w-4" aria-hidden /> Beitrag teilen
     </button>
     {hint ? <p className="px-3 text-center text-xs text-white/55" role="status">{hint}</p> : null}
     <FeedWhatsAppStatusButton onShareFallback={() => void onShare()} />

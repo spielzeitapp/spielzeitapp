@@ -386,7 +386,7 @@ export function FeedStandardActions({
         className={`${FEED_ACTION_BUTTON_CLASS} text-white/62 hover:bg-white/[0.06] hover:text-white/90`}
       >
         <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-        Teilen
+        Beitrag teilen
       </button>
     </div>
     {whatsAppStatus ? <FeedWhatsAppStatusButton onShareFallback={onShare} /> : null}
