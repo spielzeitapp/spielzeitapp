@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Bus,
   BarChart3,
@@ -521,7 +521,11 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
+  const [videoSearchParams] = useSearchParams();
   const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos'>('hub');
+  useEffect(() => {
+    setFinishedTab(videoSearchParams.get('tab') === 'videos' ? 'videos' : 'hub');
+  }, [videoSearchParams]);
   const [matchRowLite, setMatchRowLite] = useState<{
     id: string;
     status: string | null;

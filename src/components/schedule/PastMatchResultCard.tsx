@@ -1,4 +1,6 @@
 import React from 'react';
+import { ReleasedMatchVideosLink } from '../match/ReleasedMatchVideosLink';
+import { useInternalBasePath } from '../../demo/demoPaths';
 import { ChevronRight } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -99,6 +101,7 @@ export function PastMatchResultCard({
   compact = false,
   onNavigate,
 }: PastMatchResultCardProps) {
+  const basePath = useInternalBasePath();
   void _ourTeamNameProp;
   const clickable = !forcePublicView;
   const handleActivate = () => {
@@ -208,6 +211,7 @@ export function PastMatchResultCard({
               </span>
             </div>
           </div>
+          <ReleasedMatchVideosLink matchId={ev.match_id} to={`${basePath}/events/${encodeURIComponent(ev.id)}`} enabled={clickable} />
           <div className="mt-1.5 flex min-w-0 items-center border-t border-white/[0.06] pt-1.5">
             {venue ? <span className="line-clamp-1 min-w-0 text-[12px] text-white/58">{venue}</span> : null}
           </div>
@@ -320,6 +324,7 @@ export function PastMatchResultCard({
             />
           ) : null}
         </div>
+        <ReleasedMatchVideosLink matchId={ev.match_id} to={`${basePath}/events/${encodeURIComponent(ev.id)}`} enabled={clickable} />
       </div>
     </div>
   );

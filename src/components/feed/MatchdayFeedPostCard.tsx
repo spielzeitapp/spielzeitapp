@@ -1,3 +1,4 @@
+import { ReleasedMatchVideosLink } from '../match/ReleasedMatchVideosLink';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
@@ -385,6 +386,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
         </div>
       </div>
 
+      <div className="px-3 pb-2"><ReleasedMatchVideosLink matchId={matchId} to={gameHref} /></div>
       <FeedPostActionsFooter shareHint={shareHint}>
         <FeedStandardActions
           liked={liked}

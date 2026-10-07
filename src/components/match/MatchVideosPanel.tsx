@@ -532,7 +532,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       {([['all', 'Spiel-Highlights', sequenceVideos.length], ['goal', 'Tor-Highlights', sequenceVideos.filter(video => playlistKind(video) === 'goal').length], ['save', 'Paraden-Highlights', sequenceVideos.filter(video => playlistKind(video) === 'save').length]] as const).filter(([, , count]) => count > 0).map(([kind, label, count]) =>
         <button key={kind} type="button" onClick={() => playPlaylist(kind)} className="flex min-h-16 w-full items-center gap-4 rounded-2xl border border-red-500/35 bg-red-950/30 p-3 text-left">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-600"><Play size={18} fill="white" aria-hidden /></span>
-          <span className="min-w-0"><span className="block font-bold">{label} abspielen</span><span className="block text-sm text-white/65">{count} {count === 1 ? 'Clip' : 'Clips'} nacheinander · Szenen auswählen</span></span>
+          <span className="min-w-0"><span className="block font-bold">{kind === 'all' ? 'Alle abspielen' : `${label} abspielen`}</span><span className="block text-sm text-white/65">{count} {count === 1 ? 'Clip' : 'Clips'} nacheinander · Szenen auswählen</span></span>
         </button>)}
       <p className="px-1 text-xs text-white/55">Neue Spielszenen erscheinen automatisch. Eltern, Spieler und Fans sehen freigegebene Clips und können sie herunterladen oder teilen.</p>
     </div>}

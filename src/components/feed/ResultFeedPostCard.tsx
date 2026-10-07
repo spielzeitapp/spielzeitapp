@@ -1,3 +1,4 @@
+import { ReleasedMatchVideosLink } from '../match/ReleasedMatchVideosLink';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ResultFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
@@ -360,7 +361,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             <FeedGameCtaLink to={gameHref}>Zur Zusammenfassung</FeedGameCtaLink>
           </div>
 
-          <FeedPostActionsFooter shareHint={shareHint}>
+          <div className="px-3 pb-2"><ReleasedMatchVideosLink matchId={p.match_id} to={gameHref} /></div>
+      <FeedPostActionsFooter shareHint={shareHint}>
             <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter whatsAppStatus />
           </FeedPostActionsFooter>
         </div>
@@ -466,6 +468,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         </div>
       </div>
 
+      <div className="px-3 pb-2"><ReleasedMatchVideosLink matchId={p.match_id} to={gameHref} /></div>
       <FeedPostActionsFooter shareHint={shareHint}>
         <FeedStandardActions
           liked={liked}

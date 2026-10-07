@@ -1397,6 +1397,8 @@ export const LiveMatchScreen: React.FC = () => {
       setMainTab('lineup');
     } else if (tab === 'overview' || tab === 'uebersicht') {
       setMainTab('overview');
+    } else if (tab === 'videos') {
+      setMainTab('videos');
     } else if (tab === 'hub') {
       setMainTab('hub');
     }
