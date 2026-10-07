@@ -211,7 +211,7 @@ export function PastMatchResultCard({
               </span>
             </div>
           </div>
-          <ReleasedMatchVideosLink matchId={ev.match_id} to={`${basePath}/events/${encodeURIComponent(ev.id)}`} enabled={clickable} />
+          <ReleasedMatchVideosLink compact matchId={ev.match_id} to={`${basePath}/events/${encodeURIComponent(ev.id)}`} enabled={clickable} />
           <div className="mt-1.5 flex min-w-0 items-center border-t border-white/[0.06] pt-1.5">
             {venue ? <span className="line-clamp-1 min-w-0 text-[12px] text-white/58">{venue}</span> : null}
           </div>
