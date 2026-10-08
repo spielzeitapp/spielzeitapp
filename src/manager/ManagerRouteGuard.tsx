@@ -1,11 +1,13 @@
 /**
  * TRAINER-MODE.1 – Route-Guard für Admin-Pfade im Trainer-Arbeitsmodus.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import { isAdminOnlyManagerLocation, managerModuleKeyForLocation } from './managerWorkMode';
 import { useManagerClubModules } from './ManagerClubModulesContext';
+import { useSession } from '../auth/useSession';
+import { resolveTrainingTrainerEntry } from './trainingManagerEntry';
 
 type Props = {
   children: React.ReactNode;
@@ -13,8 +15,19 @@ type Props = {
 
 export function ManagerRouteGuard({ children }: Props): React.ReactElement {
   const location = useLocation();
-  const { workMode, availableModes, switchToAdministration, isTrainerMode, supportSession } = useManagerWorkMode();
+  const { workMode, availableModes, switchToAdministration, isTrainerMode, supportSession, setWorkMode, selectTrainerTeamSeasonId } = useManagerWorkMode();
   const { isModuleEnabled, loading: modulesLoading } = useManagerClubModules();
+  const { memberships, selectedTeamSeasonId, viewTeamSeasonId, setViewTeamSeasonId, loading } = useSession();
+  const trainerEntry = resolveTrainingTrainerEntry(location.pathname, location.search, memberships);
+  const entryPending = Boolean(trainerEntry && (loading || workMode !== 'trainer' || selectedTeamSeasonId !== trainerEntry || (viewTeamSeasonId && viewTeamSeasonId !== trainerEntry)));
+  useEffect(() => {
+    if (loading || !trainerEntry || !entryPending) return;
+    setWorkMode('trainer', { navigate: false });
+    selectTrainerTeamSeasonId(trainerEntry);
+    setViewTeamSeasonId(null);
+  }, [loading, trainerEntry, entryPending, setWorkMode, selectTrainerTeamSeasonId, setViewTeamSeasonId]);
+  // Do not redirect or mount the editor with the old platform/season context.
+  if (entryPending) return <p role="status" className="p-4 text-sm text-slate-600">Trainingsplan wird geöffnet…</p>;
 
   const platformRoute = location.pathname.startsWith('/manager/plattform') || location.pathname.startsWith('/manager/vereine');
   if (workMode === 'platform_admin' && !supportSession && !platformRoute && location.pathname !== '/manager/mehr') {

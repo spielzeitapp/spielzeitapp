@@ -14,6 +14,7 @@ import { TrainingKaiserCard } from '../team/TrainingKaiserCard';
 import { TrainingOverviewHero } from '../team/TrainingOverviewHero';
 import { CenterCollapsibleSection } from '../center/CenterCollapsibleSection';
 import { EC_CARD, EC_CARD_INNER, EC_SECTION_LABEL, EC_STACK_GAP } from '../center/eventCenterStyles';
+import { trainingPlanManagerHref } from '../../manager/trainingManagerEntry';
 
 type Props = {
   eventId: string;
@@ -104,6 +105,7 @@ export function TrainingDetailSections({
           <TrainingPreparationCard
             key={key}
             eventId={eventId}
+            teamSeasonId={teamSeasonId}
             startsAtIso={startsAtIso}
             location={trainingLocation}
           />
@@ -233,10 +235,12 @@ function dayKeyFromIso(iso: string): string {
 
 function TrainingPreparationCard({
   eventId,
+  teamSeasonId,
   startsAtIso,
   location,
 }: {
   eventId: string;
+  teamSeasonId: string;
   startsAtIso: string;
   location: string | null;
 }): React.ReactElement {
@@ -263,17 +267,7 @@ function TrainingPreparationCard({
 
   const dateKey = dayKeyFromIso(startsAtIso);
   const planReady = plan?.status === 'ready';
-  const returnTo = `/app/events/${encodeURIComponent(eventId)}`;
-  const planHref = plan
-    ? `/manager/training/einheiten/${encodeURIComponent(plan.id)}?${new URLSearchParams({
-        ...(planReady ? { view: 'training' } : {}),
-        returnTo,
-      }).toString()}`
-    : `/manager/training/einheiten/neu?${new URLSearchParams({
-        event: eventId,
-        starts: startsAtIso,
-        returnTo,
-      }).toString()}`;
+  const planHref = trainingPlanManagerHref({ sessionId: plan?.id, eventId, teamSeasonId, startsAtIso });
   const placeHref = hasAssignment
     ? `/app/platzbelegung?date=${encodeURIComponent(dateKey)}&event=${encodeURIComponent(eventId)}`
     : `/manager/platzbelegung?date=${encodeURIComponent(dateKey)}&event=${encodeURIComponent(eventId)}`;
