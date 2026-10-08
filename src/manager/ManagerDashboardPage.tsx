@@ -18,7 +18,7 @@ import { useSession } from '../auth/useSession';
 import { useEvents, type EventRow } from '../hooks/useEvents';
 import { usePlayers } from '../hooks/usePlayers';
 import { useEventsAttendance } from '../hooks/useEventsAttendance';
-import { isUpcomingRelevant, nextUpcoming } from '../features/home/homeFeedBuilder';
+import { isManagerUpcomingEvent } from './managerUpcomingEvents';
 import {
   getSeasonStatusLabel,
   isSeasonActive,
@@ -206,11 +206,20 @@ export function ManagerDashboardPage(): React.ReactElement {
     error: null,
   });
 
-  const now = useMemo(() => new Date(), []);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const refresh = () => setNow(new Date());
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+    };
+  }, []);
   const upcoming = useMemo(
     () =>
       events
-        .filter((e) => isUpcomingRelevant(e, now))
+        .filter((e) => isManagerUpcomingEvent(e, now))
         .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()),
     [events, now],
   );
@@ -219,7 +228,7 @@ export function ManagerDashboardPage(): React.ReactElement {
   const nextTraining = upcoming.find((e) => e.kind === 'training' || e.type === 'training') ?? null;
   const nextMatch =
     upcoming.find((e) => e.kind === 'match' || e.type === 'game') ?? null;
-  const featured = nextUpcoming(events, now);
+  const featured = upcoming[0] ?? null;
 
   const attendanceIds = useMemo(() => nextEvents.map((e) => e.id), [nextEvents]);
   const { byEventId: attendanceByEvent, loading: attendanceLoading } =
