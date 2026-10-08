@@ -155,7 +155,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   const roleHint = isTrainerMode
     ? (membershipRole || 'trainer').trim()
     : isAdministrationMode && workMode === 'platform_admin'
-      ? 'Plattformadmin'
+      ? 'ADMIN'
       : isAdministrationMode
         ? 'Vereinsadmin'
         : (membershipRole || backendRole || '').trim();

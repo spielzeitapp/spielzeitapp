@@ -159,7 +159,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
             const items = section.items.filter(
               (item) =>
                 navItemVisibleForWorkMode(item, workMode) &&
-                !item.platformGlobalOnly &&
+                (!item.platformGlobalOnly || platformGlobal) &&
                 isModuleEnabled(item.moduleKey),
             );
             if (items.length === 0) return null;
