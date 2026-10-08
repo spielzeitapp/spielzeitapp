@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Info } from 'lucide-react';
+import { useSession } from '../../auth/useSession';
+import { resolveTeamSeasonLabelParts } from '../../lib/seasonLifecycle';
 import { supabase } from '../../lib/supabaseClient';
 import { getClubLogo, getOurTeamDisplayName, PLACEHOLDER_LOGO } from '../../lib/teamLogos';
 import { filterHeadToHead, summarizeHeadToHead, type HeadToHeadMatch } from '../../lib/headToHead';
@@ -17,8 +19,14 @@ function Logo({ src }: { src: string }) {
 }
 
 /** Only result metadata is confirmed; historical scores and archive state stay untouched. */
-export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = false, ownTeamName = getOurTeamDisplayName(), opponentName,
+export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = false, ownTeamName: fallbackTeamName = getOurTeamDisplayName(), opponentName,
   ownLogoSrc, opponentLogoSrc, canManage = false }: Props) {
+  const { teamSeasons } = useSession();
+  const contextSeason = teamSeasons.find(s => s.id === teamSeasonId);
+  const ownTeamName = contextSeason ? resolveTeamSeasonLabelParts({
+    displayName: contextSeason.display_name, ageGroup: contextSeason.age_group,
+    teamName: contextSeason.team?.name, seasonName: contextSeason.season?.name,
+  }).teamLine : fallbackTeamName;
   const [matches, setMatches] = useState<HeadToHeadMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -160,16 +168,20 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
             const outcome = resolved ? m.team_goals! > m.opponent_goals! ? 'Sieg' : m.team_goals! < m.opponent_goals! ? 'Niederlage' : 'Unentschieden' : 'Offen';
             const color = outcome === 'Sieg' ? 'text-emerald-300' : outcome === 'Niederlage' ? 'text-red-300' : outcome === 'Offen' ? 'text-amber-200' : 'text-white/85';
             const stored = m.stored_score_home != null && m.stored_score_away != null;
+            const historicalTeamName = m.own_team_name ? resolveTeamSeasonLabelParts({
+              displayName: m.own_display_name, ageGroup: m.own_age_group,
+              teamName: m.own_team_name, seasonName: m.season_name,
+            }).teamLine : ownTeamName;
             return <li key={m.id} className="py-3">
               <p className="text-[10px] text-white/50">{dateFormat.format(new Date(m.match_date))} · {m.season_name} · {m.is_tournament ? 'Turnier' : m.is_home === true ? 'Heim' : m.is_home === false ? 'Auswärts' : 'Spielort offen'}</p>
               <div className="mt-1 flex items-center justify-between gap-3">
-                <p className="min-w-0 break-words text-xs font-semibold text-white">{ownTeamName}<span className="my-0.5 block text-[10px] font-normal text-white/40">gegen</span>{m.opponent}</p>
+                <p className="min-w-0 break-words text-xs font-semibold text-white">{historicalTeamName}<span className="my-0.5 block text-[10px] font-normal text-white/40">gegen</span>{m.opponent}</p>
                 <div className={`shrink-0 text-right ${color}`}><strong className="text-xl tabular-nums">{resolved ? `${m.team_goals}:${m.opponent_goals}` : '—'}</strong><p className="text-[10px]">{outcome}</p></div>
               </div>
               {!resolved && <p className="mt-2 text-[10px] text-white/55">{m.side_known === false ? `Gespeichert: ${m.stored_score_home ?? '—'}:${m.stored_score_away ?? '—'} · Torzuordnung fehlt.` : 'Gespeichert: 0:0 · Endstand noch nicht bestätigt.'}</p>}
               {canManage && matchId && stored && (!resolved || (m.is_home == null && !m.is_tournament)) && <details className="mt-1 text-xs text-white/70">
                 <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-amber-200">{resolved ? 'Torzuordnung ändern' : 'Ergebnis prüfen'}</summary>
-                <p className="mb-1 text-[11px] leading-relaxed">{(m.is_home == null && !m.is_tournament) ? `Welche Tore gehören zu ${ownTeamName}? Mit der Auswahl bestätigst du den gespeicherten Endstand.` : 'Nur bestätigen, wenn dieses Spiel tatsächlich 0:0 endete.'}</p>
+                <p className="mb-1 text-[11px] leading-relaxed">{(m.is_home == null && !m.is_tournament) ? `Welche Tore gehören zu ${historicalTeamName}? Mit der Auswahl bestätigst du den gespeicherten Endstand.` : 'Nur bestätigen, wenn dieses Spiel tatsächlich 0:0 endete.'}</p>
                 <div className="flex flex-wrap gap-2">
                   {(m.is_home == null && !m.is_tournament) ? [true, false].map(side => <button key={String(side)} type="button" disabled={saving !== null} onClick={() => void confirm(m, side)} className="min-h-11 rounded-xl border border-white/15 px-3 text-[11px] disabled:opacity-50">Unsere Tore {side ? 'links' : 'rechts'} ({side ? m.stored_score_home : m.stored_score_away})</button>) : <button type="button" disabled={saving !== null} onClick={() => void confirm(m, null)} className="min-h-11 rounded-xl border border-white/15 px-3 text-[11px] disabled:opacity-50">0:0 als Endstand bestätigen</button>}
                 </div>
