@@ -2,6 +2,9 @@ export type HeadToHeadMatch = {
   id: string;
   team_season_id: string;
   season_name: string;
+  own_team_name?: string;
+  own_age_group?: string | null;
+  own_display_name?: string | null;
   opponent: string;
   match_date: string;
   is_home: boolean | null;
