@@ -73,11 +73,11 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
     </div>
     <p className="text-[11px] text-white/55">Aus Sicht von {ownTeamName} · inklusive Archiv</p>
     {showInfo && <p className="mt-2 rounded-xl bg-white/5 p-3 text-xs leading-relaxed text-white/65">Verglichen werden abgeschlossene Spiele derselben Mannschaft aus allen gespeicherten Saisonen. Gegner werden anhand ihrer Vereinskennung oder eindeutig gleicher Namen erkannt. Abweichende Vereinsnamen werden nicht automatisch zusammengeführt. Unbestätigte 0:0-Ergebnisse und unklare Teamzuordnungen zählen erst nach Trainerbestätigung zur Bilanz. Alle Ergebnisse unten stehen aus unserer Sicht.</p>}
-    <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+    {!preview && <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
       <div className="flex min-w-0 flex-col items-center gap-1 text-center"><Logo src={ownLogoSrc || getClubLogo(ownTeamName)} /><p className="break-words text-xs font-semibold text-white">{ownTeamName}</p></div>
       <span className="text-xs font-bold text-white/35">VS</span>
       <div className="flex min-w-0 flex-col items-center gap-1 text-center"><Logo src={opponentLogoSrc || getClubLogo(opponent)} /><p className="break-words text-xs font-semibold text-white">{opponent}</p></div>
-    </div>
+    </div>}
     {loading ? <p className="mt-3 text-sm text-white/60" role="status">Vergleich wird geladen…</p>
       : error ? <div className="mt-3 text-sm text-white/60" role="status">Vergleich momentan nicht verfügbar.
         <button type="button" onClick={() => setRetry(n => n + 1)} className="ml-2 min-h-11 font-semibold text-white underline">Erneut versuchen</button>
