@@ -10,6 +10,7 @@ import { isStagingApp } from '../../lib/appEnvironment';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
 import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
+import { canAccessManager } from '../../manager/canAccessManager';
 
 function AppHeaderBrand() {
   return (
@@ -85,6 +86,7 @@ export const Header: React.FC = () => {
     effectiveRole,
     loading: sessionLoading,
     backendRole,
+    memberships,
     teamSeasons,
   } = useSession();
   const { user, loading: authLoading } = useAuth();
@@ -243,9 +245,30 @@ export const Header: React.FC = () => {
                     </button>
                   )}
                   {authLoading || !user ? null : pathname.startsWith('/app') ? (
-                    <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
-                      <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
-                    </Link>
+                    <>
+                      {canAccessManager(backendRole, memberships ?? []) ? (
+                        <Link
+                          to="/manager"
+                          className={`${dsGlassIconButtonClass()} sm:hidden`}
+                          aria-label="Spielzeit Manager öffnen"
+                          title="Spielzeit Manager"
+                        >
+                          <span
+                            className="h-7 w-7 shrink-0 rounded-full bg-no-repeat"
+                            style={{
+                              // Exakter M-Ausschnitt aus dem vorhandenen Manager-Icon (512 px).
+                              backgroundImage: 'url(/manager-icon-512.png)',
+                              backgroundSize: '72px 72px',
+                              backgroundPosition: '-43px -43px',
+                            }}
+                            aria-hidden
+                          />
+                        </Link>
+                      ) : null}
+                      <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
+                        <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
+                      </Link>
+                    </>
                   ) : null}
                   {authLoading || !user ? null : (
                     <div className="flex flex-col items-end gap-0.5">
