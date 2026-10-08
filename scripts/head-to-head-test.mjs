@@ -17,3 +17,7 @@ assert.equal(summarizeHeadToHead([match('bad', 'current', true, null, 0)]).draws
 assert.equal(summarizeHeadToHead([match('bad', 'current', true, -1, 0)]).unresolved, 1);
 assert.equal(summarizeHeadToHead([]).total, 0);
 console.log('PASS: archived seasons, own-team results, venue filters, tournament venue exclusion, incomplete scores and empty history');
+assert.equal(summarizeHeadToHead([{ ...match('zero', 'current', true, 0, 0), result_verified: false }]).draws, 0);
+assert.equal(summarizeHeadToHead([{ ...match('confirmed', 'current', true, 0, 0), result_verified: true }]).draws, 1);
+assert.equal(summarizeHeadToHead([{ ...match('unknown-side', 'archived', null, 3, 0), side_known: false }]).wins, 0);
+console.log('PASS: unconfirmed 0:0 excluded, confirmed draw included, unknown score side excluded');

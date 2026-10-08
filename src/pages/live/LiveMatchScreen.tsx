@@ -5325,7 +5325,7 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
             {!isDemo && effectiveMatchId && matchRow?.team_season_id && (
-              <MatchHeadToHead matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} />
+              <MatchHeadToHead matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} ownTeamName={cleanTeamDisplayName(ownLogoName)} opponentName={opponentDisplayName} ownLogoSrc={ownLogoSrc} opponentLogoSrc={opponentLogoSrc} canManage={canControlLiveMatch} />
             )}
             {tournamentNavContext?.nextSlot ? (
               <TournamentNextMatchWorkflowCta
