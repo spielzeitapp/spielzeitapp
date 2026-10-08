@@ -16,6 +16,7 @@ import {
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
+import { pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
@@ -43,6 +44,7 @@ function formatDateShortDE(date: Date): string {
 
 type MatchCardLigaportalProps = {
   ourTeamName: string;
+  ageGroup?: string | null;
   opponent: string | null;
   isHome: boolean | null;
   startsAt: string | null;
@@ -108,6 +110,7 @@ type MatchCardLigaportalProps = {
 
 export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   ourTeamName,
+  ageGroup,
   opponent,
   isHome,
   startsAt,
@@ -150,7 +153,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 }) => {
   const navigate = useNavigate();
   const [liveAccessSheetOpen, setLiveAccessSheetOpen] = useState(false);
-  void ourTeamName;
+  const matchAgeGroup = ageGroup ?? pickFeedAgeGroup(ourTeamName);
   const ourClubName = getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
@@ -978,7 +981,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             /* ── Finished Hero (simplified — result + CTA, Trainer) ── */
             <div className="relative z-[1] flex flex-col items-center gap-1.5 px-1 py-1">
               {matchTypeLabel ? (
-                <MatchTypeHeading label={matchTypeLabel} />
+                <MatchTypeHeading label={matchTypeLabel} ageGroup={matchAgeGroup} />
               ) : null}
               <MatchCardGameCore
                 headerTitle={null}
@@ -1036,7 +1039,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             <div className="flex min-w-0 flex-col">
               <div className="flex flex-wrap items-center justify-center gap-1.5 pb-0.5">
                 {matchTypeLabel ? (
-                  <MatchTypeHeading label={matchTypeLabel} />
+                  <MatchTypeHeading label={matchTypeLabel} ageGroup={matchAgeGroup} />
                 ) : null}
                 {matchPhase === 'canceled' ? (
                   <span className="rounded-full border border-red-400/40 bg-red-950/45 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-100">Abgesagt</span>
@@ -1129,7 +1132,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {/* Match-Type Badge + Phase Badge */}
               <div className="flex flex-wrap items-center justify-center gap-1.5 pb-0.5">
                 {matchTypeLabel ? (
-                  <MatchTypeHeading label={matchTypeLabel} />
+                  <MatchTypeHeading label={matchTypeLabel} ageGroup={matchAgeGroup} />
                 ) : null}
                 {matchPhase === 'canceled' ? (
                   <span className="rounded-full border border-red-400/40 bg-red-950/45 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-100">Abgesagt</span>

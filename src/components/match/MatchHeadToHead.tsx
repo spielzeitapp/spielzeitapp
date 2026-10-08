@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Info } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { resolveTeamSeasonLabelParts } from '../../lib/seasonLifecycle';
+import { parseClubDisplayName } from '../../lib/feedClubNaming';
 import { supabase } from '../../lib/supabaseClient';
 import { getClubLogo, getOurTeamDisplayName, PLACEHOLDER_LOGO } from '../../lib/teamLogos';
 import { filterHeadToHead, summarizeHeadToHead, type HeadToHeadMatch } from '../../lib/headToHead';
@@ -27,6 +28,8 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
     displayName: contextSeason.display_name, ageGroup: contextSeason.age_group,
     teamName: contextSeason.team?.name, seasonName: contextSeason.season?.name,
   }).teamLine : fallbackTeamName;
+  const ownClubParts = parseClubDisplayName(ownTeamName);
+  const ownClubName = [ownClubParts.line1, ownClubParts.line2].filter(Boolean).join(' ');
   const [matches, setMatches] = useState<HeadToHeadMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -127,7 +130,7 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
     </div>}
     {canManage && aliasError && <p role="alert" className="mt-2 text-xs text-amber-200">{aliasError} <button type="button" onClick={() => setRetry(n => n + 1)} className="min-h-11 underline">Erneut versuchen</button></p>}
     {!preview && <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-      <div className="flex min-w-0 flex-col items-center gap-1 text-center"><Logo src={ownLogoSrc || getClubLogo(ownTeamName)} /><p className="break-words text-xs font-semibold text-white">{ownTeamName}</p></div>
+      <div className="flex min-w-0 flex-col items-center gap-1 text-center"><Logo src={ownLogoSrc || getClubLogo(ownTeamName)} /><p className="break-words text-xs font-semibold text-white">{ownClubName}</p></div>
       <span className="text-xs font-bold text-white/35">VS</span>
       <div className="flex min-w-0 flex-col items-center gap-1 text-center"><Logo src={opponentLogoSrc || getClubLogo(opponent)} /><p className="break-words text-xs font-semibold text-white">{opponent}</p></div>
     </div>}
@@ -172,10 +175,15 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
               displayName: m.own_display_name, ageGroup: m.own_age_group,
               teamName: m.own_team_name, seasonName: m.season_name,
             }).teamLine : ownTeamName;
+            const historicalParts = parseClubDisplayName(historicalTeamName);
+            const historicalClubName = [historicalParts.line1, historicalParts.line2].filter(Boolean).join(' ');
+            const matchMeta = [dateFormat.format(new Date(m.match_date)), historicalParts.ageGroup, m.season_name,
+              m.is_tournament ? 'Turnier' : m.is_home === true ? 'Heim' : m.is_home === false ? 'Auswärts' : 'Spielort offen',
+            ].filter(Boolean).join(' · ');
             return <li key={m.id} className="py-3">
-              <p className="text-[10px] text-white/50">{dateFormat.format(new Date(m.match_date))} · {m.season_name} · {m.is_tournament ? 'Turnier' : m.is_home === true ? 'Heim' : m.is_home === false ? 'Auswärts' : 'Spielort offen'}</p>
+              <p className="text-[10px] text-white/50">{matchMeta}</p>
               <div className="mt-1 flex items-center justify-between gap-3">
-                <p className="min-w-0 break-words text-xs font-semibold text-white">{historicalTeamName}<span className="my-0.5 block text-[10px] font-normal text-white/40">gegen</span>{m.opponent}</p>
+                <p className="min-w-0 break-words text-xs font-semibold text-white">{historicalClubName}<span className="my-0.5 block text-[10px] font-normal text-white/40">gegen</span>{m.opponent}</p>
                 <div className={`shrink-0 text-right ${color}`}><strong className="text-xl tabular-nums">{resolved ? `${m.team_goals}:${m.opponent_goals}` : '—'}</strong><p className="text-[10px]">{outcome}</p></div>
               </div>
               {!resolved && <p className="mt-2 text-[10px] text-white/55">{m.side_known === false ? `Gespeichert: ${m.stored_score_home ?? '—'}:${m.stored_score_away ?? '—'} · Torzuordnung fehlt.` : 'Gespeichert: 0:0 · Endstand noch nicht bestätigt.'}</p>}
