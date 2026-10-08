@@ -8,6 +8,7 @@ type Props = {
   matchId?: string; eventId?: string; teamSeasonId: string; preview?: boolean; ownTeamName?: string; opponentName?: string;
   ownLogoSrc?: string; opponentLogoSrc?: string; canManage?: boolean;
 };
+type OpponentProposal = { current_name: string; candidate_name: string; match_count: number };
 const dateFormat = new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna' });
 function Logo({ src }: { src: string }) {
   return <img src={src} alt="" className="h-10 w-10 shrink-0 object-contain" onError={e => {
@@ -29,6 +30,9 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
   const [retry, setRetry] = useState(0);
   const [saving, setSaving] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [proposals, setProposals] = useState<OpponentProposal[]>([]);
+  const [aliasBusy, setAliasBusy] = useState(false);
+  const [aliasError, setAliasError] = useState<string | null>(null);
   useEffect(() => { setSeason(''); setVenue('all'); setExpanded(false); setShowInfo(false); setSaveError(null); setPreviewExpanded(false); }, [matchId, eventId]);
   useEffect(() => {
     let canceled = false;
@@ -46,6 +50,36 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
     })();
     return () => { canceled = true; };
   }, [matchId, eventId, retry]);
+  useEffect(() => {
+    let canceled = false;
+    setProposals([]); setAliasError(null);
+    if (!canManage) return;
+    void (async () => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc('get_head_to_head_opponent_candidates', {
+          p_match_id: matchId ?? null, p_event_id: eventId ?? null,
+        });
+        if (canceled) return;
+        if (rpcError || !Array.isArray(data)) { setAliasError('Gegnerzuordnung momentan nicht verfügbar.'); return; }
+        setProposals(data as OpponentProposal[]);
+      } catch { if (!canceled) setAliasError('Gegnerzuordnung momentan nicht verfügbar.'); }
+    })();
+    return () => { canceled = true; };
+  }, [matchId, eventId, retry, canManage]);
+  async function decideOpponent(proposal: OpponentProposal, isSame: boolean) {
+    if (!canManage || aliasBusy) return;
+    setAliasBusy(true); setAliasError(null);
+    try {
+      const { error: rpcError } = await supabase.rpc('decide_head_to_head_opponent', {
+        p_match_id: matchId ?? null, p_event_id: eventId ?? null,
+        p_candidate_name: proposal.candidate_name, p_expected_current_name: proposal.current_name,
+        p_is_same: isSame,
+      });
+      if (rpcError) throw rpcError;
+      setRetry(n => n + 1);
+    } catch { setAliasError('Entscheidung nicht gespeichert. Bitte neu laden und erneut versuchen.'); }
+    finally { setAliasBusy(false); }
+  }
   const seasons = useMemo(() => [...new Map(matches.map(m => [m.team_season_id, m.season_name])).entries()], [matches]);
   const filtered = useMemo(() => filterHeadToHead(matches, season, venue), [matches, season, venue]);
   const summary = summarizeHeadToHead(filtered);
@@ -72,7 +106,18 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
       <button type="button" aria-label="Informationen zum direkten Vergleich" aria-expanded={showInfo} onClick={() => setShowInfo(v => !v)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10"><Info size={18} /></button>
     </div>
     <p className="text-[11px] text-white/55">Aus Sicht von {ownTeamName} · inklusive Archiv</p>
-    {showInfo && <p className="mt-2 rounded-xl bg-white/5 p-3 text-xs leading-relaxed text-white/65">Verglichen werden abgeschlossene Spiele derselben Mannschaft aus allen gespeicherten Saisonen. Gegner werden anhand ihrer Vereinskennung oder eindeutig gleicher Namen erkannt. Abweichende Vereinsnamen werden nicht automatisch zusammengeführt. Unbestätigte 0:0-Ergebnisse und unklare Teamzuordnungen zählen erst nach Trainerbestätigung zur Bilanz. Alle Ergebnisse unten stehen aus unserer Sicht.</p>}
+    {showInfo && <p className="mt-2 rounded-xl bg-white/5 p-3 text-xs leading-relaxed text-white/65">Verglichen werden abgeschlossene Spiele derselben Mannschaft aus allen gespeicherten Saisonen. Abweichende Vereinsnamen werden erst nach einmaliger Trainerbestätigung zusammengeführt. Alte Namen bleiben in den Spielberichten erhalten. Unbestätigte 0:0-Ergebnisse und unklare Teamzuordnungen zählen erst nach Trainerbestätigung zur Bilanz. Alle Ergebnisse unten stehen aus unserer Sicht.</p>}
+    {canManage && proposals[0] && <div className="mt-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-amber-200">Gegnerzuordnung prüfen</p>
+      <p className="mt-1 text-xs leading-relaxed text-white">Ist <strong>{proposals[0].candidate_name}</strong> derselbe Gegner wie <strong>{proposals[0].current_name}</strong>?</p>
+      <p className="mt-1 text-[10px] leading-relaxed text-white/55">Einmalige Entscheidung für alle Saisonen. Alte Spielberichte bleiben unverändert. A/B-Mannschaften nicht vermischen.</p>
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        <button type="button" disabled={aliasBusy} onClick={() => void decideOpponent(proposals[0], true)} className="min-h-11 rounded-xl border border-emerald-300/20 px-3 text-xs font-semibold text-emerald-200 disabled:opacity-50">Ja, derselbe Gegner</button>
+        <button type="button" disabled={aliasBusy} onClick={() => void decideOpponent(proposals[0], false)} className="min-h-11 rounded-xl border border-white/15 px-3 text-xs text-white/80 disabled:opacity-50">Nein, anderer Gegner</button>
+      </div>
+      {aliasBusy && <p role="status" className="mt-1 text-[11px] text-white/65">Entscheidung wird gespeichert…</p>}
+    </div>}
+    {canManage && aliasError && <p role="alert" className="mt-2 text-xs text-amber-200">{aliasError} <button type="button" onClick={() => setRetry(n => n + 1)} className="min-h-11 underline">Erneut versuchen</button></p>}
     {!preview && <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
       <div className="flex min-w-0 flex-col items-center gap-1 text-center"><Logo src={ownLogoSrc || getClubLogo(ownTeamName)} /><p className="break-words text-xs font-semibold text-white">{ownTeamName}</p></div>
       <span className="text-xs font-bold text-white/35">VS</span>
