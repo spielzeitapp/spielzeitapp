@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, ChevronDown, ClipboardList, Dumbbell, MapPin, Radio, Trophy, Users } from 'lucide-react';
+import { BarChart3, Check, ChevronDown, ChevronRight, ClipboardList, Dumbbell, MapPin, Radio, Trophy, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
@@ -290,36 +290,38 @@ function TrainingPreparationCard({
         {!expanded ? null : loading ? (
           <p className="mt-2 text-[12px] text-white/55">Plan und Platz werden geladen…</p>
         ) : (
-          <div className="mt-2 grid gap-2 border-t border-white/[0.06] pt-2">
-            <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
+          <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 border-t border-white/[0.06] pt-2">
+            <div className="min-w-0 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Trainingsplan</p>
                   <p className={`mt-1 text-[13px] font-bold ${planReady ? 'text-emerald-300' : plan ? 'text-amber-200' : 'text-red-300'}`}>
                     {planReady ? '✓ Planung fertig' : plan ? 'In Bearbeitung' : 'Noch nicht geplant'}
                   </p>
-                  {plan ? <p className="mt-0.5 truncate text-[11px] text-white/55">{plan.title} · {plan.planned_duration_minutes ?? 0} Min.</p> : null}
+                  {plan ? <p className="mt-0.5 break-words text-[11px] text-white/55">{plan.title} · {plan.planned_duration_minutes ?? 0} Min.</p> : null}
                 </div>
                 {planReady ? <Check className="h-5 w-5 shrink-0 text-emerald-300" aria-hidden /> : <Dumbbell className="h-5 w-5 shrink-0 text-red-300" aria-hidden />}
               </div>
-              <Link to={planHref} className={`mt-2 inline-flex min-h-[42px] w-full items-center justify-center rounded-xl px-3 text-[12px] font-bold ${planReady ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40' : plan ? 'bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/35' : 'bg-red-600 text-white'}`}>
+              <Link to={planHref} className="mt-2 inline-flex min-h-[44px] max-w-full items-center justify-center gap-1.5 rounded-full border border-red-400/25 bg-red-950/20 px-3 py-1.5 text-[12px] font-semibold text-white/90 transition-colors hover:bg-red-900/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400">
                 {planReady ? 'Trainingsplan ansehen' : plan ? 'Plan weiterbearbeiten' : 'Training planen'}
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-red-400" aria-hidden />
               </Link>
             </div>
 
-            <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
+            <div className="min-w-0 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Trainingsplatz</p>
                   <p className={`mt-1 text-[13px] font-bold ${hasAssignment ? 'text-emerald-300' : 'text-red-300'}`}>
                     {hasAssignment ? '✓ Platz zugeordnet' : 'Noch kein Platz zugeordnet'}
                   </p>
-                  {hasAssignment && location ? <p className="mt-0.5 truncate text-[11px] text-white/55">{location}</p> : null}
+                  {hasAssignment && location ? <p className="mt-0.5 break-words text-[11px] text-white/55">{location}</p> : null}
                 </div>
                 <MapPin className={`h-5 w-5 shrink-0 ${hasAssignment ? 'text-emerald-300' : 'text-red-300'}`} aria-hidden />
               </div>
-              <Link to={placeHref} className={`mt-2 inline-flex min-h-[42px] w-full items-center justify-center rounded-xl px-3 text-[12px] font-bold ${hasAssignment ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/35' : 'bg-red-600 text-white'}`}>
+              <Link to={placeHref} className="mt-2 inline-flex min-h-[44px] max-w-full items-center justify-center gap-1.5 rounded-full border border-red-400/25 bg-red-950/20 px-3 py-1.5 text-[12px] font-semibold text-white/90 transition-colors hover:bg-red-900/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400">
                 {hasAssignment ? 'Platzbelegung ansehen' : 'Platz zuordnen'}
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-red-400" aria-hidden />
               </Link>
             </div>
           </div>

@@ -4674,12 +4674,15 @@ export const EventDetailPage: React.FC = () => {
               type="button"
               onClick={() => setFeedSectionExpanded((v) => !v)}
               aria-expanded={feedSectionExpanded}
-              className="flex w-full min-h-[48px] items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.07] active:bg-white/[0.05]"
+              className="flex min-h-[44px] w-full items-center justify-between gap-3 text-left touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:rounded-xl"
             >
-              <span className="text-[17px] font-semibold text-white">Feed-Posts</span>
-              <span className="shrink-0 text-[14px] text-white/60" aria-hidden>
-                {feedSectionExpanded ? '▾' : '▸'}
+              <span className="inline-flex min-w-0 items-center gap-2.5">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-red-400/20 bg-red-950/20 text-red-400">
+                  <FileText className="h-[18px] w-[18px]" strokeWidth={2.25} aria-hidden />
+                </span>
+                <span className="text-[15px] font-bold tracking-tight text-white/90">Feed-Posts</span>
               </span>
+              <ChevronDown className={`h-[18px] w-[18px] shrink-0 text-white/55 transition-transform duration-200 ${feedSectionExpanded ? 'rotate-180' : ''}`} strokeWidth={2.25} aria-hidden />
             </button>
             {feedSectionExpanded ? (
               <div className="flex flex-col gap-3 pt-1">
