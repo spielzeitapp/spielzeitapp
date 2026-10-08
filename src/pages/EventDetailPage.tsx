@@ -4150,6 +4150,7 @@ export const EventDetailPage: React.FC = () => {
               className="sz-club-event-match-card relative z-[1] w-full max-w-full rounded-[20px]"
               compactDetailGame
               ourTeamName={ourTeamName}
+              ageGroup={eventTeamSeason?.age_group}
               opponent={event.opponent}
               opponentLogoUrl={event.opponent_logo_url ?? null}
               isHome={event.is_home}
