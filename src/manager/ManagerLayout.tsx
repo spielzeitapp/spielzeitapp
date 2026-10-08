@@ -24,6 +24,7 @@ export function ManagerLayout(): React.ReactElement {
   const mobileAppRoute =
     location.pathname === '/manager' ||
     location.pathname === '/manager/dashboard' ||
+    location.pathname === '/manager/plattform' ||
     location.pathname.startsWith('/manager/termine') ||
     location.pathname.startsWith('/manager/platzbelegung') ||
     location.pathname.startsWith('/manager/teams') ||
@@ -33,9 +34,9 @@ export function ManagerLayout(): React.ReactElement {
     <ManagerAccessGate>
       <ManagerWorkModeProvider>
         <ManagerClubModulesProvider>
-        <div className="manager-shell flex min-h-[100dvh] w-full min-w-0 flex-1 bg-[#F4F5F7] text-slate-900">
+        <div className="manager-shell flex min-h-[100dvh] w-full min-w-0 flex-1 bg-[#F4F5F7] text-slate-900 max-md:h-[100dvh] max-md:overflow-hidden">
           <ManagerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <div className="flex min-w-0 flex-1 flex-col bg-[#F4F5F7]">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#F4F5F7]">
             <ManagerHeader onOpenSidebar={() => setSidebarOpen(true)} />
             {viewingArchive && context ? (
               <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-950 sm:px-5 lg:px-8 xl:px-10">
@@ -49,7 +50,7 @@ export function ManagerLayout(): React.ReactElement {
               </div>
             ) : null}
             <main className={[
-              'min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto pb-20 md:pb-0',
+              'min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-20 md:pb-0',
               mobileAppRoute ? 'bg-[#050506] md:bg-[#F4F5F7]' : 'bg-[#F4F5F7]',
             ].join(' ')}>
               <div className={[

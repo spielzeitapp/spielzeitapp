@@ -1,15 +1,31 @@
 import React from 'react';
-import { CalendarDays, Home, MoreHorizontal, Users } from 'lucide-react';
+import { BookOpen, Building2, Dumbbell, Home, LayoutDashboard, MapPinned, MoreHorizontal, CalendarDays, Plus, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useManagerWorkMode } from '../ManagerWorkModeContext';
 
-function activeFor(pathname: string, target: string): boolean {
-  if (target === '/manager') return pathname === '/manager' || pathname === '/manager/dashboard';
-  return pathname.startsWith(target);
+function activeFor(pathname: string, search: string, target: string): boolean {
+  const [path, query] = target.split('?');
+  if (query) return pathname === path && new URLSearchParams(search).get('neu') === '1';
+  if (path === '/manager') return pathname === '/manager' || pathname === '/manager/dashboard';
+  if (path === '/manager/vereine' && new URLSearchParams(search).has('neu')) return false;
+  return pathname.startsWith(path);
 }
 
 export function ManagerMobileNav(): React.ReactElement {
-  const { pathname } = useLocation();
-  const links = [
+  const { pathname, search } = useLocation();
+  const { workMode, supportSession } = useManagerWorkMode();
+  const platformGlobal = workMode === 'platform_admin' && !supportSession;
+  const links = platformGlobal ? [
+    { label: 'Dashboard', to: '/manager/plattform', icon: LayoutDashboard },
+    { label: 'Vereine', to: '/manager/vereine', icon: Building2 },
+    { label: 'Neu', to: '/manager/vereine?neu=1', icon: Plus },
+    { label: 'Mehr', to: '/manager/mehr', icon: MoreHorizontal },
+  ] : workMode === 'trainer' ? [
+    { label: 'Planung', to: '/manager/training/einheiten', icon: Dumbbell },
+    { label: 'Übungen', to: '/manager/training/bibliothek', icon: BookOpen },
+    { label: 'Plätze', to: '/manager/platzbelegung', icon: MapPinned },
+    { label: 'Mehr', to: '/manager/mehr', icon: MoreHorizontal },
+  ] : [
     { label: 'Home', to: '/manager', icon: Home },
     { label: 'Termine', to: '/manager/termine', icon: CalendarDays },
     { label: 'Teams', to: '/manager/teams', icon: Users },
@@ -19,12 +35,18 @@ export function ManagerMobileNav(): React.ReactElement {
   return (
     <nav
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-1 pt-2 text-white md:hidden"
+      style={{ paddingBottom: 'max(0.125rem, calc(env(safe-area-inset-bottom, 0px) - 1.5rem))' }}
       aria-label="Mobile Manager-Navigation"
     >
-      <div className="pointer-events-auto relative mx-auto grid min-h-[76px] max-w-md grid-cols-4 items-center overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#08080a]/90 px-2 py-2 shadow-[0_28px_64px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[20px]">
-        <span className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-gradient-to-b from-red-500/20 to-transparent blur-xl" />
+      <div className="pointer-events-auto relative mx-auto grid min-h-[76px] w-full max-w-md grid-cols-4 items-center overflow-hidden rounded-[28px] border border-white/[0.06] bg-[#08080a]/[0.88] px-2 py-2 shadow-[0_28px_64px_-12px_rgba(0,0,0,0.88),0_12px_32px_-10px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06),0_0_0_1px_rgba(0,0,0,0.65)] backdrop-blur-[20px] backdrop-saturate-150">
+        <span className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-b from-[rgb(var(--club-accent-rgb,220_38_38)/0.12)] via-[rgb(var(--club-accent-rgb,220_38_38)/0.04)] to-transparent" aria-hidden />
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" aria-hidden />
+        <span className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-[rgb(var(--club-accent-rgb,220_38_38)/0.12)] blur-xl" aria-hidden />
         {links.map(({ label, to, icon: Icon }) => {
-        const active = activeFor(pathname, to);
+        const active = activeFor(pathname, search, to) || (
+          workMode === 'trainer' && label === 'Mehr' &&
+          (pathname.startsWith('/manager/training/vorlagen') || pathname.startsWith('/manager/training/chronik'))
+        );
         return (
           <Link
             key={label}
@@ -37,7 +59,7 @@ export function ManagerMobileNav(): React.ReactElement {
           >
             <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} aria-hidden />
             <span>{label}</span>
-            {active ? <span className="mt-0.5 h-1 w-5 rounded-sm bg-[#ff2d38] shadow-[0_0_14px_rgba(255,45,56,0.5)]" aria-hidden /> : <span className="mt-0.5 h-1 w-5" />}
+            {active ? <span className="mt-0.5 h-1 w-5 rounded-sm bg-[rgb(var(--club-accent-rgb,220_38_38))] shadow-[0_0_14px_rgb(var(--club-accent-rgb,220_38_38)/0.5)]" aria-hidden /> : <span className="mt-0.5 h-1 w-5" />}
           </Link>
         );
         })}
