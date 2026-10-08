@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
 import type { Match, MatchEvent } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
 import { supabase } from '../../lib/supabaseClient';
@@ -435,6 +436,7 @@ export const MatchDetailPage: React.FC = () => {
       <div className="space-y-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
         {/* Links: Scoreboard, Controls, Aufstellung (Mobile: oben, ab lg: linke Spalte) */}
         <div className="space-y-4 lg:col-span-5">
+          {matchRow && <MatchHeadToHead matchId={matchRow.id} teamSeasonId={matchRow.team_season_id} opponentName={matchRow.opponent ?? undefined} canManage={operatorMode} />}
           <div className="flex flex-wrap items-center gap-2">
             <Link to="/app/termine" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
               ← Zurück

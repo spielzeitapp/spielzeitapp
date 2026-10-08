@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
 import { ArrowLeft, BarChart3, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
@@ -5322,6 +5323,9 @@ export const LiveMatchScreen: React.FC = () => {
         )}
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
+            {!isDemo && effectiveMatchId && matchRow?.team_season_id && (
+              <MatchHeadToHead matchId={effectiveMatchId} teamSeasonId={matchRow.team_season_id} ownTeamName={cleanTeamDisplayName(ownLogoName)} opponentName={opponentDisplayName} ownLogoSrc={ownLogoSrc} opponentLogoSrc={opponentLogoSrc} canManage={canControlLiveMatch} />
+            )}
             {tournamentNavContext?.nextSlot ? (
               <TournamentNextMatchWorkflowCta
                 context={tournamentNavContext}

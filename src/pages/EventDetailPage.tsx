@@ -69,6 +69,7 @@ import {
   trainingAttendanceToDb,
   type TrainingAttendanceStatus,
 } from '../lib/trainingAttendance';
+import { MatchHeadToHead } from '../components/match/MatchHeadToHead';
 import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
 import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
 import { TournamentCenterHeader } from '../components/tournament/TournamentCenterHeader';
@@ -4172,6 +4173,10 @@ export const EventDetailPage: React.FC = () => {
               isPublicView={true}
             />
           </div>
+        )}
+
+        {!isDemo && event.kind === 'match' && event.status !== 'canceled' && event.team_season_id && (
+          <MatchHeadToHead eventId={event.id} matchId={event.match_id ?? undefined} teamSeasonId={event.team_season_id} ownTeamName={ourTeamName} opponentName={event.opponent ?? undefined} opponentLogoSrc={getClubLogo(event.opponent ?? '', { logoUrl: event.opponent_logo_url })} canManage={canTrainerManageEvent} preview />
         )}
 
         {event.kind === 'match' ? (
