@@ -5,7 +5,7 @@ import { getClubLogo, getOurTeamDisplayName, PLACEHOLDER_LOGO } from '../../lib/
 import { filterHeadToHead, summarizeHeadToHead, type HeadToHeadMatch } from '../../lib/headToHead';
 
 type Props = {
-  matchId: string; teamSeasonId: string; ownTeamName?: string; opponentName?: string;
+  matchId?: string; eventId?: string; teamSeasonId: string; preview?: boolean; ownTeamName?: string; opponentName?: string;
   ownLogoSrc?: string; opponentLogoSrc?: string; canManage?: boolean;
 };
 const dateFormat = new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna' });
@@ -16,7 +16,7 @@ function Logo({ src }: { src: string }) {
 }
 
 /** Only result metadata is confirmed; historical scores and archive state stay untouched. */
-export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTeamDisplayName(), opponentName,
+export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = false, ownTeamName = getOurTeamDisplayName(), opponentName,
   ownLogoSrc, opponentLogoSrc, canManage = false }: Props) {
   const [matches, setMatches] = useState<HeadToHeadMatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,17 +24,20 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
   const [season, setSeason] = useState('');
   const [venue, setVenue] = useState('all');
   const [expanded, setExpanded] = useState(false);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [retry, setRetry] = useState(0);
   const [saving, setSaving] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  useEffect(() => { setSeason(''); setVenue('all'); setExpanded(false); setShowInfo(false); setSaveError(null); }, [matchId]);
+  useEffect(() => { setSeason(''); setVenue('all'); setExpanded(false); setShowInfo(false); setSaveError(null); setPreviewExpanded(false); }, [matchId, eventId]);
   useEffect(() => {
     let canceled = false;
     setLoading(true); setError(false);
     void (async () => {
       try {
-        const { data, error: rpcError } = await supabase.rpc('get_match_head_to_head', { p_match_id: matchId });
+        const { data, error: rpcError } = eventId
+          ? await supabase.rpc('get_event_head_to_head', { p_event_id: eventId })
+          : await supabase.rpc('get_match_head_to_head', { p_match_id: matchId });
         if (canceled) return;
         if (rpcError || !Array.isArray(data)) { setError(true); return; }
         setMatches(data as HeadToHeadMatch[]);
@@ -42,7 +45,7 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
       finally { if (!canceled) setLoading(false); }
     })();
     return () => { canceled = true; };
-  }, [matchId, retry]);
+  }, [matchId, eventId, retry]);
   const seasons = useMemo(() => [...new Map(matches.map(m => [m.team_season_id, m.season_name])).entries()], [matches]);
   const filtered = useMemo(() => filterHeadToHead(matches, season, venue), [matches, season, venue]);
   const summary = summarizeHeadToHead(filtered);
@@ -51,7 +54,7 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
   const opponent = opponentName || matches[0]?.opponent || 'Gegner';
   const selectClass = 'min-h-11 min-w-0 w-full rounded-xl border border-white/15 bg-zinc-950 px-2 text-xs text-white';
   async function confirm(m: HeadToHeadMatch, side: boolean | null) {
-    if (saving || !canManage) return;
+    if (saving || !canManage || !matchId) return;
     setSaving(m.id); setSaveError(null);
     try {
       const { error: rpcError } = await supabase.rpc('confirm_head_to_head_result', {
@@ -63,9 +66,9 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
     } catch { setSaveError('Bestätigung nicht gespeichert. Bitte neu laden und erneut versuchen.'); }
     finally { setSaving(null); }
   }
-  return <section aria-label="Direkter Vergleich" className="rounded-2xl border border-white/10 bg-black/40 p-3 sm:p-4">
+  return <section aria-label={preview ? "Spielvorschau: direkter Vergleich" : "Direkter Vergleich"} className="rounded-2xl border border-white/10 bg-black/40 p-3 sm:p-4">
     <div className="flex items-center justify-between gap-2">
-      <h2 className="text-sm font-bold uppercase tracking-wider text-white">Direkter Vergleich</h2>
+      <h2 className="text-sm font-bold uppercase tracking-wider text-white">{preview ? "Duellvorschau" : "Direkter Vergleich"}</h2>
       <button type="button" aria-label="Informationen zum direkten Vergleich" aria-expanded={showInfo} onClick={() => setShowInfo(v => !v)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10"><Info size={18} /></button>
     </div>
     <p className="text-[11px] text-white/55">Aus Sicht von {ownTeamName} · inklusive Archiv</p>
@@ -79,6 +82,7 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
       : error ? <div className="mt-3 text-sm text-white/60" role="status">Vergleich momentan nicht verfügbar.
         <button type="button" onClick={() => setRetry(n => n + 1)} className="ml-2 min-h-11 font-semibold text-white underline">Erneut versuchen</button>
       </div> : <>
+      {(!preview || previewExpanded) && (
       <div className="mt-3 grid grid-cols-2 gap-2">
         <select aria-label="Saison für direkten Vergleich" className={selectClass} value={season} onChange={e => { setSeason(e.target.value); setExpanded(false); }}>
           <option value="">Alle Saisonen</option><option value={teamSeasonId}>Saison dieses Spiels</option>
@@ -88,6 +92,7 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
           <option value="all">Heim &amp; Auswärts</option><option value="home">Heim</option><option value="away">Auswärts</option>
         </select>
       </div>
+      )}
       {filtered.length === 0 ? <p className="mt-3 text-sm text-white/60">Keine abgeschlossenen direkten Duelle für diese Auswahl gespeichert.</p> : <>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
           {[
@@ -101,6 +106,8 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
         </div>
         <p className="mt-2 text-center text-xs text-white/70">{summary.total} {summary.total === 1 ? 'Duell' : 'Duelle'} · {settled > 0 ? <>Tore <strong className="tabular-nums text-white">{summary.goals}:{summary.conceded}</strong></> : 'Noch keine bestätigte Bilanz'}</p>
         {summary.unresolved > 0 && <p className="mt-2 text-[11px] leading-relaxed text-amber-200/90">{summary.unresolved} {summary.unresolved === 1 ? 'Ergebnis offen – zählt' : 'Ergebnisse offen – zählen'} noch nicht zur Bilanz.</p>}
+        {preview && <button type="button" aria-expanded={previewExpanded} onClick={() => { setPreviewExpanded(v => !v); setSeason(''); setVenue('all'); }} className="mt-2 min-h-11 w-full rounded-xl border border-white/10 text-xs font-semibold text-white/80">{previewExpanded ? 'Begegnungen schließen' : 'Begegnungen & Saisonfilter ansehen'}</button>}
+        {(!preview || previewExpanded) && <>
         <h3 className="mt-4 text-xs font-bold uppercase tracking-wide text-white/70">Bisherige Begegnungen</h3>
         <ul className="mt-1 divide-y divide-white/10">
           {visible.map(m => {
@@ -115,7 +122,7 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
                 <div className={`shrink-0 text-right ${color}`}><strong className="text-xl tabular-nums">{resolved ? `${m.team_goals}:${m.opponent_goals}` : '—'}</strong><p className="text-[10px]">{outcome}</p></div>
               </div>
               {!resolved && <p className="mt-2 text-[10px] text-white/55">{m.side_known === false ? `Gespeichert: ${m.stored_score_home ?? '—'}:${m.stored_score_away ?? '—'} · Torzuordnung fehlt.` : 'Gespeichert: 0:0 · Endstand noch nicht bestätigt.'}</p>}
-              {canManage && stored && (!resolved || (m.is_home == null && !m.is_tournament)) && <details className="mt-1 text-xs text-white/70">
+              {canManage && matchId && stored && (!resolved || (m.is_home == null && !m.is_tournament)) && <details className="mt-1 text-xs text-white/70">
                 <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-amber-200">{resolved ? 'Torzuordnung ändern' : 'Ergebnis prüfen'}</summary>
                 <p className="mb-1 text-[11px] leading-relaxed">{(m.is_home == null && !m.is_tournament) ? `Welche Tore gehören zu ${ownTeamName}? Mit der Auswahl bestätigst du den gespeicherten Endstand.` : 'Nur bestätigen, wenn dieses Spiel tatsächlich 0:0 endete.'}</p>
                 <div className="flex flex-wrap gap-2">
@@ -128,6 +135,7 @@ export function MatchHeadToHead({ matchId, teamSeasonId, ownTeamName = getOurTea
         </ul>
         {saveError && <p role="alert" className="text-xs text-red-300">{saveError}</p>}
         {filtered.length > 5 && <button type="button" onClick={() => setExpanded(v => !v)} className="min-h-11 w-full text-sm font-semibold text-white underline">{expanded ? 'Weniger anzeigen' : `Alle ${filtered.length} Duelle anzeigen`}</button>}
+        </>}
       </>}
     </>}
   </section>;

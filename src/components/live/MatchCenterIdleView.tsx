@@ -29,6 +29,8 @@ import { syncOfficialTournamentPlan } from '../../lib/tournamentPlanSync';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from './LivePremiumShell';
 import { PremiumEmptyState } from '../../ui';
+import { MatchHeadToHead } from '../match/MatchHeadToHead';
+import { getClubLogo } from '../../lib/teamLogos';
 import { MatchCenterNextMatchCard } from './MatchCenterNextMatchCard';
 import { MatchCenterTournamentCard } from './MatchCenterTournamentCard';
 import { MatchCenterActiveTournamentLiveCard } from './MatchCenterActiveTournamentLiveCard';
@@ -288,6 +290,9 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
       <LivePremiumShell matchCenter>
         <LivePageHeader title="Match Center" subtitle="Nächstes Spiel — Countdown bis Anpfiff" />
         <MatchCenterNextMatchCard event={nextMatch} ourTeamName={teamName} now={now} />
+        {nextMatch.team_season_id && (
+          <MatchHeadToHead eventId={nextMatch.id} matchId={nextMatch.match_id ?? undefined} teamSeasonId={nextMatch.team_season_id} ownTeamName={teamName} opponentName={nextMatch.opponent ?? undefined} opponentLogoSrc={getClubLogo(nextMatch.opponent ?? '', { logoUrl: nextMatch.opponent_logo_url })} preview />
+        )}
       </LivePremiumShell>
     );
   }
