@@ -52,7 +52,7 @@ export function buildFeedMatchMetaLine(
 
 export function pickFeedAgeGroup(...names: string[]): string | null {
   for (const n of names) {
-    const ag = parseClubDisplayName(n).ageGroup;
+    const ag = parseClubDisplayName(n).ageGroup ?? n.match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase();
     if (ag) return ag;
   }
   return null;

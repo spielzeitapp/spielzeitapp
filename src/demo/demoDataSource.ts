@@ -173,6 +173,7 @@ export function buildDemoFeedPosts(): {
   const tTrainPast = DEMO_EVENT_TIMES['ev-train-past']();
   const tGamePast = DEMO_EVENT_TIMES['ev-game-past']();
   const tGameNext = DEMO_EVENT_TIMES['ev-game-next']();
+  const tGameAway = DEMO_EVENT_TIMES['ev-game-away']();
 
   const all: ClassifiedFeedPost[] = [
     {
@@ -238,25 +239,25 @@ export function buildDemoFeedPosts(): {
         id: 'df-matchday-past',
         team_season_id: DEMO_TEAM_SEASON_ID,
         team_id: DEMO_TEAM_ID,
-        event_id: 'ev-game-past',
+        event_id: 'ev-game-away',
         post_kind: 'matchday_auto',
-        caption: `Spieltag · ${our} gegen ${alpenvorland}. Treffpunkt 09:15 Uhr am Sportplatz.`,
+        caption: `Spieltag · ${our} auswärts gegen SKN St. Pölten U12. Alle Infos findet ihr beim Termin.`,
           created_at: demoMinutesFromNowIso(-190),
         media_type: 'matchday',
         payload: {
-          display_home_name: our,
-          display_away_name: alpenvorland,
+          display_home_name: 'SKN St. Pölten U12',
+          display_away_name: our,
           our_team_name: our,
-          is_home: true,
-          opponent_logo_url: '/logos/usg-alpenvorland.png',
+          is_home: false,
+          opponent_logo_url: '/logos/skn-stpoelten.png',
           match_type: 'championship',
-          kickoff_iso: tGamePast.starts,
-          meeting_iso: tGamePast.meeting ?? null,
-          location: 'Sportplatz Rohrbach',
-          match_id: DEMO_MATCH_ID_PAST,
-          event_id: 'ev-game-past',
+          kickoff_iso: tGameAway.starts,
+          meeting_iso: null,
+          location: 'Sportplatz St. Pölten',
+          match_id: '00000000-demo-4000-8000-matchsknaway',
+          event_id: 'ev-game-away',
           matchday_player_image_url: '/feed/demo-matchday-player-reference.webp',
-          deep_link: '/demo/events/ev-game-past',
+          deep_link: '/demo/events/ev-game-away',
         },
       },
     },
