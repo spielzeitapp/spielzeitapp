@@ -66,6 +66,8 @@ assert.ok(squad.includes('KADER') && squad.includes('demo-squad-huddle.webp'));
 console.log('demo-clean-feed-test: OK (all four active posts, winning result with periods, twelve full squad names)');
 
 const allDemoPosts = [...active, ...buildDemoFeedPosts().historic];
+assert.ok(!allDemoPosts.some(p => p.post.id === 'df-result-older'));
+assert.ok(!allDemoPosts.some(p => JSON.stringify(p.post.payload).includes('SV Langenrohr')));
 for (const id of ['df-training-preview', 'df-schedule-change', 'df-moment', 'df-tournament-info', 'df-parent-info', 'df-season-start']) assert.ok(!allDemoPosts.some(p => p.post.id === id));
 const formations = load('../src/lib/matchFormations.ts');
 const { LeibchenJersey } = load('../src/components/match/LeibchenJersey.tsx');

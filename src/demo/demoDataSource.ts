@@ -481,6 +481,7 @@ export function buildDemoFeedPosts(): {
   const excludedDemoPostIds = new Set([
     'df-training-preview', 'df-schedule-change', 'df-moment',
     'df-tournament-info', 'df-parent-info', 'df-season-start',
+    'df-result-older',
   ]);
   const sorted = all.filter(item => !excludedDemoPostIds.has(item.post.id)).sort(
     (a, b) => new Date(b.post.created_at).getTime() - new Date(a.post.created_at).getTime(),
