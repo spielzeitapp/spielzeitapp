@@ -12,6 +12,7 @@ const SLOT_ALIAS: Record<string, string> = { TW:'GK', LV:'LB', RV:'RB', IV:'CM',
 export function buildPosterLineup(formation: string | null, players: LineupFeedPlayer[]) {
   if (!isU11FormationId(formation)) return null;
   const layout = U11_FORMATIONS[formation];
+  if (players.length > layout.length) return null; // Never omit players when a legacy formation is stale.
   const assigned = new Map<string, LineupFeedPlayer>();
   const remaining: LineupFeedPlayer[] = [];
   for (const player of players) {

@@ -81,6 +81,7 @@ for (const formation of Object.keys(formations.U11_FORMATIONS)) {
   assert.equal(placed.find(s => s.slot === 'GK').player.slot, 'GK');
 }
 assert.equal(buildPosterLineup('unknown', demoLineup.lineup_players), null);
+assert.equal(buildPosterLineup('1-3-3', [...demoLineup.lineup_players, { ...demoLineup.lineup_players[0], player_id: 'extra' }]), null);
 const lineupHtml = renderToStaticMarkup(React.createElement(LineupPosterArtwork, {
   left: {name: 'Demo Heim', logo: '/logos/nsg-goelsental.png'}, right: {name: 'Demo Gast', logo: '/logos/loosdorf.png'},
   ageGroup: 'U12', formation: demoLineup.formation, players: demoLineup.lineup_players, bench: demoLineup.bench_players,
