@@ -31,6 +31,34 @@
 .squad-poster-players li > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
 .squad-poster-position { margin-left: auto; color: #ef002a; font-size: 2.5cqw; flex-shrink: 0; }
 .squad-poster-number { width: 4.5cqw; flex-shrink: 0; color: #ef002a; text-align: center; font: 400 4.8cqw/1 'Squad Anton', Impact, sans-serif; }
-.squad-poster-photo { position: relative; display: block; width: 100%; height: auto; max-height: 48cqw; object-fit: contain; object-position: center; margin: 0 auto; mask-image: linear-gradient(to bottom, transparent, black 8%, black 95%, transparent); }
+.squad-poster-photo { position: relative; display: block; width: 100%; height: 67cqw; object-fit: contain; object-position: center; margin: -1cqw auto 0; }
 .squad-poster-tag { padding: 3cqw 3cqw 4cqw; text-align: center; background: #07070899; border-bottom: .3cqw solid #ef002a; font: 400 italic 6.8cqw/1.1 'Squad Anton', Impact, sans-serif; letter-spacing: -.025em; }
 .squad-poster-tag span { color: #ef002a; }
+
+/* Shared textured artwork: no data or club crests are baked into this asset. */
+.squad-poster, .matchday-poster .sz-club-feed-poster-background {
+  background: #080708 url('/feed/autopost-texture-v2.webp') center / cover no-repeat;
+}
+.matchday-poster .sz-club-feed-poster-lines { display: none; }
+.squad-poster-content { padding: 4cqw 5cqw 1cqw; }
+.squad-poster-title { font-size: 18cqw; }
+.squad-poster-club > img { width: 20cqw; height: 20cqw; }
+.squad-poster-details { margin: 2cqw 0; }
+.squad-poster-players { margin: 2cqw 0; gap: 1.4cqw 3cqw; }
+.squad-poster-players li { font-size: 3.9cqw; line-height: 1.35; }
+.squad-poster-tag { background: transparent; padding: 2cqw 2cqw 5cqw; font-size: 8.4cqw; }
+.matchday-poster header h2 { font-size: 19cqw; line-height: 1; letter-spacing: -.025em; }
+.matchday-poster header > p { font-size: 2cqw; }
+.matchday-poster header > div { width: 66%; }
+.matchday-poster header > div span { font: 400 9cqw/1 'Squad Anton', Impact, sans-serif; }
+.matchday-poster-logo { width: 18cqw; height: 18cqw; }
+.matchday-poster header + div { width: 65%; margin-top: 3cqw; }
+.matchday-poster header + div p { font-size: 3cqw; }
+.matchday-poster-player { right: -19%; bottom: 0; height: 80%; width: 78%; }
+.matchday-poster header + div + div { width: 62%; margin-top: 6cqw; }
+.matchday-poster header + div + div > div:first-child { font-size: 2.4cqw; }
+.matchday-poster header + div + div > p { font-size: 2.8cqw; }
+.matchday-poster header + div + div > div > p { font-size: 6.4cqw; }
+.matchday-poster header + div + div > div > p.line-clamp-2 { font-size: 3.5cqw; }
+.matchday-poster footer { margin-top: auto; }
+.matchday-poster footer p { font: italic 400 7.8cqw/1.1 'Squad Anton', Impact, sans-serif; letter-spacing: -.025em; }

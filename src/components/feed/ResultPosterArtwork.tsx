@@ -34,10 +34,10 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
   const opponentScore = p.is_home ? p.away_score : p.home_score;
   const state = ownScore > opponentScore ? 'win' : ownScore < opponentScore ? 'loss' : 'draw';
   const [photoFailed, setPhotoFailed] = React.useState(false);
-  const photo = state === 'win' ? 'feed/demo-u12-team-moment.webp'
+  const photo = state === 'win' ? 'feed/demo-result-celebration.webp'
     : state === 'draw' ? 'feed/demo-matchday-player-01.webp' : null;
   React.useEffect(() => setPhotoFailed(false), [photo]);
-  const hasPlayer = state === 'draw' && !photoFailed;
+  const hasPlayer = photo !== null && !photoFailed;
   return <div ref={ref} className={`result-poster result-poster--${state}${hasPlayer ? ' result-poster--player' : ''}`} data-result-state={state}>
     {photo && !photoFailed ? <img className="result-poster-motif" src={asset(photo)} alt="" aria-hidden onError={() => setPhotoFailed(true)} /> : null}
     <div className="result-poster-content">

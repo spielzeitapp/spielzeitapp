@@ -27,6 +27,8 @@ for (const [home, away, isHome, state] of [[4,1,true,'win'],[1,4,false,'win'],[2
   assert.ok(html.includes(periods));
   assert.ok(html.includes('/logos/nsg-goelsental.png') && html.includes('/logos/bischofstetten.png'));
   assert.equal(html.includes('result-poster-motif'), state !== 'loss');
+  assert.equal(html.includes('result-poster--player'), state !== 'loss');
+  assert.equal(html.includes('demo-result-celebration.webp'), state === 'win');
   assert.ok(html.includes('Demo Spieler') && html.includes('25′ · 58′'));
 }
 assert.equal(formatPeriodScoresBracketFromRaw(null), null);

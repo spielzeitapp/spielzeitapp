@@ -28,7 +28,7 @@ function PosterLogo({ src, alt }: { src: string; alt: string }) {
     <img
       src={imgSrc}
       alt={alt}
-      className="h-[clamp(2.4rem,13cqw,4.35rem)] w-[clamp(2.4rem,13cqw,4.35rem)] shrink-0 object-contain"
+      className="matchday-poster-logo shrink-0 object-contain"
       style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.72))' }}
       loading="lazy"
       onError={() => {
@@ -53,7 +53,7 @@ function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
       <img
         src={playerImageUrl}
         alt=""
-        className="absolute bottom-0 right-[-20%] h-[78%] w-[78%] object-contain object-bottom object-right"
+        className="matchday-poster-player absolute object-contain object-bottom object-right"
         style={{ filter: 'drop-shadow(-12px 8px 24px rgba(0,0,0,0.9))' }}
         loading="lazy"
         onError={() => setFailed(true)}
@@ -143,7 +143,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     const teamPrefix = teamSuffix ? cleanHashtag.slice(0, -teamSuffix.length) : cleanHashtag;
 
     return (
-      <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white [container-type:inline-size]">
+      <div ref={ref} className="matchday-poster relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white [container-type:inline-size]">
         <GraphicBackground />
         {playerUrl ? <PosterPlayerLayer playerImageUrl={playerUrl} /> : null}
 
