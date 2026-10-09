@@ -45,7 +45,7 @@ export function formatCompactListWeekdayAbbrev(iso: unknown): string {
   return DE_WEEKDAY_LONG_TO_ABBREV[key] ?? wd.replace(/\.$/, '').slice(0, 2).toUpperCase();
 }
 
-/** Kompakte Terminliste: voller Wochentag, großer Tag, Monat + Jahr (z. B. MAI 2026). */
+/** Kompakte Terminliste: kurzer Wochentag (MO … SO), großer Tag, Monat + Jahr. */
 export function formatCompactListDateParts(iso: unknown): {
   wd: string;
   day: string;
@@ -54,7 +54,7 @@ export function formatCompactListDateParts(iso: unknown): {
   if (!safeText(iso)) return { wd: '—', day: '–', monYear: '' };
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return { wd: '—', day: '–', monYear: '' };
-  const wd = new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: VIENNA_TZ }).format(d);
+  const wd = formatCompactListWeekdayAbbrev(iso);
   const day = new Intl.DateTimeFormat('de-AT', { day: '2-digit', timeZone: VIENNA_TZ }).format(d);
   const monYear = new Intl.DateTimeFormat('de-AT', {
     month: 'short',
@@ -62,7 +62,7 @@ export function formatCompactListDateParts(iso: unknown): {
     timeZone: VIENNA_TZ,
   }).format(d);
   return {
-    wd: wd.replace(/\.$/, '').toUpperCase(),
+    wd,
     day,
     monYear: monYear.replace(/\.$/g, '').replace(/\s+/g, ' '),
   };
