@@ -20,6 +20,7 @@ import {
   type OefbImportedFixture,
 } from '../lib/championshipFixtures';
 import { formatVisibleMatchEncounter } from '../lib/oefbTeamNameNormalize';
+import './managerOefbImport.css';
 import {
   adminSaveOefbTableSettings,
   getOefbTableSettings,
@@ -349,7 +350,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
   const teamLabel = oefbTeamName.trim() || meta?.teamName || meta?.displayName || 'Eigene Mannschaft';
 
   return (
-    <div className="space-y-5">
+    <div className="manager-oefb-import space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link to="/manager/saisons" className="text-[13px] font-semibold text-red-700 hover:underline">

@@ -1,0 +1,45 @@
+/* The mobile Manager follows the app palette; desktop keeps its light workspace. */
+@media (max-width: 767px) {
+  .manager-shell main:has(.manager-oefb-import) {
+    background: #050506;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .manager-oefb-import {
+    color-scheme: dark;
+    color: rgba(255, 255, 255, 0.9);
+    --oefb-mobile-accent: rgb(var(--club-accent-rgb, 220 38 38));
+  }
+
+  .manager-oefb-import .bg-white {
+    background-color: #111114;
+    box-shadow: none;
+  }
+  .manager-oefb-import .bg-slate-50 { background-color: #19191d; }
+  .manager-oefb-import :is(.border-slate-100, .border-slate-200) {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .manager-oefb-import :is(.text-slate-800, .text-slate-900) { color: rgba(255, 255, 255, 0.92); }
+  .manager-oefb-import :is(.text-slate-600, .text-slate-700) { color: rgba(255, 255, 255, 0.72); }
+  .manager-oefb-import :is(.text-slate-400, .text-slate-500) { color: rgba(255, 255, 255, 0.55); }
+  .manager-oefb-import .text-red-700 { color: #f87171; }
+  .manager-oefb-import .bg-red-700 { background-color: var(--oefb-mobile-accent); }
+  .manager-oefb-import .bg-red-50 { background-color: rgba(127, 29, 29, 0.2); }
+  .manager-oefb-import .border-red-200 { border-color: rgba(248, 113, 113, 0.3); }
+  .manager-oefb-import :is(.text-red-800, .text-red-900) { color: #fca5a5; }
+  .manager-oefb-import .bg-amber-50 { background-color: rgba(120, 53, 15, 0.16); }
+  .manager-oefb-import .border-amber-200 { border-color: rgba(251, 191, 36, 0.3); }
+  .manager-oefb-import :is(.text-amber-800, .text-amber-900, .text-amber-950) { color: #fde68a; }
+  .manager-oefb-import .bg-emerald-50 { background-color: rgba(6, 78, 59, 0.22); }
+  .manager-oefb-import .border-emerald-200 { border-color: rgba(52, 211, 153, 0.3); }
+  .manager-oefb-import :is(.text-emerald-700, .text-emerald-800, .text-emerald-900) { color: #a7f3d0; }
+
+  .manager-oefb-import :is(input:not([type='checkbox']), select) {
+    background-color: #09090c;
+    color: rgba(255, 255, 255, 0.92);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+  .manager-oefb-import input::placeholder { color: rgba(255, 255, 255, 0.4); }
+  .manager-oefb-import input:focus { border-color: var(--oefb-mobile-accent); }
+  .manager-oefb-import input[type='checkbox'] { accent-color: var(--oefb-mobile-accent); }
+}
