@@ -46,6 +46,7 @@ const { buildDemoFeedPosts, buildDemoEvents } = load('../src/demo/demoDataSource
   './demoTrainingStats': { buildDemoTrainingHistoryEventRows: () => [] },
 });
 const active = buildDemoFeedPosts().active;
+assert.equal(active.find(p => p.kind === 'matchday').post.payload.matchday_player_image_url, '/avatars/demo/demo-player-upper-02.webp');
 for (const event of buildDemoEvents().filter(e => e.kind === 'match')) {
   assert.ok(event.opponent_logo_url?.startsWith('/logos/'), `${event.id}: demo match logo survives EventRow conversion`);
 }

@@ -264,7 +264,7 @@ export function buildDemoFeedPosts(): {
           location: 'Sportplatz St. Pölten',
           match_id: '00000000-demo-4000-8000-matchsknaway',
           event_id: 'ev-game-away',
-          matchday_player_image_url: '/feed/demo-matchday-player-reference.webp',
+          matchday_player_image_url: '/avatars/demo/demo-player-upper-02.webp',
           deep_link: '/demo/events/ev-game-away',
         },
       },
