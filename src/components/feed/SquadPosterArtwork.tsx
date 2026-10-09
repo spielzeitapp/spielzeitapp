@@ -7,14 +7,17 @@ type Props = {
   left: { name: string; logo: string };
   right: { name: string; logo: string };
   ageGroup: string;
-  players: SquadFeedPlayer[];
+  players: (SquadFeedPlayer & { position?: string | null })[];
   startsAt?: string | null;
   location?: string | null;
   teamPhotoUrl?: string | null;
+  title?: string;
+  formation?: string | null;
+  bench?: SquadFeedPlayer[];
 };
 
 /** The same responsive artwork is used in the feed and WhatsApp image export. */
-export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, location, teamPhotoUrl }: Props) {
+export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, location, teamPhotoUrl, title = 'KADER', formation, bench = [] }: Props) {
   const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
   const date = startsAt ? new Date(startsAt) : null;
   const validDate = date && Number.isFinite(date.getTime());
@@ -27,7 +30,7 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
   return (
     <div className="squad-poster" data-whatsapp-status-poster>
       <div className="squad-poster-content">
-        <h3 className="squad-poster-title">Unser Kader</h3>
+        <h3 className="squad-poster-title">{title}</h3>
         {ageGroup && <div className="squad-poster-age"><span>{ageGroup}</span></div>}
         <div className="squad-poster-match">
           {[left, right].map((team, index) => (
@@ -41,13 +44,20 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
           ))}
         </div>
         {details && <p className="squad-poster-details">{details}</p>}
-        <h4 className="squad-poster-count">{players.length} Spieler im Kader</h4>
+        <h4 className="squad-poster-count">{formation ? `Startaufstellung · ${formation}` : 'Unser Aufgebot'}</h4>
         <ul className="squad-poster-players">
           {players.map(player => <li key={player.player_id}>
             <span className="squad-poster-number">{player.jersey_number ?? '–'}</span>
             <span>{player.name}</span>
+            {player.position && <small className="squad-poster-position">{player.position}</small>}
           </li>)}
         </ul>
+        {bench.length > 0 && <>
+          <h4 className="squad-poster-count">Ersatzbank</h4>
+          <ul className="squad-poster-players">{bench.map(player => <li key={player.player_id}>
+            <span className="squad-poster-number">{player.jersey_number ?? '–'}</span><span>{player.name}</span>
+          </li>)}</ul>
+        </>}
       </div>
       {showPhoto && <img className="squad-poster-photo" src={teamPhotoUrl} alt="Unsere Mannschaft" onError={() => setFailedPhoto(teamPhotoUrl)} />}
       <div className="squad-poster-tag">#GEMEINSAM<span>EINTEAM</span></div>

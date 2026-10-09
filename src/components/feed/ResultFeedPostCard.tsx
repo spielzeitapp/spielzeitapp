@@ -6,22 +6,15 @@ import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
-import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
-import { FeedClubName } from './FeedClubName';
-import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
+import { pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import {
   FEED_POST_BODY_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
   FeedGameCtaLink,
-  FeedMatchDateVenueLine,
-  FeedMatchMetaBadge,
   FeedPostHeader,
   FeedPostActionsFooter,
   FeedStandardActions,
-  FeedStadiumHeroBackdrop,
-  FEED_HERO_TITLE_CLASS,
-  FEED_RESULT_SCORE_CLASS,
   FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
@@ -35,6 +28,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 import { buildAutoResultCaption } from '../../lib/resultFeedTypes';
+import { ResultPosterArtwork } from './ResultPosterArtwork';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -235,7 +229,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     }, 350);
     return () => { active = false; window.clearTimeout(timer); };
   }, [hasCustomImage, p.home_score, p.away_score, p.home_team_name, p.away_team_name,
-    p.home_logo_url, p.away_logo_url, p.scorers, p.starts_at, p.location]);
+    p.home_logo_url, p.away_logo_url, p.scorers, p.starts_at, p.location,
+    p.period_scores, p.is_home, p.match_type, teamLabel]);
 
   const presentation = resultPresentation(p.result_state);
 
@@ -297,11 +292,6 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     else setShareHint('Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2400);
   }, [captionTrim, post.id, p.away_score, p.away_team_name, gameHref, p.home_score, p.home_team_name, hasCustomImage, customImageSrc, groupedScorers]);
-
-  const matchMetaLine = buildFeedMatchMetaLine(
-    pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name),
-    getMatchTypeLabel(p.match_type ?? undefined) || null,
-  );
 
   const headerActions = staffCanDelete && onFeedPostDeleted ? (
     <div className="flex items-center gap-2">
@@ -372,7 +362,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     <FeedPostArticleShell
       className=""
       style={{ boxShadow: presentation.articleShadow }}
-      data-feed-result-card="v8"
+      data-feed-result-card="clean-v1"
     >
       {/* feed-result-comments-v1: reserved slot for threaded comments MVP (no UI yet) */}
       <div data-feed-comment-slot="reserved" hidden aria-hidden />
@@ -385,69 +375,19 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div data-whatsapp-status-poster className={FEED_STADIUM_HERO_SHELL_CLASS}>
-          <div ref={resultPosterRef} className="relative min-w-0 space-y-3 overflow-hidden rounded-xl bg-[#140808] px-1.5 py-2 sm:px-2.5 sm:py-3">
-            <FeedStadiumHeroBackdrop />
-            <div className="relative min-w-0 space-y-3">
-            <FeedMatchMetaBadge line={matchMetaLine} />
-
-            <div className={FEED_MATCH_GRID_CLASS}>
-              <div className={FEED_MATCH_TEAM_COL_CLASS}>
-                <FeedMatchLogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
-                <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
-              </div>
-
-              <div className="shrink-0 px-1 text-center sm:px-2">
-                <div className="flex flex-col items-center gap-0.5">
-                  <p className={FEED_HERO_TITLE_CLASS}>Endstand</p>
-                  <p
-                    className={`text-[11px] font-black uppercase leading-none tracking-[0.16em] sm:text-[12px] ${presentation.statusClass}`}
-                  >
-                    {presentation.status}
-                  </p>
-                  <p className={`pt-0.5 ${FEED_RESULT_SCORE_CLASS}`}>
-                    {p.home_score}
-                    <span className="mx-1 align-middle text-[0.42em] font-black text-white sm:mx-1.5">:</span>
-                    {p.away_score}
-                  </p>
-                  {periodBracketLine ? (
-                    <p className="text-[10px] font-semibold tabular-nums leading-snug text-white/58 sm:text-[11px]">
-                      {periodBracketLine}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className={FEED_MATCH_TEAM_COL_CLASS}>
-                <FeedMatchLogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
-                <FeedClubName fullName={p.away_team_name} variant="compact" className="w-full px-0.5" />
-              </div>
-            </div>
-
-            {matchDateLabel || venueLabel ? (
-              <div className="mx-auto max-w-[22rem] text-center">
-                <FeedMatchDateVenueLine dateLabel={matchDateLabel} venueLabel={venueLabel} />
-              </div>
-            ) : null}
-
-            {groupedScorers.length > 0 ? (
-              <div className="rounded-xl border border-red-500/30 bg-black/70 px-3 py-3 sm:px-4">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-300">⚽ Unsere Torschützen</p>
-                <ul className="space-y-1.5">
-                  {groupedScorers.map((scorer) => (
-                    <li key={scorer.playerName.toLocaleLowerCase('de-AT')} className="flex min-w-0 items-baseline justify-between gap-2 text-[12px] font-semibold leading-snug text-white sm:text-[14px]">
-                      <span className="min-w-0 break-words">{scorer.playerName}</span>
-                      <span className="shrink-0 tabular-nums text-red-200">
-                        {scorer.minutes.length > 0 ? scorer.minutes.join(' · ') : `${scorer.goalCount} ${scorer.goalCount === 1 ? 'Tor' : 'Tore'}`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <p className="pb-0.5 text-center text-[10px] font-black uppercase tracking-[0.13em] text-red-200/90">#GEMEINSAMEINTEAM</p>
-            </div>
-          </div>
+          <ResultPosterArtwork
+            ref={resultPosterRef}
+            payload={p}
+            ageGroup={pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name)}
+            competition={getMatchTypeLabel(p.match_type ?? undefined) ?? 'Spiel'}
+            periods={periodBracketLine}
+            date={matchDateLabel}
+            venue={venueLabel}
+            scorers={groupedScorers.map(scorer => ({
+              playerName: scorer.playerName,
+              detail: scorer.minutes.length > 0 ? scorer.minutes.join(' · ') : `${scorer.goalCount} ${scorer.goalCount === 1 ? 'Tor' : 'Tore'}`,
+            }))}
+          />
 
             {captionTrim ? (
               <div className="sz-club-feed-inset mt-0.5 rounded-2xl border px-2 py-2 sm:px-2.5 sm:py-2.5">

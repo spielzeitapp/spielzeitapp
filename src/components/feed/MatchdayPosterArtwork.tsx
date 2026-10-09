@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, MapPin, Trophy } from 'lucide-react';
+import './squadPoster.css';
 
 const PLACEHOLDER =
   (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '') + '/logos/placeholder-shield-a.png';
@@ -153,7 +154,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             </p>
             <h2
               className="whitespace-nowrap text-[clamp(2rem,14cqw,5rem)] font-black uppercase leading-[0.9] tracking-[-0.055em] text-white"
-              style={{ textShadow: '0 6px 24px rgba(0,0,0,0.82)' }}
+              style={{ fontFamily: "'Squad Anton', Impact, sans-serif", fontWeight: 400, textShadow: '0 6px 24px rgba(0,0,0,0.82)' }}
             >
               {title}
             </h2>

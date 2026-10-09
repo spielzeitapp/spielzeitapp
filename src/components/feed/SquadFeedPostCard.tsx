@@ -58,7 +58,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
       });
     return () => { cancelled = true; };
   }, [p.team_season_id, isDemo, post.media_url]);
-  const teamPhotoUrl = isDemo ? '/feed/demo-u12-team-moment.webp'
+  const teamPhotoUrl = isDemo ? '/feed/demo-squad-huddle.webp'
     : teamPhoto?.seasonId === p.team_season_id ? teamPhoto.url : null;
   const ageGroup = (teamLabel + ' ' + p.our_team_name).match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase() || '';
   const [liked, setLiked] = useState(false);
@@ -97,7 +97,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
           </div>
         ) : null}
       />
-      <FeedPostTypeBadge>Spieltag</FeedPostTypeBadge>
+      <FeedPostTypeBadge>Kader</FeedPostTypeBadge>
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         {post.media_url?.trim() ? (
           <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Kaderbild" />
