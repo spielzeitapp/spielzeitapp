@@ -41,11 +41,14 @@ const demoTime = {
   demoMinutesFromNowIso: minutes => new Date(Date.now() + minutes * 60000).toISOString(),
   demoOffsetIso: days => new Date(Date.now() + days * 86400000).toISOString(),
 };
-const { buildDemoFeedPosts } = load('../src/demo/demoDataSource.ts', {
+const { buildDemoFeedPosts, buildDemoEvents } = load('../src/demo/demoDataSource.ts', {
   './demoFixtures': { demoFixtures }, './demoTime': demoTime,
   './demoTrainingStats': { buildDemoTrainingHistoryEventRows: () => [] },
 });
 const active = buildDemoFeedPosts().active;
+for (const event of buildDemoEvents().filter(e => e.kind === 'match')) {
+  assert.ok(event.opponent_logo_url?.startsWith('/logos/'), `${event.id}: demo match logo survives EventRow conversion`);
+}
 for (const kind of ['matchday', 'squad', 'lineup', 'result']) assert.ok(active.some(p => p.kind === kind), kind);
 const result = active.find(p => p.kind === 'result').post.payload;
 assert.equal(result.result_state, 'win');

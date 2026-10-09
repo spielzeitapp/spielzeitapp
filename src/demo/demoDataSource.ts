@@ -12,6 +12,12 @@ export const DEMO_MATCH_ID_PAST_OLDER = '00000000-demo-4000-8000-matchlangenrohr
 
 const TEAM = demoFixtures.teamName;
 const SEASON = demoFixtures.seasonLabel;
+const DEMO_OPPONENT_LOGOS: Record<string, string> = {
+  'ev-game-next': '/logos/loosdorf.png',
+  'ev-game-away': '/logos/skn-stpoelten.png',
+  'ev-game-past': '/logos/usg-alpenvorland.png',
+  'ev-game-past-older': '/logos/sv-langenrohr-v2.png',
+};
 
 /** Relative Ankerzeiten — konsistent zu Feed und Terminen. */
 export const DEMO_EVENT_TIMES = {
@@ -76,6 +82,7 @@ function toEventRow(
     type: kind === 'match' ? 'game' : kind === 'training' ? 'training' : kind === 'tournament' ? 'event' : 'event',
     match_type: partial.match_type ?? (kind === 'match' ? 'championship' : null),
     opponent: partial.opponent ?? null,
+    opponent_logo_url: partial.opponent_logo_url ?? null,
     is_home: partial.is_home ?? true,
     location: partial.location ?? 'Sportplatz Rohrbach',
     address: partial.address ?? null,
@@ -136,6 +143,7 @@ export function buildDemoEvents(): EventRow[] {
       meeting_at: meetingAt,
       location: ev.location,
       opponent: ev.opponent ?? null,
+      opponent_logo_url: DEMO_OPPONENT_LOGOS[ev.id] ?? null,
       is_home: ev.isHome ?? null,
       notes: titleNote,
       status,

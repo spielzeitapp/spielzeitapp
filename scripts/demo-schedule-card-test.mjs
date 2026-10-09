@@ -12,4 +12,9 @@ assert.ok(!card.includes('truncate'));
 assert.equal((card.match(/break-words text-center/g) || []).length, 2);
 assert.match(schedule, /<MatchCardLigaportal/);
 assert.match(schedule, /<PastMatchResultCard/);
+const demoData = fs.readFileSync(new URL('../src/demo/demoDataSource.ts', import.meta.url), 'utf8');
+assert.match(demoData, /opponent_logo_url: DEMO_OPPONENT_LOGOS\[ev.id\]/);
+for (const id of ['ev-game-next', 'ev-game-away', 'ev-game-past', 'ev-game-past-older']) {
+  assert.ok(demoData.includes(`'${id}': '/logos/`), `${id}: original opponent logo`);
+}
 console.log('demo-schedule-card-test: OK (home/away logos, full team names, shared regular/result cards)');
