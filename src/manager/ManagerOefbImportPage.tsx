@@ -366,6 +366,12 @@ export function ManagerOefbImportPage(): React.ReactElement {
       </div>
 
       {loadingMeta ? <p className="text-[13px] text-slate-400">Saison wird geladen…</p> : null}
+      <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 text-[13px] text-slate-600 xl:max-w-3xl">
+        <h2 className="font-semibold text-slate-900">Herbst, Frühjahr oder Einstieg während der Saison</h2>
+        <p>Herbst und Frühjahr gehören zur selben Jahressaison. Den Frühjahrs-Spielplan deshalb erneut in die laufende Saison importieren; die Saison erst nach dem Frühjahr abschließen.</p>
+        <p>Auch bei einem Einstieg während der Saison kannst du den Spielplan hier laden. Prüfe vor dem Bestätigen die Zielsaison und die erkannten Spiele. Bereits importierte ÖFB-Spiele werden anhand ihrer ÖFB-ID erkannt.</p>
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">Dieser Import übernimmt Spieltermine. Vergangene Endstände, Torschützen und Spielstatistiken werden derzeit nicht automatisch übernommen.</p>
+      </section>
       {metaError ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">
           {metaError}
