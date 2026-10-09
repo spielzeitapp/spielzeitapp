@@ -1,20 +1,21 @@
 .lineup-poster { container-type: inline-size; position: relative; isolation: isolate; overflow: hidden; color: white; background: radial-gradient(ellipse at 115% 62%, #99001655, transparent 58%), repeating-radial-gradient(ellipse at 120% 58%, transparent 0 7px, #bc002414 8px, transparent 9px 12px), #050506; }
 .lineup-poster-content { position: relative; z-index: 1; padding: 4cqw 4cqw 4cqw; }
 .lineup-poster-main { position: relative; isolation: isolate; overflow: hidden; }
-.lineup-poster header { position: relative; z-index: 1; width: 76%; }
+.lineup-poster header { position: relative; z-index: 1; width: 72%; }
 .lineup-poster h3 { margin: 0; text-align: center; font: 400 14.5cqw/1.1 'Squad Anton', Impact, sans-serif; letter-spacing: -.03em; }
 .lineup-poster .squad-poster-age { font-size: 8cqw; margin: 0; }
 .lineup-poster .squad-poster-match { margin: 1cqw 0 2cqw; }
 .lineup-poster .squad-poster-club img { width: 15cqw; height: 15cqw; }
 .lineup-poster .squad-poster-club span { text-align: center; font-size: 2.8cqw; line-height: 1.2; overflow-wrap: anywhere; }
-.lineup-poster-player { position: absolute; z-index: 0; right: -22%; bottom: 0; height: 88cqw; width: 64%; object-fit: cover; object-position: right bottom; }
-.lineup-poster-tactics { position: relative; z-index: 1; width: 74%; }
+/* Dedicated right-hand portrait lane: foreground photo, never field lines on the body. */
+.lineup-poster-player { position: absolute; z-index: 2; right: -22cqw; bottom: 0; height: 72.5cqw; width: 58cqw; object-fit: contain; object-position: right bottom; pointer-events: none; }
+.lineup-poster-tactics { position: relative; z-index: 1; width: 68%; }
 .lineup-poster h4 { margin: 0; padding: 1cqw 0; border-top: .3cqw solid #ef002a; text-align: center; font: 400 3.8cqw/1.2 'Squad Anton', Impact, sans-serif; letter-spacing: .04em; }
-.lineup-poster-pitch { position: relative; height: 62cqw; margin-top: 1cqw; background: #05050566; }
+.lineup-poster-pitch { position: relative; height: 50cqw; margin-top: 1cqw; background: #05050566; }
 .lineup-poster-pitch > svg { position: absolute; inset: 0; height: 100%; width: 100%; }
-.lineup-poster-marker { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; flex-direction: column; width: 20cqw; }
-.lineup-poster .lineup-poster-shirt { width: 13cqw !important; height: 14cqw !important; }
-.lineup-poster-marker > span { width: 100%; padding: .25cqw .5cqw; border: .2cqw solid #ef002a; border-radius: 1cqw; background: #050505ed; text-align: center; font: 700 2.7cqw/1.15 Arial, sans-serif; overflow-wrap: anywhere; }
+.lineup-poster-marker { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; flex-direction: column; width: 18cqw; }
+.lineup-poster .lineup-poster-shirt { width: 11cqw !important; height: 12cqw !important; }
+.lineup-poster-marker > span { width: 100%; padding: .25cqw .5cqw; border: .2cqw solid #ef002a; border-radius: 1cqw; background: #050505ed; text-align: center; font: 700 2.5cqw/1.15 Arial, sans-serif; overflow-wrap: anywhere; }
 .lineup-poster-bench { margin-top: 2cqw; padding: 1cqw 2cqw 0; background: #050505b3; }
 .lineup-poster-bench ul, .lineup-poster-fallback { list-style: none; padding: 0; margin: 1.5cqw 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1cqw 2cqw; font: 700 2.8cqw/1.3 Arial, sans-serif; }
 .lineup-poster-bench b { color: #ef002a; margin-right: .8cqw; }

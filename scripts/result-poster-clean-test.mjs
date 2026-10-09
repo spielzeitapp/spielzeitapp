@@ -98,3 +98,8 @@ for (const file of ['lineupPoster.css', 'squadPoster.css', 'resultPoster.css']) 
   assert.ok(css.includes('repeating-radial-gradient(ellipse at 120% 58%'), `${file}: clean curved-line background`);
 }
 console.log('clean-poster-background-test: OK (all four poster kinds, no gritty texture)');
+const lineupCss = fs.readFileSync(new URL('../src/components/feed/lineupPoster.css', import.meta.url), 'utf8');
+assert.match(lineupCss, /\.lineup-poster-player \{[^}]*z-index: 2;[^}]*object-fit: contain;/);
+assert.match(lineupCss, /\.lineup-poster-tactics \{[^}]*width: 68%;/);
+assert.match(lineupCss, /\.lineup-poster-pitch \{[^}]*height: 50cqw;/);
+console.log('lineup-portrait-lane-test: OK (foreground portrait, narrower and shorter pitch)');
