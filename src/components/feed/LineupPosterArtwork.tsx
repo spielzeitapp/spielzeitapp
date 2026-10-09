@@ -56,7 +56,7 @@ export function LineupPosterArtwork({ left, right, ageGroup, formation, players,
               <ellipse cx="50" cy="50" rx="11" ry="9" /><circle cx="50" cy="50" r=".6" />
             </g>
           </svg>
-          {lineup.map(({ slot, label, x, y, player }) => <div key={slot} className="lineup-poster-marker" data-slot={slot} style={{ left:`${Math.max(19, Math.min(81, x))}%`, top:`${slot === 'GK' ? 86 : y >= 60 ? 55 : Math.max(16, y)}%` }}>
+          {lineup.map(({ slot, label, x, y, player }) => <div key={slot} className="lineup-poster-marker" data-slot={slot} style={{ left:`${Math.max(19, Math.min(81, x))}%`, top:`${slot === 'GK' ? 84 : y >= 60 ? 55 : Math.max(16, y)}%` }}>
             <LeibchenJersey lastName={lineupFeedDisplayPlayerName(player!) || ''} number={player!.jersey_number} position={slot === 'GK' ? 'TW' : label} variant={slot === 'GK' ? 'goalkeeper' : 'field'} showBackPrint={false} pitchStyleBack className="lineup-poster-shirt" />
             <span>{lineupFeedDisplayPlayerName(player!) || 'nicht benannt'}</span>
           </div>)}
