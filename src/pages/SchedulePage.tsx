@@ -1079,6 +1079,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     };
     const base = events.filter((e) => {
       if (!isEventPubliclyVisible(e)) return false;
+      // The demo's separate live card already represents this match.
+      if (isDemo && !managerSimpleMode && activeScheduleLive && e.match_id === activeScheduleLive.matchId) return false;
       // Fans sehen nur Spiele (kind === 'match')
       if (normalizedUiRole === 'fan') return e.kind === 'match';
       // Termine: Typ-Filter (Alle/Spiele/Trainings/Events)
@@ -1144,7 +1146,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     });
 
     return sorted.filter((event) => bucketForView(event) === timeFilter);
-  }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById, canManage]);
+  }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById, canManage, isDemo, managerSimpleMode, activeScheduleLive]);
 
   const showHeroCard = useMemo(() => {
     if (displayEvents.length === 0) return false;

@@ -12,6 +12,8 @@ assert.ok(!card.includes('truncate'));
 assert.equal((card.match(/break-words text-center/g) || []).length, 2);
 assert.match(schedule, /<MatchCardLigaportal/);
 assert.match(schedule, /<PastMatchResultCard/);
+assert.ok(schedule.includes('if (isDemo && !managerSimpleMode && activeScheduleLive && e.match_id === activeScheduleLive.matchId) return false;'));
+assert.ok(schedule.includes('canManage, isDemo, managerSimpleMode, activeScheduleLive]'));
 const demoData = fs.readFileSync(new URL('../src/demo/demoDataSource.ts', import.meta.url), 'utf8');
 assert.match(demoData, /opponent_logo_url: DEMO_OPPONENT_LOGOS\[ev.id\]/);
 for (const id of ['ev-game-next', 'ev-game-away', 'ev-game-past', 'ev-game-past-older']) {
