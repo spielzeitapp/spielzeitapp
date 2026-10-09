@@ -1,0 +1,14 @@
+/* Shared App cards in the Manager; form overrides are intentionally scoped. */
+.manager-shell .manager-season-workspace :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+  background-color: #111114 !important;
+  color: #f4f4f5 !important;
+  color-scheme: dark;
+  caret-color: #f4f4f5;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.manager-shell .manager-season-workspace :is(input, textarea)::placeholder {
+  color: #a1a1aa !important;
+}
+.manager-shell .manager-season-workspace :is(input, select, textarea):focus {
+  border-color: #f87171 !important;
+}

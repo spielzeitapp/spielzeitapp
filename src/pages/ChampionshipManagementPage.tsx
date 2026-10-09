@@ -151,7 +151,7 @@ function dateFromFixture(f: ChampionshipFixture): string {
   return iso ? utcIsoToViennaDateInput(iso) : '';
 }
 
-export const ChampionshipManagementPage: React.FC = () => {
+export const ChampionshipManagementPage: React.FC<{ manager?: boolean }> = ({ manager = false }) => {
   const { effectiveRole, backendRole, selectedTeamSeasonId } = useSession();
   const allowed = canAccess(effectiveRole, backendRole);
 
@@ -788,12 +788,13 @@ export const ChampionshipManagementPage: React.FC = () => {
 
   return (
     <PageShell
+      variant={manager ? 'subtle' : 'default'}
       background="more"
       className="min-h-[60vh] w-full max-w-full min-w-0 overflow-x-hidden px-3 py-6 pb-[max(7rem,calc(5.75rem+env(safe-area-inset-bottom,0px)))] sm:px-4 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-lg space-y-4 overflow-x-hidden"
     >
       <Link
-        to="/app/mehr/seasons"
+        to={manager ? '/manager/saisons/verwaltung' : '/app/mehr/seasons'}
         className={cn(dsPanelRowClass(), '!min-h-[40px] !py-2 text-sm font-semibold text-white/85')}
       >
         <span className="flex min-w-0 items-center gap-2">

@@ -363,7 +363,7 @@ export const MoreHubPage: React.FC = () => {
                 <HubRowLink to="/app/mehr/seasons" className={subRowClass} isDemo={isDemo}>
                   <span className="flex items-center gap-2">
                     <CalendarRange className="h-4 w-4 text-red-400/90" aria-hidden />
-                    Saisonverwaltung
+                    Saison &amp; Meisterschaft verwalten
                   </span>
                   <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                 </HubRowLink>

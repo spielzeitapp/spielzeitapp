@@ -49,6 +49,9 @@ export function ManagerMobileMorePage(): React.ReactElement {
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
+          <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />
+        ) : null}
+        {isTrainerMode || workMode === 'club_admin' || supportSession ? (
           canOpenImport && importSeason ? (
             <MoreLink
               to={`/manager/saisons/${encodeURIComponent(importSeason.id)}/oefb-import`}

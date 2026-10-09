@@ -39,6 +39,7 @@ import { TrainerRemindersPage } from '../pages/TrainerRemindersPage';
 import { TrainerPreviewPage } from '../pages/TrainerPreviewPage';
 import { PlayerMatchdayPosterPreviewPage } from '../pages/dev/PlayerMatchdayPosterPreviewPage';
 import { SeasonManagementPage } from '../pages/SeasonManagementPage';
+import { SeasonManagerEntry } from '../manager/SeasonManagerEntry';
 import { ChampionshipManagementPage } from '../pages/ChampionshipManagementPage';
 import { TeamSchedulePage } from '../pages/TeamSchedulePage';
 import { ParentAccessPage } from '../pages/ParentAccessPage';
@@ -308,8 +309,8 @@ function InternalRoutes(): React.ReactElement {
           <Route path="trainer/vorlagen" element={<TrainerTemplatesPage />} />
           <Route path="trainer/erinnerungen" element={<TrainerRemindersPage />} />
           <Route path="trainer/preview" element={<TrainerPreviewPage />} />
-          <Route path="seasons" element={<SeasonManagementPage />} />
-          <Route path="championship" element={<ChampionshipManagementPage />} />
+          <Route path="seasons" element={<SeasonManagerEntry />} />
+          <Route path="championship" element={<SeasonManagerEntry championship />} />
           <Route path="parent-access" element={<ParentAccessPage />} />
           <Route path="parent-access/player/:playerId" element={<ParentAccessPlayerPage />} />
           {/* Legacy: /app/mehr/notifications -> /app/nachrichten */}
@@ -365,6 +366,8 @@ function InternalRoutes(): React.ReactElement {
         <Route path="platzbelegung" element={<ManagerPlatzbelegungPage />} />
         <Route path="video" element={<ManagerMatchVideosPage />} />
         <Route path="saisons" element={<ManagerSeasonsPage />} />
+        <Route path="saisons/verwaltung" element={<SeasonManagementPage manager />} />
+        <Route path="saisons/meisterschaft" element={<ChampionshipManagementPage manager />} />
         <Route path="saisons/:seasonId/kader" element={<ManagerSeasonRosterPage />} />
         <Route path="saisons/:seasonId/oefb-import" element={<ManagerOefbImportPage />} />
         <Route path="vereine" element={<ManagerClubsPage />} />

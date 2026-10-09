@@ -6,6 +6,8 @@
   }
 
   .manager-oefb-import {
+    max-width: 42rem;
+    margin-inline: auto;
     color-scheme: dark;
     color: rgba(255, 255, 255, 0.9);
     --oefb-mobile-accent: rgb(var(--club-accent-rgb, 220 38 38));
@@ -34,12 +36,14 @@
   .manager-oefb-import .border-emerald-200 { border-color: rgba(52, 211, 153, 0.3); }
   .manager-oefb-import :is(.text-emerald-700, .text-emerald-800, .text-emerald-900) { color: #a7f3d0; }
 
-  .manager-oefb-import :is(input:not([type='checkbox']), select) {
-    background-color: #09090c;
-    color: rgba(255, 255, 255, 0.92);
+  .manager-shell .manager-oefb-import :is(input:not([type='checkbox']), select) {
+    background-color: #09090c !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    color-scheme: dark;
+    caret-color: #f4f4f5;
     border-color: rgba(255, 255, 255, 0.14);
   }
-  .manager-oefb-import input::placeholder { color: rgba(255, 255, 255, 0.4); }
+  .manager-shell .manager-oefb-import input::placeholder { color: rgba(255, 255, 255, 0.4) !important; }
   .manager-oefb-import input:focus { border-color: var(--oefb-mobile-accent); }
   .manager-oefb-import input[type='checkbox'] { accent-color: var(--oefb-mobile-accent); }
 }
