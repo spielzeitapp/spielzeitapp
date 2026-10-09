@@ -309,13 +309,13 @@ export function buildDemoFeedPosts(): {
           formation: demoFixtures.formation,
           lineup_players: demoFixtures.lineup
             .filter((s) => s.role === 'start')
-            .map((s) => {
+            .map((s, index) => {
               const p = demoFixtures.players.find((x) => x.id === s.playerId)!;
               return {
                 player_id: p.id,
                 name: `${p.firstName} ${p.lastName}`,
                 playerName: `${p.firstName} ${p.lastName}`,
-                slot: s.positionLabel,
+                slot: ['GK', 'LB', 'CM', 'RB', 'LW', 'RW', 'ST'][index],
                 positionLabel: s.positionLabel,
                 jersey_number: p.jersey,
               };
@@ -452,7 +452,7 @@ export function buildDemoFeedPosts(): {
         caption: 'Turnierausblick: Das nächste U12-Turnier steht im Kalender. Treffpunkt, Spielplan und Rückmeldungen findet ihr direkt beim Termin.',
         created_at: demoOffsetIso(-2, 16, 0),
         event_id: 'ev-tournament',
-        media_url: '/feed/demo-u12-training.webp',
+        media_url: '/feed/demo-squad-huddle.webp',
       }),
     },
     {
@@ -469,7 +469,9 @@ export function buildDemoFeedPosts(): {
     },
   ];
 
-  const sorted = all.sort(
+  // Demo feed focuses on matchday moments; training remains available in Termine/Trainingscenter.
+  const trainingPostIds = new Set(['df-training-preview', 'df-schedule-change', 'df-moment']);
+  const sorted = all.filter(item => !trainingPostIds.has(item.post.id)).sort(
     (a, b) => new Date(b.post.created_at).getTime() - new Date(a.post.created_at).getTime(),
   );
   /** Neuere Posts im aktiven Feed; ältere in der Chronik (wie produktive Trennung). */

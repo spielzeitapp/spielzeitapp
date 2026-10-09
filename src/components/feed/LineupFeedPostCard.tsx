@@ -40,7 +40,7 @@ import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
-import { SquadPosterArtwork } from './SquadPosterArtwork';
+import { LineupPosterArtwork } from './LineupPosterArtwork';
 
 type Props = {
   post: LineupFeedPostRow;
@@ -196,16 +196,13 @@ export const LineupFeedPostCard: React.FC<Props> = ({
           <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Aufstellungsbild" />
         ) : (
         <>
-          <SquadPosterArtwork
-            title="AUFSTELLUNG"
+          <LineupPosterArtwork
             left={vsTeams?.left ?? { name: teamLabel, logo: getClubLogo(teamLabel) }}
             right={vsTeams?.right ?? { name: p.opponent_name || "Gegner", logo: getClubLogo(p.opponent_name || "Gegner") }}
             ageGroup={pickFeedAgeGroup(teamLabel, p.our_team_name ?? "", p.opponent_name ?? "") || ""}
             formation={p.formation}
-            startsAt={liveEvent?.starts_at || p.starts_at}
-            location={liveEvent?.location}
-            players={displayPlayers.map((pl, index) => ({ player_id: pl.player_id || String(index), name: lineupFeedDisplayPlayerName(pl) || "nicht benannt", jersey_number: pl.jersey_number ?? null, position: lineupFeedDisplayPositionAbbrev(pl) }))}
-            bench={benchPlayers.map((pl, index) => ({ player_id: pl.player_id || String(index), name: lineupFeedDisplayPlayerName(pl) || "nicht benannt", jersey_number: pl.jersey_number ?? null }))}
+            players={displayPlayers}
+            bench={benchPlayers}
           />
           <div className="mt-3"><FeedGameCtaLink to={gameHref}>{matchFeedCtaLabel(eventStatus)}</FeedGameCtaLink></div>
         </>

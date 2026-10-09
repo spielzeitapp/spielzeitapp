@@ -61,3 +61,33 @@ const squad = renderToStaticMarkup(React.createElement(SquadPosterArtwork, {
 for (const p of demoFixtures.players) assert.ok(squad.includes(`${p.firstName} ${p.lastName}`));
 assert.ok(squad.includes('KADER') && squad.includes('demo-squad-huddle.webp'));
 console.log('demo-clean-feed-test: OK (all four active posts, winning result with periods, twelve full squad names)');
+
+const allDemoPosts = [...active, ...buildDemoFeedPosts().historic];
+for (const id of ['df-training-preview', 'df-schedule-change', 'df-moment']) assert.ok(!allDemoPosts.some(p => p.post.id === id));
+assert.ok(allDemoPosts.some(p => p.post.id === 'df-tournament-info'));
+const formations = load('../src/lib/matchFormations.ts');
+const { LeibchenJersey } = load('../src/components/match/LeibchenJersey.tsx');
+const { LineupPosterArtwork, buildPosterLineup } = load('../src/components/feed/LineupPosterArtwork.tsx', {
+  '../../lib/lineupFeedTypes': { lineupFeedDisplayPlayerName: p => p.playerName || p.name },
+  '../../lib/matchFormations': formations,
+  '../match/LeibchenJersey': { LeibchenJersey },
+});
+const demoLineup = active.find(p => p.kind === 'lineup').post.payload;
+for (const formation of Object.keys(formations.U11_FORMATIONS)) {
+  const placed = buildPosterLineup(formation, demoLineup.lineup_players);
+  assert.equal(placed.length, demoLineup.lineup_players.length);
+  assert.equal(new Set(placed.map(s => s.slot)).size, placed.length);
+  assert.equal(new Set(placed.map(s => s.player.player_id)).size, placed.length);
+  assert.equal(placed.find(s => s.slot === 'GK').player.slot, 'GK');
+}
+assert.equal(buildPosterLineup('unknown', demoLineup.lineup_players), null);
+const lineupHtml = renderToStaticMarkup(React.createElement(LineupPosterArtwork, {
+  left: {name: 'Demo Heim', logo: '/logos/nsg-goelsental.png'}, right: {name: 'Demo Gast', logo: '/logos/loosdorf.png'},
+  ageGroup: 'U12', formation: demoLineup.formation, players: demoLineup.lineup_players, bench: demoLineup.bench_players,
+}));
+assert.ok(lineupHtml.includes('SYSTEM 1-3-3') && lineupHtml.includes('ERSATZBANK'));
+assert.equal((lineupHtml.match(/data-slot=/g) || []).length, 7);
+for (const p of [...demoLineup.lineup_players, ...demoLineup.bench_players]) assert.ok(lineupHtml.includes(p.playerName));
+const lineupSource = fs.readFileSync(new URL('../src/components/feed/LineupFeedPostCard.tsx', import.meta.url), 'utf8');
+assert.ok(lineupSource.indexOf('post.media_url?.trim()') < lineupSource.indexOf('<LineupPosterArtwork'));
+console.log('lineup-pitch-demo-test: OK (all formations, unique slots, goalkeeper, full names, bench, custom media, no training feed posts)');
