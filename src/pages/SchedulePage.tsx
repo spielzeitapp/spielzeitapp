@@ -34,7 +34,7 @@ import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { isMatchReviewPending } from '../lib/matchPreparationAccess';
 import { formatTeamSeasonCompactSwitcherLabel, isSeasonArchived, resolveTeamSeasonSwitcherAction } from '../lib/seasonLifecycle';
 import { assertTeamSeasonWritable } from '../lib/seasonTransition';
-import { getOurTeamDisplayName } from '../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { downloadEventIcs } from '../lib/ics';
@@ -414,8 +414,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
         kindLabel: ev?.kind === 'tournament' ? 'TURNIERSPIEL' : 'SPIEL',
         homeTeamName: isHome ? ourTeamName : opponent,
         awayTeamName: isHome ? opponent : ourTeamName,
-        homeLogoUrl: null,
-        awayLogoUrl: null,
+        homeLogoUrl: isHome ? getClubLogo(ourTeamName, { ourTeam: true }) : getClubLogo(opponent, { logoUrl: ev?.opponent_logo_url }),
+        awayLogoUrl: isHome ? getClubLogo(opponent, { logoUrl: ev?.opponent_logo_url }) : getClubLogo(ourTeamName, { ourTeam: true }),
         scoreHome: Number(runtime.scoreHome ?? 0),
         scoreAway: Number(runtime.scoreAway ?? 0),
         kickoffLabel: null,
