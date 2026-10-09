@@ -13,9 +13,9 @@
 .lineup-poster h4 { margin: 0; padding: 1cqw 0; border-top: .3cqw solid #ef002a; text-align: center; font: 400 3.8cqw/1.2 'Squad Anton', Impact, sans-serif; letter-spacing: .04em; }
 .lineup-poster-pitch { position: relative; height: 50cqw; margin-top: 1cqw; background: #05050566; }
 .lineup-poster-pitch > svg { position: absolute; inset: 0; height: 100%; width: 100%; }
-.lineup-poster-marker { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; flex-direction: column; width: 18cqw; }
+.lineup-poster-marker { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; flex-direction: column; width: 19cqw; }
 .lineup-poster .lineup-poster-shirt { width: 11cqw !important; height: 12cqw !important; }
-.lineup-poster-marker > span { width: 100%; padding: .25cqw .5cqw; border: .2cqw solid #ef002a; border-radius: 1cqw; background: #050505ed; text-align: center; font: 700 2.5cqw/1.15 Arial, sans-serif; overflow-wrap: anywhere; }
+.lineup-poster-marker > span { width: 100%; padding: .25cqw .5cqw; border: .2cqw solid #ef002a; border-radius: 1cqw; background: #050505ed; text-align: center; font: 700 2.4cqw/1.15 Arial, sans-serif; overflow-wrap: anywhere; }
 .lineup-poster-bench { margin-top: 2cqw; padding: 1cqw 2cqw 0; background: #050505b3; }
 .lineup-poster-bench ul, .lineup-poster-fallback { list-style: none; padding: 0; margin: 1.5cqw 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1cqw 2cqw; font: 700 2.8cqw/1.3 Arial, sans-serif; }
 .lineup-poster-bench b { color: #ef002a; margin-right: .8cqw; }
