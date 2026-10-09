@@ -8,7 +8,7 @@
 .lineup-poster .squad-poster-club img { width: 15cqw; height: 15cqw; }
 .lineup-poster .squad-poster-club span { text-align: center; font-size: 2.8cqw; line-height: 1.2; overflow-wrap: anywhere; }
 /* Dedicated right-hand portrait lane: foreground photo, never field lines on the body. */
-.lineup-poster-player { position: absolute; z-index: 2; right: -22cqw; bottom: 0; height: 72.5cqw; width: 58cqw; object-fit: contain; object-position: right bottom; pointer-events: none; }
+.lineup-poster-player { position: absolute; z-index: 2; right: -23cqw; bottom: 0; height: 85cqw; width: 68cqw; object-fit: contain; object-position: right bottom; pointer-events: none; }
 .lineup-poster-tactics { position: relative; z-index: 1; width: 68%; }
 .lineup-poster h4 { margin: 0; padding: 1cqw 0; border-top: .3cqw solid #ef002a; text-align: center; font: 400 3.8cqw/1.2 'Squad Anton', Impact, sans-serif; letter-spacing: .04em; }
 .lineup-poster-pitch { position: relative; height: 50cqw; margin-top: 1cqw; background: #05050566; }
