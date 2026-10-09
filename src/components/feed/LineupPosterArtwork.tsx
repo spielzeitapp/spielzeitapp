@@ -34,8 +34,9 @@ export function LineupPosterArtwork({ left, right, ageGroup, formation, players,
   const lineup = buildPosterLineup(formation, players);
   const [photoFailed, setPhotoFailed] = React.useState(false);
   return <div className="lineup-poster" data-whatsapp-status-poster>
-    {!photoFailed && <img className="lineup-poster-player" src="/feed/demo-matchday-player-01.webp" alt="" aria-hidden onError={() => setPhotoFailed(true)} />}
     <div className="lineup-poster-content">
+      <div className="lineup-poster-main">
+      {!photoFailed && <img className="lineup-poster-player" src="/feed/demo-matchday-player-reference.webp" alt="" aria-hidden onError={() => setPhotoFailed(true)} />}
       <header>
         <h3>AUFSTELLUNG</h3>
         {ageGroup && <div className="squad-poster-age">{ageGroup}</div>}
@@ -55,13 +56,14 @@ export function LineupPosterArtwork({ left, right, ageGroup, formation, players,
               <ellipse cx="50" cy="50" rx="11" ry="9" /><circle cx="50" cy="50" r=".6" />
             </g>
           </svg>
-          {lineup.map(({ slot, label, x, y, player }) => <div key={slot} className="lineup-poster-marker" data-slot={slot} style={{ left:`${Math.max(19, Math.min(81, x))}%`, top:`${y}%` }}>
+          {lineup.map(({ slot, label, x, y, player }) => <div key={slot} className="lineup-poster-marker" data-slot={slot} style={{ left:`${Math.max(19, Math.min(81, x))}%`, top:`${slot === 'GK' ? 86 : y >= 60 ? 55 : Math.max(16, y)}%` }}>
             <LeibchenJersey lastName={lineupFeedDisplayPlayerName(player!) || ''} number={player!.jersey_number} position={slot === 'GK' ? 'TW' : label} variant={slot === 'GK' ? 'goalkeeper' : 'field'} showBackPrint={false} pitchStyleBack className="lineup-poster-shirt" />
             <span>{lineupFeedDisplayPlayerName(player!) || 'nicht benannt'}</span>
           </div>)}
         </div> : <ul className="lineup-poster-fallback">{players.map(p => <li key={p.player_id}>{p.jersey_number ?? '–'} · {lineupFeedDisplayPlayerName(p)}</li>)}</ul>}
-        {bench.length > 0 && <section className="lineup-poster-bench"><h4>ERSATZBANK</h4><ul>{bench.map(p => <li key={p.player_id}><b>{p.jersey_number ?? '–'}</b> {lineupFeedDisplayPlayerName(p)}</li>)}</ul></section>}
       </div>
+      </div>
+      {bench.length > 0 && <section className="lineup-poster-bench"><h4>ERSATZBANK</h4><ul>{bench.map(p => <li key={p.player_id}><b>{p.jersey_number ?? '–'}</b> <span>{lineupFeedDisplayPlayerName(p)}</span></li>)}</ul></section>}
       <footer>#GEMEINSAM<span>EINTEAM</span></footer>
     </div>
   </div>;
