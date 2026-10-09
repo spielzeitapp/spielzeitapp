@@ -10,6 +10,7 @@ import { useSession } from '../auth/useSession';
 import { getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
 import { ManagerMobileNav } from './components/ManagerMobileNav';
 import './managerShell.css';
+import './managerSeasonWorkspace.css';
 
 /**
  * Shell für alle /manager-Seiten: volle Fensterbreite, dunkle Navigation, helle Arbeitsfläche.
@@ -21,6 +22,7 @@ export function ManagerLayout(): React.ReactElement {
   const { viewTeamSeason, selectedTeamSeason } = useSession();
   const context = viewTeamSeason ?? selectedTeamSeason;
   const viewingArchive = context ? isSeasonArchived(context.status) : false;
+  const seasonWorkspace = /^\/manager\/saisons\/(verwaltung|meisterschaft)$/.test(location.pathname);
   const mobileAppRoute =
     location.pathname === '/manager' ||
     location.pathname === '/manager/dashboard' ||
@@ -51,7 +53,8 @@ export function ManagerLayout(): React.ReactElement {
             ) : null}
             <main className={[
               'min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-20 md:pb-0',
-              mobileAppRoute ? 'bg-[#050506] md:bg-[#F4F5F7]' : 'bg-[#F4F5F7]',
+              seasonWorkspace ? 'manager-season-workspace' : '',
+              seasonWorkspace ? 'bg-[#050506]' : mobileAppRoute ? 'bg-[#050506] md:bg-[#F4F5F7]' : 'bg-[#F4F5F7]',
             ].join(' ')}>
               <div className={[
                 'manager-shell__content',

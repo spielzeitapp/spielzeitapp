@@ -27,7 +27,7 @@ export function ManagerRouteGuard({ children }: Props): React.ReactElement {
     setViewTeamSeasonId(null);
   }, [loading, trainerEntry, entryPending, setWorkMode, selectTrainerTeamSeasonId, setViewTeamSeasonId]);
   // Do not redirect or mount the editor with the old platform/season context.
-  if (entryPending) return <p role="status" className="p-4 text-sm text-slate-600">Trainingsplan wird geöffnet…</p>;
+  if (entryPending) return <p role="status" className="p-4 text-sm text-slate-600">Manager-Bereich wird geöffnet…</p>;
 
   const platformRoute = location.pathname.startsWith('/manager/plattform') || location.pathname.startsWith('/manager/vereine');
   if (workMode === 'platform_admin' && !supportSession && !platformRoute && location.pathname !== '/manager/mehr') {

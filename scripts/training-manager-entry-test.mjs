@@ -22,6 +22,11 @@ for (const role of ['parent', 'fan', 'player', 'admin']) {
 assert.equal(resolveTrainingTrainerEntry(url.pathname, url.search, [{ team_season_id: 'another-team', role: 'trainer' }]), null);
 assert.equal(resolveTrainingTrainerEntry('/manager/plattform', url.search, [{ team_season_id: teamSeasonId, role: 'trainer' }]), null);
 assert.equal(resolveTrainingTrainerEntry(url.pathname, '', [{ team_season_id: teamSeasonId, role: 'trainer' }]), null);
+for (const path of ['/manager/saisons/verwaltung', '/manager/saisons/meisterschaft']) {
+  assert.equal(resolveTrainingTrainerEntry(path, url.search, [{ team_season_id: teamSeasonId, role: 'trainer' }]), teamSeasonId);
+  assert.equal(resolveTrainingTrainerEntry(path, url.search, [{ team_season_id: teamSeasonId, role: 'parent' }]), null);
+  assert.equal(resolveTrainingTrainerEntry(path, url.search, [{ team_season_id: 'other', role: 'trainer' }]), null);
+}
 const newUrl = new URL(trainingPlanManagerHref({ ...input, sessionId: null }), url.origin);
 assert.equal(newUrl.pathname, '/manager/training/einheiten/neu');
 assert.equal(newUrl.searchParams.get('event'), eventId);

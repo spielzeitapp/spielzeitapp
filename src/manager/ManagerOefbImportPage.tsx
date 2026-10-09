@@ -21,9 +21,8 @@ import {
   type OefbImportedFixture,
 } from '../lib/championshipFixtures';
 import { formatVisibleMatchEncounter } from '../lib/oefbTeamNameNormalize';
+import './managerOefbImport.css';
 import { getTeamSeasonWritableState } from '../lib/seasonTransition';
-import { supabase } from '../lib/supabaseClient';
-
 import { supabase } from '../lib/supabaseClient';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import type { ManagerWorkMode } from './managerWorkMode';
@@ -279,11 +278,11 @@ export function ManagerOefbImportPage(): React.ReactElement {
   const teamLabel = meta?.teamName ?? meta?.displayName ?? 'Eigene Mannschaft';
 
   return (
-    <div className="space-y-5">
+    <div className="manager-oefb-import space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/manager/saisons" className="text-[13px] font-semibold text-red-700 hover:underline">
-            ← Saisonen
+          <Link to="/manager/saisons/verwaltung" className="text-[13px] font-semibold text-red-700 hover:underline">
+            ← Saison &amp; Meisterschaft
           </Link>
           <h1 className="mt-2 text-[22px] font-semibold tracking-tight text-slate-900">
             ÖFB-Spielplan importieren
@@ -296,6 +295,12 @@ export function ManagerOefbImportPage(): React.ReactElement {
       </div>
 
       {loadingMeta ? <p className="text-[13px] text-slate-400">Saison wird geladen…</p> : null}
+      <details className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 text-[13px] text-slate-600 xl:max-w-3xl">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold text-slate-900">Hinweise: Herbst, Frühjahr oder Einstieg während der Saison</summary>
+        <p>Herbst und Frühjahr gehören zur selben Jahressaison. Den Frühjahrs-Spielplan deshalb erneut in die laufende Saison importieren; die Saison erst nach dem Frühjahr abschließen.</p>
+        <p>Auch bei einem Einstieg während der Saison kannst du den Spielplan hier laden. Prüfe vor dem Bestätigen die Zielsaison und die erkannten Spiele. Bereits importierte ÖFB-Spiele werden anhand ihrer ÖFB-ID erkannt.</p>
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">Dieser Import übernimmt Spieltermine. Vergangene Endstände, Torschützen und Spielstatistiken werden derzeit nicht automatisch übernommen.</p>
+      </details>
       {metaError ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">
           {metaError}

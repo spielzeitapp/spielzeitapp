@@ -112,7 +112,8 @@ const ARCHIVE_ONLY_CONFIRM =
 const FINALIZE_CONFIRM =
   'Saisonwechsel jetzt abschließen?\n\nDie aktuelle Saison wird abgeschlossen. Die vorbereitete Saison wird aktiv — du arbeitest danach in der neuen Saison weiter.\n\nHistorie der alten Saison bleibt lesbar.';
 
-export const SeasonManagementPage: React.FC = () => {
+export const SeasonManagementPage: React.FC<{ manager?: boolean }> = ({ manager = false }) => {
+  const championshipPath = manager ? '/manager/saisons/meisterschaft' : '/app/mehr/championship';
   const { effectiveRole, backendRole, selectedTeamSeasonId, reloadSessionTeamSeasons } = useSession();
   const allowed = canAccessSeasonManagement(effectiveRole, backendRole);
 
@@ -369,12 +370,13 @@ export const SeasonManagementPage: React.FC = () => {
 
   return (
     <PageShell
+      variant={manager ? 'subtle' : 'default'}
       background="more"
-      className="min-h-[60vh] w-full px-3 py-6 sm:px-4 md:px-0"
-      contentClassName="mx-auto w-full min-w-0 max-w-lg space-y-4"
+      className="min-h-[60vh] w-full px-3 py-6 sm:px-4"
+      contentClassName="mx-auto w-full min-w-0 max-w-2xl space-y-4"
     >
       <Link
-        to="/app/mehr"
+        to={manager ? '/manager/mehr' : '/app/mehr'}
         className={cn(dsPanelRowClass(), '!min-h-[40px] !py-2 text-sm font-semibold text-white/85')}
       >
         <span className="flex items-center gap-2">
@@ -383,8 +385,8 @@ export const SeasonManagementPage: React.FC = () => {
         </span>
       </Link>
 
-      <SectionTitle subtitle="Bereite die nächste Saison vor oder schließe die aktuelle ab.">
-        Saisonverwaltung
+      <SectionTitle subtitle="Spielplan, Saisonphase und Saisonwechsel – alles an einem Ort.">
+        Saison &amp; Meisterschaft
       </SectionTitle>
 
       {loading ? <p className="text-sm text-white/55">Lade Saisons…</p> : null}
@@ -409,7 +411,7 @@ export const SeasonManagementPage: React.FC = () => {
                     ÖFB-Spielplan importieren und Termine mit Gegnern vereinbaren.
                   </p>
                 </div>
-                <Link to="/app/mehr/championship" className="block">
+                <Link to={championshipPath} className="block">
                   <PremiumButton type="button" variant="primary" fullWidth className="gap-2">
                     <CalendarRange className="h-4 w-4 shrink-0" aria-hidden />
                     Meisterschaft verwalten
@@ -417,6 +419,18 @@ export const SeasonManagementPage: React.FC = () => {
                   </PremiumButton>
                 </Link>
               </PremiumCard>
+              {manager ? (
+                <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3">
+                  <h2 className="text-[15px] font-bold text-white">ÖFB-Spielplan</h2>
+                  <p className="text-sm text-white/55">Herbst, Frühjahr oder Einstieg während der Saison: neue Spiele mit Vorschau hinzufügen.</p>
+                  <Link to={`/manager/saisons/${encodeURIComponent(snapshot.active.id)}/oefb-import`} className="block">
+                    <PremiumButton type="button" variant="subtle" fullWidth className="gap-2">
+                      <Upload className="h-4 w-4" aria-hidden /> Spielplan importieren
+                      <ArrowRightCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden />
+                    </PremiumButton>
+                  </Link>
+                </PremiumCard>
+              ) : null}
               <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-3">
                 <div>
                   <h2 className="text-[15px] font-bold tracking-tight text-white">Saisonphase</h2>
@@ -502,7 +516,7 @@ export const SeasonManagementPage: React.FC = () => {
                     Meisterschaftsspielplan und Saisonplan als PDF exportieren.
                   </p>
                 </div>
-                <Link to="/app/mehr/championship" className="block">
+                <Link to={championshipPath} className="block">
                   <PremiumButton
                     type="button"
                     variant="subtle"
@@ -514,7 +528,7 @@ export const SeasonManagementPage: React.FC = () => {
                     <ArrowRightCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden />
                   </PremiumButton>
                 </Link>
-                <Link to="/app/mehr/championship" className="block">
+                <Link to={championshipPath} className="block">
                   <PremiumButton
                     type="button"
                     variant="subtle"
@@ -549,23 +563,15 @@ export const SeasonManagementPage: React.FC = () => {
               {showOefbHint ? (
                 <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3">
                   <p className="text-sm text-white/70">Nächster Schritt</p>
-                  <PremiumButton
-                    type="button"
-                    variant="subtle"
-                    fullWidth
-                    disabled
-                    className="cursor-not-allowed gap-2 opacity-60"
-                    title="Demnächst verfügbar"
-                  >
-                    <Upload className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                    ÖFB-Spielplan importieren
-                    <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-amber-200/90">
-                      Demnächst
-                    </span>
-                  </PremiumButton>
+                  <Link to={`/manager/saisons/${encodeURIComponent(snapshot.draft?.id ?? snapshot.active?.id ?? selectedTeamSeasonId ?? '')}/oefb-import`} className="block">
+                    <PremiumButton type="button" variant="subtle" fullWidth className="gap-2">
+                      <Upload className="h-4 w-4 shrink-0" aria-hidden />
+                      ÖFB-Spielplan importieren
+                      <ArrowRightCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden />
+                    </PremiumButton>
+                  </Link>
                   <p className="text-[11px] text-white/40">
-                    Der Import kommt in einem späteren Schritt. Bis dahin kannst du Termine manuell
-                    anlegen.
+                    Den Spielplan mit Vorschau in die vorbereitete Saison übernehmen.
                   </p>
                 </div>
               ) : null}

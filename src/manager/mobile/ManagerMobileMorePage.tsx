@@ -1,11 +1,12 @@
 import React from 'react';
-import { ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield } from 'lucide-react';
+import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
 import { useSession } from '../../auth/useSession';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { ManagerMobilePageTitle } from './ManagerMobileUi';
+import { isSeasonArchived } from '../../lib/seasonLifecycle';
 
 function MoreLink({ to, icon: Icon, title, detail }: { to: string; icon: React.ComponentType<{ className?: string }>; title: string; detail: string }): React.ReactElement {
   return <Link to={to} className="flex min-h-[72px] items-center gap-3 border-b border-white/[0.07] px-4 last:border-0"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-950/35 text-red-300"><Icon className="h-5 w-5" /></span><span className="min-w-0 flex-1"><span className="block text-[14px] font-bold">{title}</span><span className="mt-0.5 block truncate text-[11px] text-white/45">{detail}</span></span><ChevronRight className="h-5 w-5 text-white/25" /></Link>;
@@ -15,9 +16,13 @@ export function ManagerMobileMorePage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { signOut } = useSession();
+  const { signOut, viewTeamSeason, selectedTeamSeason } = useSession();
   const { profile } = useProfile(user?.id);
-  const { isTrainerMode, workMode, availableModes, setWorkMode, supportSession } = useManagerWorkMode();
+  const { isTrainerMode, workMode, availableModes, setWorkMode, supportSession, contextTeamSeasons } = useManagerWorkMode();
+  const currentSeason = viewTeamSeason ?? selectedTeamSeason;
+  const importSeason = currentSeason && contextTeamSeasons.some((season) => season.id === currentSeason.id)
+    ? currentSeason : null;
+  const canOpenImport = Boolean(importSeason && !isSeasonArchived(importSeason.status));
   const name = getDisplayFirstName(profile) || profileDisplayName(profile) || user?.email?.split('@')[0] || 'Funktionär';
 
   return (
@@ -44,6 +49,26 @@ export function ManagerMobileMorePage(): React.ReactElement {
       ) : null}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
+        {isTrainerMode || workMode === 'club_admin' || supportSession ? (
+          <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />
+        ) : null}
+        {isTrainerMode || workMode === 'club_admin' || supportSession ? (
+          canOpenImport && importSeason ? (
+            <MoreLink
+              to={`/manager/saisons/${encodeURIComponent(importSeason.id)}/oefb-import`}
+              icon={CalendarDays}
+              title="Spielplan / ÖFB-Import"
+              detail="Spiele in die ausgewählte Saison importieren"
+            />
+          ) : (
+            <div className="border-b border-white/[0.07] px-4 py-4">
+              <p className="text-[14px] font-bold text-white/70">Spielplan / ÖFB-Import</p>
+              <p className="mt-1 text-[12px] text-white/45">{importSeason
+                ? 'Diese Saison ist archiviert. Bitte oben die aktive Saison wählen.'
+                : 'Bitte zuerst oben eine Mannschaft und Saison wählen.'}</p>
+            </div>
+          )
+        ) : null}
         {isTrainerMode ? <>
           <MoreLink to="/manager/training/vorlagen" icon={LayoutTemplate} title="Vorlagen" detail="Trainingspläne wiederverwenden" />
           <MoreLink to="/manager/training/chronik" icon={History} title="Trainingschronik" detail="Vergangene Einheiten" />

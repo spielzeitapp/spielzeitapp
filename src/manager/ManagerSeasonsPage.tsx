@@ -240,6 +240,10 @@ export function ManagerSeasonsPage(): React.ReactElement {
         ) : null}
       </header>
 
+      <Link to="/manager/saisons/verwaltung" className="inline-flex min-h-11 items-center rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700">
+        Saison &amp; Meisterschaft öffnen →
+      </Link>
+
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">
           {error}
