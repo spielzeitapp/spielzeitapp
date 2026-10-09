@@ -91,3 +91,10 @@ for (const p of [...demoLineup.lineup_players, ...demoLineup.bench_players]) ass
 const lineupSource = fs.readFileSync(new URL('../src/components/feed/LineupFeedPostCard.tsx', import.meta.url), 'utf8');
 assert.ok(lineupSource.indexOf('post.media_url?.trim()') < lineupSource.indexOf('<LineupPosterArtwork'));
 console.log('lineup-pitch-demo-test: OK (all formations, unique slots, goalkeeper, full names, bench, custom media, no training feed posts)');
+
+for (const file of ['lineupPoster.css', 'squadPoster.css', 'resultPoster.css']) {
+  const css = fs.readFileSync(new URL(`../src/components/feed/${file}`, import.meta.url), 'utf8');
+  assert.ok(!css.includes('autopost-texture-v2.webp'), `${file}: no gritty background`);
+  assert.ok(css.includes('repeating-radial-gradient(ellipse at 120% 58%'), `${file}: clean curved-line background`);
+}
+console.log('clean-poster-background-test: OK (all four poster kinds, no gritty texture)');

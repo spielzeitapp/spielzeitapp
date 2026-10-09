@@ -40,7 +40,7 @@
 .result-poster--player .result-poster-details p { font-size: 3cqw; }
 .result-poster--player footer { font-size: 4cqw; }
 
-.result-poster { background: #080708 url('/feed/autopost-texture-v2.webp') center / cover no-repeat; }
+.result-poster { background: radial-gradient(ellipse at 115% 62%, #99001655, transparent 58%), repeating-radial-gradient(ellipse at 120% 58%, transparent 0 7px, #bc002414 8px, transparent 9px 12px), #050506; }
 .result-poster-content { min-height: 130cqw; display: flex; flex-direction: column; }
 .result-poster footer { margin-top: auto; font-size: 8cqw; padding-top: 4cqw; }
 .result-poster--player .result-poster-content { padding: 5cqw; }

@@ -35,9 +35,9 @@
 .squad-poster-tag { padding: 3cqw 3cqw 4cqw; text-align: center; background: #07070899; border-bottom: .3cqw solid #ef002a; font: 400 italic 6.8cqw/1.1 'Squad Anton', Impact, sans-serif; letter-spacing: -.025em; }
 .squad-poster-tag span { color: #ef002a; }
 
-/* Shared textured artwork: no data or club crests are baked into this asset. */
+/* Quiet black/red artwork with fine curved lines; text and crests remain dynamic. */
 .squad-poster, .matchday-poster .sz-club-feed-poster-background {
-  background: #080708 url('/feed/autopost-texture-v2.webp') center / cover no-repeat;
+  background: radial-gradient(ellipse at 115% 62%, #99001655, transparent 58%), repeating-radial-gradient(ellipse at 120% 58%, transparent 0 7px, #bc002414 8px, transparent 9px 12px), #050506;
 }
 .matchday-poster .sz-club-feed-poster-lines { display: none; }
 .squad-poster-content { padding: 4cqw 5cqw 1cqw; }
