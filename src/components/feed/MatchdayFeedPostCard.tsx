@@ -150,10 +150,12 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   }, [eventStatus, matchId, basePath]);
 
   const posterStatus: MatchdayPosterVisualStatus = useMemo(() => {
+    // Keep this historical Demo post as the original pre-match announcement.
+    if (basePath === '/demo' && p.event_id === 'ev-game-past') return 'today';
     if (eventStatus === 'live') return 'live';
     if (eventStatus === 'finished') return 'finished';
     return 'today';
-  }, [eventStatus]);
+  }, [eventStatus, basePath, p.event_id]);
 
   const homeLogoUrl = useMemo(() => {
     if (p.is_home) return getClubLogo(p.our_team_name);
