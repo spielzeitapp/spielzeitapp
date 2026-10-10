@@ -18,7 +18,6 @@ import { isPlatformAdminBackendRole } from '../manager/managerWorkMode';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
 import { useDemoMode } from '../demo/DemoContext';
-import { DemoAiDisclosure } from '../demo/components/DemoAiDisclosure';
 import { resetDemoTourState } from '../demo/demoTourState';
 
 const RESET_CONFIRM =
@@ -37,13 +36,7 @@ function DemoHelpCard(): React.ReactElement {
 
   return (
     <PremiumCard variant="subtle" showAmbientGlow={false}>
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-400/90">Demo-Hilfe</p>
-      <h2 className="mt-1 text-[16px] font-semibold text-white">Demo selbst entdecken</h2>
-      <p className="mt-1 text-[12px] leading-snug text-white/55">
-        Kein Login erforderlich. Schau dir Home, Termine, Team und Live in deinem Tempo an.
-        Änderungen bleiben nur in dieser Browser-Session.
-      </p>
-      <div className="mt-3 flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <button
           type="button"
           onClick={reset}
@@ -52,9 +45,9 @@ function DemoHelpCard(): React.ReactElement {
           Demo zurücksetzen
         </button>
       </div>
-      <div className="mt-3">
-        <DemoAiDisclosure />
-      </div>
+      <p className="mt-3 text-[12px] leading-snug text-white/55">
+        Fiktive Demo-Daten. Änderungen bleiben nur lokal.
+      </p>
     </PremiumCard>
   );
 }

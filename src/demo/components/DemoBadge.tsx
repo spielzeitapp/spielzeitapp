@@ -46,7 +46,7 @@ export function DemoBadge(): React.ReactElement {
       <button
         type="button"
         className="rounded border border-white/20 bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/70 touch-manipulation hover:bg-white/10 hover:text-white"
-        title="Demo-Hilfe und Zurücksetzen"
+        title="Demo zurücksetzen"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
@@ -60,17 +60,9 @@ export function DemoBadge(): React.ReactElement {
           role="menu"
           className="absolute right-0 top-[calc(100%+6px)] z-[80] w-[min(18rem,calc(100vw-1.5rem))] rounded-xl border border-white/15 bg-neutral-950/98 p-1.5 shadow-xl backdrop-blur-md"
         >
-          <p className="px-2.5 pb-1 pt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">
-            Demo-Hilfe
-          </p>
           <MenuItem label="Demo zurücksetzen" onClick={resetDemo} danger />
           <p className="px-2.5 pb-1.5 pt-1 text-[10px] leading-snug text-white/35">
-            Alle Aktionen bleiben lokal in dieser Demo. Entdecke die Bereiche frei und setze sie bei Bedarf zurück.
-          </p>
-          <p className="px-2.5 pb-1.5 pt-0.5 text-[10px] leading-snug text-white/35">
-            Alle dargestellten Spieler, Trainer, Namen und Porträtfotos sind vollständig fiktive,
-            KI-generierte Demo-Inhalte. Es werden keine realen Kinder, Trainer oder Vereinsmitglieder
-            dargestellt.
+            Fiktive Demo-Daten. Änderungen bleiben nur lokal.
           </p>
         </div>
       ) : null}
