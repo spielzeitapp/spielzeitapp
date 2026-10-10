@@ -185,6 +185,18 @@ export function buildDemoFeedPosts(): {
 
   const all: ClassifiedFeedPost[] = [
     {
+      kind: 'image',
+      post: basePost({
+        id: 'df-team-victory-photo',
+        post_kind: 'manual_image',
+        media_type: 'image',
+        caption: 'Gemeinsam gekämpft, gemeinsam gewonnen! ⚽🔴⚫\nStarke Teamleistung und tolle Stimmung nach dem Spiel.\n#GEMEINSAMEINTEAM',
+        created_at: demoMinutesFromNowIso(-30),
+        media_url: '/feed/demo-team-victory-photo.webp',
+        payload: {},
+      }),
+    },
+    {
       kind: 'championship_schedule',
       post: basePost({
         id: 'df-season-start',
