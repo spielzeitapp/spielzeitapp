@@ -371,7 +371,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           awayScore={scores?.away ?? null}
           matchType={p.match_type}
           announcementTiming={announcementTiming}
-          playerImageUrl={designState.design.template === 'player' ? designState.design.imageUrl : null}
+          playerImageUrl={basePath === '/demo' ? '/avatars/demo/demo-player-upper-02.webp' : designState.design.template === 'player' ? designState.design.imageUrl : null}
         />
         )}
 

@@ -12,6 +12,12 @@ export const DEMO_MATCH_ID_PAST_OLDER = '00000000-demo-4000-8000-matchlangenrohr
 
 const TEAM = demoFixtures.teamName;
 const SEASON = demoFixtures.seasonLabel;
+const DEMO_OPPONENT_LOGOS: Record<string, string> = {
+  'ev-game-next': '/logos/loosdorf.png',
+  'ev-game-away': '/logos/skn-stpoelten.png',
+  'ev-game-past': '/logos/usg-alpenvorland.png',
+  'ev-game-past-older': '/logos/ask-wilhelmsburg.png',
+};
 
 /** Relative Ankerzeiten — konsistent zu Feed und Terminen. */
 export const DEMO_EVENT_TIMES = {
@@ -29,7 +35,7 @@ export const DEMO_EVENT_TIMES = {
   }),
   'ev-tournament': () => ({ starts: demoOffsetIso(14, 9, 0), ends: demoOffsetIso(14, 16, 0) }),
   'ev-teamabend': () => ({ starts: demoOffsetIso(20, 18, 0), ends: demoOffsetIso(20, 20, 0) }),
-  'ev-game-away': () => ({ starts: demoOffsetIso(28, 10, 0) }),
+  'ev-game-away': () => ({ starts: demoOffsetIso(28, 10, 0), meeting: demoOffsetIso(28, 9, 15) }),
 } as const;
 
 function basePost(
@@ -76,6 +82,7 @@ function toEventRow(
     type: kind === 'match' ? 'game' : kind === 'training' ? 'training' : kind === 'tournament' ? 'event' : 'event',
     match_type: partial.match_type ?? (kind === 'match' ? 'championship' : null),
     opponent: partial.opponent ?? null,
+    opponent_logo_url: partial.opponent_logo_url ?? null,
     is_home: partial.is_home ?? true,
     location: partial.location ?? 'Sportplatz Rohrbach',
     address: partial.address ?? null,
@@ -136,6 +143,7 @@ export function buildDemoEvents(): EventRow[] {
       meeting_at: meetingAt,
       location: ev.location,
       opponent: ev.opponent ?? null,
+      opponent_logo_url: DEMO_OPPONENT_LOGOS[ev.id] ?? null,
       is_home: ev.isHome ?? null,
       notes: titleNote,
       status,
@@ -167,14 +175,27 @@ export function buildDemoFeedPosts(): {
   historic: ClassifiedFeedPost[];
 } {
   const our = TEAM;
-  const loosdorf = 'SV Loosdorf U12';
-  const alpenvorland = 'USG Alpenvorland U12';
+  const loosdorf = 'ASK Loosdorf';
+  const alpenvorland = 'USG Alpenvorland';
   const tInfo = DEMO_EVENT_TIMES['ev-info']();
   const tTrainPast = DEMO_EVENT_TIMES['ev-train-past']();
   const tGamePast = DEMO_EVENT_TIMES['ev-game-past']();
   const tGameNext = DEMO_EVENT_TIMES['ev-game-next']();
+  const tGameAway = DEMO_EVENT_TIMES['ev-game-away']();
 
   const all: ClassifiedFeedPost[] = [
+    {
+      kind: 'image',
+      post: basePost({
+        id: 'df-team-victory-photo',
+        post_kind: 'manual_image',
+        media_type: 'image',
+        caption: 'Gemeinsam gekämpft, gemeinsam gewonnen! ⚽🔴⚫\nStarke Teamleistung und tolle Stimmung nach dem Spiel.\n#GEMEINSAMEINTEAM',
+        created_at: demoMinutesFromNowIso(-30),
+        media_url: '/feed/demo-team-victory-photo.webp',
+        payload: {},
+      }),
+    },
     {
       kind: 'championship_schedule',
       post: basePost({
@@ -238,25 +259,25 @@ export function buildDemoFeedPosts(): {
         id: 'df-matchday-past',
         team_season_id: DEMO_TEAM_SEASON_ID,
         team_id: DEMO_TEAM_ID,
-        event_id: 'ev-game-past',
+        event_id: 'ev-game-away',
         post_kind: 'matchday_auto',
-        caption: `Spieltag · ${our} gegen ${alpenvorland}. Treffpunkt 09:15 Uhr am Sportplatz.`,
-        created_at: demoOffsetIso(-5, 18, 0),
+        caption: `Spieltag · ${our} auswärts gegen SKN St. Pölten. Alle Infos findet ihr beim Termin.`,
+          created_at: demoMinutesFromNowIso(-190),
         media_type: 'matchday',
         payload: {
-          display_home_name: our,
-          display_away_name: alpenvorland,
+          display_home_name: 'SKN St. Pölten',
+          display_away_name: our,
           our_team_name: our,
-          is_home: true,
-          opponent_logo_url: '/logos/usg-alpenvorland.png',
+          is_home: false,
+          opponent_logo_url: '/logos/skn-stpoelten.png',
           match_type: 'championship',
-          kickoff_iso: tGamePast.starts,
-          meeting_iso: tGamePast.meeting ?? null,
-          location: 'Sportplatz Rohrbach',
-          match_id: DEMO_MATCH_ID_PAST,
-          event_id: 'ev-game-past',
-          matchday_player_image_url: '/feed/demo-matchday-player-reference.webp',
-          deep_link: '/demo/events/ev-game-past',
+          kickoff_iso: tGameAway.starts,
+          meeting_iso: tGameAway.meeting,
+          location: 'Sportplatz Stattersdorf',
+          match_id: '00000000-demo-4000-8000-matchsknaway',
+          event_id: 'ev-game-away',
+          matchday_player_image_url: '/avatars/demo/demo-player-upper-02.webp',
+          deep_link: '/demo/events/ev-game-away',
         },
       },
     },
@@ -297,7 +318,7 @@ export function buildDemoFeedPosts(): {
           post_kind: 'lineup_auto',
           media_type: 'lineup',
           caption: 'Startaufstellung veröffentlicht · Formation 1-3-3',
-          created_at: demoOffsetIso(-5, 20, 0),
+          created_at: demoMinutesFromNowIso(-170),
           event_id: 'ev-game-past',
           payload: {},
         }),
@@ -308,13 +329,13 @@ export function buildDemoFeedPosts(): {
           formation: demoFixtures.formation,
           lineup_players: demoFixtures.lineup
             .filter((s) => s.role === 'start')
-            .map((s) => {
+            .map((s, index) => {
               const p = demoFixtures.players.find((x) => x.id === s.playerId)!;
               return {
                 player_id: p.id,
-                name: `${p.firstName} ${p.lastInitial}`,
-                playerName: `${p.firstName} ${p.lastInitial}`,
-                slot: s.positionLabel,
+                name: `${p.firstName} ${p.lastName}`,
+                playerName: `${p.firstName} ${p.lastName}`,
+                slot: ['GK', 'LB', 'CM', 'RB', 'LW', 'RW', 'ST'][index],
                 positionLabel: s.positionLabel,
                 jersey_number: p.jersey,
               };
@@ -325,8 +346,8 @@ export function buildDemoFeedPosts(): {
               const p = demoFixtures.players.find((x) => x.id === s.playerId)!;
               return {
                 player_id: p.id,
-                name: `${p.firstName} ${p.lastInitial}`,
-                playerName: `${p.firstName} ${p.lastInitial}`,
+                name: `${p.firstName} ${p.lastName}`,
+                playerName: `${p.firstName} ${p.lastName}`,
                 slot: s.positionLabel,
                 positionLabel: s.positionLabel,
                 jersey_number: p.jersey,
@@ -376,7 +397,7 @@ export function buildDemoFeedPosts(): {
           post_kind: 'result_auto',
           media_type: 'result',
           caption: `Endergebnis ${our} – ${alpenvorland} 3:1`,
-          created_at: demoOffsetIso(-4, 11, 45),
+          created_at: demoMinutesFromNowIso(-130),
           event_id: 'ev-game-past',
           payload: {},
         }),
@@ -395,11 +416,11 @@ export function buildDemoFeedPosts(): {
           meeting_at: null,
           location: 'Sportplatz Rohrbach',
           scorers: [
-            { player_name: 'Elias F.', minute_label: "18'" },
-            { player_name: 'Noah K.', minute_label: "41'" },
-            { player_name: 'Jonas W.', minute_label: "43'" },
+            { player_name: 'Elias Fischer', minute_label: "18'" },
+            { player_name: 'Noah Kramer', minute_label: "41'" },
+            { player_name: 'Jonas Wagner', minute_label: "43'" },
           ],
-          period_scores: null,
+          period_scores: { p1: { h: 1, a: 0 }, p2: { h: 1, a: 1 }, p3: { h: 1, a: 0 } },
           result_state: 'win',
           our_team_name: our,
           is_home: true,
@@ -414,7 +435,7 @@ export function buildDemoFeedPosts(): {
           id: 'df-result-older',
           post_kind: 'result_auto',
           media_type: 'result',
-          caption: `Rückblick · ${our} – SV Langenrohr U12 1:1. Gemeinsam weiterarbeiten.`,
+          caption: `Rückblick · ${our} – ASK Wilhelmsburg 1:1. Gemeinsam weiterarbeiten.`,
           created_at: demoOffsetIso(-12, 12, 15),
           event_id: 'ev-game-past-older',
           payload: {},
@@ -424,9 +445,9 @@ export function buildDemoFeedPosts(): {
           event_id: 'ev-game-past-older',
           team_season_id: DEMO_TEAM_SEASON_ID,
           home_team_name: our,
-          away_team_name: 'SV Langenrohr U12',
+          away_team_name: 'ASK Wilhelmsburg',
           home_logo_url: '/logos/nsg-goelsental.png',
-          away_logo_url: '/logos/sv-langenrohr-v2.png',
+          away_logo_url: '/logos/ask-wilhelmsburg.png',
           home_score: 1,
           away_score: 1,
           match_type: 'championship',
@@ -451,7 +472,7 @@ export function buildDemoFeedPosts(): {
         caption: 'Turnierausblick: Das nächste U12-Turnier steht im Kalender. Treffpunkt, Spielplan und Rückmeldungen findet ihr direkt beim Termin.',
         created_at: demoOffsetIso(-2, 16, 0),
         event_id: 'ev-tournament',
-        media_url: '/feed/demo-u12-training.webp',
+        media_url: '/feed/demo-squad-huddle.webp',
       }),
     },
     {
@@ -468,7 +489,13 @@ export function buildDemoFeedPosts(): {
     },
   ];
 
-  const sorted = all.sort(
+  // Demo feed focuses on matchday artwork; training and calendar information stay in their modules.
+  const excludedDemoPostIds = new Set([
+    'df-training-preview', 'df-schedule-change', 'df-moment',
+    'df-tournament-info', 'df-parent-info', 'df-season-start',
+    'df-result-older',
+  ]);
+  const sorted = all.filter(item => !excludedDemoPostIds.has(item.post.id)).sort(
     (a, b) => new Date(b.post.created_at).getTime() - new Date(a.post.created_at).getTime(),
   );
   /** Neuere Posts im aktiven Feed; ältere in der Chronik (wie produktive Trennung). */

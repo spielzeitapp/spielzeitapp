@@ -73,8 +73,8 @@ export function buildDemoWinnerPreviewData(
   matchId: string = DEMO_MATCH_ID_LIVE,
 ): DemoWinnerPreviewData {
   const score = getDemoLiveRuntimeScore(matchId) ?? { scoreHome: 2, scoreAway: 1 };
-  const homeName = 'NSG Rohrbach U12 – Demo';
-  const awayName = 'SV Loosdorf U12';
+  const homeName = 'SPG Rohrbach';
+  const awayName = 'ASK Loosdorf';
   const noah = getDemoFixturePlayer('p08');
   const elias = getDemoFixturePlayer('p10');
   const scorers = [

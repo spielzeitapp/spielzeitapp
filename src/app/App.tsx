@@ -221,7 +221,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="app.html" element={<Navigate to="/app" replace />} />
       {/* Öffentliche Trainer-Demo – gemeinsamer Einstieg + produktives Layout, kein Login */}
       <Route path="demo" element={<DemoLayout />}>
-        <Route index element={<Navigate to="home" replace />} />
+        <Route index element={<Navigate to="intro/splash" replace />} />
         <Route path="intro/splash" element={<SplashScreen />} />
         <Route path="intro/welcome" element={<WelcomeScreen />} />
         <Route element={<InternalLayout />}>
@@ -388,7 +388,7 @@ function PublicRoutes(): React.ReactElement {
     <Routes>
       <Route path="app.html" element={<Navigate to="/" replace />} />
       <Route path="demo" element={<DemoLayout />}>
-        <Route index element={<Navigate to="home" replace />} />
+        <Route index element={<Navigate to="intro/splash" replace />} />
         <Route path="intro/splash" element={<SplashScreen />} />
         <Route path="intro/welcome" element={<WelcomeScreen />} />
         <Route element={<InternalLayout />}>

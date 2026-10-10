@@ -1,3 +1,5 @@
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { SquadPosterArtwork } from './SquadPosterArtwork';
 import React, { useCallback, useMemo, useState } from 'react';
 import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { SquadFeedPostRow } from '../../lib/matchdayFeedTypes';
@@ -47,6 +49,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
   onFeedPostUpdated,
 }) => {
   const p = post.payload;
+  const basePath = useInternalBasePath();
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
   const teams = useMemo(() => {
@@ -87,6 +90,8 @@ export const SquadFeedPostCard: React.FC<Props> = ({
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         {post.media_url?.trim() ? (
           <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Kaderbild" />
+        ) : basePath === '/demo' ? (
+          <> <SquadPosterArtwork left={teams.left} right={teams.right} ageGroup={(teamLabel + ' ' + p.our_team_name).match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase() || ''} players={p.players} startsAt={p.starts_at} location={liveEvent?.location} teamPhotoUrl="/feed/demo-squad-huddle.webp" /> <div className="mt-3"><FeedGameCtaLink to={p.deep_link}>Zum Spiel</FeedGameCtaLink></div></>
         ) : (
         <div data-whatsapp-status-poster className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />

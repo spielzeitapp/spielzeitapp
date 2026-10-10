@@ -106,7 +106,7 @@ export function getDemoPlayerSeasonStats(playerId: string): PlayerSeasonStats {
 export function getDemoPlayerLastMatches(playerId: string): PlayerLastMatchRow[] {
   const p = getDemoFixturePlayer(playerId);
   if (!p || p.appearances <= 0) return [];
-  const opponents = ['USG Alpenvorland U12', 'SV Loosdorf U12', 'SKN Nachwuchs U12'] as const;
+  const opponents = ['USG Alpenvorland', 'ASK Loosdorf', 'SKN Nachwuchs'] as const;
   // Nur das vorhandene fiktive Rückblickspiel verlinken – keine Pseudo-Match-IDs.
   const count = 1;
   return Array.from({ length: count }, (_, i) => {

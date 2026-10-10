@@ -80,7 +80,7 @@ export function DemoMatchPage(): React.ReactElement {
       <header className="space-y-1">
         <p className={dsMatchdaySectionLabelClass()}>Spiel & Aufstellung</p>
         <h2 className={dsPageTitleClass()}>
-          NSG Rohrbach U12 – {game.opponent}
+          SPG Rohrbach – {game.opponent}
         </h2>
         <p className={dsSublineClass()}>
           {formatDemoDate(game.startsAt)} · {formatDemoTime(game.startsAt)} ·{' '}

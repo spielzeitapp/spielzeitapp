@@ -1,3 +1,4 @@
+import { LineupPosterArtwork } from './LineupPosterArtwork';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { LineupFeedPostRow } from '../../lib/matchdayFeedTypes';
@@ -193,6 +194,8 @@ export const LineupFeedPostCard: React.FC<Props> = ({
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         {post.media_url?.trim() ? (
           <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Aufstellungsbild" />
+        ) : basePath === '/demo' ? (
+          <> <LineupPosterArtwork left={vsTeams?.left ?? { name: teamLabel, logo: getClubLogo(teamLabel) }} right={vsTeams?.right ?? { name: p.opponent_name || 'Gegner', logo: getClubLogo(p.opponent_name || 'Gegner') }} ageGroup={pickFeedAgeGroup(teamLabel, p.our_team_name ?? '', p.opponent_name ?? '') || ''} formation={p.formation} players={displayPlayers} bench={benchPlayers} /> <div className="mt-3"><FeedGameCtaLink to={gameHref}>Zum Spiel</FeedGameCtaLink></div></>
         ) : (
         <div data-whatsapp-status-poster className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />

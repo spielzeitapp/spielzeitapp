@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const app = source('src/app/App.tsx');
+const splash = source('src/app/intro/SplashScreen.tsx');
+const welcome = source('src/app/intro/WelcomeScreen.tsx');
+assert.equal((app.match(/<Route path="demo" element=\{<DemoLayout \/>\}>\s*<Route index element=\{<Navigate to="intro\/splash" replace \/>\} \/>/g) ?? []).length, 2, 'Both demo entry points must start with Splash');
+assert.ok(splash.includes("isDemo ? '/demo/intro/welcome'"), 'Demo Splash continues to Welcome');
+assert.ok(welcome.includes("const ROUTE_DEMO_HOME = '/demo/home'"));
+assert.ok(welcome.includes('navigate(ROUTE_DEMO_HOME, { replace: true })'), 'Demo Welcome opens demo Home');
+assert.ok(welcome.includes("navigate('/demo/live', { replace: true })"), 'Demo ticker stays in Demo');
+assert.ok(!welcome.includes('DEMO_TOUR_WELCOME_'), 'No demo marketing copy over the team picture');
+assert.ok(welcome.includes('PremiumIntroButton onClick={goHome}'), 'Shared live-style App button');
+assert.ok(welcome.includes('liveActive={hasLiveMatch} onClick={goLive}'), 'Shared live-style ticker button');
+assert.equal((app.match(/path="home" element=\{<AppHomePage \/>\}/g) ?? []).length, 3, 'Direct Home routes remain available');
+console.log('Demo intro entry: OK');

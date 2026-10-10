@@ -34,7 +34,7 @@ import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { isMatchReviewPending } from '../lib/matchPreparationAccess';
 import { formatTeamSeasonCompactSwitcherLabel, isSeasonArchived, resolveTeamSeasonSwitcherAction } from '../lib/seasonLifecycle';
 import { assertTeamSeasonWritable } from '../lib/seasonTransition';
-import { getOurTeamDisplayName } from '../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { downloadEventIcs } from '../lib/ics';
@@ -411,8 +411,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
         kindLabel: ev?.kind === 'tournament' ? 'TURNIERSPIEL' : 'SPIEL',
         homeTeamName: isHome ? ourTeamName : opponent,
         awayTeamName: isHome ? opponent : ourTeamName,
-        homeLogoUrl: null,
-        awayLogoUrl: null,
+        homeLogoUrl: isHome ? getClubLogo(ourTeamName, { ourTeam: true }) : getClubLogo(opponent, { logoUrl: ev?.opponent_logo_url }),
+        awayLogoUrl: isHome ? getClubLogo(opponent, { logoUrl: ev?.opponent_logo_url }) : getClubLogo(ourTeamName, { ourTeam: true }),
         scoreHome: Number(runtime.scoreHome ?? 0),
         scoreAway: Number(runtime.scoreAway ?? 0),
         kickoffLabel: null,
@@ -1076,6 +1076,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     };
     const base = events.filter((e) => {
       if (!isEventPubliclyVisible(e)) return false;
+      // The demo's separate live card already represents this match.
+      if (isDemo && !managerSimpleMode && activeScheduleLive && e.match_id === activeScheduleLive.matchId) return false;
       // Fans sehen nur Spiele (kind === 'match')
       if (normalizedUiRole === 'fan') return e.kind === 'match';
       // Termine: Typ-Filter (Alle/Spiele/Trainings/Events)
@@ -1141,7 +1143,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     });
 
     return sorted.filter((event) => bucketForView(event) === timeFilter);
-  }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById, canManage]);
+  }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById, canManage, isDemo, managerSimpleMode, activeScheduleLive]);
 
   const showHeroCard = useMemo(() => {
     if (displayEvents.length === 0) return false;

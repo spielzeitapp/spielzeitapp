@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PosterClubName } from '../feed/PosterClubName';
 import { Link } from 'react-router-dom';
 import { Radio } from 'lucide-react';
 import type { ScheduleActiveLiveMatch } from '../../lib/scheduleActiveLiveMatch';
@@ -61,8 +62,8 @@ export function ScheduleActiveLiveCard({ live, liveHref }: Props) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
             <TeamLogo name={live.homeTeamName} logoUrl={live.homeLogoUrl} />
-            <p className="max-w-[6.5rem] truncate text-center text-[12px] font-semibold text-white/90">
-              {live.homeTeamName}
+            <p className="w-full min-w-0 break-words text-center text-[12px] font-semibold leading-snug text-white/90">
+              <PosterClubName name={live.homeTeamName} />
             </p>
           </div>
 
@@ -72,8 +73,8 @@ export function ScheduleActiveLiveCard({ live, liveHref }: Props) {
 
           <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
             <TeamLogo name={live.awayTeamName} logoUrl={live.awayLogoUrl} />
-            <p className="max-w-[6.5rem] truncate text-center text-[12px] font-semibold text-white/90">
-              {live.awayTeamName}
+            <p className="w-full min-w-0 break-words text-center text-[12px] font-semibold leading-snug text-white/90">
+              <PosterClubName name={live.awayTeamName} />
             </p>
           </div>
         </div>

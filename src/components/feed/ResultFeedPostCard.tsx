@@ -1,3 +1,4 @@
+import { ResultPosterArtwork } from './ResultPosterArtwork';
 import { ReleasedMatchVideosLink } from '../match/ReleasedMatchVideosLink';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ResultFeedPostRow } from '../../lib/matchdayFeedTypes';
@@ -236,7 +237,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     }, 350);
     return () => { active = false; window.clearTimeout(timer); };
   }, [hasCustomImage, p.home_score, p.away_score, p.home_team_name, p.away_team_name,
-    p.home_logo_url, p.away_logo_url, p.scorers, p.starts_at, p.location]);
+    p.home_logo_url, p.away_logo_url, p.scorers, p.starts_at, p.location,
+    p.period_scores, p.is_home, p.match_type, teamLabel]);
 
   const presentation = resultPresentation(p.result_state);
 
@@ -387,6 +389,9 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       />
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         <div data-whatsapp-status-poster className={FEED_STADIUM_HERO_SHELL_CLASS}>
+          {basePath === '/demo' ? (
+          <ResultPosterArtwork ref={resultPosterRef} payload={p} ageGroup={pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name)} competition={getMatchTypeLabel(p.match_type ?? undefined) ?? 'Spiel'} periods={periodBracketLine} date={matchDateLabel} venue={venueLabel} scorers={groupedScorers.map(s => ({playerName: s.playerName, detail: s.minutes.length ? s.minutes.join(' · ') : `${s.goalCount} Tore`}))} />
+          ) : (
           <div ref={resultPosterRef} className="relative min-w-0 space-y-3 overflow-hidden rounded-xl bg-[#140808] px-1.5 py-2 sm:px-2.5 sm:py-3">
             <FeedStadiumHeroBackdrop />
             <div className="relative min-w-0 space-y-3">
@@ -451,6 +456,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             </div>
           </div>
 
+          )}
             {captionTrim ? (
               <div className="sz-club-feed-inset mt-0.5 rounded-2xl border px-2 py-2 sm:px-2.5 sm:py-2.5">
                 <p className="sz-club-feed-accent-text text-[10px] font-black uppercase tracking-[0.14em] sm:text-[11px]">
