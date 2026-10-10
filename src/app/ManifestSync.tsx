@@ -26,6 +26,7 @@ function ensureManifestLink(href: string): void {
 
 /**
  * Setzt das PWA-Manifest nach Domain und Route:
+ * - /demo → eigenes Demo-Manifest (öffentlicher Start ohne Login)
  * - /manager → eigenes Manager-Manifest (start_url /manager)
  * - spielzeitapp.at / app.spielzeitapp.at sonst → /manifest-trainer.json (start_url /app)
  * - localhost / andere Hosts auf /app → /manifest-trainer.json
@@ -35,8 +36,11 @@ export function ManifestSync(): null {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    const demo = pathname === '/demo' || pathname.startsWith('/demo/');
     const manager = pathname.startsWith('/manager');
-    const href = manager
+    const href = demo
+      ? '/manifest-demo.json'
+      : manager
       ? '/manifest-manager.json'
       : isInternalDomain()
       ? '/manifest-trainer.json'
@@ -47,9 +51,10 @@ export function ManifestSync(): null {
     const icon = document.querySelector('head link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
     if (icon) icon.href = manager ? '/manager-apple-touch-icon.png' : '/apple-touch-icon.png';
     const title = document.querySelector('head meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
-    if (title) title.content = manager ? 'Spielzeit Manager' : 'SpielzeitApp';
-    if (manager) document.title = 'Spielzeit Manager';
-    else if (document.title === 'Spielzeit Manager') document.title = 'SpielzeitApp';
+    if (title) title.content = demo ? 'Spielzeit Demo' : manager ? 'Spielzeit Manager' : 'SpielzeitApp';
+    if (demo) document.title = 'SpielzeitApp Demo';
+    else if (manager) document.title = 'Spielzeit Manager';
+    else if (document.title === 'Spielzeit Manager' || document.title === 'SpielzeitApp Demo') document.title = 'SpielzeitApp';
   }, [pathname]);
 
   return null;

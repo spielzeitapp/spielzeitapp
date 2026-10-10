@@ -29,6 +29,17 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="SpielzeitApp" />
+    <script>
+      // Select Demo installation metadata before React and the install sheet load.
+      (function() {
+        var path = window.location.pathname;
+        if (path === '/demo' || path.indexOf('/demo/') === 0) {
+          document.querySelector('link[rel="manifest"]').setAttribute('href', '/manifest-demo.json');
+          document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Spielzeit Demo');
+          document.title = 'SpielzeitApp Demo';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

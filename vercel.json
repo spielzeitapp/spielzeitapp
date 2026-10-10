@@ -79,6 +79,15 @@
       ]
     },
     {
+      "source": "/manifest-demo.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/manifest-manager.json",
       "headers": [
         {
