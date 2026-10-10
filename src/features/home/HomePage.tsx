@@ -613,7 +613,7 @@ export const HomePage: React.FC = () => {
                   {filteredActivePosts.map((item) => (
                     <div
                       key={item.post.id}
-                      className="home-feed-edge relative left-1/2 min-w-0 w-[100dvw] -translate-x-1/2 sm:-mx-4 sm:left-auto sm:w-auto sm:translate-x-0 md:mx-0"
+                      className={isDemoMode ? 'home-feed-edge min-w-0 -mx-3 sm:-mx-4 md:mx-0' : 'home-feed-edge relative left-1/2 min-w-0 w-[100dvw] -translate-x-1/2 sm:-mx-4 sm:left-auto sm:w-auto sm:translate-x-0 md:mx-0'}
                     >
                       <HomeFeedPostRenderer
                         item={item}
@@ -700,7 +700,7 @@ export const HomePage: React.FC = () => {
                             <div className="h-px flex-1 bg-white/10" />
                           </div>
                         ) : null}
-                        <div className="home-feed-edge relative left-1/2 min-w-0 w-[100dvw] -translate-x-1/2 sm:-mx-4 sm:left-auto sm:w-auto sm:translate-x-0 md:mx-0">
+                        <div className={isDemoMode ? 'home-feed-edge min-w-0 -mx-3 sm:-mx-4 md:mx-0' : 'home-feed-edge relative left-1/2 min-w-0 w-[100dvw] -translate-x-1/2 sm:-mx-4 sm:left-auto sm:w-auto sm:translate-x-0 md:mx-0'}>
                           <HomeFeedPostRenderer
                             item={item}
                             eventById={eventById}

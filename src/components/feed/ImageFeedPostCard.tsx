@@ -19,6 +19,7 @@ import {
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { FeedPostEditButton } from './FeedPostEditButton';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
+import { SpielzeitAppBrand } from '../branding/SpielzeitAppBrand';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -141,8 +142,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
           ) : null}
           {post.id.startsWith('df-') && imageLoaded ? (
             <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-xl border border-white/20 bg-black/80 px-2.5 py-1.5 text-white shadow-xl backdrop-blur-sm" aria-label="SpielzeitApp Demo">
-              <img src="/logos/nsg-goelsental.png" alt="" className="h-9 w-9 object-contain" />
-              <span className="text-sm font-extrabold tracking-tight">Spielzeit<span className="text-red-400">App</span></span>
+              <SpielzeitAppBrand iconClassName="h-9 w-9" wordmarkClassName="w-28" />
             </div>
           ) : null}
           {!imageLoaded ? (
