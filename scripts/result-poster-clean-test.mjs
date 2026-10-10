@@ -14,7 +14,14 @@ function load(relative, stubs = {}) {
   vm.runInNewContext(output, { module, exports: module.exports, require: id => id.endsWith('.css') ? {} : stubs[id] ?? require(id) });
   return module.exports;
 }
+const naming = load('../src/lib/feedClubNaming.ts');
+const { PosterClubName } = load('../src/components/feed/PosterClubName.tsx', { '../../lib/feedClubNaming': naming });
+for (const [name, first, second] of [['ASK Loosdorf', 'ASK', 'Loosdorf'], ['SPG Rohrbach', 'SPG', 'Rohrbach'], ['SKN St. Pölten', 'SKN', 'St. Pölten']]) {
+  const html = renderToStaticMarkup(React.createElement(PosterClubName, { name }));
+  assert.ok(html.includes(`whitespace-nowrap\">${first}</span>`) && html.includes(`whitespace-nowrap\">${second}</span>`));
+}
 const { ResultPosterArtwork } = load('../src/components/feed/ResultPosterArtwork.tsx', {
+  './PosterClubName': { PosterClubName },
   '../../lib/teamLogos': { getClubLogo: () => '/logos/placeholder-shield-a.png' },
 });
 const { formatPeriodScoresBracketFromRaw } = load('../src/lib/matchEventScores.ts');
@@ -55,7 +62,7 @@ const result = active.find(p => p.kind === 'result').post.payload;
 assert.equal(result.result_state, 'win');
 assert.equal(formatPeriodScoresBracketFromRaw(result.period_scores), '(1:0 | 1:1 | 1:0)');
 const { SquadPosterArtwork } = load('../src/components/feed/SquadPosterArtwork.tsx', {
-  './FeedClubName': { FeedClubName: ({ fullName }) => React.createElement('span', null, fullName) },
+  './PosterClubName': { PosterClubName },
 });
 const squad = renderToStaticMarkup(React.createElement(SquadPosterArtwork, {
   left:{ name:'Demo Heim', logo:'/logos/nsg-goelsental.png' }, right:{ name:'Demo Gast', logo:'/logos/loosdorf.png' },
@@ -73,6 +80,7 @@ for (const id of ['df-training-preview', 'df-schedule-change', 'df-moment', 'df-
 const formations = load('../src/lib/matchFormations.ts');
 const { LeibchenJersey } = load('../src/components/match/LeibchenJersey.tsx');
 const { LineupPosterArtwork, buildPosterLineup } = load('../src/components/feed/LineupPosterArtwork.tsx', {
+  './PosterClubName': { PosterClubName },
   '../../lib/lineupFeedTypes': { lineupFeedDisplayPlayerName: p => p.playerName || p.name },
   '../../lib/matchFormations': formations,
   '../match/LeibchenJersey': { LeibchenJersey },

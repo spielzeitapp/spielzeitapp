@@ -5,6 +5,7 @@ import { U11_FORMATIONS, isU11FormationId } from '../../lib/matchFormations';
 import { LeibchenJersey } from '../match/LeibchenJersey';
 import './squadPoster.css';
 import './lineupPoster.css';
+import { PosterClubName } from './PosterClubName';
 
 const SLOT_ALIAS: Record<string, string> = { TW:'GK', LV:'LB', RV:'RB', IV:'CM', ZM:'CM', LA:'LW', LF:'LW', LM:'LW', RA:'RW', RF:'RW', RM:'RW' };
 
@@ -43,7 +44,7 @@ export function LineupPosterArtwork({ left, right, ageGroup, formation, players,
         <div className="squad-poster-match">
           {[left, right].map((team, i) => <React.Fragment key={i}>
             {i === 1 && <span className="squad-poster-vs">VS</span>}
-            <div className="squad-poster-club"><img src={team.logo} alt={`${team.name} Logo`} /><span>{team.name}</span></div>
+            <div className="squad-poster-club"><img src={team.logo} alt={`${team.name} Logo`} /><PosterClubName name={team.name} /></div>
           </React.Fragment>)}
         </div>
       </header>

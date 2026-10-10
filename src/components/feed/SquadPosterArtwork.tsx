@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { SquadFeedPlayer } from '../../lib/squadFeedTypes';
-import { FeedClubName } from './FeedClubName';
+import { PosterClubName } from './PosterClubName';
 import './squadPoster.css';
 
 type Props = {
@@ -38,7 +38,7 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
               {index === 1 && <span className="squad-poster-vs">VS</span>}
               <div className="squad-poster-club">
                 <img src={team.logo} alt={`${team.name} Logo`} />
-                <FeedClubName fullName={team.name} variant="posterArtwork" />
+                <PosterClubName name={team.name} />
               </div>
             </React.Fragment>
           ))}

@@ -92,7 +92,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
     {
       id: DEMO_MATCH_ID_LIVE,
       team_season_id: DEMO_TEAM_SEASON_ID,
-      opponent: 'SV Loosdorf',
+      opponent: 'ASK Loosdorf',
       status: 'scheduled',
       live_started_at: null,
       is_home: true,

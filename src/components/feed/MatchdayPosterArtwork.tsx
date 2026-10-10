@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock, MapPin, Trophy } from 'lucide-react';
 import './squadPoster.css';
+import { PosterClubName } from './PosterClubName';
 
 const PLACEHOLDER =
   (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '') + '/logos/placeholder-shield-a.png';
@@ -84,7 +85,7 @@ function TeamMark({ name, logoUrl }: { name: string; logoUrl: string }) {
     <div className="flex min-w-0 flex-1 flex-col items-center">
       <PosterLogo src={logoUrl} alt={name} />
       <p className="mt-1 min-h-[2em] w-full break-words text-center text-[clamp(0.5rem,2.5cqw,0.86rem)] font-black uppercase leading-[1.08] tracking-[-0.01em] text-white">
-        {name}
+        <PosterClubName name={name} />
       </p>
     </div>
   );

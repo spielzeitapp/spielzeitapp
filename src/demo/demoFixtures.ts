@@ -1,6 +1,6 @@
 import type { DemoFixtures, DemoLiveState } from './demoTypes';
 
-const TEAM = 'NSG Rohrbach';
+const TEAM = 'SPG Rohrbach';
 const SEASON = '2026/27';
 
 export const DEMO_STORAGE_KEYS = {
@@ -13,13 +13,13 @@ export const DEMO_STORAGE_KEYS = {
 export function createInitialLiveState(): DemoLiveState {
   return {
     homeName: TEAM,
-    awayName: 'SV Loosdorf',
+    awayName: 'ASK Loosdorf',
     minute: 18,
     scoreHome: 2,
     scoreAway: 1,
     status: 'live',
     events: [
-      { id: 'le1', minute: 1, text: 'Anpfiff – NSG Rohrbach vs. SV Loosdorf', type: 'kickoff' },
+      { id: 'le1', minute: 1, text: 'Anpfiff – SPG Rohrbach vs. ASK Loosdorf', type: 'kickoff' },
       { id: 'le2', minute: 4, text: 'TOR Rohrbach – Noah K. (4\')', type: 'goal_home' },
       { id: 'le3', minute: 9, text: 'TOR Loosdorf – Ausgleich (9\')', type: 'goal_away' },
       { id: 'le4', minute: 14, text: 'Wechsel Rohrbach – Tim P. für Jonas W.', type: 'sub' },
@@ -128,7 +128,7 @@ export const demoFixtures: DemoFixtures = {
       startsAt: '2026-08-30T10:30:00+02:00',
       meetingAt: '2026-08-30T09:45:00+02:00',
       location: 'Sportplatz Rohrbach',
-      opponent: 'SV Loosdorf',
+      opponent: 'ASK Loosdorf',
       isHome: true,
       rsvpYes: 12,
       rsvpNo: 0,
@@ -185,7 +185,7 @@ export const demoFixtures: DemoFixtures = {
       id: 'f1',
       kind: 'season_start',
       title: 'Saisonstart 2026/27',
-      body: 'Willkommen in der neuen Saison! NSG Rohrbach ist bereit. Trainingszeiten und Termine sind hinterlegt.',
+      body: 'Willkommen in der neuen Saison! SPG Rohrbach ist bereit. Trainingszeiten und Termine sind hinterlegt.',
       createdAt: '2026-08-10T08:00:00+02:00',
     },
     {
@@ -220,7 +220,7 @@ export const demoFixtures: DemoFixtures = {
       id: 'f6',
       kind: 'result',
       title: 'Endergebnis',
-      body: 'NSG Rohrbach – USG Alpenvorland 3:1. Tore: Elias F., Noah K., Jonas W.',
+      body: 'SPG Rohrbach – USG Alpenvorland 3:1. Tore: Elias F., Noah K., Jonas W.',
       createdAt: '2026-08-23T11:45:00+02:00',
     },
     {
@@ -339,7 +339,7 @@ export const demoFixtures: DemoFixtures = {
     teams: [
       { id: 'tt1', name: TEAM, played: 3, won: 2, draw: 1, lost: 0, gf: 7, ga: 3, points: 7 },
       { id: 'tt2', name: 'SC St. Veit', played: 3, won: 2, draw: 0, lost: 1, gf: 5, ga: 4, points: 6 },
-      { id: 'tt3', name: 'SV Loosdorf', played: 3, won: 1, draw: 1, lost: 1, gf: 4, ga: 4, points: 4 },
+      { id: 'tt3', name: 'ASK Loosdorf', played: 3, won: 1, draw: 1, lost: 1, gf: 4, ga: 4, points: 4 },
       { id: 'tt4', name: 'SKN Nachwuchs', played: 3, won: 0, draw: 0, lost: 3, gf: 2, ga: 7, points: 0 },
     ],
     matches: [
@@ -354,7 +354,7 @@ export const demoFixtures: DemoFixtures = {
       {
         id: 'tm2',
         home: 'SC St. Veit',
-        away: 'SV Loosdorf',
+        away: 'ASK Loosdorf',
         kickoff: '2026-09-06T09:00:00+02:00',
         scoreHome: 2,
         scoreAway: 1,
@@ -362,7 +362,7 @@ export const demoFixtures: DemoFixtures = {
       {
         id: 'tm3',
         home: TEAM,
-        away: 'SV Loosdorf',
+        away: 'ASK Loosdorf',
         kickoff: '2026-09-06T10:15:00+02:00',
         scoreHome: 2,
         scoreAway: 2,
@@ -385,7 +385,7 @@ export const demoFixtures: DemoFixtures = {
       },
       {
         id: 'tm6',
-        home: 'SV Loosdorf',
+        home: 'ASK Loosdorf',
         away: 'SKN Nachwuchs',
         kickoff: '2026-09-06T11:30:00+02:00',
         scoreHome: 1,

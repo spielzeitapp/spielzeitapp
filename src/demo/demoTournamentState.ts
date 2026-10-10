@@ -110,7 +110,7 @@ function buildSeed(): DemoTournamentState {
     {
       id: participantId(3),
       tournament_event_id: eid,
-      team_name: 'SV Loosdorf',
+      team_name: 'ASK Loosdorf',
       group_label: 'A',
       sort_order: 3,
     },
@@ -143,7 +143,7 @@ function buildSeed(): DemoTournamentState {
       id: tournamentSlotId(1),
       tournament_event_id: eid,
       match_id: slotMatchId(1),
-      opponent_name: 'SV Loosdorf',
+      opponent_name: 'ASK Loosdorf',
       kickoff_at: kickoffOnTournamentDay(9, 0),
       planned_minutes: TOURNAMENT_DEFAULT_PLANNED_MINUTES,
       pitch: 'Platz 1',

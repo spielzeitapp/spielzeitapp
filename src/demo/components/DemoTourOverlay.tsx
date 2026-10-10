@@ -306,7 +306,7 @@ export function DemoTourOverlay(): React.ReactElement | null {
               <div className="flex justify-between gap-3 border-b border-white/8 py-1.5">
                 <dt className="text-white/45">Gegner</dt>
                 <dd className="text-right font-medium text-white/90">
-                  {loosdorfEvent?.opponent ?? 'SV Loosdorf'}
+                  {loosdorfEvent?.opponent ?? 'ASK Loosdorf'}
                 </dd>
               </div>
               <div className="flex justify-between gap-3 border-b border-white/8 py-1.5">

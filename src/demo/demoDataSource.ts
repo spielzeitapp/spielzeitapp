@@ -175,7 +175,7 @@ export function buildDemoFeedPosts(): {
   historic: ClassifiedFeedPost[];
 } {
   const our = TEAM;
-  const loosdorf = 'SV Loosdorf';
+  const loosdorf = 'ASK Loosdorf';
   const alpenvorland = 'USG Alpenvorland';
   const tInfo = DEMO_EVENT_TIMES['ev-info']();
   const tTrainPast = DEMO_EVENT_TIMES['ev-train-past']();

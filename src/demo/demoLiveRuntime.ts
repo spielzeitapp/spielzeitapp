@@ -223,7 +223,7 @@ function activeSessionFor(matchId: string | null | undefined): DemoLiveSession |
 }
 
 /**
- * Standard-Seed: Meisterschafts-LIVE gegen SV Loosdorf.
+ * Standard-Seed: Meisterschafts-LIVE gegen ASK Loosdorf.
  * Formation 1-3-3 (Prep), Uhr ~18:30, Stand 2:1, vier Ereignisse.
  * Wechsel: p06 (Jonas W.) raus → p09 (Tim P.) rein @ 14′.
  * Tore: p08 Noah K. @ 4′, p10 Elias F. @ 17′.

@@ -61,7 +61,7 @@ export function DemoTourParentRsvpPage(): React.ReactElement {
 
   const eventLabel =
     mode === 'match'
-      ? 'Meisterschaft vs. SV Loosdorf'
+      ? 'Meisterschaft vs. ASK Loosdorf'
       : journey.localTraining
         ? `Training · ${journey.localTraining.location}`
         : 'Nächstes Training';
