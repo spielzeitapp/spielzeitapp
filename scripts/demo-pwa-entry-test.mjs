@@ -21,6 +21,16 @@ for (const pathname of ['/demo', '/demo/', '/demo/termine', '/demo/intro/welcome
   assert.equal(attrs.title, demo ? 'Spielzeit Demo' : 'SpielzeitApp');
 }
 const sync = read('src/app/ManifestSync.tsx');
+const demoHtml = read('demo.html');
+assert.match(demoHtml, /<link id="app-manifest" rel="manifest" href="\/manifest-demo.json"/);
+assert.ok(!demoHtml.includes('manifest-trainer'), 'No initial trainer manifest for Safari to cache');
+assert.ok(!demoHtml.includes('location.replace'), 'Demo HTML never redirects to app/login');
+assert.ok(read('vite.config.ts').includes('demo: resolve(__dirname, "demo.html")'));
+const hosting = JSON.parse(read('vercel.json'));
+for (const source of ['/demo', '/demo/(.*)']) {
+  assert.equal(hosting.rewrites.find(r => r.source === source)?.destination, '/demo.html');
+  assert.ok(hosting.headers.some(h => h.source === source && h.headers.some(v => v.key === 'Cache-Control' && v.value.includes('no-store'))));
+}
 assert.match(sync, /const href = demo\s*\? '\/manifest-demo.json'/);
 assert.ok(JSON.parse(read('vercel.json')).headers.some(h => h.source === '/manifest-demo.json'));
 const app = read('src/app/App.tsx');
