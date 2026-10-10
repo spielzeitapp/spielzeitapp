@@ -35,7 +35,7 @@ export const DEMO_EVENT_TIMES = {
   }),
   'ev-tournament': () => ({ starts: demoOffsetIso(14, 9, 0), ends: demoOffsetIso(14, 16, 0) }),
   'ev-teamabend': () => ({ starts: demoOffsetIso(20, 18, 0), ends: demoOffsetIso(20, 20, 0) }),
-  'ev-game-away': () => ({ starts: demoOffsetIso(28, 10, 0) }),
+  'ev-game-away': () => ({ starts: demoOffsetIso(28, 10, 0), meeting: demoOffsetIso(28, 9, 15) }),
 } as const;
 
 function basePost(
@@ -272,8 +272,8 @@ export function buildDemoFeedPosts(): {
           opponent_logo_url: '/logos/skn-stpoelten.png',
           match_type: 'championship',
           kickoff_iso: tGameAway.starts,
-          meeting_iso: null,
-          location: 'Sportplatz St. Pölten',
+          meeting_iso: tGameAway.meeting,
+          location: 'Sportplatz Stattersdorf',
           match_id: '00000000-demo-4000-8000-matchsknaway',
           event_id: 'ev-game-away',
           matchday_player_image_url: '/avatars/demo/demo-player-upper-02.webp',

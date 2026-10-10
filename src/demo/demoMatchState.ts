@@ -108,7 +108,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
     {
       id: DEMO_MATCH_ID_AWAY,
       team_season_id: DEMO_TEAM_SEASON_ID,
-      opponent: 'SKN Nachwuchs',
+      opponent: 'SKN St. Pölten',
       status: 'scheduled',
       live_started_at: null,
       is_home: false,
