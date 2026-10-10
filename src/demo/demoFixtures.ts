@@ -1,6 +1,6 @@
 import type { DemoFixtures, DemoLiveState } from './demoTypes';
 
-const TEAM = 'NSG Rohrbach U12 – Demo';
+const TEAM = 'NSG Rohrbach';
 const SEASON = '2026/27';
 
 export const DEMO_STORAGE_KEYS = {
@@ -13,13 +13,13 @@ export const DEMO_STORAGE_KEYS = {
 export function createInitialLiveState(): DemoLiveState {
   return {
     homeName: TEAM,
-    awayName: 'SV Loosdorf U12',
+    awayName: 'SV Loosdorf',
     minute: 18,
     scoreHome: 2,
     scoreAway: 1,
     status: 'live',
     events: [
-      { id: 'le1', minute: 1, text: 'Anpfiff – NSG Rohrbach U12 vs. SV Loosdorf U12', type: 'kickoff' },
+      { id: 'le1', minute: 1, text: 'Anpfiff – NSG Rohrbach vs. SV Loosdorf', type: 'kickoff' },
       { id: 'le2', minute: 4, text: 'TOR Rohrbach – Noah K. (4\')', type: 'goal_home' },
       { id: 'le3', minute: 9, text: 'TOR Loosdorf – Ausgleich (9\')', type: 'goal_away' },
       { id: 'le4', minute: 14, text: 'Wechsel Rohrbach – Tim P. für Jonas W.', type: 'sub' },
@@ -65,7 +65,7 @@ export const demoFixtures: DemoFixtures = {
       title: 'Meisterschaft',
       startsAt: '2026-08-23T10:00:00+02:00',
       location: 'Sportplatz Rohrbach',
-      opponent: 'USG Alpenvorland U12',
+      opponent: 'USG Alpenvorland',
       isHome: true,
       rsvpYes: 12,
       rsvpNo: 0,
@@ -77,7 +77,7 @@ export const demoFixtures: DemoFixtures = {
       title: 'Meisterschaft',
       startsAt: '2026-08-15T10:00:00+02:00',
       location: 'Sportplatz Rohrbach',
-      opponent: 'SV Langenrohr U12',
+      opponent: 'SV Langenrohr',
       isHome: true,
       rsvpYes: 11,
       rsvpNo: 1,
@@ -128,7 +128,7 @@ export const demoFixtures: DemoFixtures = {
       startsAt: '2026-08-30T10:30:00+02:00',
       meetingAt: '2026-08-30T09:45:00+02:00',
       location: 'Sportplatz Rohrbach',
-      opponent: 'SV Loosdorf U12',
+      opponent: 'SV Loosdorf',
       isHome: true,
       rsvpYes: 12,
       rsvpNo: 0,
@@ -173,7 +173,7 @@ export const demoFixtures: DemoFixtures = {
       title: 'Meisterschaft',
       startsAt: '2026-09-20T10:00:00+02:00',
       location: 'Sportplatz Nachwuchs',
-      opponent: 'SKN Nachwuchs U12',
+      opponent: 'SKN Nachwuchs',
       isHome: false,
       rsvpYes: 9,
       rsvpNo: 1,
@@ -185,7 +185,7 @@ export const demoFixtures: DemoFixtures = {
       id: 'f1',
       kind: 'season_start',
       title: 'Saisonstart 2026/27',
-      body: 'Willkommen in der neuen Saison! NSG Rohrbach U12 – Demo ist bereit. Trainingszeiten und Termine sind hinterlegt.',
+      body: 'Willkommen in der neuen Saison! NSG Rohrbach ist bereit. Trainingszeiten und Termine sind hinterlegt.',
       createdAt: '2026-08-10T08:00:00+02:00',
     },
     {
@@ -206,7 +206,7 @@ export const demoFixtures: DemoFixtures = {
       id: 'f4',
       kind: 'squad',
       title: 'Kader für Meisterschaftsspiel',
-      body: 'Kader vs. USG Alpenvorland U12 (Sa, 23.08.) ist freigegeben – 14 Zusagen.',
+      body: 'Kader vs. USG Alpenvorland (Sa, 23.08.) ist freigegeben – 14 Zusagen.',
       createdAt: '2026-08-21T18:00:00+02:00',
     },
     {
@@ -220,7 +220,7 @@ export const demoFixtures: DemoFixtures = {
       id: 'f6',
       kind: 'result',
       title: 'Endergebnis',
-      body: 'NSG Rohrbach U12 – USG Alpenvorland U12 3:1. Tore: Elias F., Noah K., Jonas W.',
+      body: 'NSG Rohrbach – USG Alpenvorland 3:1. Tore: Elias F., Noah K., Jonas W.',
       createdAt: '2026-08-23T11:45:00+02:00',
     },
     {
@@ -338,23 +338,23 @@ export const demoFixtures: DemoFixtures = {
     squadPlayerIds: ['p01', 'p02', 'p03', 'p04', 'p05', 'p06', 'p07', 'p08', 'p09', 'p10', 'p11', 'p12'],
     teams: [
       { id: 'tt1', name: TEAM, played: 3, won: 2, draw: 1, lost: 0, gf: 7, ga: 3, points: 7 },
-      { id: 'tt2', name: 'SC St. Veit U12', played: 3, won: 2, draw: 0, lost: 1, gf: 5, ga: 4, points: 6 },
-      { id: 'tt3', name: 'SV Loosdorf U12', played: 3, won: 1, draw: 1, lost: 1, gf: 4, ga: 4, points: 4 },
-      { id: 'tt4', name: 'SKN Nachwuchs U12', played: 3, won: 0, draw: 0, lost: 3, gf: 2, ga: 7, points: 0 },
+      { id: 'tt2', name: 'SC St. Veit', played: 3, won: 2, draw: 0, lost: 1, gf: 5, ga: 4, points: 6 },
+      { id: 'tt3', name: 'SV Loosdorf', played: 3, won: 1, draw: 1, lost: 1, gf: 4, ga: 4, points: 4 },
+      { id: 'tt4', name: 'SKN Nachwuchs', played: 3, won: 0, draw: 0, lost: 3, gf: 2, ga: 7, points: 0 },
     ],
     matches: [
       {
         id: 'tm1',
         home: TEAM,
-        away: 'SKN Nachwuchs U12',
+        away: 'SKN Nachwuchs',
         kickoff: '2026-09-06T09:00:00+02:00',
         scoreHome: 3,
         scoreAway: 1,
       },
       {
         id: 'tm2',
-        home: 'SC St. Veit U12',
-        away: 'SV Loosdorf U12',
+        home: 'SC St. Veit',
+        away: 'SV Loosdorf',
         kickoff: '2026-09-06T09:00:00+02:00',
         scoreHome: 2,
         scoreAway: 1,
@@ -362,15 +362,15 @@ export const demoFixtures: DemoFixtures = {
       {
         id: 'tm3',
         home: TEAM,
-        away: 'SV Loosdorf U12',
+        away: 'SV Loosdorf',
         kickoff: '2026-09-06T10:15:00+02:00',
         scoreHome: 2,
         scoreAway: 2,
       },
       {
         id: 'tm4',
-        home: 'SC St. Veit U12',
-        away: 'SKN Nachwuchs U12',
+        home: 'SC St. Veit',
+        away: 'SKN Nachwuchs',
         kickoff: '2026-09-06T10:15:00+02:00',
         scoreHome: 3,
         scoreAway: 1,
@@ -378,15 +378,15 @@ export const demoFixtures: DemoFixtures = {
       {
         id: 'tm5',
         home: TEAM,
-        away: 'SC St. Veit U12',
+        away: 'SC St. Veit',
         kickoff: '2026-09-06T11:30:00+02:00',
         scoreHome: 2,
         scoreAway: 0,
       },
       {
         id: 'tm6',
-        home: 'SV Loosdorf U12',
-        away: 'SKN Nachwuchs U12',
+        home: 'SV Loosdorf',
+        away: 'SKN Nachwuchs',
         kickoff: '2026-09-06T11:30:00+02:00',
         scoreHome: 1,
         scoreAway: 0,
@@ -394,7 +394,7 @@ export const demoFixtures: DemoFixtures = {
       {
         id: 'tm7',
         home: TEAM,
-        away: 'SC St. Veit U12',
+        away: 'SC St. Veit',
         kickoff: '2026-09-06T14:00:00+02:00',
         scoreHome: null,
         scoreAway: null,

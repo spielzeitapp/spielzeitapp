@@ -92,7 +92,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
     {
       id: DEMO_MATCH_ID_LIVE,
       team_season_id: DEMO_TEAM_SEASON_ID,
-      opponent: 'SV Loosdorf U12',
+      opponent: 'SV Loosdorf',
       status: 'scheduled',
       live_started_at: null,
       is_home: true,
@@ -108,7 +108,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
     {
       id: DEMO_MATCH_ID_AWAY,
       team_season_id: DEMO_TEAM_SEASON_ID,
-      opponent: 'SKN Nachwuchs U12',
+      opponent: 'SKN Nachwuchs',
       status: 'scheduled',
       live_started_at: null,
       is_home: false,
@@ -124,7 +124,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
     {
       id: DEMO_MATCH_ID_PAST,
       team_season_id: DEMO_TEAM_SEASON_ID,
-      opponent: 'USG Alpenvorland U12',
+      opponent: 'USG Alpenvorland',
       status: 'finished',
       live_started_at: null,
       is_home: true,
@@ -140,7 +140,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
     {
       id: DEMO_MATCH_ID_PAST_OLDER,
       team_season_id: DEMO_TEAM_SEASON_ID,
-      opponent: 'SV Langenrohr U12',
+      opponent: 'SV Langenrohr',
       status: 'finished',
       live_started_at: null,
       is_home: true,

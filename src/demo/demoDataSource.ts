@@ -175,8 +175,8 @@ export function buildDemoFeedPosts(): {
   historic: ClassifiedFeedPost[];
 } {
   const our = TEAM;
-  const loosdorf = 'SV Loosdorf U12';
-  const alpenvorland = 'USG Alpenvorland U12';
+  const loosdorf = 'SV Loosdorf';
+  const alpenvorland = 'USG Alpenvorland';
   const tInfo = DEMO_EVENT_TIMES['ev-info']();
   const tTrainPast = DEMO_EVENT_TIMES['ev-train-past']();
   const tGamePast = DEMO_EVENT_TIMES['ev-game-past']();
@@ -249,11 +249,11 @@ export function buildDemoFeedPosts(): {
         team_id: DEMO_TEAM_ID,
         event_id: 'ev-game-away',
         post_kind: 'matchday_auto',
-        caption: `Spieltag · ${our} auswärts gegen SKN St. Pölten U12. Alle Infos findet ihr beim Termin.`,
+        caption: `Spieltag · ${our} auswärts gegen SKN St. Pölten. Alle Infos findet ihr beim Termin.`,
           created_at: demoMinutesFromNowIso(-190),
         media_type: 'matchday',
         payload: {
-          display_home_name: 'SKN St. Pölten U12',
+          display_home_name: 'SKN St. Pölten',
           display_away_name: our,
           our_team_name: our,
           is_home: false,
@@ -423,7 +423,7 @@ export function buildDemoFeedPosts(): {
           id: 'df-result-older',
           post_kind: 'result_auto',
           media_type: 'result',
-          caption: `Rückblick · ${our} – SV Langenrohr U12 1:1. Gemeinsam weiterarbeiten.`,
+          caption: `Rückblick · ${our} – SV Langenrohr 1:1. Gemeinsam weiterarbeiten.`,
           created_at: demoOffsetIso(-12, 12, 15),
           event_id: 'ev-game-past-older',
           payload: {},
@@ -433,7 +433,7 @@ export function buildDemoFeedPosts(): {
           event_id: 'ev-game-past-older',
           team_season_id: DEMO_TEAM_SEASON_ID,
           home_team_name: our,
-          away_team_name: 'SV Langenrohr U12',
+          away_team_name: 'SV Langenrohr',
           home_logo_url: '/logos/nsg-goelsental.png',
           away_logo_url: '/logos/sv-langenrohr-v2.png',
           home_score: 1,

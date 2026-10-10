@@ -33,8 +33,8 @@ export function DemoTourCreateMatchPage(): React.ReactElement {
   const ready = getDemoTourJourney().localMatchReady;
 
   const opponent = loosdorf && 'opponent' in loosdorf
-    ? (loosdorf as { opponent?: string | null }).opponent ?? 'SV Loosdorf U12'
-    : 'SV Loosdorf U12';
+    ? (loosdorf as { opponent?: string | null }).opponent ?? 'SV Loosdorf'
+    : 'SV Loosdorf';
   const location =
     (loosdorf && 'location' in loosdorf ? loosdorf.location : null) ?? 'Sportplatz Rohrbach';
   const startsAt =

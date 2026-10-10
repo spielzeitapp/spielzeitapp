@@ -220,7 +220,7 @@ export const LivePage: React.FC = () => {
         <PremiumEmptyState
           variant="subtle"
           title="Aktuell kein Livespiel."
-          description="Das Demo-Spiel gegen SV Loosdorf U12 startet normalerweise automatisch. Sonst Vorbereitung öffnen."
+          description="Das Demo-Spiel gegen SV Loosdorf startet normalerweise automatisch. Sonst Vorbereitung öffnen."
           className="py-8"
         >
           <Link
