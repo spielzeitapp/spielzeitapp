@@ -112,15 +112,40 @@
       .footer-grid{gap:32px}
       .footer-slogan{font-size:20px!important;line-height:1.25}
     }
-    .hero-signature-brand{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:20px}
-    .hero-signature-brand .hero-signature-logo{width:120px;height:120px;margin:0}
-    .hero-signature-wordmark{width:240px;max-width:100%;height:auto;object-fit:contain}
+    /* Clean brand hero: photo, signature and phone stay in document flow. */
+    .hero{height:auto;min-height:0;background:radial-gradient(ellipse at 85% 85%,#35090d 0,transparent 55%),repeating-linear-gradient(135deg,transparent 0 90px,#e1282f09 90px 92px),#080809}
+    .hero-grid{height:auto;min-height:0;align-items:stretch}
+    .hero-copy{align-self:center;padding:48px 0}
+    .hero-visual{height:auto;padding:0;background:transparent}
+    .hero-visual:before{display:none}
+    .hero-visual picture{height:340px;overflow:hidden}
+    .hero-visual picture>img{height:100%;object-fit:cover;object-position:center 32%;transform:none}
+    .hero-signature{position:relative;inset:auto;width:100%;display:grid;grid-template-columns:minmax(0,1fr) 150px;align-items:center;gap:22px 26px;padding:28px 36px 36px;text-shadow:none}
+    .hero-signature-brand{grid-column:1/-1;display:flex;flex-direction:row;align-items:center;gap:14px;margin:0;min-width:0}
+    .hero-signature-brand .hero-signature-logo{width:64px;height:64px;flex:none;margin:0;object-fit:contain}
+    .hero-signature-wordmark{width:260px;max-width:calc(100% - 78px);height:auto;object-fit:contain}
+    .hero-signature strong{font-size:clamp(32px,3vw,46px);line-height:1.06}
+    .hero-signature .hero-phone-preview{position:relative;inset:auto;width:100%;height:auto;aspect-ratio:706/1536;margin:0;border:4px solid #44444a;border-radius:28px;overflow:hidden}
+    .hero-signature .hero-phone-preview img{height:100%;object-fit:contain;border-radius:23px}
+    .cta-box{background:radial-gradient(ellipse at 100% 100%,#501017 0,transparent 65%),repeating-linear-gradient(135deg,transparent 0 80px,#e1282f0d 80px 82px),#0b0b0d;border:1px solid #572026}
     @media(max-width:900px){
-      .hero-visual{padding-bottom:72px}
-      .hero-signature{top:calc(96.91vw + 18px);bottom:auto;width:calc(50% - 28px)}
-      .hero-signature-brand{align-items:center;gap:10px;margin-bottom:24px}
-      .hero-signature-brand .hero-signature-logo{width:clamp(110px,32vw,140px);height:clamp(110px,32vw,140px)}
-      .hero-signature-wordmark{width:100%;max-width:210px}
+      .hero-grid{width:100%}
+      .hero-copy{width:calc(100% - 40px);margin:auto;padding:34px 0}
+      .hero-visual{width:100%;margin:0;padding:0}
+      .hero-visual picture{height:auto}
+      .hero-visual picture>img{height:auto;object-fit:contain}
+      .hero-signature{position:relative;inset:auto;width:100%;grid-template-columns:minmax(0,1fr) minmax(110px,34%);gap:24px 20px;padding:28px 24px 32px}
+      .hero-signature-brand{align-items:center;margin:0}
+      .hero-signature-brand .hero-signature-logo{width:54px;height:54px}
+      .hero-signature-wordmark{width:260px;max-width:calc(100% - 68px)}
+      .hero-signature strong{font-size:clamp(29px,7.4vw,54px);line-height:1.08}
+      .hero-signature .hero-phone-preview{max-width:190px;justify-self:end}
+    }
+    @media(max-width:380px){
+      .hero-signature{padding:24px 18px 28px;gap:20px 12px;grid-template-columns:minmax(0,1fr) 110px}
+      .hero-signature strong{font-size:28px}
+      .hero-signature-brand .hero-signature-logo{width:46px;height:46px}
+      .hero-signature-wordmark{max-width:calc(100% - 60px)}
     }
   </style>
 </head>
@@ -147,8 +172,11 @@
             <source media="(max-width:900px)" srcset="hero-inclusive-mobile-plain.webp">
             <img src="hero-inclusive-desktop.webp" alt="Trainerin, Trainer, Mädchen und Jungen feiern gemeinsam in schwarz-roten Trikots">
           </picture>
-          <div class="hero-phone-preview"><img src="spielzeitapp-termine-original.jpeg" alt="Originalansicht der SpielzeitApp: Spieltermine und Kalender-Abo am Handy"></div>
-          <div class="hero-signature"><div class="hero-signature-brand"><img class="hero-signature-logo" src="spielzeitapp-icon.png" alt=""><img class="hero-signature-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></div><strong><span>Unser Team.</span><span>Unsere Momente.</span><span class="hero-slogan-red">Unser Spiel.</span></strong></div>
+          <div class="hero-signature">
+            <div class="hero-signature-brand"><img class="hero-signature-logo" src="spielzeitapp-icon.png" alt=""><img class="hero-signature-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></div>
+            <strong><span>Unser Team.</span><span>Unsere Momente.</span><span class="hero-slogan-red">Unser Spiel.</span></strong>
+            <div class="hero-phone-preview"><img src="spielzeitapp-termine-original.jpeg" alt="Originalansicht der SpielzeitApp: Spieltermine und Kalender-Abo am Handy"></div>
+          </div>
         </div>
       </div>
     </section>
