@@ -58,6 +58,19 @@ for (const event of buildDemoEvents().filter(e => e.kind === 'match')) {
   assert.ok(event.opponent_logo_url?.startsWith('/logos/'), `${event.id}: demo match logo survives EventRow conversion`);
 }
 for (const kind of ['matchday', 'squad', 'lineup', 'result']) assert.ok(active.some(p => p.kind === kind), kind);
+const matchPosts = active.filter(p => ['matchday', 'squad', 'lineup', 'result'].includes(p.kind));
+assert.equal(matchPosts.map(p => p.kind).join(','), 'result,lineup,squad,matchday');
+for (const { post } of matchPosts) {
+  assert.equal(post.event_id, 'ev-game-past');
+  assert.equal(post.payload.event_id, 'ev-game-past');
+  assert.equal(post.payload.deep_link, '/demo/events/ev-game-past');
+  assert.equal(post.payload.match_id, matchPosts[0].post.payload.match_id);
+}
+const matchday = active.find(p => p.kind === 'matchday').post.payload;
+assert.equal(matchday.display_away_name, 'USG Alpenvorland');
+assert.equal(matchday.location, 'Sportplatz Rohrbach');
+assert.equal(matchday.kickoff_iso, active.find(p => p.kind === 'result').post.payload.starts_at);
+assert.equal(active.find(p => p.kind === 'squad').post.payload.opponent_name, 'USG Alpenvorland');
 const result = active.find(p => p.kind === 'result').post.payload;
 assert.equal(result.result_state, 'win');
 assert.equal(formatPeriodScoresBracketFromRaw(result.period_scores), '(1:0 | 1:1 | 1:0)');
