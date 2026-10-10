@@ -1,13 +1,12 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, Compass, PlayCircle, Trophy } from 'lucide-react';
+import { ChevronRight, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
 import {
   readPendingParentEmailInviteFlag,
   resolvePendingParentInvitePath,
 } from '../../lib/parentLinkInvites';
-import { DEMO_TOUR_WHAT_PATH, DEMO_TOUR_WELCOME_BENEFIT, DEMO_TOUR_WELCOME_HEADLINE, DEMO_TOUR_WELCOME_PRIMARY, DEMO_TOUR_WELCOME_PROBLEM } from '../../demo/demoTourConfig';
 import { isStandaloneDisplayMode } from '../../lib/pwaDisplayMode';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
@@ -73,6 +72,10 @@ export const WelcomeScreen: React.FC = () => {
 
   /** „Zur App“ — Pending Invite hat Vorrang vor Home. */
   const goHome = () => {
+    if (isDemoWelcome) {
+      navigate(ROUTE_DEMO_HOME, { replace: true });
+      return;
+    }
     markIntroFlowCompleted();
     const pending = resolvePendingParentInvitePath();
     if (pending) {
@@ -87,18 +90,12 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   const goLive = () => {
+    if (isDemoWelcome) {
+      navigate('/demo/live', { replace: true });
+      return;
+    }
     markIntroFlowCompleted();
     navigate(ROUTE_LIVE_TICKER, { replace: true });
-  };
-
-  /** Demo frei erkunden — ohne Rundgang. */
-  const goDemoExplore = () => {
-    navigate(ROUTE_DEMO_HOME, { replace: true });
-  };
-
-  /** Geführte Demo — WHY → WHAT, dann HOW-Tour. */
-  const goDemoGuided = () => {
-    navigate(DEMO_TOUR_WHAT_PATH, { replace: true });
   };
 
   return (
@@ -334,62 +331,6 @@ export const WelcomeScreen: React.FC = () => {
         <div className="relative z-10 min-h-[10rem]" aria-hidden />
 
         <div className="relative z-20 w-full space-y-[6px] pointer-events-auto max-[667px]:space-y-[5px]">
-          {isDemoWelcome ? (
-            <>
-              <div className="mb-1 px-0.5">
-                <p className="text-[17px] font-bold leading-tight text-white sm:text-[19px]">
-                  {DEMO_TOUR_WELCOME_HEADLINE}
-                </p>
-                <p className="mt-1.5 text-[12px] font-medium leading-snug text-white/65 sm:text-[13px]">
-                  {DEMO_TOUR_WELCOME_PROBLEM}
-                </p>
-                <p className="mt-1.5 text-[12px] font-medium leading-snug text-white/75 sm:text-[13px]">
-                  {DEMO_TOUR_WELCOME_BENEFIT}
-                </p>
-                <p className="mt-1.5 text-[11px] leading-snug text-white/45">
-                  Kein Login erforderlich · Änderungen bleiben lokal · keine echten Nachrichten
-                </p>
-              </div>
-
-              <PremiumIntroButton onClick={goDemoGuided}>
-                <span className="welcome-intro-icon-shell relative z-10">
-                  <PlayCircle className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
-                </span>
-                <span className="relative z-10 min-w-0 flex-1">
-                  <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                    {DEMO_TOUR_WELCOME_PRIMARY}
-                  </span>
-                  <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                    Vom Trainingstermin bis zur Saisonbilanz – in ca. 5 Minuten.
-                  </span>
-                </span>
-                <ChevronRight
-                  className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
-                  strokeWidth={2.6}
-                  aria-hidden
-                />
-              </PremiumIntroButton>
-
-              <PremiumIntroButton onClick={goDemoExplore}>
-                <span className="welcome-intro-icon-shell relative z-10">
-                  <Compass className="h-8 w-8 text-white/90 sm:h-9 sm:w-9" strokeWidth={2} aria-hidden />
-                </span>
-                <span className="relative z-10 min-w-0 flex-1">
-                  <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-                    Demo frei erkunden
-                  </span>
-                  <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
-                    Ohne Führung durch die echte Demo navigieren.
-                  </span>
-                </span>
-                <ChevronRight
-                  className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
-                  strokeWidth={2.6}
-                  aria-hidden
-                />
-              </PremiumIntroButton>
-            </>
-          ) : (
             <>
               <PremiumIntroButton onClick={goHome}>
                 <span className="welcome-intro-icon-shell relative z-10">
@@ -456,7 +397,6 @@ export const WelcomeScreen: React.FC = () => {
                 />
               </PremiumIntroButton>
             </>
-          )}
 
           {!isDemoWelcome ? (
             standaloneApp ? (
@@ -477,8 +417,7 @@ export const WelcomeScreen: React.FC = () => {
           </div>
           {isDemoWelcome ? (
             <p className="max-w-[320px] text-center text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
-              Alle Daten sind fiktiv. Änderungen bleiben nur lokal in dieser Browser-Session. Es werden
-              keine Nachrichten oder Benachrichtigungen verschickt.
+              Demo-Modus · Fiktive Daten.
             </p>
           ) : null}
         </footer>
