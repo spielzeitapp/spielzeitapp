@@ -140,7 +140,7 @@ export function getDemoMatchCatalog(): DemoMatchLite[] {
     {
       id: DEMO_MATCH_ID_PAST_OLDER,
       team_season_id: DEMO_TEAM_SEASON_ID,
-      opponent: 'SV Langenrohr',
+      opponent: 'ASK Wilhelmsburg',
       status: 'finished',
       live_started_at: null,
       is_home: true,

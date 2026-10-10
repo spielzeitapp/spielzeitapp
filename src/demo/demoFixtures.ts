@@ -77,7 +77,7 @@ export const demoFixtures: DemoFixtures = {
       title: 'Meisterschaft',
       startsAt: '2026-08-15T10:00:00+02:00',
       location: 'Sportplatz Rohrbach',
-      opponent: 'SV Langenrohr',
+      opponent: 'ASK Wilhelmsburg',
       isHome: true,
       rsvpYes: 11,
       rsvpNo: 1,

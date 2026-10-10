@@ -16,7 +16,7 @@ const DEMO_OPPONENT_LOGOS: Record<string, string> = {
   'ev-game-next': '/logos/loosdorf.png',
   'ev-game-away': '/logos/skn-stpoelten.png',
   'ev-game-past': '/logos/usg-alpenvorland.png',
-  'ev-game-past-older': '/logos/sv-langenrohr-v2.png',
+  'ev-game-past-older': '/logos/ask-wilhelmsburg.png',
 };
 
 /** Relative Ankerzeiten — konsistent zu Feed und Terminen. */
@@ -435,7 +435,7 @@ export function buildDemoFeedPosts(): {
           id: 'df-result-older',
           post_kind: 'result_auto',
           media_type: 'result',
-          caption: `Rückblick · ${our} – SV Langenrohr 1:1. Gemeinsam weiterarbeiten.`,
+          caption: `Rückblick · ${our} – ASK Wilhelmsburg 1:1. Gemeinsam weiterarbeiten.`,
           created_at: demoOffsetIso(-12, 12, 15),
           event_id: 'ev-game-past-older',
           payload: {},
@@ -445,9 +445,9 @@ export function buildDemoFeedPosts(): {
           event_id: 'ev-game-past-older',
           team_season_id: DEMO_TEAM_SEASON_ID,
           home_team_name: our,
-          away_team_name: 'SV Langenrohr',
+          away_team_name: 'ASK Wilhelmsburg',
           home_logo_url: '/logos/nsg-goelsental.png',
-          away_logo_url: '/logos/sv-langenrohr-v2.png',
+          away_logo_url: '/logos/ask-wilhelmsburg.png',
           home_score: 1,
           away_score: 1,
           match_type: 'championship',
