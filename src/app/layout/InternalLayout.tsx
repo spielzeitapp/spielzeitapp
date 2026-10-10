@@ -323,7 +323,7 @@ export const InternalLayout: React.FC = () => {
 
   return (
     <AppBackground>
-      {isTouchLayout ? null : <TopNav />}
+      {isTouchLayout || isDemo ? null : <TopNav />}
 
       <div className="app min-h-screen bg-black text-white">
         <Header />
