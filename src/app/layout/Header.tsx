@@ -11,14 +11,15 @@ import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
 import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
 import { canAccessManager } from '../../manager/canAccessManager';
+import { DemoManagerPreview } from '../../demo/components/DemoManagerPreview';
 
-function AppHeaderBrand() {
+function AppHeaderBrand({ compactDemo = false }: { compactDemo?: boolean }) {
   return (
     <span className="inline-flex min-w-0 shrink-0 items-center gap-1.5 max-[359px]:gap-0.5">
       <SpielzeitAppBrand
         className="min-w-0 max-w-[10.75rem] max-[359px]:max-w-[2.25rem] sm:max-w-[12rem]"
-        iconClassName="h-11 w-11 sm:h-12 sm:w-12"
-        wordmarkClassName="w-[7.8rem] max-[359px]:hidden sm:w-[9.1rem]"
+        iconClassName={compactDemo ? 'h-11 w-11 max-[399px]:h-9 max-[399px]:w-9 sm:h-12 sm:w-12' : 'h-11 w-11 sm:h-12 sm:w-12'}
+        wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] max-[359px]:hidden sm:w-[9.1rem]' : 'w-[7.8rem] max-[359px]:hidden sm:w-[9.1rem]'}
       />
       {isStagingApp() ? (
         <span
@@ -92,6 +93,7 @@ export const Header: React.FC = () => {
       : null;
 
   const [pendingRequestsCount, setPendingRequestsCount] = useState<number | null>(null);
+  const [managerPreviewOpen, setManagerPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!isStaff || isDemo) {
@@ -141,7 +143,7 @@ export const Header: React.FC = () => {
               to={isDemo ? '/demo/home' : '/app/home'}
               className="inline-flex min-w-0 items-center gap-1.5 overflow-hidden max-[359px]:gap-0.5"
             >
-              <AppHeaderBrand />
+              <AppHeaderBrand compactDemo={isDemo} />
               {isDemo ? <DemoBadge /> : null}
               {!isDemo && membershipError ? (
                 <span className="max-w-[min(50vw,10.25rem)] truncate text-[9px] text-amber-400/95 sm:max-w-[12rem]" role="alert">
@@ -178,6 +180,20 @@ export const Header: React.FC = () => {
             <div className="flex items-center gap-1.5 sm:gap-2">
               {isDemo ? (
                 <>
+                  <button
+                    type="button"
+                    onClick={() => setManagerPreviewOpen(true)}
+                    className={dsGlassIconButtonClass()}
+                    aria-label="SpielzeitManager Vorschau öffnen"
+                    title="SpielzeitManager – Planung am Desktop"
+                    aria-haspopup="dialog"
+                  >
+                    <span
+                      className="h-7 w-7 shrink-0 rounded-full bg-no-repeat"
+                      style={{ backgroundImage: 'url(/manager-icon-512.png)', backgroundSize: '72px 72px', backgroundPosition: '-43px -43px' }}
+                      aria-hidden
+                    />
+                  </button>
                   <Link
                     to="/demo/mehr"
                     className={dsGlassIconButtonClass()}
@@ -281,6 +297,7 @@ export const Header: React.FC = () => {
           </div>
         )}
       </div>
+      {isDemo ? <DemoManagerPreview open={managerPreviewOpen} onClose={() => setManagerPreviewOpen(false)} /> : null}
     </header>
   );
 };
