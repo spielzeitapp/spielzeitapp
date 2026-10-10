@@ -78,8 +78,11 @@
       .hero-copy h1{font-size:clamp(48px,12.5vw,72px);line-height:1.02;overflow-wrap:normal}
       .hero-buttons{gap:12px;margin-top:24px}
     }
-    .emotion-phone{container-type:inline-size}
-    .demo-scorers{position:absolute;z-index:2;left:9.3%;top:54.4%;width:81.4%;height:5.3%;padding:0 1%;background:linear-gradient(100deg,#180302,#140302 55%,#100302);color:#dedadb;font-family:Inter,Arial,sans-serif;font-size:3.05cqw;font-weight:750;line-height:1.65;white-space:nowrap}
+    .emotion-phone-screen{position:relative;width:100%;aspect-ratio:706/1536;container-type:inline-size}
+    .emotion-phone .emotion-phone-screen>img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+    /* Replace the whole scorer panel, anchored to the image, not the device border. */
+    .demo-scorers{position:absolute;z-index:2;left:9.3%;top:52%;width:81.4%;height:8%;padding:.8cqw 1cqw;background:linear-gradient(100deg,#180302,#140302 55%,#100302);color:#dedadb;font-family:Inter,Arial,sans-serif;font-size:3.05cqw;font-weight:750;line-height:1.65;white-space:nowrap}
+    .demo-scorers-label{display:block;margin-bottom:1cqw;color:#d4a4a6;font-size:2.45cqw;font-weight:900;letter-spacing:.35cqw;line-height:1.5}
     .demo-scorers time{color:#8d8587;font-weight:500}
     .cards-six{grid-template-columns:repeat(3,minmax(0,1fr))}
     .highlights{background:#101012;color:#fff}
@@ -263,7 +266,7 @@
 
     <section class="emotion">
       <div class="emotion-grid">
-        <div class="emotion-image"><img src="parents-live.webp" alt="Eltern verfolgen ein Spiel und jubeln mit dem Team"><div class="emotion-phone"><img src="spielzeitapp-ergebnis-aktuell.jpeg" alt="SpielzeitApp am Handy mit dem Endstand Loosdorf 2 zu 3 Rohrbach"><div class="demo-scorers" aria-label="Torschützen aus dem Demoteam"><span>Noah Kramer <time>· 26′</time>&nbsp;&nbsp; Lena Mayer <time>· 38′</time></span><br><span>Elias Fischer <time>· 61′</time></span></div></div></div>
+        <div class="emotion-image"><img src="parents-live.webp" alt="Eltern verfolgen ein Spiel und jubeln mit dem Team"><div class="emotion-phone"><div class="emotion-phone-screen"><img src="spielzeitapp-ergebnis-aktuell.jpeg" alt="SpielzeitApp am Handy mit dem Demo-Endstand Loosdorf 2 zu 3 Rohrbach"><div class="demo-scorers" aria-label="Torschützen aus dem Demoteam"><b class="demo-scorers-label">UNSERE TORSCHÜTZEN</b><span>Noah Kramer <time>· 26′</time>&nbsp;&nbsp; Lena Mayer <time>· 38′</time></span><br><span>Elias Fischer <time>· 61′</time></span></div></div></div></div>
         <div class="wrap emotion-copy">
           <span class="eyebrow">Eltern &amp; Fans inklusive</span>
           <h2>Dein Team bleibt verbunden.</h2>
