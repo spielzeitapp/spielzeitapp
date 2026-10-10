@@ -1,4 +1,5 @@
 import React from 'react';
+import { PosterClubName } from '../feed/PosterClubName';
 import { ChevronRight } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -191,7 +192,7 @@ export function PastMatchResultCard({
             <div className="flex min-w-0 flex-col items-center text-center">
               <img src={homeLogoSrc} alt="" className="h-10 w-10 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
               <span className="mt-1 line-clamp-2 text-[10px] font-semibold leading-tight text-white/88">
-                {homeName}
+                <PosterClubName name={homeName} />
               </span>
             </div>
             <div className="flex flex-col items-center">
@@ -204,7 +205,7 @@ export function PastMatchResultCard({
             <div className="flex min-w-0 flex-col items-center text-center">
               <img src={awayLogoSrc} alt="" className="h-10 w-10 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
               <span className="mt-1 line-clamp-2 text-[10px] font-semibold leading-tight text-white/88">
-                {awayName}
+                <PosterClubName name={awayName} />
               </span>
             </div>
           </div>
