@@ -328,7 +328,7 @@ export const InternalLayout: React.FC = () => {
       <div className="app min-h-screen bg-black text-white">
         <Header />
         <main
-          className={`app__content appMain pt-[var(--app-header-offset)] ${
+          className={`app__content appMain pt-[var(--app-header-offset)] ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
             isTouchLayout
               ? 'pb-[max(10rem,calc(7.5rem+env(safe-area-inset-bottom,0px)))] lg:pb-24'
               : 'pb-24'

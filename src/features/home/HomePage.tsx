@@ -519,10 +519,12 @@ export const HomePage: React.FC = () => {
             ) : null}
 
             {spieltagHintPick ? (
-              <HomeSpieltagHintCard
-                pick={spieltagHintPick}
-                reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
-              />
+              <div className={isDemoMode ? '-mx-1 sm:-mx-2 md:mx-0' : undefined}>
+                <HomeSpieltagHintCard
+                  pick={spieltagHintPick}
+                  reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
+                />
+              </div>
             ) : null}
 
             <section className="min-w-0 space-y-3 pt-2 sm:pt-1" aria-label="Aktueller Team-Feed">
