@@ -96,12 +96,14 @@ export function resolveCurrentAgeGroup(source: CurrentSeasonLabelSource): string
   if (fromField && tokenLooksLikeAgeGroup(fromField)) {
     return fromField.toUpperCase();
   }
-  if (source.teamName?.trim()) {
-    const parsed = parseClubDisplayName(source.teamName);
-    if (parsed.ageGroup) return parsed.ageGroup;
-  }
   if (source.displayName?.trim()) {
     const parsed = parseClubDisplayName(source.displayName);
+    if (parsed.ageGroup) return parsed.ageGroup;
+    const age = source.displayName.match(/(?:^|\s|·)(U\d{1,2}[a-z]?)(?=\s|·|$)/i)?.[1];
+    if (age) return age.toUpperCase();
+  }
+  if (source.teamName?.trim()) {
+    const parsed = parseClubDisplayName(source.teamName);
     if (parsed.ageGroup) return parsed.ageGroup;
   }
   return null;
@@ -116,7 +118,7 @@ export function computeNextAgeGroupFromSource(source: CurrentSeasonLabelSource):
  * Display-Name für einen vorbereiteten Draft.
  * targetAgeGroup / targetSeasonName sind die finalen Werte (Wizard-Auswahl oder
  * bereits berechneter Default) — werden NICHT nochmals hochgezählt.
- * Beispiel: „U12 SPG Rohrbach · 2026/27“
+ * Beispiel: „SPG Rohrbach · U12 · 2026/27“
  */
 export function buildPreparedSeasonDisplayName(opts: {
   teamName?: string | null;
@@ -129,7 +131,7 @@ export function buildPreparedSeasonDisplayName(opts: {
     opts.teamName?.trim() ||
     '';
   if (base) {
-    const teamLabel = age ? bumpTeamLabel(base, age) : base;
+    const teamLabel = [clubNameWithoutAgeGroup(base), age].filter(Boolean).join(' · ');
     return season ? `${teamLabel} · ${season}` : teamLabel;
   }
   if (age) return season ? `${age} · ${season}` : age;
@@ -197,9 +199,9 @@ export type TeamSeasonLabelInput = {
 };
 
 export type TeamSeasonLabelParts = {
-  /** z. B. „U12 SPG Rohrbach · 2026/27“ */
+  /** z. B. „SPG Rohrbach · U12 · 2026/27“ */
   full: string;
-  /** z. B. „U12 SPG Rohrbach“ */
+  /** Grafik-Kompatibilität: „U12 SPG Rohrbach“ (Alter separat im Matchdesign). */
   teamLine: string;
   /** z. B. „2026/27“ */
   seasonLine: string;
@@ -221,29 +223,12 @@ export function formatClubTeamOptionLabel(teamName: string | null | undefined): 
 
 /**
  * Einheitliches Saison-Label.
- * 1) team_seasons.display_name
- * 2) team_seasons.age_group + bereinigter Clubname + season.name
+ * Altersklasse und Saison aus dem Saison-Snapshot; alte display_name-Werte
+ * werden normalisiert. teams.name ist der dauerhafte Mannschaftsname.
  */
 export function resolveTeamSeasonLabelParts(input: TeamSeasonLabelInput): TeamSeasonLabelParts {
-  const season = (input.seasonName ?? '').trim();
+  const season = (input.seasonName ?? '').trim() || input.displayName?.match(/20\d{2}\/\d{2,4}/)?.[0] || '';
   const display = (input.displayName ?? '').trim();
-  if (display) {
-    const bits = display.split(/\s*·\s*/).map((b) => b.trim()).filter(Boolean);
-    if (bits.length >= 2) {
-      const seasonLine = bits[bits.length - 1] ?? season;
-      const teamLine = bits.slice(0, -1).join(' · ').trim();
-      return {
-        full: display,
-        teamLine: teamLine || display,
-        seasonLine: seasonLine || season || '—',
-      };
-    }
-    return {
-      full: season ? `${display} · ${season}` : display,
-      teamLine: display,
-      seasonLine: season || '—',
-    };
-  }
 
   const age =
     (input.ageGroup ?? '').trim() ||
@@ -253,12 +238,21 @@ export function resolveTeamSeasonLabelParts(input: TeamSeasonLabelInput): TeamSe
       displayName: input.displayName,
     }) ||
     null;
-  const club = clubNameWithoutAgeGroup(input.teamName);
+  // Snapshot age is authoritative, even when a legacy display_name still says U11.
+  // Preserve team suffixes such as A/B from the season's own name.
+  const displayClub = display
+    .replace(/\s*[·(]?\s*20\d{2}\/\d{2,4}\s*\)?\s*$/, '')
+    .split(/\s*·\s*/)
+    .filter((part) => !tokenLooksLikeAgeGroup(part) && part !== age)
+    .join(' ')
+    .replace(/^U\d{1,2}[a-z]?\s+/i, '')
+    .trim();
+  const club = displayClub || clubNameWithoutAgeGroup(input.teamName);
   const rawTeam = (input.teamName ?? '').trim();
   const teamLine = age
     ? [age, club || rawTeam].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
-    : rawTeam || 'Team';
-  const full = season ? `${teamLine} · ${season}` : teamLine;
+    : club || rawTeam || 'Team';
+  const full = [club || rawTeam || 'Mannschaft', age, season].filter(Boolean).join(' · ');
   return { full, teamLine, seasonLine: season || '—' };
 }
 
@@ -272,20 +266,9 @@ export function formatTeamSeasonContextLabel(
   opts?: { markArchived?: boolean; includeSeason?: boolean },
 ): string {
   const parts = resolveTeamSeasonLabelParts(input);
-  const age =
-    (input.ageGroup ?? '').trim() ||
-    resolveCurrentAgeGroup({
-      ageGroup: input.ageGroup,
-      teamName: input.teamName,
-      displayName: input.displayName,
-    }) ||
-    '';
-  const club =
-    clubNameWithoutAgeGroup(input.teamName) ||
-    parts.teamLine.replace(/\bU\d{1,2}\b/gi, '').replace(/\s+/g, ' ').trim() ||
-    parts.teamLine;
-  const season = opts?.includeSeason === false ? '' : (input.seasonName ?? '').trim() || parts.seasonLine;
-  const core = [club, age, season && season !== '—' ? season : ''].filter(Boolean).join(' · ') || parts.full;
+  const core = opts?.includeSeason === false && parts.seasonLine !== '—'
+    ? parts.full.slice(0, -(` · ${parts.seasonLine}`).length)
+    : parts.full;
   if (opts?.markArchived && isSeasonArchived(input.status)) {
     return `${core} · Archiv`;
   }
@@ -296,7 +279,7 @@ export function formatTeamSeasonDisplayLabel(
   input: TeamSeasonLabelInput,
   opts?: { markArchived?: boolean },
 ): string {
-  const { full } = resolveTeamSeasonLabelParts(input);
+  const full = formatTeamSeasonContextLabel(input);
   if (opts?.markArchived && isSeasonArchived(input.status)) {
     return `${full} · Archiv`;
   }
@@ -305,8 +288,8 @@ export function formatTeamSeasonDisplayLabel(
 
 /**
  * Kompaktes Switcher-Label für schmale Mobile-Selects.
- * Clubname entfällt (im Screen ohnehin klar) — Altersklasse + Saison + Status bleiben lesbar.
- * Beispiel: „U11 · 2025/26 · Archiv“ / „U12 · 2026/27 · Aktuell“
+ * Mannschaft, Altersklasse, Saison und Status bleiben auch bei mehreren Teams eindeutig.
+ * Beispiel: „SPG Rohrbach · U12 · 2026/27 · Aktuell“
  */
 export function formatTeamSeasonCompactSwitcherLabel(
   input: TeamSeasonLabelInput,
@@ -322,7 +305,7 @@ export function formatTeamSeasonCompactSwitcherLabel(
     '';
   const { seasonLine, full } = resolveTeamSeasonLabelParts(input);
   const season = (seasonLine || '').trim();
-  const core = [age, season].filter(Boolean).join(' · ') || full;
+  const core = formatTeamSeasonContextLabel(input) || [age, season].filter(Boolean).join(' · ') || full;
   if (opts?.markArchived && isSeasonArchived(input.status)) {
     return `${core} · Archiv`;
   }
