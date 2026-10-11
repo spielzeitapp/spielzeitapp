@@ -31,7 +31,7 @@ import {
 } from '../../lib/autoMatchdayFeedEnabled';
 import { isMatchReviewPending } from '../../lib/matchPreparationAccess';
 import { supabase } from '../../lib/supabaseClient';
-import { dsPrimaryCtaClass, dsSecondaryCtaClass, dsSublineClass } from '../../lib/premiumDesignSystem';
+import { dsPageTitleClass, dsPrimaryCtaClass, dsSecondaryCtaClass, dsSublineClass } from '../../lib/premiumDesignSystem';
 import {
   GlassCard,
   PageShell,
@@ -500,7 +500,7 @@ export const HomePage: React.FC = () => {
       {showContent && (
         <div className="min-w-0 space-y-2">
 <div className="relative flex min-h-[40px] items-center justify-between gap-3">
-            <SectionTitle variant="interactive" as="h2" className="!text-sm sm:!text-lg">Matchday Feed</SectionTitle>
+            <h1 className={dsPageTitleClass()}>Home</h1>
             <button
               type="button"
               onClick={() => setFeedFilterOpen((open) => !open)}
