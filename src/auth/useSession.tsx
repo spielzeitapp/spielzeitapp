@@ -6,6 +6,7 @@ import { useAuth } from './AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 import { pickPreferredActiveTeamSeasonId } from '../lib/seasonLifecycle';
+import { resolveTeamViewSeasonIds } from '../lib/teamViewSelection';
 import { resolveParentUiRole } from '../lib/parentChildLink';
 
 /** team_seasons.id und memberships.team_season_id als string (UUID), nie Number. */
@@ -138,6 +139,10 @@ interface SessionContextValue {
   selectedTeamId: string;
   setSelectedTeamId: (teamId: string) => void;
   teamSeasons: SessionTeamSeasonItem[];
+  /** Read-only Home/Termine filter; null follows the single selected season. */
+  teamViewFilter: 'all' | string[] | null;
+  setTeamViewFilter: (filter: 'all' | string[] | null) => void;
+  filteredTeamSeasonIds: string[];
   /** Aktive Arbeitssaison (Schreiben). */
   selectedTeamSeasonId: string | null;
   selectedTeamSeason: SessionTeamSeasonItem | null;
@@ -196,6 +201,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [teamSeasons, setTeamSeasons] = useState<SessionTeamSeasonItem[]>([]);
   const [selectedTeamSeasonId, setSelectedTeamSeasonIdState] = useState<string | null>(null);
   const [viewTeamSeasonId, setViewTeamSeasonIdState] = useState<string | null>(null);
+  const [teamViewFilter, setTeamViewFilterState] = useState<'all' | string[] | null>(null);
+  const filteredTeamSeasonIds = useMemo(() => {
+    return resolveTeamViewSeasonIds(teamSeasons, teamViewFilter, viewTeamSeasonId ?? selectedTeamSeasonId);
+  }, [teamSeasons, teamViewFilter, viewTeamSeasonId, selectedTeamSeasonId]);
+  const setTeamViewFilter = (filter: 'all' | string[] | null) => {
+    setTeamViewFilterState(filter);
+  };
   const [membershipLoading, setMembershipLoading] = useState(false);
   const [memberships, setMemberships] = useState<MembershipWithJoin[]>([]);
   const [membershipError, setMembershipError] = useState<string | null>(null);
@@ -347,6 +359,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setTeamSeasons([]);
       setSelectedTeamSeasonIdState(null);
       setViewTeamSeasonIdState(null);
+      setTeamViewFilterState(null);
       setMemberships([]);
       setRoleFromUserRoles(null);
       setPreviewRoleState(null);
@@ -354,6 +367,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setPlayerAccessMode(null);
     } else if (!nextId && prevId) {
       clearAccountScopedClientState();
+      setTeamViewFilterState(null);
     }
     prevAuthUserIdRef.current = nextId;
   }, [authUser?.id]);
@@ -684,6 +698,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setSelectedTeamSeasonId = (id: string | null) => {
     const next = id === '' || id == null ? null : id;
     setSelectedTeamSeasonIdState(next);
+    setTeamViewFilterState(null);
     // Active-Wechsel setzt View auf dieselbe Saison (History-Picker kann danach Archiv wählen).
     setViewTeamSeasonIdState(next);
     try {
@@ -700,6 +715,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   /** Nur Lesen/Anzeige — ändert die aktive Arbeitssaison nicht. */
   const setViewTeamSeasonId = (id: string | null) => {
     setViewTeamSeasonIdState(id === '' || id == null ? null : id);
+    setTeamViewFilterState(null);
   };
 
   const user: User | null = useMemo(() => {
@@ -720,6 +736,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     selectedTeamId: derivedTeamId,
     setSelectedTeamId,
     teamSeasons,
+    teamViewFilter,
+    setTeamViewFilter,
+    filteredTeamSeasonIds,
     selectedTeamSeasonId,
     selectedTeamSeason,
     setSelectedTeamSeasonId,

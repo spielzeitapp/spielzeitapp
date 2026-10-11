@@ -155,13 +155,16 @@ export const HomePage: React.FC = () => {
     backendRole,
     membershipRole,
     effectiveRole,
+    teamViewFilter,
+    filteredTeamSeasonIds,
   } = useSession();
   /** Home: Lesesaison (Archiv-View) — nicht still auf Active zurückfallen. */
   const { activeTeamSeason, readTeamSeason, readTeamSeasonId, isHistoryReadOnly } = useActiveTeamSeason();
   const teamSeasonId = isDemoMode
     ? demo!.data.teamSeasonId
     : (readTeamSeasonId ?? sessionTeamSeasonId);
-  const { events: liveEvents, loading: evLoadingRaw } = useEvents(isDemoMode ? null : teamSeasonId);
+  const isMultiTeamView = !isDemoMode && teamViewFilter !== null;
+  const { events: liveEvents, loading: evLoadingRaw } = useEvents(isDemoMode ? null : isMultiTeamView ? filteredTeamSeasonIds : teamSeasonId);
   const events = isDemoMode ? demo!.data.events : liveEvents;
   const evLoading = isDemoMode ? false : evLoadingRaw;
   const { session } = useAuth();
@@ -200,7 +203,7 @@ export const HomePage: React.FC = () => {
     const map = new Map<string, FeedSeasonDisplayMeta>();
     for (const ts of teamSeasons) {
       if (!ts.id) continue;
-      if (teamId && String(ts.team?.id ?? ts.team_id ?? '') !== teamId) continue;
+      if (!isMultiTeamView && teamId && String(ts.team?.id ?? ts.team_id ?? '') !== teamId) continue;
       map.set(
         ts.id,
         buildFeedSeasonDisplayMeta(ts.id, {
@@ -213,7 +216,7 @@ export const HomePage: React.FC = () => {
       );
     }
     return map;
-  }, [teamSeasons, teamId]);
+  }, [teamSeasons, teamId, isMultiTeamView]);
 
   const [now, setNow] = useState(() => new Date());
   const [disabledMatchdayMatchIds, setDisabledMatchdayMatchIds] = useState<Set<string>>(() => new Set());
@@ -323,9 +326,10 @@ export const HomePage: React.FC = () => {
     error: teamFeedErrorRaw,
     refetch: refetchFeed,
     loadMoreHistoric,
-  } = useTeamFeedPosts(isDemoMode ? null : teamSeasonId, isDemoMode ? null : teamId || null, {
-    skipEnsures: isHistoryReadOnly,
-    chronicleView: isHistoryReadOnly,
+  } = useTeamFeedPosts(isDemoMode ? null : teamSeasonId, isDemoMode || isMultiTeamView ? null : teamId || null, {
+    skipEnsures: isHistoryReadOnly || isMultiTeamView,
+    chronicleView: !isMultiTeamView && isHistoryReadOnly,
+    teamSeasonIds: isMultiTeamView ? filteredTeamSeasonIds : undefined,
   });
 
   const activePosts = isDemoMode ? demo!.data.feedPosts : liveActivePosts;
@@ -348,7 +352,7 @@ export const HomePage: React.FC = () => {
     void refetchFeed();
   }, [refetchFeed]);
   const staffCanDeleteFeed =
-    !isDemoMode && !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
+    !isDemoMode && !isMultiTeamView && !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
 
   const eventById = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
@@ -375,9 +379,9 @@ export const HomePage: React.FC = () => {
   const showContent = Boolean(teamSeasonId) || FEED_DEMO || isDemoMode;
 
   const spieltagHintPick =
-    matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
-  const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
-  const showTournamentCompact = Boolean(sportingPick?.sportingKind === 'tournament');
+    !isMultiTeamView && matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
+  const showNextMatchCompact = Boolean(!isMultiTeamView && matchPick && matchPick.status === 'next');
+  const showTournamentCompact = Boolean(!isMultiTeamView && sportingPick?.sportingKind === 'tournament');
 
   const reviewPendingForEvent = (event: EventRow | undefined) =>
     Boolean(
@@ -498,7 +502,7 @@ export const HomePage: React.FC = () => {
           <SectionTitle variant="interactive" as="h2" className="!text-lg sm:!text-xl">
             Matchday Feed
           </SectionTitle>
-          <p className={cn(dsSublineClass(), 'text-[12px] sm:text-[13px]')}>{teamSeasonLine}</p>
+          <p className={cn(dsSublineClass(), 'text-[12px] sm:text-[13px]')}>{isMultiTeamView ? teamViewFilter === 'all' ? 'Alle aktuellen Mannschaften' : `${filteredTeamSeasonIds.length} Mannschaften ausgewählt` : teamSeasonLine}</p>
 
           <div className="relative flex min-h-[40px] items-center justify-between gap-3">
             <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
@@ -551,7 +555,7 @@ export const HomePage: React.FC = () => {
             ) : null}
           </div>
           <div className="min-w-0 space-y-3">
-            {teamSeasonId && teamId && !isHistoryReadOnly ? (
+            {teamSeasonId && teamId && !isHistoryReadOnly && !isMultiTeamView ? (
               <HomeFeedComposer
                 backendRole={isDemoMode ? 'trainer' : backendRole}
                 membershipRole={isDemoMode ? 'trainer' : membershipRole}
@@ -562,7 +566,8 @@ export const HomePage: React.FC = () => {
                 demoMode={isDemoMode}
               />
             ) : null}
-            {isHistoryReadOnly ? (
+            {isMultiTeamView ? <p className="rounded-lg border border-white/10 px-3 py-2 text-[12px] text-white/60">Gemeinsamer Feed · zum Erstellen oder Bearbeiten eine einzelne Mannschaft wählen.</p> : null}
+            {isHistoryReadOnly && !isMultiTeamView ? (
               <p className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100/95">
                 Archiv-Ansicht — Feed nur lesen. Aktive Saison bleibt zum Schreiben unverändert.
               </p>
@@ -623,7 +628,7 @@ export const HomePage: React.FC = () => {
                         item={item}
                         eventById={eventById}
                         finishedEventIds={finishedFeedEventIds}
-                        teamLabel={activeTeamLabel}
+                        teamLabel={isMultiTeamView ? seasonMetaById.get(item.post.team_season_id)?.teamLabel || 'Mannschaft' : activeTeamLabel}
                         seasonLabel={null}
                         staffCanDelete={staffCanDeleteFeed}
                         onFeedPostDeleted={handleFeedPostDeleted}

@@ -1,237 +1,186 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
+import { Check, ChevronDown, Plus } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import type { SessionTeamSeasonItem } from '../../auth/useSession';
 import {
   formatTeamSeasonCompactSwitcherLabel,
   isSeasonActive,
-  isSeasonArchived,
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 
-function labelForTeamSeason(ts: SessionTeamSeasonItem, activeId: string | null): string {
+function seasonLabel(ts: SessionTeamSeasonItem, activeId: string | null): string {
   return formatTeamSeasonCompactSwitcherLabel(
-    {
-      displayName: ts.display_name,
-      ageGroup: ts.age_group,
-      teamName: ts.team?.name,
-      seasonName: ts.season?.name,
-      status: ts.status,
-    },
-    {
-      markArchived: true,
-      markCurrent: ts.id === activeId || isSeasonActive(ts.status),
-    },
+    { displayName: ts.display_name, ageGroup: ts.age_group, teamName: ts.team?.name, seasonName: ts.season?.name, status: ts.status },
+    { markArchived: true, markCurrent: ts.id === activeId || isSeasonActive(ts.status) },
   );
 }
 
-function compactLabelForTeamSeason(ts: SessionTeamSeasonItem | undefined): string {
-  const ageGroup = ts?.age_group?.trim().toUpperCase();
-  const seasonName = ts?.season?.name?.trim();
-
-  if (ageGroup && seasonName) return `${ageGroup} · ${seasonName}`;
-  if (ageGroup) return ageGroup;
-
-  const fallback = ts?.display_name ?? ts?.team?.name ?? '';
-  const fallbackAgeGroup = fallback.match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase();
-  const fallbackSeason = fallback.match(/\b20\d{2}\/\d{2}\b/)?.[0];
-  return [fallbackAgeGroup, fallbackSeason].filter(Boolean).join(' · ') || 'Team';
+function compactLabel(ts: SessionTeamSeasonItem | undefined): string {
+  const raw = ts?.display_name ?? ts?.team?.name ?? '';
+  const age = ts?.age_group?.trim().toUpperCase() || raw.match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase();
+  const season = ts?.season?.name?.trim() || raw.match(/\b20\d{2}\/\d{2}\b/)?.[0];
+  return [age, season].filter(Boolean).join(' · ') || ts?.team?.name || 'Mannschaft wählen';
 }
 
 export type TeamSwitcherProps = {
-  /** kompakt im App-Header */
   compact?: boolean;
   className?: string;
-  /** Wenn false und nur 1 Saison: nichts rendern */
   hideWhenSingle?: boolean;
 };
 
-/**
- * Wechselt die aktive Arbeitssaison (Write).
- * Archiv-Auswahl setzt nur die View-Saison — active bleibt unverändert.
- */
-export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({
-  compact = false,
-  className,
-  hideWhenSingle = false,
-}) => {
+/** Single work season stays separate from the read-only multi-team overview. */
+export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, className, hideWhenSingle = false }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const {
-    teamSeasons,
-    selectedTeamSeasonId,
-    setSelectedTeamSeasonId,
-    viewTeamSeasonId,
-    setViewTeamSeasonId,
-    memberships,
+    teamSeasons, selectedTeamSeasonId, setSelectedTeamSeasonId,
+    viewTeamSeasonId, setViewTeamSeasonId, memberships,
+    teamViewFilter, setTeamViewFilter, filteredTeamSeasonIds,
   } = useSession();
+  const overview = pathname === '/app' || pathname === '/app/home' || pathname === '/app/termine';
+  const [open, setOpen] = React.useState(false);
+  const [position, setPosition] = React.useState({ top: 0, left: 0, width: 0, maxHeight: 0 });
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const panelId = React.useId();
+  const value = viewTeamSeasonId ?? selectedTeamSeasonId;
+  const current = teamSeasons.find((ts) => ts.id === value);
+  const currentSeasons = teamSeasons.filter((ts) => isSeasonActive(ts.status));
+  const otherSeasons = teamSeasons.filter((ts) => !isSeasonActive(ts.status));
+  const multipleAvailable = overview && currentSeasons.length > 1;
+  const filtered = overview && teamViewFilter !== null;
+  const ownIds = new Set(memberships.filter((m) => String(m.role).trim().toLowerCase() !== 'fan').map((m) => m.team_season_id));
+  const triggerLabel = filtered
+    ? teamViewFilter === 'all' ? 'Alle Mannschaften' : `${filteredTeamSeasonIds.length} Mannschaften`
+    : compact ? compactLabel(current) : current || teamSeasons[0] ? seasonLabel(current ?? teamSeasons[0], selectedTeamSeasonId) : 'Mannschaft wählen';
 
-  const showTeamOnlySwitcher = compact && (pathname === '/app' || pathname === '/app/home' || pathname === '/app/termine');
   React.useEffect(() => {
-    if (!showTeamOnlySwitcher || !viewTeamSeasonId || !selectedTeamSeasonId) return;
-    const viewed = teamSeasons.find((ts) => ts.id === viewTeamSeasonId);
-    const active = teamSeasons.find((ts) => ts.id === selectedTeamSeasonId);
-    if (!viewed || !active || !isSeasonArchived(viewed.status)) return;
-    if (String(viewed.team?.id ?? viewed.team_id) === String(active.team?.id ?? active.team_id)) {
-      setViewTeamSeasonId(null);
-    }
-  }, [showTeamOnlySwitcher, viewTeamSeasonId, selectedTeamSeasonId, teamSeasons, setViewTeamSeasonId]);
+    setOpen(false);
+  }, [pathname]);
 
-  if (teamSeasons.length === 0) {
-    if (hideWhenSingle) return null;
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-xs font-medium text-white/80">
-        Keine Teams
-      </span>
-    );
-  }
+  React.useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!panelRef.current?.contains(target) && !triggerRef.current?.contains(target)) setOpen(false);
+    };
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    const closeOnResize = () => setOpen(false);
+    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('keydown', keydown);
+    window.addEventListener('resize', closeOnResize);
+    panelRef.current?.querySelector<HTMLElement>('button, input')?.focus();
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('keydown', keydown);
+      window.removeEventListener('resize', closeOnResize);
+    };
+  }, [open]);
 
-  if (hideWhenSingle && teamSeasons.length < 2) return null;
-
-  // Anzeige: View-Saison (kann Archiv sein), ohne active zu überschreiben.
-  const value = viewTeamSeasonId ?? selectedTeamSeasonId ?? '';
-
-  const onChange = (raw: string) => {
-    if (raw === '__manage_favorites__') {
-      navigate('/app/fan-onboarding');
-      return;
-    }
-
-    const id = raw || null;
-    if (!id) {
-      setViewTeamSeasonId(null);
-      return;
-    }
-    const ts = teamSeasons.find((row) => row.id === id);
-    if (!ts) return;
-    const action = resolveTeamSeasonSwitcherAction(ts.status);
-    if (action === 'view-archive' || action === 'view-only') {
-      setViewTeamSeasonId(id);
-      return;
-    }
-    setSelectedTeamSeasonId(id);
+  const selectSingle = (ts: SessionTeamSeasonItem) => {
+    setTeamViewFilter(null);
+    if (resolveTeamSeasonSwitcherAction(ts.status) === 'select-work') setSelectedTeamSeasonId(ts.id);
+    else setViewTeamSeasonId(ts.id);
+    setOpen(false);
+    triggerRef.current?.focus();
   };
 
-  const ownTeamSeasonIds = new Set(
-    memberships
-      .filter((membership) => String(membership.role).trim().toLowerCase() !== 'fan')
-      .map((membership) => membership.team_season_id),
-  );
-  const ownTeamSeasons = teamSeasons.filter((ts) => ownTeamSeasonIds.has(ts.id));
-  const favoriteTeamSeasons = teamSeasons.filter((ts) => !ownTeamSeasonIds.has(ts.id));
-  const teamGroups = new Map<string, SessionTeamSeasonItem[]>();
-  for (const ts of teamSeasons) {
-    const key = String(ts.team?.id ?? ts.team_id ?? ts.id);
-    teamGroups.set(key, [...(teamGroups.get(key) ?? []), ts]);
-  }
+  const toggle = (id: string) => {
+    const selected = filtered ? filteredTeamSeasonIds : value && currentSeasons.some((ts) => ts.id === value) ? [value] : [];
+    const next = selected.includes(id) ? selected.filter((sid) => sid !== id) : [...selected, id];
+    if (next.length === 0) return;
+    if (next.length === 1) {
+      setSelectedTeamSeasonId(next[0]);
+      setTeamViewFilter(null);
+    } else {
+      setTeamViewFilter(next);
+    }
+  };
 
-  if (showTeamOnlySwitcher) {
-    if (teamGroups.size <= 1) return null;
-    const current = teamSeasons.find((ts) => ts.id === value);
-    const currentKey = String(current?.team?.id ?? current?.team_id ?? current?.id ?? '');
-    const groups = [...teamGroups.entries()].map(([key, seasons]) => {
-      const preferred = seasons.find((ts) => ts.id === selectedTeamSeasonId)
-        ?? seasons.find((ts) => isSeasonActive(ts.status))
-        ?? seasons.find((ts) => !/archiv/i.test(ts.status ?? ''))
-        ?? seasons[0];
-      return {
-        key,
-        seasonId: preferred.id,
-        label: preferred.team?.name?.trim() || preferred.display_name?.trim() || 'Mannschaft',
-        own: seasons.some((ts) => ownTeamSeasonIds.has(ts.id)),
-      };
+  const toggleOpen = () => {
+    if (open) { setOpen(false); return; }
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = Math.min(360, window.innerWidth - 24);
+    const top = Math.min(rect.bottom + 8, Math.max(12, window.innerHeight - 280));
+    setPosition({
+      top, width, left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
+      maxHeight: Math.max(120, window.innerHeight - top - 24),
     });
-    const selectedGroup = groups.find((group) => group.key === currentKey);
-    return (
-      <label className="relative inline-flex h-8 min-w-[5.75rem] max-w-[7.75rem] shrink-0 items-center justify-center gap-1 rounded-full border border-white/15 bg-black/45 px-2 text-[10px] font-bold text-white/95 shadow-sm sm:max-w-[10rem] sm:px-2.5 sm:text-[11px]">
-        <span className="min-w-0 truncate" aria-hidden>{selectedGroup?.label ?? 'Team wählen'}</span>
-        <span className="shrink-0 text-[9px] text-white/55" aria-hidden>▼</span>
-        <select
-          value={selectedGroup?.seasonId ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          aria-label="Mannschaft wählen"
-        >
-          <optgroup label="Meine Mannschaften">
-            {groups.filter((group) => group.own).map((group) => (
-              <option key={group.key} value={group.seasonId}>{group.label}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Favoriten">
-            {groups.filter((group) => !group.own).map((group) => (
-              <option key={group.key} value={group.seasonId}>{group.label}</option>
-            ))}
-          </optgroup>
-          <option value="__manage_favorites__">＋ Favoriten verwalten</option>
-        </select>
+    setOpen(true);
+  };
+
+  if (teamSeasons.length === 0) return hideWhenSingle ? null : <span className="text-xs text-white/60">Keine Mannschaften</span>;
+  if (hideWhenSingle && teamSeasons.length < 2) return null;
+  // The header needs no extra selector on Home/Termine for a single current season.
+  if (overview && compact && teamSeasons.length <= 1 && !filtered) return null;
+
+  const renderSeason = (ts: SessionTeamSeasonItem, checkboxes: boolean) => {
+    const checked = filtered ? filteredTeamSeasonIds.includes(ts.id) : ts.id === value;
+    const rowClass = `flex min-h-[48px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold leading-snug transition-colors ${checked ? 'sz-club-selected-soft text-white' : 'text-white/85 hover:bg-white/[0.06]'}`;
+    const text = <span className="min-w-0 flex-1">
+      <span className="block [overflow-wrap:anywhere]">{ts.team?.name || ts.display_name || 'Mannschaft'}</span>
+      <span className="mt-0.5 block text-[11px] font-medium text-white/55">{seasonLabel(ts, selectedTeamSeasonId)}</span>
+    </span>;
+    return checkboxes ? (
+      <label key={ts.id} className={rowClass}>
+        {text}
+        <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)}
+          aria-label={`${ts.team?.name || 'Mannschaft'} · ${seasonLabel(ts, selectedTeamSeasonId)}`}
+          className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--club-primary,#ef4444)]" />
       </label>
+    ) : (
+      <button key={ts.id} type="button" onClick={() => selectSingle(ts)} className={rowClass} aria-pressed={checked}>
+        {text}{checked ? <Check className="sz-club-icon h-5 w-5 shrink-0" aria-hidden /> : null}
+      </button>
     );
-  }
+  };
 
-  const options = (
-    <>
-      <option value="">Team wählen</option>
-      {ownTeamSeasons.length > 0 ? (
-        <optgroup label="Meine Mannschaften">
-          {ownTeamSeasons.map((ts) => (
-            <option key={ts.id} value={ts.id}>
-              {labelForTeamSeason(ts, selectedTeamSeasonId)}
-            </option>
-          ))}
-        </optgroup>
-      ) : null}
-      {favoriteTeamSeasons.length > 0 ? (
-        <optgroup label="Favoriten">
-          {favoriteTeamSeasons.map((ts) => (
-            <option key={ts.id} value={ts.id}>
-              {`★ ${labelForTeamSeason(ts, selectedTeamSeasonId)}`}
-            </option>
-          ))}
-        </optgroup>
-      ) : null}
-      <option value="__manage_favorites__">＋ Favoriten verwalten</option>
-    </>
-  );
-
-  if (compact) {
-    const visibleTeamSeason = teamSeasons.find((ts) => ts.id === value);
-
-    return (
-      <label
-        className={[
-          'relative inline-flex h-8 min-w-[5.75rem] shrink-0 items-center justify-center gap-1 rounded-full border border-white/15 bg-black/45 px-2 text-[10px] font-bold text-white/95 shadow-sm sm:min-w-[6.75rem] sm:px-2.5 sm:text-[11px]',
-          className,
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        <span aria-hidden>{compactLabelForTeamSeason(visibleTeamSeason)}</span>
-        <span className="text-[9px] text-white/55" aria-hidden>▼</span>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          aria-label="Team/Saison wählen"
-        >
-          {options}
-        </select>
-      </label>
-    );
-  }
-
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={[
-        'inline-flex max-w-[min(100%,12.5rem)] min-w-0 appearance-none items-center gap-1 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-left text-xs font-medium text-white/90 shadow-sm sm:max-w-xs',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      aria-label="Team/Saison wählen"
-    >
-      {options}
-    </select>
-  );
+  return <>
+    <button ref={triggerRef} type="button" onClick={toggleOpen}
+      aria-label="Mannschaft & Saison wählen" aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
+      className={['sz-club-focus inline-flex min-h-[36px] max-w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-left text-xs font-bold text-white/95 shadow-sm', className].filter(Boolean).join(' ')}>
+      <span className="min-w-0 truncate">{triggerLabel}</span>
+      <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/55 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+    </button>
+    {open && typeof document !== 'undefined' ? createPortal(
+      <div ref={panelRef} id={panelId} role="dialog" aria-label="Mannschaft & Saison" style={{ ...position, position: 'fixed', zIndex: 220 }}
+        className="sz-club-surface overflow-y-auto overscroll-contain rounded-[20px] border border-[var(--club-primary-border,rgba(239,68,68,0.3))] !bg-[#0d0b0d] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
+        <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-2">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">Mannschaft & Saison</h2>
+          <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="min-h-[36px] px-2 text-xs font-bold text-white/75">Fertig</button>
+        </div>
+        {multipleAvailable ? <>
+          <button type="button" onClick={() => { setTeamViewFilter('all'); setOpen(false); triggerRef.current?.focus(); }}
+            aria-pressed={teamViewFilter === 'all'}
+            className={`mb-1 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold ${teamViewFilter === 'all' ? 'sz-club-selected-soft' : 'hover:bg-white/[0.06]'}`}>
+            Alle Mannschaften{teamViewFilter === 'all' ? <Check className="sz-club-icon h-5 w-5" aria-hidden /> : null}
+          </button>
+          <p className="px-3 py-2 text-[11px] text-white/45">Eine oder mehrere aktuelle Mannschaften auswählen.</p>
+        </> : null}
+        {[
+          { label: 'Meine Mannschaften', rows: currentSeasons.filter((ts) => ownIds.has(ts.id)) },
+          { label: 'Favoriten', rows: currentSeasons.filter((ts) => !ownIds.has(ts.id)) },
+        ].map(({ label, rows }) => rows.length ? <section key={label}>
+          <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
+          {rows.map((ts) => renderSeason(ts, multipleAvailable))}
+        </section> : null)}
+        {otherSeasons.length ? <section className="mt-2 border-t border-white/10 pt-2">
+          <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Archiv & Vorbereitung · einzeln anzeigen</p>
+          {otherSeasons.map((ts) => renderSeason(ts, false))}
+        </section> : null}
+        <button type="button" onClick={() => { setOpen(false); navigate('/app/fan-onboarding'); }}
+          className="mt-2 flex min-h-[48px] w-full items-center gap-2 border-t border-white/10 px-3 py-3 text-left text-sm font-bold text-white/85">
+          <Plus className="h-4 w-4 shrink-0" aria-hidden />Favoriten verwalten
+        </button>
+      </div>, document.body,
+    ) : null}
+  </>;
 };
