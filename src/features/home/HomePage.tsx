@@ -499,15 +499,8 @@ export const HomePage: React.FC = () => {
 
       {showContent && (
         <div className="min-w-0 space-y-2">
-          <SectionTitle variant="interactive" as="h2" className="!text-lg sm:!text-xl">
-            Matchday Feed
-          </SectionTitle>
-          <p className={cn(dsSublineClass(), 'text-[12px] sm:text-[13px]')}>{isMultiTeamView ? teamViewFilter === 'all' ? 'Alle aktuellen Mannschaften' : `${filteredTeamSeasonIds.length} Mannschaften ausgewählt` : teamSeasonLine}</p>
-
-          <div className="relative flex min-h-[40px] items-center justify-between gap-3">
-            <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
-              Feed-Filter
-            </SectionTitle>
+<div className="relative flex min-h-[40px] items-center justify-between gap-3">
+            <SectionTitle variant="interactive" as="h2" className="!text-sm sm:!text-lg">Matchday Feed</SectionTitle>
             <button
               type="button"
               onClick={() => setFeedFilterOpen((open) => !open)}
@@ -515,19 +508,19 @@ export const HomePage: React.FC = () => {
                 'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition',
                 feedFilter === 'all'
                   ? 'border-white/10 bg-white/[0.035] text-white/65 hover:bg-white/[0.07]'
-                  : 'border-red-500/45 bg-red-500/12 text-red-300',
+                  : 'border-[rgb(var(--club-border-rgb)/0.45)] bg-[rgb(var(--club-primary-rgb)/0.12)] text-[rgb(var(--club-accent-rgb))]',
               )}
               aria-label="Feed filtern"
               aria-expanded={feedFilterOpen}
             >
               <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
               {feedFilter !== 'all' ? (
-                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#090909]" aria-hidden />
+                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[rgb(var(--club-accent-rgb))] ring-2 ring-[#090909]" aria-hidden />
               ) : null}
             </button>
 
             {feedFilterOpen ? (
-              <div className="absolute right-0 top-11 z-30 w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-red-500/30 bg-[#0d0b0d]/[0.98] p-1.5 shadow-2xl backdrop-blur-xl">
+              <div className="absolute right-0 top-11 z-30 w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-[rgb(var(--club-border-rgb)/0.3)] bg-[#0d0b0d]/[0.98] p-1.5 shadow-2xl backdrop-blur-xl">
                 <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
                   Beiträge anzeigen
                 </p>
@@ -543,17 +536,21 @@ export const HomePage: React.FC = () => {
                       }}
                       className={cn(
                         'flex min-h-[44px] w-full items-center justify-between rounded-xl px-3 text-left text-sm font-semibold transition',
-                        active ? 'bg-red-500/15 text-white' : 'text-white/72 hover:bg-white/[0.06] hover:text-white',
+                        active ? 'bg-[rgb(var(--club-primary-rgb)/0.24)] text-white' : 'text-white/72 hover:bg-white/[0.06] hover:text-white',
                       )}
                     >
                       <span>{option.label}</span>
-                      {active ? <Check className="h-4 w-4 text-red-400" strokeWidth={2.5} aria-hidden /> : null}
+                      {active ? <Check className="sz-club-accent-text h-4 w-4" strokeWidth={2.5} aria-hidden /> : null}
                     </button>
                   );
                 })}
               </div>
             ) : null}
           </div>
+          {isDemoMode ? <p className={cn(dsSublineClass(), 'text-[12px]')}>{teamSeasonLine}</p> : null}
+
+
+          
           <div className="min-w-0 space-y-3">
             {teamSeasonId && teamId && !isHistoryReadOnly && !isMultiTeamView ? (
               <HomeFeedComposer

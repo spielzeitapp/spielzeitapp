@@ -187,7 +187,7 @@ export const Header: React.FC = () => {
         </div>
 
         {!publicView && !isDemo && (teamSeasons?.length ?? 0) > 0 ? (
-          <div className="order-3 flex w-full min-w-0 basis-full justify-start border-t border-white/5 px-1 pb-1 pt-1 md:order-2 md:w-auto md:basis-auto md:justify-center md:border-0 md:py-0">
+          <div className="order-3 flex w-full min-w-0 basis-full justify-start border-t border-white/5 px-1 py-0.5 md:order-2 md:w-auto md:basis-auto md:justify-center md:border-0 md:py-0">
             <TeamSwitcher compact />
           </div>
         ) : null}
