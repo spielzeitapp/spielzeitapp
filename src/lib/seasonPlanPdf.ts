@@ -4,7 +4,7 @@
  */
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import brandLogoHeader from '../assets/branding/spielzeitapp-header.png';
+import { drawPdfBranding, PDF_BRAND_ICON_URL, PDF_BRAND_WORDMARK_URL } from './pdfBranding';
 import {
   drawOefbEncounterCell,
   drawVenueHierarchyCell,
@@ -279,7 +279,10 @@ export async function downloadSeasonPlanPdf(
       (await loadImageDataUrl(ourLogoUrl)) ||
       (await loadImageDataUrl(getOurTeamLogoUrl())) ||
       (await loadImageDataUrl(PLACEHOLDER_LOGO));
-    const brandLogoData = await loadImageDataUrl(opts.brandLogoUrl || brandLogoHeader);
+    const brandLogoData = opts.brandLogoUrl ? await loadImageDataUrl(opts.brandLogoUrl) : null;
+    const [brandIconData, brandWordmarkData] = await Promise.all([
+      loadImageDataUrl(PDF_BRAND_ICON_URL), loadImageDataUrl(PDF_BRAND_WORDMARK_URL),
+    ]);
     const placeholderData = await loadImageDataUrl(PLACEHOLDER_LOGO);
 
     const oppLogoCache = new Map<string, string | null>();
@@ -326,7 +329,8 @@ export async function downloadSeasonPlanPdf(
 
     const brandH = 10;
     const brandW = 42;
-    safeAddImage(doc, brandLogoData, pageW - margin - brandW, y + 2, brandW, brandH);
+    if (brandLogoData) safeAddImage(doc, brandLogoData, pageW - margin - brandW, y + 2, brandW, brandH);
+    else drawPdfBranding(doc, brandIconData, brandWordmarkData, pageW - margin - brandW, y + 2, brandW, brandH);
 
     y += headerLogo + 6;
 
