@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { drawPdfBranding, PDF_BRAND_ICON_URL, PDF_BRAND_WORDMARK_URL } from './pdfBranding';
+import { drawPdfBranding, PDF_BRAND_ICON_URL, loadPdfWordmarkData } from './pdfBranding';
 import type { ChampionshipFixture } from './championshipFixtures';
 import { formatVisibleMatchEncounter } from './oefbTeamNameNormalize';
 import {
@@ -485,7 +485,7 @@ export async function downloadChampionshipSchedulePdf(opts: {
       (await loadImageDataUrl(PLACEHOLDER_LOGO));
     const brandLogoData = opts.brandLogoUrl ? await loadImageDataUrl(opts.brandLogoUrl) : null;
     const [brandIconData, brandWordmarkData] = await Promise.all([
-      loadImageDataUrl(PDF_BRAND_ICON_URL), loadImageDataUrl(PDF_BRAND_WORDMARK_URL),
+      loadImageDataUrl(PDF_BRAND_ICON_URL), loadPdfWordmarkData(),
     ]);
     const placeholderData = await loadImageDataUrl(PLACEHOLDER_LOGO);
 
