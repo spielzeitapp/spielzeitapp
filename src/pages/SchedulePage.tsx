@@ -1490,6 +1490,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   }, [teamIcsFeedUrl]);
 
 
+  const toolbarActionClass = 'sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-[var(--radius-btn)] border px-3 text-[12px] font-bold no-underline disabled:cursor-not-allowed disabled:opacity-40';
+
   return (
     <div
       className="page schedule-page relative scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))]"
@@ -1540,10 +1542,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                     </button>
                   ) : null}
                 </div>
-                <div className={`${managerSimpleMode ? 'hidden' : 'mt-1.5 flex'} max-w-full flex-col gap-1.5`}>
-                  <div className={`inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1 text-xs sm:text-sm ${dsSublineClass()}`} role="note">
-                    <span className="min-w-0">{teamSeasonSubtitle}</span>
-                  </div>
+                <div className={`${managerSimpleMode || !(forcePublicView || isDemo || isMultiTeamView || isHistoryReadOnly) ? 'hidden' : 'mt-1.5 flex'} max-w-full flex-col gap-1.5`}>
+                  {forcePublicView || isDemo ? (
+                    <p className={dsSublineClass()}>{teamSeasonSubtitle}</p>
+                  ) : null}
                   {isMultiTeamView ? <p className="text-[11px] text-white/50">Gemeinsame Übersicht · zum Bearbeiten eine einzelne Mannschaft wählen.</p> : null}
                   {isHistoryReadOnly ? (
                     <p className="text-[11px] text-amber-200/90">{softLockMessage}</p>
@@ -1554,7 +1556,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                 {!forcePublicView && normalizedUiRole !== 'fan' && !managerSimpleMode ? (
                   <Link
                     to={internalPath(basePath, '/spielplan')}
-                    className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-[14px] border px-3 text-[12px] font-semibold no-underline sm:h-10"
+                    className={toolbarActionClass}
                     title="Spielplan"
                     aria-label="Spielplan öffnen"
                   >
@@ -1565,24 +1567,24 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                 {isDemo || canShowCalendarActions ? (
                   <button
                     type="button"
-                    className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-[14px] border px-3 text-[12px] font-semibold sm:h-10"
+                    className={toolbarActionClass}
                     title="Kalender abonnieren"
                     onClick={() => setCalendarSheetOpen(true)}
                   >
                     <CalendarPlus className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-                    <span className="sm:hidden">Abo</span>
-                    <span className="hidden sm:inline">Kalender abonnieren</span>
+                    <span>Abo</span>
                   </button>
                 ) : null}
                 <button
                   type="button"
                   disabled={isMultiTeamView}
                   onClick={() => navigate(internalPath(basePath, '/termine/calendar'))}
-                  className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] w-11 shrink-0 items-center justify-center rounded-[14px] border sm:h-10 sm:w-10"
+                  className={toolbarActionClass}
                   aria-label={isMultiTeamView ? 'Kalenderansicht: zuerst eine einzelne Mannschaft wählen' : 'Kalenderansicht'}
                   title={isMultiTeamView ? 'Zuerst eine einzelne Mannschaft wählen' : 'Kalenderansicht'}
                 >
                   <CalendarDays className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                  <span>Kalender</span>
                 </button>
               </div>
             </div>
