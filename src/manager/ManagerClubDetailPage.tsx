@@ -10,7 +10,6 @@ import type { SessionTeamSeasonItem } from '../auth/useSession';
 import {
   adminAssignClubAdmin,
   adminAssignTeamSeasonStaff,
-  adminCreateTeam,
   adminEnsureTeamSeason,
   adminInviteTeamStaffByEmail,
   adminListTeamStaffInvites,
@@ -34,6 +33,8 @@ import {
   formatClubTeamOptionLabel,
   formatTeamSeasonContextLabel,
 } from '../lib/seasonLifecycle';
+import { ManagerSetupChecklist } from './ManagerSetupChecklist';
+import { createSetupTeam, type SetupKey } from '../lib/managerSetup';
 import { ManagerClubVenueGrantsPanel } from './ManagerClubVenueGrantsPanel';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import { ClubBrandingFields } from './ClubBrandingFields';
@@ -87,6 +88,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
   const [teamName, setTeamName] = useState('');
   const [teamAge, setTeamAge] = useState('U12');
+  const [setupSeasonId, setSetupSeasonId] = useState(() => new URLSearchParams(window.location.search).get('setupSeason') ?? '');
   const [seasonTeamId, setSeasonTeamId] = useState('');
   const [newSeasonName, setNewSeasonName] = useState('2026/27');
   const [seasonName, setSeasonName] = useState('2026/27');
@@ -135,10 +137,13 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
   useEffect(() => {
     if (!detail) return;
+    if (!setupSeasonId || !detail.team_seasons.some(s => s.id === setupSeasonId)) {
+      setSetupSeasonId((detail.team_seasons.find(s => s.status === 'active') ?? detail.team_seasons[0])?.id ?? '');
+    }
     if (!seasonTeamId && detail.teams[0]) setSeasonTeamId(detail.teams[0].id);
     if (!staffTeamSeasonId && detail.team_seasons[0]) setStaffTeamSeasonId(detail.team_seasons[0].id);
     if (!grantTeamSeasonId && detail.team_seasons[0]) setGrantTeamSeasonId(detail.team_seasons[0].id);
-  }, [detail, seasonTeamId, staffTeamSeasonId, grantTeamSeasonId]);
+  }, [detail, setupSeasonId, seasonTeamId, staffTeamSeasonId, grantTeamSeasonId]);
 
   const reloadStaffInvites = useCallback(async (teamSeasonId: string) => {
     const result = await adminListTeamStaffInvites(teamSeasonId);
@@ -197,30 +202,14 @@ export function ManagerClubDetailPage(): React.ReactElement {
     setError(null);
     setSuccess(null);
     try {
-      // Both existing RPCs are idempotent. Retrying after a partial failure
-      // resumes with the same team instead of creating another one.
-      const team = await adminCreateTeam({ clubId, name: teamName.trim(), ageGroup: teamAge.trim() });
-      if (team.error || !team.data?.team_id) {
-        setError(team.error ?? 'Mannschaft konnte nicht angelegt werden.');
-        return;
-      }
-      setSeasonTeamId(team.data.team_id);
-      const season = await adminEnsureTeamSeason({
-        teamId: team.data.team_id,
-        seasonName: newSeasonName.trim(),
-        status: 'active',
-        ageGroup: teamAge.trim(),
-      });
-      if (season.error || !season.data?.team_season_id) {
-        await reload();
-        setError(`Mannschaft gespeichert, Saison noch nicht verbunden: ${season.error ?? 'Unbekannter Fehler'}. Du kannst denselben Schritt erneut speichern.`);
-        return;
-      }
-      const teamSeasonId = String(season.data.team_season_id);
-      setStaffTeamSeasonId(teamSeasonId);
-      setGrantTeamSeasonId(teamSeasonId);
+      const result = await createSetupTeam({ clubId, name: teamName.trim(), ageGroup: teamAge.trim(), seasonName: newSeasonName.trim() });
+      if (result.error || !result.data) { setError(result.error ?? 'Mannschaft konnte nicht angelegt werden.'); return; }
+      setSeasonTeamId(result.data.team_id);
+      setSetupSeasonId(result.data.team_season_id);
+      setStaffTeamSeasonId(result.data.team_season_id);
+      setGrantTeamSeasonId(result.data.team_season_id);
       setTeamName('');
-      setSuccess(`${team.data.status === 'exists' ? 'Vorhandene Mannschaft verwendet' : 'Mannschaft angelegt'} · Saison ${newSeasonName.trim()} ${season.data.status === 'exists' ? 'bereits vorhanden' : 'angelegt'}. Als Nächstes kannst du Kader und Trainer ergänzen.`);
+      setSuccess(`${result.data.status === 'exists' ? 'Diese Mannschaftssaison ist bereits vorhanden' : 'Neue Mannschaft und Saison angelegt'}. Im Assistenten kannst du jetzt die Einrichtung fortsetzen.`);
       await reload();
     } finally {
       setBusy(false);
@@ -326,7 +315,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
     setSuccess(`${module.name} wurde ${module.enabled ? 'deaktiviert' : 'aktiviert'}.`);
   }
 
-  function startClubSupport() {
+  function startClubSupport(seasonId?: string, initialPath?: string) {
     if (!detail || detail.team_seasons.length === 0) return;
     const supportTeamSeasons = detail.team_seasons.map((season) => ({
       id: season.id,
@@ -340,13 +329,33 @@ export function ManagerClubDetailPage(): React.ReactElement {
       season: { id: season.id, name: season.season_name ?? 'Saison' },
       seasons: { id: season.id, name: season.season_name ?? 'Saison' },
     })) as unknown as SessionTeamSeasonItem[];
-    const initial = detail.team_seasons.find((season) => season.status === 'active') ?? detail.team_seasons[0];
+    const initial = detail.team_seasons.find(season => season.id === seasonId) ?? detail.team_seasons.find((season) => season.status === 'active') ?? detail.team_seasons[0];
     startSupportSession({
       clubId: detail.id,
       clubName: detail.name,
       teamSeasons: supportTeamSeasons,
       initialTeamSeasonId: initial.id,
+      initialPath,
+      returnPath: `/manager/vereine/${detail.id}?setupSeason=${initial.id}#manager-setup-checklist`,
     });
+  }
+
+  function setupAction(key: SetupKey, id: string) {
+    const anchors: Partial<Record<SetupKey, string>> = { club: 'club-basics', team: id ? 'club-structure-summary' : 'club-team-season-setup', season: 'club-season-summary', staff: 'club-trainer-setup', venues: 'club-venue-setup' };
+    if (key === 'staff') setStaffTeamSeasonId(id);
+    if (key === 'venues') setGrantTeamSeasonId(id);
+    const anchor = anchors[key];
+    if (anchor) { document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    const paths: Partial<Record<SetupKey, string>> = {
+      roster: `/manager/saisons/${id}/kader`, access: `/manager/saisons/${id}/zugaenge`,
+      matches: `/manager/saisons/${id}/oefb-import`, training: '/manager/termine', review: '/app/home',
+    };
+    if (paths[key]) startClubSupport(id, paths[key]);
+  }
+
+  function setupTeamLabel(team: { id: string; name: string }) {
+    const season = detail?.team_seasons.find(s => s.team_id === team.id && s.status === 'active');
+    return season ? formatTeamSeasonContextLabel({ teamName: team.name, ageGroup: season.age_group, seasonName: season.season_name }) : formatClubTeamOptionLabel(team.name);
   }
 
   const deps = detail?.dependencies;
@@ -372,7 +381,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
         {detail?.status === 'active' ? (
           <button
             type="button"
-            onClick={startClubSupport}
+            onClick={() => startClubSupport()}
             disabled={detail.team_seasons.length === 0}
             className="mt-3 inline-flex min-h-[42px] items-center gap-2 rounded-full bg-slate-900 px-4 text-[13px] font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
             title={detail.team_seasons.length === 0 ? 'Zuerst eine Mannschaft mit Saison anlegen.' : undefined}
@@ -398,11 +407,12 @@ export function ManagerClubDetailPage(): React.ReactElement {
         <p className="text-[14px] text-slate-600">{loading ? 'Laden…' : 'Verein nicht gefunden.'}</p>
       ) : (
         <>
+          <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={setSetupSeasonId} onAction={setupAction} />
           {detail.status === 'active' ? (
             <form id="club-team-season-setup" onSubmit={onCreateTeamSeason} className="rounded-2xl border border-red-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <p className="text-[11px] font-bold uppercase tracking-wide text-red-700">Einrichtung · Schritt 2</p>
               <h2 className="mt-1 text-[17px] font-semibold text-slate-900">Mannschaft und Saison anlegen</h2>
-              <p className="mt-1 text-[13px] text-slate-600">Die Mannschaft wird diesem Verein zugeordnet. Die Saison wird direkt mit ihr verbunden und aktiviert.</p>
+              <p className="mt-1 text-[13px] text-slate-600">Eine zusätzliche Mannschaft anlegen, z. B. U13 neben U12. Sie bekommt eine eigene Saisonzuordnung. Für den Saisonwechsel einer bestehenden Mannschaft nutze „Weitere Saison“ unten.</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <label className="text-[13px] font-medium text-slate-700">Mannschaftsname *
                   <input required value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="z. B. SPG Rohrbach" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
@@ -420,6 +430,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
             </form>
           ) : null}
           <form
+            id="club-basics"
             onSubmit={onSave}
             className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
           >
@@ -546,7 +557,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
             ) : null}
           </section>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div id="club-structure-summary" className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <h2 className="text-[16px] font-semibold text-slate-900">Mannschaften</h2>
               {detail.teams.length === 0 ? (
@@ -554,13 +565,13 @@ export function ManagerClubDetailPage(): React.ReactElement {
               ) : (
                 <ul className="mt-2 space-y-1 text-[13px] text-slate-800">
                   {detail.teams.map((t) => (
-                    <li key={t.id}>{formatClubTeamOptionLabel(t.name)}</li>
+                    <li key={t.id}>{setupTeamLabel(t)}</li>
                   ))}
                 </ul>
               )}
             </section>
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <h2 className="text-[16px] font-semibold text-slate-900">Saisonen</h2>
+              <h2 id="club-season-summary" className="text-[16px] font-semibold text-slate-900">Saisonen</h2>
               {detail.team_seasons.length === 0 ? (
                 <p className="mt-2 text-[13px] text-slate-600">Keine Saisonen.</p>
               ) : (
@@ -568,8 +579,8 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   {detail.team_seasons.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
                       <span>{seasonContextLabel(s)}</span>
-                      <Link to={`/manager/saisons/${encodeURIComponent(s.id)}/kader`} className="font-semibold text-red-700 hover:underline">Kader</Link>
-                      <Link to={`/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`} className="font-semibold text-red-700 hover:underline">ÖFB-Spiele</Link>
+                      <button type="button" onClick={() => startClubSupport(s.id, `/manager/saisons/${encodeURIComponent(s.id)}/kader`)} className="font-semibold text-red-700 hover:underline">Kader</button>
+                      <button type="button" onClick={() => startClubSupport(s.id, `/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`)} className="font-semibold text-red-700 hover:underline">ÖFB-Spiele</button>
                     </li>
                   ))}
                 </ul>
@@ -627,6 +638,12 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!seasonTeamId || !seasonName.trim()) return;
+                  const existing = detail.team_seasons.find(s => s.team_id === seasonTeamId && s.season_name?.trim() === seasonName.trim());
+                  if (existing && existingSeasonAge.trim() && existing.age_group?.toUpperCase() !== existingSeasonAge.trim().toUpperCase()) {
+                    setError('Diese Saison existiert bereits mit einer anderen Altersklasse. Für eine zusätzliche Mannschaft nutze den Schritt Mannschaft und Saison anlegen.');
+                    return;
+                  }
+                  if (existing?.status === 'archived') { setError('Eine archivierte Saison wird hier nicht wieder aktiviert. Bitte eine neue Saison wählen.'); return; }
                   void run(async () => {
                     const res = await adminEnsureTeamSeason({
                       teamId: seasonTeamId,
@@ -647,7 +664,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   <option value="">Mannschaft wählen…</option>
                   {detail.teams.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {formatClubTeamOptionLabel(t.name)}
+                      {setupTeamLabel(t)}
                     </option>
                   ))}
                 </select>
@@ -739,6 +756,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   }, 'Trainer der Mannschaft zugeordnet.');
                 }}
               >
+                <span id="club-trainer-setup" className="scroll-mt-24" />
                 <p className="text-[13px] font-semibold text-slate-800">Trainer zuordnen oder einladen</p>
                 <p className="text-[12px] text-slate-500">
                   Bestehende Konten direkt zuordnen oder neue Trainer per E-Mail einladen.
@@ -819,6 +837,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
             </div>
           </section>
 
+          <div id="club-venue-setup" className="scroll-mt-24">
           <ManagerClubVenueGrantsPanel
             teamSeasons={detail.team_seasons.map((s) => ({
               id: s.id,
@@ -831,8 +850,10 @@ export function ManagerClubDetailPage(): React.ReactElement {
             onBusyError={(err, ok) => {
               setError(err);
               setSuccess(ok ?? null);
+              if (ok) window.dispatchEvent(new Event('manager-setup-changed'));
             }}
           />
+          </div>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <h2 className="text-[16px] font-semibold text-slate-900">Aktionen</h2>

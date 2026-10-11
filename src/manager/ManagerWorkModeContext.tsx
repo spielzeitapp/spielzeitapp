@@ -33,6 +33,7 @@ import { adminLogSupportAccess } from '../lib/platformClubAdmin';
 export type ManagerSupportSession = {
   clubId: string;
   clubName: string;
+  returnPath?: string;
   teamSeasons: SessionTeamSeasonItem[];
 };
 
@@ -52,7 +53,7 @@ type ManagerWorkModeContextValue = {
   switchToTrainer: () => void;
   adminSwitchButtonLabel: string;
   supportSession: ManagerSupportSession | null;
-  startSupportSession: (input: ManagerSupportSession & { initialTeamSeasonId: string }) => void;
+  startSupportSession: (input: ManagerSupportSession & { initialTeamSeasonId: string; initialPath?: string }) => void;
   endSupportSession: () => void;
 };
 
@@ -139,9 +140,9 @@ export function ManagerWorkModeProvider({
   }, [workMode, supportSession, teamSeasons, trainerTeamSeasons]);
 
   const startSupportSession = useCallback(
-    (input: ManagerSupportSession & { initialTeamSeasonId: string }) => {
+    (input: ManagerSupportSession & { initialTeamSeasonId: string; initialPath?: string }) => {
       if (!availableModes.includes('platform_admin')) return;
-      const { initialTeamSeasonId, ...session } = input;
+      const { initialTeamSeasonId, initialPath, ...session } = input;
       setSupportSession(session);
       setWorkModeState('platform_admin');
       if (authUser?.id) writeStoredWorkMode(authUser.id, 'platform_admin');
@@ -152,7 +153,7 @@ export function ManagerWorkModeProvider({
         action: 'support_started',
         teamSeasonId: initialTeamSeasonId,
       });
-      navigate('/manager');
+      navigate(initialPath ?? '/manager');
     },
     [availableModes, authUser?.id, navigate, setSelectedTeamSeasonId, setViewTeamSeasonId],
   );
@@ -167,7 +168,7 @@ export function ManagerWorkModeProvider({
     }
     setSupportSession(null);
     setViewTeamSeasonId(null);
-    navigate('/manager/plattform', { replace: true });
+    navigate(supportSession?.returnPath ?? '/manager/plattform', { replace: true });
   }, [navigate, selectedTeamSeasonId, setViewTeamSeasonId, supportSession]);
 
   const applyTrainerTeamSeason = useCallback(

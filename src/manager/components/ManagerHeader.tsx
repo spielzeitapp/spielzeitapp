@@ -274,7 +274,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             onClick={endSupportSession}
             className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-slate-900/20 bg-white/70 px-3 font-semibold hover:bg-white"
           >
-            <X className="h-3.5 w-3.5" aria-hidden /> Support beenden
+            <X className="h-3.5 w-3.5" aria-hidden /> {supportSession.returnPath ? 'Zur Einrichtung zurück' : 'Support beenden'}
           </button>
         </div>
       ) : null}
