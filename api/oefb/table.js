@@ -27,19 +27,22 @@ function extractTable(html) {
 }
 
 module.exports = async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   const id = String(req.query?.id ?? '').trim();
   if (!/^\d{1,10}$/.test(id)) return res.status(400).json({ error: 'Ungültige Bewerbsnummer.' });
   const sourceUrl = `https://www.oefb.at/bewerbe/Bewerb/${id}`;
   try {
     const upstream = await fetch(sourceUrl, {
+      cache: 'no-store',
       headers: { Accept: 'text/html', 'User-Agent': 'SpielzeitApp/1.0 (+table-view)' },
       signal: AbortSignal.timeout(12000),
     });
     if (!upstream.ok) return res.status(502).json({ error: `ÖFB antwortete mit HTTP ${upstream.status}.` });
     const result = extractTable(await upstream.text());
     if (result.error) return res.status(502).json(result);
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
     return res.status(200).json({ ...result, sourceUrl, updatedAt: new Date().toISOString() });
   } catch {
     return res.status(502).json({ error: 'Die ÖFB-Tabelle ist derzeit nicht erreichbar.' });

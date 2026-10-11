@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 type TableRow = {
   rank: number; team: string; played: number; won: number; drawn: number; lost: number;
@@ -13,28 +13,48 @@ export const OefbCompetitionTable: React.FC<{ competitionId: string; sourceUrl: 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const refresh = useCallback(async (signal?: AbortSignal) => {
+  const request = useRef<AbortController | null>(null);
+  const lastRefresh = useRef(0);
+
+  const refresh = useCallback(async () => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    const signal = controller.signal;
+    lastRefresh.current = Date.now();
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/oefb/table?id=${encodeURIComponent(competitionId)}`, {
+      const response = await fetch(`/api/oefb/table?id=${encodeURIComponent(competitionId)}&refresh=${Date.now()}`, {
         cache: 'no-store', signal,
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Tabelle konnte nicht geladen werden.');
-      if (!signal?.aborted) setTable(data as TableResponse);
+      if (!signal.aborted) setTable(data as TableResponse);
     } catch (cause) {
-      if (!signal?.aborted) setError(cause instanceof Error ? cause.message : 'Tabelle konnte nicht geladen werden.');
+      if (!signal.aborted) setError(cause instanceof Error ? cause.message : 'Tabelle konnte nicht geladen werden.');
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [competitionId]);
 
   useEffect(() => {
     setTable(null);
-    const controller = new AbortController();
-    void refresh(controller.signal);
-    return () => controller.abort();
+    void refresh();
+    const refreshWhenVisible = () => {
+      // Visibility + focus often fire together when returning to a PWA.
+      if (document.visibilityState === 'visible' && Date.now() - lastRefresh.current > 1000) void refresh();
+    };
+    const refreshWhenOnline = () => { if (document.visibilityState === 'visible') void refresh(); };
+    window.addEventListener('focus', refreshWhenVisible);
+    window.addEventListener('online', refreshWhenOnline);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      request.current?.abort();
+      window.removeEventListener('focus', refreshWhenVisible);
+      window.removeEventListener('online', refreshWhenOnline);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, [refresh]);
 
   return (
@@ -46,7 +66,8 @@ export const OefbCompetitionTable: React.FC<{ competitionId: string; sourceUrl: 
           {loading ? 'Lade…' : 'Aktualisieren'}
         </button>
       </div>
-      {error ? <p role="alert" className="text-sm text-amber-200">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-amber-200">{error}{table ? ' Angezeigt wird der zuletzt geladene Stand.' : ' Bitte prüfe deine Verbindung.'}</p> : null}
+      <p className="text-xs text-white/50" role="status">{loading && table ? 'ÖFB-Stand wird aktualisiert…' : 'Wird beim Öffnen und bei Rückkehr zur App automatisch aktualisiert.'}</p>
       {table ? (
         <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/25">
           <table className="w-full min-w-[370px] text-xs tabular-nums text-white sm:text-sm">
