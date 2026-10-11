@@ -90,9 +90,13 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     return isHome ? { left: our, right: opp } : { left: opp, right: our };
   }, [p.our_team_name, p.opponent_name, p.is_home, teamLabel, liveEvent]);
 
-  const { backendRole, membershipRole } = useSession();
+  const { backendRole, membershipRole, teamSeasons } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
   const basePath = useInternalBasePath();
+  const postTeamSeason = teamSeasons.find((season) => season.id === p.team_season_id);
+  const posterAgeGroup = pickFeedAgeGroup(postTeamSeason?.age_group ?? '',
+    postTeamSeason?.team.age_group ?? '', teamLabel, seasonLabel ?? '', p.our_team_name ?? '')
+    || (basePath === '/demo' ? 'U12' : '');
   const eventStatus = linkedEventStatus ?? liveEvent?.status ?? 'upcoming';
 
   const gameHref = useMemo(
@@ -163,7 +167,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
           <LineupPosterArtwork
             left={vsTeams?.left ?? { name: teamLabel, logo: getClubLogo(teamLabel) }}
             right={vsTeams?.right ?? { name: p.opponent_name || "Gegner", logo: getClubLogo(p.opponent_name || "Gegner") }}
-            ageGroup={pickFeedAgeGroup(teamLabel, p.our_team_name ?? "", p.opponent_name ?? "") || ""}
+            ageGroup={posterAgeGroup}
             formation={p.formation}
             players={displayPlayers}
             bench={benchPlayers}
