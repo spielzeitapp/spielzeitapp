@@ -1,39 +1,25 @@
-import { LineupPosterArtwork } from './LineupPosterArtwork';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { LineupFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { matchFeedCtaLabel, resolveMatchGameHref } from '../../lib/matchFeedLink';
-import type { LineupFeedPlayer } from '../../lib/lineupFeedTypes';
-import {
-  lineupFeedDisplayPlayerName,
-  lineupFeedDisplayPositionAbbrev,
-} from '../../lib/lineupFeedTypes';
+import { lineupFeedDisplayPlayerName } from '../../lib/lineupFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getClubLogo } from '../../lib/teamLogos';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
-import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
-import { FeedClubName } from './FeedClubName';
-import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
+import { pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import {
   FEED_POST_BODY_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
-  FeedFormationBadge,
   FeedGameCtaLink,
-  FeedLineupMetaIcon,
-  FeedMatchMetaBadge,
   FeedPostActionsFooter,
   FeedPostHeader,
   FeedPostTypeBadge,
-  FeedSectionHeader,
   FeedStandardActions,
-  FeedStadiumHeroBackdrop,
-  FEED_HERO_TITLE_CLASS,
   FEED_STADIUM_ARTICLE_SHADOW,
-  FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { useSession } from '../../auth/useSession';
@@ -41,6 +27,7 @@ import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
+import { LineupPosterArtwork } from './LineupPosterArtwork';
 
 type Props = {
   post: LineupFeedPostRow;
@@ -53,22 +40,8 @@ type Props = {
   onFeedPostUpdated?: () => void;
 };
 
-/** 8 statt 7: FairPlay-Formationen haben einen Zusatzspieler (FP-Slot). */
-const MAX_DISPLAY_PLAYERS = 8;
-
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
-}
-
-/** Badge-Inhalt: Rückennummer, sonst Positions-Kürzel (Slot), sonst Strich. */
-function lineupBadgeLabel(pl: LineupFeedPlayer): string {
-  const jersey = pl.jersey_number;
-  if (typeof jersey === 'number' && Number.isFinite(jersey) && jersey > 0) {
-    return String(Math.trunc(jersey));
-  }
-  const slot = (pl.slot ?? '').trim().toUpperCase();
-  if (slot) return slot;
-  return '–';
 }
 
 export const LineupFeedPostCard: React.FC<Props> = ({
@@ -94,7 +67,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
   }, [post.id]);
 
   const displayPlayers = useMemo(
-    () => p.lineup_players.slice(0, MAX_DISPLAY_PLAYERS),
+    () => p.lineup_players,
     [p.lineup_players],
   );
 
@@ -116,15 +89,6 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     };
     return isHome ? { left: our, right: opp } : { left: opp, right: our };
   }, [p.our_team_name, p.opponent_name, p.is_home, teamLabel, liveEvent]);
-
-  const lineupMetaLine = useMemo(
-    () =>
-      buildFeedMatchMetaLine(
-        pickFeedAgeGroup(teamLabel, p.our_team_name ?? '', p.opponent_name ?? liveEvent?.opponent ?? ''),
-        getMatchTypeLabel(liveEvent?.match_type ?? undefined) || null,
-      ),
-    [teamLabel, p.our_team_name, p.opponent_name, liveEvent?.opponent, liveEvent?.match_type],
-  );
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
@@ -194,99 +158,21 @@ export const LineupFeedPostCard: React.FC<Props> = ({
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-2`}>
         {post.media_url?.trim() ? (
           <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Aufstellungsbild" />
-        ) : basePath === '/demo' ? (
-          <> <LineupPosterArtwork left={vsTeams?.left ?? { name: teamLabel, logo: getClubLogo(teamLabel) }} right={vsTeams?.right ?? { name: p.opponent_name || 'Gegner', logo: getClubLogo(p.opponent_name || 'Gegner') }} ageGroup={pickFeedAgeGroup(teamLabel, p.our_team_name ?? '', p.opponent_name ?? '') || ''} formation={p.formation} players={displayPlayers} bench={benchPlayers} /> <div className="mt-3"><FeedGameCtaLink to={gameHref}>Zum Spiel</FeedGameCtaLink></div></>
         ) : (
-        <div data-whatsapp-status-poster className={FEED_STADIUM_HERO_SHELL_CLASS}>
-          <FeedStadiumHeroBackdrop />
-
-          <div className="relative min-w-0 space-y-3">
-            <div className="text-center">
-              <p className={FEED_HERO_TITLE_CLASS}>Spieltag</p>
-            </div>
-
-            <FeedMatchMetaBadge line={lineupMetaLine} leadingIcon={<FeedLineupMetaIcon />} />
-
-            {p.formation ? (
-              <div className="flex justify-center">
-                <FeedFormationBadge formation={p.formation} />
-              </div>
-            ) : null}
-
-            {vsTeams ? (
-              <div className={FEED_MATCH_GRID_CLASS}>
-                <div className={FEED_MATCH_TEAM_COL_CLASS}>
-                  <FeedMatchLogoBlock src={vsTeams.left.logo} alt={`${vsTeams.left.name} Logo`} />
-                  <FeedClubName fullName={vsTeams.left.name} variant="compact" className="w-full px-0.5" />
-                </div>
-                <span className="sz-club-feed-accent-text -skew-x-6 shrink-0 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] sm:text-[1.75rem]">
-                  VS
-                </span>
-                <div className={FEED_MATCH_TEAM_COL_CLASS}>
-                  <FeedMatchLogoBlock src={vsTeams.right.logo} alt={`${vsTeams.right.name} Logo`} />
-                  <FeedClubName fullName={vsTeams.right.name} variant="compact" className="w-full px-0.5" />
-                </div>
-              </div>
-            ) : null}
-
-            <div className="sz-club-feed-inset rounded-2xl border px-1.5 py-2 backdrop-blur-md sm:px-2.5 sm:py-3">
-              <FeedSectionHeader icon="👕" label="Startaufstellung" />
-              <ul className="space-y-1">
-                {displayPlayers.map((pl, index) => {
-                  const name = lineupFeedDisplayPlayerName(pl);
-                  const positionAbbrev = lineupFeedDisplayPositionAbbrev(pl);
-                  return (
-                    <li
-                      key={`${pl.player_id ?? index}-${pl.slot ?? index}`}
-                      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-x-2.5 sm:px-2.5"
-                    >
-                      <span className="sz-club-feed-number-badge inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-black tabular-nums sm:h-7 sm:w-7 sm:text-[11px]">
-                        {lineupBadgeLabel(pl)}
-                      </span>
-                      {name ? (
-                        <span className="min-w-0 break-words text-[12px] font-bold leading-snug text-white sm:text-[13.5px]">
-                          {name}
-                        </span>
-                      ) : (
-                        <span className="min-w-0 break-words text-[11px] italic leading-snug text-white/45 sm:text-[12px]">
-                          nicht benannt
-                        </span>
-                      )}
-                      <span className="sz-club-feed-accent-text w-7 shrink-0 text-right text-[10px] font-bold tabular-nums tracking-wide sm:w-8 sm:text-[11px]">
-                        {positionAbbrev}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            {benchPlayers.length > 0 ? (
-              <div className="sz-club-feed-inset rounded-2xl border px-1.5 py-2 backdrop-blur-md sm:px-2.5 sm:py-3">
-                <FeedSectionHeader icon="🪑" label="Ersatzbank" />
-                <ul className="space-y-1">
-                  {benchPlayers.map((pl, index) => (
-                    <li
-                      key={`${pl.player_id ?? index}-bench`}
-                      className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-x-2.5 sm:px-2.5"
-                    >
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/45 text-[10px] font-black tabular-nums text-white/85 sm:h-7 sm:w-7 sm:text-[11px]">
-                        {lineupBadgeLabel(pl)}
-                      </span>
-                      <span className="min-w-0 break-words text-[12px] font-semibold leading-snug text-white/90 sm:text-[13px]">
-                        {lineupFeedDisplayPlayerName(pl)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <div className="pt-1">
-              <FeedGameCtaLink to={gameHref}>{matchFeedCtaLabel(eventStatus)}</FeedGameCtaLink>
-            </div>
-          </div>
-        </div>
+        <>
+          <LineupPosterArtwork
+            left={vsTeams?.left ?? { name: teamLabel, logo: getClubLogo(teamLabel) }}
+            right={vsTeams?.right ?? { name: p.opponent_name || "Gegner", logo: getClubLogo(p.opponent_name || "Gegner") }}
+            ageGroup={pickFeedAgeGroup(teamLabel, p.our_team_name ?? "", p.opponent_name ?? "") || ""}
+            formation={p.formation}
+            players={displayPlayers}
+            bench={benchPlayers}
+            matchType={getMatchTypeLabel(liveEvent?.match_type ?? undefined)}
+            startsAt={liveEvent?.starts_at ?? p.starts_at}
+            location={liveEvent?.location}
+          />
+          <div className="mt-3"><FeedGameCtaLink to={gameHref}>{matchFeedCtaLabel(eventStatus)}</FeedGameCtaLink></div>
+        </>
         )}
 
         {post.caption?.trim() ? (
