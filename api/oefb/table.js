@@ -27,6 +27,7 @@ function extractTable(html) {
 }
 
 module.exports = async function handler(req, res) {
+  if (req.query?.view === 'results') return require('../_lib/oefbCompetitionResults.js')(req, res);
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.setHeader('CDN-Cache-Control', 'no-store');
   res.setHeader('Vercel-CDN-Cache-Control', 'no-store');

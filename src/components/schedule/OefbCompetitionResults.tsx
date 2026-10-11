@@ -23,7 +23,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/oefb/results?id=${encodeURIComponent(competitionId)}&round=${round}&refresh=${Date.now()}`, { cache: 'no-store', signal: controller.signal });
+      const response = await fetch(`/api/oefb/table?view=results&id=${encodeURIComponent(competitionId)}&round=${round}&refresh=${Date.now()}`, { cache: 'no-store', signal: controller.signal });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Ergebnisse konnten nicht geladen werden.');
       if (!controller.signal.aborted) { setData(result); setRounds(result.rounds); }
