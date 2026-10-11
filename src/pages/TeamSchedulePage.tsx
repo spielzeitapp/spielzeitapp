@@ -46,6 +46,7 @@ import {
 import { dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
+import { OefbCompetitionResults } from '../components/schedule/OefbCompetitionResults';
 import { OefbCompetitionTable } from '../components/schedule/OefbCompetitionTable';
 import { getOefbTableSettings, type OefbTableSettings } from '../lib/oefbTableSettings';
 
@@ -117,7 +118,7 @@ export const TeamSchedulePage: React.FC = () => {
   const [catalogLogoMap, setCatalogLogoMap] = useState<Map<string, string>>(new Map());
   const [pdfBusy, setPdfBusy] = useState<'champ' | 'season' | 'filtered' | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  const [showTable, setShowTable] = useState(false);
+  const [competitionView, setCompetitionView] = useState<'schedule' | 'table' | 'results'>('schedule');
   const [tableSettings, setTableSettings] = useState<OefbTableSettings | null>(null);
   const loadRequestId = useRef(0);
 
@@ -217,7 +218,7 @@ export const TeamSchedulePage: React.FC = () => {
       loadRequestId.current += 1;
       setLoading(false);
       setTableSettings(null);
-      setShowTable(false);
+      setCompetitionView('schedule');
       setFixtures([]);
       setSeasonRows([]);
       setVenueOptions([]);
@@ -418,15 +419,17 @@ export const TeamSchedulePage: React.FC = () => {
       <SectionTitle subtitle={subtitle || undefined}>{headerTitle}</SectionTitle>
 
       {tableCompetitionId ? (
-        <div className="flex gap-2" role="tablist" aria-label="Meisterschaftsansicht">
-          <button type="button" role="tab" aria-selected={!showTable} onClick={() => setShowTable(false)}
-            className={cn(chipBase, !showTable ? chipActive : chipIdle)}>Spielplan</button>
-          <button type="button" role="tab" aria-selected={showTable} onClick={() => setShowTable(true)}
-            className={cn(chipBase, showTable ? chipActive : chipIdle)}>Tabelle</button>
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Meisterschaftsansicht">
+          {([{ id: 'schedule', label: 'Spielplan' }, { id: 'table', label: 'Tabelle' }, { id: 'results', label: 'Liga-Ergebnisse' }] as const).map((tab) => (
+            <button key={tab.id} type="button" role="tab" aria-selected={competitionView === tab.id} onClick={() => setCompetitionView(tab.id)}
+              className={cn(chipBase, competitionView === tab.id ? chipActive : chipIdle)}>{tab.label}</button>
+          ))}
         </div>
       ) : null}
 
-      {showTable && tableSettings ? (
+      {competitionView === 'results' && tableSettings ? (
+        <OefbCompetitionResults competitionId={tableSettings.competitionId} ourTeam={tableSettings.teamName} />
+      ) : competitionView === 'table' && tableSettings ? (
         <OefbCompetitionTable competitionId={tableSettings.competitionId} sourceUrl={tableSettings.sourceUrl} ourTeam={tableSettings.teamName} />
       ) : <>
 
