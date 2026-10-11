@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 import { TeamSwitcher } from '../components/TeamSwitcher';
-import { isStagingApp } from '../../lib/appEnvironment';
+import { TestEnvironmentNotice } from '../../components/TestEnvironmentNotice';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
 import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
@@ -21,14 +21,6 @@ function AppHeaderBrand({ compactDemo = false }: { compactDemo?: boolean }) {
         iconClassName={compactDemo ? 'h-11 w-11 max-[399px]:h-9 max-[399px]:w-9 sm:h-12 sm:w-12' : 'h-11 w-11 sm:h-12 sm:w-12'}
         wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] max-[359px]:hidden sm:w-[9.1rem]' : 'w-[7.8rem] max-[359px]:hidden sm:w-[9.1rem]'}
       />
-      {isStagingApp() ? (
-        <span
-          className="shrink-0 rounded border border-amber-400/45 bg-amber-950/55 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-100"
-          title="Testumgebung — nicht die Live-App"
-        >
-          TEST
-        </span>
-      ) : null}
     </span>
   );
 }
@@ -150,6 +142,7 @@ export const Header: React.FC = () => {
 
   return (
     <header ref={headerRef} className="app-header fixed left-0 top-0 w-full border-b border-transparent bg-[rgba(6,6,8,0.88)] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65),inset_0_-1px_0_rgba(255,30,30,0.05)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[rgba(6,6,8,0.72)]">
+      <TestEnvironmentNotice />
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[radial-gradient(ellipse_70%_100%_at_18%_0%,rgba(255,30,30,0.07),transparent_68%)]"
         aria-hidden
