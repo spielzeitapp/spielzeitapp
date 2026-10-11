@@ -5,23 +5,17 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import type { SessionTeamSeasonItem } from '../../auth/useSession';
 import {
-  formatTeamSeasonCompactSwitcherLabel,
+  formatTeamSeasonContextLabel,
   isSeasonActive,
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 
 function seasonLabel(ts: SessionTeamSeasonItem, activeId: string | null): string {
-  return formatTeamSeasonCompactSwitcherLabel(
-    { displayName: ts.display_name, ageGroup: ts.age_group, teamName: ts.team?.name, seasonName: ts.season?.name, status: ts.status },
-    { markArchived: true, markCurrent: ts.id === activeId || isSeasonActive(ts.status) },
-  );
+  return [ts.season?.name, isSeasonActive(ts.status) ? 'Aktuell' : ts.status === 'draft' ? 'In Vorbereitung' : 'Archiv'].filter(Boolean).join(' · ');
 }
 
 function compactLabel(ts: SessionTeamSeasonItem | undefined): string {
-  const raw = ts?.display_name ?? ts?.team?.name ?? '';
-  const age = ts?.age_group?.trim().toUpperCase() || raw.match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase();
-  const season = ts?.season?.name?.trim() || raw.match(/\b20\d{2}\/\d{2}\b/)?.[0];
-  return [age, season].filter(Boolean).join(' · ') || ts?.team?.name || 'Mannschaft wählen';
+  return ts ? formatTeamSeasonContextLabel({ displayName: ts.display_name, ageGroup: ts.age_group, teamName: ts.team?.name, seasonName: ts.season?.name, status: ts.status }, { markArchived: true }) : 'Mannschaft wählen';
 }
 
 export type TeamSwitcherProps = {
@@ -54,7 +48,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const ownIds = new Set(memberships.filter((m) => String(m.role).trim().toLowerCase() !== 'fan').map((m) => m.team_season_id));
   const triggerLabel = filtered
     ? teamViewFilter === 'all' ? 'Alle Mannschaften' : `${filteredTeamSeasonIds.length} Mannschaften`
-    : compact ? compactLabel(current) : current || teamSeasons[0] ? seasonLabel(current ?? teamSeasons[0], selectedTeamSeasonId) : 'Mannschaft wählen';
+    : compactLabel(current ?? teamSeasons[0]);
 
   React.useEffect(() => {
     setOpen(false);
@@ -126,14 +120,14 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     const checked = filtered ? filteredTeamSeasonIds.includes(ts.id) : ts.id === value;
     const rowClass = `flex min-h-[48px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold leading-snug transition-colors ${checked ? 'sz-club-selected-soft text-white' : 'text-white/85 hover:bg-white/[0.06]'}`;
     const text = <span className="min-w-0 flex-1">
-      <span className="block [overflow-wrap:anywhere]">{ts.team?.name || ts.display_name || 'Mannschaft'}</span>
+      <span className="block [overflow-wrap:anywhere]">{formatTeamSeasonContextLabel({ displayName: ts.display_name, ageGroup: ts.age_group, teamName: ts.team?.name, seasonName: ts.season?.name }, { includeSeason: false })}</span>
       <span className="mt-0.5 block text-[11px] font-medium text-white/55">{seasonLabel(ts, selectedTeamSeasonId)}</span>
     </span>;
     return checkboxes ? (
       <label key={ts.id} className={rowClass}>
         {text}
         <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)}
-          aria-label={`${ts.team?.name || 'Mannschaft'} · ${seasonLabel(ts, selectedTeamSeasonId)}`}
+          aria-label={compactLabel(ts)}
           className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--club-primary,#ef4444)]" />
       </label>
     ) : (

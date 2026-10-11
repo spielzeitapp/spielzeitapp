@@ -5,6 +5,7 @@ import { useSession } from '../../auth/useSession';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { formatManagerEventDate, ManagerMobilePageTitle } from './ManagerMobileUi';
 import { useManagerMobileEvents } from './useManagerMobileEvents';
+import { formatTeamSeasonContextLabel } from '../../lib/seasonLifecycle';
 
 export function ManagerMobileTeamsPage(): React.ReactElement {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export function ManagerMobileTeamsPage(): React.ReactElement {
       <div className="space-y-3">
         {contextTeamSeasons.map((team) => {
           const next = nextByTeam.get(team.id);
-          const label = team.display_name?.trim() || team.age_group?.trim() || team.team?.name?.trim() || 'Mannschaft';
+          const label = formatTeamSeasonContextLabel({ teamName: team.team?.name, ageGroup: team.age_group, displayName: team.display_name, seasonName: team.season?.name, status: team.status }, { includeSeason: false, markArchived: true });
           const date = next ? formatManagerEventDate(next.starts_at) : null;
           return (
             <section key={team.id} className="rounded-2xl border border-white/[0.09] bg-gradient-to-br from-[#171719] to-[#0b0b0d] p-4">

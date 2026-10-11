@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import {
   getSeasonStatusLabel,
+  formatTeamSeasonContextLabel,
   normalizeTeamSeasonStatus,
   type TeamSeasonLifecycleStatus,
 } from './seasonLifecycle';
@@ -63,9 +64,7 @@ function rowToCard(row: TeamSeasonRow, preparedFromLabel: string | null): Season
   const season = pickJoin(row.seasons);
   const teamName = team?.name?.trim() || null;
   const seasonName = season?.name?.trim() || null;
-  const displayName =
-    row.display_name?.trim() ||
-    (teamName && seasonName ? `${teamName} · ${seasonName}` : teamName || seasonName || 'Saison');
+  const displayName = formatTeamSeasonContextLabel({ teamName, seasonName, ageGroup: row.age_group, displayName: row.display_name });
 
   const status = normalizeTeamSeasonStatus(row.status);
   const seasonPhase = normalizeSeasonPhase(row.season_phase);
