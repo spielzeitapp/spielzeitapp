@@ -8,7 +8,7 @@ const { renderToStaticMarkup } = require('react-dom/server');
 const { MemoryRouter } = require('react-router-dom');
 
 async function bundle(entry, plugins = []) {
-  const result = await build({ entryPoints: [entry], bundle: true, platform: 'node', format: 'cjs', write: false, packages: 'external', jsx: 'transform', tsconfigRaw: { compilerOptions: { jsx: 'react' } }, plugins });
+  const result = await build({ entryPoints: [entry], bundle: true, platform: 'node', format: 'cjs', write: false, packages: 'external', jsx: 'transform', define: { 'import.meta.env.BASE_URL': '"/"' }, tsconfigRaw: { compilerOptions: { jsx: 'react' } }, plugins });
   const mod = { exports: {} };
   new Function('require', 'module', 'exports', result.outputFiles[0].text)(require, mod, mod.exports);
   return mod.exports;
@@ -66,6 +66,7 @@ try {
   };
   let html = render();
   assert(html.includes('Mannschaft &amp; Saison'));
+  assert(html.includes('aria-modal="true"'));
   assert(html.includes('Alle Mannschaften'));
   assert(html.includes('type="checkbox"'));
   assert(!html.includes('<select'));

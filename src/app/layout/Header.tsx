@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
@@ -60,6 +60,25 @@ const APP_PROFILE = '/app/profile';
 const APP_LOGIN_REDIRECT = '/login';
 
 export const Header: React.FC = () => {
+  const headerRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const element = headerRef.current;
+    if (!element) return;
+    const root = document.documentElement;
+    const previous = root.style.getPropertyValue('--app-header-offset');
+    const measure = () => root.style.setProperty('--app-header-offset', `${Math.ceil(element.getBoundingClientRect().height)}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+      if (previous) root.style.setProperty('--app-header-offset', previous);
+      else root.style.removeProperty('--app-header-offset');
+    };
+  }, []);
+
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const demo = useDemoMode();
@@ -130,14 +149,14 @@ export const Header: React.FC = () => {
   }, [isStaff, isDemo]);
 
   return (
-    <header className="app-header fixed left-0 top-0 w-full border-b border-transparent bg-[rgba(6,6,8,0.88)] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65),inset_0_-1px_0_rgba(255,30,30,0.05)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[rgba(6,6,8,0.72)]">
+    <header ref={headerRef} className="app-header fixed left-0 top-0 w-full border-b border-transparent bg-[rgba(6,6,8,0.88)] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65),inset_0_-1px_0_rgba(255,30,30,0.05)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[rgba(6,6,8,0.72)]">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[radial-gradient(ellipse_70%_100%_at_18%_0%,rgba(255,30,30,0.07),transparent_68%)]"
         aria-hidden
       />
-      <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl items-center justify-between gap-1 px-2 py-0.5 sm:gap-2 sm:px-3 md:px-8 md:py-1">
+      <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl flex-wrap items-center justify-between gap-x-1 gap-y-1 md:flex-nowrap px-2 py-0.5 sm:gap-2 sm:px-3 md:px-8 md:py-1">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home bzw. /demo/home) */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden max-[359px]:flex-none max-[359px]:gap-1 sm:gap-2.5">
+        <div className="order-1 flex min-w-0 flex-1 items-center gap-2 overflow-hidden max-[359px]:flex-none max-[359px]:gap-1 sm:gap-2.5">
           {pathname.startsWith('/app') || isDemo ? (
             <Link
               to={isDemo ? '/demo/home' : '/app/home'}
@@ -169,14 +188,14 @@ export const Header: React.FC = () => {
         </div>
 
         {!publicView && !isDemo && (teamSeasons?.length ?? 0) > 0 ? (
-          <div className="flex min-w-0 shrink justify-center px-1 max-[359px]:flex-1 max-[359px]:px-0">
+          <div className="order-3 flex w-full min-w-0 basis-full justify-start border-t border-white/5 px-1 py-0.5 md:order-2 md:w-auto md:basis-auto md:justify-center md:border-0 md:py-0">
             <TeamSwitcher compact />
           </div>
         ) : null}
 
         {/* Rechts: Staff / Demo-Trainer-Chrome (gleiche Höhe wie App) */}
         {!publicView && (
-          <div className="flex shrink-0 flex-col items-end justify-center gap-0.5">
+          <div className="order-2 flex shrink-0 flex-col items-end justify-center gap-0.5 md:order-3">
             <div className="flex items-center gap-1.5 sm:gap-2">
               {isDemo ? (
                 <>

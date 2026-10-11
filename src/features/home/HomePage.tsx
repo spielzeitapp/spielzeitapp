@@ -499,44 +499,8 @@ export const HomePage: React.FC = () => {
 
       {showContent && (
         <div className="min-w-0 space-y-2">
-          <SectionTitle variant="interactive" as="h2" className="!text-lg sm:!text-xl">
-            Matchday Feed
-          </SectionTitle>
-          <p className={cn(dsSublineClass(), 'text-[12px] sm:text-[13px]')}>{isMultiTeamView ? teamViewFilter === 'all' ? 'Alle aktuellen Mannschaften' : `${filteredTeamSeasonIds.length} Mannschaften ausgewählt` : teamSeasonLine}</p>
-
-          <div className="min-w-0 space-y-3">
-            {teamSeasonId && teamId && !isHistoryReadOnly && !isMultiTeamView ? (
-              <HomeFeedComposer
-                backendRole={isDemoMode ? 'trainer' : backendRole}
-                membershipRole={isDemoMode ? 'trainer' : membershipRole}
-                teamSeasonId={teamSeasonId}
-                teamId={teamId}
-                userId={isDemoMode ? 'demo-trainer' : session?.user?.id ?? null}
-                onPosted={() => void refetchFeed()}
-                demoMode={isDemoMode}
-              />
-            ) : null}
-            {isMultiTeamView ? <p className="rounded-lg border border-white/10 px-3 py-2 text-[12px] text-white/60">Gemeinsamer Feed · zum Erstellen oder Bearbeiten eine einzelne Mannschaft wählen.</p> : null}
-            {isHistoryReadOnly && !isMultiTeamView ? (
-              <p className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100/95">
-                Archiv-Ansicht — Feed nur lesen. Aktive Saison bleibt zum Schreiben unverändert.
-              </p>
-            ) : null}
-
-            {spieltagHintPick ? (
-              <div className={isDemoMode ? '-mx-1 sm:-mx-2 md:mx-0' : undefined}>
-                <HomeSpieltagHintCard
-                  pick={spieltagHintPick}
-                  reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
-                />
-              </div>
-            ) : null}
-
-            <section className="min-w-0 space-y-3 pt-2 sm:pt-1" aria-label="Aktueller Team-Feed">
-              <div className="relative flex min-h-[40px] items-center justify-between gap-3">
-                <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
-                  Im Feed
-                </SectionTitle>
+<div className="relative flex min-h-[40px] items-center justify-between gap-3">
+                <SectionTitle variant="interactive" as="h2" className="!text-sm sm:!text-lg">Matchday Feed</SectionTitle>
                 <button
                   type="button"
                   onClick={() => setFeedFilterOpen((open) => !open)}
@@ -544,7 +508,7 @@ export const HomePage: React.FC = () => {
                     'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition',
                     feedFilter === 'all'
                       ? 'border-white/10 bg-white/[0.035] text-white/65 hover:bg-white/[0.07]'
-                      : 'sz-club-accent-control',
+                      : 'border-[rgb(var(--club-border-rgb)/0.45)] bg-[rgb(var(--club-primary-rgb)/0.12)] text-[rgb(var(--club-accent-rgb))]',
                   )}
                   aria-label="Feed filtern"
                   aria-expanded={feedFilterOpen}
@@ -583,6 +547,39 @@ export const HomePage: React.FC = () => {
                   </div>
                 ) : null}
               </div>
+          {isDemoMode ? <p className={cn(dsSublineClass(), 'text-[12px]')}>{teamSeasonLine}</p> : null}
+
+
+          <div className="min-w-0 space-y-3">
+            {teamSeasonId && teamId && !isHistoryReadOnly && !isMultiTeamView ? (
+              <HomeFeedComposer
+                backendRole={isDemoMode ? 'trainer' : backendRole}
+                membershipRole={isDemoMode ? 'trainer' : membershipRole}
+                teamSeasonId={teamSeasonId}
+                teamId={teamId}
+                userId={isDemoMode ? 'demo-trainer' : session?.user?.id ?? null}
+                onPosted={() => void refetchFeed()}
+                demoMode={isDemoMode}
+              />
+            ) : null}
+            {isMultiTeamView ? <p className="rounded-lg border border-white/10 px-3 py-2 text-[12px] text-white/60">Gemeinsamer Feed · zum Erstellen oder Bearbeiten eine einzelne Mannschaft wählen.</p> : null}
+            {isHistoryReadOnly && !isMultiTeamView ? (
+              <p className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100/95">
+                Archiv-Ansicht — Feed nur lesen. Aktive Saison bleibt zum Schreiben unverändert.
+              </p>
+            ) : null}
+
+            {spieltagHintPick ? (
+              <div className={isDemoMode ? '-mx-1 sm:-mx-2 md:mx-0' : undefined}>
+                <HomeSpieltagHintCard
+                  pick={spieltagHintPick}
+                  reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
+                />
+              </div>
+            ) : null}
+
+            <section className="min-w-0 space-y-3 pt-2 sm:pt-1" aria-label="Aktueller Team-Feed">
+              
               {teamFeedError ? (
                 <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
                   <p className="text-sm text-white/70">{teamFeedError}</p>
