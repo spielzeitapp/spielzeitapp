@@ -3,6 +3,7 @@ import { CalendarDays, CalendarPlus, ClipboardList, Pencil, Radio, Trash2 } from
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
+import { DemoCalendarSubscription } from '../demo/components/DemoCalendarSubscription';
 import { AppButton } from '../components/ui/AppButton';
 import { CreateEventModal } from '../app/components/CreateEventModal';
 import type { AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
@@ -1573,9 +1574,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                 </div>
               </div>
               <div className={`${managerSimpleMode ? 'hidden' : 'flex'} w-full min-w-0 flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:justify-end`}>
-                {!forcePublicView && normalizedUiRole !== 'fan' && !isDemo && !managerSimpleMode ? (
+                {!forcePublicView && normalizedUiRole !== 'fan' && !managerSimpleMode ? (
                   <Link
-                    to="/app/spielplan"
+                    to={internalPath(basePath, '/spielplan')}
                     className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-[14px] border px-3 text-[12px] font-semibold no-underline sm:h-10"
                     title="Spielplan"
                     aria-label="Spielplan öffnen"
@@ -1584,7 +1585,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                     <span>Spielplan</span>
                   </Link>
                 ) : null}
-                {canShowCalendarActions ? (
+                {isDemo || canShowCalendarActions ? (
                   <button
                     type="button"
                     className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-[14px] border px-3 text-[12px] font-semibold sm:h-10"
@@ -2180,7 +2181,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
           />
 
           <Modal
-            isOpen={calendarSheetOpen}
+            isOpen={!isDemo && calendarSheetOpen}
             title="Kalender abonnieren"
             onClose={() => setCalendarSheetOpen(false)}
             footer={
@@ -2257,6 +2258,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
             </div>
           </Modal>
 
+          <DemoCalendarSubscription open={isDemo && calendarSheetOpen} onClose={() => setCalendarSheetOpen(false)} />
           <Modal
             isOpen={calendarGuideKind !== null}
             title={calendarGuideKind === 'google' ? 'Google Kalender' : 'FamilyWall'}
