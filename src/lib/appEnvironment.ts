@@ -16,6 +16,11 @@ export function getAppDeployEnv(): AppDeployEnv {
     .toLowerCase();
   if (raw === 'staging' || raw === 'test') return 'staging';
   if (raw === 'production' || raw === 'prod') return 'production';
+  // Some Test deployments omit VITE_APP_ENV. Do not classify them as Live.
+  if (raw === '') {
+    const testHost = typeof window !== 'undefined' && window.location.hostname.toLowerCase() === 'app.spielzeitapp.at';
+    if (testHost || supabaseUrlLooksLikeStaging(import.meta.env.VITE_SUPABASE_URL)) return 'staging';
+  }
   if (import.meta.env.PROD && raw === '') return 'production';
   return 'development';
 }
