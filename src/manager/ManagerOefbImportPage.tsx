@@ -331,7 +331,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     setTableError(null);
     setTableNotice(null);
     if (!parseOefbCompetitionUrl(tableUrl) || !tableTeamName.trim()) {
-      setTableError('Bitte einen ÖFB-Bewerbslink und den eigenen Mannschaftsnamen eingeben.');
+      setTableError('Bitte den Bewerbslink verwenden (https://www.oefb.at/bewerbe/Bewerb/…), nicht den Vereinslink mit /Tabellen. Den eigenen Mannschaftsnamen ebenfalls angeben.');
       return;
     }
     setTableBusy(true);

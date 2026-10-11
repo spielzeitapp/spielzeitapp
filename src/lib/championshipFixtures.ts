@@ -564,6 +564,13 @@ export async function importOefbChampionshipFixtures(opts: {
         .select('id')
         .maybeSingle());
     }
+    if (insErr && opts.insertOnly && /row-level security/i.test(insErr.message)) {
+      const fallback = await supabase.rpc('admin_import_oefb_fixture', { p_team_season_id: opts.teamSeasonId, p_fixture: insertPayload });
+      if (fallback.error) return { inserted, updated, skippedProtected, skippedExisting, error: fallback.error.message };
+      if (fallback.data?.existing) { skippedExisting += 1; continue; }
+      insertedRow = { id: String(fallback.data?.id ?? '') };
+      insErr = null;
+    }
     if (insErr) {
       if (isMissingColumnError(insErr.message)) {
         return { inserted, updated, skippedProtected, skippedExisting, error: migrationHint() };
