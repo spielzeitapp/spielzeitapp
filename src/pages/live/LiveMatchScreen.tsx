@@ -975,7 +975,7 @@ export const LiveMatchScreen: React.FC = () => {
   );
   const canControlLiveMatch =
     isDemo ||
-    String(backendRole ?? '').trim().toLowerCase() === 'admin' ||
+    (!matchMembershipRole && String(backendRole ?? '').trim().toLowerCase() === 'admin') ||
     matchMembershipRole === 'trainer' ||
     matchMembershipRole === 'admin';
 

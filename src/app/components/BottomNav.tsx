@@ -5,6 +5,7 @@ import { useSession } from '../../auth/useSession';
 import { normalizeRole } from '../../lib/roles';
 import { useAppHasLiveMatch, useAppLiveMatchState } from '../../hooks/useAppHasLiveMatch';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { useCompetition } from './CompetitionContext';
 import { useDemoMode } from '../../demo/DemoContext';
 
 /** Gleicher Name wie in LiveMatchScreen — kein Import aus der Page (Bundle). */
@@ -146,14 +147,16 @@ export const BottomNav: React.FC = () => {
   const { user } = useAuth();
   const { effectiveRole } = useSession();
   const demo = useDemoMode();
+  const { settings: competitionSettings } = useCompetition();
   const unreadCount = useUnreadCount(user?.id);
   const feedUnreadCount = useUnreadCount(user?.id, 'feed');
   const termineNavLabel = normalizeRole(effectiveRole) === 'fan' ? 'Spielplan' : 'Termine';
   const isDemo = Boolean(demo) || pathname.startsWith('/demo');
-  const appTabsResolved =
-    termineNavLabel === 'Termine'
-      ? appTabs
-      : appTabs.map((t) => (t.to === '/app/termine' ? { ...t, label: termineNavLabel } : t));
+  const appTabsResolved = appTabs.map((tab) => {
+    if (tab.to === '/app/termine') return { ...tab, label: termineNavLabel };
+    if (tab.to === '/app/mehr' && competitionSettings) return { ...tab, to: '/app/tabelle', label: 'Tabelle', iconFile: 'table.svg' };
+    return tab;
+  });
   const tabs = isDemo
     ? demoTabs
     : pathname.startsWith('/app')

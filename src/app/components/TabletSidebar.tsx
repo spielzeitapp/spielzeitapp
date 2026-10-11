@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, CalendarDays, Users, Radio, Grid2x2 } from 'lucide-react';
+import { Home, CalendarDays, Users, Radio, Grid2x2, Table2 } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { normalizeRole } from '../../lib/roles';
+import { useCompetition } from './CompetitionContext';
 import { useDemoMode } from '../../demo/DemoContext';
 
 const appItems = [
@@ -24,10 +25,11 @@ const demoItems = [
 export const TabletSidebar: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
   const { pathname } = useLocation();
   const demo = useDemoMode();
+  const { settings: competitionSettings } = useCompetition();
   const isDemo = Boolean(demo) || pathname.startsWith('/demo');
   const { effectiveRole } = useSession();
   const termineLabel = normalizeRole(effectiveRole) === 'fan' ? 'Spielplan' : 'Termine';
-  const baseItems = isDemo ? demoItems : appItems;
+  const baseItems: readonly { to: string; label: string; icon: typeof Home; end?: boolean }[] = isDemo ? demoItems : appItems.flatMap<{ to: string; label: string; icon: typeof Home; end?: boolean }>((item) => item.to === '/app/mehr' && competitionSettings ? [{ to: '/app/tabelle', label: 'Tabelle', icon: Table2, end: true }, item] : [item]);
   const navItems = useMemo(
     () =>
       baseItems.map((item) =>

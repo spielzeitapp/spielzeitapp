@@ -63,7 +63,7 @@ function isTrainerToolsRole(role: string): boolean {
 function showMehrHubDebugButtons(backendRole: string, effectiveRole: string): boolean {
   const br = (backendRole ?? '').trim().toLowerCase();
   const er = (effectiveRole ?? '').trim().toLowerCase();
-  if (br === 'admin') return true;
+  if (br === 'admin' && er !== 'fan') return true;
   if (er === 'trainer') return true;
   return false;
 }
@@ -142,9 +142,8 @@ export const MoreHubPage: React.FC = () => {
   const showTrainerToolsSection = showTrainerTools || showPlatzbelegung;
   const showSeasonManagement =
     !isDemo &&
-    (backendRole === 'admin' ||
+    (normalizeRole(effectiveRole) === 'admin' ||
       canPrepareNextSeason(effectiveRole) ||
-      canPrepareNextSeason(backendRole) ||
       isTrainerToolsRole(effectiveRole));
   /** Rollen-Vorschau: nur echte Plattformadmin-Rolle aus user_roles, nie Preview/Membership. */
   const showPreviewLink = !isDemo && isPlatformAdminBackendRole(backendRole);

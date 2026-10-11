@@ -1,10 +1,12 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import { Bell, MoreHorizontal } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
+import { useCompetition } from '../components/CompetitionContext';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { TeamSwitcher } from '../components/TeamSwitcher';
 import { TestEnvironmentNotice } from '../../components/TestEnvironmentNotice';
 import { useDemoMode } from '../../demo/DemoContext';
@@ -84,6 +86,8 @@ export const Header: React.FC = () => {
     teamSeasons,
   } = useSession();
   const { user, loading: authLoading } = useAuth();
+  const { settings: competitionSettings } = useCompetition();
+  const unreadCount = useUnreadCount(user?.id);
   const publicView = isPublicRoute(pathname);
   const isRoleChoice = pathname === '/app/role-choice';
   const roleLabel =
@@ -279,6 +283,12 @@ export const Header: React.FC = () => {
                         <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
                       </Link>
                     </>
+                  ) : null}
+                  {!isDemo && competitionSettings && pathname.startsWith('/app') ? (
+                    <Link to="/app/mehr" className={`${dsGlassIconButtonClass()} relative`} aria-label={unreadCount > 0 ? `Mehr · ${unreadCount} ungelesene Nachrichten` : 'Mehr'} title="Mehr – Einstellungen und weitere Bereiche">
+                      <MoreHorizontal className="h-[1.1rem] w-[1.1rem]" aria-hidden />
+                      {unreadCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
+                    </Link>
                   ) : null}
                   {authLoading || !user ? null : (
                     <div className="flex flex-col items-end gap-0.5">

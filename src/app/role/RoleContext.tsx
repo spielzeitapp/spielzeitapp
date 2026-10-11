@@ -61,9 +61,13 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setRoleState(getUiRole());
   }, []);
 
+  // Membership roles update synchronously on a team switch, before any effect runs.
+  const activeRole = sessionLoading ? 'viewer' : memberships.length > 0
+    ? effectiveRoleToUiRole(effectiveRole, backendRole, true) : role;
+
   const value = useMemo<RoleContextValue>(
     () => ({
-      role,
+      role: activeRole,
       setRole,
       clearDevUiRole,
       getBackendRole,
@@ -71,7 +75,7 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       canEditSchedule,
       canUseLiveControls,
     }),
-    [role, setRole, clearDevUiRole],
+    [activeRole, setRole, clearDevUiRole],
   );
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;

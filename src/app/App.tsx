@@ -6,6 +6,8 @@ import { IntroAppOutlet } from './intro/IntroAppOutlet';
 import { IntroEntryRedirect } from './intro/IntroEntryRedirect';
 import { SplashScreen } from './intro/SplashScreen';
 import { WelcomeScreen } from './intro/WelcomeScreen';
+import { CompetitionProvider } from './components/CompetitionContext';
+import { CompetitionPage } from '../pages/CompetitionPage';
 import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { useViewportRecovery } from '../hooks/useViewportRecovery';
@@ -306,6 +308,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
         <Route path="table" element={<TablePage />} />
         <Route path="spielplan" element={<TeamSchedulePage />} />
+        <Route path="tabelle" element={<CompetitionPage />} />
         <Route path="mehr" element={<MoreLayout />}>
           <Route index element={<MorePage />} />
           <Route path="trainer/team-push" element={<TrainerTeamPushPage />} />
@@ -451,7 +454,7 @@ export default function App({ isInternalDomain }: AppProps): React.ReactElement 
   return (
     <AppErrorBoundary>
       <RoleProvider>
-        {isInternalDomain ? <InternalRoutes /> : <PublicRoutes />}
+        <CompetitionProvider>{isInternalDomain ? <InternalRoutes /> : <PublicRoutes />}</CompetitionProvider>
       </RoleProvider>
     </AppErrorBoundary>
   );

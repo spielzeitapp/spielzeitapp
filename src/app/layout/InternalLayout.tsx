@@ -54,6 +54,7 @@ function isAppShellTabPath(pathname: string): boolean {
     '/app/team',
     '/app/live',
     '/app/mehr',
+    '/app/tabelle',
   ] as const;
   return prefixes.some((p) => clean === p || clean.startsWith(`${p}/`));
 }

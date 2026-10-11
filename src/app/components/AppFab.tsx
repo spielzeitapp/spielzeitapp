@@ -9,15 +9,13 @@ import { useSession } from '../../auth/useSession';
 export const AppFab: React.FC = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { backendRole, effectiveRole } = useSession();
-  const staff =
-    backendRole === 'admin' ||
-    backendRole === 'trainer' ||
-    effectiveRole === 'trainer' ||
-    effectiveRole === 'admin';
+  const { effectiveRole, selectedTeamSeasonId, viewTeamSeasonId } = useSession();
+  const staff = (effectiveRole === 'trainer' || effectiveRole === 'admin') &&
+    (!viewTeamSeasonId || viewTeamSeasonId === selectedTeamSeasonId);
 
   if (!staff) return null;
 
+  if (pathname === '/app/tabelle') return null;
   if (pathname === '/app/home') return null;
   if (pathname === '/app/nachrichten' || pathname.startsWith('/app/nachrichten/')) return null;
   if (pathname === '/app/team' || pathname.startsWith('/app/team/')) return null;

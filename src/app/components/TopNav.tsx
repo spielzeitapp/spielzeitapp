@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
+import { useCompetition } from './CompetitionContext';
 import { useDemoMode } from '../../demo/DemoContext';
 
 const publicLinks = [
@@ -29,10 +30,11 @@ export const TopNav: React.FC = () => {
   const { pathname } = useLocation();
   const { role } = useSession();
   const demo = useDemoMode();
+  const { settings: competitionSettings } = useCompetition();
   const isDemo = Boolean(demo) || pathname.startsWith('/demo');
   const isApp = pathname.startsWith('/app');
   const isAdmin = !isDemo && (role ?? '').toString().toLowerCase() === 'admin';
-  const links = isDemo ? demoLinks : isApp ? appLinks : publicLinks;
+  const links = isDemo ? demoLinks : isApp ? appLinks.flatMap((link) => link.to === '/app/mehr' && competitionSettings ? [{ to: '/app/tabelle', label: 'Tabelle' }, link] : [link]) : publicLinks;
 
   return (
     <nav className="flex sticky top-0 z-40 w-full bg-[rgba(11,11,15,0.9)] border-b border-[var(--border)] backdrop-blur">

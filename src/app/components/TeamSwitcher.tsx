@@ -92,7 +92,10 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
 
   const selectSingle = (ts: SessionTeamSeasonItem) => {
     setTeamViewFilter(null);
-    if (resolveTeamSeasonSwitcherAction(ts.status) === 'select-work') setSelectedTeamSeasonId(ts.id);
+    if (resolveTeamSeasonSwitcherAction(ts.status) === 'select-work') {
+      setSelectedTeamSeasonId(ts.id);
+      if (ts.id !== selectedTeamSeasonId && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
+    }
     else setViewTeamSeasonId(ts.id);
     setOpen(false);
     triggerRef.current?.focus();
@@ -104,6 +107,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     if (next.length === 0) return;
     if (next.length === 1) {
       setSelectedTeamSeasonId(next[0]);
+      if (next[0] !== selectedTeamSeasonId && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
       setTeamViewFilter(null);
     } else {
       setTeamViewFilter(next);
