@@ -15,15 +15,15 @@ export interface ScheduleTeamMeta {
 export const SCHEDULE_TEAMS: ScheduleTeamMeta[] = [
   {
     id: 'u11a',
-    label: 'U11 A – SPG Rohrbach',
+    label: 'SPG Rohrbach · U11 A',
     shortName: 'SPG Rohrbach',
-    fullName: 'SPG Rohrbach U11 A',
+    fullName: 'SPG Rohrbach · U11 A',
   },
   {
     id: 'u12',
-    label: 'U12 – SPG Rohrbach',
+    label: 'SPG Rohrbach · U12',
     shortName: 'SPG Rohrbach U12',
-    fullName: 'SPG Rohrbach U12',
+    fullName: 'SPG Rohrbach · U12',
   },
 ];
 

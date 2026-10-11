@@ -702,7 +702,7 @@ export function ManagerTrainingExamPanel({
                     onChange={(event) => updateItemLocal(item.id, { team_name_override: event.target.value })}
                     onBlur={() => void saveItemMetadata(item.id)}
                     className="mt-1 min-h-[42px] w-full rounded-xl border border-slate-200 px-3 text-[13px] font-normal text-slate-950"
-                    placeholder="z. B. U11 SPG Rohrbach"
+                    placeholder="z. B. SPG Rohrbach · U12 · 2026/27"
                   />
                 </label>
                 <label className="text-[11px] font-bold text-slate-600">
