@@ -2,37 +2,24 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { LineupFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { matchFeedCtaLabel, resolveMatchGameHref } from '../../lib/matchFeedLink';
-import type { LineupFeedPlayer } from '../../lib/lineupFeedTypes';
-import {
-  lineupFeedDisplayPlayerName,
-  lineupFeedDisplayPositionAbbrev,
-} from '../../lib/lineupFeedTypes';
+import { lineupFeedDisplayPlayerName } from '../../lib/lineupFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getClubLogo } from '../../lib/teamLogos';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
-import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
-import { FeedClubName } from './FeedClubName';
-import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
+import { pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import {
   FEED_POST_BODY_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
-  FeedFormationBadge,
   FeedGameCtaLink,
-  FeedLineupMetaIcon,
-  FeedMatchMetaBadge,
   FeedPostActionsFooter,
   FeedPostHeader,
   FeedPostTypeBadge,
-  FeedSectionHeader,
   FeedStandardActions,
-  FeedStadiumHeroBackdrop,
-  FEED_HERO_TITLE_CLASS,
   FEED_STADIUM_ARTICLE_SHADOW,
-  FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { useSession } from '../../auth/useSession';
@@ -53,22 +40,8 @@ type Props = {
   onFeedPostUpdated?: () => void;
 };
 
-/** 8 statt 7: FairPlay-Formationen haben einen Zusatzspieler (FP-Slot). */
-const MAX_DISPLAY_PLAYERS = 8;
-
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
-}
-
-/** Badge-Inhalt: Rückennummer, sonst Positions-Kürzel (Slot), sonst Strich. */
-function lineupBadgeLabel(pl: LineupFeedPlayer): string {
-  const jersey = pl.jersey_number;
-  if (typeof jersey === 'number' && Number.isFinite(jersey) && jersey > 0) {
-    return String(Math.trunc(jersey));
-  }
-  const slot = (pl.slot ?? '').trim().toUpperCase();
-  if (slot) return slot;
-  return '–';
 }
 
 export const LineupFeedPostCard: React.FC<Props> = ({
@@ -94,7 +67,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
   }, [post.id]);
 
   const displayPlayers = useMemo(
-    () => p.lineup_players.slice(0, MAX_DISPLAY_PLAYERS),
+    () => p.lineup_players,
     [p.lineup_players],
   );
 
@@ -116,15 +89,6 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     };
     return isHome ? { left: our, right: opp } : { left: opp, right: our };
   }, [p.our_team_name, p.opponent_name, p.is_home, teamLabel, liveEvent]);
-
-  const lineupMetaLine = useMemo(
-    () =>
-      buildFeedMatchMetaLine(
-        pickFeedAgeGroup(teamLabel, p.our_team_name ?? '', p.opponent_name ?? liveEvent?.opponent ?? ''),
-        getMatchTypeLabel(liveEvent?.match_type ?? undefined) || null,
-      ),
-    [teamLabel, p.our_team_name, p.opponent_name, liveEvent?.opponent, liveEvent?.match_type],
-  );
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
@@ -203,6 +167,9 @@ export const LineupFeedPostCard: React.FC<Props> = ({
             formation={p.formation}
             players={displayPlayers}
             bench={benchPlayers}
+            matchType={getMatchTypeLabel(liveEvent?.match_type ?? undefined)}
+            startsAt={liveEvent?.starts_at ?? p.starts_at}
+            location={liveEvent?.location}
           />
           <div className="mt-3"><FeedGameCtaLink to={gameHref}>{matchFeedCtaLabel(eventStatus)}</FeedGameCtaLink></div>
         </>
