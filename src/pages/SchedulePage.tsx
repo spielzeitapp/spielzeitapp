@@ -33,7 +33,7 @@ import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions'
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { isMatchReviewPending } from '../lib/matchPreparationAccess';
-import { formatTeamSeasonCompactSwitcherLabel, isSeasonArchived, resolveTeamSeasonSwitcherAction } from '../lib/seasonLifecycle';
+import { isSeasonArchived, resolveTeamSeasonLabelParts } from '../lib/seasonLifecycle';
 import { assertTeamSeasonWritable } from '../lib/seasonTransition';
 import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
@@ -243,12 +243,14 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   } = useActiveTeamSeason();
   const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
     usePublicTeamSeason();
-  const { memberships, selectedMembership, user, selectedTeamSeason, isViewOnlyPlayer } = useSession();
+  const { selectedMembership, user, selectedTeamSeason, isViewOnlyPlayer, teamViewFilter, filteredTeamSeasonIds } = useSession();
+  const isMultiTeamView = !isDemo && !managerSimpleMode && teamViewFilter !== null;
   const userId = user?.id ?? null;
   const effectiveTeamSeasonId = isDemo
     ? demo!.data.teamSeasonId
     : (teamSeasonId ?? (user ? null : publicTeamId));
   const visibleTeamSeasonIds = useMemo(() => {
+    if (isMultiTeamView) return filteredTeamSeasonIds;
     if (!effectiveTeamSeasonId || isDemo || managerSimpleMode || isHistoryReadOnly || !user) return effectiveTeamSeasonId;
     const selected = teamSeasons.find((season) => season.id === effectiveTeamSeasonId);
     const selectedTeamId = selected?.team?.id ?? selected?.team_id;
@@ -257,7 +259,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
       .filter((season) => String(season.team?.id ?? season.team_id ?? '') === String(selectedTeamId))
       .map((season) => season.id);
     return sameTeamIds.length > 1 ? sameTeamIds : effectiveTeamSeasonId;
-  }, [effectiveTeamSeasonId, isDemo, managerSimpleMode, isHistoryReadOnly, user, teamSeasons]);
+  }, [effectiveTeamSeasonId, isDemo, managerSimpleMode, isHistoryReadOnly, user, teamSeasons, isMultiTeamView, filteredTeamSeasonIds]);
   const { events: rawEventsLive, loading: eLoadingLive, error: eErrorLive, refetch: refetchLive } =
     useEvents(isDemo ? null : visibleTeamSeasonIds);
   const rawEvents = isDemo ? demo!.data.events : rawEventsLive;
@@ -324,10 +326,19 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     }),
   [rawEvents, matchStatusById]);
 
+  const openEventDetails = (id: string) => {
+    const event = events.find((row) => row.id === id);
+    if (isMultiTeamView && event?.team_season_id) {
+      setSelectedTeamSeasonId(event.team_season_id);
+    }
+    navigate(`${basePath}/events/${id}`);
+  };
+
   const loading = isDemo ? false : tsLoading || (!user && !teamSeasonId && publicLoading);
 
   const teamSeasonSubtitle = (() => {
     if (isDemo) return `${demo!.data.teamName} · ${demo!.data.seasonLabel}`;
+    if (isMultiTeamView) return teamViewFilter === 'all' ? 'Alle aktuellen Mannschaften' : `${filteredTeamSeasonIds.length} Mannschaften ausgewählt`;
     if (teamLabelWithStatus?.trim()) return teamLabelWithStatus.trim();
     if (teamLabel?.trim()) return teamLabel.trim();
     return publicLabel ?? 'Spielplan';
@@ -350,9 +361,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   }, [selectedTeamSeason, selectedMembership, publicLabel, teamLabel, isDemo]);
 
   const teamIcsFeedUrl = useMemo(() => {
-    if (!teamCalendarSegment) return null;
+    if (isMultiTeamView || !teamCalendarSegment) return null;
     return buildTeamIcsFeedUrl(window.location.origin, teamCalendarSegment);
-  }, [teamCalendarSegment]);
+  }, [teamCalendarSegment, isMultiTeamView]);
 
   // Public Mode: /schedule und /live = nur Anzeige, KEINE Navigation zu Event-Detail
   // /demo/* = interne App-Oberfläche (wie /app), nicht öffentlich.
@@ -368,15 +379,24 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   const uiRole = normalizedUiRole === 'fan' ? null : normalizedUiRole;
   /** Demo: Trainer-Übersicht + eigene Rückmeldung (verknüpfter Demo-Spieler). */
   const canShowRsvpUi =
-    !managerSimpleMode &&
+    !managerSimpleMode && !isMultiTeamView &&
     (isDemo || ((uiRole === 'parent' || uiRole === 'player') && !isViewOnlyPlayer));
-  const canManage = forcePublicView || isHistoryReadOnly ? false : canManageMatches(normalizedUiRole);
+  const canManage = forcePublicView || isHistoryReadOnly || isMultiTeamView ? false : canManageMatches(normalizedUiRole);
   /** Admin-Writes in der Demo gesperrt — Anzeige wie Trainer bleibt. */
   const canMutateSchedule = canManage && !isDemo;
   // Treffpunkt ist eine interne Teaminformation: nur Spieler, Eltern und Staff.
   // Fans sowie die öffentliche Spielplanansicht sehen weder Uhrzeit noch Platzhalter.
-  const showMeetupForRole = !forcePublicView && canSeeMeetup(normalizedUiRole);
+  const showMeetupForRole = !isMultiTeamView && !forcePublicView && canSeeMeetup(normalizedUiRole);
   const ourTeamName = isDemo ? demo!.data.teamName : getOurTeamDisplayName();
+  const eventTeamName = (ev: EventRow) => {
+    if (!isMultiTeamView) return ourTeamName;
+    const ts = teamSeasons.find((season) => season.id === ev.team_season_id);
+    return resolveTeamSeasonLabelParts({ displayName: ts?.display_name, ageGroup: ts?.age_group, teamName: ts?.team?.name, seasonName: ts?.season?.name }).teamLine || 'Mannschaft';
+  };
+  const eventTeamLabel = (ev: EventRow) => {
+    const ts = teamSeasons.find((season) => season.id === ev.team_season_id);
+    return [ts?.team?.name, ts?.age_group, ts?.season?.name].filter(Boolean).join(' · ') || 'Mannschaft';
+  };
 
   /** Tick + Broadcast: Live-Karte ohne Reload nach Anpfiff/Tor/Ende. */
   const [liveRefreshTick, setLiveRefreshTick] = useState(0);
@@ -1521,87 +1541,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                   ) : null}
                 </div>
                 <div className={`${managerSimpleMode ? 'hidden' : 'mt-1.5 flex'} max-w-full flex-col gap-1.5`}>
-                  {forcePublicView || isDemo || normalizedUiRole === 'fan' ? (teamSeasons.length > 1 ? (
-                    <label className="block min-w-0">
-                      <span className="sr-only">Saison anzeigen</span>
-                      <select
-                        value={readTeamSeasonId ?? ''}
-                        onChange={(e) => {
-                          const id = e.target.value || null;
-                          if (id === '__all__') {
-                            navigate(`${basePath}/termine/calendar?teams=all`);
-                            return;
-                          }
-                          if (id === '__manage__') {
-                            navigate(`${basePath}/fan-onboarding`);
-                            return;
-                          }
-                          if (!id) {
-                            setViewTeamSeasonId(null);
-                            return;
-                          }
-                          const ts = teamSeasons.find((row) => row.id === id);
-                          if (!ts) return;
-                          const action = resolveTeamSeasonSwitcherAction(ts.status);
-                          if (action === 'select-work') {
-                            setSelectedTeamSeasonId(id);
-                            return;
-                          }
-                          setViewTeamSeasonId(id);
-                        }}
-                        className="w-full max-w-full rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1.5 text-xs text-white/90 sm:text-sm"
-                        aria-label="Saison für Termine wählen"
-                      >
-                        {activeVisibleTeamSeasonCount > 1 ? (
-                          <option value="__all__">Alle ausgewählten Teams</option>
-                        ) : null}
-                        {teamSeasons.map((ts) => (
-                          <option key={ts.id} value={ts.id}>
-                            {`${
-                              isSeasonArchived(ts.status)
-                                ? 'Archiv'
-                                : normalizeRole(
-                                      memberships.find((membership) => membership.team_season_id === ts.id)?.role ?? '',
-                                    ) === 'fan'
-                                  ? 'Nur ansehen'
-                                  : 'Mein Team'
-                            } · ${formatTeamSeasonCompactSwitcherLabel(
-                              {
-                                displayName: ts.display_name,
-                                ageGroup: ts.age_group,
-                                teamName: ts.team?.name,
-                                seasonName: ts.season?.name,
-                                status: ts.status,
-                              },
-                              {
-                                markArchived: true,
-                                markCurrent: ts.id === activeTeamSeasonId,
-                              },
-                            )}`}
-                          </option>
-                        ))}
-                        <option value="__manage__">＋ Mannschaften auswählen</option>
-                      </select>
-                    </label>
-                  ) : (
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div
-                        className={`inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1 text-xs sm:text-sm ${dsSublineClass()}`}
-                        role="note"
-                      >
-                        <span className="truncate">{teamSeasonSubtitle}</span>
-                      </div>
-                      {user && !isDemo ? (
-                        <button
-                          type="button"
-                          onClick={() => navigate(`${basePath}/fan-onboarding`)}
-                          className="sz-club-accent-control shrink-0 rounded-[var(--radius-btn)] border px-2.5 py-1 text-xs font-semibold"
-                        >
-                          Teams wählen
-                        </button>
-                      ) : null}
-                    </div>
-                  )) : null}
+                  <div className={`inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1 text-xs sm:text-sm ${dsSublineClass()}`} role="note">
+                    <span className="min-w-0">{teamSeasonSubtitle}</span>
+                  </div>
+                  {isMultiTeamView ? <p className="text-[11px] text-white/50">Gemeinsame Übersicht · zum Bearbeiten eine einzelne Mannschaft wählen.</p> : null}
                   {isHistoryReadOnly ? (
                     <p className="text-[11px] text-amber-200/90">{softLockMessage}</p>
                   ) : null}
@@ -1633,10 +1576,11 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                 ) : null}
                 <button
                   type="button"
+                  disabled={isMultiTeamView}
                   onClick={() => navigate(internalPath(basePath, '/termine/calendar'))}
                   className="sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] w-11 shrink-0 items-center justify-center rounded-[14px] border sm:h-10 sm:w-10"
-                  aria-label="Kalenderansicht"
-                  title="Kalenderansicht"
+                  aria-label={isMultiTeamView ? 'Kalenderansicht: zuerst eine einzelne Mannschaft wählen' : 'Kalenderansicht'}
+                  title={isMultiTeamView ? 'Zuerst eine einzelne Mannschaft wählen' : 'Kalenderansicht'}
                 >
                   <CalendarDays className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
                 </button>
@@ -1837,7 +1781,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    navigate(`${basePath}/events/${ev.id}`);
+                                    openEventDetails(ev.id);
                                   }}
                                   aria-label="Teilnehmerübersicht öffnen"
                                 >
@@ -1876,7 +1820,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`);
                                   return;
                                 }
-                                navigate(`${basePath}/events/${id}`);
+                                openEventDetails(id);
                               };
                         const heroCardFooter = undefined;
                         const heroGoLive =
@@ -1904,12 +1848,12 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                               className="mb-3 -mx-1 w-[calc(100%+0.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
                               {...publicWrap}
                             >
-                              <EventHeroCard label={heroSectionLabel} footer={heroCardFooter}>
+                              <EventHeroCard label={isMultiTeamView ? `${heroSectionLabel} · ${eventTeamLabel(ev)}` : heroSectionLabel} footer={heroCardFooter}>
                                 {timeFilter === 'past' && isFinishedMatch ? (
                                   <PastMatchResultCard
                                     ev={ev}
                                     ageGroup={teamSeasons.find((ts) => ts.id === ev.team_season_id)?.age_group}
-                                    ourTeamName={ourTeamName}
+                                    ourTeamName={eventTeamName(ev)}
                                     opponentLogoUrl={opponentLogo}
                                     scoreHome={matchScore?.scoreHome ?? null}
                                     scoreAway={matchScore?.scoreAway ?? null}
@@ -1921,7 +1865,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                 <MatchCardLigaportal
                                   className="w-full max-w-full !px-2.5 !py-2 sm:!px-3 sm:!py-2.5"
                                   scheduleNextMatchHero
-                                  ourTeamName={ourTeamName}
+                                  ourTeamName={eventTeamName(ev)}
                                   opponent={ev.opponent}
                                   isHome={ev.is_home}
                                   startsAt={ev.starts_at}
@@ -1964,7 +1908,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   onOpenAttendance={
                                     heroShowsTrainerStats
                                       ? // Trainer: Teilnehmerübersicht (wer dabei/offen/abgesagt) im Termin-Detail
-                                        () => navigate(`${basePath}/events/${ev.id}`)
+                                        () => openEventDetails(ev.id)
                                       : heroShowsParentPill
                                         ? () => setAttendanceModalEvent(ev)
                                         : undefined
@@ -1996,7 +1940,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                               <ScheduleHeroEventCard
                                 ev={ev}
                                 et={et}
-                                ourTeamName={ourTeamName}
+                                ourTeamName={eventTeamName(ev)}
                                 opponentLogoUrl={opponentLogo}
                                 scoreHome={matchScore?.scoreHome}
                                 scoreAway={matchScore?.scoreAway}
@@ -2111,7 +2055,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            navigate(`${basePath}/events/${ev.id}`);
+                            openEventDetails(ev.id);
                           }}
                         >
                           <TrainerStatsMini
@@ -2147,10 +2091,12 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                         return (
                           <React.Fragment key={ev.id}>
                             {allListSectionHeading}
+                          {isMultiTeamView ? <p className="mb-1 mt-3 text-xs font-bold text-white/65">{eventTeamLabel(ev)}</p> : null}
+                            {isMultiTeamView ? <p className="mb-1 mt-3 text-xs font-bold text-white/65">{eventTeamLabel(ev)}</p> : null}
                             <PastMatchResultCard
                               ev={ev}
                               ageGroup={teamSeasons.find((ts) => ts.id === ev.team_season_id)?.age_group}
-                              ourTeamName={ourTeamName}
+                              ourTeamName={eventTeamName(ev)}
                               opponentLogoUrl={opponentLogo}
                               scoreHome={matchScoreRow?.scoreHome ?? null}
                               scoreAway={matchScoreRow?.scoreAway ?? null}
@@ -2163,7 +2109,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                                   if (target && canMutateSchedule && !isArchivedEvent) openEditModal(target);
                                   return;
                                 }
-                                navigate(`${basePath}/events/${id}`);
+                                openEventDetails(id);
                               }}
                             />
                           </React.Fragment>
@@ -2175,7 +2121,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                           <CompactEventCard
                             ev={ev}
                             et={et}
-                            ourTeamName={ourTeamName}
+                            ourTeamName={eventTeamName(ev)}
                             opponentLogoUrl={opponentLogo}
                             parentCompactLayout={showCompactParentPill || showCompactTrainerStats}
                             trailing={compactTrailing}
@@ -2189,7 +2135,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
                               if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
                                 navigate(`${basePath}/live?matchId=${encodeURIComponent(ev.match_id)}`);
                               } else {
-                                navigate(`${basePath}/events/${id}`);
+                                openEventDetails(id);
                               }
                             }}
                             reviewPending={matchReviewPending}

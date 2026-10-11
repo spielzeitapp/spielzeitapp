@@ -189,7 +189,7 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
 export function useTeamFeedPosts(
   teamSeasonId: string | null,
   teamId: string | null = null,
-  opts?: { skipEnsures?: boolean; chronicleView?: boolean },
+  opts?: { skipEnsures?: boolean; chronicleView?: boolean; teamSeasonIds?: readonly string[] },
 ) {
   const [activePosts, setActivePosts] = useState<ClassifiedFeedPost[]>([]);
   const [historicPosts, setHistoricPosts] = useState<ClassifiedFeedPost[]>([]);
@@ -199,7 +199,19 @@ export function useTeamFeedPosts(
   const [hasMoreHistoric, setHasMoreHistoric] = useState(false);
   const [historicOffset, setHistoricOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const skipEnsures = opts?.skipEnsures === true;
+  const scopeKey = opts?.teamSeasonIds ? [...new Set(opts.teamSeasonIds)].sort().join(',') : '';
+  const multiScope = opts?.teamSeasonIds !== undefined;
+  const skipEnsures = opts?.skipEnsures === true || multiScope;
+  const fetchScopePosts = useCallback(async () => {
+    if (!multiScope) return fetchActiveSeasonPosts({ teamSeasonId: teamSeasonId!, teamId, chronicleView: opts?.chronicleView });
+    const scopes = scopeKey.split(',').filter(Boolean);
+    const results = await Promise.all(scopes.map((id) => fetchActiveSeasonPosts({ teamSeasonId: id, teamId: null })));
+    return {
+      posts: sortChronological(results.flatMap((result) => result.posts)),
+      dbRowCount: results.reduce((sum, result) => sum + result.dbRowCount, 0),
+      parseDropped: results.reduce((sum, result) => sum + result.parseDropped, 0),
+    };
+  }, [multiScope, scopeKey, teamSeasonId, teamId, opts?.chronicleView]);
   const chronicleView = opts?.chronicleView === true;
 
   const loadAll = useCallback(async () => {
@@ -219,11 +231,7 @@ export function useTeamFeedPosts(
     try {
       await logMatchdayFeedSeasonContext(teamSeasonId);
       const active = await withTimeout(
-        fetchActiveSeasonPosts({
-          teamSeasonId,
-          teamId,
-          chronicleView,
-        }),
+        fetchScopePosts(),
         FEED_LOAD_TIMEOUT_MS,
         FEED_LOAD_TIMEOUT_MESSAGE,
       );
@@ -235,7 +243,7 @@ export function useTeamFeedPosts(
       });
       setActivePosts(active.posts);
 
-      if (teamId) {
+      if (teamId && !multiScope) {
         const hist = await fetchHistoricPostsPage({
           teamId,
           activeTeamSeasonId: teamSeasonId,
@@ -283,7 +291,7 @@ export function useTeamFeedPosts(
       setLoading(false);
       setEnsuring(false);
     }
-  }, [teamSeasonId, teamId, skipEnsures, chronicleView]);
+  }, [teamSeasonId, teamId, skipEnsures, chronicleView, fetchScopePosts, multiScope]);
 
   const loadMoreHistoric = useCallback(async () => {
     if (!teamSeasonId || !teamId || loadingMore || !hasMoreHistoric) return;
@@ -332,14 +340,14 @@ export function useTeamFeedPosts(
         await logMatchdayFeedSeasonContext(teamSeasonId);
         if (cancelled) return;
         const active = await withTimeout(
-          fetchActiveSeasonPosts({ teamSeasonId, teamId, chronicleView }),
+          fetchScopePosts(),
           FEED_LOAD_TIMEOUT_MS,
           FEED_LOAD_TIMEOUT_MESSAGE,
         );
         if (cancelled) return;
         setActivePosts(active.posts);
 
-        if (teamId) {
+        if (teamId && !multiScope) {
           const hist = await fetchHistoricPostsPage({
             teamId,
             activeTeamSeasonId: teamSeasonId,
@@ -386,7 +394,7 @@ export function useTeamFeedPosts(
     return () => {
       cancelled = true;
     };
-  }, [teamSeasonId, teamId, skipEnsures, chronicleView]);
+  }, [teamSeasonId, teamId, skipEnsures, chronicleView, fetchScopePosts, multiScope]);
 
   /** Rückwärtskompatibel: alle geladenen Posts (active + historic). */
   const posts = [...activePosts, ...historicPosts];
