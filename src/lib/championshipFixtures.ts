@@ -63,6 +63,8 @@ export type ChampionshipFixture = {
 };
 
 export type OefbImportedFixture = {
+  score_home?: number | null;
+  score_away?: number | null;
   art: string;
   opponent: string;
   is_home: boolean;
@@ -780,4 +782,11 @@ export async function fetchChampionshipPdfSeasonMeta(
     ),
     error: null,
   };
+}
+
+/** Ergebnisse getrennt vom Termineimport nachholen; die RPC schützt bestehende Spiele. */
+export async function importOefbResults(teamSeasonId: string, fixtures: OefbImportedFixture[]): Promise<{ imported: number; protected: number; error: string | null }> {
+  const results = fixtures.filter(f => Number.isInteger(f.score_home) && Number.isInteger(f.score_away) && f.score_home! >= 0 && f.score_away! >= 0);
+  const { data, error } = await supabase.rpc('import_oefb_results', { p_team_season_id: teamSeasonId, p_results: results.map(f => ({ external_id: f.external_id, score_home: f.score_home, score_away: f.score_away })) });
+  return { imported: Number(data?.imported ?? 0), protected: Number(data?.protected ?? 0), error: error?.message ?? null };
 }

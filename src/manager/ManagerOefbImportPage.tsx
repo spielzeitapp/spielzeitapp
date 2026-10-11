@@ -14,6 +14,7 @@ import {
 } from '../lib/seasonLifecycle';
 import {
   fetchOefbScheduleFixtures,
+  importOefbResults,
   importOefbChampionshipFixtures,
   previewOefbChampionshipImport,
   type OefbImportPreviewRow,
@@ -120,6 +121,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
   // Keine fremde Mannschaft vorausfüllen: der Admin muss die URL der Zielsaison bestätigen.
   const [importUrl, setImportUrl] = useState('');
   const [oefbTeamName, setOefbTeamName] = useState('');
+  const [includeResults, setIncludeResults] = useState(true);
   const [previewRows, setPreviewRows] = useState<OefbImportPreviewRow[]>([]);
   const [previewFixtures, setPreviewFixtures] = useState<OefbImportedFixture[]>([]);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -235,7 +237,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     canPreview &&
     confirmed &&
     previewFixtures.length > 0 &&
-    previewRows.some((r) => r.willWrite) &&
+    (previewRows.some((r) => r.willWrite) || (includeResults && previewFixtures.some(f => f.score_home != null && f.score_away != null))) &&
     !importBusy;
 
   const onPreview = async () => {
@@ -302,13 +304,16 @@ export function ManagerOefbImportPage(): React.ReactElement {
       createdBy: user?.id ?? null,
       insertOnly: true,
     });
-    setImportBusy(false);
     if (res.error) {
+      setImportBusy(false);
       setError(res.error);
       return;
     }
+    const results = includeResults ? await importOefbResults(seasonId, previewFixtures) : null;
+    setImportBusy(false);
+    if (results?.error) { setError(`Termine gespeichert. Ergebnisse konnten nicht übernommen werden: ${results.error}. Du kannst den Import erneut ausführen.`); return; }
     setInfo(
-      `Import abgeschlossen: ${res.inserted} neu, ${res.skippedExisting} vorhandene Spiele unverändert gelassen.`,
+      `Import abgeschlossen: ${res.inserted} neu, ${res.skippedExisting} vorhandene Termine unverändert.${results ? ` ${results.imported} Endstände übernommen, ${results.protected} bestehende Spiele geschützt.` : ''}`,
     );
     setConfirmed(false);
     // Vorschau nach Import neu laden
@@ -371,7 +376,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
         <summary className="min-h-11 cursor-pointer content-center font-semibold text-slate-900">Hinweise: Herbst, Frühjahr oder Einstieg während der Saison</summary>
         <p>Herbst und Frühjahr gehören zur selben Jahressaison. Den Frühjahrs-Spielplan deshalb erneut in die laufende Saison importieren; die Saison erst nach dem Frühjahr abschließen.</p>
         <p>Auch bei einem Einstieg während der Saison kannst du den Spielplan hier laden. Prüfe vor dem Bestätigen die Zielsaison und die erkannten Spiele. Bereits importierte ÖFB-Spiele werden anhand ihrer ÖFB-ID erkannt.</p>
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">Dieser Import übernimmt Spieltermine. Vergangene Endstände, Torschützen und Spielstatistiken werden derzeit nicht automatisch übernommen.</p>
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">Endstände abgeschlossener ÖFB-Spiele können mitimportiert oder später nachgeholt werden. Bereits verknüpfte Spiele bleiben geschützt. Torschützen und Spielstatistiken werden nicht übernommen.</p>
       </details>
       {metaError ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">
@@ -516,6 +521,8 @@ export function ManagerOefbImportPage(): React.ReactElement {
             ) : null}
           </div>
 
+          <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={includeResults} disabled={importBusy} onChange={e => setIncludeResults(e.target.checked)} /> Vorhandene ÖFB-Endstände mitimportieren ({previewFixtures.filter(f => f.score_home != null && f.score_away != null).length})</label>
+          <p className="text-sm text-slate-500">Ergebnisse werden in Heim:Auswärts-Reihenfolge angezeigt. Bereits mit einem Spiel verknüpfte Termine werden nicht überschrieben.</p>
           <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="min-w-full text-left text-[13px]">
               <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
@@ -524,6 +531,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
                   <th className="px-3 py-2 font-semibold">Zeit</th>
                   <th className="px-3 py-2 font-semibold">Heim</th>
                   <th className="px-3 py-2 font-semibold">Auswärts</th>
+                  <th className="px-3 py-2 font-semibold">ÖFB-Ergebnis</th>
                   <th className="px-3 py-2 font-semibold">Ort</th>
                   <th className="px-3 py-2 font-semibold">Bewerb</th>
                   <th className="px-3 py-2 font-semibold">Status</th>
@@ -543,6 +551,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
                       </td>
                       <td className="px-3 py-2 font-medium text-slate-900">{home}</td>
                       <td className="px-3 py-2 font-medium text-slate-900">{away}</td>
+                      <td className="px-3 py-2 font-bold">{row.fixture.score_home != null && row.fixture.score_away != null ? `${row.fixture.score_home}:${row.fixture.score_away}` : '—'}</td>
                       <td className="px-3 py-2 text-slate-600">{row.fixture.location ?? '—'}</td>
                       <td className="px-3 py-2 text-slate-600">{row.fixture.competition ?? '—'}</td>
                       <td className="px-3 py-2">
@@ -591,7 +600,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
             />
             <span>
               Ich habe die Vorschau geprüft. Nur neue ÖFB-Spiele dürfen in die Zielsaison angelegt
-              werden. Bereits vorhandene Termine bleiben vollständig unverändert.
+              werden. Bereits vorhandene Termine bleiben erhalten. Ausgewählte Endstände werden nur bei Terminen ohne verknüpftes Spiel ergänzt.
             </span>
           </label>
 

@@ -92,6 +92,8 @@ function mapFixture(raw, ourTeamHints) {
 
   return {
     art,
+    score_home: raw.abgeschlossen === true && raw.abgesagt !== true && raw.live !== true && /^\d+$/.test(String(raw.heimTore ?? '').trim()) && /^\d+$/.test(String(raw.gastTore ?? '').trim()) ? Number(raw.heimTore) : null,
+    score_away: raw.abgeschlossen === true && raw.abgesagt !== true && raw.live !== true && /^\d+$/.test(String(raw.heimTore ?? '').trim()) && /^\d+$/.test(String(raw.gastTore ?? '').trim()) ? Number(raw.gastTore) : null,
     opponent,
     is_home: isHome,
     starts_at: startsAt,
