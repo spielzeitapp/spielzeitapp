@@ -10,7 +10,7 @@ import { normalizeRole, canManageMatches } from '../lib/roles';
 import {
   absoluteImprovement,
   buildAbsoluteImprovementRanking,
-  buildEndValueRanking,
+  buildPersonalBestRanking,
   buildPercentImprovementRanking,
   deriveJugglingAwards,
   formatImprovementDelta,
@@ -180,14 +180,13 @@ export const JugglingChallengePage: React.FC = () => {
     [scoreInputs, minStart],
   );
 
-  const endRanking = useMemo(() => buildEndValueRanking(scoreInputs), [scoreInputs]);
+  const bestRanking = useMemo(() => buildPersonalBestRanking(scoreInputs), [scoreInputs]);
   const absoluteRanking = useMemo(() => buildAbsoluteImprovementRanking(scoreInputs), [scoreInputs]);
   const percentRanking = useMemo(
     () => buildPercentImprovementRanking(scoreInputs, minStart),
     [scoreInputs, minStart],
   );
 
-  const hasAnyEndValue = scoreInputs.some((row) => row.endValue != null);
 
   if (!tsLoading && !allowed) {
     return <Navigate to="/app/team" replace />;
@@ -224,7 +223,7 @@ export const JugglingChallengePage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           <ChallengeAwardList awards={[
-            {emoji:'🏆',label:'Gaberl-König',name:awards.king?.playerName ?? null,value:awards.king ? awards.king.endValue + ' Gaberln' : null},
+            {emoji:'🏆',label:'Gaberl-König',name:bestRanking[0]?.playerName ?? null,value:bestRanking[0] ? bestRanking[0].bestValue + ' Gaberln' : null},
             {emoji:'🚀',label:'Größte Verbesserung',name:awards.riser?.playerName ?? null,value:awards.riser ? formatImprovementDelta(awards.riser.absoluteImprovement) + ' Gaberln' : null},
             {emoji:'⭐',label:'Beste Entwicklung',name:awards.development?.playerName ?? null,value:awards.development ? formatImprovementPercent(awards.development.percentImprovement) : null}
           ]} />
@@ -278,13 +277,10 @@ export const JugglingChallengePage: React.FC = () => {
             <SectionTitle as="h2" className="[&>h2]:text-base [&>h2]:font-semibold [&>h2]:normal-case">
               Rankings
             </SectionTitle>
-            {!hasAnyEndValue ? (
-              <p className="mt-3 text-[13px] text-white/55">Noch keine Endwerte erfasst.</p>
-            ) : (
-              <>
+            <p className="mt-2 text-xs text-white/50">Gesamtwertung der persönlichen Bestwerte inklusive übernommener Startwerte. Entwicklung erst nach einer neuen Messung.</p>
                 <PremiumTabTrack className="mt-3" aria-label="Gaberl-Rankings">
                   <PremiumTab active={rankingTab === 'end'} onClick={() => setRankingTab('end')}>
-                    Endwert
+                    Gesamt
                   </PremiumTab>
                   <PremiumTab active={rankingTab === 'improvement'} onClick={() => setRankingTab('improvement')}>
                     Verbesserung
@@ -295,7 +291,10 @@ export const JugglingChallengePage: React.FC = () => {
                 </PremiumTabTrack>
                 <div className="mt-3" role="tabpanel">
                   {rankingTab === 'end' ? (
-                    <RankingList title="Endwert-Ranking" rows={endRanking} metric="end" />
+                    <>
+                      <h3 className="text-sm font-semibold text-white">Gesamtwertung · Persönliche Bestwerte</h3>
+                      {bestRanking.length ? <ol className="mt-3 space-y-2">{bestRanking.map(row => <ChallengeRankingRow key={row.playerId} rank={row.rank} name={row.playerName} value={row.bestValue + ' Gaberln'} detail={row.endValue == null ? 'Bisheriger Bestwert · Neue Messung offen' : 'Startwert: ' + row.startValue + ' · Endwert: ' + row.endValue} />)}</ol> : <p className="mt-3 text-xs text-white/50">Noch keine Bestwerte vorhanden.</p>}
+                    </>
                   ) : null}
                   {rankingTab === 'improvement' ? (
                     <RankingList title="Verbesserungs-Ranking" rows={absoluteRanking} metric="absolute" />
@@ -309,8 +308,6 @@ export const JugglingChallengePage: React.FC = () => {
                     </>
                   ) : null}
                 </div>
-              </>
-            )}
           </PremiumCard>
         </div>
       )}

@@ -70,6 +70,15 @@ export function buildEndValueRanking(inputs: ChallengeScoreInput[]): ChallengeSc
   return assignRanks(toScoringRows(inputs), compareByEndDesc);
 }
 
+/** Overall known personal best, including carried-over baselines without a new measurement. */
+export function buildPersonalBestRanking(inputs: ChallengeScoreInput[]) {
+  const rows = inputs.map(row => ({ ...row, bestValue: Math.max(row.startValue,row.endValue ?? 0), rank: 0 }))
+    .filter(row => row.bestValue > 0)
+    .sort((a,b) => b.bestValue - a.bestValue || a.playerName.localeCompare(b.playerName,'de'));
+  rows.forEach((row,index) => { row.rank = index > 0 && row.bestValue === rows[index-1].bestValue ? rows[index-1].rank : index+1; });
+  return rows;
+}
+
 export function buildAbsoluteImprovementRanking(inputs: ChallengeScoreInput[]): ChallengeScoringRow[] {
   return assignRanks(toScoringRows(inputs), compareByAbsoluteDesc);
 }
