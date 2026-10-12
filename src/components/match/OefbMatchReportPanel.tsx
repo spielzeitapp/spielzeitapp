@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { OefbAssignedScorers } from './OefbAssignedScorers';
 
 type Report = {
   id: string; home: string; away: string; score: string | null; venue: string; field: string;
@@ -51,6 +52,7 @@ export function OefbMatchReportPanel({ eventId }: { eventId: string }) {
     {report ? <>
       <p className="mt-4 font-semibold">{report.home} – {report.away}{report.score ? ` · ${report.score}` : ''}</p>
       <p className="mt-1 text-sm text-white/60">{[report.venue, report.field].filter(Boolean).join(' · ')}</p>
+      <OefbAssignedScorers key={report.updatedAt} eventId={eventId} />
       <h4 className="mt-4 text-sm font-bold">Torverlauf & Wechsel</h4>
       <p className="mt-1 text-xs text-white/50">Minuten laut ÖFB, ungeprüft. Keine Übernahme in eure Spielzeitstatistik.</p>
       {report.events.length ? <ul className="mt-2 divide-y divide-white/10">{report.events.map((e, i) => <li key={i} className="py-2 text-sm">

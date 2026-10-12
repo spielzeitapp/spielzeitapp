@@ -22,6 +22,7 @@ import { supabase } from '../lib/supabaseClient';
 
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import type { ManagerWorkMode } from './managerWorkMode';
+import { ManagerOefbPlayerAssignments } from './ManagerOefbPlayerAssignments';
 
 function canAccess(effectiveRole: string, backendRole: string, workMode: ManagerWorkMode): boolean {
   if (workMode === 'platform_admin' && (backendRole ?? '').trim().toLowerCase() === 'admin') {
@@ -254,6 +255,8 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
       {writableMessage && !archived ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">{writableMessage}</p>
       ) : null}
+
+      {(canEdit || (!archived && !writableMessage && !loading && !!meta && ['trainer','co_trainer','head_coach'].includes(effectiveRole))) ? <ManagerOefbPlayerAssignments key={seasonId} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
 
       {canEdit ? (
         <form onSubmit={(event) => void savePlayer(event)} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">

@@ -226,6 +226,7 @@ function cardCountsInMatchForPlayer(events: EventRow[], playerId: string): { yel
 function eventRowsToEngineEvents(rows: EventRow[]): MatchEngineEvent[] {
   const out: MatchEngineEvent[] = [];
   for (const row of rows) {
+    if (row.payload && typeof row.payload === 'object' && (row.payload as Record<string, unknown>).source === 'oefb_attribution') continue;
     const ev = statsMatchEventRowToEngine(row);
     if (ev) out.push(ev);
   }
@@ -374,6 +375,16 @@ async function fetchEventsForMatches(matchIds: string[]): Promise<EventRow[]> {
     }
     for (const r of data ?? []) {
       all.push(r as EventRow);
+    }
+    // Confirmed ÖFB player goals are a separate source, never fake live events/minutes.
+    // A trainer's goal record always takes precedence, including after the source import.
+    const protectedMatches = new Set((data ?? []).filter(r => ['goal','goal_home','goal_away'].includes(String(r.type))).map(r => r.match_id));
+    const { data: sourceGoals } = await supabase.from('oefb_goal_attributions')
+      .select('id, match_id, player_id, updated_at, score_home, score_away, matches(score_home, score_away)').in('match_id', batch);
+    for (const g of sourceGoals ?? []) {
+      const match = Array.isArray(g.matches) ? g.matches[0] : g.matches;
+      if (!protectedMatches.has(g.match_id) && match?.score_home === g.score_home && match?.score_away === g.score_away) all.push({ id: g.id, match_id: g.match_id, player_id: g.player_id,
+        type: 'goal', minute: null, created_at: g.updated_at, payload: { source: 'oefb_attribution' } } as EventRow);
     }
   }
   return all;

@@ -1,5 +1,6 @@
 /** Public, read-only source report. Numeric IDs only; no database writes or player mapping. */
 function extractReport(html, id) {
+  const profileId = url => /^https:\/\/(www\.)?oefb\.at\/Profile\/Spieler\/(\d{1,10})(?:[/?]|$)/i.exec(String(url ?? ''))?.[2] ?? null;
   const blocks = [];
   for (const match of html.matchAll(/SG\.container\.appPreloads\['[^']+'\]\s*=\s*(\[.*?\]);/g)) {
     try { blocks.push(...JSON.parse(match[1])); } catch { /* Ignore unrelated malformed preloads. */ }
@@ -11,13 +12,18 @@ function extractReport(html, id) {
   const players = side => {
     const seen = new Set();
     return ['tor', 'abwehr', 'mittelfeld', 'sturm', 'weitere'].flatMap(k => Array.isArray(side?.[k]) ? side[k] : [])
-      .filter(p => p && p.name && !seen.has(p.name) && seen.add(p.name))
-      .map(p => ({ name: text(p.name), number: text(p.rueckennummer) })).slice(0, 40);
+      .filter(p => {
+        if (!p?.name) return false;
+        const key = profileId(p.url) ?? `${p.name}:${p.rueckennummer ?? ''}`;
+        if (seen.has(key)) return false;
+        seen.add(key); return true;
+      })
+      .map(p => ({ name: text(p.name), number: text(p.rueckennummer), externalPlayerId: profileId(p.url) })).slice(0, 40);
   };
   const events = (report?.gameData ?? []).filter(e => ['goal', 'playerchange', 'yellow', 'red', 'yellowred'].includes(e.type))
     .map(e => ({ type: e.type, minute: Number.isFinite(Number(e.minute)) && Number(e.minute) >= 0 ? Number(e.minute) : null,
       side: e.team === 'a' ? 'home' : e.team === 'b' ? 'away' : null,
-      player: text(e.playerPrimary), secondPlayer: text(e.playerSecondary), ownGoal: e.eigentor === true,
+      player: text(e.playerPrimary), externalPlayerId: profileId(e.url), secondPlayer: text(e.playerSecondary), ownGoal: e.eigentor === true,
       score: /^\d+\s*:\s*\d+$/.test(e.spielstand ?? '') ? String(e.spielstand).replace(/\s/g, '') : null }))
     .sort((a, b) => (a.minute ?? Infinity) - (b.minute ?? Infinity)).slice(0, 200);
   return { id, home: text(title.heimMannschaft), away: text(title.gastMannschaft),
