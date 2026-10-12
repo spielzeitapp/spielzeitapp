@@ -7,6 +7,7 @@ import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { SquadPosterArtwork } from './SquadPosterArtwork';
+import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { supabase } from '../../lib/supabaseClient';
 import { useDemoMode } from '../../demo/DemoContext';
 import {
@@ -106,6 +107,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
             left={teams.left}
             right={teams.right}
             ageGroup={ageGroup}
+            matchType={getMatchTypeLabel(liveEvent?.match_type ?? undefined)}
             players={p.players}
             startsAt={liveEvent?.starts_at || p.starts_at}
             location={liveEvent?.location}
