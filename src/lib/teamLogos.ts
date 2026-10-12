@@ -5,6 +5,7 @@
 
 import { getLogoUrl } from '../utils/logoResolver';
 import { safeText } from './safeText';
+import { displayLogoUrl } from './logoPreparation';
 
 const OUR_TEAM_DISPLAY_NAME = 'SPG Rohrbach';
 const NSG_GOELSENTAL_SLUG = 'nsg-goelsental';
@@ -207,6 +208,7 @@ const ALLOWED_LOGO_PREFIXES = ['/logos/', 'https://'];
 function isAllowedLogoUrl(url: unknown): boolean {
   const u = safeText(url);
   if (!u) return false;
+  if (/^\/api\/oefb\/table\?view=logo&id=[a-f0-9]{20}$/i.test(u)) return true;
   return ALLOWED_LOGO_PREFIXES.some((p) => u.startsWith(p));
 }
 
@@ -219,7 +221,7 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
   const name = String(nameOrSlug || '').trim();
 
   if (options?.logoUrl && isAllowedLogoUrl(options.logoUrl)) {
-    return safeText(options.logoUrl);
+    return displayLogoUrl(safeText(options.logoUrl));
   }
   if (options?.slug && safeText(options.slug)) {
     const slug = safeText(options.slug).replace(/\.png$/i, '');
@@ -236,6 +238,10 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
   const mapped = resolveMappedLogoFile(name);
   if (mapped) {
     return getLogoUrl(/\.(png|jpe?g|svg)$/i.test(mapped) ? mapped : `${mapped}.png`);
+  }
+
+  if (logoLookupKey(name) === 'spg leonhofen a') {
+    return displayLogoUrl('https://www.oefb.at/oefb2/images/1278650591628556536_5cd7cca00e44e9ce7656-1,0-120x120-120x120.png');
   }
 
   // Keine geratenen Slug-URLs (/logos/spg-bischofstetten.png) → 404 / falsche Assoziation.

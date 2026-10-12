@@ -3,6 +3,7 @@ import { useSession } from '../auth/useSession';
 import { fetchOpponentCatalogLogoMap, resolveClubIdFromTeamSeason } from '../lib/opponentCatalog';
 import { getClubLogo, isPlaceholderLogoUrl } from '../lib/teamLogos';
 import { normalizeOpponentKey } from '../lib/teamVenues';
+import { displayLogoUrl } from '../lib/logoPreparation';
 
 // This identity was confirmed during setup: the former SV and current SPG Böheimkirchen.
 export function catalogLogoKey(name: string): string {
@@ -11,9 +12,9 @@ export function catalogLogoKey(name: string): string {
 }
 export function preferredClubLogo(name: string, logos: Map<string, string>, fallback?: string | null): string | null {
   const saved = logos.get(catalogLogoKey(name)) || logos.get(normalizeOpponentKey(name));
-  if (saved && !isPlaceholderLogoUrl(saved)) return saved;
+  if (saved && !isPlaceholderLogoUrl(saved)) return displayLogoUrl(saved);
   const local = getClubLogo(name);
-  return !isPlaceholderLogoUrl(local) ? local : fallback ?? null;
+  return !isPlaceholderLogoUrl(local) ? local : fallback ? displayLogoUrl(fallback) : null;
 }
 export function useClubOpponentLogos(names: string[], seasonOverride?: string | null): Map<string, string> {
   const { selectedTeamSeasonId, viewTeamSeasonId } = useSession();

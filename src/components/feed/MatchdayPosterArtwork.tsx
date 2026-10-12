@@ -2,6 +2,7 @@ import React from 'react';
 import { Clock, MapPin, Trophy } from 'lucide-react';
 import './squadPoster.css';
 import { PosterClubName } from './PosterClubName';
+import { displayLogoUrl } from '../../lib/logoPreparation';
 
 const PLACEHOLDER =
   (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '') + '/logos/placeholder-shield-a.png';
@@ -27,7 +28,7 @@ function PosterLogo({ src, alt }: { src: string; alt: string }) {
 
   return (
     <img
-      src={imgSrc}
+      src={displayLogoUrl(imgSrc)}
       alt={alt}
       className="matchday-poster-logo shrink-0 object-contain"
       style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.72))' }}

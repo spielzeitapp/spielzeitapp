@@ -2,6 +2,7 @@ import React from 'react';
 import { CalendarDays, MapPin } from 'lucide-react';
 import type { ResultFeedPayload } from '../../lib/resultFeedTypes';
 import { getClubLogo } from '../../lib/teamLogos';
+import { displayLogoUrl } from '../../lib/logoPreparation';
 import './resultPoster.css';
 import { PosterClubName } from './PosterClubName';
 
@@ -22,7 +23,7 @@ function ClubMark({ name, src }: { name: string; src: string }) {
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => setFailed(false), [src]);
   return <div className="result-poster-club">
-    <img src={failed ? fallback : src || fallback} alt={`${name} Logo`} onError={() => setFailed(true)} />
+    <img src={displayLogoUrl(failed ? fallback : src || fallback)} alt={`${name} Logo`} onError={() => setFailed(true)} />
     <PosterClubName name={name} />
   </div>;
 }

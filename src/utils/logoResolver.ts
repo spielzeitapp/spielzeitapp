@@ -3,6 +3,7 @@
  * Zugriff: ${BASE}logos/<file>.png (BASE = import.meta.env.BASE_URL)
  */
 
+import { displayLogoUrl } from '../lib/logoPreparation';
 const BASE = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '') + '/';
 const SHIELD_PLACEHOLDER = `${BASE}logos/placeholder-shield-a.png`;
 const LOGO_EXT_RE = /\.(png|jpg|jpeg|svg)(\?.*)?$/i;
@@ -10,6 +11,7 @@ const LOGO_EXT_RE = /\.(png|jpg|jpeg|svg)(\?.*)?$/i;
 export function isValidLogoUrl(url?: string | null): url is string {
   if (!url || typeof url !== 'string') return false;
   const value = url.trim();
+  if (/^\/api\/oefb\/table\?view=logo&id=[a-f0-9]{20}$/i.test(value)) return true;
   if (!value) return false;
   const lower = value.toLowerCase();
   if (lower.startsWith('http://') || lower.startsWith('https://')) {
@@ -42,7 +44,7 @@ export function toLogoFile(nameOrSlug: string): string {
 export function getLogoUrl(slugOrFilename?: string | null): string {
   const value = (slugOrFilename ?? '').trim();
 
-  if (isValidLogoUrl(value) && value.startsWith('http')) return value;
+  if (isValidLogoUrl(value) && (value.startsWith('http') || value.startsWith('/api/oefb/table?view=logo&'))) return displayLogoUrl(value);
   if (isValidLogoUrl(value) && value.includes('/logos/')) return value;
   if (!value) return SHIELD_PLACEHOLDER;
 

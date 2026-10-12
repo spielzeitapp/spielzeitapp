@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, FileText, Upload } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { VenuePicker } from '../components/venues/VenuePicker';
+import { LogoUploadPreview } from '../components/events/LogoUploadPreview';
 import {
   EventDateField,
   EventTimeField,
@@ -174,6 +175,8 @@ export const ChampionshipManagementPage: React.FC<{ manager?: boolean }> = ({ ma
   const [editLocationAddress, setEditLocationAddress] = useState('');
   const [editLogoUrl, setEditLogoUrl] = useState('');
   const [editLogoOpen, setEditLogoOpen] = useState(false);
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  useEffect(() => { setPendingLogoFile(null); }, [editFixture?.id]);
   const [editError, setEditError] = useState<string | null>(null);
   const [confirmPublishId, setConfirmPublishId] = useState<string | null>(null);
   const [confirmBulkPublish, setConfirmBulkPublish] = useState(false);
@@ -548,12 +551,17 @@ export const ChampionshipManagementPage: React.FC<{ manager?: boolean }> = ({ ma
     const file = e.target.files?.[0] ?? null;
     e.target.value = '';
     if (!file || !editFixture || !clubId) return;
+    setPendingLogoFile(file);
+  };
+  const confirmLogoFile = async (file: File) => {
+    if (!editFixture || !clubId) return;
     setBusy(true);
     setEditError(null);
     const up = await uploadOpponentLogoFile({
       clubId,
       opponentName: editFixture.opponent ?? '',
       file,
+      removeBackground: false,
     });
     setBusy(false);
     if (up.error) {
@@ -562,6 +570,7 @@ export const ChampionshipManagementPage: React.FC<{ manager?: boolean }> = ({ ma
     }
     if (up.publicUrl) {
       setEditLogoUrl(up.publicUrl);
+      setPendingLogoFile(null);
       if (teamSeasonId) {
         await setOpponentLogoForSeason({
           teamSeasonId,
@@ -1198,6 +1207,7 @@ export const ChampionshipManagementPage: React.FC<{ manager?: boolean }> = ({ ma
               </button>
               {editLogoOpen ? (
                 <div className="min-w-0 space-y-2 border-t border-white/8 px-3 pb-3 pt-2">
+                  {pendingLogoFile ? <LogoUploadPreview key={editFixture.id} file={pendingLogoFile} busy={busy} onCancel={() => setPendingLogoFile(null)} onConfirm={file => void confirmLogoFile(file)} /> : null}
                   <p className="truncate text-sm font-medium text-[var(--text-main)]">
                     {editFixture.opponent || '—'}
                   </p>

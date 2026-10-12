@@ -7,6 +7,7 @@ import {
 } from '../../lib/opponentCatalog';
 import { isPlaceholderLogoUrl, PLACEHOLDER_LOGO } from '../../lib/teamLogos';
 import { normalizeOpponentKey } from '../../lib/teamVenues';
+import { LogoUploadPreview } from './LogoUploadPreview';
 
 type Props = {
   opponentName: string;
@@ -34,11 +35,13 @@ export function OpponentLogoField({
 }: Props): React.ReactElement {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const lastLookupKeyRef = useRef<string>('');
 
   const name = String(opponentName ?? '').trim();
   const key = normalizeOpponentKey(name);
+  useEffect(() => { setPendingFile(null); }, [clubId, key]);
   const hasStoredLogo = Boolean(logoUrl && !isPlaceholderLogoUrl(logoUrl));
   const previewSrc = resolveDisplayOpponentLogo({
     opponent: name,
@@ -83,19 +86,25 @@ export function OpponentLogoField({
       setError('Bitte zuerst den Gegner eintragen.');
       return;
     }
+    setPendingFile(file);
+  };
+
+  const confirmFile = async (file: File) => {
+    if (!clubId || !name) return;
     setBusy(true);
     setError(null);
     const up = await uploadOpponentLogoFile({
       clubId,
       opponentName: name,
       file,
+      removeBackground: false,
     });
     setBusy(false);
     if (up.error) {
       setError(up.error);
       return;
     }
-    if (up.publicUrl) onLogoUrlChange(up.publicUrl);
+    if (up.publicUrl) { onLogoUrlChange(up.publicUrl); setPendingFile(null); }
   };
 
   const onRemove = async () => {
@@ -168,6 +177,7 @@ export function OpponentLogoField({
           {localError}
         </p>
       ) : null}
+      {pendingFile ? <LogoUploadPreview file={pendingFile} busy={busy} onCancel={() => setPendingFile(null)} onConfirm={file => void confirmFile(file)} /> : null}
     </div>
   );
 }

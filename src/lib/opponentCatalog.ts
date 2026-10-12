@@ -3,6 +3,7 @@ import { uploadStorageObject } from './storageUpload';
 import { getClubLogo, isPlaceholderLogoUrl, PLACEHOLDER_LOGO } from './teamLogos';
 import { normalizeOpponentKey } from './teamVenues';
 import { resolveClubIdForTeamSeason } from './venues';
+import { prepareLogoFile } from './logoPreparation';
 
 export type OpponentCatalogRow = {
   id: string;
@@ -239,6 +240,7 @@ export async function uploadOpponentLogoFile(opts: {
   clubId: string;
   opponentName: string;
   file: File;
+  removeBackground?: boolean;
 }): Promise<{ publicUrl: string | null; error: string | null }> {
   const key = normalizeOpponentKey(opts.opponentName);
   if (!opts.clubId || !key) return { publicUrl: null, error: 'Gegner oder Club fehlt.' };
@@ -251,18 +253,24 @@ export async function uploadOpponentLogoFile(opts: {
     return { publicUrl: null, error: 'Logo darf maximal 2 MB groß sein.' };
   }
 
+  let file = opts.file;
+  if (opts.removeBackground !== false) {
+    try { file = (await prepareLogoFile(file)).file; }
+    catch (e) { return { publicUrl: null, error: e instanceof Error ? e.message : 'Freistellen fehlgeschlagen.' }; }
+  }
+  if (file.size > OPPONENT_LOGO_MAX_BYTES) return { publicUrl: null, error: 'Freigestelltes Logo ist größer als 2 MB.' };
   const ext =
-    opts.file.type === 'image/png'
+    file.type === 'image/png'
       ? 'png'
-      : opts.file.type === 'image/webp'
+      : file.type === 'image/webp'
         ? 'webp'
-        : opts.file.type === 'image/gif'
+        : file.type === 'image/gif'
           ? 'gif'
           : 'jpg';
-  const path = `${opts.clubId}/${key.replace(/[^a-z0-9_-]+/gi, '_')}/logo.${ext}`;
-  const up = await uploadStorageObject('opponent-logos', path, opts.file, {
+  const path = `${opts.clubId}/${key.replace(/[^a-z0-9_-]+/gi, '_')}/logo-${crypto.randomUUID()}.${ext}`;
+  const up = await uploadStorageObject('opponent-logos', path, file, {
     upsert: true,
-    contentType: opts.file.type || `image/${ext}`,
+    contentType: file.type || `image/${ext}`,
     cacheControl: '3600',
   });
   if (up.error) {

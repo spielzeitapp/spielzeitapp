@@ -1,11 +1,12 @@
 import React from 'react';
 import { getClubLogoUrl, isValidLogoUrl } from '../../utils/logoResolver';
 import { splitCombinedLocation } from '../../lib/eventLocation';
+import { displayLogoUrl } from '../../lib/logoPreparation';
 
 /** Logo-URL aus Anzeige-Namen; optional Storage-URL. */
 function getLogoSrcForDisplayName(displayName: string, optionalUrl?: string | null): string {
   if (isValidLogoUrl(optionalUrl))
-    return optionalUrl.trim();
+    return displayLogoUrl(optionalUrl.trim());
   return getClubLogoUrl(displayName);
 }
 
@@ -84,7 +85,7 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
 
   const imgNode = logoUrl ? (
     <img
-      src={logoUrl}
+      src={displayLogoUrl(logoUrl)}
       alt={name}
       className={`${imgClass} mx-auto object-contain`}
       onError={(e) => {
