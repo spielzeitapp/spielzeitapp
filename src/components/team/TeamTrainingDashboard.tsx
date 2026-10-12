@@ -59,6 +59,8 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
     kaiserSub,
     jugglingAwards,
     jugglingLoading,
+    jugglingRows,
+    jugglingMinStart,
     rankingLoading,
     rankingError,
   } = useTeamTrainingSummary(players, teamSeasonId, true, { squadMode });
@@ -193,6 +195,8 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
           <div className="min-w-0 space-y-3">
             <JugglingChallengeCard
               variant="full"
+              rows={jugglingRows}
+              minStart={jugglingMinStart}
               awards={jugglingAwards}
               loading={jugglingLoading}
             />
