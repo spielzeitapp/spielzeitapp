@@ -1009,28 +1009,8 @@ export const EventDetailPage: React.FC = () => {
     setP3a(match[6] ?? '');
   }, [periodLine, reportEditOpen, matchRowLite?.period_scores]);
 
-  /** Endstand in DB an Tore (nur type goal / goal_away) angleichen — repariert alte falsche score_home/score_away. Läuft nicht bei manuellen Abschnitten. */
-  useEffect(() => {
-    if (isDemo || !isFinishedMatchEvent || !event?.match_id || matchLoading) return;
-    if (parsePeriodScores(matchRowLite?.period_scores)) return;
-    const t = countStadiumGoalsFromMatchEventRows(matchEvents);
-    const row = matchRowLite;
-    if (!row) return;
-    const sh = Number(row.score_home ?? 0);
-    const sa = Number(row.score_away ?? 0);
-    if (t.home === sh && t.away === sa) return;
-    let cancelled = false;
-    void (async () => {
-      const { error } = await updateMatchRow(event.match_id!, { score_home: t.home, score_away: t.away });
-      if (cancelled) return;
-      if (!error) {
-        setMatchRowLite((prev) => (prev ? { ...prev, score_home: t.home, score_away: t.away } : prev));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isFinishedMatchEvent, event?.match_id, matchLoading, matchEvents, matchRowLite]);
+  // Viewing a report must never rewrite its saved/imported score from an empty or partial ticker.
+  // Explicit trainer edits continue to synchronize scores in syncScoreFromEvents below.
 
   useEffect(() => {
     if (isDemo) {

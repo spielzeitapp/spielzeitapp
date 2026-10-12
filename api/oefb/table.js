@@ -19,6 +19,8 @@ function normalizeTable(table) {
     rows: table.eintraege.map((row) => ({
       rank: Number(row.rang),
       team: String(row.mannschaft ?? ''),
+      logo: /^[a-f0-9]{20}$/i.test(String(row.mannschaftIconPublicUid ?? ''))
+        ? `/api/oefb/table?view=logo&id=${String(row.mannschaftIconPublicUid).toLowerCase()}` : null,
       played: Number(row.spiele ?? 0),
       won: Number(row.siege ?? 0),
       drawn: Number(row.unentschieden ?? 0),

@@ -229,7 +229,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     : '–';
 
   const hasScore = status === 'live' || status === 'finished' || reviewPending;
-  const showScore = hasScore && (scoreHome != null || scoreAway != null);
+  const showScore = hasScore && scoreHome != null && scoreAway != null && Number.isFinite(scoreHome) && Number.isFinite(scoreAway);
   const home = scoreHome ?? 0;
   const away = scoreAway ?? 0;
   const isMatch = effectiveEventType === 'game';
@@ -237,7 +237,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     ? 'NACHARBEIT'
     : status === 'canceled'
       ? 'ABGESAGT'
-    : showScore && status === 'finished'
+    : status === 'finished'
       ? 'ENDSTAND'
       : status === 'live'
         ? 'LIVE'
@@ -1067,9 +1067,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 rightName={rightName}
                 opponentLogoUrl={rightLogoOverride}
                 leftLogoUrl={leftLogoOverride}
-                timeDisplay={timeStr}
+                timeDisplay={hasScore && !showScore ? '– : –' : timeStr}
                 isMatch={isMatch}
-                showScore={matchPhase === 'live' || matchPhase === 'finished' ? false : showScore}
+                showScore={showScore}
                 homeScore={home}
                 awayScore={away}
                 kickoffLocation={null}
@@ -1083,11 +1083,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 compactDetailGame={false}
                 suppressCompactScheduleFooter
               />
-              {showScore && (matchPhase === 'live' || matchPhase === 'finished') ? (
-                <p className="mt-0.5 text-center text-[11px] font-bold tabular-nums leading-none text-white/85">
-                  {home}:{away}
-                </p>
-              ) : null}
             </div>
             </div>
             {status !== 'canceled' ? renderAudienceInfoTilesRow() : null}

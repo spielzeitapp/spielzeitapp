@@ -68,6 +68,10 @@ export function formatFeedVenueShort(location: string | null | undefined): strin
   const parsed = splitCombinedLocation(location);
   let place = safeText(parsed.place);
   if (place) {
+    if (/^in Rohrbach-G[öo]lsen\/?\s*Liese Prokop Sportanlage/i.test(place)) return 'Sportplatz Rohrbach';
+    if (/^Fuchs\s*&\s*Langmann\s*Arena\/B[öo]heimkirchen\s*SV/i.test(place)) return 'Sportplatz Böheimkirchen';
+    if (/^Sportanlage Sportunion St\.?\s*Veit\/G[öo]lsen/i.test(place)) return 'Sportplatz St. Veit';
+    place = place.replace(/\s*\(Sportanlage[^)]*\)\s*$/i, '').trim();
     const commaParts = place.split(',').map((p) => p.trim()).filter(Boolean);
     if (commaParts.length > 1 && commaParts.slice(1).some(feedVenueLooksLikeAddress)) {
       place = commaParts[0];
