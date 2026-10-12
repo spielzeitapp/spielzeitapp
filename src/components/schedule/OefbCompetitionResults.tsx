@@ -1,4 +1,5 @@
 import { preferredClubLogo, useClubOpponentLogos } from '../../hooks/useClubOpponentLogos';
+import { useCompetition } from '../../app/components/CompetitionContext';
 import { MatchCardLigaportal } from '../../app/components/MatchCardLigaportal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -18,7 +19,9 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
   const previousCompetition = useRef(competitionId);
   const automaticRoundChosen = useRef(false);
   const roundStrip = useRef<HTMLDivElement>(null);
-  const clubLogos = useClubOpponentLogos(data?.games.flatMap((game) => [game.home, game.away]) ?? []);
+  const competition = useCompetition();
+  const clubLogos = useClubOpponentLogos(data?.games.flatMap((game) => [game.home, game.away]) ?? [],
+    competition.settings?.competitionId === competitionId ? competition.selectedSeasonId : undefined);
   useEffect(() => {
     roundStrip.current?.querySelector<HTMLElement>(`[data-round="${round}"]`)?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
   }, [round, rounds.length]);

@@ -15,9 +15,9 @@ export function preferredClubLogo(name: string, logos: Map<string, string>, fall
   const local = getClubLogo(name);
   return !isPlaceholderLogoUrl(local) ? local : fallback ?? null;
 }
-export function useClubOpponentLogos(names: string[]): Map<string, string> {
+export function useClubOpponentLogos(names: string[], seasonOverride?: string | null): Map<string, string> {
   const { selectedTeamSeasonId, viewTeamSeasonId } = useSession();
-  const seasonId = viewTeamSeasonId ?? selectedTeamSeasonId;
+  const seasonId = seasonOverride === undefined ? viewTeamSeasonId ?? selectedTeamSeasonId : seasonOverride;
   const namesKey = JSON.stringify([...new Set(names.map(catalogLogoKey))].sort());
   const key = `${seasonId ?? ''}:${namesKey}`;
   const [result, setResult] = useState<{ key: string; logos: Map<string, string> } | null>(null);

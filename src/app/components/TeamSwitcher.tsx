@@ -35,7 +35,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     viewTeamSeasonId, setViewTeamSeasonId, memberships,
     teamViewFilter, setTeamViewFilter, filteredTeamSeasonIds,
   } = useSession();
-  const overview = pathname === '/app' || pathname === '/app/home' || pathname === '/app/termine';
+  const overview = pathname === '/app' || pathname === '/app/home' || pathname === '/app/termine' || pathname === '/app/tabelle';
   const [open, setOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
