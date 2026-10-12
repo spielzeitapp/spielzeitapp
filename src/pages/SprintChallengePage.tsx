@@ -1,3 +1,4 @@
+import { ChallengeRankingRow } from '../components/team/ChallengeRankingRow';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Timer, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
@@ -191,12 +192,9 @@ export function SprintChallengePage() {
         <div className="mt-3 grid grid-cols-3 gap-1">{([{id:'time',label:'Bestzeit'},{id:'seconds',label:'Verbesserung'},{id:'percent',label:'Entwicklung'}] as const).map(tab => <button type="button" key={tab.id} aria-pressed={rankingTab===tab.id} onClick={() => setRankingTab(tab.id)} className={'min-h-11 rounded-xl border px-1 text-xs font-semibold ' + (rankingTab===tab.id ? 'border-[rgb(var(--club-border-rgb)/0.5)] bg-[rgb(var(--club-primary-rgb)/0.2)] text-white' : 'border-white/10 text-white/55')}>{tab.label}</button>)}</div>
         <p className="mt-2 text-xs text-white/45">{rankingTab === 'time' ? 'Kleinste Zeit gewinnt. Anzahl der Versuche steht bei jedem Spieler.' : 'Vergleich mit der letzten Messung derselben Messart. Wertung erst ab zwei Messungen; nur positive Verbesserungen.'}</p>
         {rankingTab === 'time' ? <>
-        {ranking.length ? <ol className="mt-3 space-y-2">{ranking.map(row => <li key={row.playerId} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/25 p-3">
-          <span className="min-w-0 text-sm font-semibold text-white"><span className="mr-2 text-white/50">{row.rank}.</span>{row.playerName}<span className="ml-2 text-xs text-white/45">{row.attempts.filter(value => value != null).length}/3</span></span>
-          <span className="shrink-0 text-sm font-bold tabular-nums text-white">{formatSprintTime(row.best)}</span>
-        </li>)}</ol> : <p className="mt-3 text-sm text-white/55">Noch keine Zeiten gespeichert.</p>}
+        {ranking.length ? <ol className="mt-3 space-y-2">{ranking.map(row => <ChallengeRankingRow key={row.playerId} rank={row.rank} name={row.playerName} value={formatSprintTime(row.best)} detail={row.attempts.filter(value => value != null).length + ' von 3 Versuchen · Bestzeit'} />)}</ol> : <p className="mt-3 text-sm text-white/55">Noch keine Zeiten gespeichert.</p>}
 
-        </> : <ol className="mt-3 space-y-2">{(rankingTab === 'seconds' ? absoluteRanking : percentRanking).map(row => <li key={row.playerId} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/25 p-3"><span className="min-w-0 text-sm font-semibold text-white">{row.rank}. {row.playerName}</span><span className="shrink-0 text-sm font-bold text-emerald-300">{rankingTab === 'seconds' ? formatSprintTime(row.improvementMs) : (row.improvementPercent ?? 0).toFixed(2).replace('.',',') + ' %'}</span></li>)}
+        </> : <ol className="mt-3 space-y-2">{(rankingTab === 'seconds' ? absoluteRanking : percentRanking).map(row => <ChallengeRankingRow key={row.playerId} rank={row.rank} name={row.playerName} value={rankingTab === 'seconds' ? formatSprintTime(row.improvementMs) : (row.improvementPercent ?? 0).toFixed(2).replace('.',',') + ' %'} detail="Verbessert gegenüber der letzten vergleichbaren Messung" />)}
           {!(rankingTab === 'seconds' ? absoluteRanking : percentRanking).length ? <li className="py-3 text-sm text-white/50">Noch keine vergleichbare Verbesserung.</li> : null}
         </ol>}
         {noValues.length ? <details className="mt-4 border-t border-white/10 pt-3"><summary className="min-h-11 cursor-pointer text-sm font-semibold text-white/65">Ohne Messwerte · {noValues.length}</summary><ul className="space-y-2 text-sm text-white/55">{noValues.map(player => <li key={player.id}>{player.display_name} · {challenge.participation?.[player.id] === 'absent' ? 'Nicht dabei' : 'Noch keine Messwerte'}</li>)}</ul><p className="mt-2 text-xs text-white/40">Keine Zeit und keine Wertung. Frühere Bestzeiten bleiben erhalten.</p></details> : null}

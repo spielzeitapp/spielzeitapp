@@ -1,3 +1,4 @@
+import { ChallengeRankingRow } from '../components/team/ChallengeRankingRow';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
@@ -94,18 +95,13 @@ function RankingList({
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">{title}</p>
       <ul className="space-y-1.5">
         {rows.map((row) => (
-          <li
+          <ChallengeRankingRow
             key={row.playerId}
-            className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2"
-          >
-            <span className="min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug text-white">
-              <span className="mr-2 tabular-nums text-white/45">{row.rank}.</span>
-              {row.playerName}
-            </span>
-            <span className="shrink-0 pt-0.5 text-[13px] font-bold tabular-nums text-white/85">
-              {formatValue(row)}
-            </span>
-          </li>
+            rank={row.rank}
+            name={row.playerName}
+            value={metric === 'end' ? formatValue(row) + ' Gaberl' : formatValue(row)}
+            detail={metric === 'end' ? 'Höchster Endwert' : metric === 'absolute' ? 'Verbesserung in Gaberln' : 'Entwicklung gegenüber dem Startwert'}
+          />
         ))}
       </ul>
     </div>
