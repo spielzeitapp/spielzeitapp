@@ -84,12 +84,11 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   } = useManagerWorkMode();
   const { profile } = useProfile(authUser?.id);
 
-  const platformGlobal = workMode === 'platform_admin' && !supportSession;
-  const headerTeamSeasons = platformGlobal
-    ? []
-    : contextTeamSeasons.length > 0
-      ? contextTeamSeasons
-      : teamSeasons;
+  // Administration may select existing memberships even outside club support.
+  // Trainer and support modes must never fall back to unrelated memberships.
+  const headerTeamSeasons = isTrainerMode || supportSession || contextTeamSeasons.length > 0
+    ? contextTeamSeasons
+    : teamSeasons;
 
   const displayName =
     getDisplayFirstName(profile) ??

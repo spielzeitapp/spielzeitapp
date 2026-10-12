@@ -48,9 +48,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
       ) : null}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
-        {isTrainerMode || workMode === 'club_admin' || supportSession ? (
-          <MoreLink to="/manager/tabelle" icon={Table2} title="Tabelle & Liga" detail="ÖFB-Tabelle und Ergebnisse der ausgewählten Mannschaft" />
-        ) : null}
+        <MoreLink to="/manager/tabelle" icon={Table2} title="Tabelle & Liga" detail="ÖFB-Tabelle und Ergebnisse der ausgewählten Mannschaft" />
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
           <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />
         ) : null}
