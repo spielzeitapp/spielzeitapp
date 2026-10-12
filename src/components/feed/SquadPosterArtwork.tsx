@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { displayLogoUrl } from '../../lib/logoPreparation';
 import type { SquadFeedPlayer } from '../../lib/squadFeedTypes';
 import { PosterClubName } from './PosterClubName';
-import { displayLogoUrl } from '../../lib/logoPreparation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import './squadPoster.css';
 
 type Props = {
@@ -26,13 +27,16 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
     weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Vienna',
   }).format(date) : null, validDate ? `${new Intl.DateTimeFormat('de-AT', {
     hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna',
-  }).format(date)} Uhr` : null, location?.trim()].filter(Boolean).join(' · ');
+  }).format(date)} Uhr` : null].filter(Boolean).join(' · ');
+  const venue = formatFeedVenueShort(location);
   const showPhoto = teamPhotoUrl && failedPhoto !== teamPhotoUrl;
   return (
     <div className="squad-poster" data-manager-artwork data-whatsapp-status-poster>
       <div className="squad-poster-content">
-        <h3 className="squad-poster-title">{title}</h3>
-        {ageGroup && <div className="squad-poster-age"><span>{ageGroup}</span></div>}
+        <div className="squad-poster-heading">
+          <h3 className="squad-poster-title">{title}</h3>
+          {ageGroup && <div className="squad-poster-age"><span>{ageGroup}</span></div>}
+        </div>
         <div className="squad-poster-match">
           {[left, right].map((team, index) => (
             <React.Fragment key={index}>
@@ -44,8 +48,11 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
             </React.Fragment>
           ))}
         </div>
-        {details && <p className="squad-poster-details">{details}</p>}
-        <h4 className="squad-poster-count">{formation ? `Startaufstellung · ${formation}` : 'Unser Aufgebot'}</h4>
+        {(details || venue) && <div className="squad-poster-details">
+          {details && <p className="squad-poster-date">{details}</p>}
+          {venue && <p className="squad-poster-venue">{venue}</p>}
+        </div>}
+        <h4 className="squad-poster-count">{formation ? `Startaufstellung · ${formation}` : `${players.length} Spieler im Kader`}</h4>
         <ul className="squad-poster-players">
           {players.map(player => <li key={player.player_id}>
             <span className="squad-poster-number">{player.jersey_number ?? '–'}</span>

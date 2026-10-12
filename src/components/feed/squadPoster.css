@@ -62,3 +62,28 @@
 .matchday-poster header + div + div > div > p.line-clamp-2 { font-size: 3.5cqw; }
 .matchday-poster footer { margin-top: auto; }
 .matchday-poster footer p { font: italic 400 7.8cqw/1.1 'Squad Anton', Impact, sans-serif; letter-spacing: -.025em; }
+
+/* Compact squad artwork: full names, short venue, consistent rows on phones. */
+.squad-poster .squad-poster-content { padding: 4cqw 5cqw 2cqw; }
+.squad-poster-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2cqw; }
+.squad-poster-heading .squad-poster-title { font-size: 9cqw; line-height: 1.1; text-align: left; }
+.squad-poster-heading .squad-poster-age { display: block; margin: 0; font-size: 6cqw; line-height: 1.1; }
+.squad-poster-heading .squad-poster-age::before, .squad-poster-heading .squad-poster-age::after { display: none; }
+.squad-poster .squad-poster-match { margin: 4cqw 0 3cqw; }
+.squad-poster .squad-poster-club > img { width: 14cqw; height: 14cqw; }
+.squad-poster .squad-poster-club span { font-size: 3cqw; line-height: 1.25; }
+.squad-poster .squad-poster-details { margin: 2cqw 0 3cqw; padding: 2cqw 0; text-transform: none; font-size: 3.3cqw; line-height: 1.5; font-weight: 700; }
+.squad-poster-date, .squad-poster-venue { margin: 0; }
+.squad-poster-venue { color: #ffffffb3; }
+.squad-poster .squad-poster-count { margin: 0 0 2cqw; padding: 0; border: 0; text-align: left; font-size: 3.3cqw; letter-spacing: .06em; }
+.squad-poster .squad-poster-players { grid-template-columns: minmax(0,1fr); gap: 0; margin: 0; }
+.squad-poster .squad-poster-players li { display: grid; grid-template-columns: 6cqw minmax(0,1fr) auto; align-items: baseline; gap: 2cqw; padding: .7cqw 0; font-size: 4cqw; font-weight: 700; line-height: 1.35; }
+.squad-poster .squad-poster-players li > span:nth-child(2) { overflow-wrap: break-word; }
+.squad-poster .squad-poster-number { width: auto; text-align: left; font-size: 4cqw; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.squad-poster .squad-poster-photo { height: auto; max-height: 55cqw; margin: 3cqw auto 0; object-fit: contain; }
+.squad-poster .squad-poster-tag { padding: 3cqw 3cqw 4cqw; font-size: 5.6cqw; line-height: 1.25; }
+@container (min-width: 560px) {
+  .squad-poster .squad-poster-players { grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 3cqw; }
+  .squad-poster .squad-poster-players li { grid-template-columns: 4cqw minmax(0,1fr) auto; gap: 1cqw; font-size: 2.7cqw; }
+  .squad-poster .squad-poster-number { font-size: 2.7cqw; }
+}
