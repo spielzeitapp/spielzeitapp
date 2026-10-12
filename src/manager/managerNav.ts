@@ -75,6 +75,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
       { id: 'training-tpl', label: 'Vorlagen', to: '/manager/training/vorlagen', status: 'ready', moduleKey: 'training-tpl' },
       { id: 'training-chronik', label: 'Chronik', to: '/manager/training/chronik', status: 'ready', moduleKey: 'training-chronik' },
       { id: 'matches', label: 'Spiele', status: 'planned' },
+      { id: 'competition', label: 'Tabelle & Liga', to: '/manager/tabelle', status: 'ready' },
       { id: 'tournaments', label: 'Turniere', status: 'planned' },
       { id: 'venues', label: 'Platzbelegung', to: '/manager/platzbelegung', status: 'ready', moduleKey: 'venues' },
       { id: 'video', label: 'Video & Analyse', to: '/manager/video', status: 'ready' },

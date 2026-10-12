@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield } from 'lucide-react';
+import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield, Table2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
@@ -48,6 +48,9 @@ export function ManagerMobileMorePage(): React.ReactElement {
       ) : null}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
+        {isTrainerMode || workMode === 'club_admin' || supportSession ? (
+          <MoreLink to="/manager/tabelle" icon={Table2} title="Tabelle & Liga" detail="ÖFB-Tabelle und Ergebnisse der ausgewählten Mannschaft" />
+        ) : null}
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
           <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />
         ) : null}

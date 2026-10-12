@@ -8,7 +8,7 @@ type Results = { name: string; rounds: { id: number; label: string }[]; games: G
 const timeFormat = new Intl.DateTimeFormat('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' });
 const teamKey = (name: string) => name.toLocaleLowerCase('de-AT').replace(/\bu\d+\b/g, '').replace(/\s+/g, ' ').trim();
 
-export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: string }> = ({ competitionId, ourTeam }) => {
+export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: string; teamSeasonId?: string | null }> = ({ competitionId, ourTeam, teamSeasonId }) => {
   const [round, setRound] = useState(0);
   const [data, setData] = useState<Results | null>(null);
   const [rounds, setRounds] = useState<Results['rounds']>([]);
@@ -21,7 +21,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
   const roundStrip = useRef<HTMLDivElement>(null);
   const competition = useCompetition();
   const clubLogos = useClubOpponentLogos(data?.games.flatMap((game) => [game.home, game.away]) ?? [],
-    competition.settings?.competitionId === competitionId ? competition.selectedSeasonId : undefined);
+    teamSeasonId === undefined ? (competition.settings?.competitionId === competitionId ? competition.selectedSeasonId : undefined) : teamSeasonId);
   useEffect(() => {
     roundStrip.current?.querySelector<HTMLElement>(`[data-round="${round}"]`)?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
   }, [round, rounds.length]);

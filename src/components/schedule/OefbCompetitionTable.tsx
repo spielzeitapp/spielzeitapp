@@ -9,14 +9,14 @@ type TableRow = {
 };
 type TableResponse = { name: string; rows: TableRow[]; updatedAt: string; sourceUrl: string };
 
-export const OefbCompetitionTable: React.FC<{ competitionId: string; sourceUrl: string; ourTeam: string }> = ({
-  competitionId, sourceUrl, ourTeam,
+export const OefbCompetitionTable: React.FC<{ competitionId: string; sourceUrl: string; ourTeam: string; teamSeasonId?: string | null }> = ({
+  competitionId, sourceUrl, ourTeam, teamSeasonId,
 }) => {
   const [table, setTable] = useState<TableResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { selectedSeasonId } = useCompetition();
-  const clubLogos = useClubOpponentLogos(table?.rows.map(row => row.team) ?? [], selectedSeasonId);
+  const clubLogos = useClubOpponentLogos(table?.rows.map(row => row.team) ?? [], teamSeasonId === undefined ? selectedSeasonId : teamSeasonId);
 
   const request = useRef<AbortController | null>(null);
   const lastRefresh = useRef(0);

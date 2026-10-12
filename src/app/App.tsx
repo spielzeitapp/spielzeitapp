@@ -76,6 +76,7 @@ import { ManagerMatchVideosPage } from '../manager/ManagerMatchVideosPage';
 import { ManagerMobileSchedulePage } from '../manager/mobile/ManagerMobileSchedulePage';
 import { ManagerMobileTeamsPage } from '../manager/mobile/ManagerMobileTeamsPage';
 import { ManagerMobileMorePage } from '../manager/mobile/ManagerMobileMorePage';
+import { ManagerCompetitionPage } from '../manager/ManagerCompetitionPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
@@ -369,6 +370,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="termine" element={<ManagerMobileSchedulePage />} />
         <Route path="teams" element={<ManagerMobileTeamsPage />} />
         <Route path="mehr" element={<ManagerMobileMorePage />} />
+        <Route path="tabelle" element={<ManagerCompetitionPage />} />
         <Route path="platzbelegung" element={<ManagerPlatzbelegungPage />} />
         <Route path="video" element={<ManagerMatchVideosPage />} />
         <Route path="saisons" element={<ManagerSeasonsPage />} />
