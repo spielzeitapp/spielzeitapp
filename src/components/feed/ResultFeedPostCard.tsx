@@ -20,7 +20,7 @@ import {
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { formatPeriodScoresBracketFromRaw } from '../../lib/matchEventScores';
-import { formatFeedVenueShort } from '../../lib/eventLocation';
+import { formatResultPosterVenue } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
@@ -186,12 +186,12 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     [p.period_scores],
   );
   const matchDateLabel = useMemo(() => formatResultMatchDate(p.starts_at), [p.starts_at]);
-  const venueLabel = useMemo(() => formatFeedVenueShort(p.location), [p.location]);
+  const venueLabel = useMemo(() => formatResultPosterVenue(p.location), [p.location]);
   const captionTrim = useMemo(() => {
     const saved = post.caption?.trim() ?? '';
     const ownSaved = p.our_team_name?.trim() ?? '';
     const ownSeason = teamLabel.trim();
-    if (!saved || !ownSaved || !ownSeason || ownSaved === ownSeason) return saved;
+    if (!saved || !ownSaved) return saved;
     const opponent = p.is_home ? p.away_team_name : p.home_team_name;
     const generated = buildAutoResultCaption({
       ourTeamName: ownSaved,
@@ -201,13 +201,16 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       resultState: p.result_state,
     });
     // Nur unveränderte Vorlagentexte berichtigen; individuelle Texte behalten ihren Wortlaut.
-    return saved === generated
+    const corrected = buildAutoResultCaption({ ourTeamName: ownSaved, opponentName: opponent,
+      homeScore: p.home_score, awayScore: p.away_score, resultState: p.result_state, isHome: p.is_home });
+    return saved === generated || saved === corrected
       ? buildAutoResultCaption({
-          ourTeamName: ownSeason,
+          ourTeamName: ownSeason || ownSaved,
           opponentName: opponent,
           homeScore: p.home_score,
           awayScore: p.away_score,
           resultState: p.result_state,
+          isHome: p.is_home,
         })
       : saved;
   }, [post.caption, p.our_team_name, p.is_home, p.home_team_name, p.away_team_name, p.home_score, p.away_score, p.result_state, teamLabel]);

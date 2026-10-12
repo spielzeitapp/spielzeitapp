@@ -287,6 +287,7 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     homeScore,
     awayScore,
     resultState: result_state,
+    isHome: sides.isOwnTeamHome,
   });
 
   rfLog('calling rpc ensure_result_feed_post_for_match', {

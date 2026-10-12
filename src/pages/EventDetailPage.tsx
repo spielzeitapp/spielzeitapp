@@ -51,6 +51,7 @@ import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { FinishedMatchScorers } from '../components/match/FinishedMatchScorers';
+import { OefbMatchReportPanel } from '../components/match/OefbMatchReportPanel';
 import { MatchVideosPanel } from '../components/match/MatchVideosPanel';
 import { MatchTypeHeading } from '../components/match/MatchTypeHeading';
 import { AppButton } from '../components/ui/AppButton';
@@ -2863,6 +2864,7 @@ export const EventDetailPage: React.FC = () => {
           {finishedTab === 'overview' ? (
             <div className="rounded-2xl border border-white/10 bg-black/45 p-4 text-white/85 shadow-[0_12px_28px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm">
               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht</p>
+              {!isDemo ? <OefbMatchReportPanel key={event.id} eventId={event.id} /> : null}
               <div className="mt-1.5 divide-y divide-white/[0.07] text-[13px]">
                 <div className="flex items-center justify-between gap-4 py-3.5">
                   <span className="shrink-0 text-white/70">⚽ Ergebnis</span>

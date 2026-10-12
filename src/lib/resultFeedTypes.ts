@@ -93,10 +93,14 @@ export function buildAutoResultCaption(params: {
   homeScore: number;
   awayScore: number;
   resultState: 'win' | 'draw' | 'loss';
+  /** Omitted only for legacy callers that supply home-oriented text. */
+  isHome?: boolean;
 }): string {
   const us = (params.ourTeamName || '').trim() || 'Unser Team';
   const opp = (params.opponentName || '').trim() || 'Gegner';
-  const scoreStr = `${params.homeScore}:${params.awayScore}`;
+  const scoreStr = params.isHome === false
+    ? `${params.awayScore}:${params.homeScore}`
+    : `${params.homeScore}:${params.awayScore}`;
 
   if (params.resultState === 'win') {
     return `🔥 ENDSTAND!\n${us} gewinnt ${scoreStr} gegen ${opp}.\nStarker Einsatz unserer Mannschaft!\n#GEMEINSAMEINTEAM`;

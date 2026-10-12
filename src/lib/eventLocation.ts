@@ -54,6 +54,16 @@ function stripPostalCityTail(s: string): string {
   return s.replace(/,\s*\d{4,5}\s+[\wÄÖÜäöüß.\- ]+$/i, '').trim();
 }
 
+/** Poster-only display: never changes the stored venue/address. */
+export function formatResultPosterVenue(location: string | null | undefined): string | null {
+  const short = formatFeedVenueShort(location);
+  if (!short) return null;
+  // Known imported venue; do not derive locations from arbitrary opponent names.
+  if (/Fuchs\s*&\s*Langmann\s*Arena\/B[öo]heimkirchen\s*SV/i.test(short)) return 'Sportplatz Böheimkirchen';
+  const cleaned = short.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  return cleaned.length > 55 ? 'Sportplatz' : cleaned;
+}
+
 export function formatFeedVenueShort(location: string | null | undefined): string | null {
   const parsed = splitCombinedLocation(location);
   let place = safeText(parsed.place);
