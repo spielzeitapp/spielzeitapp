@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { assertTeamSeasonWritable } from '../lib/seasonTransition';
 import type { SprintAttempts } from '../lib/sprintChallenge';
-export type SprintTest = { id: string; start_date: string | null; event_id: string | null; title: string };
+export type SprintMeasurementMethod = 'hand' | 'light_gate';
+export type SprintTest = { id: string; start_date: string | null; event_id: string | null; title: string; measurement_method: SprintMeasurementMethod | null };
 export function useSprintChallenge(teamSeasonId: string | null, enabled: boolean, eventId: string | null) {
   const [tests, setTests] = useState<SprintTest[]>([]);
   const [testId, setTestId] = useState('');
@@ -17,7 +18,7 @@ export function useSprintChallenge(teamSeasonId: string | null, enabled: boolean
     if (!enabled || !teamSeasonId) { setLoading(false); return; }
     setLoading(true);
     void (async () => {
-      const response = await supabase.from('challenge_sessions').select('id,start_date,event_id,title').eq('team_season_id', teamSeasonId).eq('type', 'sprint_16_5').order('start_date', { ascending: false }).order('created_at', { ascending: false });
+      const response = await supabase.from('challenge_sessions').select('id,start_date,event_id,title,measurement_method').eq('team_season_id', teamSeasonId).eq('type', 'sprint_16_5').order('start_date', { ascending: false }).order('created_at', { ascending: false });
       if (version !== generation.current) return;
       if (response.error) setError(response.error.message);
       else { const list = (response.data ?? []) as SprintTest[]; setTests(list); setTestId((eventId ? list.find(test => test.event_id === eventId) : list[0])?.id ?? ''); }
@@ -39,7 +40,7 @@ export function useSprintChallenge(teamSeasonId: string | null, enabled: boolean
     })();
     return () => { current = false; };
   }, [testId, enabled]);
-  const createTest = useCallback(async (date: string) => {
+  const createTest = useCallback(async (date: string, method: SprintMeasurementMethod) => {
     if (!teamSeasonId || !enabled || saving) return false;
     const version = generation.current;
     setSaving(true); setError(null);
@@ -52,7 +53,7 @@ export function useSprintChallenge(teamSeasonId: string | null, enabled: boolean
         const { data: event, error: eventError } = await supabase.from('events').select('id,team_season_id,kind').eq('id', eventId).single();
         if (eventError || event?.team_season_id !== teamSeasonId || event.kind !== 'training') throw new Error('Das Training gehört nicht zur gewählten Mannschaft.');
       }
-      const response = await supabase.from('challenge_sessions').insert({ team_season_id: teamSeasonId, type: 'sprint_16_5', title: 'Sprint-Challenge · 16,5 m', start_date: date, event_id: eventId, status: 'active', created_by: auth.user.id }).select('id,start_date,event_id,title').single();
+      const response = await supabase.from('challenge_sessions').insert({ team_season_id: teamSeasonId, type: 'sprint_16_5', title: 'Sprint-Challenge · 16,5 m', start_date: date, measurement_method: method, event_id: eventId, status: 'active', created_by: auth.user.id }).select('id,start_date,event_id,title,measurement_method').single();
       if (response.error) throw response.error;
       if (generation.current !== version) return false;
       setTests(previous => [response.data as SprintTest, ...previous]); setTestId(response.data.id); return true;
@@ -75,5 +76,22 @@ export function useSprintChallenge(teamSeasonId: string | null, enabled: boolean
     } catch (e) { if (generation.current === version) setError(e instanceof Error ? e.message : String(e)); return false; }
     finally { if (generation.current === version) setSaving(false); }
   }, [teamSeasonId, testId, enabled, saving]);
-  return { tests, testId, setTestId, results, loading, saving, error, createTest, save };
+  const setMeasurementMethod = useCallback(async (method: SprintMeasurementMethod) => {
+    if (!teamSeasonId || !testId || !enabled || saving) return false;
+    const version = generation.current;
+    setSaving(true); setError(null);
+    try {
+      const writable = await assertTeamSeasonWritable(teamSeasonId);
+      if (!writable.ok) throw new Error(writable.message);
+      const response = await supabase.from('challenge_sessions').update({ measurement_method: method })
+        .eq('id', testId).eq('team_season_id', teamSeasonId).eq('type', 'sprint_16_5').is('measurement_method', null)
+        .select('id,start_date,event_id,title,measurement_method').single();
+      if (response.error) throw response.error;
+      if (version !== generation.current) return false;
+      setTests(previous => previous.map(test => test.id === testId ? response.data as SprintTest : test));
+      return true;
+    } catch (e) { if (version === generation.current) setError(e instanceof Error ? e.message : String(e)); return false; }
+    finally { if (version === generation.current) setSaving(false); }
+  }, [teamSeasonId, testId, enabled, saving]);
+  return { tests, testId, setTestId, results, loading, saving, error, createTest, setMeasurementMethod, save };
 }
