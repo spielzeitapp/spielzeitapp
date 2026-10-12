@@ -38,6 +38,7 @@ import {
   ProfileTrainingAwardsSection,
   ProfileTrainingKaiserStatus,
 } from "./profile/ProfileTrainingExtras";
+import { PlayerSprintHistory } from "./PlayerSprintHistory";
 import { SeasonMatchCard } from "./SeasonMatchCard";
 import type { SeasonMatchCardData } from "../../lib/seasonMatchStats";
 
@@ -1204,6 +1205,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {profileTab === "achievements" ? (
             <div>
+              <PlayerSprintHistory playerId={player.id} enabled={!demo && (canManage || role === "parent" || role === "player")} />
               <h4 className="sz-club-profile-accent mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em]">
                 Auszeichnungen
               </h4>
@@ -1227,7 +1229,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-center text-[14px] font-medium text-white/80">Noch keine Erfolge</p>
+
             </div>
           ) : null}
 
