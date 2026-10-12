@@ -46,7 +46,7 @@ function LineupLink({
 }: {
   slots: TournamentMatchSlotView[];
   loading: boolean;
-  basePath?: '/app' | '/demo';
+  basePath?: '/app' | '/demo' | '/manager';
 }) {
   const featured = pickFeaturedTournamentSlot(slots);
   const matchId = featured?.match_id?.trim() ?? '';

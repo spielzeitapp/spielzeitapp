@@ -119,7 +119,7 @@ function renderCta(
     onRefreshPlan?: () => void;
     completingTournament?: boolean;
     refreshingPlan?: boolean;
-    basePath?: '/app' | '/demo';
+    basePath?: '/app' | '/demo' | '/manager';
   },
 ): React.ReactNode {
   const base = handlers.basePath ?? '/app';

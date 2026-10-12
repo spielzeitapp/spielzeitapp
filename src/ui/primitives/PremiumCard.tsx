@@ -35,6 +35,7 @@ export const PremiumCard: React.FC<PremiumCardProps> = ({
   return (
     <Tag
       {...rest}
+      data-ui-card
       className={cn(
         dsCardShellClass({
           interactive,

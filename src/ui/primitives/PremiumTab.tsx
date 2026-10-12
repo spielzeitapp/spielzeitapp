@@ -43,7 +43,7 @@ export const PremiumTab: React.FC<PremiumTabProps> = ({
   ...rest
 }) => {
   return (
-    <button type={type} {...rest} className={cn(tabClass(kind, active, variant), className)}>
+    <button type={type} {...rest} data-ui-tab data-active={active} className={cn(tabClass(kind, active, variant), className)}>
       {children}
     </button>
   );
@@ -57,7 +57,7 @@ export type PremiumTabTrackProps = {
 /** Segment-Track (z. B. Termine-Filter-Zeile). */
 export const PremiumTabTrack: React.FC<PremiumTabTrackProps> = ({ children, className, ...rest }) => {
   return (
-    <div {...rest} className={cn(dsSegmentTrackClass(), className)} role="tablist">
+    <div {...rest} data-ui-tab-track className={cn(dsSegmentTrackClass(), className)} role="tablist">
       {children}
     </div>
   );

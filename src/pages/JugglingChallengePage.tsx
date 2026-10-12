@@ -1,5 +1,6 @@
 import { ChallengeAwardList } from '../components/team/ChallengeAwardList';
 import { ChallengeRankingRow } from '../components/team/ChallengeRankingRow';
+import { useInternalBasePath } from '../demo/demoPaths';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
@@ -148,6 +149,7 @@ function PlayerValueEditor({
 type RankingTab = 'end' | 'improvement' | 'development';
 
 export const JugglingChallengePage: React.FC = () => {
+  const basePath = useInternalBasePath();
   const [rankingTab, setRankingTab] = useState<RankingTab>('end');
   const { activeTeamSeasonId, isHistoryReadOnly, role, loading: tsLoading } = useActiveTeamSeason();
   const roleNormalized = normalizeRole(role);
@@ -189,7 +191,7 @@ export const JugglingChallengePage: React.FC = () => {
 
 
   if (!tsLoading && !allowed) {
-    return <Navigate to="/app/team" replace />;
+    return <Navigate to={`${basePath}/team`} replace />;
   }
 
   const handleSave = async (playerId: string, start: number, end: number | null) => {
@@ -203,7 +205,7 @@ export const JugglingChallengePage: React.FC = () => {
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl"
     >
       <Link
-        to="/app/team?tab=training"
+        to={`${basePath}/team?tab=training`}
         className={cn(dsPanelRowClass(), '!min-h-[40px] !py-2 text-sm font-semibold text-white/85')}
       >
         <span className="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield } from 'lucide-react';
+import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield, Users, Trophy, Newspaper } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
@@ -49,6 +49,12 @@ export function ManagerMobileMorePage(): React.ReactElement {
       ) : null}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
+        <MoreLink to="/manager/team" icon={Users} title="Mannschaft" detail="Kader, Trainer, Training und Statistiken" />
+        <MoreLink to="/manager/spieler" icon={Users} title="Spieler" detail="Spielerprofile und Kader verwalten" />
+        <MoreLink to="/manager/mehr/parent-access" icon={Users} title="Eltern & Zugänge" detail="Elternzuordnung, Einladungen und Spieler-App" />
+        <MoreLink to="/manager/spiele" icon={Trophy} title="Spiele" detail="Vorbereitung, Aufstellung und Spielberichte" />
+        <MoreLink to="/manager/turniere" icon={Trophy} title="Turniere" detail="Turniertermine und Turniercenter" />
+        <MoreLink to="/manager/home" icon={Newspaper} title="Feed & Beiträge" detail="Mannschaftsbeiträge und Fotos" />
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
           <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />
         ) : null}

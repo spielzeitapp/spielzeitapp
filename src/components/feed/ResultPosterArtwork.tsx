@@ -39,7 +39,7 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
     : state === 'draw' ? 'feed/demo-matchday-player-01.webp' : null;
   React.useEffect(() => setPhotoFailed(false), [photo]);
   const hasPlayer = photo !== null && !photoFailed;
-  return <div ref={ref} className={`result-poster result-poster--${state}${hasPlayer ? ' result-poster--player' : ''}`} data-result-state={state}>
+  return <div ref={ref} data-manager-artwork className={`result-poster result-poster--${state}${hasPlayer ? ' result-poster--player' : ''}`} data-result-state={state}>
     {photo && !photoFailed ? <img className="result-poster-motif" src={asset(photo)} alt="" aria-hidden onError={() => setPhotoFailed(true)} /> : null}
     <div className="result-poster-content">
       <header>

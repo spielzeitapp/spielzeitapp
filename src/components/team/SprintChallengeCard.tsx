@@ -1,3 +1,4 @@
+import { useInternalBasePath } from '../../demo/demoPaths';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Timer } from 'lucide-react';
@@ -12,6 +13,7 @@ import { bestSprintTime, formatSprintTime, rankSprintResults, sprintProgress, sp
 type Props = { eventId?: string; disabled?: boolean; teamSeasonId?: string; players?: PlayerItem[] };
 const EMPTY: SprintAttempts = [null, null, null];
 export function SprintChallengeCard({ eventId, disabled = false, teamSeasonId, players = [] }: Props) {
+  const basePath = useInternalBasePath();
   const showAwards = Boolean(teamSeasonId) && !disabled;
   const challenge = useSprintChallenge(teamSeasonId ?? null, showAwards, eventId ?? null);
   const test = challenge.tests.find(row => row.id === challenge.testId);
@@ -53,7 +55,7 @@ export function SprintChallengeCard({ eventId, disabled = false, teamSeasonId, p
           : formatSprintTime(best) + (improvement == null ? ' · Noch keine vergleichbare frühere Messung' : ' · Keine positive Verbesserung')};
       })} /> : null}
     </> : null}
-    {disabled ? <p className="mt-3 text-xs text-white/50">In der Demo und im Archiv nicht bearbeitbar.</p> : <Link to={'/app/team/sprint-challenge' + (eventId ? '?event=' + encodeURIComponent(eventId) : '')} className={dsPanelRowClass() + ' mt-3 flex min-h-11 items-center justify-between gap-3'}>
+    {disabled ? <p className="mt-3 text-xs text-white/50">In der Demo und im Archiv nicht bearbeitbar.</p> : <Link to={basePath + '/team/sprint-challenge' + (eventId ? '?event=' + encodeURIComponent(eventId) : '')} className={dsPanelRowClass() + ' mt-3 flex min-h-11 items-center justify-between gap-3'}>
       <span className="min-w-0 break-words text-sm font-semibold text-white">Sprint-Challenge öffnen</span><ChevronRight className="h-4 w-4 shrink-0 text-white/45" aria-hidden />
     </Link>}
   </PremiumCard>;

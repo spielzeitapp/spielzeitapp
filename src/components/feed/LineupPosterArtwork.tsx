@@ -27,7 +27,7 @@ export function LineupPosterArtwork({ left, right, ageGroup, formation, players,
     ? new Intl.DateTimeFormat('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit',
       year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' }).format(date)
     : null, location?.trim()].filter(Boolean).join(' · ');
-  return <div className="lineup-poster" data-whatsapp-status-poster>
+  return <div className="lineup-poster" data-manager-artwork data-whatsapp-status-poster>
     <div className="lineup-poster-content">
       <header>
         <p className="lineup-poster-meta">{[ageGroup, matchType].filter(Boolean).join(' · ')}</p>

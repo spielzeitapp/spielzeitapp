@@ -132,7 +132,7 @@ export async function fetchUserRole(userId: string): Promise<Role | null> {
 /** localStorage-Key für Preview-Rolle (Reset muss denselben Key löschen). */
 export const PREVIEW_ROLE_STORAGE_KEY = 'spz_preview_role';
 
-interface SessionContextValue {
+export interface SessionContextValue {
   user: User | null;
   role: Role;
   setRole: (role: Role) => void;
@@ -186,6 +186,11 @@ interface SessionContextValue {
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
+
+/** Local view scope for Manager pages; never changes authentication or DB privileges. */
+export function SessionViewProvider({ value, children }: { value: SessionContextValue; children: React.ReactNode }) {
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
 
 const LOCAL_STORAGE_KEY_ROLE = 'spielzeit_role';
 const LOCAL_STORAGE_KEY_TEAM = 'spielzeit_team';

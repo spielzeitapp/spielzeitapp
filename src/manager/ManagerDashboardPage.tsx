@@ -591,7 +591,7 @@ export function ManagerDashboardPage(): React.ReactElement {
               {nextEvents.map((e) => (
                 <li key={e.id}>
                   <Link
-                    to={`/app/events/${encodeURIComponent(e.id)}`}
+                    to={`/manager/events/${encodeURIComponent(e.id)}`}
                     className="block rounded-lg border border-slate-100 px-2.5 py-2 hover:border-red-200 hover:bg-red-50/40"
                   >
                     <p className="font-medium text-slate-900">{eventTitle(e)}</p>
@@ -676,7 +676,7 @@ export function ManagerDashboardPage(): React.ReactElement {
           {!nextMatch ? (
             <EmptyLine text="Kein kommendes Spiel geplant." />
           ) : (
-            <Link to={`/app/events/${encodeURIComponent(nextMatch.id)}`} className="block space-y-1">
+            <Link to={`/manager/events/${encodeURIComponent(nextMatch.id)}`} className="block space-y-1">
               <p className="font-semibold text-slate-900">{eventTitle(nextMatch)}</p>
               <p className="text-[13px] text-slate-500">{formatEventWhen(nextMatch.starts_at)}</p>
             </Link>
@@ -693,7 +693,7 @@ export function ManagerDashboardPage(): React.ReactElement {
             </p>
           )}
           <Link
-            to="/app/team"
+            to="/manager/team"
             className="mt-3 inline-flex text-[13px] font-semibold text-red-700 hover:text-red-800"
           >
             Mannschaft öffnen
@@ -753,19 +753,19 @@ export function ManagerDashboardPage(): React.ReactElement {
         <h2 className="text-[13px] font-semibold text-slate-800">Schnellaktionen</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
-            to="/app/termine"
+            to="/manager/termine?create=1"
             className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white hover:bg-red-800"
           >
             Termin erstellen
           </Link>
           <Link
-            to="/app/team"
+            to="/manager/team"
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
           >
             Mannschaft öffnen
           </Link>
           <Link
-            to="/app/team"
+            to="/manager/spieler"
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
           >
             Spieler verwalten
@@ -852,7 +852,6 @@ export function ManagerDashboardPage(): React.ReactElement {
         <Card title="Kommende Module">
           <ul className="grid gap-2 sm:grid-cols-2">
             {[
-              { icon: <Video className="h-3.5 w-3.5" />, label: 'Video & Highlights' },
               { icon: <ShoppingBag className="h-3.5 w-3.5" />, label: 'Ausrüstung & Teamshop' },
             ].map((m) => (
               <li

@@ -1,3 +1,4 @@
+import { useInternalBasePath } from '../../demo/demoPaths';
 import { notifyNotificationsReadChanged, INBOX_SYNC_EVENT } from '../../lib/notificationsReadState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -145,6 +146,7 @@ function filterVisibleFeedPosts(
 }
 
 export const HomePage: React.FC = () => {
+  const basePath = useInternalBasePath();
   const demo = useDemoMode();
   const isDemoMode = Boolean(demo);
   const {
@@ -663,7 +665,7 @@ export const HomePage: React.FC = () => {
                 description="Für dein Team ist aktuell kein kommendes Spiel eingetragen."
               >
                 <Link
-                  to={isDemoMode ? '/demo/termine' : '/app/termine'}
+                  to={`${basePath}/termine`}
                   className={cn(
                     dsPrimaryCtaClass(),
                     'mt-2 inline-flex min-h-[48px] items-center justify-center px-6 py-3',

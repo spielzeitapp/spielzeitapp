@@ -1,5 +1,6 @@
 import { ChallengeRankingRow } from '../components/team/ChallengeRankingRow';
 import { ChallengeAwardList } from '../components/team/ChallengeAwardList';
+import { useInternalBasePath } from '../demo/demoPaths';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Timer, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
@@ -15,6 +16,7 @@ const INPUT = 'min-h-11 w-full rounded-xl border border-white/15 bg-black/40 px-
 const EMPTY: SprintAttempts = [null, null, null];
 function today() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
 export function SprintChallengePage() {
+  const basePath = useInternalBasePath();
   const [params] = useSearchParams();
   const eventId = params.get('event');
   const { activeTeamSeasonId, isHistoryReadOnly, role, loading: seasonLoading } = useActiveTeamSeason();
@@ -114,9 +116,9 @@ export function SprintChallengePage() {
     if (index >= 0 && index < players.length - 1) setPlayerId(players[index + 1].id);
     else setMessage('Letzter Spieler. Ohne Messwerte gibt es keine Zeitwertung.');
   };
-  if (!seasonLoading && !allowed) return <Navigate to="/app/team?tab=training" replace />;
+  if (!seasonLoading && !allowed) return <Navigate to={`${basePath}/team?tab=training`} replace />;
   return <PageShell background="default" className="w-full px-3 py-6 pb-36 sm:px-4" contentClassName="mx-auto max-w-3xl space-y-4">
-    <Link to={eventId ? '/app/events/' + encodeURIComponent(eventId) : '/app/team?tab=training'} className={dsPanelRowClass() + ' inline-flex items-center gap-2 text-sm text-white/80'}><ChevronLeft className="h-4 w-4" aria-hidden />Zurück zum Training</Link>
+    <Link to={eventId ? basePath + '/events/' + encodeURIComponent(eventId) : basePath + '/team?tab=training'} className={dsPanelRowClass() + ' inline-flex items-center gap-2 text-sm text-white/80'}><ChevronLeft className="h-4 w-4" aria-hidden />Zurück zum Training</Link>
     <div className="flex items-center gap-3"><Timer className="sz-club-accent-text h-7 w-7 shrink-0" aria-hidden /><h1 className={dsPageTitleClass()}>Sprint-Challenge</h1></div>
     <p className="text-sm text-white/65">Torlinie → 16er-Linie · 16,5 Meter<br />3 Versuche pro Spieler · die schnellste Zeit zählt.</p>
     {seasonLoading || playersLoading || challenge.loading ? <p className="text-sm text-white/60">Lade Sprint-Tests…</p> : <>

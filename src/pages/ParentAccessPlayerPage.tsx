@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
+import { useInternalBasePath } from '../demo/demoPaths';
 import { normalizeRole, canViewParentLinks } from '../lib/roles';
 import { dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell } from '../ui';
@@ -23,6 +24,7 @@ import {
 } from '../hooks/useTeamPlayerParentLinks';
 
 export const ParentAccessPlayerPage: React.FC = () => {
+  const basePath = useInternalBasePath();
   const { playerId: rawPlayerId } = useParams<{ playerId: string }>();
   const playerId = (rawPlayerId ?? '').trim();
   const {
@@ -86,10 +88,10 @@ export const ParentAccessPlayerPage: React.FC = () => {
   }, [playerId]);
 
   if (!tsLoading && !allowed) {
-    return <Navigate to="/app/mehr" replace />;
+    return <Navigate to={`${basePath}/mehr`} replace />;
   }
   if (!playerId) {
-    return <Navigate to="/app/mehr/parent-access" replace />;
+    return <Navigate to={`${basePath}/mehr/parent-access`} replace />;
   }
 
   const playerName = row?.player_name ?? 'Spieler';
@@ -154,7 +156,7 @@ export const ParentAccessPlayerPage: React.FC = () => {
       ) : null}
 
       <Link
-        to="/app/mehr/parent-access"
+        to={`${basePath}/mehr/parent-access`}
         className={cn(dsPanelRowClass(), '!min-h-[40px] !py-2 text-sm font-semibold text-white/85')}
       >
         <span className="flex items-center gap-2">

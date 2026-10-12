@@ -243,3 +243,21 @@ body:has(.manager-shell) {
 .manager-video-page section[aria-label='Spielvideos'] button[aria-label$='Aktionen'] {
   color: #64748b;
 }
+/* Existing App tools retain their readable dark surfaces inside the light desktop shell. */
+.manager-app-workspace {
+  color-scheme: dark;
+  --manager-border: rgba(255, 255, 255, 0.18);
+  --manager-border-strong: rgba(255, 255, 255, 0.3);
+}
+.manager-shell .manager-app-workspace input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+.manager-shell .manager-app-workspace select,
+.manager-shell .manager-app-workspace textarea {
+  background-color: #17171c !important;
+  color: #fff !important;
+  caret-color: #fff;
+  color-scheme: dark;
+}
+.manager-shell .manager-app-workspace select option { background-color: #17171c; color: #fff; }
+.manager-shell .manager-app-workspace input:disabled,
+.manager-shell .manager-app-workspace textarea:disabled,
+.manager-shell .manager-app-workspace select:disabled { color: #a1a1aa !important; }

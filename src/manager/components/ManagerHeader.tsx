@@ -84,12 +84,9 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   } = useManagerWorkMode();
   const { profile } = useProfile(authUser?.id);
 
-  const platformGlobal = workMode === 'platform_admin' && !supportSession;
-  const headerTeamSeasons = platformGlobal
-    ? []
-    : contextTeamSeasons.length > 0
-      ? contextTeamSeasons
-      : teamSeasons;
+  const headerTeamSeasons = contextTeamSeasons.length > 0 || isTrainerMode
+    ? contextTeamSeasons
+    : teamSeasons;
 
   const displayName =
     getDisplayFirstName(profile) ??
@@ -269,14 +266,14 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-300/30 bg-amber-400 px-3 py-2 text-[12px] font-medium text-slate-950 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
           <span className="inline-flex items-center gap-2">
             <Headphones className="h-4 w-4" aria-hidden />
-            Supportmodus: <strong>{supportSession.clubName}</strong> · Änderungen werden als Plattformadmin protokolliert.
+            Vereinsverwaltung: <strong>{supportSession.clubName}</strong> · Änderungen werden als Admin protokolliert.
           </span>
           <button
             type="button"
             onClick={endSupportSession}
             className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-slate-900/20 bg-white/70 px-3 font-semibold hover:bg-white"
           >
-            <X className="h-3.5 w-3.5" aria-hidden /> Support beenden
+            <X className="h-3.5 w-3.5" aria-hidden /> Zur Plattformverwaltung
           </button>
         </div>
       ) : null}

@@ -1890,7 +1890,7 @@ export const EventDetailPage: React.FC = () => {
           recipient_group: 'all',
           title: `${event.kind === 'training' ? 'Training' : 'Spiel'} abgesagt`,
           body: cancellationPushText(event, cancellationPushExtra),
-          url: `${basePath}/events/${encodeURIComponent(event.id)}`,
+          url: `${isDemo ? '/demo' : '/app'}/events/${encodeURIComponent(event.id)}`,
           related_event_id: event.id,
         }),
       });

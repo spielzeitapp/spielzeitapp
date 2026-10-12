@@ -7,6 +7,10 @@
   "outputDirectory": "dist",
   "headers": [
     {
+      "source": "/manager/:path*",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
       "source": "/demo",
       "headers": [
         {
@@ -98,6 +102,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/manager", "destination": "/manager.html" },
+    { "source": "/manager/(.*)", "destination": "/manager.html" },
     {
       "source": "/demo",
       "destination": "/demo.html"

@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: resolve(__dirname, "index.html"),
+          manager: resolve(__dirname, "manager.html"),
           app: resolve(__dirname, "app.html"),
           demo: resolve(__dirname, "demo.html"),
         },

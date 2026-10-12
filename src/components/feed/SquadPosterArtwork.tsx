@@ -31,7 +31,7 @@ export function SquadPosterArtwork({ left, right, ageGroup, matchType, players, 
   const venue = formatFeedVenueShort(location);
   const showPhoto = teamPhotoUrl && failedPhoto !== teamPhotoUrl;
   return (
-    <div className="squad-poster" data-whatsapp-status-poster>
+    <div className="squad-poster" data-manager-artwork data-whatsapp-status-poster>
       <div className="squad-poster-content">
         <header className="squad-poster-heading squad-poster-heading--centered">
           <p className="squad-poster-meta">{[ageGroup, matchType].filter(Boolean).join(' · ')}</p>

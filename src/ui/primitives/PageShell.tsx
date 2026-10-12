@@ -47,11 +47,12 @@ export const PageShell: React.FC<PageShellProps> = ({
   return (
     <div
       {...rest}
+      data-ui-page-shell
       className={cn(dsPageShellClass(), className)}
       style={{ ...pageBackgroundStyle(background), ...style }}
     >
       {useAtmosphere ? <div className={dsPageAtmosphereClass()} aria-hidden /> : null}
-      <div className={dsPageContentClass(contentClassName)}>{children}</div>
+      <div data-ui-page-content className={dsPageContentClass(contentClassName)}>{children}</div>
     </div>
   );
 };

@@ -3,6 +3,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useInternalBasePath } from '../../demo/demoPaths';
 import {
   GlassCard,
   PremiumCard,
@@ -59,6 +60,7 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   focusPlayerId = null,
 }) => {
   const navigate = useNavigate();
+  const basePath = useInternalBasePath();
   const [filter, setFilter] = useState<ParentAccessRosterFilter>('all');
   const [search, setSearch] = useState('');
   const [openInviteByPlayer, setOpenInviteByPlayer] = useState<Record<string, number>>({});
@@ -80,10 +82,10 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
 
   useEffect(() => {
     if (!focusPlayerId) return;
-    navigate(`/app/mehr/parent-access/player/${encodeURIComponent(focusPlayerId)}`, {
+    navigate(`${basePath}/mehr/parent-access/player/${encodeURIComponent(focusPlayerId)}`, {
       replace: true,
     });
-  }, [focusPlayerId, navigate]);
+  }, [focusPlayerId, navigate, basePath]);
 
   useEffect(() => {
     let alive = true;
@@ -204,7 +206,7 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   }, [rows, filter, search, openInviteByPlayer, appStatusByPlayer]);
 
   const openDetail = (playerId: string) => {
-    navigate(`/app/mehr/parent-access/player/${encodeURIComponent(playerId)}`);
+    navigate(`${basePath}/mehr/parent-access/player/${encodeURIComponent(playerId)}`);
   };
 
   return (

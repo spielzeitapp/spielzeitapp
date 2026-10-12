@@ -84,7 +84,7 @@ function PrimaryCta({
   onAddParticipants: () => void;
   onScrollToAttendance: () => void;
   onScrollToSquad: () => void;
-  basePath?: '/app' | '/demo';
+  basePath?: '/app' | '/demo' | '/manager';
 }) {
   if (action.kind === 'ready') {
     return (
