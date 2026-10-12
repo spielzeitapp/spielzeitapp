@@ -39,6 +39,7 @@ import {
   ProfileTrainingKaiserStatus,
 } from "./profile/ProfileTrainingExtras";
 import { PlayerSprintHistory } from "./PlayerSprintHistory";
+import { PlayerJugglingHistory } from "./PlayerJugglingHistory";
 import { SeasonMatchCard } from "./SeasonMatchCard";
 import type { SeasonMatchCardData } from "../../lib/seasonMatchStats";
 
@@ -1205,7 +1206,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {profileTab === "achievements" ? (
             <div>
-              <PlayerSprintHistory playerId={player.id} enabled={!demo && (canManage || role === "parent" || role === "player")} />
+              <PlayerJugglingHistory playerId={player.id} teamSeasonId={statsSeasonId} seasonLabels={Object.fromEntries(seasonOptions.map(opt => [opt.teamSeasonId, [opt.seasonName, opt.ageGroup].filter(Boolean).join(" · ") || opt.label]))} enabled={!demo && (canManage || role === "parent" || role === "player")} />
+              <PlayerSprintHistory playerId={player.id} teamSeasonId={statsSeasonId} enabled={!demo && (canManage || role === "parent" || role === "player")} />
               <h4 className="sz-club-profile-accent mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em]">
                 Auszeichnungen
               </h4>
