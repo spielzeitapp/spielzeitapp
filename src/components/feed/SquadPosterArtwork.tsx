@@ -9,6 +9,7 @@ type Props = {
   left: { name: string; logo: string };
   right: { name: string; logo: string };
   ageGroup: string;
+  matchType?: string | null;
   players: (SquadFeedPlayer & { position?: string | null })[];
   startsAt?: string | null;
   location?: string | null;
@@ -19,7 +20,7 @@ type Props = {
 };
 
 /** The same responsive artwork is used in the feed and WhatsApp image export. */
-export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, location, teamPhotoUrl, title = 'KADER', formation, bench = [] }: Props) {
+export function SquadPosterArtwork({ left, right, ageGroup, matchType, players, startsAt, location, teamPhotoUrl, title = 'KADER', formation, bench = [] }: Props) {
   const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
   const date = startsAt ? new Date(startsAt) : null;
   const validDate = date && Number.isFinite(date.getTime());
@@ -33,10 +34,11 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
   return (
     <div className="squad-poster" data-manager-artwork data-whatsapp-status-poster>
       <div className="squad-poster-content">
-        <div className="squad-poster-heading">
+        <header className="squad-poster-heading squad-poster-heading--centered">
+          <p className="squad-poster-meta">{[ageGroup, matchType].filter(Boolean).join(' · ')}</p>
           <h3 className="squad-poster-title">{title}</h3>
-          {ageGroup && <div className="squad-poster-age"><span>{ageGroup}</span></div>}
-        </div>
+          <h4 className="squad-poster-count">{formation ? `Startaufstellung · ${formation}` : `${players.length} Spieler im Kader`}</h4>
+        </header>
         <div className="squad-poster-match">
           {[left, right].map((team, index) => (
             <React.Fragment key={index}>
@@ -48,11 +50,6 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
             </React.Fragment>
           ))}
         </div>
-        {(details || venue) && <div className="squad-poster-details">
-          {details && <p className="squad-poster-date">{details}</p>}
-          {venue && <p className="squad-poster-venue">{venue}</p>}
-        </div>}
-        <h4 className="squad-poster-count">{formation ? `Startaufstellung · ${formation}` : `${players.length} Spieler im Kader`}</h4>
         <ul className="squad-poster-players">
           {players.map(player => <li key={player.player_id}>
             <span className="squad-poster-number">{player.jersey_number ?? '–'}</span>
@@ -66,6 +63,10 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
             <span className="squad-poster-number">{player.jersey_number ?? '–'}</span><span>{player.name}</span>
           </li>)}</ul>
         </>}
+        {(details || venue) && <div className="squad-poster-details">
+          {details && <p className="squad-poster-date">{details}</p>}
+          {venue && <p className="squad-poster-venue">{venue}</p>}
+        </div>}
       </div>
       {showPhoto && <img className="squad-poster-photo" src={teamPhotoUrl} alt="Unsere Mannschaft" onError={() => setFailedPhoto(teamPhotoUrl)} />}
       <div className="squad-poster-tag">#GEMEINSAM<span>EINTEAM</span></div>
