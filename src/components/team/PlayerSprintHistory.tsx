@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { bestSprintTime, compareSprintTests, formatSprintTime, sprintProgress, type SprintHistoryEntry } from '../../lib/sprintChallenge';
-export function PlayerSprintHistory({ playerId, enabled }: { playerId: string; enabled: boolean }) {
+export function PlayerSprintHistory({ playerId, enabled, teamSeasonId }: { playerId: string; enabled: boolean; teamSeasonId?: string | null }) {
  const [history,setHistory] = useState<SprintHistoryEntry[]>([]);
  const [loading,setLoading] = useState(false);
  const [error,setError] = useState<string|null>(null);
@@ -14,14 +14,14 @@ export function PlayerSprintHistory({ playerId, enabled }: { playerId: string; e
    const response = await supabase.rpc('get_player_sprint_history',{p_player_id:playerId});
    if (!current) return;
    if (response.error) setError('Sprint-Zeiten konnten nicht geladen werden.');
-   else setHistory((response.data ?? []).map((row: Record<string,unknown>) => ({
+   else setHistory((response.data ?? []).filter((row: Record<string,unknown>) => !teamSeasonId || String(row.team_season_id) === teamSeasonId).map((row: Record<string,unknown>) => ({
     playerId,testId:String(row.challenge_id),date:row.start_date as string|null,createdAt:String(row.created_at),
     method:row.measurement_method as SprintHistoryEntry['method'],attempts:[row.attempt_1_ms,row.attempt_2_ms,row.attempt_3_ms] as SprintHistoryEntry['attempts'],participation:row.participation as SprintHistoryEntry['participation']
    })));
    setLoading(false);
   })();
   return () => { current=false; };
- },[playerId,enabled]);
+ },[playerId,enabled,teamSeasonId]);
  if (!enabled) return null;
  const measured = history.filter(row => row.participation !== 'absent' && bestSprintTime(row.attempts) != null);
  const dateLabel = (row:SprintHistoryEntry) => new Date(row.date ? row.date+'T12:00:00' : row.createdAt).toLocaleDateString('de-AT');
