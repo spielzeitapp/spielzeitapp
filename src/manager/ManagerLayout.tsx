@@ -11,6 +11,7 @@ import { getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
 import { ManagerMobileNav } from './components/ManagerMobileNav';
 import { ManagerTeamScope } from './ManagerTeamScope';
 import './managerShell.css';
+import './managerDesktopWorkspace.css';
 import './managerSeasonWorkspace.css';
 
 /**

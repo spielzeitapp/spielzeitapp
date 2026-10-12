@@ -145,7 +145,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     const teamPrefix = teamSuffix ? cleanHashtag.slice(0, -teamSuffix.length) : cleanHashtag;
 
     return (
-      <div ref={ref} className="matchday-poster relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white [container-type:inline-size]">
+      <div ref={ref} data-manager-artwork className="matchday-poster relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white [container-type:inline-size]">
         <GraphicBackground />
         {playerUrl ? <PosterPlayerLayer playerImageUrl={playerUrl} /> : null}
 

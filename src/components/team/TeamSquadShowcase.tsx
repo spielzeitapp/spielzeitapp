@@ -113,6 +113,21 @@ export const TeamSquadShowcase: React.FC<Props> = ({
 
   return (
     <div className="mt-3">
+      <div className="manager-roster-table overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead><tr><th className="px-4 py-3">Nr.</th><th className="px-4 py-3">Spieler</th><th className="px-4 py-3">Position</th><th className="px-4 py-3">Profil</th></tr></thead>
+          <tbody>{players.map(player => <tr key={`desktop-${player.id}`}>
+            <td className="px-4 py-3 font-semibold tabular-nums">{player.jersey_number ?? '–'}</td>
+            <td className="px-4 py-3"><button type="button" onClick={() => onPlayerClick(player)} className="flex items-center gap-3 text-left font-semibold">
+              <img src={playerMedia(player, Boolean(demo)).src} alt="" className="h-11 w-11 rounded-lg object-cover object-top"
+                onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = playerPlaceholder(player); }} />
+              {premiumPlayerDisplayName(player)}
+            </button></td>
+            <td className="px-4 py-3">{player.position || '–'}</td>
+            <td className="px-4 py-3"><button type="button" onClick={() => onPlayerClick(player)} className="rounded-lg border border-slate-200 px-3 py-2 font-semibold">Öffnen</button></td>
+          </tr>)}</tbody>
+        </table>
+      </div>
       <div
         ref={sliderRef}
         onScroll={updateActiveCard}
@@ -135,7 +150,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
           const reachedEnd = start.atEnd || slider.scrollLeft >= maxScroll - 8;
           if (reachedEnd && endX - start.x < -45) onSwipePastEnd();
         }}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-[12%] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4 sm:px-[18%]"
+        className="manager-roster-carousel flex snap-x snap-mandatory gap-3 overflow-x-auto px-[12%] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4 sm:px-[18%]"
         aria-label="Spieler-Karussell"
       >
         {players.map((player) => {
@@ -191,7 +206,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
       </div>
 
       {players.length > 1 ? (
-        <div className="mb-3 mt-1 flex items-center justify-center gap-1.5" aria-label="Spieler oder Trainer auswählen">
+        <div className="manager-roster-pagination mb-3 mt-1 flex items-center justify-center gap-1.5" aria-label="Spieler oder Trainer auswählen">
           {players.map((player, index) => (
             <button
               key={`showcase-dot-${player.id}`}
@@ -221,7 +236,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
         </div>
       ) : null}
 
-      <ul className="space-y-2 px-3 sm:px-5">
+      <ul className="manager-roster-mobile-list space-y-2 px-3 sm:px-5">
         {players.map((player) => {
           const number = player.jersey_number;
           const media = playerMedia(player, Boolean(demo));

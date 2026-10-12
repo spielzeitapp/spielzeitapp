@@ -56,7 +56,7 @@ export function ManagerCompetitionPage(): React.ReactElement {
       <p className="mt-2 text-sm text-slate-600">{!season ? 'Bitte wähle oben zuerst eine Mannschaft und Saison.' : !eligible ? 'Die Tabellenansicht ist für Mannschaften ab U13 vorgesehen. Spiele und Ergebnisse dieser Mannschaft findest du im Spielplan.' : 'Für diese Saison fehlt die Zuordnung zum ÖFB-Bewerb. Prüfe sie in der Saisonverwaltung.'}</p>
       {season ? <Link to={eligible ? '/manager/saisons' : '/app/termine'} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-red-700 px-4 text-sm font-semibold text-white">{eligible ? 'Saisonen öffnen' : 'Spielplan öffnen'}</Link> : null}
     </section> : null}
-    {settings && season ? <section className="rounded-2xl border border-white/10 bg-[#101014] p-4 text-white shadow-sm sm:p-6">
+    {settings && season ? <section className="manager-desktop-light rounded-2xl border border-white/10 bg-[#101014] p-4 text-white shadow-sm sm:p-6">
       <div role="group" aria-label="Liga-Ansicht" className="mb-6 flex flex-wrap gap-2">
         {(['table', 'results'] as const).map(value => <button key={value} type="button" aria-pressed={tab === value} onClick={() => setTab(value)}
           className={`min-h-11 rounded-xl border px-4 text-sm font-bold ${tab === value ? 'border-red-500/60 bg-red-950 text-white' : 'border-white/15 bg-white/5 text-white/65'}`}>

@@ -992,7 +992,21 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
       {/* Team Hero */}
-      <PremiumCard matchday showAmbientGlow className="!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x">
+      {basePath === "/manager" ? <section data-ui-card className="manager-team-desktop-header items-center justify-between gap-5 rounded-2xl border p-5">
+        <div className="flex min-w-0 items-center gap-4">
+          <img src={getOurTeamLogoUrl()} alt="" className="h-16 w-16 shrink-0 object-contain" />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold">{rosterOnly ? "Spieler" : "Mannschaft"}</h1>
+            <p className="mt-1 text-base font-semibold">{heroTeamName} · {heroAgeGroup}</p>
+            <p className="mt-1 text-sm text-slate-500">Saison {heroSeason} · {players.length} Spieler{isHistoryReadOnly ? " · Archiv" : ""}</p>
+          </div>
+        </div>
+        {canManagePlayers ? <button type="button" disabled={teamPhotoUploading} onClick={() => teamPhotoInputRef.current?.click()}
+          className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+          <Camera className="h-4 w-4" aria-hidden />Mannschaftsfoto
+        </button> : null}
+      </section> : null}
+      <PremiumCard matchday showAmbientGlow className={`${basePath === "/manager" ? "manager-team-mobile-hero " : ""}!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x`}>
       <div className="relative h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
         <img
           src={heroPhotoSrc}

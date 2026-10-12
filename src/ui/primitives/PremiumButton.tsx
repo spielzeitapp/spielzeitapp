@@ -37,7 +37,7 @@ export const PremiumButton: React.FC<PremiumButtonProps> = ({
   ...rest
 }) => {
   return (
-    <button type={type} {...rest} className={cn(BASE, variantClass(variant), fullWidth && 'w-full', className)}>
+    <button type={type} {...rest} data-ui-button={variant} className={cn(BASE, variantClass(variant), fullWidth && 'w-full', className)}>
       {children}
     </button>
   );

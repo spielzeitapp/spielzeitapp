@@ -44,6 +44,7 @@ export function AppButton({
     <button
       type={type}
       {...rest}
+      data-ui-app-button={variant}
       className={[baseClass, variantClass[variant], sizeClass[size], fullWidth ? 'w-full' : '', className].join(' ')}
     >
       {children}

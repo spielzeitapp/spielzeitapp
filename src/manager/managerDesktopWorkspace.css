@@ -1,0 +1,113 @@
+/* Desktop presentation of existing App tools. Mobile and poster artwork keep their own styles. */
+.manager-team-desktop-header,
+.manager-roster-table { display: none; }
+
+@media (min-width: 768px) {
+  .manager-shell .manager-desktop-light {
+    color-scheme: light;
+    background: #fff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    --bg-top: #fff;
+    --bg-mid: #fff;
+    --bg-bottom: #fff;
+    --surface: #fff;
+    --surface2: #f8fafc;
+    --text-main: #0f172a;
+    --text-sub: #64748b;
+    --text: #0f172a;
+    --muted: #64748b;
+    --manager-border: #e2e8f0;
+    --manager-border-strong: #cbd5e1;
+  }
+
+  .manager-desktop-light :is([data-ui-page-shell], .page) {
+    background: #fff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    padding-bottom: 2rem !important;
+  }
+  .manager-desktop-light [data-ui-page-content],
+  .manager-desktop-light .schedule-page__scroll > div > div,
+  .manager-desktop-light :is(.trainer-reminders, .trainer-team-push) > div {
+    width: 100%;
+    max-width: none !important;
+  }
+  .manager-desktop-light [data-ui-page-shell] > [aria-hidden],
+  .manager-desktop-light [data-ui-card] > [aria-hidden],
+  .manager-desktop-light .sz-club-card-glow { display: none; }
+
+  .manager-desktop-light :is([data-ui-card], .sz-club-surface, .sz-club-list-card, .sz-club-feed-shell, [data-ui-tab-track], .sz-club-tab-track):not([data-manager-artwork], [data-manager-artwork] *) {
+    background: #fff !important;
+    color: #0f172a !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  }
+  .manager-desktop-light :is([data-ui-card], .sz-club-list-card):hover {
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+  }
+  .manager-desktop-light :is([class*="bg-black/"], [class*="bg-[rgba(8,8,"], [class*="bg-[rgba(10,10,"], [class*="bg-[rgba(12,12,"], [class*="bg-[rgba(16,16,"], [class*="bg-[rgba(18,18,"]):not([data-manager-artwork], [data-manager-artwork] *) {
+    background: #f8fafc !important;
+    box-shadow: none !important;
+  }
+  .manager-desktop-light [class*="border-white"]:not([data-manager-artwork], [data-manager-artwork] *) { border-color: #e2e8f0 !important; }
+  .manager-desktop-light :is([class*="text-white"], [class*="text-[#F2F2F2]"], [class*="text-[#E8E4E6]"]):not([data-manager-artwork], [data-manager-artwork] *) {
+    color: #0f172a !important;
+    text-shadow: none;
+  }
+  .manager-desktop-light :is([class*="text-white/"], [class*="text-zinc-"], [class*="text-[#A8A8AE]"], [class*="text-[#B8B0B4]"], [class*="text-[#9A9398]"]):not([data-manager-artwork], [data-manager-artwork] *) { color: #64748b !important; }
+  .manager-desktop-light :is(h1, h2, h3):not([data-manager-artwork] *) { color: #0f172a !important; }
+  .manager-desktop-light :is(.sz-club-accent-text, [class*="text-red-"], [class*="text-rose-"]):not([data-manager-artwork], [data-manager-artwork] *) { color: #b91c1c !important; }
+  .manager-desktop-light :is([class*="text-emerald-"], [class*="text-green-"]):not([data-manager-artwork] *) { color: #15803d !important; }
+  .manager-desktop-light :is([class*="text-sky-"], [class*="text-blue-"]):not([data-manager-artwork] *) { color: #0369a1 !important; }
+
+  .manager-shell .manager-app-workspace.manager-desktop-light :is(input, select, textarea) {
+    background: #fff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+    caret-color: #0f172a;
+    color-scheme: light;
+  }
+  .manager-shell .manager-app-workspace.manager-desktop-light :is(input, select, textarea):focus {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12);
+  }
+  .manager-shell .manager-app-workspace.manager-desktop-light select option { background: #fff; color: #0f172a; }
+
+  .manager-desktop-light :is([data-ui-button], [data-ui-app-button], [data-ui-tab], .sz-club-schedule-toolbar-action, button[aria-pressed]):not([data-manager-artwork] *) {
+    background: #fff !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    border-radius: 10px;
+  }
+  .manager-desktop-light :is([data-ui-button="default"], [data-ui-app-button="primary"], .sz-club-primary, [data-ui-tab][data-active="true"], button[aria-pressed="true"], [class*="bg-red-700"], [class*="bg-red-600"]):not([data-manager-artwork], [data-manager-artwork] *) {
+    background: #b91c1c !important;
+    color: #fff !important;
+    border-color: #b91c1c !important;
+    box-shadow: none !important;
+  }
+  .manager-desktop-light :is([data-ui-button="default"], [data-ui-app-button="primary"], .sz-club-primary, [data-ui-tab][data-active="true"], button[aria-pressed="true"]):not([data-manager-artwork], [data-manager-artwork] *) * { color: #fff !important; }
+  .manager-desktop-light :is([data-ui-tab-track], .schedule-page__filters [role="group"]) { max-width: 44rem; }
+  .manager-desktop-light [data-ui-tab-track] { padding: 4px; gap: 4px; }
+
+  .manager-desktop-light .manager-team-desktop-header { display: flex; }
+  .manager-desktop-light :is(.manager-team-mobile-hero, .manager-roster-carousel, .manager-roster-pagination, .manager-roster-mobile-list) { display: none; }
+  .manager-desktop-light .manager-roster-table { display: block; }
+  .manager-desktop-light table { border-collapse: collapse; }
+  .manager-desktop-light thead { background: #f8fafc; color: #64748b; }
+  .manager-desktop-light tbody tr { border-top: 1px solid #e2e8f0; }
+  .manager-desktop-light tbody tr:hover { background: #f8fafc; }
+  .manager-desktop-light .home-feed-edge { position: static; width: auto; transform: none; }
+  .manager-desktop-light [data-manager-artwork] {
+    --text-main: #f8fafc;
+    --text-sub: rgba(255, 255, 255, 0.78);
+    --text: #f8fafc;
+    --muted: rgba(255, 255, 255, 0.65);
+    --surface: rgba(30, 30, 35, 0.6);
+    --surface2: rgba(0, 0, 0, 0.2);
+  }
+}

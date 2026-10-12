@@ -29,7 +29,7 @@ export function SquadPosterArtwork({ left, right, ageGroup, players, startsAt, l
   }).format(date)} Uhr` : null, location?.trim()].filter(Boolean).join(' · ');
   const showPhoto = teamPhotoUrl && failedPhoto !== teamPhotoUrl;
   return (
-    <div className="squad-poster" data-whatsapp-status-poster>
+    <div className="squad-poster" data-manager-artwork data-whatsapp-status-poster>
       <div className="squad-poster-content">
         <h3 className="squad-poster-title">{title}</h3>
         {ageGroup && <div className="squad-poster-age"><span>{ageGroup}</span></div>}
