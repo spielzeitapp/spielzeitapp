@@ -335,7 +335,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
       clubName: detail.name,
       teamSeasons: supportTeamSeasons,
       initialTeamSeasonId: initial.id,
-      initialPath,
+      initialPath: initialPath ?? '/manager/saisons',
       returnPath: `/manager/vereine/${detail.id}?setupSeason=${initial.id}#manager-setup-checklist`,
     });
   }
@@ -387,7 +387,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
             title={detail.team_seasons.length === 0 ? 'Zuerst eine Mannschaft mit Saison anlegen.' : undefined}
           >
             <Headphones className="h-4 w-4" aria-hidden />
-            Im Supportmodus öffnen
+            Verein verwalten
           </button>
         ) : null}
       </div>

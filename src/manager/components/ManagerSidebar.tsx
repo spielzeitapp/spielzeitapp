@@ -149,7 +149,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
         </div>
 
         <p className="px-5 pt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">
-          {workMode === 'trainer' ? 'Trainer' : supportSession ? 'Support' : workMode === 'platform_admin' ? 'Plattform' : 'Verein'}
+          {workMode === 'trainer' ? 'Trainer' : supportSession ? supportSession.clubName : workMode === 'platform_admin' ? 'Plattform' : 'Verein'}
         </p>
 
         <nav className="mt-2 flex-1 overflow-y-auto px-2.5 pb-4 manager-sidebar-scroll">
@@ -160,6 +160,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
           }).map((section) => {
             const items = section.items.filter(
               (item) =>
+                (!supportSession || item.status === 'ready') &&
                 (!platformGlobal || section.id === 'platform' || item.id === 'competition') &&
                 navItemVisibleForWorkMode(item, workMode) &&
                 (!item.platformGlobalOnly || platformGlobal) &&
@@ -169,7 +170,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
             return (
             <div key={section.id} className={`mb-4 ${workMode === 'trainer' && section.id !== 'overview' && section.id !== 'sport' ? 'hidden lg:block' : ''}`}>
               <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
-                {section.label}
+                {supportSession && section.id === 'my-team' ? 'Mannschaft & Saison' : section.label}
               </p>
               <ul className="space-y-0.5">
                 {items.map((item) => {
@@ -219,6 +220,15 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
             </div>
             );
           })}
+          {supportSession ? (
+            <div className="mb-4">
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">Verwaltung</p>
+              <Link to={`/manager/vereine/${encodeURIComponent(supportSession.clubId)}`} onClick={closeOnNav}
+                className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium text-white/80 hover:bg-white/10">
+                <Shield className="h-5 w-5" aria-hidden />Vereinseinstellungen
+              </Link>
+            </div>
+          ) : null}
         </nav>
 
         <div className="hidden shrink-0 space-y-1 border-t border-white/10 p-3 lg:block">

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Table2 } from 'lucide-react';
 import { useSession } from '../auth/useSession';
+import { useManagerWorkMode } from './ManagerWorkModeContext';
 import { getOefbTableSettings, type OefbTableSettings } from '../lib/oefbTableSettings';
 import { formatTeamSeasonContextLabel } from '../lib/seasonLifecycle';
 import { OefbCompetitionTable } from '../components/schedule/OefbCompetitionTable';
@@ -9,8 +10,11 @@ import { OefbCompetitionResults } from '../components/schedule/OefbCompetitionRe
 
 /** Read-only competition view follows the Manager header, independently of the app's table selection. */
 export function ManagerCompetitionPage(): React.ReactElement {
-  const { user, viewTeamSeason, selectedTeamSeason } = useSession();
-  const season = viewTeamSeason ?? selectedTeamSeason;
+  const { user, viewTeamSeason, selectedTeamSeason, viewTeamSeasonId, selectedTeamSeasonId } = useSession();
+  const { supportSession } = useManagerWorkMode();
+  const season = supportSession
+    ? supportSession.teamSeasons.find(item => item.id === (viewTeamSeasonId ?? selectedTeamSeasonId)) ?? null
+    : viewTeamSeason ?? selectedTeamSeason;
   const age = Number(/^U\s*(\d+)$/i.exec(String(season?.age_group || season?.team?.age_group || '').trim())?.[1]);
   const eligible = Number.isFinite(age) && age >= 13;
   const key = season && eligible ? `${user?.id ?? ''}:${season.id}` : null;

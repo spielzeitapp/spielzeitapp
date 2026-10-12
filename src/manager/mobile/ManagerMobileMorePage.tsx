@@ -73,7 +73,8 @@ export function ManagerMobileMorePage(): React.ReactElement {
           <MoreLink to="/manager/training/vorlagen" icon={LayoutTemplate} title="Vorlagen" detail="Trainingspläne wiederverwenden" />
           <MoreLink to="/manager/training/chronik" icon={History} title="Trainingschronik" detail="Vergangene Einheiten" />
         </> : null}
-        {workMode === 'platform_admin' && !supportSession ? <MoreLink to="/manager/vereine" icon={Shield} title="Vereine verwalten" detail="Vereine und Mannschaften einrichten" /> : null}
+        {workMode === 'platform_admin' && !supportSession ? <MoreLink to="/manager/vereine" icon={Shield} title="Verein verwalten" detail="Verein wählen und Mannschaftsfunktionen öffnen" /> : null}
+        {supportSession ? <MoreLink to={`/manager/vereine/${encodeURIComponent(supportSession.clubId)}`} icon={Shield} title="Vereinseinstellungen" detail={`${supportSession.clubName} · Trainer, Berechtigungen und Module`} /> : null}
         {workMode === 'club_admin' || supportSession ?
           <MoreLink to="/manager/saisons" icon={Monitor} title="Vollständige Verwaltung" detail="Saisonen, Kader und ÖFB-Import im Manager" /> : null}
         <MoreLink to="/app/home" icon={ChevronRight} title="Zur SpielzeitApp" detail="Team und Termine öffnen" />

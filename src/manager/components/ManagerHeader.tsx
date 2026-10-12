@@ -237,6 +237,12 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             </button>
           ) : null}
 
+          {workMode === 'platform_admin' && !supportSession ? (
+            <Link to="/manager/vereine" className="hidden min-h-10 items-center rounded-lg bg-red-700 px-3 text-[12px] font-semibold text-white hover:bg-red-600 sm:inline-flex">
+              Verein verwalten
+            </Link>
+          ) : null}
+
           <div className="hidden text-right md:block">
             <p className="truncate text-[13px] font-semibold text-white">{displayName}</p>
             {roleHint ? (
@@ -268,14 +274,14 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-300/30 bg-amber-400 px-3 py-2 text-[12px] font-medium text-slate-950 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
           <span className="inline-flex items-center gap-2">
             <Headphones className="h-4 w-4" aria-hidden />
-            Supportmodus: <strong>{supportSession.clubName}</strong> · Änderungen werden als Plattformadmin protokolliert.
+            Vereinsverwaltung: <strong>{supportSession.clubName}</strong> · Als Admin arbeiten
           </span>
           <button
             type="button"
             onClick={endSupportSession}
             className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-slate-900/20 bg-white/70 px-3 font-semibold hover:bg-white"
           >
-            <X className="h-3.5 w-3.5" aria-hidden /> {supportSession.returnPath ? 'Zur Einrichtung zurück' : 'Support beenden'}
+            <X className="h-3.5 w-3.5" aria-hidden /> {supportSession.returnPath ? 'Zur Vereinsübersicht' : 'Zur Plattformverwaltung'}
           </button>
         </div>
       ) : null}

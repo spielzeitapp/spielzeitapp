@@ -253,7 +253,7 @@ export function ManagerClubsPage(): React.ReactElement {
                       to={`/manager/vereine/${encodeURIComponent(row.id)}`}
                       className="inline-flex min-h-[40px] items-center font-semibold text-red-700 hover:text-red-800"
                     >
-                      Öffnen
+                      Verein öffnen
                     </Link>
                   </td>
                 </tr>
