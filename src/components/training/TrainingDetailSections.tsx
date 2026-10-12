@@ -9,6 +9,7 @@ import { resolveTrainingCenterPhase, type TrainingCenterPhase } from '../../lib/
 import { safeText } from '../../lib/safeText';
 import { dsStatusChipClass } from '../../lib/premiumDesignSystem';
 import { TrainingChallengeTypesGrid } from '../team/TrainingChallengeTypesGrid';
+import { SprintChallengeCard } from '../team/SprintChallengeCard';
 import { JugglingChallengeCard } from '../team/JugglingChallengeCard';
 import { TrainingKaiserCard } from '../team/TrainingKaiserCard';
 import { TrainingOverviewHero } from '../team/TrainingOverviewHero';
@@ -153,6 +154,7 @@ export function TrainingDetailSections({
           <CenterCollapsibleSection key={key} title="Challenges" icon={<Trophy aria-hidden />} prominent defaultExpanded={false}>
             <div className="flex flex-col gap-2">
               <JugglingChallengeCard variant="teaser" awards={jugglingAwards} loading={jugglingLoading} />
+              {canManage ? <SprintChallengeCard eventId={eventId} /> : null}
               <TrainingChallengeTypesGrid variant="teaser" />
             </div>
           </CenterCollapsibleSection>
