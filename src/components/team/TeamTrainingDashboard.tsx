@@ -7,6 +7,7 @@ import type { TrainingRankingResult } from '../../lib/trainingRanking';
 import { TrainingKaiserCard } from './TrainingKaiserCard';
 import { TeamTrainingSessionsList } from './TeamTrainingSessionsList';
 import { TrainingOverviewHero } from './TrainingOverviewHero';
+import { SprintChallengeCard } from './SprintChallengeCard';
 import { JugglingChallengeCard } from './JugglingChallengeCard';
 import { TrainingChallengeTypesGrid } from './TrainingChallengeTypesGrid';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
@@ -112,7 +113,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         <ProfileHighlightTile
           icon={<Gem className="h-[4.75rem] w-[4.75rem] text-red-400/[0.18]" strokeWidth={1.4} aria-hidden />}
           title="Challenge"
-          value="Gaberl-Challenge"
+          value="Gaberl & Sprint"
           sub="Aktiv · Öffnen"
           compactValue
         />
@@ -153,6 +154,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               awards={jugglingAwards}
               loading={jugglingLoading}
             />
+            <SprintChallengeCard disabled={Boolean(demo) || squadMode === 'as_provided'} />
             <TrainingChallengeTypesGrid variant="teaser" />
             {ratedTrainingsCount > 0 ? (
               <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
@@ -194,6 +196,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               awards={jugglingAwards}
               loading={jugglingLoading}
             />
+            <SprintChallengeCard disabled={Boolean(demo) || squadMode === 'as_provided'} />
             <TrainingChallengeTypesGrid variant="full" />
           </div>
         ) : null}
