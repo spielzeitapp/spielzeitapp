@@ -83,6 +83,8 @@ export function useTeamTrainingSummary(
     gaberlKing: gaberlKing?.king ?? null,
     jugglingAwards: gaberlKing,
     jugglingLoading: jugglingState.loading,
+    jugglingRows: jugglingState.rows,
+    jugglingMinStart: jugglingState.session?.min_start_for_percent ?? 3,
     rankingLoading,
     rankingError,
   };

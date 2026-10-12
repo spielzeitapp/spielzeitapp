@@ -1,10 +1,11 @@
 import { useInternalBasePath } from '../../demo/demoPaths';
 import React from 'react';
 import { ChallengeAwardList } from './ChallengeAwardList';
+import { ChallengeParticipantList } from './ChallengeParticipantList';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import type { JugglingAwards } from '../../lib/challengeTypes';
-import { formatImprovementPercent } from '../../lib/challengeScoring';
+import type { JugglingAwards, JugglingChallengePlayerRow } from '../../lib/challengeTypes';
+import { buildEndValueRanking, buildAbsoluteImprovementRanking, buildPercentImprovementRanking, formatImprovementDelta, formatImprovementPercent } from '../../lib/challengeScoring';
 import { PremiumCard, SectionTitle } from '../../ui';
 import { dsPanelRowClass } from '../../lib/premiumDesignSystem';
 import { cn } from '../../ui/lib/cn';
@@ -13,17 +14,25 @@ type Props = {
   variant?: 'teaser' | 'full';
   awards?: JugglingAwards | null;
   loading?: boolean;
+  rows?: JugglingChallengePlayerRow[];
+  minStart?: number;
 };
 
 const TEASER_HERO_CLASS =
   'relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3.5 py-3.5';
 
-export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', awards, loading = false }) => {
+export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', awards, loading = false, rows, minStart = 3 }) => {
   const basePath = useInternalBasePath();
   const isTeaser = variant === 'teaser';
   const king = awards?.king ?? null;
   const kingPct = king?.percentImprovement ?? null;
   const onGoldCourse = kingPct != null && kingPct >= 50;
+  const inputs = (rows ?? []).map(row => ({ playerId: row.player.id, playerName: row.player.display_name, startValue: row.startValue, endValue: row.endValue }));
+  const rankings = [
+    {id:'best',label:'Bestwert',rows:buildEndValueRanking(inputs).map(row => ({id:row.playerId,rank:row.rank,name:row.playerName,value:row.endValue + ' Gaberln',detail:'Startwert: ' + row.startValue}))},
+    {id:'improvement',label:'Verbesserung',rows:buildAbsoluteImprovementRanking(inputs).map(row => ({id:row.playerId,rank:row.rank,name:row.playerName,value:formatImprovementDelta(row.absoluteImprovement),detail:row.startValue + ' → ' + row.endValue + ' Gaberln'}))},
+    {id:'development',label:'Entwicklung',rows:buildPercentImprovementRanking(inputs,minStart).map(row => ({id:row.playerId,rank:row.rank,name:row.playerName,value:formatImprovementPercent(row.percentImprovement),detail:row.startValue + ' → ' + row.endValue + ' Gaberln'}))},
+  ];
 
   return (
     <PremiumCard variant="subtle" showAmbientGlow={false} className={isTeaser ? 'w-full min-w-0 sm:p-4' : 'w-full min-w-0 sm:p-5'}>
@@ -80,6 +89,13 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
         { emoji: '🚀', label: 'Größte Verbesserung', name: awards?.riser?.playerName ?? null, value: awards?.riser ? '+' + awards.riser.absoluteImprovement + ' Gaberln' : null },
         { emoji: '⭐', label: 'Beste Entwicklung', name: awards?.development?.playerName ?? null, value: awards?.development?.percentImprovement != null ? formatImprovementPercent(awards.development.percentImprovement) : null },
       ]} /> : null}
+
+      {!isTeaser && rows && !loading ? <ChallengeParticipantList rankings={rankings} participants={rows.map(row => ({
+        id:row.player.id,name:row.player.display_name,
+        detail:row.endValue == null
+          ? row.startValue > 0 ? 'Startwert: ' + row.startValue + ' Gaberln · Neue Messung offen' : 'Noch keine Messwerte'
+          : 'Startwert: ' + row.startValue + ' · Endwert: ' + row.endValue + ' · Entwicklung ab Startwert ' + minStart,
+      }))} /> : null}
 
       <Link
         to={`${basePath}/team/juggling-challenge`}
