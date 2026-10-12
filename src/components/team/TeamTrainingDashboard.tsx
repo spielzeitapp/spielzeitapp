@@ -190,14 +190,17 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         ) : null}
 
         {subTab === 'challenge' ? (
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             <JugglingChallengeCard
               variant="full"
               awards={jugglingAwards}
               loading={jugglingLoading}
             />
-            <SprintChallengeCard disabled={Boolean(demo) || squadMode === 'as_provided'} />
-            <TrainingChallengeTypesGrid variant="full" />
+            <SprintChallengeCard teamSeasonId={teamSeasonId} players={players} disabled={Boolean(demo) || squadMode === 'as_provided'} />
+            <details className="min-w-0 rounded-2xl border border-white/10 p-3">
+              <summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold text-white/60">Weitere Trainings-Challenges</summary>
+              <TrainingChallengeTypesGrid variant="full" />
+            </details>
           </div>
         ) : null}
       </div>

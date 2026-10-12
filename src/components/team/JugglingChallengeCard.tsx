@@ -1,5 +1,6 @@
 import { useInternalBasePath } from '../../demo/demoPaths';
 import React from 'react';
+import { ChallengeAwardList } from './ChallengeAwardList';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import type { JugglingAwards } from '../../lib/challengeTypes';
@@ -17,25 +18,6 @@ type Props = {
 const TEASER_HERO_CLASS =
   'relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet px-3.5 py-3.5';
 
-function AwardPreview({
-  emoji,
-  label,
-  name,
-}: {
-  emoji: string;
-  label: string;
-  name: string | null;
-}) {
-  return (
-    <div className="rounded-xl border border-[rgba(220,38,38,0.16)] bg-[rgba(8,8,10,0.72)] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <p className="whitespace-nowrap text-[10px] font-semibold text-white/55">
-        <span aria-hidden>{emoji}</span> {label}
-      </p>
-      <p className="mt-0.5 truncate text-[12px] font-semibold leading-snug text-white">{name ?? '—'}</p>
-    </div>
-  );
-}
-
 export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', awards, loading = false }) => {
   const basePath = useInternalBasePath();
   const isTeaser = variant === 'teaser';
@@ -44,7 +26,7 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
   const onGoldCourse = kingPct != null && kingPct >= 50;
 
   return (
-    <PremiumCard variant="subtle" showAmbientGlow={false} className={isTeaser ? 'w-full sm:p-4' : 'w-full sm:p-5'}>
+    <PremiumCard variant="subtle" showAmbientGlow={false} className={isTeaser ? 'w-full min-w-0 sm:p-4' : 'w-full min-w-0 sm:p-5'}>
       {isTeaser ? (
         <div className={TEASER_HERO_CLASS}>
           <div
@@ -82,30 +64,28 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
       ) : (
         <SectionTitle
           as="h2"
-          subtitle="Startwert und Endwert erfassen — Rankings und Awards werden automatisch berechnet."
+          subtitle="Bestleistung und persönliche Entwicklung auf einen Blick."
           subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
           className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
         >
           <span className="mr-1.5" aria-hidden>
             ⚽
           </span>
-          <span className="whitespace-nowrap">Gaberl-Challenge</span>
+          <span>Gaberl-Challenge</span>
         </SectionTitle>
       )}
 
-      {!isTeaser && awards && !loading ? (
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <AwardPreview emoji="🏆" label="König" name={awards.king?.playerName ?? null} />
-          <AwardPreview emoji="🚀" label="Aufsteiger" name={awards.riser?.playerName ?? null} />
-          <AwardPreview emoji="⭐" label="Entwicklung" name={awards.development?.playerName ?? null} />
-        </div>
-      ) : null}
+      {!isTeaser ? <ChallengeAwardList loading={loading} awards={[
+        { emoji: '🏆', label: 'Gaberl-König', name: awards?.king?.playerName ?? null, value: awards?.king ? awards.king.endValue + ' Gaberln' : null },
+        { emoji: '🚀', label: 'Größte Verbesserung', name: awards?.riser?.playerName ?? null, value: awards?.riser ? '+' + awards.riser.absoluteImprovement + ' Gaberln' : null },
+        { emoji: '⭐', label: 'Beste Entwicklung', name: awards?.development?.playerName ?? null, value: awards?.development?.percentImprovement != null ? formatImprovementPercent(awards.development.percentImprovement) : null },
+      ]} /> : null}
 
       <Link
         to={`${basePath}/team/juggling-challenge`}
         className={cn(dsPanelRowClass(), 'mt-3 flex items-center justify-between gap-3 !py-3')}
       >
-        <span className="whitespace-nowrap text-[14px] font-semibold text-white">Gaberl-Challenge öffnen</span>
+        <span className="min-w-0 break-words text-[14px] font-semibold text-white">Gaberl-Challenge öffnen</span>
         <ChevronRight className="h-4 w-4 shrink-0 text-white/45" aria-hidden />
       </Link>
     </PremiumCard>

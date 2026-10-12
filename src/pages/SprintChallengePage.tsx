@@ -1,4 +1,6 @@
+import { useInternalBasePath } from '../demo/demoPaths';
 import { ChallengeRankingRow } from '../components/team/ChallengeRankingRow';
+import { ChallengeAwardList } from '../components/team/ChallengeAwardList';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Timer, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
@@ -8,7 +10,6 @@ import { useSprintChallenge, type SprintMeasurementMethod } from '../hooks/useSp
 import { normalizeRole, canManageMatches } from '../lib/roles';
 import { bestSprintTime, formatSprintTime, parseSprintSeconds, rankSprintResults, sprintProgress, sprintDevelopmentRanking, type SprintAttempts, type SprintHistoryEntry } from '../lib/sprintChallenge';
 import { dsPageTitleClass, dsPrimaryCtaClass, dsSecondaryCtaClass, dsPanelRowClass } from '../lib/premiumDesignSystem';
-import { useInternalBasePath } from '../demo/demoPaths';
 import { PageShell, PremiumCard } from '../ui';
 import { SprintChoice } from '../components/team/SprintChoice';
 const INPUT = 'min-h-11 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-sm text-white';
@@ -185,12 +186,11 @@ export function SprintChallengePage() {
       </PremiumCard> : challenge.testId ? <p className="text-sm text-white/55">Keine aktiven Spieler im Kader.</p> : null}
       {challenge.testId ? <PremiumCard variant="subtle" showAmbientGlow={false}>
         <h2 className="text-lg font-bold text-white">Sprint-Wertungen</h2>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          {[{title:'🏆 Schnellste Zeit',row:ranking[0],value:ranking[0] ? formatSprintTime(ranking[0].best) : null},
-            {title:'🚀 Größte Verbesserung',row:absoluteRanking[0],value:absoluteRanking[0] ? formatSprintTime(absoluteRanking[0].improvementMs) : null},
-            {title:'⭐ Beste Entwicklung',row:percentRanking[0],value:percentRanking[0] ? (percentRanking[0].improvementPercent ?? 0).toFixed(2).replace('.',',') + ' %' : null}
-          ].map(award => <div key={award.title} className="rounded-xl border border-white/10 bg-black/25 p-3"><p className="text-xs text-white/55">{award.title}</p><p className="mt-1 text-sm font-bold text-white">{award.row?.playerName ?? 'Noch keine Wertung'}</p>{award.value ? <p className="sz-club-accent-text mt-1 text-sm font-semibold">{award.value}</p> : null}</div>)}
-        </div>
+        <ChallengeAwardList awards={[
+          {emoji:'🏆',label:'Schnellste Zeit',name:ranking[0]?.playerName ?? null,value:ranking[0] ? formatSprintTime(ranking[0].best) : null},
+          {emoji:'🚀',label:'Größte Verbesserung',name:absoluteRanking[0]?.playerName ?? null,value:absoluteRanking[0] ? formatSprintTime(absoluteRanking[0].improvementMs) + ' schneller' : null},
+          {emoji:'⭐',label:'Beste Entwicklung',name:percentRanking[0]?.playerName ?? null,value:percentRanking[0] ? (percentRanking[0].improvementPercent ?? 0).toFixed(2).replace('.',',') + ' %' : null}
+        ]} />
         <div className="mt-3 grid grid-cols-3 gap-1">{([{id:'time',label:'Bestzeit'},{id:'seconds',label:'Verbesserung'},{id:'percent',label:'Entwicklung'}] as const).map(tab => <button type="button" key={tab.id} aria-pressed={rankingTab===tab.id} onClick={() => setRankingTab(tab.id)} className={'min-h-11 rounded-xl border px-1 text-xs font-semibold ' + (rankingTab===tab.id ? 'border-[rgb(var(--club-border-rgb)/0.5)] bg-[rgb(var(--club-primary-rgb)/0.2)] text-white' : 'border-white/10 text-white/55')}>{tab.label}</button>)}</div>
         <p className="mt-2 text-xs text-white/45">{rankingTab === 'time' ? 'Kleinste Zeit gewinnt. Anzahl der Versuche steht bei jedem Spieler.' : 'Vergleich mit der letzten Messung derselben Messart. Wertung erst ab zwei Messungen; nur positive Verbesserungen.'}</p>
         {rankingTab === 'time' ? <>

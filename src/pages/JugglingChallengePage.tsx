@@ -1,4 +1,5 @@
 import { useInternalBasePath } from '../demo/demoPaths';
+import { ChallengeAwardList } from '../components/team/ChallengeAwardList';
 import { ChallengeRankingRow } from '../components/team/ChallengeRankingRow';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
@@ -28,41 +29,6 @@ function parseInputInt(raw: string): number | null {
   const n = Number(t);
   if (!Number.isFinite(n) || n < 0) return null;
   return Math.trunc(n);
-}
-
-function AwardCard({
-  emoji,
-  title,
-  row,
-}: {
-  emoji: string;
-  title: string;
-  row: ChallengeScoringRow | null;
-}) {
-  return (
-    <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
-      <p className="text-[12px] font-semibold text-white/70">
-        <span className="mr-1" aria-hidden>
-          {emoji}
-        </span>
-        {title}
-      </p>
-      {row ? (
-        <>
-          <p className="mt-1 break-words text-[15px] font-bold leading-snug text-white">{row.playerName}</p>
-          <p className="mt-0.5 text-[13px] tabular-nums text-red-200/90">
-            {title === 'Gaberlkönig'
-              ? `${row.endValue} Gaberl`
-              : title === 'Aufsteiger'
-                ? formatImprovementDelta(row.absoluteImprovement)
-                : formatImprovementPercent(row.percentImprovement)}
-          </p>
-        </>
-      ) : (
-        <p className="mt-1 text-[13px] text-white/50">Noch keine Endwerte erfasst.</p>
-      )}
-    </GlassCard>
-  );
 }
 
 type RankingMetric = 'end' | 'absolute' | 'percent';
@@ -259,11 +225,11 @@ export const JugglingChallengePage: React.FC = () => {
         <p className="text-[13px] text-red-300/90">{error}</p>
       ) : (
         <div className="space-y-4">
-          <div className="grid gap-2 sm:grid-cols-3">
-            <AwardCard emoji="🏆" title="Gaberlkönig" row={awards.king} />
-            <AwardCard emoji="🚀" title="Aufsteiger" row={awards.riser} />
-            <AwardCard emoji="⭐" title="Entwicklungspreis" row={awards.development} />
-          </div>
+          <ChallengeAwardList awards={[
+            {emoji:'🏆',label:'Gaberl-König',name:awards.king?.playerName ?? null,value:awards.king ? awards.king.endValue + ' Gaberln' : null},
+            {emoji:'🚀',label:'Größte Verbesserung',name:awards.riser?.playerName ?? null,value:awards.riser ? formatImprovementDelta(awards.riser.absoluteImprovement) + ' Gaberln' : null},
+            {emoji:'⭐',label:'Beste Entwicklung',name:awards.development?.playerName ?? null,value:awards.development ? formatImprovementPercent(awards.development.percentImprovement) : null}
+          ]} />
 
           <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-4">
             <SectionTitle as="h2" className="[&>h2]:text-base [&>h2]:font-semibold [&>h2]:normal-case">
