@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
+import { clubNameWithoutAgeGroup } from '../../lib/seasonLifecycle';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
@@ -66,6 +67,8 @@ type MatchCardLigaportalProps = {
   eventId?: string | null;
   onNavigate?: (eventId: string) => void;
   opponentLogoUrl?: string | null;
+  /** Optional logo for the supplied team identity (also used by read-only league cards). */
+  ourTeamLogoUrl?: string | null;
   /** Nur für Trainer/Admin: Bearbeiten + Löschen anzeigen. Buttons stoppen Card-Klick. */
   canManage?: boolean;
   onEdit?: () => void;
@@ -129,6 +132,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   eventId,
   onNavigate,
   opponentLogoUrl,
+  ourTeamLogoUrl,
   canManage,
   onEdit,
   onDelete,
@@ -154,7 +158,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const navigate = useNavigate();
   const [liveAccessSheetOpen, setLiveAccessSheetOpen] = useState(false);
   const matchAgeGroup = ageGroup ?? pickFeedAgeGroup(ourTeamName);
-  const ourClubName = getOurTeamDisplayName();
+  const ourClubName = clubNameWithoutAgeGroup(ourTeamName) || getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
   const meetupTimeOnly = formatMeetupTimeOnlyDe(meetupAt);
@@ -262,8 +266,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       : scheduleHeroKickoffLocation;
 
   const opponentIsRight = isHome !== false;
-  const rightLogoOverride = opponentIsRight ? (opponentLogoUrl ?? null) : null;
-  const leftLogoOverride = opponentIsRight ? null : (opponentLogoUrl ?? null);
+  const rightLogoOverride = opponentIsRight ? (opponentLogoUrl ?? null) : (ourTeamLogoUrl ?? null);
+  const leftLogoOverride = opponentIsRight ? (ourTeamLogoUrl ?? null) : (opponentLogoUrl ?? null);
 
   const showManageButtons = canManage && (onEdit || onDelete);
   const showAttendanceChip =

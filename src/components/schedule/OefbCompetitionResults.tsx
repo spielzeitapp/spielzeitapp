@@ -1,8 +1,8 @@
+import { MatchCardLigaportal } from '../../app/components/MatchCardLigaportal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-type Game = { home: string; away: string; round: number; kickoff: string; score: string | null; status: string; venue: string; sourceUrl: string | null };
+type Game = { home: string; away: string; homeLogo?: string | null; awayLogo?: string | null; round: number; kickoff: string; score: string | null; status: string; venue: string; sourceUrl: string | null };
 type Results = { name: string; rounds: { id: number; label: string }[]; games: Game[]; round: number; updatedAt: string; sourceUrl: string };
-const dateFormat = new Intl.DateTimeFormat('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Vienna' });
 const timeFormat = new Intl.DateTimeFormat('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' });
 const teamKey = (name: string) => name.toLocaleLowerCase('de-AT').replace(/\bu\d+\b/g, '').replace(/\s+/g, ' ').trim();
 
@@ -71,22 +71,26 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
     {data && !data.games.length ? <p className="rounded-xl border border-white/10 p-4 text-sm text-white/65">Für diese Auswahl sind beim ÖFB keine Begegnungen verfügbar. Wähle eine andere Runde.</p> : null}
     <div className="space-y-2">{data?.games.map((game) => {
       const own = !!teamKey(ourTeam) && [game.home, game.away].some((team) => teamKey(team) === teamKey(ourTeam));
-      const kickoff = new Date(game.kickoff);
-      return <article key={`${game.kickoff}-${game.home}-${game.away}`} className={`rounded-2xl border p-4 ${own ? 'border-red-400/40 bg-red-950/35' : 'border-white/10 bg-white/[0.03]'}`}>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-1 text-xs text-white/55">
-          <span>{dateFormat.format(kickoff)} · {timeFormat.format(kickoff)} · Runde {game.round}</span>
-          {own ? <span className="font-semibold text-red-300">Unser Team</span> : null}
+      const scores = game.score?.split(':').map(Number);
+      const status = game.status === 'Endstand' ? 'finished' : game.status === 'Live' ? 'live' : game.status === 'Abgesagt' ? 'canceled' : 'upcoming';
+      const homeIsOurTeam = teamKey(game.home) === teamKey(ourTeam);
+      const awayIsOurTeam = teamKey(game.away) === teamKey(ourTeam);
+      const ageGroup = /\bU\d{1,2}\b/i.exec(data.name)?.[0]?.toUpperCase();
+      return <article key={`${game.kickoff}-${game.home}-${game.away}`} className="space-y-1">
+        <div className="flex items-center justify-between px-2 text-[11px] text-white/50">
+          <span>Runde {game.round}</span>{own ? <span className="font-semibold text-red-300">Unser Team</span> : null}
         </div>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-sm text-white">
-          <span className="break-words font-semibold">{game.home}</span>
-          <div className="text-center"><strong className="whitespace-nowrap text-xl tabular-nums">{game.score ?? '–:–'}</strong><p className={`mt-1 text-[10px] ${game.status === 'Live' ? 'text-emerald-300' : 'text-white/50'}`}>{game.status}</p></div>
-          <span className="break-words text-right font-semibold">{game.away}</span>
-        </div>
-        {game.venue ? <p className="mt-3 break-words text-xs text-white/45">{game.venue}</p> : null}
-        {game.sourceUrl ? <a className="mt-3 inline-flex min-h-[44px] items-center text-xs font-semibold text-red-300" href={game.sourceUrl} target="_blank" rel="noopener noreferrer">Beim ÖFB ansehen ↗</a> : null}
+        <MatchCardLigaportal ourTeamName={game.home} opponent={game.away} isHome={true}
+          ageGroup={ageGroup} ourTeamLogoUrl={homeIsOurTeam ? null : game.homeLogo}
+          opponentLogoUrl={awayIsOurTeam ? null : game.awayLogo}
+          startsAt={game.kickoff} status={status} kind="match" eventType="game" matchType="league"
+          location={game.venue} scoreHome={scores?.[0] ?? null} scoreAway={scores?.[1] ?? null}
+          role="fan" canManage={false} isPublicView scheduleNextMatchHero suppressInlineAttendanceChip
+          suppressInlineAttendanceCounts className={own ? 'ring-1 ring-red-400/30' : ''} />
+        {game.sourceUrl ? <a className="inline-flex min-h-[44px] items-center px-3 text-xs font-semibold text-red-300" href={game.sourceUrl} target="_blank" rel="noopener noreferrer">Beim ÖFB ansehen ↗</a> : null}
       </article>;
     })}</div>
-    <p className="text-xs text-white/45">Liga-Informationen werden nicht als eigene Teamtermine angelegt.
+    <p className="text-xs text-white/45">Hier siehst du alle Begegnungen des Bewerbs. Eure übernommenen Spiele stehen zusätzlich im Spielplan.
       {data ? <> · <a className="underline" href={data.sourceUrl} target="_blank" rel="noopener noreferrer">Quelle: ÖFB</a> · abgerufen {timeFormat.format(new Date(data.updatedAt))}</> : null}
     </p>
   </section>;

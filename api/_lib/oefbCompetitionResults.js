@@ -1,4 +1,8 @@
 /** Read-only league results. Only numeric competition/round IDs can reach the fixed ÖFB proxy. */
+function logoUrl(id) {
+  return /^[a-f0-9]{20}$/i.test(String(id ?? ''))
+    ? `https://www.oefb.at/oefb2/images/1278650591628556536_${id}-1,0-120x120-120x120.png` : null;
+}
 function normalizeSchedule(data) {
   if (!Array.isArray(data.runden) || !Array.isArray(data.ergebnisse) || !Array.isArray(data.spiele)) throw new Error('Invalid schedule');
   const games = new Map();
@@ -11,6 +15,7 @@ function normalizeSchedule(data) {
     const url = String(row.actionLink ?? '');
     const game = {
       home: String(row.heimMannschaft), away: String(row.gastMannschaft), round: Number(row.runde),
+      homeLogo: logoUrl(row.heimMannschaftLogo), awayLogo: logoUrl(row.gastMannschaftLogo),
       kickoff: new Date(kickoff).toISOString(), score,
       status: cancelled ? 'Abgesagt' : row.live ? 'Live' : score ? 'Endstand' : 'Geplant',
       venue: String(row.spielortBezeichnung ?? ''),
