@@ -1,3 +1,4 @@
+import { useInternalBasePath } from '../demo/demoPaths';
 /**
  * Read-only Team-Spielplan für Eltern, Trainer, Co-Trainer, Admin.
  * Filter: Heim/Auswärts + Spielort; gefilterter Saisonplan-PDF.
@@ -98,6 +99,7 @@ const chipIdle = 'border-white/12 bg-white/[0.04] text-white/75 hover:bg-white/[
 const chipActive = 'border-red-400/45 bg-red-950/55 text-white';
 
 export const TeamSchedulePage: React.FC = () => {
+  const basePath = useInternalBasePath();
   const {
     selectedTeamSeasonId,
     effectiveRole,
@@ -409,7 +411,7 @@ export const TeamSchedulePage: React.FC = () => {
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl"
     >
       <Link
-        to="/app/home"
+        to={`${basePath}/home`}
         className="inline-flex items-center gap-1 text-sm font-medium text-white/65 hover:text-white"
       >
         <ChevronLeft className="h-4 w-4" aria-hidden />
@@ -549,7 +551,7 @@ export const TeamSchedulePage: React.FC = () => {
       </div>
 
       {showManage ? (
-        <Link to="/app/mehr/championship" className={cn(dsPanelRowClass(), 'no-underline')}>
+        <Link to={basePath === '/manager' ? '/manager/saisons/meisterschaft' : `${basePath}/mehr/championship`} className={cn(dsPanelRowClass(), 'no-underline')}>
           <span className="flex items-center gap-2">
             <Settings2 className="h-5 w-5 text-red-400" aria-hidden />
             <span>Meisterschaft verwalten</span>

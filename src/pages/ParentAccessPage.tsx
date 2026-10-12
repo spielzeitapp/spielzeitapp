@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
+import { useInternalBasePath } from '../demo/demoPaths';
 import { normalizeRole, canViewParentLinks } from '../lib/roles';
 import { dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, SectionTitle } from '../ui';
@@ -12,6 +13,7 @@ import { useTeamPlayerAppStatus } from '../hooks/useTeamPlayerAppStatus';
 
 /** Eltern & Spielerzugänge — organisatorische Verwaltung (nicht Team-Sportansicht). */
 export const ParentAccessPage: React.FC = () => {
+  const basePath = useInternalBasePath();
   const [searchParams] = useSearchParams();
   const focusPlayerId = (searchParams.get('player') ?? '').trim() || null;
   const {
@@ -40,7 +42,7 @@ export const ParentAccessPage: React.FC = () => {
   } = useTeamPlayerAppStatus(teamSeasonId, dataActive);
 
   if (!tsLoading && !allowed) {
-    return <Navigate to="/app/mehr" replace />;
+    return <Navigate to={`${basePath}/mehr`} replace />;
   }
 
   return (
@@ -50,7 +52,7 @@ export const ParentAccessPage: React.FC = () => {
       contentClassName="mx-auto w-full min-w-0 max-w-lg space-y-4"
     >
       <Link
-        to="/app/mehr"
+        to={`${basePath}/mehr`}
         className={cn(dsPanelRowClass(), '!min-h-[40px] !py-2 text-sm font-semibold text-white/85')}
       >
         <span className="flex items-center gap-2">

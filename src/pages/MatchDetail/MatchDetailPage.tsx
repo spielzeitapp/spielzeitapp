@@ -1,3 +1,4 @@
+import { useInternalBasePath } from '../../demo/demoPaths';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
@@ -67,6 +68,7 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
 }
 
 export const MatchDetailPage: React.FC = () => {
+  const basePath = useInternalBasePath();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -402,7 +404,7 @@ export const MatchDetailPage: React.FC = () => {
     return (
       <div className="page pb-4 space-y-3">
         <p>{error}</p>
-        <Link to="/app/termine" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
+        <Link to={`${basePath}/termine`} className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
           ← Zurück zum Spielplan
         </Link>
       </div>
@@ -413,7 +415,7 @@ export const MatchDetailPage: React.FC = () => {
     return (
       <div className="page pb-4 space-y-3">
         <p>Spiel nicht gefunden.</p>
-        <Link to="/app/termine" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
+        <Link to={`${basePath}/termine`} className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
           ← Zurück zum Spielplan
         </Link>
       </div>
@@ -438,7 +440,7 @@ export const MatchDetailPage: React.FC = () => {
         <div className="space-y-4 lg:col-span-5">
           {matchRow && <MatchHeadToHead matchId={matchRow.id} teamSeasonId={matchRow.team_season_id} opponentName={matchRow.opponent ?? undefined} canManage={operatorMode} />}
           <div className="flex flex-wrap items-center gap-2">
-            <Link to="/app/termine" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
+            <Link to={`${basePath}/termine`} className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
               ← Zurück
             </Link>
           </div>
@@ -537,7 +539,7 @@ export const MatchDetailPage: React.FC = () => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
+              onClick={() => navigate(`${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
             >
               Match vorbereiten
             </Button>

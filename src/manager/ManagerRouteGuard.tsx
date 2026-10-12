@@ -29,12 +29,7 @@ export function ManagerRouteGuard({ children }: Props): React.ReactElement {
   // Do not redirect or mount the editor with the old platform/season context.
   if (entryPending) return <p role="status" className="p-4 text-sm text-slate-600">Manager-Bereich wird geöffnet…</p>;
 
-  const platformRoute = location.pathname.startsWith('/manager/plattform') ||
-    location.pathname.startsWith('/manager/vereine') || location.pathname === '/manager/mehr' ||
-    location.pathname === '/manager/tabelle';
-  if (workMode === 'platform_admin' && !supportSession && !platformRoute && location.pathname !== '/manager/mehr') {
-    return <Navigate to="/manager/plattform" replace />;
-  }
+  // Team workspaces validate their context in ManagerTeamScope for both trainers and admins.
 
   const moduleKey = managerModuleKeyForLocation(location.pathname, location.search);
   if (!modulesLoading && moduleKey && !isModuleEnabled(moduleKey)) {

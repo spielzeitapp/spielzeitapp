@@ -1,3 +1,4 @@
+import { useInternalBasePath } from '../../demo/demoPaths';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Camera, Clapperboard, ImagePlus, Link2, Send, Trophy, Video, X } from 'lucide-react';
@@ -58,6 +59,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
   onPosted,
   demoMode = false,
 }) => {
+  const basePath = useInternalBasePath();
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'uploading' | 'saving' | 'notifying'>('idle');
   const [uploadPct, setUploadPct] = useState(0);
@@ -569,11 +571,11 @@ export const HomeFeedComposer: React.FC<Props> = ({
           </button>
 
           <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px]">
-            <Link to="/app/termine" className="inline-flex items-center gap-1 text-white/50 hover:text-white/80">
+            <Link to={`${basePath}/termine`} className="inline-flex items-center gap-1 text-white/50 hover:text-white/80">
               <Camera className="h-3.5 w-3.5" aria-hidden />
               Matchday Poster
             </Link>
-            <Link to="/app/termine" className="inline-flex items-center gap-1 text-white/50 hover:text-white/80">
+            <Link to={`${basePath}/termine`} className="inline-flex items-center gap-1 text-white/50 hover:text-white/80">
               <Trophy className="h-3.5 w-3.5" aria-hidden />
               Ergebnis
             </Link>

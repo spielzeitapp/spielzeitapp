@@ -1774,7 +1774,7 @@ export const EventDetailPage: React.FC = () => {
             recipient_group: 'all',
             title: `${editEvent.kind === 'training' ? 'Training' : 'Spiel'} verschoben`,
             body: reschedulePushText(editEvent, startsAt, locationVal, reschedulePushExtra),
-            url: `${basePath}/events/${encodeURIComponent(editEvent.id)}`,
+            url: `${isDemo ? '/demo' : '/app'}/events/${encodeURIComponent(editEvent.id)}`,
             related_event_id: editEvent.id,
           }),
         });
@@ -1870,7 +1870,7 @@ export const EventDetailPage: React.FC = () => {
           recipient_group: 'all',
           title: `${event.kind === 'training' ? 'Training' : 'Spiel'} abgesagt`,
           body: cancellationPushText(event, cancellationPushExtra),
-          url: `${basePath}/events/${encodeURIComponent(event.id)}`,
+          url: `${isDemo ? '/demo' : '/app'}/events/${encodeURIComponent(event.id)}`,
           related_event_id: event.id,
         }),
       });

@@ -219,8 +219,9 @@ function ScheduleHeroToolbarAction({
   );
 }
 
-export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
+export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: 'match' | 'tournament' }> = ({
   managerSimpleMode = false,
+  eventKind,
 }) => {
   const navigate = useNavigate();
   const demo = useDemoMode();
@@ -251,7 +252,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     : (teamSeasonId ?? (user ? null : publicTeamId));
   const visibleTeamSeasonIds = useMemo(() => {
     if (isMultiTeamView) return filteredTeamSeasonIds;
-    if (!effectiveTeamSeasonId || isDemo || managerSimpleMode || isHistoryReadOnly || !user) return effectiveTeamSeasonId;
+    if (!effectiveTeamSeasonId || isDemo || managerSimpleMode || basePath === '/manager' || isHistoryReadOnly || !user) return effectiveTeamSeasonId;
     const selected = teamSeasons.find((season) => season.id === effectiveTeamSeasonId);
     const selectedTeamId = selected?.team?.id ?? selected?.team_id;
     if (selectedTeamId == null) return effectiveTeamSeasonId;
@@ -259,7 +260,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
       .filter((season) => String(season.team?.id ?? season.team_id ?? '') === String(selectedTeamId))
       .map((season) => season.id);
     return sameTeamIds.length > 1 ? sameTeamIds : effectiveTeamSeasonId;
-  }, [effectiveTeamSeasonId, isDemo, managerSimpleMode, isHistoryReadOnly, user, teamSeasons, isMultiTeamView, filteredTeamSeasonIds]);
+  }, [effectiveTeamSeasonId, isDemo, managerSimpleMode, basePath, isHistoryReadOnly, user, teamSeasons, isMultiTeamView, filteredTeamSeasonIds]);
   const { events: rawEventsLive, loading: eLoadingLive, error: eErrorLive, refetch: refetchLive } =
     useEvents(isDemo ? null : visibleTeamSeasonIds);
   const rawEvents = isDemo ? demo!.data.events : rawEventsLive;
@@ -367,7 +368,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
 
   // Public Mode: /schedule und /live = nur Anzeige, KEINE Navigation zu Event-Detail
   // /demo/* = interne App-Oberfläche (wie /app), nicht öffentlich.
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const forcePublicView =
     !managerSimpleMode &&
     (pathname === '/schedule' ||
@@ -470,12 +472,13 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
     demo?.liveRuntimeVersion,
   ]);
 
-  const [kindFilter, setKindFilter] = useState<KindFilterId>(() =>
+  const [selectedKindFilter, setKindFilter] = useState<KindFilterId>(() =>
     readScheduleFilters({
       kindFilter: normalizedUiRole === 'fan' && !managerSimpleMode ? 'match' : 'all',
       timeFilter: 'upcoming',
     }).kindFilter,
   );
+  const kindFilter = eventKind ?? selectedKindFilter;
   const [timeFilter, setTimeFilter] = useState<TimeFilterId>(() =>
     readScheduleFilters({
       kindFilter: 'all',
@@ -484,9 +487,17 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
   );
 
   useEffect(() => {
-    writeScheduleFilters({ kindFilter, timeFilter });
-  }, [kindFilter, timeFilter]);
+    if (!eventKind) writeScheduleFilters({ kindFilter, timeFilter });
+  }, [kindFilter, timeFilter, eventKind]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  useEffect(() => {
+    if (basePath !== '/manager' || !canMutateSchedule) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get('create') !== '1') return;
+    setCreateModalOpen(true);
+    params.delete('create');
+    navigate({ pathname: location.pathname, search: params.toString() ? `?${params}` : '' }, { replace: true });
+  }, [basePath, canMutateSchedule, location.pathname, location.search, navigate]);
   const [calendarSheetOpen, setCalendarSheetOpen] = useState(false);
   const [calendarGuideKind, setCalendarGuideKind] = useState<'google' | 'familywall' | null>(null);
 
@@ -1521,7 +1532,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className={dsPageTitleClass()}>
-                    {normalizedUiRole === 'fan' && !managerSimpleMode ? 'Spielplan' : 'Termine'}
+                    {eventKind === 'match' ? 'Spiele' : eventKind === 'tournament' ? 'Turniere' : normalizedUiRole === 'fan' && !managerSimpleMode ? 'Spielplan' : 'Termine'}
                   </h1>
                   {canMutateSchedule ? (
                     <button
@@ -1599,7 +1610,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
             aria-label="Termine Filter"
           >
             <div className="flex flex-col gap-1">
-              {normalizedUiRole !== 'fan' && !managerSimpleMode ? (
+              {normalizedUiRole !== 'fan' && !managerSimpleMode && !eventKind ? (
                 <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS} role="group" aria-label="Terminart">
                   <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
                     {([
@@ -2159,7 +2170,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean }> = ({
             onClose={() => setCreateModalOpen(false)}
             teamSeasonId={activeTeamSeasonId}
             onSuccess={refetch}
-            eventType="match"
+            eventType={eventKind === 'tournament' ? 'tournament' : 'match'}
           />
 
           <Modal

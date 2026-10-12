@@ -57,6 +57,7 @@ import { AdminLoginPage } from '../pages/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { ManagerLayout } from '../manager/ManagerLayout';
+import { ManagerAppWorkspace } from '../manager/ManagerAppWorkspace';
 import { ManagerDashboardPage } from '../manager/ManagerDashboardPage';
 import { ManagerHomeRoute } from '../manager/ManagerHomeRoute';
 import { ManagerSplashScreen, ManagerWelcomeScreen } from '../manager/ManagerIntroScreens';
@@ -371,6 +372,28 @@ function InternalRoutes(): React.ReactElement {
         <Route path="dashboard" element={<ManagerDashboardPage />} />
         <Route path="termine" element={<ManagerMobileSchedulePage />} />
         <Route path="teams" element={<ManagerMobileTeamsPage />} />
+        <Route path="team" element={<ManagerAppWorkspace><TeamPage /></ManagerAppWorkspace>} />
+        <Route path="spieler" element={<ManagerAppWorkspace><TeamPage rosterOnly /></ManagerAppWorkspace>} />
+        <Route path="team/trainer/:userId" element={<ManagerAppWorkspace><TrainerProfilePage /></ManagerAppWorkspace>} />
+        <Route path="team/juggling-challenge" element={<ManagerAppWorkspace><JugglingChallengePage /></ManagerAppWorkspace>} />
+        <Route path="team/sprint-challenge" element={<ManagerAppWorkspace><SprintChallengePage /></ManagerAppWorkspace>} />
+        <Route path="mehr/parent-access" element={<ManagerAppWorkspace><ParentAccessPage /></ManagerAppWorkspace>} />
+        <Route path="mehr/parent-access/player/:playerId" element={<ManagerAppWorkspace><ParentAccessPlayerPage /></ManagerAppWorkspace>} />
+        <Route path="mehr/trainer/team-push" element={<ManagerAppWorkspace><TrainerTeamPushPage /></ManagerAppWorkspace>} />
+        <Route path="mehr/trainer/erinnerungen" element={<ManagerAppWorkspace><TrainerRemindersPage /></ManagerAppWorkspace>} />
+        <Route path="spiele" element={<ManagerAppWorkspace><SchedulePage eventKind="match" /></ManagerAppWorkspace>} />
+        <Route path="turniere" element={<ManagerAppWorkspace><SchedulePage eventKind="tournament" /></ManagerAppWorkspace>} />
+        <Route path="termine/calendar" element={<ManagerAppWorkspace><CalendarPage /></ManagerAppWorkspace>} />
+        <Route path="events/:eventId" element={<ManagerAppWorkspace><EventDetailPage /></ManagerAppWorkspace>} />
+        <Route path="match/:id" element={<ManagerAppWorkspace><MatchDetailPage /></ManagerAppWorkspace>} />
+        <Route path="match-preparation" element={<ManagerAppWorkspace><MatchPreparationPage /></ManagerAppWorkspace>} />
+        <Route path="match-lineup" element={<ManagerAppWorkspace><MatchLineupPage /></ManagerAppWorkspace>} />
+        <Route path="live/setup" element={<ManagerAppWorkspace><MatchSetupScreen /></ManagerAppWorkspace>} />
+        <Route path="live" element={<ManagerAppWorkspace><LivePage /></ManagerAppWorkspace>} />
+        <Route path="live/:id" element={<ManagerAppWorkspace><LivePage /></ManagerAppWorkspace>} />
+        <Route path="home" element={<ManagerAppWorkspace><AppHomePage /></ManagerAppWorkspace>} />
+        <Route path="spielplan" element={<ManagerAppWorkspace><TeamSchedulePage /></ManagerAppWorkspace>} />
+        <Route path="nachrichten" element={<ManagerAppWorkspace><NotificationsPage /></ManagerAppWorkspace>} />
         <Route path="mehr" element={<ManagerMobileMorePage />} />
         <Route path="tabelle" element={<ManagerCompetitionPage />} />
         <Route path="platzbelegung" element={<ManagerPlatzbelegungPage />} />

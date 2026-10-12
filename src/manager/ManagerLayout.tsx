@@ -9,6 +9,7 @@ import { ManagerAccessDeniedBanner, ManagerRouteGuard } from './ManagerRouteGuar
 import { useSession } from '../auth/useSession';
 import { getSeasonStatusLabel, isSeasonArchived } from '../lib/seasonLifecycle';
 import { ManagerMobileNav } from './components/ManagerMobileNav';
+import { ManagerTeamScope } from './ManagerTeamScope';
 import './managerShell.css';
 import './managerSeasonWorkspace.css';
 
@@ -64,7 +65,7 @@ export function ManagerLayout(): React.ReactElement {
               ].join(' ')}>
                 <ManagerRouteGuard>
                   <ManagerAccessDeniedBanner />
-                  <Outlet />
+                  <ManagerTeamScope><Outlet /></ManagerTeamScope>
                 </ManagerRouteGuard>
               </div>
             </main>

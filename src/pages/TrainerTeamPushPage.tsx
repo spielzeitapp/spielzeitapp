@@ -1,3 +1,5 @@
+import { useInternalBasePath } from '../demo/demoPaths';
+import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
@@ -5,17 +7,21 @@ import { PushTeamSendPanel } from '../components/PushTeamSendPanel';
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
-  return r === 'trainer' || r === 'co_trainer' || r === 'head_coach';
+  return r === 'admin' || r === 'trainer' || r === 'co_trainer' || r === 'head_coach';
 }
 
 export const TrainerTeamPushPage: React.FC = () => {
+  const basePath = useInternalBasePath();
+  const { isHistoryReadOnly } = useActiveTeamSeason();
   const { effectiveRole, backendRole, selectedTeamSeasonId } = useSession();
   const isAdmin = (backendRole ?? '').trim().toLowerCase() === 'admin';
   const canSend = isAdmin || isTrainerToolsRole(effectiveRole);
 
   if (!canSend) {
-    return <Navigate to="/app/mehr" replace />;
+    return <Navigate to={`${basePath}/mehr`} replace />;
   }
+
+  if (isHistoryReadOnly) return <p className="p-5 text-sm text-white/70">Archivierte Saison: Diese Einstellungen können nur in der aktiven Saison geändert werden.</p>;
 
   return (
     <div

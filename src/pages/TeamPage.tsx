@@ -140,14 +140,14 @@ function readTeamPhotoUrl(row: TeamPhotoRow | null): string | null {
   return v.length > 0 ? v : null;
 }
 
-export const TeamPage: React.FC = () => {
+export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const returnToTrainingEvent = useMemo(() => {
     const target = searchParams.get("returnTo");
     if (!target) return null;
-    return target.startsWith("/app/events/") || target.startsWith("/demo/events/")
+    return target.startsWith("/app/events/") || target.startsWith("/demo/events/") || target.startsWith("/manager/events/")
       ? target
       : null;
   }, [searchParams]);
@@ -795,12 +795,13 @@ export const TeamPage: React.FC = () => {
     await refetchPlayers();
   };
 
-  const [activeTab, setActiveTab] = useState<TeamTabId>(readInitialTeamTab);
+  const [selectedActiveTab, setActiveTab] = useState<TeamTabId>(readInitialTeamTab);
+  const activeTab = rosterOnly ? "squad" : selectedActiveTab;
   const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
   const [trainerStartIndex, setTrainerStartIndex] = useState(0);
   const visibleTeamTabs = useMemo(
-    () => TEAM_TABS.filter((tab) => !isFan || tab.id !== "training"),
-    [isFan],
+    () => TEAM_TABS.filter((tab) => rosterOnly ? tab.id === "squad" : !isFan || tab.id !== "training"),
+    [isFan, rosterOnly],
   );
 
   const clearPlayerDetailState = () => {
@@ -894,7 +895,7 @@ export const TeamPage: React.FC = () => {
   }, [sortedPlayers, ownPlayerIds, isDemo, roleNormalized]);
 
   if (searchParams.get("tab") === "parents") {
-    return <Navigate to={isDemo ? `${basePath}/team` : "/app/mehr/parent-access"} replace />;
+    return <Navigate to={isDemo ? `${basePath}/team` : `${basePath}/mehr/parent-access`} replace />;
   }
 
   return (

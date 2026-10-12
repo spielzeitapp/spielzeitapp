@@ -154,14 +154,14 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
 
         <nav className="mt-2 flex-1 overflow-y-auto px-2.5 pb-4 manager-sidebar-scroll">
           {MANAGER_NAV_SECTIONS.filter((section) => {
-            if (platformGlobal) return section.id === 'platform' || section.id === 'sport';
+            if (platformGlobal) return true;
             if (section.id === 'platform') return false;
             return !(workMode === 'trainer' && section.hideInTrainerMode);
           }).map((section) => {
             const items = section.items.filter(
               (item) =>
                 (!supportSession || item.status === 'ready') &&
-                (!platformGlobal || section.id === 'platform' || item.id === 'competition') &&
+                item.status === 'ready' &&
                 navItemVisibleForWorkMode(item, workMode) &&
                 (!item.platformGlobalOnly || platformGlobal) &&
                 isModuleEnabled(item.moduleKey),

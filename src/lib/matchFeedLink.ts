@@ -24,7 +24,7 @@ export function resolveMatchGameHref(params: {
   eventId?: string | null;
   status?: MatchGameLinkStatus | null;
   canManage?: boolean;
-  basePath?: '/app' | '/demo';
+  basePath?: '/app' | '/demo' | '/manager';
 }): string {
   const base = params.basePath ?? '/app';
   const mid = (params.matchId ?? '').trim();

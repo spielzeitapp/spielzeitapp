@@ -1,3 +1,4 @@
+import { useInternalBasePath } from '../../demo/demoPaths';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
@@ -36,6 +37,7 @@ function AwardPreview({
 }
 
 export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', awards, loading = false }) => {
+  const basePath = useInternalBasePath();
   const isTeaser = variant === 'teaser';
   const king = awards?.king ?? null;
   const kingPct = king?.percentImprovement ?? null;
@@ -100,7 +102,7 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
       ) : null}
 
       <Link
-        to="/app/team/juggling-challenge"
+        to={`${basePath}/team/juggling-challenge`}
         className={cn(dsPanelRowClass(), 'mt-3 flex items-center justify-between gap-3 !py-3')}
       >
         <span className="whitespace-nowrap text-[14px] font-semibold text-white">Gaberl-Challenge öffnen</span>
