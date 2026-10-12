@@ -5,7 +5,7 @@ import { ChallengeParticipantList } from './ChallengeParticipantList';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import type { JugglingAwards, JugglingChallengePlayerRow } from '../../lib/challengeTypes';
-import { buildEndValueRanking, buildAbsoluteImprovementRanking, buildPercentImprovementRanking, formatImprovementDelta, formatImprovementPercent } from '../../lib/challengeScoring';
+import { buildPersonalBestRanking, buildAbsoluteImprovementRanking, buildPercentImprovementRanking, formatImprovementDelta, formatImprovementPercent } from '../../lib/challengeScoring';
 import { PremiumCard, SectionTitle } from '../../ui';
 import { dsPanelRowClass } from '../../lib/premiumDesignSystem';
 import { cn } from '../../ui/lib/cn';
@@ -28,8 +28,9 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
   const kingPct = king?.percentImprovement ?? null;
   const onGoldCourse = kingPct != null && kingPct >= 50;
   const inputs = (rows ?? []).map(row => ({ playerId: row.player.id, playerName: row.player.display_name, startValue: row.startValue, endValue: row.endValue }));
+  const bestRanking = buildPersonalBestRanking(inputs);
   const rankings = [
-    {id:'best',label:'Bestwert',rows:buildEndValueRanking(inputs).map(row => ({id:row.playerId,rank:row.rank,name:row.playerName,value:row.endValue + ' Gaberln',detail:'Startwert: ' + row.startValue}))},
+    {id:'best',label:'Gesamt',rows:bestRanking.map(row => ({id:row.playerId,rank:row.rank,name:row.playerName,value:row.bestValue + ' Gaberln',detail:row.endValue == null ? 'Bisheriger Bestwert · Neue Messung offen' : 'Startwert: ' + row.startValue + ' · Endwert: ' + row.endValue}))},
     {id:'improvement',label:'Verbesserung',rows:buildAbsoluteImprovementRanking(inputs).map(row => ({id:row.playerId,rank:row.rank,name:row.playerName,value:formatImprovementDelta(row.absoluteImprovement),detail:row.startValue + ' → ' + row.endValue + ' Gaberln'}))},
     {id:'development',label:'Entwicklung',rows:buildPercentImprovementRanking(inputs,minStart).map(row => ({id:row.playerId,rank:row.rank,name:row.playerName,value:formatImprovementPercent(row.percentImprovement),detail:row.startValue + ' → ' + row.endValue + ' Gaberln'}))},
   ];
@@ -85,7 +86,7 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
       )}
 
       {!isTeaser ? <ChallengeAwardList loading={loading} awards={[
-        { emoji: '🏆', label: 'Gaberl-König', name: awards?.king?.playerName ?? null, value: awards?.king ? awards.king.endValue + ' Gaberln' : null },
+        { emoji: '🏆', label: 'Gaberl-König', name: rows ? bestRanking[0]?.playerName ?? null : awards?.king?.playerName ?? null, value: rows ? bestRanking[0] ? bestRanking[0].bestValue + ' Gaberln' : null : awards?.king ? awards.king.endValue + ' Gaberln' : null },
         { emoji: '🚀', label: 'Größte Verbesserung', name: awards?.riser?.playerName ?? null, value: awards?.riser ? '+' + awards.riser.absoluteImprovement + ' Gaberln' : null },
         { emoji: '⭐', label: 'Beste Entwicklung', name: awards?.development?.playerName ?? null, value: awards?.development?.percentImprovement != null ? formatImprovementPercent(awards.development.percentImprovement) : null },
       ]} /> : null}
