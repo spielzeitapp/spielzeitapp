@@ -58,6 +58,7 @@ import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { ManagerLayout } from '../manager/ManagerLayout';
 import { ManagerAppWorkspace } from '../manager/ManagerAppWorkspace';
+import { ManagerMediaStudioPage } from '../manager/ManagerMediaStudioPage';
 import { ManagerDashboardPage } from '../manager/ManagerDashboardPage';
 import { ManagerHomeRoute } from '../manager/ManagerHomeRoute';
 import { ManagerSplashScreen, ManagerWelcomeScreen } from '../manager/ManagerIntroScreens';
@@ -392,6 +393,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="live" element={<ManagerAppWorkspace><LivePage /></ManagerAppWorkspace>} />
         <Route path="live/:id" element={<ManagerAppWorkspace><LivePage /></ManagerAppWorkspace>} />
         <Route path="home" element={<ManagerAppWorkspace><AppHomePage /></ManagerAppWorkspace>} />
+        <Route path="vereinsmedien" element={<ManagerMediaStudioPage />} />
         <Route path="spielplan" element={<ManagerAppWorkspace><TeamSchedulePage /></ManagerAppWorkspace>} />
         <Route path="nachrichten" element={<ManagerAppWorkspace><NotificationsPage /></ManagerAppWorkspace>} />
         <Route path="mehr" element={<ManagerMobileMorePage />} />

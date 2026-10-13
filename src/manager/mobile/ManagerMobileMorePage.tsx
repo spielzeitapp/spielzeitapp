@@ -54,6 +54,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
         <MoreLink to="/manager/spiele" icon={Trophy} title="Spiele" detail="Vorbereitung, Aufstellung und Spielberichte" />
         <MoreLink to="/manager/turniere" icon={Trophy} title="Turniere" detail="Turniertermine und Turniercenter" />
         <MoreLink to="/manager/home" icon={Newspaper} title="Feed & Beiträge" detail="Mannschaftsbeiträge und Fotos" />
+        <MoreLink to="/manager/vereinsmedien" icon={Newspaper} title="Vereinsmedien" detail="Grafiken erstellen und Beitragstexte vorbereiten" />
         <MoreLink to="/manager/tabelle" icon={Table2} title="Tabelle & Liga" detail="ÖFB-Tabelle und Ergebnisse der ausgewählten Mannschaft" />
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
           <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />

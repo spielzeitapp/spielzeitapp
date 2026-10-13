@@ -86,6 +86,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     label: 'Content',
     items: [
       { id: 'social', label: 'Feed & Beiträge', to: '/manager/home', status: 'ready' },
+      { id: 'media-studio', label: 'Vereinsmedien', to: '/manager/vereinsmedien', status: 'ready' },
       { id: 'team-push', label: 'Team-Nachricht', to: '/manager/mehr/trainer/team-push', status: 'ready' },
       { id: 'reminders', label: 'Erinnerungen', to: '/manager/mehr/trainer/erinnerungen', status: 'ready' },
     ],
