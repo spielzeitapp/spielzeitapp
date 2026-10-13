@@ -3,6 +3,41 @@
 .manager-roster-table { display: none; }
 
 @media (min-width: 768px) {
+  /* Schedule cards have their own gradient layers; lighten both shell and layers.
+     Scope to the schedule page so the Home feed keeps its approved artwork. */
+  .manager-desktop-light .schedule-page [data-manager-schedule-card] {
+    background: #fff !important;
+    color: #0f172a !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+  }
+  .manager-desktop-light .schedule-page [data-manager-schedule-card] :is(.sz-club-schedule-hero-backdrop, .pointer-events-none.absolute.inset-0[aria-hidden]) {
+    display: none !important;
+  }
+  .manager-desktop-light .schedule-page [data-manager-schedule-card] :is([class*="bg-black"], [class*="bg-[linear-gradient"], [class*="bg-[radial-gradient"], [class*="bg-[rgba("]) {
+    background: #f8fafc !important;
+    box-shadow: none !important;
+  }
+  .manager-desktop-light .schedule-page [data-manager-schedule-card] :is([class*="text-[#B85C68]"], [class*="text-[#D36C7B]"]) {
+    color: #b91c1c !important;
+  }
+  .manager-desktop-light .schedule-page [data-manager-schedule-card] [class*="drop-shadow"] {
+    filter: none !important;
+  }
+
+  /* Trainer portraits keep the original photo, with a white desktop card. */
+  .manager-desktop-light [data-trainer-card] {
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+  }
+  .manager-desktop-light [data-trainer-card] :is(.sz-club-diagonal-lines, [aria-hidden][class*="bg-gradient"]) {
+    display: none !important;
+  }
+  .manager-desktop-light [data-trainer-card] [class*="text-white"] {
+    color: #0f172a !important;
+    text-shadow: none !important;
+  }
   .manager-shell .manager-desktop-light {
     color-scheme: light;
     background: #fff !important;

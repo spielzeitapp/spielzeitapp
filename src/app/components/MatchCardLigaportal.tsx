@@ -1396,13 +1396,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         role="presentation"
       >
         {dateRow}
-        <div className={`${baseCardClass} cursor-default`} onClick={blockClick}>{cardContent}</div>
+        <div data-manager-schedule-card className={`${baseCardClass} cursor-default`} onClick={blockClick}>{cardContent}</div>
       </div>
     );
   }
 
   const cardEl = isClickable ? (
     <div
+      data-manager-schedule-card
       role="button"
       tabIndex={0}
       onClick={handleCardClick}
@@ -1422,7 +1423,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       {cardContent}
     </div>
   ) : (
-    <div className={cardClass}>{cardContent}</div>
+    <div data-manager-schedule-card className={cardClass}>{cardContent}</div>
   );
 
   return (

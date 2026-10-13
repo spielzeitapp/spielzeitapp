@@ -28,7 +28,7 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
         {labelAside ? <div className="shrink-0">{labelAside}</div> : null}
       </div>
 
-      <div className={dsScheduleHeroPanelClass()}>
+      <div data-manager-schedule-card className={dsScheduleHeroPanelClass()}>
         <div className={dsScheduleHeroPanelGlowClass()} aria-hidden />
         <div className="relative z-10 min-h-0 w-full min-w-0 py-0.5">
           {children}
