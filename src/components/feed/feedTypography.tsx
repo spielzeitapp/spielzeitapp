@@ -125,7 +125,7 @@ export function FeedGameCtaLink({
   className?: string;
 }) {
   return (
-    <Link to={to} className={`${FEED_GAME_CTA_CLASS} ${className}`.trim()}>
+    <Link to={to} data-manager-feed-game-link className={`${FEED_GAME_CTA_CLASS} ${className}`.trim()}>
       {children}
     </Link>
   );
