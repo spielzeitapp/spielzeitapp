@@ -31,6 +31,7 @@ function ClubMark({ name, src }: { name: string; src: string }) {
 export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(function ResultPosterArtwork(
   { payload: p, ageGroup, competition, periods, date, venue, scorers }, ref,
 ) {
+  const scoreText = `${p.home_score}:${p.away_score}`;
   const ownScore = p.is_home ? p.home_score : p.away_score;
   const opponentScore = p.is_home ? p.away_score : p.home_score;
   const state = ownScore > opponentScore ? 'win' : ownScore < opponentScore ? 'loss' : 'draw';
@@ -40,7 +41,6 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
   React.useEffect(() => setPhotoFailed(false), [photo]);
   const hasPlayer = photo !== null && !photoFailed;
   return <div ref={ref} data-manager-artwork className={`result-poster result-poster--${state}${hasPlayer ? ' result-poster--player' : ''}`} data-result-state={state}>
-    {photo && !photoFailed ? <img className="result-poster-motif" src={asset(photo)} alt="" aria-hidden onError={() => setPhotoFailed(true)} /> : null}
     <div className="result-poster-content">
       <header>
         <h2>ENDSTAND</h2>
@@ -50,11 +50,13 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
       <div className="result-poster-match">
         <ClubMark name={p.home_team_name} src={p.home_logo_url} />
         <div className="result-poster-score">
-          <strong>{p.home_score}:{p.away_score}</strong>
-          {periods ? <p className="result-poster-periods">{periods}</p> : null}
-          <p className="result-poster-status">{state === 'win' ? (p.is_home ? 'HEIMSIEG' : 'AUSWÄRTSSIEG') : state === 'draw' ? 'UNENTSCHIEDEN' : 'SPIEL BEENDET'}</p>
+          <strong style={{ fontSize: `${Math.min(20, 64 / scoreText.length)}cqw` }}>{scoreText}</strong>
         </div>
         <ClubMark name={p.away_team_name} src={p.away_logo_url} />
+      </div>
+      <div className="result-poster-summary">
+        {periods ? <p className="result-poster-periods">{periods}</p> : null}
+        <p className="result-poster-status">{state === 'win' ? (p.is_home ? 'HEIMSIEG' : 'AUSWÄRTSSIEG') : state === 'draw' ? 'UNENTSCHIEDEN' : 'SPIEL BEENDET'}</p>
       </div>
       {scorers.length ? <section className="result-poster-scorers">
         <h3>{scorers.length === 1 ? 'UNSER TORSCHÜTZE' : 'UNSERE TORSCHÜTZEN'}</h3>
@@ -65,6 +67,9 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
       {date || venue ? <div className="result-poster-details">
         {date ? <p><CalendarDays aria-hidden /><span>{date}</span></p> : null}
         {venue ? <p><MapPin aria-hidden /><span>{venue}</span></p> : null}
+      </div> : null}
+      {hasPlayer ? <div className="result-poster-portrait">
+        <img className="result-poster-motif" src={asset(photo!)} alt="" aria-hidden onError={() => setPhotoFailed(true)} />
       </div> : null}
       <footer>#GEMEINSAM<span>EINTEAM</span></footer>
     </div>
