@@ -158,7 +158,8 @@ export const BottomNav: React.FC = () => {
     return tab;
   });
   const tabs = isDemo
-    ? demoTabs
+    ? demoTabs.map(tab => pathname === '/demo/tabelle' && tab.to === '/demo/mehr'
+      ? { ...tab, to: '/demo/tabelle', label: 'Tabelle', iconFile: 'table.svg' } : tab)
     : pathname.startsWith('/app')
       ? appTabsResolved
       : publicTabs;
