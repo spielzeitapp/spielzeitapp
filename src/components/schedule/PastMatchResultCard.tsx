@@ -165,6 +165,7 @@ export function PastMatchResultCard({
   if (compact) {
     return (
       <div
+        data-manager-schedule-card
         className={[
           `group relative mb-2 -mx-1 flex min-h-[118px] w-[calc(100%+0.5rem)] min-w-0 items-stretch gap-2.5 overflow-hidden px-2 py-2 outline-none transition sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
@@ -225,6 +226,7 @@ export function PastMatchResultCard({
 
   return (
     <div
+      data-manager-schedule-card
       className={[
         'group relative w-full min-w-0 overflow-hidden rounded-[26px] border border-red-500/25 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)] outline-none backdrop-blur-sm transition-transform duration-200 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)]',
         clickable

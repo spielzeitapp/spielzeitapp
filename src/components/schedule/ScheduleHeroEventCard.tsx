@@ -604,6 +604,7 @@ export function ScheduleHeroEventCard({
 
   const shell = (
     <div
+      data-manager-schedule-card
       className={
         et === 'game'
           ? 'relative flex h-full min-h-0 w-full min-w-0 flex-col'
