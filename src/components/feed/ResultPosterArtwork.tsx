@@ -16,8 +16,6 @@ type Props = {
   scorers: { playerName: string; detail: string }[];
 };
 
-const asset = (path: string) => `${(import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')}/${path}`;
-
 function ClubMark({ name, src }: { name: string; src: string }) {
   const fallback = getClubLogo(name);
   const [failed, setFailed] = React.useState(false);
@@ -28,7 +26,7 @@ function ClubMark({ name, src }: { name: string; src: string }) {
   </div>;
 }
 
-/** Daten und Logos bleiben dynamisch; Motive sind ausschließlich vorhandene Demoassets. */
+/** Ergebnisgrafik mit dynamischen Daten und Vereinslogos. */
 export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(function ResultPosterArtwork(
   { payload: p, ageGroup, competition, periods, date, venue, scorers }, ref,
 ) {
@@ -36,12 +34,7 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
   const ownScore = p.is_home ? p.home_score : p.away_score;
   const opponentScore = p.is_home ? p.away_score : p.home_score;
   const state = ownScore > opponentScore ? 'win' : ownScore < opponentScore ? 'loss' : 'draw';
-  const [photoFailed, setPhotoFailed] = React.useState(false);
-  const photo = state === 'win' ? 'feed/demo-result-celebration.webp'
-    : state === 'draw' ? 'feed/demo-matchday-player-01.webp' : null;
-  React.useEffect(() => setPhotoFailed(false), [photo]);
-  const hasPlayer = photo !== null && !photoFailed;
-  return <div ref={ref} data-manager-artwork className={`result-poster result-poster--${state}${hasPlayer ? ' result-poster--player' : ''}`} data-result-state={state}>
+  return <div ref={ref} data-manager-artwork className={`result-poster result-poster--${state}`} data-result-state={state}>
     <div className="result-poster-content">
       <header>
         <h2>ENDSTAND</h2>
@@ -68,9 +61,6 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
       {date || venue ? <div className="result-poster-details">
         {date ? <p><CalendarDays aria-hidden /><span>{date}</span></p> : null}
         {venue ? <p><MapPin aria-hidden /><span>{venue}</span></p> : null}
-      </div> : null}
-      {hasPlayer ? <div className="result-poster-portrait">
-        <img className="result-poster-motif" src={asset(photo!)} alt="" aria-hidden onError={() => setPhotoFailed(true)} />
       </div> : null}
       <footer>#GEMEINSAM<span>EINTEAM</span></footer>
     </div>
