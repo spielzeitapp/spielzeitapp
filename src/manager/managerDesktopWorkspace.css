@@ -147,3 +147,72 @@
     --surface2: rgba(0, 0, 0, 0.2);
   }
 }
+
+/* Modal portals are attached to body, outside the Manager workspace. */
+@media (min-width: 768px) {
+  body:has(.manager-shell) .modalSheet {
+    --text-main: #0f172a;
+    --text-sub: #64748b;
+    --text: #0f172a;
+    --muted: #64748b;
+    --surface: #fff;
+    --surface2: #f8fafc;
+    background: #fff !important;
+    color: #0f172a;
+    color-scheme: light;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.2);
+    backdrop-filter: none;
+  }
+  body:has(.manager-shell) .modalSheet :is(.modalHeader, .modalFooter) {
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+    backdrop-filter: none;
+  }
+  body:has(.manager-shell) .modalSheet :is(.modalTitle, .modalClose) { color: #0f172a; }
+  body:has(.manager-shell) .modalClose:hover { background: #f1f5f9; }
+  body:has(.manager-shell) .modalSheet :is(input, select, textarea):not([data-manager-artwork] *) {
+    background: #fff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+    caret-color: #0f172a;
+    color-scheme: light;
+  }
+  body:has(.manager-shell) .modalSheet :is(input, select, textarea):focus {
+    border-color: #b91c1c !important;
+    outline-color: #b91c1c;
+  }
+  body:has(.manager-shell) .modalSheet :is(input, textarea)::placeholder { color: #64748b; }
+  body:has(.manager-shell) .modalSheet select option { background: #fff; color: #0f172a; }
+  body:has(.manager-shell) .modalSheet :is([data-ui-card], .eventEditSection, [class*="bg-black/"], [class*="bg-[rgba("]):not(button, [data-manager-artwork], [data-manager-artwork] *) {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+  body:has(.manager-shell) .modalSheet [class*="border-white"]:not([data-manager-artwork], [data-manager-artwork] *) { border-color: #e2e8f0 !important; }
+  body:has(.manager-shell) .modalSheet :is([class*="text-white"], [class*="text-[#F2F2F2]"]):not([data-manager-artwork], [data-manager-artwork] *) { color: #0f172a !important; }
+  body:has(.manager-shell) .modalSheet :is([class*="text-white/"], [class*="text-zinc-"], [class*="text-[#A8A8AE]"]):not([data-manager-artwork], [data-manager-artwork] *) { color: #64748b !important; }
+  body:has(.manager-shell) .modalSheet [class*="text-amber-"]:not([data-manager-artwork], [data-manager-artwork] *) { color: #92400e !important; }
+  body:has(.manager-shell) .modalSheet :is([data-ui-app-button], [data-ui-button]):not([data-manager-artwork] *) {
+    background: #fff !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+  body:has(.manager-shell) .modalSheet :is([data-ui-app-button="primary"], [data-ui-button="default"]):not([data-manager-artwork] *) {
+    background: #b91c1c !important;
+    border-color: #b91c1c !important;
+    color: #fff !important;
+  }
+  body:has(.manager-shell) .modalSheet :is([data-ui-app-button="primary"], [data-ui-button="default"]):not([data-manager-artwork] *) * { color: #fff !important; }
+  body:has(.manager-shell) .modalSheet [data-ui-app-button="danger"] {
+    background: #fef2f2 !important;
+    border-color: #fecaca !important;
+    color: #b91c1c !important;
+  }
+  body:has(.manager-shell) .modalSheet [data-ui-app-button="success"] {
+    background: #f0fdf4 !important;
+    border-color: #bbf7d0 !important;
+    color: #15803d !important;
+  }
+}
