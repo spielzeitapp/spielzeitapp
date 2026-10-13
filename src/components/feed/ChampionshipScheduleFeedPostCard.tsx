@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FeedPostShareActions } from './FeedPostShareActions';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CalendarDays } from 'lucide-react';
@@ -23,6 +23,8 @@ import { useSession } from '../../auth/useSession';
 import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
+import { useDemoMode } from '../../demo/DemoContext';
+import { downloadDemoSeasonPlanPdf } from '../../demo/demoSchedulePdf';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -42,9 +44,25 @@ export function ChampionshipScheduleFeedPostCard({
   onFeedPostUpdated,
 }: Props) {
   const basePath = useInternalBasePath();
+  const demo = useDemoMode();
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const downloadDemoPlan = async () => {
+    if (!demo || pdfBusy) return;
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const result = await downloadDemoSeasonPlanPdf(demo.data);
+      if (result.error) setPdfError(result.error);
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : 'PDF konnte nicht erstellt werden.');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
   const payload = parseChampionshipSchedulePayload(post.payload);
   const sub = [payload?.age_group, payload?.season_name].filter(Boolean).join(' · ');
-  const deepLink = basePath === '/demo' ? `${basePath}/termine` : CHAMPIONSHIP_SCHEDULE_DEEP_LINK;
+  const deepLink = basePath === '/demo' ? `${basePath}/spielplan` : CHAMPIONSHIP_SCHEDULE_DEEP_LINK;
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
   const seasonBadge = seasonLabel?.trim() || sub || null;
 
@@ -68,17 +86,21 @@ export function ChampionshipScheduleFeedPostCard({
       <div className={`${FEED_POST_BODY_CLASS} px-3 py-3 sm:px-4`}>
         <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-200/90">
           <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-          Meisterschaft
+          {demo ? 'Spielplan' : 'Meisterschaft'}
         </p>
         <h3 className="mt-1.5 text-[15px] font-semibold text-white sm:text-[16px]">
-          Meisterschaftsspielplan veröffentlicht
+          {demo ? 'Hol dir deinen aktuellen Spielplan' : 'Meisterschaftsspielplan veröffentlicht'}
         </h3>
         {sub ? <p className="mt-1 text-[13px] text-white/70">{sub}</p> : null}
         <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-white/80">
           {(post.caption || '').replace(/^📅\s*Meisterschaftsspielplan veröffentlicht\s*/i, '').trim() ||
             'Der Meisterschaftsspielplan ist jetzt verfügbar.'}
         </p>
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap gap-2">
+          {demo ? <button type="button" disabled={pdfBusy} onClick={() => void downloadDemoPlan()}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-red-400/40 bg-red-950/50 px-3.5 text-[13px] font-semibold text-white disabled:opacity-50">
+            {pdfBusy ? 'PDF wird erstellt…' : 'Spielplan herunterladen'}
+          </button> : null}
           <Link
             to={deepLink}
             className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-emerald-400/40 bg-emerald-950/50 px-3.5 text-[13px] font-semibold text-emerald-100"
@@ -86,6 +108,7 @@ export function ChampionshipScheduleFeedPostCard({
             Spielplan ansehen
           </Link>
         </div>
+        {pdfError ? <p role="alert" className="mt-2 text-sm text-red-300">{pdfError}</p> : null}
         <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
       </div>
       <FeedPostShareActions post={post} />

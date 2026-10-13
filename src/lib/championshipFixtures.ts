@@ -130,7 +130,9 @@ async function selectChampionshipRows(
   if (externalId) q = q.eq('external_id', externalId);
   else q = q.order('starts_at', { ascending: true });
 
-  let res = externalId ? await q.maybeSingle() : await q;
+  // The fallback select omits the optional logo column; both query shapes share this result contract.
+  let res: { data: unknown; error: { message: string } | null } =
+    externalId ? await q.maybeSingle() : await q;
 
   if (res.error && isMissingLogoColumnError(res.error.message)) {
     let q2 = supabase
