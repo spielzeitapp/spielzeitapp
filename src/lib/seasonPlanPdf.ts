@@ -335,9 +335,9 @@ export async function downloadSeasonPlanPdf(
     y += headerLogo + 6;
 
     const usable = pageW - margin * 2;
-    // Datum für „So. 06.09.2026“; Treffpunkt/Beginn minimal schmaler; Termin bleibt breit
+    // Datum für „So. 06.09.2026“; Treffpunkt mindestens 24 mm für eine einzeilige Überschrift
     const colDatum = Math.round(usable * 0.125);
-    const colMeetup = Math.round(usable * 0.065);
+    const colMeetup = Math.max(24, Math.round(usable * 0.065));
     const colKick = Math.round(usable * 0.06);
     const colTyp = Math.round(usable * 0.12);
     const colVenue = Math.round(usable * 0.18);
