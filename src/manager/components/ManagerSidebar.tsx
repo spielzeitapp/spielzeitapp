@@ -22,6 +22,7 @@ import { MANAGER_NAV_SECTIONS } from '../managerNav';
 import { navItemVisibleForWorkMode } from '../managerWorkMode';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { useManagerClubModules } from '../ManagerClubModulesContext';
+import { getTrainingPlayerIconSrc } from '../../config/trainingIconVariant';
 
 /** Bestehende mobile App-Startseite (ohne Logout). */
 export const MANAGER_TO_APP_HOME_PATH = '/app/home';
@@ -70,6 +71,23 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   'platform-dashboard': LayoutDashboard,
   equipment: Building2,
 };
+
+/** Reuse the App's original navigation artwork on the dark Manager sidebar. */
+const APP_NAV_ASSETS: Record<string, string> = {
+  dashboard: 'home-ball.png',
+  events: 'pitch.svg',
+  matches: 'pitch.svg',
+  squad: 'team.svg',
+  competition: 'table.svg',
+};
+
+function managerAppIconSrc(id: string): string | null {
+  if (id === 'training') return getTrainingPlayerIconSrc();
+  const asset = APP_NAV_ASSETS[id];
+  if (!asset) return null;
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+  return `${base}icons/${asset}`;
+}
 
 function navItemActive(pathname: string, search: string, to: string): boolean {
   const [path, query = ''] = to.split('?');
@@ -177,6 +195,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
                   if (item.status === 'ready' && item.to) {
                     const isActive = navItemActive(location.pathname, location.search, item.to);
                     const ItemIcon = NAV_ICONS[item.id] ?? LayoutDashboard;
+                    const appIconSrc = managerAppIconSrc(item.id);
                     return (
                       <li key={item.id}>
                         <Link
@@ -190,13 +209,19 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
                               : 'text-white/80 hover:bg-white/10 hover:text-white',
                           ].join(' ')}
                         >
-                          <ItemIcon
+                          {appIconSrc ? <img
+                            src={appIconSrc}
+                            alt=""
+                            aria-hidden
+                            draggable={false}
+                            className={`h-6 w-6 shrink-0 object-contain ${isActive ? 'opacity-100' : 'opacity-80'}`}
+                          /> : <ItemIcon
                             className={[
                               'h-5 w-5 shrink-0',
                               isActive ? 'text-white' : 'text-white/70',
                             ].join(' ')}
                             aria-hidden
-                          />
+                          />}
                           {item.label}
                         </Link>
                       </li>
