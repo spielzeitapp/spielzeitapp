@@ -6,6 +6,9 @@ import { useEvents, type EventRow } from '../hooks/useEvents';
 import { getClubLogo } from '../lib/teamLogos';
 import { matchdayPosterDomToPngBlob } from '../lib/matchdayPosterExport';
 import './managerMediaStudio.css';
+import './managerSpeakerStudio.css';
+import { CommunicationDraftToolbar } from './components/CommunicationDraftToolbar';
+import { getClubBrandingForTeamSeason } from '../lib/clubBranding';
 
 type Template = 'matchday' | 'result' | 'news';
 type Draft = { template: Template; title: string; team: string; opponent: string; home: boolean; date: string; time: string; venue: string; ownScore: string; opponentScore: string; body: string; caption: string; primary: string; accent: string };
@@ -24,6 +27,17 @@ function MediaEditor({ teamSeasonId, teamName, ageGroup }: { teamSeasonId: strin
   const { events, loading, error } = useEvents(teamSeasonId);
   const [draft, setDraft] = useState<Draft>({ template: 'matchday', title: 'Vereinsnachricht', team: teamName, opponent: '', home: true, date: '', time: '', venue: '', ownScore: '', opponentScore: '', body: '', caption: '', primary: '#B51226', accent: '#FF4050' });
   const [eventId, setEventId] = useState('');
+  const [clubLogo, setClubLogo] = useState<string | null>(null);
+  const userEditedBrand = useRef(false);
+  useEffect(() => { let live=true; void getClubBrandingForTeamSeason(teamSeasonId).then(r => { if(!live||!r.data)return; setClubLogo(r.data.logo_url); if(!userEditedBrand.current) setDraft(d => ({...d,primary:r.data!.primary_color || d.primary,accent:r.data!.accent_color || d.accent})); }); return () => {live=false;}; }, [teamSeasonId]);
+  function loadDraft(payload: Record<string,unknown>): boolean {
+    const raw=payload.draft;
+    if(!raw||typeof raw!=='object'||Array.isArray(raw)){setMessage('Ungültiger Entwurf.');return false;}
+    const d=raw as Draft;
+    const keys=['title','team','opponent','date','time','venue','ownScore','opponentScore','body','caption','primary','accent'] as const;
+    if(!['matchday','result','news'].includes(d.template)||typeof d.home!=='boolean'||keys.some(k=>typeof d[k]!=='string')||!/^#[0-9a-f]{6}$/i.test(d.primary)||!/^#[0-9a-f]{6}$/i.test(d.accent)|| (d.date && !/^\d{4}-\d{2}-\d{2}$/.test(d.date))){setMessage('Ungültiger Entwurf.');return false;}
+    userEditedBrand.current=true;setDraft(d);setEventId(typeof payload.eventId==='string'?payload.eventId:'');setFormat(payload.format==='story'?'story':'feed');setPhoto(null);setLogo(null);setMessage('Textentwurf geladen. Eigene Bilddateien bitte erneut auswählen.');return true;
+  }
   const [photo, setPhoto] = useState<string | null>(null);
   const [logo, setLogo] = useState<string | null>(null);
   const [format, setFormat] = useState<'feed' | 'story'>('feed');
@@ -41,7 +55,7 @@ function MediaEditor({ teamSeasonId, teamName, ageGroup }: { teamSeasonId: strin
   }, [draft, format, photo]);
   useEffect(() => () => { if (photo) URL.revokeObjectURL(photo); }, [photo]);
   useEffect(() => () => { if (logo) URL.revokeObjectURL(logo); }, [logo]);
-  const update = <K extends keyof Draft,>(key: K, value: Draft[K]) => { setDraft(d => ({ ...d, [key]: value })); setMessage(''); };
+  const update = <K extends keyof Draft,>(key: K, value: Draft[K]) => { if(key==='primary'||key==='accent')userEditedBrand.current=true; setDraft(d => ({ ...d, [key]: value })); setMessage(''); };
   const matches = events.filter(e => e.kind === 'match' && e.status !== 'canceled' && e.fixture_status !== 'open' && e.fixture_status !== 'agreed');
   function chooseEvent(id: string) {
     setEventId(id);
@@ -61,7 +75,7 @@ function MediaEditor({ teamSeasonId, teamName, ageGroup }: { teamSeasonId: strin
   const scoreValid = /^\d{1,2}$/.test(draft.ownScore) && /^\d{1,2}$/.test(draft.opponentScore);
   const valid = draft.template === 'news' ? Boolean(draft.title.trim() && draft.body.trim()) : Boolean(draft.team.trim() && draft.opponent.trim() && draft.date && (draft.template === 'result' ? scoreValid : draft.time && draft.venue.trim()));
   const caption = draft.caption || captionFor(draft);
-  const ownLogo = logo || getClubLogo(draft.team);
+  const ownLogo = logo || clubLogo || getClubLogo(draft.team);
   const selected = matches.find(e => e.id === eventId);
   const opponentLogo = getClubLogo(draft.opponent, { logoUrl: selected?.opponent === draft.opponent ? selected?.opponent_logo_url : null });
   const home = draft.home ? { name: draft.team, logo: ownLogo } : { name: draft.opponent, logo: opponentLogo };
@@ -87,6 +101,7 @@ function MediaEditor({ teamSeasonId, teamName, ageGroup }: { teamSeasonId: strin
   const field = (key: 'title' | 'team' | 'opponent' | 'date' | 'time' | 'venue' | 'ownScore' | 'opponentScore', label: string, type = 'text') => <label className="media-studio-field">{label}<input type={type} value={draft[key]} maxLength={key.includes('Score') ? 2 : 120} onChange={e => update(key, e.target.value)} /></label>;
   return <div className="media-studio">
     <header className="media-studio-header"><span className="media-studio-eyebrow">Spielzeit Manager · {teamName}{ageGroup ? ' · ' + ageGroup : ''}</span><h1><Newspaper aria-hidden />Vereinsmedien</h1><p>Spieltag, Ergebnis oder Vereinsnachricht gestalten – Grafik herunterladen und Beitragstext kopieren.</p></header>
+    <CommunicationDraftToolbar teamSeasonId={teamSeasonId} kind="media" title={draft.template==='news'?draft.title: draft.team+' – '+(draft.opponent||'Beitrag')} payload={{draft,caption,eventId,format}} onLoad={loadDraft}/>
     <div className="media-studio-templates" aria-label="Beitragsvorlage">
       {([['matchday', 'Spieltag', 'Nächstes Spiel ankündigen'], ['result', 'Ergebnis', 'Endstand und Kurzbericht'], ['news', 'Vereinsnachricht', 'Neuigkeiten, Helfer und Veranstaltungen']] as const).map(([key, title, detail]) => <button key={key} type="button" aria-pressed={draft.template === key} onClick={() => selectTemplate(key)}><strong>{title}</strong><span>{detail}</span></button>)}
     </div>
@@ -107,7 +122,7 @@ function MediaEditor({ teamSeasonId, teamName, ageGroup }: { teamSeasonId: strin
         {photo ? <button type="button" className="media-studio-text-button" onClick={() => setPhoto(null)}>Foto entfernen</button> : null}
         <label className="media-studio-field">Vereinslogo ersetzen<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => { imageFile(e.target.files?.[0], 'logo'); e.target.value = ''; }} /></label>
         {logo ? <button type="button" className="media-studio-text-button" onClick={() => setLogo(null)}>Gespeichertes Logo verwenden</button> : null}
-        <p className="media-studio-hint">Fotos werden nur in diesem Entwurf verwendet. Entwürfe bleiben bis zum Verlassen der Seite erhalten.</p>
+        <p className="media-studio-hint">Texte und Farben kannst du als Entwurf speichern. Eigene Bilddateien werden noch nicht mitgespeichert und müssen nach dem Laden erneut ausgewählt werden.</p>
       </section>
       <section className="media-studio-panel"><h2>2. Vorschau & Export</h2>
         <div className="media-studio-format" aria-label="Bildformat"><button type="button" aria-pressed={format === 'feed'} onClick={() => setFormat('feed')}>Beitrag · 4:5</button><button type="button" aria-pressed={format === 'story'} onClick={() => setFormat('story')}>Story · 9:16</button></div>
@@ -133,8 +148,8 @@ function MediaEditor({ teamSeasonId, teamName, ageGroup }: { teamSeasonId: strin
   </div>;
 }
 export function ManagerMediaStudioPage(): React.ReactElement {
-  const { viewTeamSeason, selectedTeamSeason } = useSession();
+  const { user, viewTeamSeason, selectedTeamSeason } = useSession();
   const season = viewTeamSeason ?? selectedTeamSeason;
   if (!season) return <p>Bitte oben eine freigegebene Mannschaft und Saison auswählen.</p>;
-  return <MediaEditor key={season.id} teamSeasonId={season.id} teamName={season.team.name} ageGroup={season.age_group ?? season.team.age_group ?? ''} />;
+  return <MediaEditor key={(user?.id??'')+season.id} teamSeasonId={season.id} teamName={season.team.name} ageGroup={season.age_group ?? season.team.age_group ?? ''} />;
 }

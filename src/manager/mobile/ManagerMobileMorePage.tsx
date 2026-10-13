@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield, Table2, Users, Trophy, Newspaper } from 'lucide-react';
+import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield, Table2, Users, Trophy, Newspaper, Mic, Share2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
@@ -55,6 +55,8 @@ export function ManagerMobileMorePage(): React.ReactElement {
         <MoreLink to="/manager/turniere" icon={Trophy} title="Turniere" detail="Turniertermine und Turniercenter" />
         <MoreLink to="/manager/home" icon={Newspaper} title="Feed & Beiträge" detail="Mannschaftsbeiträge und Fotos" />
         <MoreLink to="/manager/vereinsmedien" icon={Newspaper} title="Vereinsmedien" detail="Grafiken erstellen und Beitragstexte vorbereiten" />
+        <MoreLink to="/manager/social-media" icon={Share2} title="Social Media" detail="Gespeicherte Beiträge für Vereinskanäle vorbereiten" />
+        <MoreLink to="/manager/sprecherstudio" icon={Mic} title="Sprecherstudio" detail="Sprecherablauf, Musik und Jingles" />
         <MoreLink to="/manager/tabelle" icon={Table2} title="Tabelle & Liga" detail="ÖFB-Tabelle und Ergebnisse der ausgewählten Mannschaft" />
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
           <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />
