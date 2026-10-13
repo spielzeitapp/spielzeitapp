@@ -86,6 +86,7 @@ import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { PublicTeamTournamentPage } from '../pages/public/PublicTeamTournamentPage';
 import { DemoLayout } from '../demo/DemoLayout';
 import { DemoTeamSchedulePage } from '../demo/pages/DemoTeamSchedulePage';
+import { DemoU13TablePage } from '../demo/pages/DemoU13TablePage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
@@ -244,6 +245,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="spielplan" element={<DemoTeamSchedulePage />} />
+          <Route path="tabelle" element={<DemoU13TablePage />} />
           <Route path="training" element={<DemoTrainingRedirect />} />
           <Route path="match" element={<DemoMatchRedirect />} />
           <Route path="match-preparation" element={<MatchPreparationPage />} />
@@ -440,6 +442,7 @@ function PublicRoutes(): React.ReactElement {
           <Route path="team" element={<TeamPage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="spielplan" element={<DemoTeamSchedulePage />} />
+          <Route path="tabelle" element={<DemoU13TablePage />} />
           <Route path="training" element={<DemoTrainingRedirect />} />
           <Route path="match" element={<DemoMatchRedirect />} />
           <Route path="match-preparation" element={<MatchPreparationPage />} />
