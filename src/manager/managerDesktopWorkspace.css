@@ -148,6 +148,59 @@
   }
 }
 
+/* Desktop filters use compact controls instead of full-width mobile pills. */
+@media (min-width: 768px) {
+  .manager-desktop-light .schedule-page__filters > div {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .manager-desktop-light .schedule-page__filters [role="group"] {
+    width: auto;
+    flex: 0 1 auto;
+    max-width: none;
+  }
+  .manager-desktop-light :is(.sz-club-schedule-filter-track, .team-page [data-ui-tab-track]) {
+    width: auto;
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 4px;
+    gap: 4px;
+    box-shadow: none !important;
+    backdrop-filter: none;
+  }
+  .manager-desktop-light :is(.schedule-page__filters button[aria-pressed], .team-page [data-ui-tab]) {
+    flex: 0 1 auto;
+    min-height: 40px;
+    padding: 8px 18px;
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #475569 !important;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .manager-desktop-light :is(.schedule-page__filters button[aria-pressed="false"], .team-page [data-ui-tab][data-active="false"]):hover {
+    background: #e2e8f0 !important;
+  }
+  .manager-desktop-light :is(.schedule-page__filters button[aria-pressed="true"], .team-page [data-ui-tab][data-active="true"]) {
+    background: #b91c1c !important;
+    color: #fff !important;
+    border-color: #b91c1c !important;
+  }
+  .manager-desktop-light .sz-club-schedule-filter-track button:focus-visible,
+  .manager-desktop-light .team-page [data-ui-tab]:focus-visible {
+    outline: 2px solid #b91c1c;
+    outline-offset: 2px;
+  }
+  .manager-desktop-light section[aria-label="Beitrag erstellen"] > div > div {
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+  .manager-desktop-light section[aria-label="Beitrag erstellen"] .pointer-events-none { display: none; }
+}
+
 /* Modal portals are attached to body, outside the Manager workspace. */
 @media (min-width: 768px) {
   body:has(.manager-shell) .modalSheet {

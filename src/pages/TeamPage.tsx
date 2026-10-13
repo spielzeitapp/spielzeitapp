@@ -996,7 +996,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         <div className="flex min-w-0 items-center gap-4">
           <img src={getOurTeamLogoUrl()} alt="" className="h-16 w-16 shrink-0 object-contain" />
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold">{rosterOnly ? "Spieler" : "Mannschaft"}</h1>
+            <h1 className="text-2xl font-bold">{rosterOnly ? "Spieler" : "Team"}</h1>
             <p className="mt-1 text-base font-semibold">{heroTeamName} · {heroAgeGroup}</p>
             <p className="mt-1 text-sm text-slate-500">Saison {heroSeason} · {players.length} Spieler{isHistoryReadOnly ? " · Archiv" : ""}</p>
           </div>

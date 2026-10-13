@@ -49,7 +49,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
       ) : null}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
-        <MoreLink to="/manager/team" icon={Users} title="Mannschaft" detail="Kader, Trainer, Training und Statistiken" />
+        <MoreLink to="/manager/team" icon={Users} title="Team" detail="Kader, Trainer, Training und Statistiken" />
         <MoreLink to="/manager/spieler" icon={Users} title="Spieler" detail="Spielerprofile und Kader verwalten" />
         <MoreLink to="/manager/mehr/parent-access" icon={Users} title="Eltern & Zugänge" detail="Elternzuordnung, Einladungen und Spieler-App" />
         <MoreLink to="/manager/spiele" icon={Trophy} title="Spiele" detail="Vorbereitung, Aufstellung und Spielberichte" />

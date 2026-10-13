@@ -59,7 +59,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     id: 'my-team',
     label: 'Mein Team',
     items: [
-      { id: 'squad', label: 'Mannschaft', to: '/manager/team', status: 'ready' },
+      { id: 'squad', label: 'Team', to: '/manager/team', status: 'ready' },
       { id: 'players', label: 'Spieler', to: '/manager/spieler', status: 'ready' },
       { id: 'parents', label: 'Eltern & Zugänge', to: '/manager/mehr/parent-access', status: 'ready' },
       { id: 'events', label: 'Termine', to: '/manager/termine', status: 'ready' },

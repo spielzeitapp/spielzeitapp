@@ -683,7 +683,7 @@ export function ManagerDashboardPage(): React.ReactElement {
           )}
         </Card>
 
-        <Card title="Mannschaft / Kader" icon={<Users className="h-4 w-4" aria-hidden />}>
+        <Card title="Team / Kader" icon={<Users className="h-4 w-4" aria-hidden />}>
           {players.length === 0 ? (
             <EmptyLine text="Noch keine aktiven Spieler im Kader." />
           ) : (
@@ -696,7 +696,7 @@ export function ManagerDashboardPage(): React.ReactElement {
             to="/manager/team"
             className="mt-3 inline-flex text-[13px] font-semibold text-red-700 hover:text-red-800"
           >
-            Mannschaft öffnen
+            Team öffnen
           </Link>
         </Card>
 
@@ -762,7 +762,7 @@ export function ManagerDashboardPage(): React.ReactElement {
             to="/manager/team"
             className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 hover:bg-slate-50"
           >
-            Mannschaft öffnen
+            Team öffnen
           </Link>
           <Link
             to="/manager/spieler"
