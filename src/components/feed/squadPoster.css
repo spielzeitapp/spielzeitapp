@@ -90,7 +90,10 @@
   .squad-poster .squad-poster-number { font-size: 2.7cqw; }
 }
 
-/* Shared Welcome identity; calm center keeps every name and score legible. */
+/* Shared matchday identity with a calm center for names and scores. */
 .squad-poster, .matchday-poster .sz-club-feed-poster-background {
-  background: #050506 url('/feed/welcome-autopost-background.svg') center / cover no-repeat;
+  background: linear-gradient(90deg, #030304b3, #03030480 50%, #03030499), #050506 url('/feed/matchday-clean-background.jpg') center / cover no-repeat;
 }
+
+/* Shared background also covers the matchday template outside the demo. */
+.matchday-poster .sz-club-feed-poster-lines { background: none; }
