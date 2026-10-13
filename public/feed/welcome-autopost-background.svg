@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1400" viewBox="0 0 1000 1400">
+  <defs>
+    <linearGradient id="base" x2="0" y2="1">
+      <stop stop-color="#080809"/><stop offset=".55" stop-color="#150607"/><stop offset="1" stop-color="#050506"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".48" cy=".55" r=".7">
+      <stop stop-color="#6f0915" stop-opacity=".45"/><stop offset="1" stop-color="#090909" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="red" x2="1" y2="1">
+      <stop stop-color="#cf0d23" stop-opacity=".72"/><stop offset="1" stop-color="#800411" stop-opacity=".38"/>
+    </linearGradient>
+    <pattern id="hex" width="360" height="208" patternUnits="userSpaceOnUse">
+      <path d="M60 0H180L240 104L180 208H60L0 104Z M240-104H360L420 0L360 104H240L180 0Z M240 104H360L420 208L360 312H240L180 208Z" fill="none" stroke="#d6d6df" stroke-opacity=".095" stroke-width="2"/>
+    </pattern>
+    <radialGradient id="quiet" cx=".5" cy=".48" r=".68">
+      <stop stop-color="#030304" stop-opacity=".68"/><stop offset=".65" stop-color="#030304" stop-opacity=".46"/><stop offset="1" stop-color="#030304" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1000" height="1400" fill="url(#base)"/>
+  <rect width="1000" height="1400" fill="url(#glow)"/>
+  <rect width="1000" height="1400" fill="url(#hex)"/>
+  <g fill="url(#red)">
+    <path d="M50 0H135L0 175V65Z"/>
+    <path d="M210 0H300L0 390V270Z"/>
+    <path d="M375 0H455L0 585V480Z"/>
+    <path d="M1000 780V895L605 1400H515Z"/>
+    <path d="M1000 990V1110L780 1400H685Z"/>
+    <path d="M1000 1205V1315L935 1400H845Z"/>
+  </g>
+  <rect width="1000" height="1400" fill="url(#quiet)"/>
+</svg>

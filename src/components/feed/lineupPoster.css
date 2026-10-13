@@ -23,3 +23,8 @@
 .lineup-poster-details { margin: 3cqw 0 0; padding-top: 2cqw; border-top: .25cqw solid #ef002a; text-align: center; font: 700 2.5cqw/1.6 Arial, sans-serif; letter-spacing: .06em; text-transform: uppercase; overflow-wrap: anywhere; }
 .lineup-poster footer { padding: 3cqw 0 1cqw; text-align: center; font: italic 400 8cqw/1.2 'Squad Anton', Impact, sans-serif; letter-spacing: -.025em; }
 .lineup-poster footer span { color: #ef002a; }
+
+/* Shared Welcome identity; calm center keeps every name and score legible. */
+.lineup-poster {
+  background: #050506 url('/feed/welcome-autopost-background.svg') center / cover no-repeat;
+}
