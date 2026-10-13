@@ -9,6 +9,8 @@ import { CreateEventModal } from '../app/components/CreateEventModal';
 import type { AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
 import { CompactListParentAttendance } from '../components/schedule/CompactListParentAttendance';
 import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
+import { ManagerScheduleEventActions } from '../manager/components/ManagerScheduleEventActions';
+import { isPublicSchedulePath } from '../lib/scheduleAccess';
 import { CompactEventCard } from '../components/schedule/CompactEventCard';
 import { PastMatchResultCard } from '../components/schedule/PastMatchResultCard';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
@@ -367,11 +369,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
   // /demo/* = interne App-Oberfläche (wie /app), nicht öffentlich.
   const location = useLocation();
   const { pathname } = location;
-  const forcePublicView =
-    !managerSimpleMode &&
-    (pathname === '/schedule' ||
-      pathname === '/live' ||
-      !(pathname.startsWith('/app') || pathname.startsWith('/demo')));
+  const forcePublicView = isPublicSchedulePath(pathname, managerSimpleMode);
   const backendRole = isDemo ? 'trainer' : normalizeRole(roleFromHook);
   const uiRoleRaw = forcePublicView ? null : (backendRole ?? null);
   const normalizedUiRole = normalizeRole(uiRoleRaw);
@@ -793,6 +791,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
     ev.preventDefault();
     console.debug('[EditModal] submit');
     if (!editEvent) return;
+    if (!canMutateSchedule) {
+      setEditError('Keine Berechtigung zum Bearbeiten.');
+      return;
+    }
     const writable = await assertTeamSeasonWritable(editEvent.team_season_id);
     if (!writable.ok) {
       setEditError(writable.message);
@@ -1050,6 +1052,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
   };
 
   const handleDelete = async (event: EventRow) => {
+    if (!canMutateSchedule) {
+      setToastMessage('Keine Berechtigung zum Löschen.');
+      return;
+    }
     if (isDemo) {
       setToastMessage('In der Demo nicht verfügbar.');
       return;
@@ -1542,11 +1548,12 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                         setCreateModalOpen(true);
                       }}
                       disabled={!activeTeamSeasonId || isHistoryReadOnly}
-                      className={`${dsSchedulePlusButtonClass()} h-8 w-8 shrink-0 text-[16px] leading-none`}
+                      data-ui-app-button={basePath === '/manager' ? 'primary' : undefined}
+                      className={`${dsSchedulePlusButtonClass()} shrink-0 leading-none ${basePath === '/manager' ? 'min-h-11 gap-2 px-3 text-sm md:w-auto' : 'h-8 w-8 text-[16px]'}`}
                       aria-label="Termin anlegen"
                       title={isHistoryReadOnly ? softLockMessage ?? 'Archiv: nur Lesen' : 'Termin anlegen'}
                     >
-                      +
+                      <span aria-hidden>+</span>{basePath === '/manager' ? <span className="hidden md:inline">Termin erstellen</span> : null}
                     </button>
                   ) : null}
                 </div>
@@ -1832,7 +1839,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                                 }
                                 openEventDetails(id);
                               };
-                        const heroCardFooter = undefined;
+                        const heroCardFooter = <ManagerScheduleEventActions
+                          allowed={basePath === '/manager' && canMutateSchedule && !isArchivedEvent && ev.team_season_id === effectiveTeamSeasonId}
+                          eventId={ev.id} onEdit={() => openEditModal(ev)} onDelete={() => void handleDelete(ev)} />;
                         const heroGoLive =
                           !managerSimpleMode &&
                           et === 'game' &&
@@ -2122,6 +2131,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                                 openEventDetails(id);
                               }}
                             />
+                            <ManagerScheduleEventActions
+                              allowed={basePath === '/manager' && canMutateSchedule && !isArchivedEvent && ev.team_season_id === effectiveTeamSeasonId}
+                              eventId={ev.id} onEdit={() => openEditModal(ev)} onDelete={() => void handleDelete(ev)} />
                           </React.Fragment>
                         );
                       }
@@ -2150,6 +2162,9 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                             }}
                             reviewPending={matchReviewPending}
                           />
+                          <ManagerScheduleEventActions
+                            allowed={basePath === '/manager' && canMutateSchedule && !isArchivedEvent && ev.team_season_id === effectiveTeamSeasonId}
+                            eventId={ev.id} onEdit={() => openEditModal(ev)} onDelete={() => void handleDelete(ev)} />
                         </React.Fragment>
                       );
                     })}
@@ -2283,7 +2298,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
             onClose={closeEditModal}
             footer={
               <div className="flex w-full items-center justify-between gap-2">
-                {managerSimpleMode && editEvent && canMutateSchedule ? (
+                {(managerSimpleMode || basePath === '/manager') && editEvent && canMutateSchedule ? (
                   <Button
                     type="button"
                     variant="negative"
