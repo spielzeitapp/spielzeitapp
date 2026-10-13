@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FeedPostShareActions } from './FeedPostShareActions';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarDays } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Download, ArrowRight } from 'lucide-react';
 import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import {
   CHAMPIONSHIP_SCHEDULE_DEEP_LINK,
@@ -25,6 +25,7 @@ import { AutoFeedPostMediaEditButton } from './AutoFeedPostMediaEditButton';
 import { AutoFeedPostCustomImage } from './AutoFeedPostCustomImage';
 import { useDemoMode } from '../../demo/DemoContext';
 import { downloadDemoSeasonPlanPdf } from '../../demo/demoSchedulePdf';
+import './schedulePoster.css';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -67,7 +68,7 @@ export function ChampionshipScheduleFeedPostCard({
   const seasonBadge = seasonLabel?.trim() || sub || null;
 
   return (
-    <article className="sz-club-feed-shell overflow-hidden rounded-[18px] border">
+    <article className={`sz-club-feed-shell overflow-hidden rounded-[18px] border ${demo ? 'schedule-feed-shell' : ''}`}>
       <div className={FEED_POST_HEADER_CLASS}>
         <FeedCardHeaderBrand teamLabel={teamLabel} seasonLabel={seasonBadge} />
         {staffCanDelete ? (
@@ -83,7 +84,23 @@ export function ChampionshipScheduleFeedPostCard({
       {post.media_url?.trim() ? (
         <AutoFeedPostCustomImage mediaUrl={post.media_url} alt="Eigenes Spielplanbild" />
       ) : null}
-      <div className={`${FEED_POST_BODY_CLASS} px-3 py-3 sm:px-4`}>
+      {demo ? <>
+        {!post.media_url?.trim() ? <div className="schedule-poster" data-whatsapp-status-poster data-manager-artwork>
+          <p className="schedule-poster-kicker"><CalendarDays aria-hidden />Dein Team. Deine Termine.</p>
+          <h3>Dein Spielplan.<span>Alles im Blick.</span></h3>
+          <p className="schedule-poster-meta">Treffpunkt · Anstoß · Spielort</p>
+          <p className="schedule-poster-note">Zum Ausdrucken. Zum Teilen.</p>
+        </div> : null}
+        <div className="schedule-feed-actions">
+          <button type="button" disabled={pdfBusy} onClick={() => void downloadDemoPlan()} className="schedule-feed-download">
+            <Download className="h-4 w-4 shrink-0" aria-hidden />
+            {pdfBusy ? 'PDF wird erstellt…' : 'Spielplan herunterladen'}
+          </button>
+          <Link to={deepLink} className="schedule-feed-link">Spielplan ansehen<ArrowRight className="h-4 w-4" aria-hidden /></Link>
+          {pdfError ? <p role="alert" className="mt-2 text-sm text-red-300">{pdfError}</p> : null}
+          <p className={`${FEED_TIMESTAMP_CLASS} mt-2`}>{whenLabel}</p>
+        </div>
+      </> : <div className={`${FEED_POST_BODY_CLASS} px-3 py-3 sm:px-4`}>
         <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-200/90">
           <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
           {demo ? 'Spielplan' : 'Meisterschaft'}
@@ -110,7 +127,7 @@ export function ChampionshipScheduleFeedPostCard({
         </div>
         {pdfError ? <p role="alert" className="mt-2 text-sm text-red-300">{pdfError}</p> : null}
         <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
-      </div>
+      </div>}
       <FeedPostShareActions post={post} />
     </article>
   );

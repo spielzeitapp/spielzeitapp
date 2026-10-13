@@ -1,0 +1,14 @@
+@font-face { font-family: 'Schedule Anton'; src: url('/fonts/Anton-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+.schedule-poster { container-type: inline-size; position: relative; color: #fff; background: linear-gradient(90deg, #030304cf, #03030499), #050506 url('/feed/matchday-clean-background.jpg') center / cover no-repeat; padding: 7cqw 6cqw; }
+.schedule-poster-kicker { display: flex; align-items: center; gap: 2cqw; margin: 0 0 5cqw; color: #ff344f; font-size: 3cqw; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.schedule-poster-kicker svg { width: 6cqw; height: 6cqw; flex-shrink: 0; }
+.schedule-poster h3 { margin: 0; font: 400 10cqw/1.12 'Schedule Anton', Impact, sans-serif; text-transform: uppercase; letter-spacing: -.015em; }
+.schedule-poster h3 span { display: block; color: #ff344f; margin-top: 1cqw; }
+.schedule-poster-meta { margin: 5cqw 0 0; padding-top: 4cqw; border-top: 1px solid #ef002a80; color: #fff; font-size: 3.7cqw; font-weight: 700; line-height: 1.5; }
+.schedule-poster-note { margin: 2cqw 0 0; color: #c8c8cc; font-size: 3.5cqw; line-height: 1.5; }
+.schedule-feed-actions { padding: 16px; background: #080809; }
+.schedule-feed-download { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 1px solid #ff344f; border-radius: 12px; background: #d91932; color: #fff; padding: 12px 14px; font-size: 14px; line-height: 1.4; font-weight: 800; }
+.schedule-feed-download:disabled { opacity: .55; cursor: wait; }
+.schedule-feed-link { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; color: #ddd; font-size: 13px; font-weight: 600; }
+.schedule-feed-download:focus-visible, .schedule-feed-link:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.schedule-feed-shell button[aria-label="Story / Status teilen"] { color: #ddd; background: #111; border-color: #ef002a55; }
