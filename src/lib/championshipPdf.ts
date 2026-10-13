@@ -532,9 +532,9 @@ export async function downloadChampionshipSchedulePdf(opts: {
     y += headerLogo + 6;
 
     const usable = pageW - margin * 2;
-    // Datum etwas breiter für „So. 06.09.2026“; Treffpunkt/Anpfiff minimal schmaler
+    // Datum etwas breiter für „So. 06.09.2026“; Treffpunkt mindestens 24 mm für eine einzeilige Überschrift
     const colDatum = Math.round(usable * 0.145);
-    const colMeetup = Math.round(usable * 0.075);
+    const colMeetup = Math.max(24, Math.round(usable * 0.075));
     const colKick = Math.round(usable * 0.07);
     const colVenue = Math.round(usable * 0.2);
     const colEncounter = usable - colDatum - colMeetup - colKick - colVenue;
