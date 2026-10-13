@@ -6,6 +6,7 @@ import { PageShell, PremiumCard, SectionTitle } from '../../ui';
 import { downloadSeasonPlanPdf, type SeasonPlanRow } from '../../lib/seasonPlanPdf';
 import { downloadChampionshipSchedulePdf, formatPdfDateWithWeekday } from '../../lib/championshipPdf';
 import { utcIsoToViennaTimeHHmm } from '../../lib/viennaTime';
+import { DemoTeamSelection } from '../components/DemoTeamSelection';
 
 export function DemoTeamSchedulePage() {
   const demo = useDemoMode();
@@ -15,7 +16,7 @@ export function DemoTeamSchedulePage() {
   const [error, setError] = useState<string | null>(null);
   const rows = useMemo<SeasonPlanRow[]>(() => (demo?.data.events ?? [])
     .filter((e) => e.kind === 'match' || e.kind === 'tournament')
-    .map((e) => ({ id: e.id, kind: e.kind === 'tournament' ? 'tournament' : e.match_type === 'friendly' ? 'friendly' : 'championship',
+    .map<SeasonPlanRow>((e) => ({ id: e.id, kind: e.kind === 'tournament' ? 'tournament' : e.match_type === 'friendly' ? 'friendly' : 'championship',
       starts_at: e.starts_at, meeting_at: e.meeting_at, location: e.location,
       title: e.kind === 'tournament' ? 'Nachwuchsturnier' : 'Meisterschaftsspiel',
       is_home: e.is_home, opponent: e.opponent, opponent_logo_url: e.opponent_logo_url }))
@@ -46,6 +47,7 @@ export function DemoTeamSchedulePage() {
   };
   return <PageShell>
     <Link to="/demo/termine" className="mb-6 inline-flex min-h-[44px] items-center gap-1 text-white/70"><ChevronLeft className="h-4 w-4" />Zurück</Link>
+    <DemoTeamSelection selected="u12" />
     <SectionTitle subtitle={`Saison ${demo.data.seasonLabel} · ${demo.data.teamName}`}>U12 – Spielplan</SectionTitle>
     <PremiumCard className="space-y-4 p-4">
       <p className="text-xs font-bold uppercase tracking-widest text-white/55">Spielart</p>
