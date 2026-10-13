@@ -203,12 +203,14 @@ export function buildDemoFeedPosts(): {
         id: 'df-season-start',
         post_kind: 'championship_schedule_published',
         media_type: 'championship_schedule',
-        caption: `Saisonstart ${SEASON} · ${our}. Termine und Training sind vorbereitet.`,
-        created_at: demoOffsetIso(-25, 8, 0),
+        caption: 'Alle Spiele mit Treffpunkt, Anstoß und Spielort. Lade dir den aktuellen Spielplan als PDF herunter – zum Ausdrucken oder Teilen.',
+        created_at: demoOffsetIso(0, 8, 0),
         payload: {
-          season_label: SEASON,
-          team_name: our,
-          title: `Saisonstart U12 ${SEASON}`,
+          team_season_id: DEMO_TEAM_SEASON_ID,
+          age_group: 'U12',
+          season_name: SEASON,
+          published_count: buildDemoEvents().filter(e => e.kind === 'match').length,
+          deep_link: '/demo/spielplan',
         },
       }),
     },
@@ -490,10 +492,10 @@ export function buildDemoFeedPosts(): {
     },
   ];
 
-  // Demo feed focuses on matchday artwork; training and calendar information stay in their modules.
+  // Show the current downloadable schedule alongside matchday artwork.
   const excludedDemoPostIds = new Set([
     'df-training-preview', 'df-schedule-change', 'df-moment',
-    'df-tournament-info', 'df-parent-info', 'df-season-start',
+    'df-tournament-info', 'df-parent-info',
     'df-result-older',
   ]);
   const sorted = all.filter(item => !excludedDemoPostIds.has(item.post.id)).sort(
