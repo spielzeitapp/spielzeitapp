@@ -214,7 +214,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
                             alt=""
                             aria-hidden
                             draggable={false}
-                            className={`h-6 w-6 shrink-0 object-contain ${isActive ? 'opacity-100' : 'opacity-80'}`}
+                            className={`${item.id === 'training' ? 'h-8 w-8 -mx-1 brightness-0 invert' : 'h-6 w-6'} shrink-0 object-contain ${isActive ? 'opacity-100' : 'opacity-80'}`}
                           /> : <ItemIcon
                             className={[
                               'h-5 w-5 shrink-0',

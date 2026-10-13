@@ -148,6 +148,44 @@
   }
 }
 
+/* White reading surfaces around the original feed graphics and match details. */
+@media (min-width: 768px) {
+  .manager-desktop-light .sz-club-feed-inset {
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+    color: #0f172a;
+    padding: 16px;
+  }
+  .manager-desktop-light .sz-club-feed-inset :is(p, span) { color: #0f172a !important; }
+  .manager-desktop-light .sz-club-feed-inset :is(.sz-club-feed-accent-text, button) { color: #b91c1c !important; }
+  .manager-desktop-light [data-manager-feed-game-link] {
+    background: #fff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #b91c1c !important;
+    box-shadow: none !important;
+    border-radius: 10px;
+  }
+  .manager-desktop-light [data-manager-feed-game-link]:hover { background: #fef2f2 !important; }
+  .manager-desktop-light [data-manager-match-summary] {
+    background: #fff !important;
+    color: #0f172a !important;
+    min-height: 0;
+  }
+  .manager-desktop-light [data-manager-match-summary] > div { max-width: none; padding: 16px 0 32px; gap: 16px; }
+  .manager-desktop-light [data-manager-match-summary] :is(section, [class*="bg-black"], [class*="bg-[rgba("], [class*="bg-[#080"], [class*="bg-gradient-"]):not([data-manager-artwork], [data-manager-artwork] *) {
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none;
+  }
+  .manager-desktop-light [data-manager-match-summary] .pointer-events-none:not([data-manager-artwork], [data-manager-artwork] *) { display: none; }
+  .manager-desktop-light [data-manager-match-summary] :is([class*="text-red-"], [class*="text-rose-"]):not([data-manager-artwork] *) { color: #b91c1c !important; }
+  .manager-desktop-light [data-manager-match-summary] nav[aria-label="Spielbereiche"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .manager-desktop-light [data-manager-match-summary] nav[aria-label="Spielbereiche"] button { min-height: 88px; }
+  .manager-desktop-light [data-manager-match-summary] nav[aria-label="Spielbereiche"] button:hover { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+}
+
 /* Desktop filters use compact controls instead of full-width mobile pills. */
 @media (min-width: 768px) {
   .manager-desktop-light .schedule-page__filters > div {

@@ -2716,7 +2716,7 @@ export const EventDetailPage: React.FC = () => {
     };
 
     return (
-      <div className="min-h-screen text-white [background:radial-gradient(circle_at_50%_0%,rgba(127,18,25,0.26),transparent_34%),linear-gradient(180deg,#090707_0%,#170304_48%,#090000_100%)]">
+      <div data-manager-match-summary className="min-h-screen text-white [background:radial-gradient(circle_at_50%_0%,rgba(127,18,25,0.26),transparent_34%),linear-gradient(180deg,#090707_0%,#170304_48%,#090000_100%)]">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 overflow-x-hidden px-2 py-2 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
           <div>
             <Link to={`${basePath}/termine`} className="inline-flex min-h-10 items-center rounded-xl border border-white/15 bg-black/70 px-3.5 text-sm font-bold text-white">
