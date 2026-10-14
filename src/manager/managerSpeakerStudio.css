@@ -88,7 +88,7 @@
 .speaker-studio--music .speaker-run,
 .speaker-studio--music .speaker-reading,
 .speaker-studio--music > .speaker-quick,
-.speaker-studio--music > header .speaker-top-actions > button:first-child,
+.speaker-studio--music > header .speaker-top-actions > .speaker-print-action,
 .speaker-studio--music > header .speaker-top-actions > a{display:none}
 .speaker-studio--music .speaker-workspace{display:block}
 .speaker-studio--music .speaker-tabs{position:sticky;top:0;z-index:30;background:#f4f5f7;padding:10px 0;border-bottom:1px solid #e2e8f0}
@@ -113,3 +113,5 @@
 .speaker-studio--music .speaker-pads button{min-height:76px;font-size:14px}
 @media(max-width:1000px){.speaker-studio--music .speaker-pads{grid-template-columns:repeat(3,minmax(0,1fr))}.speaker-studio--music .speaker-dj{padding:16px;column-gap:16px}}
 @media(max-width:700px){.speaker-studio--music .speaker-dj{display:block}.speaker-studio--music .speaker-deck{padding:12px}.speaker-studio--music .speaker-deck select{font-size:12px}.speaker-studio--music .speaker-pads{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.speaker-music-entry{font-size:13px;color:#64748b;align-self:center}
