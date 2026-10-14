@@ -1,23 +1,38 @@
 # Vereinskommunikation auf Test
 
-Die erste ausführbare Version liegt ausschließlich auf develop / app.spielzeitapp.at. Datenbank: Staging acbaecjzoabafbsjrzvr. Keine Veröffentlichung auf main.
+Stand 14.10.2026. Nur develop / app.spielzeitapp.at; Staging acbaecjzoabafbsjrzvr. main unverändert.
 
-## Enthalten
-- Vereinsmedien: Grafikvorschau und PNG-Export, Vereinsfarben, kopierbarer Text, gespeicherte Textentwürfe mit Versionsprüfung. Eigene Bilder müssen nach Laden erneut ausgewählt werden.
-- Social Media: gespeicherte Medienentwürfe auswählen und Texte für manuelles Posten kopieren. Keine OAuth-Verbindung oder Direktveröffentlichung.
-- Sprecherstudio: Spielauswahl, eigene abgeschlossene Ergebnisse und nächste Termine laden, Tagesangaben ergänzen, 11 Vorlagen, geschützte eigene Änderungen, Abschnittsfreigabe, Schnelldurchsagen, Druck/PDF und Großansicht.
-- Musik: zwei Player mit Position, Lautstärke, Überblendung, Sprachabsenkung, sechs manuell ausgelöste Jingle-Tasten und Alles-Stopp. Dateien bleiben im Browser auf diesem Gerät, getrennt nach Konto und Mannschaft. Player- und Jingle-Zuordnungen werden beim erneuten Öffnen neu gewählt.
-- Entwürfe liegen pro Konto und Mannschaft in manager_communication_drafts. RLS prüft Eigentümer, operablen Verein und bestehenden Verwaltungs-/Trainerzugriff. Revision verhindert unbemerkte Überschreibung.
+## Sprecherstudio: Musik testen
+1. Manager → Sprecherstudio öffnen.
+2. Testlieder hinzufügen: zwei kurze, leise Testmelodien und ein Test-Jingle werden ausschließlich lokal erzeugt. Es sind keine vollständigen Lieder.
+3. Playlist Pause → Playlist starten. Der zweite Titel startet automatisch. Pause/Weiter, nächster Titel, Wiederholen und Alles STOPP testen.
+4. Eigene MP3/WAV/M4A/OGG/AAC-Dateien bis 25 MB über Audiodateien hinzufügen laden. Dropbox-Dateien zuvor auf das Gerät herunterladen.
+5. Mit + Pause (bzw. Vor dem Spiel/Nach dem Spiel) hinzufügen; Reihenfolge mit Pfeilen ändern.
+6. Jingles den sechs Tasten zuordnen. Playlists, A/B-Auswahl und Pad-Zuordnungen werden auf dem Gerät gespeichert.
+7. Einzelne Dateien in Vereinsablage speichern; danach Playlist in Vereinsablage sichern. Auf einem anderen Gerät die private Vereinsablage aktualisieren und die Playlist Auf Gerät speichern. Alle zugehörigen Lieder werden lokal geladen.
+8. Offline vorbereiten speichert die aktuelle Sprechertextkopie und den eigenständigen Player. Offline-Seite öffnen und als Lesezeichen speichern. Vor dem Einsatz ohne Internet testen.
 
-## Noch offen
-- Externe KI-Erstellung: Deployment durch automatische Freigabeprüfung blockiert, weil Mannschafts-/Spieldaten und bearbeitete Texte an OpenAI übertragen würden. Funktion ist nicht veröffentlicht; Buttons sind deaktiviert.
-- Vereinsweite Medien-/Sprecherrollen, gemeinsames Redaktionsfreigabesystem, Cloud-Medienbibliothek.
-- Direktes Posten und Planung für Meta, WhatsApp-Anbindung.
-- Vollständiger ÖFB-Import einschließlich Tabelle, Gegnerhistorie, Reserve und bestätigter Aufstellungen. Derzeit vorhandene eigene Spieldaten plus manuelle Angaben.
-- Persistente Pad-/Playlist-Zuordnungen, automatische Cue-Steuerung, Wellenformen.
+## Offline-Grenzen
+- Die Offline-Seite enthält Musik, Playlist, Jingles und eine lokale Kopie der Texte. Sie lädt ohne Manager-Anmeldung und greift ausschließlich auf vorbereitete Daten dieses Geräts zu.
+- Gemeinsamer PC: lokale Daten bleiben nach Abmeldung verfügbar. Browserdaten löschen entfernt lokale Musik und Texte.
+- Kein ÖFB-Update, keine KI, keine Cloud-Speicherung und kein Abgleich von Textänderungen im Offline-Modus.
+- A/B-Player und manuelle Überblendung im Online-Manager. Offline-Player verwendet einen Musikplayer mit unabhängigen Jingles; automatisches nächstes Lied, keine automatische A/B-Überblendung.
+- Musik startet nur per Taste; Browser, Dateiformat und Anlage vor Einsatz prüfen.
+
+## Daten und Rechte
+- Privater Bucket speaker-audio, pro Verein getrennt. Bestehende Trainer-/Vereinsverwaltungsrechte werden geprüft. Kein Eltern-/Fan-Zugriff.
+- Nur der Uploader kann seine Dateien ersetzen/löschen; andere berechtigte Vereinsverantwortliche können herunterladen.
+- Cloud-Playlists enthalten ausschließlich Titel und Storage-Pfade, keine Sprechertexte.
+- Lokales Entfernen löscht keine Vereinsdatei.
+- KI-Sprechertexte aktiv auf Test nach ausdrücklicher Freigabe; serverseitige OpenAI-Anbindung und Schutz eigener Texte.
+- Entwürfe bleiben konto-/mannschaftsbezogen mit Versionsprüfung.
 
 ## Prüfung
-Node: node --experimental-strip-types --test scripts/club-communications-model-test.mjs
-Sechs Modelltests: Zeitzonen, manuelle Spielphasen, offene Angaben, Erhalt eigener Texte, eindeutige Abschnitte, Crossfade/Sprachabsenkung.
-Staging-Transaktion (Rollback): Insert, Update/Revisionsinkrement, Konflikt bei alter Revision, Eigentümerwechsel blockiert, Lesen/Schreiben ohne Berechtigung blockiert.
-Browser-Tests hinter dem Login benötigen eine authentifizierte Sitzung; Audiowiedergabe zusätzlich mit der tatsächlichen Stadionanlage prüfen.
+- Node-Modelltests: Zeitberechnung, Textschutz, Audiopegel; Playlist-Ende/Wiederholung, Reihenfolge, WAV-Header und Datenvalidierung.
+- Offline-Worker getestet: Player-Cache und Offline-Fallback, keine API-Antworten im Cache.
+- Offline-UI im simulierten DOM getestet: Texte wiederherstellen, nächster Titel, STOPP während einer verzögerten Play-Anfrage.
+- Staging-RLS-Transaktionen mit Rollback: Trainer lesen/schreiben, unberechtigter Nutzer blockiert, falscher Uploader-Pfad blockiert.
+- Esbuild-Bundleprüfung erfolgreich. Tatsächliche Browser-/Lautsprecherwiedergabe ist noch vor Ort zu testen; lokaler Chromium-Test mangels verfügbarem Browser blockiert.
+
+## Offen
+Vereinsweite Medien-/Sprecherrollen, vollständiger ÖFB-Import mit Tabelle/Reserve/Aufstellungen, direktes Social-Media-Posten, automatische DJ-Überblendung.
