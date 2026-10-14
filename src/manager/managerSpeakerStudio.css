@@ -169,6 +169,24 @@
 .speaker-studio--dark .speaker-theme-switch button[aria-pressed=true]{background:#334155;color:#f8fafc}
 .speaker-studio--dark .speaker-theme-switch button[aria-pressed=true] svg{color:#a5b4fc}
 
+/* Matchday triggers: distinct colors plus readable labels, never color alone. */
+.speaker-pad--0{--pad-color:#be123c;--pad-tint:#fff1f2;--pad-night:#351b2b}
+.speaker-pad--1{--pad-color:#0369a1;--pad-tint:#eff8ff;--pad-night:#142e43}
+.speaker-pad--2{--pad-color:#7e22ce;--pad-tint:#faf5ff;--pad-night:#2b2042}
+.speaker-pad--3{--pad-color:#0f766e;--pad-tint:#f0fdfa;--pad-night:#153431}
+.speaker-pad--4{--pad-color:#a16207;--pad-tint:#fffbeb;--pad-night:#352b18}
+.speaker-pad--5{--pad-color:#4338ca;--pad-tint:#eef2ff;--pad-night:#232744}
+.speaker-studio .speaker-pads>.speaker-pad{border-top:4px solid var(--pad-color);background:var(--pad-tint)}
+.speaker-studio--dark .speaker-pads>.speaker-pad{background:var(--pad-night)}
+.speaker-studio .speaker-pad .speaker-pad-transport button:first-child{background:var(--pad-color);color:white;border-color:var(--pad-color)}
+.speaker-studio .speaker-pads>.speaker-pad--playing{border-color:#16a34a;background:#edfdf3}
+.speaker-studio--dark .speaker-pads>.speaker-pad--playing{border-color:#22c55e;background:#133226}
+.speaker-studio .speaker-pad--playing .speaker-pad-transport button:first-child{background:#15803d;border-color:#15803d}
+.speaker-playlist-options{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:14px 0}
+.speaker-playlist-options small{flex-basis:100%;font-size:11px;color:#64748b}
+.speaker-studio--dark .speaker-playlist-options small{color:#a4b2c7}
+.speaker-playlist-options button[aria-pressed=true]{background:#15803d!important;color:white!important;border-color:#15803d!important}
+
 /* Compact matchday console and three-column music workspace. */
 .speaker-studio--music>header{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;padding:8px 0}
 .speaker-studio--music>header .speaker-eyebrow{font-size:10px}
