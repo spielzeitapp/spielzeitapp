@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { MANAGER_NAV_SECTIONS } from '../managerNav';
 import { navItemVisibleForWorkMode } from '../managerWorkMode';
+import {canShowSpeakerStudio} from '../speakerWorkspaceAccess';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { useManagerClubModules } from '../ManagerClubModulesContext';
 import { getTrainingPlayerIconSrc } from '../../config/trainingIconVariant';
@@ -127,7 +128,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
     onClose();
   }, [onClose]);
   const location = useLocation();
-  const { workMode, supportSession } = useManagerWorkMode();
+  const { workMode, supportSession, availableModes } = useManagerWorkMode();
   const { isModuleEnabled } = useManagerClubModules();
   const platformGlobal = workMode === 'platform_admin' && !supportSession;
 
@@ -188,7 +189,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
               (item) =>
                 (!supportSession || item.status === 'ready') &&
                 item.status === 'ready' &&
-                navItemVisibleForWorkMode(item, workMode) &&
+                (navItemVisibleForWorkMode(item, workMode) || item.id === 'speaker-studio' && canShowSpeakerStudio(workMode === 'trainer', availableModes)) &&
                 (!item.platformGlobalOnly || platformGlobal) &&
                 isModuleEnabled(item.moduleKey),
             );

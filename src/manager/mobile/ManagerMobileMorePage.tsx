@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
 import { useSession } from '../../auth/useSession';
+import {canShowSpeakerStudio} from '../speakerWorkspaceAccess';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { ManagerMobilePageTitle } from './ManagerMobileUi';
 import { isSeasonArchived } from '../../lib/seasonLifecycle';
@@ -57,7 +58,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
         <MoreLink to="/manager/vereinsmedien" icon={Newspaper} title="Vereinsmedien" detail="Grafiken erstellen und Beitragstexte vorbereiten" />
         <MoreLink to="/manager/social-media" icon={Share2} title="Social Media" detail="Gespeicherte Beiträge für Vereinskanäle vorbereiten" />
         <MoreLink to="/manager/musikstudio" icon={Music2} title="Teammusik" detail="Einlauf, Playlists, Musik nach dem Match und Jingles" />
-        {!isTrainerMode?<MoreLink to="/manager/sprecherstudio" icon={Mic} title="Spieltagsansagen" detail="Sprechertexte, Spieltagsablauf und Musik" />:null}
+        {canShowSpeakerStudio(isTrainerMode,availableModes)?<MoreLink to="/manager/sprecherstudio" icon={Mic} title="Spieltagsansagen" detail="Sprechertexte, Spieltagsablauf und Musik" />:null}
         <MoreLink to="/manager/tabelle" icon={Table2} title="Tabelle & Liga" detail="ÖFB-Tabelle und Ergebnisse der ausgewählten Mannschaft" />
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
           <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />
