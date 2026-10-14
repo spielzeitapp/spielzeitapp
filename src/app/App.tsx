@@ -399,6 +399,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="home" element={<ManagerAppWorkspace><AppHomePage /></ManagerAppWorkspace>} />
         <Route path="vereinsmedien" element={<ManagerMediaStudioPage />} />
         <Route path="sprecherstudio" element={<ManagerSpeakerStudioPage />} />
+        <Route path="musikstudio" element={<ManagerSpeakerStudioPage musicOnly />} />
         <Route path="social-media" element={<ManagerSocialMediaPage />} />
         <Route path="spielplan" element={<ManagerAppWorkspace><TeamSchedulePage /></ManagerAppWorkspace>} />
         <Route path="nachrichten" element={<ManagerAppWorkspace><NotificationsPage /></ManagerAppWorkspace>} />
