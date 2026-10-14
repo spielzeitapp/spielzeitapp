@@ -67,3 +67,18 @@
 .speaker-dj .speaker-playlist {border-top:1px solid #e2e8f0;padding-top:14px;margin-top:18px;}
 .speaker-dj .speaker-playlist label:has(input[type="checkbox"]) {flex-direction:row;align-items:center;margin:10px 0;}
 .speaker-dj input[type="checkbox"] {width:18px!important;height:18px;padding:0!important;accent-color:#bd142b;}
+
+.speaker-library-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}.speaker-library-heading>span{font-size:12px;color:#64748b}
+.speaker-playlist-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+.speaker-studio .speaker-playlist-card{flex-direction:column;align-items:stretch;text-align:left;padding:10px;border:1px solid #e2e8f0;background:#f8fafc;gap:7px;min-width:0}
+.speaker-studio .speaker-playlist-card.selected{background:#fff3f4;border-color:#bd142b;box-shadow:0 0 0 1px #bd142b}
+.speaker-playlist-card strong{font-size:13px;overflow-wrap:anywhere;line-height:1.35}.speaker-playlist-card small{font-size:10px;color:#64748b}
+.speaker-playlist-cover{display:flex;align-items:center;justify-content:center;aspect-ratio:1.6;border-radius:8px;color:white;font-size:30px;background:linear-gradient(135deg,#222b3c,#be1930)}
+.speaker-playlist-cover--1{background:linear-gradient(135deg,#3f246d,#ce4d80)}.speaker-playlist-cover--2{background:linear-gradient(135deg,#173b4d,#268e92)}.speaker-playlist-cover--3{background:linear-gradient(135deg,#823113,#e2a337)}.speaker-playlist-cover--4{background:linear-gradient(135deg,#20232c,#727b98)}
+.speaker-playlist-create{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.speaker-playlist-create>input{flex-basis:100%}
+.speaker-selected-playlist{font-size:17px!important;margin-top:20px!important}
+.speaker-library-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.speaker-library-filters>input{grid-column:1/-1}
+.speaker-library-track>span strong{font-size:13px}.speaker-library-track>span small{display:block;color:#64748b;font-weight:400;font-size:11px;margin-top:4px}
+.speaker-track-details{width:100%;font-size:12px}.speaker-track-details>summary{cursor:pointer;color:#64748b;padding:6px 0}.speaker-track-details>div{display:flex;flex-wrap:wrap;gap:8px;background:#f8fafc;padding:10px;border-radius:10px}.speaker-track-details label{flex:1;min-width:130px}
+.speaker-pads input{font-size:11px;margin-top:6px;padding:6px!important}
+@media(max-width:450px){.speaker-playlist-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
