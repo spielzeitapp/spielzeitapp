@@ -143,3 +143,28 @@
 .speaker-studio--dark .speaker-pad-transport .speaker-pad-stop:not(:disabled){background:#bd142b}
 .speaker-studio--dark .speaker-message{background:#31261a;color:#fed7aa;border-color:#785837}
 @media(max-width:650px){.speaker-dj>.speaker-audio-actions{grid-template-columns:1fr 1fr}.speaker-dj>.speaker-audio-actions>.speaker-stop{grid-column:1/-1}.speaker-theme-switch{margin-left:0}}
+
+/* The whole player follows the selected day/night theme. */
+.speaker-studio{color-scheme:light;--deck-bg:#f8fafc;--deck-text:#172033;--deck-muted:#475569;--deck-control:#fff;--deck-border:#cbd5e1;--deck-a:#c41935;--deck-b:#0876b1}
+.speaker-studio--dark{color-scheme:dark;--deck-bg:#172027;--deck-text:#f1f5f9;--deck-muted:#cbd5e1;--deck-control:#25303b;--deck-border:#46505b;--deck-a:#ff6072;--deck-b:#52b7ff}
+.speaker-studio .speaker-deck{background:var(--deck-bg);color:var(--deck-text);border:1px solid var(--deck-border);border-top:3px solid var(--deck-a);box-shadow:0 3px 12px #0f172a08}
+.speaker-studio .speaker-deck--1{border-top-color:var(--deck-b)}
+.speaker-studio .speaker-deck strong{color:var(--deck-a)}
+.speaker-studio .speaker-deck--1 strong{color:var(--deck-b)}
+.speaker-studio .speaker-deck select{background:var(--deck-control)!important;color:var(--deck-text)!important;border-color:var(--deck-border)!important}
+.speaker-studio .speaker-deck p,.speaker-studio .speaker-tempo{color:var(--deck-muted)}
+.speaker-studio .speaker-deck-buttons button,.speaker-studio .speaker-tempo button{background:var(--deck-control);color:var(--deck-text);border-color:var(--deck-border)}
+.speaker-studio .speaker-deck input{accent-color:var(--deck-a)}
+.speaker-studio .speaker-deck--1 input{accent-color:var(--deck-b)}
+.speaker-studio .speaker-pads button{background:#fff;color:#172033;border-color:#cbd5e1}
+.speaker-studio--dark .speaker-pads button{background:#223044;color:#f1f5f9;border-color:#475569}
+.speaker-studio .speaker-pad--playing .speaker-pad-transport button:first-child{background:#15803d;color:white;border-color:#15803d}
+.speaker-studio .speaker-pad-transport .speaker-pad-stop:not(:disabled){background:#bd142b;color:white;border-color:#bd142b}
+.speaker-studio .speaker-theme-switch{gap:4px;padding:4px;background:#e8edf3;border:1px solid #d5dce6;border-radius:999px}
+.speaker-studio .speaker-theme-switch button{border:0;border-radius:999px;background:transparent;color:#475569;padding:8px 14px;min-width:86px;transition:background .15s,color .15s,box-shadow .15s}
+.speaker-studio .speaker-theme-switch button[aria-pressed=true]{background:white;color:#172033;box-shadow:0 2px 5px #0f172a20}
+.speaker-studio .speaker-theme-switch button[aria-pressed=true] svg{color:#b45309}
+.speaker-studio--dark .speaker-theme-switch{background:#111c2b;border-color:#334155}
+.speaker-studio--dark .speaker-theme-switch button{color:#a4b2c7}
+.speaker-studio--dark .speaker-theme-switch button[aria-pressed=true]{background:#334155;color:#f8fafc}
+.speaker-studio--dark .speaker-theme-switch button[aria-pressed=true] svg{color:#a5b4fc}
