@@ -251,3 +251,18 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
+
+/** Explicit offline preparation: cache only the public standalone player, never API responses. */
+const SPEAKER_OFFLINE_CACHE='spz-speaker-offline-v1';
+self.addEventListener('message',event=>{
+ if(event.data?.type!=='SPZ_PREPARE_SPEAKER_OFFLINE')return;
+ event.waitUntil((async()=>{
+  try{const cache=await caches.open(SPEAKER_OFFLINE_CACHE);const response=await fetch('/sprecher-offline.html',{cache:'reload'});if(!response.ok||!response.headers.get('content-type')?.includes('text/html'))throw new Error('Offline player missing');await cache.put('/sprecher-offline.html',response);event.ports[0]?.postMessage({ok:true});}
+  catch{event.ports[0]?.postMessage({ok:false});}
+ })());
+});
+self.addEventListener('fetch',event=>{
+ const url=new URL(event.request.url);
+ if(event.request.method!=='GET'||url.origin!==self.location.origin||url.pathname!=='/sprecher-offline.html')return;
+ event.respondWith((async()=>{try{const response=await fetch(event.request);if(response.ok)return response;}catch{}const cache=await caches.open(SPEAKER_OFFLINE_CACHE);return (await cache.match('/sprecher-offline.html'))??new Response('Bitte das Sprecherstudio zuerst online öffnen und Offline vorbereiten wählen.',{status:503,headers:{'Content-Type':'text/plain;charset=utf-8'}});})());
+});
