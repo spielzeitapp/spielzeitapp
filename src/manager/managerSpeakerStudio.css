@@ -82,3 +82,34 @@
 .speaker-track-details{width:100%;font-size:12px}.speaker-track-details>summary{cursor:pointer;color:#64748b;padding:6px 0}.speaker-track-details>div{display:flex;flex-wrap:wrap;gap:8px;background:#f8fafc;padding:10px;border-radius:10px}.speaker-track-details label{flex:1;min-width:130px}
 .speaker-pads input{font-size:11px;margin-top:6px;padding:6px!important}
 @media(max-width:450px){.speaker-playlist-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Keep one mounted audio panel: switching mode only changes visibility/layout. */
+.speaker-studio--music > .communication-draft-toolbar,
+.speaker-studio--music .speaker-run,
+.speaker-studio--music .speaker-reading,
+.speaker-studio--music > .speaker-quick,
+.speaker-studio--music > header .speaker-top-actions > button:first-child,
+.speaker-studio--music > header .speaker-top-actions > a{display:none}
+.speaker-studio--music .speaker-workspace{display:block}
+.speaker-studio--music .speaker-tabs{position:sticky;top:0;z-index:30;background:#f4f5f7;padding:10px 0;border-bottom:1px solid #e2e8f0}
+.speaker-studio--music .speaker-dj{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:28px;padding:24px}
+.speaker-studio--music .speaker-dj > h2,
+.speaker-studio--music .speaker-dj > .speaker-hint,
+.speaker-studio--music .speaker-decks,
+.speaker-studio--music .speaker-crossfade,
+.speaker-studio--music .speaker-dj > .speaker-audio-actions,
+.speaker-studio--music .speaker-pads,
+.speaker-studio--music .speaker-dj > .speaker-playlist:last-of-type,
+.speaker-studio--music .speaker-dj > .speaker-message{grid-column:1/-1}
+.speaker-studio--music .speaker-deck{padding:24px}
+.speaker-studio--music .speaker-deck strong{font-size:17px}
+.speaker-studio--music .speaker-deck select{font-size:16px}
+.speaker-studio--music .speaker-deck p{font-size:18px;font-variant-numeric:tabular-nums}
+.speaker-studio--music .speaker-deck-buttons button{min-width:56px;min-height:52px}
+.speaker-studio--music .speaker-deck-buttons svg{width:24px;height:24px}
+.speaker-studio--music .speaker-dj > .speaker-audio-actions{position:sticky;top:72px;z-index:20;background:white;padding:10px 0;border-bottom:1px solid #e2e8f0}
+.speaker-studio--music .speaker-dj > .speaker-audio-actions button{min-height:52px;font-size:16px}
+.speaker-studio--music .speaker-pads{grid-template-columns:repeat(6,minmax(0,1fr))}
+.speaker-studio--music .speaker-pads button{min-height:76px;font-size:14px}
+@media(max-width:1000px){.speaker-studio--music .speaker-pads{grid-template-columns:repeat(3,minmax(0,1fr))}.speaker-studio--music .speaker-dj{padding:16px;column-gap:16px}}
+@media(max-width:700px){.speaker-studio--music .speaker-dj{display:block}.speaker-studio--music .speaker-deck{padding:12px}.speaker-studio--music .speaker-deck select{font-size:12px}.speaker-studio--music .speaker-pads{grid-template-columns:repeat(2,minmax(0,1fr))}}
