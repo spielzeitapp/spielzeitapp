@@ -14,6 +14,8 @@ import {
   Trophy,
   Users,
   Video,
+  Mic,
+  Music2,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -65,6 +67,8 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   parents: Users,
   seasons: CalendarDays,
   video: Video,
+  'speaker-studio': Mic,
+  'music-studio': Music2,
   clubs: Shield,
   'platform-dashboard': LayoutDashboard,
   equipment: Building2,

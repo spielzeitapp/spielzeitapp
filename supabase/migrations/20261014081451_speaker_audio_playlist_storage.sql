@@ -1,0 +1,2 @@
+update storage.buckets set allowed_mime_types=array_append(allowed_mime_types,'application/json') where id='speaker-audio';
+create policy speaker_audio_update on storage.objects for update to authenticated using(bucket_id='speaker-audio' and owner_id=(select auth.uid())::text and public.can_access_speaker_audio((storage.foldername(name))[1])) with check(bucket_id='speaker-audio' and owner_id=(select auth.uid())::text and public.can_access_speaker_audio((storage.foldername(name))[1]) and split_part(storage.filename(name),'_',1)=(select auth.uid())::text);

@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {clampTempo,createAudioFade} from '../src/lib/audioTransport.ts';
+function fixture(){let now=0,finished=0,id=0;const pending=new Map(),values=[];const clock={now:()=>now,schedule:fn=>{pending.set(++id,fn);return id;},cancel:key=>pending.delete(key)};const fade=createAudioFade(v=>values.push(v),()=>finished++,clock);return {fade,values,pending,done:()=>finished,tick(ms){now=ms;const callbacks=[...pending.values()];pending.clear();callbacks.forEach(fn=>fn());}};}
+test('tempo remains bounded and resets to normal speed',()=>{assert.equal(clampTempo(.1),.8);assert.equal(clampTempo(4),1.2);assert.equal(clampTempo(1.009),1.01);assert.equal(clampTempo(NaN),1);assert.equal(clampTempo(1),1);});
+test('fade reduces gain to zero and stops once',()=>{const f=fixture();f.fade.start(3);f.tick(1000);assert.ok(Math.abs(f.values.at(-1)-2/3)<1e-9);f.tick(2000);assert.ok(Math.abs(f.values.at(-1)-1/3)<1e-9);f.tick(3000);assert.equal(f.values.at(-1),0);assert.equal(f.done(),1);f.tick(6000);assert.equal(f.done(),1);});
+test('STOP or new playback cancels a pending fade',()=>{const f=fixture();f.fade.start();const stale=[...f.pending.values()][0];f.tick(1000);f.fade.cancel();assert.equal(f.values.at(-1),1);stale();f.tick(4000);assert.equal(f.done(),0);assert.equal(f.pending.size,0);});
+test('replacement fade ignores a stale callback',()=>{const f=fixture();f.fade.start(3);const stale=[...f.pending.values()][0];f.tick(2000);f.fade.start(3);stale();f.tick(3000);assert.equal(f.done(),0);f.tick(5000);assert.equal(f.done(),1);});
