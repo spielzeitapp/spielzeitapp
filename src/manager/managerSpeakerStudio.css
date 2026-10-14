@@ -168,6 +168,7 @@
 .speaker-studio--dark .speaker-theme-switch button{color:#a4b2c7}
 .speaker-studio--dark .speaker-theme-switch button[aria-pressed=true]{background:#334155;color:#f8fafc}
 .speaker-studio--dark .speaker-theme-switch button[aria-pressed=true] svg{color:#a5b4fc}
+.speaker-studio--no-music .speaker-workspace{grid-template-columns:minmax(170px,.6fr) minmax(0,2fr)}
 
 /* Matchday triggers: distinct colors plus readable labels, never color alone. */
 .speaker-pad--0{--pad-color:#be123c;--pad-tint:#fff1f2;--pad-night:#351b2b}

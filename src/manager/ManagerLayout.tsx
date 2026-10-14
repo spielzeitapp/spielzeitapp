@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ManagerHeader } from './components/ManagerHeader';
 import { ManagerSidebar } from './components/ManagerSidebar';
 import { ManagerAccessGate } from './ManagerAccessGate';
+import {CommunicationAccessProvider} from './CommunicationAccessContext';
 import { ManagerWorkModeProvider } from './ManagerWorkModeContext';
 import { ManagerClubModulesProvider } from './ManagerClubModulesContext';
 import { ManagerAccessDeniedBanner, ManagerRouteGuard } from './ManagerRouteGuard';
@@ -37,7 +38,7 @@ export function ManagerLayout(): React.ReactElement {
   return (
     <ManagerAccessGate>
       <ManagerWorkModeProvider>
-        <ManagerClubModulesProvider>
+        <CommunicationAccessProvider><ManagerClubModulesProvider>
         <div className="manager-shell flex min-h-[100dvh] w-full min-w-0 flex-1 bg-[#F4F5F7] text-slate-900 max-md:h-[100dvh] max-md:overflow-hidden">
           <ManagerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#F4F5F7]">
@@ -73,7 +74,7 @@ export function ManagerLayout(): React.ReactElement {
             <ManagerMobileNav />
           </div>
         </div>
-        </ManagerClubModulesProvider>
+        </ManagerClubModulesProvider></CommunicationAccessProvider>
       </ManagerWorkModeProvider>
     </ManagerAccessGate>
   );

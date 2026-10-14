@@ -2,6 +2,7 @@
  * ADMIN-ORG.1 – Vereinsdetail: Stammdaten, Abhängigkeiten, Archiv/Löschen.
  */
 
+import {CommunicationAccessSettings} from './components/CommunicationAccessSettings';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Headphones, LockKeyhole } from 'lucide-react';
@@ -586,6 +587,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 </ul>
               )}
             </section>
+            <CommunicationAccessSettings clubId={clubId!} staff={detail.staff}/>
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <h2 className="text-[16px] font-semibold text-slate-900">Staff / Trainer</h2>
               <p className="mt-1 text-[12px] text-slate-500">
