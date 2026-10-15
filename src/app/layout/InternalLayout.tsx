@@ -5,7 +5,6 @@ import { AppBackground } from './AppBackground';
 import { Header } from './Header';
 import { BottomNav } from '../components/BottomNav';
 import { AppFab } from '../components/AppFab';
-import { LiveMusicDock } from '../../components/live/LiveMusicDock';
 import { TopNav } from '../components/TopNav';
 import { useIsTouchLayout, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useAuth } from '../../auth/AuthProvider';
@@ -368,7 +367,6 @@ export const InternalLayout: React.FC = () => {
 
       {isTouchLayout && !useTabletRail ? <BottomNav /> : null}
       {isTouchLayout && !isDemo ? <AppFab /> : null}
-      {!isDemo && !blockContent ? <LiveMusicDock showButton={isLiveRoute} /> : null}
       {!isDemo ? <PushOnboardingPrompt /> : null}
       {!isDemo && !blockContent && !isOnboardingExemptPath(location.pathname) ? <HomeScreenGuide /> : null}
     </AppBackground>

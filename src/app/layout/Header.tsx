@@ -14,6 +14,7 @@ import { DemoBadge } from '../../demo/components/DemoBadge';
 import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
 import { canAccessManager } from '../../manager/canAccessManager';
 import { DemoManagerPreview } from '../../demo/components/DemoManagerPreview';
+import { LiveMusicDock } from '../../components/live/LiveMusicDock';
 
 function AppHeaderBrand({ compactDemo = false }: { compactDemo?: boolean }) {
   return (
@@ -319,6 +320,7 @@ export const Header: React.FC = () => {
           </div>
         )}
       </div>
+      {!isDemo && user ? <LiveMusicDock showButton={pathname === '/app/live' || pathname.startsWith('/app/live/')} /> : null}
       {isDemo ? <DemoManagerPreview open={managerPreviewOpen} onClose={() => setManagerPreviewOpen(false)} /> : null}
     </header>
   );

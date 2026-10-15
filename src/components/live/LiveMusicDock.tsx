@@ -21,12 +21,12 @@ export function LiveMusicWindow({ scope, showButton }: { scope: string; showButt
   useEffect(() => { if (dialog.current) dialog.current.scrollTop = 0; }, [open, fullPlayer]);
   function close() { setOpen(false); trigger.current?.focus(); }
   return <>
-    {showButton ? <button ref={trigger} type="button" className="live-music-trigger" aria-haspopup="dialog" aria-expanded={open}
-      onClick={() => { setActivated(true); setFullPlayer(false); setOpen(true); }}><Music2 aria-hidden />Musik</button> : null}
+    {showButton ? <div className="live-music-toolbar"><button ref={trigger} type="button" className="live-music-trigger" aria-haspopup="dialog" aria-expanded={open}
+      onClick={() => { setActivated(true); setFullPlayer(false); setOpen(true); }}><span className="live-music-trigger-icon"><Music2 aria-hidden /></span><span>Musikplayer</span><span className="live-music-trigger-arrow" aria-hidden>›</span></button></div> : null}
     <dialog ref={dialog} className="live-music-dialog" aria-labelledby="live-music-title"
       onCancel={event => { event.preventDefault(); close(); }} onClose={() => setOpen(false)}>
       <header className="live-music-heading">
-        <h2 id="live-music-title"><Music2 aria-hidden />{fullPlayer ? 'Musikplayer' : 'Musik am Spieltag'}</h2>
+        <h2 id="live-music-title"><Music2 aria-hidden />Musikplayer</h2>
         <button type="button" aria-label="Musikfenster schließen und zum Liveticker zurück" onClick={close}><X aria-hidden /></button>
       </header>
       <p className="live-music-note">Beim Schließen läuft die Musik weiter. Beenden mit „Alles stoppen“.</p>
