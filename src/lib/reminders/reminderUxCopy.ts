@@ -18,7 +18,7 @@ export function reminderAppDeepLink(
  */
 export function buildReminderUxCopy(
   kind: ReminderJobKindUi,
-  ev: Pick<RawEventRow, 'opponent' | 'starts_at' | 'meeting_at'>,
+  ev: Pick<RawEventRow, 'opponent' | 'starts_at' | 'meeting_at' | 'location'>,
   reminderKey?: string | null,
 ): { title: string; message: string } {
   const meetOrStart =
@@ -41,9 +41,10 @@ export function buildReminderUxCopy(
   }
 
   if (kind === 'training') {
+    const location = (ev.location ?? '').trim();
     return {
       title: 'Training',
-      message: `Heute um ${timeStr} Uhr. Du bist eingeplant – falls du nicht kommen kannst, bitte absagen.`,
+      message: `Heute um ${timeStr} Uhr.${location ? ` Ort: ${location}.` : ""} Du bist eingeplant – falls du nicht kommen kannst, bitte absagen.`,
     };
   }
 
