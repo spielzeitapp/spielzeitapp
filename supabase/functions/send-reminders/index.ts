@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * Einziger Scheduler: Supabase pg_cron ruft diese Edge Function auf.
  */
 import webpush from "npm:web-push@3.6.7";
+import { collectReminderChildNames, personalizeReminderCopy, type NamedReminderPlayer, type ReminderCopy } from "./recipientCopy.ts";
 import { filterLinkedReminderUsers, isEligibleForReminder } from "./recipientEligibility.ts";
 
 const JOB_BATCH_LIMIT = 50;
@@ -359,6 +360,7 @@ async function sendReminderWebPushes(
   urlRaw: string,
   jobId: string,
   eventId: string,
+  recipientCopies?: Map<string, ReminderCopy>,
 ): Promise<void> {
   const url = normalizePushAppUrl(urlRaw);
   console.log("Reminder send:", { jobId, title, userCount: userIds.length });
@@ -431,7 +433,8 @@ async function sendReminderWebPushes(
       /* ignore */
     }
 
-    const payload = buildTeamAlignedPushPayload(title, body, url, unreadForBadge);
+    const copy = recipientCopies?.get(uid);
+    const payload = buildTeamAlignedPushPayload(copy?.title ?? title, copy?.message ?? body, url, unreadForBadge);
 
     const epPrefix = endpointPrefix(row.endpoint);
     console.log("[send-reminders] webpush attempt", { jobId, userId: uid, endpointPrefix: epPrefix });
@@ -524,8 +527,9 @@ async function filterParticipationReminderRecipients(
   event: EventRow,
   userIds: string[],
   kind: string,
-): Promise<string[]> {
-  if (userIds.length === 0) return [];
+  members: Array<{ user_id: string; role?: string | null }>,
+): Promise<{ userIds: string[]; childNamesByUser: Map<string, string[]> }> {
+  if (userIds.length === 0) return { userIds: [], childNamesByUser: new Map() };
   const { data: attendanceRows, error: attendanceError } = await supabase
     .from("event_attendance")
     .select("player_id, status")
@@ -544,15 +548,17 @@ async function filterParticipationReminderRecipients(
   if (rosterError) throw rosterError;
   const rosterIds = new Set((rosterRows ?? []).map((row: { player_id: string }) => row.player_id));
   const eligiblePlayerIds = new Set<string>();
+  const eligiblePlayers: NamedReminderPlayer[] = [];
   if (rosterIds.size > 0) {
     const { data: players, error: playersError } = await supabase
       .from("players")
-      .select("id, is_injured, injured_since, injured_until")
+      .select("id, first_name, last_name, is_injured, injured_since, injured_until")
       .in("id", [...rosterIds]);
     if (playersError) throw playersError;
     for (const player of players ?? []) {
-      if (isEligibleForReminder(kind, statusByPlayer.get(player.id), player, event.starts_at)) {
+      if (kind === "event" || isEligibleForReminder(kind, statusByPlayer.get(player.id), player, event.starts_at)) {
         eligiblePlayerIds.add(player.id);
+        eligiblePlayers.push(player);
       }
     }
   }
@@ -575,7 +581,10 @@ async function filterParticipationReminderRecipients(
 
   // Preserve existing training notifications for staff/unlinked members;
   // match RSVP prompts remain restricted to linked players/parents.
-  return filterLinkedReminderUsers(userIds, playersByUser, eligiblePlayerIds, kind === "training");
+  return {
+    userIds: kind === "event" ? userIds : filterLinkedReminderUsers(userIds, playersByUser, eligiblePlayerIds, kind === "training"),
+    childNamesByUser: collectReminderChildNames(members, guardianRows ?? [], eligiblePlayers),
+  };
 }
 
 function buildReminderUxCopy(
@@ -748,7 +757,7 @@ serve(async () => {
 
         const { data: members } = await supabase
           .from("memberships")
-          .select("user_id")
+          .select("user_id, role")
           .eq("team_season_id", event.team_season_id);
 
         if (!members || members.length === 0) {
@@ -773,13 +782,17 @@ serve(async () => {
           uniqueUserIds = [...new Set(targetedRecipients)];
         }
 
-        if ((jobKind === "match" || jobKind === "training") && !isMatchday && !isCarpool && !isSquad) {
-          uniqueUserIds = await filterParticipationReminderRecipients(
+        let childNamesByUser = new Map<string, string[]>();
+        if (!isMatchday && !isCarpool && !isSquad) {
+          const audience = await filterParticipationReminderRecipients(
             supabase,
             event as EventRow,
             uniqueUserIds,
             jobKind,
+            members,
           );
+          uniqueUserIds = audience.userIds;
+          childNamesByUser = audience.childNamesByUser;
         }
 
         if (uniqueUserIds.length === 0) {
@@ -822,12 +835,15 @@ serve(async () => {
           linkPath = reminderAppDeepLink(jobKind, event as EventRow);
         }
 
+        const recipientCopies = new Map(uniqueUserIds.map(userId => [
+          userId, personalizeReminderCopy(jobKind, { title: uxTitle, message: uxMessage }, childNamesByUser.get(userId)),
+        ]));
         const notifRows = uniqueUserIds.map((userId) => ({
           user_id: userId,
           team_id: locked.team_id,
           event_id: event.id,
-          title: uxTitle,
-          message: uxMessage,
+          title: recipientCopies.get(userId)!.title,
+          message: recipientCopies.get(userId)!.message,
           type: "auto",
           read: false,
           link: linkPath,
@@ -864,6 +880,7 @@ serve(async () => {
           linkPath,
           locked.id,
           event.id,
+          recipientCopies,
         );
 
         console.log("[send-reminders] job complete", { jobId: locked.id });

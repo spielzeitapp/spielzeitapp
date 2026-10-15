@@ -11,6 +11,8 @@ import { buildReminderUxCopy, reminderAppDeepLink } from './reminderUxCopy';
 import { hasUserResponded } from '../notifications/hasUserResponded';
 import { getCanonicalEventType } from '../notifications/eventTypes';
 import { isSeasonArchived } from '../seasonLifecycle';
+import { fetchReminderChildNames } from './reminderRecipientNames';
+import { personalizeReminderCopy } from '../../../supabase/functions/send-reminders/recipientCopy';
 
 async function isEventTeamSeasonArchived(
   admin: SupabaseClient,
@@ -350,7 +352,9 @@ export async function processNotificationJob(
   }
 
   try {
+    const childNamesByUser = await fetchReminderChildNames(admin, ev, recipients, job.kind);
     for (const userId of recipients) {
+      const copy = personalizeReminderCopy(job.kind, { title, message }, childNamesByUser.get(userId));
       const { data: logRow, error: logInsErr } = await admin
         .from('notification_dispatch_log')
         .insert({
@@ -381,8 +385,8 @@ export async function processNotificationJob(
         user_id: userId,
         team_id: job.team_id,
         event_id: job.event_id,
-        title,
-        message,
+        title: copy.title,
+        message: copy.message,
         read: false,
         type: 'auto',
         link: linkPath,
@@ -411,8 +415,8 @@ export async function processNotificationJob(
       const pushTag = `spz-reminder-${job.event_id}-${rk}`;
       const pushRes = await sendWebPushForUser(admin, {
         userId,
-        title,
-        body: message,
+        title: copy.title,
+        body: copy.message,
         url: linkPath,
         tag: pushTag,
         appBadgeCount: unreadForBadge,
