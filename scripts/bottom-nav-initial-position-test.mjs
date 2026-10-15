@@ -98,13 +98,19 @@ if (process.argv.includes('--browser')) {
         viewport: innerHeight,
         position: getComputedStyle(document.querySelector('[data-app-bottom-nav]')).position,
       }));
-      assert.equal(state.documentScroll, 0, 'The outer document must not scroll');
+      const outerStyle = await page.evaluate(() => ({position:getComputedStyle(document.body).position,overflow:getComputedStyle(document.body).overflowY}));
+      assert.notEqual(outerStyle.position, 'fixed', 'Do not freeze the outer iOS document');
+      assert.notEqual(outerStyle.overflow, 'hidden', 'Preserve the existing viewport adjustment gesture');
       assert.ok(state.contentScroll > 0, 'Appointments must remain scrollable');
-      assert.equal(state.position, 'absolute', 'Tabs are anchored to the shell');
+      assert.equal(state.position, 'fixed', 'Tabs retain native viewport positioning');
       assert.ok(Math.abs(state.rootHeight - state.viewport) <= 1, JSON.stringify(state));
       const after = await page.locator('[data-app-bottom-nav]').boundingBox();
       assert.equal(before.y, after.y);
-      console.log(`WebKit app shell ${viewport.width}x${viewport.height}: initial bottom, locked document, scrollable content passed.`);
+      await page.evaluate(() => {const spacer=document.createElement('div');spacer.style.height='150px';document.body.appendChild(spacer);window.scrollTo(0,80);document.body.scrollTop=80;});
+      const outerScroll=await page.evaluate(()=>window.scrollY+document.body.scrollTop);
+      assert.ok(outerScroll>0, 'Outer page movement must remain available when iOS exposes extra space');
+      await checkBottom('viewport navigation after outer adjustment');
+      console.log(`WebKit app shell ${viewport.width}x${viewport.height}: fixed tabs, inner scrolling and outer movement passed.`);
     }
     console.log('WebKit: initial load, stale viewport, scroll and landscape checks passed.');
   } finally {

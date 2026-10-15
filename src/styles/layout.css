@@ -204,20 +204,3 @@ body {
 body[data-live-edit-dialog-open] [data-app-bottom-nav] {
   display: none;
 }
-
-/* The app scrolls inside main, never in a second outer iOS document viewport.
-   Keep all shell heights within the fixed root; 100vh/min-h-screen can otherwise
-   exceed the visible PWA viewport on launch and leave the bottom bar movable. */
-html:has(.app--internal), body:has(.app--internal) {
- overflow:hidden;overscroll-behavior:none;
-}
-body:has(.app--internal) {position:fixed;inset:0;width:100%;height:100%;}
-#root:has(.app--internal) {
- position:fixed;inset:0;bottom:auto;
- top:var(--app-visible-top,0px);
- height:var(--app-visible-height,100dvh);min-height:0;max-height:none;
-}
-.appShell:has(.app--internal) {height:100%;min-height:0;max-height:100%;}
-.app.app--internal {height:100%;min-height:0;max-height:100%;}
-/* Anchor tabs to the non-scrolling shell instead of iOS's cached fixed layer. */
-.appShell:has(.app--internal) > [data-app-bottom-nav] {position:absolute;bottom:0;}
