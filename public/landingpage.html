@@ -178,6 +178,26 @@
     .family-offer li{margin-bottom:10px}
     .family-offer .btn{white-space:normal;text-align:center;padding:12px 18px}
     @media(max-width:900px){.family-offer{grid-template-columns:1fr;padding:24px;gap:16px}}
+
+    /* Trainer workspace: explicit dark text on the light card inside the dark manager section. */
+    .manager-intro .trainer-workspace{display:block;padding:28px;margin-top:26px;background:#fff;color:#171719;border:1px solid #e4d9d9;border-left:4px solid var(--red);border-radius:22px}
+    .trainer-workspace-head{display:flex;align-items:center;gap:20px}
+    .trainer-workspace .desktop-teaser-icon{flex:none;width:64px;height:64px}
+    .trainer-workspace-head>div:last-child{min-width:0}
+    .manager-intro .trainer-workspace small{margin:0 0 10px;color:#b92730;font-size:11px;line-height:1.5;letter-spacing:.1em}
+    .manager-intro .trainer-workspace h3{margin:0;color:#171719;font-size:clamp(32px,3.5vw,46px);line-height:1.04;overflow-wrap:normal}
+    .trainer-workspace-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin:24px 0 0;padding:22px 0 0;border-top:1px solid #e9e3e3;list-style:none}
+    .trainer-workspace-benefits li{min-width:0}
+    .trainer-workspace-benefits strong{display:block;color:#171719;font-size:15px;line-height:1.4}
+    .manager-intro .trainer-workspace-benefits p{margin:7px 0 0;color:#5e5e63;font-size:14px;line-height:1.65}
+    @media(max-width:650px){
+      .manager-intro .trainer-workspace{padding:22px 20px;border-radius:20px}
+      .trainer-workspace-head{gap:14px;align-items:flex-start}
+      .trainer-workspace .desktop-teaser-icon{width:48px;height:48px}
+      .manager-intro .trainer-workspace small{font-size:10px;letter-spacing:.07em;margin-bottom:8px}
+      .manager-intro .trainer-workspace h3{font-size:32px}
+      .trainer-workspace-benefits{grid-template-columns:1fr;gap:16px;margin-top:20px;padding-top:18px}
+    }
 </style>
 </head>
 <body>
@@ -324,8 +344,15 @@
           <article class="audience-card"><span class="role-kicker">Platzwart</span><h3>Rechtzeitig bereit.</h3><p>Sehen, wann welcher Platz für Training oder Spiel gebraucht wird und vorbereitet sein muss – anhand der aktuellen Termine und Platzbelegung.</p></article>
           <article class="audience-card"><span class="role-kicker">Kantinenteam</span><h3>Betrieb vorbereiten.</h3><p>Öffnung und Besetzung anhand der aktuellen Trainings- und Spieltermine planen. So bleibt der Kantinenbetrieb mit dem Vereinsalltag abgestimmt.</p></article>
         </div>
-        <aside class="desktop-teaser" aria-label="Trainingsplanung und Trainerdokumentation im SpielzeitManager"><div class="desktop-teaser-icon" aria-hidden="true"><img src="spielzeitapp-icon.png" alt=""><span>M</span></div><div><small>Auch für Trainer am Desktop</small><h3>Training &amp; Trainerdoku vorbereiten</h3><p>Altersgerechte Trainingspläne erstellen, Übungen auswählen und Einheiten als PDF ausgeben. Der fertige Trainingsplan ist anschließend direkt in der Team-App am Platz abrufbar.</p><p>Deine Trainerdokumentation passend zur jeweiligen ÖFB-Trainerlizenz individuell zusammenstellen und als PDF herunterladen.</p></div></aside>
-        <div class="manager-handoff"><p><strong>Die öffentliche Demo zeigt die Team-App.</strong> Den SpielzeitManager stellen wir dir derzeit persönlich vor.</p><a class="btn btn-red" href="mailto:office@quetschnguru.at?subject=SpielzeitManager%20pers%C3%B6nlich%20kennenlernen">SpielzeitManager persönlich kennenlernen</a></div>
+        <aside class="desktop-teaser trainer-workspace" aria-labelledby="trainer-workspace-title">
+          <div class="trainer-workspace-head"><div class="desktop-teaser-icon" aria-hidden="true"><img src="spielzeitapp-icon.png" alt=""><span>M</span></div><div><small>Dein Trainerarbeitsplatz am Computer</small><h3 id="trainer-workspace-title">In Ruhe planen.<br>Am Platz bereit.</h3></div></div>
+          <ul class="trainer-workspace-benefits">
+            <li><strong>Training vorbereiten</strong><p>Altersgerechte Übungen auswählen und zu einer Trainingseinheit zusammenstellen.</p></li>
+            <li><strong>Am Handy dabei</strong><p>Den fertigen Trainingsplan in der Team-App am Platz abrufen oder als PDF mitnehmen.</p></li>
+            <li><strong>Trainerdoku als PDF</strong><p>Deine Dokumentation passend zur jeweiligen ÖFB-Trainerlizenz individuell zusammenstellen und herunterladen.</p></li>
+          </ul>
+        </aside>
+        <div class="manager-handoff"><p><strong>Die öffentliche Demo zeigt die Team-App.</strong> Den SpielzeitManager stellen wir dir derzeit persönlich vor.</p><a class="btn btn-red" href="mailto:office@quetschnguru.at?subject=SpielzeitManager%20Desktopversion%20kennenlernen">Desktopversion kennenlernen</a></div>
       </div>
     </section>
 
