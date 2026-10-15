@@ -186,7 +186,9 @@ export const BottomNav: React.FC = () => {
       className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pb-1 pt-2 sm:px-5"
       style={{
         // CSS bottom-0 anchors the bar from the first paint. Do not add stale iOS viewport deltas.
-        paddingBottom: 'max(0.125rem, calc(env(safe-area-inset-bottom, 0px) - 1.5rem))',
+        // iOS can retain a toolbar-sized inset after PWA launch. Bound the
+        // decorative gap so that stale safe-area values cannot lift the card.
+        paddingBottom: 'max(0.125rem, min(0.75rem, calc(var(--app-nav-safe-bottom, env(safe-area-inset-bottom, 0px)) - 1.5rem)))',
       }}
       aria-label="Hauptnavigation"
     >

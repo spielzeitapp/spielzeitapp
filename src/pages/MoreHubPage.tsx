@@ -19,6 +19,7 @@ import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
 import { useDemoMode } from '../demo/DemoContext';
 import { resetDemoTourState } from '../demo/demoTourState';
+import { LayoutDiagnostics } from '../components/LayoutDiagnostics';
 
 const RESET_CONFIRM =
   'Demo zurücksetzen? Alle lokalen Änderungen wie Zusagen, Aufstellungen, LIVE-Ereignisse und Ergebnisse werden auf den Ausgangszustand zurückgesetzt.';
@@ -310,6 +311,7 @@ export const MoreHubPage: React.FC = () => {
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl"
     >
       <SectionTitle subtitle="Einstellungen und weitere Bereiche">Mehr</SectionTitle>
+      <LayoutDiagnostics />
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
         <HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
