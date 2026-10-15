@@ -87,6 +87,7 @@ import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { PublicTeamTournamentPage } from '../pages/public/PublicTeamTournamentPage';
 import { DemoLayout } from '../demo/DemoLayout';
+import { DemoDesktopTrainerPage } from '../demo/pages/DemoDesktopTrainerPage';
 import { DemoTeamSchedulePage } from '../demo/pages/DemoTeamSchedulePage';
 import { DemoU13TablePage } from '../demo/pages/DemoU13TablePage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
@@ -233,6 +234,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="app.html" element={<Navigate to="/app" replace />} />
       {/* Öffentliche Trainer-Demo – gemeinsamer Einstieg + produktives Layout, kein Login */}
       <Route path="demo" element={<DemoLayout />}>
+        <Route path="desktop" element={<DemoDesktopTrainerPage />} />
         <Route index element={<Navigate to="intro/splash" replace />} />
         <Route path="intro/splash" element={<SplashScreen />} />
         <Route path="intro/welcome" element={<WelcomeScreen />} />
@@ -434,6 +436,7 @@ function PublicRoutes(): React.ReactElement {
     <Routes>
       <Route path="app.html" element={<Navigate to="/" replace />} />
       <Route path="demo" element={<DemoLayout />}>
+        <Route path="desktop" element={<DemoDesktopTrainerPage />} />
         <Route index element={<Navigate to="intro/splash" replace />} />
         <Route path="intro/splash" element={<SplashScreen />} />
         <Route path="intro/welcome" element={<WelcomeScreen />} />

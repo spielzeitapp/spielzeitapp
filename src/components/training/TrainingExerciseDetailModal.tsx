@@ -30,6 +30,8 @@ type Props = {
   /** Optional phase label override (e.g. session item phase). */
   phaseLabel?: string | null;
   footer?: React.ReactNode;
+  /** Pre-resolved local sketch, e.g. the public demo without a storage request. */
+  sketchUrl?: string | null;
 };
 
 export function TrainingExerciseDetailModal({
@@ -37,6 +39,7 @@ export function TrainingExerciseDetailModal({
   onClose,
   phaseLabel = null,
   footer,
+  sketchUrl,
 }: Props): React.ReactElement {
   const players = formatPlayerCountRange(row.player_count_min, row.player_count_max);
   const videoUrl = extractVideoUrl(row);
@@ -81,7 +84,7 @@ export function TrainingExerciseDetailModal({
         </div>
 
         <div className="mt-3">
-          <TrainingExerciseImage path={row.image_path} title={row.title} variant="detail" />
+          <TrainingExerciseImage path={row.image_path} title={row.title} variant="detail" url={sketchUrl} />
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
