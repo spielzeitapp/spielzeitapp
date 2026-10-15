@@ -2,8 +2,9 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { notifyNotificationsReadChanged, INBOX_SYNC_EVENT } from '../../lib/notificationsReadState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, SlidersHorizontal } from 'lucide-react';
+import { Check, Music2, SlidersHorizontal } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
+import { canAccessManager } from '../../manager/canAccessManager';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEvents } from '../../hooks/useEvents';
 import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
@@ -155,6 +156,7 @@ export const HomePage: React.FC = () => {
     selectedTeamSeason,
     teamSeasons,
     backendRole,
+    memberships,
     membershipRole,
     effectiveRole,
     teamViewFilter,
@@ -502,7 +504,17 @@ export const HomePage: React.FC = () => {
       {showContent && (
         <div className="min-w-0 space-y-2">
 <div className="relative flex min-h-[40px] items-center justify-between gap-3">
-                <h1 className={dsPageTitleClass()}>Home</h1>
+                <h1 className={cn(dsPageTitleClass(), 'min-w-0 flex-1')}>Home</h1>
+            {!isDemoMode && canAccessManager(backendRole, memberships ?? []) ? (
+              <Link
+                to="/manager/musikstudio"
+                aria-label="Musikplayer öffnen"
+                className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border border-red-400/30 bg-red-950/35 px-3 text-[12px] font-bold text-red-100 transition hover:bg-red-900/45"
+              >
+                <Music2 className="h-4 w-4" aria-hidden />
+                Musikplayer
+              </Link>
+            ) : null}
                 <button
                   type="button"
                   onClick={() => setFeedFilterOpen((open) => !open)}

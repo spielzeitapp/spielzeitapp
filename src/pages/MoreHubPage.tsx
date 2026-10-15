@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
+import { Bell, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Music2, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -314,6 +314,15 @@ export const MoreHubPage: React.FC = () => {
       <LayoutDiagnostics />
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
+        {showManagerLink ? (
+          <Link to="/manager/musikstudio" className={dsPanelRowClass()}>
+            <span className="flex items-center gap-3">
+              <Music2 className="h-5 w-5 text-red-400" aria-hidden />
+              <span>Musikplayer</span>
+            </span>
+            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+          </Link>
+        ) : null}
         <HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex items-center gap-3">
