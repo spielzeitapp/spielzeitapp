@@ -71,6 +71,33 @@ if (process.argv.includes('--browser')) {
     await checkBottom('after scrolling');
     await page.setViewportSize({ width: 852, height: 393 });
     await checkBottom('landscape resize');
+    // Reproduce the complete scroll hierarchy, including an over-height child
+    // and a stale root scroll position from the installed app's previous launch.
+    for (const viewport of [{ width: 393, height: 852 }, { width: 402, height: 874 }, { width: 744, height: 1133 }]) {
+      await page.setViewportSize(viewport);
+      await page.setContent(`<html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>${css}</style></head><body><div id="root"><div class="app-shell appShell"><div class="app app--internal min-h-screen"><header class="app-header fixed top-0">Header</header><main class="app__content appMain"><div style="height:3000px">Termine<input aria-label="Kommentar" /></div></main></div>${render('/app/termine')}</div></div></body></html>`);
+      await checkBottom('app shell initial paint');
+      const before = await page.locator('[data-app-bottom-nav]').boundingBox();
+      await page.evaluate(() => {
+        window.scrollTo(0, 150);
+        document.querySelector('main.appMain').scrollTop = 600;
+      });
+      await checkBottom('inner scroll must not move navigation');
+      const state = await page.evaluate(() => ({
+        documentScroll: scrollY,
+        contentScroll: document.querySelector('main.appMain').scrollTop,
+        rootHeight: document.getElementById('root').getBoundingClientRect().height,
+        viewport: innerHeight,
+        position: getComputedStyle(document.querySelector('[data-app-bottom-nav]')).position,
+      }));
+      assert.equal(state.documentScroll, 0, 'The outer document must not scroll');
+      assert.ok(state.contentScroll > 0, 'Appointments must remain scrollable');
+      assert.equal(state.position, 'absolute', 'Tabs are anchored to the shell');
+      assert.ok(Math.abs(state.rootHeight - state.viewport) <= 1, JSON.stringify(state));
+      const after = await page.locator('[data-app-bottom-nav]').boundingBox();
+      assert.equal(before.y, after.y);
+      console.log(`WebKit app shell ${viewport.width}x${viewport.height}: initial bottom, locked document, scrollable content passed.`);
+    }
     console.log('WebKit: initial load, stale viewport, scroll and landscape checks passed.');
   } finally {
     await browser.close();

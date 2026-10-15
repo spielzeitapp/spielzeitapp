@@ -329,7 +329,7 @@ export const InternalLayout: React.FC = () => {
     <AppBackground>
       {isTouchLayout || isDemo ? null : <TopNav />}
 
-      <div className={`app min-h-screen bg-black text-white ${isTouchLayout ? 'app--touch' : ''} ${useTabletRail ? 'app--tablet-rail' : ''}`}>
+      <div className={`app app--internal min-h-screen bg-black text-white ${isTouchLayout ? 'app--touch' : ''} ${useTabletRail ? 'app--tablet-rail' : ''}`}>
         <Header />
         <main
           className={`app__content appMain pt-[var(--app-header-offset)] ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
