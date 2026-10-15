@@ -235,3 +235,10 @@
 .speaker-studio--music .speaker-cloud-library{margin-top:18px}
 @media(max-width:1100px){.speaker-studio--music .speaker-music-library{grid-template-columns:180px minmax(0,1fr)}.speaker-studio--music .speaker-audio-library{grid-column:1/-1}.speaker-studio--music .speaker-music-library--expanded{grid-template-columns:180px minmax(0,1fr)}}
 @media(max-width:700px){.speaker-studio--music>header .speaker-eyebrow{display:none}.speaker-studio--music>header .speaker-top-actions{margin-left:0}.speaker-studio--music .speaker-music-library,.speaker-studio--music .speaker-music-library--expanded{grid-template-columns:minmax(0,1fr)}.speaker-music-library .speaker-playlist-cards{max-height:220px}.speaker-studio--music .speaker-deck{padding:10px}.speaker-studio--music .speaker-deck select{font-size:12px}.speaker-studio--music .speaker-music-entry{display:none}}
+
+/* Keep the mounted audio workspace intact while expanding, including on iPadOS. */
+.speaker-studio.speaker-studio--expanded {
+ position:fixed;inset:0;z-index:1000;width:100%;height:100dvh;max-width:none;
+ margin:0;overflow:auto;overscroll-behavior:contain;
+ padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));
+}

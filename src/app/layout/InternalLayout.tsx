@@ -347,7 +347,7 @@ export const InternalLayout: React.FC = () => {
             }`}
           >
             <div className="lg:flex lg:items-start lg:gap-6">
-              <TabletSidebar compact={isLiveRoute} />
+              {!isTouchLayout ? <TabletSidebar compact={isLiveRoute} /> : null}
               <div className="min-w-0 flex-1">
                 {blockContent ? (
                   <p className="px-4 py-8 text-sm text-white/55">Lade…</p>
@@ -360,8 +360,8 @@ export const InternalLayout: React.FC = () => {
         </main>
       </div>
 
-      <div className="lg:hidden">{isTouchLayout ? <BottomNav /> : null}</div>
-      <div className="lg:hidden">{isTouchLayout && !isDemo ? <AppFab /> : null}</div>
+      {isTouchLayout ? <BottomNav /> : null}
+      {isTouchLayout && !isDemo ? <AppFab /> : null}
       {!isDemo ? <PushOnboardingPrompt /> : null}
       {!isDemo && !blockContent && !isOnboardingExemptPath(location.pathname) ? <HomeScreenGuide /> : null}
     </AppBackground>

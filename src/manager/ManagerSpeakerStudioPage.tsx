@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {useCommunicationAccess} from './CommunicationAccessContext';
-import {Mic,Music2,Sun,Moon,Save,Printer,Maximize} from 'lucide-react';
+import {Mic,Music2,Sun,Moon,Save,Printer,Maximize,Minimize} from 'lucide-react';
 import {useSession} from '../auth/useSession';
 import {useEvents} from '../hooks/useEvents';
 import {supabase} from '../lib/supabaseClient';
@@ -24,6 +24,15 @@ function SpeakerWorkspace({teamSeasonId,teamName,userId,musicOnly=false}:{teamSe
  const [theme,setTheme]=useState<'light'|'dark'>(()=>{try{return window.localStorage.getItem('spz-studio-theme:'+userId)==='dark'?'dark':'light';}catch{return 'light';}});
  function chooseTheme(value:'light'|'dark'){setTheme(value);try{window.localStorage.setItem('spz-studio-theme:'+userId,value);}catch{/* Theme still applies for this session. */}}
  const displayMode=musicOnly?'music':mode==='music'&&!access.music?'speak':mode;
+ const [expanded,setExpanded]=useState(false);
+ useEffect(()=>{
+  if(!expanded)return;
+  const previous=document.body.style.overflow;document.body.style.overflow='hidden';
+  const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape'){setExpanded(false);if(document.fullscreenElement===full.current)void document.exitFullscreen().catch(()=>{});}};
+  document.addEventListener('keydown',onKey);
+  return ()=>{document.body.style.overflow=previous;document.removeEventListener('keydown',onKey);};
+ },[expanded]);
+ useEffect(()=>{const onChange=()=>{if(!document.fullscreenElement)setExpanded(false);};document.addEventListener('fullscreenchange',onChange);return ()=>document.removeEventListener('fullscreenchange',onChange);},[]);
  const [sourceTime,setSourceTime]=useState<string|null>(null);const full=useRef<HTMLDivElement>(null);const factsVersion=useRef(0);
  const [aiBusy,setAiBusy]=useState(false);const aiVersion=useRef(0);
  useEffect(()=>()=>{aiVersion.current++;},[]);
@@ -69,8 +78,13 @@ function SpeakerWorkspace({teamSeasonId,teamName,userId,musicOnly=false}:{teamSe
  const config=payload.settings;if(!config||typeof config!=='object'||Array.isArray(config)||Object.values(config).some(v=>typeof v!=='string')){setMessage('Ungültige Vorbereitung.');return false;}
  setSettings(config as Settings);setEventId(typeof payload.eventId==='string'?payload.eventId:'');setSections(raw.map(s=>({...DEFAULT_SPEAKER_SECTIONS.find(t=>t.id===s.id)!,text:s.text,editedByUser:Boolean(s.editedByUser),status:'needs_review',sourceFactIds:[]})));setSourceTime(typeof payload.sourceTime==='string'?payload.sourceTime:null);setMessage('Ablauf geladen. Spieldaten vor dem Einsatz prüfen.');return true;}
  const quickTemplates:Record<string,string>={home_goal:'Toooor für unseren '+values.club+'!\nSpielminute: [OFFEN: Minute]\nTorschütze: [OFFEN: Nummer und Name]\nNeuer Spielstand: [OFFEN: Spielstand]',away_goal:'Tor für '+(values.opponent||'[OFFEN: Gegner]')+'.\nTorschütze: [OFFEN: Name]\nNeuer Spielstand: [OFFEN: Spielstand]',change:'Spielerwechsel: [OFFEN: Mannschaft]\nAus dem Spiel: [OFFEN: Nummer und Name]\nNeu im Spiel: [OFFEN: Nummer und Name]',car:'Der Lenker des Fahrzeugs mit dem Kennzeichen '+(input||'[OFFEN: Kennzeichen]')+' wird gebeten, umgehend zu seinem Auto zu kommen. Vielen Dank!',notice:'Bitte bleibt auf den Tribünen und haltet die Zugänge frei. Befolgt bitte die Anweisungen der verantwortlichen Personen.'};
- async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await full.current?.requestFullscreen();}catch{setMessage('Vollbild wird hier nicht unterstützt. Nutze die Großansicht des Browsers.');}}
- return <div className={'speaker-studio '+(displayMode==='music'?'speaker-studio--music':'')+(theme==='dark'?' speaker-studio--dark':'')+(!access.music?' speaker-studio--no-music':'')} ref={full}><header><span className="speaker-eyebrow">Spielzeit Manager · Testversion</span><h1>{musicOnly||displayMode==='music'?<Music2/>:<Mic/>}{musicOnly||displayMode==='music'?'Teammusik':'Spieltagsansagen'}</h1><p>{teamName}{!musicOnly&&chosen?' – '+chosen.opponent:''}</p><div className="speaker-top-actions">{!musicOnly?<button type="button" className="speaker-print-action" onClick={()=>window.print()}><Printer/>Ablauf drucken / PDF</button>:null}<button type="button" onClick={fullscreen}><Maximize/>Großansicht</button>{!musicOnly?<Link to="/manager/vereinsmedien">Vereinsmedien</Link>:null}</div></header>
+ async function fullscreen(){
+  if(expanded){setExpanded(false);if(document.fullscreenElement===full.current)await document.exitFullscreen().catch(()=>{});return;}
+  // The CSS view works in installed iPad apps and browsers without Fullscreen API.
+  setExpanded(true);
+  if(document.fullscreenEnabled&&full.current?.requestFullscreen){try{await full.current.requestFullscreen();}catch{/* Keep the in-app expanded view. */}}
+ }
+ return <div className={'speaker-studio '+(expanded?'speaker-studio--expanded ':'')+(displayMode==='music'?'speaker-studio--music':'')+(theme==='dark'?' speaker-studio--dark':'')+(!access.music?' speaker-studio--no-music':'')} ref={full}><header><span className="speaker-eyebrow">Spielzeit Manager · Testversion</span><h1>{musicOnly||displayMode==='music'?<Music2/>:<Mic/>}{musicOnly||displayMode==='music'?'Teammusik':'Spieltagsansagen'}</h1><p>{teamName}{!musicOnly&&chosen?' – '+chosen.opponent:''}</p><div className="speaker-top-actions">{!musicOnly?<button type="button" className="speaker-print-action" onClick={()=>window.print()}><Printer/>Ablauf drucken / PDF</button>:null}<button type="button" onClick={fullscreen} aria-pressed={expanded}>{expanded?<Minimize/>:<Maximize/>}{expanded?'Großansicht schließen':'Großansicht'}</button>{!musicOnly?<Link to="/manager/vereinsmedien">Vereinsmedien</Link>:null}</div></header>
  {!musicOnly?<CommunicationDraftToolbar teamSeasonId={teamSeasonId} kind="speaker" title={(chosen?.opponent?'Sprecherablauf · '+chosen.opponent:'Sprecherablauf · '+teamName)} payload={{eventId,settings,sections,sourceTime}} onLoad={load}/>:null}
  <div className="speaker-tabs">{musicOnly?<><span className="speaker-music-entry">Musik für Einlauf, Pause und nach dem Match</span>{access.speaker?<Link to="/manager/sprecherstudio">Zu den Spieltagsansagen</Link>:null}</>:<><button type="button" aria-pressed={mode==='prepare'} onClick={()=>setMode('prepare')}>Vorbereitung</button><button type="button" aria-pressed={mode==='speak'} onClick={()=>setMode('speak')}>Sprechermodus</button>{access.music?<><button type="button" aria-pressed={mode==='music'} onClick={()=>setMode('music')}>♫ Musikmodus</button><Link to="/manager/musikstudio">Zur Teammusik</Link></>:null}</>}<div className="speaker-theme-switch" role="group" aria-label="Tag- oder Nachtmodus"><button type="button" aria-pressed={theme==='light'} onClick={()=>chooseTheme('light')}><Sun aria-hidden="true"/>Tag</button><button type="button" aria-pressed={theme==='dark'} onClick={()=>chooseTheme('dark')}><Moon aria-hidden="true"/>Nacht</button></div></div>
  {!musicOnly&&message?<p role="status" className="speaker-message">{message}</p>:null}
