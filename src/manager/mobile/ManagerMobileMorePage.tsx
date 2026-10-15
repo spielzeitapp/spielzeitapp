@@ -56,7 +56,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
         <MoreLink to="/manager/spiele" icon={Trophy} title="Spiele" detail="Vorbereitung, Aufstellung und Spielberichte" />
         <MoreLink to="/manager/turniere" icon={Trophy} title="Turniere" detail="Turniertermine und Turniercenter" />
         <MoreLink to="/manager/home" icon={Newspaper} title="Feed & Beiträge" detail="Mannschaftsbeiträge und Fotos" />
-        <MoreLink to="/manager/musikstudio" icon={Music2} title="Teammusik" detail="Einlauf, Playlists, Musik nach dem Match und Jingles" />
+        <MoreLink to="/manager/musikstudio" icon={Music2} title="Musikplayer" detail="Einlauf, Playlists, Musik nach dem Match und Jingles" />
         {canShowSpeakerStudio(isTrainerMode,availableModes)?<MoreLink to="/manager/sprecherstudio" icon={Mic} title="Spieltagsansagen" detail="Sprechertexte, Spieltagsablauf und Musik" />:null}
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
           <MoreLink to="/manager/saisons/verwaltung" icon={CalendarDays} title="Saison & Meisterschaft" detail="Spielplan, Saisonvorbereitung und Archiv" />

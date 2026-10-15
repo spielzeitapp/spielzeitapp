@@ -15,7 +15,7 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  const master=useRef<GainNode|null>(null),fade=useRef<ReturnType<typeof createAudioFade>|null>(null),padVersion=useRef(0),padStopped=useRef(true);
  const ar=useRef<HTMLAudioElement>(null),br=useRef<HTMLAudioElement>(null),jr=useRef<HTMLAudioElement>(null);
  const ctx=useRef<AudioContext|null>(null),gains=useRef<GainNode[]>([]),urls=useRef<string[]>([]),alive=useRef(true),generation=useRef(0);
- const [setup,setSetup]=useState<AudioSetup>(()=>defaultAudioSetup(scope)),[ready,setReady]=useState(false),[preset,setPreset]=useState('Pause'),[repeat,setRepeat]=useState(false),[queueName,setQueueName]=useState(''),[pendingPlayer,setPendingPlayer]=useState<{token:number}|null>(null),[busy,setBusy]=useState(false),[clubId,setClubId]=useState(''),[cloud,setCloud]=useState<{name:string;path:string}[]>([]),[online,setOnline]=useState(navigator.onLine);
+ const [setup,setSetup]=useState<AudioSetup>(()=>defaultAudioSetup(scope)),[ready,setReady]=useState(false),[preset,setPreset]=useState(offlineMusicOnly?'Teammusik':'Pause'),[repeat,setRepeat]=useState(false),[queueName,setQueueName]=useState(''),[pendingPlayer,setPendingPlayer]=useState<{token:number}|null>(null),[busy,setBusy]=useState(false),[clubId,setClubId]=useState(''),[cloud,setCloud]=useState<{name:string;path:string}[]>([]),[online,setOnline]=useState(navigator.onLine);
  const [playlistExpanded,setPlaylistExpanded]=useState(false);
  const [newPlaylist,setNewPlaylist]=useState(''),[search,setSearch]=useState(''),[categoryFilter,setCategoryFilter]=useState('Alle'),[companyFilter,setCompanyFilter]=useState('Alle');
  const names=Object.keys(setup.playlists),labels=PAD_NAMES.map((name,i)=>setup.padLabels?.[i]||name);

@@ -1,6 +1,6 @@
 export type AudioFile = {id:string;scope:string;name:string;file:Blob;cloudPath?:string;category?:string;company?:string};
 export type AudioSetup = {id:string;playlists:Record<string,string[]>;pads:string[];padLabels?:string[];a:string;b:string;shuffle?:boolean;offlineMusicOnly?:boolean;offlineTitle?:string;offlineSections?:{title:string;text:string}[]};
-export const AUDIO_PRESETS=['Vor dem Spiel','Pause','Nach dem Spiel','Cornerwerbung','Sponsoren & Firmen'];
+export const AUDIO_PRESETS=['Teammusik','Aufwärmen','Einlauf','Vor dem Spiel','Pause','Nach dem Spiel','Cornerwerbung','Sponsoren & Firmen'];
 export const AUDIO_CATEGORIES=['Musik','Pausenmusik','Einlauf','Torhymne','Cornerwerbung','Firmenwerbung','Jingle','Outro'];
 export function validPlaylistName(name:unknown):name is string{return typeof name==='string'&&name.trim()===name&&name.length>0&&name.length<=80&&!['__proto__','prototype','constructor'].includes(name);}
 export function defaultAudioSetup(scope:string):AudioSetup{return {id:scope,playlists:Object.fromEntries(AUDIO_PRESETS.map(name=>[name,[]])),pads:Array(6).fill(''),a:'',b:''};}

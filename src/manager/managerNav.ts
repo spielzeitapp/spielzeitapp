@@ -85,7 +85,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     label: 'Content',
     items: [
       { id: 'social', label: 'Feed & Beiträge', to: '/manager/home', status: 'ready' },
-      { id: 'music-studio', label: 'Teammusik', to: '/manager/musikstudio', status: 'ready' },
+      { id: 'music-studio', label: 'Musikplayer', to: '/manager/musikstudio', status: 'ready' },
       { id: 'speaker-studio', label: 'Spieltagsansagen', to: '/manager/sprecherstudio', status: 'ready', hideInTrainerMode: true },
       { id: 'team-push', label: 'Team-Nachricht', to: '/manager/mehr/trainer/team-push', status: 'ready' },
       { id: 'reminders', label: 'Erinnerungen', to: '/manager/mehr/trainer/erinnerungen', status: 'ready' },

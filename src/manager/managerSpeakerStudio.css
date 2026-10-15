@@ -241,3 +241,15 @@
  margin:0;overflow:auto;overscroll-behavior:contain;
  padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));
 }
+
+/* Night mode includes the surrounding manager workspace and its gutters. */
+@media screen {
+ html:has(.speaker-studio--dark),
+ body:has(.speaker-studio--dark),
+ #root:has(.speaker-studio--dark),
+ .manager-shell:has(.speaker-studio--dark),
+ .manager-shell:has(.speaker-studio--dark) > div,
+ .manager-shell:has(.speaker-studio--dark) main {
+  background-color:#0b1018!important;
+ }
+}
