@@ -147,8 +147,13 @@ function toIcsUtc(date) {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 }
 
-function pickStableStamp(ev) {
-  const raw = ev.updated_at ?? ev.created_at ?? ev.starts_at ?? null;
+function pickStableStamp(ev, venue) {
+  const eventStamp = ev.updated_at ?? ev.created_at ?? ev.starts_at ?? null;
+  // Venue edits also change LOCATION and the directions link in subscribed calendars.
+  const venueStamp = venue?.updated_at;
+  const raw = venueStamp && (!eventStamp || new Date(venueStamp) > new Date(eventStamp))
+    ? venueStamp
+    : eventStamp;
   if (!raw) return toIcsUtc(new Date());
   const d = new Date(raw);
   if (isNaN(d.getTime())) return toIcsUtc(new Date());
@@ -323,7 +328,19 @@ function buildSummary(ev, teamLabel) {
   return notes.title ? `${teamLabel} – ${notes.title}` : teamLabel;
 }
 
+/** A saved event location must not be replaced by an unrelated, renamed venue. */
+function venueForEvent(ev, venue) {
+  const normalize = (value) => String(value ?? '').trim().toLocaleLowerCase('de-AT')
+    .replace(/[\r\n,]+/g, ' ').replace(/\s+/g, ' ');
+  const location = normalize(ev.location);
+  if (!venue || !location) return venue;
+  const cityLine = [venue.postal_code, venue.city].filter(Boolean).join(' ');
+  const fullLocation = [venue.name, venue.address, cityLine].filter(Boolean).join(', ');
+  return location === normalize(venue.name) || location === normalize(fullLocation) ? venue : null;
+}
+
 function buildMapsNavigationUrl(ev, venue) {
+  venue = venueForEvent(ev, venue);
   const lat = venue?.latitude != null ? Number(venue.latitude) : null;
   const lng = venue?.longitude != null ? Number(venue.longitude) : null;
   if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
@@ -355,6 +372,7 @@ function buildMapsNavigationUrl(ev, venue) {
 }
 
 function buildLocation(ev, venue) {
+  venue = venueForEvent(ev, venue);
   if (venue) {
     const name = String(venue.name ?? '').trim();
     const street = String(venue.address ?? '').trim();
@@ -580,7 +598,7 @@ async function teamIcsHandler(req, res) {
     if (venueIds.length > 0) {
       const { data: venueRows, error: venueErr } = await admin
         .from('venues')
-        .select('id, name, address, postal_code, city, latitude, longitude')
+        .select('id, name, address, postal_code, city, latitude, longitude, updated_at')
         .in('id', venueIds);
       if (venueErr) {
         console.warn('[ics-feed] venues lookup', venueErr.message);
@@ -608,7 +626,7 @@ async function teamIcsHandler(req, res) {
       const summary = buildSummary(ev, teamLabel);
       const description = buildDescription(ev, appBaseUrl, venue);
       const location = buildLocation(ev, venue);
-      const stableStamp = pickStableStamp(ev);
+      const stableStamp = pickStableStamp(ev, venue);
       const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
 
       return [
