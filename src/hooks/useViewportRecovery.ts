@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { forceReleaseBodyScrollLocks, hasActiveBodyScrollLocks } from '../lib/bodyScrollLock';
 
 /**
@@ -14,7 +14,7 @@ import { forceReleaseBodyScrollLocks, hasActiveBodyScrollLocks } from '../lib/bo
  * Lösung: Die tatsächliche Viewport-Höhe wird als CSS-Variablen gepflegt
  * (`--app-vh` aus `innerHeight`, `--app-visual-vh` aus `visualViewport`) und
  * bei allen Resume-/Resize-Signalen neu gesetzt — inkl. verzögertem Recalc
- * (rAF + 150 ms), weil iOS direkt nach `pageshow`/`visibilitychange` häufig
+ * (rAF + verzögerten Messungen), weil iOS direkt nach `pageshow`/`visibilitychange` häufig
  * noch stale Höhen meldet.
  */
 
@@ -24,12 +24,18 @@ function applyViewportVars(): void {
   const innerH = window.innerHeight;
   if (Number.isFinite(innerH) && innerH > 0) {
     root.style.setProperty('--app-vh', `${innerH * 0.01}px`);
+    if (!window.visualViewport) {
+      root.style.setProperty('--app-visible-height', `${innerH}px`);
+      root.style.setProperty('--app-visible-top', '0px');
+    }
   }
 
   const vv = window.visualViewport;
   // Bei Pinch-Zoom (scale > 1) keine Layout-Höhe aus dem Visual Viewport ableiten.
   if (vv && Number.isFinite(vv.height) && vv.height > 0 && (vv.scale ?? 1) <= 1.01) {
     root.style.setProperty('--app-visual-vh', `${vv.height * 0.01}px`);
+    root.style.setProperty('--app-visible-height', `${vv.height}px`);
+    root.style.setProperty('--app-visible-top', `${Math.max(0, vv.offsetTop || 0)}px`);
   }
 
   root.dataset.viewportTick = String((Number(root.dataset.viewportTick ?? '0') || 0) + 1);
@@ -37,23 +43,23 @@ function applyViewportVars(): void {
 
 /** Zentral in App einhängen — pflegt --app-vh/--app-visual-vh über den App-Lebenszyklus. */
 export function useViewportRecovery(): void {
-  useEffect(() => {
+  useLayoutEffect(() => {
     let rafId = 0;
-    let timeoutId = 0;
+    let timeoutIds: number[] = [];
 
     const recalc = () => {
       applyViewportVars();
     };
 
-    /** Resume: sofort + rAF + 150 ms nachrechnen (iOS meldet erst verzögert korrekte Höhen). */
+    /** Measure before paint, then after iOS startup/rotation has settled. */
     const recover = () => {
       // bfcache/Races: hängengebliebene overflow:hidden-Styles ohne aktiven Lock lösen.
       if (!hasActiveBodyScrollLocks()) forceReleaseBodyScrollLocks();
       recalc();
       cancelAnimationFrame(rafId);
-      window.clearTimeout(timeoutId);
+      timeoutIds.forEach(window.clearTimeout);
       rafId = requestAnimationFrame(recalc);
-      timeoutId = window.setTimeout(recalc, 150);
+      timeoutIds = [150, 500, 1200].map(delay => window.setTimeout(recalc, delay));
     };
 
     const onVisibilityChange = () => {
@@ -68,16 +74,18 @@ export function useViewportRecovery(): void {
     window.addEventListener('resize', recalc);
     document.addEventListener('visibilitychange', onVisibilityChange);
     window.visualViewport?.addEventListener('resize', recalc);
+    window.visualViewport?.addEventListener('scroll', recalc);
 
     return () => {
       cancelAnimationFrame(rafId);
-      window.clearTimeout(timeoutId);
+      timeoutIds.forEach(window.clearTimeout);
       window.removeEventListener('pageshow', recover);
       window.removeEventListener('focus', recover);
       window.removeEventListener('orientationchange', recover);
       window.removeEventListener('resize', recalc);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.visualViewport?.removeEventListener('resize', recalc);
+      window.visualViewport?.removeEventListener('scroll', recalc);
     };
   }, []);
 }
