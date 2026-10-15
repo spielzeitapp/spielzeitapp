@@ -31,6 +31,15 @@ assert.equal(JSON.stringify(names.get('sibling-parent')), '["Anna","Daniel"]');
 assert.equal(names.has('player'), false);
 assert.equal(names.has('coach'), false);
 const training = { title: 'Training', message: 'Heute um 17:15 Uhr. Ort: Sportplatz St. Veit. Du bist eingeplant – falls du nicht kommen kannst, bitte absagen.' };
+const trainerContext = { ageGroup: ' U12 ', time: '17:15', hasMeetingTime: true, location: 'Sportplatz St. Veit' };
+assert.equal(personalizeReminderCopy('training', training, [], trainerContext).message,
+  'Heute U12-Training – Treffpunkt 17:15 Uhr. Ort: Sportplatz St. Veit.');
+assert.equal(personalizeReminderCopy('training', training, ['Daniel'], trainerContext).message,
+  'Heute U12-Training – Treffpunkt 17:15 Uhr. Ort: Sportplatz St. Veit.');
+assert.equal(personalizeReminderCopy('training', training, [], { time: '17:30', hasMeetingTime: false }).message,
+  'Heute Training – Beginn 17:30 Uhr.');
+assert.equal(personalizeReminderCopy('match', { title: 'Spiel', message: 'Deine Rückmeldung fehlt noch.' }, [], trainerContext).message,
+  'Deine Rückmeldung fehlt noch.');
 assert.equal(personalizeReminderCopy('training', training, names.get('parent')).message,
   'Heute um 17:15 Uhr. Ort: Sportplatz St. Veit. Daniel ist eingeplant – falls Daniel nicht kommen kann, bitte absagen.');
 assert.equal(personalizeReminderCopy('training', training, names.get('player')), training);
@@ -91,15 +100,18 @@ vm.createContext(pushContext);
 vm.runInContext(ts.transpileModule(edge.slice(edge.indexOf('async function sendReminderWebPushes('), edge.indexOf('\nfunction formatTimeDe(')),
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, pushContext);
 const subscriptions = ['parent', 'player'].map(user_id => ({ user_id, endpoint: user_id, p256dh: 'mock', auth: 'mock' }));
+subscriptions.push({ user_id: 'coach', endpoint: 'coach', p256dh: 'mock', auth: 'mock' });
 const pushClient = { from(table) {
   const query = { select() { return query; }, in() { return query; }, not() { return query; }, eq() { return query; }, upsert() { return query; },
     then(resolve, reject) { return Promise.resolve({ data: table === 'push_subscriptions' ? subscriptions : [], count: 1, error: null }).then(resolve, reject); } };
   return query;
 } };
 const parentCopy = personalizeReminderCopy('training', training, ['Daniel']);
-await pushContext.sendReminderWebPushes(pushClient, ['parent', 'player'], training.title, training.message, '/app/events/mock', 'mock-job', 'mock-event',
-  new Map([['parent', parentCopy], ['player', training]]));
-assert.equal(pushes.length, 2);
+const coachCopy = personalizeReminderCopy('training', training, [], trainerContext);
+await pushContext.sendReminderWebPushes(pushClient, ['parent', 'player', 'coach'], training.title, training.message, '/app/events/mock', 'mock-job', 'mock-event',
+  new Map([['parent', parentCopy], ['player', training], ['coach', coachCopy]]));
+assert.equal(pushes.length, 3);
 assert.equal(pushes.find(p => p.endpoint === 'parent').body, parentCopy.message);
 assert.equal(pushes.find(p => p.endpoint === 'player').body, training.message);
+assert.equal(pushes.find(p => p.endpoint === 'coach').body, coachCopy.message);
 console.log('Per-user push/inbox consistency checks passed (mock only; no real notifications sent).');

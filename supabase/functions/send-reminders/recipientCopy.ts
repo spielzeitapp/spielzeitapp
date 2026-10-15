@@ -1,4 +1,10 @@
 export type ReminderCopy = { title: string; message: string };
+export type TrainerTrainingContext = {
+  ageGroup?: string | null;
+  time: string;
+  hasMeetingTime: boolean;
+  location?: string | null;
+};
 export type NamedReminderPlayer = { id: string; first_name: string | null; last_name?: string | null };
 
 /** Only guardians in this team receive child names; staff and player accounts keep direct copy. */
@@ -30,7 +36,12 @@ export function collectReminderChildNames(
 }
 
 /** Personalize both inbox and push from the same copy, without changing recipient eligibility. */
-export function personalizeReminderCopy(kind: string, copy: ReminderCopy, childNames: string[] = []): ReminderCopy {
+export function personalizeReminderCopy(kind: string, copy: ReminderCopy, childNames: string[] = [], trainerContext?: TrainerTrainingContext): ReminderCopy {
+  if (kind === 'training' && trainerContext) {
+    const group = trainerContext.ageGroup?.trim();
+    const location = trainerContext.location?.trim();
+    return { ...copy, message: `Heute ${group ? `${group}-Training` : 'Training'} – ${trainerContext.hasMeetingTime ? 'Treffpunkt' : 'Beginn'} ${trainerContext.time} Uhr.${location ? ` Ort: ${location}.` : ''}` };
+  }
   if (childNames.length === 0) return copy;
   const label = childNames.length === 1 ? childNames[0] : `${childNames.slice(0, -1).join(', ')} und ${childNames[childNames.length - 1]}`;
   let message = copy.message;
