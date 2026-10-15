@@ -16,12 +16,6 @@ function navAssetBase(): string {
   return b.endsWith('/') ? b : `${b}/`;
 }
 
-function readVisualViewportBottomOffset(): number {
-  if (typeof window === 'undefined' || !window.visualViewport) return 0;
-  const viewport = window.visualViewport;
-  return Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-}
-
 /**
  * Bottom Navigation — nur UI.
  * Reihenfolge: Home | Termine | Team | Live | Mehr
@@ -171,37 +165,6 @@ export const BottomNav: React.FC = () => {
   /** Demo: Puls nur wenn die lokale Live-Runtime tatsächlich läuft (DEMO.2F). */
   const demoLiveActive = demo?.liveRuntimeStatus === 'live';
   const liveActiveForNav = isDemo ? Boolean(demoLiveActive) : hasLiveMatch;
-  const [visualViewportBottomOffset, setVisualViewportBottomOffset] = React.useState(() =>
-    readVisualViewportBottomOffset(),
-  );
-
-  React.useEffect(() => {
-    const updateVisualViewportOffset = () => setVisualViewportBottomOffset(readVisualViewportBottomOffset());
-    const updateWhenVisible = () => {
-      if (document.visibilityState === 'visible') updateVisualViewportOffset();
-    };
-    const delayedUpdates = [0, 100, 300, 750].map((delay) =>
-      window.setTimeout(updateVisualViewportOffset, delay),
-    );
-    window.addEventListener('orientationchange', updateVisualViewportOffset);
-    window.addEventListener('resize', updateVisualViewportOffset);
-    window.addEventListener('pageshow', updateVisualViewportOffset);
-    window.addEventListener('focus', updateVisualViewportOffset);
-    document.addEventListener('visibilitychange', updateWhenVisible);
-    window.visualViewport?.addEventListener('resize', updateVisualViewportOffset);
-    window.visualViewport?.addEventListener('scroll', updateVisualViewportOffset);
-    return () => {
-      delayedUpdates.forEach((timer) => window.clearTimeout(timer));
-      window.removeEventListener('orientationchange', updateVisualViewportOffset);
-      window.removeEventListener('resize', updateVisualViewportOffset);
-      window.removeEventListener('pageshow', updateVisualViewportOffset);
-      window.removeEventListener('focus', updateVisualViewportOffset);
-      document.removeEventListener('visibilitychange', updateWhenVisible);
-      window.visualViewport?.removeEventListener('resize', updateVisualViewportOffset);
-      window.visualViewport?.removeEventListener('scroll', updateVisualViewportOffset);
-    };
-  }, [pathname]);
-
   const handleLiveTabReclick = () => {
     // Während eines Trainer-Workflows darf ein versehentlicher Tap durch das
     // darüberliegende Sheet die komplette Live-Route nicht neu öffnen/resetten.
@@ -222,7 +185,7 @@ export const BottomNav: React.FC = () => {
       data-app-bottom-nav
       className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pb-1 pt-2 sm:px-5"
       style={{
-        bottom: `${visualViewportBottomOffset}px`,
+        // CSS bottom-0 anchors the bar from the first paint. Do not add stale iOS viewport deltas.
         paddingBottom: 'max(0.125rem, calc(env(safe-area-inset-bottom, 0px) - 1.5rem))',
       }}
       aria-label="Hauptnavigation"
