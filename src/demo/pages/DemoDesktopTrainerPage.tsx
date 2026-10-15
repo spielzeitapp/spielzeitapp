@@ -103,7 +103,7 @@ export function DemoDesktopTrainerPage(): React.ReactElement {
       const blob = await createTrainingExamPdf({
         trainerName: 'Markus Beispiel · DEMO', sessions: [{
           session, items: ordered, exerciseMap, sketchUrls: DEMO_DESKTOP_SKETCHES,
-          examFocus: `DEMO – ${session.objective || session.title}`, examTeamName: 'FC Demoheim U12 (fiktiv)',
+          examFocus: `DEMO – ${session.title.slice(0, 40)} · ${total} Min.`, examTeamName: 'FC Demoheim U12 (fiktiv)',
           examDateIso: dateIso, examNumber: 1,
         }],
       });
