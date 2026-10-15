@@ -265,7 +265,7 @@ export const Header: React.FC = () => {
                       {canAccessManager(backendRole, memberships ?? []) ? (
                         <Link
                           to="/manager"
-                          className={`${dsGlassIconButtonClass()} sm:hidden`}
+                          className={dsGlassIconButtonClass()}
                           aria-label="Spielzeit Manager öffnen"
                           title="Spielzeit Manager"
                         >

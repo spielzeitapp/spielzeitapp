@@ -10,7 +10,9 @@ function getIsTouchLayout(): boolean {
   const coarse = window.matchMedia('(pointer: coarse)').matches;
   const noHover = window.matchMedia('(hover: none)').matches;
   const narrow = window.innerWidth <= 1024;
-  return coarse || noHover || narrow;
+  // iPadOS may report a desktop pointer when a trackpad is connected.
+  const iPad = /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return iPad || coarse || noHover || narrow;
 }
 
 /**
