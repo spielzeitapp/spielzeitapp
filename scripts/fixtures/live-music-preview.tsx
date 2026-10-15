@@ -1,0 +1,18 @@
+import React from 'react';import {createRoot} from 'react-dom/client';
+import {LiveMusicWindow} from '../../src/components/live/LiveMusicDock';
+const buckets:any={files:new Map(),setups:new Map()};
+const scope='account:00000000-0000-0000-0000-000000000000';
+buckets.files.set('goal',{id:'goal',scope,name:'Torhymne.mp3',file:new Blob(['audio'])});
+buckets.setups.set(scope,{id:scope,a:'',b:'',pads:['goal','goal','','','','goal'],playlists:{Teammusik:[]}});
+const db={close(){},transaction(name:string){const tx:any={objectStore(){return {getAll(){return req([...buckets[name].values()]);},get(key:string){return req(buckets[name].get(key));},put(value:any){buckets[name].set(value.id,value);return req(value.id);}};}};function req(value:any){const request:any={result:value};setTimeout(()=>{request.onsuccess?.();tx.oncomplete?.();},0);return request;}return tx;}};
+Object.defineProperty(window,'indexedDB',{value:{open(){const request:any={};setTimeout(()=>{request.result=db;request.onsuccess?.();},0);return request;}}});
+URL.createObjectURL=()=> 'https://audio.test/clip.mp3';
+const sources=new WeakMap(),positions=new WeakMap();
+Object.defineProperty(HTMLMediaElement.prototype,'src',{configurable:true,get(){return sources.get(this)||'';},set(v){sources.set(this,v);}});
+Object.defineProperty(HTMLMediaElement.prototype,'currentTime',{configurable:true,get(){return positions.get(this)||0;},set(v){positions.set(this,v);}});
+const pauses:any[]=[];(window as any).pauses=pauses;
+HTMLMediaElement.prototype.play=async function(){Object.defineProperty(this,'paused',{configurable:true,value:false});this.dispatchEvent(new Event('play'));};
+HTMLMediaElement.prototype.pause=function(){pauses.push(this);Object.defineProperty(this,'paused',{configurable:true,value:true});this.dispatchEvent(new Event('pause'));};
+const gain=()=>({gain:{value:1,cancelScheduledValues(){},setTargetAtTime(){}},connect(){}});
+(window as any).AudioContext=class{currentTime=0;destination={};createGain=gain;createMediaElementSource(){return {connect(){}};}createDynamicsCompressor(){return {threshold:{},knee:{},ratio:{},connect(){}};}async resume(){}async close(){}};
+createRoot(document.getElementById('root')!).render(<><h1>Liveticker</h1><LiveMusicWindow scope={scope} showButton/></>);

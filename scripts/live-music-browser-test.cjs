@@ -1,0 +1,23 @@
+const {webkit}=require('playwright');
+const assert=require('node:assert/strict');
+const {spawn}=require('node:child_process');const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1'],{stdio:'ignore',env:{...process.env,VITE_SUPABASE_URL:'https://example.supabase.co',VITE_SUPABASE_ANON_KEY:'test-public-key'}});
+(async()=>{for(let i=0;i<30;i++){try{await fetch('http://127.0.0.1:5173/dj-preview.html');break;}catch{await new Promise(r=>setTimeout(r,200));}}const browser=await webkit.launch({headless:true});const page=await browser.newPage({viewport:{width:402,height:874},deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.log('PAGE ERROR',e.message);});await page.route('https://audio.test/**',route=>route.abort());
+await page.goto('http://127.0.0.1:5173/scripts/fixtures/live-music-preview.html');
+await page.getByRole('button',{name:'Musik',exact:true}).click();
+await page.locator('.speaker-pad--0 .speaker-pad-transport button').first().click();
+await page.waitForFunction(()=>document.querySelector('.speaker-pad--0 .speaker-pad-progress')?.textContent.includes('LÄUFT'));
+const playing=await page.evaluate(()=>{const audio=[...document.querySelectorAll('audio')].find(el=>!el.paused);window.playingAudio=audio;return !!audio;});assert.ok(playing);
+await page.getByRole('button',{name:'Zurück zum Liveticker',exact:true}).click();
+assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
+assert.equal(await page.evaluate(()=>window.playingAudio.paused),false,'close must not pause music');
+await page.getByRole('button',{name:'Musik',exact:true}).click();
+await page.getByRole('button',{name:'Player öffnen',exact:true}).click();
+assert.equal(await page.evaluate(()=>window.playingAudio===document.querySelectorAll('audio')[2]),true,'expanding must retain audio element');
+assert.equal(await page.evaluate(()=>window.playingAudio.paused),false,'expanding must retain playback');
+await page.getByRole('button',{name:'Schnelltasten',exact:true}).click();
+for(const width of [360,402,768]){await page.setViewportSize({width,height:874});assert.ok(await page.locator('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth),'dialog overflow at '+width);await page.screenshot({path:'/tmp/live-music-'+width+'.png'});}
+await page.getByRole('button',{name:'ALLES STOPP',exact:true}).click();
+assert.equal(await page.evaluate(()=>window.playingAudio.paused),true,'all stop must stop music');
+await page.keyboard.press('Escape');assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
+assert.deepEqual(errors,[]);console.log('Live music: quick pads, close/expand preserves audio, STOP, Escape and responsive dialog passed.');
+await browser.close();server.kill();})().catch(e=>{server.kill();console.error(e);process.exit(1)});

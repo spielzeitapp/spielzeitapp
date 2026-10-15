@@ -8,7 +8,7 @@ import {AUDIO_CATEGORIES,validPlaylistName,defaultAudioSetup,moveAudio,nextAudio
 type Track = AudioFile & {url:string};
 const PAD_NAMES=['Torhymne','Einlauf','Sponsoren','Pause','Cornerwerbung','Outro'];
 const clock=(s:number)=>Number.isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
-export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnly=false}:{scope:string;offlineMusicOnly?:boolean;offlineTitle?:string;offlineSections?:{title:string;text:string}[]}){
+export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnly=false,quickMode=false}:{quickMode?:boolean;scope:string;offlineMusicOnly?:boolean;offlineTitle?:string;offlineSections?:{title:string;text:string}[]}){
  const [tracks,setTracks]=useState<Track[]>([]),[a,setA]=useState(''),[b,setB]=useState(''),[pads,setPads]=useState<string[]>(Array(6).fill('')),[padActive,setPadActive]=useState<number|null>(null);
  const [cross,setCross]=useState(0),[volA,setVolA]=useState(.8),[volB,setVolB]=useState(.8),[speaking,setSpeaking]=useState(false),[message,setMessage]=useState('');
  const [playing,setPlaying]=useState([false,false]),[times,setTimes]=useState([[0,0],[0,0]]);
@@ -22,7 +22,7 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  const [setup,setSetup]=useState<AudioSetup>(()=>defaultAudioSetup(scope)),[ready,setReady]=useState(false),[preset,setPreset]=useState(offlineMusicOnly?'Teammusik':'Pause'),[repeat,setRepeat]=useState(false),[queueName,setQueueName]=useState(''),[pendingPlayer,setPendingPlayer]=useState<{token:number}|null>(null),[busy,setBusy]=useState(false),[clubId,setClubId]=useState(''),[cloud,setCloud]=useState<{name:string;path:string}[]>([]),[online,setOnline]=useState(navigator.onLine);
  const [playlistExpanded,setPlaylistExpanded]=useState(false);
  const [newPlaylist,setNewPlaylist]=useState(''),[search,setSearch]=useState(''),[categoryFilter,setCategoryFilter]=useState('Alle'),[companyFilter,setCompanyFilter]=useState('Alle');
- const names=Object.keys(setup.playlists),labels=PAD_NAMES.map((name,i)=>setup.padLabels?.[i]||name);
+ const names=Object.keys(setup.playlists),labels=PAD_NAMES.map((name,i)=>setup.padLabels?.[i]||(quickMode&&i===5?'Feiermusik':name));
  const companies=Array.from(new Set(tracks.map(t=>t.company?.trim()).filter((v):v is string=>!!v))).sort((a,b)=>a.localeCompare(b,'de'));
  const filteredTracks=tracks.filter(t=>(categoryFilter==='Alle'||(t.category||'Musik')===categoryFilter)&&(companyFilter==='Alle'||t.company===companyFilter)&&((t.name+' '+(t.company||'')).toLocaleLowerCase('de').includes(search.toLocaleLowerCase('de'))));
  const queue=useRef<{ids:string[];index:number}|null>(null),trackSnapshot=useRef(tracks);trackSnapshot.current=tracks;
@@ -130,7 +130,7 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  async function remove(track:Track){try{if(a===track.id||b===track.id||pads.includes(track.id)){stop();if(a===track.id)setA('');if(b===track.id)setB('');setPads(p=>p.map(id=>id===track.id?'':id));}await speakerAudioStore('files','delete',track.id);setSetup(current=>({...current,playlists:Object.fromEntries(Object.entries(current.playlists).map(([name,list])=>[name,list.filter(id=>id!==track.id)]))}));setTracks(t=>t.filter(item=>item.id!==track.id));URL.revokeObjectURL(track.url);}catch{setMessage('Löschen fehlgeschlagen.');}}
  async function playPad(i:number){const id=pads[i],track=tracks.find(t=>t.id===id);if(!track||!jr.current)return;if(padActive===i){stopPad();return;}cancelFade();stopPad();jr.current.src=track.url;jr.current.currentTime=0;padStopped.current=false;setPadActive(i);await toggle(2);}
  const select=(value:string,set:(value:string)=>void)=> <select value={value} onChange={e=>{generation.current++;set(e.target.value);}}><option value="">Datei auswählen</option>{tracks.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select>;
- return <section className="speaker-dj"><h2>Musik & Jingles</h2><p className="speaker-hint">{online?'Online':'Offline · lokale Musik verfügbar'} · Playlists und Jingle-Zuordnungen werden auf diesem Gerät gespeichert.</p><div className="speaker-decks">{[a,b].map((id,i)=>{
+ return <section className={'speaker-dj '+(quickMode?'speaker-dj--quick':'')}><h2>Musik & Jingles</h2><p className="speaker-hint">{online?'Online':'Offline · lokale Musik verfügbar'} · Playlists und Jingle-Zuordnungen werden auf diesem Gerät gespeichert.</p><div className="speaker-decks">{[a,b].map((id,i)=>{
  const track=tracks.find(t=>t.id===id),other=tracks.find(t=>t.id===[a,b][1-i]);
  const bpm=validBpm(track?.bpm)?track.bpm:null,actualBpm=bpm?bpm*tempo[i]:null;
  const target=validBpm(other?.bpm)?other.bpm*tempo[1-i]:null;
