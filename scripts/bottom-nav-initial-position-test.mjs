@@ -16,7 +16,7 @@ assert.match(navOpening, /fixed bottom-0/);
 assert.doesNotMatch(navOpening, /\bbottom\s*:/, 'No JS bottom override: first paint must be browser-anchored');
 assert.doesNotMatch(source, /readVisualViewportBottomOffset|visualViewportBottomOffset/);
 assert.equal((navOpening.match(/safe-area-inset-bottom/g) ?? []).length, 1);
-assert.match(navOpening, /max\(0\.125rem, calc\(env\(safe-area-inset-bottom, 0px\) - 1\.5rem\)\)/);
+assert.match(navOpening, /max\(0\.125rem, min\(0\.75rem, calc\(var\(--app-nav-safe-bottom, env\(safe-area-inset-bottom, 0px\)\) - 1\.5rem\)\)\)/);
 
 const mocks = {
   '../../auth/AuthProvider': { useAuth: () => ({ user: null }) },
@@ -77,6 +77,14 @@ if (process.argv.includes('--browser')) {
       await page.setViewportSize(viewport);
       await page.setContent(`<html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>${css}</style></head><body><div id="root"><div class="app-shell appShell"><div class="app app--internal min-h-screen"><header class="app-header fixed top-0">Header</header><main class="app__content appMain"><div style="height:3000px">Termine<input aria-label="Kommentar" /></div></main></div>${render('/app/termine')}</div></div></body></html>`);
       await checkBottom('app shell initial paint');
+      // Test the visible card edge, not just the transparent nav wrapper.
+      // iOS 26 can initially report a toolbar-sized safe area in installed apps.
+      for (const inset of [0, 34, 97, 134]) {
+        await page.evaluate(inset => document.documentElement.style.setProperty('--app-nav-safe-bottom', inset + 'px'), inset);
+        const gap = await page.locator('[data-app-bottom-nav]').evaluate(nav => nav.getBoundingClientRect().bottom - nav.firstElementChild.getBoundingClientRect().bottom);
+        assert.ok(gap >= 2 && gap <= 12, `Visible navigation card gap for inset ${inset}: ${gap}`);
+      }
+      await page.evaluate(() => document.documentElement.style.removeProperty('--app-nav-safe-bottom'));
       const before = await page.locator('[data-app-bottom-nav]').boundingBox();
       await page.evaluate(() => {
         window.scrollTo(0, 150);
