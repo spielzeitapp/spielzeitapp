@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarDays, ClipboardList, Dumbbell, Monitor, Users } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
@@ -6,8 +7,8 @@ import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 const features = [
   { Icon: ClipboardList, title: 'Trainingsplanung', text: 'Einheiten vorbereiten und Trainingspläne zusammenstellen.' },
   { Icon: Dumbbell, title: 'Übungsbibliothek', text: 'Passende Übungen finden und für das Training auswählen.' },
-  { Icon: CalendarDays, title: 'Platzbelegung', text: 'Trainings und Spiele am Sportplatz übersichtlich koordinieren.' },
-  { Icon: Users, title: 'Saisonverwaltung', text: 'Mannschaften, Kader und die nächste Saison vorbereiten.' },
+  { Icon: CalendarDays, title: 'Plan am Platz', text: 'Den lokalen Demoplan kompakt ansehen oder als A4-Handout ausgeben.' },
+  { Icon: Users, title: 'Trainerdokumentation', text: 'Eine Beispiel-Einheit im D-Diplom-Layout als PDF herunterladen.' },
 ];
 
 export function DemoManagerPreview({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -33,7 +34,8 @@ export function DemoManagerPreview({ open, onClose }: { open: boolean; onClose: 
             </li>
           ))}
         </ul>
-        <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">Die Manager-Demo folgt. Hier siehst du bereits, welche Bereiche der SpielzeitManager bietet.</p>
+        <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">Probiere den Trainerarbeitsplatz aus: Trainingsplan bearbeiten, Beispielübungen auswählen und ein PDF erstellen. Vereinsverwaltung und Platzbelegung sind noch nicht Teil der öffentlichen Demo.</p>
+        <Link to="/demo/desktop" onClick={onClose} className={`${dsPrimaryCtaClass()} inline-flex w-full items-center justify-center`}>Trainer-Desktopdemo öffnen</Link>
       </div>
     </Modal>
   );
