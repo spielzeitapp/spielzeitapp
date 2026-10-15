@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Square, Mic, Upload, Trash2, Shuffle } from 'lucide-react';
-import {clampTempo,createAudioFade} from '../../lib/audioTransport';
+import {analyzeAudioBpm,bpmFromTaps,syncTempo,validBpm} from '../../lib/audioBpm';
+import {createAudioFade} from '../../lib/audioTransport';
 import { deckGains } from '../../lib/clubCommunicationsModel';
 import {supabase} from '../../lib/supabaseClient';
 import {AUDIO_CATEGORIES,validPlaylistName,defaultAudioSetup,moveAudio,nextAudio,shuffleAudio,validateAudioSetup,speakerAudioStore,speakerTestWav,prepareSpeakerOffline,type AudioFile,type AudioSetup} from '../../lib/speakerAudio';
@@ -12,6 +13,9 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  const [cross,setCross]=useState(0),[volA,setVolA]=useState(.8),[volB,setVolB]=useState(.8),[speaking,setSpeaking]=useState(false),[message,setMessage]=useState('');
  const [playing,setPlaying]=useState([false,false]),[times,setTimes]=useState([[0,0],[0,0]]);
  const [tempo,setTempo]=useState([1,1]),[fading,setFading]=useState(false),[padTime,setPadTime]=useState([0,0]);
+ const [bpmStatus,setBpmStatus]=useState<Record<string,string>>({});
+ const taps=useRef<number[][]>([[],[]]);
+ const analysis=useRef(new Map<string,Promise<number|null>>());
  const master=useRef<GainNode|null>(null),fade=useRef<ReturnType<typeof createAudioFade>|null>(null),padVersion=useRef(0),padStopped=useRef(true);
  const ar=useRef<HTMLAudioElement>(null),br=useRef<HTMLAudioElement>(null),jr=useRef<HTMLAudioElement>(null);
  const ctx=useRef<AudioContext|null>(null),gains=useRef<GainNode[]>([]),urls=useRef<string[]>([]),alive=useRef(true),generation=useRef(0);
@@ -27,7 +31,56 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  function stopPad(){padVersion.current++;padStopped.current=true;jr.current?.pause();if(jr.current)jr.current.currentTime=0;setPadActive(null);setPadTime([0,0]);}
  function cancelFade(){fade.current?.cancel();setFading(false);}
  function fadeOut(){if(!refs.some(r=>r.current&&!r.current.paused))return;queue.current=null;setQueueName('');generation.current++;if(!fade.current)fade.current=createAudioFade(value=>{if(master.current&&ctx.current)master.current.gain.setTargetAtTime(value,ctx.current.currentTime,.012);},()=>stop());setFading(true);fade.current.start(3);}
- function changeTempo(index:number,delta:number){setTempo(current=>current.map((rate,i)=>i===index?clampTempo(delta===0?1:rate+delta):rate));}
+ function changeTempo(index:number,delta:number){
+  const track=trackSnapshot.current.find(t=>t.id===[a,b][index]);
+  if(!validBpm(track?.bpm)&&delta!==0)return;
+  setTempo(current=>current.map((rate,i)=>i===index?(delta===0?1:Math.max(.8,Math.min(1.2,rate+delta/track!.bpm!))):rate));
+ }
+ function saveBpm(id:string,value:number,source:'auto'|'manual'){
+  const latest=trackSnapshot.current.find(t=>t.id===id);
+  if(!latest||!validBpm(value)||(source==='auto'&&latest.bpmSource==='manual'))return;
+  const updated={...latest,bpm:value,bpmSource:source};
+  trackSnapshot.current=trackSnapshot.current.map(t=>t.id===id?updated:t);
+  setTracks(current=>current.map(t=>t.id===id?updated:t));
+  const {url,...record}=updated;
+  void speakerAudioStore('files','put',record).catch(()=>setMessage('BPM konnten nicht gespeichert werden.'));
+ }
+ function tapBpm(index:number,id:string){
+  const now=performance.now();
+  const previous=taps.current[index];
+  taps.current[index]=previous.length&&now-previous[previous.length-1]<2000?[...previous,now].slice(-9):[now];
+  const value=bpmFromTaps(taps.current[index]);
+  if(value)saveBpm(id,value,'manual');
+ }
+ function syncDeck(index:number){
+  const ids=[a,b],other=1-index;
+  const own=trackSnapshot.current.find(t=>t.id===ids[index]),source=trackSnapshot.current.find(t=>t.id===ids[other]);
+  if(!validBpm(own?.bpm)||!validBpm(source?.bpm))return;
+  const target=source.bpm*tempo[other],rate=syncTempo(own.bpm,target);
+  if(rate===null){setMessage('Tempoabstand zu groß. Sync ist innerhalb ±20 % möglich.');return;}
+  setTempo(current=>current.map((value,i)=>i===index?rate:value));
+  setMessage('Deck '+(index===0?'A':'B')+' auf '+target.toFixed(1)+' BPM angeglichen.');
+ }
+ useEffect(()=>{
+  let cancelled=false;
+  void(async()=>{for(const id of new Set([a,b])){
+   const track=trackSnapshot.current.find(t=>t.id===id);
+   if(!track||validBpm(track.bpm))continue;
+   setBpmStatus(current=>({...current,[id]:'BPM werden analysiert…'}));
+   try{
+    let pending=analysis.current.get(id);
+    if(!pending){pending=analyzeAudioBpm(track.file);analysis.current.set(id,pending);}
+    const value=await pending;
+    if(cancelled)return;
+    if(value)saveBpm(id,value,'auto');
+    setBpmStatus(current=>({...current,[id]:value?'':'BPM eingeben oder 4× tappen'}));
+   }catch{if(!cancelled)setBpmStatus(current=>({...current,[id]:'BPM eingeben oder 4× tappen'}));}
+  }})();
+  return()=>{cancelled=true;};
+ },[a,b,scope]);
+ // A newly loaded song always starts at its original tempo.
+ useEffect(()=>{setTempo(current=>[1,current[1]]);taps.current[0]=[];},[a]);
+ useEffect(()=>{setTempo(current=>[current[0],1]);taps.current[1]=[];},[b]);
  useEffect(()=>{[ar,br].forEach((r,i)=>{if(r.current){r.current.playbackRate=tempo[i];r.current.preservesPitch=true;}});},[tempo]);
  function stop(){cancelFade();padVersion.current++;padStopped.current=true;setPendingPlayer(null);queue.current=null;setQueueName('');generation.current++;refs.forEach(r=>{r.current?.pause();if(r.current)r.current.currentTime=0;});setPlaying([false,false]);setPadActive(null);}
  useEffect(()=>{alive.current=true;let active=true;
@@ -78,7 +131,24 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  async function playPad(i:number){const id=pads[i],track=tracks.find(t=>t.id===id);if(!track||!jr.current)return;if(padActive===i){stopPad();return;}cancelFade();stopPad();jr.current.src=track.url;jr.current.currentTime=0;padStopped.current=false;setPadActive(i);await toggle(2);}
  const select=(value:string,set:(value:string)=>void)=> <select value={value} onChange={e=>{generation.current++;set(e.target.value);}}><option value="">Datei auswählen</option>{tracks.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select>;
  return <section className="speaker-dj"><h2>Musik & Jingles</h2><p className="speaker-hint">{online?'Online':'Offline · lokale Musik verfügbar'} · Playlists und Jingle-Zuordnungen werden auf diesem Gerät gespeichert.</p><div className="speaker-decks">{[a,b].map((id,i)=>{
- const track=tracks.find(t=>t.id===id);return <div className={'speaker-deck speaker-deck--'+i} key={i}><strong>PLAYER {i===0?'A':'B'}</strong>{select(id,value=>{queue.current=null;setQueueName('');refs[i].current?.pause();i===0?setA(value):setB(value);})}<audio ref={refs[i]} src={track?.url} preload="metadata" onPlay={()=>setPlaying(p=>p.map((v,index)=>index===i?true:v))} onPause={()=>setPlaying(p=>p.map((v,index)=>index===i?false:v))} onEnded={()=>ended(i)} onTimeUpdate={e=>{const el=e.currentTarget;setTimes(t=>t.map((v,index)=>index===i?[el.currentTime,el.duration]:v));}} onLoadedMetadata={e=>{const el=e.currentTarget;el.playbackRate=tempo[i];el.preservesPitch=true;setTimes(t=>t.map((v,index)=>index===i?[0,el.duration]:v));}}/><p>{clock(times[i][0])} / {clock(times[i][1])}</p><input aria-label={'Position Player '+(i===0?'A':'B')} type="range" min={0} max={Number.isFinite(times[i][1])?times[i][1]:0} step=".1" value={times[i][0]} onChange={e=>{if(refs[i].current)refs[i].current.currentTime=Number(e.target.value);}}/><div className="speaker-deck-buttons"><button type="button" disabled={!track} onClick={()=>toggle(i)} aria-label={playing[i]?'Pause':'Wiedergabe'}>{playing[i]?<Pause/>:<Play/>}</button><button type="button" onClick={()=>{queue.current=null;setQueueName('');generation.current++;refs[i].current?.pause();if(refs[i].current)refs[i].current.currentTime=0;}} aria-label="Player stoppen"><Square/></button><input aria-label={'Lautstärke Player '+(i===0?'A':'B')} type="range" min={0} max={1} step=".01" value={i===0?volA:volB} onChange={e=>i===0?setVolA(Number(e.target.value)):setVolB(Number(e.target.value))}/></div><div className="speaker-tempo"><span>Tempo</span><button type="button" aria-label={'Player '+(i===0?'A':'B')+' Tempo verringern'} disabled={tempo[i]<=.8} onClick={()=>changeTempo(i,-.01)}>−</button><strong>{Math.round(tempo[i]*100)} %</strong><button type="button" aria-label={'Player '+(i===0?'A':'B')+' Tempo erhöhen'} disabled={tempo[i]>=1.2} onClick={()=>changeTempo(i,.01)}>+</button><button type="button" onClick={()=>changeTempo(i,0)}>100 %</button></div></div>;})}</div>
+ const track=tracks.find(t=>t.id===id),other=tracks.find(t=>t.id===[a,b][1-i]);
+ const bpm=validBpm(track?.bpm)?track.bpm:null,actualBpm=bpm?bpm*tempo[i]:null;
+ const target=validBpm(other?.bpm)?other.bpm*tempo[1-i]:null;
+ const synced=actualBpm!==null&&target!==null&&Math.abs(actualBpm-target)<.06;
+ const name=i===0?'A':'B';
+ return <div className={'speaker-deck speaker-deck--'+i} key={i}>
+  <div className="speaker-deck-heading"><strong>DECK {name}</strong><span>{playing[i]?'● LÄUFT':track?'BEREIT':'LEER'}</span></div>
+  {select(id,value=>{queue.current=null;setQueueName('');refs[i].current?.pause();setTimes(current=>current.map((value,index)=>index===i?[0,0]:value));i===0?setA(value):setB(value);})}
+  <audio ref={refs[i]} src={track?.url} preload="metadata" onPlay={()=>setPlaying(p=>p.map((v,index)=>index===i?true:v))} onPause={()=>setPlaying(p=>p.map((v,index)=>index===i?false:v))} onEnded={()=>ended(i)} onTimeUpdate={e=>{const el=e.currentTarget;setTimes(t=>t.map((v,index)=>index===i?[el.currentTime,el.duration]:v));}} onLoadedMetadata={e=>{const el=e.currentTarget;el.playbackRate=tempo[i];el.preservesPitch=true;setTimes(t=>t.map((v,index)=>index===i?[0,el.duration]:v));}}/>
+  <div className={'speaker-platter '+(playing[i]?'speaker-platter--playing':'')}>
+   <div className="speaker-platter-label"><small>{synced?'TEMPO SYNC':'TEMPO'}</small><strong>{actualBpm?.toFixed(1)??'—'}</strong><span>BPM</span><span className="speaker-platter-time">{clock(times[i][0])}<small>−{clock(Math.max(0,times[i][1]-times[i][0]))}</small></span></div>
+  </div>
+  <input aria-label={'Position Deck '+name} type="range" min={0} max={Number.isFinite(times[i][1])?times[i][1]:0} step=".1" value={times[i][0]} onChange={e=>{if(refs[i].current)refs[i].current.currentTime=Number(e.target.value);}}/>
+  <div className="speaker-bpm-controls"><button type="button" className="speaker-sync" aria-label={'Deck '+name+' an anderes Deck angleichen'} disabled={!bpm||!target} onClick={()=>syncDeck(i)}>SYNC</button><button type="button" disabled={!bpm} onClick={()=>changeTempo(i,0)}>Original</button></div>
+  <div className="speaker-tempo"><button type="button" aria-label={'Deck '+name+' BPM verringern'} disabled={!bpm||tempo[i]<=.8} onClick={()=>changeTempo(i,-.5)}>−</button><span>{actualBpm?.toFixed(1)??'—'} <small>BPM</small></span><button type="button" aria-label={'Deck '+name+' BPM erhöhen'} disabled={!bpm||tempo[i]>=1.2} onClick={()=>changeTempo(i,.5)}>+</button></div>
+  {track?<details className="speaker-bpm-edit"><summary>{bpm?(track.bpmSource==='manual'?'BPM manuell':'BPM geschätzt'):'BPM bestimmen'}</summary><label>Original-BPM<input aria-label={'Original-BPM Deck '+name} type="number" min={40} max={240} step={.1} key={track.id+':'+bpm} defaultValue={bpm??''} onBlur={e=>{const value=Number(e.target.value);if(validBpm(value))saveBpm(id,value,'manual');else e.target.value=bpm?.toString()??'';}} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}}/></label><button type="button" onClick={()=>tapBpm(i,id)}>TAP · 4× im Takt</button>{!bpm?<small role="status">{bpmStatus[id]||'BPM eingeben oder tappen'}</small>:null}</details>:null}
+  <div className="speaker-deck-buttons"><button type="button" className="speaker-deck-play" disabled={!track} onClick={()=>toggle(i)} aria-label={(playing[i]?'Pause':'Wiedergabe')+' Deck '+name}>{playing[i]?<Pause/>:<Play/>}</button><button type="button" onClick={()=>{queue.current=null;setQueueName('');generation.current++;refs[i].current?.pause();if(refs[i].current)refs[i].current.currentTime=0;}} aria-label={'Deck '+name+' stoppen'}><Square/></button><label>Lautstärke<input aria-label={'Lautstärke Deck '+name} type="range" min={0} max={1} step=".01" value={i===0?volA:volB} onChange={e=>i===0?setVolA(Number(e.target.value)):setVolB(Number(e.target.value))}/></label></div>
+ </div>;})}</div><p className="speaker-hint speaker-sync-hint">Sync gleicht die BPM an das andere Deck an. Automatisch geschätzte BPM lassen sich korrigieren; Taktschläge werden nicht automatisch ausgerichtet.</p>
  <label className="speaker-crossfade">A <span>Überblendung<input aria-label="Überblendung A zu B" type="range" min={0} max={1} step=".01" value={cross} onChange={e=>setCross(Number(e.target.value))}/></span> B</label>
  <div className="speaker-audio-actions"><button type="button" aria-pressed={speaking} className={speaking?'active':''} onClick={()=>setSpeaking(v=>!v)}><Mic/>Sprechen · Musik {speaking?'wieder laut':'leiser'}</button><button type="button" className="speaker-fade" disabled={fading||!playing.some(Boolean)&&padActive===null} onClick={fadeOut}>{fading?'Blendet aus…':'Fade-out · 3 s'}</button><button type="button" className="speaker-stop" onClick={stop}><Square/>ALLES STOPP</button></div>
  <audio ref={jr} onEnded={()=>{padStopped.current=true;setPadActive(null);}} onTimeUpdate={e=>{setPadTime([e.currentTarget.currentTime,e.currentTarget.duration]);}} onLoadedMetadata={e=>setPadTime([0,e.currentTarget.duration])}/><div className="speaker-pads">{labels.map((name,i)=>{const track=tracks.find(t=>t.id===pads[i]),active=padActive===i;return <div className={'speaker-pad speaker-pad--'+i+' '+(active?'speaker-pad--playing':'')} key={i}><strong className="speaker-pad-title">{name}</strong><small className="speaker-pad-file" title={track?.name}>{track?.name||'Keine Datei zugeordnet'}</small><div className="speaker-pad-transport"><button type="button" className={active?'active':''} disabled={!pads[i]||active} onClick={()=>playPad(i)} aria-label={name+' starten'}><Play/>{active?'LÄUFT':'Start'}</button><button type="button" className="speaker-pad-stop" disabled={!active} onClick={stopPad} aria-label={name+' stoppen'}><Square/>Stopp</button></div>{active?<div className="speaker-pad-progress" role="status"><span>● LÄUFT · {clock(padTime[0])} / {clock(padTime[1])}</span><progress max={Number.isFinite(padTime[1])&&padTime[1]>0?padTime[1]:1} value={padTime[0]}/></div>:<div className="speaker-pad-progress"><span>{track?'Bereit':'Datei auswählen'}</span></div>}<details className="speaker-pad-settings"><summary>Zuordnung ändern</summary><input aria-label={'Jingle-Taste '+(i+1)+' benennen'} maxLength={45} value={setup.padLabels?.[i]??PAD_NAMES[i]} onChange={e=>setPadLabel(i,e.target.value)}/>{select(pads[i],value=>{if(active)stopPad();setPads(p=>p.map((id,index)=>index===i?value:id));})}</details></div>;})}</div>
