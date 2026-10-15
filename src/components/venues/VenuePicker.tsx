@@ -797,6 +797,11 @@ export function VenuePicker({
           <p className="text-sm font-medium text-white/85">
             {formMode === 'edit' ? 'Spielort bearbeiten' : 'Neuen Spielort anlegen'}
           </p>
+          {formMode === 'edit' ? (
+            <p className="text-xs text-white/60">
+              Änderungen gelten für alle Termine mit diesem Spielort. Für einen anderen Ort bitte „Spielort hinzufügen“ verwenden.
+            </p>
+          ) : null}
           <input
             className={inputClass}
             placeholder="Name *"
