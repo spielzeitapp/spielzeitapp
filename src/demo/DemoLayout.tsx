@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { DemoProvider } from './DemoContext';
 
 /**
@@ -7,8 +7,9 @@ import { DemoProvider } from './DemoContext';
  * Splash/Welcome und produktives InternalLayout kommen über die Routen — kein eigenes Demo-Shell.
  */
 export function DemoLayout(): React.ReactElement {
+  const { pathname } = useLocation();
   useEffect(() => {
-    document.title = 'SpielzeitApp Trainer-Demo';
+    document.title = pathname === '/demo/desktop' ? 'Trainer-Desktopdemo · SpielzeitApp' : 'SpielzeitApp Trainer-Demo';
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement('meta');
@@ -29,7 +30,7 @@ export function DemoLayout(): React.ReactElement {
     return () => {
       document.title = 'Spielzeit';
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <DemoProvider>

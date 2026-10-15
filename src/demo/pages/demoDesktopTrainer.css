@@ -1,3 +1,6 @@
+html:has(.demo-trainer-desktop){height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
+body:has(.demo-trainer-desktop){height:auto;min-height:100dvh;overflow:visible}
+#root:has(.demo-trainer-desktop){height:auto;min-height:100dvh}
 .demo-trainer-desktop{display:flex;min-height:100dvh;font-family:Inter,Arial,sans-serif;color:#17202e;background:#f4f5f7}
 .dtd-sidebar{width:248px;flex:0 0 248px;background:#0c0d10;color:#e5e7eb;display:flex;flex-direction:column;position:sticky;top:0;height:100dvh}
 .dtd-brand{min-height:84px;padding:20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ffffff14;font-weight:800;font-size:17px;text-decoration:none;color:#fff}
