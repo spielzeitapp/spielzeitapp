@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import './tabletLayout.css';
 import { AppBackground } from './AppBackground';
 import { Header } from './Header';
 import { BottomNav } from '../components/BottomNav';
 import { AppFab } from '../components/AppFab';
 import { TopNav } from '../components/TopNav';
-import { useIsTouchLayout } from '../../hooks/useMediaQuery';
+import { useIsTouchLayout, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useAuth } from '../../auth/AuthProvider';
 import { useSession, normalizeRole as normalizeSessionRole } from '../../auth/useSession';
 import { useSyncPendingProfile } from '../../auth/useSyncPendingProfile';
@@ -65,6 +66,8 @@ function isAppShellTabPath(pathname: string): boolean {
  */
 export const InternalLayout: React.FC = () => {
   const isTouchLayout = useIsTouchLayout();
+  const tabletLandscape = useMediaQuery('(min-width: 900px) and (min-height: 500px) and (orientation: landscape)');
+  const useTabletRail = isTouchLayout && tabletLandscape;
   const navigate = useNavigate();
   const location = useLocation();
   const demo = useDemoMode();
@@ -326,11 +329,13 @@ export const InternalLayout: React.FC = () => {
     <AppBackground>
       {isTouchLayout || isDemo ? null : <TopNav />}
 
-      <div className="app min-h-screen bg-black text-white">
+      <div className={`app min-h-screen bg-black text-white ${isTouchLayout ? 'app--touch' : ''} ${useTabletRail ? 'app--tablet-rail' : ''}`}>
         <Header />
         <main
           className={`app__content appMain pt-[var(--app-header-offset)] ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
-            isTouchLayout
+            useTabletRail
+              ? 'pb-6'
+              : isTouchLayout
               ? 'pb-[max(10rem,calc(7.5rem+env(safe-area-inset-bottom,0px)))] lg:pb-24'
               : 'pb-24'
           }`}
@@ -346,8 +351,8 @@ export const InternalLayout: React.FC = () => {
                     : 'max-w-[96rem] px-3 md:px-6 lg:px-8'
             }`}
           >
-            <div className="lg:flex lg:items-start lg:gap-6">
-              {!isTouchLayout ? <TabletSidebar compact={isLiveRoute} /> : null}
+            <div className={useTabletRail ? 'flex items-start gap-4' : 'lg:flex lg:items-start lg:gap-6'}>
+              {useTabletRail ? <TabletSidebar rail /> : !isTouchLayout ? <TabletSidebar compact={isLiveRoute} /> : null}
               <div className="min-w-0 flex-1">
                 {blockContent ? (
                   <p className="px-4 py-8 text-sm text-white/55">Lade…</p>
@@ -360,7 +365,7 @@ export const InternalLayout: React.FC = () => {
         </main>
       </div>
 
-      {isTouchLayout ? <BottomNav /> : null}
+      {isTouchLayout && !useTabletRail ? <BottomNav /> : null}
       {isTouchLayout && !isDemo ? <AppFab /> : null}
       {!isDemo ? <PushOnboardingPrompt /> : null}
       {!isDemo && !blockContent && !isOnboardingExemptPath(location.pathname) ? <HomeScreenGuide /> : null}

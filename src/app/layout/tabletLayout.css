@@ -1,0 +1,14 @@
+/* Touch tablets use their available width, including 744px iPad mini portrait. */
+@media (min-width: 600px) {
+ .app.app--touch {max-width:none;width:100%;}
+ .app--touch .app__content.appMain {padding-left:16px;padding-right:16px;}
+}
+.tablet-nav-rail {
+ position:sticky;top:8px;flex:0 0 88px;width:88px;
+ max-height:calc(100dvh - var(--app-header-offset,88px) - 24px);
+ overflow-y:auto;overscroll-behavior:contain;
+}
+.tablet-nav-rail > div {position:static;}
+.tablet-nav-rail nav {display:flex;flex-direction:column;gap:4px;}
+.tablet-nav-rail a {margin:0;min-height:64px;}
+.app--tablet-rail .app-home {padding-bottom:24px;}
