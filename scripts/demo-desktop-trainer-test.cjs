@@ -31,20 +31,27 @@ async function main() {
     const first = data.createDemoDesktopItems();
     const session = data.createDemoDesktopSession();
     assert.equal(first.length, 4);
-    assert.equal(first.reduce((sum, i) => sum + i.duration_minutes, 0), 60);
+    assert.equal(first.reduce((sum, i) => sum + i.duration_minutes, 0), 75);
     assert.deepEqual(first.map(i => i.phase), ['AW', 'HT1', 'HT2', 'AK']);
     first[0].duration_minutes = 99;
     session.title = 'Changed';
-    assert.equal(data.createDemoDesktopItems()[0].duration_minutes, 10, 'Reset must create independent records');
-    assert.equal(data.createDemoDesktopSession().title, 'Gemeinsam zum Tor');
-    assert.equal(data.DEMO_DESKTOP_EXERCISES.length, 6);
-    assert.equal(new Set(data.DEMO_DESKTOP_EXERCISES.map(e => e.id)).size, 6);
+    assert.equal(data.createDemoDesktopItems()[0].duration_minutes, 15, 'Reset must create independent records');
+    assert.equal(data.createDemoDesktopSession().title, 'Passspiel – Torabschluss – Umschalten');
+    assert.equal(data.DEMO_DESKTOP_EXERCISES.length, 4);
+    assert.equal(new Set(data.DEMO_DESKTOP_EXERCISES.map(e => e.id)).size, 4);
     for (const e of data.DEMO_DESKTOP_EXERCISES) {
       assert.equal(e.image_path, null, 'No storage object or child photo');
       assert(e.club_id.startsWith('desktop-demo-'));
       assert(!/https?:/.test(JSON.stringify(e)), 'No external source or video');
-      assert(data.DEMO_DESKTOP_SKETCHES[e.id].startsWith('data:image/svg+xml;'));
+      assert(data.DEMO_DESKTOP_SKETCHES[e.id].startsWith('/demo/training-video/'));
+      const image = fs.readFileSync(`public${data.DEMO_DESKTOP_SKETCHES[e.id]}`);
+      assert.equal(image.readUInt16BE(0), 0xffd8, 'Each original sketch must be a real bundled JPEG');
+      assert(image.length > 1000);
+      assert(!/Baumann|Rohrbach|Loosdorf/.test(JSON.stringify(e)), 'No original personal/team data in demo seeds');
     }
+    assert.deepEqual(data.createDemoDesktopItems().map(i => i.duration_minutes), [15, 20, 20, 20]);
+    assert(data.DEMO_DESKTOP_EXERCISES[0].description.includes('Ablauf 2 (rechts)'));
+    assert(data.DEMO_DESKTOP_EXERCISES[2].description.includes('Doppelpass'));
     const reversed = data.createDemoDesktopItems().reverse();
     assert.deepEqual(data.orderDemoDesktopItems(reversed).map(i => i.phase), ['AW', 'HT1', 'HT2', 'AK']);
     const exerciseMap = Object.fromEntries(data.DEMO_DESKTOP_EXERCISES.map(e => [e.id, e]));
@@ -55,7 +62,7 @@ async function main() {
     });
     assert(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
     assert(!html.includes('<script>alert(1)</script>'));
-    assert(html.includes('FC Demoheim') && html.includes('Passen und nachstarten'));
+    assert(html.includes('FC Demoheim') && html.includes('Pass-Wettbewerb'));
     const rendered = render();
     assert(rendered.includes('Trainerdokumentation') && rendered.includes('Desktop-Demo'));
     assert(rendered.includes('beim Neuladen zurückgesetzt'));
