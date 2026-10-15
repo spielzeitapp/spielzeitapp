@@ -26,6 +26,7 @@ type EventRow = {
   team_season_id: string;
   starts_at: string | null;
   meeting_at?: string | null;
+  location?: string | null;
   status?: string | null;
   opponent?: string | null;
   notes?: string | null;
@@ -602,9 +603,10 @@ function buildReminderUxCopy(
     return { title, message };
   }
   if (kind === "training") {
+    const location = (event.location ?? "").trim();
     return {
       title: "Training",
-      message: `Heute um ${timeStr} Uhr. Du bist eingeplant – falls du nicht kommen kannst, bitte absagen.`,
+      message: `Heute um ${timeStr} Uhr.${location ? ` Ort: ${location}.` : ""} Du bist eingeplant – falls du nicht kommen kannst, bitte absagen.`,
     };
   }
   const dateStr = formatDateShortDe(event.starts_at);
@@ -714,7 +716,7 @@ serve(async () => {
         const { data: event } = await supabase
           .from("events")
           .select(
-            "id, team_season_id, starts_at, meeting_at, opponent, notes, status, match_id",
+            "id, team_season_id, starts_at, meeting_at, location, opponent, notes, status, match_id",
           )
           .eq("id", locked.event_id)
           .single();
