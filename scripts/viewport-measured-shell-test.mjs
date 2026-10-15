@@ -21,14 +21,16 @@ try{
  await page.addScriptTag({content:bundle.outputFiles[0].text});
  async function check(height,top=0){
   await page.waitForFunction(({height,top})=>document.documentElement.style.getPropertyValue('--app-visible-height')===height+'px'&&document.documentElement.style.getPropertyValue('--app-visible-top')===top+'px',{height,top});
-  const actual=await page.evaluate(()=>({height:document.getElementById('root').getBoundingClientRect().height,top:document.getElementById('root').getBoundingClientRect().top,bottom:document.querySelector('[data-app-bottom-nav]').getBoundingClientRect().bottom}));
-  assert.equal(actual.height,height);assert.equal(actual.top,top);assert.equal(actual.bottom,height+top);
+  // Keep measuring for Live views and diagnostics; do not force the outer
+  // page to this height. On iOS both measurements can be underreported.
+  const position=await page.evaluate(()=>getComputedStyle(document.body).position);
+  assert.notEqual(position,'fixed');
  }
- await check(874);console.log('Launch: actual visible height overrides the shorter cached layout viewport.');
+ await check(874);console.log('Launch: visible-height measurement is retained without freezing the page.');
  await page.evaluate(()=>{visualViewport.height=760;visualViewport.dispatchEvent(new Event('resize'));});
  await check(760);
  await page.evaluate(()=>{visualViewport.height=874;dispatchEvent(new Event('pageshow'));});
- await check(874);console.log('Viewport resize and app resume move the tabs to the visible bottom.');
+ await check(874);console.log('Viewport resize and resume refresh diagnostics.');
  await page.evaluate(()=>{visualViewport.height=810;dispatchEvent(new Event('pageshow'));visualViewport.height=874;});
  await check(874);console.log('Delayed startup measurements settle without a scroll gesture.');
  await page.evaluate(()=>{visualViewport.height=500;visualViewport.offsetTop=90;visualViewport.dispatchEvent(new Event('scroll'));});
@@ -39,5 +41,5 @@ try{
  await page.setViewportSize({width:874,height:402});await check(402);
  await page.evaluate(()=>{scrollTo(0,150);document.querySelector('main').scrollTop=500;});
  const scroll=await page.evaluate(()=>({outer:scrollY,inner:document.querySelector('main').scrollTop}));
- assert.equal(scroll.outer,0);assert.ok(scroll.inner>0);console.log('Rotation preserves bottom anchoring and inner scrolling.');
+ assert.equal(scroll.outer,0);assert.ok(scroll.inner>0);console.log('Rotation refreshes measurements and preserves inner scrolling.');
 }finally{await browser.close();}
