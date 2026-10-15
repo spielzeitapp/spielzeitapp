@@ -8,7 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * Einziger Scheduler: Supabase pg_cron ruft diese Edge Function auf.
  */
 import webpush from "npm:web-push@3.6.7";
-import { collectReminderChildNames, personalizeReminderCopy, type NamedReminderPlayer, type ReminderCopy } from "./recipientCopy.ts";
+import { collectReminderChildNames, personalizeReminderCopy, type NamedReminderPlayer, type ReminderCopy, type TrainerTrainingContext } from "./recipientCopy.ts";
 import { filterLinkedReminderUsers, isEligibleForReminder } from "./recipientEligibility.ts";
 
 const JOB_BATCH_LIMIT = 50;
@@ -835,8 +835,22 @@ serve(async () => {
           linkPath = reminderAppDeepLink(jobKind, event as EventRow);
         }
 
+        const trainerUserIds = new Set(members.filter((member: { user_id: string; role: string }) => member.role === "trainer").map((member: { user_id: string }) => member.user_id));
+        let trainerContext: TrainerTrainingContext | undefined;
+        if (jobKind === "training" && !isMatchday && !isCarpool && !isSquad && uniqueUserIds.some(userId => trainerUserIds.has(userId))) {
+          const { data: season, error: seasonError } = await supabase.from("team_seasons")
+            .select("age_group").eq("id", event.team_season_id).maybeSingle();
+          if (seasonError) throw seasonError;
+          const hasMeetingTime = Boolean(event.meeting_at?.trim());
+          trainerContext = {
+            ageGroup: season?.age_group,
+            time: formatTimeDe(hasMeetingTime ? event.meeting_at : event.starts_at),
+            hasMeetingTime,
+            location: event.location,
+          };
+        }
         const recipientCopies = new Map(uniqueUserIds.map(userId => [
-          userId, personalizeReminderCopy(jobKind, { title: uxTitle, message: uxMessage }, childNamesByUser.get(userId)),
+          userId, personalizeReminderCopy(jobKind, { title: uxTitle, message: uxMessage }, childNamesByUser.get(userId), trainerUserIds.has(userId) ? trainerContext : undefined),
         ]));
         const notifRows = uniqueUserIds.map((userId) => ({
           user_id: userId,

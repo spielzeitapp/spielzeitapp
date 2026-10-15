@@ -11,7 +11,7 @@ import { buildReminderUxCopy, reminderAppDeepLink } from './reminderUxCopy';
 import { hasUserResponded } from '../notifications/hasUserResponded';
 import { getCanonicalEventType } from '../notifications/eventTypes';
 import { isSeasonArchived } from '../seasonLifecycle';
-import { fetchReminderChildNames } from './reminderRecipientNames';
+import { fetchReminderChildNames, fetchTrainerTrainingContexts } from './reminderRecipientNames';
 import { personalizeReminderCopy } from '../../../supabase/functions/send-reminders/recipientCopy';
 
 async function isEventTeamSeasonArchived(
@@ -353,8 +353,9 @@ export async function processNotificationJob(
 
   try {
     const childNamesByUser = await fetchReminderChildNames(admin, ev, recipients, job.kind);
+    const trainerContexts = await fetchTrainerTrainingContexts(admin, ev, recipients, job.kind);
     for (const userId of recipients) {
-      const copy = personalizeReminderCopy(job.kind, { title, message }, childNamesByUser.get(userId));
+      const copy = personalizeReminderCopy(job.kind, { title, message }, childNamesByUser.get(userId), trainerContexts.get(userId));
       const { data: logRow, error: logInsErr } = await admin
         .from('notification_dispatch_log')
         .insert({

@@ -1,7 +1,32 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RawEventRow } from '../notifications/eventTypes';
-import { collectReminderChildNames } from '../../../supabase/functions/send-reminders/recipientCopy';
+import { collectReminderChildNames, type TrainerTrainingContext } from '../../../supabase/functions/send-reminders/recipientCopy';
 import { isEligibleForReminder } from '../../../supabase/functions/send-reminders/recipientEligibility';
+import { formatEventTimeVienna } from '../notifications/format';
+
+export async function fetchTrainerTrainingContexts(
+  admin: SupabaseClient,
+  event: RawEventRow,
+  userIds: string[],
+  kind: string,
+): Promise<Map<string, TrainerTrainingContext>> {
+  if (kind !== 'training' || userIds.length === 0) return new Map();
+  const { data: trainers, error: membersError } = await admin.from('memberships')
+    .select('user_id').eq('team_season_id', event.team_season_id).eq('role', 'trainer').in('user_id', userIds);
+  if (membersError) throw membersError;
+  if (!trainers?.length) return new Map();
+  const { data: season, error: seasonError } = await admin.from('team_seasons')
+    .select('age_group').eq('id', event.team_season_id).maybeSingle();
+  if (seasonError) throw seasonError;
+  const hasMeetingTime = Boolean(event.meeting_at?.trim());
+  const context: TrainerTrainingContext = {
+    ageGroup: season?.age_group,
+    time: formatEventTimeVienna(event.meeting_at?.trim() || event.starts_at),
+    hasMeetingTime,
+    location: event.location,
+  };
+  return new Map(trainers.map(trainer => [trainer.user_id, context]));
+}
 
 export async function fetchReminderChildNames(
   admin: SupabaseClient,
