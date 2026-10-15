@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
+import { collectReminderChildNames } from '../supabase/functions/send-reminders/recipientCopy.ts';
 import { filterLinkedReminderUsers, isEligibleForReminder, isInjuredForReminder } from '../supabase/functions/send-reminders/recipientEligibility.ts';
 
 const start = '2026-10-06T16:00:00Z';
@@ -26,7 +27,8 @@ assert.deepEqual(filterLinkedReminderUsers(['parent', 'player', 'staff'], links,
 // Exercise the production query/mapping function without calling Supabase or sending messages.
 const source = readFileSync(new URL('../supabase/functions/send-reminders/index.ts', import.meta.url), 'utf8');
 const fnSource = source.slice(source.indexOf('async function filterParticipationReminderRecipients('), source.indexOf('\nfunction buildReminderUxCopy('));
-const fn = new Function('filterLinkedReminderUsers', 'isEligibleForReminder', stripTypeScriptTypes(fnSource) + '\nreturn filterParticipationReminderRecipients;')(filterLinkedReminderUsers, isEligibleForReminder);
+const audienceFn = new Function('filterLinkedReminderUsers', 'isEligibleForReminder', 'collectReminderChildNames', stripTypeScriptTypes(fnSource) + '\nreturn filterParticipationReminderRecipients;')(filterLinkedReminderUsers, isEligibleForReminder, collectReminderChildNames);
+const fn = (...args) => audienceFn(...args, []).then(result => result.userIds);
 const rows = {
   event_attendance: [{ player_id: 'external', status: 'external_training' }],
   team_season_players: ['injured', 'healthy', 'external'].map(player_id => ({ player_id })),
@@ -48,6 +50,6 @@ assert.deepEqual(await fn(mock(), event, users, 'training'), ['parent', 'player'
 assert.deepEqual(await fn(mock(), event, users, 'match'), ['parent', 'player']);
 for (const table of Object.keys(rows)) await assert.rejects(fn(mock(table), event, users, 'training'), /query failed/);
 assert.deepEqual(await fn(mock(), event, [], 'training'), []);
-assert.match(source, /\(jobKind === "match" \|\| jobKind === "training"\) && !isMatchday && !isCarpool && !isSquad/);
+assert.match(source, /if \(!isMatchday && !isCarpool && !isSquad\)/);
 assert.ok(source.indexOf('if (uniqueUserIds.length === 0)', source.indexOf('const targetedRecipients')) < source.indexOf('const notifRows'));
 console.log('PASS: injury periods, recovery, RSVP statuses, siblings, staff, database errors, and dispatch integration');
