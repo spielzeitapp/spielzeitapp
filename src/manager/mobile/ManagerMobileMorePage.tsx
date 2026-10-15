@@ -58,7 +58,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
         <MoreLink to="/manager/home" icon={Newspaper} title="Feed & Beiträge" detail="Mannschaftsbeiträge und Fotos" />
         <MoreLink to="/manager/vereinsmedien" icon={Newspaper} title="Vereinsmedien" detail="Grafiken erstellen und Beitragstexte vorbereiten" />
         <MoreLink to="/manager/social-media" icon={Share2} title="Social Media" detail="Gespeicherte Beiträge für Vereinskanäle vorbereiten" />
-        {communicationAccess.music?<MoreLink to="/manager/musikstudio" icon={Music2} title="Teammusik" detail="Einlauf, Playlists, Musik nach dem Match und Jingles" />:null}
+        {communicationAccess.music?<MoreLink to="/manager/musikstudio" icon={Music2} title="Musikplayer" detail="Einlauf, Playlists, Musik nach dem Match und Jingles" />:null}
         {communicationAccess.speaker?<MoreLink to="/manager/sprecherstudio" icon={Mic} title="Spieltagsansagen" detail="Sprechertexte, Spieltagsablauf und Musik" />:null}
         <MoreLink to="/manager/tabelle" icon={Table2} title="Tabelle & Liga" detail="ÖFB-Tabelle und Ergebnisse der ausgewählten Mannschaft" />
         {isTrainerMode || workMode === 'club_admin' || supportSession ? (
