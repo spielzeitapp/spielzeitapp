@@ -16,7 +16,7 @@ import { LiveMusicDock } from '../../components/live/LiveMusicDock';
 
 function AppHeaderBrand({ compactDemo = false }: { compactDemo?: boolean }) {
   return (
-    <span className="inline-flex min-w-0 shrink-0 items-center gap-1.5">
+    <span className="app-header-brand inline-flex min-w-0 shrink-0 items-center gap-1.5">
       <SpielzeitAppBrand
         className="min-w-0 max-w-[10.75rem] sm:max-w-[12rem]"
         iconClassName="h-11 w-11 max-[359px]:h-9 max-[359px]:w-9 sm:h-12 sm:w-12"
@@ -196,7 +196,7 @@ export const Header: React.FC = () => {
         {/* Rechts: Staff / Demo-Trainer-Chrome (gleiche Höhe wie App) */}
         {!publicView && (
           <div className="order-2 flex shrink-0 flex-col items-end justify-center gap-0.5 md:order-3">
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="app-header-actions flex items-center gap-1.5 sm:gap-2">
               {isDemo ? (
                 <>
                   <button
@@ -282,6 +282,7 @@ export const Header: React.FC = () => {
                           />
                         </Link>
                       ) : null}
+                      <LiveMusicDock showButton={pathname === '/app/live' || pathname.startsWith('/app/live/')} />
                       <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
                         <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
                       </Link>
@@ -316,7 +317,6 @@ export const Header: React.FC = () => {
           </div>
         )}
       </div>
-      {!isDemo && user ? <LiveMusicDock showButton={pathname === '/app/live' || pathname.startsWith('/app/live/')} /> : null}
       {isDemo ? <DemoManagerPreview open={managerPreviewOpen} onClose={() => setManagerPreviewOpen(false)} /> : null}
     </header>
   );

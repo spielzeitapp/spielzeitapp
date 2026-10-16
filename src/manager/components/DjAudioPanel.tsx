@@ -8,10 +8,12 @@ import {AUDIO_CATEGORIES,validPlaylistName,defaultAudioSetup,moveAudio,nextAudio
 type Track = AudioFile & {url:string};
 const PAD_NAMES=['Torhymne','Einlauf','Sponsoren','Pause','Cornerwerbung','Siegerlied'];
 const clock=(s:number)=>Number.isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
-export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnly=false,quickMode=false}:{quickMode?:boolean;scope:string;offlineMusicOnly?:boolean;offlineTitle?:string;offlineSections?:{title:string;text:string}[]}){
+export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnly=false,quickMode=false,onPlaybackChange}:{onPlaybackChange?:(playing:boolean)=>void;quickMode?:boolean;scope:string;offlineMusicOnly?:boolean;offlineTitle?:string;offlineSections?:{title:string;text:string}[]}){
  const [tracks,setTracks]=useState<Track[]>([]),[a,setA]=useState(''),[b,setB]=useState(''),[pads,setPads]=useState<string[]>(Array(6).fill('')),[padActive,setPadActive]=useState<number|null>(null);
  const [cross,setCross]=useState(0),[volA,setVolA]=useState(.8),[volB,setVolB]=useState(.8),[speaking,setSpeaking]=useState(false),[message,setMessage]=useState('');
  const [playing,setPlaying]=useState([false,false]),[times,setTimes]=useState([[0,0],[0,0]]);
+ const [padPlaying,setPadPlaying]=useState(false);
+ useEffect(()=>{onPlaybackChange?.(playing.some(Boolean)||padPlaying);},[onPlaybackChange,playing,padPlaying]);
  const [tempo,setTempo]=useState([1,1]),[fading,setFading]=useState(false),[padTime,setPadTime]=useState([0,0]);
  const [bpmStatus,setBpmStatus]=useState<Record<string,string>>({});
  const taps=useRef<number[][]>([[],[]]);
@@ -171,7 +173,7 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  </div>;})}</div><p className="speaker-hint speaker-sync-hint">Sync gleicht die BPM an das andere Deck an. Automatisch geschätzte BPM lassen sich korrigieren; Taktschläge werden nicht automatisch ausgerichtet.</p>
  <label className="speaker-crossfade">A <span>Überblendung<input aria-label="Überblendung A zu B" type="range" min={0} max={1} step=".01" value={cross} onChange={e=>setCross(Number(e.target.value))}/></span> B</label>
  <div className="speaker-audio-actions speaker-master-actions"><button type="button" aria-pressed={speaking} className={speaking?'active':''} onClick={()=>setSpeaking(v=>!v)}><Mic/>Sprechen · Musik {speaking?'wieder laut':'leiser'}</button><button type="button" className="speaker-fade" disabled={fading||!playing.some(Boolean)&&padActive===null} onClick={fadeOut}>{fading?'Blendet aus…':'Fade-out · 3 s'}</button><button type="button" className="speaker-stop" onClick={stop}><Square/>{quickMode?'Musik stoppen':'ALLES STOPP'}</button></div>
- <audio ref={jr} onEnded={()=>{padStopped.current=true;setPadActive(null);}} onTimeUpdate={e=>{setPadTime([e.currentTarget.currentTime,e.currentTarget.duration]);}} onLoadedMetadata={e=>setPadTime([0,e.currentTarget.duration])}/>
+ <audio ref={jr} onPlay={()=>setPadPlaying(true)} onPause={()=>setPadPlaying(false)} onEnded={()=>{setPadPlaying(false);padStopped.current=true;setPadActive(null);}} onTimeUpdate={e=>{setPadTime([e.currentTarget.currentTime,e.currentTarget.duration]);}} onLoadedMetadata={e=>setPadTime([0,e.currentTarget.duration])}/>
  <div className="speaker-pads">{labels.map((name,i)=>{
   const track=tracks.find(t=>t.id===pads[i]),active=padActive===i;
   return <div className={'speaker-pad speaker-pad--'+i+' '+(active?'speaker-pad--playing':'')+(!track?' speaker-pad--empty':'')} key={i}>
