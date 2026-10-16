@@ -22,5 +22,7 @@ test('quick window has one close action and keeps audio mounted',()=>{
  assert.ok(dock.includes('Musik läuft beim Zurückgehen weiter.'));
  assert.ok(dock.includes("'Musik verwalten'"));
  assert.ok(dock.includes('quickMode={!fullPlayer}'));
- assert.ok(css.includes('>.speaker-master-actions{order:1;position:static'));
+ assert.ok(css.includes('>.speaker-master-actions{display:none!important}'));
+ assert.ok(css.includes('speaker-pad--playing{background:#133226;border:1px solid #22c55e'));
+ assert.ok(css.includes('button:first-child{background:#bd142b;border-color:#bd142b}'));
 });

@@ -38,14 +38,14 @@
 .live-music-dialog .speaker-dj--quick>.speaker-crossfade{display:none!important}
 .live-music-dialog .speaker-dj--quick{display:flex;flex-direction:column;gap:12px}
 .live-music-dialog .speaker-dj--quick>.speaker-pads{order:0;gap:10px}
-.live-music-dialog .speaker-dj--quick>.speaker-master-actions{order:1;position:static;padding:0;margin:0}
+.live-music-dialog .speaker-dj--quick>.speaker-master-actions{display:none!important}
 .live-music-dialog .speaker-dj--quick>.speaker-message{order:2}
 .live-music-dialog .speaker-dj--quick .speaker-pad-transport{grid-template-columns:1fr}
 .live-music-dialog .speaker-dj--quick .speaker-pads>.speaker-pad{padding:12px;border-top-width:3px}
 .live-music-dialog .speaker-dj--quick .speaker-pad-title{font-size:17px}
 .live-music-dialog .speaker-dj--quick .speaker-pad-file{font-size:12px;margin-bottom:8px}
 .live-music-dialog .speaker-dj--quick .speaker-pad-transport button{min-height:48px!important;font-size:16px!important}
-.live-music-dialog .speaker-dj--quick .speaker-pads>.speaker-pad--playing{background:var(--pad-night);border:1px solid #334155;border-top:3px solid var(--pad-color)}
+.live-music-dialog .speaker-dj--quick .speaker-pads>.speaker-pad--playing{background:#133226;border:1px solid #22c55e;border-top:3px solid #22c55e}
 .live-music-dialog .speaker-dj--quick .speaker-pad--playing .speaker-pad-transport button:first-child{background:#bd142b;border-color:#bd142b}
 .live-music-dialog .speaker-dj--quick .speaker-pad-progress{font-size:12px;margin:7px 0 0;min-height:0}
 .live-music-dialog .speaker-dj--quick .speaker-pad--empty{display:grid;grid-template-columns:minmax(0,1fr);gap:3px}
