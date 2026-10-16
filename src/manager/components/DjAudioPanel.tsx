@@ -168,7 +168,7 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
      {quickMode&&active?<Square/>:<Play/>}{quickMode&&active?'Stopp':active?'LÄUFT':'Start'}
     </button>
     {!quickMode?<button type="button" className="speaker-pad-stop" disabled={!active} onClick={stopPad} aria-label={name+' stoppen'}><Square/>Stopp</button>:null}
-    {quickMode&&active?<button type="button" className="speaker-quick-fade" disabled={fading} onClick={fadeOut} aria-label={name+' in 3 Sekunden ausblenden'}>{fading?'Blendet aus…':'Ausblenden · 3 s'}</button>:null}
+    {quickMode&&active?<button type="button" className="speaker-quick-fade" disabled={fading} onClick={fadeOut} aria-label={name+' Fade out in 3 Sekunden'}>{fading?'Fade out läuft…':'Fade out · 3 s'}</button>:null}
    </div>:null}
    {active?<div className="speaker-pad-progress" role="status"><span>● {quickMode?'Läuft':'LÄUFT'} · {clock(padTime[0])} / {clock(padTime[1])}</span>{!quickMode?<progress max={Number.isFinite(padTime[1])&&padTime[1]>0?padTime[1]:1} value={padTime[0]}/>:null}</div>:!quickMode?<div className="speaker-pad-progress"><span>{track?'Bereit':'Datei auswählen'}</span></div>:null}
    <details className="speaker-pad-settings"><summary>Zuordnung ändern</summary><input aria-label={'Jingle-Taste '+(i+1)+' benennen'} maxLength={45} value={labels[i]} onChange={e=>setPadLabel(i,e.target.value)}/>{select(pads[i],value=>{if(active)stopPad();setPads(p=>p.map((id,index)=>index===i?value:id));})}</details>
