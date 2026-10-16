@@ -1,4 +1,4 @@
-export type AudioFile = {id:string;scope:string;name:string;file:Blob;cloudPath?:string;category?:string;company?:string};
+export type AudioFile = {id:string;scope:string;name:string;file:Blob;cloudPath?:string;category?:string;company?:string;bpm?:number;bpmSource?:'auto'|'manual'};
 export type AudioSetup = {id:string;playlists:Record<string,string[]>;pads:string[];padLabels?:string[];a:string;b:string;shuffle?:boolean;offlineMusicOnly?:boolean;offlineTitle?:string;offlineSections?:{title:string;text:string}[]};
 export const AUDIO_PRESETS=['Teammusik','Aufwärmen','Einlauf','Vor dem Spiel','Pause','Nach dem Spiel','Cornerwerbung','Sponsoren & Firmen'];
 export const AUDIO_CATEGORIES=['Musik','Pausenmusik','Einlauf','Torhymne','Cornerwerbung','Firmenwerbung','Jingle','Outro'];

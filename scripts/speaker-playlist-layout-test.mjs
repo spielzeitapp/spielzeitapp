@@ -15,7 +15,8 @@ test('playlist selection and enlargement never start playback',()=>{
   }
   ts.forEachChild(node,walk);
  }
- walk(file);assert.equal(checked,3);
+ // One tap now selects AND opens a collection; no double-click action required.
+ walk(file);assert.equal(checked,2);
  assert.ok(source.includes('speaker-playlist-browser'));
  assert.ok(source.includes('speaker-playlist-detail'));
  assert.ok(source.includes('speaker-audio-library'));

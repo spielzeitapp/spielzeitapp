@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
+import { Bell, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Music2, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -315,6 +315,15 @@ export const MoreHubPage: React.FC = () => {
       <LayoutDiagnostics />
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
+        {showManagerLink ? (
+          <Link to="/manager/musikstudio" className={dsPanelRowClass()}>
+            <span className="flex items-center gap-3">
+              <Music2 className="h-5 w-5 text-red-400" aria-hidden />
+              <span>Musikplayer</span>
+            </span>
+            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+          </Link>
+        ) : null}
         <HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex items-center gap-3">
@@ -489,146 +498,3 @@ export const MoreHubPage: React.FC = () => {
           >
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex items-center gap-3">
-                <Link2 className="h-5 w-5 text-red-400" aria-hidden />
-                <span>{hasLinkedChildren ? 'Weiteres Kind verknüpfen' : 'Kind verknüpfen'}</span>
-              </span>
-              <span className="pl-8 text-[11px] font-normal text-white/45">
-                Aktive Saison und verfügbare Spieler
-              </span>
-            </span>
-            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-          </HubRowLink>
-        )}
-
-        {showTrainerTools ? (
-          <HubRowLink
-            to="/app/mehr/trainer/erinnerungen"
-            className={dsPanelRowClass()}
-            isDemo={isDemo}
-          >
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-red-400" aria-hidden />
-                <span>Automatische Erinnerungen</span>
-              </span>
-              <span className="pl-8 text-[11px] font-normal text-white/45">
-                Training, Match, Push und Badge einstellen
-              </span>
-            </span>
-            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-          </HubRowLink>
-        ) : null}
-
-        <HubRowLink to="/app/profile" className={dsPanelRowClass()} isDemo={isDemo}>
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="flex items-center gap-3">
-              <Settings className="h-5 w-5 text-red-400" aria-hidden />
-              <span>Einstellungen</span>
-            </span>
-            {isDemo ? (
-              <span className="pl-8 text-[11px] font-normal text-white/40">Noch nicht Teil der Demo</span>
-            ) : null}
-          </span>
-          <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-        </HubRowLink>
-      </nav>
-
-      {isDemo ? <DemoHelpCard /> : null}
-
-      <PremiumCard variant="subtle" showAmbientGlow={false}>
-        <div className="flex items-center justify-between gap-3 text-[16px] font-semibold text-white">
-          <span className="flex items-center gap-3">
-            <span className="text-lg leading-none" aria-hidden>
-              🔘
-            </span>
-            <span>Vibration bei Aktionen</span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={hapticOn}
-            className={dsGlassToggleTrack(hapticOn)}
-            onClick={() => {
-              const next = !hapticOn;
-              setHapticEnabled(next);
-              setHapticOn(next);
-              if (next) triggerHaptic();
-            }}
-          >
-            <span
-              className={[
-                'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out',
-                hapticOn ? 'left-5' : 'left-0.5',
-              ].join(' ')}
-              aria-hidden
-            />
-          </button>
-        </div>
-      </PremiumCard>
-
-      {canSwitchTeam && (
-        <PremiumCard variant="subtle" showAmbientGlow={false} className="mt-6 text-white">
-          <SectionTitle as="h2" variant="subtle" className="!text-[16px] !font-semibold !text-white">
-            Team / Saison
-          </SectionTitle>
-          <label className="mt-2 block text-[12px] text-white/60" htmlFor="mehr-team-switch">
-            Anzeige / Historie (Archiv ändert die aktive Saison nicht)
-          </label>
-          <select
-            id="mehr-team-switch"
-            className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
-            value={viewTeamSeasonId ?? selectedTeamSeasonId ?? ''}
-            onChange={(e) => {
-              const id = e.target.value || null;
-              if (!id) {
-                setViewTeamSeasonId(null);
-                return;
-              }
-              const ts = (teamSeasons ?? []).find((row) => row.id === id);
-              if (!ts) return;
-              const action = resolveTeamSeasonSwitcherAction(ts.status);
-              if (action === 'select-work') {
-                setSelectedTeamSeasonId(id);
-                return;
-              }
-              setViewTeamSeasonId(id);
-            }}
-          >
-            {(teamSeasons ?? []).map((ts) => (
-              <option key={ts.id} value={ts.id}>
-                {formatTeamSeasonCompactSwitcherLabel(
-                  {
-                    displayName: ts.display_name,
-                    ageGroup: ts.age_group,
-                    teamName: ts.team?.name,
-                    seasonName: ts.season?.name,
-                    status: ts.status,
-                  },
-                  {
-                    markArchived: true,
-                    markCurrent: ts.id === selectedTeamSeasonId,
-                  },
-                )}
-              </option>
-            ))}
-          </select>
-        </PremiumCard>
-      )}
-
-      {showDebugHubButtons && (
-        <PremiumButton
-          type="button"
-          variant="subtle"
-          fullWidth
-          onClick={runReminderTest}
-          className={cn(
-            'mt-6 text-[16px] font-semibold',
-            'shadow-[0_0_28px_rgba(255,40,40,0.12)] hover:shadow-[0_0_32px_rgba(255,40,40,0.16)]',
-          )}
-        >
-          <span>🔔 Reminder testen</span>
-        </PremiumButton>
-      )}
-    </PageShell>
-  );
-};
