@@ -47,8 +47,9 @@ assert.equal(await page.locator('.speaker-decks').isVisible(),true);
 await page.screenshot({path:'/tmp/organized-music-dj.png'});
 await page.getByRole('button',{name:'Schnelltasten',exact:true}).click();
 for(const width of [360,402,768]){await page.setViewportSize({width,height:874});assert.ok(await page.locator('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth),'dialog overflow at '+width);await page.screenshot({path:'/tmp/live-music-'+width+'.png'});}
-await page.getByRole('button',{name:'Musik stoppen',exact:true}).click();
-assert.equal(await page.evaluate(()=>window.playingAudio.paused),true,'all stop must stop music');
+assert.equal(await page.getByRole('button',{name:'Musik stoppen',exact:true}).isVisible(),false,'no duplicate stop in quick view');
+await page.getByRole('button',{name:'Torhymne stoppen',exact:true}).click();
+assert.equal(await page.evaluate(()=>window.playingAudio.paused),true,'pad stop must stop the quick music');
 await page.keyboard.press('Escape');assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
 assert.deepEqual(errors,[]);console.log('Live music: quick pads, close/expand preserves audio, STOP, Escape and responsive dialog passed.');
 await browser.close();server.kill();})().catch(e=>{server.kill();console.error(e);process.exit(1)});
