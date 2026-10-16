@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Music2 } from 'lucide-react';
+import { dsGlassIconButtonClass } from '../../lib/premiumDesignSystem';
 import { useSession } from '../../auth/useSession';
 import { CommunicationAccessProvider, useCommunicationAccess } from '../../manager/CommunicationAccessContext';
 import { DjAudioPanel } from '../../manager/components/DjAudioPanel';
@@ -13,6 +14,7 @@ export function LiveMusicWindow({ scope, showButton }: { scope: string; showButt
   const [open, setOpen] = useState(false);
   const [activated, setActivated] = useState(false);
   const [fullPlayer, setFullPlayer] = useState(false);
+  const [musicPlaying, setMusicPlaying] = useState(false);
   useEffect(() => {
     const element = dialog.current;
     if (open && element && !element.open) element.showModal();
@@ -21,8 +23,8 @@ export function LiveMusicWindow({ scope, showButton }: { scope: string; showButt
   useEffect(() => { if (dialog.current) dialog.current.scrollTop = 0; }, [open, fullPlayer]);
   function close() { setOpen(false); trigger.current?.focus(); }
   return <>
-    {showButton ? <div className="live-music-toolbar"><button ref={trigger} type="button" className="live-music-trigger" aria-haspopup="dialog" aria-expanded={open}
-      onClick={() => { setActivated(true); setFullPlayer(false); setOpen(true); }}><span className="live-music-trigger-icon"><Music2 aria-hidden /></span><span>Musikplayer</span><span className="live-music-trigger-arrow" aria-hidden>›</span></button></div> : null}
+    {showButton ? <button ref={trigger} type="button" className={dsGlassIconButtonClass()+' live-music-trigger'+(musicPlaying?' live-music-trigger--playing':'')} aria-label="Musikplayer" aria-description={musicPlaying?'Musik läuft':'Schnelltasten öffnen'} title={musicPlaying?'Musikplayer · Musik läuft':'Musikplayer öffnen'} aria-haspopup="dialog" aria-expanded={open}
+      onClick={() => { setActivated(true); setFullPlayer(false); setOpen(true); }}><Music2 aria-hidden /></button> : null}
     <dialog ref={dialog} className="live-music-dialog" aria-labelledby="live-music-title"
       onCancel={event => { event.preventDefault(); close(); }} onClose={() => setOpen(false)}>
       <header className="live-music-heading">
@@ -30,7 +32,7 @@ export function LiveMusicWindow({ scope, showButton }: { scope: string; showButt
       </header>
       <p className="live-music-note">Musik läuft beim Zurückgehen weiter.</p>
       <div className="speaker-studio speaker-studio--dark">
-        {activated ? <DjAudioPanel scope={scope} offlineMusicOnly quickMode={!fullPlayer} /> : null}
+        {activated ? <DjAudioPanel scope={scope} offlineMusicOnly quickMode={!fullPlayer} onPlaybackChange={setMusicPlaying} /> : null}
       </div>
       <footer className="live-music-footer">
         <button type="button" onClick={() => setFullPlayer(value => !value)}>{fullPlayer ? 'Schnelltasten' : 'Musik verwalten'}</button>

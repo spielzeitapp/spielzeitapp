@@ -1,10 +1,21 @@
-.live-music-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%;max-width:1536px;min-height:54px;margin:0 auto;padding:5px 12px;border-top:1px solid #ffffff0a;background:linear-gradient(90deg,transparent,#4c12201f)}
-.live-music-trigger{position:static;display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:5px 13px 5px 6px;border:1px solid #fb71854d;border-radius:14px;background:linear-gradient(135deg,#3a1723e6,#161219f2);color:#fff;font-size:13px;font-weight:800;letter-spacing:.01em;box-shadow:inset 0 1px 0 #ffffff0c,0 3px 12px #0003;cursor:pointer;touch-action:manipulation}
-.live-music-trigger:hover{border-color:#fb71858c;background:linear-gradient(135deg,#541c2ee6,#22151df2)}
-.live-music-trigger:focus-visible{outline:2px solid #fda4af;outline-offset:3px}
-.live-music-trigger-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#be123c26;color:#fda4af;border:1px solid #fb718526}
-.live-music-trigger svg{width:18px;height:18px}
-.live-music-trigger-arrow{margin-left:4px;color:#fda4af;font-size:22px;font-weight:400;line-height:1}
+/* Compact header icon; never reserve an extra toolbar row. */
+.live-music-trigger{position:static;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;cursor:pointer;touch-action:manipulation}
+.live-music-trigger svg{width:19px;height:19px}
+.live-music-trigger--playing{color:#4ade80!important;border-color:#22c55e88!important;background:#133226!important;box-shadow:0 0 12px #22c55e30}
+@media(max-width:639px){
+ .app-header:has(.live-music-trigger) .app-header-brand [role="img"]>img:first-child{width:36px;height:36px}
+ .app-header:has(.live-music-trigger) .app-header-brand [role="img"]>img:last-child{width:100px}
+ .app-header:has(.live-music-trigger) .app-header-brand>span[title]{display:none}
+ .app-header:has(.live-music-trigger) .app-header-actions{gap:4px}
+ .app-header:has(.live-music-trigger) .app-header-actions>a,
+ .app-header:has(.live-music-trigger) .app-header-actions>button,
+ .app-header:has(.live-music-trigger) .app-header-actions>div>a{width:32px;height:32px}
+ .app-header:has(.live-music-trigger) .app-header-actions>div>span{font-size:8px;letter-spacing:.06em;padding:4px 5px;max-width:60px}
+}
+@media(max-width:359px){
+ .app-header:has(.live-music-trigger) .app-header-brand [role="img"]>img:first-child{width:30px;height:30px}
+ .app-header:has(.live-music-trigger) .app-header-brand [role="img"]>img:last-child{width:80px}
+}
 .live-music-dialog{position:fixed;inset:0;width:min(760px,calc(100% - 20px));max-width:none;max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));margin:auto;padding:16px;border:1px solid #7f2639;border-radius:20px;background:#0b1018;color:#f8fafc;overflow:auto;overscroll-behavior:contain}
 .live-music-dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 .live-music-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
