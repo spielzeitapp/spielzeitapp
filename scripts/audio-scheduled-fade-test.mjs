@@ -36,11 +36,17 @@ test('replacement fade ignores old timer and schedules its own deadline',()=>{
  f.tick(11);f.fade.start(3);stale();assert.deepEqual(f.events.at(-1),['ramp',0,14]);
  f.tick(13.1);assert.equal(f.done(),0);f.tick(14.1);assert.equal(f.done(),1);
 });
-test('component uses native ramp and pauses before restoring master gain',()=>{
+test('component keeps master muted after automatic fade completion',()=>{
  const s=fs.readFileSync(new URL('../src/manager/components/DjAudioPanel.tsx',import.meta.url),'utf8');
- assert.ok(s.includes('createScheduledAudioFade(master.current.gain,ctx.current,()=>stop())'));
- const stop=s.slice(s.indexOf('function stop(){'),s.indexOf('useEffect(()=>{alive.current'));
- assert.ok(stop.indexOf('pause()')<stop.indexOf('cancelFade()'));
+ assert.ok(s.includes('createScheduledAudioFade(master.current.gain,ctx.current,()=>stopPlayback(false))'));
+ const stop=s.slice(s.indexOf('function stopPlayback('),s.indexOf('useEffect(()=>{alive.current'));
+ assert.ok(stop.indexOf('pause()')<stop.indexOf('cancelFade(restoreGain)'));
  assert.ok(s.includes('fadeToken!==fadeVersion.current'));
  assert.ok(s.includes("ctx.current.state!=='running'"));
+});
+test('completed fade stays muted until explicit restart restores gain',()=>{
+ const f=fixture();f.fade.start(3);f.tick(13.1);assert.equal(f.done(),1);
+ f.fade.cancel(false);assert.deepEqual(f.events.at(-1),['set',0,13.1]);
+ const after=f.events.length;f.tick(30);assert.equal(f.events.length,after,'must never reset volume on its own');
+ f.fade.cancel();assert.deepEqual(f.events.at(-1),['set',1,30]);
 });

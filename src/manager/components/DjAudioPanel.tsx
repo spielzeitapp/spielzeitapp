@@ -33,14 +33,14 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  const ids=setup.playlists[preset]??[];const unavailable=ids.filter(id=>!tracks.some(t=>t.id===id));
  const refs=[ar,br,jr];const levels=deckGains(cross,volA,volB,speaking);
  function stopPad(){padVersion.current++;padStopped.current=true;jr.current?.pause();if(jr.current)jr.current.currentTime=0;cancelFade();setPadActive(null);setPadTime([0,0]);}
- function cancelFade(){fadeVersion.current++;fade.current?.cancel();setFading(false);}
+ function cancelFade(restoreGain=true){fadeVersion.current++;fade.current?.cancel(restoreGain);setFading(false);}
  async function fadeOut(){
   if(fading||!refs.some(r=>r.current&&!r.current.paused))return;
   queue.current=null;setQueueName('');const token=++generation.current,fadeToken=++fadeVersion.current;setFading(true);
   try{
    await prepare();if(token!==generation.current||fadeToken!==fadeVersion.current||!alive.current)return;
    if(!master.current||!ctx.current||ctx.current.state!=='running')throw new Error('Audio nicht bereit');
-   if(!fade.current)fade.current=createScheduledAudioFade(master.current.gain,ctx.current,()=>stop());
+   if(!fade.current)fade.current=createScheduledAudioFade(master.current.gain,ctx.current,()=>stopPlayback(false));
    fade.current.start(3);
   }catch{
    if(token!==generation.current||fadeToken!==fadeVersion.current||!alive.current)return;
@@ -98,7 +98,8 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  useEffect(()=>{setTempo(current=>[1,current[1]]);taps.current[0]=[];},[a]);
  useEffect(()=>{setTempo(current=>[current[0],1]);taps.current[1]=[];},[b]);
  useEffect(()=>{[ar,br].forEach((r,i)=>{if(r.current){r.current.playbackRate=tempo[i];r.current.preservesPitch=true;}});},[tempo]);
- function stop(){padVersion.current++;padStopped.current=true;setPendingPlayer(null);queue.current=null;setQueueName('');generation.current++;refs.forEach(r=>{r.current?.pause();if(r.current)r.current.currentTime=0;});cancelFade();setPlaying([false,false]);setPadActive(null);}
+ function stop(){stopPlayback(true);}
+ function stopPlayback(restoreGain:boolean){padVersion.current++;padStopped.current=true;setPendingPlayer(null);queue.current=null;setQueueName('');generation.current++;refs.forEach(r=>{r.current?.pause();if(r.current)r.current.currentTime=0;});cancelFade(restoreGain);setPlaying([false,false]);setPadActive(null);setPadTime([0,0]);}
  useEffect(()=>{alive.current=true;let active=true;
  void Promise.all([speakerAudioStore<AudioFile[]>('files','all'),speakerAudioStore<unknown>('setups','get',scope)]).then(([rows,saved])=>{if(!active)return;const list=rows.filter(t=>t.scope===scope&&t.file instanceof Blob).map(t=>{const url=URL.createObjectURL(t.file);urls.current.push(url);return {...t,url};});setTracks(list);const config=validateAudioSetup(saved,scope);setSetup(config);setA(config.a);setB(config.b);setPads(config.pads);setReady(true);}).catch(()=>setMessage('Lokale Audiobibliothek ist nicht verfügbar.'));
  const teamSeasonId=scope.split(':')[1];void supabase.from('team_seasons').select('team_id').eq('id',teamSeasonId).maybeSingle().then(async result=>{if(!result.data)return;const team=await supabase.from('teams').select('club_id').eq('id',result.data.team_id).maybeSingle();if(active)setClubId(team.data?.club_id??'');});

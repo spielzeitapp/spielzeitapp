@@ -10,9 +10,9 @@ export function createScheduledAudioFade(
  }
 ){
  let timer:unknown,version=0;
- function cancel(){
+ function cancel(restoreGain=true){
   version++;if(timer!==undefined)timers.cancel(timer);timer=undefined;
-  const now=context.currentTime;gain.cancelScheduledValues(now);gain.setValueAtTime(1,now);
+  const now=context.currentTime;gain.cancelScheduledValues(now);gain.setValueAtTime(restoreGain?1:0,now);
  }
  function start(seconds=3){
   cancel();const token=version,now=context.currentTime;
