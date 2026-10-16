@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Music2, X } from 'lucide-react';
+import { Music2 } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { CommunicationAccessProvider, useCommunicationAccess } from '../../manager/CommunicationAccessContext';
 import { DjAudioPanel } from '../../manager/components/DjAudioPanel';
@@ -27,15 +27,14 @@ export function LiveMusicWindow({ scope, showButton }: { scope: string; showButt
       onCancel={event => { event.preventDefault(); close(); }} onClose={() => setOpen(false)}>
       <header className="live-music-heading">
         <h2 id="live-music-title"><Music2 aria-hidden />Musikplayer</h2>
-        <button type="button" aria-label="Musikfenster schließen und zum Liveticker zurück" onClick={close}><X aria-hidden /></button>
       </header>
-      <p className="live-music-note">Beim Schließen läuft die Musik weiter. Beenden mit „Alles stoppen“.</p>
+      <p className="live-music-note">Musik läuft beim Zurückgehen weiter.</p>
       <div className="speaker-studio speaker-studio--dark">
         {activated ? <DjAudioPanel scope={scope} offlineMusicOnly quickMode={!fullPlayer} /> : null}
       </div>
       <footer className="live-music-footer">
-        <button type="button" onClick={() => setFullPlayer(value => !value)}>{fullPlayer ? 'Schnelltasten' : 'Player öffnen'}</button>
-        <button type="button" onClick={close}>Zurück zum Liveticker</button>
+        <button type="button" onClick={() => setFullPlayer(value => !value)}>{fullPlayer ? 'Schnelltasten' : 'Musik verwalten'}</button>
+        <button type="button" onClick={close}>Zum Liveticker</button>
       </footer>
     </dialog>
   </>;

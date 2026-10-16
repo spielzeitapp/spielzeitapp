@@ -6,13 +6,19 @@ await page.goto('http://127.0.0.1:5173/scripts/fixtures/live-music-preview.html'
 for(const width of [360,402,768,1024]){await page.setViewportSize({width,height:874});const trigger=page.getByRole('button',{name:'Musikplayer',exact:true});assert.equal(await trigger.evaluate(el=>getComputedStyle(el).position),'static','music control must not float over live actions');if(width===402)await trigger.screenshot({path:'/tmp/music-player-toolbar-button.png'});const box=await trigger.boundingBox();assert.ok(box.y<200 && box.x>=0 && box.x+box.width<=width,'music control stays in top toolbar');}
 await page.getByRole('button',{name:'Musikplayer',exact:true}).click();
 await page.locator('.speaker-pad--0 .speaker-pad-transport button').first().click();
-await page.waitForFunction(()=>document.querySelector('.speaker-pad--0 .speaker-pad-progress')?.textContent.includes('LÄUFT'));
+await page.waitForFunction(()=>document.querySelector('.speaker-pad--0 .speaker-pad-progress')?.textContent.includes('Läuft'));
+assert.equal(await page.locator('.speaker-pad--0 .speaker-pad-transport button').count(),1,'one toggle per quick pad');
+await page.getByRole('button',{name:'Torhymne stoppen',exact:true}).click();
+assert.equal(await page.getByRole('button',{name:'Torhymne starten',exact:true}).isEnabled(),true);
+await page.getByRole('button',{name:'Torhymne starten',exact:true}).click();
+assert.equal(await page.locator('.speaker-pad--5 .speaker-pad-transport').count(),0,'empty Siegerlied has no dead buttons');
+assert.equal(await page.locator('.speaker-pad--5').isVisible(),true);
 const playing=await page.evaluate(()=>{const audio=[...document.querySelectorAll('audio')].find(el=>!el.paused);window.playingAudio=audio;return !!audio;});assert.ok(playing);
-await page.getByRole('button',{name:'Zurück zum Liveticker',exact:true}).click();
+await page.getByRole('button',{name:'Zum Liveticker',exact:true}).click();
 assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
 assert.equal(await page.evaluate(()=>window.playingAudio.paused),false,'close must not pause music');
 await page.getByRole('button',{name:'Musikplayer',exact:true}).click();
-await page.getByRole('button',{name:'Player öffnen',exact:true}).click();
+await page.getByRole('button',{name:'Musik verwalten',exact:true}).click();
 assert.equal(await page.evaluate(()=>window.playingAudio===document.querySelectorAll('audio')[2]),true,'expanding must retain audio element');
 assert.equal(await page.evaluate(()=>window.playingAudio.paused),false,'expanding must retain playback');
 assert.equal(await page.locator('.speaker-decks').isVisible(),false,'DJ must be optional, not the default view');
@@ -41,7 +47,7 @@ assert.equal(await page.locator('.speaker-decks').isVisible(),true);
 await page.screenshot({path:'/tmp/organized-music-dj.png'});
 await page.getByRole('button',{name:'Schnelltasten',exact:true}).click();
 for(const width of [360,402,768]){await page.setViewportSize({width,height:874});assert.ok(await page.locator('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth),'dialog overflow at '+width);await page.screenshot({path:'/tmp/live-music-'+width+'.png'});}
-await page.getByRole('button',{name:'ALLES STOPP',exact:true}).click();
+await page.getByRole('button',{name:'Musik stoppen',exact:true}).click();
 assert.equal(await page.evaluate(()=>window.playingAudio.paused),true,'all stop must stop music');
 await page.keyboard.press('Escape');assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
 assert.deepEqual(errors,[]);console.log('Live music: quick pads, close/expand preserves audio, STOP, Escape and responsive dialog passed.');
