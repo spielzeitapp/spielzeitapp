@@ -3,7 +3,7 @@ import {LiveMusicWindow} from '../../src/components/live/LiveMusicDock';
 const buckets:any={files:new Map(),setups:new Map()};
 const scope='account:00000000-0000-0000-0000-000000000000';
 buckets.files.set('goal',{id:'goal',scope,name:'Torhymne.mp3',file:new Blob(['audio'])});
-buckets.setups.set(scope,{id:scope,a:'',b:'',pads:['goal','goal','','','','goal'],playlists:{Teammusik:[]}});
+buckets.setups.set(scope,{id:scope,a:'',b:'',pads:['goal','goal','','','',''],playlists:{Teammusik:[]}});
 const db={close(){},transaction(name:string){const tx:any={objectStore(){return {getAll(){return req([...buckets[name].values()]);},get(key:string){return req(buckets[name].get(key));},put(value:any){buckets[name].set(value.id,value);return req(value.id);}};}};function req(value:any){const request:any={result:value};setTimeout(()=>{request.onsuccess?.();tx.oncomplete?.();},0);return request;}return tx;}};
 Object.defineProperty(window,'indexedDB',{value:{open(){const request:any={};setTimeout(()=>{request.result=db;request.onsuccess?.();},0);return request;}}});
 URL.createObjectURL=()=> 'https://audio.test/clip.mp3';
