@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Square, Mic, Upload, Trash2, Shuffle } from 'lucide-react';
 import {analyzeAudioBpm,bpmFromTaps,syncTempo,validBpm} from '../../lib/audioBpm';
-import {createAudioFade} from '../../lib/audioTransport';
+import {createScheduledAudioFade} from '../../lib/audioTransport';
 import { deckGains } from '../../lib/clubCommunicationsModel';
 import {supabase} from '../../lib/supabaseClient';
 import {AUDIO_CATEGORIES,validPlaylistName,defaultAudioSetup,moveAudio,nextAudio,shuffleAudio,validateAudioSetup,speakerAudioStore,speakerTestWav,prepareSpeakerOffline,type AudioFile,type AudioSetup} from '../../lib/speakerAudio';
@@ -15,8 +15,9 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  const [tempo,setTempo]=useState([1,1]),[fading,setFading]=useState(false),[padTime,setPadTime]=useState([0,0]);
  const [bpmStatus,setBpmStatus]=useState<Record<string,string>>({});
  const taps=useRef<number[][]>([[],[]]);
+ const fadeVersion=useRef(0);
  const analysis=useRef(new Map<string,Promise<number|null>>());
- const master=useRef<GainNode|null>(null),fade=useRef<ReturnType<typeof createAudioFade>|null>(null),padVersion=useRef(0),padStopped=useRef(true);
+ const master=useRef<GainNode|null>(null),fade=useRef<ReturnType<typeof createScheduledAudioFade>|null>(null),padVersion=useRef(0),padStopped=useRef(true);
  const ar=useRef<HTMLAudioElement>(null),br=useRef<HTMLAudioElement>(null),jr=useRef<HTMLAudioElement>(null);
  const ctx=useRef<AudioContext|null>(null),gains=useRef<GainNode[]>([]),urls=useRef<string[]>([]),alive=useRef(true),generation=useRef(0);
  const [setup,setSetup]=useState<AudioSetup>(()=>defaultAudioSetup(scope)),[ready,setReady]=useState(false),[preset,setPreset]=useState(offlineMusicOnly?'Teammusik':'Pause'),[repeat,setRepeat]=useState(false),[queueName,setQueueName]=useState(''),[pendingPlayer,setPendingPlayer]=useState<{token:number}|null>(null),[busy,setBusy]=useState(false),[clubId,setClubId]=useState(''),[cloud,setCloud]=useState<{name:string;path:string}[]>([]),[online,setOnline]=useState(navigator.onLine);
@@ -31,9 +32,21 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  const queue=useRef<{ids:string[];index:number}|null>(null),trackSnapshot=useRef(tracks);trackSnapshot.current=tracks;
  const ids=setup.playlists[preset]??[];const unavailable=ids.filter(id=>!tracks.some(t=>t.id===id));
  const refs=[ar,br,jr];const levels=deckGains(cross,volA,volB,speaking);
- function stopPad(){cancelFade();padVersion.current++;padStopped.current=true;jr.current?.pause();if(jr.current)jr.current.currentTime=0;setPadActive(null);setPadTime([0,0]);}
- function cancelFade(){fade.current?.cancel();setFading(false);}
- function fadeOut(){if(!refs.some(r=>r.current&&!r.current.paused))return;queue.current=null;setQueueName('');generation.current++;if(!fade.current)fade.current=createAudioFade(value=>{if(master.current&&ctx.current)master.current.gain.setTargetAtTime(value,ctx.current.currentTime,.012);},()=>stop());setFading(true);fade.current.start(3);}
+ function stopPad(){padVersion.current++;padStopped.current=true;jr.current?.pause();if(jr.current)jr.current.currentTime=0;cancelFade();setPadActive(null);setPadTime([0,0]);}
+ function cancelFade(){fadeVersion.current++;fade.current?.cancel();setFading(false);}
+ async function fadeOut(){
+  if(fading||!refs.some(r=>r.current&&!r.current.paused))return;
+  queue.current=null;setQueueName('');const token=++generation.current,fadeToken=++fadeVersion.current;setFading(true);
+  try{
+   await prepare();if(token!==generation.current||fadeToken!==fadeVersion.current||!alive.current)return;
+   if(!master.current||!ctx.current||ctx.current.state!=='running')throw new Error('Audio nicht bereit');
+   if(!fade.current)fade.current=createScheduledAudioFade(master.current.gain,ctx.current,()=>stop());
+   fade.current.start(3);
+  }catch{
+   if(token!==generation.current||fadeToken!==fadeVersion.current||!alive.current)return;
+   setFading(false);setMessage('Fade out konnte nicht gestartet werden. Die Musik läuft weiter; Stopp beendet sie sofort.');
+  }
+ }
  function changeTempo(index:number,delta:number){
   const track=trackSnapshot.current.find(t=>t.id===[a,b][index]);
   if(!validBpm(track?.bpm)&&delta!==0)return;
@@ -85,7 +98,7 @@ export function DjAudioPanel({scope,offlineTitle,offlineSections,offlineMusicOnl
  useEffect(()=>{setTempo(current=>[1,current[1]]);taps.current[0]=[];},[a]);
  useEffect(()=>{setTempo(current=>[current[0],1]);taps.current[1]=[];},[b]);
  useEffect(()=>{[ar,br].forEach((r,i)=>{if(r.current){r.current.playbackRate=tempo[i];r.current.preservesPitch=true;}});},[tempo]);
- function stop(){cancelFade();padVersion.current++;padStopped.current=true;setPendingPlayer(null);queue.current=null;setQueueName('');generation.current++;refs.forEach(r=>{r.current?.pause();if(r.current)r.current.currentTime=0;});setPlaying([false,false]);setPadActive(null);}
+ function stop(){padVersion.current++;padStopped.current=true;setPendingPlayer(null);queue.current=null;setQueueName('');generation.current++;refs.forEach(r=>{r.current?.pause();if(r.current)r.current.currentTime=0;});cancelFade();setPlaying([false,false]);setPadActive(null);}
  useEffect(()=>{alive.current=true;let active=true;
  void Promise.all([speakerAudioStore<AudioFile[]>('files','all'),speakerAudioStore<unknown>('setups','get',scope)]).then(([rows,saved])=>{if(!active)return;const list=rows.filter(t=>t.scope===scope&&t.file instanceof Blob).map(t=>{const url=URL.createObjectURL(t.file);urls.current.push(url);return {...t,url};});setTracks(list);const config=validateAudioSetup(saved,scope);setSetup(config);setA(config.a);setB(config.b);setPads(config.pads);setReady(true);}).catch(()=>setMessage('Lokale Audiobibliothek ist nicht verfügbar.'));
  const teamSeasonId=scope.split(':')[1];void supabase.from('team_seasons').select('team_id').eq('id',teamSeasonId).maybeSingle().then(async result=>{if(!result.data)return;const team=await supabase.from('teams').select('club_id').eq('id',result.data.team_id).maybeSingle();if(active)setClubId(team.data?.club_id??'');});

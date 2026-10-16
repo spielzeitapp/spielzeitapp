@@ -13,6 +13,6 @@ Object.defineProperty(HTMLMediaElement.prototype,'currentTime',{configurable:tru
 const pauses:any[]=[];(window as any).pauses=pauses;
 HTMLMediaElement.prototype.play=async function(){Object.defineProperty(this,'paused',{configurable:true,value:false});this.dispatchEvent(new Event('play'));};
 HTMLMediaElement.prototype.pause=function(){pauses.push(this);Object.defineProperty(this,'paused',{configurable:true,value:true});this.dispatchEvent(new Event('pause'));};
-const gain=()=>({gain:{value:1,cancelScheduledValues(){},setTargetAtTime(){}},connect(){}});
-(window as any).AudioContext=class{currentTime=0;destination={};createGain=gain;createMediaElementSource(){return {connect(){}};}createDynamicsCompressor(){return {threshold:{},knee:{},ratio:{},connect(){}};}async resume(){}async close(){}};
+const gain=()=>({gain:{value:1,cancelScheduledValues(){},setTargetAtTime(){},setValueAtTime(){},linearRampToValueAtTime(){}},connect(){}});
+(window as any).AudioContext=class{get currentTime(){return performance.now()/1000;}state='running';destination={};createGain=gain;createMediaElementSource(){return {connect(){}};}createDynamicsCompressor(){return {threshold:{},knee:{},ratio:{},connect(){}};}async resume(){}async close(){}};
 createRoot(document.getElementById('root')!).render(<><h1>Liveticker</h1><LiveMusicWindow scope={scope} showButton/></>);

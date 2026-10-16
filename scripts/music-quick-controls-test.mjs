@@ -14,7 +14,8 @@ test('quick pads toggle start and stop; unused pads have no disabled transport',
 test('fade is only offered for active quick music; immediate stop cancels fade',()=>{
  assert.ok(source.includes('quickMode&&active?<button type="button" className="speaker-quick-fade"'));
  assert.ok(source.includes('disabled={fading} onClick={fadeOut}'));
- assert.ok(source.includes('function stopPad(){cancelFade();'));
+ const stopPad=source.slice(source.indexOf('function stopPad()'),source.indexOf('function cancelFade()'));
+ assert.ok(stopPad.indexOf('pause()')<stopPad.indexOf('cancelFade()'),'pause before resetting gain');
  assert.ok(source.includes('fade.current.start(3)'));
  assert.ok(css.includes('speaker-pad-transport--active{grid-template-columns:1fr 1fr}'));
 });
