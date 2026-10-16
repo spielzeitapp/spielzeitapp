@@ -15,6 +15,30 @@ await page.getByRole('button',{name:'Musikplayer',exact:true}).click();
 await page.getByRole('button',{name:'Player öffnen',exact:true}).click();
 assert.equal(await page.evaluate(()=>window.playingAudio===document.querySelectorAll('audio')[2]),true,'expanding must retain audio element');
 assert.equal(await page.evaluate(()=>window.playingAudio.paused),false,'expanding must retain playback');
+assert.equal(await page.locator('.speaker-decks').isVisible(),false,'DJ must be optional, not the default view');
+for(const width of [360,402,768,1024]){
+ await page.setViewportSize({width,height:874});
+ for(const name of ['Playlists','Bibliothek','DJ-Pult','Spieltag']){
+  await page.getByRole('navigation',{name:'Musikbereiche'}).getByRole('button',{name,exact:name!=='DJ-Pult'}).click();
+  assert.ok(await page.locator('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth),'organized view overflow: '+name+' '+width);
+  assert.equal(await page.evaluate(()=>window.playingAudio.paused),false,'changing views must not pause music');
+ }
+}
+await page.getByRole('navigation',{name:'Musikbereiche'}).getByRole('button',{name:'Playlists',exact:true}).click();
+assert.equal(await page.locator('.speaker-playlist-detail').isVisible(),false,'playlist songs stay closed until collection selected');
+await page.locator('.speaker-playlist-card').filter({hasText:'Teammusik'}).click();
+assert.equal(await page.locator('.speaker-playlist-detail').isVisible(),true);
+await page.getByRole('navigation',{name:'Musikbereiche'}).getByRole('button',{name:'Bibliothek',exact:true}).click();
+assert.equal(await page.locator('.speaker-audio-library').isVisible(),true);
+assert.ok(await page.getByText('Nur auf diesem Gerät',{exact:false}).isVisible());
+assert.equal(await page.getByRole('button',{name:'In Vereinsablage speichern',exact:true}).isVisible(),true);
+await page.getByRole('button',{name:/^Vereinsablage ·/}).click();
+assert.equal(await page.locator('.speaker-cloud-library').isVisible(),true);
+assert.equal(await page.locator('.speaker-audio-library').isVisible(),false);
+await page.getByRole('button',{name:/^Auf diesem Gerät ·/}).click();
+await page.getByRole('navigation',{name:'Musikbereiche'}).getByRole('button',{name:'DJ-Pult',exact:false}).click();
+assert.equal(await page.locator('.speaker-decks').isVisible(),true);
+await page.screenshot({path:'/tmp/organized-music-dj.png'});
 await page.getByRole('button',{name:'Schnelltasten',exact:true}).click();
 for(const width of [360,402,768]){await page.setViewportSize({width,height:874});assert.ok(await page.locator('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth),'dialog overflow at '+width);await page.screenshot({path:'/tmp/live-music-'+width+'.png'});}
 await page.getByRole('button',{name:'ALLES STOPP',exact:true}).click();

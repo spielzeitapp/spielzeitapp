@@ -309,3 +309,41 @@
 }
 @media(prefers-reduced-motion:reduce){.speaker-platter--playing:before{animation:none}}
 .speaker-studio .speaker-deck-buttons>.speaker-deck-play{width:44px;aspect-ratio:1;justify-self:center}
+.speaker-music-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 14px}
+.speaker-studio .speaker-dj--organized{display:block}
+.speaker-studio .speaker-music-nav button{min-height:52px;padding:8px 4px;flex-direction:column;gap:2px;font-size:13px}
+.speaker-music-nav small{font-size:9px;font-weight:400;opacity:.75}
+.speaker-studio .speaker-music-nav button[aria-pressed="true"],.speaker-studio .speaker-library-source button[aria-pressed="true"]{background:#bd142b;color:#fff;border-color:#f34b67}
+.speaker-view-description{font-size:13px;line-height:1.5;margin:0 0 14px}
+.speaker-library-source{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.speaker-dj--organized:not([data-music-view="dj"])>.speaker-decks,
+.speaker-dj--organized:not([data-music-view="dj"])>.speaker-sync-hint,
+.speaker-dj--organized:not([data-music-view="dj"])>.speaker-crossfade,
+.speaker-dj--organized:not([data-music-view="matchday"])>.speaker-pads,
+.speaker-dj--organized:not([data-music-view="library"])>.speaker-library-source,
+.speaker-dj--organized:not([data-music-view="library"])>.speaker-cloud-library,
+.speaker-dj--organized[data-library-source="device"]>.speaker-cloud-library{display:none!important}
+.speaker-dj--organized[data-music-view="matchday"]>.speaker-music-library,
+.speaker-dj--organized[data-music-view="dj"]>.speaker-music-library{display:none!important}
+.speaker-studio .speaker-dj--organized>.speaker-music-library{grid-template-columns:minmax(0,1fr)}
+.speaker-dj--organized[data-music-view="library"] .speaker-playlist-browser,
+.speaker-dj--organized[data-music-view="library"] .speaker-playlist-detail,
+.speaker-dj--organized[data-music-view="playlists"] .speaker-audio-library,
+.speaker-dj--organized[data-music-view="library"][data-library-source="club"]>.speaker-music-library,
+.speaker-dj--organized[data-music-view="playlists"][data-playlist-open="false"] .speaker-playlist-detail,
+.speaker-dj--organized[data-music-view="playlists"][data-playlist-open="true"] .speaker-playlist-browser{display:none!important}
+.speaker-studio .speaker-dj--organized .speaker-playlist-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));max-height:none;overflow:visible;gap:10px}
+.speaker-studio .speaker-dj--organized .speaker-playlist-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-height:112px;padding:14px;gap:6px}
+.speaker-dj--organized .speaker-playlist-cover{font-size:24px}
+.speaker-dj--organized .speaker-library-track{padding:14px;border:1px solid #64748b55;border-radius:14px;margin:10px 0;display:flex;flex-wrap:wrap;gap:8px}
+.speaker-dj--organized .speaker-library-track>span{flex-basis:100%;overflow-wrap:anywhere}
+.speaker-dj--organized .speaker-library-track small{display:block;margin:5px 0;font-size:12px}
+.speaker-dj--organized .speaker-library-track .speaker-library-deck{display:none}
+.speaker-dj--organized .speaker-track-details{flex-basis:100%;margin-top:4px}
+.speaker-test-files{font-size:12px;margin:10px 0}
+.speaker-studio .speaker-dj--organized>.speaker-master-actions{position:sticky;top:0;z-index:3;padding:8px 0;background:inherit;display:flex;flex-wrap:wrap;gap:8px}
+.speaker-dj--organized>.speaker-master-actions .speaker-stop{margin-left:auto}
+.speaker-dj--organized>.speaker-pads .speaker-pad--1{order:-3}
+.speaker-dj--organized>.speaker-pads .speaker-pad--0{order:-2}
+.speaker-dj--organized>.speaker-pads .speaker-pad--5{order:-1}
+@media(max-width:700px){.speaker-studio .speaker-dj--organized .speaker-playlist-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.speaker-dj--organized>.speaker-pads{grid-template-columns:repeat(2,minmax(0,1fr))}.speaker-studio .speaker-dj--organized>.speaker-master-actions button{font-size:11px;padding:9px 7px}.speaker-dj--organized .speaker-library-track>button{max-width:100%;font-size:12px}}
