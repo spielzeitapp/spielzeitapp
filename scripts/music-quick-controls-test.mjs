@@ -7,9 +7,16 @@ const css=fs.readFileSync(new URL('../src/components/live/liveMusicDock.css',imp
 test('quick pads toggle start and stop; unused pads have no disabled transport',()=>{
  assert.ok(source.includes("quickMode&&active?stopPad():playPad(i)"));
  assert.ok(source.includes('disabled={!track||(!quickMode&&active)}'));
- assert.ok(source.includes('!quickMode||track?<div className="speaker-pad-transport">'));
+ assert.ok(source.includes("!quickMode||track?<div className={'speaker-pad-transport'"));
  assert.ok(source.includes('!quickMode?<button type="button" className="speaker-pad-stop"'));
  assert.ok(source.includes("quickMode?'Musik stoppen':'ALLES STOPP'"));
+});
+test('fade is only offered for active quick music; immediate stop cancels fade',()=>{
+ assert.ok(source.includes('quickMode&&active?<button type="button" className="speaker-quick-fade"'));
+ assert.ok(source.includes('disabled={fading} onClick={fadeOut}'));
+ assert.ok(source.includes('function stopPad(){cancelFade();'));
+ assert.ok(source.includes('fade.current.start(3)'));
+ assert.ok(css.includes('speaker-pad-transport--active{grid-template-columns:1fr 1fr}'));
 });
 test('Siegerlied replaces old defaults without replacing custom pad names or file IDs',()=>{
  assert.ok(source.includes("custom==='Outro'||custom==='Feiermusik'"));

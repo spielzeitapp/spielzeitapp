@@ -51,3 +51,5 @@
 .live-music-dialog .speaker-dj--quick .speaker-pad--empty{display:grid;grid-template-columns:minmax(0,1fr);gap:3px}
 .live-music-dialog .speaker-dj--quick .speaker-pad--empty .speaker-pad-file{margin:0;font-size:11px;white-space:normal}
 .live-music-footer button{flex:1;white-space:normal}
+.live-music-dialog .speaker-dj--quick .speaker-pad-transport--active{grid-template-columns:1fr 1fr}
+.live-music-dialog .speaker-dj--quick .speaker-pad-transport .speaker-quick-fade{background:#223044;border-color:#64748b;color:#fff;font-size:13px!important;white-space:normal}

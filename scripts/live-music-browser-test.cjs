@@ -7,9 +7,12 @@ for(const width of [360,402,768,1024]){await page.setViewportSize({width,height:
 await page.getByRole('button',{name:'Musikplayer',exact:true}).click();
 await page.locator('.speaker-pad--0 .speaker-pad-transport button').first().click();
 await page.waitForFunction(()=>document.querySelector('.speaker-pad--0 .speaker-pad-progress')?.textContent.includes('Läuft'));
-assert.equal(await page.locator('.speaker-pad--0 .speaker-pad-transport button').count(),1,'one toggle per quick pad');
+assert.equal(await page.locator('.speaker-pad--0 .speaker-pad-transport button').count(),2,'running pad has stop and fade');
+await page.getByRole('button',{name:'Torhymne in 3 Sekunden ausblenden',exact:true}).click();
+assert.equal(await page.getByRole('button',{name:'Torhymne in 3 Sekunden ausblenden',exact:true}).isDisabled(),true);
 await page.getByRole('button',{name:'Torhymne stoppen',exact:true}).click();
 assert.equal(await page.getByRole('button',{name:'Torhymne starten',exact:true}).isEnabled(),true);
+assert.equal(await page.locator('.speaker-quick-fade').count(),0,'fade disappears after stopping');
 await page.getByRole('button',{name:'Torhymne starten',exact:true}).click();
 assert.equal(await page.locator('.speaker-pad--5 .speaker-pad-transport').count(),0,'empty Siegerlied has no dead buttons');
 assert.equal(await page.locator('.speaker-pad--5').isVisible(),true);
