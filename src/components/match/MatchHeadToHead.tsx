@@ -9,7 +9,7 @@ import { filterHeadToHead, summarizeHeadToHead, type HeadToHeadMatch } from '../
 
 type Props = {
   matchId?: string; eventId?: string; teamSeasonId: string; preview?: boolean; ownTeamName?: string; opponentName?: string;
-  ownLogoSrc?: string; opponentLogoSrc?: string; canManage?: boolean;
+  ownLogoSrc?: string; opponentLogoSrc?: string; canManage?: boolean; title?: string; onOpenMatch?: (id: string) => void;
 };
 type OpponentProposal = { current_name: string; candidate_name: string; match_count: number };
 const dateFormat = new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna' });
@@ -21,7 +21,7 @@ function Logo({ src }: { src: string }) {
 
 /** Only result metadata is confirmed; historical scores and archive state stay untouched. */
 export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = false, ownTeamName: fallbackTeamName = getOurTeamDisplayName(), opponentName,
-  ownLogoSrc, opponentLogoSrc, canManage = false }: Props) {
+  ownLogoSrc, opponentLogoSrc, canManage = false, title, onOpenMatch }: Props) {
   const { teamSeasons } = useSession();
   const contextSeason = teamSeasons.find(s => s.id === teamSeasonId);
   const ownTeamName = contextSeason ? resolveTeamSeasonLabelParts({
@@ -113,7 +113,7 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
   }
   return <section aria-label={preview ? "Spielvorschau: direkter Vergleich" : "Direkter Vergleich"} className="rounded-2xl border border-white/10 bg-black/40 p-3 sm:p-4">
     <div className="flex items-center justify-between gap-2">
-      <h2 className="text-sm font-bold uppercase tracking-wider text-white">{preview ? "Duellvorschau" : "Direkter Vergleich"}</h2>
+      <h2 className="text-sm font-bold uppercase tracking-wider text-white">{title ?? (preview ? "Duellvorschau" : "Direkter Vergleich")}</h2>
       <button type="button" aria-label="Informationen zum direkten Vergleich" aria-expanded={showInfo} onClick={() => setShowInfo(v => !v)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10"><Info size={18} /></button>
     </div>
     <p className="text-[11px] text-white/55">Aus Sicht von {ownTeamName} · inklusive Archiv</p>
@@ -186,6 +186,7 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
                 <p className="min-w-0 break-words text-xs font-semibold text-white">{historicalClubName}<span className="my-0.5 block text-[10px] font-normal text-white/40">gegen</span>{m.opponent}</p>
                 <div className={`shrink-0 text-right ${color}`}><strong className="text-xl tabular-nums">{resolved ? `${m.team_goals}:${m.opponent_goals}` : '—'}</strong><p className="text-[10px]">{outcome}</p></div>
               </div>
+              {onOpenMatch && <button type="button" onClick={() => onOpenMatch(m.id)} className="mt-1 min-h-11 text-xs font-semibold text-white/75 underline">Zur Zusammenfassung</button>}
               {!resolved && <p className="mt-2 text-[10px] text-white/55">{m.side_known === false ? `Gespeichert: ${m.stored_score_home ?? '—'}:${m.stored_score_away ?? '—'} · Torzuordnung fehlt.` : 'Gespeichert: 0:0 · Endstand noch nicht bestätigt.'}</p>}
               {canManage && matchId && stored && (!resolved || (m.is_home == null && !m.is_tournament)) && <details className="mt-1 text-xs text-white/70">
                 <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-amber-200">{resolved ? 'Torzuordnung ändern' : 'Ergebnis prüfen'}</summary>
