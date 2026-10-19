@@ -1,3 +1,4 @@
+import { resolveFeedMediaUrl } from './feedMediaUrl';
 import { matchdayPosterDomToPngBlob } from './matchdayPosterExport';
 
 export async function prepareWhatsAppStatusFile(root: HTMLElement): Promise<File | null> {
@@ -13,7 +14,10 @@ export async function prepareWhatsAppStatusFile(root: HTMLElement): Promise<File
   }
   const image = root.querySelector<HTMLImageElement>('[data-whatsapp-status-image]');
   if (image?.src) {
-    const response = await fetch(image.src);
+    const original = image.dataset.feedOriginalMedia;
+    const source = original ? await resolveFeedMediaUrl(original) : image.src;
+    if (!source) return null;
+    const response = await fetch(source);
     if (!response.ok) return null;
     const blob = await response.blob();
     if (!blob.type.startsWith('image/') || blob.size < 64) return null;

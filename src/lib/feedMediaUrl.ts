@@ -4,6 +4,8 @@ import { supabase } from './supabaseClient';
 const SIGNED_TTL_SEC = 60 * 60 * 24 * 7;
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 6;
 const CACHE_PREFIX = 'spz_feed_media_v1:';
+export type FeedMediaVariant = 'original' | 'feed';
+const pending = new Map<string, Promise<string | null>>();
 const memoryCache = new Map<string, { url: string; expiresAt: number }>();
 
 function storageCacheKey(raw: string): string {
@@ -42,15 +44,20 @@ function cacheUrl(raw: string, url: string): string {
   return url;
 }
 
-export function getCachedFeedMediaUrl(raw: string | null | undefined): string | null {
+/** Only static photos in team-feed use resizing; clips and external/demo assets keep their route. */
+function previewKey(raw: string, variant: FeedMediaVariant): string {
+  return variant === 'feed' && /\.(?:jpe?g|png|webp|avif|heic)$/i.test(raw)
+    ? `feed-960-q75:${raw}` : raw;
+}
+
+export function getCachedFeedMediaUrl(raw: string | null | undefined, variant: FeedMediaVariant = 'original'): string | null {
   const s = raw?.trim();
   if (!s) return null;
-  // Mitgelieferte Site-Assets (z. B. Demo-Fotos) sind keine Storage-Bucket-Pfade.
   if (s.startsWith('/')) return s;
   // Youth match clips are short-lived and revocable; never persist a signed URL.
   if (s.startsWith('match-videos/')) return null;
   if (isAbsoluteFeedMediaUrl(s) && !/\/object\/public\/team-feed\//i.test(s)) return s;
-  return readCachedUrl(s);
+  return readCachedUrl(previewKey(s, variant));
 }
 
 export function isAbsoluteFeedMediaUrl(raw: string | null | undefined): boolean {
@@ -58,11 +65,8 @@ export function isAbsoluteFeedMediaUrl(raw: string | null | undefined): boolean 
   return /^https?:\/\//i.test(raw.trim());
 }
 
-/**
- * Löst media_url auf: Legacy https-URL unverändert (außer alte Public-URLs → Pfad → signiert),
- * sonst Pfad im Bucket `team-feed` → signierte URL.
- */
-export async function resolveFeedMediaUrl(raw: string | null | undefined): Promise<string | null> {
+/** Original for opening/sharing; separately cached, signed 960px version for the feed. */
+export async function resolveFeedMediaUrl(raw: string | null | undefined, variant: FeedMediaVariant = 'original'): Promise<string | null> {
   const s = raw?.trim();
   if (!s) return null;
   if (s.startsWith('/')) return s;
@@ -70,21 +74,26 @@ export async function resolveFeedMediaUrl(raw: string | null | undefined): Promi
     const { data, error } = await supabase.storage.from('match-videos').createSignedUrl(s.slice('match-videos/'.length), 300);
     return error ? null : data?.signedUrl ?? null;
   }
-  const cached = getCachedFeedMediaUrl(s);
+  const cached = getCachedFeedMediaUrl(s, variant);
   if (cached) return cached;
-  if (isAbsoluteFeedMediaUrl(s)) {
-    const pub = /\/object\/public\/team-feed\/(.+)$/i.exec(s);
-    if (pub?.[1]) {
-      const inner = decodeURIComponent(pub[1]);
-      const { data, error } = await supabase.storage.from('team-feed').createSignedUrl(inner, SIGNED_TTL_SEC);
-      if (!error && data?.signedUrl) return cacheUrl(s, data.signedUrl);
+  const key = previewKey(s, variant);
+  const inProgress = pending.get(key);
+  if (inProgress) return inProgress;
+  const request = (async () => {
+    let path = s;
+    if (isAbsoluteFeedMediaUrl(s)) {
+      const pub = /\/object\/public\/team-feed\/(.+)$/i.exec(s);
+      if (!pub?.[1]) return s;
+      try { path = decodeURIComponent(pub[1]); } catch { return s; }
     }
-    return s;
-  }
-  const { data, error } = await supabase.storage.from('team-feed').createSignedUrl(s, SIGNED_TTL_SEC);
-  if (error || !data?.signedUrl) {
+    const options = key !== s ? { transform: { width: 960, quality: 75, resize: 'contain' as const } } : undefined;
+    const { data, error } = await supabase.storage.from('team-feed').createSignedUrl(path, SIGNED_TTL_SEC, options);
+    if (!error && data?.signedUrl) return cacheUrl(key, data.signedUrl);
+    // A disabled transformation service must never hide a photo.
+    if (options) return resolveFeedMediaUrl(s, 'original');
     console.warn('[resolveFeedMediaUrl]', error?.message ?? 'keine signedUrl');
-    return null;
-  }
-  return cacheUrl(s, data.signedUrl);
+    return isAbsoluteFeedMediaUrl(s) ? s : null;
+  })();
+  pending.set(key, request);
+  try { return await request; } finally { pending.delete(key); }
 }
