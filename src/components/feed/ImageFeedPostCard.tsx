@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
+import { Modal } from '../../app/ui/Modal';
+import { resolveFeedMediaUrl } from '../../lib/feedMediaUrl';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { shareFeedContent } from '../../lib/feedShare';
 import { compactMatchdayCaption } from '../../lib/matchdayShareText';
@@ -34,6 +36,15 @@ function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
 }
 
+function OriginalFeedPhoto({ raw, onClose }: { raw: string | null; onClose: () => void }) {
+  const src = useFeedMediaSrc(raw);
+  const [failed, setFailed] = useState(false);
+  return <Modal isOpen title="Foto" onClose={onClose}>
+    {src && !failed ? <img src={src} alt="Team-Foto in voller Größe" className="h-auto w-full object-contain" onError={() => setFailed(true)} />
+      : <p role="status" className="py-6 text-center text-sm text-white/60">{failed ? 'Foto konnte nicht geladen werden.' : 'Foto wird geladen…'}</p>}
+  </Modal>;
+}
+
 export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabel, staffCanDelete, onFeedPostDeleted, onFeedPostUpdated }) => {
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
@@ -41,9 +52,13 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
   const [imageFailed, setImageFailed] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const brandedImageRef = useRef<HTMLDivElement>(null);
-  const resolvedSrc = useFeedMediaSrc(post.media_url);
+  const [useOriginal, setUseOriginal] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const resolvedSrc = useFeedMediaSrc(post.media_url, useOriginal ? 'original' : 'feed');
 
   useEffect(() => {
+    setUseOriginal(false);
+    setPhotoOpen(false);
     setImageLoaded(false);
     setImageFailed(false);
     setImageAspectRatio(null);
@@ -79,7 +94,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
     const outcome = await shareFeedContent({
       title,
       text,
-      fetchUrl: brandedBlob ? null : resolvedSrc,
+      fetchUrl: brandedBlob ? null : await resolveFeedMediaUrl(post.media_url),
       file: brandedBlob ? new File([brandedBlob], `spielzeit-feed-${post.id.slice(0, 8)}.png`, { type: 'image/png' }) : null,
       fileName: brandedBlob ? `spielzeit-feed-${post.id.slice(0, 8)}.png` : `spielzeit-feed-${post.id.slice(0, 8)}.${ext}`,
       mimeType: brandedBlob ? 'image/png' : mime,
@@ -98,6 +113,8 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
 
   return (
+    <>
+    {photoOpen ? <OriginalFeedPhoto raw={post.media_url} onClose={() => setPhotoOpen(false)} /> : null}
     <FeedPostArticleShell
       className=""
       style={{ boxShadow: FEED_STADIUM_ARTICLE_SHADOW }}
@@ -124,8 +141,15 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
         >
           {resolvedSrc && !imageFailed ? (
             <img
+              key={`${post.media_url}:${useOriginal}`}
               src={resolvedSrc}
               data-whatsapp-status-image
+              data-feed-original-media={post.media_url ?? undefined}
+              role="button"
+              tabIndex={0}
+              aria-label="Foto in voller Größe öffnen"
+              onClick={() => setPhotoOpen(true)}
+              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setPhotoOpen(true); } }}
               alt=""
               className={`h-full w-full object-contain transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
@@ -137,7 +161,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
                 }
                 setImageLoaded(true);
               }}
-              onError={() => setImageFailed(true)}
+              onError={() => { if (!useOriginal) setUseOriginal(true); else setImageFailed(true); }}
             />
           ) : null}
           {post.id.startsWith('df-') && imageLoaded ? (
@@ -165,5 +189,6 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, seasonLabe
         </FeedPostActionsFooter>
       </div>
     </FeedPostArticleShell>
+    </>
   );
 };
