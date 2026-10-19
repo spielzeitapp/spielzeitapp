@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ArrowLeftRight, ChevronRight } from 'lucide-react';
 import type { SeasonMatchCardData } from '../../lib/seasonMatchStats';
 import { seasonMatchCardHref } from '../../lib/seasonMatchStats';
 import { getClubLogo } from '../../lib/teamLogos';
@@ -13,6 +13,7 @@ type Props = {
   match: SeasonMatchCardData;
   ourTeamName: string;
   footerSlot?: React.ReactNode;
+  onCompare?: () => void;
   variant?: 'standard' | 'appearance';
 };
 
@@ -100,7 +101,7 @@ function headerBadge(match: SeasonMatchCardData): string {
   return 'Geplant';
 }
 
-export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlot, variant = 'standard' }) => {
+export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlot, onCompare, variant = 'standard' }) => {
   const appearance = variant === 'appearance';
   const navigate = useNavigate();
   const basePath = useInternalBasePath();
@@ -178,6 +179,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
       onKeyDown={
         clickable
           ? (e) => {
+              if (e.target !== e.currentTarget) return;
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 handleClick();
@@ -255,8 +257,8 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
           </div>
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/[0.07] pt-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.07] pt-2">
+          <div className={`flex min-w-0 flex-1 items-center gap-2 ${onCompare ? 'basis-full' : ''}`}>
             {homeAwayLabel && !appearance ? (
               <span
                 className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
@@ -272,6 +274,13 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
               <p className="line-clamp-1 min-w-0 text-[12px] leading-snug text-white/50">{venue}</p>
             ) : null}
           </div>
+          {onCompare ? (
+            <button type="button" onClick={(event) => { event.stopPropagation(); onCompare(); }}
+              aria-label={`Vergleich gegen ${oppName}`}
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[11px] font-semibold text-white/80 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400">
+              <ArrowLeftRight size={15} aria-hidden />Vergleich
+            </button>
+          ) : null}
           {clickable ? (
             <div className="flex shrink-0 items-center gap-1 text-white/45">
               <span className="text-[11px] font-semibold">{appearance ? 'Zum Spiel' : 'Details'}</span>
