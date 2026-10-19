@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } fro
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Bus,
+  ArrowLeftRight,
   BarChart3,
   CalendarDays,
   CalendarPlus,
@@ -523,7 +524,7 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
-  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos'>('hub');
+  const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos' | 'comparison'>('hub');
   const [matchRowLite, setMatchRowLite] = useState<{
     id: string;
     status: string | null;
@@ -2039,6 +2040,7 @@ export const EventDetailPage: React.FC = () => {
       { id: 'lineup', label: 'Aufstellung', detail: 'Formation', icon: Shirt },
       { id: 'timeline', label: 'Liveticker', detail: 'Spielverlauf', icon: Radio },
       { id: 'stats', label: 'Statistik', detail: 'Einsatzzeiten', icon: BarChart3 },
+      ...(!isDemo && event.team_season_id ? [{ id: 'comparison', label: 'Vergleich', detail: 'Bisherige Begegnungen', icon: ArrowLeftRight }] : []),
       ...(event.match_id ? [{ id: 'videos', label: 'Videos', detail: 'Highlights · Spielszenen · Analyse', icon: Clapperboard }] : []),
     ] as const;
 
@@ -2835,6 +2837,15 @@ export const EventDetailPage: React.FC = () => {
             <div className="rounded-2xl border border-red-500/25 bg-red-950/40 p-3 text-sm text-red-100">
               {matchError}
             </div>
+          ) : null}
+
+          {finishedTab === 'comparison' && !isDemo && event.team_season_id ? (
+            <MatchHeadToHead title="Vergleich" eventId={event.id} matchId={event.match_id ?? undefined}
+              teamSeasonId={event.team_season_id} ownTeamName={ourTeamName}
+              opponentName={event.opponent ?? undefined}
+              opponentLogoSrc={getClubLogo(event.opponent ?? '', { logoUrl: event.opponent_logo_url })}
+              canManage={canTrainerManageEvent}
+              onOpenMatch={(id) => navigate(`${basePath}/live?matchId=${encodeURIComponent(id)}`)} />
           ) : null}
 
           {finishedTab === 'videos' && event.match_id ? (
