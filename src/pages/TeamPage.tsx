@@ -39,6 +39,9 @@ import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TeamTrainingDashboard } from "../components/team/TeamTrainingDashboard";
 import { TeamTrainingPublicOverview } from "../components/team/TeamTrainingPublicOverview";
 import { SeasonMatchSummaryCard } from "../components/team/SeasonMatchSummaryCard";
+import { Modal } from "../app/ui/Modal";
+import { MatchHeadToHead } from "../components/match/MatchHeadToHead";
+import type { SeasonMatchCardData } from "../lib/seasonMatchStats";
 import { SeasonMatchCard } from "../components/team/SeasonMatchCard";
 import { useSeasonMatchBoard } from "../hooks/useSeasonMatchBoard";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
@@ -210,6 +213,8 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const canViewTrainingKaiser = isDemo || canManageMatches(roleNormalized);
   const tabsReady = isDemo || (!sessionLoading && !tsLoading);
 
+  const [comparisonMatch, setComparisonMatch] = useState<SeasonMatchCardData | null>(null);
+  useEffect(() => { setComparisonMatch(null); }, [teamSeasonId]);
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -900,6 +905,15 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
 
   return (
     <>
+    {comparisonMatch && teamSeasonId ? (
+      <Modal isOpen title="Vergleich" onClose={() => setComparisonMatch(null)}>
+        <MatchHeadToHead key={comparisonMatch.id} title="Vergleich"
+          matchId={comparisonMatch.id} eventId={comparisonMatch.eventId ?? undefined}
+          teamSeasonId={teamSeasonId} ownTeamName={heroTeamName}
+          opponentName={comparisonMatch.opponent ?? undefined}
+          onOpenMatch={(id) => { setComparisonMatch(null); navigate(`${basePath}/live?matchId=${encodeURIComponent(id)}`); }} />
+      </Modal>
+    ) : null}
     {selectedProfilePlayer ? (
       <PlayerProfileModal
         player={selectedProfilePlayer}
@@ -1344,7 +1358,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
                   <p className="sz-club-accent-text mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em]">
                     Nächstes Spiel
                   </p>
-                  <SeasonMatchCard match={upcomingMatches[0]} ourTeamName={heroTeamName} />
+                  <SeasonMatchCard match={upcomingMatches[0]} ourTeamName={heroTeamName} onCompare={!isDemo ? () => setComparisonMatch(upcomingMatches[0]) : undefined} />
                 </div>
               ) : null}
 
@@ -1375,7 +1389,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
                   <ul className="space-y-2.5">
                     {recentSeasonMatches.map((m) => (
                       <li key={m.id}>
-                        <SeasonMatchCard match={m} ourTeamName={heroTeamName} />
+                        <SeasonMatchCard match={m} ourTeamName={heroTeamName} onCompare={!isDemo ? () => setComparisonMatch(m) : undefined} />
                       </li>
                     ))}
                   </ul>
