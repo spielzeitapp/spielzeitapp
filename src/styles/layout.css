@@ -204,3 +204,28 @@ body {
 body[data-live-edit-dialog-open] [data-app-bottom-nav] {
   display: none;
 }
+
+/* N5: iOS Homescreen may report 812px on a full 874px screen until a gesture.
+ * Anchor the navigation to the recovered app frame, rather than WebKit's stale
+ * fixed-position viewport. This applies only to the validated fullscreen case.
+ */
+html[data-ios-standalone-fullscreen],
+html[data-ios-standalone-fullscreen] body {
+  height: var(--app-standalone-height);
+  min-height: 0;
+  overflow: hidden;
+}
+html[data-ios-standalone-fullscreen] #root,
+html[data-ios-standalone-fullscreen] .appShell,
+html[data-ios-standalone-fullscreen] .app--internal {
+  height: var(--app-standalone-height);
+  min-height: 0;
+  max-height: var(--app-standalone-height);
+}
+html[data-ios-standalone-fullscreen] #root {
+  position: relative;
+}
+html[data-ios-standalone-fullscreen] [data-app-bottom-nav] {
+  position: absolute;
+  bottom: 0;
+}
