@@ -35,7 +35,7 @@ export type PlayerLastMatchRow = {
   goals: number;
   wasStarter: boolean;
   /** UI: 'full' | 'sub_in' | 'bank' | 'partial' (z. B. ausgewechselt) */
-  badgeKind: 'full' | 'sub_in' | 'bank' | 'partial';
+  badgeKind: 'full' | 'sub_in' | 'bank' | 'partial' | 'absent';
   badgeLabel: string;
   subInDisplayMinute: number | null;
   scoreHome: number;
@@ -409,12 +409,23 @@ async function fetchKickoffSnapshots(matchIds: string[]): Promise<SnapshotRow[]>
   return all;
 }
 
+async function fetchNoShowPairs(matchIds: string[]): Promise<Set<string>> {
+  const pairs = new Set<string>();
+  for (const batch of chunk(matchIds, 80)) {
+    const { data, error } = await supabase.from('match_no_shows').select('match_id, player_id').in('match_id', batch).is('reverted_at', null);
+    if (error) { console.warn('[playerStatsService] match_no_shows', error.message); continue; }
+    for (const row of data ?? []) pairs.add(`${row.match_id}:${row.player_id}`);
+  }
+  return pairs;
+}
+
 function aggregateForPlayer(
   playerId: string,
   matches: MatchRow[],
   events: EventRow[],
   snapshots: SnapshotRow[],
   lineupFallback: Map<string, Set<string>>,
+  noShows: Set<string> = new Set(),
 ): { stats: PlayerSeasonStats; lastMatches: PlayerLastMatchRow[] } {
   const pid = playerId?.trim();
   if (!pid || matches.length === 0) {
@@ -440,6 +451,14 @@ function aggregateForPlayer(
 
   for (const m of matches) {
     const mid = m.id;
+    if (noShows.has(`${mid}:${pid}`)) {
+      const sh = Number(m.score_home ?? 0), sa = Number(m.score_away ?? 0);
+      lastRows.push({match_id: mid, opponent: m.opponent || 'Gegner', date: m.match_date,
+        dateLabel: formatDateLabel(m.match_date), result: `${sh}:${sa}`, minutes: 0, goals: 0,
+        wasStarter: false, badgeKind: 'absent', badgeLabel: 'Nicht erschienen', subInDisplayMinute: null,
+        scoreHome: sh, scoreAway: sa, isHome: m.isHome ?? null, location: m.location ?? null});
+      continue;
+    }
     if (!playerAppearedInMatch(mid, pid, kickoffByMatch, eventsByMatch)) continue;
 
     games += 1;
@@ -528,13 +547,14 @@ export async function getPlayerSeasonStats(
     };
   }
 
-  const [events, snapshots, lineupFallback] = await Promise.all([
+  const [events, snapshots, lineupFallback, noShows] = await Promise.all([
     fetchEventsForMatches(matchIds),
     fetchKickoffSnapshots(matchIds),
     fetchLineupFallbackPlayerSets(matchIds),
+    fetchNoShowPairs(matchIds),
   ]);
 
-  const { stats } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback);
+  const { stats } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback, noShows);
   return { data: stats, error: null };
 }
 
@@ -547,13 +567,14 @@ export async function getPlayerLastMatches(
   const matchIds = matches.map((m) => m.id);
   if (matchIds.length === 0) return { data: [], error: null };
 
-  const [events, snapshots, lineupFallback] = await Promise.all([
+  const [events, snapshots, lineupFallback, noShows] = await Promise.all([
     fetchEventsForMatches(matchIds),
     fetchKickoffSnapshots(matchIds),
     fetchLineupFallbackPlayerSets(matchIds),
+    fetchNoShowPairs(matchIds),
   ]);
 
-  const { lastMatches } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback);
+  const { lastMatches } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback, noShows);
   return { data: lastMatches, error: null };
 }
 
@@ -707,12 +728,13 @@ async function aggregateMatchesForPlayer(
     return { stats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], error: null };
   }
   const matchIds = matches.map((m) => m.id);
-  const [events, snapshots, lineupFallback] = await Promise.all([
+  const [events, snapshots, lineupFallback, noShows] = await Promise.all([
     fetchEventsForMatches(matchIds),
     fetchKickoffSnapshots(matchIds),
     fetchLineupFallbackPlayerSets(matchIds),
+    fetchNoShowPairs(matchIds),
   ]);
-  const { stats, lastMatches } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback);
+  const { stats, lastMatches } = aggregateForPlayer(playerId, matches, events, snapshots, lineupFallback, noShows);
   return { stats, lastMatches, error: null };
 }
 

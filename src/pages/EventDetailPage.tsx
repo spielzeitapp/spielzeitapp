@@ -71,6 +71,7 @@ import {
   trainingAttendanceToDb,
   type TrainingAttendanceStatus,
 } from '../lib/trainingAttendance';
+import { FinishedMatchAttendance } from '../components/match/FinishedMatchAttendance';
 import { MatchHeadToHead } from '../components/match/MatchHeadToHead';
 import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
 import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
@@ -551,6 +552,7 @@ export const EventDetailPage: React.FC = () => {
   const [editSwitchOutPlayerId, setEditSwitchOutPlayerId] = useState('');
   const [editSwitchInPlayerId, setEditSwitchInPlayerId] = useState('');
   const [lineupRows, setLineupRows] = useState<Array<{ player_id: string | null; slot: string | null }>>([]);
+  const [attendanceRevision, setAttendanceRevision] = useState(0);
   const [benchRows, setBenchRows] = useState<Array<{ player_id: string | null }>>([]);
   const [kickoffPlayerIds, setKickoffPlayerIds] = useState<string[]>([]);
   const [lineupLoading, setLineupLoading] = useState(false);
@@ -913,7 +915,7 @@ export const EventDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [event?.match_id, isFinishedMatchEvent]);
+  }, [event?.match_id, isFinishedMatchEvent, attendanceRevision]);
 
   const recomputeTotalsFromMatchEvents = useCallback((rows: MatchEventRow[]) => countStadiumGoalsFromMatchEventRows(rows), []);
 
@@ -2993,6 +2995,13 @@ export const EventDetailPage: React.FC = () => {
                 )
               ) : null}
             </div>
+          ) : null}
+
+          {finishedTab === 'lineup' && !isDemo && event.match_id ? (
+            <FinishedMatchAttendance key={event.match_id} matchId={event.match_id}
+              players={players.map(p => ({ id: p.id, name: p.display_name || p.name || 'Spieler' }))}
+              benchIds={benchRows.map(p => p.player_id).filter((id): id is string => Boolean(id))}
+              canManage={canTrainerManageEvent} onChanged={() => setAttendanceRevision(value => value + 1)} />
           ) : null}
 
           {finishedTab === 'stats' ? (

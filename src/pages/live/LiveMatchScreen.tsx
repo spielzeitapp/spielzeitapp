@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { FinishedMatchAttendance } from '../../components/match/FinishedMatchAttendance';
 import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
 import { ArrowLeft, BarChart3, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
@@ -5833,6 +5834,13 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 )}
               </section>
+        {matchIsFinished && !isDemo && effectiveMatchId ? (
+          <FinishedMatchAttendance key={effectiveMatchId} matchId={effectiveMatchId}
+            players={roster.map(p => ({ id: p.id, name: p.name || 'Spieler' }))}
+            benchIds={safeBenchRows.map(p => p.id).filter((id): id is string => Boolean(id))}
+            canManage={canControlLiveMatch} onChanged={() => { void reloadLiveMatchState(); }} />
+        ) : null}
+
             </div>
           </div>
         )}
