@@ -1,4 +1,5 @@
 import { useLayoutEffect } from 'react';
+import { standaloneFullscreenHeight } from '../lib/standaloneViewport';
 import { forceReleaseBodyScrollLocks, hasActiveBodyScrollLocks } from '../lib/bodyScrollLock';
 
 /**
@@ -22,20 +23,39 @@ function applyViewportVars(): void {
   const root = document.documentElement;
 
   const innerH = window.innerHeight;
+  const vv = window.visualViewport;
+  const active = document.activeElement;
+  const editing = active instanceof HTMLElement && (active.isContentEditable || active.matches('input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select'));
+  const fullscreenHeight = standaloneFullscreenHeight({
+    ios: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
+    standalone: window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,
+    screenWidth: window.screen.width, screenHeight: window.screen.height,
+    innerWidth: window.innerWidth, innerHeight: innerH,
+    visibleHeight: vv?.height ?? innerH, visibleTop: vv?.offsetTop ?? 0,
+    scale: vv?.scale ?? 1, editing,
+  });
+  if (fullscreenHeight !== null) {
+    root.dataset.iosStandaloneFullscreen = 'true';
+    root.dataset.viewportSource = 'ios-homescreen';
+    root.style.setProperty('--app-standalone-height', `${fullscreenHeight}px`);
+  } else {
+    delete root.dataset.iosStandaloneFullscreen;
+    root.style.removeProperty('--app-standalone-height');
+    root.dataset.viewportSource = 'viewport';
+  }
   if (Number.isFinite(innerH) && innerH > 0) {
-    root.style.setProperty('--app-vh', `${innerH * 0.01}px`);
-    if (!window.visualViewport) {
-      root.style.setProperty('--app-visible-height', `${innerH}px`);
+    root.style.setProperty('--app-vh', `${(fullscreenHeight ?? innerH) * 0.01}px`);
+    if (!vv) {
+      root.style.setProperty('--app-visible-height', `${fullscreenHeight ?? innerH}px`);
       root.style.setProperty('--app-visible-top', '0px');
     }
   }
-
-  const vv = window.visualViewport;
-  // Bei Pinch-Zoom (scale > 1) keine Layout-Höhe aus dem Visual Viewport ableiten.
-  if (vv && Number.isFinite(vv.height) && vv.height > 0 && (vv.scale ?? 1) <= 1.01) {
-    root.style.setProperty('--app-visual-vh', `${vv.height * 0.01}px`);
-    root.style.setProperty('--app-visible-height', `${vv.height}px`);
-    root.style.setProperty('--app-visible-top', `${Math.max(0, vv.offsetTop || 0)}px`);
+  // Keep the last unzoomed height during pinch zoom.
+  if (vv && Number.isFinite(vv.height) && vv.height > 0 && Math.abs((vv.scale ?? 1) - 1) <= 0.01) {
+    const height = fullscreenHeight ?? vv.height;
+    root.style.setProperty('--app-visual-vh', `${height * 0.01}px`);
+    root.style.setProperty('--app-visible-height', `${height}px`);
+    root.style.setProperty('--app-visible-top', `${fullscreenHeight !== null ? 0 : Math.max(0, vv.offsetTop || 0)}px`);
   }
 
   root.dataset.viewportTick = String((Number(root.dataset.viewportTick ?? '0') || 0) + 1);
@@ -66,7 +86,14 @@ export function useViewportRecovery(): void {
       if (document.visibilityState === 'visible') recover();
     };
 
+    const onEditingChange = () => {
+      recalc();
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(recalc);
+    };
     recover();
+    document.addEventListener('focusin', onEditingChange);
+    document.addEventListener('focusout', onEditingChange);
 
     window.addEventListener('pageshow', recover);
     window.addEventListener('focus', recover);
@@ -84,6 +111,8 @@ export function useViewportRecovery(): void {
       window.removeEventListener('orientationchange', recover);
       window.removeEventListener('resize', recalc);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      document.removeEventListener('focusin', onEditingChange);
+      document.removeEventListener('focusout', onEditingChange);
       window.visualViewport?.removeEventListener('resize', recalc);
       window.visualViewport?.removeEventListener('scroll', recalc);
     };

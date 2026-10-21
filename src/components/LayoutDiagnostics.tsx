@@ -17,7 +17,7 @@ function readLayout(): string {
   probe.remove();
   const build = Array.from(document.scripts).find(s => s.type === 'module' && s.src.includes('/assets/main-'))?.src.split('/').pop() ?? 'lokal';
   return [
-    'Anzeigeprüfung N4 · ' + build,
+    'Anzeigeprüfung N5 · ' + build,
     `Fenster: ${innerWidth} × ${innerHeight}`,
     `Sichtbar: ${vv ? Math.round(vv.width) + ' × ' + Math.round(vv.height) + ', oben ' + Math.round(vv.offsetTop) + ', Zoom ' + vv.scale : '—'}`,
     `Bildschirm: ${screen.width} × ${screen.height}`,
@@ -27,6 +27,8 @@ function readLayout(): string {
     'Navigation: ' + rect(nav),
     'Sichtbare Leiste: ' + rect(card),
     'Abstand unter Leiste: ' + (nav && card ? Math.round(nav.getBoundingClientRect().bottom - card.getBoundingClientRect().bottom) + ' px' : '—'),
+    'Höhenquelle: ' + (document.documentElement.dataset.viewportSource ?? 'viewport'),
+    'Homescreen-App-Höhe: ' + document.documentElement.style.getPropertyValue('--app-standalone-height'),
     'Gemessene App-Höhe: ' + document.documentElement.style.getPropertyValue('--app-visible-height'),
   ].join('\n');
 }
