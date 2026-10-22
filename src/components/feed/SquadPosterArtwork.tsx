@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { displayLogoUrl } from '../../lib/logoPreparation';
 import type { SquadFeedPlayer } from '../../lib/squadFeedTypes';
 import { PosterClubName } from './PosterClubName';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
@@ -43,7 +44,7 @@ export function SquadPosterArtwork({ left, right, ageGroup, matchType, players, 
             <React.Fragment key={index}>
               {index === 1 && <span className="squad-poster-vs">VS</span>}
               <div className="squad-poster-club">
-                <img src={team.logo} alt={`${team.name} Logo`} />
+                <img src={displayLogoUrl(team.logo)} alt={`${team.name} Logo`} />
                 <PosterClubName name={team.name} />
               </div>
             </React.Fragment>
