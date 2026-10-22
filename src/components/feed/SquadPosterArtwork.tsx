@@ -34,9 +34,9 @@ export function SquadPosterArtwork({ left, right, ageGroup, matchType, players, 
     <div className="squad-poster" data-manager-artwork data-whatsapp-status-poster>
       <div className="squad-poster-content">
         <header className="squad-poster-heading squad-poster-heading--centered">
-          <p className="squad-poster-meta">{[ageGroup, matchType].filter(Boolean).join(' · ')}</p>
           <h3 className="squad-poster-title">{title}</h3>
-          <h4 className="squad-poster-count">{formation ? `Startaufstellung · ${formation}` : `${players.length} Spieler im Kader`}</h4>
+          {ageGroup && <div className="squad-poster-age">{ageGroup}</div>}
+          {matchType && <p className="squad-poster-meta">{matchType}</p>}
         </header>
         <div className="squad-poster-match">
           {[left, right].map((team, index) => (
@@ -49,6 +49,7 @@ export function SquadPosterArtwork({ left, right, ageGroup, matchType, players, 
             </React.Fragment>
           ))}
         </div>
+        <h4 className="squad-poster-count">{formation ? `Startaufstellung · ${formation}` : `${players.length} Spieler im Kader`}</h4>
         <ul className="squad-poster-players">
           {players.map(player => <li key={player.player_id}>
             <span className="squad-poster-number">{player.jersey_number ?? '–'}</span>

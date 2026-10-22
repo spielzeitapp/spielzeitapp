@@ -64,12 +64,12 @@
 .matchday-poster footer p { font: italic 400 7.8cqw/1.1 'Squad Anton', Impact, sans-serif; letter-spacing: -.025em; }
 
 /* Compact squad artwork: full names, short venue, consistent rows on phones. */
-.squad-poster .squad-poster-content { padding: 5cqw 6cqw; }
+.squad-poster .squad-poster-content { padding: 6cqw 5cqw 5cqw; }
 .squad-poster-heading { display: block; text-align: center; }
-.squad-poster-meta { margin: 0 0 2cqw; color: #ffffffcc; font: 700 2.5cqw/1.4 Arial, sans-serif; letter-spacing: .18em; text-transform: uppercase; }
-.squad-poster-heading .squad-poster-title { font-size: 10.3cqw; line-height: 1.2; text-align: center; }
-.squad-poster-heading .squad-poster-age { display: block; margin: 0; font-size: 6cqw; line-height: 1.1; }
-.squad-poster-heading .squad-poster-age::before, .squad-poster-heading .squad-poster-age::after { display: none; }
+.squad-poster-meta { margin: 2cqw 0 5cqw; color: #fff; font: 800 2.8cqw/1.4 Arial, sans-serif; letter-spacing: .15em; text-transform: uppercase; }
+.squad-poster-heading .squad-poster-title { margin: 0; font-size: 15cqw; line-height: 1.05; letter-spacing: -.02em; text-align: center; }
+.squad-poster-heading .squad-poster-age { display: flex; align-items: center; gap: 2cqw; margin: 2cqw 0 0; color: #ef002a; font: 400 9cqw/1.1 'Squad Anton', Impact, sans-serif; }
+.squad-poster-heading .squad-poster-age::before, .squad-poster-heading .squad-poster-age::after { content: ''; display: block; flex: 1; height: .35cqw; background: #ef002a; }
 .squad-poster .squad-poster-match { margin: 3cqw 0; }
 .squad-poster .squad-poster-club > img { width: 18cqw; height: 18cqw; }
 .squad-poster .squad-poster-club span { font-size: 3.6cqw; line-height: 1.2; }
@@ -79,6 +79,7 @@
 .squad-poster .squad-poster-count { display: flex; align-items: center; gap: 2cqw; margin: 1cqw 0 3cqw; padding: 0; border: 0; text-align: center; font-size: 3.1cqw; line-height: 1.3; letter-spacing: .08em; }
 .squad-poster .squad-poster-count::before, .squad-poster .squad-poster-count::after { content: ''; flex: 1; height: .25cqw; background: #ef002a; }
 .squad-poster .squad-poster-players { grid-template-columns: minmax(0,1fr); gap: 0; margin: 0; border-top: .3cqw solid #ef002a; padding: 3cqw 4cqw; }
+.squad-poster .squad-poster-count + .squad-poster-players { border-top: 0; padding-top: 0; }
 .squad-poster .squad-poster-players li { display: grid; grid-template-columns: 6cqw minmax(0,1fr) auto; align-items: baseline; gap: 2cqw; padding: .8cqw 0; font-size: 4cqw; font-weight: 700; line-height: 1.35; }
 .squad-poster .squad-poster-players li > span:nth-child(2) { overflow-wrap: break-word; }
 .squad-poster .squad-poster-number { width: auto; text-align: center; font-size: 4.9cqw; line-height: 1.2; font-variant-numeric: tabular-nums; }
