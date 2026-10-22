@@ -30,9 +30,9 @@ export function LineupPosterArtwork({ left, right, ageGroup, formation, players,
   return <div className="lineup-poster" data-manager-artwork data-whatsapp-status-poster>
     <div className="lineup-poster-content">
       <header>
-        <p className="lineup-poster-meta">{[ageGroup, matchType].filter(Boolean).join(' · ')}</p>
         <h3>STARTAUFSTELLUNG</h3>
-        {formation && <p className="lineup-poster-formation">FORMATION {formation}</p>}
+        {ageGroup && <div className="lineup-poster-age">{ageGroup}</div>}
+        {matchType && <p className="lineup-poster-meta">{matchType}</p>}
         <div className="squad-poster-match">
           {[left, right].map((team, i) => <React.Fragment key={i}>
             {i === 1 && <span className="squad-poster-vs">VS</span>}
@@ -43,6 +43,7 @@ export function LineupPosterArtwork({ left, right, ageGroup, formation, players,
           </React.Fragment>)}
         </div>
       </header>
+      {formation && <p className="lineup-poster-formation">FORMATION {formation}</p>}
       <ul className="lineup-poster-starters" aria-label="Startaufstellung">
         {players.map((player, i) => <li key={player.player_id + '-' + (player.slot ?? i)}>
           <b>{jerseyNumber(player)}</b>
