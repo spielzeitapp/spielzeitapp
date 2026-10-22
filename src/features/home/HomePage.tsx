@@ -226,6 +226,7 @@ export const HomePage: React.FC = () => {
   const [disabledMatchdayLoading, setDisabledMatchdayLoading] = useState(true);
   const [loadedMatchdaySettingsKey, setLoadedMatchdaySettingsKey] = useState<string | null>(null);
   const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
+  const [loadedMatchStatusKey, setLoadedMatchStatusKey] = useState<string | null>(null);
 
   const matchdaySettingsMatchIds = useMemo(
     () =>
@@ -238,10 +239,12 @@ export const HomePage: React.FC = () => {
     [events],
   );
   const matchdaySettingsKey = matchdaySettingsMatchIds.join(',');
+  const matchStatusKey = `${teamSeasonId ?? ''}:${matchdaySettingsKey}`;
 
   useEffect(() => {
     if (FEED_DEMO || isDemoMode) {
       setMatchStatusById({});
+      setLoadedMatchStatusKey(matchStatusKey);
       return;
     }
     const matchIds = Array.from(
@@ -249,20 +252,22 @@ export const HomePage: React.FC = () => {
     );
     if (matchIds.length === 0) {
       setMatchStatusById({});
+      setLoadedMatchStatusKey(matchStatusKey);
       return;
     }
     let cancelled = false;
     void (async () => {
       const { data, error } = await supabase.from('matches').select('id, status').in('id', matchIds);
-      if (cancelled || error) return;
+      if (cancelled) return;
       const next: Record<string, string> = {};
-      for (const row of data ?? []) next[row.id] = row.status ?? 'upcoming';
+      if (!error) for (const row of data ?? []) next[row.id] = row.status ?? 'upcoming';
       setMatchStatusById(next);
+      setLoadedMatchStatusKey(matchStatusKey);
     })();
     return () => {
       cancelled = true;
     };
-  }, [events, isDemoMode]);
+  }, [events, isDemoMode, matchStatusKey]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
@@ -304,16 +309,21 @@ export const HomePage: React.FC = () => {
   const autoMatchdaySettingsReady =
     FEED_DEMO ||
     isDemoMode ||
-    (!evLoading &&
+    ((!evLoading || events.length > 0) &&
       (!hasMatchEventsToCheck ||
         (!disabledMatchdayLoading && loadedMatchdaySettingsKey === matchdaySettingsKey)));
 
   const sportingPickResolved = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
-    return pickHomeSportingCard(source, now, disabledMatchdayMatchIds);
-  }, [events, now, disabledMatchdayMatchIds]);
+    return pickHomeSportingCard(source.map(event => {
+      const status = event.match_id ? matchStatusById[event.match_id] : undefined;
+      return status === 'finished' || status === 'canceled' ? { ...event, status } : event;
+    }), now);
+  }, [events, now, matchStatusById]);
 
-  const sportingPick = autoMatchdaySettingsReady ? sportingPickResolved : null;
+  const sportingSelectionReady = (!evLoading || events.length > 0) &&
+    (FEED_DEMO || isDemoMode || loadedMatchStatusKey === matchStatusKey);
+  const sportingPick = sportingSelectionReady ? sportingPickResolved : null;
   const matchPick =
     sportingPick?.sportingKind === 'match'
       ? { event: sportingPick.event, status: sportingPick.status }
@@ -375,14 +385,16 @@ export const HomePage: React.FC = () => {
   }, [activePosts, historicPosts]);
 
   const sessionPending = isDemoMode ? false : sessionLoading;
-  const eventsPending = isDemoMode ? false : evLoading;
   const feedBusy = teamFeedLoading && activePosts.length === 0 && !teamFeedError;
-  const matchSectionReady = !eventsPending && autoMatchdaySettingsReady;
+  const matchSectionReady = sportingSelectionReady;
   const showContent = Boolean(teamSeasonId) || FEED_DEMO || isDemoMode;
 
   const spieltagHintPick =
-    !isMultiTeamView && matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
-  const showNextMatchCompact = Boolean(!isMultiTeamView && matchPick && matchPick.status === 'next');
+    !isMultiTeamView && autoMatchdaySettingsReady && matchPick &&
+    !disabledMatchdayMatchIds.has(matchPick.event.match_id ?? '') &&
+    (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
+  const showNextMatchCompact = Boolean(!isMultiTeamView && matchPick &&
+    (matchPick.status === 'next' || autoMatchdaySettingsReady) && !spieltagHintPick);
   const showTournamentCompact = Boolean(!isMultiTeamView && sportingPick?.sportingKind === 'tournament');
 
   const reviewPendingForEvent = (event: EventRow | undefined) =>
