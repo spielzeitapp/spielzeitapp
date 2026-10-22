@@ -67,6 +67,8 @@ import {
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
+import { ensureLineupFeedPostForMatch } from '../../lib/ensureLineupFeedPost';
+import { startLineupFeedRecovery } from '../../lib/lineupFeedRecovery';
 import { forceReleaseBodyScrollLocks, lockBodyScroll } from '../../lib/bodyScrollLock';
 import { getMatchSides } from '../../lib/matchSides';
 import { getMatchTypeLabel } from '../../components/match/matchCardLabels';
@@ -2880,6 +2882,13 @@ export const LiveMatchScreen: React.FC = () => {
     closeFairPlayRemoveSheet,
     releaseLiveBodyScrollLock,
   ]);
+
+  // Runs immediately on kickoff/status change and when reopening a live game.
+  // Retry network errors without requiring the trainer to visit the Home feed.
+  useEffect(() => {
+    if (isDemo || !effectiveMatchId || !canControlLiveMatch || matchRow?.status !== 'live') return;
+    return startLineupFeedRecovery(() => ensureLineupFeedPostForMatch(effectiveMatchId));
+  }, [isDemo, effectiveMatchId, canControlLiveMatch, matchRow?.status]);
 
   const onStartClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;

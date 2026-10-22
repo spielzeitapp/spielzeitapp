@@ -206,7 +206,7 @@ async function checkLineupFeedDedupeSuppressed(
   };
 }
 
-export type SavedLineupFeedSource = 'match_lineup' | 'match_lineup_slots';
+export type SavedLineupFeedSource = 'match_lineup' | 'match_lineup_slots' | 'kickoff_snapshot';
 
 /** Gleiche Slot-Zuordnung wie MatchLineupPage / fetchLineupForLiveMatch. */
 function slotMapFromLineupRows(
@@ -499,10 +499,36 @@ async function fetchSavedLineupForFeedPost(
       .filter(Boolean);
   }
 
+  // Once the game starts, the editable lineup tracks substitutions. The post
+  // must always show the immutable kickoff lineup, including on a later retry.
+  const { data: kickoffRows, error: kickoffError } = await supabase
+    .from('match_lineup_snapshots')
+    .select('player_id, slot')
+    .eq('match_id', matchId)
+    .eq('snapshot_type', 'kickoff');
+  if (kickoffError) {
+    // Do not silently publish a potentially substituted lineup on read failure.
+    lineupFeedExit('kickoff snapshot load error', { matchId, error: kickoffError.message });
+    return null;
+  }
+  if ((kickoffRows ?? []).length > 0) {
+    slotToPlayer = slotMapFromLineupRows(kickoffRows ?? []);
+    source = 'kickoff_snapshot';
+    const startingIds = new Set(slotToPlayer.values());
+    const [squad, absences] = await Promise.all([
+      supabase.from('match_squad_publications').select('selected_player_ids').eq('match_id', matchId).maybeSingle(),
+      supabase.from('match_no_shows').select('player_id').eq('match_id', matchId).is('reverted_at', null),
+    ]);
+    if (squad.error || absences.error) return null;
+    const absentIds = new Set((absences.data ?? []).map((row) => row.player_id));
+    benchPlayerIds = (squad.data?.selected_player_ids ?? benchPlayerIds)
+      .filter((id: string) => !startingIds.has(id) && !absentIds.has(id));
+  }
+
   let rawLineupCount = slotToPlayer.size;
   let fieldCount = countFieldPlayersFromSlotMap(slotToPlayer);
 
-  if (fieldCount < MIN_FIELD_PLAYERS) {
+  if (fieldCount < MIN_FIELD_PLAYERS && source !== 'kickoff_snapshot') {
     const { data: slotRows, error: slotsErr } = await supabase
       .from('match_lineup_slots')
       .select('player_id, slot')
