@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { isInternalChampionshipFixture } from "../lib/championshipVisibility";
 import {
@@ -46,6 +46,7 @@ export type EventRow = {
   opponent_logo_url?: string | null;
   /** Optional: Migration 20260615120000 */
   official_tournament_url?: string | null;
+  tournament_completed_at?: string | null;
   /** open/agreed = intern; published = Eltern; NULL = normales Event */
   fixture_status?: 'open' | 'agreed' | 'published' | null;
   created_by: string | null;
@@ -74,6 +75,7 @@ type EventDbRow = {
   training_absence_deadline_disabled?: boolean | null;
   opponent_logo_url?: string | null;
   official_tournament_url?: string | null;
+  tournament_completed_at?: string | null;
   fixture_status?: string | null;
   created_by: string | null;
   created_at: string | null;
@@ -82,7 +84,7 @@ type EventDbRow = {
 
 /** Vollselect inkl. optionaler Spalten. */
 const EVENTS_SELECT_FULL =
-  "id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, official_tournament_url, fixture_status, created_by, created_at, updated_at";
+  "id, team_season_id, kind, type, match_type, opponent, is_home, location, venue_id, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, official_tournament_url, tournament_completed_at, fixture_status, created_by, created_at, updated_at";
 
 /**
  * Staging-tauglich: ohne address/series_id/training_absence_deadline_disabled
@@ -134,6 +136,7 @@ function mapRow(r: EventDbRow): EventRow {
     training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? null,
     opponent_logo_url: r.opponent_logo_url ?? null,
     official_tournament_url: r.official_tournament_url ?? null,
+    tournament_completed_at: r.tournament_completed_at ?? null,
     fixture_status: mapFixtureStatus(r.fixture_status),
     created_by: r.created_by ?? null,
     created_at: r.created_at ?? null,
@@ -145,20 +148,22 @@ export function useEvents(teamSeasonId: string | readonly string[] | null) {
   const seasonIdsKey = typeof teamSeasonId === 'string'
     ? teamSeasonId
     : [...new Set((teamSeasonId ?? []).filter(Boolean))].join(',');
-  const [events, setEvents] = useState<EventRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<{ scope: string | null; events: EventRow[]; loading: boolean; error: string | null }>({ scope: null, events: [], loading: false, error: null });
+  const requestId = useRef(0);
+  const currentScope = useRef(seasonIdsKey);
+  currentScope.current = seasonIdsKey;
 
   const load = useCallback(async () => {
+    if (currentScope.current !== seasonIdsKey) return;
+    const request = ++requestId.current;
+    const isCurrent = () => requestId.current === request && currentScope.current === seasonIdsKey;
     const seasonIds = seasonIdsKey.split(',').filter(Boolean);
     if (seasonIds.length === 0) {
-      setEvents([]);
-      setLoading(false);
-      setError(null);
+      setState({ scope: seasonIdsKey, events: [], loading: false, error: null });
       return;
     }
-    setLoading(true);
-    setError(null);
+    setState(previous => ({ scope: seasonIdsKey, events: previous.scope === seasonIdsKey ? previous.events : [], loading: true, error: null }));
+    try {
 
     const run = (select: string) => {
       const query = supabase.from("events").select(select);
@@ -181,27 +186,27 @@ export function useEvents(teamSeasonId: string | readonly string[] | null) {
     }
 
     const { data, error: err } = res;
+    if (!isCurrent()) return;
 
     if (err) {
-      setError(err.message);
-      setEvents([]);
+      setState(previous => ({ ...previous, loading: false, error: err.message }));
     } else {
       const rows = (data ?? []) as unknown as EventDbRow[];
       const mapped: EventRow[] = rows
         .filter((r) => !isInternalChampionshipFixture(r.fixture_status))
         .map((r) => mapRow(r));
-      setEvents(mapped);
+      setState({ scope: seasonIdsKey, events: mapped, loading: false, error: null });
     }
-    setLoading(false);
+    } catch (failure) {
+      if (isCurrent()) setState(previous => ({ ...previous, loading: false, error: failure instanceof Error ? failure.message : 'Termine konnten nicht geladen werden.' }));
+    }
   }, [seasonIdsKey]);
 
   useEffect(() => {
-    load().catch((e) => {
-      setError(e?.message ?? "Unbekannter Fehler");
-      setEvents([]);
-      setLoading(false);
-    });
+    void load();
+    return () => { requestId.current += 1; };
   }, [load]);
 
-  return { events, loading, error, refetch: load };
+  const scopeReady = state.scope === seasonIdsKey;
+  return { events: scopeReady ? state.events : [], loading: Boolean(seasonIdsKey) && (!scopeReady || state.loading), error: scopeReady ? state.error : null, refetch: load };
 }

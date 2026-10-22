@@ -1,6 +1,5 @@
 import type { EventRow } from '../../hooks/useEvents';
 import { isEventPubliclyVisible } from '../../lib/championshipVisibility';
-import { isAutoMatchdayFeedEnabledForEvent } from '../../lib/autoMatchdayFeedEnabled';
 import {
   getDateTimePartsInTimeZone,
   isNextViennaCalendarDay,
@@ -222,17 +221,18 @@ export function splitStatusForHero(statusLabel: string): { lead: string; emphasi
   return { lead: parts.slice(0, -1).join(' '), emphasis: parts[parts.length - 1] ?? '' };
 }
 
-function isSportingHomeCandidate(
-  e: EventRow,
-  disabledMatchIds: ReadonlySet<string>,
-): boolean {
+function isSportingHomeCandidate(e: EventRow, now: Date): boolean {
   if (!isEventPubliclyVisible(e)) return false;
   const st = e.status ?? 'upcoming';
   if (st === 'finished' || st === 'canceled') return false;
-  if (!e.starts_at) return false;
+  if (!e.starts_at || !Number.isFinite(new Date(e.starts_at).getTime())) return false;
+  if (e.tournament_completed_at) return false;
+  // Expired "upcoming" events must not displace the next fixture. An actively
+  // live event may span midnight; completed tournaments are excluded above.
+  if (st !== 'live' && new Date(e.starts_at).getTime() < now.getTime() && !isSameViennaCalendarDay(new Date(e.starts_at), now)) return false;
   if (e.kind === 'tournament') return true;
   if (e.kind !== 'match') return false;
-  return isAutoMatchdayFeedEnabledForEvent(e, disabledMatchIds);
+  return true;
 }
 
 /**
@@ -242,10 +242,9 @@ function isSportingHomeCandidate(
 export function pickHomeSportingCard(
   events: EventRow[],
   now: Date,
-  disabledMatchIds: ReadonlySet<string> = new Set(),
 ): HomeSportingCardPick | null {
   const sporting = events
-    .filter((e) => isSportingHomeCandidate(e, disabledMatchIds))
+    .filter((e) => isSportingHomeCandidate(e, now))
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 
   if (sporting.length === 0) return null;
@@ -263,7 +262,7 @@ export function pickHomeSportingCard(
   if (tomorrow) return toPick(tomorrow, 'tomorrow');
 
   const nowMs = now.getTime();
-  const upcoming = sporting.find((e) => new Date(e.starts_at).getTime() >= nowMs) ?? sporting[0];
+  const upcoming = sporting.find((e) => new Date(e.starts_at).getTime() >= nowMs);
   return upcoming ? toPick(upcoming, 'next') : null;
 }
 
@@ -271,12 +270,10 @@ export function pickHomeSportingCard(
 export function pickHomeMatchCard(
   events: EventRow[],
   now: Date,
-  disabledMatchIds: ReadonlySet<string> = new Set(),
 ): HomeMatchCardPick | null {
   const pick = pickHomeSportingCard(
     events.filter((e) => e.kind === 'match'),
     now,
-    disabledMatchIds,
   );
   return pick ? { event: pick.event, status: pick.status } : null;
 }
