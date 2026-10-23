@@ -275,7 +275,14 @@
       .hero-signature strong{flex:none;font-size:32px}
     }
 
-  </style>
+  
+    /* Keep the team visible beside the opening phone. */
+    .hero-visual .match-story-stage picture{inset:0 auto 0 0;width:74%}
+    .hero-visual .match-story-stage picture>img{object-position:50% 65%}
+    .match-story-stage .hero-phone-preview{left:auto;right:2.5%;width:30%}
+    .match-story-stage:after{background:linear-gradient(90deg,transparent 56%,#0b0b0c88 75%),linear-gradient(0deg,#0b0b0c44,transparent 24%)}
+
+</style>
 </head>
 <body>
   <header>
