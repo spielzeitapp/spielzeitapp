@@ -193,7 +193,7 @@ export function buildDemoFeedPosts(): {
         media_type: 'image',
         caption: 'Gemeinsam gekämpft, gemeinsam gewonnen! ⚽🔴⚫\nStarke Teamleistung und tolle Stimmung nach dem Spiel.\n#GEMEINSAMEINTEAM',
         created_at: pastPostTime(125),
-        media_url: '/feed/demo-team-victory-photo.webp',
+        media_url: '/feed/demo-team-victory-rohrbach.webp',
         payload: {},
       }),
     },

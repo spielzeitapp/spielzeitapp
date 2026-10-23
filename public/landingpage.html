@@ -329,6 +329,13 @@
     .audience-detail-link:focus-visible{outline:2px solid #ff686d;outline-offset:5px}
     @media(max-width:650px){#fuer-wen .audience-grid{grid-template-columns:minmax(0,1fr);gap:16px}#fuer-wen .audience-card{padding:26px 22px}#fuer-wen .audience-card h3{font-size:34px}}
 
+
+    /* Give the larger demo squad room beside the phone. */
+    .hero-visual .match-story-stage{aspect-ratio:3/2}
+    .hero-visual .match-story-stage picture{width:75%}
+    .hero-visual .match-story-stage picture>img{object-position:50% 65%}
+    .match-story-stage .hero-phone-preview{right:1.5%;width:25%}
+    .match-story-stage:after{background:linear-gradient(90deg,transparent 62%,#0b0b0c66 77%),linear-gradient(0deg,#0b0b0c33,transparent 20%)}
 </style>
 </head>
 <body>
@@ -352,7 +359,7 @@
         <div class="hero-visual">
           <div class="match-story-stage">
             <picture>
-              <img src="/landingpage-assets/rohrbach-match-preparation.webp" width="1536" height="1024" fetchpriority="high" alt="Trainer und Trainerin besprechen das Spiel mit der Mannschaft am Sportplatz Rohrbach; Familien sitzen auf der roten Tribüne">
+              <img src="/landingpage-assets/rohrbach-match-preparation-team.webp" width="1536" height="1024" fetchpriority="high" alt="Trainer und Trainerin besprechen das Spiel mit dem Demo-Team und dem Tormann in Grün vor der Rohrbacher Tribüne">
             </picture>
             <div class="hero-phone-preview"><img src="/landingpage-assets/rohrbach-loosdorf-preview.webp?v=alpenvorland-25" width="706" height="1536" alt="SpielzeitApp: U12 SPG Rohrbach gegen ASK Loosdorf, 21. Oktober 2026 um 17:30 Uhr am Sportplatz Rohrbach"></div>
           </div>
