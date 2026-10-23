@@ -316,6 +316,19 @@
     .eyebrow:before{flex-shrink:0}
     @media(max-width:900px){.pain-grid{grid-template-columns:minmax(0,1fr)}.section-head{grid-template-columns:minmax(0,1fr)}}
 
+
+    /* Four roles with equal space and a clear trainer-led entry. */
+    #fuer-wen .audience-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:stretch}
+    #fuer-wen .audience-card{min-width:0;display:flex;flex-direction:column;padding:32px}
+    #fuer-wen .audience-card h3{font-size:clamp(32px,3vw,42px);line-height:1.03}
+    #fuer-wen .audience-points{gap:12px;margin-top:24px}
+    #fuer-wen .audience-points span{font-size:15px;line-height:1.55}
+    #fuer-wen .audience-points span:before{flex-shrink:0}
+    #fuer-wen .role-kicker{line-height:1.5}
+    .audience-detail-link{align-self:flex-start;margin-top:24px;color:#ff686d;font-size:14px;font-weight:700;text-decoration:underline;text-underline-offset:4px}
+    .audience-detail-link:focus-visible{outline:2px solid #ff686d;outline-offset:5px}
+    @media(max-width:650px){#fuer-wen .audience-grid{grid-template-columns:minmax(0,1fr);gap:16px}#fuer-wen .audience-card{padding:26px 22px}#fuer-wen .audience-card h3{font-size:34px}}
+
 </style>
 </head>
 <body>
@@ -390,13 +403,13 @@
 
 <section class="roles" id="fuer-wen">
       <div class="wrap">
-        <div class="section-head"><h2>Der Trainer organisiert.<br><span class="red">Alle bleiben informiert.</span></h2><p>Die SpielzeitApp verbindet die Organisation am Platz mit dem Familienalltag. Jeder findet die Informationen, die für seine Rolle wichtig sind.</p></div>
+        <div class="section-head"><h2>Du organisierst dein Team.<br><span class="red">Alle profitieren.</span></h2><p>Der Einstieg beginnt beim Trainer. Spieler, Eltern, Familie und Fans bleiben verbunden. Wenn mehrere Mannschaften ihre Termine aktuell halten, gewinnt auch der ganze Verein den Überblick.</p></div>
         <div class="audience-grid">
-          <article class="audience-card" id="trainer"><span class="role-kicker">Für Trainer</span><h3>Alles im Griff.</h3><p>Vom aktuellen Spielplan über Training und Matchvorbereitung bis zu den Spielzeiten der Spieler – alles an einem Ort.</p><div class="audience-points"><span>Spielplan immer aktuell</span><span>Training einfach planen</span><span>Eltern ohne Rückmeldung automatisch erinnern</span><span>Kader und Aufstellung fürs Match vorbereiten</span><span>Spielzeiten der Spieler erfassen</span></div></article>
-          <article class="audience-card" id="eltern"><span class="role-kicker">Für Eltern &amp; Spieler</span><h3>Alles im Blick. Auch unterwegs.</h3><p>Von der Planung bis zum Schlusspfiff: Die wichtigsten Informationen für den Familienalltag an einem Ort.</p><div class="audience-points"><span>Termine für Kinder und Teams im Blick behalten und im Familienkalender abonnieren</span><span>Mit einem Tipp zu- oder absagen und wichtige Änderungen erhalten</span><span>Fahrgemeinschaften organisieren und zum Sportplatz navigieren</span><span>Aufstellung, Liveticker und Ergebnisse ansehen</span><span>Freigegebene Fotos, Feedposts und Spielmomente erleben</span></div></article>
-          <article class="audience-card" id="fans"><span class="role-kicker">Für Familie &amp; Fans</span><h3>Nah am Team bleiben.</h3><p>Oma, Opa, Geschwister und Freunde sehen Spieltermine, Ergebnisse und gemeinsame Momente.</p><div class="audience-points"><span>Erfasste Spielereignisse im Liveticker verfolgen</span><span>Fotos und Feedposts</span></div></article>
+          <article class="audience-card" id="trainer"><span class="role-kicker">Für Trainer</span><h3>Mehr Zeit für dein Team.</h3><p>Weniger Rückmeldungen zusammensuchen. Training und Spiel mit einem klaren Überblick vorbereiten.</p><div class="audience-points"><span>Termine und Rückmeldungen bündeln und fehlende Antworten automatisch erinnern</span><span>Kader, Aufstellung und Wechsel fürs Match vorbereiten</span><span>Einsatzzeiten erfassen und Spielstatistiken auswerten</span><span>Am Desktop Training planen, Übungen auswählen und Trainings-PDFs erstellen</span><span>Spieltag, Aufstellung und Ergebnis als Feedpost mit dem Team teilen</span></div></article>
+          <article class="audience-card" id="eltern"><span class="role-kicker">Für Eltern &amp; Spieler</span><h3>Weniger nachfragen.<br>Besser planen.</h3><p>Alles Wichtige für euren Fußballalltag griffbereit – auch bei mehreren Kindern und Mannschaften.</p><div class="audience-points"><span>Termine der Kinder und Teams gemeinsam im Blick behalten</span><span>Mit einem Tipp zu- oder absagen</span><span>Treffpunkt, Änderungen und Kaderinformationen erhalten</span><span>Fahrgemeinschaften organisieren und zum Sportplatz navigieren</span><span>Termine im eigenen Familienkalender abonnieren</span></div></article>
+          <article class="audience-card" id="fans"><span class="role-kicker">Für Familie &amp; Fans</span><h3>Auch aus der Ferne dabei.</h3><p>Oma, Opa, Geschwister und Freunde bleiben nah am Team – vor, während und nach dem Spiel.</p><div class="audience-points"><span>Wissen, wann und wo die Mannschaft spielt</span><span>Erfasste Tore, Wechsel und Spielstände im Liveticker verfolgen</span><span>Ergebnisse und freigegebene Aufstellungen ansehen</span><span>Freigegebene Fotos, Feedposts und Highlights erleben</span><span>Gemeinsame Teammomente später in der Chronik wiederfinden</span></div></article>
+          <article class="audience-card" id="organisation"><span class="role-kicker">Für Jugendleitung &amp; Verein</span><h3>Gemeinsam besser abstimmen.</h3><p>Mit dem zusätzlichen SpielzeitManager werden aktuelle Mannschaftstermine zur gemeinsamen Planungsgrundlage.</p><div class="audience-points"><span>Trainings- und Spieltermine der Mannschaften zentral überblicken</span><span>Platzbelegung planen und Überschneidungen erkennen</span><span>Dem Platzwart zeigen, wann welcher Platz gebraucht wird</span><span>Kantinenbetrieb und Besetzung anhand aktueller Termine vorbereiten</span><span>Weniger bei einzelnen Trainern nachfragen müssen</span></div><a class="audience-detail-link" href="#verein">Mehr zum SpielzeitManager <span aria-hidden="true">→</span></a></article>
         </div>
-
       </div>
     </section>
 
