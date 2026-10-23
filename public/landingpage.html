@@ -245,7 +245,37 @@
       .match-story-stage .hero-phone-preview img{border-radius:16px}
       .hero-visual .hero-signature{padding:6px 18px 24px;gap:16px}
     }
-</style>
+
+    /* Consistent photo and phone composition at the beginning and end. */
+    .hero-visual .match-story-stage,.emotion-image{position:relative;display:block;width:100%;height:auto;min-height:0;aspect-ratio:4/3;overflow:hidden;isolation:isolate;background:#0b0b0c}
+    .hero-visual .match-story-stage picture{position:absolute;inset:0;display:block;width:100%;height:100%;border-radius:0;-webkit-mask-image:none;mask-image:none}
+    .hero-visual .match-story-stage picture>img,.emotion-image>img{position:absolute;inset:0;display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;object-position:50% 65%;transform:none}
+    .emotion-image>img{object-position:56% center}
+    .match-story-stage:after,.emotion-image:after{content:"";position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(90deg,#08080966,transparent 42%),linear-gradient(0deg,#0b0b0c44,transparent 24%)}
+    .match-story-stage .hero-phone-preview,.emotion-image .emotion-phone{position:absolute;z-index:3;inset:auto auto 2.5% 2.5%;display:block;width:32%;max-width:none;height:auto;aspect-ratio:706/1536;margin:0;transform:none;overflow:hidden;border:3px solid #48484e;border-radius:clamp(20px,3.4vw,32px);background:#050506;box-shadow:0 16px 36px #0008}
+    .match-story-stage .hero-phone-preview img{display:block;width:100%;height:100%;object-fit:contain;border-radius:0}
+    .emotion-image .emotion-phone-screen{width:100%;aspect-ratio:706/1536}
+    .hero-visual:before{display:none}
+    .hero-visual .hero-signature{gap:22px;padding:28px 26px 34px;background:transparent}
+    .hero-signature-brand{flex:1 1 220px;gap:12px}
+    .hero-signature-brand .hero-signature-logo{width:48px;height:48px}
+    .hero-signature-wordmark{width:250px;max-width:calc(100% - 60px)}
+    .hero-signature strong{font-size:clamp(28px,2.6vw,38px);line-height:1.08}
+    .emotion-grid{min-height:0;align-items:center}
+    @media(max-width:900px){
+      .hero-visual .match-story-stage,.emotion-image{aspect-ratio:4/3}
+      .hero-visual .hero-signature{padding:26px 24px 32px}
+      .hero-signature strong{font-size:34px}
+    }
+    @media(max-width:650px){
+      .hero-visual .hero-signature{display:flex;flex-direction:column;align-items:flex-start;gap:24px;padding:26px 20px 32px}
+      .hero-signature-brand{flex:none;width:100%;max-width:330px}
+      .hero-signature-brand .hero-signature-logo{width:46px;height:46px}
+      .hero-signature-wordmark{width:250px;max-width:calc(100% - 58px)}
+      .hero-signature strong{flex:none;font-size:32px}
+    }
+
+  </style>
 </head>
 <body>
   <header>
