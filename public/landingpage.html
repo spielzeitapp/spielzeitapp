@@ -282,25 +282,59 @@
     .match-story-stage .hero-phone-preview{left:auto;right:2.5%;width:30%}
     .match-story-stage:after{background:linear-gradient(90deg,transparent 56%,#0b0b0c88 75%),linear-gradient(0deg,#0b0b0c44,transparent 24%)}
 
+
+    /* Clear path from team problem to practical trial and decision. */
+    .entry-note{max-width:460px;margin:14px 0 0;color:#bbb;font-size:13px;line-height:1.5}
+    .everyday-flow{background:#fff}
+    .everyday-flow .step{min-width:0}
+    .demo-invite{display:flex;align-items:center;justify-content:space-between;gap:28px;margin-top:38px;padding:26px 30px;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:18px;background:var(--paper)}
+    .demo-invite strong{display:block;font-size:20px;line-height:1.35}
+    .demo-invite p{margin:8px 0 0;color:var(--muted);font-size:15px}
+    .demo-invite .btn{flex-shrink:0}
+    .highlights-compact{padding:56px 0}
+    .highlights-compact p{margin:0 0 16px}
+    .highlights-compact p:last-child{margin-bottom:0}
+    .questions{background:#fff}
+    .faq-list{display:grid;gap:12px;max-width:900px}
+    .faq-list details{border:1px solid var(--line);border-radius:16px;background:var(--paper);overflow:hidden}
+    .faq-list summary{position:relative;list-style:none;padding:22px 54px 22px 24px;font-weight:700;line-height:1.45;cursor:pointer}
+    .faq-list summary::-webkit-details-marker{display:none}
+    .faq-list summary:after{content:"+";position:absolute;right:24px;top:17px;color:var(--red);font-size:26px;font-weight:500}
+    .faq-list details[open] summary:after{content:"−"}
+    .faq-list details p{margin:0;padding:0 24px 24px;color:#555;line-height:1.65}
+    .faq-list summary:focus-visible,.package-notes summary:focus-visible{outline:3px solid var(--red);outline-offset:-4px}
+    .package-notes a{text-decoration:underline;text-underline-offset:3px}
+    .package-notes summary{cursor:pointer;font-weight:700;padding:12px 0;color:var(--ink)}
+    @media(max-width:650px){.demo-invite{align-items:flex-start;flex-direction:column;padding:24px 20px;gap:20px}.demo-invite .btn{width:100%}.faq-list summary{padding:20px 46px 20px 20px}.faq-list summary:after{right:18px}.faq-list details p{padding:0 20px 22px}.highlights-compact{padding:44px 0}}
+
+
+    .section-head>*{min-width:0}
+    .pain-grid{grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr)}
+    .pain-copy,.chat-demo,.pain-point>div{min-width:0}
+    .section-head h2,.pain-copy h2{overflow-wrap:anywhere}
+    .eyebrow{min-width:0;overflow-wrap:anywhere}
+    .eyebrow:before{flex-shrink:0}
+    @media(max-width:900px){.pain-grid{grid-template-columns:minmax(0,1fr)}.section-head{grid-template-columns:minmax(0,1fr)}}
+
 </style>
 </head>
 <body>
   <header>
     <div class="wrap nav">
       <a class="brand" href="#top" aria-label="SpielzeitApp Startseite"><img class="brand-icon" src="spielzeitapp-icon.png" alt=""><img class="brand-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></a>
-      <nav class="links" aria-label="Hauptnavigation"><a href="#warum">Warum?</a><a href="#fuer-wen">Vorteile</a><a href="#pakete">Pakete</a><a href="#start">So geht’s</a></nav>
+      <nav class="links" aria-label="Hauptnavigation"><a href="#warum">Warum?</a><a href="#fuer-wen">Vorteile</a><a href="#pakete">Pakete</a><a href="#alltag">So geht’s</a></nav>
       <div class="nav-actions"><a class="btn btn-outline" href="/login">Einloggen</a><a class="btn btn-red" href="/demo">Demo ansehen</a></div>
     </div>
   </header>
 
   <main id="top">
-    <section class="hero">
+<section class="hero">
       <div class="wrap hero-grid">
         <div class="hero-copy">
           <span class="eyebrow">Für Trainer gemacht. Für die ganze Fußballfamilie.</span>
           <h1>Weniger organisieren.<br><span class="red">Mehr Fußball.</span></h1>
-          <p class="lead">Termine planen, fehlende Rückmeldungen automatisch erinnern, Kader nominieren und Spiele vorbereiten. Spieler und Eltern bleiben informiert, Fans können mitfiebern.</p>
-          <div class="hero-buttons"><a class="btn btn-red" href="/demo">Demo ansehen</a><a class="btn btn-white" href="mailto:office@quetschnguru.at?subject=Spielzeit%20Team%203%20Monate%20gratis%20testen">3 Monate gratis testen</a></div>
+          <p class="lead">Eine App für Trainer, Spieler, Eltern und Fans: Termine und Rückmeldungen an einem Ort. Du bereitest Training und Spiel vor – dein Team weiß, wann, wo und wie es weitergeht.</p>
+          <div class="hero-buttons"><a class="btn btn-red" href="/demo">Demo ansehen</a><a class="btn btn-white" href="mailto:office@quetschnguru.at?subject=Spielzeit%20Team%203%20Monate%20gratis%20testen">3 Monate gratis testen</a></div><p class="entry-note">Demo mit Beispielteam · Persönlichen Test per E-Mail anfragen</p>
         </div>
         <div class="hero-visual">
           <div class="match-story-stage">
@@ -317,14 +351,14 @@
       </div>
     </section>
 
-    <div class="trust"><div class="wrap trust-grid"><strong>Ein Team. Eine App. Alle informiert.</strong><div class="fact"><b>1</b><span>gemeinsamer Kalender</span></div><div class="fact"><b>Im Blick</b><span>Termine und Rückmeldungen</span></div><div class="fact"><b>Weniger</b><span>Nachfragen im Teamalltag</span></div></div></div>
+<div class="trust"><div class="wrap trust-grid"><strong>Ein Team. Eine App. Alle informiert.</strong><div class="fact"><b>1</b><span>gemeinsamer Kalender</span></div><div class="fact"><b>Im Blick</b><span>Termine und Rückmeldungen</span></div><div class="fact"><b>Weniger</b><span>Nachfragen im Teamalltag</span></div></div></div>
 
-    <section class="pain" id="warum">
+<section class="pain" id="warum">
       <div class="wrap pain-grid">
         <div class="pain-copy">
-          <span class="eyebrow">Kommt euch das bekannt vor?</span>
+          <span class="eyebrow">Aus dem Traineralltag entwickelt</span>
           <h2>Der Teamalltag gehört nicht in einen <span class="red">endlosen Gruppenchat.</span></h2>
-          <p>Drei Absagen in einzelnen Nachrichten, die Matchinfo als langer Text und danach wieder dieselbe Frage: Wann ist Treffpunkt? Wo spielen wir? Wer ist wirklich dabei?</p>
+          <p>Kommt euch das bekannt vor? Drei Absagen in einzelnen Nachrichten, die Matchinfo als langer Text und danach wieder dieselbe Frage: Wann ist Treffpunkt? Wo spielen wir? Wer ist wirklich dabei?</p>
           <div class="pain-points">
             <div class="pain-point"><i>1</i><div><b>Absagen gehen unter</b><span>Trainer suchen Rückmeldungen mühsam aus dem Chat zusammen.</span></div></div>
             <div class="pain-point"><i>2</i><div><b>Pläne sind schnell veraltet</b><span>Änderungen verteilen sich auf Bilder, PDFs und einzelne Nachrichten.</span></div></div>
@@ -354,19 +388,19 @@
       </div>
     </section>
 
-    <section class="roles" id="fuer-wen">
+<section class="roles" id="fuer-wen">
       <div class="wrap">
-        <div class="section-head"><h2>Der Trainer organisiert.<br><span class="red">Alle bleiben informiert.</span></h2><p>Wir richten den Einstieg mit deiner Mannschaft persönlich ein. Danach lädt der Trainer Eltern und Spieler ein. Geschwister, Großeltern und Freunde können als Fans mitfiebern – ohne zusätzlichen Organisationsaufwand.</p></div>
+        <div class="section-head"><h2>Der Trainer organisiert.<br><span class="red">Alle bleiben informiert.</span></h2><p>Die SpielzeitApp verbindet die Organisation am Platz mit dem Familienalltag. Jeder findet die Informationen, die für seine Rolle wichtig sind.</p></div>
         <div class="audience-grid">
           <article class="audience-card" id="trainer"><span class="role-kicker">Für Trainer</span><h3>Alles im Griff.</h3><p>Vom aktuellen Spielplan über Training und Matchvorbereitung bis zu den Spielzeiten der Spieler – alles an einem Ort.</p><div class="audience-points"><span>Spielplan immer aktuell</span><span>Training einfach planen</span><span>Eltern ohne Rückmeldung automatisch erinnern</span><span>Kader und Aufstellung fürs Match vorbereiten</span><span>Spielzeiten der Spieler erfassen</span></div></article>
-          <article class="audience-card" id="eltern"><span class="role-kicker">Für Eltern &amp; Spieler</span><h3>Alles im Blick. Auch unterwegs.</h3><p>Von der Planung bis zum Schlusspfiff: Die wichtigsten Informationen für den Familienalltag an einem Ort.</p><div class="audience-points"><span>Alle Termine auf einen Blick</span><span>Termine in den Familienkalender übernehmen</span><span>Einfach zu- oder absagen</span><span>Fahrgemeinschaften organisieren</span><span>Navigation direkt zum Sportplatz</span><span>Spielstand, Tore und Wechsel im Liveticker verfolgen</span><span>Ergebnisse, Fotos und Feedposts ansehen</span><span>Eigene Aufstellung und freigegebene Spielmomente erleben</span></div></article>
+          <article class="audience-card" id="eltern"><span class="role-kicker">Für Eltern &amp; Spieler</span><h3>Alles im Blick. Auch unterwegs.</h3><p>Von der Planung bis zum Schlusspfiff: Die wichtigsten Informationen für den Familienalltag an einem Ort.</p><div class="audience-points"><span>Termine für Kinder und Teams im Blick behalten und im Familienkalender abonnieren</span><span>Mit einem Tipp zu- oder absagen und wichtige Änderungen erhalten</span><span>Fahrgemeinschaften organisieren und zum Sportplatz navigieren</span><span>Aufstellung, Liveticker und Ergebnisse ansehen</span><span>Freigegebene Fotos, Feedposts und Spielmomente erleben</span></div></article>
           <article class="audience-card" id="fans"><span class="role-kicker">Für Familie &amp; Fans</span><h3>Nah am Team bleiben.</h3><p>Oma, Opa, Geschwister und Freunde sehen Spieltermine, Ergebnisse und gemeinsame Momente.</p><div class="audience-points"><span>Erfasste Spielereignisse im Liveticker verfolgen</span><span>Fotos und Feedposts</span></div></article>
         </div>
 
       </div>
     </section>
 
-    <section class="feature-section" id="funktionen">
+<section class="feature-section" id="funktionen">
       <div class="wrap">
         <div class="section-head"><h2>Von der Planung<br><span class="red">bis zum Schlusspfiff.</span></h2><p>Planen, trainieren, vorbereiten, spielen, besprechen und gemeinsam erleben – ohne zwischen verschiedenen Werkzeugen zu wechseln.</p></div>
         <div class="cards cards-six">
@@ -381,47 +415,30 @@
       </div>
     </section>
 
-    <section class="parent-tools" id="familie">
-      <div class="wrap">
-        <div class="section-head"><h2>Für Eltern einfach.<br><span class="red">Für die Familie praktisch.</span></h2><p>Termine, Rückmeldungen und wichtige Trainerinfos bleiben mit Spielzeit Basis gratis.</p></div>
-        <div class="parent-grid">
-          <article class="parent-card"><span class="num-small">01</span><h3>Termine &amp; Rückmeldungen</h3><p>Training, Spiel und Turnier sehen und mit einem Tipp zu- oder absagen.</p></article>
-          <article class="parent-card"><span class="num-small">02</span><h3>Familienkalender &amp; Abo</h3><p>Mehrere Kinder und Teams gemeinsam sehen und alle Termine in den eigenen Kalender übernehmen.</p></article>
-          <article class="parent-card"><span class="num-small">03</span><h3>Fahrgemeinschaft &amp; Navigation</h3><p>Plätze anbieten, Mitfahrten organisieren und direkt zum Sportplatz navigieren.</p></article>
-          <article class="parent-card"><span class="num-small">04</span><h3>Erinnerungen &amp; Änderungen</h3><p>Treffpunkt, Kaderinformation, Terminänderungen und automatische Erinnerungen erhalten.</p></article>
-          <article class="parent-card"><span class="num-small">05</span><h3>Liveticker, Ergebnisse &amp; Feed</h3><p>Erfasste Spielereignisse verfolgen und freigegebene Spielinformationen, Fotos und Feedbeiträge ansehen.</p></article>
-        </div>
-        <div class="parent-summary">Ein Team organisiert – die ganze Familie informiert.</div>
-      </div>
-    </section>
+<section class="everyday-flow" id="alltag" aria-labelledby="alltag-title"><div class="wrap">
+<div class="section-head"><div><span class="eyebrow">So funktioniert der Teamalltag</span><h2 id="alltag-title">Ein Termin.<br><span class="red">Ein klarer Ablauf.</span></h2></div><p>Vom ersten Eintrag bis zum Ergebnis: Trainer, Spieler und Eltern arbeiten mit denselben aktuellen Informationen.</p></div>
+<div class="steps">
+<article class="step"><span class="num">01</span><h3>Planen &amp; antworten</h3><p>Du legst Training oder Spiel mit Ort und Treffpunkt an. Spieler und Eltern sagen zu oder ab. Fehlende Rückmeldungen werden automatisch erinnert.</p></article>
+<article class="step"><span class="num">02</span><h3>Vorbereiten &amp; informieren</h3><p>Du siehst, wer dabei ist, nominierst den Kader und bereitest die Aufstellung vor. Eltern finden Termin, Treffpunkt und wichtige Trainerinfos in der App.</p></article>
+<article class="step"><span class="num">03</span><h3>Spielen &amp; festhalten</h3><p>Du oder ein berechtigter Betreuer erfasst Tore und Wechsel. Eltern und Fans verfolgen den Liveticker. Ergebnis und freigegebene Teammomente bleiben im Feed.</p></article>
+</div><div class="demo-invite"><div><strong>Probier den Ablauf mit dem Demo-Team aus.</strong><p>Entdecke Termine, Rückmeldungen und Matchvorbereitung aus den verschiedenen Rollen.</p></div><a class="btn btn-red" href="/demo">Demo ausprobieren</a></div>
+</div></section>
 
-    <section class="emotion">
+<section id="start"><div class="wrap"><div class="section-head"><h2>So startet <span class="red">deine Mannschaft.</span></h2><p>Die Demo hat dich überzeugt? Wir richten deine Mannschaft persönlich mit dir ein und vereinbaren den Start der dreimonatigen Testphase.</p></div><div class="steps"><div class="step"><span class="num">01</span><h3>Mannschaft einrichten</h3><p>Wir bereiten Mannschaft, Vereinsfarben und Trainerzugänge gemeinsam mit dir vor.</p></div><div class="step"><span class="num">02</span><h3>Spielplan vorbereiten</h3><p>Wir übernehmen gemeinsam deinen Saison-Spielplan und bereiten eure Trainings- und Spieltermine vor.</p></div><div class="step"><span class="num">03</span><h3>Spieler &amp; Eltern einladen</h3><p>Trainer laden Spieler und Eltern per Link ein. Danach könnt ihr Rückmeldungen sammeln und den Teamalltag gemeinsam organisieren.</p></div></div></div></section>
+
+<section class="emotion">
       <div class="emotion-grid">
         <div class="emotion-image"><img src="parents-live.webp" loading="lazy" alt="Eltern jubeln beim Blick auf das Handy, dahinter feiert die Mannschaft"><div class="emotion-phone"><div class="emotion-phone-screen"><img src="/landingpage-assets/rohrbach-loosdorf-5-4.webp?v=demo-scorers" width="706" height="1536" loading="lazy" alt="SpielzeitApp: Endstand SPG Rohrbach gegen ASK Loosdorf 5:4 am 21. Oktober 2026, Sportplatz Rohrbach"></div></div></div>
         <div class="wrap emotion-copy">
-          <span class="eyebrow">Für Eltern &amp; Fans</span>
+          <span class="eyebrow">Stell dir euren nächsten Spieltag vor</span>
           <h2>Dein Team bleibt verbunden.</h2>
-          <p>Der Trainer organisiert einmal. Eltern, Geschwister, Oma, Opa und Freunde bleiben informiert und können auch aus der Ferne mitfiebern.</p>
+          <p>Der Treffpunkt ist klar, die Rückmeldungen sind gesammelt und der Kader ist bekannt. Am Platz kannst du dich auf dein Team konzentrieren. Eltern, Geschwister, Oma, Opa und Freunde bleiben verbunden – auch aus der Ferne.</p>
           <div class="emotion-list"><div class="emotion-item"><b>01</b><span>Tore, Wechsel und Spielstand live verfolgen.</span></div><div class="emotion-item"><b>02</b><span>Fotos, Feedposts und freigegebene Highlights mit Familie und Freunden teilen – auch im WhatsApp-Status.</span></div><div class="emotion-item"><b>03</b><span>Die schönsten Momente später in der Chronik wiederfinden.</span></div></div>
         </div>
       </div>
     </section>
 
-    <section class="highlights" id="highlights">
-      <div class="wrap">
-        <div class="section-head"><h2>Spielszenen ansehen.<br><span class="red">Highlights teilen.</span></h2><p>Wenn ihr Spielmomente aufnehmt, könnt ihr Videos und ausgewählte Spielszenen hochladen, gemeinsam ansehen und freigegebene Highlights teilen. Diese Funktion nutzt ihr bei Bedarf.</p></div>
-        <div class="cards">
-          <article class="card"><span class="eyebrow">Für Trainer</span><h3>Momente gemeinsam ansehen.</h3><p>Vorhandene Videos und ausgewählte Spielszenen hochladen und mit dem Team ansehen. Ob ihr Spiele aufnehmt und diese Funktion nutzt, entscheidet ihr selbst.</p></article>
-          <article class="card"><span class="eyebrow">Für Spielerinnen &amp; Spieler</span><h3>Die eigene Aktion sehen.</h3><p>Wenn Aufnahmen vorhanden und freigegeben sind, können Spielerinnen und Spieler ihre Tore und besonderen Spielmomente noch einmal erleben.</p></article>
-          <article class="card"><span class="eyebrow">Für Eltern</span><h3>Momente mit der Familie teilen.</h3><p>Die Spielmomente der Kinder noch einmal ansehen und freigegebene Highlights mit Oma, Opa und Freunden teilen – auch im WhatsApp-Status.</p></article>
-          <article class="card"><span class="eyebrow">Für Fans</span><h3>Auch danach mitfiebern.</h3><p>Tore und besondere Spielszenen ansehen, auch wenn man nicht am Sportplatz war. Freigegebene Clips weitergeben und die Freude am Team teilen.</p></article>
-        </div>
-      </div>
-    </section>
-
-
-
-    <section class="roles manager-intro" id="verein" aria-labelledby="manager-title">
+<section class="roles manager-intro" id="verein" aria-labelledby="manager-title">
       <div class="wrap">
         <div class="section-head"><span class="eyebrow">Zusätzlich zur Team-App: SpielzeitManager</span><h2 id="manager-title">Auch den ganzen Verein<br><span class="red">im Blick behalten.</span></h2><p>Die Team-App unterstützt den Trainer am Spielfeld und im Familienalltag. Der zusätzliche SpielzeitManager bündelt die Planung mehrerer Mannschaften für Jugendleitung, Vereinsverantwortliche, Platzwart und Kantinenteam.</p></div>
         <div class="manager-benefits">
@@ -441,7 +458,17 @@
       </div>
     </section>
 
-    <section class="package-section" id="pakete" aria-labelledby="package-title">
+<section class="highlights highlights-compact" id="highlights"><div class="wrap"><div class="section-head"><div><span class="eyebrow">Optional mit vorhandenen Aufnahmen</span><h2>Spielmomente<br><span class="red">noch einmal erleben.</span></h2></div><div><p>Lade vorhandene Videos und ausgewählte Spielszenen hoch, besprich sie mit dem Team und teile freigegebene Highlights mit der Familie – auch im WhatsApp-Status.</p><p>Ob ihr Spiele aufnehmt, entscheidet ihr selbst. Für Termine, Rückmeldungen und Matchorganisation braucht ihr keine Videos.</p></div></div></div></section>
+
+<section class="questions" id="fragen" aria-labelledby="fragen-title"><div class="wrap"><div class="section-head"><div><span class="eyebrow">Was bedeutet das für euch?</span><h2 id="fragen-title">Die wichtigsten<br><span class="red">Fragen vor dem Start.</span></h2></div><p>Erst ausprobieren, dann gemeinsam entscheiden, was zu eurer Mannschaft passt.</p></div>
+<div class="faq-list">
+<details><summary>Kann ich die App zuerst allein ausprobieren?</summary><p>Ja. Mit dem Beispielteam in der öffentlichen Demo lernst du die Team-App kennen. Wenn du danach mit deiner Mannschaft testen möchtest, richten wir den Einstieg persönlich mit dir ein. Den SpielzeitManager am Desktop stellen wir dir separat vor.</p></details>
+<details><summary>Müssen Spieler und Eltern dafür bezahlen?</summary><p>Die grundlegende Teilnahme mit Spielzeit Basis bleibt gratis: Termine, Rückmeldungen, wichtige Trainerinfos und Kadernominierungen. Die zusätzlichen Werkzeuge für Trainer und Verein sind in Spielzeit Team beziehungsweise Spielzeit Verein enthalten.</p></details>
+<details><summary>Muss ich bei jedem Spiel einen Liveticker führen?</summary><p>Nein. Ihr könnt Termine, Rückmeldungen und die Vorbereitung auch ohne Liveticker nutzen. Damit Eltern und Fans Tore, Wechsel und Spielstand verfolgen können, muss ein Trainer oder berechtigter Betreuer die Ereignisse erfassen. Einsatzzeiten setzen entsprechende Aufstellungs- und Wechseldaten voraus.</p></details>
+<details><summary>Was passiert nach den drei Gratismonaten?</summary><p>Du entscheidest, ob du Spielzeit Team buchen möchtest. Es gibt keine automatische kostenpflichtige Verlängerung. Die kostenlose Basis bleibt verfügbar. Die Testzeit beginnt zum gemeinsam vereinbarten Start und umfasst Spielzeit Team, nicht das gesamte Vereinspaket.</p></details>
+</div></div></section>
+
+<section class="package-section" id="pakete" aria-labelledby="package-title">
       <div class="wrap">
         <div class="section-head"><h2 id="package-title">Einfach teilnehmen.<br><span class="red">Gezielt mehr nutzen.</span></h2><p>Die Basis für Spieler und Eltern bleibt gratis. Einzelne Trainer buchen Spielzeit Team, Vereine die Werkzeuge für mehrere Mannschaften.</p></div>
         <div class="package-grid">
@@ -467,21 +494,13 @@
             <a class="btn btn-red" href="mailto:office@quetschnguru.at?subject=Spielzeit%20Verein%20kennenlernen">Vereinspaket kennenlernen</a>
           </article>
         </div>
-        <div class="package-notes">
-          <p><strong>Wer bezahlt was?</strong> Spielzeit Team und Spielzeit Verein bezahlen die Werkzeuge für Trainer und Organisation. Die notwendigen Teilnahmeinformationen, Rückmeldungen, Kadernominierungen und der Saison-Spielplan-PDF bleiben für Spieler und Eltern kostenlos.</p>
-          <p><strong>3 Monate Spielzeit Team gratis testen.</strong> Wir richten deine Mannschaft persönlich mit dir ein. Die Testzeit beginnt zum gemeinsam vereinbarten Start und umfasst die Funktionen von Spielzeit Team. Keine automatische kostenpflichtige Verlängerung: Danach entscheidest du, ob du das Paket buchen möchtest. Die kostenlose Basis bleibt verfügbar. Der Test umfasst nicht das gesamte Vereinspaket.</p>
-          <p><strong>Liveticker braucht Erfassung.</strong> Spielstand, Tore und Wechsel können verfolgt werden, sofern Trainer oder berechtigte Betreuer das Spiel erfassen. Individuelle Einsatzzeiten setzen entsprechende Aufstellungs- und Wechseldaten voraus.</p>
-          <p><strong>Aufnahmen statt Kamera-Livestream.</strong> Videos und Highlights setzen vorhandene Aufnahmen, passende Freigaben und ein vereinbartes Speicher- und Datenkontingent voraus. Ein Kamera-Livestream ist derzeit nicht Bestandteil des Angebots.</p>
-          <p>Paketumfang und Konditionen besprechen wir persönlich. Alle Anfragen öffnen eine E-Mail; auf dieser Seite wird kein kostenpflichtiges Abo abgeschlossen. Die beschriebenen Pakete werden persönlich eingerichtet; die automatische Buchung und Freischaltung der Abos sind noch nicht verfügbar.</p>
-        </div>
+        <div class="package-notes"><p>Die Teilnahme mit Spielzeit Basis bleibt für Spieler und Eltern kostenlos. Die Testbedingungen und Antworten zum Liveticker findest du bei den <a href="#fragen">Fragen vor dem Start</a>.</p><details><summary>Details zu Videos und persönlicher Einrichtung</summary><p><strong>Aufnahmen statt Kamera-Livestream.</strong> Videos und Highlights setzen vorhandene Aufnahmen, passende Freigaben und ein vereinbartes Speicher- und Datenkontingent voraus. Ein Kamera-Livestream ist derzeit nicht Bestandteil des Angebots.</p><p>Paketumfang und Konditionen besprechen wir persönlich. Alle Anfragen öffnen eine E-Mail; auf dieser Seite wird kein kostenpflichtiges Abo abgeschlossen. Die Pakete werden persönlich eingerichtet. Automatische Buchung und Freischaltung sind noch nicht verfügbar.</p></details></div>
       </div>
     </section>
 
-    <section id="start"><div class="wrap"><div class="section-head"><h2>In drei Schritten <span class="red">startklar.</span></h2><p>Wir richten den Einstieg persönlich ein. Die Teilnahme mit Spielzeit Basis bleibt gratis. Trainer und Verein wählen die passenden Werkzeuge.</p></div><div class="steps"><div class="step"><span class="num">01</span><h3>Mannschaft einrichten</h3><p>Wir bereiten Mannschaft, Vereinsfarben und Trainerzugänge gemeinsam mit dir vor.</p></div><div class="step"><span class="num">02</span><h3>Spielplan vorbereiten</h3><p>Wir übernehmen gemeinsam deinen Saison-Spielplan und bereiten eure Trainings- und Spieltermine vor.</p></div><div class="step"><span class="num">03</span><h3>Spieler &amp; Eltern einladen</h3><p>Trainer laden Spieler und Eltern per Link ein. Danach könnt ihr Rückmeldungen sammeln und den Teamalltag gemeinsam organisieren.</p></div></div></div></section>
+<section class="cta" id="testen"><div class="wrap"><div class="cta-box"><div><h2>Deine Mannschaft.<br>3 Monate gratis testen.</h2><p>Starte mit der Demo. Wenn die App zu euch passt, frage den persönlichen Test mit Spielzeit Team an. Gemeinsam bereiten wir eure Termine vor – damit ihr zum nächsten Saisonstart schon eingespielt seid. Ohne automatische kostenpflichtige Verlängerung.</p></div><div class="cta-action"><a class="btn btn-white" href="/demo">Demo ansehen</a><a class="btn btn-red" href="mailto:office@quetschnguru.at?subject=Spielzeit%20Team%203%20Monate%20gratis%20testen">3 Monate gratis testen</a></div></div></div></section>
+</main>
 
-    <section class="cta" id="testen"><div class="wrap"><div class="cta-box"><div><h2>Deine Mannschaft.<br>3 Monate gratis testen.</h2><p>Lerne die Demo kennen oder frage deinen persönlichen Test mit Spielzeit Team an. Wir richten deine Mannschaft gemeinsam ein und vereinbaren den Start. Nach drei Monaten entscheidest du über die weitere Nutzung – ohne automatische kostenpflichtige Verlängerung.</p></div><div class="cta-action"><a class="btn btn-white" href="/demo">Demo ansehen</a><a class="btn btn-red" href="mailto:office@quetschnguru.at?subject=Spielzeit%20Team%203%20Monate%20gratis%20testen">3 Monate gratis testen</a></div></div></div></section>
-  </main>
-
-  <footer><div class="wrap"><div class="footer-grid"><div><a class="brand" href="#top"><img class="brand-icon" src="spielzeitapp-icon.png" alt=""><img class="brand-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></a><p class="footer-slogan">Unser Team. Unsere Momente. Unser Spiel.</p></div><div><h4>SpielzeitApp</h4><a href="#fuer-wen">Vorteile</a><a href="#funktionen">Funktionen</a><a href="#pakete">Pakete</a><a href="#start">So geht’s</a><a href="/demo">Demo ansehen</a></div><div><h4>Rechtliches</h4><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="/login">Einloggen</a></div></div><div class="copyright">© 2026 SpielzeitApp</div></div></footer>
+  <footer><div class="wrap"><div class="footer-grid"><div><a class="brand" href="#top"><img class="brand-icon" src="spielzeitapp-icon.png" alt=""><img class="brand-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></a><p class="footer-slogan">Unser Team. Unsere Momente. Unser Spiel.</p></div><div><h4>SpielzeitApp</h4><a href="#fuer-wen">Vorteile</a><a href="#funktionen">Funktionen</a><a href="#pakete">Pakete</a><a href="#alltag">So geht’s</a><a href="/demo">Demo ansehen</a></div><div><h4>Rechtliches</h4><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="/login">Einloggen</a></div></div><div class="copyright">© 2026 SpielzeitApp</div></div></footer>
 </body>
 </html>
