@@ -1,3 +1,4 @@
+fatal: /dev/null: '/dev/null' is outside repository at '/workspace/scratch/03ac037b11e3/landingpage-live'
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
@@ -10,7 +11,8 @@ assert.ok(clean.includes('.hero{height:auto;min-height:0'), 'Hero must grow to f
 assert.ok(clean.includes('.hero-signature .hero-phone-preview{position:relative'), 'Phone must not overlap photo or slogan');
 for (const text of ['Unser Team.', 'Unsere Momente.', 'Unser Spiel.']) assert.ok(html.includes(text));
 assert.ok(html.includes('href="/demo"'), 'Test demo link remains local');
-assert.ok(html.includes('class="emotion-phone-screen"'), 'Scorer replacement must anchor to the actual image dimensions');
-assert.ok(html.includes('top:52%;width:81.4%;height:8%'), 'Replacement must cover both original scorer rows');
-for (const name of ['Noah Kramer', 'Lena Mayer', 'Elias Fischer']) assert.ok(html.includes(name));
+assert.ok(html.includes('class="emotion-phone-screen"'), 'Result screen stays inside its phone frame');
+assert.ok(!html.includes('class="demo-scorers"'), 'Original result screenshot must not have stale demo scorers overlaid');
+assert.ok(html.includes('/landingpage-assets/rohrbach-loosdorf-preview.webp'), 'Hero shows the Loosdorf fixture');
+assert.ok(html.includes('/landingpage-assets/rohrbach-loosdorf-5-4.webp'), 'Closing section shows the same match ending 5:4');
 console.log('Clean landingpage hero regression checks passed');
