@@ -229,6 +229,23 @@ fatal: /dev/null: '/dev/null' is outside repository at '/workspace/scratch/03ac0
       .hero-visual .hero-signature{padding:16px 18px 24px;gap:16px}
       .hero-signature strong{font-size:29px}
     }
+
+    /* Shared hero composition: photograph blends into the page behind the phone. */
+    .hero-visual .match-story-stage{position:relative;display:block;aspect-ratio:1.42;min-height:0;padding:0;overflow:hidden;background:transparent;isolation:isolate}
+    .hero-visual .match-story-stage picture{position:absolute;inset:0 0 0 16%;display:block;width:84%;height:100%;border-radius:0;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%);mask-image:linear-gradient(90deg,transparent,#000 12%)}
+    .hero-visual .match-story-stage picture>img{display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:contain;object-position:center;transform:none}
+    .match-story-stage:after{content:"";position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(0deg,#18070b 0,transparent 15%,transparent 85%,#16070a 100%)}
+    .match-story-stage .hero-phone-preview{position:absolute;z-index:2;inset:50% auto auto 3%;width:29%;height:auto;aspect-ratio:706/1536;margin:0;transform:translateY(-50%) rotate(-3deg);border:3px solid #545056;border-radius:28px;box-shadow:0 18px 35px #000b}
+    .match-story-stage .hero-phone-preview img{border-radius:23px}
+    @media(max-width:900px){
+      .hero-visual .match-story-stage{aspect-ratio:1.42}
+      .hero-visual .hero-signature{padding:8px 24px 28px}
+    }
+    @media(max-width:650px){
+      .match-story-stage .hero-phone-preview{left:3%;width:29%;border-width:3px;border-radius:21px}
+      .match-story-stage .hero-phone-preview img{border-radius:16px}
+      .hero-visual .hero-signature{padding:6px 18px 24px;gap:16px}
+    }
 </style>
 </head>
 <body>
