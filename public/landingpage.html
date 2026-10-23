@@ -1,3 +1,4 @@
+fatal: /dev/null: '/dev/null' is outside repository at '/workspace/scratch/03ac037b11e3/landingpage-live'
 <!doctype html>
 <html lang="de">
 <head>
@@ -198,6 +199,49 @@
       .manager-intro .trainer-workspace h3{font-size:32px}
       .trainer-workspace-benefits{grid-template-columns:1fr;gap:16px;margin-top:20px;padding-top:18px}
     }
+    /* One match from preparation to celebration, with the original app screens. */
+    .parent-card{min-width:0;overflow-wrap:anywhere}
+    .hero-visual{display:block;overflow:visible}
+    .match-story-stage{display:grid;grid-template-columns:minmax(0,29fr) minmax(0,71fr);align-items:center;gap:16px;padding:24px 18px;background:linear-gradient(135deg,#35090d,transparent 65%)}
+    .hero-visual .match-story-stage picture{grid-column:2;grid-row:1;display:block;height:auto;border-radius:16px;overflow:hidden}
+    .hero-visual .match-story-stage picture>img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;object-position:50% 65%;transform:none}
+    .match-story-stage .hero-phone-preview{display:block;position:relative;inset:auto;grid-column:1;grid-row:1;width:100%;height:auto;aspect-ratio:706/1536;margin:0;border:4px solid #44444a;border-radius:28px;overflow:hidden;box-shadow:0 18px 40px #0009}
+    .match-story-stage .hero-phone-preview img{display:block;width:100%;height:100%;object-fit:contain;border-radius:23px}
+    .hero-visual .hero-signature{position:relative;inset:auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;padding:18px 22px 26px;width:100%}
+    .hero-signature-brand{flex:1 1 220px}
+    .hero-signature strong{flex:1 1 180px;font-size:clamp(25px,2.1vw,34px);line-height:1.05}
+    .emotion-image{display:grid;grid-template-columns:minmax(0,29fr) minmax(0,71fr);align-items:center;gap:16px;padding:28px 20px;aspect-ratio:auto;min-height:0;background:linear-gradient(135deg,#35090d,#0b0b0c 70%)}
+    .emotion-image:after{display:none}
+    .emotion-image>img{position:relative;inset:auto;grid-column:2;grid-row:1;display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;object-position:32% 70%;border-radius:16px}
+    .emotion-image .emotion-phone{position:relative;inset:auto;grid-column:1;grid-row:1;align-self:center;width:100%;height:auto;aspect-ratio:706/1536;margin:0;border:4px solid #39393e;border-radius:28px;overflow:hidden}
+    .emotion-grid{min-height:0}
+    @media(min-width:901px){
+      .hero-grid{grid-template-columns:minmax(0,39fr) minmax(0,61fr);gap:24px}
+      .hero-copy h1{font-size:clamp(48px,4.5vw,72px)}
+      .hero-signature-brand .hero-signature-logo{width:44px;height:44px}
+      .hero-signature-wordmark{width:210px;max-width:calc(100% - 54px)}
+      .emotion-grid{grid-template-columns:minmax(0,60fr) minmax(0,40fr)}
+      .emotion-copy{width:100%;padding:48px 36px}
+      .emotion-copy h2{font-size:clamp(42px,4vw,64px)}
+    }
+    @media(max-width:900px){
+      .match-story-stage{gap:18px;padding:24px}
+      .hero-signature strong{font-size:32px}
+      .emotion-image{gap:18px;padding:24px}
+      .emotion-copy{padding:36px 0 60px}
+    }
+    @media(max-width:650px){
+      .hero-copy h1{font-size:clamp(32px,10vw,58px)}
+      .match-story-stage{grid-template-columns:minmax(0,34fr) minmax(0,66fr);gap:12px;padding:18px 12px}
+      .hero-visual .match-story-stage picture>img{aspect-ratio:1;object-position:50% 65%}
+      .match-story-stage .hero-phone-preview{border-width:3px;border-radius:20px}
+      .match-story-stage .hero-phone-preview img{border-radius:16px}
+      .hero-visual .hero-signature{padding:16px 18px 24px;gap:16px}
+      .hero-signature strong{font-size:29px}
+      .emotion-image{grid-template-columns:minmax(0,34fr) minmax(0,66fr);gap:12px;padding:18px 12px}
+      .emotion-image>img{aspect-ratio:1;object-position:22% 70%}
+      .emotion-image .emotion-phone{border-width:3px;border-radius:20px}
+    }
 </style>
 </head>
 <body>
@@ -219,14 +263,15 @@
           <div class="hero-buttons"><a class="btn btn-red" href="/demo">Demo ansehen</a><a class="btn btn-white" href="mailto:office@quetschnguru.at?subject=Spielzeit%20Team%203%20Monate%20gratis%20testen">3 Monate gratis testen</a></div>
         </div>
         <div class="hero-visual">
-          <picture>
-            <source media="(max-width:900px)" srcset="hero-inclusive-mobile-plain.webp">
-            <img src="hero-inclusive-desktop.webp" alt="Trainerin, Trainer, Mädchen und Jungen feiern gemeinsam in schwarz-roten Trikots">
-          </picture>
+          <div class="match-story-stage">
+            <picture>
+              <img src="/landingpage-assets/rohrbach-match-preparation.webp" width="1536" height="1024" fetchpriority="high" alt="Trainer und Trainerin besprechen das Spiel mit der Mannschaft am Sportplatz Rohrbach; Familien sitzen auf der roten Tribüne">
+            </picture>
+            <div class="hero-phone-preview"><img src="/landingpage-assets/rohrbach-loosdorf-preview.webp" width="706" height="1536" alt="SpielzeitApp: U12 SPG Rohrbach gegen ASK Loosdorf, 21. Oktober 2026 um 17:30 Uhr am Sportplatz Rohrbach"></div>
+          </div>
           <div class="hero-signature">
             <div class="hero-signature-brand"><img class="hero-signature-logo" src="spielzeitapp-icon.png" alt=""><img class="hero-signature-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></div>
             <strong><span>Unser Team.</span><span>Unsere Momente.</span><span class="hero-slogan-red">Unser Spiel.</span></strong>
-            <div class="hero-phone-preview"><img src="spielzeitapp-termine-original.jpeg" alt="Originalansicht der SpielzeitApp: Spieltermine und Kalender-Abo am Handy"></div>
           </div>
         </div>
       </div>
@@ -312,7 +357,7 @@
 
     <section class="emotion">
       <div class="emotion-grid">
-        <div class="emotion-image"><img src="parents-live.webp" alt="Eltern verfolgen ein Spiel und jubeln mit dem Team"><div class="emotion-phone"><div class="emotion-phone-screen"><img src="spielzeitapp-ergebnis-aktuell.jpeg" alt="SpielzeitApp am Handy mit dem Demo-Endstand Loosdorf 2 zu 3 Rohrbach"><div class="demo-scorers" aria-label="Torschützen aus dem Demoteam"><b class="demo-scorers-label">UNSERE TORSCHÜTZEN</b><span>Noah Kramer <time>· 26′</time>&nbsp;&nbsp; Lena Mayer <time>· 38′</time></span><br><span>Elias Fischer <time>· 61′</time></span></div></div></div></div>
+        <div class="emotion-image"><img src="/landingpage-assets/rohrbach-match-celebration.webp" width="1800" height="874" loading="lazy" alt="Die Mannschaft und ihre Trainerin feiern am Sportplatz Rohrbach; Eltern und Fans jubeln auf der Tribüne mit"><div class="emotion-phone"><div class="emotion-phone-screen"><img src="/landingpage-assets/rohrbach-loosdorf-5-4.webp" width="706" height="1536" loading="lazy" alt="SpielzeitApp: Endstand SPG Rohrbach gegen ASK Loosdorf 5:4 am 21. Oktober 2026, Sportplatz Rohrbach"></div></div></div>
         <div class="wrap emotion-copy">
           <span class="eyebrow">Für Eltern &amp; Fans</span>
           <h2>Dein Team bleibt verbunden.</h2>
