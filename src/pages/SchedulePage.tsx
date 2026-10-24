@@ -1806,6 +1806,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                                     yes={countsForCard.yes}
                                     no={countsForCard.no}
                                     open={countsForCard.open}
+                            injured={'injured' in countsForCard ? Number(countsForCard.injured) : 0}
                                     isTraining={et === 'training'}
                                     listColumn
                                     size="hero"
@@ -2081,6 +2082,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                             yes={countsForCard.yes}
                             no={countsForCard.no}
                             open={countsForCard.open}
+                            injured={'injured' in countsForCard ? Number(countsForCard.injured) : 0}
                             isTraining={et === 'training'}
                             listColumn
                             size="list"

@@ -62,6 +62,7 @@ import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import {
   playerAvailabilityFromItem,
+  matchScheduleCardCounts,
   resolveMatchEventRsvpStatus,
   buildPlayerAvailabilityMap,
 } from '../lib/playerAvailability';
@@ -1395,6 +1396,13 @@ export const EventDetailPage: React.FC = () => {
     },
     [eventAttendanceByPlayerId, event?.starts_at, players],
   );
+
+  const eventRsvpCounts = useMemo(() => matchScheduleCardCounts({
+    rosterPlayerIds: players.map(player => player.id),
+    availabilityByPlayerId: eventAttendanceByPlayerId,
+    playerAvailabilityById: buildPlayerAvailabilityMap(players),
+    startsAtIso: event?.starts_at,
+  }), [players, eventAttendanceByPlayerId, event?.starts_at]);
 
   const getAttendanceStatus = useCallback(
     (pid: string): 'yes' | 'no' | null => {
@@ -3867,9 +3875,9 @@ export const EventDetailPage: React.FC = () => {
         players={players}
         playersLoading={playersLoading}
         loadingAttendance={loadingEventAttendance}
-        yesCount={Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
-        noCount={Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
-        openCount={Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
+        yesCount={eventRsvpCounts.yes}
+        noCount={eventRsvpCounts.no}
+        openCount={eventRsvpCounts.open}
         getAttendanceStatus={getAttendanceStatus}
         getMatchRsvpDisplay={getMatchRsvpDisplay}
         onSetAttendance={(playerId, status) => {
@@ -4044,9 +4052,9 @@ export const EventDetailPage: React.FC = () => {
                 trainerAttendanceSection={tournamentTrainerAttendanceSection}
                 attendanceSummary={{
                   playerCount: players.length,
-                  yesCount: Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length,
-                  noCount: Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length,
-                  openCount: Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length),
+                  yesCount: eventRsvpCounts.yes,
+                  noCount: eventRsvpCounts.no,
+                  openCount: eventRsvpCounts.open,
                 }}
                 trainerFeedSection={
                   canTrainerManageEvent ? (
@@ -4433,18 +4441,22 @@ export const EventDetailPage: React.FC = () => {
                   />
                 ) : (
                   <>
-                <div className="-mx-4 mt-1 grid grid-cols-3 gap-2 sm:-mx-5">
+                <div className="-mx-4 mt-1 grid grid-cols-2 gap-2 sm:-mx-5 sm:grid-cols-4">
                     <div className="sz-club-rsvp-stat sz-club-rsvp-stat--yes">
                       <span>Zugesagt</span>
-                      <strong>{Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}</strong>
+                      <strong>{eventRsvpCounts.yes}</strong>
                     </div>
                     <div className="sz-club-rsvp-stat sz-club-rsvp-stat--open">
                       <span>Offen</span>
-                      <strong>{Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}</strong>
+                      <strong>{eventRsvpCounts.open}</strong>
                     </div>
                     <div className="sz-club-rsvp-stat sz-club-rsvp-stat--no">
                       <span>Abgesagt</span>
-                      <strong>{Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}</strong>
+                      <strong>{eventRsvpCounts.no}</strong>
+                    </div>
+                    <div className="sz-club-rsvp-stat border border-amber-500/30 bg-amber-950/20">
+                      <span>Verletzt</span>
+                      <strong className="!text-amber-300">{eventRsvpCounts.injured}</strong>
                     </div>
                   </div>
                 <div className={`-mx-4 flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3 sm:-mx-5`}>

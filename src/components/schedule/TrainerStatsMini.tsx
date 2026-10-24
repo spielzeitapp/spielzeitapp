@@ -1,10 +1,11 @@
 import React from 'react';
-import { CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { CircleHelp, HeartPulse, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 type Props = {
   yes: number;
   no: number;
   open: number;
+  injured?: number;
   isTraining?: boolean;
   listColumn?: boolean;
   /** Hero: größere Chips; Liste: kompakter. */
@@ -21,6 +22,7 @@ export function TrainerStatsMini({
   yes,
   no,
   open,
+  injured = 0,
   isTraining = false,
   listColumn = false,
   size = 'list',
@@ -71,6 +73,10 @@ export function TrainerStatsMini({
           <ThumbsDown className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
           {no}
         </span>
+        {injured > 0 && <span className={`${rowBase} border-t border-white/[0.08] text-orange-300`} title="Verletzt" aria-label={`${injured} verletzt`}>
+          <HeartPulse className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
+          {injured}
+        </span>}
       </div>
     );
   }
@@ -97,6 +103,9 @@ export function TrainerStatsMini({
           {open}
         </span>
       ) : null}
+      {injured > 0 && <span className={`border-orange-500/40 bg-orange-950/40 text-orange-300 ${pillSm} ${pillSize}`} title="Verletzt" aria-label={`${injured} verletzt`}>
+        <HeartPulse className="mr-1 h-3.5 w-3.5" aria-hidden />{injured}
+      </span>}
     </div>
   );
 }
