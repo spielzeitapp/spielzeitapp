@@ -729,8 +729,9 @@ export const EventCarpoolCard: React.FC<Props> = ({
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {canOffer && !ownOffer ? (
-                <button type="button" className={dsPrimaryCtaClass()} onClick={() => openOfferModal()}>
-                  <Car className="h-4 w-4" aria-hidden /> Fahrt anbieten
+                <button type="button" className={`${dsPrimaryCtaClass()} !flex min-h-[52px] !items-center !justify-center !gap-3`} onClick={() => openOfferModal()}>
+                  <Car className="h-7 w-7 shrink-0" strokeWidth={2.2} aria-hidden />
+                  <span>Fahrt anbieten</span>
                 </button>
               ) : null}
               {myPlayers.some(

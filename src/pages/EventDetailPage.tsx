@@ -4312,7 +4312,7 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         ) : null}
 
-        {event.kind === 'match' ? carpoolingCard : null}
+        {event.kind === 'match' && !canTrainerViewEvent ? carpoolingCard : null}
 
         {isAudienceMatchDetail && event.status === 'live' && event.match_id ? (
           <div className="flex flex-col gap-2.5 rounded-[14px] border border-red-500/28 bg-[linear-gradient(135deg,rgba(58,18,24,0.55)_0%,rgba(12,12,14,0.96)_100%)] px-3.5 py-3.5 shadow-[0_0_22px_rgba(220,38,38,0.14)]">
@@ -4657,6 +4657,8 @@ export const EventDetailPage: React.FC = () => {
             ) : null : null}
           </Card>
         ) : null}
+
+        {event.kind === 'match' && canTrainerViewEvent ? carpoolingCard : null}
 
         {isEventOrOther && showFurtherEventInfo ? (
           <Card className="flex flex-col gap-2 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
