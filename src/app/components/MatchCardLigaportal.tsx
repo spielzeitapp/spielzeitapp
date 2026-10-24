@@ -82,7 +82,7 @@ type MatchCardLigaportalProps = {
   /** Wird aufgerufen wenn Nutzer auf "Zu-/Absage" klickt (öffnet Modal). */
   onOpenAttendance?: () => void;
   /** Für Trainer/Admin: Counts für Zu-/Absagen-Übersicht (Zugesagt / Abgesagt / Offen). */
-  attendanceCounts?: { yes: number; no: number; open: number } | null;
+  attendanceCounts?: { yes: number; no: number; open: number; injured?: number } | null;
   /** true = öffentliche Ansicht: Karte nur Anzeige, keine Navigation, kein Link, kein onClick, Cursor default. */
   isPublicView?: boolean;
   /** Termine-UX: nächster Termin hervorheben (nur Darstellung). */
@@ -801,6 +801,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               yes={attendanceCounts.yes}
               no={attendanceCounts.no}
               open={attendanceCounts.open}
+              injured={attendanceCounts.injured}
               isTraining={false}
               listColumn
               heroColumn
@@ -825,6 +826,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               >
                 {attendanceCounts.open}
               </span>
+              {(attendanceCounts.injured ?? 0) > 0 && <span className="rounded-full border border-orange-500/40 bg-orange-950/40 px-2 py-0.5 text-[12px] font-semibold text-orange-300" title="Verletzt">{attendanceCounts.injured} verletzt</span>}
             </div>
           )
         : null}
@@ -1116,6 +1118,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     yes={attendanceCounts.yes}
                     no={attendanceCounts.no}
                     open={attendanceCounts.open}
+              injured={attendanceCounts.injured}
                     isTraining={false}
                     listColumn
                     size="hero"
