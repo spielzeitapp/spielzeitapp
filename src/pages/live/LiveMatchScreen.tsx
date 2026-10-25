@@ -5512,7 +5512,7 @@ export const LiveMatchScreen: React.FC = () => {
                   >
                     START
                   </button>
-                  {canControlLiveMatch && lineupPanelView === 'live' && !matchIsFinished && (!isDemo || demoFormationFormat === '7') ? (
+                  {canControlLiveMatch && lineupPanelView === 'live' && !matchIsFinished && !isDemo ? (
                     <>
                       <button
                         type="button"
@@ -5609,7 +5609,11 @@ export const LiveMatchScreen: React.FC = () => {
                     : LINEUP_CONTENT_SCROLL_BOTTOM_PAD,
               }}
             >
-              {isDemo && <DemoFormationPreview players={players} format={demoFormationFormat} onFormatChange={format => { setDemoFormationFormat(format); setLineupPositionMode(false); setFormationSheetOpen(false); }} />}
+              {isDemo && <DemoFormationPreview sevenFormation={pitchFormationId}
+                showActions={canControlLiveMatch && lineupPanelView === 'live' && !matchIsFinished}
+                sevenPositionMode={lineupPositionMode}
+                onSevenFormation={() => { setLineupPositionMode(false); setFormationSheetOpen(true); }}
+                onSevenPositions={() => setLineupPositionMode(previous => !previous)} players={players} format={demoFormationFormat} onFormatChange={format => { setDemoFormationFormat(format); setLineupPositionMode(false); setFormationSheetOpen(false); }} />}
               {(!isDemo || demoFormationFormat === '7') && <>
               {lineupPanelView === 'kickoff' ? (
                 kickoffSafeLineupRowsCount === 0 ? (
