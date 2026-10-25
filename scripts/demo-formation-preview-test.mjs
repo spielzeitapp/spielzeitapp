@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const result = await build({
   stdin: {
-    contents: `export { DemoFormationPreview, DEMO_FORMATION_SYSTEMS } from './src/demo/components/DemoFormationPreview';
+    contents: `export { DemoFormationPreview, DEMO_FORMATION_SYSTEMS, DEMO_FORMATION_LAYOUTS } from './src/demo/components/DemoFormationPreview';
       export { buildDemoPlayers } from './src/demo/demoPlayers';`,
     resolveDir: root,
     loader: 'ts',
@@ -20,7 +20,7 @@ const result = await build({
 const require = createRequire(import.meta.url);
 const compiledModule = { exports: {} };
 new Function('require', 'exports', 'module', result.outputFiles[0].text)(require, compiledModule.exports, compiledModule);
-const { DemoFormationPreview, DEMO_FORMATION_SYSTEMS, buildDemoPlayers } = compiledModule.exports;
+const { DemoFormationPreview, DEMO_FORMATION_SYSTEMS, DEMO_FORMATION_LAYOUTS, buildDemoPlayers } = compiledModule.exports;
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const players = buildDemoPlayers();
@@ -41,3 +41,16 @@ for (const format of ['7', '9', '11']) {
   }
 }
 console.log('Demo formation preview: actual demo roster and missing-name cases passed.');
+
+for (const [system, layout] of Object.entries(DEMO_FORMATION_LAYOUTS)) {
+  assert.equal(layout.length, system.split('-').map(Number).reduce((sum, n) => sum + n, 1));
+  assert.equal(layout.filter(p => p.label === 'TW').length, 1);
+  assert.equal(new Set(layout.map(p => `${p.x}:${p.y}`)).size, layout.length);
+}
+for (const system of ['4-4-2', '3-3-2', '3-5-2']) {
+  const strikers = DEMO_FORMATION_LAYOUTS[system].filter(p => p.label === 'ST');
+  assert.equal(strikers.length, 2);
+  assert.ok(strikers.every(p => p.x >= 35 && p.x <= 65), 'central strike pair');
+}
+assert.deepEqual(DEMO_FORMATION_LAYOUTS['4-4-2'].filter(p => p.y === 44).map(p => p.label), ['LM', 'ZM', 'ZM', 'RM']);
+assert.equal(DEMO_FORMATION_LAYOUTS['4-2-3-1'].filter(p => p.label === 'DM').length, 2);
