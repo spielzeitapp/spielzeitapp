@@ -96,6 +96,7 @@ import { LineupFormationPitch } from '../../components/match/LineupFormationPitc
 import { FinishedMatchScorers } from '../../components/match/FinishedMatchScorers';
 import { MatchVideosPanel } from '../../components/match/MatchVideosPanel';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
+import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import {
   DS_JERSEY_COMPACT,
@@ -939,6 +940,7 @@ export const LiveMatchScreen: React.FC = () => {
   /** DEMO.2F: gleicher Screen unter /demo, aber gegen die lokale Runtime statt Supabase. */
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
+  const [demoFormationFormat, setDemoFormationFormat] = useState<'7' | '9' | '11'>('7');
   const basePath = useInternalBasePath();
 
   const [effectiveMatchId, setEffectiveMatchId] = useState<string | null>(null);
@@ -5510,7 +5512,7 @@ export const LiveMatchScreen: React.FC = () => {
                   >
                     START
                   </button>
-                  {canControlLiveMatch && lineupPanelView === 'live' && !matchIsFinished ? (
+                  {canControlLiveMatch && lineupPanelView === 'live' && !matchIsFinished && (!isDemo || demoFormationFormat === '7') ? (
                     <>
                       <button
                         type="button"
@@ -5569,7 +5571,7 @@ export const LiveMatchScreen: React.FC = () => {
                       <div className="flex flex-col gap-0.5">
                         <p className="text-[15px] font-semibold leading-tight text-white/90">{matchIsFinished ? 'Endaufstellung' : 'Mannschaft am Feld'}</p>
                         <p className="text-[12px] leading-snug text-white/52">
-                          {matchIsFinished ? 'Stand beim Abpfiff' : 'Stand jetzt im Spiel'} · {currentFieldPlayerCount} Spieler am Feld
+                          {isDemo && demoFormationFormat !== '7' ? 'Demo-Formationsvorschau' : `${matchIsFinished ? 'Stand beim Abpfiff' : 'Stand jetzt im Spiel'} · ${currentFieldPlayerCount} Spieler am Feld`}
                         </p>
                         {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
                           <p className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-snug text-amber-300/90">
@@ -5607,6 +5609,8 @@ export const LiveMatchScreen: React.FC = () => {
                     : LINEUP_CONTENT_SCROLL_BOTTOM_PAD,
               }}
             >
+              {isDemo && <DemoFormationPreview players={players} format={demoFormationFormat} onFormatChange={format => { setDemoFormationFormat(format); setLineupPositionMode(false); setFormationSheetOpen(false); }} />}
+              {(!isDemo || demoFormationFormat === '7') && <>
               {lineupPanelView === 'kickoff' ? (
                 kickoffSafeLineupRowsCount === 0 ? (
                   <p className="rounded-[20px] border border-transparent bg-gradient-to-br from-[#101012]/90 to-black px-3 py-4 text-[13px] text-white/55 shadow-[0_6px_24px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.06)] backdrop-blur-[2px]">
@@ -5842,6 +5846,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 )}
               </section>
+              </>}
         {matchIsFinished && !isDemo && effectiveMatchId ? (
           <FinishedMatchAttendance key={effectiveMatchId} matchId={effectiveMatchId}
             players={roster.map(p => ({ id: p.id, name: p.name || 'Spieler' }))}
