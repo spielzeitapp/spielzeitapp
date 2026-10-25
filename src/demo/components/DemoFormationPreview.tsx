@@ -35,12 +35,20 @@ function playerName(player: PlayerItem): string {
 type Format = '7' | keyof typeof DEMO_FORMATION_SYSTEMS;
 
 /** Local preview only: never changes the live engine or a saved lineup. */
-export function DemoFormationPreview({ players, format, onFormatChange }: {
+export function DemoFormationPreview({ players, format, onFormatChange, sevenFormation, onSevenFormation, onSevenPositions, sevenPositionMode = false, showActions = true }: {
+  sevenFormation?: string;
+  onSevenFormation?: () => void;
+  onSevenPositions?: () => void;
+  sevenPositionMode?: boolean;
+  showActions?: boolean;
   players: PlayerItem[];
   format: Format;
   onFormatChange: (format: Format) => void;
 }): React.ReactElement {
   const [systems, setSystems] = useState({ '9': '3-3-2', '11': '4-4-2' });
+  const [positionMode, setPositionMode] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
+  const [orders, setOrders] = useState<Record<string, string[]>>({});
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -49,8 +57,9 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
     else dialog?.close();
   }, [pickerOpen, format]);
   const system = format === '7' ? '' : systems[format];
-  const starters = players.slice(0, Number(format));
-  const bench = players.slice(Number(format));
+  const orderedPlayers = (orders[format] ?? players.map(p => p.id)).map(id => players.find(p => p.id === id)).filter((p): p is PlayerItem => Boolean(p));
+  const starters = orderedPlayers.slice(0, Number(format));
+  const bench = orderedPlayers.slice(Number(format));
   const positions = format === '7' ? [] : DEMO_FORMATION_LAYOUTS[system].map((position, index) => ({
     ...position, player: starters[index],
   }));
@@ -65,7 +74,7 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
         ] as const).map(option => {
           const active = format === option.value;
           return <button key={option.value} type="button" aria-pressed={active}
-            onClick={() => { setPickerOpen(false); onFormatChange(option.value); }}
+            onClick={() => { setPickerOpen(false); setPositionMode(false); setSelectedPosition(null); onFormatChange(option.value); }}
             className={`flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-2 transition-colors ${active
               ? 'border-red-400/40 bg-gradient-to-b from-red-800/65 to-red-950/75 text-white shadow-[0_0_14px_rgba(220,38,38,0.12)]'
               : 'border-transparent bg-black/20 text-white/50 hover:border-white/10 hover:text-white/80'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400`}>
@@ -75,11 +84,19 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
         })}
       </div>
     </div>
-    {format !== '7' && <>
-      <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog"
-        className="flex min-h-[46px] w-full items-center justify-between rounded-xl border border-red-500/25 bg-red-950/25 px-4 text-sm font-bold text-white">
-        <span>Formation · {system}</span><span aria-hidden>⌃</span>
+    {showActions && <div className="grid grid-cols-[1fr_auto] gap-2" role="group" aria-label="Aufstellungsaktionen">
+      <button type="button" onClick={() => { setSelectedPosition(null); if (format === '7') onSevenFormation?.(); else { setPositionMode(false); setPickerOpen(true); } }} aria-haspopup="dialog"
+        className="flex min-h-[46px] items-center justify-between gap-2 rounded-xl border border-red-500/25 bg-red-950/25 px-4 text-sm font-bold text-white">
+        <span>Formation{(format === '7' ? sevenFormation : system) ? ` · ${format === '7' ? sevenFormation?.replace(/^1-/, '') : system}` : ''}</span><span aria-hidden>⌃</span>
       </button>
+      <button type="button" aria-label="Positionen tauschen" aria-pressed={format === '7' ? sevenPositionMode : positionMode}
+        onClick={() => { setSelectedPosition(null); if (format === '7') onSevenPositions?.(); else setPositionMode(previous => !previous); }}
+        className={`min-h-[46px] min-w-[68px] rounded-xl border px-3 text-sm font-bold ${ (format === '7' ? sevenPositionMode : positionMode) ? 'border-red-400/40 bg-red-900/50 text-white' : 'border-red-500/25 bg-red-950/25 text-white'}`}>
+        POS
+      </button>
+    </div>}
+    {format !== '7' && positionMode && showActions && <p className="text-xs font-medium text-amber-300" role="status">{selectedPosition === null ? 'Zwei Spieler antippen, um die Positionen zu tauschen.' : 'Jetzt den zweiten Spieler antippen.'}</p>}
+    {format !== '7' && <>
       <dialog ref={pickerRef} onClose={() => setPickerOpen(false)}
         onClick={event => { if (event.target === event.currentTarget) setPickerOpen(false); }}
         aria-labelledby="demo-formation-picker-title"
@@ -126,12 +143,22 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
             <rect x="37" y="8" width="26" height="8" /><rect x="37" y="124" width="26" height="8" />
           </g>
         </svg>
-        {positions.map(({ x, y, label, player }, index) => player && <div key={player.id}
-          className="absolute flex w-[21%] -translate-x-1/2 -translate-y-1/2 justify-center"
+        {positions.map(({ x, y, label, player }, index) => player && <button type="button" disabled={!positionMode || !showActions} aria-label={`Position ${label}: ${playerName(player)}`} aria-pressed={selectedPosition === index}
+          onClick={() => {
+            if (selectedPosition === null) setSelectedPosition(index);
+            else if (selectedPosition === index) setSelectedPosition(null);
+            else {
+              const next = orderedPlayers.map(p => p.id);
+              [next[selectedPosition], next[index]] = [next[index], next[selectedPosition]];
+              setOrders(previous => ({ ...previous, [format]: next }));
+              setSelectedPosition(null);
+            }
+          }} key={player.id}
+          className="absolute flex w-[21%] -translate-x-1/2 -translate-y-1/2 justify-center rounded-xl disabled:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
           style={{ left: `${x}%`, top: `${y}%` }}>
           <PitchPlayerMarker lastName={player.last_name?.trim() || playerName(player)}
-            number={player.jersey_number} positionBadge={label} variant={index === 0 ? 'goalkeeper' : 'field'} mode="pitch" fullscreenLineup />
-        </div>)}
+            number={player.jersey_number} positionBadge={label} variant={index === 0 ? 'goalkeeper' : 'field'} mode="pitch" fullscreenLineup selected={selectedPosition === index} />
+        </button>)}
       </div>
       <p className="text-xs font-bold tracking-widest text-white/60">ERSATZBANK</p>
       <div className="flex flex-wrap gap-4">
