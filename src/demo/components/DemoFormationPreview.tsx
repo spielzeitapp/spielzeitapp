@@ -7,6 +7,10 @@ export const DEMO_FORMATION_SYSTEMS = {
   '11': ['4-4-2', '4-3-3', '4-2-3-1', '3-5-2'],
 } as const;
 
+function playerName(player: PlayerItem): string {
+  return player.display_name?.trim() || [player.first_name, player.last_name].filter(Boolean).join(' ').trim() || 'Spieler';
+}
+
 type Format = '7' | keyof typeof DEMO_FORMATION_SYSTEMS;
 
 /** Local preview only: never changes the live engine or a saved lineup. */
@@ -64,14 +68,14 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
         {positions.map(({ x, y, label, player }, index) => player && <div key={player.id}
           className="absolute flex w-[21%] -translate-x-1/2 -translate-y-1/2 justify-center"
           style={{ left: `${x}%`, top: `${y}%` }}>
-          <PitchPlayerMarker lastName={(player.displayName || player.name).split(' ').slice(-1).join(' ')}
-            number={player.number} positionBadge={label} variant={index === 0 ? 'goalkeeper' : 'field'} mode="pitch" fullscreenLineup />
+          <PitchPlayerMarker lastName={player.last_name?.trim() || playerName(player)}
+            number={player.jersey_number} positionBadge={label} variant={index === 0 ? 'goalkeeper' : 'field'} mode="pitch" fullscreenLineup />
         </div>)}
       </div>
       <p className="text-xs font-bold tracking-widest text-white/60">ERSATZBANK</p>
       <div className="flex flex-wrap gap-4">
-        {bench.map(player => <PitchPlayerMarker key={player.id} lastName={player.displayName || player.name}
-          number={player.number} positionBadge="" variant="field" mode="bank" />)}
+        {bench.map(player => <PitchPlayerMarker key={player.id} lastName={playerName(player)}
+          number={player.jersey_number} positionBadge="" variant="field" mode="bank" />)}
       </div>
     </>}
   </section>;
