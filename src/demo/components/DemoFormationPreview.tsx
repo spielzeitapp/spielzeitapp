@@ -3,7 +3,7 @@ import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import type { PlayerItem } from '../../hooks/usePlayers';
 
 export const DEMO_FORMATION_SYSTEMS = {
-  '9': ['3-3-2', '3-2-3', '4-3-1'],
+  '9': ['3-3-2', '3-4-1', '3-2-3', '4-3-1'],
   '11': ['4-4-2', '4-3-3', '4-2-3-1', '3-5-2'],
 } as const;
 
@@ -19,6 +19,7 @@ const pair = line(19, ['ST', 'ST'], [38, 62]);
 // Explicit role coordinates preserve central pairs, pivots and wide players.
 export const DEMO_FORMATION_LAYOUTS: Record<string, Position[]> = {
   '3-3-2': [...keeper, ...backThree, ...line(45, ['LM', 'ZM', 'RM'], [19, 50, 81]), ...pair],
+  '3-4-1': [...keeper, ...backThree, ...line(44, ['LM', 'ZM', 'ZM', 'RM'], [16, 39, 61, 84]), ...line(18, ['ST'], [50])],
   '3-2-3': [...keeper, ...backThree, ...line(48, ['ZM', 'ZM'], [37, 63]), ...line(22, ['LF', 'ST', 'RF'], [19, 50, 81])],
   '4-3-1': [...keeper, ...backFour, ...line(43, ['LM', 'ZM', 'RM'], [22, 50, 78]), ...line(18, ['ST'], [50])],
   '4-4-2': [...keeper, ...backFour, ...line(44, ['LM', 'ZM', 'ZM', 'RM'], [16, 39, 61, 84]), ...pair],
@@ -79,6 +80,7 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
           {DEMO_FORMATION_SYSTEMS[format].map(value => {
             const active = value === system;
             const descriptions: Record<string, string> = {
+              '3-4-1': 'Vier Mittelfeldspieler · eine Spitze',
               '3-3-2': 'Drei Mittelfeldspieler · zwei Spitzen', '3-2-3': 'Zwei zentrale Mittelfeldspieler · drei Angreifer',
               '4-3-1': 'Viererkette · drei Mittelfeldspieler', '4-4-2': 'Vierer-Mittelfeld · zwei Spitzen',
               '4-3-3': 'Ein Sechser · zwei Achter · drei Angreifer', '4-2-3-1': 'Doppelsechs · ein Zehner',
