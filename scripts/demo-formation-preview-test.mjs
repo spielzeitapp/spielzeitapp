@@ -35,9 +35,11 @@ for (const format of ['7', '9', '11']) {
   assert.ok(html.includes('Formation ändern'));
   assert.ok(html.includes('Schließen'));
   assert.ok(html.includes('aria-pressed="true"'));
-  assert.equal((html.match(/<select/g) || []).length, 1, 'only format uses dropdown');
+  assert.equal((html.match(/<select/g) || []).length, 0, 'format uses styled buttons');
+  assert.ok(html.includes('demo-format-label'));
+  assert.ok(html.includes('10+1'));
   for (const player of players) assert.ok(html.includes(player.last_name), `missing ${player.last_name}`);
-  assert.ok(!html.includes('Spieler</span>'), 'actual names must render');
+  assert.ok(!html.includes('>Spieler</span>'), 'actual names must render');
   assert.ok(!html.includes('>–</text>'), 'actual jersey numbers must render');
   assert.doesNotThrow(() => render(players.map(player => ({ ...player, display_name: '', first_name: null, last_name: null, jersey_number: null }))));
   for (const system of DEMO_FORMATION_SYSTEMS[format]) {
