@@ -916,7 +916,7 @@ export async function ensureLineupFeedPostForMatch(
   if (eventId) {
     const { data: feedSettings, error: feedSettingsError } = await supabase
       .from('event_feed_settings')
-      .select('lineup_caption_override, lineup_poster_storage_path, lineup_feed_enabled')
+      .select('lineup_caption_override, lineup_poster_storage_path, lineup_feed_enabled, feed_automation_enabled')
       .eq('event_id', eventId)
       .maybeSingle();
     if (feedSettingsError) {
@@ -928,7 +928,7 @@ export async function ensureLineupFeedPostForMatch(
     } else {
       const lineupFeedEnabled = (feedSettings as { lineup_feed_enabled?: boolean | null } | null)
         ?.lineup_feed_enabled !== false;
-      if (!lineupFeedEnabled) {
+      if (!lineupFeedEnabled || feedSettings?.feed_automation_enabled === false) {
         lineupFeedExit('lineup feed disabled', {
           matchId: mid,
           eventId,

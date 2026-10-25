@@ -176,11 +176,11 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
         ...(activeKind === 'squad'
           ? {
               squad_caption_override: squadCaptionOverride.trim() || null,
-              squad_feed_enabled: squadFeedEnabled,
+              ...(event.kind !== 'match' ? { squad_feed_enabled: squadFeedEnabled } : {}),
             }
           : {
               lineup_caption_override: lineupCaptionOverride.trim() || null,
-              lineup_feed_enabled: lineupFeedEnabled,
+              ...(event.kind !== 'match' ? { lineup_feed_enabled: lineupFeedEnabled } : {}),
             }),
         created_by: userId,
       });
@@ -329,7 +329,7 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
             <p className="mt-1 text-[13px] leading-snug text-white/65">{activeDescription}</p>
           </div>
 
-          {activeKind !== 'matchday' ? (
+          {event.kind !== 'match' && activeKind !== 'matchday' ? (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
               <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-white/90">
                 <input
@@ -436,7 +436,7 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId, 
 
           {activeKind === 'matchday' ? <div className="rounded-xl border border-white/10 bg-black/25 p-3">
             <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/55">
-              Spieltag automatisch veröffentlichen
+              Eigenes Spieltagsposter planen
             </p>
 
             <div className="mb-3 flex rounded-lg border border-white/10 bg-black/30 p-0.5">

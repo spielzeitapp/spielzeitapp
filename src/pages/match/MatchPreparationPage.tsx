@@ -22,7 +22,7 @@ import {
   type TournamentLineupCopyMode,
 } from '../../lib/tournamentLineupCopy';
 import { MinimumPlaytimeMatchSettings } from '../../components/live/MinimumPlaytimeMatchSettings';
-import { MatchdayFeedAutomationSettings } from '../../components/match/MatchdayFeedAutomationSettings';
+import { MatchFeedSwitches } from '../../components/match/MatchFeedSwitches';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
   DEFAULT_PLANNED_MATCH_MINUTES,
@@ -959,15 +959,7 @@ export const MatchPreparationPage: React.FC = () => {
         ) : null}
 
         {matchId && matchRow && !isDemo ? (
-          <MatchdayFeedAutomationSettings
-            matchId={matchId}
-            enabled={matchRow.auto_matchday_feed_enabled === true}
-            onSaved={(nextEnabled) =>
-              setMatchRow((prev) =>
-                prev ? { ...prev, auto_matchday_feed_enabled: nextEnabled } : prev,
-              )
-            }
-          />
+          <MatchFeedSwitches matchId={matchId} />
         ) : null}
 
       </main>

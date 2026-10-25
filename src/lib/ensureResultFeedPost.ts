@@ -1,3 +1,4 @@
+import { isMatchFeedAutomationEnabled } from './matchFeedAutomation';
 import { supabase } from './supabaseClient';
 import { isDemoMatchId } from '../demo/demoLiveRuntime';
 import { fetchMatchById } from './liveMatchService';
@@ -125,8 +126,7 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     return { ok: true, created: false, reason: 'not_finished' };
   }
 
-  // Hinweis: auto_matchday_feed_enabled steuert NUR den Spieltag-Post/Hero.
-  // Der Ergebnis-Post bleibt davon unabhängig und wird immer erstellt.
+  // Ergebnis uses the shared master switch and its individual setting.
 
   const { data: existing, error: exErr } = await supabase
     .from('team_feed_posts')
@@ -166,6 +166,9 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
   }
 
   const ev = evRaw as EventRowLite;
+  try {
+    if (!(await isMatchFeedAutomationEnabled(ev.id, 'result'))) return { ok: true, created: false, reason: 'disabled' };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 
   if (ev.is_home !== true && ev.is_home !== false) {
     console.warn('[resultFeed] is_home missing on event, skipping result post', {
