@@ -32,6 +32,10 @@ for (const format of ['7', '9', '11']) {
   const html = render(players);
   if (format === '7') continue;
   assert.ok(html.includes(`${format} Spieler am Feld`));
+  assert.ok(html.includes('Formation ändern'));
+  assert.ok(html.includes('Schließen'));
+  assert.ok(html.includes('aria-pressed="true"'));
+  assert.equal((html.match(/<select/g) || []).length, 1, 'only format uses dropdown');
   for (const player of players) assert.ok(html.includes(player.last_name), `missing ${player.last_name}`);
   assert.ok(!html.includes('Spieler</span>'), 'actual names must render');
   assert.ok(!html.includes('>–</text>'), 'actual jersey numbers must render');

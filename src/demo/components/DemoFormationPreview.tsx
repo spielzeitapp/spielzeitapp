@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import type { PlayerItem } from '../../hooks/usePlayers';
 
@@ -40,6 +40,13 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
   onFormatChange: (format: Format) => void;
 }): React.ReactElement {
   const [systems, setSystems] = useState({ '9': '3-3-2', '11': '4-4-2' });
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = pickerRef.current;
+    if (pickerOpen && format !== '7') dialog?.showModal();
+    else dialog?.close();
+  }, [pickerOpen, format]);
   const system = format === '7' ? '' : systems[format];
   const starters = players.slice(0, Number(format));
   const bench = players.slice(Number(format));
@@ -49,7 +56,7 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
   return <section className="space-y-3 py-3" aria-label="Demo-Spielformat">
     <label className="block text-xs font-semibold text-white/70">
       Spielformat in der Demo
-      <select value={format} onChange={event => onFormatChange(event.target.value as Format)}
+      <select value={format} onChange={event => { setPickerOpen(false); onFormatChange(event.target.value as Format); }}
         className="mt-1 min-h-[44px] w-full rounded-xl border border-white/15 bg-zinc-950 px-3 text-sm text-white">
         <option value="7">6+1 · 7 Spieler</option>
         <option value="9">U13 · 8+1 · 9 Spieler</option>
@@ -57,12 +64,44 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
       </select>
     </label>
     {format !== '7' && <>
-      <label className="block text-xs font-semibold text-white/70">Formation
-        <select value={system} onChange={event => setSystems(previous => ({ ...previous, [format]: event.target.value }))}
-          className="mt-1 min-h-[44px] w-full rounded-xl border border-white/15 bg-zinc-950 px-3 text-sm text-white">
-          {DEMO_FORMATION_SYSTEMS[format].map(value => <option key={value} value={value}>{value}</option>)}
-        </select>
-      </label>
+      <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog"
+        className="flex min-h-[46px] w-full items-center justify-between rounded-xl border border-red-500/25 bg-red-950/25 px-4 text-sm font-bold text-white">
+        <span>Formation · {system}</span><span aria-hidden>⌃</span>
+      </button>
+      <dialog ref={pickerRef} onClose={() => setPickerOpen(false)}
+        onClick={event => { if (event.target === event.currentTarget) setPickerOpen(false); }}
+        aria-labelledby="demo-formation-picker-title"
+        className="fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-white/15 bg-zinc-950 p-4 text-white shadow-2xl backdrop:bg-black/75 backdrop:backdrop-blur-md">
+        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-white/25" />
+        <h3 id="demo-formation-picker-title" className="text-center text-lg font-black">Formation ändern</h3>
+        <p className="mb-3 mt-1 text-center text-xs text-white/50">{format === '9' ? 'U13 · 8+1' : 'Ab U14 · 10+1'} · Formationsvorschau</p>
+        <div className="space-y-2">
+          {DEMO_FORMATION_SYSTEMS[format].map(value => {
+            const active = value === system;
+            const descriptions: Record<string, string> = {
+              '3-3-2': 'Drei Mittelfeldspieler · zwei Spitzen', '3-2-3': 'Zwei zentrale Mittelfeldspieler · drei Angreifer',
+              '4-3-1': 'Viererkette · drei Mittelfeldspieler', '4-4-2': 'Vierer-Mittelfeld · zwei Spitzen',
+              '4-3-3': 'Ein Sechser · zwei Achter · drei Angreifer', '4-2-3-1': 'Doppelsechs · ein Zehner',
+              '3-5-2': 'Dreierkette · zwei Flügelverteidiger',
+            };
+            return <button key={value} type="button" aria-pressed={active}
+              onClick={() => { setSystems(previous => ({ ...previous, [format]: value })); setPickerOpen(false); }}
+              className={`grid min-h-[76px] w-full grid-cols-[56px_1fr_auto] items-center gap-3 rounded-xl border px-3 py-2 text-left ${active ? 'border-emerald-400/40 bg-emerald-950/30' : 'border-white/10 bg-black/60'}`}>
+              <svg viewBox="0 0 100 140" className="h-[70px] w-[50px] rounded-lg border border-white/40 bg-emerald-950/40" aria-hidden>
+                <g fill="none" stroke="white" strokeOpacity=".65" strokeWidth="2">
+                  <rect x="7" y="7" width="86" height="126" rx="8" /><path d="M7 70H93" /><circle cx="50" cy="70" r="14" />
+                  <path d="M27 7V26H73V7 M27 133V114H73V133" />
+                </g>
+                {DEMO_FORMATION_LAYOUTS[value].map((position, index) => <circle key={index} cx={position.x} cy={position.y * 1.4} r="5"
+                  fill={index === 0 ? '#facc15' : active ? '#34d399' : '#fff'} />)}
+              </svg>
+              <span><span className="block text-xl font-black">{value}</span><span className="mt-1 block text-xs text-white/55">{descriptions[value]}</span></span>
+              <span className={active ? 'text-[10px] font-bold text-emerald-300' : 'text-xl text-white/40'}>{active ? 'AKTIV' : '›'}</span>
+            </button>;
+          })}
+        </div>
+        <button type="button" onClick={() => setPickerOpen(false)} className="mt-3 min-h-[48px] w-full rounded-xl border border-white/40 bg-white/5 font-bold">Schließen</button>
+      </dialog>
       <p className="text-xs text-white/55">Formationsvorschau · {starters.length} Spieler am Feld</p>
       <div className="relative mx-auto aspect-[0.72] w-full max-w-xl overflow-hidden rounded-3xl border border-white/25 bg-[#226b2c]"
         style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent 0%, transparent 9%, rgba(255,255,255,.055) 9%, rgba(255,255,255,.055) 18%)' }}>
