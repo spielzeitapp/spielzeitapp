@@ -55,15 +55,26 @@ export function DemoFormationPreview({ players, format, onFormatChange }: {
     ...position, player: starters[index],
   }));
   return <section className="space-y-3 py-3" aria-label="Demo-Spielformat">
-    <label className="block text-xs font-semibold text-white/70">
-      Spielformat in der Demo
-      <select value={format} onChange={event => { setPickerOpen(false); onFormatChange(event.target.value as Format); }}
-        className="mt-1 min-h-[44px] w-full rounded-xl border border-white/15 bg-zinc-950 px-3 text-sm text-white">
-        <option value="7">6+1 · 7 Spieler</option>
-        <option value="9">U13 · 8+1 · 9 Spieler</option>
-        <option value="11">Ab U14 · 10+1 · 11 Spieler</option>
-      </select>
-    </label>
+    <div>
+      <p id="demo-format-label" className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/50">Spielformat</p>
+      <div role="group" aria-labelledby="demo-format-label" className="grid grid-cols-3 gap-1.5 rounded-2xl border border-red-500/15 bg-gradient-to-br from-red-950/15 to-black p-1.5">
+        {([
+          { value: '7', title: '6+1', subtitle: '7 Spieler' },
+          { value: '9', title: '8+1', subtitle: 'U13' },
+          { value: '11', title: '10+1', subtitle: 'Ab U14' },
+        ] as const).map(option => {
+          const active = format === option.value;
+          return <button key={option.value} type="button" aria-pressed={active}
+            onClick={() => { setPickerOpen(false); onFormatChange(option.value); }}
+            className={`flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-2 transition-colors ${active
+              ? 'border-red-400/40 bg-gradient-to-b from-red-800/65 to-red-950/75 text-white shadow-[0_0_14px_rgba(220,38,38,0.12)]'
+              : 'border-transparent bg-black/20 text-white/50 hover:border-white/10 hover:text-white/80'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400`}>
+            <span className="text-base font-black leading-tight">{option.title}</span>
+            <span className={`text-[10px] font-semibold ${active ? 'text-red-100/80' : 'text-white/40'}`}>{option.subtitle}</span>
+          </button>;
+        })}
+      </div>
+    </div>
     {format !== '7' && <>
       <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog"
         className="flex min-h-[46px] w-full items-center justify-between rounded-xl border border-red-500/25 bg-red-950/25 px-4 text-sm font-bold text-white">
