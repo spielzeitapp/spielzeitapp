@@ -1,3 +1,4 @@
+import { MatchFeedSwitches } from '../components/match/MatchFeedSwitches';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -4702,6 +4703,8 @@ export const EventDetailPage: React.FC = () => {
             ) : null}
           </Card>
         ) : null}
+
+        {event.kind === 'match' && canTrainerManageEvent ? <div className="mt-6"><MatchFeedSwitches eventId={event.id} /></div> : null}
 
         {event.kind === 'match' && event.status !== 'canceled' && canTrainerManageEvent && (
           <Card className="mt-6 flex flex-col gap-2 overflow-hidden">

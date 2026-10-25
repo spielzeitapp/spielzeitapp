@@ -187,6 +187,7 @@ export async function ensureEventFeedPostsForSeason(
     )
     .eq('team_season_id', sid)
     .eq('auto_post_enabled', true)
+    .eq('feed_automation_enabled', true)
     .eq('post_mode', 'auto')
     .not('poster_storage_path', 'is', null);
 
