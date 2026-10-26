@@ -56,26 +56,6 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
   const [birthdate, setBirthdate] = useState('');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [existingPlayers, setExistingPlayers] = useState<Array<{id:string;first_name:string;last_name:string}>>([]);
-  const [selectedExistingId, setSelectedExistingId] = useState('');
-  const [linkBusy, setLinkBusy] = useState(false);
-  const [linkError, setLinkError] = useState<string | null>(null);
-  const [linkReady, setLinkReady] = useState(false);
-
-  useEffect(() => {
-    setExistingPlayers([]);
-    setSelectedExistingId('');
-    setLinkReady(false);
-    if (!seasonId || !allowed) return;
-    let cancelled = false;
-    void supabase.rpc('oefb_assignment_context', {p_team_season_id:seasonId}).then(({data,error}) => {
-      if (cancelled) return;
-      // Existing RPC only exposes the target roster, not other club teams.
-      if (error) setLinkError(error.message);
-    });
-    return () => { cancelled = true; };
-  }, [seasonId,allowed]);
-
 
   const reloadRoster = async (id: string): Promise<boolean> => {
     const roster = await listRoster(id, 'all');
