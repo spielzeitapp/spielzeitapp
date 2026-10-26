@@ -131,7 +131,7 @@ async function competitionFixtures(competitionId, hints) {
     const away = normalizeOefbImportedTeamName(game.away);
     const isHome = normalizedHints.includes(home.toLocaleLowerCase('de-AT'));
     const matchId = createHash('sha256').update([competitionId, game.round, game.kickoff, home, away].join('|')).digest('hex').slice(0, 24);
-    const scores = /^(\\d+):(\\d+)$/.exec(game.score || '');
+    const scores = /^(\d+):(\d+)$/.exec(game.score || '');
     return {
       art: 'Liga', opponent: isHome ? away : home, is_home: isHome,
       starts_at: game.kickoff, competition: payload.name || null,
