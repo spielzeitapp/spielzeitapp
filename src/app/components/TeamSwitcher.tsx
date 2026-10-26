@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Plus, Star } from 'lucide-react';
+import { Check, ChevronDown, Plus } from 'lucide-react';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -32,7 +32,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const { pathname } = useLocation();
   const {
     teamSeasons, selectedTeamSeasonId, setSelectedTeamSeasonId,
-    viewTeamSeasonId, setViewTeamSeasonId, memberships,
+    viewTeamSeasonId, setViewTeamSeasonId,
     teamViewFilter, setTeamViewFilter, filteredTeamSeasonIds,
   } = useSession();
   const overview = pathname === '/app' || pathname === '/app/home' || pathname === '/app/termine' || pathname === '/app/tabelle';
@@ -46,7 +46,6 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const otherSeasons = teamSeasons.filter((ts) => !isSeasonActive(ts.status));
   const multipleAvailable = overview && currentSeasons.length > 1;
   const filtered = overview && teamViewFilter !== null;
-  const ownIds = new Set(memberships.filter((m) => String(m.role).trim().toLowerCase() !== 'fan').map((m) => m.team_season_id));
   const triggerLabel = filtered
     ? teamViewFilter === 'all' ? 'Alle Mannschaften' : filteredTeamSeasonIds.length <= 3
       ? currentSeasons.filter(ts => filteredTeamSeasonIds.includes(ts.id)).map(ts => ts.age_group || ts.team?.name || 'Team').join(' + ')
