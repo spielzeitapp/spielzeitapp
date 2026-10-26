@@ -2113,9 +2113,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                         return (
                           <React.Fragment key={ev.id}>
                             {allListSectionHeading}
-                          {isMultiTeamView ? <div className="mb-1 mt-2 flex"><span className="rounded-md border border-red-500/35 bg-red-950/60 px-2 py-0.5 text-[11px] font-extrabold tracking-wide text-red-300">{teamSeasons.find(ts => ts.id === ev.team_season_id)?.age_group || eventTeamLabel(ev)}</span></div> : null}
+                          
                             <PastMatchResultCard
                               ev={ev}
+                              showTeamBadge={isMultiTeamView}
                               ageGroup={teamSeasons.find((ts) => ts.id === ev.team_season_id)?.age_group}
                               ourTeamName={eventTeamName(ev)}
                               opponentLogoUrl={opponentLogo}
@@ -2142,10 +2143,11 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                       return (
                         <React.Fragment key={ev.id}>
                           {allListSectionHeading}
-                          {isMultiTeamView ? <div className="mb-1 mt-2 flex"><span className="rounded-md border border-red-500/35 bg-red-950/60 px-2 py-0.5 text-[11px] font-extrabold tracking-wide text-red-300">{teamSeasons.find(ts => ts.id === ev.team_season_id)?.age_group || eventTeamLabel(ev)}</span></div> : null}
+                          
                           <CompactEventCard
                             ev={ev}
                             et={et}
+                            teamAgeBadge={isMultiTeamView ? teamSeasons.find(ts => ts.id === ev.team_season_id)?.age_group : null}
                             ourTeamName={eventTeamName(ev)}
                             opponentLogoUrl={opponentLogo}
                             parentCompactLayout={showCompactParentPill || showCompactTrainerStats}
