@@ -2,6 +2,18 @@ import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DEMO_TRAINING_PLAN as plan } from '../demoTrainingPlan';
 
+const exerciseImages = { AW: 1, HT1: 2, HT2: 3, AK: 4 };
+
+function ExerciseSketch({ phase, title }: { phase: keyof typeof exerciseImages; title: string }): React.ReactElement {
+  return (
+    <div className="flex justify-center rounded-xl border border-slate-100 bg-white p-2">
+      <div className="relative w-full max-w-[300px] overflow-hidden" style={{ aspectRatio: '752 / 784' }}>
+        <img src={`/landingpage-assets/training-videodokumentation-${exerciseImages[phase]}.webp`} alt={`Skizze: ${title}`} className="absolute max-w-none" style={{ left: '-9.575%', top: '-27.551%', width: '255.319%', height: 'auto' }} />
+      </div>
+    </div>
+  );
+}
+
 const phases = { AW: 'Aufwärmen', HT1: 'Hauptteil 1', HT2: 'Hauptteil 2', AK: 'Abschlussteil' };
 
 export function DemoTrainingPlanPage(): React.ReactElement {
@@ -28,7 +40,8 @@ export function DemoTrainingPlanPage(): React.ReactElement {
             {plan.exercises.map(exercise => (
               <article key={exercise.phase} className="min-w-0 rounded-xl border border-slate-200 p-4">
                 <p className="text-xs font-bold uppercase text-red-700">{phases[exercise.phase]} · {exercise.duration} Min.</p>
-                <h3 className="mt-2 font-extrabold">{exercise.title}</h3>
+                <h3 className="mt-2 mb-3 font-extrabold">{exercise.title}</h3>
+                <ExerciseSketch phase={exercise.phase} title={exercise.title} />
                 <p className="mt-3 whitespace-pre-line text-sm leading-relaxed">{exercise.content}</p>
                 <h4 className="mt-4 text-xs font-bold uppercase text-slate-500">Material</h4><p className="mt-1 text-sm">{exercise.materials}</p>
                 <h4 className="mt-4 text-xs font-bold uppercase text-slate-500">Coachingpunkte</h4><p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{exercise.coaching}</p>
@@ -37,21 +50,31 @@ export function DemoTrainingPlanPage(): React.ReactElement {
           </div>
         </section>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4 rounded-2xl bg-slate-50 p-3 sm:p-5">
           {plan.exercises.map(exercise => (
-            <details key={exercise.phase} className="overflow-hidden rounded-2xl border border-red-400/20 bg-gradient-to-br from-red-950/30 to-neutral-950">
-              <summary className="min-h-16 cursor-pointer p-5 marker:text-red-400">
-                <span className="text-xs font-bold uppercase text-red-300">{phases[exercise.phase]} · {exercise.duration} Min.</span>
-                <strong className="mt-2 block text-base text-white">{exercise.title}</strong>
-              </summary>
-              <div className="space-y-4 border-t border-white/10 p-5 text-sm leading-relaxed text-white/75">
-                <div><h3 className="mb-2 font-bold text-white">Aufbau &amp; Ablauf</h3><p className="whitespace-pre-line">{exercise.content}</p></div>
-                <div><h3 className="mb-2 font-bold text-white">Material</h3><p>{exercise.materials}</p></div>
-                <div><h3 className="mb-2 font-bold text-white">Coachingpunkte</h3><p className="whitespace-pre-line">{exercise.coaching}</p></div>
-              </div>
-            </details>
+            <section key={exercise.phase} className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
+              <h2 className="mb-3 text-base font-semibold">{phases[exercise.phase]} <span className="ml-2 text-sm font-normal text-slate-500">{exercise.duration} Min.</span></h2>
+              <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]">
+                <div className="p-3"><ExerciseSketch phase={exercise.phase} title={exercise.title} /></div>
+                <div className="min-w-0 space-y-4 p-4 md:border-l md:border-slate-100">
+                  <h3 className="text-lg font-semibold leading-snug">{exercise.title}</h3>
+                  <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                    <span className="rounded-full bg-red-50 px-3 py-1 text-red-800">{phases[exercise.phase]}</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">{exercise.duration} Min.</span>
+                  </div>
+                  <details className="rounded-xl border border-slate-200">
+                    <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-semibold">Aufbau, Ablauf &amp; Coaching</summary>
+                    <div className="space-y-4 border-t border-slate-100 p-3 text-sm leading-relaxed text-slate-600">
+                      <div><h4 className="mb-2 font-bold text-slate-900">Aufbau &amp; Ablauf</h4><p className="whitespace-pre-line">{exercise.content}</p></div>
+                      <div><h4 className="mb-2 font-bold text-slate-900">Material</h4><p>{exercise.materials}</p></div>
+                      <div><h4 className="mb-2 font-bold text-slate-900">Coachingpunkte</h4><p className="whitespace-pre-line">{exercise.coaching}</p></div>
+                    </div>
+                  </details>
+                </div>
+              </article>
+            </section>
           ))}
-          <p className="text-xs text-white/50">Übung öffnen und den Trainingsablauf kennenlernen.</p>
+          <p className="text-xs text-slate-500">Beispieltraining zur Ansicht · Übungsdetails aufklappen und den Ablauf kennenlernen.</p>
         </div>
       )}
     </div>
