@@ -287,6 +287,19 @@
     .entry-note{max-width:460px;margin:14px 0 0;color:#bbb;font-size:13px;line-height:1.5}
     .everyday-flow{background:#fff}
     .everyday-flow .step{min-width:0}
+    .flow-previews{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+    .flow-preview{min-width:0;margin:0;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--paper)}
+    .flow-preview figcaption{padding:24px 24px 20px}
+    .flow-preview .num{display:block;margin-bottom:12px;color:var(--red);font-family:"Barlow Condensed",Arial,sans-serif;font-size:28px;font-weight:800}
+    .flow-preview h3{font-size:30px;line-height:1.05;margin-bottom:10px}
+    .flow-preview p{margin:0;color:var(--muted);font-size:15px;line-height:1.55}
+    .flow-preview>a{display:block;padding:22px 18px 28px;background:radial-gradient(ellipse at 50% 30%,#401018,transparent 72%),#101012}
+    .flow-preview img{width:100%;max-width:280px;height:auto;aspect-ratio:390/844;margin:auto;border:4px solid #39393e;border-radius:28px;box-shadow:0 14px 34px #0006;background:#080809}
+    .flow-swipe-hint{display:none}
+    .flow-note{margin:18px 0 0;color:var(--muted);font-size:13px;text-align:center}
+    .flow-previews:focus-visible,.flow-preview>a:focus-visible{outline:3px solid var(--red);outline-offset:4px}
+    @media(max-width:900px){.flow-previews{gap:16px}.flow-preview figcaption{padding:20px 18px}.flow-preview h3{font-size:26px}.flow-preview>a{padding:20px 12px}}
+    @media(max-width:650px){.flow-previews{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding:4px 2px 16px;scrollbar-width:thin;scrollbar-color:var(--red) var(--paper)}.flow-preview{flex:0 0 88%;scroll-snap-align:start}.flow-preview figcaption{min-height:164px;padding:20px}.flow-preview h3{font-size:30px}.flow-preview>a{padding:22px 16px 26px}.flow-swipe-hint{display:block;margin:0 0 14px;color:var(--muted);font-size:13px}.flow-note{text-align:left}}
     .demo-invite{display:flex;align-items:center;justify-content:space-between;gap:28px;margin-top:38px;padding:26px 30px;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:18px;background:var(--paper)}
     .demo-invite strong{display:block;font-size:20px;line-height:1.35}
     .demo-invite p{margin:8px 0 0;color:var(--muted);font-size:15px}
@@ -437,11 +450,12 @@
 
 <section class="everyday-flow" id="alltag" aria-labelledby="alltag-title"><div class="wrap">
 <div class="section-head"><div><span class="eyebrow">So funktioniert der Teamalltag</span><h2 id="alltag-title">Ein Termin.<br><span class="red">Ein klarer Ablauf.</span></h2></div><p>Vom ersten Eintrag bis zum Ergebnis: Trainer, Spieler und Eltern arbeiten mit denselben aktuellen Informationen.</p></div>
-<div class="steps">
-<article class="step"><span class="num">01</span><h3>Planen &amp; antworten</h3><p>Du legst Training oder Spiel mit Ort und Treffpunkt an. Spieler und Eltern sagen zu oder ab. Fehlende Rückmeldungen werden automatisch erinnert.</p></article>
-<article class="step"><span class="num">02</span><h3>Vorbereiten &amp; informieren</h3><p>Du siehst, wer dabei ist, nominierst den Kader und bereitest die Aufstellung vor. Eltern finden Termin, Treffpunkt und wichtige Trainerinfos in der App.</p></article>
-<article class="step"><span class="num">03</span><h3>Spielen &amp; festhalten</h3><p>Du oder ein berechtigter Betreuer erfasst Tore und Wechsel. Eltern und Fans verfolgen den Liveticker. Ergebnis und freigegebene Teammomente bleiben im Feed.</p></article>
-</div><div class="demo-invite"><div><strong>Probier den Ablauf mit dem Demo-Team aus.</strong><p>Entdecke Termine, Rückmeldungen und Matchvorbereitung aus den verschiedenen Rollen.</p></div><a class="btn btn-red" href="/demo">Demo ausprobieren</a></div>
+<p class="flow-swipe-hint">Drei Einblicke in die App · seitlich wischen</p>
+<div class="flow-previews" tabindex="0" role="region" aria-label="Drei App-Ansichten: Rückmeldungen, Aufstellung und Spielzeiten">
+<figure class="flow-preview"><figcaption><span class="num">01</span><h3>Zusagen überblicken</h3><p>Sieh, wer dabei ist, und stelle deinen Kader zusammen.</p></figcaption><a href="/landingpage-assets/demo-rueckmeldungen.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Rückmeldungen vergrößern"><img src="/landingpage-assets/demo-rueckmeldungen.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Rückmeldungen und Kaderliste mit fiktiven Spielern"></a></figure>
+<figure class="flow-preview"><figcaption><span class="num">02</span><h3>Aufstellung vorbereiten</h3><p>Plane deine Formation und die Positionen deiner Spieler.</p></figcaption><a href="/landingpage-assets/demo-aufstellung.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Aufstellung vergrößern"><img src="/landingpage-assets/demo-aufstellung.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Aufstellung mit Formation und Spielerpositionen auf dem Fußballfeld"></a></figure>
+<figure class="flow-preview"><figcaption><span class="num">03</span><h3>Spielzeiten im Blick</h3><p>Erfasse Tore und Wechsel und behalte die Einsatzzeiten im Überblick.</p></figcaption><a href="/landingpage-assets/demo-spielzeiten.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Spielzeiten vergrößern"><img src="/landingpage-assets/demo-spielzeiten.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Einsatzzeiten und Mindestspielzeiten der fiktiven Spieler im Live-Match"></a></figure>
+</div><p class="flow-note">Originalansichten aus der Demo mit fiktiven Spielern. Bilder antippen zum Vergrößern.</p><div class="demo-invite"><div><strong>Probier den Ablauf mit dem Demo-Team aus.</strong><p>Entdecke Termine, Rückmeldungen und Matchvorbereitung aus den verschiedenen Rollen.</p></div><a class="btn btn-red" href="/demo">Demo ausprobieren</a></div>
 </div></section>
 
 <section id="start"><div class="wrap"><div class="section-head"><h2>So startet <span class="red">deine Mannschaft.</span></h2><p>Die Demo hat dich überzeugt? Wir richten deine Mannschaft persönlich mit dir ein und vereinbaren den Start der dreimonatigen Testphase.</p></div><div class="steps"><div class="step"><span class="num">01</span><h3>Mannschaft einrichten</h3><p>Wir bereiten Mannschaft, Vereinsfarben und Trainerzugänge gemeinsam mit dir vor.</p></div><div class="step"><span class="num">02</span><h3>Spielplan vorbereiten</h3><p>Wir übernehmen gemeinsam deinen Saison-Spielplan und bereiten eure Trainings- und Spieltermine vor.</p></div><div class="step"><span class="num">03</span><h3>Spieler &amp; Eltern einladen</h3><p>Trainer laden Spieler und Eltern per Link ein. Danach könnt ihr Rückmeldungen sammeln und den Teamalltag gemeinsam organisieren.</p></div></div></div></section>
