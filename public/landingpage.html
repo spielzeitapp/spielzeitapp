@@ -285,21 +285,28 @@
 
     /* Clear path from team problem to practical trial and decision. */
     .entry-note{max-width:460px;margin:14px 0 0;color:#bbb;font-size:13px;line-height:1.5}
-    .everyday-flow{background:#fff}
-    .everyday-flow .step{min-width:0}
+    .feature-gallery{background:var(--paper)}
     .flow-previews{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
-    .flow-preview{min-width:0;margin:0;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--paper)}
-    .flow-preview figcaption{padding:24px 24px 20px}
+    .flow-preview{display:flex;flex-direction:column;min-width:0;margin:0;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--paper)}
+    .flow-preview figcaption{min-height:184px;padding:24px 24px 20px}
     .flow-preview .num{display:block;margin-bottom:12px;color:var(--red);font-family:"Barlow Condensed",Arial,sans-serif;font-size:28px;font-weight:800}
     .flow-preview h3{font-size:30px;line-height:1.05;margin-bottom:10px}
     .flow-preview p{margin:0;color:var(--muted);font-size:15px;line-height:1.55}
-    .flow-preview>a{display:block;padding:22px 18px 28px;background:radial-gradient(ellipse at 50% 30%,#401018,transparent 72%),#101012}
-    .flow-preview img{width:100%;max-width:280px;height:auto;aspect-ratio:390/844;margin:auto;border:4px solid #39393e;border-radius:28px;box-shadow:0 14px 34px #0006;background:#080809}
-    .flow-swipe-hint{display:none}
+    .flow-preview>a{display:block;margin-top:auto;padding:22px 18px 28px;background:radial-gradient(ellipse at 50% 30%,#401018,transparent 72%),#101012}
+    .flow-preview img{width:100%;max-width:250px;height:auto;aspect-ratio:390/844;margin:auto;border:4px solid #39393e;border-radius:28px;box-shadow:0 14px 34px #0006;background:#080809}
+    .feature-controls{display:none}
+    .feature-arrow{display:inline-grid;place-items:center;width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:#fff;color:var(--ink);font-size:29px;line-height:1;cursor:pointer}
+    .feature-arrow:hover:not(:disabled){background:var(--red);border-color:var(--red);color:#fff}
+    .feature-arrow:disabled{opacity:.35;cursor:default}
+    .feature-arrow:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+    .feature-controls>div{flex-shrink:0;display:flex;gap:8px;margin-left:auto}
+    .feature-progress{color:var(--red);font-weight:800;white-space:nowrap}
+    #alltag{scroll-margin-top:104px}
+    @media(prefers-reduced-motion:reduce){.flow-previews{scroll-behavior:auto}}
     .flow-note{margin:18px 0 0;color:var(--muted);font-size:13px;text-align:center}
     .flow-previews:focus-visible,.flow-preview>a:focus-visible{outline:3px solid var(--red);outline-offset:4px}
     @media(max-width:900px){.flow-previews{gap:16px}.flow-preview figcaption{padding:20px 18px}.flow-preview h3{font-size:26px}.flow-preview>a{padding:20px 12px}}
-    @media(max-width:650px){.flow-previews{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding:4px 2px 16px;scrollbar-width:thin;scrollbar-color:var(--red) var(--paper)}.flow-preview{flex:0 0 88%;scroll-snap-align:start}.flow-preview figcaption{min-height:164px;padding:20px}.flow-preview h3{font-size:30px}.flow-preview>a{padding:22px 16px 26px}.flow-swipe-hint{display:block;margin:0 0 14px;color:var(--muted);font-size:13px}.flow-note{text-align:left}}
+    @media(max-width:650px){.flow-previews{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding:4px 2px 16px;scrollbar-width:thin;scrollbar-color:var(--red) var(--paper)}.flow-preview{flex:0 0 88%;scroll-snap-align:start}.flow-preview figcaption{min-height:164px;padding:20px}.flow-preview h3{font-size:30px}.flow-preview>a{padding:22px 16px 26px}.feature-controls{display:flex;align-items:center;gap:10px;margin:0 0 14px;color:var(--muted);font-size:12px}.flow-preview figcaption{min-height:184px}.flow-note{text-align:left}}
     .demo-invite{display:flex;align-items:center;justify-content:space-between;gap:28px;margin-top:38px;padding:26px 30px;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:18px;background:var(--paper)}
     .demo-invite strong{display:block;font-size:20px;line-height:1.35}
     .demo-invite p{margin:8px 0 0;color:var(--muted);font-size:15px}
@@ -355,7 +362,7 @@
   <header>
     <div class="wrap nav">
       <a class="brand" href="#top" aria-label="SpielzeitApp Startseite"><img class="brand-icon" src="spielzeitapp-icon.png" alt=""><img class="brand-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></a>
-      <nav class="links" aria-label="Hauptnavigation"><a href="#warum">Warum?</a><a href="#fuer-wen">Vorteile</a><a href="#pakete">Pakete</a><a href="#alltag">So geht’s</a></nav>
+      <nav class="links" aria-label="Hauptnavigation"><a href="#warum">Warum?</a><a href="#fuer-wen">Vorteile</a><a href="#pakete">Pakete</a><a href="#start">So geht’s</a></nav>
       <div class="nav-actions"><a class="btn btn-outline" href="/login">Einloggen</a><a class="btn btn-red" href="/demo">Demo ansehen</a></div>
     </div>
   </header>
@@ -433,29 +440,19 @@
       </div>
     </section>
 
-<section class="feature-section" id="funktionen">
-      <div class="wrap">
-        <div class="section-head"><h2>Von der Planung<br><span class="red">bis zum Schlusspfiff.</span></h2><p>Planen, trainieren, vorbereiten, spielen, besprechen und gemeinsam erleben – ohne zwischen verschiedenen Werkzeugen zu wechseln.</p></div>
-        <div class="cards cards-six">
-          <article class="card"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 15l2 2 5-5"/></svg></div><h3>Termine &amp; Erinnerungen</h3><p>Training, Spiel oder Turnier anlegen, Rückmeldungen sehen und fehlende Antworten automatisch erinnern.</p></article>
-          <article class="card"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2"/></svg></div><h3>Saison &amp; Spielplan</h3><p>Spielplan übernehmen, Saison vorbereiten und die Termine deiner Mannschaft im Blick behalten.</p></article>
-          <article class="card"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>Faire Spielzeiten im Blick</h3><p>Mindestspielzeiten festlegen, Wechsel live erfassen und automatisch sehen, wie viele Minuten jeder Spieler wirklich gespielt hat.</p></article>
-          <article class="card"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 9h4M16 9h4M4 15h4M16 15h4M12 4v5M12 15v5"/><circle cx="12" cy="12" r="3"/></svg></div><h3>Kader, Aufstellung &amp; Liveticker</h3><p>Kader nominieren, Formation vorbereiten sowie Tore, Wechsel und Spielstand direkt am Spielfeld live erfassen.</p></article>
-          <article class="card"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/><path d="m3 7 6-4 6 6 6-5"/></svg></div><h3>Feedposts &amp; Entwicklung</h3><p>Spieltag, Kader, Aufstellung und Ergebnis posten. Trainingsquote, Aktivität und Entwicklung des Teams übersichtlich auswerten.</p></article>
-          <article class="card"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m10 8 6 4-6 4z"/></svg></div><h3>Aufgezeichnete Spielszenen &amp; Highlights</h3><p>Optional bei vorhandenen Aufnahmen: Videos und Spielszenen hochladen, später ansehen und freigegebene Clips mit der Familie oder im WhatsApp-Status teilen.</p></article>
-        </div>
-
-      </div>
-    </section>
-
-<section class="everyday-flow" id="alltag" aria-labelledby="alltag-title"><div class="wrap">
-<div class="section-head"><div><span class="eyebrow">So funktioniert der Teamalltag</span><h2 id="alltag-title">Ein Termin.<br><span class="red">Ein klarer Ablauf.</span></h2></div><p>Vom ersten Eintrag bis zum Ergebnis: Trainer, Spieler und Eltern arbeiten mit denselben aktuellen Informationen.</p></div>
-<p class="flow-swipe-hint">Drei Einblicke in die App · seitlich wischen</p>
-<div class="flow-previews" tabindex="0" role="region" aria-label="Drei App-Ansichten: Rückmeldungen, Aufstellung und Spielzeiten">
-<figure class="flow-preview"><figcaption><span class="num">01</span><h3>Zusagen überblicken</h3><p>Sieh, wer dabei ist, und stelle deinen Kader zusammen.</p></figcaption><a href="/landingpage-assets/demo-rueckmeldungen.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Rückmeldungen vergrößern"><img src="/landingpage-assets/demo-rueckmeldungen.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Rückmeldungen und Kaderliste mit fiktiven Spielern"></a></figure>
-<figure class="flow-preview"><figcaption><span class="num">02</span><h3>Aufstellung vorbereiten</h3><p>Plane deine Formation und die Positionen deiner Spieler.</p></figcaption><a href="/landingpage-assets/demo-aufstellung.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Aufstellung vergrößern"><img src="/landingpage-assets/demo-aufstellung.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Aufstellung mit Formation und Spielerpositionen auf dem Fußballfeld"></a></figure>
-<figure class="flow-preview"><figcaption><span class="num">03</span><h3>Spielzeiten im Blick</h3><p>Erfasse Tore und Wechsel und behalte die Einsatzzeiten im Überblick.</p></figcaption><a href="/landingpage-assets/demo-spielzeiten.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Spielzeiten vergrößern"><img src="/landingpage-assets/demo-spielzeiten.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Einsatzzeiten und Mindestspielzeiten der fiktiven Spieler im Live-Match"></a></figure>
-</div><p class="flow-note">Originalansichten aus der Demo mit fiktiven Spielern. Bilder antippen zum Vergrößern.</p><div class="demo-invite"><div><strong>Probier den Ablauf mit dem Demo-Team aus.</strong><p>Entdecke Termine, Rückmeldungen und Matchvorbereitung aus den verschiedenen Rollen.</p></div><a class="btn btn-red" href="/demo">Demo ausprobieren</a></div>
+<section class="feature-section feature-gallery" id="funktionen" aria-labelledby="features-title"><div class="wrap">
+<span id="alltag" aria-hidden="true"></span>
+<div class="section-head"><div><span class="eyebrow">Einblicke in die App</span><h2 id="features-title">Von der Planung<br><span class="red">bis zum Schlusspfiff.</span></h2></div><p>Termine planen, das Match vorbereiten und gemeinsame Momente festhalten. So unterstützt dich SpielzeitApp im Teamalltag.</p></div>
+<div class="feature-controls"><span class="feature-progress" aria-live="polite" aria-atomic="true">1 von 6</span><span>Wischen oder weiterblättern</span><div><button type="button" class="feature-arrow" data-feature-prev aria-label="Vorherige App-Ansicht" aria-controls="feature-previews" disabled>‹</button><button type="button" class="feature-arrow" data-feature-next aria-label="Nächste App-Ansicht" aria-controls="feature-previews">›</button></div></div>
+<div class="flow-previews" id="feature-previews" tabindex="0" role="region" aria-label="Sechs App-Ansichten für den Teamalltag">
+<figure class="flow-preview"><figcaption><span class="num">01</span><h3>Termine &amp; Erinnerungen</h3><p>Training, Spiel und Turnier planen und fehlende Rückmeldungen automatisch erinnern.</p></figcaption><a href="/landingpage-assets/demo-termine.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Termine &amp; Erinnerungen vergrößern"><img src="/landingpage-assets/demo-termine.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Termine mit Spielort, Uhrzeit und Rückmeldungen mit fiktiven Spielern"></a></figure>
+<figure class="flow-preview"><figcaption><span class="num">02</span><h3>Rückmeldungen &amp; Kader</h3><p>Sieh, wer zugesagt hat, und stelle deinen Matchkader zusammen.</p></figcaption><a href="/landingpage-assets/demo-rueckmeldungen.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Rückmeldungen &amp; Kader vergrößern"><img src="/landingpage-assets/demo-rueckmeldungen.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Rückmeldungen und Kaderliste mit fiktiven Spielern"></a></figure>
+<figure class="flow-preview"><figcaption><span class="num">03</span><h3>Saison &amp; Spielplan</h3><p>Alle Begegnungen deiner Mannschaft im Blick – auch als PDF zum Teilen.</p></figcaption><a href="/landingpage-assets/demo-spielplan.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Saison &amp; Spielplan vergrößern"><img src="/landingpage-assets/demo-spielplan.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Saison-Spielplan der Demo-Mannschaft mit fiktiven Spielern"></a></figure>
+<figure class="flow-preview"><figcaption><span class="num">04</span><h3>Aufstellung &amp; Liveticker</h3><p>Formation vorbereiten und Tore sowie Wechsel direkt am Spielfeld erfassen.</p></figcaption><a href="/landingpage-assets/demo-aufstellung.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Aufstellung &amp; Liveticker vergrößern"><img src="/landingpage-assets/demo-aufstellung.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Aufstellung auf dem Spielfeld mit Spielerpositionen mit fiktiven Spielern"></a></figure>
+<figure class="flow-preview"><figcaption><span class="num">05</span><h3>Faire Spielzeiten im Blick</h3><p>Erfasste Einsatzzeiten und Mindestspielzeiten für jeden Spieler überblicken.</p></figcaption><a href="/landingpage-assets/demo-spielzeiten.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Faire Spielzeiten im Blick vergrößern"><img src="/landingpage-assets/demo-spielzeiten.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Einsatzzeiten und Mindestspielzeiten im Live-Match mit fiktiven Spielern"></a></figure>
+<figure class="flow-preview"><figcaption><span class="num">06</span><h3>Feedposts &amp; Teammomente</h3><p>Spieltag, Aufstellung, Ergebnisse und gemeinsame Momente mit dem Team teilen.</p></figcaption><a href="/landingpage-assets/demo-feed.webp" target="_blank" rel="noopener" aria-label="App-Ansicht Feedposts &amp; Teammomente vergrößern"><img src="/landingpage-assets/demo-feed.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Originalansicht der Demo: Ergebnisbeitrag im Team-Feed mit fiktiven Spielern"></a></figure>
+</div><p class="flow-note">Originalansichten aus der Demo mit fiktiven Spielern. Bilder antippen zum Vergrößern.</p>
+<div class="demo-invite"><div><strong>Probier den Ablauf mit dem Demo-Team aus.</strong><p>Entdecke Termine, Rückmeldungen und Matchvorbereitung aus den verschiedenen Rollen.</p></div><a class="btn btn-red" href="/demo">Demo ausprobieren</a></div>
 </div></section>
 
 <section id="start"><div class="wrap"><div class="section-head"><h2>So startet <span class="red">deine Mannschaft.</span></h2><p>Die Demo hat dich überzeugt? Wir richten deine Mannschaft persönlich mit dir ein und vereinbaren den Start der dreimonatigen Testphase.</p></div><div class="steps"><div class="step"><span class="num">01</span><h3>Mannschaft einrichten</h3><p>Wir bereiten Mannschaft, Vereinsfarben und Trainerzugänge gemeinsam mit dir vor.</p></div><div class="step"><span class="num">02</span><h3>Spielplan vorbereiten</h3><p>Wir übernehmen gemeinsam deinen Saison-Spielplan und bereiten eure Trainings- und Spieltermine vor.</p></div><div class="step"><span class="num">03</span><h3>Spieler &amp; Eltern einladen</h3><p>Trainer laden Spieler und Eltern per Link ein. Danach könnt ihr Rückmeldungen sammeln und den Teamalltag gemeinsam organisieren.</p></div></div></div></section>
@@ -535,6 +532,33 @@
 <section class="cta" id="testen"><div class="wrap"><div class="cta-box"><div><h2>Deine Mannschaft.<br>3 Monate gratis testen.</h2><p>Starte mit der Demo. Wenn die App zu euch passt, frage den persönlichen Test mit Spielzeit Team an. Gemeinsam bereiten wir eure Termine vor – damit ihr zum nächsten Saisonstart schon eingespielt seid. Ohne automatische kostenpflichtige Verlängerung.</p></div><div class="cta-action"><a class="btn btn-white" href="/demo">Demo ansehen</a><a class="btn btn-red" href="mailto:office@quetschnguru.at?subject=Spielzeit%20Team%203%20Monate%20gratis%20testen">3 Monate gratis testen</a></div></div></div></section>
 </main>
 
-  <footer><div class="wrap"><div class="footer-grid"><div><a class="brand" href="#top"><img class="brand-icon" src="spielzeitapp-icon.png" alt=""><img class="brand-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></a><p class="footer-slogan">Unser Team. Unsere Momente. Unser Spiel.</p></div><div><h4>SpielzeitApp</h4><a href="#fuer-wen">Vorteile</a><a href="#funktionen">Funktionen</a><a href="#pakete">Pakete</a><a href="#alltag">So geht’s</a><a href="/demo">Demo ansehen</a></div><div><h4>Rechtliches</h4><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="/login">Einloggen</a></div></div><div class="copyright">© 2026 SpielzeitApp</div></div></footer>
+  <footer><div class="wrap"><div class="footer-grid"><div><a class="brand" href="#top"><img class="brand-icon" src="spielzeitapp-icon.png" alt=""><img class="brand-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></a><p class="footer-slogan">Unser Team. Unsere Momente. Unser Spiel.</p></div><div><h4>SpielzeitApp</h4><a href="#fuer-wen">Vorteile</a><a href="#funktionen">Funktionen</a><a href="#pakete">Pakete</a><a href="#start">So geht’s</a><a href="/demo">Demo ansehen</a></div><div><h4>Rechtliches</h4><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="/login">Einloggen</a></div></div><div class="copyright">© 2026 SpielzeitApp</div></div></footer>
+<script>
+(() => {
+  const rail = document.getElementById('feature-previews');
+  const previous = document.querySelector('[data-feature-prev]');
+  const next = document.querySelector('[data-feature-next]');
+  const progress = document.querySelector('.feature-progress');
+  if (!rail || !previous || !next || !progress) return;
+  const cards = Array.from(rail.children);
+  const current = () => cards.reduce((best, card, index) => Math.abs(card.offsetLeft - cards[0].offsetLeft - rail.scrollLeft) < Math.abs(cards[best].offsetLeft - cards[0].offsetLeft - rail.scrollLeft) ? index : best, 0);
+  const update = () => {
+    const index = current();
+    previous.disabled = rail.scrollLeft <= 2;
+    next.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 2;
+    const label = `${index + 1} von ${cards.length}`;
+    if (progress.textContent !== label) progress.textContent = label;
+  };
+  const move = direction => {
+    const index = Math.max(0, Math.min(cards.length - 1, current() + direction));
+    rail.scrollTo({ left: cards[index].offsetLeft - cards[0].offsetLeft, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
+  previous.addEventListener('click', () => move(-1));
+  next.addEventListener('click', () => move(1));
+  rail.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
 </body>
 </html>
