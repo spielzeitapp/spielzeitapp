@@ -54,7 +54,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
     void supabase.rpc('oefb_assignment_context', { p_team_season_id: seasonId }).then(({ data, error }) => {
       if (!active || error) return;
       const links = (data as { links?: Array<{ player_id: string; external_player_id: string }> } | null)?.links ?? [];
-      setOefbIds(Object.fromEntries(links.filter(link => link.player_id && /^\\d{4,10}$/.test(String(link.external_player_id))).map(link => [link.player_id, String(link.external_player_id)])));
+      setOefbIds(Object.fromEntries(links.filter(link => link.player_id && /^\d{4,10}$/.test(String(link.external_player_id))).map(link => [link.player_id, String(link.external_player_id)])));
     });
     return () => { active = false; };
   }, [seasonId, players]);
