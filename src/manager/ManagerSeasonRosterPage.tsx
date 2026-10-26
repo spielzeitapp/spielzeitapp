@@ -38,6 +38,19 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
     ageGroup: string | null;
   } | null>(null);
   const [players, setPlayers] = useState<RosterPlayer[]>([]);
+  const [oefbIds, setOefbIds] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!seasonId) return;
+    let active = true;
+    setOefbIds({});
+    void supabase.rpc('oefb_assignment_context', { p_team_season_id: seasonId }).then(({ data, error }) => {
+      if (!active || error) return;
+      const links = (data as { links?: Array<{ player_id: string; external_player_id: string }> } | null)?.links ?? [];
+      setOefbIds(Object.fromEntries(links.filter(link => link.player_id && /^\\d{4,10}$/.test(String(link.external_player_id))).map(link => [link.player_id, String(link.external_player_id)])));
+    });
+    return () => { active = false; };
+  }, [seasonId, players]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -185,6 +198,14 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                       <p className="text-[12px] text-slate-500">
                         {p.jersey_number != null ? `#${p.jersey_number}` : 'ohne Nr.'}
                         {p.position ? ` · ${p.position}` : ''}
+                      </p>
+                      <p className="mt-1 text-[12px] text-slate-600">
+                        {oefbIds[p.id] ? (
+                          <span className="inline-flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-emerald-700">ÖFB verknüpft · ID {oefbIds[p.id]}</span>
+                            <a href={`https://www.oefb.at/Profile/Spieler/${encodeURIComponent(oefbIds[p.id])}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-red-700 underline">ÖFB-Profil öffnen</a>
+                          </span>
+                        ) : <span className="text-amber-700">ÖFB-ID fehlt</span>}
                       </p>
                     </div>
                   </div>
