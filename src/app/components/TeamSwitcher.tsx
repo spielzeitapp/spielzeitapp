@@ -47,11 +47,11 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const multipleAvailable = overview && currentSeasons.length > 1;
   const filtered = overview && teamViewFilter !== null;
   const triggerLabel = filtered
-    ? teamViewFilter === 'all' ? 'Alle Mannschaften' : filteredTeamSeasonIds.length <= 3
+    ? teamViewFilter === 'all' && currentSeasons.length > 3 ? 'Alle Mannschaften' : filteredTeamSeasonIds.length <= 3
       ? currentSeasons.filter(ts => filteredTeamSeasonIds.includes(ts.id)).map(ts => ts.age_group || ts.team?.name || 'Team').join(' + ')
       : `${filteredTeamSeasonIds.length} Mannschaften`
     : formatTeamSeasonContextLabel({ displayName: (current ?? teamSeasons[0])?.display_name, ageGroup: (current ?? teamSeasons[0])?.age_group, teamName: (current ?? teamSeasons[0])?.team?.name, seasonName: (current ?? teamSeasons[0])?.season?.name }, { includeSeason: false });
-  const triggerSubtitle = filtered ? 'Aktuelle Mannschaften' : [current?.season?.name, current?.status === 'archived' ? 'Archiv' : current?.status === 'draft' ? 'In Vorbereitung' : null].filter(Boolean).join(' · ');
+  const triggerSubtitle = filtered ? 'Gemeinsame Übersicht' : [current?.season?.name, current?.status === 'archived' ? 'Archiv' : current?.status === 'draft' ? 'In Vorbereitung' : null].filter(Boolean).join(' · ');
 
   React.useEffect(() => {
     setOpen(false);
