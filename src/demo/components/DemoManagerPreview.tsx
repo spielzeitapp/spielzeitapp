@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarDays, ClipboardList, Dumbbell, Monitor, Users } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
@@ -33,7 +34,8 @@ export function DemoManagerPreview({ open, onClose }: { open: boolean; onClose: 
             </li>
           ))}
         </ul>
-        <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">Die Manager-Demo folgt. Hier siehst du bereits, welche Bereiche der SpielzeitManager bietet.</p>
+        <Link to="/demo/trainingsplanung" onClick={onClose} className={`${dsPrimaryCtaClass()} flex min-h-11 w-full items-center justify-center`}>Beispieltraining entdecken</Link>
+        <p className="text-sm text-white/60">Entdecke eine Trainingseinheit mit vier Übungen und die Handout-Ansicht. Die weiteren Manager-Bereiche stellen wir dir persönlich vor.</p>
       </div>
     </Modal>
   );
