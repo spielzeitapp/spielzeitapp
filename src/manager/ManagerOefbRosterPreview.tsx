@@ -14,6 +14,9 @@ export function ManagerOefbRosterPreview({ seasonId }: { seasonId: string }) {
   const [approved, setApproved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState('');
+  const parsedProfileId = profileUrl.trim().match(/^https:\/\/(?:www\.)?oefb\.at\/Profile\/Spieler\/(\d{4,10})\/[^?#]+$/i)?.[1] || '';
+  const canLink = Boolean(parsedProfileId && playerId && approved && !saving);
+
   useEffect(() => {
     let active = true;
     void supabase.rpc('oefb_assignment_context', {p_team_season_id: seasonId}).then(({data,error}) => {
@@ -68,7 +71,9 @@ export function ManagerOefbRosterPreview({ seasonId }: { seasonId: string }) {
       <label className="block text-sm">ÖFB-Spielerprofil-Link<input value={profileUrl} onChange={e=>{setProfileUrl(e.target.value);setApproved(false);}} placeholder="https://www.oefb.at/Profile/Spieler/1392818/Nino-Semellechner" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" /></label>
       <label className="block text-sm">Vorhandenes Profil<select value={playerId} onChange={e=>{setPlayerId(e.target.value);setApproved(false);}} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"><option value="">Bitte auswählen</option>{roster.map(p=><option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}</select></label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={approved} onChange={e=>setApproved(e.target.checked)} />Identität und ÖFB-Profil geprüft</label>
-      <button type="button" disabled={saving || !approved || !playerId || !/^https:\/\/(?:www\.)?oefb\.at\/Profile\/Spieler\/\d{4,10}\//i.test(profileUrl.trim())} onClick={()=>void linkProfile()} className="rounded-lg bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-50">{saving?'Speichert…':'ÖFB-ID verknüpfen'}</button>
+      {!parsedProfileId ? <p className="text-sm text-amber-700">Bitte den vollständigen ÖFB-Spielerprofil-Link tatsächlich ins Feld eingeben (grauer Beispieltext zählt nicht).</p> : null}
+      {!playerId ? <p className="text-sm text-amber-700">Bitte das vorhandene Spielerprofil in der Auswahlliste aktiv auswählen.</p> : null}
+      <button type="button" disabled={!canLink} onClick={()=>void linkProfile()} className="rounded-lg bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-50">{saving?'Speichert…':'ÖFB-ID verknüpfen'}</button>
       {saved?<p role="status" className="text-sm text-emerald-700">{saved}</p>:null}
     </div>
   </section>;
