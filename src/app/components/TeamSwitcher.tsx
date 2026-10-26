@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Plus } from 'lucide-react';
+import { Check, ChevronDown, Plus, Star } from 'lucide-react';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -48,7 +48,9 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const filtered = overview && teamViewFilter !== null;
   const ownIds = new Set(memberships.filter((m) => String(m.role).trim().toLowerCase() !== 'fan').map((m) => m.team_season_id));
   const triggerLabel = filtered
-    ? teamViewFilter === 'all' ? 'Alle Mannschaften' : `${filteredTeamSeasonIds.length} Mannschaften`
+    ? teamViewFilter === 'all' ? 'Alle Mannschaften' : filteredTeamSeasonIds.length <= 3
+      ? currentSeasons.filter(ts => filteredTeamSeasonIds.includes(ts.id)).map(ts => ts.age_group || ts.team?.name || 'Team').join(' + ')
+      : `${filteredTeamSeasonIds.length} Mannschaften`
     : formatTeamSeasonContextLabel({ displayName: (current ?? teamSeasons[0])?.display_name, ageGroup: (current ?? teamSeasons[0])?.age_group, teamName: (current ?? teamSeasons[0])?.team?.name, seasonName: (current ?? teamSeasons[0])?.season?.name }, { includeSeason: false });
   const triggerSubtitle = filtered ? 'Aktuelle Mannschaften' : [current?.season?.name, current?.status === 'archived' ? 'Archiv' : current?.status === 'draft' ? 'In Vorbereitung' : null].filter(Boolean).join(' · ');
 
@@ -167,11 +169,10 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
             className={`mb-1 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold ${teamViewFilter === 'all' ? 'bg-[rgb(var(--club-primary-rgb)/0.2)]' : 'hover:bg-white/[0.06]'}`}>
             Alle Mannschaften{teamViewFilter === 'all' ? <Check className="sz-club-accent-text h-5 w-5" aria-hidden /> : null}
           </button>
-          <p className="px-3 py-2 text-[11px] text-white/45">Eine oder mehrere aktuelle Mannschaften auswählen.</p>
+          <p className="px-3 py-2 text-[11px] text-white/45">Alle aktuellen Mannschaften gemeinsam oder einzeln anzeigen.</p>
         </> : null}
         {[
-          { label: 'Meine Mannschaften', rows: currentSeasons.filter((ts) => ownIds.has(ts.id)) },
-          { label: 'Favoriten', rows: currentSeasons.filter((ts) => !ownIds.has(ts.id)) },
+          { label: 'Aktuelle Mannschaften', rows: currentSeasons },
         ].map(({ label, rows }) => rows.length ? <section key={label}>
           <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
           {rows.map((ts) => renderSeason(ts, multipleAvailable))}
