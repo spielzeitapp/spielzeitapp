@@ -141,12 +141,10 @@ function getTimeBucket(
     return 'past';
   }
   if (status === 'live') return 'upcoming';
-  const et = getEffectiveEventType(e);
-  if (et === 'training' || et === 'event' || et === 'other' || et === 'tournament') {
-    const starts = e.starts_at ? new Date(e.starts_at).getTime() : 0;
-    const TWO_HOURS = 2 * 60 * 60 * 1000;
-    if (starts && starts + TWO_HOURS < now.getTime()) return 'past';
-  }
+  const starts = e.starts_at ? new Date(e.starts_at).getTime() : NaN;
+  // Imported ÖFB matches can retain status "upcoming" after the kickoff.
+  // Classify by date as well, without rewriting historical results or statuses.
+  if (Number.isFinite(starts) && starts + 2 * 60 * 60 * 1000 < now.getTime()) return 'past';
   return 'upcoming';
 }
 
@@ -2116,7 +2114,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                           <React.Fragment key={ev.id}>
                             {allListSectionHeading}
                           {isMultiTeamView ? <p className="mb-1 mt-3 text-xs font-bold text-white/65">{eventTeamLabel(ev)}</p> : null}
-                            {isMultiTeamView ? <p className="mb-1 mt-3 text-xs font-bold text-white/65">{eventTeamLabel(ev)}</p> : null}
                             <PastMatchResultCard
                               ev={ev}
                               ageGroup={teamSeasons.find((ts) => ts.id === ev.team_season_id)?.age_group}
@@ -2145,6 +2142,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                       return (
                         <React.Fragment key={ev.id}>
                           {allListSectionHeading}
+                          {isMultiTeamView ? <p className="mb-1 mt-3 text-xs font-bold text-white/65">{eventTeamLabel(ev)}</p> : null}
                           <CompactEventCard
                             ev={ev}
                             et={et}
