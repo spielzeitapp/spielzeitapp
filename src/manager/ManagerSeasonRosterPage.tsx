@@ -56,6 +56,26 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
   const [birthdate, setBirthdate] = useState('');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [existingPlayers, setExistingPlayers] = useState<Array<{id:string;first_name:string;last_name:string}>>([]);
+  const [selectedExistingId, setSelectedExistingId] = useState('');
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkReady, setLinkReady] = useState(false);
+
+  useEffect(() => {
+    setExistingPlayers([]);
+    setSelectedExistingId('');
+    setLinkReady(false);
+    if (!seasonId || !allowed) return;
+    let cancelled = false;
+    void supabase.rpc('oefb_assignment_context', {p_team_season_id:seasonId}).then(({data,error}) => {
+      if (cancelled) return;
+      // Existing RPC only exposes the target roster, not other club teams.
+      if (error) setLinkError(error.message);
+    });
+    return () => { cancelled = true; };
+  }, [seasonId,allowed]);
+
 
   const reloadRoster = async (id: string): Promise<boolean> => {
     const roster = await listRoster(id, 'all');
@@ -257,6 +277,14 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
       ) : null}
 
       {(canEdit || (!archived && !writableMessage && !loading && !!meta && ['trainer','co_trainer','head_coach'].includes(effectiveRole))) ? <ManagerOefbPlayerAssignments key={seasonId} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
+
+      {canEdit ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
+          <h2 className="text-lg font-semibold text-slate-900">Spieler aus anderen Mannschaften übernehmen</h2>
+          <p className="mt-1 text-sm text-slate-600">Für U12-Spieler, die auch in der U13 spielen. Ein bestehendes Profil darf nicht doppelt angelegt werden.</p>
+          <p className="mt-2 text-sm text-amber-800">Die sichere vereinsweite Auswahl benötigt noch eine Datenbankfreigabe. Bis dahin bitte keine Spieler hier neu anlegen.</p>
+        </section>
+      ) : null}
 
       {canEdit ? (
         <form onSubmit={(event) => void savePlayer(event)} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
