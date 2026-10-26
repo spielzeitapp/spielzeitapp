@@ -172,7 +172,7 @@ module.exports = async function handler(req, res) {
     ? ourTeam.split('|').map((s) => s.trim()).filter(Boolean)
     : ['SPG Rohrbach', 'Rohrbach'];
 
-  const competitionMatch = parsedUrl.hostname === 'www.oefb.at' && parsedUrl.pathname.match(new RegExp('^/bewerbe/Bewerb/([0-9]+)/?;
+  const competitionMatch = parsedUrl.hostname === 'www.oefb.at' && parsedUrl.pathname.match(/^\/bewerbe\/Bewerb\/([0-9]+)\/?$/i);
   if (competitionMatch) {
     try {
       const fixtures = await competitionFixtures(competitionMatch[1], ourTeamHints);
