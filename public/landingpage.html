@@ -371,14 +371,15 @@
     .training-handout-preview:focus-visible{outline:3px solid var(--red);outline-offset:4px}
     @media(max-width:650px){.training-teaser{grid-template-columns:1fr;gap:22px}.training-handout-preview{max-width:none}.training-teaser-copy .btn{width:100%}}
 
-  </style>
+  @media(max-width:650px){.nav{height:auto;flex-wrap:wrap;padding-block:12px;gap:12px}.nav>.brand{margin-inline:auto}.nav-actions{width:100%;margin-left:0}.nav-actions .btn,.nav-actions .btn-red{display:inline-flex;flex:1;max-width:none;min-width:0;text-align:center;justify-content:center}}
+</style>
 </head>
 <body>
   <header>
     <div class="wrap nav">
       <a class="brand" href="#top" aria-label="SpielzeitApp Startseite"><img class="brand-icon" src="spielzeitapp-icon.png" alt=""><img class="brand-wordmark" src="spielzeitapp-wordmark-transparent.png" alt="SpielzeitApp"></a>
       <nav class="links" aria-label="Hauptnavigation"><a href="#warum">Warum?</a><a href="#fuer-wen">Vorteile</a><a href="#pakete">Pakete</a><a href="#start">So geht’s</a></nav>
-      <div class="nav-actions"><a class="btn btn-outline" href="/login">Einloggen</a><a class="btn btn-red" href="/demo">Demo ansehen</a></div>
+      <div class="nav-actions"><a class="btn btn-red" href="/demo">Demo ansehen</a><a class="btn btn-outline" href="mailto:office@quetschnguru.at?subject=Spielzeit%20Team%203%20Monate%20gratis%20testen">3 Monate gratis testen</a></div>
     </div>
   </header>
 
