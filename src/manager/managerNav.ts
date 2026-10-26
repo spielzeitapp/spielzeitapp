@@ -76,6 +76,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
       { id: 'training-chronik', label: 'Chronik', to: '/manager/training/chronik', status: 'ready', moduleKey: 'training-chronik' },
       { id: 'matches', label: 'Spiele', to: '/manager/spiele', status: 'ready' },
       { id: 'competition', label: 'Tabelle & Liga', to: '/manager/tabelle', status: 'ready' },
+      { id: 'oefb-import', label: 'ÖFB-Import', to: '/manager/saisons', status: 'ready', moduleKey: 'seasons' },
       { id: 'tournaments', label: 'Turniere', to: '/manager/turniere', status: 'ready' },
       { id: 'venues', label: 'Platzbelegung', to: '/manager/platzbelegung', status: 'ready', moduleKey: 'venues' },
       { id: 'video', label: 'Video & Analyse', to: '/manager/video', status: 'ready' },
