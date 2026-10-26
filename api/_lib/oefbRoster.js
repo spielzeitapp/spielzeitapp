@@ -9,20 +9,32 @@ function decode(s) {
 }
 function extract(html) {
   const players = new Map();
-  // Only trust numeric IDs explicitly present in a player's own profile URL.
-  const anchor = /<a\b([^>]*href=["']([^"']+)["'][^>]*)>([\s\S]*?)<\/a>/gi;
-  let match;
-  while ((match = anchor.exec(html)) !== null) {
-    const href = decode(match[2]);
-    if (!/spieler|player|profil/i.test(href)) continue;
-    const id = href.match(/(?:[?&](?:spielerId|spieler|playerId|id|:p)=|\/(?:Spieler|Spielerprofil|Player)\/)(\d{4,10})(?:[&#/?]|$)/i);
-    if (!id) continue;
-    const name = decode(match[3]);
-    if (!/^[\p{L}][\p{L} .'-]{3,100}$/u.test(name) || name.split(/\s+/).length < 2) continue;
-    players.set(id[1], { externalPlayerId: id[1], name });
+  const normalizeName = (text) => decode(text).replace(/\s+/g, ' ').trim();
+  const add = (urlText, label) => {
+    const url = String(urlText).replace(/&amp;/g, '&').replace(/\\\//g, '/');
+    // ÖFB uses /Profile/Spieler/1392818/Nino-Semellechner (including slug).
+    const found = url.match(/\/Profile\/Spieler\/(\d{4,10})(?:\/([^"'?#\s<]+))?/i);
+    if (!found) return;
+    const slugName = found[2] ? decodeURIComponent(found[2]).replace(/[-_]+/g, ' ') : '';
+    const name = normalizeName(label) || normalizeName(slugName);
+    if (!/^[\p{L}][\p{L} .'-]{3,100}$/u.test(name) || name.split(/\s+/).length < 2) return;
+    players.set(found[1], { externalPlayerId: found[1], name });
+  };
+  // Capture visible anchors, including nested images and names in the profile slug.
+  const anchors = /<a\b([^>]*?)>([\s\S]*?)<\/a>/gi;
+  for (const match of html.matchAll(anchors)) {
+    const href = match[1].match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];
+    if (!href) continue;
+    const title = match[1].match(/\btitle\s*=\s*["']([^"']+)["']/i)?.[1] || '';
+    add(href, normalizeName(match[2]) || normalizeName(title));
   }
+  // Also recognize profile URLs embedded in the ÖFB preload / serialized data.
+  // IDs must still be present in actual profile URLs, never inferred from names.
+  const urls = /(?:https?:\/\/(?:www\.)?oefb\.at)?(?:\\\/|\/)Profile(?:\\\/|\/)Spieler(?:\\\/|\/)\d{4,10}(?:(?:\\\/|\/)[\p{L}\p{N}_%-]+)?/giu;
+  for (const match of html.matchAll(urls)) add(match[0], '');
   return [...players.values()].sort((a,b) => a.name.localeCompare(b.name, 'de'));
 }
+
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
