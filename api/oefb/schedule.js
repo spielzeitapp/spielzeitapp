@@ -172,7 +172,53 @@ module.exports = async function handler(req, res) {
     ? ourTeam.split('|').map((s) => s.trim()).filter(Boolean)
     : ['SPG Rohrbach', 'Rohrbach'];
 
-  const competitionMatch = parsedUrl.hostname === 'www.oefb.at' && parsedUrl.pathname.match(/^\\/bewerbe\\/Bewerb\\/(\\d+)\\/?$/i);
+  const competitionMatch = parsedUrl.hostname === 'www.oefb.at' && parsedUrl.pathname.match(new RegExp('^/bewerbe/Bewerb/([0-9]+)/?;
+  if (competitionMatch) {
+    try {
+      const fixtures = await competitionFixtures(competitionMatch[1], ourTeamHints);
+      return res.status(200).json({ ok: true, fixtures, count: fixtures.length, sourceUrl: parsedUrl.toString() });
+    } catch (e) {
+      return res.status(502).json({ error: e?.message || 'Bewerbs-Spielplan nicht erreichbar.', fixtures: [] });
+    }
+  }
+
+  try {
+    const upstream = await fetch(parsedUrl.toString(), {
+      headers: {
+        'User-Agent': 'SpielzeitApp/1.0 (+championship-import)',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+    });
+    if (!upstream.ok) {
+      res.status(502).json({ error: `ÖFB antwortete mit HTTP ${upstream.status}` });
+      return;
+    }
+    const html = await upstream.text();
+    const extracted = extractPreloadSpiele(html);
+    if (extracted.error) {
+      res.status(422).json({ error: extracted.error, fixtures: [] });
+      return;
+    }
+
+    const fixtures = (extracted.spiele || [])
+      .map((s) => mapFixture(s, ourTeamHints))
+      .filter((f) => f.art === 'Liga' || f.art === 'Meisterschaft')
+      .filter((f) => f.external_id && f.starts_at && f.opponent);
+
+    res.status(200).json({
+      ok: true,
+      teamLabel: extracted.teamLabel
+        ? normalizeOefbImportedTeamName(extracted.teamLabel)
+        : null,
+      count: fixtures.length,
+      fixtures,
+      sourceUrl: parsedUrl.toString(),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e?.message ?? String(e) });
+  }
+};
+, 'i'));
   if (competitionMatch) {
     try {
       const fixtures = await competitionFixtures(competitionMatch[1], ourTeamHints);
