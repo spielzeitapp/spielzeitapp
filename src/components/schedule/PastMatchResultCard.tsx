@@ -26,6 +26,7 @@ export type PastMatchResultCardProps = {
   forcePublicView: boolean;
   /** Kompakte Zeile für den Reiter „Alle“ und die Liste unter dem Ergebnis-Slider. */
   compact?: boolean;
+  showTeamBadge?: boolean;
   onNavigate: (id: string) => void;
 };
 
@@ -98,6 +99,7 @@ export function PastMatchResultCard({
   halftimeLine,
   forcePublicView,
   compact = false,
+  showTeamBadge = false,
   onNavigate,
 }: PastMatchResultCardProps) {
   void _ourTeamNameProp;
@@ -182,6 +184,7 @@ export function PastMatchResultCard({
         }
       >
         <div className="flex w-[64px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
+          {showTeamBadge && ageGroup ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{ageGroup}</span> : null}
           <span className="sz-club-accent-text text-[12px] font-semibold uppercase leading-none tracking-widest">{weekdayBadge}</span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{dayBig}</span>
           <span className="text-[12px] leading-tight text-white/60">{monSmall || '—'}</span>
