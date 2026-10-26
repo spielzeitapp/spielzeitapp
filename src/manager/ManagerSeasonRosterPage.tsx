@@ -23,6 +23,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import type { ManagerWorkMode } from './managerWorkMode';
 import { ManagerOefbPlayerAssignments } from './ManagerOefbPlayerAssignments';
+import { ManagerOefbRosterPreview } from './ManagerOefbRosterPreview';
 
 function canAccess(effectiveRole: string, backendRole: string, workMode: ManagerWorkMode): boolean {
   if (workMode === 'platform_admin' && (backendRole ?? '').trim().toLowerCase() === 'admin') {
@@ -257,6 +258,8 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
       ) : null}
 
       {(canEdit || (!archived && !writableMessage && !loading && !!meta && ['trainer','co_trainer','head_coach'].includes(effectiveRole))) ? <ManagerOefbPlayerAssignments key={seasonId} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
+
+      {canEdit && seasonId ? <ManagerOefbRosterPreview seasonId={seasonId} /> : null}
 
       {canEdit ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
