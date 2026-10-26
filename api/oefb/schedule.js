@@ -107,6 +107,43 @@ function mapFixture(raw, ourTeamHints) {
   };
 }
 
+/** Bewerbslink: vorhandenen read-only ÖFB-Spielplan-Endpunkt wiederverwenden. */
+async function competitionFixtures(competitionId, hints) {
+  const leagueHandler = require('../_lib/oefbCompetitionResults');
+  let status = 200;
+  let payload = null;
+  const response = {
+    setHeader() {},
+    status(code) { status = code; return this; },
+    json(body) { payload = body; return this; },
+  };
+  await leagueHandler({ method: 'GET', query: { id: competitionId, round: '0' } }, response);
+  if (status !== 200 || !payload?.games) throw new Error(payload?.error || 'ÖFB-Bewerb konnte nicht geladen werden.');
+  const normalizedHints = hints.map(h => normalizeOefbImportedTeamName(h).toLocaleLowerCase('de-AT')).filter(Boolean);
+  if (!normalizedHints.length) throw new Error('Bitte den eigenen ÖFB-Mannschaftsnamen angeben.');
+  const { createHash } = require('crypto');
+  return payload.games.filter(game => {
+    const home = normalizeOefbImportedTeamName(game.home).toLocaleLowerCase('de-AT');
+    const away = normalizeOefbImportedTeamName(game.away).toLocaleLowerCase('de-AT');
+    return normalizedHints.some(h => home === h || away === h);
+  }).map(game => {
+    const home = normalizeOefbImportedTeamName(game.home);
+    const away = normalizeOefbImportedTeamName(game.away);
+    const isHome = normalizedHints.includes(home.toLocaleLowerCase('de-AT'));
+    const matchId = createHash('sha256').update([competitionId, game.round, game.kickoff, home, away].join('|')).digest('hex').slice(0, 24);
+    const scores = /^(\\d+):(\\d+)$/.exec(game.score || '');
+    return {
+      art: 'Liga', opponent: isHome ? away : home, is_home: isHome,
+      starts_at: game.kickoff, competition: payload.name || null,
+      location: game.venue || null, external_id: 'bewerb-' + competitionId + '-' + matchId,
+      external_url: game.sourceUrl || payload.sourceUrl,
+      opponent_logo_url: isHome ? game.awayLogo : game.homeLogo,
+      score_home: scores ? Number(scores[1]) : null,
+      score_away: scores ? Number(scores[2]) : null,
+    };
+  });
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -134,6 +171,16 @@ module.exports = async function handler(req, res) {
   const ourTeamHints = ourTeam
     ? ourTeam.split('|').map((s) => s.trim()).filter(Boolean)
     : ['SPG Rohrbach', 'Rohrbach'];
+
+  const competitionMatch = parsedUrl.hostname === 'www.oefb.at' && parsedUrl.pathname.match(/^\\/bewerbe\\/Bewerb\\/(\\d+)\\/?$/i);
+  if (competitionMatch) {
+    try {
+      const fixtures = await competitionFixtures(competitionMatch[1], ourTeamHints);
+      return res.status(200).json({ ok: true, fixtures, count: fixtures.length, sourceUrl: parsedUrl.toString() });
+    } catch (e) {
+      return res.status(502).json({ error: e?.message || 'Bewerbs-Spielplan nicht erreichbar.', fixtures: [] });
+    }
+  }
 
   try {
     const upstream = await fetch(parsedUrl.toString(), {
