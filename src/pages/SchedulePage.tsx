@@ -1189,8 +1189,15 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
   }, [displayEvents.length, timeFilter]);
 
   const heroCarouselEvents = useMemo(
-    () => (showHeroCard ? displayEvents.slice(0, 5) : []),
-    [displayEvents, showHeroCard],
+    () => {
+      if (!showHeroCard) return [];
+      if (isDemo && timeFilter === 'upcoming' && kindFilter === 'all') {
+        const nextGame = displayEvents.find((event) => getEffectiveEventType(event) === 'game');
+        if (nextGame) return [nextGame];
+      }
+      return displayEvents.slice(0, 5);
+    },
+    [displayEvents, showHeroCard, isDemo, timeFilter, kindFilter],
   );
   const heroCarouselKey = heroCarouselEvents.map((event) => event.id).join(',');
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
