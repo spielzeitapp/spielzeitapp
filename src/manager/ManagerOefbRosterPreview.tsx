@@ -11,7 +11,7 @@ export function ManagerOefbRosterPreview({ seasonId }: { seasonId: string }) {
   async function preview() {
     setBusy(true); setPlayers([]); setError(''); setNotice('');
     try {
-      const response = await fetch('/api/oefb/roster?url=' + encodeURIComponent(url.trim()), { cache: 'no-store' });
+      const response = await fetch('/api/oefb/table?view=roster&url=' + encodeURIComponent(url.trim()), { cache: 'no-store' });
       const result = await response.json() as { error?: string; players?: Candidate[]; notice?: string };
       if (!response.ok || result.error) throw Error(result.error || 'ÖFB-Kader konnte nicht geladen werden.');
       setPlayers(result.players || []);
