@@ -276,19 +276,19 @@ export function ManagerTrainingSessionsPage(): React.ReactElement {
   };
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+    <div className="min-w-0 space-y-5">
+      <header className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-[28px] font-bold tracking-tight text-slate-950 sm:text-[32px]">Trainingsplanung</h1>
           <p className="mt-1 text-[14px] text-slate-500">Trainingstermine planen, gespeicherte Pläne verwenden und Einheiten anpassen.</p>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex w-full min-w-0 flex-wrap gap-2 lg:w-auto lg:justify-end">
           <Link to="/manager/training/bibliothek" className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800 shadow-sm hover:bg-slate-50">Übungsbibliothek</Link>
           <Link to="/manager/training/einheiten/neu" className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-red-600 px-4 text-[13px] font-semibold text-white shadow-sm hover:bg-red-700"><Plus className="h-4 w-4" aria-hidden /> Neue Einheit</Link>
         </div>
       </header>
 
-      <nav className="flex gap-6 overflow-x-auto border-b border-slate-200" aria-label="Trainingsplanung Bereiche">
+      <nav className="flex max-w-full min-w-0 gap-4 overflow-x-auto border-b border-slate-200" aria-label="Trainingsplanung Bereiche">
         <button type="button" onClick={() => selectMainTab('dates')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'dates' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Trainingstermine</button>
         <button type="button" onClick={() => selectMainTab('plans')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'plans' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Meine Pläne</button>
         <button type="button" onClick={() => selectMainTab('exam')} className={`min-h-[44px] whitespace-nowrap border-b-2 px-1 text-[13px] font-semibold ${mainTab === 'exam' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>Trainerprüfung</button>
@@ -384,11 +384,39 @@ function TrainingListRow({ event, session, fieldLabel, onPlan }: { event: EventR
 }
 
 function MyPlans({ drafts, readyPlans, archivedPlans, deletingSessionId, onDelete }: { drafts: TrainingSessionRow[]; readyPlans: TrainingSessionRow[]; archivedPlans: TrainingSessionRow[]; deletingSessionId: string | null; onDelete: (session: TrainingSessionRow) => void }): React.ReactElement {
-  return <div className="space-y-5"><div className="grid gap-5 xl:grid-cols-2"><PlanSection title="Fertige Pläne" description="Sofort für einen Trainingstermin verwendbar" rows={readyPlans} empty="Noch keine fertigen Pläne vorhanden." deletingSessionId={deletingSessionId} onDelete={onDelete} /><PlanSection title="Entwürfe ohne Termin" description="Noch nicht fertiggestellte Trainingseinheiten" rows={drafts} empty="Keine offenen Entwürfe vorhanden." deletingSessionId={deletingSessionId} onDelete={onDelete} /></div><details className="rounded-2xl border border-slate-200 bg-white shadow-sm"><summary className="cursor-pointer list-none px-4 py-4 text-[14px] font-semibold text-slate-800">Archiv ({archivedPlans.length}) <span className="ml-1 text-[12px] font-normal text-slate-500">– alte oder ersetzte Pläne</span></summary><div className="border-t border-slate-100 p-4"><PlanSection title="Archivierte Pläne" description="Ausgeblendete Pläne können geöffnet und wiederhergestellt werden" rows={archivedPlans} empty="Das Archiv ist leer." deletingSessionId={deletingSessionId} onDelete={onDelete} /></div></details></div>;
+  return <div className="space-y-5"><div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2"><PlanSection title="Fertige Pläne" description="Sofort für einen Trainingstermin verwendbar" rows={readyPlans} empty="Noch keine fertigen Pläne vorhanden." deletingSessionId={deletingSessionId} onDelete={onDelete} /><PlanSection title="Entwürfe ohne Termin" description="Noch nicht fertiggestellte Trainingseinheiten" rows={drafts} empty="Keine offenen Entwürfe vorhanden." deletingSessionId={deletingSessionId} onDelete={onDelete} /></div><details className="rounded-2xl border border-slate-200 bg-white shadow-sm"><summary className="cursor-pointer list-none px-4 py-4 text-[14px] font-semibold text-slate-800">Archiv ({archivedPlans.length}) <span className="ml-1 text-[12px] font-normal text-slate-500">– alte oder ersetzte Pläne</span></summary><div className="border-t border-slate-100 p-4"><PlanSection title="Archivierte Pläne" description="Ausgeblendete Pläne können geöffnet und wiederhergestellt werden" rows={archivedPlans} empty="Das Archiv ist leer." deletingSessionId={deletingSessionId} onDelete={onDelete} /></div></details></div>;
 }
 
 function PlanSection({ title, description, rows, empty, deletingSessionId, onDelete }: { title: string; description: string; rows: TrainingSessionRow[]; empty: string; deletingSessionId: string | null; onDelete: (session: TrainingSessionRow) => void }): React.ReactElement {
-  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h2 className="text-[17px] font-bold text-slate-950">{title}</h2><p className="mt-0.5 text-[12px] text-slate-500">{description}</p>{rows.length === 0 ? <p className="mt-4 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-[13px] text-slate-500">{empty}</p> : <ul className="mt-4 space-y-2">{rows.map((session) => <li key={session.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-3"><div className="min-w-0"><p className="truncate text-[14px] font-semibold text-slate-950">{session.title}</p><p className="text-[12px] text-slate-500">{TRAINING_SESSION_STATUS_LABELS[session.status]}{session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}</p></div><div className="flex shrink-0 items-center gap-2"><Link to={`/manager/training/einheiten/${encodeURIComponent(session.id)}`} className="rounded-lg border border-slate-200 px-3 py-2 text-[12px] font-semibold text-slate-800 hover:bg-slate-50">Öffnen</Link><button type="button" disabled={deletingSessionId === session.id} onClick={() => onDelete(session)} className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" aria-hidden />{deletingSessionId === session.id ? 'Löschen…' : 'Löschen'}</button></div></li>)}</ul>}</section>;
+  return (
+    <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="text-[17px] font-bold text-slate-950">{title}</h2>
+      <p className="mt-0.5 break-words text-[12px] text-slate-500">{description}</p>
+      {rows.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-[13px] text-slate-500">{empty}</p>
+      ) : (
+        <ul className="mt-4 min-w-0 space-y-2">
+          {rows.map((session) => {
+            const href = `/manager/training/einheiten/${encodeURIComponent(session.id)}`;
+            return (
+              <li key={session.id} className="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <Link to={href} className="block min-h-[44px] min-w-0 flex-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
+                  <p className="break-words text-[14px] font-semibold text-slate-950 [overflow-wrap:anywhere]">{session.title}</p>
+                  <p className="text-[12px] text-slate-500">{TRAINING_SESSION_STATUS_LABELS[session.status]}{session.planned_duration_minutes != null ? ` · ${session.planned_duration_minutes} Min.` : ''}</p>
+                </Link>
+                <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">
+                  <Link to={href} className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-[12px] font-semibold text-slate-800 hover:bg-slate-50 sm:flex-none">Öffnen</Link>
+                  <button type="button" disabled={deletingSessionId === session.id} onClick={() => onDelete(session)} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />{deletingSessionId === session.id ? 'Löschen…' : 'Löschen'}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
 }
 
 function EmptyState(): React.ReactElement {
