@@ -244,15 +244,16 @@ export function ManagerOefbImportPage(): React.ReactElement {
     if (!seasonId || !canPreview) return;
     const url = importUrl.trim();
     if (!url) {
-      setError('Bitte die ÖFB-Spielplan-URL der Mannschaft eintragen.');
+      setError('Bitte einen ÖFB-Bewerbslink oder eine Mannschafts-Spielplan-URL eintragen.');
       setInfo(null);
       setPreviewRows([]);
       setPreviewFixtures([]);
       setConfirmed(false);
       return;
     }
-    if (!oefbTeamName.trim()) {
-      setError('Bitte den Mannschaftsnamen laut ÖFB-Spielplan eingeben, damit Heim und Auswärts richtig erkannt werden.');
+    const selectedTeamName = oefbTeamName.trim() || tableTeamName.trim() || meta?.teamName?.trim() || '';
+    if (!selectedTeamName) {
+      setError('Bitte den Mannschaftsnamen laut ÖFB eingeben, damit Heim und Auswärts richtig erkannt werden.');
       return;
     }
     setPreviewBusy(true);
@@ -264,7 +265,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
 
     const fetched = await fetchOefbScheduleFixtures({
       url,
-      ourTeamHints: [oefbTeamName.trim()],
+      ourTeamHints: [selectedTeamName],
     });
     if (fetched.error) {
       setPreviewBusy(false);
@@ -362,7 +363,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
             ← Saison &amp; Meisterschaft
           </Link>
           <h1 className="mt-2 text-[22px] font-semibold tracking-tight text-slate-900">
-            ÖFB-Spielplan importieren
+            ÖFB-Daten importieren
           </h1>
           <p className="mt-1 max-w-3xl text-[14px] text-slate-600">
             Vorschau vor dem Schreiben. Dubletten werden saisonbezogen über die ÖFB-ID erkannt.
