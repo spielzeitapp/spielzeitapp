@@ -164,8 +164,13 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     <button ref={triggerRef} type="button" onClick={toggleOpen}
       aria-label="Favoriten und Mannschaften wählen" aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
       className={['focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))] flex min-h-[48px] w-full min-w-0 items-center justify-between gap-3 bg-transparent px-2 py-1.5 text-left text-white/95', compact ? 'md:min-w-[210px]' : '', className].filter(Boolean).join(' ')}>
-      <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-bold sm:text-sm">{triggerLabel}</span><span className="mt-0.5 block text-[11px] font-medium text-white/50">{triggerSubtitle}</span></span>
-      <ChevronDown className={`h-4 w-4 shrink-0 text-white/55 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+      <span className="flex min-w-0 flex-1 items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[rgb(var(--club-border-rgb)/0.35)] bg-[rgb(var(--club-primary-rgb)/0.2)]">
+          <Star className="h-[18px] w-[18px] text-[rgb(var(--club-accent-rgb))]" aria-hidden />
+        </span>
+        <span className="truncate text-[14px] font-bold sm:text-[15px]">Meine Favoriten</span>
+      </span>
+      <ChevronDown className={`h-5 w-5 shrink-0 text-[rgb(var(--club-accent-rgb))] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
     </button>
     {open && typeof document !== 'undefined' ? createPortal(
       <div className="fixed inset-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" role="presentation">
