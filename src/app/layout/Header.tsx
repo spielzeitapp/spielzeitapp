@@ -1,12 +1,14 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import { Bell, MoreHorizontal } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
+import { useCompetition } from '../components/CompetitionContext';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { TeamSwitcher } from '../components/TeamSwitcher';
-import { isStagingApp } from '../../lib/appEnvironment';
+import { TestEnvironmentNotice } from '../../components/TestEnvironmentNotice';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
 import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
@@ -16,20 +18,12 @@ import { LiveMusicDock } from '../../components/live/LiveMusicDock';
 
 function AppHeaderBrand({ compactDemo = false }: { compactDemo?: boolean }) {
   return (
-    <span className="app-header-brand inline-flex min-w-0 shrink-0 items-center gap-1.5">
+    <span className="app-header-brand inline-flex min-w-0 shrink-0 items-center gap-1.5 max-[359px]:gap-0.5">
       <SpielzeitAppBrand
-        className="min-w-0 max-w-[10.75rem] sm:max-w-[12rem]"
-        iconClassName="h-11 w-11 max-[359px]:h-9 max-[359px]:w-9 sm:h-12 sm:w-12"
-        wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] sm:w-[9.1rem]' : 'w-[7.8rem] max-[359px]:w-[7rem] sm:w-[9.1rem]'}
+        className="min-w-0 max-w-[10.75rem] max-[359px]:max-w-[2.25rem] sm:max-w-[12rem]"
+        iconClassName={compactDemo ? 'h-11 w-11 max-[399px]:h-9 max-[399px]:w-9 sm:h-12 sm:w-12' : 'h-11 w-11 sm:h-12 sm:w-12'}
+        wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] max-[359px]:hidden sm:w-[9.1rem]' : 'w-[7.8rem] max-[359px]:hidden sm:w-[9.1rem]'}
       />
-      {isStagingApp() ? (
-        <span
-          className="shrink-0 rounded border border-amber-400/45 bg-amber-950/55 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-100"
-          title="Testumgebung — nicht die Live-App"
-        >
-          TEST
-        </span>
-      ) : null}
     </span>
   );
 }
@@ -79,6 +73,7 @@ export const Header: React.FC = () => {
       else root.style.removeProperty('--app-header-offset');
     };
   }, []);
+
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const demo = useDemoMode();
@@ -92,6 +87,8 @@ export const Header: React.FC = () => {
     teamSeasons,
   } = useSession();
   const { user, loading: authLoading } = useAuth();
+  const { settings: competitionSettings } = useCompetition();
+  const unreadCount = useUnreadCount(user?.id);
   const publicView = isPublicRoute(pathname);
   const isRoleChoice = pathname === '/app/role-choice';
   const roleLabel =
@@ -150,17 +147,18 @@ export const Header: React.FC = () => {
 
   return (
     <header ref={headerRef} className="app-header fixed left-0 top-0 w-full border-b border-transparent bg-[rgba(6,6,8,0.88)] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65),inset_0_-1px_0_rgba(255,30,30,0.05)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[rgba(6,6,8,0.72)]">
+      <TestEnvironmentNotice />
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[radial-gradient(ellipse_70%_100%_at_18%_0%,rgba(255,30,30,0.07),transparent_68%)]"
         aria-hidden
       />
       <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl flex-wrap items-center justify-between gap-x-1 gap-y-1 md:flex-nowrap px-2 py-0.5 sm:gap-2 sm:px-3 md:px-8 md:py-1">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home bzw. /demo/home) */}
-        <div className="order-1 flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+        <div className="order-1 flex min-w-0 flex-1 items-center gap-2 overflow-hidden max-[359px]:flex-none max-[359px]:gap-1 sm:gap-2.5">
           {pathname.startsWith('/app') || isDemo ? (
             <Link
               to={isDemo ? '/demo/home' : '/app/home'}
-              className="inline-flex min-w-0 items-center gap-1.5"
+              className="inline-flex min-w-0 items-center gap-1.5 overflow-hidden max-[359px]:gap-0.5"
             >
               <AppHeaderBrand compactDemo={isDemo} />
               {isDemo ? <DemoBadge /> : null}
@@ -187,7 +185,7 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {!publicView && !isDemo && (teamSeasons?.length ?? 0) > 0 ? (
+        {!publicView && !isDemo && (teamSeasons?.length ?? 0) > 0 && !['/app/home', '/app', '/app/termine', '/app/team', '/app/live', '/app/tabelle'].includes(pathname) ? (
           <div className="order-3 flex w-full min-w-0 basis-full justify-start border-t border-white/5 px-1 py-0.5 md:order-2 md:w-auto md:basis-auto md:justify-center md:border-0 md:py-0">
             <TeamSwitcher compact />
           </div>
@@ -263,6 +261,7 @@ export const Header: React.FC = () => {
                   )}
                   {authLoading || !user ? null : pathname.startsWith('/app') ? (
                     <>
+                      {(teamSeasons?.length ?? 0) > 0 ? <TeamSwitcher iconOnly /> : null}
                       {canAccessManager(backendRole, memberships ?? []) ? (
                         <Link
                           to="/manager"
@@ -287,6 +286,12 @@ export const Header: React.FC = () => {
                         <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
                       </Link>
                     </>
+                  ) : null}
+                  {!isDemo && competitionSettings && pathname.startsWith('/app') ? (
+                    <Link to="/app/mehr" className={`${dsGlassIconButtonClass()} relative`} aria-label={unreadCount > 0 ? `Mehr · ${unreadCount} ungelesene Nachrichten` : 'Mehr'} title="Mehr – Einstellungen und weitere Bereiche">
+                      <MoreHorizontal className="h-[1.1rem] w-[1.1rem]" aria-hidden />
+                      {unreadCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
+                    </Link>
                   ) : null}
                   {authLoading || !user ? null : (
                     <div className="flex flex-col items-end gap-0.5">
