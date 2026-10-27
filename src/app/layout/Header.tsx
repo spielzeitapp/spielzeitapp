@@ -261,6 +261,7 @@ export const Header: React.FC = () => {
                   )}
                   {authLoading || !user ? null : pathname.startsWith('/app') ? (
                     <>
+                      {(teamSeasons?.length ?? 0) > 0 ? <TeamSwitcher iconOnly /> : null}
                       {canAccessManager(backendRole, memberships ?? []) ? (
                         <Link
                           to="/manager"
