@@ -1,3 +1,4 @@
+import { TeamSwitcher } from '../app/components/TeamSwitcher';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "../auth/useSession";
@@ -1188,9 +1189,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       {activeTab === "squad" ? (
       <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
         <div className="flex items-center justify-between gap-2 px-3 sm:px-0">
-          <SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
-            Unser Team
-          </SectionTitle>
+          <div className="flex min-w-0 items-center gap-2"><div className="min-w-0 flex-1"><SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">Unser Team</SectionTitle></div><TeamSwitcher iconOnly /></div>
           <div className="flex items-center gap-2">
             {!plLoading && canManagePlayers ? (
               <select
