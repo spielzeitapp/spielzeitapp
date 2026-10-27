@@ -1,8 +1,13 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useSession } from "../auth/useSession";
-
-export type ClubThemeKey = "black-red" | "blue-yellow" | "green-white" | "black-white";
+import {
+  getClubBrandingForTeamSeason,
+  hexToRgbChannels,
+  readableAccentOnDark,
+  readableTextColor,
+  type ClubBranding,
+} from "../lib/clubBranding";
 
 type ClubPalette = {
   primary: string;
@@ -10,78 +15,69 @@ type ClubPalette = {
   border: string;
   secondary: string;
   onPrimary: string;
+  onAccent: string;
 };
 
-const CLUB_PALETTES: Record<ClubThemeKey, ClubPalette> = {
-  "black-red": {
+const DEFAULT_PALETTE: ClubPalette = {
     primary: "122 29 42",
     accent: "255 64 80",
     border: "255 64 80",
     secondary: "255 255 255",
     onPrimary: "#ffffff",
-  },
-  "blue-yellow": {
-    primary: "22 87 168",
-    accent: "250 204 21",
-    border: "37 125 255",
-    secondary: "255 255 255",
-    onPrimary: "#ffffff",
-  },
-  "green-white": {
-    primary: "22 130 74",
-    accent: "236 253 245",
-    border: "34 197 94",
-    secondary: "255 255 255",
-    onPrimary: "#ffffff",
-  },
-  "black-white": {
-    primary: "82 82 91",
-    accent: "244 244 245",
-    border: "212 212 216",
-    secondary: "255 255 255",
-    onPrimary: "#ffffff",
-  },
+    onAccent: "#ffffff",
 };
-
-function isClubThemeKey(value: string | null): value is ClubThemeKey {
-  return value === "black-red" || value === "blue-yellow" || value === "green-white" || value === "black-white";
-}
-
-/**
- * Test-Override: `?clubTheme=blue-yellow|green-white|black-white|black-red`.
- * Bekannte Mannschaften erhalten ansonsten automatisch ihr Farbpaar.
- */
-export function resolveClubThemeKey(teamName: string, search: string): ClubThemeKey {
-  const params = new URLSearchParams(search);
-  const requested = params.get("clubTheme");
-  if (isClubThemeKey(requested)) return requested;
-
-  const normalized = `${teamName} ${params.get("club") ?? ""}`.trim().toLocaleLowerCase("de-AT");
-  if (/melk|blau.?gelb/.test(normalized)) return "blue-yellow";
-  if (/grün.?weiß|gruen.?weiss/.test(normalized)) return "green-white";
-  if (/usc\s+.*rohrbach|schwarz.?weiß|schwarz.?weiss/.test(normalized)) return "black-white";
-  return "black-red";
-}
 
 export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const location = useLocation();
-  const { selectedTeamSeason, viewTeamSeason } = useSession();
-  const teamName = (viewTeamSeason ?? selectedTeamSeason)?.team?.name ?? "";
-  const themeKey = useMemo(
-    () => resolveClubThemeKey(teamName, location.search),
-    [location.search, teamName],
-  );
+  const { selectedTeamSeason, viewTeamSeason, teamViewFilter, filteredTeamSeasonIds } = useSession();
+  // A combined view can contain different clubs: never color it using only the
+  // previously selected club. Single-team views use that team's actual branding.
+  const combinedView = teamViewFilter !== null && filteredTeamSeasonIds.length > 1;
+  const activeTeamSeason = viewTeamSeason ?? selectedTeamSeason;
+  const teamSeasonId = combinedView ? null : activeTeamSeason?.id ?? null;
+  const [loaded, setLoaded] = useState<{ teamSeasonId: string; branding: ClubBranding | null } | null>(null);
+  // Do not show the previous club's colors while the next club is loading.
+  const storedBranding = !combinedView && !location.pathname.startsWith('/demo') && loaded?.teamSeasonId === teamSeasonId
+    ? loaded.branding : null;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!teamSeasonId || combinedView || location.pathname.startsWith('/demo')) {
+      return () => { cancelled = true; };
+    }
+    void getClubBrandingForTeamSeason(teamSeasonId).then((result) => {
+      if (cancelled) return;
+      if (result.error) console.warn('[ClubThemeProvider] branding could not be loaded:', result.error);
+      setLoaded({ teamSeasonId, branding: result.data });
+    });
+    return () => { cancelled = true; };
+  }, [location.pathname, teamSeasonId, combinedView]);
 
   useEffect(() => {
     const root = document.documentElement;
-    const palette = CLUB_PALETTES[themeKey];
-    root.dataset.clubTheme = themeKey;
+    const fallback = DEFAULT_PALETTE;
+    const primaryHex = storedBranding?.primary_color;
+    const accentHex = storedBranding?.accent_color;
+    const secondaryHex = storedBranding?.secondary_color;
+    const palette: ClubPalette = primaryHex || accentHex || secondaryHex
+      ? {
+          primary: primaryHex ? hexToRgbChannels(primaryHex) : fallback.primary,
+          accent: accentHex ? hexToRgbChannels(accentHex) : fallback.accent,
+          border: accentHex ? hexToRgbChannels(accentHex) : fallback.border,
+          secondary: hexToRgbChannels(secondaryHex ?? '#FFFFFF'),
+          onPrimary: primaryHex ? readableTextColor(primaryHex) : fallback.onPrimary,
+          onAccent: accentHex ? readableTextColor(accentHex) : fallback.onAccent,
+        }
+      : fallback;
+    root.dataset.clubTheme = primaryHex || accentHex || secondaryHex ? 'custom' : 'black-red';
     root.style.setProperty("--club-primary-rgb", palette.primary);
     root.style.setProperty("--club-accent-rgb", palette.accent);
     root.style.setProperty("--club-border-rgb", palette.border);
     root.style.setProperty("--club-secondary-rgb", palette.secondary);
     root.style.setProperty("--club-on-primary", palette.onPrimary);
-  }, [themeKey]);
+    root.style.setProperty("--club-on-accent", palette.onAccent);
+    root.style.setProperty("--club-accent-text-rgb", readableAccentOnDark(accentHex ?? '#FF4050'));
+  }, [storedBranding]);
 
   return (
     <>

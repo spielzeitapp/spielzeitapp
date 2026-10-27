@@ -210,8 +210,30 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const filteredTeamSeasonIds = useMemo(() => {
     return resolveTeamViewSeasonIds(teamSeasons, teamViewFilter, viewTeamSeasonId ?? selectedTeamSeasonId);
   }, [teamSeasons, teamViewFilter, viewTeamSeasonId, selectedTeamSeasonId]);
+  const restoredTeamViewForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!authUser?.id || teamSeasons.length === 0 || restoredTeamViewForRef.current === authUser.id) return;
+    restoredTeamViewForRef.current = authUser.id;
+    try {
+      const raw = window.localStorage.getItem('spz_team_view_' + authUser.id);
+      if (!raw) return;
+      const stored: unknown = JSON.parse(raw);
+      const active = new Set(teamSeasons.filter(ts => ts.status === 'active').map(ts => ts.id));
+      if (stored === 'all') setTeamViewFilterState('all');
+      else if (Array.isArray(stored)) {
+        const ids = stored.filter((id): id is string => typeof id === 'string' && active.has(id));
+        if (ids.length > 1) setTeamViewFilterState(ids);
+      }
+    } catch { /* Ignore invalid stored preferences. */ }
+  }, [authUser?.id, teamSeasons]);
   const setTeamViewFilter = (filter: 'all' | string[] | null) => {
     setTeamViewFilterState(filter);
+    if (!authUser?.id) return;
+    try {
+      const key = 'spz_team_view_' + authUser.id;
+      if (filter === null) window.localStorage.removeItem(key);
+      else window.localStorage.setItem(key, JSON.stringify(filter));
+    } catch { /* Storage may be unavailable in private browsing. */ }
   };
   const [membershipLoading, setMembershipLoading] = useState(false);
   const [memberships, setMemberships] = useState<MembershipWithJoin[]>([]);
