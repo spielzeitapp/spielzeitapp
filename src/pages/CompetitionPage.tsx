@@ -1,3 +1,4 @@
+import { TeamSwitcher } from '../app/components/TeamSwitcher';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCompetition } from '../app/components/CompetitionContext';
@@ -9,7 +10,7 @@ export const CompetitionPage: React.FC = () => {
   const { settings, loading, error, options, selectedSeasonId, selectSeason } = useCompetition();
   const [view, setView] = useState<'table' | 'results'>('table');
   return <PageShell>
-    <SectionTitle>Tabelle & Liga</SectionTitle>
+    <div className="flex items-center justify-between gap-2"><SectionTitle>Tabelle & Liga</SectionTitle><TeamSwitcher iconOnly /></div>
     {loading ? <p role="status" className="text-sm text-white/60">Lade Tabellenzuordnung…</p> : null}
     {error ? <p role="alert" className="text-sm text-amber-200">{error}</p> : null}
     {options.length > 1 ? <label className="mb-4 block text-xs font-semibold text-white/65">Mannschaft mit Tabelle
