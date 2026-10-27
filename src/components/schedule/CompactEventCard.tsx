@@ -276,7 +276,7 @@ export function CompactEventCard({
             ) : et === 'game' ? (
               <div className="min-w-0 flex-1">
                 <p
-                  className="min-w-0 line-clamp-2 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
+                  className="min-w-0 line-clamp-2 text-[18px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
                   lang="de"
                 >
                   {oppName}
@@ -587,7 +587,7 @@ export function CompactEventCard({
   return (
     <div
       className={[
-        `relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 ${listGridCols} items-center gap-x-0 overflow-x-hidden px-2.5 py-1.5 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
+        `relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 ${listGridCols} items-center gap-x-0 overflow-x-hidden px-2.5 ${et === 'game' ? 'min-h-[155px] py-3' : 'py-1.5'} sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
         clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
