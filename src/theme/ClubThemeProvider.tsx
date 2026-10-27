@@ -29,17 +29,20 @@ const DEFAULT_PALETTE: ClubPalette = {
 
 export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const location = useLocation();
-  const { selectedTeamSeason, viewTeamSeason } = useSession();
+  const { selectedTeamSeason, viewTeamSeason, teamViewFilter, filteredTeamSeasonIds } = useSession();
+  // A combined view can contain different clubs: never color it using only the
+  // previously selected club. Single-team views use that team's actual branding.
+  const combinedView = teamViewFilter !== null && filteredTeamSeasonIds.length > 1;
   const activeTeamSeason = viewTeamSeason ?? selectedTeamSeason;
-  const teamSeasonId = activeTeamSeason?.id ?? null;
+  const teamSeasonId = combinedView ? null : activeTeamSeason?.id ?? null;
   const [loaded, setLoaded] = useState<{ teamSeasonId: string; branding: ClubBranding | null } | null>(null);
   // Do not show the previous club's colors while the next club is loading.
-  const storedBranding = !location.pathname.startsWith('/demo') && loaded?.teamSeasonId === teamSeasonId
+  const storedBranding = !combinedView && !location.pathname.startsWith('/demo') && loaded?.teamSeasonId === teamSeasonId
     ? loaded.branding : null;
 
   useEffect(() => {
     let cancelled = false;
-    if (!teamSeasonId || location.pathname.startsWith('/demo')) {
+    if (!teamSeasonId || combinedView || location.pathname.startsWith('/demo')) {
       return () => { cancelled = true; };
     }
     void getClubBrandingForTeamSeason(teamSeasonId).then((result) => {
@@ -48,7 +51,7 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children 
       setLoaded({ teamSeasonId, branding: result.data });
     });
     return () => { cancelled = true; };
-  }, [location.pathname, teamSeasonId]);
+  }, [location.pathname, teamSeasonId, combinedView]);
 
   useEffect(() => {
     const root = document.documentElement;
