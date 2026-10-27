@@ -1,4 +1,3 @@
-import { TeamSwitcher } from '../app/components/TeamSwitcher';
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { CalendarDays, CalendarPlus, ClipboardList, Pencil, Radio, Trash2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -1539,7 +1538,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                   <h1 className={dsPageTitleClass()}>
                     {eventKind === 'match' ? 'Spiele' : eventKind === 'tournament' ? 'Turniere' : normalizedUiRole === 'fan' && !managerSimpleMode ? 'Spielplan' : 'Termine'}
                   </h1>
-                  <TeamSwitcher iconOnly />
+                  
                   {canMutateSchedule ? (
                     <button
                       type="button"
