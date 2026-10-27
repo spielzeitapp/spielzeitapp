@@ -135,7 +135,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         {text}
         <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)}
           aria-label={compactLabel(ts)}
-          className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--club-primary,#ef4444)]" />
+          className="h-6 w-6 shrink-0 cursor-pointer rounded-md accent-red-500" />
       </label>
     ) : (
       <button key={ts.id} type="button" onClick={() => selectSingle(ts)} className={rowClass} aria-pressed={checked}>
@@ -155,7 +155,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     {open && typeof document !== 'undefined' ? createPortal(
       <div className="fixed inset-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" role="presentation">
       <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Mannschaft & Saison"
-        className="sz-club-surface flex max-h-[min(82dvh,44rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[#0d0b0d] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]">
+        className="sz-club-surface flex max-h-[min(82dvh,44rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#1c1016,#0d0b0d_60%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]">
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-3 pt-1">
           <h2 className="text-lg font-bold text-white">Mannschaft & Saison</h2>
@@ -165,8 +165,8 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         {multipleAvailable ? <>
           <button type="button" onClick={() => { setTeamViewFilter('all'); setOpen(false); triggerRef.current?.focus(); }}
             aria-pressed={teamViewFilter === 'all'}
-            className={`mb-1 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold ${teamViewFilter === 'all' ? 'bg-[rgb(var(--club-primary-rgb)/0.2)]' : 'hover:bg-white/[0.06]'}`}>
-            Alle Mannschaften{teamViewFilter === 'all' ? <Check className="sz-club-accent-text h-5 w-5" aria-hidden /> : null}
+            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${teamViewFilter === 'all' ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
+            <span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({currentSeasons.length})</span></span>{teamViewFilter === 'all' ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
           </button>
           <p className="px-3 py-2 text-[11px] text-white/45">Alle aktuellen Mannschaften gemeinsam oder einzeln anzeigen.</p>
         </> : null}
