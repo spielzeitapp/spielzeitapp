@@ -1,4 +1,3 @@
-import { TeamSwitcher } from '../../app/components/TeamSwitcher';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
@@ -48,7 +47,7 @@ export function LivePageHeader({
   subtitle?: string;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-2"><SectionTitle subtitle={subtitle} className="min-w-0 flex-1 px-1 [&>h1]:mb-0 [&>h1]:text-[1.75rem] [&>h1]:font-black [&>h1]:leading-none [&>h1]:tracking-tight [&>h1]:normal-case [&>p]:mt-1 [&>p]:text-[13px] [&>p]:font-medium [&>p]:leading-snug [&>p]:text-white/48">{title}</SectionTitle><TeamSwitcher iconOnly /></div>
+    <div className="mb-4 flex items-start justify-between gap-2"><SectionTitle subtitle={subtitle} className="min-w-0 flex-1 px-1 [&>h1]:mb-0 [&>h1]:text-[1.75rem] [&>h1]:font-black [&>h1]:leading-none [&>h1]:tracking-tight [&>h1]:normal-case [&>p]:mt-1 [&>p]:text-[13px] [&>p]:font-medium [&>p]:leading-snug [&>p]:text-white/48">{title}</SectionTitle></div>
   );
 }
 
