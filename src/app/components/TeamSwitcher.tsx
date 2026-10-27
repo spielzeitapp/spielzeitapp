@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Plus, Star, ExternalLink, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, Plus, Star, ExternalLink, Trash2, Search } from 'lucide-react';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -37,6 +37,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   } = useSession();
   const overview = pathname === '/app' || pathname === '/app/home' || pathname === '/app/termine' || pathname === '/app/tabelle';
   const [open, setOpen] = React.useState(false);
+  const [teamSearch, setTeamSearch] = React.useState('');
   const [externalFavorites, setExternalFavorites] = React.useState<Array<{ name: string; url: string }>>([]);
   const [addingFavorite, setAddingFavorite] = React.useState(false);
   const [favoriteName, setFavoriteName] = React.useState('');
@@ -147,6 +148,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     }
   };
 
+  const searchedCurrentSeasons = currentSeasons.filter(ts => !teamSearch.trim() || compactLabel(ts).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de')));
   const toggleOpen = () => {
     setOpen((value) => !value);
   };
@@ -179,22 +181,27 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
 
   return <>
     <button ref={triggerRef} type="button" onClick={toggleOpen}
-      aria-label="Mannschaft & Saison wählen" aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
+      aria-label="Favoriten und Mannschaften wählen" aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
       className={['focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))] flex min-h-[48px] w-full min-w-0 items-center justify-between gap-3 bg-transparent px-2 py-1.5 text-left text-white/95', compact ? 'md:min-w-[210px]' : '', className].filter(Boolean).join(' ')}>
       <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-bold sm:text-sm">{triggerLabel}</span><span className="mt-0.5 block text-[11px] font-medium text-white/50">{triggerSubtitle}</span></span>
       <ChevronDown className={`h-4 w-4 shrink-0 text-white/55 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
     </button>
     {open && typeof document !== 'undefined' ? createPortal(
       <div className="fixed inset-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" role="presentation">
-      <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Mannschaft & Saison"
+      <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Favoriten und Mannschaften"
         className="sz-club-surface flex max-h-[min(82dvh,44rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#1c1016,#0d0b0d_60%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]">
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-3 pt-1">
-          <h2 className="text-lg font-bold text-white">Mannschaft & Saison</h2>
+          <h2 className="text-lg font-bold text-white">Meine Favoriten</h2>
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="sz-club-accent-text min-h-[44px] px-2 text-sm font-bold">Fertig</button>
         </div>
         <div className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
-        {multipleAvailable ? <>
+        <label className="relative mb-3 block">
+          <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-red-400" aria-hidden />
+          <input type="search" value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Mannschaft suchen, z. B. Melk" aria-label="Mannschaft suchen"
+            className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
+        </label>
+        {multipleAvailable && !teamSearch.trim() ? <>
           <button type="button" onClick={() => { setTeamViewFilter('all'); setOpen(false); triggerRef.current?.focus(); }}
             aria-pressed={teamViewFilter === 'all'}
             className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${teamViewFilter === 'all' ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
@@ -203,21 +210,22 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
           <p className="px-3 py-2 text-[11px] text-white/45">Alle aktuellen Mannschaften gemeinsam oder einzeln anzeigen.</p>
         </> : null}
         {[
-          { label: 'Aktuelle Mannschaften', rows: currentSeasons },
+          { label: 'Meine Mannschaften & Favoriten', rows: searchedCurrentSeasons },
         ].map(({ label, rows }) => rows.length ? <section key={label}>
           <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
           {rows.map((ts) => renderSeason(ts, multipleAvailable))}
         </section> : null)}
-        {otherSeasons.length ? <section className="mt-2 border-t border-white/10 pt-2">
+        {searchedCurrentSeasons.length === 0 && teamSearch.trim() ? <p className="px-3 py-2 text-sm text-white/60">Keine passende SpielzeitApp-Mannschaft gefunden. Für weitere ÖFB-Vereine kannst du unten einen Link speichern.</p> : null}
+        {otherSeasons.length && !teamSearch.trim() ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Archiv & Vorbereitung · einzeln anzeigen</p>
           {otherSeasons.map((ts) => renderSeason(ts, false))}
         </section> : null}
         <section className="mt-3 border-t border-white/10 pt-3">
           <div className="flex items-center justify-between px-3 pb-2">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">Fremde Mannschaften · Favoriten</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">Weitere Vereinsfavoriten</p>
             <Star className="h-4 w-4 text-amber-400" aria-hidden />
           </div>
-          <p className="px-3 pb-2 text-[12px] leading-snug text-white/55">ÖFB-Mannschaften anderer Vereine als Lesezeichen speichern. Öffnet den öffentlichen ÖFB-Spielplan, ohne interne SpielzeitApp-Daten freizugeben.</p>
+          <p className="px-3 pb-2 text-[12px] leading-snug text-white/55">ÖFB-Mannschaften, etwa aus Melk, als Favoriten speichern. Öffnet das öffentliche ÖFB-Profil.</p>
           {externalFavorites.map(item => <div key={item.url} className="mb-2 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
             <Star className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
             <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex min-h-[44px] min-w-0 flex-1 items-center gap-2 text-[14px] font-semibold text-white">
@@ -238,13 +246,10 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
               <button type="button" onClick={() => { setAddingFavorite(false); setFavoriteError(''); }} className="min-h-[44px] rounded-lg border border-white/20 px-3 text-sm text-white">Abbrechen</button>
             </div>
           </div> : <button type="button" onClick={() => setAddingFavorite(true)} className="flex min-h-[48px] w-full items-center gap-2 rounded-xl border border-dashed border-red-500/40 px-3 text-left text-sm font-semibold text-red-200">
-            <Plus className="h-4 w-4" /> Fremde Mannschaft hinzufügen
+            <Plus className="h-4 w-4" /> Verein über ÖFB-Link hinzufügen
           </button>}
         </section>
-        <button type="button" onClick={() => { setOpen(false); navigate('/app/fan-onboarding'); }}
-          className="mt-2 flex min-h-[48px] w-full items-center gap-2 border-t border-white/10 px-3 py-3 text-left text-sm font-bold text-white/85">
-          <Plus className="h-4 w-4 shrink-0" aria-hidden />Favoriten verwalten
-        </button>
+
         </div>
       </div>
       </div>, document.body,
