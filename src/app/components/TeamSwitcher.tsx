@@ -138,23 +138,24 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
 
   const renderSeason = (ts: SessionTeamSeasonItem, checkboxes: boolean) => {
     const checked = filtered ? filteredTeamSeasonIds.includes(ts.id) : ts.id === value;
-    const rowClass = `mb-1 flex min-h-[64px] w-full items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left text-[14px] font-bold leading-snug transition-colors ${checked ? 'bg-[rgb(var(--club-primary-rgb)/0.2)] border-[rgb(var(--club-border-rgb)/0.5)] text-white' : 'border-white/10 text-white/85 hover:bg-white/[0.06]'}`;
+    const rowClass = `mb-3 flex min-h-[104px] w-full items-center justify-between gap-3 rounded-2xl border-2 px-4 py-4 text-left text-[16px] font-bold leading-snug transition-colors ${checked ? 'border-[rgb(var(--club-border-rgb)/0.7)] bg-[rgb(var(--club-primary-rgb)/0.22)] text-white' : 'border-white/10 bg-white/[0.035] text-white/90 hover:bg-white/[0.08]'}`;
     const text = <span className="min-w-0 flex-1">
-      <span className="block [overflow-wrap:anywhere]">{formatTeamSeasonContextLabel({ displayName: ts.display_name, ageGroup: ts.age_group, teamName: ts.team?.name, seasonName: ts.season?.name }, { includeSeason: false })}</span>
-      <span className="mt-1 block text-[12px] font-medium text-white/55">{seasonLabel(ts)}</span>
+      <span className="block [overflow-wrap:anywhere]">{ts.team?.name || ts.display_name || 'Mannschaft'}{ts.age_group ? ` · ${ts.age_group}` : ''}</span>
+      <span className="mt-1 block text-[14px] font-medium text-white/75">{ts.season?.name ?? ''}</span>
+      <span className="mt-1 block text-[12px] font-medium text-white/55">{isSeasonActive(ts.status) ? 'Aktuelle Mannschaft' : ts.status === 'draft' ? 'In Vorbereitung' : 'Archiv'}</span>
     </span>;
     return checkboxes ? (
       <label key={ts.id} className={rowClass}>
-        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-9 w-9 shrink-0 object-contain" />
+        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
         {text}
         <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)}
           aria-label={compactLabel(ts)}
-          className="h-6 w-6 shrink-0 cursor-pointer rounded-md accent-red-500" />
+          className="h-7 w-7 shrink-0 cursor-pointer rounded-full accent-red-600" />
       </label>
     ) : (
       <button key={ts.id} type="button" onClick={() => selectSingle(ts)} className={rowClass} aria-pressed={checked}>
-        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-9 w-9 shrink-0 object-contain" />
-        {text}{checked ? <Check className="sz-club-accent-text h-5 w-5 shrink-0" aria-hidden /> : null}
+        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
+        {text}<span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-red-500 bg-red-700' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
       </button>
     );
   };
@@ -169,10 +170,10 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     {open && typeof document !== 'undefined' ? createPortal(
       <div className="fixed inset-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" role="presentation">
       <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Favoriten und Mannschaften"
-        className="sz-club-surface flex max-h-[min(82dvh,44rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#1c1016,#0d0b0d_60%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]">
+        className="sz-club-surface flex max-h-[min(88dvh,48rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#1c1016,#0d0b0d_60%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]">
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-3 pt-1">
-          <h2 className="text-lg font-bold text-white">Meine Favoriten</h2>
+          <h2 className="text-xl font-extrabold text-white">Favoriten verwalten</h2>
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="sz-club-accent-text min-h-[44px] px-2 text-sm font-bold">Fertig</button>
         </div>
         <div className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
@@ -187,7 +188,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
             className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${teamViewFilter === 'all' ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
             <span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({currentSeasons.length})</span></span>{teamViewFilter === 'all' ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
           </button>
-          <p className="px-3 py-2 text-[11px] text-white/45">Alle aktuellen Mannschaften gemeinsam oder einzeln anzeigen.</p>
+          <p className="px-3 py-2 text-[12px] text-white/60">Wähle deine Mannschaften aus. Die Auswahl bleibt gespeichert.</p>
         </> : null}
         {[
           { label: 'Meine Mannschaften & Favoriten', rows: searchedCurrentSeasons },
