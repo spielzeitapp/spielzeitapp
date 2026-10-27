@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Plus } from 'lucide-react';
+import { Check, ChevronDown, Plus, Star, ExternalLink, Trash2 } from 'lucide-react';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -31,12 +31,44 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const {
-    teamSeasons, selectedTeamSeasonId, setSelectedTeamSeasonId,
+    user, teamSeasons, selectedTeamSeasonId, setSelectedTeamSeasonId,
     viewTeamSeasonId, setViewTeamSeasonId,
     teamViewFilter, setTeamViewFilter, filteredTeamSeasonIds,
   } = useSession();
   const overview = pathname === '/app' || pathname === '/app/home' || pathname === '/app/termine' || pathname === '/app/tabelle';
   const [open, setOpen] = React.useState(false);
+  const [externalFavorites, setExternalFavorites] = React.useState<Array<{ name: string; url: string }>>([]);
+  const [addingFavorite, setAddingFavorite] = React.useState(false);
+  const [favoriteName, setFavoriteName] = React.useState('');
+  const [favoriteUrl, setFavoriteUrl] = React.useState('');
+  const [favoriteError, setFavoriteError] = React.useState('');
+  const favoriteStorageKey = user?.id ? `spz_external_oefb_favorites_${user.id}` : null;
+  React.useEffect(() => {
+    setExternalFavorites([]);
+    if (!favoriteStorageKey) return;
+    try {
+      const parsed: unknown = JSON.parse(window.localStorage.getItem(favoriteStorageKey) || '[]');
+      if (Array.isArray(parsed)) setExternalFavorites(parsed.filter((v): v is { name: string; url: string } =>
+        !!v && typeof v.name === 'string' && typeof v.url === 'string' && /^https:\/\/(?:www\.)?(?:oefb\.at|vereine\.oefb\.at)\//i.test(v.url)
+      ).slice(0, 30));
+    } catch { /* Invalid old preference: ignore. */ }
+  }, [favoriteStorageKey]);
+  const saveFavorites = (next: Array<{ name: string; url: string }>) => {
+    setExternalFavorites(next);
+    if (favoriteStorageKey) try { window.localStorage.setItem(favoriteStorageKey, JSON.stringify(next)); } catch { /* storage disabled */ }
+  };
+  const addExternalFavorite = () => {
+    const name = favoriteName.trim();
+    let url: URL;
+    try { url = new URL(favoriteUrl.trim()); } catch { setFavoriteError('Bitte einen vollständigen ÖFB-Link eingeben.'); return; }
+    if (!name || url.protocol !== 'https:' || !['oefb.at', 'www.oefb.at', 'vereine.oefb.at'].includes(url.hostname.toLowerCase())) {
+      setFavoriteError('Bitte Mannschaftsname und offiziellen HTTPS-ÖFB-Link angeben.');
+      return;
+    }
+    if (externalFavorites.some(item => item.url === url.href)) { setFavoriteError('Diese Mannschaft ist bereits gespeichert.'); return; }
+    saveFavorites([...externalFavorites, { name, url: url.href }]);
+    setFavoriteName(''); setFavoriteUrl(''); setFavoriteError(''); setAddingFavorite(false);
+  };
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const panelId = React.useId();
@@ -180,6 +212,35 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
           <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Archiv & Vorbereitung · einzeln anzeigen</p>
           {otherSeasons.map((ts) => renderSeason(ts, false))}
         </section> : null}
+        <section className="mt-3 border-t border-white/10 pt-3">
+          <div className="flex items-center justify-between px-3 pb-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">Fremde Mannschaften · Favoriten</p>
+            <Star className="h-4 w-4 text-amber-400" aria-hidden />
+          </div>
+          <p className="px-3 pb-2 text-[12px] leading-snug text-white/55">ÖFB-Mannschaften anderer Vereine als Lesezeichen speichern. Öffnet den öffentlichen ÖFB-Spielplan, ohne interne SpielzeitApp-Daten freizugeben.</p>
+          {externalFavorites.map(item => <div key={item.url} className="mb-2 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+            <Star className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
+            <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex min-h-[44px] min-w-0 flex-1 items-center gap-2 text-[14px] font-semibold text-white">
+              <span className="min-w-0 flex-1 break-words">{item.name}</span><ExternalLink className="h-4 w-4 shrink-0 text-white/60" aria-hidden />
+            </a>
+            <button type="button" onClick={() => saveFavorites(externalFavorites.filter(f => f.url !== item.url))} aria-label={`${item.name} aus Favoriten entfernen`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white/60 hover:bg-red-950/40"><Trash2 className="h-4 w-4" /></button>
+          </div>)}
+          {addingFavorite ? <div className="space-y-2 rounded-xl border border-red-500/30 bg-red-950/15 p-3">
+            <label className="block text-xs font-semibold text-white/75">Mannschaft / Verein
+              <input value={favoriteName} onChange={e => setFavoriteName(e.target.value)} placeholder="z. B. ASK Loosdorf · Kampfmannschaft" maxLength={100} className="mt-1 min-h-[44px] w-full rounded-lg border border-white/20 bg-black/40 px-3 text-sm text-white" />
+            </label>
+            <label className="block text-xs font-semibold text-white/75">ÖFB-Spielplan- oder Mannschaftslink
+              <input type="url" value={favoriteUrl} onChange={e => setFavoriteUrl(e.target.value)} placeholder="https://vereine.oefb.at/..." className="mt-1 min-h-[44px] w-full rounded-lg border border-white/20 bg-black/40 px-3 text-sm text-white" />
+            </label>
+            {favoriteError ? <p role="alert" className="text-xs text-red-300">{favoriteError}</p> : null}
+            <div className="flex gap-2">
+              <button type="button" onClick={addExternalFavorite} className="min-h-[44px] flex-1 rounded-lg bg-red-700 px-3 text-sm font-bold text-white">Favorit speichern</button>
+              <button type="button" onClick={() => { setAddingFavorite(false); setFavoriteError(''); }} className="min-h-[44px] rounded-lg border border-white/20 px-3 text-sm text-white">Abbrechen</button>
+            </div>
+          </div> : <button type="button" onClick={() => setAddingFavorite(true)} className="flex min-h-[48px] w-full items-center gap-2 rounded-xl border border-dashed border-red-500/40 px-3 text-left text-sm font-semibold text-red-200">
+            <Plus className="h-4 w-4" /> Fremde Mannschaft hinzufügen
+          </button>}
+        </section>
         <button type="button" onClick={() => { setOpen(false); navigate('/app/fan-onboarding'); }}
           className="mt-2 flex min-h-[48px] w-full items-center gap-2 border-t border-white/10 px-3 py-3 text-left text-sm font-bold text-white/85">
           <Plus className="h-4 w-4 shrink-0" aria-hidden />Favoriten verwalten
