@@ -166,7 +166,7 @@ export function PastMatchResultCard({
       <div
         data-manager-schedule-card
         className={[
-          `group relative mb-2 -mx-1 flex min-h-[174px] w-[calc(100%+0.5rem)] min-w-0 items-stretch gap-2.5 overflow-hidden px-2 py-2 outline-none transition sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
+          `group relative mb-2 -mx-1 flex min-h-[152px] w-[calc(100%+0.5rem)] min-w-0 items-center gap-2 overflow-hidden px-2 py-2 outline-none transition sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -183,7 +183,7 @@ export function PastMatchResultCard({
             : undefined
         }
       >
-        <div className="flex w-[70px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
+        <div className="flex w-[68px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
           {showTeamBadge && ageGroup ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{ageGroup}</span> : null}
           <span className="sz-club-accent-text text-[12px] font-semibold uppercase leading-none tracking-widest">{weekdayBadge}</span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{dayBig}</span>
@@ -191,23 +191,23 @@ export function PastMatchResultCard({
           {yearSmall ? <span className="text-[10px] font-medium leading-tight text-white/40">{yearSmall}</span> : null}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-center pr-[1.5rem]">
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
+        <div className="flex min-w-0 flex-1 flex-col justify-center pr-3">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(74px,0.85fr)_minmax(0,1fr)] items-center gap-1">
             <div className="flex min-w-0 flex-col items-center text-center">
-              <img src={homeLogoSrc} alt="" className="h-14 w-14 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
-              <span className="mt-1 line-clamp-2 text-[13px] font-semibold leading-tight text-white/88">
+              <img src={homeLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <span className="mt-1 line-clamp-2 min-h-[32px] text-[13px] font-semibold leading-tight text-white/88">
                 <PosterClubName name={homeName} />
               </span>
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#D17A86]">Endstand</span>
-              <span className="mt-0.5 whitespace-nowrap text-[34px] font-extrabold tabular-nums leading-none text-white">{scoreStr}</span>
+              <span className="mt-0.5 whitespace-nowrap text-[32px] font-extrabold tabular-nums leading-none text-white">{scoreStr}</span>
               {periodBracketLine ? (
                 <span className="mt-0.5 whitespace-nowrap text-[10px] font-medium tabular-nums text-white/42">{periodBracketLine}</span>
               ) : null}
             </div>
             <div className="flex min-w-0 flex-col items-center text-center">
-              <img src={awayLogoSrc} alt="" className="h-14 w-14 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <img src={awayLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
               <span className="mt-1 line-clamp-2 text-[13px] font-semibold leading-tight text-white/88">
                 <PosterClubName name={awayName} />
               </span>
@@ -218,7 +218,7 @@ export function PastMatchResultCard({
           </div>
         </div>
 
-        {clickable ? <ChevronRight className="absolute bottom-4 right-3 h-5 w-5 text-white/30" strokeWidth={2} aria-hidden /> : null}
+        {clickable ? <ChevronRight className="absolute bottom-3 right-1 h-4 w-4 text-white/30" strokeWidth={2} aria-hidden /> : null}
       </div>
     );
   }
