@@ -158,9 +158,11 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   return <>
     <button ref={triggerRef} type="button" onClick={toggleOpen}
       aria-label="Favoriten und Mannschaften wählen" title="Meine Favoriten" aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
-      className={[iconOnly ? 'h-11 w-11 !min-h-[44px] !flex-none rounded-full border border-white/15 bg-white/[0.05] !px-0 justify-center' : '', 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))] flex min-h-[48px] w-full min-w-0 items-center justify-between gap-3 bg-transparent px-2 py-1.5 text-left text-white/95', compact ? 'md:min-w-[210px]' : '', className].filter(Boolean).join(' ')}>
+      className={iconOnly
+        ? ['inline-flex !h-11 !w-11 !min-h-11 !min-w-11 !max-w-11 !flex-none !shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] !p-0 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500', className].filter(Boolean).join(' ')
+        : ['flex min-h-[48px] w-full min-w-0 items-center justify-between gap-3 bg-transparent px-2 py-1.5 text-left text-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))]', compact ? 'md:min-w-[210px]' : '', className].filter(Boolean).join(' ')}>
       <span className={iconOnly ? 'flex items-center justify-center' : 'flex min-w-0 flex-1 items-center gap-2.5'}>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[rgb(var(--club-border-rgb)/0.35)] bg-[rgb(var(--club-primary-rgb)/0.2)]">
+        <span className={iconOnly ? 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[rgb(var(--club-border-rgb)/0.35)] bg-[rgb(var(--club-primary-rgb)/0.2)]'}>
           <Star className="h-[18px] w-[18px] text-[rgb(var(--club-accent-rgb))]" aria-hidden />
         </span>
         {!iconOnly ? <span className="truncate text-[14px] font-bold sm:text-[15px]">Meine Favoriten</span> : null}
