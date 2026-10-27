@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Loader2, Radio } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, Radio, Search } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from '../app/components/ui/Button';
 import { dsPrimaryCtaClass } from '../lib/premiumDesignSystem';
@@ -41,6 +41,7 @@ function buildTeamSeasonParts(row: {
 export const FanOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
+  const [teamSearch, setTeamSearch] = useState('');
   const [teamSeasons, setTeamSeasons] = useState<TeamSeasonOption[]>([]);
   const [selectedTeamSeasonIds, setSelectedTeamSeasonIds] = useState<string[]>([]);
   const [lockedTeamSeasonIds, setLockedTeamSeasonIds] = useState<string[]>([]);
@@ -296,6 +297,13 @@ export const FanOnboardingPage: React.FC = () => {
         </header>
 
         <div className="mt-5 min-h-0 flex-1 space-y-3">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-red-400" aria-hidden />
+            <input type="search" value={teamSearch} onChange={e => setTeamSearch(e.target.value)}
+              placeholder="Verein oder Mannschaft suchen, z. B. Melk"
+              aria-label="Mannschaft suchen"
+              className="min-h-[52px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
+          </label>
           {error ? (
             <div
               className="rounded-2xl border border-red-500/30 bg-red-950/25 px-4 py-3 text-sm text-red-200"
@@ -325,7 +333,12 @@ export const FanOnboardingPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2.5" role="group" aria-label="Teams und Saisonen auswählen">
-              {teamSeasons.map((ts) => {
+              {teamSeasons.filter(ts => !teamSearch.trim() || (ts.label + ' ' + ts.teamTitle).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de'))).length === 0 ? (
+                <p className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">
+                  Keine passende Mannschaft in der SpielzeitApp gefunden. Melk kann hier ausgewählt werden, sobald der Verein eine Mannschaft in der App hat. Für öffentliche ÖFB-Mannschaften kannst du vorerst einen ÖFB-Link als Favorit speichern.
+                </p>
+              ) : null}
+              {teamSeasons.filter(ts => !teamSearch.trim() || (ts.label + ' ' + ts.teamTitle).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de'))).map((ts) => {
                 const selected = selectedTeamSeasonIds.includes(ts.id);
                 const locked = lockedTeamSeasonIds.includes(ts.id);
                 return (
