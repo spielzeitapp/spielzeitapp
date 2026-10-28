@@ -200,9 +200,16 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const fixtures = (extracted.spiele || [])
-      .map((s) => mapFixture(s, ourTeamHints))
-      .filter((f) => f.art === 'Liga' || f.art === 'Meisterschaft')
+    // Diagnose aller ÖFB-Spielarten, auch wenn der bestehende Import derzeit
+    // ausschließlich Meisterschaftsspiele sicher als 'league' speichern kann.
+    const mapped = (extracted.spiele || []).map((s) => mapFixture(s, ourTeamHints));
+    const typeCounts = mapped.reduce((acc, fixture) => {
+      const type = fixture.art || '(ohne Spielart)';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+    const fixtures = mapped
+      .filter((f) => /^(liga|meisterschaft)$/i.test(f.art))
       .filter((f) => f.external_id && f.starts_at && f.opponent);
 
     res.status(200).json({
@@ -212,6 +219,7 @@ module.exports = async function handler(req, res) {
         : null,
       count: fixtures.length,
       fixtures,
+      diagnostics: { totalSourceGames: mapped.length, gameTypes: typeCounts, missingRequiredFields: mapped.filter(f => !f.external_id || !f.starts_at || !f.opponent).length },
       sourceUrl: parsedUrl.toString(),
     });
   } catch (e) {
