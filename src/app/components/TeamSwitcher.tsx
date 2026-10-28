@@ -155,12 +155,17 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     }
   };
 
+  const searchTerm = teamSearch.trim().toLocaleLowerCase('de');
+  const visibleCurrentSeasons = currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id));
   const searchedCurrentSeasons = currentSeasons.filter(ts =>
-    (teamSearch.trim() || !hiddenTeamIds.includes(ts.id)) &&
-    (!teamSearch.trim() || compactLabel(ts).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de')))
+    (searchTerm.length > 0 || !hiddenTeamIds.includes(ts.id)) &&
+    (!searchTerm || compactLabel(ts).toLocaleLowerCase('de').includes(searchTerm))
+  );
+  const searchedOtherSeasons = otherSeasons.filter(ts =>
+    !searchTerm || compactLabel(ts).toLocaleLowerCase('de').includes(searchTerm)
   );
   const removeTeamFavorite = (id: string) => {
-    const visible = currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id));
+    const visible = visibleCurrentSeasons;
     if (visible.length <= 1) {
       window.alert('Mindestens eine Mannschaft muss in deinen Favoriten bleiben.');
       return;
@@ -168,7 +173,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     const nextVisible = visible.filter(ts => ts.id !== id);
     if (!persistHiddenTeamIds([...hiddenTeamIds, id])) return;
     if (filtered) {
-      const selected = teamViewFilter === 'all' ? currentSeasons.map(ts => ts.id) : filteredTeamSeasonIds;
+      const selected = teamViewFilter === 'all' ? visible.map(ts => ts.id) : filteredTeamSeasonIds;
       const next = selected.filter(sid => sid !== id && nextVisible.some(ts => ts.id === sid));
       if (next.length > 1) setTeamViewFilter(next);
       else if (next.length === 1) { setSelectedTeamSeasonId(next[0]); setTeamViewFilter(null); }
@@ -277,11 +282,11 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
           <input type="search" value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
             className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
         </label>
-        {multipleAvailable && !teamSearch.trim() ? <>
-          <button type="button" onClick={() => { setTeamViewFilter(currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id)).map(ts => ts.id)); setOpen(false); triggerRef.current?.focus(); }}
-            aria-pressed={teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)}
-            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)) ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
-            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-red-300" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({currentSeasons.length - hiddenTeamIds.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
+        {multipleAvailable && visibleCurrentSeasons.length > 1 && !searchTerm ? <>
+          <button type="button" onClick={() => { setTeamViewFilter(visibleCurrentSeasons.map(ts => ts.id)); setOpen(false); triggerRef.current?.focus(); }}
+            aria-pressed={teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)}
+            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
+            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-red-300" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({visibleCurrentSeasons.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
           </button>
 
         </> : null}
@@ -291,17 +296,17 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
           <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
           {rows.map((ts) => renderSeason(ts, multipleAvailable))}
         </section> : null)}
-        {searchedCurrentSeasons.length === 0 && teamSearch.trim() ? <p className="px-3 py-2 text-sm text-white/60">Keine passende Mannschaft vorhanden. Neue Vereine und Mannschaften werden durch die Vereinsverwaltung im Spielzeit Manager eingerichtet.</p> : null}
-        {otherSeasons.length && !teamSearch.trim() ? <section className="mt-2 border-t border-white/10 pt-2">
+        {searchTerm && searchedCurrentSeasons.length === 0 && searchedOtherSeasons.length === 0 && externalFavorites.every(item => !item.name.toLocaleLowerCase('de').includes(searchTerm)) ? <p className="px-3 py-2 text-sm text-white/60">Keine passende Mannschaft in deinen verfügbaren Teams und Favoriten. Die vereinsübergreifende Suche ist noch nicht eingerichtet.</p> : null}
+        {searchedOtherSeasons.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Archiv & Vorbereitung · einzeln anzeigen</p>
-          {otherSeasons.map((ts) => renderSeason(ts, false))}
+          {searchedOtherSeasons.map((ts) => renderSeason(ts, false))}
         </section> : null}
         {externalFavorites.length > 0 ? <section className="mt-3 border-t border-white/10 pt-3">
           <div className="flex items-center gap-2 px-3 pb-2">
             <Star className="h-4 w-4 text-amber-400" aria-hidden />
             <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">Weitere Favoriten</p>
           </div>
-          {externalFavorites.map(item => <div key={item.url} className="mb-2 rounded-xl border border-white/10 bg-white/[0.04]">
+          {externalFavorites.filter(item => !searchTerm || item.name.toLocaleLowerCase('de').includes(searchTerm)).map(item => <div key={item.url} className="mb-2 rounded-xl border border-white/10 bg-white/[0.04]">
             <div className="flex min-h-[52px] items-center gap-2 px-3 py-2">
               <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold text-white">
                 <Star className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
