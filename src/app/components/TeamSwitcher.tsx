@@ -157,7 +157,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
 
   const searchedCurrentSeasons = currentSeasons.filter(ts =>
     (teamSearch.trim() || !hiddenTeamIds.includes(ts.id)) &&
-    (!teamSearch.trim() || compactLabel(ts).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de'))
+    (!teamSearch.trim() || compactLabel(ts).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de')))
   );
   const removeTeamFavorite = (id: string) => {
     const visible = currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id));
