@@ -363,6 +363,40 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
   return (
     <div className="w-full max-w-none space-y-5">
+      {detail?.name.trim().toLocaleLowerCase('de') === 'sc melk' ? (
+        <section className="rounded-2xl border border-blue-200 bg-white p-4 shadow-sm" aria-label="Private SC Melk Pilotvorschau">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-900">TEST · NUR PLATTFORMADMIN · VORSCHAU</span>
+              <h2 className="mt-3 text-xl font-bold text-slate-900">SC Melk · U16 FR · 2026/27</h2>
+              <p className="mt-1 text-sm text-slate-600">Private, unveröffentlichte Designvorschau mit neutralen Demo-Spielerbildern. Keine echten Kaderfotos oder Spielernamen.</p>
+            </div>
+            <a href="https://vereine.oefb.at/ScMelk/Mannschaften/Saison-2026-27/U16-FR/Kader/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-blue-300 px-3 text-sm font-semibold text-blue-900">ÖFB-Kader ansehen ↗</a>
+          </div>
+          <div className="mt-4 overflow-hidden rounded-xl border border-blue-300 bg-[#091d4b]">
+            <div className="bg-[#164A9D] px-4 py-4 text-white">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-yellow-200">Pilotansicht · SC Melk</p>
+              <h3 className="mt-1 text-2xl font-black">UNSER TEAM</h3>
+              <p className="text-sm text-white/85">U16 FR · Saison 2026/27</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-4">
+              {[
+                '/avatars/demo/demo-player-upper-01.webp',
+                '/avatars/demo/demo-player-upper-02.webp',
+                '/avatars/demo/demo-player-upper-03.webp',
+                '/avatars/demo/demo-player-upper-04.webp',
+              ].map((src, index) => (
+                <div key={src} className="overflow-hidden rounded-xl border border-[#FFDA24]/50 bg-[#102c66]">
+                  <img src={src} alt={`Neutrales Demo-Spielerbild ${index + 1}`} loading="lazy" className="aspect-[4/5] w-full object-cover" />
+                  <div className="bg-[#FFDA24] px-2 py-2 text-center text-xs font-extrabold text-[#10285c]">DEMO {index + 1}</div>
+                </div>
+              ))}
+            </div>
+            <p className="px-4 pb-4 text-xs text-white/70">Beispielkarten · keine echten SC-Melk-Spielerinnen · keine Datenbankänderung oder Freigabe</p>
+          </div>
+          {detail.team_seasons.length === 0 ? <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Die Mannschaft U16 FR ist noch nicht gespeichert. Bitte unten zuerst Mannschaft und Saison 2026/27 anlegen.</p> : null}
+        </section>
+      ) : null}
       <div>
         <Link to="/manager/vereine" className="text-[13px] font-semibold text-red-700 hover:text-red-800">
           ← Zurück zur Übersicht
