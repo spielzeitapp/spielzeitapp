@@ -2,7 +2,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { notifyNotificationsReadChanged, INBOX_SYNC_EVENT } from '../../lib/notificationsReadState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, SlidersHorizontal } from 'lucide-react';
+import { Check, SlidersHorizontal, Star, ArrowUpRight } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEvents } from '../../hooks/useEvents';
@@ -593,8 +593,18 @@ export const HomePage: React.FC = () => {
             {showFavoritesHint ? (
               <div role="dialog" aria-label="Mannschaftsfavoriten" aria-modal="true" className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 px-5">
                 <div className="w-full max-w-sm rounded-2xl border border-red-500/40 bg-[#171015] p-5 shadow-2xl">
-                  <p className="text-xl font-extrabold text-white">Deine Mannschaften auf einen Blick</p>
-                  <p className="mt-3 text-sm leading-relaxed text-white/75">Du kannst mehrere Mannschaften gemeinsam oder einzeln anzeigen. Tippe dazu oben auf den Stern neben dem M und wähle deine Favoriten.</p>
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-red-500/40 bg-[#22151b]">
+                      <Star className="h-6 w-6 text-red-400" strokeWidth={2} aria-hidden />
+                    </span>
+                    <p className="text-xl font-extrabold leading-tight text-white">Deine Mannschaften auf einen Blick</p>
+                  </div>
+                  <p className="text-sm leading-relaxed text-white/75">Du kannst mehrere Mannschaften gemeinsam oder einzeln anzeigen. Wähle dazu deine Favoriten.</p>
+                  <div className="mt-4 flex items-center gap-3 rounded-xl border border-red-500/35 bg-black/30 px-3 py-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.06]"><Star className="h-5 w-5 text-red-400" aria-hidden /></span>
+                    <div className="min-w-0 flex-1"><p className="text-sm font-bold text-white">Favoriten öffnen</p><p className="text-xs text-white/60">Stern oben im Header, links neben dem roten M</p></div>
+                    <ArrowUpRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
+                  </div>
                   <button type="button" onClick={dismissFavoritesHint} className="mt-5 min-h-[48px] w-full rounded-xl bg-red-800 px-4 text-sm font-bold text-white">Verstanden</button>
                 </div>
               </div>
