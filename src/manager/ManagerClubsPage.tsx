@@ -156,6 +156,17 @@ export function ManagerClubsPage(): React.ReactElement {
           className="scroll-mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
         >
           <h2 className="text-[16px] font-semibold text-slate-900">Neuen Verein anlegen</h2>
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50/70 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[13px] font-bold text-slate-900">Pilotvorlage: SC Melk · U16 FR</p>
+                <p className="mt-1 text-[12px] text-slate-600">Saison 2026/27 · nur zur Vorbereitung · keine Einladungen oder privaten Kaderdaten</p>
+              </div>
+              <button type="button" onClick={() => { setName('SC Melk'); setShortName('SC Melk'); setBranding(DEFAULT_CLUB_BRANDING); setLogoFile(null); }} className="min-h-[44px] rounded-xl border border-red-300 bg-white px-3 text-[12px] font-bold text-red-800">Vorlage übernehmen</button>
+            </div>
+            <a href="https://vereine.oefb.at/ScMelk/Mannschaften/Saison-2026-27/U16-FR/Kader/" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[12px] font-semibold text-red-800 underline">ÖFB-Mannschaft ansehen</a>
+            <p className="mt-2 text-[12px] text-slate-600">Nach dem Anlegen die Mannschaft U16 FR und Saison 2026/27 im Vereinsdetail erstellen. Vereinsfarben und Logo erst nach Prüfung übernehmen. Keine ÖFB-Spielerfotos automatisch kopieren.</p>
+          </div>
           <p className="mt-1 text-[13px] text-slate-600">
             Es werden keine Mannschaften, Saisonen oder Anlagen automatisch erzeugt.
           </p>
