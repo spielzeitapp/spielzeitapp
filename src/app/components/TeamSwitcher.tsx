@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users } from 'lucide-react';
+import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users, MoreHorizontal, Trash2 } from 'lucide-react';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -40,6 +40,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const [open, setOpen] = React.useState(false);
   const [teamSearch, setTeamSearch] = React.useState('');
   const [externalFavorites, setExternalFavorites] = React.useState<Array<{ name: string; url: string }>>([]);
+  const [favoriteMenuUrl, setFavoriteMenuUrl] = React.useState<string | null>(null);
   const favoriteStorageKey = user?.id ? `spz_external_oefb_favorites_${user.id}` : null;
   React.useEffect(() => {
     setExternalFavorites([]);
@@ -51,6 +52,19 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       ).slice(0, 30));
     } catch { /* Invalid old preference: ignore. */ }
   }, [favoriteStorageKey]);
+  const removeExternalFavorite = (url: string) => {
+    const next = externalFavorites.filter(item => item.url !== url);
+    if (favoriteStorageKey) {
+      try {
+        window.localStorage.setItem(favoriteStorageKey, JSON.stringify(next));
+      } catch {
+        window.alert('Favorit konnte nicht gespeichert werden. Bitte Speicherzugriff prüfen.');
+        return;
+      }
+    }
+    setExternalFavorites(next);
+    setFavoriteMenuUrl(null);
+  };
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const panelId = React.useId();
@@ -213,12 +227,23 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
             <Star className="h-4 w-4 text-amber-400" aria-hidden />
             <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">Weitere Favoriten</p>
           </div>
-          {externalFavorites.map(item => <a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer"
-            className="mb-2 flex min-h-[52px] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white">
-            <Star className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
-            <span className="min-w-0 flex-1 break-words">{item.name}</span>
-            <ExternalLink className="h-4 w-4 shrink-0 text-white/60" aria-hidden />
-          </a>)}
+          {externalFavorites.map(item => <div key={item.url} className="mb-2 rounded-xl border border-white/10 bg-white/[0.04]">
+            <div className="flex min-h-[52px] items-center gap-2 px-3 py-2">
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold text-white">
+                <Star className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
+                <span className="min-w-0 flex-1 break-words">{item.name}</span>
+                <ExternalLink className="h-4 w-4 shrink-0 text-white/60" aria-hidden />
+              </a>
+              <button type="button" aria-label={`${item.name}: Optionen`} aria-expanded={favoriteMenuUrl === item.url} onClick={() => setFavoriteMenuUrl(current => current === item.url ? null : item.url)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/15 text-white/80">
+                <MoreHorizontal className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+            {favoriteMenuUrl === item.url ? <div className="border-t border-white/10 px-3 py-2">
+              <button type="button" onClick={() => removeExternalFavorite(item.url)} className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-semibold text-red-300 hover:bg-red-950/30">
+                <Trash2 className="h-4 w-4" aria-hidden /> Aus Favoriten entfernen
+              </button>
+            </div> : null}
+          </div>)}
         </section> : null}
 
 
