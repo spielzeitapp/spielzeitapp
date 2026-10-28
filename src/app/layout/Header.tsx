@@ -194,7 +194,7 @@ export const Header: React.FC = () => {
         {/* Rechts: Staff / Demo-Trainer-Chrome (gleiche Höhe wie App) */}
         {!publicView && (
           <div className="order-2 flex shrink-0 flex-col items-end justify-center gap-0.5 md:order-3">
-            <div className="app-header-actions flex items-center gap-1.5 sm:gap-2">
+            <div className="app-header-actions flex items-start gap-1.5 sm:gap-2">
               {isDemo ? (
                 <>
                   <button
@@ -219,7 +219,7 @@ export const Header: React.FC = () => {
                   >
                     <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
                   </Link>
-                  <div className="flex flex-col items-end gap-0.5">
+                  <div className="app-header-profile relative flex flex-col items-center gap-0.5">
                     <span
                       className={dsGlassIconButtonClass()}
                       aria-label="Profil (Demo)"
@@ -229,7 +229,7 @@ export const Header: React.FC = () => {
                         <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
-                    <span className={dsTrainerPillClass()} title="Trainer">
+                    <span className={`${dsTrainerPillClass()} app-header-role`} title="Trainer">
                       Trainer
                     </span>
                   </div>
@@ -282,9 +282,6 @@ export const Header: React.FC = () => {
                         </Link>
                       ) : null}
                       <LiveMusicDock showButton={pathname === '/app/live' || pathname.startsWith('/app/live/')} />
-                      <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
-                        <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
-                      </Link>
                     </>
                   ) : null}
                   {!isDemo && competitionSettings && pathname.startsWith('/app') ? (
@@ -293,8 +290,13 @@ export const Header: React.FC = () => {
                       {unreadCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
                     </Link>
                   ) : null}
+                  {!authLoading && user && pathname.startsWith('/app') ? (
+                    <Link to="/app/nachrichten" className={`${dsGlassIconButtonClass()} app-header-notifications`} aria-label="Nachrichten">
+                      <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
+                    </Link>
+                  ) : null}
                   {authLoading || !user ? null : (
-                    <div className="flex flex-col items-end gap-0.5">
+                    <div className="app-header-profile relative flex flex-col items-center gap-0.5">
                       <Link
                         to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
                         className={dsGlassIconButtonClass()}
@@ -305,7 +307,7 @@ export const Header: React.FC = () => {
                         </svg>
                       </Link>
                       {isStaff && staffBackendBadge ? (
-                        <span className={dsTrainerPillClass()} title={roleLabel ?? staffBackendBadge}>
+                        <span className={`${dsTrainerPillClass()} app-header-role`} title={roleLabel ?? staffBackendBadge}>
                           {roleLabel ?? staffBackendBadge}
                         </span>
                       ) : null}

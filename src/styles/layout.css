@@ -153,6 +153,40 @@ body {
   -webkit-transform: translateZ(0);
 }
 
+/* Header controls share one circle size; role labels do not shift the icon row. */
+.app-header-actions {
+  --header-circle-size: 40px;
+}
+.app-header .app-header-actions > a,
+.app-header .app-header-actions > button[aria-haspopup="dialog"],
+.app-header .app-header-actions > .app-header-profile > a,
+.app-header .app-header-actions > .app-header-profile > span:first-child {
+  width: var(--header-circle-size) !important;
+  height: var(--header-circle-size) !important;
+  min-width: var(--header-circle-size) !important;
+  min-height: var(--header-circle-size) !important;
+  max-width: var(--header-circle-size) !important;
+  flex-shrink: 0;
+}
+.app-header-actions:has(.app-header-role) {
+  padding-bottom: 24px;
+}
+.app-header-role {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  max-width: 6.5rem;
+}
+.app-header-notifications {
+  margin-left: 4px;
+}
+@media (max-width: 399px) {
+  .app-header-actions { --header-circle-size: 36px; }
+}
+@media (min-width: 640px) {
+  .app-header-actions { --header-circle-size: 44px; }
+}
+
 .page {
   width: 100%;
   max-width: 100%;
