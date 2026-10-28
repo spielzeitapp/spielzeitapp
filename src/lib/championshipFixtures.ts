@@ -166,10 +166,16 @@ export async function listChampionshipFixtures(
   return selectChampionshipRows(teamSeasonId);
 }
 
+export type OefbScheduleDiagnostics = {
+  totalSourceGames: number;
+  gameTypes: Record<string, number>;
+  missingRequiredFields: number;
+};
+
 export async function fetchOefbScheduleFixtures(opts: {
   url: string;
   ourTeamHints: string[];
-}): Promise<{ fixtures: OefbImportedFixture[]; error: string | null }> {
+}): Promise<{ fixtures: OefbImportedFixture[]; error: string | null; diagnostics?: OefbScheduleDiagnostics }> {
   const params = new URLSearchParams({
     url: opts.url,
     ourTeam: opts.ourTeamHints.join('|'),
@@ -179,12 +185,13 @@ export async function fetchOefbScheduleFixtures(opts: {
     ok?: boolean;
     error?: string;
     fixtures?: OefbImportedFixture[];
+    diagnostics?: OefbScheduleDiagnostics;
   };
   if (!res.ok || json.error) {
     return { fixtures: [], error: json.error ?? `HTTP ${res.status}` };
   }
   const fixtures = (json.fixtures ?? []).map((f) => normalizeOefbImportedFixture(f));
-  return { fixtures, error: null };
+  return { fixtures, error: null, diagnostics: json.diagnostics };
 }
 
 /** Gegnername (und damit sichtbare Spielbezeichnung) vor Preview/Upsert bereinigen. */
