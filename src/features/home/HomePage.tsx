@@ -170,6 +170,18 @@ export const HomePage: React.FC = () => {
   const events = isDemoMode ? demo!.data.events : liveEvents;
   const evLoading = isDemoMode ? false : evLoadingRaw;
   const { session } = useAuth();
+  const [showFavoritesHint, setShowFavoritesHint] = useState(false);
+  const favoritesHintKey = session?.user?.id ? `spz_favorites_intro_v1_${session.user.id}` : null;
+  useEffect(() => {
+    if (isDemoMode || sessionLoading || !favoritesHintKey || teamSeasons.filter(ts => ts.status === 'active').length < 2) return;
+    try {
+      if (!window.localStorage.getItem(favoritesHintKey)) setShowFavoritesHint(true);
+    } catch { /* No persistent storage available. */ }
+  }, [isDemoMode, sessionLoading, favoritesHintKey, teamSeasons]);
+  const dismissFavoritesHint = () => {
+    setShowFavoritesHint(false);
+    if (favoritesHintKey) try { window.localStorage.setItem(favoritesHintKey, '1'); } catch { /* Storage unavailable. */ }
+  };
   const homeLabelParts = useMemo(() => {
     if (isDemoMode) {
       return {
@@ -577,7 +589,16 @@ export const HomePage: React.FC = () => {
                 demoMode={isDemoMode}
               />
             ) : null}
-            {isMultiTeamView ? <p className="rounded-lg border border-white/10 px-3 py-2 text-[12px] text-white/60">Gemeinsamer Feed · zum Erstellen oder Bearbeiten eine einzelne Mannschaft wählen.</p> : null}
+
+            {showFavoritesHint ? (
+              <div role="dialog" aria-label="Mannschaftsfavoriten" aria-modal="true" className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 px-5">
+                <div className="w-full max-w-sm rounded-2xl border border-red-500/40 bg-[#171015] p-5 shadow-2xl">
+                  <p className="text-xl font-extrabold text-white">Deine Mannschaften auf einen Blick</p>
+                  <p className="mt-3 text-sm leading-relaxed text-white/75">Du kannst mehrere Mannschaften gemeinsam oder einzeln anzeigen. Tippe dazu oben auf den Stern neben dem M und wähle deine Favoriten.</p>
+                  <button type="button" onClick={dismissFavoritesHint} className="mt-5 min-h-[48px] w-full rounded-xl bg-red-800 px-4 text-sm font-bold text-white">Verstanden</button>
+                </div>
+              </div>
+            ) : null}
             {isHistoryReadOnly && !isMultiTeamView ? (
               <p className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100/95">
                 Archiv-Ansicht — Feed nur lesen. Aktive Saison bleibt zum Schreiben unverändert.
