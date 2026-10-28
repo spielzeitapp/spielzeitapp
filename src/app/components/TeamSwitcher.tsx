@@ -213,8 +213,14 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)}
           aria-label={compactLabel(ts)}
           className="h-7 w-7 shrink-0 cursor-pointer rounded-full accent-red-600" />
-        <button type="button" aria-label={`${compactLabel(ts)}: Optionen`} aria-expanded={favoriteMenuUrl === ts.id} onClick={() => setFavoriteMenuUrl(current => current === ts.id ? null : ts.id)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 text-white/70"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
-        {favoriteMenuUrl === ts.id ? <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="absolute right-4 mt-28 z-10 rounded-lg border border-red-500/40 bg-[#211016] px-3 py-2 text-xs font-bold text-red-200 shadow-xl">Aus Favoriten entfernen</button> : null}
+        <div className="relative shrink-0">
+          <button type="button" aria-label={`${compactLabel(ts)}: Optionen`} aria-expanded={favoriteMenuUrl === ts.id} onClick={() => setFavoriteMenuUrl(current => current === ts.id ? null : ts.id)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
+          {favoriteMenuUrl === ts.id ? (
+            <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
+              <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200 active:bg-red-900/40"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
+            </div>
+          ) : null}
+        </div>
       </div>
     ) : (
       <button key={ts.id} type="button" onClick={() => selectSingle(ts)} className={rowClass} aria-pressed={checked}>
