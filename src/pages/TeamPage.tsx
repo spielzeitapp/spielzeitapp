@@ -12,7 +12,7 @@ import {
   PremiumTabTrack,
   SectionTitle,
 } from "../ui";
-import { ArrowLeft, Camera } from "lucide-react";
+import { ArrowLeft, Camera, Archive, ChevronDown } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
@@ -179,6 +179,13 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const readTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionReadTeamSeasonId;
   const activeTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionActiveTeamSeasonId;
   const teamSeasons = isDemo ? [] : sessionTeamSeasons;
+  const [showSeasonArchive, setShowSeasonArchive] = useState(false);
+  const archivedTeamSeasons = useMemo(() => teamSeasons.filter((season) => season.status === "archived"), [teamSeasons]);
+  const openArchivedTeamSeason = (id: string) => {
+    if (!archivedTeamSeasons.some((season) => season.id === id)) return;
+    setViewTeamSeasonId(id);
+    setShowSeasonArchive(false);
+  };
   const role = isDemo ? "trainer" : sessionRole;
   const tsLoading = isDemo ? false : tsLoadingRaw;
   const tsError = isDemo ? null : tsErrorRaw;
@@ -1188,8 +1195,13 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       {activeTab === "squad" ? (
       <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
         <div className="flex items-center justify-between gap-2 px-3 sm:px-0">
-          <div className="flex min-w-0 items-center justify-between gap-2"><div className="min-w-0 flex-1"><SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">Unser Team</SectionTitle></div></div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2"><SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">Unser Team</SectionTitle></div>
+          <div className="flex shrink-0 items-center gap-2">
+            {!isDemo && archivedTeamSeasons.length > 0 ? (
+              <button type="button" aria-expanded={showSeasonArchive} aria-controls="team-season-archive" onClick={() => setShowSeasonArchive((open) => !open)} className="flex min-h-9 items-center gap-1 rounded-full border border-white/15 bg-white/[0.06] px-2 text-[11px] font-bold text-white/85" title="Vergangene Saisonen ansehen">
+                <Archive className="h-4 w-4 text-red-400" aria-hidden /><span>Archiv</span><ChevronDown className={`h-3.5 w-3.5 transition-transform ${showSeasonArchive ? "rotate-180" : ""}`} aria-hidden />
+              </button>
+            ) : null}
             {!plLoading && canManagePlayers ? (
               <select
                 value={squadFilter}
@@ -1213,6 +1225,18 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
             ) : null}
           </div>
         </div>
+        {showSeasonArchive && archivedTeamSeasons.length > 0 ? (
+          <div id="team-season-archive" className="mx-3 mt-3 rounded-xl border border-white/15 bg-black/40 p-3 sm:mx-0">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-white/65">Vergangene Saisonen · nur ansehen</p>
+            <div className="flex flex-wrap gap-2">
+              {archivedTeamSeasons.map((season) => (
+                <button key={season.id} type="button" onClick={() => openArchivedTeamSeason(season.id)} className="min-h-11 rounded-lg border border-red-500/35 bg-red-950/20 px-3 text-sm font-semibold text-white">
+                  {formatTeamSeasonCompactSwitcherLabel({ displayName: season.display_name, ageGroup: season.age_group, teamName: season.team?.name, seasonName: season.season?.name, status: season.status }, { markArchived: true })}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="mt-2">
           {teamSeasonId == null && !tsLoading && (
             <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="mt-3 py-6" />
