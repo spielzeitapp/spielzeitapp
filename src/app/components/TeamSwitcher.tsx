@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users, MoreHorizontal, Trash2 } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -12,6 +13,7 @@ import {
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 
+type DiscoverableTeam = { id: string; teamName: string; clubName: string; ageGroup: string; seasonName: string; clubLogo: string | null };
 function seasonLabel(ts: SessionTeamSeasonItem): string {
   return [ts.season?.name, isSeasonActive(ts.status) ? 'Aktuell' : ts.status === 'draft' ? 'In Vorbereitung' : 'Archiv'].filter(Boolean).join(' · ');
 }
@@ -40,8 +42,27 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const [open, setOpen] = React.useState(false);
   const [teamSearch, setTeamSearch] = React.useState('');
   const [externalFavorites, setExternalFavorites] = React.useState<Array<{ name: string; url: string }>>([]);
+  const [discoveredTeams, setDiscoveredTeams] = React.useState<DiscoverableTeam[]>([]);
+  const [savedDiscoverableIds, setSavedDiscoverableIds] = React.useState<string[]>([]);
+  const [discoveryBusy, setDiscoveryBusy] = React.useState(false);
+  const [discoveryError, setDiscoveryError] = React.useState<string | null>(null);
   const [favoriteMenuUrl, setFavoriteMenuUrl] = React.useState<string | null>(null);
   const [hiddenTeamIds, setHiddenTeamIds] = React.useState<string[]>([]);
+  const discoverStorageKey = user?.id ? `spz_discovered_team_favorites_${user.id}` : null;
+  React.useEffect(() => {
+    if (!discoverStorageKey) { setSavedDiscoverableIds([]); return; }
+    try {
+      const value = JSON.parse(window.localStorage.getItem(discoverStorageKey) || '[]');
+      setSavedDiscoverableIds(Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []);
+    } catch { setSavedDiscoverableIds([]); }
+  }, [discoverStorageKey]);
+  const toggleDiscoveredFavorite = (id: string) => {
+    const next = savedDiscoverableIds.includes(id) ? savedDiscoverableIds.filter(x => x !== id) : [...savedDiscoverableIds, id];
+    try {
+      if (discoverStorageKey) window.localStorage.setItem(discoverStorageKey, JSON.stringify(next));
+      setSavedDiscoverableIds(next);
+    } catch { window.alert('Favorit konnte nicht gespeichert werden.'); }
+  };
   const hiddenStorageKey = user?.id ? `spz_hidden_team_favorites_${user.id}` : null;
   React.useEffect(() => {
     setHiddenTeamIds([]);
@@ -156,6 +177,37 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   };
 
   const searchTerm = teamSearch.trim().toLocaleLowerCase('de');
+  React.useEffect(() => {
+    if (!open || !user) return;
+    let cancelled = false;
+    const load = async () => {
+      setDiscoveryBusy(true);
+      setDiscoveryError(null);
+      const { data, error } = await supabase
+        .from('team_seasons')
+        .select('id,age_group,status,teams!inner(id,name,clubs!inner(id,name,status,logo_url)),seasons(name)')
+        .eq('status', 'active')
+        .limit(300);
+      if (cancelled) return;
+      setDiscoveryBusy(false);
+      if (error) { setDiscoveryError('Vereinssuche derzeit nicht erreichbar.'); return; }
+      const rows: DiscoverableTeam[] = [];
+      for (const item of data || []) {
+        const team = Array.isArray(item.teams) ? item.teams[0] : item.teams;
+        const club = team && (Array.isArray(team.clubs) ? team.clubs[0] : team.clubs);
+        const season = Array.isArray(item.seasons) ? item.seasons[0] : item.seasons;
+        if (!team || !club || club.status !== 'active') continue;
+        rows.push({ id: item.id, teamName: team.name, clubName: club.name, ageGroup: item.age_group || '', seasonName: season?.name || '', clubLogo: club.logo_url || null });
+      }
+      setDiscoveredTeams(rows);
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [open, user?.id]);
+  const discoverMatches = discoveredTeams.filter(team =>
+    (searchTerm.length > 0 ? `${team.clubName} ${team.teamName} ${team.ageGroup} ${team.seasonName}`.toLocaleLowerCase('de').includes(searchTerm) : savedDiscoverableIds.includes(team.id)) &&
+    !teamSeasons.some(own => own.id === team.id)
+  );
   const visibleCurrentSeasons = currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id));
   const searchedCurrentSeasons = currentSeasons.filter(ts =>
     (searchTerm.length > 0 || !hiddenTeamIds.includes(ts.id)) &&
@@ -296,7 +348,21 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
           <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
           {rows.map((ts) => renderSeason(ts, multipleAvailable))}
         </section> : null)}
-        {searchTerm && searchedCurrentSeasons.length === 0 && searchedOtherSeasons.length === 0 && externalFavorites.every(item => !item.name.toLocaleLowerCase('de').includes(searchTerm)) ? <p className="px-3 py-2 text-sm text-white/60">Keine passende Mannschaft in deinen verfügbaren Teams und Favoriten. Die vereinsübergreifende Suche ist noch nicht eingerichtet.</p> : null}
+        {searchTerm && searchedCurrentSeasons.length === 0 && searchedOtherSeasons.length === 0 && discoverMatches.length === 0 && !discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Keine passende freigegebene Mannschaft gefunden.</p> : null}
+        {discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Vereine werden geladen …</p> : null}
+        {discoveryError ? <p role="alert" className="px-3 py-2 text-sm text-red-300">{discoveryError}</p> : null}
+        {discoverMatches.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
+          <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/55">{searchTerm ? 'Mannschaften anderer Vereine' : 'Weitere gespeicherte Favoriten'}</p>
+          {discoverMatches.slice(0, 30).map(team => <div key={team.id} className="mb-2 flex min-h-[78px] items-center gap-3 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2">
+            {team.clubLogo ? <img src={team.clubLogo} alt="" className="h-10 w-10 shrink-0 object-contain" /> : <Users className="h-8 w-8 shrink-0 text-white/60" aria-hidden />}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-white">{team.teamName}</p>
+              <p className="text-xs text-white/65">{team.clubName} · {team.ageGroup} · {team.seasonName}</p>
+              <p className="mt-1 text-[11px] text-white/45">Nur Favorit · keine Eltern- oder Trainerrechte</p>
+            </div>
+            <button type="button" onClick={() => toggleDiscoveredFavorite(team.id)} className="min-h-11 shrink-0 rounded-lg border border-yellow-400/45 px-3 text-xs font-bold text-yellow-200" aria-pressed={savedDiscoverableIds.includes(team.id)}>{savedDiscoverableIds.includes(team.id) ? 'Entfernen' : 'Hinzufügen'}</button>
+          </div>)}
+        </section> : null}
         {searchedOtherSeasons.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Archiv & Vorbereitung · einzeln anzeigen</p>
           {searchedOtherSeasons.map((ts) => renderSeason(ts, false))}
