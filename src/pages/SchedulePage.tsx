@@ -1563,7 +1563,6 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                   {forcePublicView || isDemo ? (
                     <p className={dsSublineClass()}>{teamSeasonSubtitle}</p>
                   ) : null}
-                  {isMultiTeamView ? <p className="text-[11px] text-white/50">Gemeinsame Übersicht · zum Bearbeiten eine einzelne Mannschaft wählen.</p> : null}
                   {isHistoryReadOnly ? (
                     <p className="text-[11px] text-amber-200/90">{softLockMessage}</p>
                   ) : null}
