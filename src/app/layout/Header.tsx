@@ -1,10 +1,11 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import { Bell, MoreHorizontal } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { TeamSwitcher } from '../components/TeamSwitcher';
 import { isStagingApp } from '../../lib/appEnvironment';
 import { useDemoMode } from '../../demo/DemoContext';
@@ -18,9 +19,9 @@ function AppHeaderBrand({ compactDemo = false }: { compactDemo?: boolean }) {
   return (
     <span className="app-header-brand inline-flex min-w-0 shrink-0 items-center gap-1.5">
       <SpielzeitAppBrand
-        className="min-w-0 max-w-[10.75rem] sm:max-w-[12rem]"
+        className="min-w-0 max-w-[10.75rem] max-[359px]:max-w-[2.25rem] sm:max-w-[12rem]"
         iconClassName="h-11 w-11 max-[359px]:h-9 max-[359px]:w-9 sm:h-12 sm:w-12"
-        wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] sm:w-[9.1rem]' : 'w-[7.8rem] max-[359px]:w-[7rem] sm:w-[9.1rem]'}
+        wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] max-[359px]:hidden sm:w-[9.1rem]' : 'w-[7.8rem] max-[359px]:hidden sm:w-[9.1rem]'}
       />
       {isStagingApp() ? (
         <span
@@ -92,6 +93,7 @@ export const Header: React.FC = () => {
     teamSeasons,
   } = useSession();
   const { user, loading: authLoading } = useAuth();
+  const unreadCount = useUnreadCount(user?.id);
   const publicView = isPublicRoute(pathname);
   const isRoleChoice = pathname === '/app/role-choice';
   const roleLabel =
@@ -156,7 +158,7 @@ export const Header: React.FC = () => {
       />
       <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl flex-wrap items-center justify-between gap-x-1 gap-y-1 md:flex-nowrap px-2 py-0.5 sm:gap-2 sm:px-3 md:px-8 md:py-1">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home bzw. /demo/home) */}
-        <div className="order-1 flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+        <div className="order-1 flex min-w-0 flex-1 items-center gap-2 overflow-hidden max-[359px]:flex-none sm:gap-2.5">
           {pathname.startsWith('/app') || isDemo ? (
             <Link
               to={isDemo ? '/demo/home' : '/app/home'}
@@ -190,7 +192,7 @@ export const Header: React.FC = () => {
         {/* Rechts: Staff / Demo-Trainer-Chrome (gleiche Höhe wie App) */}
         {!publicView && (
           <div className="order-2 flex shrink-0 flex-col items-end justify-center gap-0.5 md:order-3">
-            <div className="app-header-actions flex items-center gap-1.5 sm:gap-2">
+            <div className="app-header-actions flex items-start gap-1.5 sm:gap-2">
               {isDemo ? (
                 <>
                   <button
@@ -215,7 +217,7 @@ export const Header: React.FC = () => {
                   >
                     <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
                   </Link>
-                  <div className="flex flex-col items-end gap-0.5">
+                  <div className="app-header-profile relative flex flex-col items-center gap-0.5">
                     <span
                       className={dsGlassIconButtonClass()}
                       aria-label="Profil (Demo)"
@@ -225,7 +227,7 @@ export const Header: React.FC = () => {
                         <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
-                    <span className={dsTrainerPillClass()} title="Trainer">
+                    <span className={`${dsTrainerPillClass()} app-header-role`} title="Trainer">
                       Trainer
                     </span>
                   </div>
@@ -278,13 +280,21 @@ export const Header: React.FC = () => {
                         </Link>
                       ) : null}
                       <LiveMusicDock showButton={pathname === '/app/live' || pathname.startsWith('/app/live/')} />
-                      <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
-                        <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
-                      </Link>
                     </>
                   ) : null}
+                  {!authLoading && user && pathname.startsWith('/app') ? (
+                    <Link to="/app/mehr" className={`${dsGlassIconButtonClass()} relative`} aria-label={unreadCount > 0 ? `Mehr · ${unreadCount} ungelesene Nachrichten` : 'Mehr'} title="Mehr – Einstellungen und weitere Bereiche">
+                      <MoreHorizontal className="h-[1.1rem] w-[1.1rem]" aria-hidden />
+                      {unreadCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
+                    </Link>
+                  ) : null}
+                  {!authLoading && user && pathname.startsWith('/app') ? (
+                    <Link to="/app/nachrichten" className={`${dsGlassIconButtonClass()} app-header-notifications`} aria-label="Nachrichten">
+                      <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
+                    </Link>
+                  ) : null}
                   {authLoading || !user ? null : (
-                    <div className="flex flex-col items-end gap-0.5">
+                    <div className="app-header-profile relative flex flex-col items-center gap-0.5">
                       <Link
                         to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
                         className={dsGlassIconButtonClass()}
@@ -295,7 +305,7 @@ export const Header: React.FC = () => {
                         </svg>
                       </Link>
                       {isStaff && staffBackendBadge ? (
-                        <span className={dsTrainerPillClass()} title={roleLabel ?? staffBackendBadge}>
+                        <span className={`${dsTrainerPillClass()} app-header-role`} title={roleLabel ?? staffBackendBadge}>
                           {roleLabel ?? staffBackendBadge}
                         </span>
                       ) : null}
