@@ -274,7 +274,14 @@ export function ManagerOefbImportPage(): React.ReactElement {
     }
     if (fetched.fixtures.length === 0) {
       setPreviewBusy(false);
-      setInfo('Keine Ligaspiel-Termine im ÖFB-Spielplan gefunden.');
+      const diagnostic = fetched.diagnostics;
+      if (diagnostic?.totalSourceGames) {
+        const types = Object.entries(diagnostic.gameTypes)
+          .map(([type, count]) => `${type}: ${count}`).join(' · ');
+        setInfo(`ÖFB liefert ${diagnostic.totalSourceGames} Spiele (${types}). Davon aktuell keine sicher importierbaren Meisterschaftsspiele. ${diagnostic.missingRequiredFields} Spiele ohne erforderliche Angaben. Es wurde nichts gespeichert.`);
+      } else {
+        setInfo('Die ÖFB-Seite liefert derzeit keine erkennbaren Spiele. Bitte Mannschafts-URL und Saison kontrollieren.');
+      }
       return;
     }
 
@@ -291,7 +298,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     setPreviewFixtures(fetched.fixtures);
     setPreviewRows(preview.rows);
     setInfo(
-      `${preview.rows.length} Spiele erkannt · ${preview.counts.new} neu · ${preview.counts.existing} vorhanden · ${preview.counts.protected} mögliche Dubletten (übersprungen) · ${preview.counts.error} Fehler`,
+      `${preview.rows.length} Meisterschaftsspiele erkannt · ${preview.counts.new} neu · ${preview.counts.existing} vorhanden · ${preview.counts.protected} mögliche Dubletten (übersprungen) · ${preview.counts.error} Fehler`,
     );
   };
 
