@@ -1,11 +1,10 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, MoreHorizontal } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
-import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { TeamSwitcher } from '../components/TeamSwitcher';
 import { isStagingApp } from '../../lib/appEnvironment';
 import { useDemoMode } from '../../demo/DemoContext';
@@ -93,7 +92,6 @@ export const Header: React.FC = () => {
     teamSeasons,
   } = useSession();
   const { user, loading: authLoading } = useAuth();
-  const unreadCount = useUnreadCount(user?.id);
   const publicView = isPublicRoute(pathname);
   const isRoleChoice = pathname === '/app/role-choice';
   const roleLabel =
@@ -281,12 +279,6 @@ export const Header: React.FC = () => {
                       ) : null}
                       <LiveMusicDock showButton={pathname === '/app/live' || pathname.startsWith('/app/live/')} />
                     </>
-                  ) : null}
-                  {!authLoading && user && pathname.startsWith('/app') ? (
-                    <Link to="/app/mehr" className={`${dsGlassIconButtonClass()} relative`} aria-label={unreadCount > 0 ? `Mehr · ${unreadCount} ungelesene Nachrichten` : 'Mehr'} title="Mehr – Einstellungen und weitere Bereiche">
-                      <MoreHorizontal className="h-[1.1rem] w-[1.1rem]" aria-hidden />
-                      {unreadCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
-                    </Link>
                   ) : null}
                   {!authLoading && user && pathname.startsWith('/app') ? (
                     <Link to="/app/nachrichten" className={`${dsGlassIconButtonClass()} app-header-notifications`} aria-label="Nachrichten">
