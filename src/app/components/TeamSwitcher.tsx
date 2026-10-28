@@ -223,10 +223,23 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         </div>
       </div>
     ) : (
-      <button key={ts.id} type="button" onClick={() => selectSingle(ts)} className={rowClass} aria-pressed={checked}>
+      <div key={ts.id} className={rowClass}>
         <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
-        {text}<span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-red-500 bg-red-700' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
-      </button>
+        <button type="button" onClick={() => selectSingle(ts)} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-pressed={checked}>
+          {text}
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-red-500 bg-red-700' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
+        </button>
+        {isSeasonActive(ts.status) ? (
+          <div className="relative shrink-0">
+            <button type="button" aria-label={`${compactLabel(ts)}: Optionen`} aria-expanded={favoriteMenuUrl === ts.id} onClick={() => setFavoriteMenuUrl(current => current === ts.id ? null : ts.id)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
+            {favoriteMenuUrl === ts.id ? (
+              <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
+                <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200 active:bg-red-900/40"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     );
   };
 
@@ -261,7 +274,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         <div className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
         <label className="relative mb-3 block">
           <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-red-400" aria-hidden />
-          <input type="search" value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Mannschaft suchen, z. B. Melk" aria-label="Mannschaft suchen"
+          <input type="search" value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
             className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
         </label>
         {multipleAvailable && !teamSearch.trim() ? <>
