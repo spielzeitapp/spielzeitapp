@@ -373,13 +373,13 @@ export function ManagerClubDetailPage(): React.ReactElement {
             </div>
             <a href="https://vereine.oefb.at/ScMelk/Mannschaften/Saison-2026-27/U16-FR/Kader/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-blue-300 px-3 text-sm font-semibold text-blue-900">ÖFB-Kader ansehen ↗</a>
           </div>
-          <div className="mt-4 overflow-hidden rounded-xl border border-blue-300 bg-[#091d4b]">
+          <div className="mt-4 overflow-hidden rounded-xl border-2 border-[#FFDA24] bg-[#091d4b]">
             <div className="bg-[#164A9D] px-4 py-4 text-white">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-yellow-200">Pilotansicht · SC Melk</p>
-              <h3 className="mt-1 text-2xl font-black">UNSER TEAM</h3>
+              <h3 className="mt-1 text-2xl font-black text-[#FFDA24]">UNSER TEAM</h3>
               <p className="text-sm text-white/85">U16 FR · Saison 2026/27</p>
             </div>
-            <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 border-t-4 border-[#F5C400] p-3 sm:grid-cols-4">
               {[
                 '/avatars/demo/demo-player-upper-01.webp',
                 '/avatars/demo/demo-player-upper-02.webp',
