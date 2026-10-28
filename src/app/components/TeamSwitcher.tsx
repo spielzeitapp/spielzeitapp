@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users } from 'lucide-react';
+import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users, MoreHorizontal, Trash2 } from 'lucide-react';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -40,6 +40,25 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const [open, setOpen] = React.useState(false);
   const [teamSearch, setTeamSearch] = React.useState('');
   const [externalFavorites, setExternalFavorites] = React.useState<Array<{ name: string; url: string }>>([]);
+  const [favoriteMenuUrl, setFavoriteMenuUrl] = React.useState<string | null>(null);
+  const [hiddenTeamIds, setHiddenTeamIds] = React.useState<string[]>([]);
+  const hiddenStorageKey = user?.id ? `spz_hidden_team_favorites_${user.id}` : null;
+  React.useEffect(() => {
+    setHiddenTeamIds([]);
+    if (!hiddenStorageKey) return;
+    try {
+      const parsed: unknown = JSON.parse(window.localStorage.getItem(hiddenStorageKey) || '[]');
+      if (Array.isArray(parsed)) setHiddenTeamIds(parsed.filter((id): id is string => typeof id === 'string'));
+    } catch { /* Ignore invalid preference. */ }
+  }, [hiddenStorageKey]);
+  const persistHiddenTeamIds = (ids: string[]) => {
+    if (hiddenStorageKey) {
+      try { window.localStorage.setItem(hiddenStorageKey, JSON.stringify(ids)); }
+      catch { window.alert('Favoriten konnten nicht gespeichert werden.'); return false; }
+    }
+    setHiddenTeamIds(ids);
+    return true;
+  };
   const favoriteStorageKey = user?.id ? `spz_external_oefb_favorites_${user.id}` : null;
   React.useEffect(() => {
     setExternalFavorites([]);
@@ -51,6 +70,19 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       ).slice(0, 30));
     } catch { /* Invalid old preference: ignore. */ }
   }, [favoriteStorageKey]);
+  const removeExternalFavorite = (url: string) => {
+    const next = externalFavorites.filter(item => item.url !== url);
+    if (favoriteStorageKey) {
+      try {
+        window.localStorage.setItem(favoriteStorageKey, JSON.stringify(next));
+      } catch {
+        window.alert('Favorit konnte nicht gespeichert werden. Bitte Speicherzugriff prüfen.');
+        return;
+      }
+    }
+    setExternalFavorites(next);
+    setFavoriteMenuUrl(null);
+  };
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const panelId = React.useId();
@@ -123,8 +155,37 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     }
   };
 
-  const searchedCurrentSeasons = currentSeasons.filter(ts => !teamSearch.trim() || compactLabel(ts).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de')));
+  const searchedCurrentSeasons = currentSeasons.filter(ts =>
+    (teamSearch.trim() || !hiddenTeamIds.includes(ts.id)) &&
+    (!teamSearch.trim() || compactLabel(ts).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de')))
+  );
+  const removeTeamFavorite = (id: string) => {
+    const visible = currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id));
+    if (visible.length <= 1) {
+      window.alert('Mindestens eine Mannschaft muss in deinen Favoriten bleiben.');
+      return;
+    }
+    const nextVisible = visible.filter(ts => ts.id !== id);
+    if (!persistHiddenTeamIds([...hiddenTeamIds, id])) return;
+    if (filtered) {
+      const selected = teamViewFilter === 'all' ? currentSeasons.map(ts => ts.id) : filteredTeamSeasonIds;
+      const next = selected.filter(sid => sid !== id && nextVisible.some(ts => ts.id === sid));
+      if (next.length > 1) setTeamViewFilter(next);
+      else if (next.length === 1) { setSelectedTeamSeasonId(next[0]); setTeamViewFilter(null); }
+      else { setSelectedTeamSeasonId(nextVisible[0].id); setTeamViewFilter(null); }
+    } else if (value === id) {
+      setSelectedTeamSeasonId(nextVisible[0].id);
+      setTeamViewFilter(null);
+    }
+    setFavoriteMenuUrl(null);
+  };
+  const addTeamFavorite = (id: string) => {
+    if (!hiddenTeamIds.includes(id)) return;
+    persistHiddenTeamIds(hiddenTeamIds.filter(existing => existing !== id));
+  };
   const toggleOpen = () => {
+    setTeamSearch('');
+    setFavoriteMenuUrl(null);
     setOpen((value) => !value);
   };
 
@@ -133,20 +194,34 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
 
   const renderSeason = (ts: SessionTeamSeasonItem, checkboxes: boolean) => {
     const checked = filtered ? filteredTeamSeasonIds.includes(ts.id) : ts.id === value;
-    const rowClass = `mb-3 flex min-h-[104px] w-full items-center justify-between gap-3 rounded-2xl border-2 px-4 py-4 shadow-[0_4px_16px_rgba(0,0,0,0.16)] text-left text-[16px] font-bold leading-snug transition-colors ${checked ? 'border-[rgb(var(--club-border-rgb)/0.7)] bg-[rgb(var(--club-primary-rgb)/0.22)] text-white' : 'border-white/10 bg-white/[0.035] text-white/90 hover:bg-white/[0.08]'}`;
+    const rowClass = `relative mb-3 flex min-h-[104px] w-full items-center justify-between gap-3 rounded-2xl border-2 px-4 py-4 shadow-[0_4px_16px_rgba(0,0,0,0.16)] text-left text-[16px] font-bold leading-snug transition-colors ${checked ? 'border-[rgb(var(--club-border-rgb)/0.7)] bg-[rgb(var(--club-primary-rgb)/0.22)] text-white' : 'border-white/10 bg-white/[0.035] text-white/90 hover:bg-white/[0.08]'}`;
     const text = <span className="min-w-0 flex-1">
       <span className="block [overflow-wrap:anywhere]">{ts.team?.name || ts.display_name || 'Mannschaft'}{ts.age_group ? ` · ${ts.age_group}` : ''}</span>
       <span className="mt-1 block text-[14px] font-medium text-white/75">{ts.season?.name ?? ''}</span>
       <span className="mt-1 block text-[12px] font-medium text-white/55">{isSeasonActive(ts.status) ? 'Aktuelle Mannschaft' : ts.status === 'draft' ? 'In Vorbereitung' : 'Archiv'}</span>
     </span>;
-    return checkboxes ? (
-      <label key={ts.id} className={rowClass}>
+    const hidden = hiddenTeamIds.includes(ts.id);
+    return hidden ? (
+      <button key={ts.id} type="button" onClick={() => addTeamFavorite(ts.id)} className={rowClass} aria-label={`${compactLabel(ts)} wieder zu Favoriten hinzufügen`}>
+        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
+        {text}<span className="shrink-0 rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-red-300">Hinzufügen</span>
+      </button>
+    ) : checkboxes ? (
+      <div key={ts.id} className={rowClass}>
         <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
         {text}
         <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)}
           aria-label={compactLabel(ts)}
           className="h-7 w-7 shrink-0 cursor-pointer rounded-full accent-red-600" />
-      </label>
+        <div className="relative shrink-0">
+          <button type="button" aria-label={`${compactLabel(ts)}: Optionen`} aria-expanded={favoriteMenuUrl === ts.id} onClick={() => setFavoriteMenuUrl(current => current === ts.id ? null : ts.id)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
+          {favoriteMenuUrl === ts.id ? (
+            <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
+              <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200 active:bg-red-900/40"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
+            </div>
+          ) : null}
+        </div>
+      </div>
     ) : (
       <button key={ts.id} type="button" onClick={() => selectSingle(ts)} className={rowClass} aria-pressed={checked}>
         <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
@@ -190,10 +265,10 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
             className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
         </label>
         {multipleAvailable && !teamSearch.trim() ? <>
-          <button type="button" onClick={() => { setTeamViewFilter('all'); setOpen(false); triggerRef.current?.focus(); }}
-            aria-pressed={teamViewFilter === 'all'}
-            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${teamViewFilter === 'all' ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
-            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-red-300" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({currentSeasons.length})</span></span></span>{teamViewFilter === 'all' ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
+          <button type="button" onClick={() => { setTeamViewFilter(currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id)).map(ts => ts.id)); setOpen(false); triggerRef.current?.focus(); }}
+            aria-pressed={teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)}
+            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)) ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
+            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-red-300" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({currentSeasons.length - hiddenTeamIds.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
           </button>
 
         </> : null}
@@ -213,12 +288,23 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
             <Star className="h-4 w-4 text-amber-400" aria-hidden />
             <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">Weitere Favoriten</p>
           </div>
-          {externalFavorites.map(item => <a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer"
-            className="mb-2 flex min-h-[52px] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white">
-            <Star className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
-            <span className="min-w-0 flex-1 break-words">{item.name}</span>
-            <ExternalLink className="h-4 w-4 shrink-0 text-white/60" aria-hidden />
-          </a>)}
+          {externalFavorites.map(item => <div key={item.url} className="mb-2 rounded-xl border border-white/10 bg-white/[0.04]">
+            <div className="flex min-h-[52px] items-center gap-2 px-3 py-2">
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold text-white">
+                <Star className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
+                <span className="min-w-0 flex-1 break-words">{item.name}</span>
+                <ExternalLink className="h-4 w-4 shrink-0 text-white/60" aria-hidden />
+              </a>
+              <button type="button" aria-label={`${item.name}: Optionen`} aria-expanded={favoriteMenuUrl === item.url} onClick={() => setFavoriteMenuUrl(current => current === item.url ? null : item.url)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/15 text-white/80">
+                <MoreHorizontal className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+            {favoriteMenuUrl === item.url ? <div className="border-t border-white/10 px-3 py-2">
+              <button type="button" onClick={() => removeExternalFavorite(item.url)} className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-semibold text-red-300 hover:bg-red-950/30">
+                <Trash2 className="h-4 w-4" aria-hidden /> Aus Favoriten entfernen
+              </button>
+            </div> : null}
+          </div>)}
         </section> : null}
 
 
