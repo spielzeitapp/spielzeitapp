@@ -41,7 +41,7 @@ function DemoHelpCard(): React.ReactElement {
         <button
           type="button"
           onClick={reset}
-          className="inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full border border-red-500/30 px-4 text-[12px] font-semibold text-red-300 hover:bg-red-500/10"
+          className="inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-full border border-[rgb(var(--club-accent-rgb)/0.3)] px-4 text-[12px] font-semibold text-[rgb(var(--club-accent-rgb))] hover:bg-[rgb(var(--club-accent-rgb)/0.1)]"
         >
           Demo zurücksetzen
         </button>
@@ -329,7 +329,7 @@ export const MoreHubPage: React.FC = () => {
               <Bell className="h-5 w-5 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
               <span>Nachrichten</span>
               {unreadCount > 0 && (
-                <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
+                <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-[rgb(var(--club-accent-rgb))] px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
