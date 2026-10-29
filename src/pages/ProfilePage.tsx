@@ -474,7 +474,7 @@ export const ProfilePage: React.FC = () => {
               <p className="text-sm font-semibold">Arbeitsbereich wählen</p>
               {availableWorkModes.map((mode) => (
                 <button key={mode} type="button" onClick={() => openWorkMode(mode)}
-                  className="min-h-[44px] w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-left text-sm font-medium text-white hover:bg-red-500/20">
+                  className="min-h-[44px] w-full rounded-xl border border-[rgb(var(--club-accent-rgb)/0.4)] bg-[rgb(var(--club-accent-rgb)/0.1)] px-4 py-3 text-left text-sm font-medium text-white hover:bg-[rgb(var(--club-accent-rgb)/0.2)]">
                   {mode === 'platform_admin' ? 'Zur Plattformverwaltung' : mode === 'club_admin' ? 'Zur Vereinsverwaltung' : 'Zum Trainerbereich'}
                 </button>
               ))}
@@ -555,7 +555,7 @@ export const ProfilePage: React.FC = () => {
           <button
             type="button"
             onClick={handleSignOut}
-            className="mt-4 w-full rounded-xl border border-red-500/40 bg-red-500/15 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-red-500/25 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+            className="mt-4 w-full rounded-xl border border-[rgb(var(--club-accent-rgb)/0.4)] bg-[rgb(var(--club-accent-rgb)/0.15)] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[rgb(var(--club-accent-rgb)/0.25)] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--club-accent-rgb))] focus:ring-offset-2 focus:ring-offset-black"
           >
             Abmelden
           </button>
