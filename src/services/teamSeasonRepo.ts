@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 
-export type TeamSeasonTeam = { id: string; name: string; age_group?: string };
+export type TeamSeasonTeam = { id: string; name: string; age_group?: string; logo_url?: string | null; clubs?: { logo_url?: string | null } | { logo_url?: string | null }[] | null };
 export type TeamSeasonSeason = { id: string; name: string };
 
 export type TeamSeasonListItem = {

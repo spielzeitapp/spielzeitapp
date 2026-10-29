@@ -7,8 +7,6 @@ import { useAppHasLiveMatch, useAppLiveMatchState } from '../../hooks/useAppHasL
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { useDemoMode } from '../../demo/DemoContext';
 
-/** Akzent wie Zielbild / Welcome (#FF2D2D, weich nutzbar). */
-const ACCENT = '#FF2D2D';
 /** Gleicher Name wie in LiveMatchScreen — kein Import aus der Page (Bundle). */
 const LIVE_NAV_RESET_EVENT = 'spielzeit:live-nav-reset';
 
@@ -78,7 +76,7 @@ function NavItem({
           onReclick();
         }
       }}
-      className="group relative flex min-w-0 flex-1 touch-manipulation flex-col items-center justify-center gap-1 overflow-visible px-0.5 pb-1 pt-0.5 transition-transform duration-75 active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2D2D]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+      className="group relative flex min-w-0 flex-1 touch-manipulation flex-col items-center justify-center gap-1 overflow-visible px-0.5 pb-1 pt-0.5 transition-transform duration-75 active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
     >
       {({ isActive }) => (
         <>
@@ -90,17 +88,17 @@ function NavItem({
             {badgeCount != null && badgeCount > 0 ? (
               <div
                 className="pointer-events-none absolute right-0 top-0 z-[3] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#0a0a0a]"
-                style={{ backgroundColor: ACCENT }}
+                style={{ backgroundColor: 'rgb(var(--club-accent-rgb))' }}
               >
                 {badgeCount > 99 ? '99+' : badgeCount}
               </div>
             ) : null}
             {showLiveIndicators ? (
               <span
-                className="pointer-events-none absolute left-1/2 top-0 z-[4] whitespace-nowrap text-[7px] font-bold uppercase leading-none tracking-[0.14em] text-[#FF2D2D] sm:text-[8px]"
+                className="pointer-events-none absolute left-1/2 top-0 z-[4] whitespace-nowrap text-[7px] font-bold uppercase leading-none tracking-[0.14em] text-[rgb(var(--club-accent-rgb))] sm:text-[8px]"
                 style={{
                   transform: 'translate(-50%, calc(-100% - 3px))',
-                  textShadow: '0 0 10px rgba(255, 0, 0, 0.72)',
+                  textShadow: '0 0 10px rgb(var(--club-accent-rgb) / 0.72)',
                 }}
               >
                 LIVE JETZT
@@ -126,9 +124,9 @@ function NavItem({
           <span
             className={[
               'mt-1 h-1 w-5 shrink-0 rounded-[2px] transition-opacity duration-200',
-              isActive ? 'opacity-100 shadow-[0_0_14px_rgba(255,45,45,0.42)]' : 'bg-transparent opacity-0',
+              isActive ? 'opacity-100 shadow-[0_0_14px_rgb(var(--club-accent-rgb)/0.42)]' : 'bg-transparent opacity-0',
             ].join(' ')}
-            style={isActive ? { backgroundColor: ACCENT, height: '4px', width: '20px' } : undefined}
+            style={isActive ? { backgroundColor: 'rgb(var(--club-accent-rgb))', height: '4px', width: '20px' } : undefined}
             aria-hidden
           />
         </>
@@ -205,7 +203,7 @@ export const BottomNav: React.FC = () => {
           className="pointer-events-none absolute inset-0 rounded-[28px]"
           style={{
             background:
-              'linear-gradient(180deg, rgba(255,45,45,0.12) 0%, rgba(255,30,30,0.04) 28%, transparent 48%)',
+              'linear-gradient(180deg, rgb(var(--club-primary-rgb) / 0.24) 0%, rgb(var(--club-accent-rgb) / 0.06) 28%, transparent 48%)',
           }}
           aria-hidden
         />
@@ -214,7 +212,7 @@ export const BottomNav: React.FC = () => {
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-gradient-to-b from-[#FF2D2D]/18 to-transparent blur-xl"
+          className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-gradient-to-b from-[rgb(var(--club-accent-rgb)/0.18)] to-transparent blur-xl"
           aria-hidden
         />
         <div

@@ -22,7 +22,7 @@ export const DS_RED_GLOW = '#7A1D2A';
 export const DS_RED_DEEP = '#3A1218';
 
 const PAGE_ATMOSPHERE_LAYERS =
-  'bg-[radial-gradient(ellipse_120%_70%_at_50%_-6%,rgba(122,29,42,0.07),transparent_52%),radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(58,18,24,0.12),transparent_58%),radial-gradient(ellipse_100%_75%_at_50%_110%,rgba(0,0,0,0.48),transparent_48%)]';
+  'bg-[radial-gradient(ellipse_120%_70%_at_50%_-6%,rgb(var(--club-primary-rgb)/0.07),transparent_52%),radial-gradient(ellipse_90%_55%_at_50%_0%,rgb(var(--club-primary-rgb)/0.12),transparent_58%),radial-gradient(ellipse_100%_75%_at_50%_110%,rgba(0,0,0,0.48),transparent_48%)]';
 
 /** Vollseiten-Shell — tiefer Schwarzton, kein Vollflächen-Rot. */
 export function dsPageShellClass(extra = ''): string {
@@ -770,11 +770,11 @@ export function dsScheduleEventPanelGlowClass(): string {
   return dsScheduleListPanelGlowClass();
 }
 
-/** Mehr-Hub: subtiler Page-Hintergrund (weniger Vollflächen-Rot). */
+/** Mehr-Hub: subtiler Hintergrund in den aktuellen Vereinsfarben. */
 export function dsMoreHubPageStyle(): { background: string; boxShadow: string } {
   return {
     background:
-      'radial-gradient(ellipse 100% 60% at 50% 0%, rgba(255,30,30,0.05), transparent 52%), radial-gradient(circle at 50% 0%, rgba(120,0,0,0.12), transparent 50%), linear-gradient(180deg, #090909 0%, #050505 100%)',
+      'radial-gradient(ellipse 100% 60% at 50% 0%, rgb(var(--club-accent-rgb) / 0.05), transparent 52%), radial-gradient(circle at 50% 0%, rgb(var(--club-primary-rgb) / 0.12), transparent 50%), linear-gradient(180deg, #090909 0%, #050505 100%)',
     boxShadow: 'inset 0 0 80px rgba(0,0,0,0.35)',
   };
 }

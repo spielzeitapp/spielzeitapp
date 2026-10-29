@@ -29,11 +29,11 @@ const DEFAULT_PALETTE: ClubPalette = {
 
 export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const location = useLocation();
-  const { selectedTeamSeason, viewTeamSeason, teamViewFilter, filteredTeamSeasonIds } = useSession();
+  const { selectedTeamSeason, viewTeamSeasonId, viewTeamSeason, teamViewFilter, filteredTeamSeasonIds } = useSession();
   // A combined view can contain different clubs: never color it using only the
   // previously selected club. Single-team views use that team's actual branding.
   const combinedView = teamViewFilter !== null && filteredTeamSeasonIds.length > 1;
-  const activeTeamSeason = viewTeamSeason ?? selectedTeamSeason;
+  const activeTeamSeason = viewTeamSeasonId ? viewTeamSeason : selectedTeamSeason;
   const teamSeasonId = combinedView ? null : activeTeamSeason?.id ?? null;
   const [loaded, setLoaded] = useState<{ teamSeasonId: string; branding: ClubBranding | null } | null>(null);
   // Do not show the previous club's colors while the next club is loading.
@@ -69,6 +69,12 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children 
           onAccent: accentHex ? readableTextColor(accentHex) : fallback.onAccent,
         }
       : fallback;
+    // Select the kit artwork from the palette, independent of club names or IDs.
+    const [pr, pg, pb] = palette.primary.split(' ').map(Number);
+    const [ar, ag, ab] = palette.accent.split(' ').map(Number);
+    const bluePrimary = pb > pr * 1.3 && pb > pg * 1.1;
+    const yellowAccent = ar > 150 && ag > 100 && ab < 100;
+    root.dataset.clubWelcomeKit = bluePrimary && yellowAccent ? 'blue-yellow' : 'default';
     root.dataset.clubTheme = primaryHex || accentHex || secondaryHex ? 'custom' : 'black-red';
     root.style.setProperty("--club-primary-rgb", palette.primary);
     root.style.setProperty("--club-accent-rgb", palette.accent);

@@ -22,15 +22,19 @@ export function useActiveTeamSeason() {
     selectedMembership,
     viewTeamSeasonId,
     viewTeamSeason,
+    viewTeamSeasonLoading,
+    viewTeamSeasonError,
     setViewTeamSeasonId,
     setSelectedTeamSeasonId,
     teamSeasons,
     effectiveRole,
+    memberships,
   } = useSession();
 
   const activeTeamSeasonId = selectedTeamSeasonId;
   const readTeamSeasonId = viewTeamSeasonId ?? selectedTeamSeasonId;
-  const readTeamSeason = viewTeamSeason ?? selectedTeamSeason;
+  const readTeamSeason = viewTeamSeasonId ? viewTeamSeason : selectedTeamSeason;
+  const isReadOnlyView = Boolean(readTeamSeasonId && readTeamSeasonId !== selectedTeamSeasonId);
 
   const labelParts = useMemo(() => {
     if (!readTeamSeason) return null;
@@ -58,7 +62,8 @@ export function useActiveTeamSeason() {
   const isViewingArchive = Boolean(readTeamSeason && isSeasonArchived(readTeamSeason.status));
   const isHistoryReadOnly = isViewingArchive;
 
-  const roleRaw = (effectiveRole ?? '').toString().trim().toLowerCase();
+  const readMembership = memberships.find(membership => membership.team_season_id === readTeamSeasonId);
+  const roleRaw = (isReadOnlyView ? readMembership?.role ?? 'fan' : effectiveRole ?? '').toString().trim().toLowerCase();
   const role = roleRaw !== '' ? roleRaw : null;
 
   return {
@@ -79,8 +84,9 @@ export function useActiveTeamSeason() {
     activeTeamSeason: selectedTeamSeason,
     selectedMembership,
     role,
-    loading,
-    error: membershipError,
+    isReadOnlyView,
+    loading: loading || Boolean(viewTeamSeasonLoading),
+    error: viewTeamSeasonError ?? membershipError,
     isViewingArchive,
     isHistoryReadOnly,
     softLockMessage: isHistoryReadOnly ? SEASON_SOFT_LOCK_MESSAGE : null,
