@@ -120,6 +120,9 @@ export const WelcomeScreen: React.FC = () => {
         :root[data-club-theme="custom"] .welcome-club-hero {
           filter: var(--welcome-hero-filter);
         }
+        .welcome-blue-yellow-hero { display: none; }
+        :root[data-club-welcome-kit="blue-yellow"] .welcome-club-hero { display: none; }
+        :root[data-club-welcome-kit="blue-yellow"] .welcome-blue-yellow-hero { display: block; }
         /* Club palette applies to the welcome entry without changing the platform wordmark. */
         :root[data-club-theme="custom"] .welcome-screen {
           background: radial-gradient(circle at 50% 30%, rgb(var(--club-primary-rgb) / 0.28), #030407 70%);
@@ -327,6 +330,11 @@ export const WelcomeScreen: React.FC = () => {
           style={{ '--welcome-hero-filter': `url(#${heroFilterId})` } as React.CSSProperties}
           decoding="async"
           fetchPriority="high"
+          aria-hidden
+        />
+        <div
+          className="welcome-blue-yellow-hero pointer-events-none absolute inset-0 h-full min-h-full w-full bg-cover bg-center"
+          style={{ backgroundImage: `url("${import.meta.env.BASE_URL || '/'}intro/welcome-blue-yellow-v1.jpg")` }}
           aria-hidden
         />
         <div
