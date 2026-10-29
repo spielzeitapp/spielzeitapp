@@ -219,9 +219,10 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     const next = selected.includes(id) ? selected.filter((sid) => sid !== id) : [...selected, id];
     if (next.length === 0) return;
     if (next.length === 1) {
-      setSelectedTeamSeasonId(next[0]);
-      if (next[0] !== selectedTeamSeasonId && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
-      setTeamViewFilter(null);
+      // A favorite is a read-only view, never a change to trainer work permissions.
+      setViewTeamSeasonId(next[0]);
+      setTeamViewFilter([next[0]]);
+      if (next[0] !== value && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
     } else {
       setTeamViewFilter(next);
     }
