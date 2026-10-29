@@ -50,7 +50,7 @@ import { useInternalBasePath } from "../demo/demoPaths";
 import { buildDemoSeasonMatchBoard } from "../demo/demoMatchState";
 import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
 import { useAvailabilityPermissions } from "../hooks/useAvailabilityPermissions";
-import { getOurTeamDisplayName, getOurTeamLogoUrl } from "../lib/teamLogos";
+import { getClubLogo, getOurTeamLogoUrl } from "../lib/teamLogos";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-demo-u12-v2.webp";
@@ -157,8 +157,9 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
-  const { selectedTeamSeason, selectedMembership, loading: sessionLoading } = useSession();
+  const { selectedTeamSeason: workTeamSeason, selectedMembership, loading: sessionLoading } = useSession();
   const {
+    readTeamSeason: selectedTeamSeason,
     teamLabel: sessionTeamLabel,
     teamLine: sessionTeamLine,
     seasonLine: sessionSeasonLine,
@@ -301,6 +302,8 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     return "Team";
   }, [teamLine, selectedTeamSeason, teamLabel, isDemo, demo]);
 
+  const heroTeamLogo = (isDemo || selectedTeamSeason?.id === workTeamSeason?.id ? getOurTeamLogoUrl() : getClubLogo(selectedTeamSeason?.team?.name || "", { teamId: selectedTeamSeason?.team?.id, logoUrl: selectedTeamSeason?.team?.logo_url }));
+
   const heroSeason = useMemo(() => {
     if (isDemo) return demo!.data.seasonLabel;
     if (seasonLine?.trim() && seasonLine.trim() !== "—") return seasonLine.trim();
@@ -324,8 +327,8 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
 
   const teamPhotoUrl = useMemo(() => readTeamPhotoUrl(teamPhoto), [teamPhoto]);
   const heroPhotoSrc = useMemo(
-    () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : TEAM_HERO_PLACEHOLDER),
-    [teamPhotoUrl],
+    () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : isDemo || selectedTeamSeason?.id === workTeamSeason?.id ? TEAM_HERO_PLACEHOLDER : undefined),
+    [teamPhotoUrl, isDemo, selectedTeamSeason?.id, workTeamSeason?.id],
   );
   useEffect(() => {
     if (isDemo || !teamSeasonId) {
@@ -334,6 +337,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       return;
     }
     let cancelled = false;
+    setTeamPhoto(null);
     void supabase
       .from("team_photos")
       .select("team_season_id, photo_url, updated_at")
@@ -1008,7 +1012,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       {/* Team Hero */}
       {basePath === "/manager" ? <section data-ui-card className="manager-team-desktop-header items-center justify-between gap-5 rounded-2xl border p-5">
         <div className="flex min-w-0 items-center gap-4">
-          <img src={getOurTeamLogoUrl()} alt="" className="h-16 w-16 shrink-0 object-contain" />
+          <img src={heroTeamLogo} alt="" className="h-16 w-16 shrink-0 object-contain" />
           <div className="min-w-0">
             <h1 className="text-2xl font-bold">{rosterOnly ? "Spieler" : "Team"}</h1>
             <p className="mt-1 text-base font-semibold">{heroTeamName} · {heroAgeGroup}</p>
@@ -1074,11 +1078,11 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
           ) : null}
           <div className="flex items-end gap-3 sm:gap-4">
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
-              <img src={getOurTeamLogoUrl()} alt="SPG Rohrbach Wappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
+              <img src={heroTeamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
             </div>
             <div className="min-w-0 flex-1 pb-1">
               <p className="truncate text-[27px] font-black uppercase leading-none tracking-tight text-white drop-shadow-lg sm:text-[34px]">
-                {tsLoading ? "Lade Team…" : getOurTeamDisplayName()}
+                {tsLoading ? "Lade Team…" : heroTeamName}
               </p>
               <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
                 <span className="text-red-400">{heroAgeGroup}</span> · Saison {heroSeason}

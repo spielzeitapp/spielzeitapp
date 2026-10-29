@@ -423,8 +423,8 @@ export const ProfilePage: React.FC = () => {
     <div
       className="page profile-page relative min-h-[60vh] w-full px-4 py-6"
       style={{
-        background: 'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)',
-        boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
+        background: 'linear-gradient(180deg, rgb(var(--club-primary-rgb) / 0.45) 0%, rgb(var(--club-primary-rgb) / 0.18) 50%, #07080c 100%)',
+        boxShadow: 'inset 0 0 120px rgb(var(--club-primary-rgb) / 0.12)',
       }}
     >
       <div className="mx-auto max-w-[480px] space-y-8">
@@ -474,7 +474,7 @@ export const ProfilePage: React.FC = () => {
               <p className="text-sm font-semibold">Arbeitsbereich wählen</p>
               {availableWorkModes.map((mode) => (
                 <button key={mode} type="button" onClick={() => openWorkMode(mode)}
-                  className="min-h-[44px] w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-left text-sm font-medium text-white hover:bg-red-500/20">
+                  className="min-h-[44px] w-full rounded-xl border border-[rgb(var(--club-accent-rgb)/0.4)] bg-[rgb(var(--club-accent-rgb)/0.1)] px-4 py-3 text-left text-sm font-medium text-white hover:bg-[rgb(var(--club-accent-rgb)/0.2)]">
                   {mode === 'platform_admin' ? 'Zur Plattformverwaltung' : mode === 'club_admin' ? 'Zur Vereinsverwaltung' : 'Zum Trainerbereich'}
                 </button>
               ))}
@@ -511,7 +511,7 @@ export const ProfilePage: React.FC = () => {
                     </p>
                     <Link
                       to="/app/parent-onboarding?mode=link"
-                      className="inline-flex min-h-[40px] items-center rounded-full bg-red-600 px-4 text-sm font-semibold text-white"
+                      className="inline-flex min-h-[40px] items-center rounded-full bg-[rgb(var(--club-accent-rgb))] px-4 text-sm font-semibold text-white"
                     >
                       Kind verknüpfen
                     </Link>
@@ -555,7 +555,7 @@ export const ProfilePage: React.FC = () => {
           <button
             type="button"
             onClick={handleSignOut}
-            className="mt-4 w-full rounded-xl border border-red-500/40 bg-red-500/15 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-red-500/25 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+            className="mt-4 w-full rounded-xl border border-[rgb(var(--club-accent-rgb)/0.4)] bg-[rgb(var(--club-accent-rgb)/0.15)] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[rgb(var(--club-accent-rgb)/0.25)] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--club-accent-rgb))] focus:ring-offset-2 focus:ring-offset-black"
           >
             Abmelden
           </button>

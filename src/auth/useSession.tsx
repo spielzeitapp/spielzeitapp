@@ -6,7 +6,7 @@ import { useAuth } from './AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 import { pickPreferredActiveTeamSeasonId } from '../lib/seasonLifecycle';
-import { resolveTeamViewSeasonIds } from '../lib/teamViewSelection';
+import { isTeamSeasonId, restoreTeamViewFilter, resolveTeamViewSeasonIds } from '../lib/teamViewSelection';
 import { resolveParentUiRole } from '../lib/parentChildLink';
 
 /** team_seasons.id und memberships.team_season_id als string (UUID), nie Number. */
@@ -27,7 +27,9 @@ function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
     teams?: TeamSeasonTeam | TeamSeasonTeam[] | null;
     seasons?: TeamSeasonSeason | TeamSeasonSeason[] | null;
   };
-  const teams = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+  const joinedTeam = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+  const club = joinedTeam && (Array.isArray(joinedTeam.clubs) ? joinedTeam.clubs[0] : joinedTeam.clubs);
+  const teams = joinedTeam ? { ...joinedTeam, logo_url: club?.logo_url ?? null } : null;
   const seasons = Array.isArray(row.seasons) ? row.seasons[0] : row.seasons;
   if (teams && seasons) {
     return {
@@ -153,6 +155,8 @@ export interface SessionContextValue {
    */
   viewTeamSeasonId: string | null;
   viewTeamSeason: SessionTeamSeasonItem | null;
+  viewTeamSeasonLoading?: boolean;
+  viewTeamSeasonError?: string | null;
   setViewTeamSeasonId: (id: string | null) => void;
   /** Alias: aktive Write-Saison. */
   activeTeamSeasonId: string | null;
@@ -217,12 +221,15 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const raw = window.localStorage.getItem('spz_team_view_' + authUser.id);
       if (!raw) return;
-      const stored: unknown = JSON.parse(raw);
-      const active = new Set(teamSeasons.filter(ts => ts.status === 'active').map(ts => ts.id));
+      const stored = restoreTeamViewFilter(JSON.parse(raw));
       if (stored === 'all') setTeamViewFilterState('all');
       else if (Array.isArray(stored)) {
-        const ids = stored.filter((id): id is string => typeof id === 'string' && active.has(id));
-        if (ids.length > 1) setTeamViewFilterState(ids);
+        // External favorites are not part of the user's membership seasons.
+        // Keep their IDs for the read-only view; access is still checked by Supabase RLS.
+        if (stored.length > 0) {
+          setTeamViewFilterState(stored);
+          if (stored.length === 1) setViewTeamSeasonIdState(stored[0]);
+        }
       }
     } catch { /* Ignore invalid stored preferences. */ }
   }, [authUser?.id, teamSeasons]);
@@ -248,10 +255,29 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [teamSeasons, selectedTeamSeasonId],
   );
 
-  const viewTeamSeason = useMemo(
-    () => teamSeasons.find((ts) => ts.id === viewTeamSeasonId) ?? null,
-    [teamSeasons, viewTeamSeasonId],
-  );
+  const [externalView, setExternalView] = useState<{ userId: string; id: string; season: SessionTeamSeasonItem | null; error: string | null } | null>(null);
+  const ownView = teamSeasons.find(ts => ts.id === viewTeamSeasonId) ?? null;
+  const needsExternalView = Boolean(authUser && viewTeamSeasonId && !ownView);
+  const externalViewMatches = externalView?.userId === authUser?.id && externalView?.id === viewTeamSeasonId;
+  const viewTeamSeason = ownView ?? (externalViewMatches ? externalView?.season ?? null : null);
+  const viewTeamSeasonLoading = needsExternalView && !externalViewMatches;
+  const viewTeamSeasonError = needsExternalView && externalViewMatches ? externalView?.error ?? null : null;
+  useEffect(() => {
+    if (!needsExternalView || !viewTeamSeasonId) return;
+    let cancelled = false;
+    const id = viewTeamSeasonId;
+    const userId = authUser!.id;
+    void Promise.resolve(supabase.from('team_seasons')
+      .select('id,team_id,season_id,status,display_name,age_group,teams(id,name,age_group,clubs(logo_url)),seasons(id,name)')
+      .eq('id', id).maybeSingle()).then(({ data, error }) => {
+        if (cancelled) return;
+        const season = data ? normalizeTeamSeasonRow(data) : null;
+        setExternalView({ userId, id, season, error: error?.message ?? (season ? null : 'Mannschaft nicht verfügbar.') });
+      }).catch(() => {
+        if (!cancelled) setExternalView({ userId, id, season: null, error: 'Mannschaft konnte nicht geladen werden.' });
+      });
+    return () => { cancelled = true; };
+  }, [needsExternalView, viewTeamSeasonId, authUser?.id]);
 
   const loading = authLoading || (!!authUser && membershipLoading);
 
@@ -379,6 +405,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     const nextId = authUser?.id ?? null;
     const prevId = prevAuthUserIdRef.current;
+    if (prevId !== nextId) restoredTeamViewForRef.current = null;
     if (prevId && prevId !== nextId) {
       // Logout oder Kontowechsel: Team/Saison/Rolle des anderen Users nicht übernehmen
       clearAccountScopedClientState();
@@ -585,7 +612,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   status,
   display_name,
   age_group,
-  teams:teams ( id, name, age_group ),
+  teams:teams ( id, name, age_group, clubs ( logo_url ) ),
   seasons:seasons ( id, name )
 `)
           .in('id', teamSeasonIds)
@@ -620,7 +647,16 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           preferredId: preferredTeamSeasonId ?? null,
         });
         setSelectedTeamSeasonIdState(selectedId);
-        setViewTeamSeasonIdState(selectedId);
+        // Viewing a favorite must survive reload without changing the work/team membership.
+        let savedViewId: string | null = null;
+        try { savedViewId = window.localStorage.getItem('spz_last_view_team_' + authUser.id); } catch { /* private browsing */ }
+        const savedFilter = (() => {
+          try { return restoreTeamViewFilter(JSON.parse(window.localStorage.getItem('spz_team_view_' + authUser.id) || 'null')); }
+          catch { return null; }
+        })();
+        setViewTeamSeasonIdState(preferredTeamSeasonId ? selectedId :
+          Array.isArray(savedFilter) && savedFilter.length === 1 ? savedFilter[0] :
+          isTeamSeasonId(savedViewId) ? savedViewId : selectedId);
         try {
           if (selectedId) {
             window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);
@@ -729,6 +765,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Active-Wechsel setzt View auf dieselbe Saison (History-Picker kann danach Archiv wählen).
     setViewTeamSeasonIdState(next);
     try {
+      if (authUser?.id) {
+        window.localStorage.removeItem('spz_team_view_' + authUser.id);
+        const key = 'spz_last_view_team_' + authUser.id;
+        if (next) window.localStorage.setItem(key, next);
+        else window.localStorage.removeItem(key);
+      }
       if (next != null) {
         window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, next);
       } else {
@@ -741,8 +783,17 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   /** Nur Lesen/Anzeige — ändert die aktive Arbeitssaison nicht. */
   const setViewTeamSeasonId = (id: string | null) => {
-    setViewTeamSeasonIdState(id === '' || id == null ? null : id);
+    const next = id === '' || id == null ? null : id;
+    setViewTeamSeasonIdState(next);
     setTeamViewFilterState(null);
+    if (authUser?.id) {
+      try {
+        const key = 'spz_last_view_team_' + authUser.id;
+        if (next) window.localStorage.setItem(key, next);
+        else window.localStorage.removeItem(key);
+        window.localStorage.removeItem('spz_team_view_' + authUser.id);
+      } catch { /* storage unavailable */ }
+    }
   };
 
   const user: User | null = useMemo(() => {
@@ -771,6 +822,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSelectedTeamSeasonId,
     viewTeamSeasonId,
     viewTeamSeason,
+    viewTeamSeasonLoading,
+    viewTeamSeasonError,
     setViewTeamSeasonId,
     activeTeamSeasonId: selectedTeamSeasonId,
     canAccess: (feature) => canAccessFeature(user, feature),

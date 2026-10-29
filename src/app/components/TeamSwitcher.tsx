@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users, MoreHorizontal, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
+import { ensureFanTeamAccess } from '../../lib/teamFavorites';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
@@ -34,7 +35,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const {
-    user, teamSeasons, selectedTeamSeasonId, setSelectedTeamSeasonId,
+    user, teamSeasons, selectedTeamSeasonId,
     viewTeamSeasonId, setViewTeamSeasonId,
     teamViewFilter, setTeamViewFilter, filteredTeamSeasonIds,
   } = useSession();
@@ -46,6 +47,19 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const [savedDiscoverableIds, setSavedDiscoverableIds] = React.useState<string[]>([]);
   const [discoveryBusy, setDiscoveryBusy] = React.useState(false);
   const [discoveryError, setDiscoveryError] = React.useState<string | null>(null);
+  const [favoriteOpening, setFavoriteOpening] = React.useState(false);
+  const openDiscoveredTeam = async (id: string) => {
+    if (!user?.id || favoriteOpening) return;
+    setFavoriteOpening(true);
+    setDiscoveryError(null);
+    try {
+      const error = await ensureFanTeamAccess(user.id, id);
+      if (error) { setDiscoveryError(error); return; }
+      setViewTeamSeasonId(id);
+      setTeamViewFilter([id]);
+      setOpen(false);
+    } finally { setFavoriteOpening(false); }
+  };
   const [favoriteMenuUrl, setFavoriteMenuUrl] = React.useState<string | null>(null);
   const [hiddenTeamIds, setHiddenTeamIds] = React.useState<string[]>([]);
   const discoverStorageKey = user?.id ? `spz_discovered_team_favorites_${user.id}` : null;
@@ -179,12 +193,12 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   }, [open]);
 
   const selectSingle = (ts: SessionTeamSeasonItem) => {
-    setTeamViewFilter(null);
     if (resolveTeamSeasonSwitcherAction(ts.status) === 'select-work') {
-      setSelectedTeamSeasonId(ts.id);
-      if (ts.id !== selectedTeamSeasonId && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
+      setViewTeamSeasonId(ts.id);
+      setTeamViewFilter([ts.id]);
+      if (ts.id !== value && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
     }
-    else setViewTeamSeasonId(ts.id);
+    else { setTeamViewFilter(null); setViewTeamSeasonId(ts.id); }
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -194,9 +208,10 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     const next = selected.includes(id) ? selected.filter((sid) => sid !== id) : [...selected, id];
     if (next.length === 0) return;
     if (next.length === 1) {
-      setSelectedTeamSeasonId(next[0]);
-      if (next[0] !== selectedTeamSeasonId && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
-      setTeamViewFilter(null);
+      // A favorite is a read-only view, never a change to trainer work permissions.
+      setViewTeamSeasonId(next[0]);
+      setTeamViewFilter([next[0]]);
+      if (next[0] !== value && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
     } else {
       setTeamViewFilter(next);
     }
@@ -254,11 +269,11 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       const selected = teamViewFilter === 'all' ? visible.map(ts => ts.id) : filteredTeamSeasonIds;
       const next = selected.filter(sid => sid !== id && nextVisible.some(ts => ts.id === sid));
       if (next.length > 1) setTeamViewFilter(next);
-      else if (next.length === 1) { setSelectedTeamSeasonId(next[0]); setTeamViewFilter(null); }
-      else { setSelectedTeamSeasonId(nextVisible[0].id); setTeamViewFilter(null); }
+      else if (next.length === 1) { setViewTeamSeasonId(next[0]); setTeamViewFilter(next); }
+      else { setViewTeamSeasonId(nextVisible[0].id); setTeamViewFilter([nextVisible[0].id]); }
     } else if (value === id) {
-      setSelectedTeamSeasonId(nextVisible[0].id);
-      setTeamViewFilter(null);
+      setViewTeamSeasonId(nextVisible[0].id);
+      setTeamViewFilter([nextVisible[0].id]);
     }
     setFavoriteMenuUrl(null);
   };
@@ -288,7 +303,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     return hidden ? (
       <button key={ts.id} type="button" onClick={() => addTeamFavorite(ts.id)} className={rowClass} aria-label={`${compactLabel(ts)} wieder zu Favoriten hinzufügen`}>
         <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
-        {text}<span className="shrink-0 rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-red-300">Hinzufügen</span>
+        {text}<span className="shrink-0 rounded-lg border border-[rgb(var(--club-accent-rgb)/0.4)] px-3 py-2 text-xs font-bold text-[rgb(var(--club-accent-text-rgb))]">Hinzufügen</span>
       </button>
     ) : checkboxes ? (
       <div key={ts.id} className={rowClass}>
@@ -296,12 +311,12 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         {text}
         <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)}
           aria-label={compactLabel(ts)}
-          className="h-7 w-7 shrink-0 cursor-pointer rounded-full accent-red-600" />
+          className="h-7 w-7 shrink-0 cursor-pointer rounded-full accent-[rgb(var(--club-accent-rgb))]" />
         <div className="relative shrink-0">
           <button type="button" aria-label={`${compactLabel(ts)}: Optionen`} aria-expanded={favoriteMenuUrl === ts.id} onClick={() => setFavoriteMenuUrl(current => current === ts.id ? null : ts.id)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
           {favoriteMenuUrl === ts.id ? (
-            <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
-              <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200 active:bg-red-900/40"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
+            <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-[rgb(var(--club-accent-rgb)/0.4)] bg-[#211016] p-1 shadow-2xl">
+              <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-[rgb(var(--club-accent-text-rgb))] active:bg-[rgb(var(--club-primary-rgb)/0.4)]"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
             </div>
           ) : null}
         </div>
@@ -311,14 +326,14 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
         <button type="button" onClick={() => selectSingle(ts)} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-pressed={checked}>
           {text}
-          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-red-500 bg-red-700' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-[rgb(var(--club-accent-rgb))] bg-[rgb(var(--club-primary-rgb))]' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
         </button>
         {isSeasonActive(ts.status) ? (
           <div className="relative shrink-0">
             <button type="button" aria-label={`${compactLabel(ts)}: Optionen`} aria-expanded={favoriteMenuUrl === ts.id} onClick={() => setFavoriteMenuUrl(current => current === ts.id ? null : ts.id)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
             {favoriteMenuUrl === ts.id ? (
-              <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
-                <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200 active:bg-red-900/40"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
+              <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-[rgb(var(--club-accent-rgb)/0.4)] bg-[#211016] p-1 shadow-2xl">
+                <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-[rgb(var(--club-accent-text-rgb))] active:bg-[rgb(var(--club-primary-rgb)/0.4)]"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
               </div>
             ) : null}
           </div>
@@ -331,7 +346,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     <button ref={triggerRef} type="button" onClick={toggleOpen}
       aria-label="Favoriten und Mannschaften wählen" title="Meine Favoriten" aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
       className={iconOnly
-        ? ['inline-flex !h-11 !w-11 !min-h-11 !min-w-11 !max-w-11 !flex-none !shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] !p-0 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500', className].filter(Boolean).join(' ')
+        ? ['inline-flex !h-11 !w-11 !min-h-11 !min-w-11 !max-w-11 !flex-none !shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] !p-0 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))]', className].filter(Boolean).join(' ')
         : ['flex min-h-[48px] w-full min-w-0 items-center justify-between gap-3 bg-transparent px-2 py-1.5 text-left text-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))]', compact ? 'md:min-w-[210px]' : '', className].filter(Boolean).join(' ')}>
       <span className={iconOnly ? 'flex items-center justify-center' : 'flex min-w-0 flex-1 items-center gap-2.5'}>
         <span className={iconOnly ? 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[rgb(var(--club-border-rgb)/0.35)] bg-[rgb(var(--club-primary-rgb)/0.2)]'}>
@@ -347,25 +362,25 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ height: keyboardOpen && viewportHeight ? `${Math.max(180, viewportHeight - 8)}px` : undefined, maxHeight: viewportHeight ? `${Math.max(180, viewportHeight - (keyboardOpen ? 8 : 12))}px` : 'min(92dvh,52rem)' }}>
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2 pt-1">
-          <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-red-500/45 px-3 text-sm font-bold text-white/85"><ArrowLeft className="h-4 w-4 text-red-400" aria-hidden /> Zurück</button>
+          <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-[rgb(var(--club-accent-rgb)/0.45)] px-3 text-sm font-bold text-white/85"><ArrowLeft className="h-4 w-4 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /> Zurück</button>
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="sz-club-accent-text min-h-[44px] px-2 text-sm font-bold">Fertig</button>
         </div>
         <div className={keyboardOpen ? "hidden" : "shrink-0 px-2 pb-3 text-center"}>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-red-500/55 bg-red-950/40"><Star className="h-6 w-6 text-red-400" aria-hidden /></div>
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-[rgb(var(--club-accent-rgb)/0.55)] bg-[rgb(var(--club-primary-rgb)/0.4)]"><Star className="h-6 w-6 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /></div>
           <h2 className="text-[22px] font-black leading-tight text-white">Favoriten verwalten</h2>
           <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/65">Wähle deine Mannschaften einzeln oder gemeinsam. Deine Auswahl bleibt gespeichert.</p>
         </div>
         <div ref={resultsRef} className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
         <label className="relative mb-3 block">
-          <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-red-400" aria-hidden />
+          <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
           <input type="search" value={teamSearch} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} onChange={event => { setTeamSearch(event.target.value); resultsRef.current?.scrollTo({ top: 0 }); }} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
-            className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
+            className="min-h-[50px] w-full rounded-xl border border-[rgb(var(--club-accent-rgb)/0.35)] bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-[rgb(var(--club-accent-rgb))] focus:outline-none" />
         </label>
         {!keyboardOpen && multipleAvailable && visibleCurrentSeasons.length > 1 && !searchTerm ? <>
           <button type="button" onClick={() => { setTeamViewFilter(visibleCurrentSeasons.map(ts => ts.id)); setOpen(false); triggerRef.current?.focus(); }}
             aria-pressed={teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)}
-            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
-            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-red-300" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({visibleCurrentSeasons.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
+            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? 'border-[rgb(var(--club-accent-rgb)/0.65)] bg-[rgb(var(--club-primary-rgb)/0.35)] text-white' : 'border-[rgb(var(--club-accent-rgb)/0.25)] bg-white/[0.035] text-white/90 hover:bg-[rgb(var(--club-primary-rgb)/0.25)]'}`}>
+            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({visibleCurrentSeasons.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[rgb(var(--club-accent-rgb))]"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
           </button>
 
         </> : null}
@@ -378,14 +393,14 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         {searchTerm && searchedCurrentSeasons.length === 0 && searchedOtherSeasons.length === 0 && discoverMatches.length === 0 && !discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Keine passende freigegebene Mannschaft gefunden.</p> : null}
         {keyboardOpen && !searchTerm && !discoveryBusy ? <p className="px-3 py-3 text-sm text-white/60">Verein oder Mannschaft eingeben, z. B. Melk.</p> : null}
         {discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Vereine werden geladen …</p> : null}
-        {discoveryError ? <p role="alert" className="px-3 py-2 text-sm text-red-300">{discoveryError}</p> : null}
+        {discoveryError ? <p role="alert" className="px-3 py-2 text-sm text-[rgb(var(--club-accent-text-rgb))]">{discoveryError}</p> : null}
         {discoverMatches.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/55">{searchTerm ? 'Mannschaften anderer Vereine' : 'Weitere gespeicherte Favoriten'}</p>
           {discoverMatches.slice(0, 30).map(team => (
             <div key={team.id} className="mb-2 grid w-full min-w-0 grid-cols-[40px_minmax(0,1fr)] gap-x-3 gap-y-2 overflow-hidden rounded-xl border border-white/15 bg-white/[0.04] p-3">
               {team.clubLogo ? <img src={team.clubLogo} alt="" className="h-10 w-10 object-contain" /> : <Users className="h-9 w-9 text-white/60" aria-hidden />}
               <div className="min-w-0">
-                <p className="break-words text-sm font-bold text-white">{team.teamName}</p>
+                <button type="button" disabled={favoriteOpening} onClick={() => void openDiscoveredTeam(team.id)} aria-label={`${team.teamName} ansehen`} className="min-h-11 w-full break-words text-left text-sm font-bold text-white">{team.teamName} ansehen</button>
                 <p className="break-words text-xs text-white/65">{team.clubName} · {team.ageGroup} · {team.seasonName}</p>
                 <p className="mt-1 text-[11px] text-white/45">Nur Favorit · keine Eltern- oder Trainerrechte</p>
               </div>
@@ -419,7 +434,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
               </button>
             </div>
             {favoriteMenuUrl === item.url ? <div className="border-t border-white/10 px-3 py-2">
-              <button type="button" onClick={() => removeExternalFavorite(item.url)} className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-semibold text-red-300 hover:bg-red-950/30">
+              <button type="button" onClick={() => removeExternalFavorite(item.url)} className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-semibold text-[rgb(var(--club-accent-text-rgb))] hover:bg-[rgb(var(--club-primary-rgb)/0.3)]">
                 <Trash2 className="h-4 w-4" aria-hidden /> Aus Favoriten entfernen
               </button>
             </div> : null}
