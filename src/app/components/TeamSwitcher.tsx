@@ -109,6 +109,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const resultsRef = React.useRef<HTMLDivElement>(null);
   const [keyboardOpen, setKeyboardOpen] = React.useState(false);
   const [viewportHeight, setViewportHeight] = React.useState<number | null>(null);
+  const [viewportTop, setViewportTop] = React.useState(0);
   React.useEffect(() => {
     if (!open || typeof window === 'undefined') return;
     const viewport = window.visualViewport;
@@ -116,6 +117,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     const update = () => {
       const visibleHeight = viewport.height;
       setViewportHeight(visibleHeight);
+      setViewportTop(viewport.offsetTop);
       setKeyboardOpen(visibleHeight < window.innerHeight - 120);
     };
     update();
@@ -126,6 +128,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       viewport.removeEventListener('scroll', update);
       setKeyboardOpen(false);
       setViewportHeight(null);
+      setViewportTop(0);
     };
   }, [open]);
   const panelId = React.useId();
@@ -337,9 +340,9 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       {!iconOnly ? <ChevronDown className={`h-5 w-5 shrink-0 text-[rgb(var(--club-accent-rgb))] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden /> : null}
     </button>
     {open && typeof document !== 'undefined' ? createPortal(
-      <div className="fixed inset-x-0 top-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }} role="presentation">
+      <div className="fixed inset-x-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" style={{ top: viewportTop, height: viewportHeight ? `${viewportHeight}px` : '100dvh' }} role="presentation">
       <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Favoriten und Mannschaften"
-        className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ maxHeight: viewportHeight ? `${Math.max(250, viewportHeight - 12)}px` : 'min(92dvh,52rem)' }}>
+        className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ maxHeight: viewportHeight ? `${Math.max(180, viewportHeight - (keyboardOpen ? 24 : 12))}px` : 'min(92dvh,52rem)' }}>
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2 pt-1">
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-red-500/45 px-3 text-sm font-bold text-white/85"><ArrowLeft className="h-4 w-4 text-red-400" aria-hidden /> Zurück</button>
@@ -356,7 +359,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
           <input type="search" value={teamSearch} onChange={event => { setTeamSearch(event.target.value); resultsRef.current?.scrollTo({ top: 0 }); }} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
             className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
         </label>
-        {multipleAvailable && visibleCurrentSeasons.length > 1 && !searchTerm ? <>
+        {!keyboardOpen && multipleAvailable && visibleCurrentSeasons.length > 1 && !searchTerm ? <>
           <button type="button" onClick={() => { setTeamViewFilter(visibleCurrentSeasons.map(ts => ts.id)); setOpen(false); triggerRef.current?.focus(); }}
             aria-pressed={teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)}
             className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
@@ -366,7 +369,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         </> : null}
         {[
           { label: 'Meine Mannschaften & Favoriten', rows: searchedCurrentSeasons },
-        ].map(({ label, rows }) => rows.length ? <section key={label}>
+        ].map(({ label, rows }) => rows.length && (!keyboardOpen || !!searchTerm) ? <section key={label}>
           <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
           {rows.map((ts) => renderSeason(ts, multipleAvailable))}
         </section> : null)}
@@ -385,7 +388,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
             <button type="button" onClick={() => toggleDiscoveredFavorite(team.id)} className="min-h-11 shrink-0 rounded-lg border border-yellow-400/45 px-3 text-xs font-bold text-yellow-200" aria-pressed={savedDiscoverableIds.includes(team.id)}>{savedDiscoverableIds.includes(team.id) ? 'Entfernen' : 'Hinzufügen'}</button>
           </div>)}
         </section> : null}
-        {searchedOtherSeasons.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
+        {searchedOtherSeasons.length > 0 && (!keyboardOpen || !!searchTerm) ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Archiv & Vorbereitung · einzeln anzeigen</p>
           {searchedOtherSeasons.map((ts) => renderSeason(ts, false))}
         </section> : null}
