@@ -30,6 +30,7 @@ import { EventDetailPage } from '../pages/EventDetailPage';
 import { MatchSetupScreen } from '../pages/live/MatchSetupScreen';
 import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
+import { MelkFavoritePreview } from '../pages/MelkFavoritePreview';
 import { TrainerProfilePage } from '../pages/TrainerProfilePage';
 import { TablePage } from '../pages/TablePage';
 import { NotificationsPage } from '../pages/NotificationsPage';
@@ -93,32 +94,6 @@ import { DemoU13TablePage } from '../demo/pages/DemoU13TablePage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
-
-/** Private, read-only pilot preview for a cross-club favorite. */
-function MelkFavoritePreview(): React.ReactElement {
-  return <div className="mx-auto min-h-[75vh] w-full max-w-3xl bg-[#06080d] pb-24 text-white">
-    <a href="/app/team" className="m-4 inline-flex min-h-11 items-center rounded-xl border border-[#164A9D] px-4 text-sm font-semibold">← Zurück zu meinem Team</a>
-    <div className="relative">
-      <img src="https://spielzeitapp.at/demo/sc-melk/team-hero.jpg" alt="Fiktives SC-Melk-Demo-Mannschaftsbild" className="h-64 w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
-      <div className="absolute bottom-3 left-4 flex items-end gap-3">
-        <img src="https://spielzeitapp.at/demo/sc-melk/club-logo.png" alt="SC Melk Wappen" className="h-16 w-16 object-contain" />
-        <div><h1 className="text-2xl font-black">SC MELK</h1><p className="text-sm font-bold text-[#FFDA24]">U16 FR · SAISON 2026/27</p></div>
-      </div>
-    </div>
-    <div className="mx-3 mt-3 grid grid-cols-4 gap-1 rounded-xl border border-[#164A9D] p-2 text-center text-xs font-bold">
-      <span className="rounded-lg bg-[#164A9D] p-3">Kader</span><span className="p-3 text-white/60">Trainer</span><span className="p-3 text-white/60">Training</span><span className="p-3 text-white/60">Spiele</span>
-    </div>
-    <h2 className="px-4 pt-5 text-xl font-black">UNSER TEAM <span className="ml-2 text-xs font-normal text-[#FFDA24]">DEMO</span></h2>
-    <div className="grid grid-cols-2 gap-3 p-4">
-      {[{name:'Lena Krammer',image:'player-a.webp'},{name:'Julia Aigner',image:'player-b.webp'}].map(player=><div key={player.name} className="overflow-hidden rounded-xl border border-[#164A9D] bg-[#091d4b]">
-        <img src={`https://spielzeitapp.at/demo/sc-melk/${player.image}`} alt={`Fiktives Demo-Porträt ${player.name}`} className="aspect-[3/4] w-full object-cover" />
-        <p className="px-3 py-3 text-sm font-bold uppercase">{player.name}</p>
-      </div>)}
-    </div>
-    <p className="px-4 text-xs text-white/60">Private Testvorschau mit fiktiven Profilen. Keine echten Kaderdaten oder Elternrechte.</p>
-  </div>;
-}
 
 /** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
 function DemoPlayerProfileRedirect(): React.ReactElement {
@@ -272,6 +247,7 @@ function InternalRoutes(): React.ReactElement {
           </Route>
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="team" element={<TeamPage />} />
+          <Route path="team/favorite/sc-melk" element={<MelkFavoritePreview />} />
           <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="spielplan" element={<DemoTeamSchedulePage />} />
@@ -336,6 +312,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="live" element={<LivePage />} />
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
+          <Route path="team/favorite/sc-melk" element={<MelkFavoritePreview />} />
         <Route path="team/juggling-challenge" element={<JugglingChallengePage />} />
         <Route path="team/sprint-challenge" element={<SprintChallengePage />} />
         <Route

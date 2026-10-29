@@ -12,7 +12,7 @@ import {
   PremiumTabTrack,
   SectionTitle,
 } from "../ui";
-import { ArrowLeft, Camera, Archive, ChevronDown, Users } from "lucide-react";
+import { ArrowLeft, Camera, Archive, ChevronDown } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
@@ -51,6 +51,8 @@ import { buildDemoSeasonMatchBoard } from "../demo/demoMatchState";
 import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
 import { useAvailabilityPermissions } from "../hooks/useAvailabilityPermissions";
 import { getOurTeamDisplayName, getOurTeamLogoUrl } from "../lib/teamLogos";
+
+import { TeamViewSwitcher } from "../components/team/TeamViewSwitcher";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-demo-u12-v2.webp";
@@ -1012,17 +1014,6 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       className="page team-page min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-0 pb-36 sm:px-4 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
-      {!isDemo && basePath !== "/manager" ? <section className="mx-3 rounded-2xl border border-white/15 bg-[#111015] p-3 text-white">
-        <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/60"><Users className="h-4 w-4" /> Mannschaft wechseln</div>
-        <select aria-label="Mannschaft auswählen" value={readTeamSeasonId ?? ''} onChange={event => {
-          if (event.target.value === 'sc-melk-demo') { navigate('/app/team/favorite/sc-melk'); return; }
-          setViewTeamSeasonId(event.target.value);
-        }} className="min-h-12 w-full rounded-xl border border-rose-500/40 bg-[#20131a] px-3 text-sm font-semibold text-white">
-          {teamSeasons.filter(ts => ts.status !== 'archived').map(ts => <option key={ts.id} value={ts.id}>{ts.team?.name || ts.display_name || 'Mannschaft'} · {ts.age_group || ''} · {ts.season?.name || ''}</option>)}
-          <option value="sc-melk-demo">SC Melk · U16 FR · 2026/27 (Demo)</option>
-        </select>
-        <p className="mt-2 text-xs text-white/50">SC Melk ist derzeit eine private Demoansicht mit fiktiven Spielerinnen.</p>
-      </section> : null}
       {/* Team Hero */}
       {basePath === "/manager" ? <section data-ui-card className="manager-team-desktop-header items-center justify-between gap-5 rounded-2xl border p-5">
         <div className="flex min-w-0 items-center gap-4">
@@ -1056,6 +1047,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         />
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[rgb(var(--club-primary-rgb)/0.2)] blur-3xl" aria-hidden />
         <div className="relative z-10 flex h-full min-h-[220px] flex-col justify-end p-4 sm:min-h-[280px] sm:p-6">
+          {!isDemo && basePath !== "/manager" ? <div className="absolute left-3 top-3 sm:left-4 sm:top-4"><TeamViewSwitcher /></div> : null}
           {canManagePlayers ? (
             <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
               <input
