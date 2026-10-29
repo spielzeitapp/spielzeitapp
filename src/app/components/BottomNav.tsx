@@ -205,7 +205,7 @@ export const BottomNav: React.FC = () => {
           className="pointer-events-none absolute inset-0 rounded-[28px]"
           style={{
             background:
-              'linear-gradient(180deg, rgba(255,45,45,0.12) 0%, rgba(255,30,30,0.04) 28%, transparent 48%)',
+              'linear-gradient(180deg, rgb(var(--club-primary-rgb) / 0.24) 0%, rgb(var(--club-accent-rgb) / 0.06) 28%, transparent 48%)',
           }}
           aria-hidden
         />
