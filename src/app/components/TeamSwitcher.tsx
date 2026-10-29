@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users, MoreHorizontal, Trash2 } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -12,6 +13,7 @@ import {
   resolveTeamSeasonSwitcherAction,
 } from '../../lib/seasonLifecycle';
 
+type DiscoverableTeam = { id: string; teamName: string; clubName: string; ageGroup: string; seasonName: string; clubLogo: string | null };
 function seasonLabel(ts: SessionTeamSeasonItem): string {
   return [ts.season?.name, isSeasonActive(ts.status) ? 'Aktuell' : ts.status === 'draft' ? 'In Vorbereitung' : 'Archiv'].filter(Boolean).join(' · ');
 }
@@ -40,8 +42,27 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const [open, setOpen] = React.useState(false);
   const [teamSearch, setTeamSearch] = React.useState('');
   const [externalFavorites, setExternalFavorites] = React.useState<Array<{ name: string; url: string }>>([]);
+  const [discoveredTeams, setDiscoveredTeams] = React.useState<DiscoverableTeam[]>([]);
+  const [savedDiscoverableIds, setSavedDiscoverableIds] = React.useState<string[]>([]);
+  const [discoveryBusy, setDiscoveryBusy] = React.useState(false);
+  const [discoveryError, setDiscoveryError] = React.useState<string | null>(null);
   const [favoriteMenuUrl, setFavoriteMenuUrl] = React.useState<string | null>(null);
   const [hiddenTeamIds, setHiddenTeamIds] = React.useState<string[]>([]);
+  const discoverStorageKey = user?.id ? `spz_discovered_team_favorites_${user.id}` : null;
+  React.useEffect(() => {
+    if (!discoverStorageKey) { setSavedDiscoverableIds([]); return; }
+    try {
+      const value = JSON.parse(window.localStorage.getItem(discoverStorageKey) || '[]');
+      setSavedDiscoverableIds(Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []);
+    } catch { setSavedDiscoverableIds([]); }
+  }, [discoverStorageKey]);
+  const toggleDiscoveredFavorite = (id: string) => {
+    const next = savedDiscoverableIds.includes(id) ? savedDiscoverableIds.filter(x => x !== id) : [...savedDiscoverableIds, id];
+    try {
+      if (discoverStorageKey) window.localStorage.setItem(discoverStorageKey, JSON.stringify(next));
+      setSavedDiscoverableIds(next);
+    } catch { window.alert('Favorit konnte nicht gespeichert werden.'); }
+  };
   const hiddenStorageKey = user?.id ? `spz_hidden_team_favorites_${user.id}` : null;
   React.useEffect(() => {
     setHiddenTeamIds([]);
@@ -85,6 +106,32 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   };
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
+  const resultsRef = React.useRef<HTMLDivElement>(null);
+  const [keyboardOpen, setKeyboardOpen] = React.useState(false);
+  const [searchFocused, setSearchFocused] = React.useState(false);
+  const [viewportHeight, setViewportHeight] = React.useState<number | null>(null);
+  const [viewportTop, setViewportTop] = React.useState(0);
+  React.useEffect(() => {
+    if (!open || typeof window === 'undefined') return;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      const visibleHeight = viewport.height;
+      setViewportHeight(visibleHeight);
+      setViewportTop(viewport.offsetTop);
+      setKeyboardOpen(visibleHeight < window.innerHeight - 120);
+    };
+    update();
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    return () => {
+      viewport.removeEventListener('resize', update);
+      viewport.removeEventListener('scroll', update);
+      setKeyboardOpen(false);
+      setViewportHeight(null);
+      setViewportTop(0);
+    };
+  }, [open]);
   const panelId = React.useId();
   const value = viewTeamSeasonId ?? selectedTeamSeasonId;
   const current = teamSeasons.find((ts) => ts.id === value);
@@ -155,12 +202,48 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     }
   };
 
+  const searchTerm = teamSearch.trim().toLocaleLowerCase('de');
+  React.useEffect(() => {
+    if (!open || !user) return;
+    let cancelled = false;
+    const load = async () => {
+      setDiscoveryBusy(true);
+      setDiscoveryError(null);
+      const { data, error } = await supabase
+        .from('team_seasons')
+        .select('id,age_group,status,teams!inner(id,name,clubs!inner(id,name,status,logo_url)),seasons(name)')
+        .eq('status', 'active')
+        .limit(300);
+      if (cancelled) return;
+      setDiscoveryBusy(false);
+      if (error) { setDiscoveryError('Vereinssuche derzeit nicht erreichbar.'); return; }
+      const rows: DiscoverableTeam[] = [];
+      for (const item of data || []) {
+        const team = Array.isArray(item.teams) ? item.teams[0] : item.teams;
+        const club = team && (Array.isArray(team.clubs) ? team.clubs[0] : team.clubs);
+        const season = Array.isArray(item.seasons) ? item.seasons[0] : item.seasons;
+        if (!team || !club || club.status !== 'active') continue;
+        rows.push({ id: item.id, teamName: team.name, clubName: club.name, ageGroup: item.age_group || '', seasonName: season?.name || '', clubLogo: club.logo_url || null });
+      }
+      setDiscoveredTeams(rows);
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [open, user?.id]);
+  const discoverMatches = discoveredTeams.filter(team =>
+    (searchTerm.length > 0 ? `${team.clubName} ${team.teamName} ${team.ageGroup} ${team.seasonName}`.toLocaleLowerCase('de').includes(searchTerm) : savedDiscoverableIds.includes(team.id)) &&
+    !teamSeasons.some(own => own.id === team.id)
+  );
+  const visibleCurrentSeasons = currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id));
   const searchedCurrentSeasons = currentSeasons.filter(ts =>
-    (teamSearch.trim() || !hiddenTeamIds.includes(ts.id)) &&
-    (!teamSearch.trim() || compactLabel(ts).toLocaleLowerCase('de').includes(teamSearch.trim().toLocaleLowerCase('de')))
+    (searchTerm.length > 0 || !hiddenTeamIds.includes(ts.id)) &&
+    (!searchTerm || compactLabel(ts).toLocaleLowerCase('de').includes(searchTerm))
+  );
+  const searchedOtherSeasons = otherSeasons.filter(ts =>
+    !searchTerm || compactLabel(ts).toLocaleLowerCase('de').includes(searchTerm)
   );
   const removeTeamFavorite = (id: string) => {
-    const visible = currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id));
+    const visible = visibleCurrentSeasons;
     if (visible.length <= 1) {
       window.alert('Mindestens eine Mannschaft muss in deinen Favoriten bleiben.');
       return;
@@ -168,7 +251,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     const nextVisible = visible.filter(ts => ts.id !== id);
     if (!persistHiddenTeamIds([...hiddenTeamIds, id])) return;
     if (filtered) {
-      const selected = teamViewFilter === 'all' ? currentSeasons.map(ts => ts.id) : filteredTeamSeasonIds;
+      const selected = teamViewFilter === 'all' ? visible.map(ts => ts.id) : filteredTeamSeasonIds;
       const next = selected.filter(sid => sid !== id && nextVisible.some(ts => ts.id === sid));
       if (next.length > 1) setTeamViewFilter(next);
       else if (next.length === 1) { setSelectedTeamSeasonId(next[0]); setTeamViewFilter(null); }
@@ -185,6 +268,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   };
   const toggleOpen = () => {
     setTeamSearch('');
+    setSearchFocused(false);
     setFavoriteMenuUrl(null);
     setOpen((value) => !value);
   };
@@ -258,50 +342,72 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       {!iconOnly ? <ChevronDown className={`h-5 w-5 shrink-0 text-[rgb(var(--club-accent-rgb))] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden /> : null}
     </button>
     {open && typeof document !== 'undefined' ? createPortal(
-      <div className="fixed inset-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" role="presentation">
+      <div className="fixed inset-x-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" style={{ top: viewportTop, height: viewportHeight ? `${viewportHeight}px` : '100dvh' }} role="presentation">
       <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Favoriten und Mannschaften"
-        className="sz-club-surface flex max-h-[min(92dvh,52rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]">
+        className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ height: keyboardOpen && viewportHeight ? `${Math.max(180, viewportHeight - 8)}px` : undefined, maxHeight: viewportHeight ? `${Math.max(180, viewportHeight - (keyboardOpen ? 8 : 12))}px` : 'min(92dvh,52rem)' }}>
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2 pt-1">
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-red-500/45 px-3 text-sm font-bold text-white/85"><ArrowLeft className="h-4 w-4 text-red-400" aria-hidden /> Zurück</button>
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="sz-club-accent-text min-h-[44px] px-2 text-sm font-bold">Fertig</button>
         </div>
-        <div className="shrink-0 px-2 pb-3 text-center">
+        <div className={keyboardOpen ? "hidden" : "shrink-0 px-2 pb-3 text-center"}>
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-red-500/55 bg-red-950/40"><Star className="h-6 w-6 text-red-400" aria-hidden /></div>
           <h2 className="text-[22px] font-black leading-tight text-white">Favoriten verwalten</h2>
           <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/65">Wähle deine Mannschaften einzeln oder gemeinsam. Deine Auswahl bleibt gespeichert.</p>
         </div>
-        <div className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+        <div ref={resultsRef} className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
         <label className="relative mb-3 block">
           <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-red-400" aria-hidden />
-          <input type="search" value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
+          <input type="search" value={teamSearch} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} onChange={event => { setTeamSearch(event.target.value); resultsRef.current?.scrollTo({ top: 0 }); }} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
             className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
         </label>
-        {multipleAvailable && !teamSearch.trim() ? <>
-          <button type="button" onClick={() => { setTeamViewFilter(currentSeasons.filter(ts => !hiddenTeamIds.includes(ts.id)).map(ts => ts.id)); setOpen(false); triggerRef.current?.focus(); }}
-            aria-pressed={teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)}
-            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)) ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
-            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-red-300" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({currentSeasons.length - hiddenTeamIds.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === currentSeasons.length - hiddenTeamIds.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
+        {!keyboardOpen && multipleAvailable && visibleCurrentSeasons.length > 1 && !searchTerm ? <>
+          <button type="button" onClick={() => { setTeamViewFilter(visibleCurrentSeasons.map(ts => ts.id)); setOpen(false); triggerRef.current?.focus(); }}
+            aria-pressed={teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)}
+            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
+            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-red-300" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({visibleCurrentSeasons.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
           </button>
 
         </> : null}
         {[
           { label: 'Meine Mannschaften & Favoriten', rows: searchedCurrentSeasons },
-        ].map(({ label, rows }) => rows.length ? <section key={label}>
+        ].map(({ label, rows }) => rows.length && (!keyboardOpen || !!searchTerm) ? <section key={label}>
           <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
           {rows.map((ts) => renderSeason(ts, multipleAvailable))}
         </section> : null)}
-        {searchedCurrentSeasons.length === 0 && teamSearch.trim() ? <p className="px-3 py-2 text-sm text-white/60">Keine passende Mannschaft vorhanden. Neue Vereine und Mannschaften werden durch die Vereinsverwaltung im Spielzeit Manager eingerichtet.</p> : null}
-        {otherSeasons.length && !teamSearch.trim() ? <section className="mt-2 border-t border-white/10 pt-2">
+        {searchTerm && searchedCurrentSeasons.length === 0 && searchedOtherSeasons.length === 0 && discoverMatches.length === 0 && !discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Keine passende freigegebene Mannschaft gefunden.</p> : null}
+        {keyboardOpen && !searchTerm && !discoveryBusy ? <p className="px-3 py-3 text-sm text-white/60">Verein oder Mannschaft eingeben, z. B. Melk.</p> : null}
+        {discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Vereine werden geladen …</p> : null}
+        {discoveryError ? <p role="alert" className="px-3 py-2 text-sm text-red-300">{discoveryError}</p> : null}
+        {discoverMatches.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
+          <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/55">{searchTerm ? 'Mannschaften anderer Vereine' : 'Weitere gespeicherte Favoriten'}</p>
+          {discoverMatches.slice(0, 30).map(team => (
+            <div key={team.id} className="mb-2 grid w-full min-w-0 grid-cols-[40px_minmax(0,1fr)] gap-x-3 gap-y-2 overflow-hidden rounded-xl border border-white/15 bg-white/[0.04] p-3">
+              {team.clubLogo ? <img src={team.clubLogo} alt="" className="h-10 w-10 object-contain" /> : <Users className="h-9 w-9 text-white/60" aria-hidden />}
+              <div className="min-w-0">
+                <p className="break-words text-sm font-bold text-white">{team.teamName}</p>
+                <p className="break-words text-xs text-white/65">{team.clubName} · {team.ageGroup} · {team.seasonName}</p>
+                <p className="mt-1 text-[11px] text-white/45">Nur Favorit · keine Eltern- oder Trainerrechte</p>
+              </div>
+              <button type="button" onClick={() => toggleDiscoveredFavorite(team.id)}
+                className="col-span-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-yellow-400/50 bg-yellow-400/10 px-3 text-sm font-bold text-yellow-200"
+                aria-pressed={savedDiscoverableIds.includes(team.id)}>
+                {savedDiscoverableIds.includes(team.id) ? <Check className="h-5 w-5 shrink-0" aria-hidden /> : <Star className="h-5 w-5 shrink-0" aria-hidden />}
+                {savedDiscoverableIds.includes(team.id) ? 'Favorit entfernen' : 'Zu Favoriten hinzufügen'}
+              </button>
+            </div>
+          ))}
+        </section> : null}
+        {searchedOtherSeasons.length > 0 && (!keyboardOpen || !!searchTerm) ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Archiv & Vorbereitung · einzeln anzeigen</p>
-          {otherSeasons.map((ts) => renderSeason(ts, false))}
+          {searchedOtherSeasons.map((ts) => renderSeason(ts, false))}
         </section> : null}
         {externalFavorites.length > 0 ? <section className="mt-3 border-t border-white/10 pt-3">
           <div className="flex items-center gap-2 px-3 pb-2">
             <Star className="h-4 w-4 text-amber-400" aria-hidden />
             <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">Weitere Favoriten</p>
           </div>
-          {externalFavorites.map(item => <div key={item.url} className="mb-2 rounded-xl border border-white/10 bg-white/[0.04]">
+          {externalFavorites.filter(item => !searchTerm || item.name.toLocaleLowerCase('de').includes(searchTerm)).map(item => <div key={item.url} className="mb-2 rounded-xl border border-white/10 bg-white/[0.04]">
             <div className="flex min-h-[52px] items-center gap-2 px-3 py-2">
               <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold text-white">
                 <Star className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
