@@ -222,7 +222,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const raw = window.localStorage.getItem('spz_team_view_' + authUser.id);
       if (!raw) return;
       const stored: unknown = JSON.parse(raw);
-      const active = new Set(teamSeasons.filter(ts => ts.status === 'active').map(ts => ts.id));
       if (stored === 'all') setTeamViewFilterState('all');
       else if (Array.isArray(stored)) {
         // External favorites are not part of the user's membership seasons.
