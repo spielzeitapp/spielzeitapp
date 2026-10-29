@@ -317,7 +317,7 @@ export const MoreHubPage: React.FC = () => {
         {showManagerLink ? (
           <Link to="/manager/musikstudio" className={dsPanelRowClass()}>
             <span className="flex items-center gap-3">
-              <Music2 className="h-5 w-5 text-red-400" aria-hidden />
+              <Music2 className="h-5 w-5 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
               <span>Musikplayer</span>
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
@@ -326,7 +326,7 @@ export const MoreHubPage: React.FC = () => {
         <HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-red-400" aria-hidden />
+              <Bell className="h-5 w-5 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
               <span>Nachrichten</span>
               {unreadCount > 0 && (
                 <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
@@ -350,7 +350,7 @@ export const MoreHubPage: React.FC = () => {
               aria-expanded={teamAdminOpen}
             >
               <span className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-red-400" aria-hidden />
+                <Users className="h-5 w-5 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
                 <span>Teamverwaltung</span>
               </span>
               <ChevronRight
@@ -365,7 +365,7 @@ export const MoreHubPage: React.FC = () => {
               <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
                 <HubRowLink to="/app/mehr/seasons" className={subRowClass} isDemo={isDemo}>
                   <span className="flex items-center gap-2">
-                    <CalendarRange className="h-4 w-4 text-red-400/90" aria-hidden />
+                    <CalendarRange className="h-4 w-4 text-[rgb(var(--club-accent-rgb)/0.9)]" aria-hidden />
                     Saison &amp; Meisterschaft verwalten
                   </span>
                   <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
@@ -374,7 +374,7 @@ export const MoreHubPage: React.FC = () => {
                   <HubRowLink to="/app/mehr/parent-access" className={subRowClass} isDemo={isDemo}>
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="flex items-center gap-2">
-                        <Smartphone className="h-4 w-4 shrink-0 text-red-400/90" aria-hidden />
+                        <Smartphone className="h-4 w-4 shrink-0 text-[rgb(var(--club-accent-rgb)/0.9)]" aria-hidden />
                         Eltern &amp; Spielerzugänge
                       </span>
                       <span className="pl-6 text-[11px] font-normal leading-snug text-white/45">
@@ -398,7 +398,7 @@ export const MoreHubPage: React.FC = () => {
               aria-expanded={trainerToolsOpen}
             >
               <span className="flex items-center gap-2">
-                <Wrench className="h-5 w-5 text-red-400" aria-hidden />
+                <Wrench className="h-5 w-5 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
                 <span>Trainer-Tools</span>
               </span>
               <ChevronRight
@@ -416,7 +416,7 @@ export const MoreHubPage: React.FC = () => {
                   {showPlatzbelegung ? (
                     <HubRowLink to="/app/platzbelegung" className={subRowClass} isDemo={isDemo}>
                       <span className="flex min-w-0 items-start gap-2">
-                        <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden />
+                        <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
                         <span className="flex min-w-0 flex-col gap-0.5">
                           <span>Platzbelegung</span>
                           <span className="text-[11px] font-normal leading-snug text-white/45">
@@ -432,7 +432,7 @@ export const MoreHubPage: React.FC = () => {
                   {showManagerLink ? (
                     <HubRowLink to="/manager/training/einheiten" className={subRowClass} isDemo={isDemo}>
                       <span className="flex min-w-0 items-start gap-2">
-                        <Dumbbell className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden />
+                        <Dumbbell className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
                         <span className="flex min-w-0 flex-col gap-0.5">
                           <span>Trainingsplanung</span>
                           <span className="text-[11px] font-normal leading-snug text-white/45">
@@ -498,7 +498,7 @@ export const MoreHubPage: React.FC = () => {
           >
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex items-center gap-3">
-                <Link2 className="h-5 w-5 text-red-400" aria-hidden />
+                <Link2 className="h-5 w-5 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
                 <span>{hasLinkedChildren ? 'Weiteres Kind verknüpfen' : 'Kind verknüpfen'}</span>
               </span>
               <span className="pl-8 text-[11px] font-normal text-white/45">
@@ -517,7 +517,7 @@ export const MoreHubPage: React.FC = () => {
           >
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-red-400" aria-hidden />
+                <Bell className="h-5 w-5 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
                 <span>Automatische Erinnerungen</span>
               </span>
               <span className="pl-8 text-[11px] font-normal text-white/45">
@@ -531,7 +531,7 @@ export const MoreHubPage: React.FC = () => {
         <HubRowLink to="/app/profile" className={dsPanelRowClass()} isDemo={isDemo}>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex items-center gap-3">
-              <Settings className="h-5 w-5 text-red-400" aria-hidden />
+              <Settings className="h-5 w-5 text-[rgb(var(--club-accent-rgb))]" aria-hidden />
               <span>Einstellungen</span>
             </span>
             {isDemo ? (
