@@ -381,14 +381,14 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         {discoveryError ? <p role="alert" className="px-3 py-2 text-sm text-red-300">{discoveryError}</p> : null}
         {discoverMatches.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/55">{searchTerm ? 'Mannschaften anderer Vereine' : 'Weitere gespeicherte Favoriten'}</p>
-          {discoverMatches.slice(0, 30).map(team => <div key={team.id} className="mb-2 flex min-h-[78px] items-center gap-3 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2">
+          {discoverMatches.slice(0, 30).map(team => <div key={team.id} className="mb-2 flex min-h-[78px] min-w-0 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-2 py-2 sm:gap-3 sm:px-3">
             {team.clubLogo ? <img src={team.clubLogo} alt="" className="h-10 w-10 shrink-0 object-contain" /> : <Users className="h-8 w-8 shrink-0 text-white/60" aria-hidden />}
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-white">{team.teamName}</p>
               <p className="text-xs text-white/65">{team.clubName} · {team.ageGroup} · {team.seasonName}</p>
               <p className="mt-1 text-[11px] text-white/45">Nur Favorit · keine Eltern- oder Trainerrechte</p>
             </div>
-            <button type="button" onClick={() => toggleDiscoveredFavorite(team.id)} className="min-h-11 shrink-0 rounded-lg border border-yellow-400/45 px-3 text-xs font-bold text-yellow-200" aria-pressed={savedDiscoverableIds.includes(team.id)}>{savedDiscoverableIds.includes(team.id) ? 'Entfernen' : 'Hinzufügen'}</button>
+            <button type="button" onClick={() => toggleDiscoveredFavorite(team.id)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-yellow-400/45 bg-yellow-400/10 text-yellow-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300" aria-label={savedDiscoverableIds.includes(team.id) ? `${team.teamName} aus Favoriten entfernen` : `${team.teamName} zu Favoriten hinzufügen`} title={savedDiscoverableIds.includes(team.id) ? 'Favorit entfernen' : 'Favorit hinzufügen'} aria-pressed={savedDiscoverableIds.includes(team.id)}>{savedDiscoverableIds.includes(team.id) ? <Check className="h-5 w-5" aria-hidden /> : <Star className="h-5 w-5" aria-hidden />}</button>
           </div>)}
         </section> : null}
         {searchedOtherSeasons.length > 0 && (!keyboardOpen || !!searchTerm) ? <section className="mt-2 border-t border-white/10 pt-2">
