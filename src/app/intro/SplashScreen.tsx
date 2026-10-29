@@ -44,22 +44,22 @@ export const SplashScreen: React.FC = () => {
         className="relative flex h-full min-h-full w-full max-w-md items-center justify-center overflow-hidden"
         style={{
           background:
-            'radial-gradient(circle at 50% 45%, rgba(185,28,28,0.34) 0%, rgba(74,8,12,0.18) 31%, transparent 57%), linear-gradient(155deg, #170305 0%, #070708 44%, #120204 100%)',
+            'radial-gradient(circle at 50% 45%, rgb(var(--club-primary-rgb, 122 29 42) / 0.48) 0%, rgb(var(--club-primary-rgb, 122 29 42) / 0.18) 31%, transparent 57%), linear-gradient(155deg, #070708 0%, #05070c 44%, #080a10 100%)',
         }}
       >
         <div
-          className="pointer-events-none absolute -left-24 top-[9%] h-3 w-[70%] -rotate-45 bg-gradient-to-r from-transparent via-red-600/55 to-transparent blur-[0.5px]"
+          className="pointer-events-none absolute -left-24 top-[9%] h-3 w-[70%] -rotate-45 bg-gradient-to-r from-transparent via-[rgb(var(--club-accent-rgb,255_64_80)/0.55)] to-transparent blur-[0.5px]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute -right-24 bottom-[12%] h-3 w-[70%] -rotate-45 bg-gradient-to-r from-transparent via-red-700/45 to-transparent blur-[0.5px]"
+          className="pointer-events-none absolute -right-24 bottom-[12%] h-3 w-[70%] -rotate-45 bg-gradient-to-r from-transparent via-[rgb(var(--club-accent-rgb,255_64_80)/0.45)] to-transparent blur-[0.5px]"
           aria-hidden
         />
         <div
           className="pointer-events-none absolute inset-0 opacity-25"
           style={{
             backgroundImage:
-              'linear-gradient(120deg, transparent 0%, transparent 49.5%, rgba(255,45,45,0.12) 50%, transparent 50.5%, transparent 100%)',
+              'linear-gradient(120deg, transparent 0%, transparent 49.5%, rgb(var(--club-accent-rgb,255 64 80) / 0.12) 50%, transparent 50.5%, transparent 100%)',
             backgroundSize: '86px 86px',
           }}
           aria-hidden
@@ -80,7 +80,7 @@ export const SplashScreen: React.FC = () => {
           />
           <div className="mt-3 flex flex-col items-center text-[clamp(1.25rem,6vw,1.65rem)] font-black uppercase leading-[1.1] tracking-[0.005em] text-white">
             <span>Unser Team.</span>
-            <span className="text-[#ff3038]">Unsere Momente.</span>
+            <span className="text-[rgb(var(--club-accent-rgb,255_64_80))]">Unsere Momente.</span>
             <span>Unser Spiel.</span>
           </div>
         </div>
