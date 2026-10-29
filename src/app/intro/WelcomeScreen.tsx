@@ -61,6 +61,7 @@ function PremiumIntroButton({
 }
 
 export const WelcomeScreen: React.FC = () => {
+  const heroFilterId = `welcome-club-${React.useId().replace(/:/g, "")}`;
   const navigate = useNavigate();
   const location = useLocation();
   const isDemoWelcome =
@@ -100,7 +101,25 @@ export const WelcomeScreen: React.FC = () => {
 
   return (
     <div className="welcome-screen fixed inset-0 z-[90] flex flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain bg-black text-white [-webkit-overflow-scrolling:touch]">
+      <svg className="pointer-events-none absolute h-0 w-0" aria-hidden focusable="false">
+        <defs>
+          <filter id={heroFilterId} colorInterpolationFilters="sRGB">
+            {/* Select saturated reds, keeping neutral blacks and most skin tones. */}
+            <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 -2 -1 0 0" result="redMask" />
+            <feComponentTransfer in="redMask" result="selectedRed">
+              <feFuncA type="linear" slope="10" intercept="0" />
+            </feComponentTransfer>
+            <feFlood floodColor="rgb(var(--club-accent-rgb))" result="clubColor" />
+            <feBlend in="clubColor" in2="SourceGraphic" mode="color" result="coloredImage" />
+            <feComposite in="coloredImage" in2="selectedRed" operator="in" result="coloredReds" />
+            <feComposite in="coloredReds" in2="SourceGraphic" operator="over" />
+          </filter>
+        </defs>
+      </svg>
       <style>{`
+        :root[data-club-theme="custom"] .welcome-club-hero {
+          filter: var(--welcome-hero-filter);
+        }
         /* Club palette applies to the welcome entry without changing the platform wordmark. */
         :root[data-club-theme="custom"] .welcome-screen {
           background: radial-gradient(circle at 50% 30%, rgb(var(--club-primary-rgb) / 0.28), #030407 70%);
@@ -115,12 +134,12 @@ export const WelcomeScreen: React.FC = () => {
         }
 
         .welcome-intro-cta {
-          background: linear-gradient(180deg, rgba(42, 0, 0, 0.78) 0%, rgba(18, 0, 0, 0.84) 100%);
-          border: 1px solid rgba(255, 0, 0, 0.25);
+          background: linear-gradient(180deg, rgb(var(--club-accent-rgb) / 0.78) 0%, rgb(var(--club-accent-rgb) / 0.84) 100%);
+          border: 1px solid rgb(var(--club-accent-rgb) / 0.25);
           box-shadow:
-            0 0 32px rgba(255, 0, 0, 0.34),
+            0 0 32px rgb(var(--club-accent-rgb) / 0.34),
             0 1px 0 rgba(255, 255, 255, 0.05),
-            inset 0 0 16px rgba(255, 0, 0, 0.1);
+            inset 0 0 16px rgb(var(--club-accent-rgb) / 0.1);
           transition: transform 120ms ease-out, filter 120ms ease-out, box-shadow 0.2s ease;
           transform: translateY(0) scale(1);
           filter: brightness(1);
@@ -129,54 +148,54 @@ export const WelcomeScreen: React.FC = () => {
           .welcome-intro-cta:hover {
             transform: translateY(-2px);
             box-shadow:
-              0 0 44px rgba(255, 0, 0, 0.46),
+              0 0 44px rgb(var(--club-accent-rgb) / 0.46),
               0 1px 0 rgba(255, 255, 255, 0.06),
-              inset 0 0 22px rgba(255, 0, 0, 0.15);
+              inset 0 0 22px rgb(var(--club-accent-rgb) / 0.15);
           }
           .welcome-intro-cta:hover:active {
             transform: translateY(-2px) scale(0.97);
             filter: brightness(1.07);
             box-shadow:
-              0 0 44px rgba(255, 0, 0, 0.48),
-              inset 0 0 14px rgba(255, 0, 0, 0.16);
+              0 0 44px rgb(var(--club-accent-rgb) / 0.48),
+              inset 0 0 14px rgb(var(--club-accent-rgb) / 0.16);
           }
         }
         .welcome-intro-cta:active {
           transform: scale(0.97);
           filter: brightness(1.07);
           box-shadow:
-            0 0 44px rgba(255, 0, 0, 0.48),
-            inset 0 0 14px rgba(255, 0, 0, 0.16);
+            0 0 44px rgb(var(--club-accent-rgb) / 0.48),
+            inset 0 0 14px rgb(var(--club-accent-rgb) / 0.16);
         }
         .welcome-intro-cta--live {
-          background: linear-gradient(180deg, rgba(66, 12, 12, 0.82) 0%, rgba(24, 3, 3, 0.88) 100%);
-          border: 1px solid rgba(255, 45, 45, 0.58);
+          background: linear-gradient(180deg, rgb(var(--club-accent-rgb) / 0.82) 0%, rgb(var(--club-accent-rgb) / 0.88) 100%);
+          border: 1px solid rgb(var(--club-accent-rgb) / 0.58);
           box-shadow:
-            0 0 20px rgba(255, 0, 0, 0.4),
-            0 0 36px rgba(255, 0, 0, 0.32),
+            0 0 20px rgb(var(--club-accent-rgb) / 0.4),
+            0 0 36px rgb(var(--club-accent-rgb) / 0.32),
             0 1px 0 rgba(255, 255, 255, 0.06),
-            inset 0 0 18px rgba(255, 0, 0, 0.14);
+            inset 0 0 18px rgb(var(--club-accent-rgb) / 0.14);
         }
         @media (hover: hover) and (pointer: fine) {
           .welcome-intro-cta--live:hover {
             box-shadow:
-              0 0 24px rgba(255, 0, 0, 0.48),
-              0 0 44px rgba(255, 0, 0, 0.38),
+              0 0 24px rgb(var(--club-accent-rgb) / 0.48),
+              0 0 44px rgb(var(--club-accent-rgb) / 0.38),
               0 1px 0 rgba(255, 255, 255, 0.07),
-              inset 0 0 22px rgba(255, 0, 0, 0.18);
+              inset 0 0 22px rgb(var(--club-accent-rgb) / 0.18);
           }
           .welcome-intro-cta--live:hover:active {
             box-shadow:
-              0 0 22px rgba(255, 0, 0, 0.45),
-              0 0 40px rgba(255, 0, 0, 0.36),
-              inset 0 0 14px rgba(255, 0, 0, 0.18);
+              0 0 22px rgb(var(--club-accent-rgb) / 0.45),
+              0 0 40px rgb(var(--club-accent-rgb) / 0.36),
+              inset 0 0 14px rgb(var(--club-accent-rgb) / 0.18);
           }
         }
         .welcome-intro-cta--live:active {
           box-shadow:
-            0 0 22px rgba(255, 0, 0, 0.45),
-            0 0 40px rgba(255, 0, 0, 0.36),
-            inset 0 0 14px rgba(255, 0, 0, 0.18);
+            0 0 22px rgb(var(--club-accent-rgb) / 0.45),
+            0 0 40px rgb(var(--club-accent-rgb) / 0.36),
+            inset 0 0 14px rgb(var(--club-accent-rgb) / 0.18);
         }
         .welcome-intro-icon-shell {
           width: 60px;
@@ -186,27 +205,27 @@ export const WelcomeScreen: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(32, 14, 14, 0.45);
+          background: rgb(var(--club-accent-rgb) / 0.45);
           box-shadow:
-            0 0 20px rgba(255, 0, 0, 0.4),
-            inset 0 0 14px rgba(255, 70, 60, 0.14),
-            inset 0 2px 18px rgba(255, 120, 100, 0.07);
+            0 0 20px rgb(var(--club-accent-rgb) / 0.4),
+            inset 0 0 14px rgb(var(--club-accent-rgb) / 0.14),
+            inset 0 2px 18px rgb(var(--club-accent-rgb) / 0.07);
         }
         @keyframes pulse-red {
           0%,
           100% {
             box-shadow:
-              0 0 20px rgba(255, 0, 0, 0.38),
-              0 0 34px rgba(255, 0, 0, 0.3),
+              0 0 20px rgb(var(--club-accent-rgb) / 0.38),
+              0 0 34px rgb(var(--club-accent-rgb) / 0.3),
               0 1px 0 rgba(255, 255, 255, 0.06),
-              inset 0 0 16px rgba(255, 0, 0, 0.12);
+              inset 0 0 16px rgb(var(--club-accent-rgb) / 0.12);
           }
           50% {
             box-shadow:
-              0 0 26px rgba(255, 0, 0, 0.52),
-              0 0 46px rgba(255, 0, 0, 0.38),
+              0 0 26px rgb(var(--club-accent-rgb) / 0.52),
+              0 0 46px rgb(var(--club-accent-rgb) / 0.38),
               0 1px 0 rgba(255, 255, 255, 0.07),
-              inset 0 0 22px rgba(255, 0, 0, 0.2);
+              inset 0 0 22px rgb(var(--club-accent-rgb) / 0.2);
           }
         }
         .welcome-intro-cta--pulse {
@@ -215,19 +234,19 @@ export const WelcomeScreen: React.FC = () => {
         .welcome-intro-cta--pulse:hover {
           animation: none;
           box-shadow:
-            0 0 20px rgba(255, 0, 0, 0.4),
-            0 0 40px rgba(255, 0, 0, 0.42),
+            0 0 20px rgb(var(--club-accent-rgb) / 0.4),
+            0 0 40px rgb(var(--club-accent-rgb) / 0.42),
             0 1px 0 rgba(255, 255, 255, 0.06),
-            inset 0 0 20px rgba(255, 0, 0, 0.14);
+            inset 0 0 20px rgb(var(--club-accent-rgb) / 0.14);
         }
         @media (hover: hover) and (pointer: fine) {
           .welcome-intro-cta--pulse:hover {
             transform: translateY(-2px);
             box-shadow:
-              0 0 24px rgba(255, 0, 0, 0.48),
-              0 0 48px rgba(255, 0, 0, 0.44),
+              0 0 24px rgb(var(--club-accent-rgb) / 0.48),
+              0 0 48px rgb(var(--club-accent-rgb) / 0.44),
               0 1px 0 rgba(255, 255, 255, 0.06),
-              inset 0 0 22px rgba(255, 0, 0, 0.16);
+              inset 0 0 22px rgb(var(--club-accent-rgb) / 0.16);
           }
           .welcome-intro-cta--pulse:hover:active {
             transform: translateY(-2px) scale(0.97);
@@ -235,10 +254,10 @@ export const WelcomeScreen: React.FC = () => {
           }
           .welcome-intro-cta--live.welcome-intro-cta--pulse:hover {
             box-shadow:
-              0 0 26px rgba(255, 0, 0, 0.52),
-              0 0 50px rgba(255, 0, 0, 0.46),
+              0 0 26px rgb(var(--club-accent-rgb) / 0.52),
+              0 0 50px rgb(var(--club-accent-rgb) / 0.46),
               0 1px 0 rgba(255, 255, 255, 0.07),
-              inset 0 0 22px rgba(255, 0, 0, 0.18);
+              inset 0 0 22px rgb(var(--club-accent-rgb) / 0.18);
           }
         }
         .welcome-intro-cta--pulse:active {
@@ -246,9 +265,9 @@ export const WelcomeScreen: React.FC = () => {
           transform: scale(0.97);
           filter: brightness(1.07);
           box-shadow:
-            0 0 22px rgba(255, 0, 0, 0.45),
-            0 0 40px rgba(255, 0, 0, 0.36),
-            inset 0 0 14px rgba(255, 0, 0, 0.18);
+            0 0 22px rgb(var(--club-accent-rgb) / 0.45),
+            0 0 40px rgb(var(--club-accent-rgb) / 0.36),
+            inset 0 0 14px rgb(var(--club-accent-rgb) / 0.18);
         }
         @keyframes welcome-live-badge-pulse {
           0%,
@@ -266,16 +285,16 @@ export const WelcomeScreen: React.FC = () => {
           align-items: center;
           gap: 0.25rem;
           border-radius: 0.375rem;
-          border: 1px solid rgba(255, 90, 90, 0.55);
-          background: linear-gradient(180deg, #dc2626 0%, #991b1b 55%, #7f1d1d 100%);
+          border: 1px solid rgb(var(--club-accent-rgb) / 0.55);
+          background: linear-gradient(180deg, rgb(var(--club-accent-rgb) / 0.9), rgb(var(--club-primary-rgb) / 0.9));
           padding: 0.4rem 0.65rem;
           font-size: 10px;
           font-weight: 700;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: #fef2f2;
+          color: var(--club-on-accent, #fff);
           box-shadow:
-            0 0 12px rgba(255, 0, 0, 0.6),
+            0 0 12px rgb(var(--club-accent-rgb) / 0.6),
             inset 0 1px 0 rgba(255, 255, 255, 0.14);
           transform-origin: center center;
         }
@@ -304,7 +323,8 @@ export const WelcomeScreen: React.FC = () => {
         <img
           src={WELCOME_HERO_PATH}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full min-h-full w-full object-cover object-center"
+          className="welcome-club-hero pointer-events-none absolute inset-0 h-full min-h-full w-full object-cover object-center"
+          style={{ '--welcome-hero-filter': `url(#${heroFilterId})` } as React.CSSProperties}
           decoding="async"
           fetchPriority="high"
           aria-hidden
@@ -331,10 +351,10 @@ export const WelcomeScreen: React.FC = () => {
           <div className="mt-3 flex flex-col items-center">
             <p className="-skew-x-6 whitespace-nowrap text-[17px] font-black italic uppercase tracking-[-0.015em] min-[390px]:text-[18px] sm:text-[19px] [text-shadow:0_2px_8px_rgba(0,0,0,0.85)]">
               <span className="text-white">#GEMEINSAM</span>
-              <span className="text-[#ff2731]">EINTEAM</span>
+              <span className="text-[rgb(var(--club-accent-rgb))]">EINTEAM</span>
             </p>
             <span
-              className="mt-1 h-[3px] w-[82%] -skew-x-12 bg-gradient-to-r from-transparent via-[#ff2731] to-transparent shadow-[0_0_8px_rgba(255,39,49,0.7)]"
+              className="mt-1 h-[3px] w-[82%] -skew-x-12 bg-gradient-to-r from-transparent via-[rgb(var(--club-accent-rgb))] to-transparent shadow-[0_0_8px_rgb(var(--club-accent-rgb)/0.7)]"
               aria-hidden
             />
           </div>
