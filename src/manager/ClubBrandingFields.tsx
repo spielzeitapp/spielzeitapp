@@ -1,3 +1,4 @@
+import { ClubLogo } from "../components/branding/ClubLogo";
 import React from 'react';
 import { DEFAULT_CLUB_BRANDING, type ClubBranding, readableTextColor } from '../lib/clubBranding';
 
@@ -20,6 +21,7 @@ export function ClubBrandingFields({ value, onChange, logoFile, onLogoFile }: {
     <label className="block text-[13px] font-medium text-slate-700">Logo (PNG, JPEG oder WebP, maximal 5 MB)
       <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => onLogoFile(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-[13px]" />
     </label>
+    <p className="text-xs text-slate-500">Weiße Außenflächen werden automatisch freigestellt und leere Ränder zugeschnitten.</p>
     <div className="grid gap-3 sm:grid-cols-3">
       {([['primary_color', 'Hauptfarbe'], ['secondary_color', 'Zweite Farbe'], ['accent_color', 'Akzentfarbe']] as const).map(([key, label]) =>
         <label key={key} className="text-[13px] font-medium text-slate-700">{label}
@@ -30,7 +32,7 @@ export function ClubBrandingFields({ value, onChange, logoFile, onLogoFile }: {
     <button type="button" onClick={() => onChange({ ...DEFAULT_CLUB_BRANDING, logo_url: value.logo_url })} className="text-[12px] font-semibold underline">Schwarz–Rot–Weiß wiederherstellen</button>
     <div className="overflow-hidden rounded-xl border border-slate-200" aria-label="Vorschau der App-Farben">
       <div className="flex items-center gap-3 p-3" style={{ backgroundColor: value.primary_color ?? DEFAULT_CLUB_BRANDING.primary_color, color: readableTextColor(value.primary_color ?? DEFAULT_CLUB_BRANDING.primary_color!) }}>
-        {logo ? <img src={logo} alt="Vereinslogo Vorschau" className="h-10 w-10 object-contain" /> : <span className="grid h-10 w-10 place-items-center rounded-full border border-current">★</span>}
+        {logo ? <ClubLogo src={logo} alt="Vereinslogo Vorschau" className="h-10 w-10 object-contain" /> : <span className="grid h-10 w-10 place-items-center rounded-full border border-current">★</span>}
         <strong>Vereinsansicht</strong>
       </div>
       <div className="flex items-center gap-3 p-3" style={{ backgroundColor: value.secondary_color ?? DEFAULT_CLUB_BRANDING.secondary_color }}>

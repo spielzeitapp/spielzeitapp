@@ -1,3 +1,4 @@
+import { ClubLogo } from "../components/branding/ClubLogo";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "../auth/useSession";
@@ -203,7 +204,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const activeTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionActiveTeamSeasonId;
   const teamSeasons = isDemo ? [] : sessionTeamSeasons;
   const [showSeasonArchive, setShowSeasonArchive] = useState(false);
-  const archivedTeamSeasons = useMemo(() => teamSeasons.filter((season) => season.status === "archived"), [teamSeasons]);
+  const archivedTeamSeasons = useMemo(() => teamSeasons.filter((season) => season.status === "archived" && season.team.id === selectedTeamSeason?.team.id), [teamSeasons, selectedTeamSeason]);
   const openArchivedTeamSeason = (id: string) => {
     if (!archivedTeamSeasons.some((season) => season.id === id)) return;
     setViewTeamSeasonId(id);
@@ -355,6 +356,9 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     const parsed = /\bU\s*\d{1,2}\b/i.exec(`${heroTeamName} ${teamLabel ?? ""}`)?.[0];
     return parsed?.replace(/\s+/g, "").toUpperCase() ?? "TEAM";
   }, [isDemo, teamSeasons, readTeamSeasonId, selectedTeamSeason, heroTeamName, teamLabel]);
+
+  const heroDisplayName = (isDemo ? getOurTeamDisplayName() : selectedTeamSeason?.team?.name ?? "Team")
+    .replace(/\s*[·-]?\s+U\d{1,2}\s*$/i, "").trim();
 
   const teamPhotoUrl = teamPhoto?.team_season_id === teamSeasonId ? readTeamPhotoUrl(teamPhoto) : null;
   const heroPhotoSrc = useMemo(
@@ -1046,7 +1050,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       {/* Team Hero */}
       {basePath === "/manager" ? <section data-ui-card className="manager-team-desktop-header items-center justify-between gap-5 rounded-2xl border p-5">
         <div className="flex min-w-0 items-center gap-4">
-          <img src={teamLogo} alt="" className="h-16 w-16 shrink-0 object-contain" />
+          <ClubLogo src={teamLogo} alt="" className="h-16 w-16 shrink-0 object-contain" />
           <div className="min-w-0">
             <h1 className="text-2xl font-bold">{rosterOnly ? "Spieler" : "Team"}</h1>
             <p className="mt-1 text-base font-semibold">{heroTeamName} · {heroAgeGroup}</p>
@@ -1076,7 +1080,6 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         />
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[rgb(var(--club-primary-rgb)/0.2)] blur-3xl" aria-hidden />
         <div className="relative z-10 flex h-full min-h-[220px] flex-col justify-end p-4 sm:min-h-[280px] sm:p-6">
-          {!isDemo && basePath !== "/manager" ? <div className="absolute left-3 top-3 sm:left-4 sm:top-4"><TeamViewSwitcher /></div> : null}
           {canManagePlayers ? (
             <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
               <input
@@ -1113,12 +1116,15 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
           ) : null}
           <div className="flex items-end gap-3 sm:gap-4">
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
-              <img src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
+              <ClubLogo src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
             </div>
             <div className="min-w-0 flex-1 pb-1">
-              <p className="truncate text-[27px] font-black uppercase leading-none tracking-tight text-white drop-shadow-lg sm:text-[34px]">
-                {tsLoading ? "Lade Team…" : (isDemo ? getOurTeamDisplayName() : selectedTeamSeason?.team?.name ?? "Team")}
-              </p>
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="min-w-0 flex-1 break-words text-[24px] font-black uppercase leading-tight tracking-tight text-white drop-shadow-lg sm:text-[34px]">
+                  {tsLoading ? "Lade Team…" : heroDisplayName}
+                </p>
+                {!isDemo && basePath !== "/manager" ? <TeamViewSwitcher /> : null}
+              </div>
               <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
                 <span className="sz-club-accent-text">{heroAgeGroup}</span> · Saison {heroSeason}
                 {isHistoryReadOnly ? " · Archiv" : ""}

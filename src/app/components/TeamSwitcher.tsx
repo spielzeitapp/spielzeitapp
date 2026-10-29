@@ -1,4 +1,6 @@
+import { ClubLogo } from "../../components/branding/ClubLogo";
 import React from 'react';
+import { PremiumButton } from '../../ui';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users, MoreHorizontal, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -301,7 +303,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
 
   const renderSeason = (ts: SessionTeamSeasonItem, checkboxes: boolean) => {
     const checked = filtered ? filteredTeamSeasonIds.includes(ts.id) : ts.id === value;
-    const rowClass = `relative mb-3 flex min-h-[104px] w-full items-center justify-between gap-3 rounded-2xl border-2 px-4 py-4 shadow-[0_4px_16px_rgba(0,0,0,0.16)] text-left text-[16px] font-bold leading-snug transition-colors ${checked ? 'border-[rgb(var(--club-border-rgb)/0.7)] bg-[rgb(var(--club-primary-rgb)/0.22)] text-white' : 'border-white/10 bg-white/[0.035] text-white/90 hover:bg-white/[0.08]'}`;
+    const rowClass = `relative mb-3 flex min-h-[104px] w-full items-center justify-between gap-3 rounded-[22px] border px-4 py-4 shadow-[0_4px_16px_rgba(0,0,0,0.16)] text-left text-[16px] font-bold leading-snug transition-colors ${checked ? 'sz-club-showcase-card text-white' : 'border-white/10 bg-white/[0.035] text-white/90 hover:bg-white/[0.08]'}`;
     const text = <span className="min-w-0 flex-1">
       <span className="block [overflow-wrap:anywhere]">{ts.team?.name || ts.display_name || 'Mannschaft'}{ts.age_group ? ` · ${ts.age_group}` : ''}</span>
       <span className="mt-1 block text-[14px] font-medium text-white/75">{ts.season?.name ?? ''}</span>
@@ -310,21 +312,21 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     const hidden = hiddenTeamIds.includes(ts.id);
     return hidden ? (
       <button key={ts.id} type="button" onClick={() => addTeamFavorite(ts.id)} className={rowClass} aria-label={`${compactLabel(ts)} wieder zu Favoriten hinzufügen`}>
-        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
-        {text}<span className="shrink-0 rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-red-300">Hinzufügen</span>
+        <ClubLogo src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
+        {text}<span className="shrink-0 rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-[rgb(var(--club-accent-text-rgb))]">Hinzufügen</span>
       </button>
     ) : checkboxes ? (
       <div key={ts.id} className={rowClass}>
-        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
+        <ClubLogo src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
         {text}
         <label className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center">
           <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)} aria-label={compactLabel(ts)} className="peer sr-only" />
-          <span className={`flex h-8 w-8 items-center justify-center rounded-full border peer-focus-visible:ring-2 peer-focus-visible:ring-red-400 ${checked ? 'border-red-500 bg-red-700' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
+          <span className={`flex h-8 w-8 items-center justify-center rounded-full border peer-focus-visible:ring-2 peer-focus-visible:ring-[rgb(var(--club-border-rgb))] ${checked ? 'border-[rgb(var(--club-border-rgb)/0.65)] bg-[rgb(var(--club-primary-rgb)/0.75)]' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
         </label>
         <div className="relative shrink-0">
           <button type="button" aria-label={`${compactLabel(ts)}: Optionen`} aria-expanded={favoriteMenuUrl === ts.id} onClick={() => setFavoriteMenuUrl(current => current === ts.id ? null : ts.id)} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
           {favoriteMenuUrl === ts.id ? (
-            <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
+            <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-[rgb(var(--club-border-rgb)/0.35)] bg-[#111114] p-1 shadow-2xl">
               <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200 active:bg-red-900/40"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
             </div>
           ) : null}
@@ -332,16 +334,16 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       </div>
     ) : (
       <div key={ts.id} className={rowClass}>
-        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
+        <ClubLogo src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
         <button type="button" onClick={() => selectSingle(ts)} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-pressed={checked}>
           {text}
-          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-red-500 bg-red-700' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-[rgb(var(--club-border-rgb)/0.65)] bg-[rgb(var(--club-primary-rgb)/0.75)]' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
         </button>
         {isSeasonActive(ts.status) ? (
           <div className="relative shrink-0">
             <button type="button" aria-label={`${compactLabel(ts)}: Optionen`} aria-expanded={favoriteMenuUrl === ts.id} onClick={() => setFavoriteMenuUrl(current => current === ts.id ? null : ts.id)} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
             {favoriteMenuUrl === ts.id ? (
-              <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
+              <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-[rgb(var(--club-border-rgb)/0.35)] bg-[#111114] p-1 shadow-2xl">
                 <button type="button" onClick={() => removeTeamFavorite(ts.id)} className="flex min-h-[48px] w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200 active:bg-red-900/40"><Trash2 className="h-4 w-4 shrink-0" aria-hidden /> Aus Favoriten entfernen</button>
               </div>
             ) : null}
@@ -355,7 +357,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     <button ref={triggerRef} type="button" onClick={toggleOpen}
       aria-label="Favoriten und Mannschaften wählen" title="Meine Favoriten" aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
       className={iconOnly
-        ? ['inline-flex !h-11 !w-11 !min-h-11 !min-w-11 !max-w-11 !flex-none !shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] !p-0 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500', className].filter(Boolean).join(' ')
+        ? ['inline-flex !h-11 !w-11 !min-h-11 !min-w-11 !max-w-11 !flex-none !shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] !p-0 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-border-rgb))]', className].filter(Boolean).join(' ')
         : ['flex min-h-[48px] w-full min-w-0 items-center justify-between gap-3 bg-transparent px-2 py-1.5 text-left text-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))]', compact ? 'md:min-w-[210px]' : '', className].filter(Boolean).join(' ')}>
       <span className={iconOnly ? 'flex items-center justify-center' : 'flex min-w-0 flex-1 items-center gap-2.5'}>
         <span className={iconOnly ? 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[rgb(var(--club-border-rgb)/0.35)] bg-[rgb(var(--club-primary-rgb)/0.2)]'}>
@@ -366,30 +368,30 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       {!iconOnly ? <ChevronDown className={`h-5 w-5 shrink-0 text-[rgb(var(--club-accent-rgb))] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden /> : null}
     </button>
     {open && typeof document !== 'undefined' ? createPortal(
-      <div className="fixed inset-x-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" style={{ top: viewportTop, height: viewportHeight ? `${viewportHeight}px` : '100dvh' }} role="presentation">
+      <div className="fixed inset-x-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" style={{ paddingTop: 'max(72px, calc(env(safe-area-inset-top, 0px) + 16px))', top: viewportTop, height: viewportHeight ? `${viewportHeight}px` : '100dvh' }} role="presentation">
       <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Favoriten und Mannschaften"
-        className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ height: keyboardOpen && viewportHeight ? `${Math.max(180, viewportHeight - 8)}px` : undefined, maxHeight: viewportHeight ? `${Math.max(180, viewportHeight - (keyboardOpen ? 8 : 12))}px` : 'min(92dvh,52rem)' }}>
+        className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ height: keyboardOpen ? '100%' : undefined, maxHeight: '100%' }}>
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2 pt-1">
-          <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-red-500/45 px-3 text-sm font-bold text-white/85"><ArrowLeft className="h-4 w-4 text-red-400" aria-hidden /> Zurück</button>
-          <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="sz-club-accent-text min-h-[44px] px-2 text-sm font-bold">Fertig</button>
+          <PremiumButton variant="interactive" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="!min-h-11 !px-4 !text-sm"><ArrowLeft className="h-4 w-4 sz-club-accent-text" aria-hidden /> Zurück</PremiumButton>
+          <PremiumButton onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="!min-h-11 !px-5 !text-sm">Fertig</PremiumButton>
         </div>
         <div className={keyboardOpen ? "hidden" : "shrink-0 px-2 pb-3 text-center"}>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-red-500/55 bg-red-950/40"><Star className="h-6 w-6 text-red-400" aria-hidden /></div>
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-[rgb(var(--club-border-rgb)/0.45)] bg-[rgb(var(--club-primary-rgb)/0.16)]"><Star className="h-6 w-6 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /></div>
           <h2 className="text-[22px] font-black leading-tight text-white">Favoriten verwalten</h2>
           <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/65">Wähle deine Mannschaften einzeln oder gemeinsam. Deine Auswahl bleibt gespeichert.</p>
         </div>
         <div ref={resultsRef} className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
         <label className="relative mb-3 block">
-          <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-red-400" aria-hidden />
+          <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
           <input type="search" value={teamSearch} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} onChange={event => { setTeamSearch(event.target.value); resultsRef.current?.scrollTo({ top: 0 }); }} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
-            className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
+            className="min-h-[50px] w-full rounded-xl border border-[rgb(var(--club-border-rgb)/0.3)] bg-[#111114] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-[rgb(var(--club-border-rgb))] focus:outline-none" />
         </label>
         {!keyboardOpen && multipleAvailable && visibleCurrentSeasons.length > 1 && !searchTerm ? <>
           <button type="button" onClick={() => { setTeamViewFilter(visibleCurrentSeasons.map(ts => ts.id)); setOpen(false); triggerRef.current?.focus(); }}
             aria-pressed={teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)}
-            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? 'border-red-500/65 bg-red-900/35 text-white' : 'border-red-500/25 bg-white/[0.035] text-white/90 hover:bg-red-950/25'}`}>
-            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-red-300" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({visibleCurrentSeasons.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-500"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-lg border border-white/35" aria-hidden />}
+            className={`mb-2 flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[15px] font-bold transition-colors ${(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? 'border-[rgb(var(--club-border-rgb)/0.65)] sz-club-primary text-white' : 'border-[rgb(var(--club-border-rgb)/0.25)] bg-white/[0.035] text-white/90 hover:bg-[rgb(var(--club-primary-rgb)/0.15)]'}`}>
+            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /><span>Alle Mannschaften <span className="ml-1 text-xs font-medium text-white/50">({visibleCurrentSeasons.length})</span></span></span>{(teamViewFilter === 'all' || (Array.isArray(teamViewFilter) && teamViewFilter.length === visibleCurrentSeasons.length)) ? <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[rgb(var(--club-primary-rgb))]"><Check className="h-4 w-4 text-white" aria-hidden /></span> : <span className="h-6 w-6 rounded-full border border-white/35" aria-hidden />}
           </button>
 
         </> : null}
@@ -402,24 +404,24 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         {searchTerm && searchedCurrentSeasons.length === 0 && searchedOtherSeasons.length === 0 && discoverMatches.length === 0 && !discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Keine passende freigegebene Mannschaft gefunden.</p> : null}
         {keyboardOpen && !searchTerm && !discoveryBusy ? <p className="px-3 py-3 text-sm text-white/60">Verein oder Mannschaft eingeben, z. B. Melk.</p> : null}
         {discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Vereine werden geladen …</p> : null}
-        {discoveryError ? <p role="alert" className="px-3 py-2 text-sm text-red-300">{discoveryError}</p> : null}
+        {discoveryError ? <p role="alert" className="px-3 py-2 text-sm text-[rgb(var(--club-accent-text-rgb))]">{discoveryError}</p> : null}
         {discoverMatches.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/55">{searchTerm ? 'Mannschaften anderer Vereine' : 'Weitere gespeicherte Favoriten'}</p>
           {discoverMatches.slice(0, 30).map(team => {
             const saved = savedDiscoverableIds.includes(team.id);
-            return <div key={team.id} className={`relative mb-3 flex min-h-[104px] w-full items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left ${saved ? 'border-[rgb(var(--club-border-rgb)/0.7)] bg-[rgb(var(--club-primary-rgb)/0.22)]' : 'border-white/10 bg-white/[0.035]'}`}>
-              {team.clubLogo ? <img src={team.clubLogo} alt="" className="h-11 w-11 shrink-0 object-contain" /> : <Users className="h-11 w-11 shrink-0 text-white/60" aria-hidden />}
+            return <div key={team.id} className={`relative mb-3 flex min-h-[104px] w-full items-center gap-3 rounded-[22px] border px-4 py-4 text-left ${saved ? 'sz-club-showcase-card' : 'border-white/10 bg-white/[0.035]'}`}>
+              {team.clubLogo ? <ClubLogo src={team.clubLogo} alt="" className="h-11 w-11 shrink-0 object-contain" /> : <Users className="h-11 w-11 shrink-0 text-white/60" aria-hidden />}
               <button type="button" onClick={() => void openDiscoveredTeam(team.id)} disabled={favoriteSaving} aria-label={`${team.teamName} ansehen`} className="min-w-0 flex-1 text-left disabled:opacity-100">
                 <span className="block break-words text-[16px] font-bold leading-snug text-white">{team.teamName}</span>
                 <span className="mt-1 block text-[14px] font-medium text-white/75">{team.seasonName}</span>
                 <span className="mt-1 block text-[12px] font-medium text-white/55">{saved ? 'Favorit · Team ansehen' : 'Team ansehen'}</span>
               </button>
-              <button type="button" disabled={favoriteSaving} onClick={() => void toggleDiscoveredFavorite(team.id)} aria-label={`${team.teamName}: ${saved ? 'Favorit entfernen' : 'Zu Favoriten hinzufügen'}`} aria-pressed={saved} className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${saved ? 'border-red-500 bg-red-700' : 'border-white/20 text-white/70'}`}>
+              <button type="button" disabled={favoriteSaving} onClick={() => void toggleDiscoveredFavorite(team.id)} aria-label={`${team.teamName}: ${saved ? 'Favorit entfernen' : 'Zu Favoriten hinzufügen'}`} aria-pressed={saved} className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${saved ? 'border-[rgb(var(--club-border-rgb)/0.65)] bg-[rgb(var(--club-primary-rgb)/0.75)]' : 'border-white/20 text-white/70'}`}>
                 {saved ? <Check className="h-5 w-5 text-white" aria-hidden /> : <Star className="h-4 w-4" aria-hidden />}
               </button>
               <div className="relative shrink-0">
                 <button type="button" aria-label={`${team.teamName}: Optionen`} aria-expanded={favoriteMenuUrl === team.id} onClick={() => setFavoriteMenuUrl(current => current === team.id ? null : team.id)} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
-                {favoriteMenuUrl === team.id ? <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
+                {favoriteMenuUrl === team.id ? <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-[rgb(var(--club-border-rgb)/0.35)] bg-[#111114] p-1 shadow-2xl">
                   <button type="button" onClick={() => void openDiscoveredTeam(team.id)} disabled={favoriteSaving} className="flex min-h-12 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-white"><Users className="h-4 w-4" aria-hidden />Team ansehen</button>
                   <button type="button" onClick={() => { toggleDiscoveredFavorite(team.id); setFavoriteMenuUrl(null); }} className="flex min-h-12 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200"><Star className="h-4 w-4" aria-hidden />{saved ? 'Favorit entfernen' : 'Favorit hinzufügen'}</button>
                 </div> : null}
@@ -448,7 +450,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
               </button>
             </div>
             {favoriteMenuUrl === item.url ? <div className="border-t border-white/10 px-3 py-2">
-              <button type="button" onClick={() => removeExternalFavorite(item.url)} className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-semibold text-red-300 hover:bg-red-950/30">
+              <button type="button" onClick={() => removeExternalFavorite(item.url)} className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-semibold text-[rgb(var(--club-accent-text-rgb))] hover:bg-red-950/30">
                 <Trash2 className="h-4 w-4" aria-hidden /> Aus Favoriten entfernen
               </button>
             </div> : null}

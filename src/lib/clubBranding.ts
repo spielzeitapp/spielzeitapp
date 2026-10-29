@@ -1,3 +1,4 @@
+import { prepareLogoFile } from './logoPreparation';
 import { supabase } from './supabaseClient';
 import { uploadStorageObject } from './storageUpload';
 
@@ -83,8 +84,21 @@ export async function getClubBranding(clubId: string): Promise<{ data: ClubBrand
 }
 export async function saveClubBranding(clubId: string, branding: ClubBranding, logoFile: File | null): Promise<{ error: string | null }> {
   let logoUrl = branding.logo_url;
+  // Saving manager branding also upgrades an existing white-backed logo.
+  if (!logoFile && logoUrl) {
+    try {
+      const response = await fetch(logoUrl);
+      const blob = response.ok ? await response.blob() : null;
+      if (blob && ['image/png', 'image/jpeg', 'image/webp'].includes(blob.type) && blob.size <= 5 * 1024 * 1024) {
+        const prepared = await prepareLogoFile(new File([blob], 'club-logo', { type: blob.type }));
+        if (prepared.changed) logoFile = prepared.file;
+      }
+    } catch { /* Keep the saved logo if the source cannot be prepared. */ }
+  }
   if (logoFile) {
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(logoFile.type) || logoFile.size > 5 * 1024 * 1024) return { error: 'Logo muss PNG, JPEG oder WebP sein und darf höchstens 5 MB groß sein.' };
+    try { logoFile = (await prepareLogoFile(logoFile)).file; }
+    catch { return { error: 'Logo konnte nicht aufbereitet werden. Bitte ein anderes Bild verwenden.' }; }
     const ext = logoFile.type === 'image/png' ? 'png' : logoFile.type === 'image/webp' ? 'webp' : 'jpg';
     const path = `${clubId}/${crypto.randomUUID()}.${ext}`;
     const upload = await uploadStorageObject('club-logos', path, logoFile, { contentType: logoFile.type });

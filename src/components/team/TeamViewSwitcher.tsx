@@ -1,3 +1,4 @@
+import { ClubLogo } from "../branding/ClubLogo";
 import React, { useState } from 'react';
 import { Check, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -42,7 +43,7 @@ export function TeamViewSwitcher() {
             if (team.own) setSelectedTeamSeasonId(team.id); else setViewTeamSeasonId(team.id);
             setOpen(false); navigate(`/app/team?teamSeason=${encodeURIComponent(team.id)}`);
           }} className={`flex min-h-[76px] w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left ${selected ? 'border-[rgb(var(--club-border-rgb)/0.7)] bg-[rgb(var(--club-primary-rgb)/0.22)]' : 'border-white/15 bg-white/[0.035]'}`}>
-            {team.logo ? <img src={team.logo} alt="" className="h-10 w-10 object-contain" /> : <Users className="h-10 w-10 text-white/50" aria-hidden />}
+            {team.logo ? <ClubLogo src={team.logo} alt="" className="h-10 w-10 object-contain" /> : <Users className="h-10 w-10 text-white/50" aria-hidden />}
             <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white">{team.name} · {team.ageGroup}</span><span className="text-xs text-white/60">{team.season}{!team.own ? ' · Favorit' : ''}</span></span>
             {selected ? <Check className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /> : null}
           </button>;
