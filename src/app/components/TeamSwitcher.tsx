@@ -43,6 +43,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const [teamSearch, setTeamSearch] = React.useState('');
   const [externalFavorites, setExternalFavorites] = React.useState<Array<{ name: string; url: string }>>([]);
   const [discoveredTeams, setDiscoveredTeams] = React.useState<DiscoverableTeam[]>([]);
+  const [previewTeam, setPreviewTeam] = React.useState<DiscoverableTeam | null>(null);
   const [savedDiscoverableIds, setSavedDiscoverableIds] = React.useState<string[]>([]);
   const [discoveryBusy, setDiscoveryBusy] = React.useState(false);
   const [discoveryError, setDiscoveryError] = React.useState<string | null>(null);
@@ -389,6 +390,10 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
                 <p className="break-words text-xs text-white/65">{team.clubName} · {team.ageGroup} · {team.seasonName}</p>
                 <p className="mt-1 text-[11px] text-white/45">Nur Favorit · keine Eltern- oder Trainerrechte</p>
               </div>
+              {savedDiscoverableIds.includes(team.id) ? <button type="button" onClick={() => setPreviewTeam(team)}
+                className="col-span-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#164A9D] bg-[#164A9D]/25 px-3 text-sm font-bold text-white">
+                <Users className="h-5 w-5 shrink-0" aria-hidden /> Mannschaft ansehen
+              </button> : null}
               <button type="button" onClick={() => toggleDiscoveredFavorite(team.id)}
                 className="col-span-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-yellow-400/50 bg-yellow-400/10 px-3 text-sm font-bold text-yellow-200"
                 aria-pressed={savedDiscoverableIds.includes(team.id)}>
@@ -397,6 +402,29 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
               </button>
             </div>
           ))}
+        </section> : null}
+        {previewTeam ? <section className="mb-3 overflow-hidden rounded-xl border border-[#164A9D] bg-[#07162f] text-white" aria-label="Öffentliche Mannschaftsvorschau">
+          <div className="flex items-center justify-between gap-2 border-b border-[#FFDA24]/40 px-3 py-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#FFDA24]">Mannschaftsvorschau · Demo</span>
+            <button type="button" onClick={() => setPreviewTeam(null)} className="min-h-11 rounded-lg px-3 text-sm text-white">Schließen</button>
+          </div>
+          {previewTeam.clubName.toLocaleLowerCase('de').includes('melk') ? <>
+            <div className="relative">
+              <img src="https://spielzeitapp.at/demo/sc-melk/team-hero.jpg" alt="Fiktives SC-Melk-Demo-Mannschaftsbild" className="h-36 w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#07162f] to-transparent" />
+              <p className="absolute bottom-2 left-3 text-lg font-black">{previewTeam.clubName} · {previewTeam.ageGroup}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 p-3">
+              {[
+                { name: 'Lena Krammer', image: 'player-a.webp' },
+                { name: 'Julia Aigner', image: 'player-b.webp' },
+              ].map(player => <div key={player.name} className="overflow-hidden rounded-lg border border-[#164A9D] bg-[#10295a]">
+                <img src={`https://spielzeitapp.at/demo/sc-melk/${player.image}`} alt={`Fiktives Spielerporträt ${player.name}`} className="aspect-[3/4] w-full object-cover" />
+                <p className="px-2 py-2 text-xs font-bold">{player.name}</p>
+              </div>)}
+            </div>
+          </> : <p className="px-3 py-4 text-sm text-white/80">{previewTeam.teamName} · {previewTeam.seasonName}</p>}
+          <p className="px-3 pb-3 text-xs text-white/70">Nur Demoansicht mit fiktiven Profilen. Keine echten Kaderdaten, Termine oder Elternrechte.</p>
         </section> : null}
         {searchedOtherSeasons.length > 0 && (!keyboardOpen || !!searchTerm) ? <section className="mt-2 border-t border-white/10 pt-2">
           <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Archiv & Vorbereitung · einzeln anzeigen</p>
