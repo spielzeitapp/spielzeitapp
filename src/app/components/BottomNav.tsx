@@ -95,7 +95,7 @@ function NavItem({
             ) : null}
             {showLiveIndicators ? (
               <span
-                className="pointer-events-none absolute left-1/2 top-0 z-[4] whitespace-nowrap text-[7px] font-bold uppercase leading-none tracking-[0.14em] text-[#FF2D2D] sm:text-[8px]"
+                className="pointer-events-none absolute left-1/2 top-0 z-[4] whitespace-nowrap text-[7px] font-bold uppercase leading-none tracking-[0.14em] text-[rgb(var(--club-accent-rgb))] sm:text-[8px]"
                 style={{
                   transform: 'translate(-50%, calc(-100% - 3px))',
                   textShadow: '0 0 10px rgba(255, 0, 0, 0.72)',
@@ -214,7 +214,7 @@ export const BottomNav: React.FC = () => {
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-gradient-to-b from-[#FF2D2D]/18 to-transparent blur-xl"
+          className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-gradient-to-b from-[rgb(var(--club-accent-rgb)/0.18)] to-transparent blur-xl"
           aria-hidden
         />
         <div
