@@ -127,20 +127,15 @@ export const WelcomeScreen: React.FC = () => {
         :root[data-club-theme="custom"] .welcome-screen {
           background: radial-gradient(circle at 50% 30%, rgb(var(--club-primary-rgb) / 0.28), #030407 70%);
         }
-        :root[data-club-theme="custom"] .welcome-screen .welcome-intro-cta {
-          background: linear-gradient(145deg, rgb(var(--club-primary-rgb) / 0.58), #090d17 85%);
-          border-color: rgb(var(--club-accent-rgb) / 0.55);
-          box-shadow: 0 0 24px rgb(var(--club-primary-rgb) / 0.25);
-        }
         :root[data-club-theme="custom"] .welcome-screen .welcome-intro-cta:focus-visible {
           outline: 2px solid rgb(var(--club-accent-rgb));
         }
 
         .welcome-intro-cta {
-          background: linear-gradient(180deg, rgb(var(--club-accent-rgb) / 0.78) 0%, rgb(var(--club-accent-rgb) / 0.84) 100%);
+          background: linear-gradient(145deg, rgb(var(--club-accent-rgb) / 0.09), transparent 75%), linear-gradient(180deg, #101014, #070709);
           border: 1px solid rgb(var(--club-accent-rgb) / 0.25);
           box-shadow:
-            0 0 32px rgb(var(--club-accent-rgb) / 0.34),
+            0 0 32px rgb(var(--club-accent-rgb) / 0.136),
             0 1px 0 rgba(255, 255, 255, 0.05),
             inset 0 0 16px rgb(var(--club-accent-rgb) / 0.1);
           transition: transform 120ms ease-out, filter 120ms ease-out, box-shadow 0.2s ease;
@@ -151,7 +146,7 @@ export const WelcomeScreen: React.FC = () => {
           .welcome-intro-cta:hover {
             transform: translateY(-2px);
             box-shadow:
-              0 0 44px rgb(var(--club-accent-rgb) / 0.46),
+              0 0 44px rgb(var(--club-accent-rgb) / 0.184),
               0 1px 0 rgba(255, 255, 255, 0.06),
               inset 0 0 22px rgb(var(--club-accent-rgb) / 0.15);
           }
@@ -159,7 +154,7 @@ export const WelcomeScreen: React.FC = () => {
             transform: translateY(-2px) scale(0.97);
             filter: brightness(1.07);
             box-shadow:
-              0 0 44px rgb(var(--club-accent-rgb) / 0.48),
+              0 0 44px rgb(var(--club-accent-rgb) / 0.192),
               inset 0 0 14px rgb(var(--club-accent-rgb) / 0.16);
           }
         }
@@ -167,37 +162,37 @@ export const WelcomeScreen: React.FC = () => {
           transform: scale(0.97);
           filter: brightness(1.07);
           box-shadow:
-            0 0 44px rgb(var(--club-accent-rgb) / 0.48),
+            0 0 44px rgb(var(--club-accent-rgb) / 0.192),
             inset 0 0 14px rgb(var(--club-accent-rgb) / 0.16);
         }
         .welcome-intro-cta--live {
-          background: linear-gradient(180deg, rgb(var(--club-accent-rgb) / 0.82) 0%, rgb(var(--club-accent-rgb) / 0.88) 100%);
+          background: linear-gradient(145deg, rgb(var(--club-accent-rgb) / 0.12), transparent 75%), linear-gradient(180deg, #101014, #070709);
           border: 1px solid rgb(var(--club-accent-rgb) / 0.58);
           box-shadow:
-            0 0 20px rgb(var(--club-accent-rgb) / 0.4),
-            0 0 36px rgb(var(--club-accent-rgb) / 0.32),
+            0 0 20px rgb(var(--club-accent-rgb) / 0.16),
+            0 0 36px rgb(var(--club-accent-rgb) / 0.128),
             0 1px 0 rgba(255, 255, 255, 0.06),
             inset 0 0 18px rgb(var(--club-accent-rgb) / 0.14);
         }
         @media (hover: hover) and (pointer: fine) {
           .welcome-intro-cta--live:hover {
             box-shadow:
-              0 0 24px rgb(var(--club-accent-rgb) / 0.48),
-              0 0 44px rgb(var(--club-accent-rgb) / 0.38),
+              0 0 24px rgb(var(--club-accent-rgb) / 0.192),
+              0 0 44px rgb(var(--club-accent-rgb) / 0.152),
               0 1px 0 rgba(255, 255, 255, 0.07),
               inset 0 0 22px rgb(var(--club-accent-rgb) / 0.18);
           }
           .welcome-intro-cta--live:hover:active {
             box-shadow:
-              0 0 22px rgb(var(--club-accent-rgb) / 0.45),
-              0 0 40px rgb(var(--club-accent-rgb) / 0.36),
+              0 0 22px rgb(var(--club-accent-rgb) / 0.18),
+              0 0 40px rgb(var(--club-accent-rgb) / 0.144),
               inset 0 0 14px rgb(var(--club-accent-rgb) / 0.18);
           }
         }
         .welcome-intro-cta--live:active {
           box-shadow:
-            0 0 22px rgb(var(--club-accent-rgb) / 0.45),
-            0 0 40px rgb(var(--club-accent-rgb) / 0.36),
+            0 0 22px rgb(var(--club-accent-rgb) / 0.18),
+            0 0 40px rgb(var(--club-accent-rgb) / 0.144),
             inset 0 0 14px rgb(var(--club-accent-rgb) / 0.18);
         }
         .welcome-intro-icon-shell {
@@ -208,9 +203,9 @@ export const WelcomeScreen: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgb(var(--club-accent-rgb) / 0.45);
+          background: rgb(var(--club-accent-rgb) / 0.08);
           box-shadow:
-            0 0 20px rgb(var(--club-accent-rgb) / 0.4),
+            0 0 20px rgb(var(--club-accent-rgb) / 0.16),
             inset 0 0 14px rgb(var(--club-accent-rgb) / 0.14),
             inset 0 2px 18px rgb(var(--club-accent-rgb) / 0.07);
         }
@@ -218,15 +213,15 @@ export const WelcomeScreen: React.FC = () => {
           0%,
           100% {
             box-shadow:
-              0 0 20px rgb(var(--club-accent-rgb) / 0.38),
-              0 0 34px rgb(var(--club-accent-rgb) / 0.3),
+              0 0 20px rgb(var(--club-accent-rgb) / 0.152),
+              0 0 34px rgb(var(--club-accent-rgb) / 0.12),
               0 1px 0 rgba(255, 255, 255, 0.06),
               inset 0 0 16px rgb(var(--club-accent-rgb) / 0.12);
           }
           50% {
             box-shadow:
               0 0 26px rgb(var(--club-accent-rgb) / 0.52),
-              0 0 46px rgb(var(--club-accent-rgb) / 0.38),
+              0 0 46px rgb(var(--club-accent-rgb) / 0.152),
               0 1px 0 rgba(255, 255, 255, 0.07),
               inset 0 0 22px rgb(var(--club-accent-rgb) / 0.2);
           }
@@ -237,8 +232,8 @@ export const WelcomeScreen: React.FC = () => {
         .welcome-intro-cta--pulse:hover {
           animation: none;
           box-shadow:
-            0 0 20px rgb(var(--club-accent-rgb) / 0.4),
-            0 0 40px rgb(var(--club-accent-rgb) / 0.42),
+            0 0 20px rgb(var(--club-accent-rgb) / 0.16),
+            0 0 40px rgb(var(--club-accent-rgb) / 0.168),
             0 1px 0 rgba(255, 255, 255, 0.06),
             inset 0 0 20px rgb(var(--club-accent-rgb) / 0.14);
         }
@@ -246,8 +241,8 @@ export const WelcomeScreen: React.FC = () => {
           .welcome-intro-cta--pulse:hover {
             transform: translateY(-2px);
             box-shadow:
-              0 0 24px rgb(var(--club-accent-rgb) / 0.48),
-              0 0 48px rgb(var(--club-accent-rgb) / 0.44),
+              0 0 24px rgb(var(--club-accent-rgb) / 0.192),
+              0 0 48px rgb(var(--club-accent-rgb) / 0.176),
               0 1px 0 rgba(255, 255, 255, 0.06),
               inset 0 0 22px rgb(var(--club-accent-rgb) / 0.16);
           }
@@ -258,7 +253,7 @@ export const WelcomeScreen: React.FC = () => {
           .welcome-intro-cta--live.welcome-intro-cta--pulse:hover {
             box-shadow:
               0 0 26px rgb(var(--club-accent-rgb) / 0.52),
-              0 0 50px rgb(var(--club-accent-rgb) / 0.46),
+              0 0 50px rgb(var(--club-accent-rgb) / 0.184),
               0 1px 0 rgba(255, 255, 255, 0.07),
               inset 0 0 22px rgb(var(--club-accent-rgb) / 0.18);
           }
@@ -268,8 +263,8 @@ export const WelcomeScreen: React.FC = () => {
           transform: scale(0.97);
           filter: brightness(1.07);
           box-shadow:
-            0 0 22px rgb(var(--club-accent-rgb) / 0.45),
-            0 0 40px rgb(var(--club-accent-rgb) / 0.36),
+            0 0 22px rgb(var(--club-accent-rgb) / 0.18),
+            0 0 40px rgb(var(--club-accent-rgb) / 0.144),
             inset 0 0 14px rgb(var(--club-accent-rgb) / 0.18);
         }
         @keyframes welcome-live-badge-pulse {
