@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { PageShell, PremiumCard, PremiumTab, PremiumTabTrack } from '../ui';
+import { GlassCard, PageShell, PremiumCard, PremiumTab, PremiumTabTrack } from '../ui';
 import { TeamViewSwitcher } from '../components/team/TeamViewSwitcher';
 
 const tabs = ['Kader', 'Trainer', 'Training', 'Spiele'] as const;
@@ -14,7 +14,7 @@ export function MelkFavoritePreview(): React.ReactElement {
     className="page team-page min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-0 pb-36 sm:px-4 md:px-0"
     contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl">
     <PremiumCard matchday showAmbientGlow className="!rounded-none !border-x-0 !p-0 overflow-hidden sm:!rounded-3xl sm:!border-x">
-      <div className="relative h-[220px] sm:aspect-[16/9] sm:h-auto sm:min-h-[280px] sm:max-h-[390px]">
+      <div className="relative w-full h-[220px] sm:aspect-[16/9] sm:h-auto sm:min-h-[280px] sm:max-h-[390px]">
         <img src="https://spielzeitapp.at/demo/sc-melk/team-hero.jpg" alt="Fiktives SC-Melk-Demo-Mannschaftsbild" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
         <div className="absolute left-3 top-3"><TeamViewSwitcher /></div>
@@ -25,7 +25,7 @@ export function MelkFavoritePreview(): React.ReactElement {
         </div>
       </div>
     </PremiumCard>
-    <div className="px-3"><PremiumTabTrack>{tabs.map(label => <PremiumTab key={label} active={tab === label} role="tab" aria-selected={tab === label} onClick={() => setTab(label)}>{label}</PremiumTab>)}</PremiumTabTrack></div>
+    <GlassCard variant="subtle" showAmbientGlow={false} className="sticky top-0 z-20 mx-3 !p-1 backdrop-blur-md sm:mx-0"><PremiumTabTrack className="min-w-0">{tabs.map(label => <PremiumTab kind="filter" className="min-w-0 px-1.5 text-[11px] font-bold uppercase tracking-[0.03em] sm:px-2.5 sm:text-[13px]" key={label} active={tab === label} role="tab" aria-selected={tab === label} onClick={() => setTab(label)}>{label}</PremiumTab>)}</PremiumTabTrack></GlassCard>
     <div className="px-3" role="tabpanel" aria-label={tab}>
       <p className="mb-3 text-xs leading-relaxed text-white/55">Private Vorschau mit fiktiven Spielerinnen.</p>
       {tab === 'Kader' ? <>
