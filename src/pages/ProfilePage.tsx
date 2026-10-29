@@ -423,7 +423,7 @@ export const ProfilePage: React.FC = () => {
     <div
       className="page profile-page relative min-h-[60vh] w-full px-4 py-6"
       style={{
-        background: 'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)',
+        background: 'linear-gradient(180deg, rgb(var(--club-primary-rgb) / 0.45) 0%, rgb(var(--club-primary-rgb) / 0.18) 50%, #07080c 100%)',
         boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
       }}
     >
