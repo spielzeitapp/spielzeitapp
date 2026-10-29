@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Star, ExternalLink, Search, ArrowLeft, Users, MoreHorizontal, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { lockAppMainScroll } from '../../lib/bodyScrollLock';
+import { ensureFanTeamAccess } from '../../lib/teamFavorites';
+import { FAVORITES_CHANGED_EVENT } from '../../hooks/useSavedTeamFavorites';
 import { getClubLogo } from '../../lib/teamLogos';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
@@ -56,11 +58,30 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       setSavedDiscoverableIds(Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []);
     } catch { setSavedDiscoverableIds([]); }
   }, [discoverStorageKey]);
-  const toggleDiscoveredFavorite = (id: string) => {
+  const [favoriteSaving, setFavoriteSaving] = React.useState(false);
+  const openDiscoveredTeam = async (id: string) => {
+    if (!user?.id || favoriteSaving) return;
+    setFavoriteSaving(true); setDiscoveryError(null);
+    try {
+      const error = await ensureFanTeamAccess(user.id, id);
+      if (error) { setDiscoveryError(error); return; }
+      setViewTeamSeasonId(id); setOpen(false); navigate(`/app/team?teamSeason=${encodeURIComponent(id)}`);
+    } finally { setFavoriteSaving(false); }
+  };
+  const toggleDiscoveredFavorite = async (id: string) => {
+    if (!user?.id || favoriteSaving) return;
+    if (!savedDiscoverableIds.includes(id)) {
+      setFavoriteSaving(true);
+      const error = await ensureFanTeamAccess(user.id, id);
+      setFavoriteSaving(false);
+      if (error) { setDiscoveryError(error); return; }
+    }
     const next = savedDiscoverableIds.includes(id) ? savedDiscoverableIds.filter(x => x !== id) : [...savedDiscoverableIds, id];
     try {
       if (discoverStorageKey) window.localStorage.setItem(discoverStorageKey, JSON.stringify(next));
       setSavedDiscoverableIds(next);
+      persistHiddenTeamIds(next.includes(id) ? hiddenTeamIds.filter(hidden => hidden !== id) : [...new Set([...hiddenTeamIds, id])]);
+      window.dispatchEvent(new Event(FAVORITES_CHANGED_EVENT));
     } catch { window.alert('Favorit konnte nicht gespeichert werden.'); }
   };
   const hiddenStorageKey = user?.id ? `spz_hidden_team_favorites_${user.id}` : null;
@@ -78,6 +99,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       catch { window.alert('Favoriten konnten nicht gespeichert werden.'); return false; }
     }
     setHiddenTeamIds(ids);
+    window.dispatchEvent(new Event(FAVORITES_CHANGED_EVENT));
     return true;
   };
   const favoriteStorageKey = user?.id ? `spz_external_oefb_favorites_${user.id}` : null;
@@ -185,6 +207,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       if (ts.id !== selectedTeamSeasonId && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
     }
     else setViewTeamSeasonId(ts.id);
+    if (pathname.startsWith('/app/team')) navigate(`/app/team?teamSeason=${encodeURIComponent(ts.id)}`);
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -287,12 +310,12 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     const hidden = hiddenTeamIds.includes(ts.id);
     return hidden ? (
       <button key={ts.id} type="button" onClick={() => addTeamFavorite(ts.id)} className={rowClass} aria-label={`${compactLabel(ts)} wieder zu Favoriten hinzufügen`}>
-        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
+        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
         {text}<span className="shrink-0 rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-red-300">Hinzufügen</span>
       </button>
     ) : checkboxes ? (
       <div key={ts.id} className={rowClass}>
-        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
+        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
         {text}
         <label className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center">
           <input type="checkbox" checked={checked} onChange={() => toggle(ts.id)} aria-label={compactLabel(ts)} className="peer sr-only" />
@@ -309,7 +332,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       </div>
     ) : (
       <div key={ts.id} className={rowClass}>
-        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id })} alt="" className="h-11 w-11 shrink-0 object-contain" />
+        <img src={getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url })} alt="" className="h-11 w-11 shrink-0 object-contain" />
         <button type="button" onClick={() => selectSingle(ts)} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-pressed={checked}>
           {text}
           <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-red-500 bg-red-700' : 'border-white/20'}`}>{checked ? <Check className="h-5 w-5 text-white" aria-hidden /> : null}</span>
@@ -384,21 +407,20 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
           <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/55">{searchTerm ? 'Mannschaften anderer Vereine' : 'Weitere gespeicherte Favoriten'}</p>
           {discoverMatches.slice(0, 30).map(team => {
             const saved = savedDiscoverableIds.includes(team.id);
-            const isMelk = team.clubName.toLocaleLowerCase('de').includes('melk');
             return <div key={team.id} className={`relative mb-3 flex min-h-[104px] w-full items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left ${saved ? 'border-[rgb(var(--club-border-rgb)/0.7)] bg-[rgb(var(--club-primary-rgb)/0.22)]' : 'border-white/10 bg-white/[0.035]'}`}>
               {team.clubLogo ? <img src={team.clubLogo} alt="" className="h-11 w-11 shrink-0 object-contain" /> : <Users className="h-11 w-11 shrink-0 text-white/60" aria-hidden />}
-              <button type="button" disabled={!isMelk} onClick={() => { setOpen(false); navigate('/app/team/favorite/sc-melk'); }} aria-label={`${team.teamName} ansehen`} className="min-w-0 flex-1 text-left disabled:opacity-100">
+              <button type="button" onClick={() => void openDiscoveredTeam(team.id)} disabled={favoriteSaving} aria-label={`${team.teamName} ansehen`} className="min-w-0 flex-1 text-left disabled:opacity-100">
                 <span className="block break-words text-[16px] font-bold leading-snug text-white">{team.teamName}</span>
                 <span className="mt-1 block text-[14px] font-medium text-white/75">{team.seasonName}</span>
-                <span className="mt-1 block text-[12px] font-medium text-white/55">{isMelk ? 'Private Demo · Team ansehen' : 'Nur Favorit'}</span>
+                <span className="mt-1 block text-[12px] font-medium text-white/55">{saved ? 'Favorit · Team ansehen' : 'Team ansehen'}</span>
               </button>
-              <button type="button" onClick={() => toggleDiscoveredFavorite(team.id)} aria-label={`${team.teamName}: ${saved ? 'Favorit entfernen' : 'Zu Favoriten hinzufügen'}`} aria-pressed={saved} className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${saved ? 'border-red-500 bg-red-700' : 'border-white/20 text-white/70'}`}>
+              <button type="button" disabled={favoriteSaving} onClick={() => void toggleDiscoveredFavorite(team.id)} aria-label={`${team.teamName}: ${saved ? 'Favorit entfernen' : 'Zu Favoriten hinzufügen'}`} aria-pressed={saved} className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${saved ? 'border-red-500 bg-red-700' : 'border-white/20 text-white/70'}`}>
                 {saved ? <Check className="h-5 w-5 text-white" aria-hidden /> : <Star className="h-4 w-4" aria-hidden />}
               </button>
               <div className="relative shrink-0">
                 <button type="button" aria-label={`${team.teamName}: Optionen`} aria-expanded={favoriteMenuUrl === team.id} onClick={() => setFavoriteMenuUrl(current => current === team.id ? null : team.id)} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/80"><MoreHorizontal className="h-5 w-5" aria-hidden /></button>
                 {favoriteMenuUrl === team.id ? <div className="absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-red-500/40 bg-[#211016] p-1 shadow-2xl">
-                  {isMelk ? <button type="button" onClick={() => { setOpen(false); navigate('/app/team/favorite/sc-melk'); }} className="flex min-h-12 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-white"><Users className="h-4 w-4" aria-hidden />Team ansehen</button> : null}
+                  <button type="button" onClick={() => void openDiscoveredTeam(team.id)} disabled={favoriteSaving} className="flex min-h-12 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-white"><Users className="h-4 w-4" aria-hidden />Team ansehen</button>
                   <button type="button" onClick={() => { toggleDiscoveredFavorite(team.id); setFavoriteMenuUrl(null); }} className="flex min-h-12 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-bold text-red-200"><Star className="h-4 w-4" aria-hidden />{saved ? 'Favorit entfernen' : 'Favorit hinzufügen'}</button>
                 </div> : null}
               </div>

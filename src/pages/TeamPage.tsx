@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "../auth/useSession";
 import { AppButton } from "../components/ui/AppButton";
 import {
@@ -50,8 +50,9 @@ import { useInternalBasePath } from "../demo/demoPaths";
 import { buildDemoSeasonMatchBoard } from "../demo/demoMatchState";
 import { DemoAiDisclosure } from "../demo/components/DemoAiDisclosure";
 import { useAvailabilityPermissions } from "../hooks/useAvailabilityPermissions";
-import { getOurTeamDisplayName, getOurTeamLogoUrl } from "../lib/teamLogos";
+import { getClubLogo, getOurTeamDisplayName, getOurTeamLogoUrl } from "../lib/teamLogos";
 
+import { getClubBrandingForTeamSeason, type ClubBranding } from "../lib/clubBranding";
 import { TeamViewSwitcher } from "../components/team/TeamViewSwitcher";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
@@ -159,8 +160,10 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
-  const { selectedTeamSeason, selectedMembership, loading: sessionLoading } = useSession();
+  const { backendRole, selectedMembership, loading: sessionLoading } = useSession();
   const {
+    readTeamSeason: selectedTeamSeason,
+    isReadOnlyView,
     teamLabel: sessionTeamLabel,
     teamLine: sessionTeamLine,
     seasonLine: sessionSeasonLine,
@@ -177,6 +180,24 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     error: tsErrorRaw,
   } = useActiveTeamSeason();
 
+  const requestedSeasonId = searchParams.get("teamSeason");
+  useEffect(() => {
+    if (isDemo || sessionLoading || !requestedSeasonId || !/^[0-9a-f-]{36}$/i.test(requestedSeasonId)) return;
+    setViewTeamSeasonId(requestedSeasonId);
+  }, [requestedSeasonId, isDemo, sessionLoading]);
+  const [viewBranding, setViewBranding] = useState<{ id: string; branding: ClubBranding | null } | null>(null);
+  useEffect(() => {
+    if (isDemo || !sessionReadTeamSeasonId) return;
+    let cancelled = false;
+    void getClubBrandingForTeamSeason(sessionReadTeamSeasonId).then(result => {
+      if (!cancelled) setViewBranding({ id: sessionReadTeamSeasonId, branding: result.data });
+    });
+    return () => { cancelled = true; };
+  }, [sessionReadTeamSeasonId, isDemo]);
+  const teamLogo = isDemo ? getOurTeamLogoUrl() : getClubLogo(selectedTeamSeason?.team?.name ?? '', {
+    teamId: selectedTeamSeason?.team?.id,
+    logoUrl: viewBranding?.id === sessionReadTeamSeasonId ? viewBranding.branding?.logo_url : null,
+  });
   const teamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionTeamSeasonId;
   const readTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionReadTeamSeasonId;
   const activeTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionActiveTeamSeasonId;
@@ -186,6 +207,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const openArchivedTeamSeason = (id: string) => {
     if (!archivedTeamSeasons.some((season) => season.id === id)) return;
     setViewTeamSeasonId(id);
+    setSearchParams({ teamSeason: id });
     setShowSeasonArchive(false);
   };
   const role = isDemo ? "trainer" : sessionRole;
@@ -218,7 +240,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const roleNormalized = normalizeRole(role);
   const isFan = !isDemo && roleNormalized === "fan";
   /** Demo: Kader ansehen wie Trainer, aber keine Roster-Writes. */
-  const canManagePlayers = !isDemo && canManageRoster(roleNormalized) && !isHistoryReadOnly;
+  const canManagePlayers = !isDemo && !isReadOnlyView && canManageRoster(roleNormalized) && !isHistoryReadOnly;
   const canViewTrainingKaiser = isDemo || canManageMatches(roleNormalized);
   const tabsReady = isDemo || (!sessionLoading && !tsLoading);
 
@@ -244,6 +266,9 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
   const [profileInitialTab, setProfileInitialTab] = useState<ProfileTab>("overview");
+  useEffect(() => {
+    setSelectedProfilePlayer(null); setShowForm(false); setEditingPlayer(null); setShowSeasonArchive(false);
+  }, [teamSeasonId]);
   const {
     staff: staffRowsLive,
     loading: staffLoadingLive,
@@ -331,10 +356,10 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     return parsed?.replace(/\s+/g, "").toUpperCase() ?? "TEAM";
   }, [isDemo, teamSeasons, readTeamSeasonId, selectedTeamSeason, heroTeamName, teamLabel]);
 
-  const teamPhotoUrl = useMemo(() => readTeamPhotoUrl(teamPhoto), [teamPhoto]);
+  const teamPhotoUrl = teamPhoto?.team_season_id === teamSeasonId ? readTeamPhotoUrl(teamPhoto) : null;
   const heroPhotoSrc = useMemo(
-    () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : TEAM_HERO_PLACEHOLDER),
-    [teamPhotoUrl],
+    () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : (isDemo || selectedTeamSeason?.team?.name?.includes("Rohrbach") ? TEAM_HERO_PLACEHOLDER : null)),
+    [teamPhotoUrl, isDemo, selectedTeamSeason],
   );
   useEffect(() => {
     if (isDemo || !teamSeasonId) {
@@ -403,7 +428,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   };
 
   const handleTeamPhotoPick = async (file: File) => {
-    if (isDemo || !teamSeasonId) return;
+    if (isDemo || !teamSeasonId || !canManagePlayers) return;
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.type)) {
       setTeamPhotoError("Bitte nur JPG, PNG oder WebP hochladen.");
@@ -912,6 +937,10 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     return <Navigate to={isDemo ? `${basePath}/team` : `${basePath}/mehr/parent-access`} replace />;
   }
 
+  if (!isDemo && requestedSeasonId && /^[0-9a-f-]{36}$/i.test(requestedSeasonId) && requestedSeasonId !== readTeamSeasonId) {
+    return <p className="px-4 py-8 text-sm text-white/60">Lade Mannschaft…</p>;
+  }
+
   return (
     <>
     {comparisonMatch && teamSeasonId ? (
@@ -924,7 +953,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       </Modal>
     ) : null}
     {selectedProfilePlayer ? (
-      <PlayerProfileModal
+      <PlayerProfileModal key={teamSeasonId}
         player={selectedProfilePlayer}
         role={role}
         teamSeasonId={teamSeasonId}
@@ -1017,7 +1046,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       {/* Team Hero */}
       {basePath === "/manager" ? <section data-ui-card className="manager-team-desktop-header items-center justify-between gap-5 rounded-2xl border p-5">
         <div className="flex min-w-0 items-center gap-4">
-          <img src={getOurTeamLogoUrl()} alt="" className="h-16 w-16 shrink-0 object-contain" />
+          <img src={teamLogo} alt="" className="h-16 w-16 shrink-0 object-contain" />
           <div className="min-w-0">
             <h1 className="text-2xl font-bold">{rosterOnly ? "Spieler" : "Team"}</h1>
             <p className="mt-1 text-base font-semibold">{heroTeamName} · {heroAgeGroup}</p>
@@ -1030,12 +1059,12 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         </button> : null}
       </section> : null}
       <PremiumCard matchday showAmbientGlow className={`${basePath === "/manager" ? "manager-team-mobile-hero " : ""}!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x`}>
-      <div className="relative h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
-        <img
+      <div className="relative w-full h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
+        {heroPhotoSrc ? <img
           src={heroPhotoSrc}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
-        />
+        /> : <div className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--club-primary-rgb)/0.65),#09090b)]" aria-hidden />}
         <div
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.18)_38%,rgba(0,0,0,0.94)_100%)]"
           aria-hidden
@@ -1084,11 +1113,11 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
           ) : null}
           <div className="flex items-end gap-3 sm:gap-4">
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
-              <img src={getOurTeamLogoUrl()} alt="SPG Rohrbach Wappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
+              <img src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
             </div>
             <div className="min-w-0 flex-1 pb-1">
               <p className="truncate text-[27px] font-black uppercase leading-none tracking-tight text-white drop-shadow-lg sm:text-[34px]">
-                {tsLoading ? "Lade Team…" : getOurTeamDisplayName()}
+                {tsLoading ? "Lade Team…" : (isDemo ? getOurTeamDisplayName() : selectedTeamSeason?.team?.name ?? "Team")}
               </p>
               <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
                 <span className="sz-club-accent-text">{heroAgeGroup}</span> · Saison {heroSeason}
@@ -1110,6 +1139,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
                     }
                     const ts = teamSeasons.find((row) => row.id === id);
                     if (!ts) return;
+                    setSearchParams({ teamSeason: id });
                     const action = resolveTeamSeasonSwitcherAction(ts.status);
                     if (action === "select-work") {
                       setSelectedTeamSeasonId(id);
@@ -1253,7 +1283,10 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length === 0 && !showForm && (
-            <PremiumEmptyState variant="subtle" title="Noch keine Spieler angelegt." className="mt-3 py-6" />
+            <div>
+              <PremiumEmptyState variant="subtle" title={isReadOnlyView ? "Noch kein freigegebener Kader verfügbar." : "Noch keine Spieler angelegt."} className="mt-3 py-6" />
+              {backendRole === "admin" ? <Link to={`/manager/saisons/${encodeURIComponent(teamSeasonId)}/kader`} className="mx-3 inline-flex min-h-11 items-center rounded-full border border-white/15 px-4 text-sm font-bold text-white">Kader im Manager verwalten →</Link> : null}
+            </div>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
             <>

@@ -185,12 +185,6 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {!publicView && !isDemo && (teamSeasons?.length ?? 0) > 0 && !['/app/home', '/app', '/app/termine', '/app/team', '/app/live', '/app/tabelle'].includes(pathname) ? (
-          <div className="order-3 flex w-full min-w-0 basis-full justify-start border-t border-white/5 px-1 py-0.5 md:order-2 md:w-auto md:basis-auto md:justify-center md:border-0 md:py-0">
-            <TeamSwitcher compact />
-          </div>
-        ) : null}
-
         {/* Rechts: Staff / Demo-Trainer-Chrome (gleiche Höhe wie App) */}
         {!publicView && (
           <div className="order-2 flex shrink-0 flex-col items-end justify-center gap-0.5 md:order-3">

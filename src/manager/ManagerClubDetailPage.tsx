@@ -363,57 +363,6 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
   return (
     <div className="w-full max-w-none space-y-5">
-      {detail?.name.trim().toLocaleLowerCase('de') === 'sc melk' ? (
-        <section className="rounded-2xl border border-blue-200 bg-white p-4 shadow-sm" aria-label="Private SC Melk Pilotvorschau">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-900">TEST · NUR PLATTFORMADMIN · VORSCHAU</span>
-              <h2 className="mt-3 text-xl font-bold text-slate-900">SC Melk · U16 FR · 2026/27</h2>
-              <p className="mt-1 text-sm text-slate-600">Private, unveröffentlichte Designvorschau mit der bestehenden SC-Melk-Demo. Die Namen und Porträts sind fiktiv.</p>
-            </div>
-            <a href="https://vereine.oefb.at/ScMelk/Mannschaften/Saison-2026-27/U16-FR/Kader/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-blue-300 px-3 text-sm font-semibold text-blue-900">ÖFB-Kader ansehen ↗</a>
-          </div>
-          <div className="mt-4 overflow-hidden rounded-2xl border border-[#164A9D] bg-[#06080d] text-white">
-            <div className="relative min-h-[260px] bg-[#10295A]">
-              <img src="https://spielzeitapp.at/demo/sc-melk/team-hero.jpg" alt="Fiktives SC-Melk-Demo-Mannschaftsbild" className="h-[260px] w-full object-cover object-center" loading="lazy" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 flex items-end gap-3">
-                <img src="https://spielzeitapp.at/demo/sc-melk/club-logo.png" alt="SC-Melk-Wappen" className="h-20 w-20 shrink-0 object-contain drop-shadow-lg" loading="lazy" />
-                <div className="min-w-0">
-                  <h3 className="text-2xl font-black uppercase tracking-tight text-white">SC MELK</h3>
-                  <p className="text-sm font-bold uppercase tracking-widest text-[#FFDA24]">U16 FR · SAISON 2026/27</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-1 border-b border-[#164A9D]/50 p-3 text-center text-xs font-bold">
-              <span className="flex-1 rounded-lg bg-[#164A9D] px-2 py-3 text-white">Kader</span>
-              <span className="flex-1 px-2 py-3 text-white/70">Trainer</span>
-              <span className="flex-1 px-2 py-3 text-white/70">Training</span>
-              <span className="flex-1 px-2 py-3 text-white/70">Spiele</span>
-            </div>
-            <div className="p-3">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h4 className="text-lg font-black uppercase">Unser Team</h4>
-                <span className="rounded-full border border-[#164A9D] px-3 py-1 text-xs text-[#FFDA24]">DEMO-KADER</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  { name: 'Lena Krammer', image: 'player-a.webp', number: 8 },
-                  { name: 'Julia Aigner', image: 'player-b.webp', number: 10 },
-                ].map(player => (
-                  <div key={player.number} className="relative overflow-hidden rounded-xl border border-[#164A9D] bg-[#07162f]">
-                    <img src={`https://spielzeitapp.at/demo/sc-melk/${player.image}`} alt={`Fiktives Demo-Spielerporträt ${player.name}`} className="aspect-[3/4] w-full object-cover" loading="lazy" />
-                    <span className="absolute right-2 top-2 text-2xl font-black text-white">{player.number}</span>
-                    <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent px-3 pb-3 pt-8 text-sm font-black uppercase">{player.name}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-3 text-xs text-white/60">Private Designvorschau mit fiktiven Profilen. Keine echten U16-Spielerinnen, keine Kaderübernahme oder Berechtigungsänderung.</p>
-            </div>
-          </div>
-          {detail.team_seasons.length === 0 ? <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Die Mannschaft U16 FR ist noch nicht gespeichert. Bitte unten zuerst Mannschaft und Saison 2026/27 anlegen.</p> : null}
-        </section>
-      ) : null}
       <div>
         <Link to="/manager/vereine" className="text-[13px] font-semibold text-red-700 hover:text-red-800">
           ← Zurück zur Übersicht
@@ -631,6 +580,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   {detail.team_seasons.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
                       <span>{seasonContextLabel(s)}</span>
+                      <Link to={`/app/team?teamSeason=${encodeURIComponent(s.id)}`} className="font-semibold text-red-700 hover:underline">In App ansehen</Link>
                       <button type="button" onClick={() => startClubSupport(s.id, `/manager/saisons/${encodeURIComponent(s.id)}/kader`)} className="font-semibold text-red-700 hover:underline">Kader</button>
                       <button type="button" onClick={() => startClubSupport(s.id, `/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`)} className="font-semibold text-red-700 hover:underline">ÖFB-Spiele</button>
                     </li>

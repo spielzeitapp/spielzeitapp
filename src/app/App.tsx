@@ -30,7 +30,6 @@ import { EventDetailPage } from '../pages/EventDetailPage';
 import { MatchSetupScreen } from '../pages/live/MatchSetupScreen';
 import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
-import { MelkFavoritePreview } from '../pages/MelkFavoritePreview';
 import { TrainerProfilePage } from '../pages/TrainerProfilePage';
 import { TablePage } from '../pages/TablePage';
 import { NotificationsPage } from '../pages/NotificationsPage';
@@ -247,7 +246,7 @@ function InternalRoutes(): React.ReactElement {
           </Route>
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="team" element={<TeamPage />} />
-          <Route path="team/favorite/sc-melk" element={<MelkFavoritePreview />} />
+          <Route path="team/favorite/sc-melk" element={<Navigate to="../.." relative="path" replace />} />
           <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="spielplan" element={<DemoTeamSchedulePage />} />
@@ -312,7 +311,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="live" element={<LivePage />} />
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
-          <Route path="team/favorite/sc-melk" element={<MelkFavoritePreview />} />
+          <Route path="team/favorite/sc-melk" element={<Navigate to="../.." relative="path" replace />} />
         <Route path="team/juggling-challenge" element={<JugglingChallengePage />} />
         <Route path="team/sprint-challenge" element={<SprintChallengePage />} />
         <Route
@@ -451,7 +450,7 @@ function PublicRoutes(): React.ReactElement {
           </Route>
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="team" element={<TeamPage />} />
-          <Route path="team/favorite/sc-melk" element={<MelkFavoritePreview />} />
+          <Route path="team/favorite/sc-melk" element={<Navigate to="../.." relative="path" replace />} />
           <Route path="players/:playerId" element={<DemoPlayerProfileRedirect />} />
           <Route path="spielplan" element={<DemoTeamSchedulePage />} />
           <Route path="tabelle" element={<DemoU13TablePage />} />

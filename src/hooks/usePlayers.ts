@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { listRoster, type RosterListMode, type RosterPlayer } from "../lib/rosterService";
 
 /** Öffentliche Player-Form — kompatibel zu bestehenden Screens. */
@@ -33,11 +33,16 @@ type UsePlayersOptions = {
 export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOptions) {
   const mode: UsePlayersMode = options?.mode ?? "active";
   const [players, setPlayers] = useState<PlayerItem[]>([]);
+  const requestVersion = useRef(0);
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const scope = `${teamSeasonId ?? ""}:${mode}`;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
+    const request = ++requestVersion.current;
     if (teamSeasonId === null) {
+      setLoadedScope(scope);
       setPlayers([]);
       setLoading(false);
       setError(null);
@@ -46,6 +51,8 @@ export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOpti
     setLoading(true);
     setError(null);
     const { data, error: queryError } = await listRoster(teamSeasonId, mode);
+    if (request !== requestVersion.current) return;
+    setLoadedScope(scope);
     if (queryError) {
       setError(queryError);
       setPlayers([]);
@@ -55,11 +62,12 @@ export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOpti
     setPlayers(data);
     setError(null);
     setLoading(false);
-  }, [mode, teamSeasonId]);
+  }, [mode, teamSeasonId, scope]);
 
   useEffect(() => {
     void refetch();
+    return () => { requestVersion.current += 1; };
   }, [refetch]);
 
-  return { players, loading, error, refetch };
+  return { players: loadedScope === scope ? players : [], loading: teamSeasonId != null && (loading || loadedScope !== scope), error: loadedScope === scope ? error : null, refetch };
 }

@@ -27,7 +27,9 @@ function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
     teams?: TeamSeasonTeam | TeamSeasonTeam[] | null;
     seasons?: TeamSeasonSeason | TeamSeasonSeason[] | null;
   };
-  const teams = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+  const joinedTeam = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+  const club = joinedTeam && (Array.isArray(joinedTeam.clubs) ? joinedTeam.clubs[0] : joinedTeam.clubs);
+  const teams = joinedTeam ? { ...joinedTeam, logo_url: club?.logo_url ?? null } : null;
   const seasons = Array.isArray(row.seasons) ? row.seasons[0] : row.seasons;
   if (teams && seasons) {
     return {
@@ -153,6 +155,8 @@ export interface SessionContextValue {
    */
   viewTeamSeasonId: string | null;
   viewTeamSeason: SessionTeamSeasonItem | null;
+  viewTeamSeasonLoading?: boolean;
+  viewTeamSeasonError?: string | null;
   setViewTeamSeasonId: (id: string | null) => void;
   /** Alias: aktive Write-Saison. */
   activeTeamSeasonId: string | null;
@@ -248,10 +252,25 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [teamSeasons, selectedTeamSeasonId],
   );
 
-  const viewTeamSeason = useMemo(
-    () => teamSeasons.find((ts) => ts.id === viewTeamSeasonId) ?? null,
-    [teamSeasons, viewTeamSeasonId],
-  );
+  const [externalView, setExternalView] = useState<{ id: string; season: SessionTeamSeasonItem | null; error: string | null } | null>(null);
+  const ownView = teamSeasons.find(ts => ts.id === viewTeamSeasonId) ?? null;
+  const needsExternalView = Boolean(authUser && viewTeamSeasonId && !ownView);
+  const viewTeamSeason = ownView ?? (externalView?.id === viewTeamSeasonId ? externalView.season : null);
+  const viewTeamSeasonLoading = needsExternalView && externalView?.id !== viewTeamSeasonId;
+  const viewTeamSeasonError = needsExternalView && externalView?.id === viewTeamSeasonId ? externalView.error : null;
+  useEffect(() => {
+    if (!needsExternalView || !viewTeamSeasonId) return;
+    let cancelled = false;
+    const id = viewTeamSeasonId;
+    void supabase.from('team_seasons')
+      .select('id,team_id,season_id,status,display_name,age_group,teams(id,name,age_group,clubs(logo_url)),seasons(id,name)')
+      .eq('id', id).maybeSingle().then(({ data, error }) => {
+        if (cancelled) return;
+        const season = data ? normalizeTeamSeasonRow(data) : null;
+        setExternalView({ id, season, error: error?.message ?? (season ? null : 'Mannschaft nicht verfügbar.') });
+      });
+    return () => { cancelled = true; };
+  }, [needsExternalView, viewTeamSeasonId, authUser?.id]);
 
   const loading = authLoading || (!!authUser && membershipLoading);
 
@@ -585,7 +604,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   status,
   display_name,
   age_group,
-  teams:teams ( id, name, age_group ),
+  teams:teams ( id, name, age_group, clubs ( logo_url ) ),
   seasons:seasons ( id, name )
 `)
           .in('id', teamSeasonIds)
@@ -771,6 +790,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSelectedTeamSeasonId,
     viewTeamSeasonId,
     viewTeamSeason,
+    viewTeamSeasonLoading,
+    viewTeamSeasonError,
     setViewTeamSeasonId,
     activeTeamSeasonId: selectedTeamSeasonId,
     canAccess: (feature) => canAccessFeature(user, feature),

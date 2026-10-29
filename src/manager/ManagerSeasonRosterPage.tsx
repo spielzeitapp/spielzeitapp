@@ -18,6 +18,7 @@ import {
   type RosterPlayer,
 } from '../lib/rosterService';
 import { getTeamSeasonWritableState } from '../lib/seasonTransition';
+import { isStagingApp, supabaseUrlLooksLikeStaging } from '../lib/appEnvironment';
 import { supabase } from '../lib/supabaseClient';
 
 import { useManagerWorkMode } from './ManagerWorkModeContext';
@@ -241,6 +242,30 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
     }
   };
 
+  const canSeedTestRoster = canEdit && isStagingApp() && supabaseUrlLooksLikeStaging(import.meta.env.VITE_SUPABASE_URL)
+    && players.every(player => player.first_name === 'Testspielerin' && /^Test \d{2}$/.test(player.last_name ?? ''));
+  const createTestRoster = async () => {
+    if (!canSeedTestRoster || !seasonId || saving) return;
+    setSaving(true); setError(null); setNotice(null);
+    try {
+      const fresh = await listRoster(seasonId, 'all');
+      if (fresh.error) throw new Error(fresh.error);
+      if (fresh.data.some(player => player.first_name !== 'Testspielerin' || !/^Test \d{2}$/.test(player.last_name ?? ''))) throw new Error('Testkader kann nur ohne bestehende echte Spieler angelegt werden.');
+      for (let number = 1; number <= 12; number++) {
+        const lastName = `Test ${String(number).padStart(2, '0')}`;
+        if (fresh.data.some(player => player.first_name === 'Testspielerin' && player.last_name === lastName)) continue;
+        const result = await createRosterPlayer({ teamSeasonId: seasonId, firstName: 'Testspielerin', lastName,
+          jerseyNumber: number, position: number === 1 ? 'TW' : number <= 5 ? 'Abwehr' : number <= 9 ? 'Mittelfeld' : 'Angriff', birthdateIso: null });
+        if (result.error) throw new Error(result.error);
+      }
+      await reloadRoster(seasonId);
+      setNotice('12 fiktive Testspielerinnen im regulären Saisonkader angelegt. Sie sind über „In App ansehen“ sichtbar.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Testkader konnte nicht angelegt werden.');
+      await reloadRoster(seasonId);
+    } finally { setSaving(false); }
+  };
+
   return (
     <div className="space-y-6">
       <header>
@@ -260,6 +285,12 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
         ) : null}
       </header>
 
+      {seasonId ? <Link to={`/app/team?teamSeason=${encodeURIComponent(seasonId)}`} className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800">In App ansehen →</Link> : null}
+      {canSeedTestRoster && players.length < 12 ? <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <h2 className="font-semibold text-slate-900">Testkader für diese Mannschaft</h2>
+        <p className="mt-1 text-sm text-slate-600">12 eindeutig als Test bezeichnete Spielerinnen über die normale Kaderverwaltung anlegen. Sie erscheinen im Manager und in der App. Nur in der Testumgebung verfügbar.</p>
+        <button type="button" disabled={saving} onClick={() => void createTestRoster()} className="mt-3 min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white disabled:opacity-50">{saving ? 'Testkader wird angelegt…' : '12 Testspielerinnen anlegen'}</button>
+      </section> : null}
       {archived ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] text-slate-700">
           Du siehst eine abgeschlossene Saison. Der Kader bleibt historisch lesbar und wird nicht
