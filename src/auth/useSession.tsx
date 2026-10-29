@@ -226,7 +226,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (stored === 'all') setTeamViewFilterState('all');
       else if (Array.isArray(stored)) {
         const ids = stored.filter((id): id is string => typeof id === 'string' && active.has(id));
-        if (ids.length > 1) setTeamViewFilterState(ids);
+        if (ids.length > 0) setTeamViewFilterState(ids);
       }
     } catch { /* Ignore invalid stored preferences. */ }
   }, [authUser?.id, teamSeasons]);
@@ -639,7 +639,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           preferredId: preferredTeamSeasonId ?? null,
         });
         setSelectedTeamSeasonIdState(selectedId);
-        setViewTeamSeasonIdState(selectedId);
+        // Viewing a favorite must survive reload without changing the work/team membership.
+        let savedViewId: string | null = null;
+        try { savedViewId = window.localStorage.getItem('spz_last_view_team_' + authUser.id); } catch { /* private browsing */ }
+        setViewTeamSeasonIdState(savedViewId || selectedId);
         try {
           if (selectedId) {
             window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);
@@ -760,8 +763,17 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   /** Nur Lesen/Anzeige — ändert die aktive Arbeitssaison nicht. */
   const setViewTeamSeasonId = (id: string | null) => {
-    setViewTeamSeasonIdState(id === '' || id == null ? null : id);
+    const next = id === '' || id == null ? null : id;
+    setViewTeamSeasonIdState(next);
     setTeamViewFilterState(null);
+    if (authUser?.id) {
+      try {
+        const key = 'spz_last_view_team_' + authUser.id;
+        if (next) window.localStorage.setItem(key, next);
+        else window.localStorage.removeItem(key);
+        window.localStorage.removeItem('spz_team_view_' + authUser.id);
+      } catch { /* storage unavailable */ }
+    }
   };
 
   const user: User | null = useMemo(() => {
