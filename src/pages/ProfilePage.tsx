@@ -511,7 +511,7 @@ export const ProfilePage: React.FC = () => {
                     </p>
                     <Link
                       to="/app/parent-onboarding?mode=link"
-                      className="inline-flex min-h-[40px] items-center rounded-full bg-red-600 px-4 text-sm font-semibold text-white"
+                      className="inline-flex min-h-[40px] items-center rounded-full bg-[rgb(var(--club-accent-rgb))] px-4 text-sm font-semibold text-white"
                     >
                       Kind verknüpfen
                     </Link>
