@@ -108,6 +108,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   const panelRef = React.useRef<HTMLDivElement>(null);
   const resultsRef = React.useRef<HTMLDivElement>(null);
   const [keyboardOpen, setKeyboardOpen] = React.useState(false);
+  const [searchFocused, setSearchFocused] = React.useState(false);
   const [viewportHeight, setViewportHeight] = React.useState<number | null>(null);
   const [viewportTop, setViewportTop] = React.useState(0);
   React.useEffect(() => {
@@ -267,6 +268,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   };
   const toggleOpen = () => {
     setTeamSearch('');
+    setSearchFocused(false);
     setFavoriteMenuUrl(null);
     setOpen((value) => !value);
   };
@@ -342,7 +344,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     {open && typeof document !== 'undefined' ? createPortal(
       <div className="fixed inset-x-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" style={{ top: viewportTop, height: viewportHeight ? `${viewportHeight}px` : '100dvh' }} role="presentation">
       <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Favoriten und Mannschaften"
-        className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ maxHeight: viewportHeight ? `${Math.max(180, viewportHeight - (keyboardOpen ? 24 : 12))}px` : 'min(92dvh,52rem)' }}>
+        className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ height: keyboardOpen && viewportHeight ? `${Math.max(180, viewportHeight - 8)}px` : undefined, maxHeight: viewportHeight ? `${Math.max(180, viewportHeight - (keyboardOpen ? 8 : 12))}px` : 'min(92dvh,52rem)' }}>
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2 pt-1">
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-red-500/45 px-3 text-sm font-bold text-white/85"><ArrowLeft className="h-4 w-4 text-red-400" aria-hidden /> Zurück</button>
@@ -356,7 +358,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         <div ref={resultsRef} className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
         <label className="relative mb-3 block">
           <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-red-400" aria-hidden />
-          <input type="search" value={teamSearch} onChange={event => { setTeamSearch(event.target.value); resultsRef.current?.scrollTo({ top: 0 }); }} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
+          <input type="search" value={teamSearch} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} onChange={event => { setTeamSearch(event.target.value); resultsRef.current?.scrollTo({ top: 0 }); }} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
             className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
         </label>
         {!keyboardOpen && multipleAvailable && visibleCurrentSeasons.length > 1 && !searchTerm ? <>
@@ -374,6 +376,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
           {rows.map((ts) => renderSeason(ts, multipleAvailable))}
         </section> : null)}
         {searchTerm && searchedCurrentSeasons.length === 0 && searchedOtherSeasons.length === 0 && discoverMatches.length === 0 && !discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Keine passende freigegebene Mannschaft gefunden.</p> : null}
+        {keyboardOpen && !searchTerm && !discoveryBusy ? <p className="px-3 py-3 text-sm text-white/60">Verein oder Mannschaft eingeben, z. B. Melk.</p> : null}
         {discoveryBusy ? <p className="px-3 py-2 text-sm text-white/60">Vereine werden geladen …</p> : null}
         {discoveryError ? <p role="alert" className="px-3 py-2 text-sm text-red-300">{discoveryError}</p> : null}
         {discoverMatches.length > 0 ? <section className="mt-2 border-t border-white/10 pt-2">
