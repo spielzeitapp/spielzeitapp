@@ -390,7 +390,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
                 <p className="break-words text-xs text-white/65">{team.clubName} · {team.ageGroup} · {team.seasonName}</p>
                 <p className="mt-1 text-[11px] text-white/45">Nur Favorit · keine Eltern- oder Trainerrechte</p>
               </div>
-              {savedDiscoverableIds.includes(team.id) ? <button type="button" onClick={() => setPreviewTeam(team)}
+              {savedDiscoverableIds.includes(team.id) && team.clubName.toLocaleLowerCase('de').includes('melk') ? <button type="button" onClick={() => { setOpen(false); setPreviewTeam(null); navigate('/app/team/favorite/sc-melk'); }}
                 className="col-span-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#164A9D] bg-[#164A9D]/25 px-3 text-sm font-bold text-white">
                 <Users className="h-5 w-5 shrink-0" aria-hidden /> Mannschaft ansehen
               </button> : null}
