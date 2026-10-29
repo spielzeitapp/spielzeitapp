@@ -106,6 +106,28 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   };
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
+  const resultsRef = React.useRef<HTMLDivElement>(null);
+  const [keyboardOpen, setKeyboardOpen] = React.useState(false);
+  const [viewportHeight, setViewportHeight] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (!open || typeof window === 'undefined') return;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      const visibleHeight = viewport.height;
+      setViewportHeight(visibleHeight);
+      setKeyboardOpen(visibleHeight < window.innerHeight - 120);
+    };
+    update();
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    return () => {
+      viewport.removeEventListener('resize', update);
+      viewport.removeEventListener('scroll', update);
+      setKeyboardOpen(false);
+      setViewportHeight(null);
+    };
+  }, [open]);
   const panelId = React.useId();
   const value = viewTeamSeasonId ?? selectedTeamSeasonId;
   const current = teamSeasons.find((ts) => ts.id === value);
@@ -315,23 +337,23 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       {!iconOnly ? <ChevronDown className={`h-5 w-5 shrink-0 text-[rgb(var(--club-accent-rgb))] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden /> : null}
     </button>
     {open && typeof document !== 'undefined' ? createPortal(
-      <div className="fixed inset-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" role="presentation">
+      <div className="fixed inset-x-0 top-0 z-[220] flex items-end justify-center bg-black/65 backdrop-blur-sm" style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }} role="presentation">
       <div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label="Favoriten und Mannschaften"
-        className="sz-club-surface flex max-h-[min(92dvh,52rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]">
+        className="sz-club-surface flex w-full max-w-xl flex-col overflow-hidden rounded-t-[28px] border border-[rgb(var(--club-border-rgb)/0.5)] !bg-[linear-gradient(155deg,#2a0d16,#160d12_35%,#09090b_75%)] p-3 shadow-[0_-16px_60px_rgba(0,0,0,0.65)]" style={{ maxHeight: viewportHeight ? `${Math.max(250, viewportHeight - 12)}px` : 'min(92dvh,52rem)' }}>
         <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/30" aria-hidden />
         <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2 pt-1">
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-red-500/45 px-3 text-sm font-bold text-white/85"><ArrowLeft className="h-4 w-4 text-red-400" aria-hidden /> Zurück</button>
           <button type="button" onClick={() => { setOpen(false); triggerRef.current?.focus(); }} className="sz-club-accent-text min-h-[44px] px-2 text-sm font-bold">Fertig</button>
         </div>
-        <div className="shrink-0 px-2 pb-3 text-center">
+        <div className={keyboardOpen ? "hidden" : "shrink-0 px-2 pb-3 text-center"}>
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-red-500/55 bg-red-950/40"><Star className="h-6 w-6 text-red-400" aria-hidden /></div>
           <h2 className="text-[22px] font-black leading-tight text-white">Favoriten verwalten</h2>
           <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/65">Wähle deine Mannschaften einzeln oder gemeinsam. Deine Auswahl bleibt gespeichert.</p>
         </div>
-        <div className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+        <div ref={resultsRef} className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
         <label className="relative mb-3 block">
           <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-red-400" aria-hidden />
-          <input type="search" value={teamSearch} onChange={event => setTeamSearch(event.target.value)} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
+          <input type="search" value={teamSearch} onChange={event => { setTeamSearch(event.target.value); resultsRef.current?.scrollTo({ top: 0 }); }} placeholder="Verein oder Mannschaft suchen" aria-label="Verein oder Mannschaft suchen"
             className="min-h-[50px] w-full rounded-xl border border-red-500/35 bg-[#1c1116] py-3 pl-11 pr-3 text-[15px] text-white placeholder:text-white/45 focus:border-red-400 focus:outline-none" />
         </label>
         {multipleAvailable && visibleCurrentSeasons.length > 1 && !searchTerm ? <>
