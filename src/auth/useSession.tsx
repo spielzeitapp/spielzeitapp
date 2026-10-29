@@ -225,7 +225,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const active = new Set(teamSeasons.filter(ts => ts.status === 'active').map(ts => ts.id));
       if (stored === 'all') setTeamViewFilterState('all');
       else if (Array.isArray(stored)) {
-        const ids = stored.filter((id): id is string => typeof id === 'string' && active.has(id));
+        // External favorites are not part of the user's membership seasons.
+        // Keep their IDs for the read-only view; access is still checked by Supabase RLS.
+        const ids = stored.filter((id): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id));
         if (ids.length > 0) setTeamViewFilterState(ids);
       }
     } catch { /* Ignore invalid stored preferences. */ }
