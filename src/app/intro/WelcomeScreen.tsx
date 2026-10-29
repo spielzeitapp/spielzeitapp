@@ -101,6 +101,19 @@ export const WelcomeScreen: React.FC = () => {
   return (
     <div className="welcome-screen fixed inset-0 z-[90] flex flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain bg-black text-white [-webkit-overflow-scrolling:touch]">
       <style>{`
+        /* Club palette applies to the welcome entry without changing the platform wordmark. */
+        :root[data-club-theme="custom"] .welcome-screen {
+          background: radial-gradient(circle at 50% 30%, rgb(var(--club-primary-rgb) / 0.28), #030407 70%);
+        }
+        :root[data-club-theme="custom"] .welcome-screen .welcome-intro-cta {
+          background: linear-gradient(145deg, rgb(var(--club-primary-rgb) / 0.58), #090d17 85%);
+          border-color: rgb(var(--club-accent-rgb) / 0.55);
+          box-shadow: 0 0 24px rgb(var(--club-primary-rgb) / 0.25);
+        }
+        :root[data-club-theme="custom"] .welcome-screen .welcome-intro-cta:focus-visible {
+          outline: 2px solid rgb(var(--club-accent-rgb));
+        }
+
         .welcome-intro-cta {
           background: linear-gradient(180deg, rgba(42, 0, 0, 0.78) 0%, rgba(18, 0, 0, 0.84) 100%);
           border: 1px solid rgba(255, 0, 0, 0.25);
