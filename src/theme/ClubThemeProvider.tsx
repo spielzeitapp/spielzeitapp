@@ -31,20 +31,24 @@ export const ClubBrandingOverrideContext = React.createContext<ClubBranding | un
 
 export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverride?: ClubBranding }>> = ({ children, brandingOverride }) => {
   const location = useLocation();
-  const { selectedTeamSeason, viewTeamSeason, teamViewFilter, filteredTeamSeasonIds } = useSession();
+  const { selectedTeamSeasonId, viewTeamSeasonId, teamViewFilter, filteredTeamSeasonIds } = useSession();
   // A combined view can contain different clubs: never color it using only the
   // previously selected club. Single-team views use that team's actual branding.
   const combinedView = teamViewFilter !== null && filteredTeamSeasonIds.length > 1;
-  const activeTeamSeason = viewTeamSeason ?? selectedTeamSeason;
-  const teamSeasonId = combinedView ? null : activeTeamSeason?.id ?? null;
+  // The explicit read scope is authoritative even before its metadata loads.
+  const singleFilterId = Array.isArray(teamViewFilter) && teamViewFilter.length === 1 ? teamViewFilter[0] : null;
+  const requestedId = location.pathname === '/app/team' ? new URLSearchParams(location.search).get('teamSeason') : null;
+  const routeTeamId = requestedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedId) ? requestedId : null;
+  const teamSeasonId = combinedView ? null : routeTeamId ?? singleFilterId ?? viewTeamSeasonId ?? selectedTeamSeasonId;
+  const isDemo = location.pathname.startsWith('/demo');
   const [loaded, setLoaded] = useState<{ teamSeasonId: string; branding: ClubBranding | null } | null>(null);
   // Do not show the previous club's colors while the next club is loading.
-  const storedBranding = brandingOverride ?? (!combinedView && !location.pathname.startsWith('/demo') && loaded?.teamSeasonId === teamSeasonId
+  const storedBranding = brandingOverride ?? (!combinedView && !isDemo && loaded?.teamSeasonId === teamSeasonId
     ? loaded.branding : null);
 
   useEffect(() => {
     let cancelled = false;
-    if (brandingOverride || !teamSeasonId || combinedView || location.pathname.startsWith('/demo')) {
+    if (brandingOverride || !teamSeasonId || combinedView || isDemo) {
       return () => { cancelled = true; };
     }
     void getClubBrandingForTeamSeason(teamSeasonId).then((result) => {
@@ -53,7 +57,7 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverr
       setLoaded({ teamSeasonId, branding: result.data });
     });
     return () => { cancelled = true; };
-  }, [location.pathname, teamSeasonId, combinedView, brandingOverride]);
+  }, [isDemo, teamSeasonId, combinedView, brandingOverride]);
 
   useEffect(() => {
     const root = document.documentElement;
