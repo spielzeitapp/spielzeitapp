@@ -2,6 +2,7 @@
  * ADMIN-ORG.1 – Vereinsdetail: Stammdaten, Abhängigkeiten, Archiv/Löschen.
  */
 
+import { ManagerAppPreviewDialog } from './ManagerAppPreviewDialog';
 import {CommunicationAccessSettings} from './components/CommunicationAccessSettings';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
@@ -87,6 +88,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [confirmDeleteName, setConfirmDeleteName] = useState('');
   const [showDelete, setShowDelete] = useState(false);
 
+  const [appPreviewOpen, setAppPreviewOpen] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [teamAge, setTeamAge] = useState('U12');
   const [setupSeasonId, setSetupSeasonId] = useState(() => new URLSearchParams(window.location.search).get('setupSeason') ?? '');
@@ -455,6 +457,16 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 />
               </label>
             </div>
+            <div className="mt-4 rounded-xl border border-slate-200 p-3">
+              <h3 className="font-semibold">App vorab prüfen</h3>
+              <p className="mt-1 text-sm text-slate-600">Logo und Farben werden auch ohne Speichern angezeigt. Mannschaftsdaten kommen aus der ausgewählten Saison. Die Vorschau veröffentlicht nichts und ersetzt keine Freigabe.</p>
+              <select aria-label="Mannschaft für App-Vorschau" className="mt-3 min-h-11 w-full rounded-lg border border-slate-300 px-3" value={setupSeasonId} onChange={e=>setSetupSeasonId(e.target.value)}>
+                {!detail.team_seasons.length ? <option value="">Zuerst Mannschaft und Saison anlegen</option> : null}
+                {detail.team_seasons.map(season=><option key={season.id} value={season.id}>{seasonContextLabel(season)}</option>)}
+              </select>
+              <button type="button" disabled={!setupSeasonId} onClick={()=>setAppPreviewOpen(true)} className="mt-3 min-h-11 rounded-full bg-slate-900 px-4 font-semibold text-white disabled:opacity-40">App-Vorschau öffnen</button>
+            </div>
+            {appPreviewOpen && setupSeasonId ? <ManagerAppPreviewDialog clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} onClose={()=>setAppPreviewOpen(false)} /> : null}
             <ClubBrandingFields value={branding} onChange={setBranding} logoFile={logoFile} onLogoFile={setLogoFile} />
             <button
               type="submit"

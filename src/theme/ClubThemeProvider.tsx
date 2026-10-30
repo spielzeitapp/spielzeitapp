@@ -27,7 +27,9 @@ const DEFAULT_PALETTE: ClubPalette = {
     onAccent: "#ffffff",
 };
 
-export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+export const ClubBrandingOverrideContext = React.createContext<ClubBranding | undefined>(undefined);
+
+export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverride?: ClubBranding }>> = ({ children, brandingOverride }) => {
   const location = useLocation();
   const { selectedTeamSeason, viewTeamSeason, teamViewFilter, filteredTeamSeasonIds } = useSession();
   // A combined view can contain different clubs: never color it using only the
@@ -37,12 +39,12 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children 
   const teamSeasonId = combinedView ? null : activeTeamSeason?.id ?? null;
   const [loaded, setLoaded] = useState<{ teamSeasonId: string; branding: ClubBranding | null } | null>(null);
   // Do not show the previous club's colors while the next club is loading.
-  const storedBranding = !combinedView && !location.pathname.startsWith('/demo') && loaded?.teamSeasonId === teamSeasonId
-    ? loaded.branding : null;
+  const storedBranding = brandingOverride ?? (!combinedView && !location.pathname.startsWith('/demo') && loaded?.teamSeasonId === teamSeasonId
+    ? loaded.branding : null);
 
   useEffect(() => {
     let cancelled = false;
-    if (!teamSeasonId || combinedView || location.pathname.startsWith('/demo')) {
+    if (brandingOverride || !teamSeasonId || combinedView || location.pathname.startsWith('/demo')) {
       return () => { cancelled = true; };
     }
     void getClubBrandingForTeamSeason(teamSeasonId).then((result) => {
@@ -51,7 +53,7 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children 
       setLoaded({ teamSeasonId, branding: result.data });
     });
     return () => { cancelled = true; };
-  }, [location.pathname, teamSeasonId, combinedView]);
+  }, [location.pathname, teamSeasonId, combinedView, brandingOverride]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -86,7 +88,7 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children 
   }, [storedBranding]);
 
   return (
-    <>
+    <ClubBrandingOverrideContext.Provider value={brandingOverride}>
       <svg className="pointer-events-none absolute h-0 w-0" aria-hidden focusable="false">
         <defs>
           <filter id="sz-jersey-blue" colorInterpolationFilters="sRGB">
@@ -134,6 +136,6 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren> = ({ children 
         </defs>
       </svg>
       {children}
-    </>
+    </ClubBrandingOverrideContext.Provider>
   );
 };

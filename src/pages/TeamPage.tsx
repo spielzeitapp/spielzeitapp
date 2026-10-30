@@ -1,3 +1,4 @@
+import { ClubBrandingOverrideContext } from '../theme/ClubThemeProvider';
 import { ClubLogo } from "../components/branding/ClubLogo";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -186,6 +187,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     if (isDemo || sessionLoading || !requestedSeasonId || !/^[0-9a-f-]{36}$/i.test(requestedSeasonId)) return;
     setViewTeamSeasonId(requestedSeasonId);
   }, [requestedSeasonId, isDemo, sessionLoading]);
+  const previewBranding = React.useContext(ClubBrandingOverrideContext);
   const [viewBranding, setViewBranding] = useState<{ id: string; branding: ClubBranding | null } | null>(null);
   useEffect(() => {
     if (isDemo || !sessionReadTeamSeasonId) return;
@@ -197,7 +199,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   }, [sessionReadTeamSeasonId, isDemo]);
   const teamLogo = isDemo ? getOurTeamLogoUrl() : getClubLogo(selectedTeamSeason?.team?.name ?? '', {
     teamId: selectedTeamSeason?.team?.id,
-    logoUrl: viewBranding?.id === sessionReadTeamSeasonId ? viewBranding.branding?.logo_url : null,
+    logoUrl: previewBranding?.logo_url ?? (viewBranding?.id === sessionReadTeamSeasonId ? viewBranding.branding?.logo_url : null),
   });
   const teamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionTeamSeasonId;
   const readTeamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionReadTeamSeasonId;
