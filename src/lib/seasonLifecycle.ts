@@ -207,12 +207,13 @@ export type TeamSeasonLabelParts = {
   seasonLine: string;
 };
 
-/** Club-/Teamname ohne führende Altersklasse (Stammdaten-Bereinigung). */
+/** Club-/Teamname ohne führende oder nachgestellte Jugend-Altersklasse. */
 export function clubNameWithoutAgeGroup(teamName: string | null | undefined): string {
   const trimmed = (teamName ?? '').trim();
   if (!trimmed) return '';
   const parsed = parseClubDisplayName(trimmed);
-  const club = [parsed.line1, parsed.line2].filter(Boolean).join(' ').trim();
+  const club = [parsed.line1, parsed.line2].filter(Boolean).join(' ').trim()
+    .replace(/[\s·-]+U\d{1,2}[a-z]?$/i, '').trim();
   return club || trimmed;
 }
 
@@ -247,7 +248,11 @@ export function resolveTeamSeasonLabelParts(input: TeamSeasonLabelInput): TeamSe
     .join(' ')
     .replace(/^U\d{1,2}[a-z]?\s+/i, '')
     .trim();
-  const club = displayClub || clubNameWithoutAgeGroup(input.teamName);
+  let club = clubNameWithoutAgeGroup(displayClub || input.teamName);
+  // Senior labels such as KM may also occur at the end of the team name.
+  if (age && club.toLowerCase().endsWith(` ${age.toLowerCase()}`)) {
+    club = club.slice(0, -(age.length + 1)).trim();
+  }
   const rawTeam = (input.teamName ?? '').trim();
   const teamLine = age
     ? [age, club || rawTeam].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
