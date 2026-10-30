@@ -28,6 +28,7 @@ try{
  globalThis.__themeScope={...globalThis.__themeScope,teamViewFilter:null,viewTeamSeasonId:melk};await render();assert.equal(colors.get('--club-primary-rgb'),'22 74 157','read ID needs no metadata to theme external team');
  globalThis.__themeScope={...globalThis.__themeScope,viewTeamSeasonId:rohrbach};await render();assert.equal(colors.get('--club-accent-rgb'),'200 35 51');
  globalThis.__themeLocation={pathname:'/app/team',search:'?teamSeason='+melk};await render();assert.equal(colors.get('--club-accent-rgb'),'245 196 0','explicit team page uses the viewed team');
+ globalThis.__themeScope={...globalThis.__themeScope,teamViewFilter:'all',filteredTeamSeasonIds:[rohrbach,melk]};await render();assert.equal(colors.get('--club-accent-rgb'),'245 196 0','team page ignores an overview-only multi-filter');
  await render(red);assert.equal(colors.get('--club-accent-rgb'),'200 35 51','unsaved manager preview override remains isolated and takes precedence');
  console.log('PASS: selected favorite/read/route IDs, missing metadata, navigation stability, Rohrbach return, blue-yellow artwork and manager override.');
 }finally{if(root)await act(async()=>root.unmount());globalThis.document=oldDocument;delete globalThis.__themeScope;delete globalThis.__themeLocation;delete globalThis.__themeLoad;}
