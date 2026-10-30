@@ -303,7 +303,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
 
       {(canEdit || (!archived && !writableMessage && !loading && !!meta && ['trainer','co_trainer','head_coach'].includes(effectiveRole))) ? <ManagerOefbPlayerAssignments key={seasonId} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
 
-      {canEdit && seasonId ? <ManagerOefbRosterPreview seasonId={seasonId} /> : null}
+      {canEdit && seasonId ? <ManagerOefbRosterPreview key={seasonId} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
 
       {canEdit ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">

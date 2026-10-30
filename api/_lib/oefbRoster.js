@@ -10,7 +10,7 @@ function decode(s) {
 function extract(html) {
   const players = new Map();
   const normalizeName = (text) => decode(text).replace(/\s+/g, ' ').trim();
-  const add = (urlText, label) => {
+  const add = (urlText, label, metadata = {}) => {
     const url = String(urlText).replace(/&amp;/g, '&').replace(/\\\//g, '/');
     // ÖFB uses /Profile/Spieler/1392818/Nino-Semellechner (including slug).
     const found = url.match(/\/Profile\/Spieler\/(\d{4,10})(?:\/([^"'?#\s<]+))?/i)
@@ -21,7 +21,8 @@ function extract(html) {
     try { slugName = found[2] ? decodeURIComponent(found[2]).replace(/[-_]+/g, ' ') : ''; } catch { /* Ignore a malformed slug; a visible name may still be usable. */ }
     const name = normalizeName(label) || normalizeName(slugName);
     if (!/^[\p{L}][\p{L} .'-]{3,100}$/u.test(name) || name.split(/\s+/).length < 2) return;
-    players.set(found[1], { externalPlayerId: found[1], name });
+    const previous = players.get(found[1]);
+    players.set(found[1], { ...previous, externalPlayerId: found[1], name, ...metadata });
   };
   // Club sites render their roster from JSON preloads rather than profile anchors.
   // Parse JSON only, never execute scripts; consume only explicit roster entries.
@@ -33,7 +34,14 @@ function extract(html) {
       if (!Array.isArray(row?.kader)) continue;
       for (const player of row.kader) {
         if (typeof player?.spielerProfilUrl !== 'string' || typeof player?.spielerName !== 'string') continue;
-        add(player.spielerProfilUrl, player.spielerName);
+        const rawNumber = String(player.rueckenNummer ?? '').trim();
+        const jerseyNumber = /^\d{1,3}$/.test(rawNumber) && Number(rawNumber) <= 999 ? Number(rawNumber) : null;
+        let photoUrl = null;
+        try {
+          const photo = new URL(player.spielerFotoUrl, 'https://vereine.oefb.at');
+          if (photo.protocol === 'https:' && photo.hostname === 'vereine.oefb.at' && photo.pathname.startsWith('/netzwerk/imagedownload/')) photoUrl = photo.toString();
+        } catch { /* No public player photo. */ }
+        add(player.spielerProfilUrl, player.spielerName, { jerseyNumber, photoUrl });
       }
     }
   }
