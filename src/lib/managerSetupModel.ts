@@ -6,7 +6,7 @@ export type SetupSnapshot = {
   venues: number; matches: number; trainings: number;
   checks: Partial<Record<SetupKey, SetupCheck>>; updated_at: string | null;
 };
-export type SetupStep = { key: SetupKey; title: string; detail: string; present: boolean; optional: boolean; state: 'done' | 'missing' | 'review' | 'skipped' };
+export type SetupStep = { key: SetupKey; title: string; detail: string; present: boolean; optional: boolean; state: 'done' | 'missing' | 'started' | 'review' | 'skipped' };
 export function setupSteps(s: SetupSnapshot): SetupStep[] {
   const rows: Array<[SetupKey, string, string, boolean, boolean?]> = [
     ['club', 'Verein & Erscheinungsbild', 'Name, Logo und Vereinsfarben speichern und prüfen.', s.club_ready],
@@ -20,8 +20,12 @@ export function setupSteps(s: SetupSnapshot): SetupStep[] {
     ['training', 'Trainings einrichten', `${s.trainings} Trainings gespeichert. Zeiten, Treffpunkte und Plätze prüfen.`, s.trainings > 0, true],
     ['review', 'Abschlussprüfung in der App', 'Richtige Mannschaft und Saison, Termine sowie Trainer-, Eltern- und Spieleransicht prüfen.', true],
   ];
-  return rows.map(([key, title, detail, present, optional = false]) => ({ key, title, detail, present, optional,
-    state: optional && s.checks[key] === 'unneeded' ? 'skipped' : !present ? 'missing' : s.checks[key] === 'reviewed' ? 'done' : 'review' }));
+  return rows.map(([key, title, detail, present, optional = false]) => {
+    const started = key === 'roster' ? s.players > 0 : key === 'access' ? s.access > 0 : false;
+    return { key, title, detail, present, optional,
+      state: optional && s.checks[key] === 'unneeded' ? 'skipped' : !present ? started ? 'started' : 'missing' : s.checks[key] === 'reviewed' ? 'done' : 'review' };
+  });
+
 }
 export function setupReady(s: SetupSnapshot): boolean {
   return setupSteps(s).every(step => step.state === 'done' || step.state === 'skipped');
