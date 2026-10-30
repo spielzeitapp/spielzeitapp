@@ -1,0 +1,13 @@
+const assert = require('node:assert/strict');
+const {extract} = require('../api/_lib/oefbRoster.js');
+const preload = rows => 'SG.container.appPreloads["example"]=' + JSON.stringify(rows, null, 2) + ';';
+const player = (name,id) => ({spielerName:name,spielerProfilUrl:`/netzwerk/spielerdetails/2/111111_${id}~0.htm`});
+assert.deepEqual(extract(preload([{kader:[player('Anna Beispiel','8765432'),player('Eva Muster','8765433')]}])).map(p=>p.externalPlayerId),['8765432','8765433']);
+assert.equal(extract('<a href="/Profile/Spieler/123456/Anna-Beispiel">Anna Beispiel</a>')[0].externalPlayerId,'123456');
+assert.equal(extract('<a href="/bewerbe/Spieler/8765432">Anna Beispiel</a>')[0].externalPlayerId,'8765432');
+assert.equal(extract(preload([{kader:[player('Anna Beispiel','8765432'),player('Anna Beispiel','8765432')]}])).length,1);
+assert.equal(extract(preload([{trainer:[player('Anna Beispiel','8765432')]}])).length,0);
+assert.equal(extract(preload([{kader:[{spielerName:'Anna Beispiel',spielerProfilUrl:'/unknown/8765432'}]}])).length,0);
+assert.equal(extract('SG.container.appPreloads["x"]=[process.exit()];').length,0);
+assert.doesNotThrow(()=>extract('<a href="/Profile/Spieler/123456/%XX">Anna Beispiel</a>'));
+console.log('PASS: ÖFB club preloads, legacy/canonical profiles, deduplication, staff exclusion, invalid IDs, malformed data.');
