@@ -143,24 +143,29 @@ body:has(.manager-shell) {
   color: #7f1d1d;
 }
 
-/* Schwarze Manager-Kopfzeile: überschreibt bewusst die global hellen Formfelder. */
+/* Helle Mannschaftsauswahl hebt den aktuellen Kontext von der dunklen Kopfzeile ab. */
 .manager-shell select.manager-header-select {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.18) !important;
-  color: #ffffff !important;
-  color-scheme: dark;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  color-scheme: light;
 }
 
 .manager-shell select.manager-header-select:hover,
 .manager-shell select.manager-header-select:focus,
 .manager-shell select.manager-header-select:focus-visible {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(239, 68, 68, 0.8) !important;
-  color: #ffffff !important;
+  background-color: #f8fafc !important;
+  border-color: #64748b !important;
+  color: #0f172a !important;
 }
 
 .manager-shell select.manager-header-select option {
-  background: #111111;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.manager-shell select.manager-header-select option:checked {
+  background: #1d4ed8;
   color: #ffffff;
 }
 
