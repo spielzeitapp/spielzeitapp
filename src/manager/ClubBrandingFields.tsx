@@ -8,19 +8,30 @@ export function ClubBrandingFields({ value, onChange, logoFile, onLogoFile }: {
   logoFile: File | null;
   onLogoFile: (file: File | null) => void;
 }): React.ReactElement {
-  const [preview, setPreview] = React.useState<string | null>(null);
+  const [preview, setPreview] = React.useState<{ file: File; url: string } | null>(null);
+  const [failedLogo, setFailedLogo] = React.useState<string | null>(null);
   React.useEffect(() => {
     if (!logoFile) { setPreview(null); return; }
     const url = URL.createObjectURL(logoFile);
-    setPreview(url);
+    setPreview({ file: logoFile, url });
     return () => URL.revokeObjectURL(url);
   }, [logoFile]);
-  const logo = preview ?? value.logo_url;
+  const logo = logoFile ? (preview?.file === logoFile ? preview.url : null) : value.logo_url;
   return <div className="mt-4 space-y-4">
     <h3 className="text-[14px] font-semibold text-slate-900">Vereinslogo und App-Farben</h3>
     <label className="block text-[13px] font-medium text-slate-700">Logo (PNG, JPEG oder WebP, maximal 5 MB)
       <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => onLogoFile(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-[13px]" />
     </label>
+    <div className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-2">
+        {logo && failedLogo !== logo ? <ClubLogo key={logo} src={logo} alt={logoFile ? 'Neu ausgewähltes Vereinslogo' : 'Gespeichertes Vereinslogo'} className="h-full w-full object-contain" onError={() => setFailedLogo(logo)} /> : <span className="text-center text-xs text-slate-500">{logoFile && !logo ? 'Vorschau lädt…' : logo ? 'Bild nicht ladbar' : 'Kein Logo'}</span>}
+      </div>
+      <div className="min-w-0 flex-1" role="status">
+        <p className={`text-sm font-semibold ${logoFile ? 'text-orange-800' : value.logo_url ? 'text-emerald-800' : 'text-slate-700'}`}>{logoFile ? 'Neues Logo · noch nicht gespeichert' : value.logo_url ? 'Logo gespeichert' : 'Noch kein Logo gespeichert'}</p>
+        <p className="mt-1 break-words text-xs text-slate-600">{logoFile ? logoFile.name : value.logo_url ? 'Das gespeicherte Logo wird in der App verwendet. Wähle eine Datei, wenn du es ersetzen möchtest.' : 'Wähle eine Bilddatei und klicke anschließend auf Speichern.'}</p>
+        {logo && failedLogo === logo && <p className="mt-1 text-xs text-red-700">Das Vorschaubild konnte nicht geladen werden.</p>}
+      </div>
+    </div>
     <p className="text-xs text-slate-500">Weiße Außenflächen werden automatisch freigestellt und leere Ränder zugeschnitten.</p>
     <div className="grid gap-3 sm:grid-cols-3">
       {([['primary_color', 'Hauptfarbe'], ['secondary_color', 'Zweite Farbe'], ['accent_color', 'Akzentfarbe']] as const).map(([key, label]) =>
