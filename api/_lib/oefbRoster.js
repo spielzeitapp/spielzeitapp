@@ -13,13 +13,30 @@ function extract(html) {
   const add = (urlText, label) => {
     const url = String(urlText).replace(/&amp;/g, '&').replace(/\\\//g, '/');
     // ÖFB uses /Profile/Spieler/1392818/Nino-Semellechner (including slug).
-    const found = url.match(/\/Profile\/Spieler\/(\d{4,10})(?:\/([^"'?#\s<]+))?/i);
+    const found = url.match(/\/Profile\/Spieler\/(\d{4,10})(?:\/([^"'?#\s<]+))?/i)
+      || url.match(/\/netzwerk\/spielerdetails\/\d+\/\d+_(\d{4,10})~\d+\.htm/i)
+      || url.match(/\/bewerbe\/Spieler\/(\d{4,10})(?:[/?#]|$)/i);
     if (!found) return;
-    const slugName = found[2] ? decodeURIComponent(found[2]).replace(/[-_]+/g, ' ') : '';
+    let slugName = '';
+    try { slugName = found[2] ? decodeURIComponent(found[2]).replace(/[-_]+/g, ' ') : ''; } catch { /* Ignore a malformed slug; a visible name may still be usable. */ }
     const name = normalizeName(label) || normalizeName(slugName);
     if (!/^[\p{L}][\p{L} .'-]{3,100}$/u.test(name) || name.split(/\s+/).length < 2) return;
     players.set(found[1], { externalPlayerId: found[1], name });
   };
+  // Club sites render their roster from JSON preloads rather than profile anchors.
+  // Parse JSON only, never execute scripts; consume only explicit roster entries.
+  for (const match of html.matchAll(/SG\.container\.appPreloads\s*\[[^\]\r\n]+\]\s*=\s*(\[[\s\S]*?\])\s*;/g)) {
+    let rows;
+    try { rows = JSON.parse(match[1]); } catch { continue; }
+    if (!Array.isArray(rows)) continue;
+    for (const row of rows) {
+      if (!Array.isArray(row?.kader)) continue;
+      for (const player of row.kader) {
+        if (typeof player?.spielerProfilUrl !== 'string' || typeof player?.spielerName !== 'string') continue;
+        add(player.spielerProfilUrl, player.spielerName);
+      }
+    }
+  }
   // Capture visible anchors, including nested images and names in the profile slug.
   const anchors = /<a\b([^>]*?)>([\s\S]*?)<\/a>/gi;
   for (const match of html.matchAll(anchors)) {
