@@ -34,7 +34,8 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverr
   const { selectedTeamSeasonId, viewTeamSeasonId, teamViewFilter, filteredTeamSeasonIds } = useSession();
   // A combined view can contain different clubs: never color it using only the
   // previously selected club. Single-team views use that team's actual branding.
-  const combinedView = teamViewFilter !== null && filteredTeamSeasonIds.length > 1;
+  const overview = ['/app', '/app/home', '/app/termine', '/app/tabelle'].includes(location.pathname);
+  const combinedView = overview && teamViewFilter !== null && filteredTeamSeasonIds.length > 1;
   // The explicit read scope is authoritative even before its metadata loads.
   const singleFilterId = Array.isArray(teamViewFilter) && teamViewFilter.length === 1 ? teamViewFilter[0] : null;
   const requestedId = location.pathname === '/app/team' ? new URLSearchParams(location.search).get('teamSeason') : null;
