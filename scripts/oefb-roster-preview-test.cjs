@@ -11,3 +11,8 @@ assert.equal(extract(preload([{kader:[{spielerName:'Anna Beispiel',spielerProfil
 assert.equal(extract('SG.container.appPreloads["x"]=[process.exit()];').length,0);
 assert.doesNotThrow(()=>extract('<a href="/Profile/Spieler/123456/%XX">Anna Beispiel</a>'));
 console.log('PASS: ÖFB club preloads, legacy/canonical profiles, deduplication, staff exclusion, invalid IDs, malformed data.');
+const metadata=extract(preload([{kader:[{...player('Anna Beispiel','8765432'),rueckenNummer:'05',spielerFotoUrl:'/netzwerk/imagedownload/test.jpg'}]}]))[0];
+assert.equal(metadata.jerseyNumber,5);
+assert.equal(metadata.photoUrl,'https://vereine.oefb.at/netzwerk/imagedownload/test.jpg');
+assert.equal(extract(preload([{kader:[{...player('Anna Beispiel','8765432'),rueckenNummer:'unknown',spielerFotoUrl:'https://example.com/photo.jpg'}]}]))[0].photoUrl,null);
+assert.equal(extract(preload([{kader:[{...player('Anna Beispiel','8765432'),rueckenNummer:'unknown'}]}]))[0].jerseyNumber,null);
