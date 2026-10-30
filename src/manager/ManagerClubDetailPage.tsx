@@ -2,6 +2,7 @@
  * ADMIN-ORG.1 – Vereinsdetail: Stammdaten, Abhängigkeiten, Archiv/Löschen.
  */
 
+import { ManagerTeamDetailsEditor } from './ManagerTeamDetailsEditor';
 import { ManagerAppPreviewDialog } from './ManagerAppPreviewDialog';
 import {CommunicationAccessSettings} from './components/CommunicationAccessSettings';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -71,7 +72,7 @@ function lookupDisplayName(u: AdminUserLookup): string {
 export function ManagerClubDetailPage(): React.ReactElement {
   const { clubId = '' } = useParams();
   const navigate = useNavigate();
-  const { backendRole, loading: sessionLoading } = useSession();
+  const { backendRole, loading: sessionLoading, reloadSessionTeamSeasons } = useSession();
   const allowed = isPlatformAdminRole(backendRole);
   const { startSupportSession } = useManagerWorkMode();
 
@@ -592,6 +593,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   {detail.team_seasons.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
                       <span>{seasonContextLabel(s)}</span>
+                      <ManagerTeamDetailsEditor clubId={clubId} season={s} onSaved={async () => { await reloadSessionTeamSeasons(); await reload(); setSuccess('Mannschaft gespeichert. Kader, Spiele und Zuordnungen bleiben erhalten.'); }} />
                       <Link to={`/app/team?teamSeason=${encodeURIComponent(s.id)}`} className="font-semibold text-red-700 hover:underline">In App ansehen</Link>
                       <button type="button" onClick={() => startClubSupport(s.id, `/manager/saisons/${encodeURIComponent(s.id)}/kader`)} className="font-semibold text-red-700 hover:underline">Kader</button>
                       <button type="button" onClick={() => startClubSupport(s.id, `/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`)} className="font-semibold text-red-700 hover:underline">ÖFB-Spiele</button>

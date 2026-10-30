@@ -16,3 +16,7 @@ assert.equal(naming.resolveTeamSeasonLabelParts({ displayName: 'SPG Rohrbach · 
 assert.equal(naming.buildPreparedSeasonDisplayName({ teamName: 'U11 SPG Rohrbach', targetAgeGroup: 'U13', targetSeasonName: '2027/28' }), 'SPG Rohrbach · U13 · 2027/28');
 assert.equal(naming.formatTeamSeasonCompactSwitcherLabel(base), 'SPG Rohrbach · U12 · 2026/27');
 console.log('team-season-naming-test: OK (legacy names, archive, team suffix, multiple clubs, senior teams and next season)');
+
+assert.equal(naming.formatTeamSeasonContextLabel({ teamName: 'SC Melk FR U16', ageGroup: 'U16', seasonName: '2026/27' }), 'SC Melk FR · U16 · 2026/27');
+assert.equal(naming.formatTeamSeasonContextLabel({ teamName: 'SC Melk FR U16', displayName: 'SC Melk FR U16 · U16 · 2026/27', ageGroup: 'U16', seasonName: '2026/27' }), 'SC Melk FR · U16 · 2026/27');
+assert.equal(naming.formatTeamSeasonContextLabel({ teamName: 'SC Melk FR KM', ageGroup: 'KM', seasonName: '2026/27' }), 'SC Melk FR · KM · 2026/27');

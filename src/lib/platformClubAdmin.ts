@@ -434,3 +434,17 @@ export async function adminListGrantableVenues(): Promise<{
   const rows = Array.isArray(data) ? (data as GrantableVenue[]) : [];
   return { data: rows, error: null };
 }
+
+/** Edits metadata in place; all team/team-season IDs and linked records stay intact. */
+export async function adminUpdateTeamDetails(input: {
+  clubId: string; teamSeasonId: string; name: string; ageGroup: string; seasonName: string;
+  expectedName: string; expectedAgeGroup: string | null; expectedSeasonName: string | null;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('admin_update_team_details', {
+    p_club_id: input.clubId, p_team_season_id: input.teamSeasonId,
+    p_name: input.name.trim(), p_age_group: input.ageGroup.trim(), p_season_name: input.seasonName.trim(),
+    p_expected_name: input.expectedName, p_expected_age_group: input.expectedAgeGroup,
+    p_expected_season_name: input.expectedSeasonName,
+  });
+  return { error: error ? (error.code === '42501' ? 'Keine Berechtigung für diese Aktion.' : error.message || 'Mannschaft konnte nicht gespeichert werden.') : null };
+}
