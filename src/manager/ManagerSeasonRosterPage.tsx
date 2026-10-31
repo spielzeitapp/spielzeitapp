@@ -1,3 +1,4 @@
+import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
 /**
  * STEP 4: Historischer / aktueller Saisonkader über team_season_players.
  */
@@ -365,17 +366,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                   className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    {p.cutout_url ? (
-                      <img
-                        src={p.cutout_url}
-                        alt=""
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-[12px] font-semibold text-slate-500">
-                        {(p.first_name?.[0] ?? '?').toUpperCase()}
-                      </div>
-                    )}
+                    <OefbPlayerPhoto src={p.cutout_url || p.avatar_url} name={p.display_name} className="h-10 w-10" />
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-slate-900">{p.display_name}</p>
                       <p className="text-[12px] text-slate-500">
