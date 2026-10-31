@@ -1,3 +1,4 @@
+import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -103,7 +104,7 @@ export function ManagerOefbRosterPreview({ seasonId, onSaved }: { seasonId: stri
       <p className="font-semibold">{players.length} Profile erkannt · {selected.length} ausgewählt</p>
       <p className="text-sm text-slate-600">Bekannte ÖFB-IDs werden wiederverwendet. Bei bereits vorhandenen Spielern ohne ÖFB-Verknüpfung das Profil ausdrücklich wählen. Keine automatische Namenszuordnung.</p>
       {players.map(p=>{const c=choices[p.externalPlayerId];return <div key={p.externalPlayerId} className="rounded-xl border border-slate-200 p-3">
-        <div className="flex items-center gap-3">{p.photoUrl?<img src={p.photoUrl} alt={p.name} referrerPolicy="no-referrer" className="h-14 w-14 rounded-lg object-cover" />:null}<div><p className="font-semibold">{p.name}</p><p className="text-xs text-slate-600">ÖFB-ID {p.externalPlayerId} · Rückennummer {p.jerseyNumber ?? 'nicht angegeben'}</p></div></div>
+        <div className="flex items-center gap-3"><OefbPlayerPhoto src={p.photoUrl} name={p.name} /><div><p className="font-semibold">{p.name}</p><p className="text-xs text-slate-600">ÖFB-ID {p.externalPlayerId} · Rückennummer {p.jerseyNumber ?? 'nicht angegeben'}</p></div></div>
         <label className="mt-2 block text-sm">Übernahme<select disabled={saving} value={c.target} onChange={e=>choose(p.externalPlayerId,{target:e.target.value})} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value="">Nicht übernehmen</option><option value="new">Als neuen Spieler anlegen / bekannte ÖFB-ID verwenden</option>{roster.map(r=><option key={r.id} value={r.id}>{r.first_name} {r.last_name} · vorhandenes Profil</option>)}</select></label>
         {c.target==='new'?<div className="mt-2 grid gap-2 sm:grid-cols-2"><label className="text-sm">Vorname<input disabled={saving} maxLength={100} value={c.first} onChange={e=>choose(p.externalPlayerId,{first:e.target.value})} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Nachname<input disabled={saving} maxLength={100} value={c.last} onChange={e=>choose(p.externalPlayerId,{last:e.target.value})} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label></div>:null}
       </div>;})}

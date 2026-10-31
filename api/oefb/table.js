@@ -34,6 +34,7 @@ function normalizeTable(table) {
 }
 
 module.exports = async function handler(req, res) {
+  if (req.query?.view === 'photo') return require('../_lib/oefbPhoto.js')(req, res);
   if (req.query?.view === 'logo') return require('../_lib/oefbLogo.js')(req, res);
   if (req.query?.view === 'roster') return require('../_lib/oefbRoster.js')(req, res);
   if (req.query?.view === 'report') return require('../_lib/oefbMatchReport.js')(req, res);
