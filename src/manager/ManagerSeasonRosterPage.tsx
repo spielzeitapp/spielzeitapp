@@ -3,7 +3,7 @@ import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
  * STEP 4: Historischer / aktueller Saisonkader über team_season_players.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import {
@@ -25,6 +25,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import type { ManagerWorkMode } from './managerWorkMode';
 import { ManagerOefbPlayerAssignments } from './ManagerOefbPlayerAssignments';
+import { ManagerRosterPlayerActions } from './ManagerRosterPlayerActions';
 import { ManagerOefbRosterPreview } from './ManagerOefbRosterPreview';
 
 function canAccess(effectiveRole: string, backendRole: string, workMode: ManagerWorkMode): boolean {
@@ -39,6 +40,8 @@ function canAccess(effectiveRole: string, backendRole: string, workMode: Manager
 export function ManagerSeasonRosterPage(): React.ReactElement {
   const { seasonId } = useParams<{ seasonId: string }>();
   const { effectiveRole, backendRole, setViewTeamSeasonId } = useSession();
+  const currentSeason = useRef(seasonId);
+  currentSeason.current = seasonId;
   const { workMode } = useManagerWorkMode();
   const allowed = canAccess(effectiveRole, backendRole, workMode);
 
@@ -75,6 +78,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
 
   const reloadRoster = async (id: string): Promise<boolean> => {
     const roster = await listRoster(id, 'all');
+    if (currentSeason.current !== id) return false;
     if (roster.error) {
       setError(roster.error);
       return false;
@@ -145,7 +149,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
 
   const groups = useMemo(() => {
     const active = players.filter((p) => p.status !== 'paused' && p.status !== 'archived' && p.is_active !== false);
-    const paused = players.filter((p) => p.status === 'paused' || p.is_active === false);
+    const paused = players.filter((p) => p.status !== 'archived' && (p.status === 'paused' || p.is_active === false));
     const left = players.filter((p) => p.status === 'archived');
     return { active, paused, left };
   }, [players]);
@@ -363,7 +367,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
               {list.map((p) => (
                 <li
                   key={p.id}
-                  className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                  className="flex min-h-[52px] flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <OefbPlayerPhoto src={p.cutout_url || p.avatar_url} name={p.display_name} className="h-10 w-10" />
@@ -383,10 +387,17 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                       </p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex shrink-0 flex-wrap items-center gap-3">
                     {canEdit ? <button type="button" onClick={() => editPlayer(p)} className="text-[12px] font-semibold text-red-700">Bearbeiten</button> : null}
                     <Link to={`/app/team/players/${encodeURIComponent(p.id)}`} className="text-[12px] font-semibold text-red-700">Profil</Link>
                   </div>
+                  {canEdit ? <div className="w-full border-t border-slate-100 pt-1"><ManagerRosterPlayerActions
+                    key={`${seasonId}:${p.id}`} seasonId={seasonId} playerId={p.id} name={p.display_name} removed={p.status === 'archived'}
+                    onDone={(message, failed) => {
+                      setError(failed ? message : null); setNotice(failed ? null : message);
+                      if (!failed) { if (editingId === p.id) clearForm(); void reloadRoster(seasonId); }
+                    }}
+                  /></div> : null}
                 </li>
               ))}
             </ul>
