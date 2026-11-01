@@ -120,7 +120,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
           <tbody>{players.map(player => <tr key={`desktop-${player.id}`}>
             <td className="px-4 py-3 font-semibold tabular-nums">{player.jersey_number ?? '–'}</td>
             <td className="px-4 py-3"><button type="button" onClick={() => onPlayerClick(player)} className="flex items-center gap-3 text-left font-semibold">
-              <img src={playerMedia(player, Boolean(demo)).src} alt="" className="h-11 w-11 rounded-lg object-cover object-top"
+              <img loading="lazy" decoding="async" src={playerMedia(player, Boolean(demo)).src} alt="" className="h-11 w-11 rounded-lg object-cover object-top"
                 onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = playerPlaceholder(player); }} />
               {premiumPlayerDisplayName(player)}
             </button></td>
@@ -171,7 +171,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                   {number}
                 </span>
               ) : null}
-              <img
+              <img loading="lazy" decoding="async"
                 src={media.src}
                 alt=""
                 onError={(event) => {
@@ -249,7 +249,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                 className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[68px] w-full items-center overflow-hidden rounded-[14px] border px-2.5 text-left transition active:scale-[0.99]"
               >
                 <div className="relative mr-2.5 h-[58px] w-[58px] shrink-0 self-end overflow-hidden">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={media.src}
                     alt=""
                     onError={(event) => {

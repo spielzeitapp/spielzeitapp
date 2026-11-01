@@ -4,7 +4,7 @@ import {build} from 'esbuild';
 const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
 async function load(entry){const r=await build({entryPoints:[entry],bundle:true,platform:'node',format:'cjs',packages:'external',write:false});const mod={exports:{}};new Function('require','module','exports',r.outputFiles[0].text)(require,mod,mod.exports);return mod.exports;}
 const {playerPhotoDisplayUrl}=await load('src/lib/playerPhotoDisplay.ts');
-const url='https://vereine.oefb.at/netzwerk/imagedownload/synthetic-80-80.jpeg';const expected='/api/oefb/table?view=photo&url='+encodeURIComponent(url);
+const url='https://vereine.oefb.at/netzwerk/imagedownload/synthetic-80-80.jpeg';const expected='/api/oefb/table?view=photo&quality=portrait&url='+encodeURIComponent(url);
 assert.equal(playerPhotoDisplayUrl(url),expected);
 for(const src of ['/avatars/player-placeholder.png','blob:https://app.test/fixture','https://storage.test/avatar.jpg','https://vereine.oefb.at.evil.test/netzwerk/imagedownload/fake.jpg',expected])assert.equal(playerPhotoDisplayUrl(src),src);
 assert.equal(playerPhotoDisplayUrl(null),'');
