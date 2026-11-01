@@ -13,9 +13,9 @@ export function ManagerAppPreviewPanel({clubId, teamSeasonId, branding, logoFile
     window.addEventListener('message',receive);
     return ()=>{window.removeEventListener('message',receive);};
   },[send]);
-  return <section role="region" aria-labelledby="app-preview-title" className="min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-neutral-900 text-white xl:sticky xl:top-28">
+  return <section role="region" aria-labelledby="app-preview-title" className="mx-auto mt-5 w-full max-w-[500px] overflow-hidden rounded-2xl border border-slate-300 bg-neutral-900 text-white">
     <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/15 p-3">
-      <div><h2 id="app-preview-title" className="font-bold">App-Vorschau</h2><p className="text-xs text-white/65">Logo und Farben aus dem Formular · gespeicherte Mannschaftsdaten · keine Änderungen in der App</p></div>
+      <div><h2 id="app-preview-title" className="font-bold">App-Vorschau</h2><p className="text-xs text-white/65">Logo und Farben aus dem Formular · gespeicherte Mannschaftsdaten · bedienbar · Änderungen werden nicht gespeichert</p></div>
       <button type="button" onClick={onClose} className="min-h-11 rounded-xl border border-white/30 px-4 font-bold">Ausblenden</button>
     </header>
     <div className="p-2 sm:p-4">
