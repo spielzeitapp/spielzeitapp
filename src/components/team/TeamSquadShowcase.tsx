@@ -157,6 +157,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
         {players.map((player) => {
           const number = player.jersey_number;
           const media = playerMedia(player, Boolean(demo));
+          const numberInFooter = media.src.startsWith('/api/oefb/table?view=photo&');
           return (
             <button
               key={`showcase-${player.id}`}
@@ -166,7 +167,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
               className="sz-club-showcase-card group relative aspect-square w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]"
             >
               <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
-              {number != null ? (
+              {number != null && !numberInFooter ? (
                 <span className="absolute left-5 top-5 z-10 text-[56px] font-black leading-none tracking-[-0.06em] text-white/90 sm:text-[66px]">
                   {number}
                 </span>
@@ -191,7 +192,8 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                 }`}
               />
               <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
-              <div className="absolute inset-x-0 bottom-0 z-10 p-4 sm:p-5">
+              <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-3 p-4 sm:p-5">
+                <div className="min-w-0 flex-1">
                 <p className="truncate text-[25px] font-black uppercase leading-none tracking-tight text-white sm:text-[28px]">
                   {playerCardName(player)}
                 </p>
@@ -200,6 +202,8 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                     {playerCardFamilyName(player)}
                   </p>
                 ) : null}
+                </div>
+                {numberInFooter && number != null ? <span aria-label={`Rückennummer ${number}`} className="shrink-0 border-l border-white/25 pl-3 text-[30px] font-black leading-none tracking-tight text-white/90">#{number}</span> : null}
               </div>
             </button>
           );
