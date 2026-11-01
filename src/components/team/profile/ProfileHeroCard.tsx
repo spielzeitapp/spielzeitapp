@@ -65,6 +65,7 @@ function PlayerProfileHeroCard(props: Props) {
   const cutoutSrc = resolveProfileCutoutSrc(cutoutUrl);
   const photoSrc = resolveProfilePhotoSrc(photoUrl);
   const heroImageSrc = cutoutSrc || photoSrc;
+  const isImportedPortrait = !cutoutSrc && Boolean(photoSrc?.startsWith('/api/oefb/table?view=photo&'));
   const [imageOk, setImageOk] = React.useState(true);
 
   React.useEffect(() => {
@@ -90,7 +91,7 @@ function PlayerProfileHeroCard(props: Props) {
     <div className="sz-club-profile-hero relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border">
       <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
 
-      {watermark ? (
+      {watermark && !isImportedPortrait ? (
         <p
           className={`absolute left-9 top-[6.25rem] z-[4] select-none font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-12 sm:top-[6.75rem] ${
             isDoubleDigitWatermark
@@ -108,6 +109,7 @@ function PlayerProfileHeroCard(props: Props) {
           <img
             src={heroImageSrc}
             alt=""
+            style={isImportedPortrait ? {objectFit:"cover",objectPosition:"center top",transform:"none"} : undefined}
             className={`h-full w-full object-bottom ${isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
               cutoutSrc
                 ? "origin-bottom translate-x-[9%] translate-y-[3%] scale-[1.08] object-contain sm:translate-x-[7%]"
@@ -139,7 +141,7 @@ function PlayerProfileHeroCard(props: Props) {
             </p>
           ) : null}
         </div>
-        {teamLogoUrl ? (
+        {teamLogoUrl && !isImportedPortrait ? (
           <img
             src={teamLogoUrl}
             alt=""
@@ -149,6 +151,7 @@ function PlayerProfileHeroCard(props: Props) {
         ) : null}
       </div>
 
+      {isImportedPortrait && watermark ? <span className="absolute bottom-4 right-4 z-[6] text-[30px] font-black leading-none text-white sm:bottom-5 sm:right-5">{watermark}</span> : null}
       <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5">
         <div className={`max-w-[82%] font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] ${nameSizeClass}`}>
           {firstNameLine ? <p className="whitespace-nowrap">{firstNameLine}</p> : null}

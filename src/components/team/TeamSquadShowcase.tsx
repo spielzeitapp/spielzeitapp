@@ -179,7 +179,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = media.fallbackSrc;
                 }}
-                style={{
+                style={numberInFooter ? {objectFit:"cover",objectPosition:"center top"} : {
                   WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 58%, transparent 76%)",
                   maskImage: "linear-gradient(to bottom, #000 0%, #000 58%, transparent 76%)",
                 }}
@@ -188,10 +188,10 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                     ? "origin-top scale-[1.78] object-contain object-top group-hover:scale-[1.82]"
                     : media.isUpperBodyDemo
                       ? "origin-top scale-[1.22] object-contain object-top group-hover:scale-[1.25]"
-                    : "origin-top scale-[0.99] object-cover object-top group-hover:scale-[1.02]"
+                    : numberInFooter ? "object-cover object-top" : "origin-top scale-[0.99] object-cover object-top group-hover:scale-[1.02]"
                 }`}
               />
-              <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent" aria-hidden />
+              <div className={numberInFooter ? "absolute inset-x-0 bottom-0 h-[28%] bg-gradient-to-t from-black/80 to-transparent" : "absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent"} aria-hidden />
               <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-3 p-4 sm:p-5">
                 <div className="min-w-0 flex-1">
                 <p className="truncate text-[25px] font-black uppercase leading-none tracking-tight text-white sm:text-[28px]">
@@ -203,7 +203,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                   </p>
                 ) : null}
                 </div>
-                {numberInFooter && number != null ? <span aria-label={`Rückennummer ${number}`} className="shrink-0 border-l border-white/25 pl-3 text-[30px] font-black leading-none tracking-tight text-white/90">#{number}</span> : null}
+                {numberInFooter && number != null ? <span aria-label={`Rückennummer ${number}`} className="shrink-0 border-l border-white/25 pl-3 text-[30px] font-black leading-none tracking-tight text-white/90">{number}</span> : null}
               </div>
             </button>
           );

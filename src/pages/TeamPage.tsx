@@ -965,6 +965,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         teamSeasonId={teamSeasonId}
         teamSeasonLabel={teamLabel}
         teamName={heroTeamName}
+        teamLogoUrl={teamLogo}
         photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
         canManage={canManagePlayers}
         initialTab={profileInitialTab}
