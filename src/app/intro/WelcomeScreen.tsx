@@ -60,7 +60,7 @@ function PremiumIntroButton({
   );
 }
 
-export const WelcomeScreen: React.FC = () => {
+export const WelcomeScreen: React.FC<{ previewOnly?: boolean }> = ({ previewOnly = false }) => {
   const heroFilterId = `welcome-club-${React.useId().replace(/:/g, "")}`;
   const navigate = useNavigate();
   const location = useLocation();
@@ -73,6 +73,7 @@ export const WelcomeScreen: React.FC = () => {
 
   /** „Zur App“ — Pending Invite hat Vorrang vor Home. */
   const goHome = () => {
+    if (previewOnly) { navigate(ROUTE_APP_HOME); return; }
     if (isDemoWelcome) {
       navigate(ROUTE_DEMO_HOME, { replace: true });
       return;
@@ -91,6 +92,7 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   const goLive = () => {
+    if (previewOnly) { navigate(ROUTE_LIVE_TICKER); return; }
     if (isDemoWelcome) {
       navigate('/demo/live', { replace: true });
       return;

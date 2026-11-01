@@ -467,7 +467,8 @@ export function ManagerClubDetailPage(): React.ReactElement {
               </select>
               <button type="button" disabled={!setupSeasonId} aria-expanded={appPreviewOpen} onClick={()=>setAppPreviewOpen(open=>!open)} className="mt-3 min-h-11 rounded-full bg-slate-900 px-4 font-semibold text-white disabled:opacity-40">{appPreviewOpen ? 'App-Vorschau ausblenden' : 'App-Vorschau einblenden'}</button>
             </div>
-            <div className={appPreviewOpen && setupSeasonId ? "mt-4 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,470px)]" : "mt-4"}>
+            {appPreviewOpen && setupSeasonId ? <ManagerAppPreviewPanel clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} onClose={()=>setAppPreviewOpen(false)} /> : null}
+            <div className="mt-4 space-y-5">
             <div className="min-w-0">
             <ClubBrandingFields value={branding} onChange={setBranding} logoFile={logoFile} onLogoFile={setLogoFile} />
             <button
@@ -478,7 +479,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
               Speichern
             </button>
             </div>
-            {appPreviewOpen && setupSeasonId ? <ManagerAppPreviewPanel clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} onClose={()=>setAppPreviewOpen(false)} /> : null}
+
             </div>
           </form>
 

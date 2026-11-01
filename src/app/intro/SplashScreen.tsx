@@ -15,13 +15,13 @@ const SPLASH_MS = 1000;
  * Demo und App teilen dieselbe Komponente — Zielpfad hängt vom aktuellen Prefixe ab.
  * Pending Eltern-Einladung überspringt Splash → Accept-Seite.
  */
-export const SplashScreen: React.FC = () => {
+export const SplashScreen: React.FC<{ previewOnly?: boolean }> = ({ previewOnly = false }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isDemo = pathname.startsWith('/demo');
 
   useEffect(() => {
-    if (!isDemo) {
+    if (!isDemo && !previewOnly) {
       const pending = resolvePendingParentInvitePath();
       if (pending) {
         window.location.replace(pending);
@@ -36,7 +36,7 @@ export const SplashScreen: React.FC = () => {
       navigate(isDemo ? '/demo/intro/welcome' : '/app/intro/welcome', { replace: true });
     }, SPLASH_MS);
     return () => window.clearTimeout(t);
-  }, [navigate, isDemo]);
+  }, [navigate, isDemo, previewOnly]);
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-center overflow-hidden bg-black">

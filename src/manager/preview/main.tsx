@@ -1,22 +1,15 @@
 import React from 'react';
+import {PreviewPages} from './PreviewPages';
 import { createRoot } from 'react-dom/client';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import '../../index.css';
+import './previewLayout.css';
 import { AuthProvider, useAuth } from '../../auth/AuthProvider';
 import { fetchUserRole, SessionViewProvider, type SessionTeamSeasonItem } from '../../auth/useSession';
 import { getPlatformClub } from '../../lib/platformClubAdmin';
 import { ClubThemeProvider } from '../../theme/ClubThemeProvider';
 import { RoleProvider } from '../../app/role/RoleContext';
 import { CompetitionProvider } from '../../app/components/CompetitionContext';
-import { Header } from '../../app/layout/Header';
-import { BottomNav } from '../../app/components/BottomNav';
-import { WelcomeScreen } from '../../app/intro/WelcomeScreen';
-import { SplashScreen } from '../../app/intro/SplashScreen';
-import { AppHomePage } from '../../pages/AppHomePage';
-import { TeamPage } from '../../pages/TeamPage';
-import { SchedulePage } from '../../pages/SchedulePage';
-import { ProfilePage } from '../../pages/ProfilePage';
-import { MorePage } from '../../pages/MorePage';
 import { createPreviewFetch, previewSession } from './previewSession';
 import type { ClubBranding } from '../../lib/clubBranding';
 
@@ -54,29 +47,5 @@ function Preview() {
   if (error) return <p role="alert" className="p-6 text-white">{error}</p>;
   if (!season || !user) return <p className="p-6 text-white">App-Vorschau wird geladen…</p>;
   return <SessionViewProvider value={previewSession(user.id, season)}><RoleProvider><ClubThemeProvider brandingOverride={branding}><CompetitionProvider><PreviewPages /></CompetitionProvider></ClubThemeProvider></RoleProvider></SessionViewProvider>;
-}
-function PreviewPages() {
-  const navigate = useNavigate();
-  return <>
-    <nav className="fixed inset-x-0 top-0 z-[200] flex flex-wrap gap-1 bg-neutral-950 p-2 text-white" aria-label="Vorschauseite wählen">
-      {[['Splash','intro/splash'],['Welcome','intro/welcome'],['Home','home'],['Termine','termine'],['Team','team'],['Profil','profile'],['Mehr','mehr']].map(([label,path]) => <button className="rounded border border-white/25 px-2 py-1 text-xs" key={path} onClick={()=>navigate('/app/'+path)}>{label}</button>)}
-      <span className="w-full text-[10px] text-white/60">Vorschau · Fanansicht · Seiten oben wählen · Bedienelemente gesperrt</span>
-    </nav>
-    <div className="pt-24 text-white" onSubmitCapture={e=>{e.preventDefault();e.stopPropagation();}} onClickCapture={e=>{
-      const target=e.target as HTMLElement;
-      if (target.closest('button,input,select,textarea,a')) {e.preventDefault();e.stopPropagation();}
-    }} onChangeCapture={e=>{e.preventDefault();e.stopPropagation();}}>
-      <Routes>
-        <Route path="/app/intro/splash" element={<SplashScreen />} />
-        <Route path="/app/intro/welcome" element={<WelcomeScreen />} />
-        <Route path="*" element={<><Header /><main className="pb-32"><Routes>
-          <Route path="/app/home" element={<AppHomePage />} /><Route path="/app/termine" element={<SchedulePage />} />
-          <Route path="/app/team" element={<TeamPage />} /><Route path="/app/profile" element={<ProfilePage />} />
-          <Route path="/app/mehr" element={<MorePage />} />
-          <Route path="*" element={<p>Bitte oben eine Vorschauseite auswählen.</p>} />
-        </Routes></main><BottomNav /></>} />
-      </Routes>
-    </div>
-  </>;
 }
 createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={['/app/intro/welcome']}><AuthProvider><Preview /></AuthProvider></MemoryRouter>);

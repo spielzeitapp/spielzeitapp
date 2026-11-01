@@ -1,0 +1,7 @@
+/* A real phone-sized scrolling viewport inside the manager iframe. */
+html, body, #root { width:100%; height:100%; min-height:0; overflow:hidden; }
+#root { display:block; background:#000; }
+.preview-toolbar { position:absolute; inset:0 0 auto; height:80px; overflow:auto; z-index:200; }
+.preview-app-viewport { position:absolute; inset:80px 0 0; min-height:0; overflow:hidden; transform:translateZ(0); }
+.preview-app-viewport > .app { height:100%; min-height:0; max-height:100%; }
+.preview-app-viewport .appMain { overflow-y:auto; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; }
