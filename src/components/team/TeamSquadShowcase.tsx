@@ -1,3 +1,4 @@
+import {playerPhotoDisplayUrl} from '../../lib/playerPhotoDisplay';
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
@@ -41,11 +42,11 @@ function demoPlayerMedia(player: PlayerItem): string {
 export function playerMedia(player: PlayerItem, isDemo: boolean): { src: string; fallbackSrc: string; isCutout: boolean; isUpperBodyDemo: boolean } {
   const fallbackSrc = playerPlaceholder(player);
   const cutout = (player.cutout_url ?? "").trim();
-  if (cutout) return { src: cutout, fallbackSrc, isCutout: true, isUpperBodyDemo: false };
+  if (cutout) return { src: playerPhotoDisplayUrl(cutout), fallbackSrc, isCutout: true, isUpperBodyDemo: false };
   const avatar = (player.avatar_url ?? "").trim();
   if (avatar) {
     return {
-      src: avatar,
+      src: playerPhotoDisplayUrl(avatar),
       fallbackSrc,
       isCutout: false,
       isUpperBodyDemo: isDemoUpperBodyPortraitUrl(avatar),
@@ -255,7 +256,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = media.fallbackSrc;
                     }}
-                    className={`h-full w-full origin-top scale-[1.75] object-contain object-top ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""}`}
+                    className={media.src.startsWith('/api/oefb/table?view=photo&') ? "h-full w-full rounded-lg object-cover object-top" : `h-full w-full origin-top scale-[1.75] object-contain object-top ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""}`}
                   />
                 </div>
                 <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">
