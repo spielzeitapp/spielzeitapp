@@ -329,7 +329,7 @@ export const WelcomeScreen: React.FC = () => {
         />
         <div
           className="welcome-blue-yellow-hero pointer-events-none absolute inset-0 h-full min-h-full w-full bg-cover bg-center"
-          style={{ backgroundImage: `url("${import.meta.env.BASE_URL || '/'}intro/welcome-blue-yellow-v1.jpg")` }}
+          style={{ backgroundImage: `url("${import.meta.env.BASE_URL || '/'}intro/welcome-blue-yellow-v2.jpg")` }}
           aria-hidden
         />
         <div
