@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {build} from 'esbuild';
+const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
+const built=await build({entryPoints:['src/manager/ManagerAppPreviewPanel.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false});
+const mod={exports:{}};new Function('require','module','exports',built.outputFiles[0].text)(require,mod,mod.exports);
+const oldWindow=globalThis.window,oldLocation=globalThis.location;
+const listeners=new Map(),sent=[];const target={postMessage:(...args)=>sent.push(args)};
+globalThis.location={origin:'https://preview.test'};globalThis.window={location,addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name,fn)=>{if(listeners.get(name)===fn)listeners.delete(name);}};
+let root,closed=0;
+const props={clubId:'club',teamSeasonId:'season-a',branding:{primary_color:'#164a9d',secondary_color:'#ffda24',accent_color:'#f5c400',logo_url:null},logoFile:null,onClose:()=>closed++};
+try {
+ await act(async()=>{root=create(React.createElement(mod.exports.ManagerAppPreviewPanel,props),{createNodeMock:el=>el.type==='iframe'?{contentWindow:target}:null});});
+ assert.equal(root.root.findByType('section').props.role,'region');
+ assert.equal(root.root.findAll(x=>x.props.role==='dialog').length,0,'preview is inline, not a modal/portal');
+ const frame=root.root.findByType('iframe');assert.equal(frame.props.sandbox,'allow-scripts allow-same-origin');assert.ok(frame.props.src.includes('teamSeasonId=season-a'));
+ const initial=sent.length;
+ listeners.get('message')({origin:'https://other.test',source:target,data:{type:'manager-preview-ready'}});assert.equal(sent.length,initial);
+ listeners.get('message')({origin:location.origin,source:{},data:{type:'manager-preview-ready'}});assert.equal(sent.length,initial);
+ listeners.get('message')({origin:location.origin,source:target,data:{type:'manager-preview-ready'}});assert.equal(sent.length,initial+1);
+ await act(async()=>root.update(React.createElement(mod.exports.ManagerAppPreviewPanel,{...props,branding:{...props.branding,primary_color:'#111111'}})));
+ assert.equal(sent.at(-1)[0].branding.primary_color,'#111111','unsaved branding updates same embedded frame');
+ assert.equal(listeners.has('keydown'),false,'host keyboard/scroll are not captured');
+ await act(async()=>root.root.findByType('button').props.onClick());assert.equal(closed,1);
+ await act(async()=>root.unmount());assert.equal(listeners.size,0);
+ console.log('PASS: inline region, embedded sandbox, unsaved colors, same-origin/source handshake, close and cleanup without host scroll/keyboard locking.');
+}finally{globalThis.window=oldWindow;globalThis.location=oldLocation;}
