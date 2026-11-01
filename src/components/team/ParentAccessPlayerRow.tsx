@@ -1,3 +1,4 @@
+import {playerPhotoDisplayUrl} from '../../lib/playerPhotoDisplay';
 /**
  * Compact roster row for Eltern & Spielerzugänge.
  */
@@ -67,8 +68,8 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
     openInviteCount,
   });
   const appLine = playerAppStatusLine(appStatus, lastUsedAt);
-  const src = (photoUrl ?? '').trim();
-  const [imageFailed, setImageFailed] = useState(false);
+  const src = playerPhotoDisplayUrl(photoUrl);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const nameParts = row.player_name.trim().split(/\s+/).filter(Boolean);
   const firstName = nameParts[0] || 'Spieler';
   const familyName = nameParts.slice(1).join(' ');
@@ -94,10 +95,10 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
     >
       <div className="relative mr-2.5 h-[72px] w-[58px] shrink-0 self-end overflow-hidden">
         <img
-          src={!imageFailed && src ? src : fallbackSrc}
+          src={failedSrc !== src && src ? src : fallbackSrc}
           alt=""
-          onError={() => setImageFailed(true)}
-          className="h-full w-full origin-top scale-[1.75] object-contain object-top"
+          onError={() => setFailedSrc(src)}
+          className={src.startsWith('/api/oefb/table?view=photo&') && failedSrc !== src ? "h-full w-full rounded-lg object-cover object-top" : "h-full w-full origin-top scale-[1.75] object-contain object-top"}
         />
       </div>
       <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">

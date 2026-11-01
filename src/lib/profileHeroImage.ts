@@ -1,3 +1,4 @@
+import {playerPhotoDisplayUrl} from './playerPhotoDisplay';
 /**
  * Profil-Hero: Cutout vs. Avatar, Cache-Bust, Preload.
  */
@@ -16,7 +17,7 @@ export function resolveProfileCutoutSrc(cutoutUrl?: string | null): string | nul
 
 export function resolveProfilePhotoSrc(photoUrl?: string | null): string | null {
   const photo = (photoUrl ?? "").trim();
-  return photo || null;
+  return playerPhotoDisplayUrl(photo) || null;
 }
 
 /** Layout stabil: bei cutout_url immer Cutout-Slot reservieren (unabhängig vom Bild-Laden). */
@@ -39,5 +40,5 @@ export function preloadProfileHeroImage(url: string | null | undefined): void {
   if (!src || typeof Image === "undefined") return;
   const img = new Image();
   img.decoding = "async";
-  img.src = src;
+  img.src = playerPhotoDisplayUrl(src);
 }

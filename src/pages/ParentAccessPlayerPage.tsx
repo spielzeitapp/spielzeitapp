@@ -1,3 +1,4 @@
+import {playerPhotoDisplayUrl} from '../lib/playerPhotoDisplay';
 /**
  * Eltern & Spielerzugänge — Spieler-Detail (eigene Route).
  */
@@ -168,10 +169,10 @@ export const ParentAccessPlayerPage: React.FC = () => {
       <div className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[88px] w-full items-center overflow-hidden rounded-[16px] border px-3">
         <div className="relative mr-3 h-[78px] w-[64px] shrink-0 self-end overflow-hidden">
           <img
-            src={!photoFailed && photoUrl ? photoUrl : fallbackPhoto}
+            src={!photoFailed && photoUrl ? playerPhotoDisplayUrl(photoUrl) : fallbackPhoto}
             alt=""
             onError={() => setPhotoFailed(true)}
-            className="h-full w-full origin-top scale-[1.75] object-contain object-top"
+            className={!photoFailed && playerPhotoDisplayUrl(photoUrl).startsWith('/api/oefb/table?view=photo&') ? "h-full w-full rounded-lg object-cover object-top" : "h-full w-full origin-top scale-[1.75] object-contain object-top"}
           />
         </div>
         <span className="sz-club-number-divider w-14 shrink-0 border-l pl-3 text-[30px] font-black leading-none text-white">
