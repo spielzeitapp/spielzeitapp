@@ -3,7 +3,7 @@
  */
 
 import { ManagerTeamDetailsEditor } from './ManagerTeamDetailsEditor';
-import { ManagerAppPreviewDialog } from './ManagerAppPreviewDialog';
+import { ManagerAppPreviewPanel } from './ManagerAppPreviewPanel';
 import {CommunicationAccessSettings} from './components/CommunicationAccessSettings';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
@@ -465,9 +465,10 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 {!detail.team_seasons.length ? <option value="">Zuerst Mannschaft und Saison anlegen</option> : null}
                 {detail.team_seasons.map(season=><option key={season.id} value={season.id}>{seasonContextLabel(season)}</option>)}
               </select>
-              <button type="button" disabled={!setupSeasonId} onClick={()=>setAppPreviewOpen(true)} className="mt-3 min-h-11 rounded-full bg-slate-900 px-4 font-semibold text-white disabled:opacity-40">App-Vorschau öffnen</button>
+              <button type="button" disabled={!setupSeasonId} aria-expanded={appPreviewOpen} onClick={()=>setAppPreviewOpen(open=>!open)} className="mt-3 min-h-11 rounded-full bg-slate-900 px-4 font-semibold text-white disabled:opacity-40">{appPreviewOpen ? 'App-Vorschau ausblenden' : 'App-Vorschau einblenden'}</button>
             </div>
-            {appPreviewOpen && setupSeasonId ? <ManagerAppPreviewDialog clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} onClose={()=>setAppPreviewOpen(false)} /> : null}
+            <div className={appPreviewOpen && setupSeasonId ? "mt-4 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,470px)]" : "mt-4"}>
+            <div className="min-w-0">
             <ClubBrandingFields value={branding} onChange={setBranding} logoFile={logoFile} onLogoFile={setLogoFile} />
             <button
               type="submit"
@@ -476,6 +477,9 @@ export function ManagerClubDetailPage(): React.ReactElement {
             >
               Speichern
             </button>
+            </div>
+            {appPreviewOpen && setupSeasonId ? <ManagerAppPreviewPanel clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} onClose={()=>setAppPreviewOpen(false)} /> : null}
+            </div>
           </form>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
