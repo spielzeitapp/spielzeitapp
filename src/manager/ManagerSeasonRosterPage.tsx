@@ -25,6 +25,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useManagerWorkMode } from './ManagerWorkModeContext';
 import type { ManagerWorkMode } from './managerWorkMode';
 import { ManagerOefbPlayerAssignments } from './ManagerOefbPlayerAssignments';
+import { ManagerNewRosterPlayer } from './ManagerNewRosterPlayer';
 import { ManagerRosterPlayerActions } from './ManagerRosterPlayerActions';
 import { ManagerOefbRosterPreview } from './ManagerOefbRosterPreview';
 
@@ -310,15 +311,8 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
 
       {canEdit && seasonId ? <ManagerOefbRosterPreview key={`oefb-roster:${seasonId}`} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
 
-      {canEdit ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
-          <h2 className="text-lg font-semibold text-slate-900">Spieler aus anderen Mannschaften übernehmen</h2>
-          <p className="mt-1 text-sm text-slate-600">Für U12-Spieler, die auch in der U13 spielen. Ein bestehendes Profil darf nicht doppelt angelegt werden.</p>
-          <p className="mt-2 text-sm text-amber-800">Die sichere vereinsweite Auswahl benötigt noch eine Datenbankfreigabe. Bis dahin bitte keine Spieler hier neu anlegen.</p>
-        </section>
-      ) : null}
-
-      {canEdit ? (
+      {canEdit && !editingId ? <ManagerNewRosterPlayer key={`new-player:${seasonId}`} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
+      {canEdit && editingId ? (
         <form onSubmit={(event) => void savePlayer(event)} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
           <h2 className="text-[16px] font-semibold text-slate-900">{editingId ? 'Spieler bearbeiten' : 'Spieler zum Kader hinzufügen'}</h2>
           <div className="grid gap-3 sm:grid-cols-2">

@@ -1,11 +1,13 @@
 import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
 import React, { useEffect, useRef, useState } from 'react';
+import {rosterIdentityMatches,rosterMembershipLabel,type ClubRosterProfile} from '../lib/clubRosterIdentity';
 import { supabase } from '../lib/supabaseClient';
 
 type Candidate = { externalPlayerId: string; name: string; jerseyNumber?: number | null; photoUrl?: string | null };
-type Choice = { target: string; first: string; last: string };
+type Choice = { target: string; first: string; last: string; distinct?:boolean };
 export function ManagerOefbRosterPreview({ seasonId, onSaved }: { seasonId: string; onSaved?: () => void }) {
   const generation = useRef(0);
+  const [clubProfiles,setClubProfiles]=useState<ClubRosterProfile[]>([]);
   const [choices, setChoices] = useState<Record<string, Choice>>({});
   const [confirmed, setConfirmed] = useState(false);
   const [includeNumbers, setIncludeNumbers] = useState(true);
@@ -60,10 +62,14 @@ export function ManagerOefbRosterPreview({ seasonId, onSaved }: { seasonId: stri
       const {data: context, error: contextError} = await supabase.rpc('oefb_assignment_context', {p_team_season_id: seasonId});
       if (version !== generation.current) return;
       if (contextError) throw Error(contextError.message);
+      const club=await supabase.rpc('admin_club_roster_context',{p_team_season_id:seasonId});
+      if(version!==generation.current)return;
+      if(club.error)throw Error(club.error.message);
+      setClubProfiles(club.data as ClubRosterProfile[]);
       setRoster(context?.players || []);
       const found = result.players || [];
       const next: Record<string, Choice> = {};
-      found.forEach(p => {const names = p.name.split(/\s+/); next[p.externalPlayerId] = {target: context?.links?.find((l: {external_player_id:string;player_id:string}) => l.external_player_id === p.externalPlayerId)?.player_id || 'new', first: names.shift() || '', last: names.join(' ')};});
+      found.forEach(p => {const names = p.name.split(/\s+/); next[p.externalPlayerId] = {target: (club.data as ClubRosterProfile[]).some(r=>r.external_ids.includes(p.externalPlayerId)) ? '' : 'new', first: names.shift() || '', last: names.join(' ')};});
       setChoices(next);
       setPlayers(found);
       setNotice(result.notice || '');
@@ -71,15 +77,15 @@ export function ManagerOefbRosterPreview({ seasonId, onSaved }: { seasonId: stri
     finally { if(version === generation.current) setBusy(false); }
   }
   const selected = players.filter(p => choices[p.externalPlayerId]?.target);
-  const validNames = selected.every(p => {const c=choices[p.externalPlayerId]; return c.target !== 'new' || (c.first.trim() && c.last.trim());});
-  function choose(id: string, patch: Partial<Choice>) {setConfirmed(false); setChoices(old=>({...old,[id]:{...old[id],...patch}}));}
+  const validNames = selected.every(p => {const c=choices[p.externalPlayerId];const matches=rosterIdentityMatches(clubProfiles,c.first,c.last,p.externalPlayerId); return c.target !== 'new' || (c.first.trim() && c.last.trim() && !matches.some(r=>r.external_ids.includes(p.externalPlayerId)) && (!matches.length || c.distinct===true));});
+  function choose(id: string, patch: Partial<Choice>) {setConfirmed(false); setChoices(old=>({...old,[id]:{...old[id],...patch,...(patch.first!==undefined||patch.last!==undefined?{distinct:false}:{})}}));}
   async function importRoster() {
     if (!confirmed || !selected.length || !validNames || busy || saving) return;
     const version = generation.current;
     setSaving(true); setError(''); setNotice('');
     try {
-      const {data, error: err} = await supabase.rpc('import_oefb_roster', {p_team_season_id:seasonId, p_players:selected.map(p=>{
-        const c=choices[p.externalPlayerId]; return {external_player_id:p.externalPlayerId,source_name:p.name,player_id:c.target==='new'?null:c.target,first_name:c.first.trim(),last_name:c.last.trim(),jersey_number:includeNumbers?p.jerseyNumber??null:null,photo_url:includePhotos?p.photoUrl??null:null};
+      const {data, error: err} = await supabase.rpc('admin_import_club_oefb_roster', {p_team_season_id:seasonId, p_players:selected.map(p=>{
+        const c=choices[p.externalPlayerId]; return {external_player_id:p.externalPlayerId,source_name:p.name,player_id:c.target==='new'?null:c.target,first_name:c.first.trim(),last_name:c.last.trim(),distinct_person:c.distinct===true,jersey_number:includeNumbers?p.jerseyNumber??null:null,photo_url:includePhotos?p.photoUrl??null:null};
       })});
       if (version !== generation.current) return;
       if (err) throw Error(err.message);
@@ -103,9 +109,10 @@ export function ManagerOefbRosterPreview({ seasonId, onSaved }: { seasonId: stri
     {players.length > 0 ? <div className="space-y-3">
       <p className="font-semibold">{players.length} Profile erkannt · {selected.length} ausgewählt</p>
       <p className="text-sm text-slate-600">Bekannte ÖFB-IDs werden wiederverwendet. Bei bereits vorhandenen Spielern ohne ÖFB-Verknüpfung das Profil ausdrücklich wählen. Keine automatische Namenszuordnung.</p>
-      {players.map(p=>{const c=choices[p.externalPlayerId];return <div key={p.externalPlayerId} className="rounded-xl border border-slate-200 p-3">
+      {players.map(p=>{const c=choices[p.externalPlayerId];const matches=rosterIdentityMatches(clubProfiles,c.first,c.last,p.externalPlayerId);return <div key={p.externalPlayerId} className="rounded-xl border border-slate-200 p-3">
         <div className="flex items-center gap-3"><OefbPlayerPhoto src={p.photoUrl} name={p.name} /><div><p className="font-semibold">{p.name}</p><p className="text-xs text-slate-600">ÖFB-ID {p.externalPlayerId} · Rückennummer {p.jerseyNumber ?? 'nicht angegeben'}</p></div></div>
-        <label className="mt-2 block text-sm">Übernahme<select disabled={saving} value={c.target} onChange={e=>choose(p.externalPlayerId,{target:e.target.value})} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value="">Nicht übernehmen</option><option value="new">Als neuen Spieler anlegen / bekannte ÖFB-ID verwenden</option>{roster.map(r=><option key={r.id} value={r.id}>{r.first_name} {r.last_name} · vorhandenes Profil</option>)}</select></label>
+        <label className="mt-2 block text-sm">Übernahme<select disabled={saving} value={c.target} onChange={e=>choose(p.externalPlayerId,{target:e.target.value})} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value="">Nicht übernehmen</option><option value="new">Als neuen Spieler anlegen / bekannte ÖFB-ID verwenden</option>{clubProfiles.map(r=><option key={r.id} value={r.id}>{r.first_name} {r.last_name} · {rosterMembershipLabel(r)}</option>)}</select></label>
+        {matches.length>0?<div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm"><p className="font-semibold">Bereits im Verein vorhanden – Identität prüfen</p>{matches.map(r=><p key={r.id}>{r.first_name} {r.last_name} · {rosterMembershipLabel(r)}{r.external_ids.includes(p.externalPlayerId)?' · gleiche ÖFB-ID':''}</p>)}{c.target==='new'&&!matches.some(r=>r.external_ids.includes(p.externalPlayerId))?<label className="mt-2 block"><input type="checkbox" checked={c.distinct===true} onChange={e=>choose(p.externalPlayerId,{distinct:e.target.checked})} /> Andere Person mit gleichem Namen – neues Profil bestätigt</label>:null}</div>:null}
         {c.target==='new'?<div className="mt-2 grid gap-2 sm:grid-cols-2"><label className="text-sm">Vorname<input disabled={saving} maxLength={100} value={c.first} onChange={e=>choose(p.externalPlayerId,{first:e.target.value})} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Nachname<input disabled={saving} maxLength={100} value={c.last} onChange={e=>choose(p.externalPlayerId,{last:e.target.value})} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label></div>:null}
       </div>;})}
       <label className="flex gap-2 text-sm"><input type="checkbox" disabled={saving} checked={includeNumbers} onChange={e=>{setIncludeNumbers(e.target.checked);setConfirmed(false);}} />Fehlende Rückennummern ergänzen (belegte Nummern bleiben erhalten)</label>
