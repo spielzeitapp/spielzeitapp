@@ -26,6 +26,8 @@ const mod={exports:{}};new Function('require','module','exports',compiled.output
 const oldError=console.error, errors=[];console.error=(...args)=>errors.push(args.join(' '));let root;
 try {
  for(let i=0;i<6;i++) {season=`season-${i%2}`;await act(async()=>{const node=React.createElement(mod.exports.ManagerSeasonRosterPage);if(root)root.update(node);else root=create(node);await new Promise(r=>setImmediate(r));});
+  const sections=root.root.findAll(x=>['roster','assignments'].includes(x.props['data-test']));assert.deepEqual(sections.map(x=>x.props['data-test']),['roster','assignments'],'roster creation precedes report assignments');
+  assert.ok(!JSON.stringify(root.toJSON()).includes('12 Testspielerinnen anlegen'));
   for(const marker of ['assignments','roster'])assert.equal(root.root.findAll(x=>x.props['data-test']===marker).length,1,`${marker} appears once after loading/scope changes`);
  }
  assert.equal(errors.filter(s=>/same key|unique.*key/i.test(s)).length,0,errors.join('\n'));
