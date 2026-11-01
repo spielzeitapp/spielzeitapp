@@ -94,7 +94,7 @@ export function ParentAccessPlayerRow(props: ParentAccessPlayerRowProps): React.
       className="sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[82px] w-full items-center overflow-hidden rounded-[14px] border px-2.5 text-left transition active:scale-[0.99]"
     >
       <div className="relative mr-2.5 h-[72px] w-[58px] shrink-0 self-end overflow-hidden">
-        <img
+        <img loading="lazy" decoding="async"
           src={failedSrc !== src && src ? src : fallbackSrc}
           alt=""
           onError={() => setFailedSrc(src)}

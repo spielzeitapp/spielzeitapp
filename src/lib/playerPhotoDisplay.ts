@@ -4,6 +4,6 @@
 export function playerPhotoDisplayUrl(src?:string|null):string {
  const value=(src??'').trim();
  if(!value)return '';
- try {const url=new URL(value);if(url.protocol==='https:'&&url.host==='vereine.oefb.at'&&url.pathname.startsWith('/netzwerk/imagedownload/'))return '/api/oefb/table?view=photo&url='+encodeURIComponent(value);}catch{/* Relative and blob sources are valid display inputs. */}
+ try {const url=new URL(value);if(url.protocol==='https:'&&url.host==='vereine.oefb.at'&&url.pathname.startsWith('/netzwerk/imagedownload/'))return '/api/oefb/table?view=photo&quality=portrait&url='+encodeURIComponent(value);}catch{/* Relative and blob sources are valid display inputs. */}
  return value;
 }
