@@ -385,11 +385,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
   // Treffpunkt ist eine interne Teaminformation: nur Spieler, Eltern und Staff.
   // Fans sowie die öffentliche Spielplanansicht sehen weder Uhrzeit noch Platzhalter.
   const showMeetupForRole = !isMultiTeamView && !forcePublicView && canSeeMeetup(normalizedUiRole);
-  const ourTeamName = isDemo ? demo!.data.teamName : getOurTeamDisplayName();
+  const ourTeamName = isDemo ? demo!.data.teamName : resolveTeamSeasonLabelParts({displayName:selectedTeamSeason?.display_name,ageGroup:selectedTeamSeason?.age_group,teamName:selectedTeamSeason?.team?.name,seasonName:selectedTeamSeason?.season?.name}).teamLine || teamLabel || 'Mannschaft';
   const eventTeamName = (ev: EventRow) => {
-    if (!isMultiTeamView) return ourTeamName;
     const ts = teamSeasons.find((season) => season.id === ev.team_season_id);
-    return resolveTeamSeasonLabelParts({ displayName: ts?.display_name, ageGroup: ts?.age_group, teamName: ts?.team?.name, seasonName: ts?.season?.name }).teamLine || 'Mannschaft';
+    return resolveTeamSeasonLabelParts({ displayName: ts?.display_name, ageGroup: ts?.age_group, teamName: ts?.team?.name, seasonName: ts?.season?.name }).teamLine || ourTeamName;
   };
   const eventTeamLabel = (ev: EventRow) => {
     const ts = teamSeasons.find((season) => season.id === ev.team_season_id);
@@ -2108,7 +2107,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                             matchStatus: matchStatusById[ev.match_id],
                           }),
                       );
-                      const showPastResultCard = isFinishedMatch || (et === 'game' && getTimeBucket(ev, new Date(), matchStatusById[ev.match_id ?? ''], true) === 'past' && matchScoreRow?.scoreHome != null && matchScoreRow?.scoreAway != null);
+                      const showPastResultCard = isFinishedMatch;
                       if (showPastResultCard) {
                         return (
                           <React.Fragment key={ev.id}>

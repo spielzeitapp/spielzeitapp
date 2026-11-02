@@ -238,7 +238,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     canPreview &&
     confirmed &&
     previewFixtures.length > 0 &&
-    (previewRows.some((r) => r.willWrite) || (includeResults && previewFixtures.some(f => oefbFixtureMatchType(f.art) === 'league' && f.score_home != null && f.score_away != null))) &&
+    (previewRows.some((r) => r.willWrite) || (includeResults && previewFixtures.some(f => oefbFixtureMatchType(f.art) !== null && f.score_home != null && f.score_away != null))) &&
     !importBusy;
 
   const onPreview = async () => {
@@ -532,8 +532,8 @@ export function ManagerOefbImportPage(): React.ReactElement {
             ) : null}
           </div>
 
-          <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={includeResults} disabled={importBusy} onChange={e => setIncludeResults(e.target.checked)} /> Vorhandene ÖFB-Liga-Endstände mitimportieren ({previewFixtures.filter(f => oefbFixtureMatchType(f.art) === 'league' && f.score_home != null && f.score_away != null).length})</label>
-          <p className="text-sm text-slate-500">Ergebnisse werden in Heim:Auswärts-Reihenfolge angezeigt. Testspiel-Endstände dienen hier nur zur Vorschau; importiert werden die Termine als Testspiele. Bereits mit einem Spiel verknüpfte Termine werden nicht überschrieben.</p>
+          <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={includeResults} disabled={importBusy} onChange={e => setIncludeResults(e.target.checked)} /> Vorhandene ÖFB-Endstände mitimportieren ({previewFixtures.filter(f => oefbFixtureMatchType(f.art) !== null && f.score_home != null && f.score_away != null).length})</label>
+          <p className="text-sm text-slate-500">Ergebnisse werden in Heim:Auswärts-Reihenfolge angezeigt. Bereits mit einem Spiel verknüpfte Termine werden nicht überschrieben.</p>
           <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="min-w-full text-left text-[13px]">
               <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
