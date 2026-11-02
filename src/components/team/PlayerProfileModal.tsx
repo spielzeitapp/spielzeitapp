@@ -187,13 +187,13 @@ function PlayerInfoChip({
   );
 }
 
-function EinsatzBadge({ kind, label }: { kind: "full" | "sub_in" | "bank" | "partial" | "absent"; label: string }) {
+function EinsatzBadge({ kind, label }: { kind: "full" | "sub_in" | "bank" | "partial" | "absent" | "unknown"; label: string }) {
   const base =
     "inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[12px] font-extrabold uppercase tracking-wide";
   if (kind === "full" || kind === "partial") {
     return <span className={EINSATZ_MINUTES_CHIP_CLASS}>{label}</span>;
   }
-  if (kind === "bank" || kind === "absent") {
+  if (kind === "bank" || kind === "absent" || kind === "unknown") {
     return (
       <span
         className={`${base} sz-club-accent-chip bg-[rgba(25,25,28,0.88)] text-white/55`}
@@ -1168,7 +1168,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                             ourTeamName={teamName ?? "SPG Rohrbach"}
                             footerSlot={
                               <>
-                                <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent") ? m.badgeLabel : `${m.minutes} Min`} />
+                                <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent" || m.badgeKind === "unknown") ? m.badgeLabel : `${m.minutes} Min`} />
                                 <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals} {m.goals === 1 ? "Tor" : "Tore"}</span>
                               </>
                             }
@@ -1192,7 +1192,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                               ourTeamName={teamName ?? "SPG Rohrbach"}
                               footerSlot={
                                 <>
-                                  <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent") ? m.badgeLabel : `${m.minutes} Min`} />
+                                  <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent" || m.badgeKind === "unknown") ? m.badgeLabel : `${m.minutes} Min`} />
                                   <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals} {m.goals === 1 ? "Tor" : "Tore"}</span>
                                 </>
                               }

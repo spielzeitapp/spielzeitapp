@@ -1,3 +1,4 @@
+import { OefbLiveReport, useOefbLiveReport } from '../../components/match/OefbLiveReport';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { FinishedMatchAttendance } from '../../components/match/FinishedMatchAttendance';
@@ -1140,6 +1141,9 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const matchIsFinished = matchRow?.status === 'finished';
+  const oefbSource = useOefbLiveReport(effectiveMatchId, !isDemo && matchIsFinished);
+  const useSourceLineup = Boolean(oefbSource.report && !startingPlayerIds.filter(Boolean).length);
+  const useSourceTicker = Boolean(oefbSource.report && !events.length);
   const matchClockStatus = useMemo(
     () => getMatchLiveClockStatus(matchRow, { hasClockStarted }),
     [matchRow, hasClockStarted],
@@ -5479,7 +5483,7 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         )}
 
-        {mainTab === 'lineup' && (
+        {mainTab === 'lineup' && useSourceLineup && oefbSource.report ? <OefbLiveReport report={oefbSource.report} view="lineup" /> : mainTab === 'lineup' && (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
             <div className="z-20 shrink-0 border-b border-white/[0.05] bg-black/95 backdrop-blur-md">
               <div className="overflow-x-auto px-2 pt-0 pb-0 pr-3 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -5880,7 +5884,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ))}
             </div>
-            {eventsFilter === 'cards' ? (
+            {useSourceTicker && oefbSource.report ? <OefbLiveReport report={oefbSource.report} view="events" filter={eventsFilter} /> : oefbSource.loading && !events.length ? <p role="status" className="p-6 text-center text-white/60">ÖFB-Spielbericht wird geladen…</p> : oefbSource.error && !events.length ? <p role="status" className="p-6 text-center text-amber-200">{oefbSource.error}</p> : eventsFilter === 'cards' ? (
               <p className="rounded-2xl border border-amber-400/25 bg-amber-950/20 px-4 py-10 text-center text-sm font-medium leading-relaxed text-amber-100/90">
                 Keine Karten erfasst.
               </p>
