@@ -266,7 +266,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = media.fallbackSrc;
                     }}
-                    className={media.isCutout || preparedPlayerPortrait(player.avatar_url) ? "h-full w-full rounded-lg object-contain object-bottom" : media.src.startsWith('/api/oefb/table?view=photo&') ? "h-full w-full rounded-lg object-cover object-top" : `h-full w-full origin-top scale-[1.75] object-contain object-top ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""}`}
+                    className={media.isCutout || preparedPlayerPortrait(player.avatar_url) || (!media.isUpperBodyDemo && !media.src.startsWith('/api/oefb/table?view=photo&')) ? "h-full w-full rounded-lg object-contain object-bottom" : media.src.startsWith('/api/oefb/table?view=photo&') ? "h-full w-full rounded-lg object-cover object-top" : `h-full w-full origin-top scale-[1.75] object-contain object-top ${media.isUpperBodyDemo ? "sz-club-placeholder-player" : ""}`}
                   />
                 </div>
                 <span className="sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black leading-none text-white">

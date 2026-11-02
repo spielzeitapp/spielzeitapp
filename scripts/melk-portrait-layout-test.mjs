@@ -6,21 +6,22 @@ async function load(entry){const r=await build({entryPoints:[entry],bundle:true,
 const {TeamSquadShowcase,playerMedia}=await load('src/components/team/TeamSquadShowcase.tsx');
 const {ProfileHeroCard}=await load('src/components/team/profile/ProfileHeroCard.tsx');
 const original='https://vereine.oefb.at/netzwerk/imagedownload/670725461856634215_1946784381171732381-80-80-KuMLNQuJ.jpg';
-for(const prepared of [false,true]){
- const url=prepared?original:'https://vereine.oefb.at/netzwerk/imagedownload/synthetic-80-80.jpeg';
+for(const prepared of [false,true,'uploaded']){
+ const url=prepared==='uploaded'?'/profile/melk-luisa-canva-v1.jpg':prepared?original:'https://vereine.oefb.at/netzwerk/imagedownload/synthetic-80-80.jpeg';
  const player={id:'fixture',first_name:'Test',last_name:'Portrait',jersey_number:3,avatar_url:url};
  let root;await act(async()=>{root=create(React.createElement(TeamSquadShowcase,{players:[player],ownPlayerIds:new Set(),onPlayerClick(){}}));});
+ if(prepared==='uploaded'){const image=root.root.findByType('ul').findByType('img');assert.ok(image.props.className.includes('object-contain'));assert.ok(!image.props.className.includes('scale-'));await act(async()=>root.unmount());continue;}
  const number=root.root.find(n=>n.props['aria-label']==='Rückennummer 3');assert.equal(number.children.join(''),'3');assert.ok(number.props.className.includes('top-4'));
  const rowImage=root.root.findByType('ul').findByType('img');
  if(prepared){assert.ok(rowImage.props.className.includes('object-contain'));assert.ok(!rowImage.props.className.includes('scale-'));}
  const card=root.root.find(n=>n.props['data-showcase-card']!==undefined);
  const img=card.findAllByType('img').find(n=>n.props.src===playerMedia(player,false).src);assert.equal(img.props.style.objectFit,'contain');
- if(prepared)assert.ok(card.findAllByType('div').some(n=>n.props['data-portrait-background']==='clean'));
- else assert.ok(card.findAllByType('div').some(n=>n.props.className?.includes('pl-[28%]')));
+ if(prepared===true)assert.ok(card.findAllByType('div').some(n=>n.props['data-portrait-background']==='clean'));
+ else if(!prepared)assert.ok(card.findAllByType('div').some(n=>n.props.className?.includes('pl-[28%]')));
  await act(async()=>root.unmount());
  await act(async()=>{root=create(React.createElement(ProfileHeroCard,{variant:'player',watermark:'3',firstNameLine:'Test',lastNameLine:'Portrait',teamSeasonLabel:'SC Melk FR · U16 · 2026/27',photoUrl:url,teamLogoUrl:'/wrong-logo.png',initials:'TP'}));});
  assert.ok(!root.root.findAllByType('img').some(n=>n.props.src.includes('stadium')));
- if(prepared)assert.ok(root.root.findAllByType('div').some(n=>n.props['data-portrait-background']==='clean'));
+ if(prepared===true)assert.ok(root.root.findAllByType('div').some(n=>n.props['data-portrait-background']==='clean'));
  const images=root.root.findAllByType('img');assert.ok(!images.some(n=>n.props.src==='/wrong-logo.png'));assert.equal(images.find(n=>n.props.style?.objectFit).props.style.objectFit,'contain');
  assert.ok(root.root.findAllByType('span').some(n=>n.children.join('')==='3' && n.props.className?.includes('top-4')));
  await act(async()=>root.unmount());
