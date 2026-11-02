@@ -1019,25 +1019,25 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                         {
                           Icon: PLAYER_STAT_TILES.games,
                           label: "Spiele",
-                          value: String(stats.games),
+                          value: statsError ? "—" : String(stats.games),
                           sub: seasonStatSub,
                         },
                         {
                           Icon: PLAYER_STAT_TILES.goals,
                           label: "Tore",
-                          value: String(stats.goals),
+                          value: statsError ? "—" : String(stats.goals),
                           sub: "Ohne Turniere",
                         },
                         {
                           Icon: PLAYER_STAT_TILES.avgMinutesPerGame,
                           label: "Ø Min./Spiel",
-                          value: avgMinutesPerGameDisplay,
+                          value: statsError || stats.unknownMinutesGames ? "—" : avgMinutesPerGameDisplay,
                           sub: "Durchschnitt",
                         },
                         {
                           Icon: PLAYER_STAT_TILES.minutes,
                           label: "Spielmin.",
-                          value: String(stats.minutes),
+                          value: statsError || stats.unknownMinutesGames ? "—" : String(stats.minutes),
                           sub: "Gesamt",
                         },
                       ] as const
@@ -1051,6 +1051,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       />
                     ))}
               </div>
+              {stats.unknownMinutesGames ? <p className="mt-2 text-center text-[12px] text-white/60">ÖFB-Einsätze berücksichtigt · Spielminuten nicht vollständig belegt.</p> : null}
               {statsError ? (
                 <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
               ) : null}
@@ -1058,7 +1059,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <p className="mt-2 text-center text-[12px] text-white/60">
                   {statsMode === "career"
                     ? "Noch keine gültigen Spieldaten in der Karriere"
-                    : "Noch keine Ligadaten in dieser Saison"}
+                    : "Noch keine bestätigten Einsätze in dieser Saison"}
                 </p>
               ) : null}
 
@@ -1070,13 +1071,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   <ProfileStatTile
                     icon={<PLAYER_STAT_TILES.goalsPerGame />}
                     label="Tore / Spiel"
-                    value={goalsPerGameDisplay}
+                    value={statsError ? "—" : goalsPerGameDisplay}
                     sub="Durchschnitt"
                   />
                   <ProfileStatTile
                     icon={<PLAYER_STAT_TILES.deployments />}
                     label="Einsätze"
-                    value={String(stats.games)}
+                    value={statsError ? "—" : String(stats.games)}
                     sub={seasonStatSub}
                   />
                 </div>
