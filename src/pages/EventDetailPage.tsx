@@ -1,3 +1,4 @@
+import { ClubLogo } from '../components/branding/ClubLogo';
 import { useClubOpponentLogos, preferredClubLogo } from '../hooks/useClubOpponentLogos';
 import { useMatchClubBranding } from '../hooks/useMatchClubBranding';
 import '../components/match/finishedClubTheme.css';
@@ -2761,7 +2762,7 @@ export const EventDetailPage: React.FC = () => {
               </div>
               <div className="mt-2 flex items-start justify-between gap-1.5">
                   <div className="flex w-[34%] min-w-0 flex-col items-center text-center">
-                      <img
+                      <ClubLogo
                         src={homeLogoSrc}
                         alt=""
                         className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24"
@@ -2789,7 +2790,7 @@ export const EventDetailPage: React.FC = () => {
                     </div>
 
                     <div className="flex w-[34%] min-w-0 flex-col items-center text-center">
-                      <img
+                      <ClubLogo
                         src={awayLogoSrc}
                         alt=""
                         className="h-[76px] w-[76px] max-w-full object-contain drop-shadow sm:h-24 sm:w-24"
