@@ -1,6 +1,6 @@
 /**
  * Team-/Gegner-Logos: public/static unter logos/ (oder Storage-URLs).
- * Keine API-Pfade, nur public/logos bzw. Storage-URLs.
+ * Public-/Storage-URLs und strikt geprüfte interne ÖFB-Bildpfade.
  */
 
 import { getLogoUrl } from '../utils/logoResolver';
@@ -202,13 +202,19 @@ export function nameToSlug(name: string): string {
     .replace(/^-|-$/g, '');
 }
 
-/** Erlaubte Logo-URL-Präfixe (kein API, nur public/Storage). */
+/** Public/Storage plus the narrowly validated same-origin ÖFB image routes. */
 const ALLOWED_LOGO_PREFIXES = ['/logos/', 'https://'];
 
 function isAllowedLogoUrl(url: unknown): boolean {
   const u = safeText(url);
   if (!u) return false;
   if (/^\/api\/oefb\/table\?view=logo&id=[a-f0-9]{20}$/i.test(u)) return true;
+  // preferredClubLogo already converts an imported official photo to this route.
+  // Accept only the exact canonical output; arbitrary API URLs stay rejected.
+  const photoPrefix='/api/oefb/table?view=photo&url=';
+  if(u.startsWith(photoPrefix)){
+    try {const source=decodeURIComponent(u.slice(photoPrefix.length));return displayLogoUrl(source)===u;}catch{return false;}
+  }
   return ALLOWED_LOGO_PREFIXES.some((p) => u.startsWith(p));
 }
 
