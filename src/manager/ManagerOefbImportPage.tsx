@@ -14,6 +14,7 @@ import {
 } from '../lib/seasonLifecycle';
 import {
   fetchOefbScheduleFixtures,
+  oefbFixtureMatchType,
   importOefbResults,
   importOefbChampionshipFixtures,
   previewOefbChampionshipImport,
@@ -237,7 +238,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     canPreview &&
     confirmed &&
     previewFixtures.length > 0 &&
-    (previewRows.some((r) => r.willWrite) || (includeResults && previewFixtures.some(f => f.score_home != null && f.score_away != null))) &&
+    (previewRows.some((r) => r.willWrite) || (includeResults && previewFixtures.some(f => oefbFixtureMatchType(f.art) === 'league' && f.score_home != null && f.score_away != null))) &&
     !importBusy;
 
   const onPreview = async () => {
@@ -265,6 +266,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
 
     const fetched = await fetchOefbScheduleFixtures({
       url,
+      includeFriendlies: true,
       ourTeamHints: [selectedTeamName],
     });
     if (fetched.error) {
@@ -278,7 +280,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
       if (diagnostic?.totalSourceGames) {
         const types = Object.entries(diagnostic.gameTypes)
           .map(([type, count]) => `${type}: ${count}`).join(' · ');
-        setInfo(`ÖFB liefert ${diagnostic.totalSourceGames} Spiele (${types}). Davon aktuell keine sicher importierbaren Meisterschaftsspiele. ${diagnostic.missingRequiredFields} Spiele ohne erforderliche Angaben. Es wurde nichts gespeichert.`);
+        setInfo(`ÖFB liefert ${diagnostic.totalSourceGames} Spiele (${types}). Davon aktuell keine sicher importierbaren Liga- oder Testspiele. ${diagnostic.missingRequiredFields} Spiele ohne erforderliche Angaben. Es wurde nichts gespeichert.`);
       } else {
         setInfo('Die ÖFB-Seite liefert derzeit keine erkennbaren Spiele. Bitte Mannschafts-URL und Saison kontrollieren.');
       }
@@ -298,7 +300,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
     setPreviewFixtures(fetched.fixtures);
     setPreviewRows(preview.rows);
     setInfo(
-      `${preview.rows.length} Meisterschaftsspiele erkannt · ${preview.counts.new} neu · ${preview.counts.existing} vorhanden · ${preview.counts.protected} mögliche Dubletten (übersprungen) · ${preview.counts.error} Fehler`,
+      `${preview.rows.length} Liga-/Testspiele erkannt · ${preview.counts.new} neu · ${preview.counts.existing} vorhanden · ${preview.counts.protected} mögliche Dubletten (übersprungen) · ${preview.counts.error} Fehler`,
     );
   };
 
@@ -530,8 +532,8 @@ export function ManagerOefbImportPage(): React.ReactElement {
             ) : null}
           </div>
 
-          <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={includeResults} disabled={importBusy} onChange={e => setIncludeResults(e.target.checked)} /> Vorhandene ÖFB-Endstände mitimportieren ({previewFixtures.filter(f => f.score_home != null && f.score_away != null).length})</label>
-          <p className="text-sm text-slate-500">Ergebnisse werden in Heim:Auswärts-Reihenfolge angezeigt. Bereits mit einem Spiel verknüpfte Termine werden nicht überschrieben.</p>
+          <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={includeResults} disabled={importBusy} onChange={e => setIncludeResults(e.target.checked)} /> Vorhandene ÖFB-Liga-Endstände mitimportieren ({previewFixtures.filter(f => oefbFixtureMatchType(f.art) === 'league' && f.score_home != null && f.score_away != null).length})</label>
+          <p className="text-sm text-slate-500">Ergebnisse werden in Heim:Auswärts-Reihenfolge angezeigt. Testspiel-Endstände dienen hier nur zur Vorschau; importiert werden die Termine als Testspiele. Bereits mit einem Spiel verknüpfte Termine werden nicht überschrieben.</p>
           <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="min-w-full text-left text-[13px]">
               <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
@@ -542,7 +544,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
                   <th className="px-3 py-2 font-semibold">Auswärts</th>
                   <th className="px-3 py-2 font-semibold">ÖFB-Ergebnis</th>
                   <th className="px-3 py-2 font-semibold">Ort</th>
-                  <th className="px-3 py-2 font-semibold">Bewerb</th>
+                  <th className="px-3 py-2 font-semibold">Spielart / Bewerb</th>
                   <th className="px-3 py-2 font-semibold">Status</th>
                   <th className="px-3 py-2 font-semibold">ÖFB</th>
                 </tr>
@@ -562,7 +564,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
                       <td className="px-3 py-2 font-medium text-slate-900">{away}</td>
                       <td className="px-3 py-2 font-bold">{row.fixture.score_home != null && row.fixture.score_away != null ? `${row.fixture.score_home}:${row.fixture.score_away}` : '—'}</td>
                       <td className="px-3 py-2 text-slate-600">{row.fixture.location ?? '—'}</td>
-                      <td className="px-3 py-2 text-slate-600">{row.fixture.competition ?? '—'}</td>
+                      <td className="px-3 py-2 text-slate-600">{row.fixture.art}{row.fixture.competition ? ` · ${row.fixture.competition}` : ''}</td>
                       <td className="px-3 py-2">
                         <div className="space-y-1">
                           <span

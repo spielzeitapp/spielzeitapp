@@ -125,8 +125,8 @@ async function selectChampionshipRows(
     .from('events')
     .select(FIXTURE_SELECT)
     .eq('team_season_id', teamSeasonId)
-    .eq('external_source', 'oefb')
-    .eq('match_type', 'league');
+    .eq('external_source', 'oefb');
+  if (!externalId) q = q.eq('match_type', 'league');
   if (externalId) q = q.eq('external_id', externalId);
   else q = q.order('starts_at', { ascending: true });
 
@@ -139,8 +139,8 @@ async function selectChampionshipRows(
       .from('events')
       .select(FIXTURE_SELECT_NO_LOGO)
       .eq('team_season_id', teamSeasonId)
-      .eq('external_source', 'oefb')
-      .eq('match_type', 'league');
+      .eq('external_source', 'oefb');
+    if (!externalId) q2 = q2.eq('match_type', 'league');
     if (externalId) q2 = q2.eq('external_id', externalId);
     else q2 = q2.order('starts_at', { ascending: true });
     res = externalId ? await q2.maybeSingle() : await q2;
@@ -173,11 +173,13 @@ export type OefbScheduleDiagnostics = {
 };
 
 export async function fetchOefbScheduleFixtures(opts: {
+  includeFriendlies?: boolean;
   url: string;
   ourTeamHints: string[];
 }): Promise<{ fixtures: OefbImportedFixture[]; error: string | null; diagnostics?: OefbScheduleDiagnostics }> {
   const params = new URLSearchParams({
     url: opts.url,
+    ...(opts.includeFriendlies ? {includeFriendlies:'1'} : {}),
     ourTeam: opts.ourTeamHints.join('|'),
   });
   const res = await fetch(`/api/oefb/schedule?${params.toString()}`);
@@ -192,6 +194,12 @@ export async function fetchOefbScheduleFixtures(opts: {
   }
   const fixtures = (json.fixtures ?? []).map((f) => normalizeOefbImportedFixture(f));
   return { fixtures, error: null, diagnostics: json.diagnostics };
+}
+
+export function oefbFixtureMatchType(art:string): 'league'|'friendly'|null {
+ if (/^(liga|meisterschaft)$/i.test(art.trim())) return 'league';
+ if (/^(testspiel|freundschaftsspiel)$/i.test(art.trim())) return 'friendly';
+ return null;
 }
 
 /** Gegnername (und damit sichtbare Spielbezeichnung) vor Preview/Upsert bereinigen. */
@@ -300,7 +308,7 @@ export async function previewOefbChampionshipImport(opts: {
   const seenExternalIds = new Set<string>();
   for (const raw of opts.fixtures) {
     const f = normalizeOefbImportedFixture(raw);
-    if (!f.external_id || !f.opponent || !f.starts_at) {
+    if (!oefbFixtureMatchType(f.art) || !f.external_id || !f.opponent || !f.starts_at) {
       rows.push({
         fixture: f,
         status: 'error',
@@ -463,7 +471,7 @@ export async function importOefbChampionshipFixtures(opts: {
 
   for (const raw of opts.fixtures) {
     const f = normalizeOefbImportedFixture(raw);
-    if (!f.external_id || !f.opponent || !f.starts_at) continue;
+    if (!oefbFixtureMatchType(f.art) || !f.external_id || !f.opponent || !f.starts_at) continue;
     if (seenExternalIds.has(f.external_id)) continue;
     seenExternalIds.add(f.external_id);
 
@@ -509,7 +517,7 @@ export async function importOefbChampionshipFixtures(opts: {
         competition: f.competition,
         external_url: f.external_url,
         source_starts_at: f.starts_at,
-        match_type: 'league',
+        match_type: oefbFixtureMatchType(f.art),
         kind: 'match',
         type: 'game',
       };
@@ -542,7 +550,7 @@ export async function importOefbChampionshipFixtures(opts: {
       team_season_id: opts.teamSeasonId,
       kind: 'match',
       type: 'game',
-      match_type: 'league',
+      match_type: oefbFixtureMatchType(f.art),
       opponent: f.opponent,
       is_home: f.is_home,
       location: f.location,
@@ -802,7 +810,7 @@ export async function fetchChampionshipPdfSeasonMeta(
 
 /** Ergebnisse getrennt vom Termineimport nachholen; die RPC schützt bestehende Spiele. */
 export async function importOefbResults(teamSeasonId: string, fixtures: OefbImportedFixture[]): Promise<{ imported: number; protected: number; error: string | null }> {
-  const results = fixtures.filter(f => Number.isInteger(f.score_home) && Number.isInteger(f.score_away) && f.score_home! >= 0 && f.score_away! >= 0);
+  const results = fixtures.filter(f => oefbFixtureMatchType(f.art) === 'league' && Number.isInteger(f.score_home) && Number.isInteger(f.score_away) && f.score_home! >= 0 && f.score_away! >= 0);
   const { data, error } = await supabase.rpc('import_oefb_results', { p_team_season_id: teamSeasonId, p_results: results.map(f => ({ external_id: f.external_id, score_home: f.score_home, score_away: f.score_away })) });
   return { imported: Number(data?.imported ?? 0), protected: Number(data?.protected ?? 0), error: error?.message ?? null };
 }
