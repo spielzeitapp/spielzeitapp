@@ -29,7 +29,15 @@ module.exports=async function(req,res){
   if(!upstream.ok)throw Error('ÖFB-Seite derzeit nicht verfügbar.');
   const reader=upstream.body.getReader();let total=0;const chunks=[];
   try{while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>3*1024*1024)throw Error('ÖFB-Seite ist zu groß.');chunks.push(Buffer.from(value));}}finally{await reader.cancel();}
-  const photoUrl=extract(Buffer.concat(chunks).toString('utf8'),source);
+  let photoUrl=extract(Buffer.concat(chunks).toString('utf8'),source);
+  // The sharing thumbnail is only 600px wide. Prefer the club page's own
+  // 940x400 team image, but retain the verified thumbnail if unavailable.
+  const larger=photoUrl.replace(/-1,0-600x315-600x315\.(jpg|png|webp)$/i,'-1,0-940x400-940x400.$1');
+  if(larger!==photoUrl){try{
+   const image=await fetch(larger,{method:'HEAD',redirect:'error',signal:AbortSignal.timeout(5000)});
+   if(image.ok&&/^image\/(?:jpeg|png|webp)(?:;|$)/i.test(image.headers.get('content-type')||''))photoUrl=larger;
+  }catch{/* Keep the known source image on timeout or unavailable sizes. */}}
+
   return res.status(200).json({photoUrl,sourceUrl:source.href});
  }catch(e){return res.status(502).json({error:e.message||'Mannschaftsfoto konnte nicht geladen werden.'});}
 };
