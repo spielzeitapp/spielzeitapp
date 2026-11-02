@@ -2,7 +2,7 @@
    Desktop's light workspace and semantic warning/success colors are preserved. */
 .manager-round-button { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:44px; height:44px; border:1px solid rgb(255 255 255 / .15); border-radius:999px; background:rgb(255 255 255 / .04); color:white; }
 .manager-context-trigger { display:flex; align-items:center; gap:10px; width:100%; min-height:52px; border:1px solid rgb(var(--club-border-rgb,220 38 38) / .3); border-radius:16px; background:linear-gradient(115deg,rgb(var(--club-primary-rgb,122 29 42) / .2),#0b0c10); padding:8px 12px; color:white; }
-.manager-context-dialog { position:fixed; inset:auto 0 0; margin:0 auto; width:min(100%,560px); max-width:100%; max-height:calc(100dvh - max(24px,env(safe-area-inset-top))); overflow:hidden; border:1px solid rgb(var(--club-border-rgb,220 38 38) / .35); border-radius:26px 26px 0 0; padding:0 0 max(12px,env(safe-area-inset-bottom)); background:#0b0c10; color:white; color-scheme:dark; box-shadow:0 -16px 60px #0008; }
+.manager-context-dialog { position:fixed; inset:auto 0 0; margin:0 auto; width:min(100%,576px); max-width:100%; max-height:calc(100dvh - max(24px,env(safe-area-inset-top))); overflow:hidden; border:1px solid rgb(var(--club-border-rgb,220 38 38) / .35); border-radius:28px 28px 0 0; padding:0; color:white; color-scheme:dark; box-shadow:0 -16px 60px #0008; }
 .manager-context-dialog[open] { display:flex; flex-direction:column; }
 .manager-context-dialog::backdrop { background:rgb(0 0 0 / .7); backdrop-filter:blur(6px); }
 .manager-context-option { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:52px; border:1px solid rgb(255 255 255 / .12); border-radius:14px; padding:12px; background:rgb(255 255 255 / .025); color:white; text-align:left; }
@@ -41,3 +41,6 @@
  .manager-shell__content :is(a,button):is(.text-blue-600,.text-blue-700) { color:rgb(var(--club-accent-text-rgb,var(--club-accent-rgb))) !important; }
  .manager-mobile-header a[aria-label="Profil und Einstellungen"] { width:40px !important; height:40px !important; min-width:40px !important; min-height:40px !important; }
 }
+
+/* Use the shared App search field, including its club-colored border. */
+.manager-shell .manager-context-dialog input { background:#111114 !important; border-color:rgb(var(--club-border-rgb) / .3) !important; color:white !important; }
