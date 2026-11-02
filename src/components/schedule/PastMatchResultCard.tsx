@@ -1,3 +1,4 @@
+import {ClubLogo} from '../branding/ClubLogo';
 import React from 'react';
 import {getClubBrandingForTeamSeason} from '../../lib/clubBranding';
 import { PosterClubName } from '../feed/PosterClubName';
@@ -72,7 +73,7 @@ function heroTeamNameClass(name: string): string {
 
 function TeamLogoBlock({ src, label }: { src: string; label: string }) {
   return (
-    <img
+    <ClubLogo
       src={src}
       alt={label}
       className="h-[4.5rem] w-[4.5rem] shrink-0 object-contain [filter:drop-shadow(0_0_14px_rgba(255,255,255,0.18))] sm:h-20 sm:w-20"
@@ -120,14 +121,17 @@ export function PastMatchResultCard({
   const homeName = compactTeamName(enc.home);
   const awayName = compactTeamName(enc.away);
 
+  const clubKey=(value:string)=>value.toLocaleLowerCase('de').replace(/\bu\s*\d{1,2}\b/g,'').replace(/\b(fr|frauen|ii|iii|2|3)\b/g,'').replace(/^\s*(sc|sv|usc|ask|sk|fsg|spg|nsg)\s+/, '').replace(/[^a-zäöüß0-9]+/g,'');
+  const ourLogo=getClubLogo(our,{logoUrl:brand?.id===ev.team_season_id?brand.logo:undefined});
+  const opponentLogo=clubKey(our) && clubKey(our)===clubKey(oppName) ? ourLogo : getClubLogo(oppName,{logoUrl:opponentLogoUrl??undefined});
   const homeLogoSrc =
     enc.home === enc.ourTeam
-      ? getClubLogo(our, {logoUrl:brand?.id===ev.team_season_id?brand.logo:undefined})
-      : getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
+      ? ourLogo
+      : opponentLogo;
   const awayLogoSrc =
     enc.away === enc.ourTeam
-      ? getClubLogo(our, {logoUrl:brand?.id===ev.team_season_id?brand.logo:undefined})
-      : getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
+      ? ourLogo
+      : opponentLogo;
 
   const h = scoreHome != null ? scoreHome : null;
   const a = scoreAway != null ? scoreAway : null;
@@ -196,9 +200,9 @@ export function PastMatchResultCard({
         <div className="flex min-w-0 flex-1 flex-col justify-center pr-3">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(74px,0.85fr)_minmax(0,1fr)] items-center gap-1">
             <div className="flex min-w-0 flex-col items-center text-center">
-              <img src={homeLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
-              <span className="mt-1 line-clamp-2 min-h-[32px] text-[13px] font-semibold leading-tight text-white/88">
-                <PosterClubName name={homeName} />
+              <ClubLogo src={homeLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <span className="mt-1 w-full min-w-0 text-[12px] font-semibold leading-tight text-white/88">
+                <PosterClubName name={homeName} wrap />
               </span>
             </div>
             <div className="flex flex-col items-center">
@@ -209,9 +213,9 @@ export function PastMatchResultCard({
               ) : null}
             </div>
             <div className="flex min-w-0 flex-col items-center text-center">
-              <img src={awayLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
-              <span className="mt-1 line-clamp-2 text-[13px] font-semibold leading-tight text-white/88">
-                <PosterClubName name={awayName} />
+              <ClubLogo src={awayLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <span className="mt-1 w-full min-w-0 text-[12px] font-semibold leading-tight text-white/88">
+                <PosterClubName name={awayName} wrap />
               </span>
             </div>
           </div>
@@ -278,7 +282,7 @@ export function PastMatchResultCard({
                 {homeSplit.prefix}
               </div>
             ) : null}
-            <p className={`mt-1 max-w-full whitespace-nowrap text-center font-bold leading-[1.12] text-white ${heroTeamNameClass(homeHeroName)}`}>
+            <p className={`mt-1 w-full min-w-0 max-w-full whitespace-normal [overflow-wrap:anywhere] text-center font-bold leading-[1.12] text-white ${heroTeamNameClass(homeHeroName)}`}>
               {homeHeroName}
             </p>
           </div>
@@ -308,7 +312,7 @@ export function PastMatchResultCard({
                 {awaySplit.prefix}
               </div>
             ) : null}
-            <p className={`mt-1 max-w-full whitespace-nowrap text-center font-bold leading-[1.12] text-white ${heroTeamNameClass(awayHeroName)}`}>
+            <p className={`mt-1 w-full min-w-0 max-w-full whitespace-normal [overflow-wrap:anywhere] text-center font-bold leading-[1.12] text-white ${heroTeamNameClass(awayHeroName)}`}>
               {awayHeroName}
             </p>
           </div>
