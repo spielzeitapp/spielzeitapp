@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { build } from 'esbuild';
 const require=createRequire(import.meta.url), React=require('react'), {create,act}=require('react-test-renderer');
-let season='first';globalThis.__rosterSectionSeason=()=>season;
+let showPlayer=false,frame;globalThis.__rosterEditPlayer=()=>showPlayer?[{id:'p1',first_name:'Test',last_name:'Player',display_name:'Test Player',status:'active',is_active:true,jersey_number:2}]:[];globalThis.requestAnimationFrame=fn=>{frame=fn;};globalThis.document={getElementById:id=>({scrollIntoView:()=>{globalThis.__editScrollId=id;}})};let season='first';globalThis.__rosterSectionSeason=()=>season;
 const fixtures={
- 'react-router-dom':`export const useSearchParams=()=>[new URLSearchParams()];export const useParams=()=>({seasonId:globalThis.__rosterSectionSeason()});export const Link=({children})=>children;export const Navigate=()=>null;`,
+ 'react-router-dom':`import React from 'react';export const useSearchParams=()=>[new URLSearchParams()];export const useParams=()=>({seasonId:globalThis.__rosterSectionSeason()});export const Link=({to,children})=>React.createElement('a',{href:to},children);export const Navigate=()=>null;`,
  'useSession':`const setViewTeamSeasonId=()=>{};export const useSession=()=>({effectiveRole:'admin',backendRole:'admin',setViewTeamSeasonId});`,
  'seasonLifecycle':`export const canPrepareNextSeason=()=>true,formatTeamSeasonContextLabel=()=> 'Synthetic team',getSeasonStatusLabel=()=> 'Aktiv',isSeasonArchived=()=>false;`,
- 'rosterService':`export const listRoster=async()=>({data:[],error:null}),createRosterPlayer=()=>{},updateRosterPlayerSeasonFields=()=>{};`,
+ 'rosterService':`export const listRoster=async()=>({data:globalThis.__rosterEditPlayer(),error:null}),createRosterPlayer=()=>{},updateRosterPlayerSeasonFields=()=>{};`,
  'seasonTransition':`export const getTeamSeasonWritableState=async()=>({writable:true});`,
  'appEnvironment':`export const isStagingApp=()=>true,supabaseUrlLooksLikeStaging=()=>true;`,
  'supabaseClient':`const query={select:()=>query,eq:()=>query,maybeSingle:async()=>({data:{status:'active',teams:{name:'Synthetic'},seasons:{name:'2026/27'}}})};export const supabase={from:()=>query,rpc:async()=>({data:{links:[]}})};`,
@@ -30,6 +30,9 @@ try {
   assert.ok(!JSON.stringify(root.toJSON()).includes('12 Testspielerinnen anlegen'));
   for(const marker of ['assignments','roster'])assert.equal(root.root.findAll(x=>x.props['data-test']===marker).length,1,`${marker} appears once after loading/scope changes`);
  }
+ showPlayer=true;season='with-player';await act(async()=>{root.update(React.createElement(mod.exports.ManagerSeasonRosterPage));await new Promise(r=>setImmediate(r));});
+ const profile=root.root.findAllByType('a').find(a=>a.children.includes('Profil'));assert.ok(profile.props.href.includes('teamSeason=with-player&player=p1'));
+ await act(async()=>root.root.findAllByType('button').find(b=>b.children.includes('Bearbeiten')).props.onClick());assert.equal(root.root.findByType('form').props.id,'manager-player-edit');frame();assert.equal(globalThis.__editScrollId,'manager-player-edit');
  assert.equal(errors.filter(s=>/same key|unique.*key/i.test(s)).length,0,errors.join('\n'));
  console.log('PASS: actual roster page renders exactly one of each ÖFB section with unique sibling keys across loading and season changes.');
 } finally {if(root)await act(async()=>root.unmount());console.error=oldError;delete globalThis.__rosterSectionSeason;}

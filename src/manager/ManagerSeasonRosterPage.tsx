@@ -1,3 +1,4 @@
+import {ManagerRosterPhotos} from './ManagerRosterPhotos';
 import {ManagerPlayerPhotoEditor} from './ManagerPlayerPhotoEditor';
 import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
 /**
@@ -176,6 +177,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
 
   const editPlayer = (player: RosterPlayer) => {
     setEditingId(player.id);
+    requestAnimationFrame(()=>document.getElementById('manager-player-edit')?.scrollIntoView({behavior:'smooth',block:'center'}));
     setFirstName(player.first_name ?? '');
     setLastName(player.last_name ?? '');
     setJersey(player.jersey_number == null ? '' : String(player.jersey_number));
@@ -288,7 +290,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
 
       {canEdit && !editingId ? <ManagerNewRosterPlayer key={`new-player:${seasonId}`} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
       {canEdit && editingId ? (
-        <form onSubmit={(event) => void savePlayer(event)} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
+        <form id="manager-player-edit" onSubmit={(event) => void savePlayer(event)} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
           <h2 className="text-[16px] font-semibold text-slate-900">{editingId ? 'Spieler bearbeiten' : 'Spieler zum Kader hinzufügen'}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-[13px] font-medium text-slate-700">Vorname *<input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" /></label>
@@ -320,6 +322,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
         </p>
       ) : null}
 
+      {canEdit && seasonId?<ManagerRosterPhotos key={`team-photo:${seasonId}`} seasonId={seasonId} onSaved={()=>setNotice('Mannschaftsfoto gespeichert.')}/>:null}
       {canEdit && players.length>0 ? <section className="rounded-xl border border-slate-200 bg-white p-4"><button type="button" onClick={()=>setGlobalPhoto(!globalPhoto)} className="font-semibold text-red-700">Globale Foto-Gestaltung · gesamte Mannschaft/Saison</button><p className="mt-1 text-sm text-slate-500">Standard für alle bestehenden und künftig zugeordneten Spieler. Individuelle Einstellungen haben Vorrang.</p>{globalPhoto?<ManagerPlayerPhotoEditor key={`global:${seasonId}`} global player={players[0]} seasonId={seasonId} onClose={()=>setGlobalPhoto(false)} onSaved={()=>{setGlobalPhoto(false);setNotice('Globale Foto-Gestaltung gespeichert.');void reloadRoster(seasonId);}}/>:null}</section>:null}
       {(
         [
@@ -360,9 +363,9 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                   <div className="flex shrink-0 flex-wrap items-center gap-3">
                     {canEdit ? <button type="button" onClick={() => setPhotoEditingId(photoEditingId===p.id?null:p.id)} className="text-[12px] font-semibold text-red-700">Foto gestalten</button> : null}
                     {canEdit ? <button type="button" onClick={() => editPlayer(p)} className="text-[12px] font-semibold text-red-700">Bearbeiten</button> : null}
-                    <Link to={`/app/team/players/${encodeURIComponent(p.id)}`} className="text-[12px] font-semibold text-red-700">Profil</Link>
+                    <Link to={`/app/team?teamSeason=${encodeURIComponent(seasonId??'')}&player=${encodeURIComponent(p.id)}`} className="text-[12px] font-semibold text-red-700">Profil</Link>
                   </div>
-                  {canEdit && photoEditingId===p.id ? <ManagerPlayerPhotoEditor key={`${seasonId}:${p.id}`} player={p} seasonId={seasonId} onClose={()=>setPhotoEditingId(null)} onSaved={()=>{setPhotoEditingId(null);setNotice("Foto-Gestaltung gespeichert.");void reloadRoster(seasonId);}}/> : null}
+                  {canEdit && photoEditingId===p.id ? <div className="w-full space-y-3"><ManagerRosterPhotos seasonId={seasonId!} player={{id:p.id,name:p.display_name,avatar:p.avatar_url}} onSaved={()=>{setNotice('Spielerfoto gespeichert.');void reloadRoster(seasonId!);}}/><ManagerPlayerPhotoEditor key={`${seasonId}:${p.id}`} player={p} seasonId={seasonId} onClose={()=>setPhotoEditingId(null)} onSaved={()=>{setPhotoEditingId(null);setNotice("Foto-Gestaltung gespeichert.");void reloadRoster(seasonId);}}/></div> : null}
                   {canEdit ? <div className="w-full border-t border-slate-100 pt-1"><ManagerRosterPlayerActions
                     key={`${seasonId}:${p.id}`} seasonId={seasonId} playerId={p.id} name={p.display_name} removed={p.status === 'archived'}
                     onDone={(message, failed) => {

@@ -362,13 +362,13 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const heroDisplayName = (isDemo ? getOurTeamDisplayName() : selectedTeamSeason?.team?.name ?? "Team")
     .replace(/\s*[·-]?\s+U\d{1,2}\s*$/i, "").trim();
 
-  const teamPhotoUrl = teamPhoto?.team_season_id === teamSeasonId ? readTeamPhotoUrl(teamPhoto) : null;
+  const teamPhotoUrl = teamPhoto?.team_season_id === readTeamSeasonId ? readTeamPhotoUrl(teamPhoto) : null;
   const heroPhotoSrc = useMemo(
     () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : (isDemo || selectedTeamSeason?.team?.name?.includes("Rohrbach") ? TEAM_HERO_PLACEHOLDER : null)),
     [teamPhotoUrl, isDemo, selectedTeamSeason],
   );
   useEffect(() => {
-    if (isDemo || !teamSeasonId) {
+    if (isDemo || !readTeamSeasonId) {
       setTeamPhoto(null);
       setTeamPhotoError(null);
       return;
@@ -377,7 +377,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     void supabase
       .from("team_photos")
       .select("team_season_id, photo_url, updated_at")
-      .eq("team_season_id", teamSeasonId)
+      .eq("team_season_id", readTeamSeasonId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -390,7 +390,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     return () => {
       cancelled = true;
     };
-  }, [teamSeasonId, isDemo]);
+  }, [readTeamSeasonId, isDemo]);
 
   /** Deep-Link / Reload: ?player=p08 oder /demo/players/:id → Profil öffnen. */
   useEffect(() => {

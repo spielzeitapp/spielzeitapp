@@ -56,10 +56,10 @@ export function ManagerOefbPlayerAssignments({ seasonId, onSaved, gameId }: { se
   }catch(e){setError(e instanceof Error?e.message:'Speichern fehlgeschlagen.');}finally{setBusy(false);}
  }
  return <section id="oefb-report" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-  <div>{gameId?<p className="mb-2 text-sm font-semibold text-slate-700">Ausgewählter ÖFB-Spielbericht · {gameId}</p>:null}<h2 className="text-lg font-bold text-slate-900">ÖFB-Spieler zuordnen & Tore nachtragen</h2>
-   <p className="mt-1 text-sm text-slate-600">Auch nach dem Spielimport möglich. Spieler aus den Aufstellungen eurer abgeschlossenen Spiele prüfen und mit dem Saisonkader verbinden.</p>
+  <div>{gameId?<p className="mb-2 text-sm font-semibold text-slate-700">Ausgewählter ÖFB-Spielbericht · {gameId}</p>:null}<h2 className="text-lg font-bold text-slate-900">ÖFB-Spielberichte, Liveticker & Spielerzuordnung</h2>
+   <p className="mt-1 text-sm text-slate-600">Auch nach dem Spielimport möglich. Spieler aus abgeschlossenen Spielen mit dem Kader abgleichen und Tore bestätigen. Spielbericht, Tore, Wechsel, Karten und Aufstellungen werden in der App beim Spiel angezeigt.</p>
    <p className="mt-2 text-xs text-slate-500">Vorhandene ÖFB-Verknüpfungen werden erkannt; eindeutige Namen werden zum Bestätigen vorgeschlagen. Die Vorschau legt keine Spieler an. Keine vollständige Kaderliste: Spieler ohne Einsatz können fehlen. Spielzeiten, Wechsel, Endstände und Trainerangaben bleiben erhalten.</p></div>
-  <button type="button" disabled={busy} onClick={()=>void load()} className="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white disabled:opacity-50">{busy?progress||'Wird gespeichert…':'ÖFB-Spieler & Berichte prüfen'}</button>
+  <button type="button" disabled={busy} onClick={()=>void load()} className="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white disabled:opacity-50">{busy?progress||'Wird gespeichert…':'ÖFB-Spielberichte & Liveticker prüfen'}</button>
   {error?<p role="alert" className="text-sm text-red-700">{error}</p>:null}
   {notice?<p role="status" className="text-sm text-emerald-700">{notice}</p>:null}
   {active?.unavailable?<p className="text-sm text-amber-800">{active.unavailable} Berichte nicht verfügbar oder Torverlauf unvollständig. Diese Tore werden nicht übernommen.</p>:null}
