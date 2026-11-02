@@ -1,3 +1,5 @@
+import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
+import '../../components/match/finishedClubTheme.css';
 import { OefbLiveReport, useOefbLiveReport } from '../../components/match/OefbLiveReport';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -1140,6 +1142,7 @@ export const LiveMatchScreen: React.FC = () => {
     [matchRow?.live_started_at, events],
   );
 
+  const matchClub = useMatchClubBranding(isDemo ? null : matchRow?.team_season_id);
   const matchIsFinished = matchRow?.status === 'finished';
   const oefbSource = useOefbLiveReport(effectiveMatchId, !isDemo && matchIsFinished);
   const useSourceLineup = Boolean(oefbSource.report && !startingPlayerIds.filter(Boolean).length);
@@ -1857,7 +1860,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
   const eventsSortedAsc = useMemo(() => sortMatchEventsChronologically(events), [events]);
-  const finishedOwnScorers = useMemo(
+  const localFinishedOwnScorers = useMemo(
     () =>
       eventsSortedAsc
         .filter((ev) => ev.type === (sides.isOwnTeamHome ? 'goal' : 'goal_away'))
@@ -1867,6 +1870,9 @@ export const LiveMatchScreen: React.FC = () => {
         })),
     [eventsSortedAsc, rosterById, sides.isOwnTeamHome],
   );
+
+  const sourceOwnScorers = (oefbSource.report?.events??[]).filter(e=>e.type==='goal'&&!e.ownGoal&&e.side===(sides.isOwnTeamHome?'home':'away')).map(e=>({name:e.player,minute:e.minute==null?null:`${e.minute}′`}));
+  const finishedOwnScorers = events.length ? localFinishedOwnScorers : sourceOwnScorers;
 
   const kickoffSnapshotWarnedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -4427,7 +4433,7 @@ export const LiveMatchScreen: React.FC = () => {
     ownTeamName.trim() && ownTeamName.trim() !== HOME_FALLBACK
       ? ownTeamName.trim()
       : getOurTeamDisplayName();
-  const ownLogoSrc = getClubLogo(ownLogoName);
+  const ownLogoSrc = isDemo ? getClubLogo(ownLogoName) : matchClub.brand?.logo_url || '/logos/placeholder-shield-a.png';
   const opponentLogoSrc = getClubLogo(headerOpponent, { logoUrl: opponentLogoUrl ?? undefined });
   const homeLogoSrc = sides.isOwnTeamHome ? ownLogoSrc : opponentLogoSrc;
   const awayLogoSrc = sides.isOwnTeamHome ? opponentLogoSrc : ownLogoSrc;
@@ -4724,7 +4730,7 @@ export const LiveMatchScreen: React.FC = () => {
           }}
         />
       ) : null}
-    <div className={`${liveShellOuter} ${videoScreenActive ? '-mx-6 w-[calc(100%+3rem)] sm:mx-0 sm:w-full' : ''} ${mainTab === 'lineup' ? 'live-lineup-fullscreen' : ''}`}>
+    <div style={matchIsFinished&&!isDemo?matchClub.style:undefined} className={`${matchIsFinished&&!isDemo?'sz-finished-club':''} ${liveShellOuter} ${videoScreenActive ? '-mx-6 w-[calc(100%+3rem)] sm:mx-0 sm:w-full' : ''} ${mainTab === 'lineup' ? 'live-lineup-fullscreen' : ''}`}>
       <style>{`@keyframes liveSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes liveSubOut{from{opacity:.92;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}`}</style>
       {mainTab === 'lineup' ? (
         <style>{`@media (max-width: 639px){
@@ -5884,7 +5890,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ))}
             </div>
-            {useSourceTicker && oefbSource.report ? <OefbLiveReport report={oefbSource.report} view="events" filter={eventsFilter} onBack={()=>setMainTab('hub')} /> : oefbSource.loading && !events.length ? <p role="status" className="p-6 text-center text-white/60">ÖFB-Spielbericht wird geladen…</p> : oefbSource.error && !events.length ? <p role="status" className="p-6 text-center text-amber-200">{oefbSource.error}</p> : eventsFilter === 'cards' ? (
+            {useSourceTicker && oefbSource.report ? <OefbLiveReport report={oefbSource.report} view="events" filter={eventsFilter} /> : oefbSource.loading && !events.length ? <p role="status" className="p-6 text-center text-white/60">ÖFB-Spielbericht wird geladen…</p> : oefbSource.error && !events.length ? <p role="status" className="p-6 text-center text-amber-200">{oefbSource.error}</p> : eventsFilter === 'cards' ? (
               <p className="rounded-2xl border border-amber-400/25 bg-amber-950/20 px-4 py-10 text-center text-sm font-medium leading-relaxed text-amber-100/90">
                 Keine Karten erfasst.
               </p>
