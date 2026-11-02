@@ -1038,7 +1038,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                         {
                           Icon: PLAYER_STAT_TILES.minutes,
                           label: "Spielmin.",
-                          value: statsError || stats.unknownMinutesGames ? "—" : String(stats.minutes),
+                          value: statsError ? "—" : stats.unknownMinutesGames ? (stats.minutes > 0 ? `≥ ${stats.minutes}` : "—") : String(stats.minutes),
                           sub: "Gesamt",
                         },
                       ] as const
@@ -1052,8 +1052,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       />
                     ))}
               </div>
-              {stats.calculatedMinutesGames ? <p className="mt-2 text-center text-[12px] text-white/60">Spielminuten aus ÖFB-Aufstellung und bestätigter Spieldauer berechnet.</p> : null}
-              {stats.unknownMinutesGames ? <p className="mt-2 text-center text-[12px] text-white/60">ÖFB-Einsätze berücksichtigt · Spielminuten nicht vollständig belegt.</p> : null}
+              {stats.calculatedMinutesGames ? <p className="mt-2 text-center text-[12px] text-white/60">Spielminuten aus ÖFB-Aufstellung, Wechseln und bestätigter Spieldauer berechnet.</p> : null}
+              {stats.unknownMinutesGames ? <p className="mt-2 text-center text-[12px] text-white/60">ÖFB-Einsätze berücksichtigt · Spielminuten nicht vollständig belegt. ≥ zeigt die bereits berechenbaren Minuten.</p> : null}
               {statsError ? (
                 <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
               ) : null}

@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';import {build} from 'esbuild';import {createRequire} from 'node:module';const require=createRequire(import.meta.url),React=require('react'),{act,create}=require('react-test-renderer');
+const b=await build({entryPoints:['src/manager/ManagerOefbDurationSettings.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'db',setup(b){b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:'export const supabase={};'}));}}]});const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);const {DurationField}=m.exports;
+let r,saved=[];const props={label:'Spieldauer',value:null,defaultMinutes:80,disabled:false,onSave:async n=>saved.push(n)};
+await act(async()=>{r=create(React.createElement(DurationField,props));});assert.equal(r.root.findByType('input').props.placeholder,'80 (Standard)');
+await act(async()=>r.root.findByType('input').props.onChange({target:{value:'60'}}));await act(async()=>r.root.findByType('form').props.onSubmit({preventDefault(){}}));assert.deepEqual(saved,[60]);
+await act(async()=>r.root.findByType('input').props.onChange({target:{value:'181'}}));assert.equal(r.root.findByType('button').props.disabled,true);
+await act(async()=>r.root.findByType('form').props.onSubmit({preventDefault(){}}));assert.equal(saved.length,1);
+await act(async()=>r.root.findByType('input').props.onChange({target:{value:''}}));await act(async()=>r.root.findByType('form').props.onSubmit({preventDefault(){}}));assert.deepEqual(saved,[60,null]);
+await act(async()=>r.update(React.createElement(DurationField,{...props,disabled:true})));await act(async()=>r.root.findByType('form').props.onSubmit({preventDefault(){}}));assert.equal(saved.length,2);
+await act(async()=>r.update(React.createElement(DurationField,{...props,onSave:async()=>{throw Error('Konflikt')}})));await act(async()=>r.root.findByType('form').props.onSubmit({preventDefault(){}}));assert.match(JSON.stringify(r.toJSON()),/Konflikt/);
+await act(async()=>r.unmount());console.log('PASS: duration validation, explicit confirmation, inherited standard, clearing override, readonly guard and save error.');

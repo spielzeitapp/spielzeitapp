@@ -26,7 +26,7 @@ function OefbMatchMinutes({ matchId, players, report }: { matchId: string; playe
   const ownPlayers = report.ownSide === 'home' ? report.homePlayers : report.ownSide === 'away' ? report.awayPlayers : [];
   return <section className="rounded-2xl border border-white/10 bg-black/40 p-4 text-white">
     <h2 className="text-lg font-extrabold">Einsatzzeiten · ÖFB</h2>
-    <p className="mt-2 text-xs text-white/55">Berechnet aus bestätigter Spieldauer und ÖFB-Aufstellung. Bei Wechseln oder unvollständigen Angaben bleibt die Spielzeit offen (—).</p>
+    <p className="mt-2 text-xs text-white/55">Berechnet aus bestätigter Spieldauer und ÖFB-Aufstellung. Ein- und Auswechslungen werden berücksichtigt; bei unvollständigen oder widersprüchlichen Angaben bleibt die Spielzeit offen (—).</p>
     {!current ? <p role="status" className="mt-4 text-sm text-white/65">ÖFB-Einsätze werden geladen…</p> : current.error ? <p role="alert" className="mt-4 text-sm text-amber-200">{current.error}</p> : current.rows.length ? <ul className="mt-4 space-y-2">{current.rows.map(row => {
       const name = players.find(p => p.id === row.player_id)?.name || ownPlayers.find(p => p.profileId === row.player_id)?.name || 'Spielerprofil';
       return <li key={row.player_id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3">

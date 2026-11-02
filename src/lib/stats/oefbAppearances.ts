@@ -1,6 +1,6 @@
 import {supabase} from '../supabaseClient';
 type Player={name:string;externalPlayerId:string|null};
-type Report={score:string|null;homePlayers:Player[];awayPlayers:Player[];events:{type:string;side:string|null;player:string;secondPlayer:string}[]};
+type Report={score:string|null;homePlayers:Player[];awayPlayers:Player[];events:{type:string;side:string|null;player:string;secondPlayer:string;minute?:number|null}[]};
 type Link={team_season_id:string;external_player_id:string;player_id:string;source_name:string};
 const key=(s:string)=>s.normalize('NFKC').toLocaleLowerCase('de').replace(/\s+/g,' ').trim();
 /** Only confirmed season-scoped identities; a bench listing alone is not an appearance. */
@@ -15,16 +15,46 @@ export function reportAppearances(report:Report,home:boolean,links:Link[]):{play
  }
  return [...found].map(([playerId,starter])=>({playerId,starter}));
 }
-/** An unchanged starter can be calculated only with explicitly confirmed duration.
- * Changed players remain unknown until a validated interval calculation is available. */
-export function unchangedStarterMinutes(report:Report,home:boolean,playerId:string,links:Link[],duration:number|null):number|null {
- if(!Number.isInteger(duration)||duration==null||duration<1||duration>180)return null;
+/** Source substitution direction: primary enters, secondary leaves. Reject inconsistent intervals. */
+export function calculatedPlayerMinutes(report:Report,home:boolean,playerId:string,links:Link[],duration:number|null):number|null {
+ if(duration==null||!Number.isInteger(duration)||duration<1||duration>180)return null;
+ const own=home?report.homePlayers:report.awayPlayers;
  const ids=new Set(links.filter(l=>l.player_id===playerId).map(l=>l.external_player_id));
- const starters=(home?report.homePlayers:report.awayPlayers).filter(p=>p.externalPlayerId&&ids.has(p.externalPlayerId));
- if(starters.length!==1)return null;
- const names=new Set([key(starters[0].name),...links.filter(l=>l.player_id===playerId).map(l=>key(l.source_name))]);
+ const starters=own.filter(p=>p.externalPlayerId&&ids.has(p.externalPlayerId));
+ if(starters.length>1)return null;
+ const names=new Set([...starters.map(p=>key(p.name)),...links.filter(l=>l.player_id===playerId).map(l=>key(l.source_name))]);
+ const identify=(name:string):string|null=>{
+  const n=key(name);const candidates=new Set(links.filter(l=>key(l.source_name)===n).map(l=>l.player_id));
+  for(const p of own)if(key(p.name)===n)for(const l of links)if(l.external_player_id===p.externalPlayerId)candidates.add(l.player_id);
+  return candidates.size===1?[...candidates][0]:null;
+ };
+ const touches=report.events.filter(e=>e.side===(home?'home':'away')&&['playerchange','red','yellowred','card-red','card-yellowred','card-blue'].includes(e.type)&&[e.player,e.secondPlayer].some(n=>n&&names.has(key(n))));
+ if(touches.some(e=>e.minute==null||!Number.isInteger(e.minute)||e.minute<0||e.minute>duration||e.type==='card-blue'))return null;
+ let on=starters.length===1, since=0,total=0, appeared=on;
+ for(const e of touches.slice().sort((a,b)=>a.minute!-b.minute!)){
+  const m=e.minute!;
+  if(e.type==='playerchange'){
+   // An ambiguous or incomplete counterpart makes direction untrustworthy for this player.
+   if(!e.player||!e.secondPlayer||key(e.player)===key(e.secondPlayer))return null;
+   const incoming=identify(e.player),outgoing=identify(e.secondPlayer);
+   if(names.has(key(e.player))&&incoming!==playerId||names.has(key(e.secondPlayer))&&outgoing!==playerId)return null;
+   if(incoming===playerId){if(on)return null;on=true;since=m;appeared=true;}
+   else if(outgoing===playerId){if(!on)return null;total+=m-since;on=false;}
+   else return null;
+  }else{if(!on)return null;total+=m-since;on=false;}
+ }
+ if(!appeared)return null;
+ return total+(on?duration-since:0);
+}
+/** Backwards-compatible conservative helper retained for earlier callers/tests. */
+export function unchangedStarterMinutes(report:Report,home:boolean,playerId:string,links:Link[],duration:number|null):number|null {
+ const own=home?report.homePlayers:report.awayPlayers;
+ const ids=new Set(links.filter(l=>l.player_id===playerId).map(l=>l.external_player_id));
+ const starter=own.find(p=>p.externalPlayerId&&ids.has(p.externalPlayerId));
+ if(!starter)return null;
+ const names=new Set([key(starter.name),...links.filter(l=>l.player_id===playerId).map(l=>key(l.source_name))]);
  if(report.events.some(e=>e.side===(home?'home':'away')&&['playerchange','red','yellowred','card-red','card-yellowred','card-blue'].includes(e.type)&&[e.player,e.secondPlayer].some(n=>n&&names.has(key(n)))))return null;
- return duration;
+ return calculatedPlayerMinutes(report,home,playerId,links,duration);
 }
 const cache=new Map<string,{until:number;promise:Promise<Report>}>();
 async function loadReport(id:string):Promise<Report>{
@@ -33,7 +63,7 @@ async function loadReport(id:string):Promise<Report>{
  if(cache.size>100)cache.clear();cache.set(id,{until:Date.now()+60000,promise});return promise;
 }
 export async function fetchOefbAppearances(matchIds:string[],nativeMatches:Set<string>){
- const {data:fixtures,error}=await supabase.from('events').select('match_id,team_season_id,external_id,is_home,matches(score_home,score_away,oefb_duration_minutes)').eq('external_source','oefb').in('match_id',matchIds);
+ const {data:fixtures,error}=await supabase.from('events').select('match_id,team_season_id,external_id,is_home,matches(score_home,score_away,oefb_duration_minutes),team_seasons(oefb_duration_default_minutes)').eq('external_source','oefb').in('match_id',matchIds);
  if(error)throw Error(error.message);
  if(!fixtures?.length)return [];
  const seasons=[...new Set(fixtures.map(e=>e.team_season_id))];
@@ -45,7 +75,7 @@ export async function fetchOefbAppearances(matchIds:string[],nativeMatches:Set<s
   if(!e.match_id||nativeMatches.has(e.match_id)||typeof e.is_home!=='boolean'||!/^\d{1,10}$/.test(e.external_id||''))return;
   const report=await loadReport(e.external_id!);const match=Array.isArray(e.matches)?e.matches[0]:e.matches;
   if(!match||report.score!==`${match.score_home}:${match.score_away}`)throw Error('ÖFB-Ergebnis stimmt nicht mit dem importierten Spiel überein. Bitte Import prüfen.');
-  for(const p of reportAppearances(report,e.is_home,((links??[]) as Link[]).filter(l=>l.team_season_id===e.team_season_id)))rows.push({match_id:e.match_id,type:'oefb_appearance',minute:null,player_id:p.playerId,payload:{source:'oefb_attribution',starter:p.starter,calculatedMinutes:unchangedStarterMinutes(report,e.is_home,p.playerId,((links??[]) as Link[]).filter(l=>l.team_season_id===e.team_season_id),match.oefb_duration_minutes)}});
+  for(const p of reportAppearances(report,e.is_home,((links??[]) as Link[]).filter(l=>l.team_season_id===e.team_season_id)))rows.push({match_id:e.match_id,type:'oefb_appearance',minute:null,player_id:p.playerId,payload:{source:'oefb_attribution',starter:p.starter,calculatedMinutes:calculatedPlayerMinutes(report,e.is_home,p.playerId,((links??[]) as Link[]).filter(l=>l.team_season_id===e.team_season_id),match.oefb_duration_minutes ?? (Array.isArray(e.team_seasons)?e.team_seasons[0]:e.team_seasons)?.oefb_duration_default_minutes ?? null)}});
  }));
  return rows;
 }
