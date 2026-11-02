@@ -6,6 +6,7 @@ import {
 } from '../../lib/premiumDesignSystem';
 
 type Props = {
+  framed?:boolean;
   /** z. B. „Nächstes Spiel“, „Nächstes Training“ */
   label: string;
   children: React.ReactNode;
@@ -15,7 +16,7 @@ type Props = {
   labelAside?: React.ReactNode;
 };
 
-export function EventHeroCard({ label, children, footer, labelAside }: Props) {
+export function EventHeroCard({ label, children, footer, labelAside, framed=true }: Props) {
   return (
     <section
       className="mb-3 w-full pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
@@ -28,8 +29,8 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
         {labelAside ? <div className="shrink-0">{labelAside}</div> : null}
       </div>
 
-      <div data-manager-schedule-card className={dsScheduleHeroPanelClass()}>
-        <div className={dsScheduleHeroPanelGlowClass()} aria-hidden />
+      <div data-manager-schedule-card={framed ? true : undefined} className={framed ? dsScheduleHeroPanelClass() : "w-full min-w-0"}>
+        {framed ? <div className={dsScheduleHeroPanelGlowClass()} aria-hidden /> : null}
         <div className="relative z-10 min-h-0 w-full min-w-0 py-0.5">
           {children}
         </div>

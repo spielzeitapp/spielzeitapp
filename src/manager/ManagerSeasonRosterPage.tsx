@@ -5,7 +5,7 @@ import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import {
   canPrepareNextSeason,
@@ -51,6 +51,8 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
     status: string;
     ageGroup: string | null;
   } | null>(null);
+  const [reportParams]=useSearchParams();
+  const reportGameId=reportParams.get('oefbReport');
   const [globalPhoto,setGlobalPhoto]=useState(false);
   const [photoEditingId,setPhotoEditingId] = useState<string|null>(null);
   const [players, setPlayers] = useState<RosterPlayer[]>([]);
@@ -374,7 +376,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
           </section>
         ),
       )}
-      {(canEdit || (!archived && !writableMessage && !loading && !!meta && ['trainer','co_trainer','head_coach'].includes(effectiveRole))) ? <ManagerOefbPlayerAssignments key={`oefb-assignments:${seasonId}`} seasonId={seasonId} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
+      {(canEdit || (!archived && !writableMessage && !loading && !!meta && ['trainer','co_trainer','head_coach'].includes(effectiveRole))) ? <ManagerOefbPlayerAssignments key={`oefb-assignments:${seasonId}:${reportGameId??'all'}`} seasonId={seasonId} gameId={reportGameId&&/^\d{1,12}$/.test(reportGameId)?reportGameId:undefined} onSaved={() => { void reloadRoster(seasonId); }} /> : null}
     </div>
   );
 }

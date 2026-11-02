@@ -4,7 +4,7 @@ import { build } from 'esbuild';
 const require=createRequire(import.meta.url), React=require('react'), {create,act}=require('react-test-renderer');
 let season='first';globalThis.__rosterSectionSeason=()=>season;
 const fixtures={
- 'react-router-dom':`export const useParams=()=>({seasonId:globalThis.__rosterSectionSeason()});export const Link=({children})=>children;export const Navigate=()=>null;`,
+ 'react-router-dom':`export const useSearchParams=()=>[new URLSearchParams()];export const useParams=()=>({seasonId:globalThis.__rosterSectionSeason()});export const Link=({children})=>children;export const Navigate=()=>null;`,
  'useSession':`const setViewTeamSeasonId=()=>{};export const useSession=()=>({effectiveRole:'admin',backendRole:'admin',setViewTeamSeasonId});`,
  'seasonLifecycle':`export const canPrepareNextSeason=()=>true,formatTeamSeasonContextLabel=()=> 'Synthetic team',getSeasonStatusLabel=()=> 'Aktiv',isSeasonArchived=()=>false;`,
  'rosterService':`export const listRoster=async()=>({data:[],error:null}),createRosterPlayer=()=>{},updateRosterPlayerSeasonFields=()=>{};`,

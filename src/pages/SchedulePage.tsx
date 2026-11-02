@@ -1868,12 +1868,13 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                               className="mb-3 -mx-1 w-[calc(100%+0.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
                               {...publicWrap}
                             >
-                              <EventHeroCard label={isMultiTeamView ? `${heroSectionLabel} · ${eventTeamLabel(ev)}` : heroSectionLabel} footer={heroCardFooter}>
+                              <EventHeroCard framed={!(timeFilter === 'past' && isFinishedMatch)} label={isMultiTeamView ? `${heroSectionLabel} · ${eventTeamLabel(ev)}` : heroSectionLabel} footer={heroCardFooter}>
                                 {timeFilter === 'past' && isFinishedMatch ? (
                                   <PastMatchResultCard
                                     ev={ev}
                                     ageGroup={teamSeasons.find((ts) => ts.id === ev.team_season_id)?.age_group}
                                     ourTeamName={eventTeamName(ev)}
+                                    onImportReport={canManage && !isHistoryReadOnly && ev.external_source==='oefb' && ev.external_id ? ()=>navigate(`/manager/saisons/${ev.team_season_id}/kader?oefbReport=${encodeURIComponent(ev.external_id!)}#oefb-report`) : undefined}
                                     opponentLogoUrl={opponentLogo}
                                     scoreHome={matchScore?.scoreHome ?? null}
                                     scoreAway={matchScore?.scoreAway ?? null}
@@ -2118,6 +2119,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                               showTeamBadge={isMultiTeamView}
                               ageGroup={teamSeasons.find((ts) => ts.id === ev.team_season_id)?.age_group}
                               ourTeamName={eventTeamName(ev)}
+                              onImportReport={canManage && !isArchivedEvent && ev.external_source==='oefb' && ev.external_id ? ()=>navigate(`/manager/saisons/${ev.team_season_id}/kader?oefbReport=${encodeURIComponent(ev.external_id!)}#oefb-report`) : undefined}
                               opponentLogoUrl={opponentLogo}
                               scoreHome={matchScoreRow?.scoreHome ?? null}
                               scoreAway={matchScoreRow?.scoreAway ?? null}
