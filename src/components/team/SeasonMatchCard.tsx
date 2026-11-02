@@ -1,9 +1,12 @@
+import { ClubLogo } from '../branding/ClubLogo';
+import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
+import { useClubOpponentLogos, preferredClubLogo } from '../../hooks/useClubOpponentLogos';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftRight, ChevronRight } from 'lucide-react';
 import type { SeasonMatchCardData } from '../../lib/seasonMatchStats';
 import { seasonMatchCardHref } from '../../lib/seasonMatchStats';
-import { getClubLogo } from '../../lib/teamLogos';
+import { getClubLogo, sameClubIdentity } from '../../lib/teamLogos';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { useInternalBasePath } from '../../demo/demoPaths';
@@ -12,6 +15,7 @@ import { formatVisibleClubName } from '../../lib/oefbTeamNameNormalize';
 type Props = {
   match: SeasonMatchCardData;
   ourTeamName: string;
+  teamSeasonId?: string | null;
   footerSlot?: React.ReactNode;
   onCompare?: () => void;
   variant?: 'standard' | 'appearance';
@@ -51,7 +55,7 @@ function splitPrefixAndName(full: string): { prefix: string; name: string } {
 
 function TeamLogoBlock({ src, label, prominent = false }: { src: string; label: string; prominent?: boolean }) {
   return (
-    <img
+    <ClubLogo
       src={src}
       alt=""
       aria-hidden
@@ -101,8 +105,11 @@ function headerBadge(match: SeasonMatchCardData): string {
   return 'Geplant';
 }
 
-export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlot, onCompare, variant = 'standard' }) => {
+export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlot, onCompare, variant = 'standard', teamSeasonId }) => {
   const appearance = variant === 'appearance';
+  const seasonId = match.teamSeasonId ?? teamSeasonId;
+  const matchClub = useMatchClubBranding(seasonId);
+  const opponentLogos = useClubOpponentLogos([match.opponent], seasonId);
   const navigate = useNavigate();
   const basePath = useInternalBasePath();
   const href = seasonMatchCardHref(match.eventId, basePath, match.id);
@@ -117,18 +124,12 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
   const homeName = compactTeamName(match.isHome === true ? our : match.isHome === false ? oppName : our);
   const awayName = compactTeamName(match.isHome === true ? oppName : match.isHome === false ? our : oppName);
 
-  const homeLogoSrc =
-    match.isHome === true
-      ? getClubLogo(our)
-      : match.isHome === false
-        ? getClubLogo(oppName)
-        : getClubLogo(our);
-  const awayLogoSrc =
-    match.isHome === true
-      ? getClubLogo(oppName)
-      : match.isHome === false
-        ? getClubLogo(our)
-        : getClubLogo(oppName);
+  const ownLogo = getClubLogo(our, { logoUrl: matchClub.brand?.logo_url });
+  const opponentLogo = sameClubIdentity(our, oppName) ? ownLogo : getClubLogo(oppName, {
+    logoUrl: preferredClubLogo(oppName, opponentLogos),
+  });
+  const homeLogoSrc = match.isHome === false ? opponentLogo : ownLogo;
+  const awayLogoSrc = match.isHome === false ? ownLogo : opponentLogo;
 
   const h = match.score_home ?? match.teamGoals;
   const a = match.score_away ?? match.oppGoals;
@@ -167,6 +168,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
 
   return (
     <div
+      style={matchClub.style}
       className={[
         `sz-club-surface sz-club-surface--hero group relative w-full min-w-0 overflow-hidden border outline-none backdrop-blur-sm transition-transform duration-200 ${appearance ? 'rounded-[22px]' : 'rounded-[30px]'}`,
         clickable
@@ -189,7 +191,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
       }
     >
       <div className="sz-club-page-hero-glow pointer-events-none absolute inset-0 opacity-90" />
-      {appearance ? <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(106,16,20,0.18),transparent_70%)]" /> : null}
+      {appearance ? <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgb(var(--match-primary)/0.18),transparent_70%)]" /> : null}
 
       <div className={`relative px-3.5 sm:px-4 ${appearance ? 'pb-3 pt-3' : 'pb-2.5 pt-3 sm:pb-3 sm:pt-3.5'}`}>
         <div className={`flex justify-between gap-2 ${appearance ? 'mb-2 items-center' : 'mb-1 items-start'}`}>
@@ -203,7 +205,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
               <span className={`${appearance ? 'text-[11px]' : 'text-[10px]'} font-medium leading-tight text-white/40`}>{yearSmall}</span>
             ) : null}
           </div>
-          {appearance && homeAwayLabel ? <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-red-300/80">{homeAwayLabel}</span> : null}
+          {appearance && homeAwayLabel ? <span className="text-[11px] font-bold uppercase tracking-[0.12em] sz-club-accent-text">{homeAwayLabel}</span> : null}
           {match.outcome == null ? (
             <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] ${
               match.displayStatus === 'live'

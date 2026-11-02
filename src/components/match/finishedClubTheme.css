@@ -4,3 +4,12 @@
 .sz-finished-club [class*="bg-red-700"] { background: rgb(var(--match-primary)); }
 .sz-finished-club [class*="via-red-950"] { --tw-gradient-via: rgb(var(--match-primary) / .32); --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--match-primary) / .32), var(--tw-gradient-to); }
 .sz-finished-club [class*="shadow-"][class*="239,68,68"] { box-shadow: 0 0 32px rgb(var(--match-primary) / .2), 0 8px 40px rgb(0 0 0 / .45); }
+
+/* Both entry points (Termine and Live) use the match season's club. */
+.sz-match-summary {
+  background: radial-gradient(ellipse at 50% 0%, rgb(var(--match-primary) / .24), transparent 58%), #050506;
+}
+.sz-finished-club .sz-club-accent-text { color: rgb(var(--match-accent)); }
+.sz-match-summary [class*="to-red-950"] { --tw-gradient-to: rgb(var(--match-primary) / .25); }
+.sz-match-summary [class*="bg-red-950"] { background-color: rgb(var(--match-primary) / .25); }
+.sz-match-summary [class*="bg-red-500/"] { background-color: rgb(var(--match-accent) / .12); }

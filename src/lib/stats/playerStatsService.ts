@@ -29,6 +29,7 @@ export type PlayerSeasonStats = {
 };
 
 export type PlayerLastMatchRow = {
+  teamSeasonId?: string | null;
   match_id: string;
   opponent: string;
   date: string | null;
@@ -67,6 +68,7 @@ function matchTotalSeconds(liveElapsed: number | null | undefined): number {
 }
 
 type MatchRow = {
+  team_season_id?: string | null;
   id: string;
   opponent: string | null;
   match_date: string | null;
@@ -351,7 +353,7 @@ async function fetchFinishedMatches(
 
   const { data, error } = await supabase
     .from('matches')
-    .select('id, opponent, match_date, status, score_home, score_away, live_elapsed_seconds, planned_match_minutes, location')
+    .select('id, team_season_id, opponent, match_date, status, score_home, score_away, live_elapsed_seconds, planned_match_minutes, location')
     .eq('team_season_id', tid)
     .eq('status', 'finished')
     .in('id', selectedIds)
@@ -515,6 +517,7 @@ function aggregateForPlayer(
 
     lastRows.push({
       match_id: mid,
+      teamSeasonId: m.team_season_id,
       opponent: (m.opponent ?? 'Gegner').trim() || 'Gegner',
       date: m.match_date,
       dateLabel: formatDateLabel(m.match_date),

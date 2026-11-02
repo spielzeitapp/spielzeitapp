@@ -215,6 +215,7 @@ function playerAppearanceMatchCardData(m: PlayerLastMatchRow): SeasonMatchCardDa
   const outcome = teamGoals > oppGoals ? "win" : teamGoals === oppGoals ? "draw" : "loss";
   return {
     id: m.match_id,
+    teamSeasonId: m.teamSeasonId,
     opponent: m.opponent,
     match_date: m.date,
     status: "finished",
@@ -1166,6 +1167,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                         <li key={m.match_id}>
                           <SeasonMatchCard
                             variant="appearance"
+                            teamSeasonId={statsSeasonId}
                             match={playerAppearanceMatchCardData(m)}
                             ourTeamName={teamName ?? "SPG Rohrbach"}
                             footerSlot={
@@ -1190,6 +1192,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                           <li key={m.match_id}>
                             <SeasonMatchCard
                               variant="appearance"
+                            teamSeasonId={statsSeasonId}
                               match={playerAppearanceMatchCardData(m)}
                               ourTeamName={teamName ?? "SPG Rohrbach"}
                               footerSlot={

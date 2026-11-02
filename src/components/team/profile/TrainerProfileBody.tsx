@@ -240,7 +240,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
               <ul className="space-y-2">
                 {recentMatches.map((m) => (
                   <li key={m.id}>
-                    <SeasonMatchCard match={m} ourTeamName={teamName} />
+                    <SeasonMatchCard teamSeasonId={teamSeasonId} match={m} ourTeamName={teamName} />
                   </li>
                 ))}
               </ul>
@@ -265,7 +265,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
                   <ul className="space-y-2">
                     {recentTournamentMatches.map((match) => (
                       <li key={match.id}>
-                        <SeasonMatchCard match={match} ourTeamName={teamName} />
+                        <SeasonMatchCard teamSeasonId={teamSeasonId} match={match} ourTeamName={teamName} />
                       </li>
                     ))}
                   </ul>
