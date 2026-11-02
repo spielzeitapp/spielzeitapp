@@ -13,6 +13,7 @@ import {
 export type PlayerSeasonStats = {
   games: number;
   unknownMinutesGames?: number;
+  calculatedMinutesGames?: number;
   goals: number;
   assists: number;
   minutes: number;
@@ -448,6 +449,7 @@ function aggregateForPlayer(
 
   let games = 0;
   let unknownMinutesGames = 0;
+  let calculatedMinutesGames = 0;
   let goals = 0;
   let assists = 0;
   let minutes = 0;
@@ -490,15 +492,20 @@ function aggregateForPlayer(
       events: engineEvs,
       finalMatchSecond: finalSec,
     });
-    const mMin = Math.floor(Math.max(0, playtimes[pid] ?? 0) / 60);
+    let mMin = Math.floor(Math.max(0, playtimes[pid] ?? 0) / 60);
     const { subInSec, subOutSec } = substitutionBadgeSeconds(pid, evs);
-    minutes += mMin;
+
 
     const sh = Number(m.score_home ?? 0);
     const sa = Number(m.score_away ?? 0);
     const sourceOnly = !kickoffIds.length && evs.length > 0 && evs.every(e => e.payload && typeof e.payload === 'object' && (e.payload as Record<string, unknown>).source === 'oefb_attribution');
-    if(sourceOnly)unknownMinutesGames+=1;
-    const badge = sourceOnly ? { badgeKind: 'unknown' as const, badgeLabel: 'ÖFB · Spielzeit offen', subInDisplayMinute: null } : badgeForRow({
+    const sourceAppearance=evs.find(e=>e.type==='oefb_appearance'&&e.player_id===pid);
+    const calculated=(sourceAppearance?.payload as {calculatedMinutes?:number|null}|undefined)?.calculatedMinutes;
+    const hasCalculated=sourceOnly&&typeof calculated==='number'&&Number.isFinite(calculated)&&calculated>=0;
+    if(hasCalculated){mMin=calculated;calculatedMinutesGames+=1;}
+    if(sourceOnly&&!hasCalculated)unknownMinutesGames+=1;
+    minutes+=mMin;
+    const badge = sourceOnly ? { badgeKind: 'unknown' as const, badgeLabel: hasCalculated ? `${mMin} Min · berechnet` : 'ÖFB · Spielzeit offen', subInDisplayMinute: null } : badgeForRow({
       wasStarter,
       minutes: mMin,
       totalMin: matchDurationMin,
@@ -536,7 +543,7 @@ function aggregateForPlayer(
   });
 
   return {
-    stats: { games, goals, assists, minutes, goalsPerGame, averageMinutesPerGame, goalsPer90, yellowCards, redCards, unknownMinutesGames },
+    stats: { games, goals, assists, minutes, goalsPerGame, averageMinutesPerGame, goalsPer90, yellowCards, redCards, unknownMinutesGames, calculatedMinutesGames },
     lastMatches: lastRows.slice(0, 5),
   };
 }

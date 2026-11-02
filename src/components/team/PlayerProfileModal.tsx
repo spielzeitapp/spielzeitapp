@@ -1051,6 +1051,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       />
                     ))}
               </div>
+              {stats.calculatedMinutesGames ? <p className="mt-2 text-center text-[12px] text-white/60">Spielminuten aus ÖFB-Aufstellung und bestätigter Spieldauer berechnet.</p> : null}
               {stats.unknownMinutesGames ? <p className="mt-2 text-center text-[12px] text-white/60">ÖFB-Einsätze berücksichtigt · Spielminuten nicht vollständig belegt.</p> : null}
               {statsError ? (
                 <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>

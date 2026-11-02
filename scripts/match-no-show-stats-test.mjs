@@ -26,3 +26,5 @@ const appearance={match_id:'m1',player_id:'p1',type:'oefb_appearance',minute:nul
 const nonScorer=aggregate('p1',[match],[appearance],[],new Map(),new Set());assert.equal(nonScorer.stats.games,1);assert.equal(nonScorer.stats.goals,0);assert.equal(nonScorer.stats.unknownMinutesGames,1);assert.equal(nonScorer.lastMatches[0].badgeKind,'unknown');
 const withGoal=aggregate('p1',[match],[appearance,{match_id:'m1',player_id:'p1',type:'goal',minute:null,payload:{source:'oefb_attribution'}}],[],new Map(),new Set());assert.equal(withGoal.stats.games,1);assert.equal(withGoal.stats.goals,1);
 console.log('PASS: source lineup without goals counts once, known goals preserved, missing minutes tracked separately.');
+
+const calculated=aggregate('p1',[match],[{...appearance,payload:{source:'oefb_attribution',starter:true,calculatedMinutes:80}}],[],new Map(),new Set());assert.equal(calculated.stats.minutes,80);assert.equal(calculated.stats.averageMinutesPerGame,80);assert.equal(calculated.stats.unknownMinutesGames,0);assert.equal(calculated.stats.calculatedMinutesGames,1);assert.equal(calculated.lastMatches[0].badgeLabel,'80 Min · berechnet');

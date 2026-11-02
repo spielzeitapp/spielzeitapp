@@ -15,6 +15,17 @@ export function reportAppearances(report:Report,home:boolean,links:Link[]):{play
  }
  return [...found].map(([playerId,starter])=>({playerId,starter}));
 }
+/** An unchanged starter can be calculated only with explicitly confirmed duration.
+ * Changed players remain unknown until a validated interval calculation is available. */
+export function unchangedStarterMinutes(report:Report,home:boolean,playerId:string,links:Link[],duration:number|null):number|null {
+ if(!Number.isInteger(duration)||duration==null||duration<1||duration>180)return null;
+ const ids=new Set(links.filter(l=>l.player_id===playerId).map(l=>l.external_player_id));
+ const starters=(home?report.homePlayers:report.awayPlayers).filter(p=>p.externalPlayerId&&ids.has(p.externalPlayerId));
+ if(starters.length!==1)return null;
+ const names=new Set([key(starters[0].name),...links.filter(l=>l.player_id===playerId).map(l=>key(l.source_name))]);
+ if(report.events.some(e=>e.side===(home?'home':'away')&&['playerchange','red','yellowred','card-red','card-yellowred','card-blue'].includes(e.type)&&[e.player,e.secondPlayer].some(n=>n&&names.has(key(n)))))return null;
+ return duration;
+}
 const cache=new Map<string,{until:number;promise:Promise<Report>}>();
 async function loadReport(id:string):Promise<Report>{
  const cached=cache.get(id);if(cached&&cached.until>Date.now())return cached.promise;
@@ -22,19 +33,19 @@ async function loadReport(id:string):Promise<Report>{
  if(cache.size>100)cache.clear();cache.set(id,{until:Date.now()+60000,promise});return promise;
 }
 export async function fetchOefbAppearances(matchIds:string[],nativeMatches:Set<string>){
- const {data:fixtures,error}=await supabase.from('events').select('match_id,team_season_id,external_id,is_home,matches(score_home,score_away)').eq('external_source','oefb').in('match_id',matchIds);
+ const {data:fixtures,error}=await supabase.from('events').select('match_id,team_season_id,external_id,is_home,matches(score_home,score_away,oefb_duration_minutes)').eq('external_source','oefb').in('match_id',matchIds);
  if(error)throw Error(error.message);
  if(!fixtures?.length)return [];
  const seasons=[...new Set(fixtures.map(e=>e.team_season_id))];
  const {data:links,error:linkError}=await supabase.rpc('read_oefb_stat_links',{p_team_season_ids:seasons});
  if(linkError)throw Error(linkError.message);
- const rows: {match_id:string;type:string;minute:null;player_id:string;payload:{source:string;starter:boolean}}[]=[];
+ const rows: {match_id:string;type:string;minute:null;player_id:string;payload:{source:string;starter:boolean;calculatedMinutes:number|null}}[]=[];
  // Bound simultaneous public requests; no database/live-event writes.
  for(let i=0;i<fixtures.length;i+=3)await Promise.all(fixtures.slice(i,i+3).map(async e=>{
   if(!e.match_id||nativeMatches.has(e.match_id)||typeof e.is_home!=='boolean'||!/^\d{1,10}$/.test(e.external_id||''))return;
   const report=await loadReport(e.external_id!);const match=Array.isArray(e.matches)?e.matches[0]:e.matches;
   if(!match||report.score!==`${match.score_home}:${match.score_away}`)throw Error('ÖFB-Ergebnis stimmt nicht mit dem importierten Spiel überein. Bitte Import prüfen.');
-  for(const p of reportAppearances(report,e.is_home,((links??[]) as Link[]).filter(l=>l.team_season_id===e.team_season_id)))rows.push({match_id:e.match_id,type:'oefb_appearance',minute:null,player_id:p.playerId,payload:{source:'oefb_attribution',starter:p.starter}});
+  for(const p of reportAppearances(report,e.is_home,((links??[]) as Link[]).filter(l=>l.team_season_id===e.team_season_id)))rows.push({match_id:e.match_id,type:'oefb_appearance',minute:null,player_id:p.playerId,payload:{source:'oefb_attribution',starter:p.starter,calculatedMinutes:unchangedStarterMinutes(report,e.is_home,p.playerId,((links??[]) as Link[]).filter(l=>l.team_season_id===e.team_season_id),match.oefb_duration_minutes)}});
  }));
  return rows;
 }
