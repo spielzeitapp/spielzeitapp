@@ -1,0 +1,43 @@
+/* Mobile manager uses the same club palette and dark surfaces as the App.
+   Desktop's light workspace and semantic warning/success colors are preserved. */
+.manager-round-button { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:44px; height:44px; border:1px solid rgb(255 255 255 / .15); border-radius:999px; background:rgb(255 255 255 / .04); color:white; }
+.manager-context-trigger { display:flex; align-items:center; gap:10px; width:100%; min-height:52px; border:1px solid rgb(var(--club-border-rgb,220 38 38) / .3); border-radius:16px; background:linear-gradient(115deg,rgb(var(--club-primary-rgb,122 29 42) / .2),#0b0c10); padding:8px 12px; color:white; }
+.manager-context-dialog { position:fixed; inset:auto 0 0; margin:0 auto; width:min(100%,560px); max-width:100%; max-height:calc(100dvh - max(24px,env(safe-area-inset-top))); overflow:hidden; border:1px solid rgb(var(--club-border-rgb,220 38 38) / .35); border-radius:26px 26px 0 0; padding:0 0 max(12px,env(safe-area-inset-bottom)); background:#0b0c10; color:white; color-scheme:dark; box-shadow:0 -16px 60px #0008; }
+.manager-context-dialog[open] { display:flex; flex-direction:column; }
+.manager-context-dialog::backdrop { background:rgb(0 0 0 / .7); backdrop-filter:blur(6px); }
+.manager-context-option { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:52px; border:1px solid rgb(255 255 255 / .12); border-radius:14px; padding:12px; background:rgb(255 255 255 / .025); color:white; text-align:left; }
+.manager-context-option[aria-pressed=true] { border-color:rgb(var(--club-border-rgb) / .6); background:rgb(var(--club-primary-rgb) / .25); }
+.manager-context-option svg { color:rgb(var(--club-accent-text-rgb,var(--club-accent-rgb))); }
+@media(max-width:767px) {
+ .manager-shell { color-scheme:dark; --manager-bg:#050506; --manager-surface:#111318; --manager-border:rgb(255 255 255 / .12); --manager-border-strong:rgb(255 255 255 / .25); --manager-text:#f7f7fa; --manager-muted:#a3a6ae; --manager-accent:rgb(var(--club-accent-text-rgb,var(--club-accent-rgb))); --manager-focus-ring:rgb(var(--club-accent-rgb) / .3); }
+ .manager-shell main { background:#050506 !important; }
+ .manager-shell__content { min-height:100%; color:var(--manager-text); padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+ .manager-shell__content :is(.bg-white,.bg-slate-50,.bg-slate-100,.bg-gray-50,.bg-gray-100) { background-color:var(--manager-surface) !important; }
+ .manager-shell__content :is(.text-slate-900,.text-slate-800,.text-gray-900,.text-gray-800,.text-black) { color:var(--manager-text) !important; }
+ .manager-shell__content :is(.text-slate-700,.text-slate-600,.text-slate-500,.text-slate-400,.text-gray-700,.text-gray-600,.text-gray-500) { color:var(--manager-muted) !important; }
+ .manager-shell__content :is(.border-slate-100,.border-slate-200,.border-slate-300,.border-gray-200,.border-gray-300) { border-color:var(--manager-border) !important; }
+ .manager-shell__content :is(.bg-red-50,.bg-red-100,.bg-red-950\/25,.bg-red-950\/35,.bg-red-950\/40) { background-color:rgb(var(--club-primary-rgb) / .2) !important; }
+ .manager-shell__content :is(.bg-red-600,.bg-red-700) { background-color:rgb(var(--club-accent-rgb)) !important; color:var(--club-on-accent,#fff) !important; }
+ .manager-shell__content :is(.text-red-200,.text-red-300,.text-red-400,.text-red-600,.text-red-700) { color:rgb(var(--club-accent-text-rgb,var(--club-accent-rgb))) !important; }
+ .manager-shell__content :is(.border-red-200,.border-red-300,.border-red-500,.border-red-500\/20,.border-red-500\/25) { border-color:rgb(var(--club-border-rgb) / .35) !important; }
+ .manager-shell__content section { scroll-margin-top:16px; }
+ .manager-shell input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), .manager-shell select,.manager-shell textarea { background:#111318 !important; color:#f7f7fa !important; color-scheme:dark; caret-color:#fff; border-color:rgb(255 255 255 / .18) !important; font-size:16px; }
+ .manager-shell input:focus,.manager-shell select:focus,.manager-shell textarea:focus { border-color:rgb(var(--club-accent-rgb)) !important; box-shadow:0 0 0 3px rgb(var(--club-accent-rgb) / .15); }
+ .manager-shell button,.manager-shell a,.manager-shell input { touch-action:manipulation; }
+ .manager-shell :is(button,a,input,select,textarea):focus-visible { outline:2px solid rgb(var(--club-accent-rgb)); outline-offset:3px; }
+ .manager-shell main { padding-bottom:calc(96px + env(safe-area-inset-bottom)) !important; }
+ .manager-shell .manager-mobile-header { gap:6px; }
+ .manager-shell .manager-mobile-header > button:first-child { display:none; }
+ .manager-mobile-header .manager-round-button, .manager-mobile-header button[aria-label="Favoriten und Mannschaften wählen"] { width:40px !important; height:40px !important; min-width:40px !important; min-height:40px !important; max-width:40px !important; }
+ .manager-mobile-shortcuts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:20px 0; }
+ .manager-mobile-shortcuts a { display:flex; align-items:center; gap:10px; min-height:84px; border:1px solid rgb(var(--club-border-rgb) / .25); border-radius:18px; padding:14px; background:linear-gradient(125deg,rgb(var(--club-primary-rgb) / .18),#101116); font-size:14px; font-weight:800; }
+ .manager-mobile-shortcuts svg { height:24px; width:24px; flex-shrink:0; color:rgb(var(--club-accent-text-rgb,var(--club-accent-rgb))); }
+}
+@media(max-width:767px) {
+ .manager-shell__content [class*="from-red-"] { --tw-gradient-from:rgb(var(--club-primary-rgb) / .4) var(--tw-gradient-from-position); }
+ .manager-shell__content [class*="via-red-"] { --tw-gradient-via:rgb(var(--club-primary-rgb) / .2); }
+ .manager-shell__content [class*="to-red-"] { --tw-gradient-to:rgb(var(--club-primary-rgb) / .1) var(--tw-gradient-to-position); }
+ .manager-shell__content :is(button,a):is(.bg-blue-600,.bg-blue-700) { background-color:rgb(var(--club-accent-rgb)) !important; color:var(--club-on-accent,#fff) !important; }
+ .manager-shell__content :is(a,button):is(.text-blue-600,.text-blue-700) { color:rgb(var(--club-accent-text-rgb,var(--club-accent-rgb))) !important; }
+ .manager-mobile-header a[aria-label="Profil und Einstellungen"] { width:40px !important; height:40px !important; min-width:40px !important; min-height:40px !important; }
+}

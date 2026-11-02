@@ -27,6 +27,8 @@ function compactLabel(ts: SessionTeamSeasonItem | undefined): string {
 }
 
 export type TeamSwitcherProps = {
+  /** Manager favorites open the App without changing its work-team selection. */
+  openInApp?: boolean;
   compact?: boolean;
   className?: string;
   hideWhenSingle?: boolean;
@@ -34,7 +36,7 @@ export type TeamSwitcherProps = {
 };
 
 /** Single work season stays separate from the read-only multi-team overview. */
-export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, className, hideWhenSingle = false, iconOnly = false }) => {
+export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, className, hideWhenSingle = false, iconOnly = false, openInApp = false }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const {
@@ -67,7 +69,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     try {
       const error = await ensureFanTeamAccess(user.id, id);
       if (error) { setDiscoveryError(error); return; }
-      setViewTeamSeasonId(id); setOpen(false); navigate(`/app/team?teamSeason=${encodeURIComponent(id)}`);
+      if (!openInApp) setViewTeamSeasonId(id); setOpen(false); navigate(`/app/team?teamSeason=${encodeURIComponent(id)}`);
     } finally { setFavoriteSaving(false); }
   };
   const toggleDiscoveredFavorite = async (id: string) => {
@@ -203,6 +205,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
   }, [open]);
 
   const selectSingle = (ts: SessionTeamSeasonItem) => {
+    if (openInApp) { setOpen(false); navigate(`/app/team?teamSeason=${encodeURIComponent(ts.id)}`); return; }
     setTeamViewFilter(null);
     if (resolveTeamSeasonSwitcherAction(ts.status) === 'select-work') {
       setSelectedTeamSeasonId(ts.id);
@@ -276,6 +279,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     }
     const nextVisible = visible.filter(ts => ts.id !== id);
     if (!persistHiddenTeamIds([...hiddenTeamIds, id])) return;
+    if (openInApp) { setFavoriteMenuUrl(null); return; }
     if (filtered) {
       const selected = teamViewFilter === 'all' ? visible.map(ts => ts.id) : filteredTeamSeasonIds;
       const next = selected.filter(sid => sid !== id && nextVisible.some(ts => ts.id === sid));
@@ -380,7 +384,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         <div className={keyboardOpen ? "hidden" : "shrink-0 px-2 pb-3 text-center"}>
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-[rgb(var(--club-border-rgb)/0.45)] bg-[rgb(var(--club-primary-rgb)/0.16)]"><Star className="h-6 w-6 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /></div>
           <h2 className="text-[22px] font-black leading-tight text-white">Favoriten verwalten</h2>
-          <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/65">Wähle deine Mannschaften einzeln oder gemeinsam. Deine Auswahl bleibt gespeichert.</p>
+          <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-white/65">{openInApp ? 'Gemeinsame Favoriten der SpielzeitApp. Beim Öffnen wechselst du in die App; deine Manager-Arbeitsmannschaft bleibt erhalten.' : 'Wähle deine Mannschaften einzeln oder gemeinsam. Deine Auswahl bleibt gespeichert.'}</p>
         </div>
         <div ref={resultsRef} className="min-h-0 overflow-y-auto overscroll-contain pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
         <label className="relative mb-3 block">

@@ -14,6 +14,7 @@ import { ManagerTeamScope } from './ManagerTeamScope';
 import './managerShell.css';
 import './managerDesktopWorkspace.css';
 import './managerSeasonWorkspace.css';
+import './managerMobile.css';
 
 /**
  * Shell für alle /manager-Seiten: volle Fensterbreite, dunkle Navigation, helle Arbeitsfläche.
@@ -55,7 +56,7 @@ export function ManagerLayout(): React.ReactElement {
               </div>
             ) : null}
             <main className={[
-              'min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-20 md:pb-0',
+              'manager-mobile-workspace min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-20 md:pb-0',
               seasonWorkspace ? 'manager-season-workspace' : '',
               seasonWorkspace ? 'bg-[#050506]' : mobileAppRoute ? 'bg-[#050506] md:bg-[#F4F5F7]' : 'bg-[#F4F5F7]',
             ].join(' ')}>
@@ -67,7 +68,7 @@ export function ManagerLayout(): React.ReactElement {
               ].join(' ')}>
                 <ManagerRouteGuard>
                   <ManagerAccessDeniedBanner />
-                  <ManagerTeamScope><Outlet /></ManagerTeamScope>
+                  <ManagerTeamScope><Outlet key={context?.id ?? 'platform'} /></ManagerTeamScope>
                 </ManagerRouteGuard>
               </div>
             </main>
