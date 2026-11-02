@@ -32,7 +32,7 @@ function extractReport(html, id) {
     if (label) return null;
     return event.minute != null && Number.isFinite(Number(event.minute)) && Number(event.minute) >= 0 ? Number(event.minute) : null;
   };
-  const events = (report?.gameData ?? []).filter(e => ['goal', 'playerchange', 'yellow', 'red', 'yellowred', 'card-blue'].includes(e.type))
+  const events = (report?.gameData ?? []).filter(e => ['goal', 'playerchange', 'yellow', 'red', 'yellowred', 'card-red', 'card-yellowred', 'card-blue'].includes(e.type))
     .map(e => ({ type: e.type, minute: displayMinute(e),
       side: e.team === 'a' ? 'home' : e.team === 'b' ? 'away' : null,
       player: text(e.playerPrimary), externalPlayerId: profileId(e.url), secondPlayer: text(e.playerSecondary), ownGoal: e.eigentor === true,
