@@ -30,6 +30,7 @@ export type PastMatchResultCardProps = {
   compact?: boolean;
   showTeamBadge?: boolean;
   onNavigate: (id: string) => void;
+  onImportReport?:()=>void;
 };
 
 function compactTeamName(name: string | null | undefined): string {
@@ -103,9 +104,11 @@ export function PastMatchResultCard({
   compact = false,
   showTeamBadge = false,
   onNavigate,
+  onImportReport,
 }: PastMatchResultCardProps) {
   const [brand,setBrand]=React.useState<{id:string;logo:string|null}|null>(null);
   React.useEffect(()=>{let cancelled=false;void getClubBrandingForTeamSeason(ev.team_season_id).then(r=>{if(!cancelled)setBrand({id:ev.team_season_id,logo:r.data?.logo_url??null});});return()=>{cancelled=true;};},[ev.team_season_id]);
+  const reportEntry=onImportReport ? <button type="button" onClick={e=>{e.stopPropagation();onImportReport();}} onKeyDown={e=>e.stopPropagation()} className="mt-2 rounded-lg border border-[rgb(var(--club-border-rgb)/0.4)] bg-black/30 px-3 py-2 text-[12px] font-semibold text-white">ÖFB-Spielbericht prüfen & importieren</button> : null;
   const clickable = !forcePublicView;
   const handleActivate = () => {
     if (clickable) onNavigate(ev.id);
@@ -222,6 +225,7 @@ export function PastMatchResultCard({
           <div className="mt-1.5 flex min-w-0 items-center border-t border-white/[0.06] pt-1.5">
             {venue ? <span className="line-clamp-1 min-w-0 text-[13px] text-white/70">{venue}</span> : null}
           </div>
+          {reportEntry}
         </div>
 
         {clickable ? <ChevronRight className="absolute bottom-3 right-1 h-4 w-4 text-white/30" strokeWidth={2} aria-hidden /> : null}
@@ -332,6 +336,7 @@ export function PastMatchResultCard({
             />
           ) : null}
         </div>
+        {reportEntry}
       </div>
     </div>
   );
