@@ -200,8 +200,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // Diagnose aller ÖFB-Spielarten, auch wenn der bestehende Import derzeit
-    // ausschließlich Meisterschaftsspiele sicher als 'league' speichern kann.
+    // Testspiele werden nur auf ausdrücklichen Wunsch des Import-Clients geliefert.
     const mapped = (extracted.spiele || []).map((s) => mapFixture(s, ourTeamHints));
     const typeCounts = mapped.reduce((acc, fixture) => {
       const type = fixture.art || '(ohne Spielart)';
@@ -209,7 +208,7 @@ module.exports = async function handler(req, res) {
       return acc;
     }, {});
     const fixtures = mapped
-      .filter((f) => /^(liga|meisterschaft)$/i.test(f.art))
+      .filter((f) => /^(liga|meisterschaft)$/i.test(f.art) || (req.query.includeFriendlies === '1' && /^(testspiel|freundschaftsspiel)$/i.test(f.art)))
       .filter((f) => f.external_id && f.starts_at && f.opponent);
 
     res.status(200).json({
