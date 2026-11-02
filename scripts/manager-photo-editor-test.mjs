@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {build} from 'esbuild';
+const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
+let calls=[],fail=false;globalThis.__photoRpc=async(name,args)=>{calls.push({name,args});return {error:fail?{message:'Konflikt'}:null};};
+const b=await build({entryPoints:['src/manager/ManagerPlayerPhotoEditor.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'fixture',setup(b){b.onResolve({filter:/supabaseClient$/},()=>({path:'fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase={rpc:(...a)=>globalThis.__photoRpc(...a)}',loader:'js'}));}}]});
+const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);const Editor=m.exports.ManagerPlayerPhotoEditor;
+const player={id:'fixture',display_name:'Synthetic Player',first_name:'Synthetic',last_name:'Player',avatar_url:'/fixture.jpg',jersey_number:9};let root,saved=0,closed=0;
+await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',onSaved:()=>saved++,onClose:()=>closed++}));});
+const button=text=>root.root.findAllByType('button').find(n=>n.children.join('')===text);
+await act(async()=>root.root.findAllByType('select')[0].props.onChange({target:{value:'black'}}));
+await act(async()=>root.root.findByProps({'aria-label':'Bildgröße'}).props.onChange({target:{value:'120'}}));
+assert.equal(calls.length,0,'preview does not save');assert.equal(root.root.findByType('img').props.style.transform.includes('scale(1.2)'),true);
+fail=true;await act(async()=>button('Gestaltung speichern').props.onClick());assert.equal(saved,0);assert.equal(root.root.findByProps({role:'alert'}).children.join(''),'Konflikt');
+fail=false;await act(async()=>button('Gestaltung speichern').props.onClick());assert.equal(saved,1);assert.equal(calls[1].args.p_layout.background,'black');assert.equal(calls[1].args.p_layout.zoom,120);assert.equal(calls[1].args.p_team_season_id,'season-fixture');assert.equal(calls[1].args.p_expected,null);
+await act(async()=>button('Standard wiederherstellen').props.onClick());assert.equal(calls[2].args.p_layout,null);
+await act(async()=>button('Abbrechen').props.onClick());assert.equal(closed,1);assert.equal(calls.length,3);await act(async()=>root.unmount());
+console.log('PASS: real editor preview, explicit save, failure retains draft, scoped payload, optimistic version, reset and cancellation.');

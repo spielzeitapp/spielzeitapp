@@ -1,3 +1,4 @@
+import type {PlayerPhotoLayout} from './playerPhotoLayout';
 /**
  * Zentraler Kader-Service (STEP 4 Dual-Read / Dual-Write, STEP 5 Join-first Read).
  *
@@ -20,6 +21,7 @@ import { isRosterJoinV1HardDisabled, isRosterJoinV1Enabled } from './featureFlag
 export type RosterStatus = 'active' | 'paused' | 'archived';
 
 export type RosterPlayer = {
+  photo_layout?: PlayerPhotoLayout | null;
   id: string;
   team_season_id: string;
   first_name: string | null;
@@ -204,6 +206,7 @@ async function listRosterJoin(
         'id',
         'team_season_id',
         'player_id',
+        'photo_layout',
         'jersey_number',
         'position',
         'status',
@@ -239,6 +242,7 @@ async function listRosterJoin(
     );
     mapped.push({
       id: String(p?.id ?? row.player_id),
+      photo_layout: row.photo_layout as PlayerPhotoLayout | null,
       team_season_id: String(row.team_season_id),
       first_name: first,
       last_name: last,

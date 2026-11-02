@@ -843,6 +843,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           >
             <ProfileHeroCard
               variant="player"
+              photoLayout={player.photo_layout}
               watermark={jerseyWatermark}
               firstNameLine={firstNameLine}
               lastNameLine={lastNameLine}
