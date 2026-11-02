@@ -1,3 +1,4 @@
+import {OefbUpdateMenu} from '../components/schedule/OefbUpdateMenu';
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { CalendarDays, CalendarPlus, ClipboardList, Pencil, Radio, Trash2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -1579,6 +1580,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                     <span>Spielplan</span>
                   </Link>
                 ) : null}
+                <OefbUpdateMenu seasonId={readTeamSeasonId} allowed={canMutateSchedule && eventKind!=='tournament'} className={toolbarActionClass}/>
                 {isDemo || canShowCalendarActions ? (
                   <button
                     type="button"
