@@ -1,3 +1,4 @@
+import { ManagerMobileShortcuts } from './mobile/ManagerMobileShortcuts';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -471,11 +472,12 @@ export function ManagerDashboardPage(): React.ReactElement {
     <>
     <div className="manager-mobile-dashboard min-h-full bg-[#050506] px-4 pb-6 pt-5 text-white md:hidden">
       <header>
-        <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/75">Vereinsfeed</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/75">Deine Übersicht</p>
         <h1 className="mt-1 text-[26px] font-black tracking-tight">{greetingPrefix()}{firstName ? `, ${firstName}` : ''}</h1>
         <p className="mt-1 truncate text-[13px] text-white/50">Alle wichtigen Termine · {mobileContextLabel}</p>
       </header>
 
+      <ManagerMobileShortcuts />
       {mobileAttentionCount > 0 ? (
         <section className="mt-5 rounded-2xl border border-red-500/25 bg-gradient-to-br from-red-950/80 to-[#17090c] p-4">
           <div className="flex items-start gap-3">
@@ -498,7 +500,7 @@ export function ManagerDashboardPage(): React.ReactElement {
         </section>
       ) : (
         <section className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-950/25 px-4 py-3 text-[13px] text-emerald-200">
-          Spiele und Platzbelegung sind aktuell.
+          Keine offenen Hinweise für diese Übersicht.
         </section>
       )}
 

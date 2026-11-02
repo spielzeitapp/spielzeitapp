@@ -1,5 +1,7 @@
+import { useManagerClubModules } from '../ManagerClubModulesContext';
+import { managerModuleKeyForLocation } from '../managerWorkMode';
 import React from 'react';
-import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, Shield, Table2, Users, Trophy, Newspaper, Mic, Music2, Share2 } from 'lucide-react';
+import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, MapPinned, BookOpen, Dumbbell, Shield, Table2, Users, Trophy, Newspaper, Mic, Music2, Share2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
@@ -10,6 +12,8 @@ import { ManagerMobilePageTitle } from './ManagerMobileUi';
 import { isSeasonArchived } from '../../lib/seasonLifecycle';
 
 function MoreLink({ to, icon: Icon, title, detail }: { to: string; icon: React.ComponentType<{ className?: string }>; title: string; detail: string }): React.ReactElement {
+  const { isModuleEnabled } = useManagerClubModules();
+  if (!isModuleEnabled(managerModuleKeyForLocation(to, '') ?? undefined)) return <></>;
   return <Link to={to} className="flex min-h-[72px] items-center gap-3 border-b border-white/[0.07] px-4 last:border-0"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-950/35 text-red-300"><Icon className="h-5 w-5" /></span><span className="min-w-0 flex-1"><span className="block text-[14px] font-bold">{title}</span><span className="mt-0.5 block truncate text-[11px] text-white/45">{detail}</span></span><ChevronRight className="h-5 w-5 text-white/25" /></Link>;
 }
 
@@ -50,6 +54,11 @@ export function ManagerMobileMorePage(): React.ReactElement {
       ) : null}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
+        <MoreLink to="/manager" icon={Users} title="Startübersicht" detail="Schnellzugriff und aktuelle Termine" />
+        <MoreLink to="/manager/teams" icon={Users} title="Meine Mannschaften" detail="Freigegebene Mannschaften und Saisonen" />
+        <MoreLink to="/manager/training/einheiten" icon={Dumbbell} title="Trainingsplanung" detail="Trainingseinheiten vorbereiten" />
+        <MoreLink to="/manager/training/bibliothek" icon={BookOpen} title="Übungsbibliothek" detail="Übungen suchen und auswählen" />
+        <MoreLink to="/manager/platzbelegung" icon={MapPinned} title="Platzbelegung" detail="Freie Plätze und Belegungen" />
         <MoreLink to="/manager/team" icon={Users} title="Team" detail="Kader, Trainer, Training und Statistiken" />
         <MoreLink to="/manager/spieler" icon={Users} title="Spieler" detail="Spielerprofile und Kader verwalten" />
         <MoreLink to="/manager/mehr/parent-access" icon={Users} title="Eltern & Zugänge" detail="Elternzuordnung, Einladungen und Spieler-App" />
@@ -69,8 +78,8 @@ export function ManagerMobileMorePage(): React.ReactElement {
             <MoreLink
               to={`/manager/saisons/${encodeURIComponent(importSeason.id)}/oefb-import`}
               icon={CalendarDays}
-              title="Spielplan / ÖFB-Import"
-              detail="Spiele in die ausgewählte Saison importieren"
+              title="ÖFB-Import & Spieldauer"
+              detail="Spiele, Berichte, Spielerzuordnung und Spieldauer"
             />
           ) : (
             <div className="border-b border-white/[0.07] px-4 py-4">

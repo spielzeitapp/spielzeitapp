@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';import {build} from 'esbuild';import {createRequire} from 'node:module';const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer'),{MemoryRouter}=require('react-router-dom');
+globalThis.__managerMode={workMode:'trainer',supportSession:null};globalThis.__disabled=[];
+async function load(entry){const b=await build({entryPoints:[entry],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,define:{'import.meta.env.BASE_URL':'"/"'},plugins:[{name:'contexts',setup(b){b.onResolve({filter:/ManagerWorkModeContext$|ManagerClubModulesContext$|branding\/ClubLogo$/},a=>({path:a.path,namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},a=>({contents:a.path.endsWith('ManagerWorkModeContext')?'export const useManagerWorkMode=()=>globalThis.__managerMode':a.path.endsWith('ManagerClubModulesContext')?'export const useManagerClubModules=()=>({isModuleEnabled:key=>!globalThis.__disabled.includes(key)})':'export const ClubLogo=()=>null;'}));}}]});const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);return m.exports;}
+const {ManagerMobileNav}=await load('src/manager/components/ManagerMobileNav.tsx');
+async function nav(mode,disabled=[]){globalThis.__managerMode={workMode:mode,supportSession:null};globalThis.__disabled=disabled;let r;await act(async()=>{r=create(React.createElement(MemoryRouter,{future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(ManagerMobileNav)));});return r;}
+let r=await nav('trainer',['venues']);let links=r.root.findAllByType('a');assert.ok(links.some(a=>a.props.href==='/manager'));assert.ok(!links.some(a=>a.props.href==='/manager/platzbelegung'));assert.ok(links.some(a=>a.props.href==='/manager/teams'));assert.equal(links.length,5);await act(async()=>r.unmount());
+r=await nav('trainer',[]);assert.ok(r.root.findAllByType('a').some(a=>a.props.href==='/manager/platzbelegung'));await act(async()=>r.unmount());
+r=await nav('platform_admin',['venues']);assert.ok(r.root.findAllByType('a').some(a=>a.props.href==='/manager/vereine'));assert.ok(!r.root.findAllByType('a').some(a=>a.props.href==='/manager/training/einheiten'));await act(async()=>r.unmount());
+const {ManagerContextPicker,managerPickerSeasons}=await load('src/manager/components/ManagerContextPicker.tsx');
+const seasons=[{id:'archive',status:'archived',team:{name:'Rohrbach'},age_group:'U11',season:{name:'2025/26'}},{id:'active',status:'active',team:{name:'Rohrbach'},age_group:'U12',season:{name:'2026/27'}}];
+assert.equal(managerPickerSeasons(seasons,'')[0].id,'active');assert.deepEqual(managerPickerSeasons(seasons,'2025').map(s=>s.id),['archive']);assert.equal(managerPickerSeasons(seasons,'Melk').length,0);
+let selected=[],modes=[];await act(async()=>{r=create(React.createElement(ManagerContextPicker,{seasons,value:'active',label:'Rohrbach',onSelect:id=>selected.push(id),mode:'trainer',modes:['trainer','club_admin'],onModeChange:m=>modes.push(m)}));});
+assert.equal(r.root.findAllByType('select').length,0);assert.equal(r.root.findAllByType('dialog').length,1);
+const options=r.root.findAllByProps({className:'manager-context-option'});await act(async()=>options.at(-1).props.onClick());assert.deepEqual(selected,['archive']);await act(async()=>options[1].props.onClick());assert.deepEqual(modes,['club_admin']);await act(async()=>r.unmount());
+console.log('PASS: mobile navigation by role/module, home access, authorized team picker, active/archive order, search and mode selection.');
+// Exercise the shared favorites UI: opening a fan team from Manager must not
+// change the selected trainer work team or grant a manager role.
+const oldWindow=globalThis.window,oldDocument=globalThis.document;
+const store=new Map();globalThis.window={localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},addEventListener(){},removeEventListener(){},dispatchEvent(){},alert:message=>{throw Error(message)}};
+globalThis.document={addEventListener(){},removeEventListener(){},querySelector:()=>null,documentElement:{style:{}},body:{style:{}}};
+let changes=[];globalThis.__favoriteSession={user:null,teamSeasons:[{...seasons[1],id:'work'},{...seasons[1],id:'fan',team:{name:'Melk'}}],selectedTeamSeasonId:'work',viewTeamSeasonId:null,teamViewFilter:null,filteredTeamSeasonIds:['work'],setSelectedTeamSeasonId:id=>changes.push(['work',id]),setViewTeamSeasonId:id=>changes.push(['view',id]),setTeamViewFilter:v=>changes.push(['filter',v])};
+try{
+ const b=await build({entryPoints:['src/app/components/TeamSwitcher.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,define:{'import.meta.env.BASE_URL':'"/"'},plugins:[{name:'favorites',setup(b){
+ b.onResolve({filter:/auth\/useSession$/},()=>({path:'session',namespace:'fav'}));b.onResolve({filter:/supabaseClient$|teamFavorites$|useSavedTeamFavorites$|branding\/ClubLogo$/},a=>({path:a.path,namespace:'fav'}));b.onResolve({filter:/^react-dom$/},()=>({path:'portal',namespace:'fav'}));
+ b.onLoad({filter:/.*/,namespace:'fav'},a=>({contents:a.path==='session'?'export const useSession=()=>globalThis.__favoriteSession':a.path==='portal'?'export const createPortal=children=>children':a.path.endsWith('supabaseClient')?'export const supabase={}':a.path.endsWith('teamFavorites')?'export const ensureFanTeamAccess=async()=>null':a.path.endsWith('ClubLogo')?'export const ClubLogo=()=>null':'export const FAVORITES_CHANGED_EVENT="favorites";'}));
+ }}]});const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);const {TeamSwitcher}=m.exports;
+ const {useLocation}=require('react-router-dom');let location;function Probe(){location=useLocation();return null;}
+ await act(async()=>{r=create(React.createElement(MemoryRouter,{initialEntries:['/manager'],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(React.Fragment,null,React.createElement(TeamSwitcher,{iconOnly:true,openInApp:true}),React.createElement(Probe))));});
+ await act(async()=>r.root.findByProps({'aria-label':'Favoriten und Mannschaften wählen'}).props.onClick());
+ const fanButton=r.root.findAllByType('button').find(b=>b.props['aria-pressed']===false);
+ assert.ok(fanButton);await act(async()=>fanButton.props.onClick());assert.equal(location.pathname,'/app/team');assert.equal(new URLSearchParams(location.search).get('teamSeason'),'fan');assert.deepEqual(changes,[]);await act(async()=>r.unmount());
+ console.log('PASS: Manager favorite opens App team without changing work/view/filter selection.');
+}finally{globalThis.window=oldWindow;globalThis.document=oldDocument;}

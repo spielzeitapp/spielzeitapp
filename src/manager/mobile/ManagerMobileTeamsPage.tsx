@@ -5,7 +5,7 @@ import { useSession } from '../../auth/useSession';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { formatManagerEventDate, ManagerMobilePageTitle } from './ManagerMobileUi';
 import { useManagerMobileEvents } from './useManagerMobileEvents';
-import { formatTeamSeasonContextLabel } from '../../lib/seasonLifecycle';
+import { resolveTeamSeasonSwitcherAction, formatTeamSeasonContextLabel } from '../../lib/seasonLifecycle';
 
 export function ManagerMobileTeamsPage(): React.ReactElement {
   const navigate = useNavigate();
@@ -21,10 +21,17 @@ export function ManagerMobileTeamsPage(): React.ReactElement {
     return result;
   }, [events]);
   const openTeam = (id: string) => {
-    setViewTeamSeasonId(null);
-    if (isTrainerMode) selectTrainerTeamSeasonId(id);
-    else setSelectedTeamSeasonId(id);
-    navigate('/manager/termine');
+    const season = contextTeamSeasons.find(s => s.id === id);
+    if (!season) return;
+    if (resolveTeamSeasonSwitcherAction(season.status) === 'select-work') {
+      setViewTeamSeasonId(null);
+      if (isTrainerMode) selectTrainerTeamSeasonId(id);
+      else setSelectedTeamSeasonId(id);
+    } else {
+      if (isTrainerMode) selectTrainerTeamSeasonId(id);
+      setViewTeamSeasonId(id);
+    }
+    navigate('/manager');
   };
 
   return (
