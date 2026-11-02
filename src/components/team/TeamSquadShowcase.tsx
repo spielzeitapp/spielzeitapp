@@ -1,4 +1,4 @@
-import {playerPhotoDisplayUrl} from '../../lib/playerPhotoDisplay';
+import {playerPhotoDisplayUrl, preparedPlayerPortrait, isImportedPlayerPortrait} from '../../lib/playerPhotoDisplay';
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
@@ -46,7 +46,7 @@ export function playerMedia(player: PlayerItem, isDemo: boolean): { src: string;
   const avatar = (player.avatar_url ?? "").trim();
   if (avatar) {
     return {
-      src: playerPhotoDisplayUrl(avatar),
+      src: preparedPlayerPortrait(avatar) || playerPhotoDisplayUrl(avatar),
       fallbackSrc,
       isCutout: false,
       isUpperBodyDemo: isDemoUpperBodyPortraitUrl(avatar),
@@ -157,7 +157,8 @@ export const TeamSquadShowcase: React.FC<Props> = ({
         {players.map((player) => {
           const number = player.jersey_number;
           const media = playerMedia(player, Boolean(demo));
-          const numberInFooter = media.src.startsWith('/api/oefb/table?view=photo&');
+          const importedPortrait = !player.cutout_url && isImportedPlayerPortrait(player.avatar_url);
+          const preparedPortrait = !player.cutout_url && preparedPlayerPortrait(player.avatar_url);
           return (
             <button
               key={`showcase-${player.id}`}
@@ -167,11 +168,12 @@ export const TeamSquadShowcase: React.FC<Props> = ({
               className="sz-club-showcase-card group relative aspect-square w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]"
             >
               <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
-              {number != null && !numberInFooter ? (
+              {number != null && !importedPortrait ? (
                 <span className="absolute left-5 top-5 z-10 text-[56px] font-black leading-none tracking-[-0.06em] text-white/90 sm:text-[66px]">
                   {number}
                 </span>
               ) : null}
+              <>{preparedPortrait ? <img src="/profile/profile-hero-stadium.PNG" alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}</>
               <img loading="lazy" decoding="async"
                 src={media.src}
                 alt=""
@@ -179,7 +181,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = media.fallbackSrc;
                 }}
-                style={numberInFooter ? {objectFit:"cover",objectPosition:"center top"} : {
+                style={importedPortrait ? {objectFit:"contain",objectPosition:"center bottom", ...(preparedPortrait ? {height:"88%",top:"auto",bottom:0} : {})} : {
                   WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 58%, transparent 76%)",
                   maskImage: "linear-gradient(to bottom, #000 0%, #000 58%, transparent 76%)",
                 }}
@@ -188,11 +190,12 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                     ? "origin-top scale-[1.78] object-contain object-top group-hover:scale-[1.82]"
                     : media.isUpperBodyDemo
                       ? "origin-top scale-[1.22] object-contain object-top group-hover:scale-[1.25]"
-                    : numberInFooter ? "object-cover object-top" : "origin-top scale-[0.99] object-cover object-top group-hover:scale-[1.02]"
+                    : importedPortrait ? "object-cover object-top" : "origin-top scale-[0.99] object-cover object-top group-hover:scale-[1.02]"
                 }`}
               />
-              <div className={numberInFooter ? "absolute inset-x-0 bottom-0 h-[28%] bg-gradient-to-t from-black/80 to-transparent" : "absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent"} aria-hidden />
-              <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-3 p-4 sm:p-5">
+              {importedPortrait && number != null ? <span aria-label={`Rückennummer ${number}`} className="absolute right-4 top-4 z-10 text-[44px] font-black leading-none tracking-tight text-white [text-shadow:0_2px_10px_#000]">{number}</span> : null}
+              <div className={importedPortrait ? "absolute inset-x-0 bottom-0 h-[28%] bg-gradient-to-t from-black/80 to-transparent" : "absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent"} aria-hidden />
+              <div className={`absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-3 p-4 sm:p-5 ${importedPortrait && !preparedPortrait ? "pl-[28%] sm:pl-[28%]" : ""}`}>
                 <div className="min-w-0 flex-1">
                 <p className="truncate text-[25px] font-black uppercase leading-none tracking-tight text-white sm:text-[28px]">
                   {playerCardName(player)}
@@ -203,7 +206,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                   </p>
                 ) : null}
                 </div>
-                {numberInFooter && number != null ? <span aria-label={`Rückennummer ${number}`} className="shrink-0 border-l border-white/25 pl-3 text-[30px] font-black leading-none tracking-tight text-white/90">{number}</span> : null}
+
               </div>
             </button>
           );
