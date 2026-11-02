@@ -18,3 +18,7 @@ const absent=aggregate('p1',[match],events,snapshots,lineup,new Set(['m1:p1']));
 const otherAbsence=aggregate('p1',[match],events,snapshots,lineup,new Set(['m1:p2']));assert.equal(otherAbsence.stats.games,present.stats.games);assert.equal(otherAbsence.stats.minutes,present.stats.minutes);
 const restored=aggregate('p1',[match],events,snapshots,lineup,new Set());assert.equal(restored.stats.games,1);assert.equal(restored.lastMatches[0].badgeKind,present.lastMatches[0].badgeKind);
 console.log('PASS: no-show has an explicit history label, zero games/minutes/goals, leaves other players unchanged, and undo restores normal aggregation.');
+
+const imported=aggregate('p1',[match],[{id:'source',match_id:'m1',player_id:'p1',type:'goal',minute:null,payload:{source:'oefb_attribution'}}],[],new Map(),new Set());
+assert.equal(imported.stats.goals,1);assert.equal(imported.stats.minutes,0);assert.equal(imported.lastMatches[0].badgeKind,'unknown');assert.equal(imported.lastMatches[0].badgeLabel,'ÖFB · Spielzeit offen');
+console.log('PASS: source-only goals retain goal credit without an invented bench assignment or playtime.');

@@ -35,7 +35,7 @@ export type PlayerLastMatchRow = {
   goals: number;
   wasStarter: boolean;
   /** UI: 'full' | 'sub_in' | 'bank' | 'partial' (z. B. ausgewechselt) */
-  badgeKind: 'full' | 'sub_in' | 'bank' | 'partial' | 'absent';
+  badgeKind: 'full' | 'sub_in' | 'bank' | 'partial' | 'absent' | 'unknown';
   badgeLabel: string;
   subInDisplayMinute: number | null;
   scoreHome: number;
@@ -489,7 +489,8 @@ function aggregateForPlayer(
 
     const sh = Number(m.score_home ?? 0);
     const sa = Number(m.score_away ?? 0);
-    const badge = badgeForRow({
+    const sourceOnly = !kickoffIds.length && evs.length > 0 && evs.every(e => e.payload && typeof e.payload === 'object' && (e.payload as Record<string, unknown>).source === 'oefb_attribution');
+    const badge = sourceOnly ? { badgeKind: 'unknown' as const, badgeLabel: 'ÖFB · Spielzeit offen', subInDisplayMinute: null } : badgeForRow({
       wasStarter,
       minutes: mMin,
       totalMin: matchDurationMin,
