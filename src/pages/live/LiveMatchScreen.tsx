@@ -1,3 +1,4 @@
+import { ClubLogo } from '../../components/branding/ClubLogo';
 import { useClubOpponentLogos, preferredClubLogo } from '../../hooks/useClubOpponentLogos';
 import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
 import '../../components/match/finishedClubTheme.css';
@@ -210,7 +211,7 @@ function LiveMatchLogoTile({
               : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
   return (
     <div className={`flex shrink-0 items-center justify-center ${box} ${glow}`}>
-      <img
+      <ClubLogo
         src={imgSrc}
         alt=""
         className={imgClass}
