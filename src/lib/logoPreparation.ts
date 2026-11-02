@@ -2,6 +2,7 @@ import { removeOuterWhiteBackground } from '../../lib/logoBackground.mjs';
 
 /** Only the exact official ÖFB PNG format reaches the fixed-host image endpoint. */
 export function displayLogoUrl(raw: string): string {
+ try {const url=new URL(raw);if(url.protocol==='https:' && url.host==='vereine.oefb.at' && !url.username && !url.password && !url.search && !url.hash && /^\/netzwerk\/imagedownload\/[a-zA-Z0-9_.%-]+\.(?:jpe?g|png|webp)$/i.test(url.pathname))return '/api/oefb/table?view=photo&url='+encodeURIComponent(url.href);}catch{/* Keep local/storage sources unchanged. */}
  const id=/^https:\/\/(?:www\.)?oefb\.at\/oefb2\/images\/1278650591628556536_([a-f0-9]{20})-1,0-120x120-120x120\.png$/i.exec(raw.trim())?.[1];
  return id ? `/api/oefb/table?view=logo&id=${id.toLowerCase()}` : raw;
 }

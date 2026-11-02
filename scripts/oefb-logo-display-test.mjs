@@ -1,0 +1,5 @@
+import assert from 'node:assert/strict';import {createRequire} from 'node:module';import {build} from 'esbuild';const require=createRequire(import.meta.url);
+const b=await build({entryPoints:['src/lib/logoPreparation.ts'],bundle:true,platform:'node',format:'cjs',write:false});const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);
+const {displayLogoUrl}=m.exports;const good='https://vereine.oefb.at/netzwerk/imagedownload/synthetic-60-60-AbCd.jpg';assert.equal(displayLogoUrl(good),'/api/oefb/table?view=photo&url='+encodeURIComponent(good));
+for(const bad of ['https://vereine.oefb.at.evil.test/netzwerk/imagedownload/x.png','https://user:pass@vereine.oefb.at/netzwerk/imagedownload/x.png','https://vereine.oefb.at/netzwerk/imagedownload/x.png?url=bad','/logos/already-transparent.png'])assert.equal(displayLogoUrl(bad),bad);
+console.log('PASS: only exact allowed ÖFB logo URLs use the existing bounded image endpoint; local and unrelated URLs stay intact.');
