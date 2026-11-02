@@ -564,7 +564,7 @@ export async function importOefbChampionshipFixtures(opts: {
       external_url: f.external_url,
       competition: f.competition,
       source_starts_at: f.starts_at,
-      fixture_status: 'open',
+      fixture_status: oefbFixtureMatchType(f.art) === 'friendly' ? null : 'open',
       opponent_logo_url: logo,
     };
 
