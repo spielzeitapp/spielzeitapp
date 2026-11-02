@@ -173,7 +173,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                   {number}
                 </span>
               ) : null}
-              <>{preparedPortrait ? <img src="/profile/profile-hero-stadium.PNG" alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}</>
+              <>{preparedPortrait ? <div data-portrait-background="clean" className="absolute inset-0" style={{background:"radial-gradient(ellipse at 70% 40%, rgb(var(--club-primary-rgb) / 0.2), transparent 70%), linear-gradient(145deg, #06101d, #020407 78%)"}} aria-hidden /> : null}</>
               <img loading="lazy" decoding="async"
                 src={media.src}
                 alt=""
