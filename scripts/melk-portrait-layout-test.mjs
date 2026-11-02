@@ -11,6 +11,8 @@ for(const prepared of [false,true]){
  const player={id:'fixture',first_name:'Test',last_name:'Portrait',jersey_number:3,avatar_url:url};
  let root;await act(async()=>{root=create(React.createElement(TeamSquadShowcase,{players:[player],ownPlayerIds:new Set(),onPlayerClick(){}}));});
  const number=root.root.find(n=>n.props['aria-label']==='Rückennummer 3');assert.equal(number.children.join(''),'3');assert.ok(number.props.className.includes('top-4'));
+ const rowImage=root.root.findByType('ul').findByType('img');
+ if(prepared){assert.ok(rowImage.props.className.includes('object-contain'));assert.ok(!rowImage.props.className.includes('scale-'));}
  const card=root.root.find(n=>n.props['data-showcase-card']!==undefined);
  const img=card.findAllByType('img').find(n=>n.props.src===playerMedia(player,false).src);assert.equal(img.props.style.objectFit,'contain');
  if(prepared)assert.ok(card.findAllByType('div').some(n=>n.props['data-portrait-background']==='clean'));
