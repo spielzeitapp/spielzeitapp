@@ -1,3 +1,4 @@
+import {fetchOefbAppearances} from './oefbAppearances';
 import { supabase } from '../supabaseClient';
 import { fetchIsHomeByMatchId, fetchValidSeasonMatchIds } from '../seasonMatchStats';
 import { formatTeamSeasonDisplayLabel, resolveCurrentAgeGroup } from '../seasonLifecycle';
@@ -11,6 +12,7 @@ import {
 
 export type PlayerSeasonStats = {
   games: number;
+  unknownMinutesGames?: number;
   goals: number;
   assists: number;
   minutes: number;
@@ -387,6 +389,10 @@ async function fetchEventsForMatches(matchIds: string[]): Promise<EventRow[]> {
         type: 'goal', minute: null, created_at: g.updated_at, payload: { source: 'oefb_attribution' } } as EventRow);
     }
   }
+  const snapshots=await fetchKickoffSnapshots(matchIds);
+  const fallback=await fetchLineupFallbackPlayerSets(matchIds);
+  const protectedMatches=new Set([...all.filter(e=>(e.payload as {source?:string})?.source!=='oefb_attribution').map(e=>e.match_id),...snapshots.map(s=>s.match_id),...fallback.keys()]);
+  all.push(...await fetchOefbAppearances(matchIds,protectedMatches));
   return all;
 }
 
@@ -441,6 +447,7 @@ function aggregateForPlayer(
   const eventsByMatch = collectEventsByMatch(events);
 
   let games = 0;
+  let unknownMinutesGames = 0;
   let goals = 0;
   let assists = 0;
   let minutes = 0;
@@ -490,6 +497,7 @@ function aggregateForPlayer(
     const sh = Number(m.score_home ?? 0);
     const sa = Number(m.score_away ?? 0);
     const sourceOnly = !kickoffIds.length && evs.length > 0 && evs.every(e => e.payload && typeof e.payload === 'object' && (e.payload as Record<string, unknown>).source === 'oefb_attribution');
+    if(sourceOnly)unknownMinutesGames+=1;
     const badge = sourceOnly ? { badgeKind: 'unknown' as const, badgeLabel: 'ÖFB · Spielzeit offen', subInDisplayMinute: null } : badgeForRow({
       wasStarter,
       minutes: mMin,
@@ -528,7 +536,7 @@ function aggregateForPlayer(
   });
 
   return {
-    stats: { games, goals, assists, minutes, goalsPerGame, averageMinutesPerGame, goalsPer90, yellowCards, redCards },
+    stats: { games, goals, assists, minutes, goalsPerGame, averageMinutesPerGame, goalsPer90, yellowCards, redCards, unknownMinutesGames },
     lastMatches: lastRows.slice(0, 5),
   };
 }
@@ -804,9 +812,9 @@ export async function getPlayerStats(input: {
   const pid = input.playerId?.trim();
   if (!pid) return { stats: { ...EMPTY_PLAYER_STATS }, tournamentStats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], lastTournamentMatches: [], error: null };
   if (input.mode === 'career') {
-    return getPlayerCareerStatsBundle(pid);
+    return getPlayerCareerStatsBundle(pid).catch(e=>({stats:{...EMPTY_PLAYER_STATS},tournamentStats:{...EMPTY_PLAYER_STATS},lastMatches:[],lastTournamentMatches:[],error:(e as Error).message}));
   }
   const tid = input.teamSeasonId?.trim();
   if (!tid) return { stats: { ...EMPTY_PLAYER_STATS }, tournamentStats: { ...EMPTY_PLAYER_STATS }, lastMatches: [], lastTournamentMatches: [], error: null };
-  return getPlayerProfileStatsBundle(pid, tid);
+  return getPlayerProfileStatsBundle(pid, tid).catch(e=>({stats:{...EMPTY_PLAYER_STATS},tournamentStats:{...EMPTY_PLAYER_STATS},lastMatches:[],lastTournamentMatches:[],error:(e as Error).message}));
 }
