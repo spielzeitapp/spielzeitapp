@@ -31,3 +31,15 @@ export function assignmentPreview(report: PublicReport, isHome: boolean): { play
  return { players: [...players.values()], report: home===Number(score[1]) && away===Number(score[2])
   ? { external_id: report.id, score_home: home, score_away: away, goals: sorted } : null };
 }
+
+export type AssignmentRosterPlayer = { id: string; first_name: string; last_name: string };
+export function normalizedAssignmentName(name: string): string {
+ return name.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('de');
+}
+export function reconcileAssignmentPlayer(source: SourcePlayer, roster: AssignmentRosterPlayer[], links: { external_player_id: string; player_id: string }[]) {
+ const linked = links.find(l => l.external_player_id === source.externalPlayerId && roster.some(p => p.id === l.player_id));
+ const candidates = roster.filter(p => normalizedAssignmentName(`${p.first_name} ${p.last_name}`) === normalizedAssignmentName(source.name));
+ if (linked) return { target: linked.player_id, kind: 'linked' as const, candidates };
+ if (candidates.length === 1) return { target: candidates[0].id, kind: 'suggested' as const, candidates };
+ return { target: '', kind: candidates.length ? 'ambiguous' as const : 'unknown' as const, candidates };
+}
