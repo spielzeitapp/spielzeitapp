@@ -15,6 +15,19 @@ assert.equal(report.awayPlayers[0].number, '7');
 assert.throws(() => extractReport(html, '999'));
 assert.equal(extractReport(`SG.container.appPreloads['a']=${JSON.stringify([{ ...title, ergebnis: '-:-' }])};`, '4134586').score, null);
 assert.equal(extractReport(`SG.container.appPreloads['a']=${JSON.stringify([title])};`, '4134586').events.length, 0);
+// Real ÖFB shape: final score includes halftime, internal timeline includes the break.
+const halftimeHtml = `SG.container.appPreloads['a']=${JSON.stringify([{...title,ergebnis:' 1 : 2 (0:1) '}])};\nSG.container.appPreloads['b']=${JSON.stringify([{...details,gameData:[
+ {type:'goal',minute:105,minuteString:'90',team:'b',spielstand:'1:2'},
+ {type:'goal',minute:107,minuteString:'90+2',team:'b',spielstand:'1:3'},
+ {type:'playerchange',minute:60,minuteString:'HZ',team:'a'},
+ {type:'playerchange',minute:null,team:'a'}
+]}])};`;
+const halftimeReport=extractReport(halftimeHtml,'4134586');
+assert.equal(halftimeReport.score,'1:2');
+assert.deepEqual(halftimeReport.events.map(e=>e.minute),[90,92,null,null]);
+for(const [raw,expected] of [['0:0 (0:0)','0:0'],['4:0 (0:0)','4:0'],['0:3 (0:2)','0:3'],['0:6 (0:3)','0:6'],['4:1 (1:0)','4:1'],['4:0 abgebrochen',null],['4:0 (0:0) abgebrochen',null],['-:-',null],['',null]]) {
+ assert.equal(extractReport(`SG.container.appPreloads['a']=${JSON.stringify([{...title,ergebnis:raw}])};`,'4134586').score,expected);
+}
 async function testHandler() {
   const handler = require('../api/_lib/oefbMatchReport');
   const response = () => ({ code: 200, body: null, headers: {}, setHeader(k,v) { this.headers[k] = v; }, status(c) { this.code=c; return this; }, json(b) { this.body=b; return this; } });
