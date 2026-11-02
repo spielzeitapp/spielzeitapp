@@ -1,3 +1,5 @@
+import { useOefbLiveReport } from '../components/match/OefbLiveReport';
+import { finishedOefbFallback, OefbFinishedMatchSection } from '../components/match/OefbFinishedMatchSection';
 import { ClubLogo } from '../components/branding/ClubLogo';
 import { useClubOpponentLogos, preferredClubLogo } from '../hooks/useClubOpponentLogos';
 import { useMatchClubBranding } from '../hooks/useMatchClubBranding';
@@ -786,6 +788,8 @@ export const EventDetailPage: React.FC = () => {
     if (isDemo && getDemoMatchStatus(event.match_id) === 'finished') return true;
     return event.status === 'finished';
   }, [event, isDemo, demo?.liveRuntimeVersion]);
+
+  const oefbSource = useOefbLiveReport(event?.match_id ?? null, !isDemo && isFinishedMatchEvent);
 
   useEffect(() => {
     if (isDemo) {
@@ -2048,6 +2052,12 @@ export const EventDetailPage: React.FC = () => {
         ? ownLogo
         : opponentLogo;
     const scoreStr = `${scoreHome}:${scoreAway}`;
+    const oefbFallback = finishedOefbFallback(oefbSource, rowHasScore ? scoreStr : null, {
+      lineup: Boolean(lineupRows.length || benchRows.length || kickoffPlayerIds.length),
+      events: Boolean(matchEvents.length),
+    }, !isDemo && !matchLoading && !lineupLoading && !matchError && !lineupError);
+    const sourceSection = (view: 'lineup' | 'timeline' | 'stats') => <OefbFinishedMatchSection source={oefbFallback.source} view={view} matchId={event.match_id!} players={players.map(p => ({ id: p.id, name: p.display_name || p.name || 'Spieler' }))} />;
+
     const finishedDate = formatHeroDateParts(event.starts_at);
     const finishedYear = event.starts_at && !Number.isNaN(new Date(event.starts_at).getTime())
       ? new Intl.DateTimeFormat('de-AT', { year: 'numeric', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at))
@@ -2208,7 +2218,8 @@ export const EventDetailPage: React.FC = () => {
       team: r.teamLabel,
       minute: r.minute,
     }));
-    const finishedOwnScorers = timelineEvents
+    const sourceOwnScorers = oefbFallback.source.report?.events.filter(e => e.type === 'goal' && !e.ownGoal && e.side === (event.is_home === false ? 'away' : 'home')).map(e => ({ name: e.player || 'Ohne Torschütze', minute: e.minute == null ? null : `${e.minute}′` })) ?? [];
+    const finishedOwnScorers = !hasAnyGoalEvent && sourceOwnScorers.length ? sourceOwnScorers : timelineEvents
       .filter((r) => normalizeMatchEventGoalType(r.type) === (event.is_home === false ? 'goal_away' : 'goal'))
       .map((r) => ({
         name: playerName(r.player_id) ?? 'Ohne Torschütze',
@@ -2944,7 +2955,7 @@ export const EventDetailPage: React.FC = () => {
             </div>
           ) : null}
 
-          {finishedTab === 'lineup' ? (
+          {finishedTab === 'lineup' ? oefbFallback.lineup ? sourceSection('lineup') : (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75">
               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Kader</p>
               {lineupLoading ? <p className="mt-2 text-[14px] text-white/70">Lade Aufstellung…</p> : null}
@@ -3013,14 +3024,14 @@ export const EventDetailPage: React.FC = () => {
             </div>
           ) : null}
 
-          {finishedTab === 'lineup' && !isDemo && event.match_id ? (
+          {finishedTab === 'lineup' && !oefbFallback.lineup && !isDemo && event.match_id ? (
             <FinishedMatchAttendance key={event.match_id} matchId={event.match_id}
               players={players.map(p => ({ id: p.id, name: p.display_name || p.name || 'Spieler' }))}
               benchIds={benchRows.map(p => p.player_id).filter((id): id is string => Boolean(id))}
               canManage={canTrainerManageEvent} onChanged={() => setAttendanceRevision(value => value + 1)} />
           ) : null}
 
-          {finishedTab === 'stats' ? (
+          {finishedTab === 'stats' ? oefbFallback.stats ? sourceSection('stats') : (
             <div className="rounded-[1.5rem] border border-red-500/20 bg-black/55 p-4 text-white/75 shadow-[0_16px_38px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]">
               <p className="text-[12px] font-black uppercase tracking-[0.2em] text-red-300/85">Spielstatistik</p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[14px]">
@@ -3105,7 +3116,7 @@ export const EventDetailPage: React.FC = () => {
             </div>
           ) : null}
 
-          {finishedTab === 'timeline' ? (
+          {finishedTab === 'timeline' ? oefbFallback.timeline ? sourceSection('timeline') : (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Liveticker</p>
