@@ -92,7 +92,7 @@ function PlayerProfileHeroCard(props: Props) {
   return (
     <div className={`sz-club-profile-hero relative mb-3 ${isImportedPortrait ? "aspect-square" : "aspect-[4/3] max-h-[20rem]"} min-h-[17rem] w-full overflow-hidden rounded-[22px] border`}>
       <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
-      {preparedPortrait ? <img src="/profile/profile-hero-stadium.PNG" alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden /> : null}
+      {preparedPortrait ? <div data-portrait-background="clean" className="absolute inset-0" style={{background:"radial-gradient(ellipse at 70% 40%, rgb(var(--club-primary-rgb) / 0.2), transparent 70%), linear-gradient(145deg, #06101d, #020407 78%)"}} aria-hidden /> : null}
 
       {watermark && !isImportedPortrait ? (
         <p
