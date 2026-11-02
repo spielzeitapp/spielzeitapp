@@ -20,14 +20,26 @@ function extractReport(html, id) {
       })
       .map(p => ({ name: text(p.name), number: text(p.rueckennummer), externalPlayerId: profileId(p.url) })).slice(0, 40);
   };
+  // ÖFB includes the halftime score in the final result, e.g. "4:0 (0:0)".
+  // Anchor the whole value so abandoned/awarded or otherwise qualified scores
+  // cannot silently become an ordinary completed result.
+  const finalScore = /^\s*(\d{1,3})\s*:\s*(\d{1,3})(?:\s*\(\s*\d{1,3}\s*:\s*\d{1,3}\s*\))?\s*$/.exec(String(title.ergebnis ?? ''));
+  const displayMinute = event => {
+    const label = String(event.minuteString ?? '').trim();
+    const parsed = /^(\d{1,3})(?:\s*\+\s*(\d{1,2}))?$/.exec(label);
+    if (parsed) return Number(parsed[1]) + Number(parsed[2] ?? 0);
+    // An explicit nonnumeric label (HT, etc.) is not an internal timeline minute.
+    if (label) return null;
+    return event.minute != null && Number.isFinite(Number(event.minute)) && Number(event.minute) >= 0 ? Number(event.minute) : null;
+  };
   const events = (report?.gameData ?? []).filter(e => ['goal', 'playerchange', 'yellow', 'red', 'yellowred'].includes(e.type))
-    .map(e => ({ type: e.type, minute: Number.isFinite(Number(e.minute)) && Number(e.minute) >= 0 ? Number(e.minute) : null,
+    .map(e => ({ type: e.type, minute: displayMinute(e),
       side: e.team === 'a' ? 'home' : e.team === 'b' ? 'away' : null,
       player: text(e.playerPrimary), externalPlayerId: profileId(e.url), secondPlayer: text(e.playerSecondary), ownGoal: e.eigentor === true,
       score: /^\d+\s*:\s*\d+$/.test(e.spielstand ?? '') ? String(e.spielstand).replace(/\s/g, '') : null }))
     .sort((a, b) => (a.minute ?? Infinity) - (b.minute ?? Infinity)).slice(0, 200);
   return { id, home: text(title.heimMannschaft), away: text(title.gastMannschaft),
-    score: /^\d+\s*:\s*\d+$/.test(title.ergebnis ?? '') ? String(title.ergebnis).replace(/\s/g, '') : null,
+    score: finalScore ? `${Number(finalScore[1])}:${Number(finalScore[2])}` : null,
     venue: text(title.spielort), field: text(title.spielfeld), competition: text(title.bewerb),
     events, homePlayers: players(report?.heimAufstellung), awayPlayers: players(report?.gastAufstellung),
     sourceUrl: `https://www.oefb.at/bewerbe/Spiel/Spielbericht/${id}/`, updatedAt: new Date().toISOString() };
