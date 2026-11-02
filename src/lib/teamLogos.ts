@@ -262,3 +262,12 @@ export function getTeamInitials(name: string): string {
   }
   return (parts[0] ?? name).slice(0, 2).toUpperCase();
 }
+
+/** Reserve/frauen suffixes describe teams within the same club. */
+export function sameClubIdentity(a: string, b: string): boolean {
+  const key = (value: string) => logoLookupKey(value)
+    .replace(/\b(fr|frauen|ii|iii|2|3)\b/g, '')
+    .replace(/^\s*(sc|sv|usc|ask|sk|fsg|spg|nsg)\s+/, '')
+    .replace(/[^a-z0-9]+/g, '');
+  return Boolean(key(a)) && key(a) === key(b);
+}

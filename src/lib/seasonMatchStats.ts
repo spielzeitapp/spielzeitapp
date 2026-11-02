@@ -345,6 +345,7 @@ export function computeSeasonMatchSummary(matches: CoachSeasonMatchDetail[]): Se
 export type SeasonMatchDisplayStatus = 'win' | 'draw' | 'loss' | 'live' | 'upcoming';
 
 export type SeasonMatchCardData = CoachSeasonMatchDetail & {
+  teamSeasonId?: string | null;
   eventId: string | null;
   location: string | null;
   isHome: boolean | null;
@@ -544,6 +545,7 @@ export async function fetchSeasonMatchBoard(
     const location = (eventMeta?.location ?? row.location ?? '').trim() || null;
     return {
       ...detail,
+      teamSeasonId: sid,
       eventId: eventMeta?.eventId ?? null,
       location,
       isHome,

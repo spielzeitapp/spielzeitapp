@@ -1,3 +1,4 @@
+import { useClubOpponentLogos, preferredClubLogo } from '../../hooks/useClubOpponentLogos';
 import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
 import '../../components/match/finishedClubTheme.css';
 import { OefbLiveReport, useOefbLiveReport } from '../../components/match/OefbLiveReport';
@@ -134,7 +135,7 @@ import type { FieldSlotId } from '../../types/match';
 import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 import { getPositionFull, getPositionLabel } from '../../lib/positionLabels';
 import { supabase } from '../../lib/supabaseClient';
-import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
+import { getClubLogo, sameClubIdentity, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { isValidLogoUrl } from '../../utils/logoResolver';
 import { ensureResultFeedPostForMatch } from '../../lib/ensureResultFeedPost';
 import {
@@ -1143,6 +1144,7 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const matchClub = useMatchClubBranding(isDemo ? null : matchRow?.team_season_id);
+  const matchOpponentLogos = useClubOpponentLogos(matchRow?.opponent ? [matchRow.opponent] : [], isDemo ? null : matchRow?.team_season_id ?? null);
   const matchIsFinished = matchRow?.status === 'finished';
   const oefbSource = useOefbLiveReport(effectiveMatchId, !isDemo && matchIsFinished);
   const useSourceLineup = Boolean(oefbSource.report && !startingPlayerIds.filter(Boolean).length);
@@ -3657,7 +3659,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const periodScoreLine = useMemo(() => formatPeriodScoresLine(periodScores), [periodScores]);
   /** Turnierspiele: keine leeren Drittel-/Periodenklammern unter dem Hauptscore. */
-  const showPeriodScoreLine = !tournamentNavContext;
+  const showPeriodScoreLine = !tournamentNavContext && (!matchIsFinished || /[0-9]/.test(periodScoreLine));
 
   const lastHomeGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'home'), [events]);
   const lastAwayGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'away'), [events]);
@@ -4433,8 +4435,8 @@ export const LiveMatchScreen: React.FC = () => {
     ownTeamName.trim() && ownTeamName.trim() !== HOME_FALLBACK
       ? ownTeamName.trim()
       : getOurTeamDisplayName();
-  const ownLogoSrc = isDemo ? getClubLogo(ownLogoName) : matchClub.brand?.logo_url || '/logos/placeholder-shield-a.png';
-  const opponentLogoSrc = getClubLogo(headerOpponent, { logoUrl: opponentLogoUrl ?? undefined });
+  const ownLogoSrc = getClubLogo(ownLogoName, { logoUrl: isDemo ? null : matchClub.brand?.logo_url });
+  const opponentLogoSrc = sameClubIdentity(ownLogoName, headerOpponent) ? ownLogoSrc : getClubLogo(headerOpponent, { logoUrl: preferredClubLogo(headerOpponent, matchOpponentLogos, opponentLogoUrl) });
   const homeLogoSrc = sides.isOwnTeamHome ? ownLogoSrc : opponentLogoSrc;
   const awayLogoSrc = sides.isOwnTeamHome ? opponentLogoSrc : ownLogoSrc;
   const kickoffRaw = matchRow?.match_date ? new Date(matchRow.match_date) : null;

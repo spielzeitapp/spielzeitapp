@@ -1,3 +1,6 @@
+import { useClubOpponentLogos, preferredClubLogo } from '../hooks/useClubOpponentLogos';
+import { useMatchClubBranding } from '../hooks/useMatchClubBranding';
+import '../components/match/finishedClubTheme.css';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -37,7 +40,7 @@ import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { assertTeamSeasonWritable, getTeamSeasonWritableState } from '../lib/seasonTransition';
 import { safeOptionalText, safeText } from '../lib/safeText';
-import { getClubLogo, getOurTeamDisplayName, getOurTeamLogoUrl, isPlaceholderLogoUrl } from '../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName, sameClubIdentity, isPlaceholderLogoUrl } from '../lib/teamLogos';
 import { setOpponentLogoForSeason } from '../lib/championshipFixtures';
 import { OpponentLogoField } from '../components/events';
 import {
@@ -476,6 +479,8 @@ export const EventDetailPage: React.FC = () => {
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
   const [event, setEvent] = useState<EventRow | null>(null);
+  const matchClub = useMatchClubBranding(isDemo ? null : event?.team_season_id);
+  const matchOpponentLogos = useClubOpponentLogos(event?.opponent ? [event.opponent] : [], isDemo ? null : event?.team_season_id ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
@@ -2031,14 +2036,16 @@ export const EventDetailPage: React.FC = () => {
     const awayTeamName = event.is_home === false ? compactOurTeamName : compactOpponentName;
     const homeSplit = splitPrefixAndName(homeTeamName);
     const awaySplit = splitPrefixAndName(awayTeamName);
+    const ownLogo = getClubLogo(ourTeamName, { logoUrl: matchClub.brand?.logo_url });
+    const opponentLogo = sameClubIdentity(ourTeamName, opponentName) ? ownLogo : getClubLogo(opponentName, { logoUrl: preferredClubLogo(opponentName, matchOpponentLogos, event.opponent_logo_url) });
     const homeLogoSrc =
       event.is_home === false
-        ? getClubLogo(opponentName, { logoUrl: event.opponent_logo_url ?? undefined })
-        : getOurTeamLogoUrl();
+        ? opponentLogo
+        : ownLogo;
     const awayLogoSrc =
       event.is_home === false
-        ? getOurTeamLogoUrl()
-        : getClubLogo(opponentName, { logoUrl: event.opponent_logo_url ?? undefined });
+        ? ownLogo
+        : opponentLogo;
     const scoreStr = `${scoreHome}:${scoreAway}`;
     const finishedDate = formatHeroDateParts(event.starts_at);
     const finishedYear = event.starts_at && !Number.isNaN(new Date(event.starts_at).getTime())
@@ -2728,7 +2735,7 @@ export const EventDetailPage: React.FC = () => {
     };
 
     return (
-      <div data-manager-match-summary className="min-h-screen text-white [background:radial-gradient(circle_at_50%_0%,rgba(127,18,25,0.26),transparent_34%),linear-gradient(180deg,#090707_0%,#170304_48%,#090000_100%)]">
+      <div data-manager-match-summary style={matchClub.style} className="sz-finished-club sz-match-summary min-h-screen text-white">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 overflow-x-hidden px-2 py-2 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
           <div>
             <Link to={`${basePath}/termine`} className="inline-flex min-h-10 items-center rounded-xl border border-white/15 bg-black/70 px-3.5 text-sm font-bold text-white">
