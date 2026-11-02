@@ -1397,3 +1397,11 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   transform-origin: center center;
   will-change: transform, opacity, filter, box-shadow;
 }
+
+/* Imported portraits: extend the blue photo backdrop on the left, keep the number side black. */
+.sz-club-showcase-card.sz-club-imported-portrait,
+.sz-club-profile-hero.sz-club-imported-portrait {
+  background: radial-gradient(ellipse 65% 100% at 0% 46%, rgb(var(--club-primary-rgb) / 0.48), transparent 80%), #030407;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.08);
+}
+.sz-club-imported-portrait > .sz-club-diagonal-lines { display: none; }
