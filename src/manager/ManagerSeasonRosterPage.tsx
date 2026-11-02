@@ -1,3 +1,4 @@
+import {ManagerPlayerPhotoEditor} from './ManagerPlayerPhotoEditor';
 import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
 /**
  * STEP 4: Historischer / aktueller Saisonkader über team_season_players.
@@ -50,6 +51,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
     status: string;
     ageGroup: string | null;
   } | null>(null);
+  const [photoEditingId,setPhotoEditingId] = useState<string|null>(null);
   const [players, setPlayers] = useState<RosterPlayer[]>([]);
   const [oefbIds, setOefbIds] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -352,9 +354,11 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-3">
+                    {canEdit ? <button type="button" onClick={() => setPhotoEditingId(photoEditingId===p.id?null:p.id)} className="text-[12px] font-semibold text-red-700">Foto gestalten</button> : null}
                     {canEdit ? <button type="button" onClick={() => editPlayer(p)} className="text-[12px] font-semibold text-red-700">Bearbeiten</button> : null}
                     <Link to={`/app/team/players/${encodeURIComponent(p.id)}`} className="text-[12px] font-semibold text-red-700">Profil</Link>
                   </div>
+                  {canEdit && photoEditingId===p.id ? <ManagerPlayerPhotoEditor key={`${seasonId}:${p.id}`} player={p} seasonId={seasonId} onClose={()=>setPhotoEditingId(null)} onSaved={()=>{setPhotoEditingId(null);setNotice("Foto-Gestaltung gespeichert.");void reloadRoster(seasonId);}}/> : null}
                   {canEdit ? <div className="w-full border-t border-slate-100 pt-1"><ManagerRosterPlayerActions
                     key={`${seasonId}:${p.id}`} seasonId={seasonId} playerId={p.id} name={p.display_name} removed={p.status === 'archived'}
                     onDone={(message, failed) => {
