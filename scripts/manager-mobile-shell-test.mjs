@@ -10,8 +10,9 @@ const {ManagerContextPicker,managerPickerSeasons}=await load('src/manager/compon
 const seasons=[{id:'archive',status:'archived',team:{name:'Rohrbach'},age_group:'U11',season:{name:'2025/26'}},{id:'active',status:'active',team:{name:'Rohrbach'},age_group:'U12',season:{name:'2026/27'}}];
 assert.equal(managerPickerSeasons(seasons,'')[0].id,'active');assert.deepEqual(managerPickerSeasons(seasons,'2025').map(s=>s.id),['archive']);assert.equal(managerPickerSeasons(seasons,'Melk').length,0);
 let selected=[],modes=[];await act(async()=>{r=create(React.createElement(ManagerContextPicker,{seasons,value:'active',label:'Rohrbach',onSelect:id=>selected.push(id),mode:'trainer',modes:['trainer','club_admin'],onModeChange:m=>modes.push(m)}));});
+assert.ok(r.root.findByType('dialog').props.className.includes('sz-club-surface'));assert.ok(JSON.stringify(r.toJSON()).includes('Fertig'));assert.ok(JSON.stringify(r.toJSON()).includes('Zurück'));assert.ok(JSON.stringify(r.toJSON()).includes('sz-club-showcase-card'));
 assert.equal(r.root.findAllByType('select').length,0);assert.equal(r.root.findAllByType('dialog').length,1);
-const options=r.root.findAllByProps({className:'manager-context-option'});await act(async()=>options.at(-1).props.onClick());assert.deepEqual(selected,['archive']);await act(async()=>options[1].props.onClick());assert.deepEqual(modes,['club_admin']);await act(async()=>r.unmount());
+const options=r.root.findAllByProps({className:'manager-context-option'});await act(async()=>r.root.findByProps({'data-manager-season':'archive'}).props.onClick());assert.deepEqual(selected,['archive']);await act(async()=>options[1].props.onClick());assert.deepEqual(modes,['club_admin']);await act(async()=>r.unmount());
 console.log('PASS: mobile navigation by role/module, home access, authorized team picker, active/archive order, search and mode selection.');
 // Exercise the shared favorites UI: opening a fan team from Manager must not
 // change the selected trainer work team or grant a manager role.
