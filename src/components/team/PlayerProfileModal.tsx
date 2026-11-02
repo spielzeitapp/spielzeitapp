@@ -1153,21 +1153,171 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   ))}
                 </div>
               ) : lastMatches.length === 0 && lastTournamentMatches.length === 0 ? (
-                <p className="sz-club-dashed-border rounded-xl border border-dashed bg-[rgba(8,8,10,0.5)] py-…7920 tokens truncated…ht-4 z-[6] text-[48px] font-black leading-none text-white [text-shadow:0_2px_10px_#000] sm:right-5 sm:top-5">{watermark}</span> : null}
-      <div className={`absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5 ${isImportedPortrait && !preparedPortrait ? "pl-[28%] sm:pl-[28%]" : ""}`}>
-        <div className={`max-w-[82%] font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] ${nameSizeClass}`}>
-          {firstNameLine ? <p className="whitespace-nowrap">{firstNameLine}</p> : null}
-          {lastNameLine ? <p className="whitespace-nowrap">{lastNameLine}</p> : null}
+                <p className="sz-club-dashed-border rounded-xl border border-dashed bg-[rgba(8,8,10,0.5)] py-8 text-center text-sm text-white/60">
+                  Noch keine Einsatzdaten
+                </p>
+              ) : (
+                <>
+                  {lastMatches.length > 0 ? (
+                    <ul className="space-y-2.5">
+                      {lastMatches.map((m) => (
+                        <li key={m.match_id}>
+                          <SeasonMatchCard
+                            variant="appearance"
+                            match={playerAppearanceMatchCardData(m)}
+                            ourTeamName={teamName ?? "SPG Rohrbach"}
+                            footerSlot={
+                              <>
+                                <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent") ? m.badgeLabel : `${m.minutes} Min`} />
+                                <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals} {m.goals === 1 ? "Tor" : "Tore"}</span>
+                              </>
+                            }
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  {lastTournamentMatches.length > 0 ? (
+                    <div className={lastMatches.length > 0 ? "mt-5" : ""}>
+                      <h4 className="sz-club-profile-accent mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em]">
+                        Turniereinsätze
+                      </h4>
+                      <ul className="space-y-2.5">
+                        {lastTournamentMatches.map((m) => (
+                          <li key={m.match_id}>
+                            <SeasonMatchCard
+                              variant="appearance"
+                              match={playerAppearanceMatchCardData(m)}
+                              ourTeamName={teamName ?? "SPG Rohrbach"}
+                              footerSlot={
+                                <>
+                                  <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent") ? m.badgeLabel : `${m.minutes} Min`} />
+                                  <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals} {m.goals === 1 ? "Tor" : "Tore"}</span>
+                                </>
+                              }
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ) : null}
+
+          {profileTab === "achievements" ? (
+            <div>
+              <PlayerJugglingHistory playerId={player.id} teamSeasonId={statsSeasonId} seasonLabels={Object.fromEntries(seasonOptions.map(opt => [opt.teamSeasonId, [opt.seasonName, opt.ageGroup].filter(Boolean).join(" · ") || opt.label]))} enabled={!demo && (canManage || role === "parent" || role === "player")} />
+              <PlayerSprintHistory playerId={player.id} teamSeasonId={statsSeasonId} enabled={!demo && (canManage || role === "parent" || role === "player")} />
+              <h4 className="sz-club-profile-accent mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em]">
+                Auszeichnungen
+              </h4>
+              <div className="grid gap-2.5 sm:grid-cols-1">
+                {[
+                  { title: "Spieler des Spiels", sub: "Demnächst" },
+                  { title: "Team-Erfolge", sub: "Meisterschaft, Aufstieg …" },
+                  { title: "Turniere", sub: "Pokal & Turnierplatzierungen" },
+                ].map((c) => (
+                  <div
+                    key={c.title}
+                    className={`px-3 py-3.5 sm:px-3.5 ${PROFILE_GLASS_PANEL}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Trophy className="sz-club-profile-accent h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
+                      <div>
+                        <div className="text-[16px] font-semibold text-white">{c.title}</div>
+                        <div className="text-[14px] text-white/75">{c.sub}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+            </div>
+          ) : null}
+
+          {profileTab === "training" ? (
+            <>
+              <div className={`p-3 sm:p-3.5 ${PROFILE_GLASS_PANEL}`}>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Activity className="sz-club-profile-accent h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
+                  <h4 className="sz-club-profile-accent whitespace-nowrap text-[12px] font-extrabold uppercase tracking-wide">
+                    Trainingsbeteiligung
+                  </h4>
+                </div>
+                {trainingStatsLoading ? (
+                  <p className="mt-3 text-[13px] text-white/55">Lade Trainingsdaten…</p>
+                ) : trainingStatsError ? (
+                  <p className="mt-3 text-[13px] text-red-300/90">{trainingStatsError}</p>
+                ) : (
+                  <>
+                    <p className="mt-3 text-[12px] text-white/50">
+                      Saison:{" "}
+                      <span className="font-medium text-white/75">
+                        {pastTeamTrainings} vergangene Team-Trainings
+                      </span>
+                    </p>
+                    {!teamRankingLoading && squadParticipationPct != null ? (
+                      <p className="mt-2 text-[12px] text-white/50">
+                        {formatSquadParticipationLabel(squadParticipationPct)}
+                      </p>
+                    ) : null}
+                    <div className="mt-3 space-y-3">
+                      <TrainingProgressRow
+                        label="Trainingsquote"
+                        pct={teamTrainingRatePct}
+                        detail={`${trainingsPresent} von ${teamTrainingBasis} Trainings`}
+                        variant="quote"
+                      />
+                      <TrainingProgressRow
+                        label="Aktivität"
+                        pct={activityTrainingRatePct}
+                        detail={`${activityTrainingNumerator} von ${activityTrainingBasis} Trainings`}
+                        variant="activity"
+                      />
+                    </div>
+                    <p className="mt-3 text-[11px] leading-snug text-white/45 [hyphens:none]">
+                      {trainingsPresent} Dabei · {trainingsAbsent} Abwesend · {trainingsSick} Krank ·{" "}
+                      {trainingsInjured} Verletzt · {trainingsExternal} LAZ
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
+                      <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
+                      <SeasonMiniCell label="Krank" value={String(trainingsSick)} />
+                      <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
+                      <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
+                    </div>
+                    <p className="mt-2.5 text-[11px] leading-relaxed text-white/45 [hyphens:none]">
+                      Trainingsquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
+                      Aktivität berücksichtigt LAZ zusätzlich.
+                    </p>
+                    {!teamRankingLoading ? (
+                      <ProfileTrainingKaiserStatus rank={trainingKaiserRank} />
+                    ) : null}
+                  </>
+                )}
+              </div>
+              <ProfileTrainingAwardsSection />
+            </>
+          ) : null}
+
+          {canManage ? (
+            <div className="mt-5 pb-1">
+              <button
+                type="button"
+                onClick={onEdit}
+                className={`w-full ${dsPrimaryCtaClass()} !min-h-[44px] !px-4 !py-2.5 !text-[15px] !font-semibold`}
+              >
+                Bearbeiten
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
-}
 
-export const ProfileHeroCard: React.FC<Props> = (props) => {
-  if (props.variant === "player") {
-    return <PlayerProfileHeroCard {...props} />;
-  }
-  const { variant: _variant, ...trainerProps } = props;
-  return <TrainerProfileHeroCard {...trainerProps} />;
+  return createPortal(modal, document.body);
 };
