@@ -1,3 +1,4 @@
+import {PlayerPortraitCanvas} from './PlayerPortraitCanvas';
 import {playerPhotoDisplayUrl, preparedPlayerPortrait, isImportedPlayerPortrait} from '../../lib/playerPhotoDisplay';
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
@@ -167,6 +168,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
               onClick={() => onPlayerClick(player)}
               className={`sz-club-showcase-card ${importedPortrait ? "sz-club-imported-portrait" : ""} group relative aspect-square w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]`}
             >
+              {player.photo_layout ? <PlayerPortraitCanvas layout={player.photo_layout} photoUrl={player.avatar_url} cutoutUrl={player.cutout_url} firstName={playerCardName(player)} lastName={playerCardFamilyName(player)} number={number}/> : <>
               <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
               {number != null && !importedPortrait ? (
                 <span className="absolute left-5 top-5 z-10 text-[56px] font-black leading-none tracking-[-0.06em] text-white/90 sm:text-[66px]">
@@ -208,6 +210,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
                 </div>
 
               </div>
+              </>}
             </button>
           );
         })}

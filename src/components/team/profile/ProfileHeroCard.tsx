@@ -1,3 +1,5 @@
+import {PlayerPortraitCanvas} from '../PlayerPortraitCanvas';
+import type {PlayerPhotoLayout} from '../../../lib/playerPhotoLayout';
 import {preparedPlayerPortrait, isImportedPlayerPortrait} from "../../../lib/playerPhotoDisplay";
 import React from "react";
 import {
@@ -17,6 +19,7 @@ import { TrainerProfileHeroCard } from "./TrainerProfileHeroCard";
 export type ProfileHeroVariant = "trainer" | "player";
 
 type Props = {
+  photoLayout?:PlayerPhotoLayout|null;
   variant: ProfileHeroVariant;
   watermark: string;
   firstNameLine: string;
@@ -89,6 +92,7 @@ function PlayerProfileHeroCard(props: Props) {
           ? "text-[22px] sm:text-[25px]"
           : "text-[28px] sm:text-[32px]";
 
+  if(props.photoLayout) return <div className="sz-club-profile-hero relative mb-3 aspect-square w-full overflow-hidden rounded-[22px] border"><PlayerPortraitCanvas layout={props.photoLayout} photoUrl={photoUrl} cutoutUrl={cutoutUrl} firstName={firstNameLine} lastName={lastNameLine} number={watermark}/></div>;
   return (
     <div className={`sz-club-profile-hero ${isImportedPortrait ? "sz-club-imported-portrait" : ""} relative mb-3 ${isImportedPortrait ? "aspect-square" : "aspect-[4/3] max-h-[20rem]"} min-h-[17rem] w-full overflow-hidden rounded-[22px] border`}>
       <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
