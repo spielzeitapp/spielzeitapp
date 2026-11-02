@@ -51,6 +51,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
     status: string;
     ageGroup: string | null;
   } | null>(null);
+  const [globalPhoto,setGlobalPhoto]=useState(false);
   const [photoEditingId,setPhotoEditingId] = useState<string|null>(null);
   const [players, setPlayers] = useState<RosterPlayer[]>([]);
   const [oefbIds, setOefbIds] = useState<Record<string, string>>({});
@@ -317,6 +318,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
         </p>
       ) : null}
 
+      {canEdit && players.length>0 ? <section className="rounded-xl border border-slate-200 bg-white p-4"><button type="button" onClick={()=>setGlobalPhoto(!globalPhoto)} className="font-semibold text-red-700">Globale Foto-Gestaltung · gesamte Mannschaft/Saison</button><p className="mt-1 text-sm text-slate-500">Standard für alle bestehenden und künftig zugeordneten Spieler. Individuelle Einstellungen haben Vorrang.</p>{globalPhoto?<ManagerPlayerPhotoEditor key={`global:${seasonId}`} global player={players[0]} seasonId={seasonId} onClose={()=>setGlobalPhoto(false)} onSaved={()=>{setGlobalPhoto(false);setNotice('Globale Foto-Gestaltung gespeichert.');void reloadRoster(seasonId);}}/>:null}</section>:null}
       {(
         [
           ['Aktiv', groups.active],
