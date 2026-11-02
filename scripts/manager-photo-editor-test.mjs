@@ -16,3 +16,11 @@ fail=false;await act(async()=>button('Gestaltung speichern').props.onClick());as
 await act(async()=>button('Standard wiederherstellen').props.onClick());assert.equal(calls[2].args.p_layout,null);
 await act(async()=>button('Abbrechen').props.onClick());assert.equal(closed,1);assert.equal(calls.length,3);await act(async()=>root.unmount());
 console.log('PASS: real editor preview, explicit save, failure retains draft, scoped payload, optimistic version, reset and cancellation.');
+
+await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',global:true,onSaved:()=>saved++,onClose:()=>closed++}));});
+await act(async()=>root.root.findByProps({'aria-label':'Nummerngröße'}).props.onChange({target:{value:'70'}}));
+assert.equal(root.root.findByType('span').props.style.fontSize,'70px');
+await act(async()=>button('Gestaltung speichern').props.onClick());assert.equal(calls.at(-1).name,'admin_save_global_photo_layout');assert.equal(calls.at(-1).args.p_replace_individual,false);assert.equal(calls.at(-1).args.p_layout.numberSize,70);
+await act(async()=>root.root.findByProps({type:'checkbox'}).props.onChange({target:{checked:true}}));
+await act(async()=>button('Gestaltung speichern').props.onClick());assert.equal(calls.at(-1).args.p_replace_individual,true);
+await act(async()=>root.unmount());console.log('PASS: global save preserves individual layouts by default, replacement requires checkbox, number size previews and persists.');

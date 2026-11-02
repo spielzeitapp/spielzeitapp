@@ -22,6 +22,7 @@ export type RosterStatus = 'active' | 'paused' | 'archived';
 
 export type RosterPlayer = {
   photo_layout?: PlayerPhotoLayout | null;
+  photo_layout_default?: PlayerPhotoLayout | null;
   id: string;
   team_season_id: string;
   first_name: string | null;
@@ -207,6 +208,7 @@ async function listRosterJoin(
         'team_season_id',
         'player_id',
         'photo_layout',
+        'team_seasons:team_seasons(photo_layout_default)',
         'jersey_number',
         'position',
         'status',
@@ -243,6 +245,7 @@ async function listRosterJoin(
     mapped.push({
       id: String(p?.id ?? row.player_id),
       photo_layout: row.photo_layout as PlayerPhotoLayout | null,
+      photo_layout_default: ((Array.isArray(row.team_seasons)?row.team_seasons[0]:row.team_seasons) as {photo_layout_default?:PlayerPhotoLayout}|null)?.photo_layout_default??null,
       team_season_id: String(row.team_season_id),
       first_name: first,
       last_name: last,
