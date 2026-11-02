@@ -4,16 +4,16 @@ import { normalizedAssignmentName } from '../../lib/oefbPlayerAssignments';
 import { playerPhotoDisplayUrl, preparedPlayerPortrait } from '../../lib/playerPhotoDisplay';
 import { supabase } from '../../lib/supabaseClient';
 
-type SourcePlayer = { name: string; number: string; photo?: string|null; firstName?: string; lastName?: string };
+type SourcePlayer = { name: string; number: string; photo?: string|null; firstName?: string; lastName?: string; profileId?:string };
 type SourceEvent = { type: string; minute: number | null; side: string | null; player: string; secondPlayer: string; ownGoal: boolean; score: string | null };
-export type OefbLiveReportData = { id: string; home: string; away: string; score: string | null; events: SourceEvent[]; homePlayers: SourcePlayer[]; awayPlayers: SourcePlayer[]; ownSide?: 'home'|'away' };
+export type OefbLiveReportData = { id: string; home: string; away: string; score: string | null; events: SourceEvent[]; homePlayers: SourcePlayer[]; awayPlayers: SourcePlayer[]; ownSide?: 'home'|'away';teamSeasonId?:string };
 /** Display-only photo matching is limited to the event's own season and side. */
-export function decorateOefbLineup(report: OefbLiveReportData, ownSide: 'home'|'away', roster: RosterPlayer[]): OefbLiveReportData {
+export function decorateOefbLineup(report: OefbLiveReportData, ownSide: 'home'|'away', roster: RosterPlayer[], teamSeasonId?:string): OefbLiveReportData {
  const key=ownSide==='home'?'homePlayers':'awayPlayers';
- return {...report,ownSide,[key]:report[key].map(p=>{
+ return {...report,ownSide,teamSeasonId,[key]:report[key].map(p=>{
   const matches=roster.filter(r=>normalizedAssignmentName([r.first_name,r.last_name].filter(Boolean).join(' '))===normalizedAssignmentName(p.name));
   const r=matches.length===1?matches[0]:null;
-  return {...p,photo:r?.cutout_url||r?.avatar_url||null,firstName:r?.first_name||undefined,lastName:r?.last_name||undefined};
+  return {...p,profileId:r?.id,photo:r?.cutout_url||r?.avatar_url||null,firstName:r?.first_name||undefined,lastName:r?.last_name||undefined};
  })};
 }
 function LineupPhoto({src}:{src?:string|null}) {
@@ -36,7 +36,7 @@ export function useOefbLiveReport(matchId: string | null, enabled: boolean) {
     if(!r.ok||report.id!==data.external_id||!Array.isArray(report.events)||!Array.isArray(report.homePlayers)||!Array.isArray(report.awayPlayers))throw Error('Invalid report');
     if(data.team_season_id && typeof data.is_home==='boolean'){
      // Photo failure must not hide an otherwise available report.
-     try{const roster=await listRoster(data.team_season_id,'all');report=decorateOefbLineup(report,data.is_home?'home':'away',roster.error?[]:roster.data);}catch{/* keep source report */}
+     try{const roster=await listRoster(data.team_season_id,'all');report=decorateOefbLineup(report,data.is_home?'home':'away',roster.error?[]:roster.data,data.team_season_id);}catch{/* keep source report */}
     }
     if(active)setState({matchId,report,loading:false,error:null});
    }catch{if(active)setState({matchId,report:null,loading:false,error:'ÖFB-Spielbericht konnte nicht geladen werden. Bitte erneut öffnen.'});}
@@ -61,7 +61,8 @@ export function OefbLiveReport({report,view,filter='all',onBack}:{report:OefbLiv
    <div className="min-w-0"><p className="font-bold">{e.type==='goal'?`${e.ownGoal?'Eigentor':'⚽ Tor'}${e.score?` · ${e.score}`:''}`:e.type==='playerchange'?'⇄ Wechsel':e.type==='red'?'Rote Karte':e.type==='yellowred'?'Gelb-Rote Karte':e.type==='card-blue'?'Blaue Karte':'Gelbe Karte'}</p><p className="break-words text-sm">{e.player}{e.secondPlayer?` / ${e.secondPlayer}`:''}</p><p className="mt-1 text-xs text-white/50">{e.side==='home'?report.home:e.side==='away'?report.away:''}</p></div>
   </li>)}</ul>:<p className="py-8 text-center text-sm text-white/60">Keine Einträge für diesen Filter laut ÖFB.</p>}</>:<>
    <p className="mb-3 text-xs text-white/55">Aufstellung laut ÖFB. Feldpositionen und Spielzeiten werden nur angezeigt, wenn sie belegt sind.</p>
-   {[{name:report.home,players:report.homePlayers,own:report.ownSide==='home'},{name:report.away,players:report.awayPlayers,own:report.ownSide==='away'}].sort((a,b)=>Number(b.own)-Number(a.own)).map((side,index)=><div key={index} className="mb-4"><h3 className="mb-2 font-bold">{side.name}</h3>{side.players.length?<ul className="space-y-1.5">{side.players.map((p,i)=><li key={i} className={side.own?'sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[68px] items-center gap-2.5 overflow-hidden rounded-[14px] border px-2.5 py-1':'flex items-center gap-3 rounded-xl border border-white/10 p-3'}>
+   {[{name:report.home,players:report.homePlayers,own:report.ownSide==='home'},{name:report.away,players:report.awayPlayers,own:report.ownSide==='away'}].sort((a,b)=>Number(b.own)-Number(a.own)).map((side,index)=><div key={index} className="mb-4"><h3 className="mb-2 font-bold">{side.name}</h3>{side.players.length?<ul className="space-y-1.5">{side.players.map((p,i)=><li key={i} className={side.own?'relative sz-club-list-card sz-club-surface sz-club-surface--quiet flex min-h-[68px] items-center gap-2.5 overflow-hidden rounded-[14px] border px-2.5 py-1':'flex items-center gap-3 rounded-xl border border-white/10 p-3'}>
+    {side.own&&p.profileId&&report.teamSeasonId?<a href={'/app/team?teamSeason='+encodeURIComponent(report.teamSeasonId)+'&player='+encodeURIComponent(p.profileId)} aria-label={'Profil von '+p.name+' öffnen'} className="absolute inset-0 z-10 rounded-[14px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[rgb(var(--club-accent-rgb))]"/>:null}
     {side.own?<LineupPhoto src={p.photo}/>:null}
     <span className={side.own?'sz-club-number-divider w-12 shrink-0 border-l pl-2.5 text-[25px] font-black text-white':'w-9 shrink-0 text-center text-lg font-extrabold'}>{/^0[0-9]+$/.test(p.number)?Number(p.number):p.number||'—'}</span>
     {side.own?<span className="min-w-0 flex-1 pl-1"><span className="block text-[13px] font-semibold leading-tight text-white/55">{p.firstName||p.name.split(' ')[0]}</span><span className="block break-words text-[17px] font-black leading-tight text-white">{p.lastName||p.name.split(' ').slice(1).join(' ')}</span></span>:<span className="text-sm font-semibold">{p.name}</span>}
