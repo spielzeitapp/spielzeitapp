@@ -1,8 +1,9 @@
 import React from 'react';
+import {getClubBrandingForTeamSeason} from '../../lib/clubBranding';
 import { PosterClubName } from '../feed/PosterClubName';
 import { ChevronRight } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
-import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
+import { getClubLogo } from '../../lib/teamLogos';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { formatCompactListWeekdayAbbrev } from './scheduleEventViewUtils';
@@ -91,7 +92,7 @@ function TeamLogoBlock({ src, label }: { src: string; label: string }) {
 export function PastMatchResultCard({
   ev,
   ageGroup,
-  ourTeamName: _ourTeamNameProp,
+  ourTeamName,
   opponentLogoUrl,
   scoreHome,
   scoreAway,
@@ -102,13 +103,14 @@ export function PastMatchResultCard({
   showTeamBadge = false,
   onNavigate,
 }: PastMatchResultCardProps) {
-  void _ourTeamNameProp;
+  const [brand,setBrand]=React.useState<{id:string;logo:string|null}|null>(null);
+  React.useEffect(()=>{let cancelled=false;void getClubBrandingForTeamSeason(ev.team_season_id).then(r=>{if(!cancelled)setBrand({id:ev.team_season_id,logo:r.data?.logo_url??null});});return()=>{cancelled=true;};},[ev.team_season_id]);
   const clickable = !forcePublicView;
   const handleActivate = () => {
     if (clickable) onNavigate(ev.id);
   };
 
-  const our = getOurTeamDisplayName();
+  const our = ourTeamName.trim() || 'Mannschaft';
   const enc = formatVisibleMatchEncounter({
     isHome: ev.is_home,
     ourTeamName: our,
@@ -120,11 +122,11 @@ export function PastMatchResultCard({
 
   const homeLogoSrc =
     enc.home === enc.ourTeam
-      ? getClubLogo(our, { ourTeam: true })
+      ? getClubLogo(our, {logoUrl:brand?.id===ev.team_season_id?brand.logo:undefined})
       : getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
   const awayLogoSrc =
     enc.away === enc.ourTeam
-      ? getClubLogo(our, { ourTeam: true })
+      ? getClubLogo(our, {logoUrl:brand?.id===ev.team_season_id?brand.logo:undefined})
       : getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
 
   const h = scoreHome != null ? scoreHome : null;
