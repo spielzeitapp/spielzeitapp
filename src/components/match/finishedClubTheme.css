@@ -1,0 +1,6 @@
+/* Scoped to finished-match presentation; live controls keep their status colors. */
+.sz-finished-club [class*="text-red-"] { color: rgb(var(--match-accent)); }
+.sz-finished-club [class*="border-red-"] { border-color: rgb(var(--match-accent) / .35); }
+.sz-finished-club [class*="bg-red-700"] { background: rgb(var(--match-primary)); }
+.sz-finished-club [class*="via-red-950"] { --tw-gradient-via: rgb(var(--match-primary) / .32); --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--match-primary) / .32), var(--tw-gradient-to); }
+.sz-finished-club [class*="shadow-"][class*="239,68,68"] { box-shadow: 0 0 32px rgb(var(--match-primary) / .2), 0 8px 40px rgb(0 0 0 / .45); }

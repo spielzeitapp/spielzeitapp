@@ -1,3 +1,4 @@
+import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
 import React from 'react';
 import { CalendarDays, MapPin } from 'lucide-react';
 import type { ResultFeedPayload } from '../../lib/resultFeedTypes';
@@ -22,7 +23,7 @@ function ClubMark({ name, src }: { name: string; src: string }) {
   React.useEffect(() => setFailed(false), [src]);
   return <div className="result-poster-club">
     <img src={displayLogoUrl(failed ? fallback : src || fallback)} alt={`${name} Logo`} onError={() => setFailed(true)} />
-    <PosterClubName name={name} />
+    <PosterClubName name={name} wrap />
   </div>;
 }
 
@@ -30,11 +31,12 @@ function ClubMark({ name, src }: { name: string; src: string }) {
 export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(function ResultPosterArtwork(
   { payload: p, ageGroup, competition, periods, date, venue, scorers }, ref,
 ) {
+  const matchClub=useMatchClubBranding(p.team_season_id);
   const scoreText = `${p.home_score}:${p.away_score}`;
   const ownScore = p.is_home ? p.home_score : p.away_score;
   const opponentScore = p.is_home ? p.away_score : p.home_score;
   const state = ownScore > opponentScore ? 'win' : ownScore < opponentScore ? 'loss' : 'draw';
-  return <div ref={ref} data-manager-artwork className={`result-poster result-poster--${state}`} data-result-state={state}>
+  return <div ref={ref} style={matchClub.style} data-manager-artwork className={`result-poster result-poster--${state}`} data-result-state={state}>
     <div className="result-poster-content">
       <header>
         <h2>ENDSTAND</h2>
@@ -42,11 +44,11 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
         <p className="result-poster-competition">{competition}</p>
       </header>
       <div className="result-poster-match">
-        <ClubMark name={p.home_team_name} src={p.home_logo_url} />
+        <ClubMark name={p.home_team_name} src={p.is_home ? matchClub.brand?.logo_url || '/logos/placeholder-shield-a.png' : p.home_logo_url} />
         <div className="result-poster-score">
           <strong style={{ fontSize: `${Math.min(20, 64 / scoreText.length)}cqw` }}>{scoreText}</strong>
         </div>
-        <ClubMark name={p.away_team_name} src={p.away_logo_url} />
+        <ClubMark name={p.away_team_name} src={!p.is_home ? matchClub.brand?.logo_url || '/logos/placeholder-shield-a.png' : p.away_logo_url} />
       </div>
       <div className="result-poster-summary">
         {periods ? <p className="result-poster-periods">{periods}</p> : null}
