@@ -26,3 +26,12 @@ export function canAccessManagerForMembership(
   if (backendKey === 'admin' || backendKey === 'trainer') return true;
   return canManageMatches(normalizeRole(membershipRole));
 }
+
+/** Header chrome follows the current App view; actual Manager access stays separate. */
+export function showManagerShortcut(
+  effectiveRole: string | null | undefined,
+  backendRole: string | null | undefined,
+  memberships: readonly ManagerMembershipLike[],
+): boolean {
+  return canManageMatches(normalizeRole(effectiveRole)) && canAccessManager(backendRole, memberships);
+}

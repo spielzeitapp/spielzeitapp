@@ -12,7 +12,7 @@ import { TestEnvironmentNotice } from '../../components/TestEnvironmentNotice';
 import { useDemoMode } from '../../demo/DemoContext';
 import { DemoBadge } from '../../demo/components/DemoBadge';
 import { SpielzeitAppBrand } from '../../components/branding/SpielzeitAppBrand';
-import { canAccessManager } from '../../manager/canAccessManager';
+import { showManagerShortcut } from '../../manager/canAccessManager';
 import { DemoManagerPreview } from '../../demo/components/DemoManagerPreview';
 import { LiveMusicDock } from '../../components/live/LiveMusicDock';
 
@@ -256,7 +256,7 @@ export const Header: React.FC = () => {
                   {authLoading || !user ? null : pathname.startsWith('/app') ? (
                     <>
                       {(teamSeasons?.length ?? 0) > 0 ? <TeamSwitcher iconOnly /> : null}
-                      {canAccessManager(backendRole, memberships ?? []) ? (
+                      {showManagerShortcut(effectiveRole, backendRole, memberships ?? []) ? (
                         <Link
                           to="/manager"
                           className={dsGlassIconButtonClass()}
