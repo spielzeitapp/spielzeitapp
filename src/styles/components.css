@@ -459,7 +459,8 @@
 
 /* Social-Feed auf Handys: Beitrag wirklich randlos wie Instagram/Facebook. */
 @media (max-width: 639px) {
-  .app-home .home-feed-edge > .sz-club-feed-shell {
+  .app-home .home-feed-edge > .sz-club-feed-shell,
+  .app-home .home-feed-edge > .sz-feed-club-scope > .sz-club-feed-shell {
     border-left-width: 0 !important;
     border-right-width: 0 !important;
     border-radius: 0 !important;
