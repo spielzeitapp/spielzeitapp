@@ -211,6 +211,11 @@ function classifiedPostRow(item: ClassifiedFeedPost): TeamFeedPostDbRow {
 
 /** Sortierzeit: created_at, sonst updated_at, sonst 0. */
 function feedPostSortTimestamp(row: TeamFeedPostDbRow): number {
+  if ((row.post_kind === 'result_auto' || row.media_type === 'result') && row.payload && typeof row.payload === 'object') {
+    const startsAt = (row.payload as Record<string, unknown>).starts_at;
+    const matchTime = typeof startsAt === 'string' ? Date.parse(startsAt) : NaN;
+    if (Number.isFinite(matchTime)) return matchTime;
+  }
   const created = row.created_at ? new Date(row.created_at).getTime() : Number.NaN;
   if (Number.isFinite(created)) return created;
   const updated = row.updated_at ? new Date(row.updated_at).getTime() : Number.NaN;
@@ -224,8 +229,8 @@ function feedPostUpdatedTimestamp(row: TeamFeedPostDbRow): number {
 }
 
 /**
- * Home-Feed: Matchday-Story — zuerst Priorität (result → live → lineup → matchday → …),
- * innerhalb gleicher Priorität neueste zuerst (created_at DESC).
+ * Home-Feed: neueste Wiener Kalendertage zuerst; innerhalb eines Tages
+ * Matchday-Priorität, danach neueste zuerst. Importierte Ergebnisse nutzen den Spieltag.
  */
 export function sortClassifiedFeedPosts(
   items: ClassifiedFeedPost[],
@@ -235,9 +240,13 @@ export function sortClassifiedFeedPosts(
   return [...items].sort((a, b) => {
     const pa = getFeedPostPriority(classifiedPostRow(a), eventStatusById, now);
     const pb = getFeedPostPriority(classifiedPostRow(b), eventStatusById, now);
-    if (pb !== pa) return pb - pa;
     const ta = feedPostSortTimestamp(classifiedPostRow(a));
     const tb = feedPostSortTimestamp(classifiedPostRow(b));
+    // Never promote an old imported result above newer feed days.
+    const day = (t: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t));
+    const dayOrder = day(tb).localeCompare(day(ta));
+    if (dayOrder) return dayOrder;
+    if (pb !== pa) return pb - pa;
     if (tb !== ta) return tb - ta;
     return feedPostUpdatedTimestamp(classifiedPostRow(b)) - feedPostUpdatedTimestamp(classifiedPostRow(a));
   });
