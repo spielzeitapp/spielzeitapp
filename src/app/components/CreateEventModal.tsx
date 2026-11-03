@@ -27,6 +27,7 @@ import {
 } from '../../components/events';
 import { ensureOpponentCatalogEntry } from '../../lib/opponentCatalog';
 import { isPlaceholderLogoUrl } from '../../lib/teamLogos';
+import { announceNewEvents } from '../../lib/notifications/newEvents';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -140,6 +141,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [opponentLogoUrl, setOpponentLogoUrl] = useState<string | null>(null);
   const [clubId, setClubId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [eventTypeLocal, setEventTypeLocal] = useState<
     'game' | 'training' | 'event' | 'other' | 'tournament'
   >(
@@ -153,6 +155,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   );
 
   const resetForm = () => {
+    setSaved(false);
     setForm(defaultForm);
     setSelectedVenue(null);
     setFacilitySelection({ fieldId: null, zoneId: null });
@@ -188,6 +191,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating || saved) return;
     if (!teamSeasonId) {
       setError('Keine Mannschaftssaison ausgewählt.');
       return;
@@ -386,6 +390,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         return;
       }
 
+      // From here on, never offer another INSERT if a follow-up step fails.
+      setSaved(true);
+
       if (
         eventTypeLocal === 'game' &&
         opponentVal &&
@@ -449,8 +456,12 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         ids: Array.isArray(finalInserted) ? finalInserted.map((r: { id?: string }) => r.id).filter(Boolean) : [],
       });
 
-      // Kein Sofort-Push beim Anlegen: Erinnerungen laufen nur über notification_jobs + send-reminders
-      // (In-App + Web-Push zum Reminder-Zeitpunkt). Manuelle Team-Pushes bleiben über Trainer-Team-Push.
+      const notificationWarning = await announceNewEvents(teamSeasonId, finalInserted ?? []);
+      if (notificationWarning) {
+        setError(notificationWarning);
+        await onSuccess();
+        return;
+      }
 
       handleClose();
       await onSuccess();
@@ -474,10 +485,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       onClose={handleClose}
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={handleClose}>
-            Abbrechen
+          <Button variant="ghost" onClick={handleClose} disabled={creating}>
+            {saved ? 'Fertig' : 'Abbrechen'}
           </Button>
-          <Button type="submit" form="create-event-form" variant="primary" disabled={creating}>
+          <Button type="submit" form="create-event-form" variant="primary" disabled={creating || saved}>
             {creating ? 'Wird angelegt…' : 'Anlegen'}
           </Button>
         </div>
