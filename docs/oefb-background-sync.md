@@ -25,3 +25,19 @@ select status,return_message,start_time from cron.job_run_details where jobid=(s
 ```
 
 Pause globally using `cron.alter_job(jobid, active := false)` or disable individual seasons in the Manager. SQL regression checks: `supabase/tests/oefb_background_sync.sql` uses existing TEST fixtures and rolls all changes back. Frontend checks: `npm run typecheck`, `npm run build` and `node scripts/home-feed-chronology-test.mjs`.
+
+## Independent team schedule (TEST)
+
+The Manager now uses a single team-schedule configuration, independent of standings. Save the exact `vereine.oefb.at/.../Mannschaften/Saison-YYYY-YY/AGE/Spiele` URL and the team name as it appears in the schedule (without the age prefix). Choose schedule-only or schedule plus final results and enable it once. Saving disables the older competition worker for that season. Existing legacy settings remain in the database; their former panel is replaced.
+
+The private `oefb_sync.schedules` queue uses the existing schedule parser. It validates the configured season and age group and requires an exact home/away team-name match before importing. New numeric ÖFB IDs create calendar fixtures, repeated IDs do not. Similar manual fixtures on the same day remain untouched instead of being linked by guesswork. Review such fixtures through the existing import preview. Manual kickoff overrides (different from `source_starts_at`), live clocks/events, nonzero unfinished scoreboards and conflicting final scores are preserved. Date/score conflicts appear in the Manager with a link to review the game. Matching values clear the conflict on the next successful reconciliation. Trainer notes, meeting times, venue overrides, lineups and substitutions are never replaced by this worker.
+
+Enable the environment-owned schedule separately, after confirming `oefb_sync.config.origin`:
+
+```sql
+select cron.schedule('oefb-mannschaftsspielplan-sync','* * * * *','select oefb_sync.tick_schedule();');
+```
+
+Each tick processes up to two configured schedules; successes repeat after 15 minutes, errors after five. Requests have 15-second timeouts. Exact source failures appear in the Manager; no result is erased. TEST Rohrbach U13 is configured. Other seasons are not enabled implicitly. The second job must not be automatically enabled in LIVE by migration deployment.
+
+Checks: `supabase/tests/safe_oefb_schedule_sync.sql` (rollback), existing background-sync regression, real Rohrbach source response in a rollback, project typecheck/build. Source confirmations and private worker permissions follow the original guards above. No browser/iPhone visual verification was performed.

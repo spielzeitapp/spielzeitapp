@@ -1,0 +1,35 @@
+begin;
+do $test$
+declare sid uuid:='9428a319-b613-4cfc-adce-480aa096b691'; actor uuid; eid uuid; mid uuid; body jsonb; fixture jsonb;
+ url text:='https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U13/Spiele';
+begin
+ select id into actor from public.profiles where is_admin=true limit 1;
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ perform public.save_oefb_schedule_sync(sid,url,'SPG Rohrbach','schedule',true);
+ assert not (select oefb_auto_sync_enabled from public.team_seasons where id=sid),'Old worker must be disabled';
+ fixture:=jsonb_build_object('external_id','9000000001','art','Liga','starts_at','2026-09-05T15:00Z','opponent','Regression opponent','heim_name','SPG Rohrbach','gast_name','Regression opponent','score_home',3,'score_away',1);
+ body:=jsonb_build_object('ok',true,'sourceUrl',url,'fixtures',jsonb_build_array(fixture));
+ perform oefb_sync.consume_schedule(sid,body);
+ select id,match_id into eid,mid from public.events where team_season_id=sid and external_id='9000000001';
+ assert eid is not null and mid is null,'Schedule-only created result';
+ perform oefb_sync.consume_schedule(sid,body);
+ assert (select count(*)=1 from public.events where team_season_id=sid and external_id='9000000001'),'Duplicate';
+ update public.events set starts_at='2026-09-06T16:00Z',notes='Trainer note' where id=eid;
+ perform oefb_sync.consume_schedule(sid,body);
+ assert (select starts_at='2026-09-06T16:00Z' and notes='Trainer note' and oefb_sync_conflict->>'field'='starts_at' from public.events where id=eid),'Trainer override lost';
+ update public.events set starts_at=source_starts_at where id=eid;
+ perform public.save_oefb_schedule_sync(sid,url,'SPG Rohrbach','results',true);
+ perform oefb_sync.consume_schedule(sid,body);
+ select match_id into mid from public.events where id=eid;
+ assert (select status='finished' and score_home=3 and score_away=1 from public.matches where id=mid),'Final result missing';
+ update public.matches set score_home=4 where id=mid;
+ perform oefb_sync.consume_schedule(sid,body);
+ assert (select score_home=4 from public.matches where id=mid),'Trainer result overwritten';
+ assert (select oefb_sync_conflict->>'field'='score' from public.events where id=eid),'Result conflict missing';
+ begin perform public.save_oefb_schedule_sync(sid,replace(url,'2026-27','2025-26'),'SPG Rohrbach','results',true); raise exception 'Wrong season accepted'; exception when others then if sqlerrm='Wrong season accepted' then raise; end if; end;
+ perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+ begin perform public.save_oefb_schedule_sync(sid,url,'SPG Rohrbach','results',true); raise exception 'Outsider accepted'; exception when insufficient_privilege then null; end;
+ assert not has_function_privilege('authenticated','oefb_sync.consume_schedule(uuid,jsonb)','EXECUTE');
+end $test$;
+rollback;
+select 'PASS: new fixtures without standings, dedupe, schedule/results modes, trainer date/result protection, conflicts, season and role validation' as checks;
