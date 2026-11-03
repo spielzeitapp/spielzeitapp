@@ -377,18 +377,18 @@ export function ScheduleHeroEventCard({
     <>
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
-        <div className="flex w-full min-w-0 items-center">
-          <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+        <div className="grid w-full min-w-0 grid-cols-[44px_58px_minmax(0,1fr)_44px] items-center gap-x-2">
+          <div className="flex min-w-0 flex-col items-center justify-center gap-0 text-center">
             <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">{wd}</span>
             <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
             <span className="text-[13px] font-medium leading-tight text-white/70">{mon}</span>
             {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
           </div>
 
-          <TrainingPlayerIcon variant="hero" />
+          <TrainingPlayerIcon variant="hero" className="!m-0 !w-full" />
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="text-[20px] font-bold leading-[1.05] text-white min-[375px]:text-[21px]">{trainingMainTitle}</p>
+            <p className="whitespace-normal break-words hyphens-auto [overflow-wrap:anywhere] text-[18px] font-bold leading-[1.12] text-white min-[375px]:text-[20px]" lang="de">{trainingMainTitle}</p>
             {ev.status === 'canceled' ? <span className="text-[11px] font-bold uppercase tracking-wide text-red-300">Abgesagt</span> : null}
             <p className="mt-1 line-clamp-2 text-[15px] leading-[1.15] text-white/[0.78]">
               {trainingLocationLine}

@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { announceNewEvents } from './notifications/newEvents';
 import { assertTeamSeasonWritable } from './seasonTransition';
 import { eventKindFromFormType, type EventKind } from './eventTypeUtils';
 import {
@@ -85,6 +86,7 @@ export type CreateFacilityOccupancyResult =
       ok: true;
       eventId: string;
       assignment: EventFieldAssignmentRow;
+      notificationWarning?: string | null;
     }
   | {
       ok: false;
@@ -225,5 +227,9 @@ export async function createFacilityOccupancy(
     };
   }
 
-  return { ok: true, eventId, assignment: assignRes.data };
+  const notificationWarning = await announceNewEvents(input.teamSeasonId, [{
+    id: eventId, starts_at: input.startsAtIso, kind: eventKind, notes: title,
+    opponent: eventKind === 'match' ? title : null, status: 'upcoming',
+  }]);
+  return { ok: true, eventId, assignment: assignRes.data, notificationWarning };
 }
