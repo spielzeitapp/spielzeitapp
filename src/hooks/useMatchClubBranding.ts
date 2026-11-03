@@ -11,6 +11,8 @@ export function useMatchClubBranding(seasonId?: string|null) {
   '--club-primary-rgb': brand?.primary_color ? hexToRgbChannels(brand.primary_color) : undefined,
   '--club-accent-rgb': brand?.accent_color ? hexToRgbChannels(brand.accent_color) : undefined,
   '--club-accent-text-rgb': brand?.accent_color ? readableAccentOnDark(brand.accent_color) : undefined,
+  '--club-secondary-rgb': brand?.secondary_color ? hexToRgbChannels(brand.secondary_color) : undefined,
+  '--club-on-accent': brand?.accent_color ? readableTextColor(brand.accent_color) : undefined,
   '--club-on-primary': brand?.primary_color ? readableTextColor(brand.primary_color) : undefined,
   '--club-border-rgb': brand?.accent_color ? hexToRgbChannels(brand.accent_color) : undefined,
  } as CSSProperties;
