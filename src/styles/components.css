@@ -365,7 +365,99 @@
 }
 
 .sz-club-number-divider {
-  border-color: rgb(var(--club-border-rgb) / 0…801 tokens truncated…randlos wie Instagram/Facebook. */
+  border-color: rgb(var(--club-border-rgb) / 0.42);
+}
+
+.sz-club-profile-hero {
+  border-color: rgb(var(--club-border-rgb) / 0.64);
+  background:
+    radial-gradient(ellipse 90% 100% at 108% 46%, rgb(var(--club-primary-rgb) / 0.58) 0%, rgb(var(--club-primary-rgb) / 0.22) 42%, transparent 72%),
+    linear-gradient(145deg, #151517 0%, #060607 55%, rgb(var(--club-primary-rgb) / 0.24) 100%);
+  box-shadow:
+    0 14px 42px rgba(0, 0, 0, 0.55),
+    0 0 28px rgb(var(--club-primary-rgb) / 0.22),
+    inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.08),
+    inset -28px 0 46px rgb(var(--club-primary-rgb) / 0.12);
+}
+
+.sz-club-profile-accent {
+  color: rgb(var(--club-accent-text-rgb));
+}
+
+.sz-club-profile-nav:hover {
+  border-color: rgb(var(--club-accent-rgb) / 0.5);
+}
+
+.sz-club-accent-panel {
+  border-color: rgb(var(--club-primary-rgb) / 0.28);
+  background:
+    radial-gradient(ellipse 80% 60% at 100% 0%, rgb(var(--club-primary-rgb) / 0.15), transparent 55%),
+    linear-gradient(145deg, rgba(25, 25, 28, 0.96), rgb(var(--club-primary-rgb) / 0.16));
+  box-shadow:
+    0 0 28px rgb(var(--club-primary-rgb) / 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.42);
+}
+
+.sz-club-accent-icon {
+  border-color: rgb(var(--club-primary-rgb) / 0.3);
+  color: rgb(var(--club-accent-text-rgb));
+  background-color: rgb(var(--club-primary-rgb) / 0.26);
+}
+
+.sz-club-accent-chip {
+  border-color: rgb(var(--club-primary-rgb) / 0.34);
+  background-color: rgb(var(--club-primary-rgb) / 0.2);
+  box-shadow: 0 0 16px rgb(var(--club-primary-rgb) / 0.14);
+}
+
+.sz-club-tab-track {
+  border-color: rgb(var(--club-primary-rgb) / 0.18);
+  background:
+    linear-gradient(180deg, rgb(var(--club-primary-rgb) / 0.09), rgba(8, 8, 10, 0.88));
+}
+
+.sz-club-tab-active {
+  border-color: rgb(var(--club-accent-rgb) / 0.42);
+  background-color: rgb(var(--club-primary-rgb) / 0.42);
+  box-shadow: 0 0 20px rgb(var(--club-primary-rgb) / 0.34);
+}
+
+.sz-club-progress-fill {
+  background: linear-gradient(90deg, rgb(var(--club-primary-rgb) / 0.95), rgb(var(--club-accent-rgb) / 0.82));
+  box-shadow: 0 0 14px rgb(var(--club-primary-rgb) / 0.25);
+}
+
+.sz-club-dashed-border {
+  border-color: rgb(var(--club-primary-rgb) / 0.24);
+}
+
+.sz-club-link {
+  color: rgb(var(--club-accent-text-rgb));
+}
+
+.sz-club-link:hover {
+  color: rgb(var(--club-accent-text-rgb));
+}
+
+.sz-club-stat-watermark {
+  color: rgb(var(--club-accent-rgb) / 0.18);
+}
+
+/* Home-Feed: dieselbe schwarze Club-Editorial-Sprache wie Spieler- und Profilkarten. */
+.sz-club-feed-shell {
+  overflow: hidden;
+  border-color: rgb(var(--club-border-rgb) / 0.34) !important;
+  background:
+    radial-gradient(ellipse 88% 75% at 108% 18%, rgb(var(--club-primary-rgb) / 0.34), transparent 68%),
+    repeating-linear-gradient(130deg, transparent 0, transparent 20px, rgb(var(--club-border-rgb) / 0.028) 21px, transparent 22px),
+    linear-gradient(150deg, rgba(15, 15, 18, 0.99), rgba(4, 4, 6, 0.995) 58%, rgb(var(--club-primary-rgb) / 0.12));
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.55),
+    0 0 30px rgb(var(--club-primary-rgb) / 0.16),
+    inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.045) !important;
+}
+
+/* Social-Feed auf Handys: Beitrag wirklich randlos wie Instagram/Facebook. */
 @media (max-width: 639px) {
   .app-home .home-feed-edge > .sz-club-feed-shell,
   .app-home .home-feed-edge > .sz-feed-club-scope > .sz-club-feed-shell {
