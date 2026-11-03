@@ -49,7 +49,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
         if (maySync && syncSeasonId && Array.isArray(result.games)) {
           const games = result.games.flatMap((g: Game) => {
             const id = /^https:\/\/(?:www\.)?oefb\.at\/bewerbe\/Spiel\/Spielbericht\/(\d{1,10})\//i.exec(g.sourceUrl ?? '')?.[1];
-            return id ? [{ id, kickoff: g.kickoff, score: g.score }] : [];
+            return id ? [{ id, kickoff: g.kickoff, score: g.score, status: g.status }] : [];
           });
           const synced = await supabase.rpc('sync_oefb_competition_fixtures', { p_team_season_id: syncSeasonId, p_competition_id: competitionId, p_games: games });
           if (!controller.signal.aborted) setSyncError(synced.error ? 'ÖFB-Stand geladen, aber Spielplan konnte nicht synchronisiert werden. Bitte im Manager prüfen.' : null);
