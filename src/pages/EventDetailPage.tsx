@@ -1,3 +1,4 @@
+import { eventSaveTask } from '../lib/eventSaveTask';
 import { OefbConflictNotice } from '../components/match/OefbConflictNotice';
 import { useOefbLiveReport } from '../components/match/OefbLiveReport';
 import { finishedOefbFallback, OefbFinishedMatchSection } from '../components/match/OefbFinishedMatchSection';
@@ -1604,6 +1605,8 @@ export const EventDetailPage: React.FC = () => {
       return;
     }
     setSavingEdit(true);
+    let eventPersisted = false;
+    try {
     setEditError(null);
     const locationVal =
       editUseExternalLocation || !editVenue
@@ -1619,6 +1622,7 @@ export const EventDetailPage: React.FC = () => {
       venue_id: editUseExternalLocation ? null : editVenue?.id ?? null,
       opponent: (editOpponent ?? '').trim() || null,
     };
+    eventPersisted = true;
     if (editEvent.kind === 'match') {
       const logo =
         editOpponentLogoUrl && !isPlaceholderLogoUrl(editOpponentLogoUrl)
@@ -1666,7 +1670,7 @@ export const EventDetailPage: React.FC = () => {
     }
     console.log('saved event kind', editEvent.kind);
     let error: { message?: string } | null = null;
-    const firstTry = await supabase.from('events').update(payload).eq('id', editEvent.id);
+    const firstTry = await eventSaveTask('Termindaten speichern', supabase.from('events').update(payload).eq('id', editEvent.id));
     error = firstTry.error;
 
     // Fallback: Manche Deployments haben die Spalte noch nicht im Schema-Cache.
@@ -1680,19 +1684,19 @@ export const EventDetailPage: React.FC = () => {
         string,
         unknown
       >;
-      const retry = await supabase.from('events').update(payloadWithoutTrainingFlag).eq('id', editEvent.id);
+      const retry = await eventSaveTask('Termindaten speichern', supabase.from('events').update(payloadWithoutTrainingFlag).eq('id', editEvent.id));
       error = retry.error;
     }
 
     if (error && /venue_id|column/i.test(String(error.message ?? ''))) {
       const { venue_id: _ignoredVenue, ...withoutVenue } = payload;
-      const retryVenue = await supabase.from('events').update(withoutVenue).eq('id', editEvent.id);
+      const retryVenue = await eventSaveTask('Termindaten speichern', supabase.from('events').update(withoutVenue).eq('id', editEvent.id));
       error = retryVenue.error;
     }
 
     if (error && /opponent_logo_url|column|schema cache/i.test(String(error.message ?? ''))) {
       const { opponent_logo_url: _ignoredLogo, ...withoutLogo } = payload;
-      const retryLogo = await supabase.from('events').update(withoutLogo).eq('id', editEvent.id);
+      const retryLogo = await eventSaveTask('Termindaten speichern', supabase.from('events').update(withoutLogo).eq('id', editEvent.id));
       error = retryLogo.error;
     }
 
@@ -1708,12 +1712,13 @@ export const EventDetailPage: React.FC = () => {
           ? editOpponentLogoUrl.trim()
           : null;
       const oppName = (editOpponent ?? '').trim() || editEvent.opponent || '';
-      if (oppName) {
-        await setOpponentLogoForSeason({
+      const previousLogo = editEvent.opponent_logo_url && !isPlaceholderLogoUrl(editEvent.opponent_logo_url) ? editEvent.opponent_logo_url.trim() : null;
+      if (oppName && (logo !== previousLogo || oppName !== (editEvent.opponent ?? '').trim())) {
+        await eventSaveTask('Gegnerlogo synchronisieren', setOpponentLogoForSeason({
           teamSeasonId: editEvent.team_season_id,
           opponentName: oppName,
           logoUrl: logo,
-        });
+        }));
       }
       setOpponentLogo(logo ?? '');
     }
@@ -1738,23 +1743,23 @@ export const EventDetailPage: React.FC = () => {
       }
       if (editUseExternalLocation) {
         if (editAssignment?.id) {
-          const deleteRes = await deleteEventFieldAssignment(editAssignment.id);
+          const deleteRes = await eventSaveTask('Platzzuordnung entfernen', deleteEventFieldAssignment(editAssignment.id));
           if (!deleteRes.ok) {
-            await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+            await eventSaveTask('Termindaten speichern', supabase.from('events').update(previousPayload).eq('id', editEvent.id));
             setEditError(deleteRes.error ?? 'Platzzuordnung konnte nicht entfernt werden.');
             setSavingEdit(false);
             return;
           }
         }
       } else {
-        const clubRes = await resolveClubIdForTeamSeason(editEvent.team_season_id);
+        const clubRes = await eventSaveTask('Verein laden', resolveClubIdForTeamSeason(editEvent.team_season_id));
         if (!clubRes.clubId) {
-          await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+          await eventSaveTask('Termindaten speichern', supabase.from('events').update(previousPayload).eq('id', editEvent.id));
           setEditError('Club zur Team-Saison konnte nicht aufgelöst werden.');
           setSavingEdit(false);
           return;
         }
-        const assignRes = await upsertEventFieldAssignment({
+        const assignRes = await eventSaveTask('Platzzuordnung speichern', upsertEventFieldAssignment({
           clubId: clubRes.clubId,
           eventId: editEvent.id,
           venueId: editVenue!.id,
@@ -1772,9 +1777,9 @@ export const EventDetailPage: React.FC = () => {
             teamSeasonId: editEvent.team_season_id,
             purpose: editEvent.kind === 'training' ? 'training' : 'home_match',
           },
-        });
+        }));
         if (assignRes.error) {
-          await supabase.from('events').update(previousPayload).eq('id', editEvent.id);
+          await eventSaveTask('Termindaten speichern', supabase.from('events').update(previousPayload).eq('id', editEvent.id));
           setEditError(assignRes.error);
           setSavingEdit(false);
           return;
@@ -1782,13 +1787,29 @@ export const EventDetailPage: React.FC = () => {
       }
     }
 
+    if (editEvent.kind === 'match' && editEvent.match_id && eventStartMinuteChanged(editEvent.starts_at, startsAt)) {
+      const { data: updatedMatch, error: matchDateError } = await eventSaveTask('Termindaten speichern', supabase.from('matches')
+        .update({ match_date: startsAt })
+        .eq('id', editEvent.match_id).select('id'));
+      if (matchDateError || !updatedMatch?.length) {
+        setEditError(`Termin gespeichert, Matchdatum konnte nicht synchronisiert werden: ${matchDateError?.message || 'Keine Berechtigung oder Match nicht gefunden'}. Bitte den Support informieren.`);
+        setSavingEdit(false);
+        await eventSaveTask('Termin neu laden', loadEvent());
+        return;
+      }
+    }
+
     const moved = editEvent.status === 'upcoming' && eventStartMinuteChanged(editEvent.starts_at, startsAt) &&
       (editEvent.kind === 'training' || editEvent.kind === 'match');
     if (moved) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await eventSaveTask('Sitzung prüfen', supabase.auth.getSession(), 8000);
         if (!session?.access_token) throw new Error('Bitte erneut anmelden und die Nachricht manuell senden.');
-        const response = await fetch('/api/push/send-team', {
+        const controller = new AbortController();
+        const abortPush = setTimeout(() => controller.abort(), 10000);
+        let response: Response;
+        try { response = await fetch('/api/push/send-team', {
+          signal: controller.signal,
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({
@@ -1800,7 +1821,8 @@ export const EventDetailPage: React.FC = () => {
             related_event_id: editEvent.id,
           }),
         });
-        const push = await response.json() as { ok?: boolean; skipped?: boolean; error?: string; sent?: number; notificationsInserted?: number; messagesSaved?: number; hint?: string };
+        } finally { clearTimeout(abortPush); }
+        const push = await eventSaveTask('Benachrichtigung bestätigen', response.json(), 8000) as { ok?: boolean; skipped?: boolean; error?: string; sent?: number; notificationsInserted?: number; messagesSaved?: number; hint?: string };
         if (!response.ok || push.ok !== true) throw new Error(push.error || `HTTP ${response.status}`);
         setReschedulePushFeedback(push.skipped
           ? 'Termin verschoben. Auf Test ist der Push-Versand deaktiviert.'
@@ -1812,22 +1834,11 @@ export const EventDetailPage: React.FC = () => {
       }
     }
 
-    if (editEvent.kind === 'match' && editEvent.match_id && eventStartMinuteChanged(editEvent.starts_at, startsAt)) {
-      const { data: updatedMatch, error: matchDateError } = await supabase.from('matches')
-        .update({ match_date: startsAt })
-        .eq('id', editEvent.match_id).select('id');
-      if (matchDateError || !updatedMatch?.length) {
-        setEditError(`Termin gespeichert, Matchdatum konnte nicht synchronisiert werden: ${matchDateError?.message || 'Keine Berechtigung oder Match nicht gefunden'}. Bitte den Support informieren.`);
-        setSavingEdit(false);
-        await loadEvent();
-        return;
-      }
-    }
 
     const wasPublishedChampionship =
       String(editEvent.fixture_status ?? '').toLowerCase() === 'published';
     if (wasPublishedChampionship) {
-      await maybePublishChampionshipMatchChangedFeed({
+      await eventSaveTask('Änderungsbeitrag veröffentlichen', maybePublishChampionshipMatchChangedFeed({
         teamSeasonId: editEvent.team_season_id,
         eventId: editEvent.id,
         before: {
@@ -1847,12 +1858,18 @@ export const EventDetailPage: React.FC = () => {
           is_home: editEvent.is_home,
         },
         ourTeamName: getOurTeamDisplayName(),
-      });
+      }));
     }
 
     closeEditModal();
-    await loadEvent();
+    await eventSaveTask('Termin neu laden', loadEvent());
     setSavingEdit(false);
+    } catch (saveError) {
+      const detail = saveError instanceof Error ? saveError.message : 'Unbekannter Fehler';
+      setEditError(`${eventPersisted ? 'Die Termindaten wurden gespeichert. Ein Folgeschritt ist fehlgeschlagen: ' : 'Speichern konnte nicht abgeschlossen werden: '}${detail}`);
+    } finally {
+      setSavingEdit(false);
+    }
   }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, reschedulePushExtra, closeEditModal, loadEvent, isDemo, basePath]);
 
   const handleDeleteEvent = useCallback(async () => {

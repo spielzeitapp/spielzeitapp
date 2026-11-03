@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+const b=await build({entryPoints:['src/lib/eventSaveTask.ts'],bundle:true,platform:'node',format:'cjs',write:false});
+const m={exports:{}};new Function('module','exports',b.outputFiles[0].text)(m,m.exports);
+const {eventSaveTask:run}=m.exports;
+assert.equal(await run('save',Promise.resolve('saved'),100),'saved');
+await assert.rejects(run('save',Promise.reject(new Error('database unavailable')),100),/database unavailable/);
+await assert.rejects(run('Gegnerlogo',new Promise(()=>{}),10),/Gegnerlogo: Zeitüberschreitung/);
+let lateReject;const pending=new Promise((_,reject)=>lateReject=reject);
+await assert.rejects(run('late',pending,10),/Zeitüberschreitung/);lateReject(new Error('late response'));
+await new Promise(r=>setTimeout(r,1));
+console.log('PASS: completed saves return; failures and stalled follow-ups reject with stage context; late failure handled.');
