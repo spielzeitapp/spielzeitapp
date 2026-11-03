@@ -1,3 +1,6 @@
+import { useSession } from '../../auth/useSession';
+import { supabase } from '../../lib/supabaseClient';
+import { canManageMatches, normalizeRole } from '../../lib/roles';
 import { preferredClubLogo, useClubOpponentLogos } from '../../hooks/useClubOpponentLogos';
 import { useCompetition } from '../../app/components/CompetitionContext';
 import { MatchCardLigaportal } from '../../app/components/MatchCardLigaportal';
@@ -9,6 +12,8 @@ const timeFormat = new Intl.DateTimeFormat('de-AT', { hour: '2-digit', minute: '
 const teamKey = (name: string) => name.toLocaleLowerCase('de-AT').replace(/\bu\d+\b/g, '').replace(/\s+/g, ' ').trim();
 
 export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: string; teamSeasonId?: string | null }> = ({ competitionId, ourTeam, teamSeasonId }) => {
+  const session = useSession();
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [round, setRound] = useState(0);
   const [data, setData] = useState<Results | null>(null);
   const [rounds, setRounds] = useState<Results['rounds']>([]);
@@ -20,6 +25,8 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
   const automaticRoundChosen = useRef(false);
   const roundStrip = useRef<HTMLDivElement>(null);
   const competition = useCompetition();
+  const syncSeasonId = teamSeasonId ?? competition.selectedSeasonId;
+  const maySync = normalizeRole(session.backendRole) === 'admin' || session.memberships.some(m => m.team_season_id === syncSeasonId && canManageMatches(normalizeRole(m.role)));
   const clubLogos = useClubOpponentLogos(data?.games.flatMap((game) => [game.home, game.away]) ?? [],
     teamSeasonId === undefined ? (competition.settings?.competitionId === competitionId ? competition.selectedSeasonId : undefined) : teamSeasonId);
   useEffect(() => {
@@ -31,6 +38,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
     request.current = controller;
     lastRefresh.current = Date.now();
     setLoading(true);
+    setSyncError(null);
     setError(null);
     try {
       const response = await fetch(`/api/oefb/table?view=results&id=${encodeURIComponent(competitionId)}&round=${round}&refresh=${Date.now()}`, { cache: 'no-store', signal: controller.signal });
@@ -38,6 +46,15 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
       if (!response.ok) throw new Error(result.error || 'Ergebnisse konnten nicht geladen werden.');
       if (!controller.signal.aborted) {
         setData(result); setRounds(result.rounds);
+        if (maySync && syncSeasonId && Array.isArray(result.games)) {
+          const games = result.games.flatMap((g: Game) => {
+            const id = /^https:\/\/(?:www\.)?oefb\.at\/bewerbe\/Spiel\/Spielbericht\/(\d{1,10})\//i.exec(g.sourceUrl ?? '')?.[1];
+            return id ? [{ id, kickoff: g.kickoff, score: g.score }] : [];
+          });
+          const synced = await supabase.rpc('sync_oefb_competition_fixtures', { p_team_season_id: syncSeasonId, p_competition_id: competitionId, p_games: games });
+          if (!controller.signal.aborted) setSyncError(synced.error ? 'ÖFB-Stand geladen, aber Spielplan konnte nicht synchronisiert werden. Bitte im Manager prüfen.' : null);
+        }
+
         if (round === 0 && !automaticRoundChosen.current) {
           automaticRoundChosen.current = true;
           const counts = new Map<number, number>();
@@ -49,7 +66,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
     } catch (cause) {
       if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Ergebnisse konnten nicht geladen werden.');
     } finally { if (!controller.signal.aborted) setLoading(false); }
-  }, [competitionId, round]);
+  }, [competitionId, round, syncSeasonId, maySync]);
 
   useEffect(() => {
     if (previousCompetition.current !== competitionId) {
@@ -92,7 +109,8 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
       })}
     </div>
     <p className="text-xs text-white/50">Alle Mannschaften dieses Bewerbs · automatisch aktualisiert beim Öffnen und bei Rückkehr.</p>
-    {error ? <p role="alert" className="text-sm text-amber-200">{error}{data ? ' Angezeigt wird der zuletzt geladene Stand.' : ''}</p> : null}
+    {syncError ? <p role="status" className="text-sm text-amber-200">{syncError}</p> : null}
+      {error ? <p role="alert" className="text-sm text-amber-200">{error}{data ? ' Angezeigt wird der zuletzt geladene Stand.' : ''}</p> : null}
     {loading && !data ? <p role="status" className="text-sm text-white/55">Lade Begegnungen…</p> : null}
     {data && !data.games.length ? <p className="rounded-xl border border-white/10 p-4 text-sm text-white/65">Für diese Auswahl sind beim ÖFB keine Begegnungen verfügbar. Wähle eine andere Runde.</p> : null}
     <div className="space-y-2">{data?.games.map((game) => {
