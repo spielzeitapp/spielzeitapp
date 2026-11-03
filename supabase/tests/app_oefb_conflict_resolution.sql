@@ -1,0 +1,30 @@
+begin;
+do $t$
+declare eid uuid:='0b2c4a03-c7f7-4503-ba83-eb24783d46a5'; sid uuid:='9428a319-b613-4cfc-adce-480aa096b691'; actor uuid; c jsonb; n int;
+begin
+ select id into actor from public.profiles where is_admin=true limit 1;perform set_config('request.jwt.claim.sub',actor::text,true);
+ update public.events set starts_at='2026-11-02T16:30Z',source_starts_at='2026-11-02T15:30Z' where id=eid;
+ c:=jsonb_build_object('field','starts_at','trainer','2026-11-02T16:30:00+00:00'::timestamptz,'oefb','2026-11-02T15:30:00+00:00'::timestamptz);
+ update public.events set oefb_sync_conflict=c where id=eid;
+ perform public.resolve_oefb_event_conflict(eid,c,'keep');
+ assert (select starts_at='2026-11-02T16:30Z' and oefb_sync_conflict is null from public.events where id=eid);
+ n:=oefb_sync.reconcile(sid,'232775','[{"id":"4134573","kickoff":"2026-11-02T15:30:00Z","status":"Endstand","score":"1:0"}]');
+ assert (select oefb_sync_conflict is null from public.events where id=eid),'Acknowledgement repeated';
+ update public.events set oefb_sync_conflict=c where id=eid;
+ perform public.resolve_oefb_event_conflict(eid,c,'source');
+ assert (select starts_at='2026-11-02T15:30Z' and source_starts_at=starts_at and oefb_sync_conflict is null from public.events where id=eid);
+ begin perform public.resolve_oefb_event_conflict(eid,c,'source');raise exception 'Stale accepted';exception when others then if sqlerrm='Stale accepted' then raise;end if;end;
+ update public.matches set score_home=2 where id=(select match_id from public.events where id=eid);
+ c:=jsonb_build_object('field','score','trainer','2:0','oefb','1:0');
+ update public.events set oefb_sync_conflict=c where id=eid;
+ perform public.resolve_oefb_event_conflict(eid,c,'source');
+ assert (select score_home=1 from public.matches where id=(select match_id from public.events where id=eid));
+ update public.matches set score_home=2,live_started_at=now() where id=(select match_id from public.events where id=eid);
+ update public.events set oefb_sync_conflict=c where id=eid;
+ begin perform public.resolve_oefb_event_conflict(eid,c,'source');raise exception 'Native overwritten';exception when others then if sqlerrm='Native overwritten' then raise;end if;end;
+ assert (select score_home=2 from public.matches where id=(select match_id from public.events where id=eid));
+ perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+ begin perform public.resolve_oefb_event_conflict(eid,c,'keep');raise exception 'Outsider accepted';exception when insufficient_privilege then null;end;
+end $t$;
+rollback;
+select 'PASS keep acknowledgement, source adoption, stale/unauthorized rejection' as checks;

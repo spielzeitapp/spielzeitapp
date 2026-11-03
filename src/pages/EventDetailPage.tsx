@@ -1,3 +1,4 @@
+import { OefbConflictNotice } from '../components/match/OefbConflictNotice';
 import { useOefbLiveReport } from '../components/match/OefbLiveReport';
 import { finishedOefbFallback, OefbFinishedMatchSection } from '../components/match/OefbFinishedMatchSection';
 import { ClubLogo } from '../components/branding/ClubLogo';
@@ -866,7 +867,7 @@ export const EventDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [event?.match_id, isFinishedMatchEvent, isDemo, event?.location]);
+  }, [event, isFinishedMatchEvent, isDemo]);
 
   useEffect(() => {
     if (isDemo || !event?.match_id || event.kind !== 'match' || !canTrainerManageEvent) {
@@ -2755,6 +2756,8 @@ export const EventDetailPage: React.FC = () => {
             </Link>
           </div>
 
+          {!isDemo && canTrainerManageEvent ? <OefbConflictNotice key={event.id} eventId={event.id} onResolved={() => void loadEvent()} /> : null}
+
           <section className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)]">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
             <div className="relative px-3 pb-3 pt-3 sm:px-4">
@@ -3975,6 +3978,7 @@ export const EventDetailPage: React.FC = () => {
               : 'gap-5 py-5 pb-28'
         }`}
       >
+        {!isDemo && event.kind === 'match' && canTrainerManageEvent ? <OefbConflictNotice key={event.id} eventId={event.id} onResolved={() => void loadEvent()} /> : null}
         {event.kind === 'match' ? (
           <CenterHeader title="Matchcenter" />
         ) : !isTournament && !isTraining ? (
