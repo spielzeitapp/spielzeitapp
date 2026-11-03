@@ -14,15 +14,15 @@ export function OefbConflictNotice({ eventId, onResolved }: { eventId: string; o
  async function resolve(choice:'keep'|'source'){
   if(!conflict||busy)return;setBusy(true);setMessage('');
   try{const r=await supabase.rpc('resolve_oefb_event_conflict',{p_event:eventId,p_expected:conflict,p_choice:choice});if(r.error)throw new Error(r.error.message);
-   setConflict(null);setMessage(choice==='keep'?'Trainerangabe bleibt erhalten. Dieser ÖFB-Hinweis ist bestätigt.':'ÖFB-Wert übernommen.');onResolved();
+   setConflict(null);setMessage(choice==='keep'?'Deine Angabe bleibt erhalten. Derselbe ÖFB-Hinweis wird nicht erneut angezeigt.':'ÖFB-Wert übernommen.');onResolved();
   }catch(e){setMessage(e instanceof Error?e.message:'Speichern fehlgeschlagen.');}finally{setBusy(false);}
  }
  if(!conflict&&!message)return null;
  return <section className="sz-club-feed-inset rounded-2xl border p-4" aria-label="ÖFB-Abweichung">
  {conflict?<><h2 className="sz-club-feed-accent-text font-bold">ÖFB meldet {conflict.field==='score'?'ein anderes Ergebnis':'einen anderen Anpfiff'}</h2>
- <p className="mt-2 text-sm text-white/75">Deine Angabe bleibt erhalten, bis du dich entscheidest.</p>
+ <p className="mt-2 text-sm text-white/75">Deine Angabe bleibt erhalten. Wenn du sie behältst, wird derselbe ÖFB-Hinweis nicht erneut angezeigt. Ändert sich später die ÖFB-Angabe, wirst du wieder darauf hingewiesen.</p>
  <dl className="my-3 grid grid-cols-2 gap-2"><dt>Trainerangabe</dt><dd>{formatOefbConflictValue(conflict,conflict.trainer)}</dd><dt>ÖFB</dt><dd>{formatOefbConflictValue(conflict,conflict.oefb)}</dd></dl>
- <div className="flex flex-wrap gap-2"><button disabled={busy} onClick={()=>void resolve('keep')} className="min-h-11 rounded-xl border border-white/30 px-3 font-semibold">Trainerangabe behalten</button><button disabled={busy} onClick={()=>void resolve('source')} className="min-h-11 rounded-xl border border-[rgb(var(--club-accent-rgb))] bg-[rgb(var(--club-primary-rgb))] px-3 font-semibold text-[var(--club-on-primary)]">ÖFB-Wert übernehmen</button></div></>:null}
+ <div className="flex flex-wrap gap-2"><button disabled={busy} onClick={()=>void resolve('keep')} className="min-h-11 rounded-xl border border-white/30 px-3 font-semibold">Meine Angabe behalten – diesen ÖFB-Hinweis nicht erneut anzeigen</button><button disabled={busy} onClick={()=>void resolve('source')} className="min-h-11 rounded-xl border border-[rgb(var(--club-accent-rgb))] bg-[rgb(var(--club-primary-rgb))] px-3 font-semibold text-[var(--club-on-primary)]">ÖFB-Wert übernehmen</button></div></>:null}
  {message?<p role="status" className="mt-2 text-sm">{message}</p>:null}
  </section>;
 }
