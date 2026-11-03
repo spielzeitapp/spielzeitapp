@@ -14,6 +14,7 @@ begin
  update public.matches set match_date='2026-10-17T16:00Z',status='upcoming',score_home=0,score_away=0 where id=mid;
  n:=oefb_sync.reconcile(sid,'232775',games);
  assert (select status='upcoming' and score_home=0 from public.matches where id=mid),'Live score finalized';
+ assert (select payload->>'kickoff_iso'='2026-11-02T15:30:00+00:00' and caption like '%02.11.2026 · 16:30%' from public.team_feed_posts where event_id=eid and post_kind='next_match_auto'),'Announcement not rescheduled';
  games:=replace(games::text,'Live','Endstand')::jsonb;
  n:=oefb_sync.reconcile(sid,'232775',games);
  assert (select status='finished' and score_home=1 and score_away=0 from public.matches where id=mid);

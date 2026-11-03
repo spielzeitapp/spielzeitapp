@@ -12,6 +12,8 @@ select oefb_sync.configure('https://app.spielzeitapp.at');
 
 `oefb-fixture-sync` runs each minute. Each tick performs at most two HTTPS requests with a 15-second timeout; rounds repeat after 15 minutes, failed requests after five minutes. Round zero discovers historical rounds so a postponed match is checked even when its original round is old. Larger numbers of configured competitions can increase the delay beyond 15 minutes. Requests use the existing fixed ÖFB results proxy. Data is consumed directly from the HTTPS response, never from pg_net's globally writable response tables. Private worker functions are unavailable to app roles.
 
+Existing automatic scheduling posts update their date, time and generated caption when an upcoming imported game moves. Manually authored feed posts are unaffected.
+
 Automatic results also create deduplicated result feed posts, honoring feed suppression records and preserving existing captions/scorers. Automatic source confirmations are labelled `oefb`; they do not impersonate a human approver. An existing match with a different finished score requires staff review. New fixtures still require the import preview. This job does not import lineups, substitutions or infer individual playing time.
 
 Monitor as database owner:
