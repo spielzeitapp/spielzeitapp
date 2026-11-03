@@ -99,6 +99,7 @@ export function AppCreateOccupancyModal(props: Props): React.ReactElement | null
   const [venuesLoading, setVenuesLoading] = useState(false);
   const [venueHint, setVenueHint] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savedWarning, setSavedWarning] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkOk, setCheckOk] = useState<string | null>(null);
@@ -121,6 +122,7 @@ export function AppCreateOccupancyModal(props: Props): React.ReactElement | null
     setCheckOk(null);
     setConflicts([]);
     setSaving(false);
+    setSavedWarning(null);
   }, [props.open, props.prefill.startMs, props.prefill.venueId, props.prefill.fieldId]);
 
   useEffect(() => {
@@ -239,6 +241,7 @@ export function AppCreateOccupancyModal(props: Props): React.ReactElement | null
   };
 
   const save = async () => {
+    if (savedWarning) { await props.onCreated(); return; }
     if (saving || checking) return;
     setSaving(true);
     setError(null);
@@ -282,6 +285,7 @@ export function AppCreateOccupancyModal(props: Props): React.ReactElement | null
       return;
     }
     setSaving(false);
+    if (result.notificationWarning) { setSavedWarning(result.notificationWarning); return; }
     await props.onCreated();
   };
 
@@ -300,7 +304,7 @@ export function AppCreateOccupancyModal(props: Props): React.ReactElement | null
             onClick={() => void save()}
             className="min-h-[46px] w-full rounded-xl bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {saving ? 'Speichern…' : 'Speichern'}
+            {saving ? 'Speichern…' : savedWarning ? 'Fertig' : 'Speichern'}
           </button>
           <button
             type="button"
@@ -314,6 +318,7 @@ export function AppCreateOccupancyModal(props: Props): React.ReactElement | null
       }
     >
       <div className="space-y-3 pb-2 text-[14px] text-white/85">
+        {savedWarning ? <p role="alert" className="text-sm text-amber-200">{savedWarning}</p> : null}
         <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[12px] text-white/60">
           Mannschaft: <span className="font-semibold text-white">{props.teamLabel}</span>
         </p>

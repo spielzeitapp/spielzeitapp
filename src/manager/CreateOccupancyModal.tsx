@@ -107,6 +107,7 @@ export function CreateOccupancyModal(props: CreateOccupancyModalProps): React.Re
   const [venuesLoading, setVenuesLoading] = useState(false);
   const [venueHint, setVenueHint] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savedWarning, setSavedWarning] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkOk, setCheckOk] = useState<string | null>(null);
@@ -233,6 +234,7 @@ export function CreateOccupancyModal(props: CreateOccupancyModalProps): React.Re
   };
 
   const save = async () => {
+    if (savedWarning) { await props.onCreated(); return; }
     if (saving) return;
     setSaving(true);
     setError(null);
@@ -272,6 +274,7 @@ export function CreateOccupancyModal(props: CreateOccupancyModalProps): React.Re
       return;
     }
     setSaving(false);
+    if (result.notificationWarning) { setSavedWarning(result.notificationWarning); return; }
     await props.onCreated();
   };
 
@@ -474,7 +477,7 @@ export function CreateOccupancyModal(props: CreateOccupancyModalProps): React.Re
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
-              disabled={saving || checking}
+              disabled={saving || checking || Boolean(savedWarning)}
               onClick={() => void runCheck()}
               className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
             >
@@ -486,9 +489,10 @@ export function CreateOccupancyModal(props: CreateOccupancyModalProps): React.Re
               onClick={() => void save()}
               className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50"
             >
-              {saving ? 'Speichern…' : 'Speichern'}
+              {saving ? 'Speichern…' : savedWarning ? 'Fertig' : 'Speichern'}
             </button>
           </div>
+          {savedWarning ? <p role="alert" className="text-sm text-amber-800">{savedWarning}</p> : null}
           <button
             type="button"
             onClick={props.onClose}
