@@ -209,7 +209,7 @@ function classifiedPostRow(item: ClassifiedFeedPost): TeamFeedPostDbRow {
   return item.post as TeamFeedPostDbRow;
 }
 
-/** Sortierzeit: created_at, sonst updated_at, sonst 0. */
+/** Ergebnisse: tatsächlicher Spielzeitpunkt; andere Beiträge: Veröffentlichung. */
 function feedPostSortTimestamp(row: TeamFeedPostDbRow): number {
   if ((row.post_kind === 'result_auto' || row.media_type === 'result') && row.payload && typeof row.payload === 'object') {
     const startsAt = (row.payload as Record<string, unknown>).starts_at;
@@ -223,33 +223,25 @@ function feedPostSortTimestamp(row: TeamFeedPostDbRow): number {
   return 0;
 }
 
-function feedPostUpdatedTimestamp(row: TeamFeedPostDbRow): number {
-  const updated = row.updated_at ? new Date(row.updated_at).getTime() : Number.NaN;
-  return Number.isFinite(updated) ? updated : 0;
+/** Einheitliche, strikt absteigende Chronologie für alle Mannschaften und Ansichten. */
+export function sortFeedPostsChronologically(items: ClassifiedFeedPost[]): ClassifiedFeedPost[] {
+  return [...items].sort((a, b) => {
+    const left = classifiedPostRow(a);
+    const right = classifiedPostRow(b);
+    const timeOrder = feedPostSortTimestamp(right) - feedPostSortTimestamp(left);
+    if (timeOrder) return timeOrder;
+    // Gleiche Zeitpunkte bleiben beim Nachladen stabil; Bearbeiten verschiebt keinen Beitrag.
+    return String(right.id).localeCompare(String(left.id));
+  });
 }
 
-/**
- * Home-Feed: neueste Wiener Kalendertage zuerst; innerhalb eines Tages
- * Matchday-Priorität, danach neueste zuerst. Importierte Ergebnisse nutzen den Spieltag.
- */
+/** Kompatibler Einstieg für bisherige Aufrufer; Beitragsarten erhalten keinen Vorrang. */
 export function sortClassifiedFeedPosts(
   items: ClassifiedFeedPost[],
-  eventStatusById: Map<string, string>,
-  now: Date = new Date(),
+  _eventStatusById: Map<string, string>,
+  _now: Date = new Date(),
 ): ClassifiedFeedPost[] {
-  return [...items].sort((a, b) => {
-    const pa = getFeedPostPriority(classifiedPostRow(a), eventStatusById, now);
-    const pb = getFeedPostPriority(classifiedPostRow(b), eventStatusById, now);
-    const ta = feedPostSortTimestamp(classifiedPostRow(a));
-    const tb = feedPostSortTimestamp(classifiedPostRow(b));
-    // Never promote an old imported result above newer feed days.
-    const day = (t: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t));
-    const dayOrder = day(tb).localeCompare(day(ta));
-    if (dayOrder) return dayOrder;
-    if (pb !== pa) return pb - pa;
-    if (tb !== ta) return tb - ta;
-    return feedPostUpdatedTimestamp(classifiedPostRow(b)) - feedPostUpdatedTimestamp(classifiedPostRow(a));
-  });
+  return sortFeedPostsChronologically(items);
 }
 
 /** @alias sortClassifiedFeedPosts */
