@@ -12,7 +12,7 @@ import {
   type ClassifiedFeedPost,
   type TeamFeedPostDbRow,
 } from '../lib/matchdayFeedTypes';
-import { buildEventStatusMap, isFeedPostVisibleInHomeFeed } from '../lib/feedPostPriority';
+import { buildEventStatusMap, isFeedPostVisibleInHomeFeed, sortFeedPostsChronologically } from '../lib/feedPostPriority';
 import { supabase } from '../lib/supabaseClient';
 
 const FEED_SELECT =
@@ -26,16 +26,7 @@ export const HISTORY_FEED_PAGE_SIZE = 15;
 export const FEED_LOAD_TIMEOUT_MS = 8000;
 const FEED_LOAD_TIMEOUT_MESSAGE = 'Feed konnte nicht geladen werden. Bitte erneut versuchen.';
 
-function sortChronological(items: ClassifiedFeedPost[]): ClassifiedFeedPost[] {
-  return [...items].sort((a, b) => {
-    const ta = a.post.created_at ? new Date(a.post.created_at).getTime() : 0;
-    const tb = b.post.created_at ? new Date(b.post.created_at).getTime() : 0;
-    if (tb !== ta) return tb - ta;
-    return String(b.post.id).localeCompare(String(a.post.id));
-  });
-}
-
-function mapVisiblePosts(
+export function mapVisiblePosts(
   rows: TeamFeedPostDbRow[],
   eventStatusById: Map<string, string>,
   now: Date,
@@ -47,7 +38,7 @@ function mapVisiblePosts(
     const c = classifyTeamFeedPost(r);
     if (c) mapped.push(c);
   }
-  return { posts: sortChronological(mapped), parseDropped: rows.length - mapped.length };
+  return { posts: sortFeedPostsChronologically(mapped), parseDropped: rows.length - mapped.length };
 }
 
 async function fetchEventStatusMapForSeasons(teamSeasonIds: string[]): Promise<Map<string, string>> {
@@ -207,7 +198,7 @@ export function useTeamFeedPosts(
     const scopes = scopeKey.split(',').filter(Boolean);
     const results = await Promise.all(scopes.map((id) => fetchActiveSeasonPosts({ teamSeasonId: id, teamId: null })));
     return {
-      posts: sortChronological(results.flatMap((result) => result.posts)),
+      posts: sortFeedPostsChronologically(results.flatMap((result) => result.posts)),
       dbRowCount: results.reduce((sum, result) => sum + result.dbRowCount, 0),
       parseDropped: results.reduce((sum, result) => sum + result.parseDropped, 0),
     };
@@ -309,7 +300,7 @@ export function useTeamFeedPosts(
         for (const item of hist.posts) {
           if (!seen.has(item.post.id)) merged.push(item);
         }
-        return sortChronological(merged);
+        return sortFeedPostsChronologically(merged);
       });
       setHistoricOffset((prev) => prev + hist.dbRowCount);
       setHasMoreHistoric(hist.hasMore);
@@ -397,7 +388,7 @@ export function useTeamFeedPosts(
   }, [teamSeasonId, teamId, skipEnsures, chronicleView, fetchScopePosts, multiScope]);
 
   /** Rückwärtskompatibel: alle geladenen Posts (active + historic). */
-  const posts = [...activePosts, ...historicPosts];
+  const posts = sortFeedPostsChronologically([...activePosts, ...historicPosts]);
 
   return {
     posts,
