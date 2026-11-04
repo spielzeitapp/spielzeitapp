@@ -2,6 +2,7 @@
  * ADMIN-ORG.1 – Vereinsdetail: Stammdaten, Abhängigkeiten, Archiv/Löschen.
  */
 
+import {ManagerTrainerPhotoPanel} from './ManagerTrainerPhotoPanel';
 import { ManagerTeamDetailsEditor } from './ManagerTeamDetailsEditor';
 import { ManagerAppPreviewPanel } from './ManagerAppPreviewPanel';
 import {CommunicationAccessSettings} from './components/CommunicationAccessSettings';
@@ -856,6 +857,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   </div>
                 ) : null}
               </form>
+              {staffTeamSeasonId?<ManagerTrainerPhotoPanel key={staffTeamSeasonId} seasonId={staffTeamSeasonId}/>:null}
             </div>
           </section>
 

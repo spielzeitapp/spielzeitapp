@@ -1,3 +1,4 @@
+import {ManagerTrainerPhotoPanel} from './ManagerTrainerPhotoPanel';
 import React, { useState } from 'react';
 import {
   adminAssignTeamSeasonStaff,
@@ -123,6 +124,7 @@ export function ManagerStaffAssignmentPanel({
 
       {error ? <p className="mt-3 text-[13px] text-red-700">{error}</p> : null}
       {success ? <p className="mt-3 text-[13px] text-emerald-700">{success}</p> : null}
+      <ManagerTrainerPhotoPanel key={teamSeasonId} seasonId={teamSeasonId} />
     </section>
   );
 }

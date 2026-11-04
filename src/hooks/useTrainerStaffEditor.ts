@@ -22,10 +22,11 @@ export const emptyTrainerForm: TrainerStaffFormState = {
 
 type Options = {
   teamSeasonId: string | null;
+  automaticCutout?: boolean;
   onAfterSave?: () => void | Promise<void>;
 };
 
-export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
+export function useTrainerStaffEditor({ teamSeasonId, onAfterSave, automaticCutout = true }: Options) {
   const [showTrainerForm, setShowTrainerForm] = useState(false);
   const [trainerFormMode, setTrainerFormMode] = useState<"create" | "edit">("create");
   const [trainerForm, setTrainerForm] = useState<TrainerStaffFormState>(emptyTrainerForm);
@@ -193,14 +194,16 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
           }
           avatarUrl = uploadedAvatar;
 
-          const generated = await prepareCutoutGeneration({
-            subject: "staff",
-            teamSeasonId,
-            entityId: userId,
-            avatarUrl: uploadedAvatar,
-          });
-          if (generated.cutoutUrl) {
-            cutoutUrl = generated.cutoutUrl;
+          if (automaticCutout) {
+            const generated = await prepareCutoutGeneration({
+              subject: "staff",
+              teamSeasonId,
+              entityId: userId,
+              avatarUrl: uploadedAvatar,
+            });
+            if (generated.cutoutUrl) {
+              cutoutUrl = generated.cutoutUrl;
+            }
           }
         }
 
@@ -255,6 +258,7 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
     },
     [
       teamSeasonId,
+      automaticCutout,
       trainerSaving,
       trainerForm,
       trainerFormMode,
