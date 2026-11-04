@@ -158,7 +158,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
 
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-50 flex w-[17.5rem] flex-col border-r border-white/10 bg-[#090909] text-white shadow-xl transition-transform duration-200',
+          'manager-sidebar fixed inset-y-0 left-0 z-50 flex w-[17.5rem] flex-col border-r border-white/10 bg-[#090909] text-white shadow-xl transition-transform duration-200',
           'lg:static lg:z-0 lg:translate-x-0 lg:shadow-none',
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ].join(' ')}

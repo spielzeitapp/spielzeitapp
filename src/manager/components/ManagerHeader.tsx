@@ -171,7 +171,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   return (
     <>
     <div aria-hidden className="shrink-0 md:hidden" style={{ height: headerHeight || 'calc(60px + env(safe-area-inset-top))' }} />
-    <header ref={headerRef} className="fixed inset-x-0 top-0 z-30 shrink-0 border-b border-white/10 bg-[#060608] text-white shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65)] pt-[env(safe-area-inset-top)] md:sticky md:inset-x-auto md:bg-[#090909]/[0.98] md:shadow-none md:backdrop-blur-md">
+    <header ref={headerRef} className="manager-header fixed inset-x-0 top-0 z-30 shrink-0 border-b border-white/10 bg-[#060608] text-white shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65)] pt-[env(safe-area-inset-top)] md:sticky md:inset-x-auto md:bg-[#090909]/[0.98] md:shadow-none md:backdrop-blur-md">
       <TestEnvironmentNotice />
       <div className="relative flex min-h-[60px] items-center gap-2 px-3 py-2 manager-mobile-header md:min-h-[72px] md:gap-3 md:py-2.5 md:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />

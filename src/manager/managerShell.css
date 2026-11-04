@@ -192,3 +192,45 @@ body:has(.manager-shell) {
 .manager-shell .manager-app-workspace input:disabled,
 .manager-shell .manager-app-workspace textarea:disabled,
 .manager-shell .manager-app-workspace select:disabled { color: #a1a1aa !important; }
+
+
+/* Desktop uses a softer frame; mobile Manager/App keep their dark appearance. */
+@media (min-width: 768px) {
+  .manager-shell .manager-sidebar {
+    background: #34383d;
+    border-color: #4b5056;
+    box-shadow: none;
+  }
+  .manager-shell .manager-header {
+    background: #3e4349;
+    border-color: #52575d;
+    backdrop-filter: none;
+  }
+  .manager-shell .manager-sidebar a[aria-current="page"] {
+    background: #d9232c;
+    box-shadow: none;
+  }
+  .manager-shell .manager-sidebar nav p {
+    color: #c5c9ce;
+  }
+  body:has(.manager-shell) .test-environment-notice {
+    background: #fff0af;
+    border-color: #edd980;
+    color: #4b3910;
+  }
+}
+
+/* The publication controls must stay readable even before a club is selected. */
+.manager-shell .manager-release-panel {
+  background: #fff;
+  color: #0f172a;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.06);
+}
+.manager-shell .manager-release-panel input[type="checkbox"] {
+  accent-color: #d9232c;
+}
+.manager-shell .manager-release-panel button:focus-visible {
+  outline: 2px solid #64748b;
+  outline-offset: 3px;
+}
