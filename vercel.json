@@ -188,6 +188,22 @@
       "destination": "/api/calendar/team?teamId=$1"
     },
     {
+      "source": "/api/push/subscribe",
+      "destination": "/api/push/router?pushAction=subscribe"
+    },
+    {
+      "source": "/api/push/unsubscribe",
+      "destination": "/api/push/router?pushAction=unsubscribe"
+    },
+    {
+      "source": "/api/push/send-team",
+      "destination": "/api/push/router?pushAction=send-team"
+    },
+    {
+      "source": "/api/push/test",
+      "destination": "/api/push/router?pushAction=test"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },

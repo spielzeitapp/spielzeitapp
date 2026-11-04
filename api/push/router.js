@@ -9,7 +9,9 @@ const handlers = new Map([
 ]);
 export default function handler(req, res) {
   const path = new URL(req.url, 'https://localhost').pathname;
-  const action = path.match(/^\/api\/push\/([^/]+)\/?$/)?.[1];
+  const action = path === '/api/push/router'
+    ? req.query?.pushAction
+    : path.match(/^\/api\/push\/([^/]+)\/?$/)?.[1];
   const target = handlers.get(action);
   if (!target) return res.status(404).json({ error: 'Unbekannter Push-Endpunkt.' });
   return target(req, res);
