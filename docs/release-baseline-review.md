@@ -43,3 +43,7 @@ Changes to the trusted workflow, publisher helpers or baseline must be installed
 - The `http` extension is unavailable in PGlite, so its type was stubbed for local DDL compilation. LIVE advertises version 1.6 as available. Actual HTTP/cron execution is not claimed by the rehearsal.
 - The existing full-application TypeScript backlog outside the configured feed check is not resolved by this preparation.
 - The initial code difference remains large and should show yellow. The operator must still test the intended TEST features and explicitly confirm the pinned version before publishing.
+
+## Trainer import follow-up
+
+The later TEST trainer import added two pending SQL files and a develop-only verification workflow. Both SQL files were reviewed and added to the exact-blob manifest after the full 36-file rehearsal passed. Synthetic checks confirm reuse of an existing account, explicit optional name/photo updates, stale-cutout clearing and permission/path rejection. The read-only, no-secret test workflow is installed separately on main; no trainer source or LIVE data is promoted by that setup. See `release-trainer-preflight-2026-11-04.json`.
