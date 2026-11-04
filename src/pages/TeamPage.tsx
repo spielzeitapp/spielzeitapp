@@ -338,6 +338,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     return "Team";
   }, [teamLine, selectedTeamSeason, teamLabel, isDemo, demo]);
 
+
   const heroSeason = useMemo(() => {
     if (isDemo) return demo!.data.seasonLabel;
     if (seasonLine?.trim() && seasonLine.trim() !== "—") return seasonLine.trim();
@@ -374,6 +375,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       return;
     }
     let cancelled = false;
+    setTeamPhoto(null);
     void supabase
       .from("team_photos")
       .select("team_season_id, photo_url, updated_at")

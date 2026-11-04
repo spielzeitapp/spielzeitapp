@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Share2 } from 'lucide-react';
+import { Share2, Trash2 } from 'lucide-react';
+import { removeAutomaticMatchdayPost } from '../../lib/autoMatchdayFeedEnabled';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
 import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -16,17 +17,26 @@ import { canSeeMeetup, normalizeRole } from '../../lib/roles';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 import { shareFeedContent } from '../../lib/feedShare';
 import { buildMatchdayShareText } from '../../lib/matchdayShareText';
+import { useMatchdayDesign } from '../../hooks/useMatchdayDesign';
+import { MatchdayDesignButton } from '../../components/feed/MatchdayDesignButton';
+import type { MatchdayPosterCardProps } from '../../components/feed/MatchdayPosterCard';
 
 type Props = {
   pick: HomeMatchCardPick;
   reviewPending?: boolean;
+  canDelete?: boolean;
+  onDeleted?: (matchId: string) => void;
+  ageGroup?: string | null;
 };
 
-export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false }) => {
+export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false, canDelete = false, onDeleted, ageGroup = null }) => {
   const { event, status } = pick;
   const [shareHint, setShareHint] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const posterRef = useRef<HTMLDivElement>(null);
   const basePath = useInternalBasePath();
+  const designState = useMatchdayDesign(event.id, event.team_season_id, basePath === '/demo');
   const enc = formatVisibleMatchEncounter({
     isHome: event.is_home,
     ourTeamName: getOurTeamDisplayName(),
@@ -76,6 +86,20 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+  const onDelete = async () => {
+    if (!canDelete || !viewerIsStaff || deleting || basePath === '/demo') return;
+    if (!window.confirm('Automatischen Spieltag-Beitrag für alle löschen? Er wird für dieses Spiel nicht erneut erstellt. Das Spiel selbst bleibt erhalten.')) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await removeAutomaticMatchdayPost(event.match_id ?? '');
+      onDeleted?.(event.match_id!);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Beitrag konnte nicht gelöscht werden.');
+    } finally {
+      setDeleting(false);
+    }
+  };
   const viewerRole = normalizeRole(membershipRole) ?? normalizeRole(backendRole);
   const meetingTime = canSeeMeetup(viewerRole) ? rawMeetingTime : null;
 
@@ -90,9 +114,31 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         basePath,
       });
 
+  const posterProps: MatchdayPosterCardProps = {
+    compact: true, homeTeamName: homeName, awayTeamName: awayName,
+    homeLogoUrl: homeLogo, awayLogoUrl: awayLogo, kickoffTime: kickoff,
+    ageGroup: ageGroup ?? (basePath === '/demo' ? 'U12' : null), matchDate,
+    meetingTime, locationLine, venueLabel, status: 'today', matchType: event.match_type,
+    announcementTiming,
+  };
   return (
     <section data-whatsapp-status-root className="min-w-0" aria-label="Spieltag">
+      {viewerIsStaff || basePath === '/demo' ? <div className="mb-2 flex justify-end">
+        <MatchdayDesignButton {...designState} poster={posterProps} teamSeasonId={event.team_season_id} demo={basePath === '/demo'} />
+      </div> : null}
+      {canDelete && viewerIsStaff && basePath !== '/demo' ? (
+        <div className="mb-2 flex justify-end">
+          <button type="button" disabled={deleting} onClick={() => void onDelete()}
+            className="inline-flex min-h-[44px] touch-manipulation items-center gap-2 rounded-xl border border-white/15 bg-black/50 px-3 text-sm font-semibold text-amber-200 disabled:opacity-45"
+            aria-label="Automatischen Spieltag-Beitrag löschen">
+            <Trash2 className="h-4 w-4" aria-hidden />
+            {deleting ? 'Wird gelöscht…' : 'Beitrag löschen'}
+          </button>
+        </div>
+      ) : null}
+      {deleteError ? <p role="alert" className="mb-2 text-sm text-red-400">{deleteError}</p> : null}
       <MatchdayPosterCard
+        {...posterProps}
         ref={posterRef}
         compact
         homeTeamName={homeName}
@@ -100,7 +146,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         homeLogoUrl={homeLogo}
         awayLogoUrl={awayLogo}
         kickoffTime={kickoff}
-        ageGroup={basePath === '/demo' ? 'U12' : null}
+        ageGroup={ageGroup ?? (basePath === '/demo' ? 'U12' : null)}
         matchDate={matchDate}
         meetingTime={meetingTime}
         locationLine={locationLine}
@@ -108,7 +154,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         status="today"
         matchType={event.match_type}
         announcementTiming={announcementTiming}
-        playerImageUrl={basePath === '/demo' ? '/avatars/demo/demo-player-upper-02.webp' : null}
+        playerImageUrl={basePath === '/demo' ? '/avatars/demo/demo-player-upper-02.webp' : designState.design.template === 'player' ? designState.design.imageUrl : null}
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
         <Link

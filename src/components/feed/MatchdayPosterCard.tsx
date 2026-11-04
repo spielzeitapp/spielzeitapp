@@ -1,4 +1,5 @@
 import React from 'react';
+import { posterClubName } from '../../lib/matchdayDesign';
 import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { FEED_HASHTAG } from './feedTypography';
@@ -104,8 +105,8 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
         <MatchdayPosterArtwork
           statusLabel={statusLabel}
           title="SPIELTAG"
-          homeTeamName={homeTeamName}
-          awayTeamName={awayTeamName}
+          homeTeamName={posterClubName(homeTeamName)}
+          awayTeamName={posterClubName(awayTeamName)}
           homeLogoUrl={homeLogoUrl}
           awayLogoUrl={awayLogoUrl}
           kickoffTime={kickoffTime}

@@ -1,3 +1,4 @@
+import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
 import { ClubLogo } from '../../components/branding/ClubLogo';
 import { useClubOpponentLogos, preferredClubLogo } from '../../hooks/useClubOpponentLogos';
 import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
@@ -944,6 +945,7 @@ export const LiveMatchScreen: React.FC = () => {
   /** DEMO.2F: gleicher Screen unter /demo, aber gegen die lokale Runtime statt Supabase. */
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
+  const [demoFormationFormat, setDemoFormationFormat] = useState<'7' | '9' | '11'>('7');
   const basePath = useInternalBasePath();
 
   const [effectiveMatchId, setEffectiveMatchId] = useState<string | null>(null);
@@ -1411,6 +1413,8 @@ export const LiveMatchScreen: React.FC = () => {
       setMainTab('lineup');
     } else if (tab === 'overview' || tab === 'uebersicht') {
       setMainTab('overview');
+    } else if (tab === 'videos') {
+      setMainTab('videos');
     } else if (tab === 'hub') {
       setMainTab('hub');
     }
@@ -5621,6 +5625,12 @@ export const LiveMatchScreen: React.FC = () => {
                     : LINEUP_CONTENT_SCROLL_BOTTOM_PAD,
               }}
             >
+              {isDemo && <DemoFormationPreview sevenFormation={pitchFormationId}
+                showActions={canControlLiveMatch && lineupPanelView === 'live' && !matchIsFinished}
+                sevenPositionMode={lineupPositionMode}
+                onSevenFormation={() => { setLineupPositionMode(false); setFormationSheetOpen(true); }}
+                onSevenPositions={() => setLineupPositionMode(previous => !previous)} players={players} format={demoFormationFormat} onFormatChange={format => { setDemoFormationFormat(format); setLineupPositionMode(false); setFormationSheetOpen(false); }} />}
+              {(!isDemo || demoFormationFormat === '7') && <>
               {lineupPanelView === 'kickoff' ? (
                 kickoffSafeLineupRowsCount === 0 ? (
                   <p className="rounded-[20px] border border-transparent bg-gradient-to-br from-[#101012]/90 to-black px-3 py-4 text-[13px] text-white/55 shadow-[0_6px_24px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.06)] backdrop-blur-[2px]">
@@ -5856,6 +5866,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 )}
               </section>
+              </>}
         {matchIsFinished && !isDemo && effectiveMatchId ? (
           <FinishedMatchAttendance key={effectiveMatchId} matchId={effectiveMatchId}
             players={roster.map(p => ({ id: p.id, name: p.name || 'Spieler' }))}

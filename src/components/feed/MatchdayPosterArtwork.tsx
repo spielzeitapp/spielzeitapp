@@ -1,3 +1,5 @@
+import { useDemoMode } from '../../demo/DemoContext';
+import { LiveMatchdayPosterArtwork } from './LiveMatchdayPosterArtwork';
 import React from 'react';
 import { Clock, MapPin, Trophy } from 'lucide-react';
 import './squadPoster.css';
@@ -113,7 +115,7 @@ export type MatchdayPosterArtworkProps = {
   compact?: boolean;
 };
 
-export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPosterArtworkProps>(
+const DemoMatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPosterArtworkProps>(
   function MatchdayPosterArtwork(
     {
       statusLabel,
@@ -233,4 +235,9 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
   },
 );
 
-MatchdayPosterArtwork.displayName = 'MatchdayPosterArtwork';
+DemoMatchdayPosterArtwork.displayName = 'MatchdayPosterArtwork';
+
+export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, React.ComponentProps<typeof LiveMatchdayPosterArtwork>>(function MatchdayPosterArtwork(props, ref) {
+  const demo = useDemoMode();
+  return demo?.isDemo ? <DemoMatchdayPosterArtwork {...props} ref={ref} /> : <LiveMatchdayPosterArtwork {...props} ref={ref} />;
+});

@@ -88,6 +88,7 @@ import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 import { PublicTeamTournamentPage } from '../pages/public/PublicTeamTournamentPage';
 import { DemoLayout } from '../demo/DemoLayout';
 import { DemoDesktopTrainerPage } from '../demo/pages/DemoDesktopTrainerPage';
+import { DemoTrainingPlanPage } from '../demo/pages/DemoTrainingPlanPage';
 import { DemoTeamSchedulePage } from '../demo/pages/DemoTeamSchedulePage';
 import { DemoU13TablePage } from '../demo/pages/DemoU13TablePage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
@@ -252,6 +253,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="spielplan" element={<DemoTeamSchedulePage />} />
           <Route path="tabelle" element={<DemoU13TablePage />} />
           <Route path="training" element={<DemoTrainingRedirect />} />
+          <Route path="trainingsplanung" element={<DemoTrainingPlanPage />} />
           <Route path="match" element={<DemoMatchRedirect />} />
           <Route path="match-preparation" element={<MatchPreparationPage />} />
           <Route path="match-lineup" element={<MatchLineupPage />} />
@@ -369,6 +371,7 @@ function InternalRoutes(): React.ReactElement {
           </RequireAuth>
         }
       />
+      <Route path="/manager/login" element={<LoginPage />} />
       <Route
         path="/manager"
         element={
@@ -456,6 +459,7 @@ function PublicRoutes(): React.ReactElement {
           <Route path="spielplan" element={<DemoTeamSchedulePage />} />
           <Route path="tabelle" element={<DemoU13TablePage />} />
           <Route path="training" element={<DemoTrainingRedirect />} />
+          <Route path="trainingsplanung" element={<DemoTrainingPlanPage />} />
           <Route path="match" element={<DemoMatchRedirect />} />
           <Route path="match-preparation" element={<MatchPreparationPage />} />
           <Route path="match-lineup" element={<MatchLineupPage />} />

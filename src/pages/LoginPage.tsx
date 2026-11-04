@@ -148,6 +148,9 @@ export const LoginPage: React.FC = () => {
     (path) => path === '/manager' || path?.startsWith('/manager/') || path?.startsWith('/manager?'),
   );
 
+  const managerLogin = location.pathname === '/manager/login' ||
+    Boolean(nextSafe?.startsWith('/manager') || safeFromState?.startsWith('/manager'));
+
   const playerLoginEnabled = isPlayerQrAccessEnabled();
   const lockedInviteEmail = useMemo(() => {
     if (parentInviteDismissed) return '';

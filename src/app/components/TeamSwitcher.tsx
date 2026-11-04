@@ -69,7 +69,8 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
     try {
       const error = await ensureFanTeamAccess(user.id, id);
       if (error) { setDiscoveryError(error); return; }
-      if (!openInApp) setViewTeamSeasonId(id); setOpen(false); navigate(`/app/team?teamSeason=${encodeURIComponent(id)}`);
+      if (!openInApp) { setViewTeamSeasonId(id); setTeamViewFilter([id]); }
+      setOpen(false); navigate(`/app/team?teamSeason=${encodeURIComponent(id)}`);
     } finally { setFavoriteSaving(false); }
   };
   const toggleDiscoveredFavorite = async (id: string) => {
@@ -206,13 +207,12 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
 
   const selectSingle = (ts: SessionTeamSeasonItem) => {
     if (openInApp) { setOpen(false); navigate(`/app/team?teamSeason=${encodeURIComponent(ts.id)}`); return; }
-    setTeamViewFilter(null);
     if (resolveTeamSeasonSwitcherAction(ts.status) === 'select-work') {
-      setSelectedTeamSeasonId(ts.id);
-      if (ts.id !== selectedTeamSeasonId && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
+      setViewTeamSeasonId(ts.id);
+      setTeamViewFilter([ts.id]);
+      if (ts.id !== value && pathname.startsWith('/app/live')) navigate('/app/live', { replace: true });
     }
-    else setViewTeamSeasonId(ts.id);
-    if (pathname.startsWith('/app/team')) navigate(`/app/team?teamSeason=${encodeURIComponent(ts.id)}`);
+    else { setTeamViewFilter(null); setViewTeamSeasonId(ts.id); }
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -284,11 +284,11 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
       const selected = teamViewFilter === 'all' ? visible.map(ts => ts.id) : filteredTeamSeasonIds;
       const next = selected.filter(sid => sid !== id && nextVisible.some(ts => ts.id === sid));
       if (next.length > 1) setTeamViewFilter(next);
-      else if (next.length === 1) { setSelectedTeamSeasonId(next[0]); setTeamViewFilter(null); }
-      else { setSelectedTeamSeasonId(nextVisible[0].id); setTeamViewFilter(null); }
+      else if (next.length === 1) { setViewTeamSeasonId(next[0]); setTeamViewFilter(next); }
+      else { setViewTeamSeasonId(nextVisible[0].id); setTeamViewFilter([nextVisible[0].id]); }
     } else if (value === id) {
-      setSelectedTeamSeasonId(nextVisible[0].id);
-      setTeamViewFilter(null);
+      setViewTeamSeasonId(nextVisible[0].id);
+      setTeamViewFilter([nextVisible[0].id]);
     }
     setFavoriteMenuUrl(null);
   };

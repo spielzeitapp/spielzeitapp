@@ -424,7 +424,7 @@ export const ProfilePage: React.FC = () => {
       className="page profile-page relative min-h-[60vh] w-full px-4 py-6"
       style={{
         background: 'linear-gradient(180deg, rgb(var(--club-primary-rgb) / 0.45) 0%, rgb(var(--club-primary-rgb) / 0.18) 50%, #07080c 100%)',
-        boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
+        boxShadow: 'inset 0 0 120px rgb(var(--club-primary-rgb) / 0.12)',
       }}
     >
       <div className="mx-auto max-w-[480px] space-y-8">

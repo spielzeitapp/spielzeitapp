@@ -6,7 +6,7 @@ import { useAuth } from './AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { clearAccountScopedClientState } from '../lib/accountScopedStorage';
 import { pickPreferredActiveTeamSeasonId } from '../lib/seasonLifecycle';
-import { resolveTeamViewSeasonIds } from '../lib/teamViewSelection';
+import { isTeamSeasonId, restoreTeamViewFilter, resolveTeamViewSeasonIds } from '../lib/teamViewSelection';
 import { resolveParentUiRole } from '../lib/parentChildLink';
 
 /** team_seasons.id und memberships.team_season_id als string (UUID), nie Number. */
@@ -221,13 +221,15 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const raw = window.localStorage.getItem('spz_team_view_' + authUser.id);
       if (!raw) return;
-      const stored: unknown = JSON.parse(raw);
+      const stored = restoreTeamViewFilter(JSON.parse(raw));
       if (stored === 'all') setTeamViewFilterState('all');
       else if (Array.isArray(stored)) {
         // External favorites are not part of the user's membership seasons.
         // Keep their IDs for the read-only view; access is still checked by Supabase RLS.
-        const ids = stored.filter((id): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id));
-        if (ids.length > 0) setTeamViewFilterState(ids);
+        if (stored.length > 0) {
+          setTeamViewFilterState(stored);
+          if (stored.length === 1) setViewTeamSeasonIdState(stored[0]);
+        }
       }
     } catch { /* Ignore invalid stored preferences. */ }
   }, [authUser?.id, teamSeasons]);
@@ -253,22 +255,26 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [teamSeasons, selectedTeamSeasonId],
   );
 
-  const [externalView, setExternalView] = useState<{ id: string; season: SessionTeamSeasonItem | null; error: string | null } | null>(null);
+  const [externalView, setExternalView] = useState<{ userId: string; id: string; season: SessionTeamSeasonItem | null; error: string | null } | null>(null);
   const ownView = teamSeasons.find(ts => ts.id === viewTeamSeasonId) ?? null;
   const needsExternalView = Boolean(authUser && viewTeamSeasonId && !ownView);
-  const viewTeamSeason = ownView ?? (externalView?.id === viewTeamSeasonId ? externalView.season : null);
-  const viewTeamSeasonLoading = needsExternalView && externalView?.id !== viewTeamSeasonId;
-  const viewTeamSeasonError = needsExternalView && externalView?.id === viewTeamSeasonId ? externalView.error : null;
+  const externalViewMatches = externalView?.userId === authUser?.id && externalView?.id === viewTeamSeasonId;
+  const viewTeamSeason = ownView ?? (externalViewMatches ? externalView?.season ?? null : null);
+  const viewTeamSeasonLoading = needsExternalView && !externalViewMatches;
+  const viewTeamSeasonError = needsExternalView && externalViewMatches ? externalView?.error ?? null : null;
   useEffect(() => {
     if (!needsExternalView || !viewTeamSeasonId) return;
     let cancelled = false;
     const id = viewTeamSeasonId;
-    void supabase.from('team_seasons')
+    const userId = authUser!.id;
+    void Promise.resolve(supabase.from('team_seasons')
       .select('id,team_id,season_id,status,display_name,age_group,teams(id,name,age_group,clubs(logo_url)),seasons(id,name)')
-      .eq('id', id).maybeSingle().then(({ data, error }) => {
+      .eq('id', id).maybeSingle()).then(({ data, error }) => {
         if (cancelled) return;
         const season = data ? normalizeTeamSeasonRow(data) : null;
-        setExternalView({ id, season, error: error?.message ?? (season ? null : 'Mannschaft nicht verfügbar.') });
+        setExternalView({ userId, id, season, error: error?.message ?? (season ? null : 'Mannschaft nicht verfügbar.') });
+      }).catch(() => {
+        if (!cancelled) setExternalView({ userId, id, season: null, error: 'Mannschaft konnte nicht geladen werden.' });
       });
     return () => { cancelled = true; };
   }, [needsExternalView, viewTeamSeasonId, authUser?.id]);
@@ -399,6 +405,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     const nextId = authUser?.id ?? null;
     const prevId = prevAuthUserIdRef.current;
+    if (prevId !== nextId) restoredTeamViewForRef.current = null;
     if (prevId && prevId !== nextId) {
       // Logout oder Kontowechsel: Team/Saison/Rolle des anderen Users nicht übernehmen
       clearAccountScopedClientState();
@@ -643,7 +650,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Viewing a favorite must survive reload without changing the work/team membership.
         let savedViewId: string | null = null;
         try { savedViewId = window.localStorage.getItem('spz_last_view_team_' + authUser.id); } catch { /* private browsing */ }
-        setViewTeamSeasonIdState(savedViewId || selectedId);
+        const savedFilter = (() => {
+          try { return restoreTeamViewFilter(JSON.parse(window.localStorage.getItem('spz_team_view_' + authUser.id) || 'null')); }
+          catch { return null; }
+        })();
+        setViewTeamSeasonIdState(preferredTeamSeasonId ? selectedId :
+          Array.isArray(savedFilter) && savedFilter.length === 1 ? savedFilter[0] :
+          isTeamSeasonId(savedViewId) ? savedViewId : selectedId);
         try {
           if (selectedId) {
             window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);
@@ -752,6 +765,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Active-Wechsel setzt View auf dieselbe Saison (History-Picker kann danach Archiv wählen).
     setViewTeamSeasonIdState(next);
     try {
+      if (authUser?.id) {
+        window.localStorage.removeItem('spz_team_view_' + authUser.id);
+        const key = 'spz_last_view_team_' + authUser.id;
+        if (next) window.localStorage.setItem(key, next);
+        else window.localStorage.removeItem(key);
+      }
       if (next != null) {
         window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, next);
       } else {

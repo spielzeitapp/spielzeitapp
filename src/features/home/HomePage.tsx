@@ -589,43 +589,27 @@ export const HomePage: React.FC = () => {
                 demoMode={isDemoMode}
               />
             ) : null}
-
-            {showFavoritesHint ? (
-              <div role="dialog" aria-label="Mannschaftsfavoriten" aria-modal="true" className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 px-5">
-                <div className="w-full max-w-sm rounded-2xl border border-red-500/40 bg-[#171015] p-5 shadow-2xl">
-                  <div className="mb-4 flex items-center gap-3">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-red-500/40 bg-[#22151b]">
-                      <Star className="h-6 w-6 text-red-400" strokeWidth={2} aria-hidden />
-                    </span>
-                    <p className="text-xl font-extrabold leading-tight text-white">Deine Mannschaften auf einen Blick</p>
-                  </div>
-                  <p className="text-sm leading-relaxed text-white/75">Du kannst mehrere Mannschaften gemeinsam oder einzeln anzeigen. Wähle dazu deine Favoriten.</p>
-                  <div className="mt-4 flex items-center gap-3 rounded-xl border border-red-500/35 bg-black/30 px-3 py-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.06]"><Star className="h-5 w-5 text-red-400" aria-hidden /></span>
-                    <div className="min-w-0 flex-1"><p className="text-sm font-bold text-white">Favoriten öffnen</p><p className="text-xs text-white/60">Stern oben im Header, links neben dem roten M</p></div>
-                    <ArrowUpRight className="h-5 w-5 shrink-0 text-red-400" aria-hidden />
-                  </div>
-                  <button type="button" onClick={dismissFavoritesHint} className="mt-5 min-h-[48px] w-full rounded-xl bg-red-800 px-4 text-sm font-bold text-white">Verstanden</button>
-                </div>
-              </div>
-            ) : null}
+            {isMultiTeamView ? <p className="rounded-lg border border-white/10 px-3 py-2 text-[12px] text-white/60">Gemeinsamer Feed · zum Erstellen oder Bearbeiten eine einzelne Mannschaft wählen.</p> : null}
             {isHistoryReadOnly && !isMultiTeamView ? (
               <p className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100/95">
                 Archiv-Ansicht — Feed nur lesen. Aktive Saison bleibt zum Schreiben unverändert.
               </p>
             ) : null}
 
-            {spieltagHintPick ? (
-              <div className={isDemoMode ? '-mx-1 sm:-mx-2 md:mx-0' : undefined}>
-                <HomeSpieltagHintCard
-                  pick={spieltagHintPick}
-                  reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
-                />
-              </div>
+            {spieltagHintPick && (feedFilter === 'all' || feedFilter === 'matchday') ? (
+              <HomeSpieltagHintCard
+                pick={spieltagHintPick}
+                ageGroup={teamSeasonLine.match(/\bU\d+\b/i)?.[0]?.toUpperCase() ?? null}
+                reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
+                canDelete={staffCanDeleteFeed}
+                onDeleted={(matchId) => {
+                  setDisabledMatchdayMatchIds((current) => new Set([...current, matchId]));
+                  void refetchFeed();
+                }}
+              />
             ) : null}
 
             <section className="min-w-0 space-y-3 pt-2 sm:pt-1" aria-label="Aktueller Team-Feed">
-              
               {teamFeedError ? (
                 <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
                   <p className="text-sm text-white/70">{teamFeedError}</p>
@@ -639,7 +623,7 @@ export const HomePage: React.FC = () => {
                 </div>
               ) : feedBusy ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
-              ) : visibleActivePosts.length === 0 && visibleHistoricPosts.length === 0 ? (
+              ) : spieltagHintPick && (feedFilter === 'all' || feedFilter === 'matchday') && filteredActivePosts.length === 0 && filteredHistoricPosts.length === 0 ? null : visibleActivePosts.length === 0 && visibleHistoricPosts.length === 0 ? (
                 <PremiumEmptyState
                   variant="subtle"
                   title="Noch keine Beiträge"

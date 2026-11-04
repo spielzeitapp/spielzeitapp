@@ -44,11 +44,11 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
         <p className="result-poster-competition">{competition}</p>
       </header>
       <div className="result-poster-match">
-        <ClubMark name={p.home_team_name} src={p.is_home ? matchClub.brand?.logo_url || '/logos/placeholder-shield-a.png' : p.home_logo_url} />
+        <ClubMark name={p.home_team_name} src={p.is_home ? matchClub.brand?.logo_url || p.home_logo_url : p.home_logo_url} />
         <div className="result-poster-score">
           <strong style={{ fontSize: `${Math.min(20, 64 / scoreText.length)}cqw` }}>{scoreText}</strong>
         </div>
-        <ClubMark name={p.away_team_name} src={!p.is_home ? matchClub.brand?.logo_url || '/logos/placeholder-shield-a.png' : p.away_logo_url} />
+        <ClubMark name={p.away_team_name} src={!p.is_home ? matchClub.brand?.logo_url || p.away_logo_url : p.away_logo_url} />
       </div>
       <div className="result-poster-summary">
         {periods ? <p className="result-poster-periods">{periods}</p> : null}
