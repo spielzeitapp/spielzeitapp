@@ -15,5 +15,5 @@ export function ManagerProfilePhotoPreview({seasonId,layout,photoUrl,cutoutUrl,f
   }catch{/* The editor remains usable if season metadata is temporarily unavailable. */}})();
   return()=>{active=false;};
  },[seasonId]);
- return <ProfileHeroCard variant={trainer?'trainer':'player'} photoLayout={layout} watermark={trainer?'TR':number==null?'':String(number)} firstNameLine={firstName} lastNameLine={lastName} teamName={header.team} teamSeasonLabel={header.label} teamLogoUrl={getOurTeamLogoUrl()} photoUrl={photoUrl} cutoutUrl={cutoutUrl} initials={[firstName[0],lastName[0]].filter(Boolean).join('')}/>;
+ return <div data-manager-artwork><ProfileHeroCard variant={trainer?'trainer':'player'} photoLayout={layout} watermark={trainer?'TR':number==null?'':String(number)} firstNameLine={firstName} lastNameLine={lastName} teamName={header.team} teamSeasonLabel={header.label} teamLogoUrl={getOurTeamLogoUrl()} photoUrl={photoUrl} cutoutUrl={cutoutUrl} initials={[firstName[0],lastName[0]].filter(Boolean).join('')}/></div>;
 }
