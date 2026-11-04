@@ -3,7 +3,7 @@ function text(value) {
  return String(value||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&nbsp;/g,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 }
 function photo(value) {
- try {const u=new URL(value,'https://vereine.oefb.at');return u.protocol==='https:'&&u.hostname==='vereine.oefb.at'&&/^\/netzwerk\/imagedownload\/[a-zA-Z0-9_.%-]+$/.test(u.pathname)&&!u.search?u.toString():null;}catch{return null;}
+ try {const u=new URL(value,'https://vereine.oefb.at');return u.protocol==='https:'&&!u.port&&!u.username&&!u.password&&!u.hash&&((u.hostname==='vereine.oefb.at'&&/^\/netzwerk\/imagedownload\/[a-zA-Z0-9_.%-]+$/.test(u.pathname))||(u.hostname==='www.oefb.at'&&/^\/oefb2\/images\/1278650591628556536_[a-f0-9]{20}-1,0-400x400-400x400\.png$/.test(u.pathname)))&&!u.search?u.toString():null;}catch{return null;}
 }
 function extract(html) {
  const trainers=new Map(), schemaKeys=new Set();
@@ -20,7 +20,7 @@ function extract(html) {
   let name=(first+' '+last).trim();
   if(!first||!last)name=text(get(/^(name|vollerName|trainerName|betreuerName|funktionaerName|personName|anzeigeName)$/i));
   if(staffRole&&/^[\p{L}][\p{L} .'-]{2,100}$/u.test(name)&&name.split(/\s+/).length>1&&!/trainer|betreuer|mannschaft|saison/i.test(name)) {
-   const photoUrl=strings.map(([,v])=>photo(v)).find(Boolean)||null;
+   const photoUrl=strings.map(([,v])=>photo(v)).find(Boolean)||(/^[a-f0-9]{20}$/i.test(String(value.fotoId||''))?'https://www.oefb.at/oefb2/images/1278650591628556536_'+String(value.fotoId).toLowerCase()+'-1,0-400x400-400x400.png':null);
    const email=text(strings.map(([,v])=>v.replace(/^mailto:/i,'')).find(v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))||'');
    const sourceRole=role.slice(0,120), key=name.toLocaleLowerCase('de')+'|'+sourceRole.toLowerCase();
    const previous=trainers.get(key);
@@ -45,7 +45,7 @@ module.exports=async function handler(req,res){
   if(!upstream.ok)throw Error('HTTP '+upstream.status);
   const html=await upstream.text();if(html.length>5000000)throw Error('Seite zu groß');
   const result=extract(html);
-  return res.status(200).json({...result,sourceUrl:url.toString(),notice:result.trainers.length?'Trainer gefunden. Vorhandenes Profil auswählen und Identität prüfen.':'Keine Trainer erkannt. Bitte Link und Saison prüfen.'});
+  return res.status(200).json({trainers:result.trainers,sourceUrl:url.toString(),notice:result.trainers.length?'Trainer gefunden. Vorhandenes Profil auswählen und Identität prüfen.':'Keine Trainer erkannt. Bitte Link und Saison prüfen.'});
  }catch{return res.status(502).json({error:'Die ÖFB-Trainerseite ist derzeit nicht abrufbar.'});}
 };
 module.exports.extract=extract;

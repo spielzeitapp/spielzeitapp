@@ -3,8 +3,9 @@ on:
   push:
     branches: [develop]
     paths:
-      - 'server/lib/oefbStaff.js'
+      - 'server/lib/oefbStaff*.js'
       - 'src/manager/ManagerOefbStaffPreview.tsx'
+      - 'scripts/oefb-staff-preview-test.cjs'
       - '.github/workflows/oefb-staff-import-check.yml'
 permissions:
   contents: read
@@ -19,35 +20,31 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: node scripts/oefb-staff-preview-test.cjs
-      - name: Parser and real public trainer page
+      - name: Verify public trainer parser and portrait proxy
         run: |
           node <<'NODE'
           const assert=require('node:assert/strict');
-          const handler=require('./server/lib/oefbStaff.js');
+          const parser=require('./server/lib/oefbStaff.js'),photo=require('./server/lib/oefbStaffPhoto.js');
+          function response(){return {code:200,headers:{},body:null,setHeader(k,v){this.headers[k]=v},status(c){this.code=c;return this},json(b){this.body=b;return this},send(b){this.body=b;return this},end(){return this}};}
           (async()=>{
             const fixture="SG.container.appPreloads['fixture']="+JSON.stringify([{trainer:[{vorname:'First',nachname:'Coach',funktion:'Trainer',fotoUrl:'https://vereine.oefb.at/netzwerk/imagedownload/portrait.jpg'}]}])+";";
-            const parsed=handler.extract(fixture);
+            const parsed=parser.extract(fixture);
             assert.equal(parsed.trainers.length,1);
             assert.equal(parsed.trainers[0].photoUrl,'https://vereine.oefb.at/netzwerk/imagedownload/portrait.jpg');
-            const html=await (await fetch('https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Trainer-Betreuer',{signal:AbortSignal.timeout(20000)})).text();
-            const result=handler.extract(html);
-            console.log('Public trainer count:',result.trainers.length);
-            console.log('Public preload field names:',JSON.stringify(result.schemaKeys));
-            assert.ok(result.trainers.length>=2,'Expected the public U12 trainers');
-            assert.ok(result.trainers.every(t=>t.name&&t.sourceRole));
-            console.log('Trainer names and photo availability:',JSON.stringify(result.trainers.map(t=>({name:t.name,photo:!!t.photoUrl}))));
-            console.log('Public script paths:',JSON.stringify([...html.matchAll(/<script\b[^>]*src=["']([^"']+)/gi)].map(m=>m[1])));
-            for(const m of html.matchAll(/SG\.container\.appPreloads\s*\[[^\]\r\n]+\]\s*=\s*(\[[\s\S]*?\])\s*;/g)){try{const blocks=JSON.parse(m[1]);for(const b of blocks){if(b.images)console.log('Image settings:',JSON.stringify(b.images));}}catch{}}
-            const photoResponse=await fetch('https://www.oefb.at/oefb2/images/1278650591628556536_0f3d5ece28322e5bff2a-1,0-400x400-400x400.png',{signal:AbortSignal.timeout(15000)});
-            const photoBytes=Buffer.from(await photoResponse.arrayBuffer());
-            console.log('Official trainer photo status:',photoResponse.status,photoResponse.headers.get('content-type'),photoBytes.length,photoBytes.subarray(0,8).toString('hex'));
-            console.log('Non-preload page scripts:',html.replace(/SG\.container\.appPreloads\s*\[[^\]\r\n]+\]\s*=\s*(\[[\s\S]*?\])\s*;/g,'').match(/<script\b[^>]*>[\s\S]*?<\/script>/gi)?.join('\n').slice(0,8000));
-            const script=(await (await fetch('https://vereine.oefb.at/features/container.js?version=1eQNyblR',{signal:AbortSignal.timeout(20000)})).text());
-            for(const term of ['fotoId','imagedownload','vereine3/images','imageUrl','getImage']){const pos=script.indexOf(term);console.log('Image resolver code:',term,pos,pos>=0?script.slice(Math.max(0,pos-160),pos+250):'');}
-            console.log('Script dependencies:',JSON.stringify([...script.matchAll(/["']([^"']+\.js[^"']*)["']/g)].map(m=>m[1]).slice(0,15)));
-            const ids=[...html.matchAll(/"fotoId"\s*:\s*("[^"]*"|[0-9]+)/g)].map(m=>JSON.parse(m[1]));
-            console.log('Staff photo identifiers:',JSON.stringify(ids));
-            for(const id of ids){const escaped=String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\            assert.ok(result.trainers.every(t=>t.name&&t.sourceRole));');const matches=[...html.matchAll(new RegExp('[^"\\s<>]*'+escaped+'[^"\\s<>]*','g'))].map(m=>m[0]);console.log('Public photo references:',JSON.stringify(matches.slice(0,8)));}
-
-          })().catch(e=>{console.error(e.message);process.exit(1)});
+            const invalid=response();await photo({method:'GET',query:{id:'https://example.test'}},invalid);assert.equal(invalid.code,400);
+            const invalidSource=response();await parser({method:'GET',query:{url:'https://example.test/Trainer-Betreuer'}},invalidSource);assert.equal(invalidSource.code,400);
+            const result=response();await parser({method:'GET',query:{url:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Trainer-Betreuer'}},result);
+            assert.equal(result.code,200);
+            assert.ok(result.body.trainers.some(t=>t.name==='Wolfgang Semellechner'));
+            assert.ok(result.body.trainers.some(t=>t.name==='Johannes Baumann'));
+            for(const trainer of result.body.trainers){
+              const id=trainer.photoUrl?.match(/_([a-f0-9]{20})-1,0-400x400-400x400\.png$/)?.[1];
+              assert.ok(id,'Public trainer portrait ID expected');
+              const image=response();await photo({method:'GET',query:{id}},image);
+              assert.equal(image.code,200);
+              assert.ok(image.body.length>1000);
+              assert.ok(['image/jpeg','image/png'].includes(image.headers['Content-Type']));
+            }
+            console.log('PASS: real U12 trainers and both portrait images loaded; MIME matches verified bytes; unrelated URLs rejected.');
+          })().catch(e=>{console.error(e);process.exit(1)});
           NODE
