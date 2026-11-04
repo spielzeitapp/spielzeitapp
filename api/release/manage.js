@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import release from '../../server/lib/liveRelease.js';
+import checkDisplay from '../../server/lib/releaseCheckPresentation.js';
 const TEST_PROJECT='acbaecjzoabafbsjrzvr';
 export default async function handler(req,res) {
  res.setHeader('Cache-Control','no-store');
@@ -23,11 +24,16 @@ export default async function handler(req,res) {
   const sameSource=plan.head===plan.main||(plan.comparisonComplete===true&&plan.changedFiles===0);
   if(req.method==='GET'){
    let liveVerified=false;
+   let checks=plan.checks.map(c=>checkDisplay.checkPresentation(c));
+   if(plan.checks.some(c=>c.state!=='success')){try{
+    const statuses=await gh(`/commits/${plan.head}/status`);
+    checks=plan.checks.map(c=>checkDisplay.checkPresentation(c,statuses.statuses?.find(s=>s.context===c.name&&s.state===c.state)));
+   }catch{/* Keep the original release decision and show a generic explanation. */}}
    if(sameSource){try{
     const response=await fetch(`https://spielzeitapp.at/api/release/manage?view=version&t=${Date.now()}`,{cache:'no-store',signal:AbortSignal.timeout(5000)});
     if(response.ok){const version=await response.json();liveVerified=version.sha===plan.main&&version.branch==='main';}
    }catch{}}
-   return res.json({...plan,ready:plan.ready&&!sameSource,sameSource,liveVerified});
+   return res.json({...plan,checks,ready:plan.ready&&!sameSource,sameSource,liveVerified});
   }
   if(sameSource)return res.status(409).json({error:'TEST und LIVE haben bereits denselben Programmstand. Es gibt nichts zu veröffentlichen.'});
   if(process.env.VERCEL_GIT_COMMIT_REF!=='develop')return res.status(403).json({error:'Nur der bereitgestellte TEST-Stand auf develop darf veröffentlichen.'});
