@@ -54,6 +54,15 @@ test('Manager requires a ready preview and explicit confirmation before dispatch
   await act(async()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Stand prüfen')).props.onClick());assert.equal(button().props.disabled,true);
   await act(async()=>renderer.root.findByType('input').props.onChange({target:{checked:true}}));assert.equal(button().props.disabled,false);
   await act(async()=>button().props.onClick());assert.equal(posts.length,1);assert.deepEqual(posts[0],{head:HEAD,main:MAIN,planDigest:'e'.repeat(64)});assert.equal(button().props.disabled,true);
+  plan={...plan,ready:false,sameSource:true,liveVerified:true,head:HEAD,main:HEAD,blockers:['LIVE enthält diesen Stand bereits.'],warnings:[],runs:[{id:1,status:'completed',conclusion:'success',title:`LIVE ${HEAD} fixture-request`,url:'https://example.invalid'}]};
+  await act(async()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Stand prüfen')).props.onClick());
+  assert.equal(renderer.root.findAllByType('button').find(x=>x.children.includes('LIVE ist aktuell')).props.disabled,true);
+  assert.ok(JSON.stringify(renderer.toJSON()).includes('Es gibt nichts zu veröffentlichen'));
+  assert.ok(!JSON.stringify(renderer.toJSON()).includes('Sperre beheben'));
+  plan={...plan,liveVerified:false};
+  await act(async()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Stand prüfen')).props.onClick());
+  assert.ok(!JSON.stringify(renderer.toJSON()).includes('LIVE ist aktuell'));
+  assert.ok(JSON.stringify(renderer.toJSON()).includes('LIVE-Bestätigung ausstehend'));
  }finally{if(renderer)await act(async()=>renderer.unmount());global.window=previousWindow;global.fetch=previousFetch;}
 });
 

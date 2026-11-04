@@ -2,7 +2,7 @@ import { isStagingApp } from '../lib/appEnvironment';
 import React, { useCallback, useEffect, useState } from 'react';
 import { eventSaveTask } from '../lib/eventSaveTask';
 import { supabase } from '../lib/supabaseClient';
-type Plan={warnings?:string[];changedFiles?:number;comparisonComplete?:boolean;trafficLight?:'red'|'yellow'|'green';head?:string;main?:string;planDigest?:string;ready:boolean;blockers:string[];checks:{name:string;state:string}[];migrations:{path:string;reviewed:boolean}[];functions?:{path:string;reviewed:boolean}[];commits:{sha:string;message:string}[];totalCommits?:number;runs:{id:number;status:string;conclusion:string|null;url:string;title:string}[]};
+type Plan={sameSource?:boolean;liveVerified?:boolean;warnings?:string[];changedFiles?:number;comparisonComplete?:boolean;trafficLight?:'red'|'yellow'|'green';head?:string;main?:string;planDigest?:string;ready:boolean;blockers:string[];checks:{name:string;state:string}[];migrations:{path:string;reviewed:boolean}[];functions?:{path:string;reviewed:boolean}[];commits:{sha:string;message:string}[];totalCommits?:number;runs:{id:number;status:string;conclusion:string|null;url:string;title:string}[]};
 async function api(method='GET',body?:unknown){
  const {data:{session}}=await eventSaveTask('Sitzung prüfen',supabase.auth.getSession(),8000);if(!session)throw new Error('Bitte erneut anmelden.');
  const response=await fetch('/api/release/manage',{method,signal:AbortSignal.timeout(25000),headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
@@ -19,9 +19,14 @@ export function ManagerLiveReleasePanel(){
  if(!isTest)return null;
  const requestRun=plan?.runs.find(r=>requested&&r.title.includes(requested));
  const waiting=!!requested&&!requestRun;
- const warnings=plan?.warnings??[];
- const light=error||plan?.blockers.length?'red':warnings.length?'yellow':plan?.ready?'green':null;
- const lightLabel=light==='red'?'Gesperrt':light==='yellow'?'Bereit mit Hinweisen':light==='green'?'Bereit zur Veröffentlichung':'Noch nicht geprüft';
+ const sameSource=plan?.sameSource===true;
+ const publishing=!!active||waiting;
+ const blockers=(plan?.blockers??[]).filter(message=>!(sameSource&&message==='LIVE enthält diesen Stand bereits.')&&!(publishing&&message==='Eine Veröffentlichung läuft bereits.'));
+ const current=sameSource&&plan?.liveVerified===true&&!publishing&&!blockers.length&&!error;
+ const pending=sameSource&&!current&&!blockers.length&&!error;
+ const warnings=current?[]:plan?.warnings??[];
+ const light=error||blockers.length?'red':publishing||pending?null:current?'green':warnings.length?'yellow':plan?.ready?'green':null;
+ const lightLabel=current?'LIVE ist aktuell':publishing?'Veröffentlichung läuft':pending?'LIVE-Bestätigung ausstehend':light==='red'?'Gesperrt':light==='yellow'?'Bereit mit Hinweisen':light==='green'?'Bereit zur Veröffentlichung':'Noch nicht geprüft';
  async function publish(){if(!plan?.ready||!confirmed||busy||waiting)return;setBusy(true);setError('');try{
   const r=await api('POST',{head:plan.head,main:plan.main,planDigest:plan.planDigest});setRequested(r.requestId);setConfirmed(false);await refresh();
  }catch(e){setError(`${e instanceof Error?e.message:String(e)} Bitte zuerst den Verlauf aktualisieren, bevor du erneut startest.`);setConfirmed(false);}finally{setBusy(false);}}
@@ -30,15 +35,17 @@ export function ManagerLiveReleasePanel(){
  <p className="text-sm">Übernimmt den geprüften Programmstand und technisch freigegebene Datenbankänderungen. TEST-Spieler, Testspiele und andere TEST-Inhalte werden nicht kopiert.</p>
  {plan?<><p className="text-sm">TEST: <strong>{plan.head?.slice(0,8)||'Verbindung fehlt'}</strong> · LIVE: <strong>{plan.main?.slice(0,8)||'noch nicht geprüft'}</strong></p>
  {plan.checks.map(c=><p className="text-sm" key={c.name}>{c.name}: {c.state==='success'?'erfolgreich':c.state==='pending'?'läuft':'noch nicht erfolgreich'}</p>)}
- <p className="text-xs text-slate-600">Grün: bereit · Gelb: Hinweise prüfen, Veröffentlichung möglich · Rot: zuerst Sperren beheben</p>
- {plan.blockers.length?<details className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-950"><summary className="cursor-pointer text-sm font-semibold">{plan.blockers.length} {plan.blockers.length===1?'Sperre beheben':'Sperren beheben'}</summary><ul className="mt-2 list-disc space-y-1 pl-5 text-sm">{plan.blockers.map(x=><li key={x}>{x}</li>)}</ul></details>:null}
+ <p className="text-xs text-slate-600">Grün: aktuell oder bereit · Gelb: Hinweise prüfen, Veröffentlichung möglich · Rot: zuerst Sperren beheben</p>
+ {current?<div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950"><p className="font-semibold">TEST und LIVE haben denselben Programmstand.</p><p className="mt-1 text-sm">Es gibt nichts zu veröffentlichen. Du musst nichts aktualisieren.</p></div>:pending&&!publishing?<p role="status" className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">Der Programmstand stimmt überein. Die erreichbare LIVE-Version ist noch nicht bestätigt. Bitte erneut „Stand prüfen“.</p>:null}
+ {!sameSource&&plan.ready?<p role="status" className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">Neue Programmänderungen stehen zur Veröffentlichung bereit.</p>:null}
+ {blockers.length?<details className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-950"><summary className="cursor-pointer text-sm font-semibold">{blockers.length} {blockers.length===1?'Sperre beheben':'Sperren beheben'}</summary><ul className="mt-2 list-disc space-y-1 pl-5 text-sm">{blockers.map(x=><li key={x}>{x}</li>)}</ul></details>:null}
  {warnings.length?<details className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950"><summary className="cursor-pointer text-sm font-semibold">{warnings.length} {warnings.length===1?'Hinweis prüfen':'Hinweise prüfen'}</summary><ul className="mt-2 list-disc space-y-1 pl-5 text-sm">{warnings.map(x=><li key={x}>{x}</li>)}</ul></details>:null}
  {plan.changedFiles!==undefined?<p className="text-sm text-slate-600">{plan.changedFiles} geänderte Dateien{plan.comparisonComplete===false?' · Vergleich unvollständig':' · Dateivergleich vollständig'}</p>:null}
  {plan.commits.length?<details><summary className="cursor-pointer font-semibold">Entwicklungsstände gegenüber LIVE ({plan.totalCommits??plan.commits.length})</summary><ul className="mt-2 max-h-60 space-y-2 overflow-auto text-sm">{plan.commits.map(c=><li key={c.sha}>{c.message}</li>)}</ul></details>:null}
  {plan.migrations.length?<details><summary className="cursor-pointer font-semibold">Datenbankänderungen ({plan.migrations.length})</summary><ul className="mt-2 max-h-48 space-y-2 overflow-auto break-all text-xs">{plan.migrations.map(m=><li key={m.path}>{m.reviewed?'Freigegeben':'Freigabe fehlt'}: {m.path.split('/').pop()}</li>)}</ul></details>:null}
  {(plan.functions??[]).length?<details><summary className="cursor-pointer font-semibold">Serverfunktionen ({plan.functions?.length})</summary><ul className="mt-2 space-y-2 text-xs">{plan.functions?.map(f=><li key={f.path}>{f.reviewed?'Freigegeben':'Freigabe fehlt'}: {f.path.split('/')[2]}</li>)}</ul><p className="mt-2 text-xs text-slate-600">Werden nach den Datenbankänderungen mit geschütztem Zugriff bereitgestellt.</p></details>:null}
- <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={confirmed} disabled={!plan.ready||busy||waiting||!!error} onChange={e=>setConfirmed(e.target.checked)}/>Ich habe diesen TEST-Stand geprüft und möchte genau diese Version LIVE veröffentlichen.</label>
- <button type="button" className="min-h-11 rounded-xl border border-[rgb(var(--club-accent-rgb))] bg-[rgb(var(--club-primary-rgb))] px-4 font-bold text-[var(--club-on-primary)] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-600 disabled:opacity-100" disabled={!plan.ready||!confirmed||busy||waiting||!!error} onClick={()=>void publish()}>Geprüften Stand LIVE veröffentlichen</button>
+ {!sameSource?<label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={confirmed} disabled={!plan.ready||busy||waiting||!!error} onChange={e=>setConfirmed(e.target.checked)}/>Ich habe diesen TEST-Stand geprüft und möchte genau diese Version LIVE veröffentlichen.</label>:null}
+ <button type="button" className="min-h-11 rounded-xl border border-[rgb(var(--club-accent-rgb))] bg-[rgb(var(--club-primary-rgb))] px-4 font-bold text-[var(--club-on-primary)] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-600 disabled:opacity-100" disabled={sameSource||!plan.ready||!confirmed||busy||waiting||!!error} onClick={()=>void publish()}>{current?'LIVE ist aktuell':sameSource?'LIVE-Bestätigung ausstehend':'Geprüften Stand LIVE veröffentlichen'}</button>
  {waiting?<p role="status" className="text-sm">Veröffentlichung angefordert. Der Verlauf wird automatisch geprüft.</p>:null}
  {plan.runs.length?<div><h3 className="font-semibold">Veröffentlichungsverlauf</h3>{plan.runs.map(r=><p key={r.id} className="mt-2 text-sm"><a href={r.url} target="_blank" rel="noreferrer" className="underline">{r.title}</a><br/>{r.status!=='completed'?'In Bearbeitung':r.conclusion==='success'?'LIVE-Version bestätigt':`Nicht erfolgreich abgeschlossen (${r.conclusion??'unbekannt'}). LIVE-Stand prüfen.`}</p>)}</div>:null}
  </>:!error?<p role="status">Verbindung und Versionen werden geprüft…</p>:null}

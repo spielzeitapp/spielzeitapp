@@ -20,7 +20,16 @@ export default async function handler(req,res) {
   if(!token){if(req.method==='POST')return res.status(503).json({error:'Veröffentlichungsverbindung ist noch nicht eingerichtet.'});return res.json({ready:false,blockers:['Einmalige Einrichtung: geschützte Veröffentlichungsverbindung fehlt.'],checks:[],commits:[],migrations:[],runs:[]});}
   const gh=(path,options)=>release.github(token,path,options);
   const plan=await release.releasePlan(gh);
-  if(req.method==='GET')return res.json(plan);
+  const sameSource=plan.head===plan.main||(plan.comparisonComplete===true&&plan.changedFiles===0);
+  if(req.method==='GET'){
+   let liveVerified=false;
+   if(sameSource){try{
+    const response=await fetch(`https://spielzeitapp.at/api/release/manage?view=version&t=${Date.now()}`,{cache:'no-store',signal:AbortSignal.timeout(5000)});
+    if(response.ok){const version=await response.json();liveVerified=version.sha===plan.main&&version.branch==='main';}
+   }catch{}}
+   return res.json({...plan,ready:plan.ready&&!sameSource,sameSource,liveVerified});
+  }
+  if(sameSource)return res.status(409).json({error:'TEST und LIVE haben bereits denselben Programmstand. Es gibt nichts zu veröffentlichen.'});
   if(process.env.VERCEL_GIT_COMMIT_REF!=='develop')return res.status(403).json({error:'Nur der bereitgestellte TEST-Stand auf develop darf veröffentlichen.'});
   const body=typeof req.body==='string'?JSON.parse(req.body):req.body;
   if(!plan.ready||body?.head!==plan.head||body?.main!==plan.main||body?.planDigest!==plan.planDigest)return res.status(409).json({error:'Freigabestand geändert oder noch nicht bereit. Bitte erneut prüfen.',plan});
