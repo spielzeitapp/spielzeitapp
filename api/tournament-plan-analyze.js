@@ -1,5 +1,5 @@
-import { analyzeTournamentPlanJson } from './_lib/tournamentPlanJsonAnalyze.js';
-import { loadPublicTeamTournamentPage } from './_lib/publicTeamTournamentPage.js';
+import { analyzeTournamentPlanJson } from '../server/lib/tournamentPlanJsonAnalyze.js';
+import { loadPublicTeamTournamentPage } from '../server/lib/publicTeamTournamentPage.js';
 
 export default async function handler(req, res) {
   if (req.query?.debugPing === '1') {

@@ -1,7 +1,7 @@
 // Installed on main once; never execute a candidate's privileged release script.
 import { createRequire } from 'node:module';
 const require=createRequire(import.meta.url);
-const {github,releasePlan,isSha}=require('../../api/_lib/liveRelease.js');
+const {github,releasePlan,isSha}=require('../../server/lib/liveRelease.js');
 const LIVE='shxugattqatahckhspwk';
 const {RELEASE_HEAD:head,RELEASE_MAIN:main,RELEASE_PLAN_DIGEST:expected,GITHUB_TOKEN:token}=process.env;
 if(!isSha(head)||!isSha(main)||!/^[a-f0-9]{64}$/.test(expected??''))throw new Error('Invalid pinned release inputs');

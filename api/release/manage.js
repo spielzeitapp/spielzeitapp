@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import release from '../_lib/liveRelease.js';
+import release from '../../server/lib/liveRelease.js';
 const TEST_PROJECT='acbaecjzoabafbsjrzvr';
 export default async function handler(req,res) {
  res.setHeader('Cache-Control','no-store');

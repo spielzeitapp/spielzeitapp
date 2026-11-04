@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseTournamentLiveResults } from '../api/_lib/tournamentLiveAdapter.js';
+import { parseTournamentLiveResults } from '../server/lib/tournamentLiveAdapter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -27,7 +27,7 @@ function read(rel) {
 }
 
 const adapter = read('src/lib/tournamentLiveAdapter.ts');
-const adapterJs = read('api/_lib/tournamentLiveAdapter.js');
+const adapterJs = read('server/lib/tournamentLiveAdapter.js');
 const importTs = read('src/lib/tournamentPlanImport.ts');
 const syncTs = read('src/lib/tournamentPlanSync.ts');
 const standingsTs = read('src/lib/tournamentGroupStandings.ts');

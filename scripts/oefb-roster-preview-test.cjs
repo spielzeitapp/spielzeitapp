@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const {extract} = require('../api/_lib/oefbRoster.js');
+const {extract} = require('../server/lib/oefbRoster.js');
 const preload = rows => 'SG.container.appPreloads["example"]=' + JSON.stringify(rows, null, 2) + ';';
 const player = (name,id) => ({spielerName:name,spielerProfilUrl:`/netzwerk/spielerdetails/2/111111_${id}~0.htm`});
 assert.deepEqual(extract(preload([{kader:[player('Anna Beispiel','8765432'),player('Eva Muster','8765433')]}])).map(p=>p.externalPlayerId),['8765432','8765433']);

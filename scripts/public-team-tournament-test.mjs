@@ -11,7 +11,7 @@ import {
   buildPublicTeamTournamentDto,
   assertPublicDtoSafe,
   toPublicMatchDto,
-} from '../api/_lib/publicTeamTournamentLogic.js';
+} from '../server/lib/publicTeamTournamentLogic.js';
 
 assert.strictEqual(normalizeOefbImportedTeamName('U11 SPG Rohrbach'), 'SPG Rohrbach');
 assert.strictEqual(normalizeOefbImportedTeamName('SV U11dorf'), 'SV U11dorf');

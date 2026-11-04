@@ -1,5 +1,5 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');
-const {releasePlan,digest}=require('../../api/_lib/liveRelease');
+const {releasePlan,digest}=require('../../server/lib/liveRelease');
 const HEAD='a'.repeat(40),MAIN='b'.repeat(40),SQL='c'.repeat(40);
 function stub(options={}){return async path=>{
  if(path==='/git/ref/heads/develop')return{object:{sha:options.head??HEAD}};

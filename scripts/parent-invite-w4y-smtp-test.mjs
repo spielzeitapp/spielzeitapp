@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const require = createRequire(import.meta.url);
 
-const mailLib = read('api/_lib/sendParentInviteEmail.js');
+const mailLib = read('server/lib/sendParentInviteEmail.js');
 const sendInvite = read('api/parent/send-invite.js');
 const envExample = read('.env.example');
 const pkg = JSON.parse(read('package.json'));
@@ -75,7 +75,7 @@ const {
   isDirectMailConfigured,
   isWorld4YouSmtpConfigured,
   isResendConfigured,
-} = await import('../api/_lib/sendParentInviteEmail.js');
+} = await import('../server/lib/sendParentInviteEmail.js');
 
 const acceptUrl = 'https://app.spielzeitapp.at/app/parent-invite/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const html = buildParentInviteEmailHtml({ acceptUrl });

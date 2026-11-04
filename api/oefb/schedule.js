@@ -2,7 +2,7 @@
  * GET /api/oefb/schedule?url=…
  * Lädt ÖFB-Vereinsseite und extrahiert SPIELPLAN_MANNSCHAFT aus appPreloads.
  */
-const { normalizeOefbImportedTeamName } = require('../_lib/normalizeOefbTeamName');
+const { normalizeOefbImportedTeamName } = require('../../server/lib/normalizeOefbTeamName');
 
 function extractPreloadSpiele(html) {
   // ÖFB setzt viele appPreloads[…]-Blöcke; nur der mit SPIELPLAN_MANNSCHAFT zählt.
@@ -109,7 +109,7 @@ function mapFixture(raw, ourTeamHints) {
 
 /** Bewerbslink: vorhandenen read-only ÖFB-Spielplan-Endpunkt wiederverwenden. */
 async function competitionFixtures(competitionId, hints) {
-  const leagueHandler = require('../_lib/oefbCompetitionResults');
+  const leagueHandler = require('../../server/lib/oefbCompetitionResults');
   let status = 200;
   let payload = null;
   const response = {

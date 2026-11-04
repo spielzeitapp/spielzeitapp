@@ -3,16 +3,16 @@
  * Run: node scripts/tournament-live-plan-provider-test.mjs
  */
 
-import { isSupportedTournamentPlanHost, extractMeinTurnierplanId } from '../api/_lib/meinTurnierplanUrl.js';
+import { isSupportedTournamentPlanHost, extractMeinTurnierplanId } from '../server/lib/meinTurnierplanUrl.js';
 import {
   analyzeTournamentPlanJson,
   parseMeinTurnierplanJson,
-} from '../api/_lib/tournamentPlanJsonAnalyze.js';
+} from '../server/lib/tournamentPlanJsonAnalyze.js';
 import {
   extractTournamentLiveKeyFromUrl,
   isTournamentLiveHost,
-} from '../api/_lib/tournamentLiveUrl.js';
-import { parseTournamentLiveResults } from '../api/_lib/tournamentLiveAdapter.js';
+} from '../server/lib/tournamentLiveUrl.js';
+import { parseTournamentLiveResults } from '../server/lib/tournamentLiveAdapter.js';
 
 const LIVE_URL = 'https://go.tournament-live.com/38331';
 const LIVE_MOBILE_URL = 'https://mobile.tournament-live.com/steurergedenkturnier/gedenkturnier2026/all';

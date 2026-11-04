@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { extractReport } = require('../api/_lib/oefbMatchReport');
+const { extractReport } = require('../server/lib/oefbMatchReport');
 const title = { spielUid: '4134586', heimMannschaft: 'Heim', gastMannschaft: 'Gast', ergebnis: '1:2', spielort: 'Arena' };
 const details = { heimAufstellung: { weitere: [{ name: 'Test Heim', rueckennummer: '1' }] },
   gastAufstellung: { weitere: [{ name: 'Test Gast', rueckennummer: '7' }] },
@@ -29,7 +29,7 @@ for(const [raw,expected] of [['0:0 (0:0)','0:0'],['4:0 (0:0)','4:0'],['0:3 (0:2)
  assert.equal(extractReport(`SG.container.appPreloads['a']=${JSON.stringify([{...title,ergebnis:raw}])};`,'4134586').score,expected);
 }
 async function testHandler() {
-  const handler = require('../api/_lib/oefbMatchReport');
+  const handler = require('../server/lib/oefbMatchReport');
   const response = () => ({ code: 200, body: null, headers: {}, setHeader(k,v) { this.headers[k] = v; }, status(c) { this.code=c; return this; }, json(b) { this.body=b; return this; } });
   const bad = response(); await handler({ method: 'GET', query: { id: 'https://other.test' } }, bad); assert.equal(bad.code, 400);
   const wrongMethod = response(); await handler({ method: 'POST', query: { id: '4134586' } }, wrongMethod); assert.equal(wrongMethod.code, 405);

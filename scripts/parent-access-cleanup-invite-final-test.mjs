@@ -10,7 +10,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 
 const sendInvite = read('api/parent/send-invite.js');
-const mailLib = read('api/_lib/sendParentInviteEmail.js');
+const mailLib = read('server/lib/sendParentInviteEmail.js');
 const login = read('src/pages/LoginPage.tsx');
 const register = read('src/pages/RegisterPage.tsx');
 const accept = read('src/pages/ParentInviteAcceptPage.tsx');

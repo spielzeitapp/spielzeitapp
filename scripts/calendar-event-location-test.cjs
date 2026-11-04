@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const root = path.resolve(__dirname, '..');
-const core = ['api/_lib/teamIcsCore.js', 'api/calendar/teamIcsCore.js']
+const core = ['server/lib/teamIcsCore.js', 'api/calendar/teamIcsCore.js']
   .map(file => path.join(root, file)).find(file => fs.existsSync(file));
 const context = { require: createRequire(core), module: { exports: {} }, console, URL, process };
 vm.runInNewContext(fs.readFileSync(core, 'utf8') + '\nmodule.exports = { buildLocation, buildMapsNavigationUrl, pickStableStamp };', context);

@@ -34,12 +34,12 @@ function normalizeTable(table) {
 }
 
 module.exports = async function handler(req, res) {
-  if (req.query?.view === 'teamPhoto') return require('../_lib/oefbTeamPhoto.js')(req, res);
-  if (req.query?.view === 'photo') return require('../_lib/oefbPhoto.js')(req, res);
-  if (req.query?.view === 'logo') return require('../_lib/oefbLogo.js')(req, res);
-  if (req.query?.view === 'roster') return require('../_lib/oefbRoster.js')(req, res);
-  if (req.query?.view === 'report') return require('../_lib/oefbMatchReport.js')(req, res);
-  if (req.query?.view === 'results') return require('../_lib/oefbCompetitionResults.js')(req, res);
+  if (req.query?.view === 'teamPhoto') return require('../../server/lib/oefbTeamPhoto.js')(req, res);
+  if (req.query?.view === 'photo') return require('../../server/lib/oefbPhoto.js')(req, res);
+  if (req.query?.view === 'logo') return require('../../server/lib/oefbLogo.js')(req, res);
+  if (req.query?.view === 'roster') return require('../../server/lib/oefbRoster.js')(req, res);
+  if (req.query?.view === 'report') return require('../../server/lib/oefbMatchReport.js')(req, res);
+  if (req.query?.view === 'results') return require('../../server/lib/oefbCompetitionResults.js')(req, res);
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.setHeader('CDN-Cache-Control', 'no-store');
   res.setHeader('Vercel-CDN-Cache-Control', 'no-store');

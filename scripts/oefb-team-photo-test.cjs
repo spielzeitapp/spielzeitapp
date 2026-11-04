@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict');const fs=require('node:fs');const handler=require('../api/_lib/oefbTeamPhoto.js');
+const assert=require('node:assert/strict');const fs=require('node:fs');const handler=require('../server/lib/oefbTeamPhoto.js');
 const source=handler.pageUrl('https://vereine.oefb.at/ScMelk/Mannschaften/Saison-2026-27/U16-FR/Kader/');
 for(const url of ['http://vereine.oefb.at/a','https://user:pass@vereine.oefb.at/ScMelk/Mannschaften/Saison-2026-27/U16-FR/Kader/','https://evil.test/ScMelk/Mannschaften/Saison-2026-27/U16-FR/Kader/','https://vereine.oefb.at/ScMelk/Mannschaften/Saison-2026-27/U16-FR/Kader/?x=y'])assert.throws(()=>handler.pageUrl(url));
 const id='b828d5fb1d7e9495d670';const image=`https://vereine.oefb.at/vereine3/images/123_${id}-1,0-600x315-600x315.jpg`;

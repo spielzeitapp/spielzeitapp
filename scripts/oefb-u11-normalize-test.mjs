@@ -9,7 +9,7 @@ const {
   normalizeOefbImportedTeamName,
   describeOefbOpponentCorrection,
   formatVisibleMatchEncounter,
-} = require('../api/_lib/normalizeOefbTeamName.js');
+} = require('../server/lib/normalizeOefbTeamName.js');
 
 const cases = [
   ['U11 SPG Rohrbach', 'SPG Rohrbach'],

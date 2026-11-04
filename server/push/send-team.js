@@ -9,7 +9,7 @@ import {
   getVapidSendResponseDebug,
   logVapidBeforeSend,
 } from "./_vapid.js";
-import { handleReminderStatus } from "../_lib/reminderStatus.js";
+import { handleReminderStatus } from "../lib/reminderStatus.js";
 
 function normalizeMembershipRole(roleStr) {
   const s = String(roleStr ?? "")

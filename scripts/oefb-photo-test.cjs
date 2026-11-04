@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict');const handler=require('../api/_lib/oefbPhoto');
+const assert=require('node:assert/strict');const handler=require('../server/lib/oefbPhoto');
 const original=global.fetch;let calls=0,options;
 async function request(url,quality){const res={headers:{},statusCode:0,setHeader(k,v){this.headers[k]=v;},status(n){this.statusCode=n;return this;},end(){return this;},send(b){this.body=b;return this;}};await handler({method:'GET',query:{url,quality}},res);return res;}
 (async()=>{try{

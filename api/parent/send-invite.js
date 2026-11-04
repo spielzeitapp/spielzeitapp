@@ -9,7 +9,7 @@
  * Secrets stay server-side. Invite links forced to Staging origin for develop.
  */
 import { createClient } from '@supabase/supabase-js';
-import { sendParentInviteEmail, sendStaffInviteEmail } from '../_lib/sendParentInviteEmail.js';
+import { sendParentInviteEmail, sendStaffInviteEmail } from '../../server/lib/sendParentInviteEmail.js';
 
 const STAGING_ORIGIN = 'https://app.spielzeitapp.at';
 const LIVE_ORIGIN_RE = /^https:\/\/(www\.)?spielzeitapp\.at$/i;
