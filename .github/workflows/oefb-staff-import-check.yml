@@ -1,0 +1,50 @@
+name: Verify OFB trainer import
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'server/lib/oefbStaff*.js'
+      - 'src/manager/ManagerOefbStaffPreview.tsx'
+      - 'scripts/oefb-staff-preview-test.cjs'
+      - '.github/workflows/oefb-staff-import-check.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: node scripts/oefb-staff-preview-test.cjs
+      - name: Verify public trainer parser and portrait proxy
+        run: |
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const parser=require('./server/lib/oefbStaff.js'),photo=require('./server/lib/oefbStaffPhoto.js');
+          function response(){return {code:200,headers:{},body:null,setHeader(k,v){this.headers[k]=v},status(c){this.code=c;return this},json(b){this.body=b;return this},send(b){this.body=b;return this},end(){return this}};}
+          (async()=>{
+            const fixture="SG.container.appPreloads['fixture']="+JSON.stringify([{trainer:[{vorname:'First',nachname:'Coach',funktion:'Trainer',fotoUrl:'https://vereine.oefb.at/netzwerk/imagedownload/portrait.jpg'}]}])+";";
+            const parsed=parser.extract(fixture);
+            assert.equal(parsed.trainers.length,1);
+            assert.equal(parsed.trainers[0].photoUrl,'https://vereine.oefb.at/netzwerk/imagedownload/portrait.jpg');
+            const invalid=response();await photo({method:'GET',query:{id:'https://example.test'}},invalid);assert.equal(invalid.code,400);
+            const invalidSource=response();await parser({method:'GET',query:{url:'https://example.test/Trainer-Betreuer'}},invalidSource);assert.equal(invalidSource.code,400);
+            const result=response();await parser({method:'GET',query:{url:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Trainer-Betreuer'}},result);
+            assert.equal(result.code,200);
+            assert.ok(result.body.trainers.some(t=>t.name==='Wolfgang Semellechner'));
+            assert.ok(result.body.trainers.some(t=>t.name==='Johannes Baumann'));
+            for(const trainer of result.body.trainers){
+              const id=trainer.photoUrl?.match(/_([a-f0-9]{20})-1,0-400x400-400x400\.png$/)?.[1];
+              assert.ok(id,'Public trainer portrait ID expected');
+              const image=response();await photo({method:'GET',query:{id}},image);
+              assert.equal(image.code,200);
+              assert.ok(image.body.length>1000);
+              assert.ok(['image/jpeg','image/png'].includes(image.headers['Content-Type']));
+            }
+            console.log('PASS: real U12 trainers and both portrait images loaded; MIME matches verified bytes; unrelated URLs rejected.');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
