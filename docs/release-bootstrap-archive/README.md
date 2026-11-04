@@ -9,3 +9,9 @@ Read-only verification on 2026-11-04 confirmed on TEST (`acbaecjzoabafbsjrzvr`):
 - Branding setter/getter and the public logo bucket exist. Branding migration `20260927100000` is recorded.
 
 This is evidence for retiring completed TEST installers only. It does not approve LIVE SQL or repair migration history. The trusted LIVE publication workflow is unchanged.
+
+## SQL excluded from the first publication
+
+The two admin-org SQL files remain explicitly excluded from automatic publication. The third SQL archive (`20260929100000`) is already present in LIVE history as `20261012203512`, except that LIVE deliberately omitted the hardcoded TEST U13 assignment. None of these three archives may be executed by the release worker.
+
+Historical source files already on main are adopted as the current LIVE baseline using exact Git blob hashes in `release/legacy-baseline.json`. This does not mark unrecorded versions as applied. The first publication applies only the 34 separately reviewed, pending files in `release/live-plan.json`.

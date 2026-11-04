@@ -1,4 +1,45 @@
 {
   "schema_version": 1,
-  "migrations": {}
+  "migrations": {
+    "supabase/migrations/20260929130000_pending_team_staff_invites.sql": "3be21a1f19fa51881001246636eff89af332df9b",
+    "supabase/migrations/20260929160000_lock_down_onboarding_rpcs.sql": "7f18327f0fa3ec4991c6a26917920ec24f20cd59",
+    "supabase/migrations/20261001120000_platform_registered_users_dashboard.sql": "f332f90e7d42c7b4c9bf21670913891ed34183f7",
+    "supabase/migrations/20261011131728_manager_team_setup_checklist.sql": "1b84aedbb1f8f36b08f8345aaef601611ed195da",
+    "supabase/migrations/20261011132550_manager_setup_progress_index.sql": "5e8836986abcc78516b2783ed7bb583971b6ea63",
+    "supabase/migrations/20261011140905_oefb_result_import.sql": "a368911a47ded74d8781723757d57e448befba1d",
+    "supabase/migrations/20261011190239_admin_oefb_fixture_import.sql": "f7b32f478e4f19396a33412f4202e8e7cf4ce2cc",
+    "supabase/migrations/20261012091426_oefb_player_goal_assignment.sql": "a1f714ac56764fed8ee5a04835aae9dba9b4a3b6",
+    "supabase/migrations/20261014165449_club_communication_access.sql": "4ffcf9a6495aa02a1c11e16502efa8f49003d37a",
+    "supabase/migrations/20261030093107_admin_edit_team_details.sql": "3eea24d82f7444392a5749e35dcbcd2dc4776c25",
+    "supabase/migrations/20261030122437_import_oefb_roster_metadata.sql": "4659559c5a5c983527461aae498a4c032225804f",
+    "supabase/migrations/20261031085455_manager_roster_player_actions.sql": "0fc43c38b96d5ce1bc970b60f19d7b1833910474",
+    "supabase/migrations/20261101020209_club_roster_existing_player_check.sql": "ec112d8a68486b5a0097719bb0e66b257a6e0edf",
+    "supabase/migrations/20261102075540_manager_player_photo_layout.sql": "a9708645c4767a96172cf0e54441e5ce3e5142e6",
+    "supabase/migrations/20261102084451_global_player_photo_layout.sql": "f54cabc483d86856b80d6ab387dd0d2a9fb49e40",
+    "supabase/migrations/20261102092616_oefb_friendly_result_import.sql": "b5273cdcdfac1c925a7bdeebde40097b49d67510",
+    "supabase/migrations/20261102101022_friendly_report_assignment.sql": "d5db8c7b95049c17359886997d08888e64e27a6c",
+    "supabase/migrations/20261102111012_oefb_player_id_aliases.sql": "ffaf20ceeb9f420955bd85b9489232007e883e57",
+    "supabase/migrations/20261102135613_manager_team_photo_permissions.sql": "921a04b2d45e76262cd0165d5840f1dc0d97b1d9",
+    "supabase/migrations/20261102160121_oefb_stats_confirmed_link_read.sql": "7bbc8cf6980c5c30f000f2ee891bbdd414fb07fa",
+    "supabase/migrations/20261102162459_oefb_confirmed_stats_duration.sql": "ab1a4037bc78814a1aefcf5a31004989a23a4774",
+    "supabase/migrations/20261102205712_oefb_duration_settings.sql": "068ef253836199f279fc2be53d2a23ee6f75cfab",
+    "supabase/migrations/20261103082407_sync_oefb_competition_fixture_updates.sql": "b42a8ae0bc7268098cc4515a17d0e3145aac6f76",
+    "supabase/migrations/20261103082923_fix_oefb_fixture_sync_event_update.sql": "b42a8ae0bc7268098cc4515a17d0e3145aac6f76",
+    "supabase/migrations/20261103092713_oefb_background_sync.sql": "77bb46a80023f9fa1282e51b80361a658b5738ca",
+    "supabase/migrations/20261103093152_oefb_auto_sync_controls.sql": "48bde99dd840b9a67327dfd38fb47d447694614d",
+    "supabase/migrations/20261103093420_oefb_sync_assignment_guard.sql": "2eef216f6e8664cd23a8ce8a13e733adbbb5cf9b",
+    "supabase/migrations/20261103093618_oefb_sync_direct_http.sql": "969bf83c4d1afd14d263ce67ad7055fbdd457deb",
+    "supabase/migrations/20261103094254_oefb_sync_schedule_posts.sql": "d18fedb6df4dc2b0f7306e5695d0f6451d37ef73",
+    "supabase/migrations/20261103135209_safe_oefb_schedule_automation.sql": "573c80ea74a6acb6b82baf7086e429bc321bea0b",
+    "supabase/migrations/20261103135629_harden_safe_oefb_schedule_sync.sql": "5a6563074716c0dd1c63e616d112f183816fb7aa",
+    "supabase/migrations/20261103135912_finalize_safe_oefb_sync_guards.sql": "8cf876366a77241fb13767fcfe051bcb33c4deea",
+    "supabase/migrations/20261103173150_app_oefb_conflict_resolution.sql": "c3c6a57c923116d94a52e73f5fac20462f7ae19c",
+    "supabase/migrations/20261104131027_oefb_roster_optional_name_update.sql": "3fffcede889d42d82b7939851193c28225eb3b5f"
+  },
+  "functions": {
+    "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
+  },
+  "post_deploy": {
+    "oefb_sync": true
+  }
 }
