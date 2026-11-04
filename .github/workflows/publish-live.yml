@@ -54,7 +54,7 @@ jobs:
         run: |
           npm ci
           npm run typecheck
-          node --test scripts/release/live-release.test.cjs
+          node --test scripts/release/*.test.cjs
           npm run build
   publish:
     needs: verify
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply reviewed database changes and promote exact commit
+      - name: Apply reviewed schema, deploy reviewed server functions and promote exact commit
         run: node scripts/release/publish-live.mjs publish
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -86,6 +86,14 @@ jobs:
       - name: Confirm public LIVE version
         run: node scripts/release/publish-live.mjs monitor
         env:
+          RELEASE_HEAD: ${{ inputs.head }}
+          RELEASE_MAIN: ${{ inputs.main }}
+          RELEASE_PLAN_DIGEST: ${{ inputs.plan_digest }}
+      - name: Verify LIVE technical configuration after confirmed deployment
+        run: node scripts/release/publish-live.mjs finalize
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           RELEASE_HEAD: ${{ inputs.head }}
           RELEASE_MAIN: ${{ inputs.main }}
           RELEASE_PLAN_DIGEST: ${{ inputs.plan_digest }}

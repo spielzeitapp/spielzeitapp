@@ -1,0 +1,159 @@
+{
+  "reviewed_on": "2026-11-04",
+  "live_project": "shxugattqatahckhspwk",
+  "source_test": "163effb42e68343c6c86d6c61e13e1bba4b6f122",
+  "read_only_live_inspection": true,
+  "live_schema_rehearsal": {
+    "tables": 115,
+    "functions": 255,
+    "constraints": 527,
+    "defaults": 375,
+    "business_rows_copied": 0,
+    "approved_sql_files": 34,
+    "result": "passed",
+    "limitations": [
+      "The http extension is unavailable in PGlite; its type was stubbed for DDL compilation. LIVE advertises http version 1.6 as available. No real HTTP or cron execution was performed.",
+      "The full LIVE RLS policy graph was not reproduced. Core function grants/default grants and three relevant base triggers were reproduced. These checks do not replace authenticated TEST user acceptance."
+    ]
+  },
+  "rpc_fixtures": [
+    "team setup",
+    "existing-player linking and explicit name adoption without duplicate players",
+    "duration change",
+    "photo-layout default",
+    "setup checklist",
+    "admin speaker/music access",
+    "archive retains identity",
+    "unprivileged mutations rejected"
+  ],
+  "historical_files_adopted_without_replay": 150,
+  "exact_recorded_sql_aliases": [
+    {
+      "path": "supabase/migrations/20261004180000_match_video_chapters.sql",
+      "live_version": "20261005093945",
+      "live_name": "match_video_chapters"
+    },
+    {
+      "path": "supabase/migrations/20261004181000_separate_match_scene_and_once_analysis.sql",
+      "live_version": "20261005093951",
+      "live_name": "separate_match_scene_and_once_analysis"
+    },
+    {
+      "path": "supabase/migrations/20261005070000_match_video_scene_annotations.sql",
+      "live_version": "20261005093957",
+      "live_name": "match_video_scene_annotations"
+    },
+    {
+      "path": "supabase/migrations/20261005200500_atomic_video_scene_save_and_minutes.sql",
+      "live_version": "20261005200556",
+      "live_name": "atomic_video_scene_save_and_minutes"
+    },
+    {
+      "path": "supabase/migrations/20261005201500_refresh_linked_standard_goal_titles.sql",
+      "live_version": "20261005200738",
+      "live_name": "refresh_linked_standard_goal_titles"
+    },
+    {
+      "path": "supabase/migrations/20261006070000_auto_feed_push_home_badge.sql",
+      "live_version": "20261006062930",
+      "live_name": "auto_feed_push_home_badge"
+    },
+    {
+      "path": "supabase/migrations/20261007150249_match_video_audience_download_share.sql",
+      "live_version": "20261007150617",
+      "live_name": "match_video_audience_download_share"
+    },
+    {
+      "path": "supabase/migrations/20261008070549_match_head_to_head.sql",
+      "live_version": "20261008103730",
+      "live_name": "match_head_to_head"
+    },
+    {
+      "path": "supabase/migrations/20261008093614_head_to_head_verified_results.sql",
+      "live_version": "20261008103739",
+      "live_name": "head_to_head_verified_results"
+    },
+    {
+      "path": "supabase/migrations/20261008094126_head_to_head_confirmation_access.sql",
+      "live_version": "20261008103751",
+      "live_name": "head_to_head_confirmation_access"
+    },
+    {
+      "path": "supabase/migrations/20261008100506_event_head_to_head_preview.sql",
+      "live_version": "20261008103800",
+      "live_name": "event_head_to_head_preview"
+    },
+    {
+      "path": "supabase/migrations/20261008110249_head_to_head_opponent_aliases.sql",
+      "live_version": "20261008111922",
+      "live_name": "head_to_head_opponent_aliases"
+    },
+    {
+      "path": "supabase/migrations/20261008110820_fix_opponent_alias_context.sql",
+      "live_version": "20261008111930",
+      "live_name": "fix_opponent_alias_context"
+    },
+    {
+      "path": "supabase/migrations/20261008113358_head_to_head_season_team_names.sql",
+      "live_version": "20261008113454",
+      "live_name": "head_to_head_season_team_names"
+    },
+    {
+      "path": "supabase/migrations/20261012140748_sprint_challenge_three_attempts.sql",
+      "live_version": "20261012140952",
+      "live_name": "sprint_challenge_three_attempts"
+    },
+    {
+      "path": "supabase/migrations/20261012142702_sprint_challenge_measurement_method.sql",
+      "live_version": "20261012142901",
+      "live_name": "sprint_challenge_measurement_method"
+    },
+    {
+      "path": "supabase/migrations/20261012183118_sprint_participation_and_player_history.sql",
+      "live_version": "20261012183820",
+      "live_name": "sprint_participation_and_player_history"
+    },
+    {
+      "path": "supabase/migrations/20261012183523_sprint_team_history_across_seasons.sql",
+      "live_version": "20261012183826",
+      "live_name": "sprint_team_history_across_seasons"
+    },
+    {
+      "path": "supabase/migrations/20261013190423_manager_communication_drafts_staging.sql",
+      "live_version": "20261014155200",
+      "live_name": "manager_communication_drafts"
+    },
+    {
+      "path": "supabase/migrations/20261014080851_speaker_audio_private_storage.sql",
+      "live_version": "20261014155222",
+      "live_name": "speaker_audio_private_storage"
+    },
+    {
+      "path": "supabase/migrations/20261014081451_speaker_audio_playlist_storage.sql",
+      "live_version": "20261014155230",
+      "live_name": "speaker_audio_playlist_storage"
+    },
+    {
+      "path": "supabase/migrations/20261015192443_parent_u11_archive_read_access.sql",
+      "live_version": "20261015192815",
+      "live_name": "parent_u11_archive_read_access"
+    },
+    {
+      "path": "supabase/migrations/20261021205941_match_no_show_optional_goal_import.sql",
+      "live_version": "20261021211020",
+      "live_name": "match_no_show_optional_goal_import"
+    },
+    {
+      "path": "supabase/migrations/20261025073424_match_feed_master_switch.sql",
+      "live_version": "20261025075151",
+      "live_name": "match_feed_master_switch"
+    }
+  ],
+  "archived_sql": {
+    "20260818140000_admin_org1_club_admin_role_enum.sql": "Explicitly excluded; current club-admin assignments do not require this legacy role change.",
+    "20260818140100_admin_org1_club_admin_assign.sql": "Explicitly excluded; would restore obsolete membership-based club-admin assignment.",
+    "20260929100000_team_season_oefb_table.sql": "LIVE 20261012203512 already contains the same schema/functions, with the TEST pilot UPDATE deliberately omitted."
+  },
+  "release_guard_tests": 24,
+  "production_write_performed": false
+}
