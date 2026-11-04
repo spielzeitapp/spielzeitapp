@@ -1,6 +1,22 @@
 import type { EventRow } from '../hooks/useEvents';
 import type { ClassifiedFeedPost } from './matchdayFeedTypes';
 import { supabase } from './supabaseClient';
+import { updateMatchRow } from './liveMatchService';
+
+/** Remove the generated announcement globally, without deleting the match. */
+export async function removeAutomaticMatchdayPost(matchId: string): Promise<void> {
+  const id = matchId?.trim();
+  if (!id) throw new Error('Dieser Beitrag ist noch keinem Spiel zugeordnet.');
+  const { error } = await updateMatchRow(id, { auto_matchday_feed_enabled: false });
+  if (error) throw new Error(error);
+  // RLS can silently update zero rows. Never report success without verifying.
+  const { data, error: readError } = await supabase.from('matches')
+    .select('id, auto_matchday_feed_enabled').eq('id', id).maybeSingle();
+  if (readError) throw new Error(readError.message);
+  if (data?.auto_matchday_feed_enabled !== false) {
+    throw new Error('Beitrag konnte nicht gelöscht werden. Bitte Berechtigung prüfen und erneut versuchen.');
+  }
+}
 
 /** Match-IDs mit deaktivierter Spieltag-Automatisierung (Hero + Spielankündigungen). */
 export async function loadAutoMatchdayFeedDisabledMatchIds(
@@ -45,6 +61,15 @@ export async function loadAutoMatchdayFeedEnabledByMatchId(
 
   for (const row of (data ?? []) as Array<{ id: string; auto_matchday_feed_enabled: boolean | null }>) {
     map.set(row.id, row.auto_matchday_feed_enabled !== false);
+  }
+  const { data: events, error: eventsError } = await supabase.from('events').select('id, match_id').in('match_id', ids);
+  if (eventsError) throw new Error(eventsError.message);
+  if (events?.length) {
+    const { data: settings, error: settingsError } = await supabase.from('event_feed_settings')
+      .select('event_id, feed_automation_enabled').in('event_id', events.map(event => event.id));
+    if (settingsError) throw new Error(settingsError.message);
+    const disabledEvents = new Set((settings ?? []).filter(row => row.feed_automation_enabled === false).map(row => row.event_id));
+    for (const event of events) if (disabledEvents.has(event.id) && event.match_id) map.set(event.match_id, false);
   }
   return map;
 }

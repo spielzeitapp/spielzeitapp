@@ -1,0 +1,130 @@
+name: Production manager role boundaries
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-manager-role-boundaries.yml"
+      - "supabase/migrations/20260829090000_manager_role_assignment_boundaries.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-manager-role-boundaries
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Verify Production, apply and validate role boundaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: shxugattqatahckhspwk
+      EXPECTED_PROJECT_NAME: spielzeitapp-nsg
+    steps:
+      - name: Checkout Production
+        uses: actions/checkout@v4
+
+      - name: Verify Production, migrate and validate
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body.slice(0, 500)}`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+
+            const preflight = await query(`
+              SELECT
+                to_regclass('public.clubs') IS NOT NULL AS clubs,
+                to_regclass('public.teams') IS NOT NULL AS teams,
+                to_regclass('public.team_seasons') IS NOT NULL AS team_seasons,
+                to_regclass('public.memberships') IS NOT NULL AS memberships,
+                to_regclass('public.platform_admin_audit_log') IS NOT NULL AS audit_log,
+                to_regprocedure('public.is_platform_admin()') IS NOT NULL AS platform_guard;
+            `);
+            const p = preflight?.[0] || {};
+            const required = ['clubs', 'teams', 'team_seasons', 'memberships', 'audit_log', 'platform_guard'];
+            const missing = required.filter((key) => !p[key]);
+            if (missing.length) {
+              throw new Error(`Production preflight failed; missing: ${missing.join(', ')}`);
+            }
+
+            const sql = fs.readFileSync(
+              'supabase/migrations/20260829090000_manager_role_assignment_boundaries.sql',
+              'utf8',
+            );
+            await query(sql);
+
+            const verification = await query(`
+              SELECT
+                to_regclass('public.club_admin_assignments') IS NOT NULL AS assignment_table,
+                (SELECT relrowsecurity FROM pg_class
+                  WHERE oid = 'public.club_admin_assignments'::regclass) AS rls_enabled,
+                to_regprocedure('public.is_club_admin_for_club(uuid)') IS NOT NULL AS helper_exists,
+                to_regprocedure('public.manager_list_my_club_admin_team_seasons()') IS NOT NULL AS context_rpc_exists,
+                to_regprocedure('public.manager_lookup_staff_user_by_email(uuid,text)') IS NOT NULL AS lookup_rpc_exists,
+                to_regprocedure('public.admin_assign_club_admin(uuid,uuid)') IS NOT NULL AS club_admin_rpc_exists,
+                to_regprocedure('public.admin_assign_team_season_staff(uuid,uuid,text)') IS NOT NULL AS trainer_rpc_exists,
+                NOT EXISTS (
+                  SELECT 1
+                  FROM public.memberships m
+                  JOIN public.team_seasons ts ON ts.id = m.team_season_id
+                  JOIN public.teams t ON t.id = ts.team_id
+                  WHERE lower(m.role::text) = 'admin'
+                    AND NOT EXISTS (
+                      SELECT 1 FROM public.club_admin_assignments ca
+                      WHERE ca.club_id = t.club_id
+                        AND ca.user_id = m.user_id
+                        AND ca.is_active
+                    )
+                ) AS legacy_backfill_complete;
+            `);
+            const v = verification?.[0] || {};
+            if (Object.values(v).some((value) => value !== true)) {
+              throw new Error(`Production verification failed: ${JSON.stringify(v)}`);
+            }
+            console.log('Production manager role boundaries verified.');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE

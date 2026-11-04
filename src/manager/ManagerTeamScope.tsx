@@ -10,7 +10,7 @@ export function ManagerTeamScope({ children }: { children: React.ReactNode }): R
   const { workMode, contextTeamSeasons } = useManagerWorkMode();
   const { pathname } = useLocation();
   // Platform settings do not need a team. All team workspaces require an authorized context.
-  if (pathname.startsWith('/manager/plattform') || pathname.startsWith('/manager/vereine') || pathname === '/manager/mehr' || pathname === '/manager/teams') return <>{children}</>;
+  if (pathname.startsWith('/manager/live-veroeffentlichung') || pathname.startsWith('/manager/plattform') || pathname.startsWith('/manager/vereine') || pathname === '/manager/mehr' || pathname === '/manager/teams') return <>{children}</>;
   if (session.loading) return <p role="status">Mannschaft wird geladen…</p>;
   const scope = resolveManagerTeamScope(session, workMode, contextTeamSeasons);
   if (!scope) return <section className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-900">

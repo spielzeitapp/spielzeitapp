@@ -1,0 +1,2526 @@
+{
+  "live": "991349e9721e85b92da649f416d0bfccbea84dff",
+  "test": "2e475122924425fa95dfa5578d0b6a4c6f4a3036",
+  "resolved": [
+    {
+      "file": ".github/workflows/player-access-active-season.yml",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "manager.html",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "package-lock.json",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "package.json",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "public/fonts/Anton-OFL.txt",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "public/landingpage.html",
+      "resolution": "LIVE",
+      "reason": "Preserve released behavior/assets or immutable historical SQL."
+    },
+    {
+      "file": "scripts/calendar-event-location-test.cjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/landingpage-clean-hero-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE cleaned"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE cleaned"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/live-opponent-logo-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/manager-trainer-mode-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/manager-venue-grants-ui2-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/match-no-show-stats-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/parent-email-invite-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/parent-invite-ux-polish-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/speaker-music-mode-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/step19-tournament-live-robustness-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 4,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/team-season-naming-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/team-view-selection-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 3,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/training-exercise-import1-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/training-session-add-exercise-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "scripts/venue-model-final-regression-test.mjs",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "server/lib/reminderStatus.js",
+      "resolution": [],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "server/push/send-team.js",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/app/App.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/app/components/BottomNav.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/app/components/MatchCardLigaportal.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/app/components/TeamSwitcher.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "combined"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 12,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 13,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 14,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 15,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 16,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 17,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 18,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 19,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 20,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 21,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/app/intro/WelcomeScreen.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/app/layout/Header.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/app/layout/InternalLayout.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/auth/RequireAuth.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/auth/useSession.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 3,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 4,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 5,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 6,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/events/EventFeedCommunicationSection.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/events/OpponentLogoField.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/feed/MatchdayFeedPostCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 5,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 6,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/feed/MatchdayPosterArtwork.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/feed/PosterClubName.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/feed/ResultFeedPostCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 2,
+          "choice": "deduplicated import"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/feed/ResultPosterArtwork.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/feed/SquadPosterArtwork.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/feed/resultPoster.css",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/live/LiveMusicDock.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/live/LivePremiumShell.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/match/MatchTypeHeading.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/match/MatchVideosPanel.tsx",
+      "resolution": "LIVE",
+      "reason": "Preserve released behavior/assets or immutable historical SQL."
+    },
+    {
+      "file": "src/components/schedule/EventHeroCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/schedule/PastMatchResultCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/schedule/ScheduleHeroEventCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/team/ParentAccessPlayerRow.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/team/PlayerProfileModal.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/team/SeasonMatchCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/team/TeamSquadShowcase.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/team/profile/ProfileHeroCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/team/profile/TrainerProfileBody.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/team/profile/TrainerProfileHeroCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/components/training/TrainingExerciseDetailModal.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/demo/components/DemoManagerPreview.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/demo/demoDataSource.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/demo/pages/DemoTeamSchedulePage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/features/home/HomeFeedComposer.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/features/home/HomePage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 4,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 5,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/features/home/HomeSpieltagHintCard.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 3,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 4,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 5,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 6,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/hooks/useTeamFeedPosts.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/autoMatchdayFeedEnabled.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/clubBranding.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/ensureLineupFeedPost.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/matchdayPosterExport.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "combined"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/opponentCatalog.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/parentLinkInvites.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/platformClubAdmin.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/rosterPlayer.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/seasonLifecycle.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/stats/playerStatsService.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/teamViewSelection.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/tournamentPlan.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/lib/trainingExercisePdfPayload.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ClubBrandingFields.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerAccessGate.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerClubDetailPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 12,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 13,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 14,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 15,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 16,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 17,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 18,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerClubsPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerDashboardPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerLayout.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerMatchVideosPage.tsx",
+      "resolution": "LIVE",
+      "reason": "Preserve released behavior/assets or immutable historical SQL."
+    },
+    {
+      "file": "src/manager/ManagerOefbImportPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerPlatformDashboardPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerSeasonRosterPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerSpeakerStudioPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerTeamScope.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/ManagerWorkModeContext.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/components/ManagerHeader.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 12,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 13,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 14,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 15,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 16,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/components/ManagerMobileNav.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/components/ManagerSidebar.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/managerNav.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/managerShell.css",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/managerSpeakerStudio.css",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/mobile/ManagerMobileMorePage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/manager/mobile/ManagerMobileTeamsPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/EventDetailPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "combined"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 12,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 13,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 14,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 15,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 16,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 17,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 18,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 19,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 20,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 21,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 22,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 23,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 24,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 25,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 26,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/FanOnboardingPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/JugglingChallengePage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/LoginPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/MoreHubPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 12,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 13,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 14,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/ParentAccessPlayerPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/ProfilePage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "LIVE"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/RegisterPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/SchedulePage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "LIVE"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/SprintChallengePage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/TeamPage.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/pages/live/LiveMatchScreen.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/styles/components.css",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 5,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 6,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 7,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 8,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 9,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 10,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 11,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/styles/tokens.css",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "src/theme/ClubThemeProvider.tsx",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "supabase/functions/generate-club-communications/index.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "supabase/migrations/20260828043000_platform_admin_dashboard_modules.sql",
+      "resolution": "LIVE",
+      "reason": "Preserve released behavior/assets or immutable historical SQL."
+    },
+    {
+      "file": "supabase/migrations/20260904113000_training_1100_match_rsvp_reminders.sql",
+      "resolution": "LIVE",
+      "reason": "Preserve released behavior/assets or immutable historical SQL."
+    },
+    {
+      "file": "vercel.json",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 2,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 3,
+          "choice": "TEST"
+        },
+        {
+          "hunk": 4,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    },
+    {
+      "file": "vite.config.ts",
+      "resolution": [
+        {
+          "hunk": 1,
+          "choice": "TEST"
+        }
+      ],
+      "reason": "Retain TEST feature/UI additions; preserve identified LIVE session, feed, video, compatibility and output-size fixes."
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { MatchFeedSwitches } from '../components/match/MatchFeedSwitches';
 import { eventSaveTask } from '../lib/eventSaveTask';
 import { OefbConflictNotice } from '../components/match/OefbConflictNotice';
 import { useOefbLiveReport } from '../components/match/OefbLiveReport';
@@ -7,7 +8,7 @@ import { useClubOpponentLogos, preferredClubLogo } from '../hooks/useClubOpponen
 import { useMatchClubBranding } from '../hooks/useMatchClubBranding';
 import '../components/match/finishedClubTheme.css';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Bus,
   ArrowLeftRight,
@@ -536,7 +537,11 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
+  const [videoSearchParams] = useSearchParams();
   const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos' | 'comparison'>('hub');
+  useEffect(() => {
+    setFinishedTab(videoSearchParams.get('tab') === 'videos' ? 'videos' : 'hub');
+  }, [videoSearchParams]);
   const [matchRowLite, setMatchRowLite] = useState<{
     id: string;
     status: string | null;
@@ -1720,7 +1725,7 @@ export const EventDetailPage: React.FC = () => {
           logoUrl: logo,
         }));
       }
-      setOpponentLogo(logo ?? '');
+      setEditOpponentLogoUrl(logo);
     }
 
     if (editEvent.kind === 'training' || (editEvent.kind === 'match' && editEvent.is_home === true)) {
@@ -4723,6 +4728,8 @@ export const EventDetailPage: React.FC = () => {
             ) : null}
           </Card>
         ) : null}
+
+        {event.kind === 'match' && canTrainerManageEvent ? <div className="mt-6"><MatchFeedSwitches eventId={event.id} /></div> : null}
 
         {event.kind === 'match' && event.status !== 'canceled' && canTrainerManageEvent && (
           <Card className="mt-6 flex flex-col gap-2 overflow-hidden">

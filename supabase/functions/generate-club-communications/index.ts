@@ -1,12 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.3';
 
-const allowedOrigins = new Set(['https://app.spielzeitapp.at']);
+const projectUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const isTestProject = projectUrl === 'https://acbaecjzoabafbsjrzvr.supabase.co';
+const isLiveProject = projectUrl === 'https://shxugattqatahckhspwk.supabase.co';
+const allowedOrigins = new Set(isTestProject ? ['https://app.spielzeitapp.at'] : isLiveProject ? ['https://spielzeitapp.at', 'https://www.spielzeitapp.at'] : []);
+const defaultOrigin = isTestProject ? 'https://app.spielzeitapp.at' : 'https://spielzeitapp.at';
 const sectionIds = new Set(['welcome','anthem','sponsors','away_lineup','home_lineup','officials','entrance','kickoff','halftime','second_half','fulltime']);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 Deno.serve(async (req: Request) => {
  const origin=req.headers.get('Origin');
- const headers={'Content-Type':'application/json','Vary':'Origin','Access-Control-Allow-Origin':origin&&allowedOrigins.has(origin)?origin:'https://app.spielzeitapp.at','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type','Access-Control-Allow-Methods':'POST,GET,OPTIONS'};
+ const headers={'Content-Type':'application/json','Vary':'Origin','Access-Control-Allow-Origin':origin&&allowedOrigins.has(origin)?origin:defaultOrigin,'Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type','Access-Control-Allow-Methods':'POST,GET,OPTIONS'};
  const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
+ if(!isTestProject&&!isLiveProject)return json({error:'Projekt nicht freigegeben.'},503);
  if(origin&&!allowedOrigins.has(origin))return json({error:'Origin nicht freigegeben.'},403);
  if(req.method==='OPTIONS')return new Response('ok',{headers});
  const key=Deno.env.get('OPENAI_API_KEY');
@@ -40,7 +45,7 @@ Deno.serve(async (req: Request) => {
  if(!settings||typeof settings!=='object'||Array.isArray(settings)||Object.keys(settings).length>40||Object.values(settings).some(v=>typeof v!=='string'||v.length>4000))return json({error:'Ungültige Tagesangaben.'},400);
  const sections=body.sections;
  if(!Array.isArray(sections)||sections.length<1||sections.length>11||sections.some(s=>!s||typeof s.id!=='string'||!sectionIds.has(s.id)||typeof s.title!=='string'||s.title.length>200||typeof s.text!=='string'||s.text.length>10000)||new Set(sections.map(s=>s.id)).size!==sections.length)return json({error:'Ungültige Textabschnitte.'},400);
- if(!key)return json({error:'Der OpenAI-API-Schlüssel ist auf Test noch nicht eingerichtet.'},503);
+ if(!key)return json({error:'Der OpenAI-API-Schlüssel ist noch nicht eingerichtet.'},503);
  const admin=createClient(url,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'',{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:reserved,error:limitError}=await admin.rpc('reserve_communication_generation',{p_user_id:user.id});
  if(limitError)return json({error:'KI-Limit konnte nicht geprüft werden.'},503);

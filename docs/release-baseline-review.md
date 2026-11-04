@@ -1,139 +1,31 @@
 # One-time release baseline review
 
-Status: blocked; no candidate has been promoted and no LIVE database changes have been applied.
+Application reconciliation completed on 2026-11-04. LIVE publication remains blocked pending database and Edge Function review. No LIVE database change or TEST data transfer was performed.
 
-LIVE source: `e0f175a37c9aa6cbb2b433335a2382e73a7ff587`. TEST source before traffic-light change: `cdb0c83efc902003544846ef9329f3a0af018b26`.
+Sources: LIVE `991349e9721e85b92da649f416d0bfccbea84dff`, TEST `2e475122924425fa95dfa5578d0b6a4c6f4a3036`.
 
-A normal merge of LIVE into a separate TEST integration worktree reports **117 unresolved file conflicts**. The conflicts include login/session handling, events, live matches, Manager permissions, deployment configuration and two historical SQL migrations. Do not resolve all conflicts by choosing one branch, create an ancestry-only merge, or mark an unreviewed baseline as approved.
+## Application reconciliation
 
-The LIVE migration history was read without modifying it: **128 entries**. Repository SQL files differ from that history, including changed historical files and equivalent changes with different versions. Missing history is not proof a migration should be rerun. The excluded admin-org migrations `20260818140000` and `20260818140100` remain unapproved.
+All 117 conflicting files have been reconciled in a real merge of LIVE into TEST. The per-file/hunk choices are recorded in `release-baseline-resolution.json`. This is not an ancestry-only merge: the resulting tree retains the intended TEST Manager, ÖFB, branding and authorization additions and restores released fixes for persisted favorites, user switching, feed deletion/automation, poster design, video transfer and marketing assets.
 
-## Required review
+Follow-up integration fixes: remove duplicate Home filter markup, complete the demo formation wrapper/import, restore the demo training plan import, remove an unused Team logo reference, avoid duplicate schedule date classification, use the actual opponent-logo state setter, and allow the global publication page without a team scope. Communication generation retains TEST permissions with environment-bound CORS for TEST and LIVE; deployment of this changed Edge Function remains a separate blocker.
 
-1. Resolve application conflicts while preserving tested LIVE fixes and intended TEST features.
-2. Preserve existing shipped SQL; place any required compatible delta in new migrations and review against actual LIVE schema.
-3. Review separate deployment of changed Supabase Edge Functions and workflow files.
-4. Build/typecheck/test the resulting TEST integration, then run user acceptance checks.
-5. Review the exact final code and migration diff before the first publication.
+## Validation
 
-The traffic light permits fully enumerated large code-only diffs with yellow warnings. It does not override any of these baseline blockers.
+- Production Vite build and the configured feed typecheck pass.
+- 14 release authorization, stale snapshot, full file comparison and serverless routing tests pass; API remains at 10 deployed functions.
+- Favorite session lifecycle, multi-team reading scope, normal favorites, club-theme scope, automatic matchday deletion, poster design, match club branding, ÖFB opponent-logo roundtrip, player assignment, roster preview, duration settings, Manager trainer mode and parent invitation UX tests pass.
+- Demo formation and authorized video transfer tests pass.
+- Full application TypeScript check was additionally compared to the unchanged TEST baseline. Existing errors outside the configured check remain; see validation results. No newly introduced diagnostic may be accepted. This is not a claim that the entire application is type-clean.
+- Older source-string assertions for parent profile hint, platform dashboard labels and opponent logos are stale on existing branch heads; they are not acceptance evidence. The SQL feed-switch test requires the optional PGlite dependency, absent in this workspace.
+- Authenticated end-to-end user acceptance remains to be done on TEST.
 
-## Conflicted files
+## Database inventory and release blockers
 
-- `.github/workflows/player-access-active-season.yml`
-- `manager.html`
-- `package-lock.json`
-- `package.json`
-- `public/fonts/Anton-OFL.txt`
-- `public/landingpage.html`
-- `scripts/calendar-event-location-test.cjs`
-- `scripts/landingpage-clean-hero-test.mjs`
-- `scripts/live-opponent-logo-test.mjs`
-- `scripts/manager-trainer-mode-test.mjs`
-- `scripts/manager-venue-grants-ui2-test.mjs`
-- `scripts/match-no-show-stats-test.mjs`
-- `scripts/parent-email-invite-test.mjs`
-- `scripts/parent-invite-ux-polish-test.mjs`
-- `scripts/speaker-music-mode-test.mjs`
-- `scripts/step19-tournament-live-robustness-test.mjs`
-- `scripts/team-season-naming-test.mjs`
-- `scripts/team-view-selection-test.mjs`
-- `scripts/training-exercise-import1-test.mjs`
-- `scripts/training-session-add-exercise-test.mjs`
-- `scripts/venue-model-final-regression-test.mjs`
-- `server/lib/reminderStatus.js`
-- `server/push/send-team.js`
-- `src/app/App.tsx`
-- `src/app/components/BottomNav.tsx`
-- `src/app/components/MatchCardLigaportal.tsx`
-- `src/app/components/TeamSwitcher.tsx`
-- `src/app/intro/WelcomeScreen.tsx`
-- `src/app/layout/Header.tsx`
-- `src/app/layout/InternalLayout.tsx`
-- `src/auth/RequireAuth.tsx`
-- `src/auth/useSession.tsx`
-- `src/components/events/EventFeedCommunicationSection.tsx`
-- `src/components/events/OpponentLogoField.tsx`
-- `src/components/feed/MatchdayFeedPostCard.tsx`
-- `src/components/feed/MatchdayPosterArtwork.tsx`
-- `src/components/feed/PosterClubName.tsx`
-- `src/components/feed/ResultFeedPostCard.tsx`
-- `src/components/feed/ResultPosterArtwork.tsx`
-- `src/components/feed/SquadPosterArtwork.tsx`
-- `src/components/feed/resultPoster.css`
-- `src/components/live/LiveMusicDock.tsx`
-- `src/components/live/LivePremiumShell.tsx`
-- `src/components/match/MatchTypeHeading.tsx`
-- `src/components/match/MatchVideosPanel.tsx`
-- `src/components/schedule/EventHeroCard.tsx`
-- `src/components/schedule/PastMatchResultCard.tsx`
-- `src/components/schedule/ScheduleHeroEventCard.tsx`
-- `src/components/team/ParentAccessPlayerRow.tsx`
-- `src/components/team/PlayerProfileModal.tsx`
-- `src/components/team/SeasonMatchCard.tsx`
-- `src/components/team/TeamSquadShowcase.tsx`
-- `src/components/team/profile/ProfileHeroCard.tsx`
-- `src/components/team/profile/TrainerProfileBody.tsx`
-- `src/components/team/profile/TrainerProfileHeroCard.tsx`
-- `src/components/training/TrainingExerciseDetailModal.tsx`
-- `src/demo/components/DemoManagerPreview.tsx`
-- `src/demo/demoDataSource.ts`
-- `src/demo/pages/DemoTeamSchedulePage.tsx`
-- `src/features/home/HomeFeedComposer.tsx`
-- `src/features/home/HomePage.tsx`
-- `src/features/home/HomeSpieltagHintCard.tsx`
-- `src/hooks/useTeamFeedPosts.ts`
-- `src/lib/autoMatchdayFeedEnabled.ts`
-- `src/lib/clubBranding.ts`
-- `src/lib/ensureLineupFeedPost.ts`
-- `src/lib/matchdayPosterExport.ts`
-- `src/lib/opponentCatalog.ts`
-- `src/lib/parentLinkInvites.ts`
-- `src/lib/platformClubAdmin.ts`
-- `src/lib/rosterPlayer.ts`
-- `src/lib/seasonLifecycle.ts`
-- `src/lib/stats/playerStatsService.ts`
-- `src/lib/teamViewSelection.ts`
-- `src/lib/tournamentPlan.ts`
-- `src/lib/trainingExercisePdfPayload.ts`
-- `src/manager/ClubBrandingFields.tsx`
-- `src/manager/ManagerAccessGate.tsx`
-- `src/manager/ManagerClubDetailPage.tsx`
-- `src/manager/ManagerClubsPage.tsx`
-- `src/manager/ManagerDashboardPage.tsx`
-- `src/manager/ManagerLayout.tsx`
-- `src/manager/ManagerMatchVideosPage.tsx`
-- `src/manager/ManagerOefbImportPage.tsx`
-- `src/manager/ManagerPlatformDashboardPage.tsx`
-- `src/manager/ManagerSeasonRosterPage.tsx`
-- `src/manager/ManagerSpeakerStudioPage.tsx`
-- `src/manager/ManagerTeamScope.tsx`
-- `src/manager/ManagerWorkModeContext.tsx`
-- `src/manager/components/ManagerHeader.tsx`
-- `src/manager/components/ManagerMobileNav.tsx`
-- `src/manager/components/ManagerSidebar.tsx`
-- `src/manager/managerNav.ts`
-- `src/manager/managerShell.css`
-- `src/manager/managerSpeakerStudio.css`
-- `src/manager/mobile/ManagerMobileMorePage.tsx`
-- `src/manager/mobile/ManagerMobileTeamsPage.tsx`
-- `src/pages/EventDetailPage.tsx`
-- `src/pages/FanOnboardingPage.tsx`
-- `src/pages/JugglingChallengePage.tsx`
-- `src/pages/LoginPage.tsx`
-- `src/pages/MoreHubPage.tsx`
-- `src/pages/ParentAccessPlayerPage.tsx`
-- `src/pages/ProfilePage.tsx`
-- `src/pages/RegisterPage.tsx`
-- `src/pages/SchedulePage.tsx`
-- `src/pages/SprintChallengePage.tsx`
-- `src/pages/TeamPage.tsx`
-- `src/pages/live/LiveMatchScreen.tsx`
-- `src/styles/components.css`
-- `src/styles/tokens.css`
-- `src/theme/ClubThemeProvider.tsx`
-- `supabase/functions/generate-club-communications/index.ts`
-- `supabase/migrations/20260828043000_platform_admin_dashboard_modules.sql`
-- `supabase/migrations/20260904113000_training_1100_match_rsvp_reminders.sql`
-- `vercel.json`
-- `vite.config.ts`
+LIVE history was read without mutation: 128 entries. There are 186 repository SQL files whose exact version is absent from that history: 150 already exist in the LIVE source branch and 36 are TEST additions. Of these, 28 have a same-named LIVE entry under a different version. A matching name is not proof of identical SQL or schema. Two files even share an existing repository version; historical ordering must not be reconstructed by blindly replaying the folder.
+
+`release-live-migration-inventory.json` records the read-only LIVE version/name inventory. `release-missing-migrations-review.json` records exact candidate blobs and separates new changes, legacy files, possible version aliases and explicitly excluded files. Neither file grants migration approval. `release/live-plan.json` retains its empty approvals.
+
+The admin-org files `20260818140000` and `20260818140100` remain excluded and must not run automatically. Historical SQL conflicts retain the LIVE source contents. New, compatible schema deltas must be reviewed against the actual LIVE schema and tested separately. Do not mark missing versions applied or treat this code reconciliation as database equivalence approval.
+
+Changed Edge Functions and three TEST-only setup workflows also require a separate, reviewed deployment/bootstrap decision before the first publication. The traffic light must stay red while these blockers remain; a large, completely enumerated code-only release may be yellow after all real blockers are resolved.

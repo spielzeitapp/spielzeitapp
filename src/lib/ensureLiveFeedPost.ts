@@ -1,3 +1,4 @@
+import { isMatchFeedAutomationEnabled } from './matchFeedAutomation';
 import { supabase } from './supabaseClient';
 import { isDemoMatchId } from '../demo/demoLiveRuntime';
 import { fetchMatchById } from './liveMatchService';
@@ -124,6 +125,7 @@ export async function ensureLiveFeedPostForMatch(matchId: string): Promise<Ensur
   if (evErr) lfLog('events lookup warning', { matchId: mid, error: evErr.message });
   const ev = (evErr ? null : evRaw) as EventRowLite | null;
   const eventId = ev?.id?.trim() ?? '';
+  if (eventId && !(await isMatchFeedAutomationEnabled(eventId))) return { ok: true, created: false, reason: 'disabled' };
   if (!eventId) return { ok: false, error: 'Kein Event zum Spiel verknüpft.' };
 
   const opponentName = (ev?.opponent ?? match.opponent ?? '').trim() || 'Gegner';

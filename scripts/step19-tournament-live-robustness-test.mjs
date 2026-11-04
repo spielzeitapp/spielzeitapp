@@ -344,6 +344,9 @@ try {
   });
   assert(res.ok, 'Steurer results API reachable');
   const json = await res.json();
+  if (Array.isArray(json?.data) && json.data.length === 0) {
+    throw new Error('SKIP_STEURER_HISTORY_UNAVAILABLE');
+  }
   const parsed = parseTournamentLiveResults(json, { title: 'Rudolf Steurer' });
   assert(parsed && parsed.matchCount >= 20, `parsed matchCount (${parsed?.matchCount})`);
   const own = (parsed.rawMatches || []).filter(
@@ -410,8 +413,12 @@ try {
   }
   assert(table[3].t.includes('Rohrbach'), 'Rohrbach rank 4 Gruppe 1');
 } catch (err) {
-  failed += 1;
-  console.error('fail real Steurer regression', err instanceof Error ? err.message : err);
+  if (err instanceof Error && err.message === 'SKIP_STEURER_HISTORY_UNAVAILABLE') {
+    console.warn('skip real Steurer regression: historical TURNIERlive data is no longer available');
+  } else {
+    failed += 1;
+    console.error('fail real Steurer regression', err instanceof Error ? err.message : err);
+  }
 }
 
 if (failed) {

@@ -1,0 +1,235 @@
+name: Audit training exam data for Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-training-data-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Compare selected Staging units with Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      STAGING_REF: acbaecjzoabafbsjrzvr
+      PRODUCTION_REF: shxugattqatahckhspwk
+    steps:
+      - name: Inspect source documentation and destination mapping
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+
+          node <<'NODE'
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const stagingRef = process.env.STAGING_REF;
+          const productionRef = process.env.PRODUCTION_REF;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || 'GET'} ${path} failed (${response.status}): ${body.slice(0, 500)}`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(ref, sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const [staging, production] = await Promise.all([
+              request(`/projects/${stagingRef}`),
+              request(`/projects/${productionRef}`),
+            ]);
+            if (staging.id !== stagingRef || staging.name !== 'spielzeitapp-staging') {
+              throw new Error(`Staging guard failed: ${staging.name} (${staging.id})`);
+            }
+            if (production.id !== productionRef || production.name !== 'spielzeitapp-nsg') {
+              throw new Error(`Production guard failed: ${production.name} (${production.id})`);
+            }
+
+            const sourceCandidates = await query(stagingRef, `
+              SELECT
+                d.team_season_id,
+                encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') AS creator_hash,
+                encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') AS club_hash,
+                encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') AS team_hash,
+                encode(digest(lower(btrim(season.name)), 'sha256'), 'hex') AS season_hash
+              FROM public.training_exam_documentations d
+              JOIN public.clubs c ON c.id = d.club_id
+              JOIN public.team_seasons ts ON ts.id = d.team_season_id
+              JOIN public.teams t ON t.id = ts.team_id
+              JOIN public.seasons season ON season.id = ts.season_id
+              JOIN auth.users u ON u.id = d.created_by
+              WHERE regexp_replace(
+                lower(coalesce(nullif(btrim(ts.age_group), ''), nullif(btrim(t.age_group), ''))),
+                '[^a-z0-9]+',
+                '',
+                'g'
+              ) LIKE 'u12%'
+                AND (
+                  SELECT count(*)
+                  FROM public.training_sessions s
+                  WHERE s.team_season_id = d.team_season_id
+                    AND coalesce(s.record_type, 'session') <> 'template'
+                    AND coalesce(s.status, 'planned') <> 'archived'
+                ) = 9
+                AND (
+                  d.title ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
+                  OR EXISTS (
+                    SELECT 1
+                    FROM public.training_sessions nr6
+                    WHERE nr6.team_season_id = d.team_season_id
+                      AND coalesce(nr6.record_type, 'session') <> 'template'
+                      AND coalesce(nr6.status, 'planned') <> 'archived'
+                      AND concat_ws(' ', nr6.title, nr6.objective, nr6.notes, nr6.focus)
+                        ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)'
+                  )
+                )
+                AND EXISTS (
+                  SELECT 1
+                  FROM public.training_exam_documentation_items selected_item
+                  JOIN public.training_sessions selected_session
+                    ON selected_session.id = selected_item.training_session_id
+                  WHERE selected_item.documentation_id = d.id
+                    AND selected_session.team_season_id = d.team_season_id
+                    AND coalesce(selected_session.record_type, 'session') <> 'template'
+                    AND coalesce(selected_session.status, 'planned') <> 'archived'
+                )
+              ORDER BY d.created_at DESC;
+            `);
+            if (!Array.isArray(sourceCandidates) || sourceCandidates.length !== 1) {
+              const diagnostic = await query(stagingRef, `
+                SELECT
+                  count(*)::int AS u12_documents,
+                  coalesce(min(x.active_sessions), 0)::int AS min_active_sessions,
+                  coalesce(max(x.active_sessions), 0)::int AS max_active_sessions,
+                  coalesce(min(x.non_template_sessions), 0)::int AS min_non_template_sessions,
+                  coalesce(max(x.non_template_sessions), 0)::int AS max_non_template_sessions,
+                  coalesce(min(x.all_sessions), 0)::int AS min_all_sessions,
+                  coalesce(max(x.all_sessions), 0)::int AS max_all_sessions,
+                  coalesce(min(x.selected_items), 0)::int AS min_selected_items,
+                  coalesce(max(x.selected_items), 0)::int AS max_selected_items,
+                  count(*) FILTER (WHERE x.document_has_nr6 OR x.session_has_nr6)::int AS nr6_marked_documents
+                FROM (
+                  SELECT
+                    d.id,
+                    d.title ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)' AS document_has_nr6,
+                    (SELECT count(*) FROM public.training_sessions s
+                      WHERE s.team_season_id = d.team_season_id
+                        AND coalesce(s.record_type, 'session') <> 'template'
+                        AND coalesce(s.status, 'planned') <> 'archived')::int AS active_sessions,
+                    (SELECT count(*) FROM public.training_sessions s
+                      WHERE s.team_season_id = d.team_season_id
+                        AND coalesce(s.record_type, 'session') <> 'template')::int AS non_template_sessions,
+                    (SELECT count(*) FROM public.training_sessions s
+                      WHERE s.team_season_id = d.team_season_id)::int AS all_sessions,
+                    (SELECT count(*) FROM public.training_exam_documentation_items i
+                      WHERE i.documentation_id = d.id)::int AS selected_items,
+                    EXISTS (SELECT 1 FROM public.training_sessions s
+                      WHERE s.team_season_id = d.team_season_id
+                        AND coalesce(s.record_type, 'session') <> 'template'
+                        AND coalesce(s.status, 'planned') <> 'archived'
+                        AND concat_ws(' ', s.title, s.objective, s.notes, s.focus)
+                          ~* '(^|[^a-z0-9])nr[[:space:]_.-]*0?6([^a-z0-9]|$)') AS session_has_nr6
+                  FROM public.training_exam_documentations d
+                  JOIN public.team_seasons ts ON ts.id = d.team_season_id
+                  JOIN public.teams t ON t.id = ts.team_id
+                  WHERE regexp_replace(
+                    lower(coalesce(nullif(btrim(ts.age_group), ''), nullif(btrim(t.age_group), ''))),
+                    '[^a-z0-9]+', '', 'g'
+                  ) LIKE 'u12%'
+                ) x;
+              `);
+              const d = diagnostic?.[0] || {};
+              console.error(
+                `SAFE_DIAGNOSTIC u12_documents=${Number(d.u12_documents) || 0}` +
+                ` active_sessions_min=${Number(d.min_active_sessions) || 0}` +
+                ` active_sessions_max=${Number(d.max_active_sessions) || 0}` +
+                ` non_template_sessions_min=${Number(d.min_non_template_sessions) || 0}` +
+                ` non_template_sessions_max=${Number(d.max_non_template_sessions) || 0}` +
+                ` all_sessions_min=${Number(d.min_all_sessions) || 0}` +
+                ` all_sessions_max=${Number(d.max_all_sessions) || 0}` +
+                ` selected_items_min=${Number(d.min_selected_items) || 0}` +
+                ` selected_items_max=${Number(d.max_selected_items) || 0}` +
+                ` nr6_marked_documents=${Number(d.nr6_marked_documents) || 0}`
+              );
+              throw new Error(`Expected exactly one Staging NR6 U12 trainer-exam documentation with 9 active sessions, found ${sourceCandidates?.length || 0}.`);
+            }
+            const source = sourceCandidates[0];
+            const sourceSeasonId = String(source.team_season_id).replace(/'/g, "''");
+            const unitCheck = await query(stagingRef, `
+              SELECT
+                count(DISTINCT s.id)::int AS sessions,
+                count(se.id)::int AS exercise_links,
+                count(DISTINCT e.id)::int AS exercises,
+                count(DISTINCT e.id) FILTER (
+                  WHERE e.image_path IS NOT NULL AND btrim(e.image_path) <> ''
+                )::int AS exercises_with_images
+              FROM public.training_sessions s
+              LEFT JOIN public.training_session_exercises se ON se.training_session_id = s.id
+              LEFT JOIN public.training_exercises e ON e.id = se.exercise_id
+              WHERE s.team_season_id = '${sourceSeasonId}'
+                AND coalesce(s.record_type, 'session') <> 'template'
+                AND coalesce(s.status, 'planned') <> 'archived';
+            `);
+            const counts = unitCheck?.[0] || {};
+            if (Number(counts.sessions) !== 9) {
+              throw new Error(`Expected exactly 9 active Staging sessions for the exam team, found ${Number(counts.sessions) || 0}.`);
+            }
+
+            const creatorHash = String(source.creator_hash).replace(/'/g, "''");
+            const clubHash = String(source.club_hash).replace(/'/g, "''");
+            const teamHash = String(source.team_hash).replace(/'/g, "''");
+            const seasonHash = String(source.season_hash).replace(/'/g, "''");
+            const targets = await query(productionRef, `
+              SELECT
+                u.id AS user_id,
+                c.id AS club_id,
+                t.id AS team_id,
+                ts.id AS team_season_id
+              FROM auth.users u
+              CROSS JOIN public.clubs c
+              JOIN public.teams t ON t.club_id = c.id
+              JOIN public.team_seasons ts ON ts.team_id = t.id
+              JOIN public.seasons season ON season.id = ts.season_id
+              WHERE encode(digest(lower(btrim(u.email)), 'sha256'), 'hex') = '${creatorHash}'
+                AND encode(digest(lower(btrim(c.name)), 'sha256'), 'hex') = '${clubHash}'
+                AND encode(digest(lower(btrim(t.name)), 'sha256'), 'hex') = '${teamHash}'
+                AND encode(digest(lower(btrim(season.name)), 'sha256'), 'hex') = '${seasonHash}'
+                AND regexp_replace(
+                  lower(coalesce(nullif(btrim(ts.age_group), ''), nullif(btrim(t.age_group), ''))),
+                  '[^a-z0-9]+', '', 'g'
+                ) LIKE 'u12%'
+                AND coalesce(ts.status, 'active') = 'active'
+              ORDER BY ts.created_at DESC;
+            `);
+            if (!Array.isArray(targets) || targets.length !== 1) {
+              throw new Error(`Expected exactly one Production mapping, found ${targets?.length || 0}.`);
+            }
+            console.log('AUDIT_READY=true selected_units=9 archived_units=excluded templates=excluded nr6=verified production_mapping=unique');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE

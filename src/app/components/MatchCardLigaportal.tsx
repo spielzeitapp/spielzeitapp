@@ -237,7 +237,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     ? 'NACHARBEIT'
     : status === 'canceled'
       ? 'ABGESAGT'
-    : status === 'finished'
+    : showScore && status === 'finished'
       ? 'ENDSTAND'
       : status === 'live'
         ? 'LIVE'

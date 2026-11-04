@@ -30,6 +30,8 @@ assert.deepEqual(resolveTeamViewSeasonIds([], 'all', null), []);
 const { TeamSwitcher } = await bundle('src/app/components/TeamSwitcher.tsx', [{
   name: 'session-fixture',
   setup(api) {
+    api.onResolve({ filter: /supabaseClient$/ }, () => ({ path: 'db-fixture', namespace: 'db-fixture' }));
+    api.onLoad({ filter: /.*/, namespace: 'db-fixture' }, () => ({ contents: 'export const supabase = {};', loader: 'js' }));
     api.onResolve({ filter: /auth\/useSession$/ }, () => ({ path: 'session-fixture', namespace: 'fixture' }));
     api.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ contents: 'export function useSession() { return globalThis.__teamViewTestSession; }', loader: 'js' }));
   },
@@ -42,7 +44,8 @@ const oldDocument = globalThis.document;
 const oldWarn = console.error;
 let captured = [];
 const calls = [];
-React.useState = (initial) => oldState(initial === false ? true : initial);
+let stateIndex = 0;
+React.useState = (initial) => oldState(initial === false && stateIndex++ === 0 ? true : initial);
 React.createElement = (type, props, ...children) => {
   if (type === 'input' || type === 'button') captured.push({ type, props, children });
   return oldElement(type, props, ...children);
@@ -60,12 +63,12 @@ try {
     setViewTeamSeasonId: (id) => calls.push(['view', id]),
   };
   const render = (url = '/app/termine') => {
-    captured = []; calls.length = 0;
+    captured = []; calls.length = 0; stateIndex = 0;
     globalThis.__teamViewTestSession = session;
     return renderToStaticMarkup(oldElement(MemoryRouter, { initialEntries: [url] }, oldElement(TeamSwitcher, { compact: true })));
   };
   let html = render();
-  assert(html.includes('Mannschaft &amp; Saison'));
+  assert(html.includes('Meine Favoriten'));
   assert(html.includes('aria-modal="true"'));
   assert(html.includes('Alle Mannschaften'));
   assert(html.includes('type="checkbox"'));
@@ -73,14 +76,14 @@ try {
   captured.find((x) => x.type === 'input' && x.props['aria-label'].includes('USC Rohrbach')).props.onChange();
   assert.deepEqual(calls, [['filter', ['u12', 'km']]], 'multi-selection must not change write season');
   render();
-  captured.find((x) => x.type === 'button' && x.children.includes('Alle Mannschaften')).props.onClick();
-  assert.deepEqual(calls, [['filter', 'all']]);
+  captured.find((x) => x.type === 'button' && JSON.stringify(x.children).includes('Alle Mannschaften')).props.onClick();
+  assert.deepEqual(calls, [['filter', ['u12', 'km']]]);
   session.teamViewFilter = 'all'; session.filteredTeamSeasonIds = ['u12', 'km'];
   html = render(); assert(html.includes('Alle Mannschaften'));
   captured.find((x) => x.type === 'input' && x.props['aria-label'].includes('USC Rohrbach')).props.onChange();
-  assert.deepEqual(calls, [['work', 'u12'], ['filter', null]]);
+  assert.deepEqual(calls, [['view', 'u12'], ['filter', ['u12']]], 'single favorite must not change write season');
   render('/app/team');
-  assert(!captured.some((x) => x.type === 'input'), 'team administration stays single-team');
+  assert(!captured.some((x) => x.type === 'input' && x.props.type === 'checkbox'), 'team administration stays single-team');
   const archiveRow = captured.find((x) => x.type === 'button' && JSON.stringify(x.children).includes('U11'));
   archiveRow.props.onClick();
   assert.deepEqual(calls, [['filter', null], ['view', 'u11']], 'archive must not change write season');

@@ -1,0 +1,519 @@
+{
+  "checked_at": "2026-11-04",
+  "project": "shxugattqatahckhspwk",
+  "read_only": true,
+  "migrations": [
+    {
+      "version": "20260214000000",
+      "name": "memberships_unique"
+    },
+    {
+      "version": "20260214120000",
+      "name": "matches_live_and_scores"
+    },
+    {
+      "version": "20260214180000",
+      "name": "events_match_type"
+    },
+    {
+      "version": "20260215000000",
+      "name": "memberships_rls_simple"
+    },
+    {
+      "version": "20260216000000",
+      "name": "memberships_rls_no_recursion"
+    },
+    {
+      "version": "20260216100000",
+      "name": "membership_roles_and_profiles_admin"
+    },
+    {
+      "version": "20260217120000",
+      "name": "memberships_rls_no_recursion"
+    },
+    {
+      "version": "20260217120001",
+      "name": "memberships_role_check"
+    },
+    {
+      "version": "20260218100000",
+      "name": "availability_rls"
+    },
+    {
+      "version": "20260220100000",
+      "name": "matches_availability_rls"
+    },
+    {
+      "version": "20260220110000",
+      "name": "availability_rsvp"
+    },
+    {
+      "version": "20260222100000",
+      "name": "availability_minimal_if_not_exists"
+    },
+    {
+      "version": "20260223100000",
+      "name": "match_rsvps"
+    },
+    {
+      "version": "20260225100000",
+      "name": "events_and_event_attendance"
+    },
+    {
+      "version": "20260226100000",
+      "name": "events_unified_schema"
+    },
+    {
+      "version": "20260227100000",
+      "name": "events_fix_and_reload_schema"
+    },
+    {
+      "version": "20260227110000",
+      "name": "events_rename_columns_if_exists"
+    },
+    {
+      "version": "20260228100000",
+      "name": "availability_rls"
+    },
+    {
+      "version": "20260228100001",
+      "name": "events_opponent_logo_fields"
+    },
+    {
+      "version": "20260308100000",
+      "name": "rsvp_permissions_player_users"
+    },
+    {
+      "version": "20260308120000",
+      "name": "events_address_and_series"
+    },
+    {
+      "version": "20260308120001",
+      "name": "profiles_names_and_guardian_verification"
+    },
+    {
+      "version": "20260308120002",
+      "name": "events_address_and_series"
+    },
+    {
+      "version": "20260315100000",
+      "name": "push_subscriptions"
+    },
+    {
+      "version": "20260315120000",
+      "name": "training_absence_deadline_and_reason"
+    },
+    {
+      "version": "20260316100000",
+      "name": "notification_log"
+    },
+    {
+      "version": "20260321120000",
+      "name": "notifications_center"
+    },
+    {
+      "version": "20260323100000",
+      "name": "messages_center"
+    },
+    {
+      "version": "20260323113000",
+      "name": "profiles_and_messages_push_foundation"
+    },
+    {
+      "version": "20260323120000",
+      "name": "team_reminder_settings_and_dispatch_log"
+    },
+    {
+      "version": "20260324120000",
+      "name": "messages_update_own_read"
+    },
+    {
+      "version": "20260324140000",
+      "name": "push_templates_and_automations"
+    },
+    {
+      "version": "20260324160000",
+      "name": "push_automations_only_unanswered"
+    },
+    {
+      "version": "20260324170000",
+      "name": "push_templates_columns_if_not_exists"
+    },
+    {
+      "version": "20260324180000",
+      "name": "messages_link_if_not_exists"
+    },
+    {
+      "version": "20260324190000",
+      "name": "messages_delete_own"
+    },
+    {
+      "version": "20260327120000",
+      "name": "notification_jobs_and_messages_meta"
+    },
+    {
+      "version": "20260328120000",
+      "name": "notifications_user_event_read"
+    },
+    {
+      "version": "20260330130000",
+      "name": "notifications_user_id_prod_align"
+    },
+    {
+      "version": "20260401103000",
+      "name": "event_reminder_jobs_trigger"
+    },
+    {
+      "version": "20260402160000",
+      "name": "reminder_inbox_finalize"
+    },
+    {
+      "version": "20260403120000",
+      "name": "notification_jobs_trigger_drop_idempotent"
+    },
+    {
+      "version": "20260404120000",
+      "name": "matches_trainer_insert_update_rls"
+    },
+    {
+      "version": "20260605123000",
+      "name": "fix_memberships_rls_recursion"
+    },
+    {
+      "version": "20260802120000",
+      "name": "teams_calendar_slug"
+    },
+    {
+      "version": "20260802140000",
+      "name": "venues_and_event_venue_id"
+    },
+    {
+      "version": "20260802160000",
+      "name": "team_venues"
+    },
+    {
+      "version": "20260804190000",
+      "name": "team_feed_chronicle_rls_and_suppress"
+    },
+    {
+      "version": "20260808140000",
+      "name": "training_library_and_sessions"
+    },
+    {
+      "version": "20260808150000",
+      "name": "training_templates_copy_and_history"
+    },
+    {
+      "version": "20260808170000",
+      "name": "season_one_active_and_activate_rpc"
+    },
+    {
+      "version": "20260808180000",
+      "name": "step4_live_ddl_no_bulk_archive"
+    },
+    {
+      "version": "20260808190000",
+      "name": "link_player_guardian_by_email"
+    },
+    {
+      "version": "20260811120000",
+      "name": "parent_link_onboarding_rpc"
+    },
+    {
+      "version": "20260811160000",
+      "name": "secure_parent_link_invites"
+    },
+    {
+      "version": "20260811180000",
+      "name": "parent_link_email_invites"
+    },
+    {
+      "version": "20260812115000",
+      "name": "parent_invite_club_operable_helper"
+    },
+    {
+      "version": "20260812120000",
+      "name": "parent_self_service_onboarding"
+    },
+    {
+      "version": "20260812140000",
+      "name": "fix_parent_link_role_cast"
+    },
+    {
+      "version": "20260812160000",
+      "name": "parent_invite_peek_and_season"
+    },
+    {
+      "version": "20260812180000",
+      "name": "parent_invite_email_bound_recovery"
+    },
+    {
+      "version": "20260812210000",
+      "name": "parent_invite_peek_account_exists"
+    },
+    {
+      "version": "20260814180000",
+      "name": null
+    },
+    {
+      "version": "20260814220000",
+      "name": null
+    },
+    {
+      "version": "20260909100000",
+      "name": null
+    },
+    {
+      "version": "20260909190000",
+      "name": null
+    },
+    {
+      "version": "20260913103000",
+      "name": null
+    },
+    {
+      "version": "20260914230000",
+      "name": null
+    },
+    {
+      "version": "20260915213000",
+      "name": null
+    },
+    {
+      "version": "20260916143000",
+      "name": null
+    },
+    {
+      "version": "20260916173000",
+      "name": null
+    },
+    {
+      "version": "20260917183000",
+      "name": null
+    },
+    {
+      "version": "20260918100000",
+      "name": null
+    },
+    {
+      "version": "20260918104500",
+      "name": null
+    },
+    {
+      "version": "20260918142000",
+      "name": null
+    },
+    {
+      "version": "20260918221000",
+      "name": null
+    },
+    {
+      "version": "20260919123000",
+      "name": null
+    },
+    {
+      "version": "20260919152500",
+      "name": null
+    },
+    {
+      "version": "20260919204500",
+      "name": null
+    },
+    {
+      "version": "20260919215500",
+      "name": null
+    },
+    {
+      "version": "20260920123000",
+      "name": null
+    },
+    {
+      "version": "20260920151500",
+      "name": null
+    },
+    {
+      "version": "20260920160000",
+      "name": null
+    },
+    {
+      "version": "20260921110000",
+      "name": null
+    },
+    {
+      "version": "20260921223000",
+      "name": null
+    },
+    {
+      "version": "20260921231500",
+      "name": null
+    },
+    {
+      "version": "20260924190000",
+      "name": null
+    },
+    {
+      "version": "20260925090000",
+      "name": null
+    },
+    {
+      "version": "20260925120000",
+      "name": null
+    },
+    {
+      "version": "20260925150000",
+      "name": null
+    },
+    {
+      "version": "20260925160000",
+      "name": null
+    },
+    {
+      "version": "20260927100000",
+      "name": null
+    },
+    {
+      "version": "20260927194500",
+      "name": null
+    },
+    {
+      "version": "20261002095919",
+      "name": "matchday_design_selection"
+    },
+    {
+      "version": "20261005093945",
+      "name": "match_video_chapters"
+    },
+    {
+      "version": "20261005093951",
+      "name": "separate_match_scene_and_once_analysis"
+    },
+    {
+      "version": "20261005093957",
+      "name": "match_video_scene_annotations"
+    },
+    {
+      "version": "20261005094321",
+      "name": "restrict_match_video_chapter_anonymous_execute"
+    },
+    {
+      "version": "20261005200556",
+      "name": "atomic_video_scene_save_and_minutes"
+    },
+    {
+      "version": "20261005200738",
+      "name": "refresh_linked_standard_goal_titles"
+    },
+    {
+      "version": "20261006062930",
+      "name": "auto_feed_push_home_badge"
+    },
+    {
+      "version": "20261007150617",
+      "name": "match_video_audience_download_share"
+    },
+    {
+      "version": "20261007195017",
+      "name": "restore_missing_admin_club_management_dependencies"
+    },
+    {
+      "version": "20261007195146",
+      "name": "restore_admin_team_and_season_creation"
+    },
+    {
+      "version": "20261007195304",
+      "name": "restrict_restored_admin_functions_to_authenticated"
+    },
+    {
+      "version": "20261008070829",
+      "name": "protect_push_notifications_and_match_lineup_data"
+    },
+    {
+      "version": "20261008103730",
+      "name": "match_head_to_head"
+    },
+    {
+      "version": "20261008103739",
+      "name": "head_to_head_verified_results"
+    },
+    {
+      "version": "20261008103751",
+      "name": "head_to_head_confirmation_access"
+    },
+    {
+      "version": "20261008103800",
+      "name": "event_head_to_head_preview"
+    },
+    {
+      "version": "20261008111922",
+      "name": "head_to_head_opponent_aliases"
+    },
+    {
+      "version": "20261008111930",
+      "name": "fix_opponent_alias_context"
+    },
+    {
+      "version": "20261008113454",
+      "name": "head_to_head_season_team_names"
+    },
+    {
+      "version": "20261012130351",
+      "name": "include_team_coaches_in_carpool_request_notifications"
+    },
+    {
+      "version": "20261012140952",
+      "name": "sprint_challenge_three_attempts"
+    },
+    {
+      "version": "20261012142901",
+      "name": "sprint_challenge_measurement_method"
+    },
+    {
+      "version": "20261012183820",
+      "name": "sprint_participation_and_player_history"
+    },
+    {
+      "version": "20261012183826",
+      "name": "sprint_team_history_across_seasons"
+    },
+    {
+      "version": "20261012194724",
+      "name": "player_juggling_history"
+    },
+    {
+      "version": "20261012203512",
+      "name": "team_season_oefb_table"
+    },
+    {
+      "version": "20261014155200",
+      "name": "manager_communication_drafts"
+    },
+    {
+      "version": "20261014155222",
+      "name": "speaker_audio_private_storage"
+    },
+    {
+      "version": "20261014155230",
+      "name": "speaker_audio_playlist_storage"
+    },
+    {
+      "version": "20261015192815",
+      "name": "parent_u11_archive_read_access"
+    },
+    {
+      "version": "20261021205846",
+      "name": "match_no_show_corrections"
+    },
+    {
+      "version": "20261021211020",
+      "name": "match_no_show_optional_goal_import"
+    },
+    {
+      "version": "20261025070843",
+      "name": "fix_missing_squad_feed_settings_default"
+    },
+    {
+      "version": "20261025075151",
+      "name": "match_feed_master_switch"
+    }
+  ]
+}

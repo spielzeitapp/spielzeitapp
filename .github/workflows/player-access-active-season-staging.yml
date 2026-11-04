@@ -1,0 +1,113 @@
+name: Apply player active season to staging
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/player-access-active-season-staging.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Apply and verify staging migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: acbaecjzoabafbsjrzvr
+      EXPECTED_PROJECT_NAME: spielzeitapp-staging
+      MIGRATION_VERSION: "20260913103000"
+      MIGRATION_FILE: supabase/migrations/20260913103000_player_access_active_season.sql
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify staging, apply and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN is not configured."
+            exit 1
+          }
+          test "$SUPABASE_PROJECT_REF" = "acbaecjzoabafbsjrzvr"
+          test "$SUPABASE_PROJECT_REF" != "shxugattqatahckhspwk"
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const token = process.env.SUPABASE_ACCESS_TOKEN;
+          const ref = process.env.SUPABASE_PROJECT_REF;
+          const expectedName = process.env.EXPECTED_PROJECT_NAME;
+          const version = process.env.MIGRATION_VERSION;
+          const base = 'https://api.supabase.com/v1';
+
+          async function request(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+              },
+            });
+            const body = await response.text();
+            if (!response.ok) {
+              throw new Error(`${options.method || 'GET'} ${path} failed (${response.status})`);
+            }
+            return body ? JSON.parse(body) : null;
+          }
+
+          async function query(sql) {
+            return request(`/projects/${ref}/database/query`, {
+              method: 'POST',
+              body: JSON.stringify({ query: sql }),
+            });
+          }
+
+          (async () => {
+            const project = await request(`/projects/${ref}`);
+            if (project.id !== ref || project.name !== expectedName) {
+              throw new Error(`Project guard failed: ${project.name} (${project.id})`);
+            }
+
+            const migration = fs.readFileSync(process.env.MIGRATION_FILE, 'utf8');
+            await query(`${migration}\nINSERT INTO supabase_migrations.schema_migrations (version) VALUES ('${version}') ON CONFLICT DO NOTHING;`);
+
+            const result = await query(`
+              SELECT
+                to_regprocedure('public.resolve_player_access_team_season(uuid,uuid)') IS NOT NULL AS resolver_ready,
+                EXISTS (
+                  SELECT 1 FROM pg_trigger
+                  WHERE tgname = 'trg_player_login_credentials_active_season'
+                    AND NOT tgisinternal
+                ) AS credential_trigger_ready,
+                EXISTS (
+                  SELECT 1 FROM pg_trigger
+                  WHERE tgname = 'trg_player_access_invites_active_season'
+                    AND NOT tgisinternal
+                ) AS invite_trigger_ready,
+                EXISTS (
+                  SELECT 1 FROM supabase_migrations.schema_migrations
+                  WHERE version = '${version}'
+                ) AS migration_recorded,
+                NOT EXISTS (
+                  SELECT 1
+                  FROM public.player_login_credentials credentials
+                  WHERE public.resolve_player_access_team_season(
+                    credentials.player_id,
+                    credentials.team_season_id
+                  ) IS DISTINCT FROM credentials.team_season_id
+                ) AS credentials_current;
+            `);
+
+            const check = result?.[0];
+            if (!check || Object.values(check).some((value) => value !== true)) {
+              throw new Error('Staging player active-season verification failed.');
+            }
+            console.log('PLAYER_ACCESS_ACTIVE_SEASON_STAGING_OK');
+          })().catch((error) => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE

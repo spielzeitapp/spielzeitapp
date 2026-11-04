@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const { PGlite } = await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
+const db = new PGlite();
+await db.exec(`
+CREATE ROLE anon; CREATE ROLE authenticated;
+CREATE TABLE events(id uuid primary key,match_id uuid, kind text,type text);
+CREATE TABLE matches(id uuid primary key,auto_matchday_feed_enabled boolean);
+CREATE TABLE event_feed_settings(event_id uuid primary key,squad_feed_enabled boolean default true,lineup_feed_enabled boolean default true);
+CREATE TABLE team_feed_posts(event_id uuid,post_kind text);
+CREATE TABLE notification_jobs(message text);
+INSERT INTO matches VALUES ('00000000-0000-0000-0000-000000000001',true);
+INSERT INTO events VALUES ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001','match','game');
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+`);
+await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261025073424_match_feed_master_switch.sql', import.meta.url),'utf8'));
+const event='00000000-0000-0000-0000-000000000002';
+const kinds=['matchday_today_auto','matchday_tomorrow_auto','matchday_auto','next_match_auto','event_poster_auto','squad_published','lineup_auto','result_auto','live_auto'];
+async function insert(kind) { return (await db.query('INSERT INTO team_feed_posts VALUES ($1,$2) RETURNING post_kind',[event,kind])).rows.length; }
+for (const kind of kinds) assert.equal(await insert(kind),1,`missing settings allow ${kind}`);
+await db.exec(`INSERT INTO event_feed_settings(event_id,feed_automation_enabled) VALUES ('${event}',false); SET ROLE authenticated;`);
+for (const kind of kinds) assert.equal(await insert(kind),0,`master off blocks ${kind} for authenticated caller`);
+assert.equal(await insert('trainer_image'),1,'manual photo unaffected');
+assert.equal(await insert('event_poster_manual'),1,'explicit manual poster unaffected');
+await db.exec(`INSERT INTO notification_jobs VALUES ('Kader published'); RESET ROLE; UPDATE event_feed_settings SET feed_automation_enabled=true,squad_feed_enabled=false;`);
+assert.equal(await insert('squad_published'),0,'squad opt-out preserved after master on');
+assert.equal(await insert('result_auto'),1,'result unaffected by squad opt-out');
+await db.exec('UPDATE event_feed_settings SET lineup_feed_enabled=false,result_feed_enabled=false');
+assert.equal(await insert('lineup_auto'),0); assert.equal(await insert('result_auto'),0);
+await db.exec('UPDATE matches SET auto_matchday_feed_enabled=false');
+for(const kind of kinds.slice(0,5)) assert.equal(await insert(kind),0,`matchday off blocks ${kind}`);
+await db.exec('UPDATE matches SET auto_matchday_feed_enabled=true; UPDATE event_feed_settings SET squad_feed_enabled=true,lineup_feed_enabled=true,result_feed_enabled=true');
+for(const kind of kinds) assert.equal(await insert(kind),1,`re-enabled ${kind}`);
+assert.equal((await db.query('SELECT count(*)::int AS n FROM notification_jobs')).rows[0].n,1,'squad messages remain independent');
+assert.equal((await db.query("SELECT has_function_privilege('authenticated','guard_match_feed_automation()','EXECUTE') AS allowed")).rows[0].allowed,false,'trigger needs no public function execution privilege');
+await db.close();
+console.log('PASS: real Postgres trigger, missing settings, master off/on, retained individual choices, manual posts, authenticated trigger execution and independent squad messages.');

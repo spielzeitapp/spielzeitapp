@@ -98,7 +98,7 @@ function NavItem({
                 className="pointer-events-none absolute left-1/2 top-0 z-[4] whitespace-nowrap text-[7px] font-bold uppercase leading-none tracking-[0.14em] text-[rgb(var(--club-accent-rgb))] sm:text-[8px]"
                 style={{
                   transform: 'translate(-50%, calc(-100% - 3px))',
-                  textShadow: '0 0 10px rgba(255, 0, 0, 0.72)',
+                  textShadow: '0 0 10px rgb(var(--club-accent-rgb) / 0.72)',
                 }}
               >
                 LIVE JETZT

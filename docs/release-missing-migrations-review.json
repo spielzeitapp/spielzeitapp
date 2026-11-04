@@ -1,0 +1,1308 @@
+{
+  "checked_at": "2026-11-04",
+  "policy": "Read-only inventory; no entry approves execution or marks a version applied. Name matches alone are not equivalence evidence.",
+  "files": [
+    {
+      "path": "supabase/migrations/20260404180000_reminder_jobs_single_writer_confirm.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "9da020b9562ed3e0e888a66dfc3a9f2998d99c1c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260404190000_notifications_source_job_distinct_recipients.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "1d5fbf043c47dadfe05ccc61b0959c2b9fdb3e28",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260404210000_notifications_rls_strict_user_scope.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "a3d6ce7a14ef367f21f0dcc05c9f0644d96fafb9",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260405140000_reminder_jobs_anchor_meeting_at.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "8fed7bcc16b240b98ba88d3dcf73210663d38b04",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260405140000_team_notification_settings_alias_columns.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "31f78dea159017520a721058ab2439839ef56c53",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260406120000_push_templates_default_whatsapp_style.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "30bf4995b5b087622ab709fee0ceff1f0c0062d3",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260407120000_push_templates_update_staff.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "6730afa3a696a26768babe898330b5167172275c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260408120000_match_feed_settings.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "5608fa9aa21511e158748db689edd1cc276faa7e",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260409120000_match_feed_settings_spieltag_templates.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "a25e00ec6c4c2d8af1761592b5a975dbb695f3a0",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260410120000_events_feed_settings_columns.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "c0a760de98e6a503c8849be82065a82bb6ff0a19",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260411140000_matches_staff_insert_update_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "061e18eec89927144217a9a93fec32830629f073",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260412130000_match_lineup_match_bench_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "b9ba86698d6c4f0e0d7a1c8387bdccb22bb0cc5a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260413120000_rls_match_lineup_bench_role_text.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "851fb7fcf1a1da6e4572e8a167dc5723bbe7c778",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260415100000_live_match_rls_use_staff_helper_functions.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "4f0fff7e0d17069d7f59572bafc0dd9534aa0350",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260415113000_replace_legacy_head_policies.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "2ab793914fbb794b849e33d3c94972cd698bec39",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260416120000_match_events_remove_legacy_staff_policies.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "cd23ffea1843a9e6e46bd720b6c3d1bb78736c7b",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260422130000_team_feed_matchday_automation.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "3f0fbf736e18901baa2b0233d21863a9dbe7423d",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260422140000_matchday_feed_day_before.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "cb6da942eb31f714e4c8b28fe9c08b08c82bc834",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260422150000_fix_ensure_matchday_automation.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "f8e800c08471bd81686616e5aab390acb26db04f",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260427090000_matches_period_scores.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "29ac04ff569432a985ed0df607553307f651f8c8",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260429121000_player_avatars_bucket_and_column.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "ef3ead6696cef9c9ee005fa27f3655364a290ca8",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260429140000_players_birthdate.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "be7d14cf08cd09957218af991def163fb455393a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260429215500_team_photos_bucket_and_table.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "51cde703b969ac4a235a1c8508f19bc270eda486",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260430103000_team_photos_rls_coach_roles.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "67f3db6b0b6a2b94ab9e8c1c719aa1a2a826291c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260501120000_players_birthdate_to_geburtsdatum.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "ac271b6c4947fc11c291de5629382687f879631a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260502120000_player_profiles.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "94464999dd849ba73f6d3335e591fddbb4275843",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260502140000_matches_u11_formation_id.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "db67607eea6f989f5e6f11b822972b00b62097a8",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260503120000_match_lineup_snapshots.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "ed4b5a0c7759f98415e93aef8de4af6fe70c30b1",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260508120000_match_events_type_check_goal_away.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "273b0fc57aee4b7f87e169137268856d5d91de3a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260509120000_match_events_update_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "2dc67cf6c736f452df99faaed62a8be6f9befd33",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260511120000_team_feed_media_mvp.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "8e7e34e45a138c9b114fbf43de9aebde0d510fd0",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260511190000_allow_133_formation.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "482c52f8bd5889cbc70840e9dccf80255577f438",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260512120000_team_feed_posts_finalize.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "d09901532382bb3a6aaf2cdcc0a72a195683d06b",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260513120000_team_feed_posts_insert_policy_membership_staff.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "de106fd557ce63e52da9ceb09fb74660f24480e3",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260514120000_team_feed_posts_insert_policy_mvp.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "f7ee46d1a85c06c8a7865f9ed5e3adc020a5bce9",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260515100000_team_feed_insert_staff_security_definer.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "db6dc527b92b7c539070ac126eb4bb6c5baf1c23",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260515101000_ensure_matchday_automation_events_rowtype.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "f153745aafc17df4b01c3f8368ff44fe9269700c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260516120000_team_feed_storage_staff_path_definer.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "0fa4a59b917f2d1a4b6a9a3c0fae75890e61ba6e",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260517120000_team_feed_posts_delete_staff.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "0bfbffae5bb820947a8dab525fc031b441d264ad",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260518120000_ensure_result_feed_post_rpc.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "f134ad58b5e8e2964883c27296c9d483167e6fb3",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260519120000_delete_team_feed_post_rpc.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "0ba32a62ff8430ff817e24c08d0ff017ccef42fc",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260520100000_delete_team_feed_post_v2_rpc.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "b541d9834b7c7f23d7ba386e1602f59e423420c9",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260521120000_match_events_position_swap_payload.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "efaf5caf391f80b1fc4e35b584eea6a36dddf1f5",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260526120000_match_events_fairplay_extra_player.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "b820a314d0fef66b960fe9b012dfdeb6eaf2948e",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260527120000_match_events_substitution_atomic.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "a8aa35600718dcb054001c2883731d8d04d0703c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260528130000_team_feed_posts_can_delete.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "cfa4a0d8813c6d730256b462f4266e123c5036c7",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260528135200_players_status_and_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "6c0c3a16c91378557350f5306237c4c33867eaaf",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260529120000_is_admin_include_user_roles.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "793059bd7983fdaddde0752ae2ad47e57a663c99",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260530120000_team_feed_dedupe_suppressions.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "9e2a3466ed2a0c594dd3a58fc47f384ad74d9c1b",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260531120000_fix_delete_feed_post_suppression.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "1b0b69e147b92128616737f3f9b36837bdb9e97b",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260601120000_event_attendance_injured.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "4070e161868b56ae3943c6a79fcfb2a9eb2b2452",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260602120000_event_attendance_external_training.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "1474e16f552c93c01665aa188ea48a5f2c02cfd4",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260603120000_players_is_laz_player.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "e424ca8c1d33dd64d29d687730a4a4e9b3db1357",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260605120000_team_staff_visibility.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "30106059cfe2a7dc3b965f977c09f62c87d03fef",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260606120000_fix_trainer_staff_save.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "ac67403ef5c34c25eb9e36c0d9da64f78d6a8caf",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260607120000_list_team_staff_for_season.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "5b1696283a6598ee9d1d9a6574e2d151841bca4c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260607130000_staff_photo_storage_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "9df9401674f79b637b637c16372a894107075f9c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260608120000_profile_cutout_url.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "f6a36649c88b57edab17d604e09ec556b917be0a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260608130000_profile_cutout_entity_prefix_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "e7d2d1b85c20ed3e0d4d8c48916f1403ca16159a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260609120000_fix_player_avatar_storage_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "ef1f1700a4b859d7f4152e16b51fcb3167194201",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260610120000_matches_minimum_playtime.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "5fc71e23b2f238e8548b8b473797cdc27a7faac5",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260611120000_matches_planned_match_minutes.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "6f4894c1a7b3d0b0b47d7b7e15d6a94bba2d4319",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260612120000_team_seasons_lifecycle_status.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "ce7e31392471c9c91bb6a512f51dddd922a6cf43",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260613120000_events_kind_tournament.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "845e82ed72b651856791411b2385df0bbc21d2a2",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260614120000_tournament_plan_mvp.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "9139c32276f68c1fc5e2f0e0373659a4aad2fe40",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260615120000_events_official_tournament_url.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "53babf7237fdebe5fa7474387d72fc3f46710208",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260616120000_tournament_matches_phase.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "5dfb344e9d3f5a11963018daada8642e6b68d4c1",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260617120000_team_season_aliases.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "c65297f3d965f1677e4f79c83e6b204dd6fedd8a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260617140000_matches_auto_matchday_feed_enabled.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "8f608f55a243a8757c8e0735c114a47b454949c4",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260618120000_event_feed_settings.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "37ac45915b969fd81dc02fd31d5b6bec7c0de37a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260618120000_tournament_manual_goal_scorers.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "4d8a55fe62e0ca59487b747b34b49b92b80d4a20",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260618130000_events_tournament_completion.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "34374c2645107f644a62d50b5b9a99a87a6b5b07",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260619120000_get_team_player_parent_links.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "97c5e9de7f156467a5d9b677b335d71ee7de53b2",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260619130000_get_team_player_parent_links_names.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "a70dc50ff656edd118aecd2d4fcb3389e1e53aea",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260619140000_fix_parent_link_display_names.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "f1ae6470e3987866bc642973f2dcd1ec57e9611a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260620120000_fairplay_formation_ids.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "c7e24390d87ac674a9cc461ca52bf7015d384d44",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260620120000_get_team_player_parent_links_push_status.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "468168ac42a58759974804aab5c55fff3507f4e9",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260621120000_ensure_fairplay_134_formation.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "c55c589997db0b6dfbb5c4c82de50bcd3b566f5d",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260622120000_matches_auto_matchday_feed_default_off.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "a56b224bb77fe5e3e7401cb4abf5d9dc48c58e79",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260623120000_event_attendance_training_participation_select_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "e92e100fa672ef930a454fc056d70833ebe6d556",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260624120000_player_access_invites.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "a15fe388d8456ae5b49b69edcda177e91f2e867c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260625120000_player_login_credentials.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "1116ae91a8dc9a90a53c4a28ece44d60277cbb1e",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260626120000_get_team_player_app_status.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "6a950dabb578983c94a705cc0798116e660b0615",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260627120000_challenge_sessions_results.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "31f5066d54d6e396dde890eab1519743e559c8cf",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260627120000_get_team_training_participation_pct.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "e785a36a645abce349dcc4205871e2e38454f07c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260628120000_training_stats_explicit_attendance.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "fb508cb35d3175ad7e34c6fdd1874d9c886b23f9",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260629120000_event_attendance_sick_and_squad_participation.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "52b0487fc57251f68330298c11373e554987a606",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260630120000_training_missing_attendance_as_present.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "09639bc6349ef598f2c65cc8be2acda90810f7ea",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260701120000_players_injured_status.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "8482a32f1d62db04ef8301d16d34091ba6ee3fd6",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260702120000_tournament_squad.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "c2f03f8a563522560fc45512ad6450f5c934f743",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260731140000_team_seasons_draft_insert_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "e0f0c8277511234cddaaa71355e09b4bfa06bf07",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260801120000_team_season_players.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "128646d89827a28ce6490f9a782797b9609385e3",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260801140000_roster_join_rpc_rls.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "92c2a73c548909ed549c2775fa81209891eb0d1a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260801160000_seasons_select_staff_catalog.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "aaac68b0005162b92496fdfc949455f9ef6b56b8",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260802180000_events_championship_fixture_fields.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "e63f072ffb90d2b169d045b6f396d1c780c7a43b",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260802190000_championship_fixture_published_status.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "e766ae3e7a5be274b90380e18c96213a1ecdbb05",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260802190001_events_opponent_logo_ensure.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "a537113bf5ab49412337a25bb024d790a2858a50",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260803120000_opponent_catalog_and_logos.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "b4609c39ace9f4c77108b4c4caf1b668ae55f0db",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260803180000_team_season_phase.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "9b03b4328ea017e4a726d6e951f9308c1c09777c",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260808120000_venue_fields_and_event_assignments.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "74bee28a48bb42bab7ab502b3390c94ce505d81d",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260808130000_fix_field_assignment_conflict_trigger.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "483e2b72a75f62b0ea8e0e08e808022a53b2fe22",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260810120000_platz3_club_facility_schedule.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "6739ac19ba255e463ff43a5ec94a8e00639f3c57",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260810140000_platz4_field_zone_geometry.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "8250315b99d3307486b8409c028301418c037f76",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260810160000_platz5_team_season_training_venues.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "dc20b923073fbc10798aa37817b5f8898bf9ee01",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260810180000_platz51_rotate_half_third_zones.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "a959cb745589f132e78206ef513b2f1f626355c6",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260810200000_platz6_shared_venue_access.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "9686ab76e80a6af63e15063bfa059f679c8552a8",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260811200000_admin_org1_platform_club_management.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "c6b852aeb28745bec0e4754bc76a4759649f21fc",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260812190000_staging_org1_platform_club_ops.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "91ba6c0bdfa7f356685c33b12a6bc94a80c8cffb",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260818140000_admin_org1_club_admin_role_enum.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "dcabc5f65824890c225701e3e5d4fda60614b8f6",
+      "disposition": "excluded_do_not_apply"
+    },
+    {
+      "path": "supabase/migrations/20260818140100_admin_org1_club_admin_assign.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "0a562de3c0999be3b80611ce4d7c8282e4ec2736",
+      "disposition": "excluded_do_not_apply"
+    },
+    {
+      "path": "supabase/migrations/20260818150000_grant_manage_club_admin_only.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "532bbdd72a5a8384120e1855f6cc68766d0a750f",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260818160000_grant_candidates_require_active_field.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "5ae439738ffb318c046caecdcd3ebf261aa8c2a2",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260820193000_training_exercise_pdf_import.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "0d657cc2bacce8ac5d0aa18a29331fbedf33786e",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260822220000_training_exercise_visibility_and_sketch_paths.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "734f1d10f83477e7d1dd490c14fd4d7642664997",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260824210000_training_exam_documentations.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "eda3af4763cba1fe82b88fc0fc30a65718ee3665",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260824223000_training_exam_editable_pdf_fields.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "e2af7be05894c21665fe3462d7ef4092ac91f13b",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260825120000_training_exam_phase_text_overrides.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "87c035881b8d5fc242d1924640f2ec6375a5f56e",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260825143000_training_exercise_short_texts.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "bb96c9189fd8cc8db5c1cfbd2e3d291cc054070a",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260826210000_refresh_result_feed_on_goal_edit.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "09a2c1781ac8dc358a12f44617444d30abaabfed",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260828043000_platform_admin_dashboard_modules.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "1bb7c062bcb2ab323a2d0575fb91be0bdbd27865",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260829090000_manager_role_assignment_boundaries.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "c4454fa12659927fd371457eca48519330c4a563",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260829094500_training_staff_access_boundaries.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "c00b2d3807a18b702946cc3cead002bc769bba42",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260904113000_training_1100_match_rsvp_reminders.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "ab6d7ed0d5b70a3ac3ce3bb48eaf09ea74020ba3",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260905100000_training_exam_pdf_unit_selection.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "890aae8902484fa428820a29913c7ee8d808d6d7",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260929100000_team_season_oefb_table.sql",
+      "same_name_live_version": "20261012203512",
+      "on_main": false,
+      "git_blob_sha": "4db39322655ed444943d1dacb0758ee761800f72",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20260929130000_pending_team_staff_invites.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "3be21a1f19fa51881001246636eff89af332df9b",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20260929160000_lock_down_onboarding_rpcs.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "7f18327f0fa3ec4991c6a26917920ec24f20cd59",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261001120000_platform_registered_users_dashboard.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "f332f90e7d42c7b4c9bf21670913891ed34183f7",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261002095802_matchday_design_selection.sql",
+      "same_name_live_version": "20261002095919",
+      "on_main": true,
+      "git_blob_sha": "c7c43b7efb7b3545c1239b330391502041b7d3e8",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261004180000_match_video_chapters.sql",
+      "same_name_live_version": "20261005093945",
+      "on_main": true,
+      "git_blob_sha": "066a33ad79b5b10cd38cb7bda2cd6edccfaeb96a",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261004181000_separate_match_scene_and_once_analysis.sql",
+      "same_name_live_version": "20261005093951",
+      "on_main": true,
+      "git_blob_sha": "48080a1ce2d77855e7479d71e4f8e3fa0591b63f",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261005070000_match_video_scene_annotations.sql",
+      "same_name_live_version": "20261005093957",
+      "on_main": true,
+      "git_blob_sha": "6cc092e0022aa21c2d3b870323128669eb38b38e",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261005200500_atomic_video_scene_save_and_minutes.sql",
+      "same_name_live_version": "20261005200556",
+      "on_main": true,
+      "git_blob_sha": "1dbf5fa57e46316dc8d280bf60233c2cf7576923",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261005201500_refresh_linked_standard_goal_titles.sql",
+      "same_name_live_version": "20261005200738",
+      "on_main": true,
+      "git_blob_sha": "3e39a8bf9dd99968c48030d20ca9c6ee02badf7a",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261006070000_auto_feed_push_home_badge.sql",
+      "same_name_live_version": "20261006062930",
+      "on_main": true,
+      "git_blob_sha": "fff8a297c8732f71959d71e524055fec1901566c",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261007150249_match_video_audience_download_share.sql",
+      "same_name_live_version": "20261007150617",
+      "on_main": true,
+      "git_blob_sha": "2e9d47e6cd9a3f3e37f49d9296d0da63b3d43916",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261008070549_match_head_to_head.sql",
+      "same_name_live_version": "20261008103730",
+      "on_main": true,
+      "git_blob_sha": "05290f7dfb1be04015c57eaba7e90759ddfe7276",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261008093614_head_to_head_verified_results.sql",
+      "same_name_live_version": "20261008103739",
+      "on_main": true,
+      "git_blob_sha": "2a001cd821d9d5bd0ea69a169c4c84446c36bcfe",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261008094126_head_to_head_confirmation_access.sql",
+      "same_name_live_version": "20261008103751",
+      "on_main": true,
+      "git_blob_sha": "119693841d67b22ecf9b036a60f704ee8f5a2cb6",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261008100506_event_head_to_head_preview.sql",
+      "same_name_live_version": "20261008103800",
+      "on_main": true,
+      "git_blob_sha": "a930a2176fb97975a65ed97c00fbd75c85a2ff81",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261008110249_head_to_head_opponent_aliases.sql",
+      "same_name_live_version": "20261008111922",
+      "on_main": true,
+      "git_blob_sha": "7b669d053e0ee64e68fb40263208ec8d06767b53",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261008110820_fix_opponent_alias_context.sql",
+      "same_name_live_version": "20261008111930",
+      "on_main": true,
+      "git_blob_sha": "d7524350c847f3670ceff884393061273f5531d3",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261008113358_head_to_head_season_team_names.sql",
+      "same_name_live_version": "20261008113454",
+      "on_main": true,
+      "git_blob_sha": "d5ad99ee4f4971fd459367c11a53409c3bd83baa",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261011131728_manager_team_setup_checklist.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "1b84aedbb1f8f36b08f8345aaef601611ed195da",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261011132550_manager_setup_progress_index.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "5e8836986abcc78516b2783ed7bb583971b6ea63",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261011140905_oefb_result_import.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "a368911a47ded74d8781723757d57e448befba1d",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261011190239_admin_oefb_fixture_import.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "f7b32f478e4f19396a33412f4202e8e7cf4ce2cc",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261012091426_oefb_player_goal_assignment.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "a1f714ac56764fed8ee5a04835aae9dba9b4a3b6",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261012125653_include_team_coaches_in_carpool_request_notifications.sql",
+      "same_name_live_version": "20261012130351",
+      "on_main": true,
+      "git_blob_sha": "0f0f12da4c1d1eae67f39815e7de88f4ba6d5225",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261012140748_sprint_challenge_three_attempts.sql",
+      "same_name_live_version": "20261012140952",
+      "on_main": true,
+      "git_blob_sha": "d3ab49077a4cfc35fbe1c771066061a862c7797b",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261012142702_sprint_challenge_measurement_method.sql",
+      "same_name_live_version": "20261012142901",
+      "on_main": true,
+      "git_blob_sha": "93cbd74268d47219a6e07b0ca241d068dc4aceca",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261012183118_sprint_participation_and_player_history.sql",
+      "same_name_live_version": "20261012183820",
+      "on_main": true,
+      "git_blob_sha": "3a22138a6a3a7dbb4ccb76ab91961d40cd03389c",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261012183523_sprint_team_history_across_seasons.sql",
+      "same_name_live_version": "20261012183826",
+      "on_main": true,
+      "git_blob_sha": "20b3997344027974dbbf38e65e86fddfe67c4553",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261012194716_player_juggling_history.sql",
+      "same_name_live_version": "20261012194724",
+      "on_main": true,
+      "git_blob_sha": "f90a30000d17be1a7fe1f2abdbbf92d78ad0a946",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261013190423_manager_communication_drafts_staging.sql",
+      "same_name_live_version": null,
+      "on_main": true,
+      "git_blob_sha": "94dbb36f02b39ad01d2b3454593acb7d5ff71760",
+      "disposition": "legacy_main_requires_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261014080851_speaker_audio_private_storage.sql",
+      "same_name_live_version": "20261014155222",
+      "on_main": true,
+      "git_blob_sha": "c60d0b3414c42d919f79bb02cca1a2e8ebac9438",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261014081451_speaker_audio_playlist_storage.sql",
+      "same_name_live_version": "20261014155230",
+      "on_main": true,
+      "git_blob_sha": "3a64b1f78264c2cd33f13a6355ccecc243249def",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261014165449_club_communication_access.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "4ffcf9a6495aa02a1c11e16502efa8f49003d37a",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261015192443_parent_u11_archive_read_access.sql",
+      "same_name_live_version": "20261015192815",
+      "on_main": true,
+      "git_blob_sha": "bab44a890824574f04e44a4af95b92402786f56e",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261021205154_match_no_show_corrections.sql",
+      "same_name_live_version": "20261021205846",
+      "on_main": true,
+      "git_blob_sha": "16cce6ec4af34fac058c37cdb87fe73a60d79b1d",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261021205941_match_no_show_optional_goal_import.sql",
+      "same_name_live_version": "20261021211020",
+      "on_main": true,
+      "git_blob_sha": "9b4eb08fa85a949bdefa47d4bc96275e9efff92e",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261025073424_match_feed_master_switch.sql",
+      "same_name_live_version": "20261025075151",
+      "on_main": true,
+      "git_blob_sha": "6edc60d74fa6bc15fa9909d4a2c7fe43c2e4e6cc",
+      "disposition": "name_match_requires_sql_and_schema_verification"
+    },
+    {
+      "path": "supabase/migrations/20261030093107_admin_edit_team_details.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "3eea24d82f7444392a5749e35dcbcd2dc4776c25",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261030122437_import_oefb_roster_metadata.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "4659559c5a5c983527461aae498a4c032225804f",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261031085455_manager_roster_player_actions.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "0fc43c38b96d5ce1bc970b60f19d7b1833910474",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261101020209_club_roster_existing_player_check.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "ec112d8a68486b5a0097719bb0e66b257a6e0edf",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102075540_manager_player_photo_layout.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "a9708645c4767a96172cf0e54441e5ce3e5142e6",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102084451_global_player_photo_layout.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "f54cabc483d86856b80d6ab387dd0d2a9fb49e40",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102092616_oefb_friendly_result_import.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "b5273cdcdfac1c925a7bdeebde40097b49d67510",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102101022_friendly_report_assignment.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "d5db8c7b95049c17359886997d08888e64e27a6c",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102111012_oefb_player_id_aliases.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "ffaf20ceeb9f420955bd85b9489232007e883e57",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102135613_manager_team_photo_permissions.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "921a04b2d45e76262cd0165d5840f1dc0d97b1d9",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102160121_oefb_stats_confirmed_link_read.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "7bbc8cf6980c5c30f000f2ee891bbdd414fb07fa",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102162459_oefb_confirmed_stats_duration.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "ab1a4037bc78814a1aefcf5a31004989a23a4774",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261102205712_oefb_duration_settings.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "068ef253836199f279fc2be53d2a23ee6f75cfab",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103082407_sync_oefb_competition_fixture_updates.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "b42a8ae0bc7268098cc4515a17d0e3145aac6f76",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103082923_fix_oefb_fixture_sync_event_update.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "b42a8ae0bc7268098cc4515a17d0e3145aac6f76",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103092713_oefb_background_sync.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "77bb46a80023f9fa1282e51b80361a658b5738ca",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103093152_oefb_auto_sync_controls.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "48bde99dd840b9a67327dfd38fb47d447694614d",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103093420_oefb_sync_assignment_guard.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "2eef216f6e8664cd23a8ce8a13e733adbbb5cf9b",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103093618_oefb_sync_direct_http.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "969bf83c4d1afd14d263ce67ad7055fbdd457deb",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103094254_oefb_sync_schedule_posts.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "d18fedb6df4dc2b0f7306e5695d0f6451d37ef73",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103135209_safe_oefb_schedule_automation.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "573c80ea74a6acb6b82baf7086e429bc321bea0b",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103135629_harden_safe_oefb_schedule_sync.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "5a6563074716c0dd1c63e616d112f183816fb7aa",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103135912_finalize_safe_oefb_sync_guards.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "8cf876366a77241fb13767fcfe051bcb33c4deea",
+      "disposition": "new_test_change_requires_review"
+    },
+    {
+      "path": "supabase/migrations/20261103173150_app_oefb_conflict_resolution.sql",
+      "same_name_live_version": null,
+      "on_main": false,
+      "git_blob_sha": "c3c6a57c923116d94a52e73f5fac20462f7ae19c",
+      "disposition": "new_test_change_requires_review"
+    }
+  ]
+}

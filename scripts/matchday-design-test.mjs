@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+
+const source = fs.readFileSync('src/lib/matchdayDesign.ts', 'utf8');
+const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const exports = {};
+vm.runInNewContext(code, { exports });
+const { parseMatchdayDesign, posterClubName, DEMO_MATCHDAY_DESIGNS } = exports;
+assert.equal(parseMatchdayDesign(null).template, 'clean');
+assert.equal(parseMatchdayDesign({ template: 'player', imageUrl: 'javascript:alert(1)' }).template, 'clean');
+assert.equal(parseMatchdayDesign({ template: 'player', imageUrl: '//external.invalid/x' }).template, 'clean');
+assert.equal(parseMatchdayDesign({ template: 'clean', imageUrl: '/feed/demo.webp' }).imageUrl, null);
+assert.equal(parseMatchdayDesign(DEMO_MATCHDAY_DESIGNS[0]).imageUrl, '/feed/demo-matchday-player-reference.webp');
+assert.equal(parseMatchdayDesign({ template: 'player', imageUrl: 'https://example.org/photo.webp' }).template, 'player');
+assert.equal(posterClubName('ASK Loosdorf U12'), 'ASK Loosdorf');
+assert.equal(posterClubName('SPG Weinburg A'), 'SPG Weinburg A');
+assert.equal(posterClubName('SPG Rohrbach U 12'), 'SPG Rohrbach');
+console.log('9 matchday design checks passed');

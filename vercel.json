@@ -147,6 +147,40 @@
     }
   ],
   "rewrites": [
+    { "source": "/manager", "destination": "/manager.html" },
+    { "source": "/manager/(.*)", "destination": "/manager.html" },
+    {
+      "source": "/demo",
+      "destination": "/demo.html"
+    },
+    {
+      "source": "/demo/(.*)",
+      "destination": "/demo.html"
+    },
+    {
+      "source": "/landingpage",
+      "destination": "/landingpage.html"
+    },
+    {
+      "source": "/landingpage/",
+      "destination": "/landingpage.html"
+    },
+    {
+      "source": "/landingpage/index.html",
+      "destination": "/landingpage.html"
+    },
+    {
+      "source": "/landingpage/impressum.html",
+      "destination": "/landingpage-impressum.html"
+    },
+    {
+      "source": "/landingpage/datenschutz.html",
+      "destination": "/landingpage-datenschutz.html"
+    },
+    {
+      "source": "/landingpage/:path*",
+      "destination": "https://spielzeitapp-fussball.jbharmonikas.chatgpt.site/:path*"
+    },
     {
       "source": "/app-preview",
       "destination": "/preview.html"
