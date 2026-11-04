@@ -1,3 +1,6 @@
+import {ManagerPlayerPhotoEditor} from './ManagerPlayerPhotoEditor';
+import {DEFAULT_PHOTO_LAYOUT} from '../lib/playerPhotoLayout';
+import type {TeamStaffMember} from '../hooks/useTeamStaff';
 import React, {useCallback, useState} from 'react';
 import {useTeamStaff, staffDisplayName, staffRoleLabelDe} from '../hooks/useTeamStaff';
 import {useTrainerStaffEditor} from '../hooks/useTrainerStaffEditor';
@@ -8,6 +11,7 @@ import {OefbPlayerPhoto} from '../components/OefbPlayerPhoto';
 /** Shares the app's account-based trainer editor and staff authorization. */
 export function ManagerTrainerPhotoPanel({seasonId}: {seasonId: string}) {
   const {staff, loading, error, refetch} = useTeamStaff(seasonId);
+  const [design,setDesign]=useState<TeamStaffMember|null>(null);
   const [notice, setNotice] = useState('');
   const afterSave = useCallback(async () => {
     const result = await refetch();
@@ -27,8 +31,10 @@ export function ManagerTrainerPhotoPanel({seasonId}: {seasonId: string}) {
     <div className="space-y-2">{staff.map(member=><div key={member.user_id} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 p-3">
       <OefbPlayerPhoto src={member.avatar_url || member.cutout_url} name={staffDisplayName(member)} />
       <div className="min-w-0 flex-1"><p className="font-semibold">{staffDisplayName(member)}</p><p className="text-sm text-slate-500">{staffRoleLabelDe(member.role)}</p></div>
+      <button type="button" onClick={()=>setDesign(member)} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold">Foto gestalten</button>
       <button type="button" onClick={()=>{setNotice('');editor.openEditTrainerForm(member);}} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold">Foto / Trainer bearbeiten</button>
     </div>)}</div>
+    {design?<ManagerPlayerPhotoEditor key={seasonId+design.user_id} trainer seasonId={seasonId} player={{id:design.user_id,team_season_id:seasonId,first_name:design.first_name,last_name:design.last_name,display_name:staffDisplayName(design),avatar_url:design.avatar_url,cutout_url:design.cutout_url??null,photo_layout:design.photo_layout??null,photo_layout_default:{...DEFAULT_PHOTO_LAYOUT,source:design.cutout_url?'cutout':'original'},jersey_number:null,position:null,birthdate:null,is_active:true,status:'active',is_laz_player:false,is_injured:false,injured_since:null,injured_until:null}} onClose={()=>setDesign(null)} onSaved={()=>{setDesign(null);void afterSave();}}/>:null}
     {notice?<p role="status" className="text-sm text-slate-700">{notice}</p>:null}
     <TrainerStaffFormModal
       isOpen={editor.showTrainerForm} mode={editor.trainerFormMode}

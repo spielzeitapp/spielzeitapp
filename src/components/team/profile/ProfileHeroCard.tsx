@@ -173,6 +173,7 @@ export const ProfileHeroCard: React.FC<Props> = (props) => {
   if (props.variant === "player") {
     return <PlayerProfileHeroCard {...props} />;
   }
+  if(props.photoLayout) return <div className="sz-club-profile-hero relative mb-3 aspect-square w-full overflow-hidden rounded-[22px] border"><PlayerPortraitCanvas layout={props.photoLayout} photoUrl={props.photoUrl} cutoutUrl={props.cutoutUrl} firstName={props.firstNameLine} lastName={props.lastNameLine} number={props.watermark}/></div>;
   const { variant: _variant, ...trainerProps } = props;
   return <TrainerProfileHeroCard {...trainerProps} />;
 };

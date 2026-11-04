@@ -1,7 +1,9 @@
+import type {PlayerPhotoLayout} from '../lib/playerPhotoLayout';
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export type TeamStaffMember = {
+  photo_layout?: PlayerPhotoLayout | null;
   user_id: string;
   role: string;
   first_name: string | null;
@@ -104,14 +106,14 @@ async function fetchStaffViaRpc(teamSeasonId: string): Promise<{
   staff: TeamStaffMember[];
   error: string | null;
 }> {
-  const { data, error } = await supabase.rpc("list_team_staff_for_season", {
+  const { data, error } = await supabase.rpc("list_team_staff_with_photo_layout", {
     p_team_season_id: teamSeasonId,
   });
   if (error) {
     return { staff: [], error: error.message };
   }
   const staff = ((data ?? []) as TeamStaffMember[])
-    .map((row) => mapStaffRow({ ...row, role: normalizeStaffRole(row.role) }))
+    .map((row):TeamStaffMember|null => {const member=mapStaffRow({ ...row, role: normalizeStaffRole(row.role) });return member?{...member,photo_layout:row.photo_layout??null}:null;})
     .filter((m): m is TeamStaffMember => m != null)
     .sort(sortStaff);
   return { staff, error: null };

@@ -27,5 +27,17 @@ const {act,create}=require('react-test-renderer');
  assert.equal(writes[0].args.p_user_id,'user');assert.equal(writes[0].args.p_take_name,false);
  assert.equal(writes[0].args.p_take_photo,true);assert.ok(writes[0].args.p_cutout_url.endsWith('.png?v=1'));
  assert.equal(refresh,1);await act(async()=>tree.unmount());
+ // Existing account with no profile name is suggested by the public source email.
+ global.testStaff.lookup=async()=>({data:{user_id:'wolfgang',first_name:null,last_name:null},error:null});
+ global.fetch=async()=>({ok:true,json:async()=>({trainers:[{name:'Wolfgang Semellechner',sourceRole:'Trainer',role:'trainer',photoUrl:null,email:'coach@example.test'}]})});
+ await act(async()=>tree=create(React.createElement(m.exports.ManagerOefbStaffPreview,{seasonId:'season',staff:[],onSaved:()=>{}})));
+ await act(async()=>tree.root.findByProps({type:'url'}).props.onChange({target:{value:'https://vereine.oefb.at/Club/Mannschaften/Saison-2026-27/U12/Trainer-Betreuer'}}));
+ await act(async()=>button('Trainer einlesen').props.onClick());
+ assert.ok(button('Mit Wolfgang Semellechner verknüpfen'));
+ assert.equal(writes.length,1);
+ await act(async()=>button('Mit Wolfgang Semellechner verknüpfen').props.onClick());
+ assert.equal(writes.length,1);
+ assert.ok(tree.root.findAllByType('input').some(n=>n.props.type==='checkbox'&&n.props.checked===true));
+ await act(async()=>tree.unmount());
  console.log('PASS: preview and explicit existing-account selection do not write; cutout is uploaded only on confirmed save; existing account ID is reused.');
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -307,6 +307,7 @@ export const TrainerProfilePage: React.FC = () => {
             >
               <ProfileHeroCard
                 variant="trainer"
+                photoLayout={member.photo_layout}
                 watermark={roleWatermark}
                 firstNameLine={firstNameLine}
                 lastNameLine={lastNameLine}

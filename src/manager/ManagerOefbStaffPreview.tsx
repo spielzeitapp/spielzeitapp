@@ -24,7 +24,7 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:strin
  const [confirmed,setConfirmed]=useState(false);
  useEffect(()=>()=>{generation.current++;},[seasonId]);
  function patch(i:number,value:Partial<Choice>){setConfirmed(false);setChoices(old=>old.map((c,n)=>n===i?{...c,...value}:c));}
- function choose(i:number,target:Target){const role=['trainer','head_coach','co_trainer'].includes(target.role||'')?target.role as Role:people[i].role;patch(i,{target,role,takeName:false,takePhoto:!target.avatar_url&&!target.cutout_url,cutout:null});}
+ function choose(i:number,target:Target){const role=['trainer','head_coach','co_trainer'].includes(target.role||'')?target.role as Role:people[i].role;patch(i,{target,role,takeName:!target.first_name&&!target.last_name,takePhoto:!target.avatar_url&&!target.cutout_url,cutout:null});}
  async function preview(){
   if(busy||!url.trim())return;const version=++generation.current;setBusy(true);setError('');setNotice('');setPeople([]);setChoices([]);setConfirmed(false);
   try{
@@ -33,7 +33,14 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:strin
    if(!response.ok||data.error)throw Error(data.error||'Trainer konnten nicht geladen werden.');
    if(version!==generation.current)return;
    const found=data.trainers||[];setSource(data.sourceUrl||url.trim());
-   setChoices(found.map(p=>({target:null,email:p.email||'',lookup:null,role:p.role,takeName:false,takePhoto:false,cutout:null})));
+   const suggestions=await Promise.all(found.map(async p=>{
+    if(!p.email||staff.some(s=>normalize(staffDisplayName(s))===normalize(p.name)))return null;
+    const result=await managerLookupStaffUserByEmail({teamSeasonId:seasonId,email:p.email});
+    const account=result.data;if(result.error||!account?.user_id)return null;
+    return {user_id:account.user_id,first_name:account.first_name||null,last_name:account.last_name||null,avatar_url:null} as Target;
+   }));
+   if(version!==generation.current)return;
+   setChoices(found.map((p,i)=>({target:null,email:p.email||'',lookup:suggestions[i],role:p.role,takeName:false,takePhoto:false,cutout:null})));
    setPeople(found);
    setNotice(data.notice||'');
   }catch(e){if(version===generation.current)setError(e instanceof Error?e.message:'ÖFB-Trainer konnten nicht geladen werden.');}
@@ -89,7 +96,8 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:strin
    <div className="flex items-center gap-3"><OefbPlayerPhoto src={p.photoUrl} name={p.name}/><div><p className="font-semibold">{p.name}</p><p className="text-sm text-slate-500">{p.sourceRole}</p></div></div>
    {c.saved?<p role="status" className="text-sm font-semibold text-emerald-800">✓ Gespeichert</p>:<>
    {!c.target?matches.map(s=><button type="button" key={s.user_id} disabled={busy} onClick={()=>choose(i,s)} className="min-h-11 rounded-lg border border-slate-300 px-3 font-semibold">Mit {staffDisplayName(s)} verknüpfen</button>):<div className="rounded-lg bg-emerald-50 p-3 text-sm"><p>✓ {name||c.target.user_id} ausgewählt</p><button type="button" disabled={busy} className="underline" onClick={()=>patch(i,{target:null,cutout:null})}>Auswahl aufheben</button></div>}
-   <details open={!matches.length&&!c.target}><summary className="cursor-pointer py-2 text-sm">Anderen Trainer auswählen</summary>
+   {!c.target&&!matches.length&&c.lookup?<div className="rounded-lg border border-slate-200 p-3"><p className="text-sm">Vorhandenes App-Konto gefunden: {c.email}</p><button type="button" disabled={busy} onClick={()=>choose(i,c.lookup!)} className="min-h-11 rounded-lg border px-3 font-semibold">Mit {[c.lookup.first_name,c.lookup.last_name].filter(Boolean).join(' ')||p.name} verknüpfen</button></div>:null}
+   <details open={!matches.length&&!c.target&&!c.lookup}><summary className="cursor-pointer py-2 text-sm">Anderen Trainer auswählen</summary>
     <label className="block text-sm">Vorhandener Trainer<select value={c.target?.user_id||''} disabled={busy} onChange={e=>{const s=staff.find(s=>s.user_id===e.target.value);if(s)choose(i,s);}} className="min-h-11 w-full rounded-lg border p-2"><option value="">Bitte auswählen</option>{staff.map(s=><option key={s.user_id} value={s.user_id}>{staffDisplayName(s)}</option>)}</select></label>
     <label className="mt-2 block text-sm">E-Mail des bestehenden App-Kontos<input type="email" value={c.email} disabled={busy} onChange={e=>patch(i,{email:e.target.value,lookup:null})} className="min-h-11 w-full rounded-lg border p-2"/></label>
     <button type="button" disabled={busy||!c.email.trim()} onClick={()=>void lookup(i)} className="min-h-11 rounded-lg border px-3">Konto suchen</button>
