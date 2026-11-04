@@ -7,7 +7,8 @@ function stub(options={}){return async path=>{
  if(path.startsWith('/git/trees/'))return options.trees?.[path.includes(MAIN)?'before':'after']??{truncated:true,tree:[]};
  if(path.startsWith('/compare/'))return{status:options.status??'ahead',ahead_by:1,commits:[{sha:HEAD,commit:{message:'new feature'}}],files:options.files??[]};
  if(path.includes('/status'))return{statuses:[{context:'Vercel – spielzeitapp',state:options.check??'success'},{context:'Vercel – spielzeitapp-intern',state:'success'}]};
- if(path.startsWith('/contents/'))return{content:Buffer.from(JSON.stringify({schema_version:1,migrations:options.manifest??{}})).toString('base64')};
+ if(path.startsWith('/contents/release/legacy-baseline.json')){if(options.noBaseline){const e=Error();e.status=404;throw e;}return{content:Buffer.from(JSON.stringify({schema_version:1,source_main:MAIN,live_project:'shxugattqatahckhspwk',adopted_files:{}})).toString('base64')};}
+ if(path.startsWith('/contents/'))return{content:Buffer.from(JSON.stringify({schema_version:1,migrations:options.manifest??{},functions:options.functions??{}})).toString('base64')};
  if(path.includes('/runs'))return{workflow_runs:options.runs??[]};
  if(path.includes('/actions/workflows/')){if(options.noWorkflow){const e=Error();e.status=404;throw e;}return{state:'active'};}
  throw Error(path);
@@ -81,4 +82,13 @@ test('code promotion cannot silently skip Edge Functions or activate changed pri
  for(const filename of ['supabase/functions/send-reminders/index.ts','.github/workflows/production-release.yml','server/lib/liveRelease.js','scripts/release/publish-live.mjs']){
   const plan=await releasePlan(stub({files:[{filename,status:'modified',sha:SQL}]}));assert.equal(plan.ready,false);assert.equal(plan.trafficLight,'red');
  }
+});
+
+test('only an exact reviewed supported server function can be released',async()=>{
+ const filename='supabase/functions/generate-club-communications/index.ts';
+ assert.equal((await releasePlan(stub({files:[{filename,status:'modified',sha:SQL}]}))).ready,false);
+ assert.equal((await releasePlan(stub({files:[{filename,status:'modified',sha:SQL}],functions:{[filename]:SQL}}))).ready,true);
+ assert.equal((await releasePlan(stub({files:[{filename,status:'removed',sha:SQL}],functions:{[filename]:SQL}}))).ready,false);
+ assert.equal((await releasePlan(stub({noBaseline:true}))).ready,false);
+ for(const filename of ['server/lib/releaseDatabase.js','server/lib/releasePublisher.js','release/legacy-baseline.json'])assert.equal((await releasePlan(stub({files:[{filename,status:'modified',sha:SQL}]}))).ready,false);
 });

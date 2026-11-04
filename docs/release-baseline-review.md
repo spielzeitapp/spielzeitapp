@@ -1,37 +1,45 @@
-# One-time release baseline review
+# Initial Manager publication: reviewed preparation
 
-Application reconciliation completed on 2026-11-04. LIVE publication remains blocked pending database and Edge Function review. No LIVE database change or TEST data transfer was performed.
+Prepared on 2026-11-04. This preparation has not published the TEST application, applied SQL to LIVE, deployed its changed Edge Function, or copied TEST content.
 
-Sources: LIVE `991349e9721e85b92da649f416d0bfccbea84dff`, TEST `2e475122924425fa95dfa5578d0b6a4c6f4a3036`.
+## Reconciliation and package validation
 
-## Application reconciliation
+All 117 previous source conflicts were reconciled in a real merge (PR #135). Released LIVE fixes and the intended TEST Manager, ÖFB, branding and authorization features are retained. The per-file decisions are recorded in `release-baseline-resolution.json`. Three completed TEST setup installers were verified and archived in PR #136.
 
-All 117 conflicting files have been reconciled in a real merge of LIVE into TEST. The per-file/hunk choices are recorded in `release-baseline-resolution.json`. This is not an ancestry-only merge: the resulting tree retains the intended TEST Manager, ÖFB, branding and authorization additions and restores released fixes for persisted favorites, user switching, feed deletion/automation, poster design, video transfer and marketing assets.
+The current TEST feature set also includes explicit ÖFB name adoption and local photo background removal. Its malformed package lockfile was restored from the newest valid previous lock and regenerated for the current package manifest. A clean `npm ci --ignore-scripts` succeeds, retaining the MediaPipe dependency.
 
-Follow-up integration fixes: remove duplicate Home filter markup, complete the demo formation wrapper/import, restore the demo training plan import, remove an unused Team logo reference, avoid duplicate schedule date classification, use the actual opponent-logo state setter, and allow the global publication page without a team scope. Communication generation retains TEST permissions with environment-bound CORS for TEST and LIVE; deployment of this changed Edge Function remains a separate blocker.
+## Database adoption without replay
 
-## Validation
+LIVE schema/history are readable again. Read-only inspection captured 128 migration history entries and an empty local schema reconstruction with 115 tables, 255 functions, 375 defaults and 527 constraints. No LIVE business rows were copied.
 
-- Production Vite build and the configured feed typecheck pass.
-- 14 release authorization, stale snapshot, full file comparison and serverless routing tests pass; API remains at 10 deployed functions.
-- Favorite session lifecycle, multi-team reading scope, normal favorites, club-theme scope, automatic matchday deletion, poster design, match club branding, ÖFB opponent-logo roundtrip, player assignment, roster preview, duration settings, Manager trainer mode and parent invitation UX tests pass.
-- Demo formation and authorized video transfer tests pass.
-- Full application TypeScript check was additionally compared to the unchanged TEST baseline. The unchanged TEST baseline has 185 diagnostics; the reconciled application has 184 and no new diagnostics. This is not a claim that the entire application is type-clean.
-- Older source-string assertions for parent profile hint, platform dashboard labels and opponent logos are stale on existing branch heads; they are not acceptance evidence. After installing the optional PGlite dependency outside the repository, the real Postgres feed-switch trigger test also passes (master off/on, retained individual choices, manual posts, authenticated trigger execution and independent squad messages).
-- Authenticated end-to-end user acceptance remains to be done on TEST.
+`release/legacy-baseline.json` adopts 150 historical source files that already existed on the previous LIVE branch but whose versions were not in LIVE history. Their exact Git blobs are frozen. Adoption means **do not replay them**, not “these versions ran”; no history entries are manufactured. A changed historical file still blocks publication. The worker fetches this baseline from the pinned MAIN commit, never from the candidate.
 
-## Database inventory and release blockers
+There are also 24 exact SQL matches to recorded LIVE changes under different names/versions. The evidence and rehearsal limits are in `release-initial-preflight-2026-11-04.json`.
 
-LIVE history was read without mutation: 128 entries. There are 186 repository SQL files whose exact version is absent from that history: 150 already exist in the LIVE source branch and 36 are TEST additions. Of these, 28 have a same-named LIVE entry under a different version. A matching name is not proof of identical SQL or schema. Two files even share an existing repository version; historical ordering must not be reconstructed by blindly replaying the folder.
+Three candidate-only SQL files are archived outside the executable migration folder:
 
-`release-live-migration-inventory.json` records the read-only LIVE version/name inventory. `release-missing-migrations-review.json` records exact candidate blobs and separates new changes, legacy files, possible version aliases and explicitly excluded files. Neither file grants migration approval. `release/live-plan.json` retains its empty approvals.
+- `20260818140000` and `20260818140100`: excluded legacy admin-role changes. The worker explicitly rejects those versions if reintroduced.
+- `20260929100000`: LIVE already has the same schema/functions as `20261012203512`, deliberately excluding the hardcoded TEST U13 assignment. That TEST seed must never run in LIVE.
 
-The admin-org files `20260818140000` and `20260818140100` remain excluded and must not run automatically. Historical SQL conflicts retain the LIVE source contents. New, compatible schema deltas must be reviewed against the actual LIVE schema and tested separately. Do not mark missing versions applied or treat this code reconciliation as database equivalence approval.
+The remaining 34 pending SQL files are reviewed by exact Git blob in `release/live-plan.json`. Their top-level statements perform DDL, permission changes, schema reload notifications, or a checked function-definition adjustment. They do not bulk-copy or update players, events, team assignments or other TEST content.
 
-Changed Edge Functions require a separate, reviewed deployment before the first publication. The three completed TEST-only setup workflows were archived after read-only verification of their required functions, policies, logo bucket and legacy backfill; see `release-bootstrap-archive/README.md`. The active workflow files now match LIVE. The traffic light must stay red while these blockers remain; a large, completely enumerated code-only release may be yellow after all real blockers are resolved.
+## Verified publication sequence
 
-## Deployment verification
+1. Recheck the exact TEST/main commit, successful deployment checks, complete file diff and approval digest.
+2. Load the trusted MAIN baseline. Reject unknown SQL, changed frozen blobs, excluded versions and duplicate pending versions.
+3. Commit the 34 reviewed SQL files and their exact source/history records in one transaction, with a short lock timeout. Failure stops publication. A retry checks recorded SQL content before skipping a committed version.
+4. Deploy only the exact approved `generate-club-communications/index.ts`. Retain JWT validation and verify the active function/version before code promotion.
+5. Recheck the pinned source and fast-forward main without force. Confirm the exact public LIVE SHA.
+6. Configure and verify the LIVE technical ÖFB scheduler connection using the literal LIVE origin. This copies no TEST tasks, source settings or team preferences; automatic sync remains off for teams until configured in LIVE.
 
-PR #135 was merged into `develop` as `9cf905c742a91c50a2577a4c7dbca549d39ecd01`. Vercel TEST deployment `dpl_71sronVbuafqrEfDbvsNTaS5mNTy` is READY and assigned to `app.spielzeitapp.at`. The public TEST version endpoint confirms that exact SHA and `develop`. The resulting source tree matches the locally built integration, including the concurrent ÖFB existing-player linking update `7b2ca8ad`. LIVE is now an actual ancestor of TEST. No application promotion to main was made.
+Changes to the trusted workflow, publisher helpers or baseline must be installed separately on main before the prepared TEST version is eligible. The bootstrap contains no TEST feature code or SQL execution.
 
-The LIVE migration version/name inventory was readable. Subsequent attempts to inspect recorded SQL bodies or statement counts repeatedly failed with database connection timeouts through the Supabase connector. SQL equivalence and remaining schema requirements therefore cannot be certified in this pass; no migration approval was inferred from names or timestamps. These checks remain a first-publication blocker.
+## Validation and limits
+
+- Clean dependency installation, configured typecheck, production Vite build, and 24 release/serverless guard tests pass.
+- All 34 SQL files load against the local reconstruction of the LIVE schema.
+- Synthetic RPC checks pass for team setup, existing-player linking and explicit name correction without duplicates, duration, photo layout, setup checks, admin communication access, archival retaining player identity, and denial of unprivileged mutations.
+- Function ACLs/default ACLs and three relevant base triggers were reconstructed. This is not a full authenticated RLS or production end-to-end test.
+- The `http` extension is unavailable in PGlite, so its type was stubbed for local DDL compilation. LIVE advertises version 1.6 as available. Actual HTTP/cron execution is not claimed by the rehearsal.
+- The existing full-application TypeScript backlog outside the configured feed check is not resolved by this preparation.
+- The initial code difference remains large and should show yellow. The operator must still test the intended TEST features and explicitly confirm the pinned version before publishing.
