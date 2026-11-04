@@ -1,3 +1,4 @@
+import { ManagerLiveReleasePanel } from './ManagerLiveReleasePanel';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
@@ -79,6 +80,7 @@ export function ManagerPlatformDashboardPage(): React.ReactElement {
 
   return (
     <>
+    <ManagerLiveReleasePanel />
     <div className="min-h-full space-y-5 bg-[#050506] px-4 pb-8 pt-6 text-white md:hidden">
       <div className="flex items-start justify-between gap-3">
         <div>
