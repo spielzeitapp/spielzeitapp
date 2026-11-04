@@ -20,11 +20,12 @@ async function bundle(entry,mocks){
  assert.equal(tree.root.findAllByProps({type:'range'}).length,8);
  await act(async()=>tree.root.findByProps({'aria-label':'Bildgröße'}).props.onChange({target:{value:'125'}}));
  await act(async()=>tree.root.findByProps({'aria-label':'TR horizontal'}).props.onChange({target:{value:'80'}}));
+ await act(async()=>tree.root.findAllByType('select')[0].props.onChange({target:{value:'nsg-art'}}));
  assert.equal(writes.length,0);
  await act(async()=>button('Hintergrund entfernen').props.onClick());assert.equal(uploads,0);
  await act(async()=>button('Freisteller & Gestaltung speichern').props.onClick());
  assert.equal(uploads,1);assert.equal(writes.length,1);assert.equal(writes[0].name,'save_staff_photo_layout');
- assert.equal(writes[0].args.p_user_id,'user');assert.equal(writes[0].args.p_layout.zoom,125);assert.equal(writes[0].args.p_layout.numberX,80);assert.equal(writes[0].args.p_layout.source,'cutout');assert.ok(writes[0].args.p_cutout_url);assert.equal(closed,1);
+ assert.equal(writes[0].args.p_layout.background,'nsg-art');assert.equal(writes[0].args.p_user_id,'user');assert.equal(writes[0].args.p_layout.zoom,125);assert.equal(writes[0].args.p_layout.numberX,80);assert.equal(writes[0].args.p_layout.source,'cutout');assert.ok(writes[0].args.p_cutout_url);assert.equal(closed,1);
  await act(async()=>tree.unmount());
  const {TeamTrainerShowcase}=await bundle('src/components/team/TeamTrainerShowcase.tsx',[[/useTeamStaff$/,'export const staffDisplayName=m=>m.first_name+" "+m.last_name;'],[/playerPhotoDisplay$/,'export const preparedPlayerPortrait=()=>null;export const playerPhotoDisplayUrl=s=>s;']]);
  await act(async()=>tree=create(React.createElement(TeamTrainerShowcase,{trainers:[{user_id:'user',first_name:'Wolfgang',last_name:'Semellechner',photo_layout:writes[0].args.p_layout,avatar_url:'original',cutout_url:'cutout'}],onTrainerClick:()=>{}})));
@@ -39,6 +40,7 @@ async function bundle(entry,mocks){
   await act(async()=>tree=create(React.createElement(ProfileHeroCard,{variant,photoLayout,watermark:variant==='trainer'?'TR':'19',firstNameLine:'First',lastNameLine:'Family',teamName:'SPG Rohrbach',teamSeasonLabel:'U12 · 2026/27',teamLogoUrl:'/logo.png',photoUrl:'original',cutoutUrl:'cutout',initials:'FF'})));
   const card=tree.root.findByProps({'data-profile-artwork':'premium'});
   assert.ok(card.props.className.includes('aspect-[4/3]'));
+  if(photoLayout)assert.ok(card.props.style.background.includes('/backgrounds/nsg-portrait.webp'));
   assert.ok(!card.props.className.includes('aspect-square'));
   assert.equal(tree.root.findAllByProps({src:'/logo.png'}).length,1);
   assert.ok(tree.root.findAllByType('p').some(n=>n.children.join('')==='SPG ROHRBACH'));
