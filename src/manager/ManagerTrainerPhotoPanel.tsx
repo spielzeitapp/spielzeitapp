@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react';
 import {useTeamStaff, staffDisplayName, staffRoleLabelDe} from '../hooks/useTeamStaff';
 import {useTrainerStaffEditor} from '../hooks/useTrainerStaffEditor';
 import {TrainerStaffFormModal} from '../components/team/TrainerStaffFormModal';
+import {ManagerOefbStaffPreview} from './ManagerOefbStaffPreview';
 import {OefbPlayerPhoto} from '../components/OefbPlayerPhoto';
 
 /** Shares the app's account-based trainer editor and staff authorization. */
@@ -19,6 +20,7 @@ export function ManagerTrainerPhotoPanel({seasonId}: {seasonId: string}) {
       <button type="button" onClick={()=>{setNotice('');editor.openCreateTrainerForm();}} className="min-h-11 rounded-lg bg-red-700 px-4 py-2 font-semibold text-white">Trainer mit Foto hinzufügen</button>
     </div>
     <p className="text-sm text-slate-600">Vorhandenes SpielzeitApp-Konto verwenden, Rolle wählen und Foto hochladen. Ohne Konto zuerst den Trainer per E-Mail einladen. Ein Foto lässt sich auch später ergänzen.</p>
+    <ManagerOefbStaffPreview key={seasonId} seasonId={seasonId} staff={staff} onSaved={()=>refetch()}/>
     {loading?<p className="text-sm text-slate-500">Trainer werden geladen…</p>:null}
     {error?<p role="alert" className="text-sm text-red-700">{error}</p>:null}
     {!loading&&!error&&!staff.length?<p className="text-sm text-slate-500">Noch kein Trainer zugeordnet.</p>:null}
