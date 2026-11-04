@@ -1,3 +1,4 @@
+import { isStagingApp } from '../lib/appEnvironment';
 import React, { useCallback, useEffect, useState } from 'react';
 import { eventSaveTask } from '../lib/eventSaveTask';
 import { supabase } from '../lib/supabaseClient';
@@ -9,7 +10,7 @@ async function api(method='GET',body?:unknown){
 }
 export function ManagerLiveReleasePanel(){
  const [plan,setPlan]=useState<Plan|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[confirmed,setConfirmed]=useState(false),[requested,setRequested]=useState('');
- const isTest=String(import.meta.env?.VITE_SUPABASE_URL??'').includes('acbaecjzoabafbsjrzvr')||(typeof window!=='undefined'&&['app.spielzeitapp.at','localhost'].includes(window.location.hostname));
+ const isTest=isStagingApp()||(typeof window!=='undefined'&&window.location.hostname==='localhost');
  const refresh=useCallback(async()=>{setBusy(true);setConfirmed(false);try{setPlan(await api());setError('');}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}},[]);
  useEffect(()=>{if(isTest)void refresh();},[isTest,refresh]);
  const active=plan?.runs.some(r=>!r.conclusion&&r.status!=='completed');

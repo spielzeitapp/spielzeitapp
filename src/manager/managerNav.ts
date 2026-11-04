@@ -15,6 +15,7 @@ export type ManagerNavItem = {
   hideInTrainerMode?: boolean;
   /** Nur in der globalen Plattformverwaltung, nicht im Vereins-/Supportkontext. */
   platformGlobalOnly?: boolean;
+  stagingOnly?: boolean;
   /** Zugehöriges Vereinsmodul; Grundmodule sind ebenfalls im Katalog enthalten. */
   moduleKey?: string;
 };
@@ -39,6 +40,15 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
         status: 'ready',
         platformAdminOnly: true,
         platformGlobalOnly: true,
+      },
+      {
+        id: 'live-release',
+        label: 'LIVE-Veröffentlichung',
+        to: '/manager/live-veroeffentlichung',
+        status: 'ready',
+        platformAdminOnly: true,
+        platformGlobalOnly: true,
+        stagingOnly: true,
       },
       {
         id: 'clubs',

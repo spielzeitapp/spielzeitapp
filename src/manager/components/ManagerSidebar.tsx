@@ -1,3 +1,4 @@
+import { isStagingApp } from '../../lib/appEnvironment';
 import React, { useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -19,6 +20,7 @@ import {
   Mic,
   Music2,
   Share2,
+  Upload,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -78,6 +80,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   'music-studio': Music2,
   clubs: Shield,
   'platform-dashboard': LayoutDashboard,
+  'live-release': Upload,
   equipment: Building2,
 };
 
@@ -192,6 +195,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
                 item.status === 'ready' &&
                 (item.id === 'speaker-studio' ? communicationAccess.speaker : item.id === 'music-studio' ? communicationAccess.music : navItemVisibleForWorkMode(item, workMode)) &&
                 (!item.platformGlobalOnly || platformGlobal) &&
+                (!item.stagingOnly || isStagingApp()) &&
                 isModuleEnabled(item.moduleKey),
             );
             if (items.length === 0) return null;

@@ -47,7 +47,7 @@ function formatActivity(value: string | null): string {
   return new Date(value).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function ManagerPlatformDashboardPage(): React.ReactElement {
+export function ManagerPlatformDashboardPage({ releaseOnly = false }: { releaseOnly?: boolean } = {}): React.ReactElement {
   const { backendRole, loading: sessionLoading } = useSession();
   const allowed = isPlatformAdminRole(backendRole);
   const [stats, setStats] = useState<PlatformDashboardStats | null>(null);
@@ -69,11 +69,13 @@ export function ManagerPlatformDashboardPage(): React.ReactElement {
   }, []);
 
   useEffect(() => {
-    if (allowed) void reload();
-  }, [allowed, reload]);
+    if (allowed && !releaseOnly) void reload();
+  }, [allowed, releaseOnly, reload]);
 
   if (sessionLoading) return <p className="text-[14px] text-slate-600">Sitzung wird geladen…</p>;
   if (!allowed) return <Navigate to="/manager" replace />;
+
+  if (releaseOnly) return <div className="p-4 text-slate-900 md:p-6"><ManagerLiveReleasePanel /></div>;
 
   const activeClubs = clubs.filter((club) => club.status === 'active');
   const needsAttention = activeClubs.filter((club) => club.active_season_count === 0 || club.staff_admin_count === 0);

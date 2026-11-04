@@ -420,6 +420,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="vereine" element={<ManagerClubsPage />} />
         <Route path="vereine/:clubId" element={<ManagerClubDetailPage />} />
         <Route path="plattform" element={<ManagerPlatformDashboardPage />} />
+        <Route path="live-veroeffentlichung" element={<ManagerPlatformDashboardPage releaseOnly />} />
         <Route path="training" element={<Navigate to="/manager/training/einheiten" replace />} />
         <Route path="training/bibliothek" element={<ManagerTrainingLibraryPage />} />
         <Route path="training/vorlagen" element={<ManagerTrainingTemplatesPage />} />
