@@ -35,6 +35,8 @@ jobs:
             assert.ok(result.trainers.length>=2,'Expected the public U12 trainers');
             assert.ok(result.trainers.every(t=>t.name&&t.sourceRole));
             console.log('Trainer names and photo availability:',JSON.stringify(result.trainers.map(t=>({name:t.name,photo:!!t.photoUrl}))));
+            console.log('Public script paths:',JSON.stringify([...html.matchAll(/<script\b[^>]*src=["']([^"']+)/gi)].map(m=>m[1])));
+            for(const m of html.matchAll(/SG\.container\.appPreloads\s*\[[^\]\r\n]+\]\s*=\s*(\[[\s\S]*?\])\s*;/g)){try{const blocks=JSON.parse(m[1]);for(const b of blocks){if(b.images)console.log('Image settings:',JSON.stringify(b.images));}}catch{}}
             const ids=[...html.matchAll(/"fotoId"\s*:\s*("[^"]*"|[0-9]+)/g)].map(m=>JSON.parse(m[1]));
             console.log('Staff photo identifiers:',JSON.stringify(ids));
             for(const id of ids){const escaped=String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\            assert.ok(result.trainers.every(t=>t.name&&t.sourceRole));');const matches=[...html.matchAll(new RegExp('[^"\\s<>]*'+escaped+'[^"\\s<>]*','g'))].map(m=>m[0]);console.log('Public photo references:',JSON.stringify(matches.slice(0,8)));}
