@@ -4,6 +4,7 @@ const HEAD='a'.repeat(40),MAIN='b'.repeat(40),SQL='c'.repeat(40);
 function stub(options={}){return async path=>{
  if(path==='/git/ref/heads/develop')return{object:{sha:options.head??HEAD}};
  if(path==='/git/ref/heads/main')return{object:{sha:MAIN}};
+ if(path.startsWith('/git/trees/'))return options.trees?.[path.includes(MAIN)?'before':'after']??{truncated:true,tree:[]};
  if(path.startsWith('/compare/'))return{status:options.status??'ahead',ahead_by:1,commits:[{sha:HEAD,commit:{message:'new feature'}}],files:options.files??[]};
  if(path.includes('/status'))return{statuses:[{context:'Vercel – spielzeitapp',state:options.check??'success'},{context:'Vercel – spielzeitapp-intern',state:'success'}]};
  if(path.startsWith('/contents/'))return{content:Buffer.from(JSON.stringify({schema_version:1,migrations:options.manifest??{}})).toString('base64')};
@@ -11,7 +12,7 @@ function stub(options={}){return async path=>{
  if(path.includes('/actions/workflows/')){if(options.noWorkflow){const e=Error();e.status=404;throw e;}return{state:'active'};}
  throw Error(path);
 };}
-test('a pinned green code-only release has a stable approved digest',async()=>{const a=await releasePlan(stub());const b=await releasePlan(stub());assert.equal(a.ready,true);assert.equal(a.planDigest,b.planDigest);assert.match(a.planDigest,/^[a-f0-9]{64}$/);assert.notEqual(digest({head:HEAD}),digest({head:MAIN}));});
+test('a pinned green code-only release has a stable approved digest',async()=>{const a=await releasePlan(stub());const b=await releasePlan(stub());assert.equal(a.ready,true);assert.equal(a.trafficLight,'green');assert.equal(a.planDigest,b.planDigest);assert.match(a.planDigest,/^[a-f0-9]{64}$/);assert.notEqual(digest({head:HEAD}),digest({head:MAIN}));});
 test('pending checks, divergence, absent bootstrap and already live versions block',async()=>{for(const options of [{check:'pending'},{status:'diverged'},{noWorkflow:true},{head:MAIN}])assert.equal((await releasePlan(stub(options))).ready,false);});
 test('migration approval is exact file content and new-file only',async()=>{const file={filename:'supabase/migrations/20261104000000_example.sql',sha:SQL,status:'added'};assert.equal((await releasePlan(stub({files:[file]}))).ready,false);assert.equal((await releasePlan(stub({files:[file],manifest:{[file.filename]:SQL}}))).ready,true);assert.equal((await releasePlan(stub({files:[{...file,status:'modified'}],manifest:{[file.filename]:SQL}}))).ready,false);assert.equal((await releasePlan(stub({files:[file],manifest:{[file.filename]:HEAD}}))).ready,false);});
 test('running releases block API requests, but the worker can check its own run',async()=>{const gh=stub({runs:[{id:12,status:'in_progress'}]});assert.equal((await releasePlan(gh)).ready,false);assert.equal((await releasePlan(gh,{ignoreRunId:'12'})).ready,true);});
@@ -48,9 +49,36 @@ test('Manager requires a ready preview and explicit confirmation before dispatch
  const button=()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Geprüften Stand LIVE veröffentlichen'));
  try{
   await act(async()=>{renderer=create(React.createElement(m.exports.ManagerLiveReleasePanel));});assert.equal(button().props.disabled,true);
-  plan={...plan,ready:true,blockers:[],head:HEAD,main:MAIN,planDigest:'e'.repeat(64)};
+  plan={...plan,ready:true,blockers:[],warnings:['Große Aktualisierung'],head:HEAD,main:MAIN,planDigest:'e'.repeat(64)};
   await act(async()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Stand prüfen')).props.onClick());assert.equal(button().props.disabled,true);
   await act(async()=>renderer.root.findByType('input').props.onChange({target:{checked:true}}));assert.equal(button().props.disabled,false);
   await act(async()=>button().props.onClick());assert.equal(posts.length,1);assert.deepEqual(posts[0],{head:HEAD,main:MAIN,planDigest:'e'.repeat(64)});assert.equal(button().props.disabled,true);
  }finally{if(renderer)await act(async()=>renderer.unmount());global.window=previousWindow;global.fetch=previousFetch;}
+});
+
+test('a complete large diff is yellow and publishable, not automatically red',async()=>{
+ const files=Array.from({length:350},(_,i)=>({filename:`src/f${i}`,sha:SQL}));
+ const trees={before:{tree:[]},after:{tree:files.map(f=>({path:f.filename,sha:f.sha,type:'blob',mode:'100644'}))}};
+ const plan=await releasePlan(stub({files:files.slice(0,300),trees}));
+ assert.equal(plan.changedFiles,350);assert.equal(plan.comparisonComplete,true);assert.equal(plan.trafficLight,'yellow');assert.equal(plan.ready,true);assert.equal(plan.warnings.length,1);
+});
+test('migration hidden beyond the compare cap still blocks and requires exact approval',async()=>{
+ const files=Array.from({length:300},(_,i)=>({filename:`src/f${i}`,sha:SQL}));
+ const migration='supabase/migrations/20261104130000_hidden.sql';
+ const trees={before:{tree:[]},after:{tree:[...files.map(f=>({path:f.filename,sha:f.sha,type:'blob'})),{path:migration,sha:HEAD,type:'blob'}]}};
+ const plan=await releasePlan(stub({files,trees}));assert.equal(plan.ready,false);assert.equal(plan.trafficLight,'red');assert.equal(plan.migrations[0].path,migration);
+ assert.equal((await releasePlan(stub({files,trees,manifest:{[migration]:HEAD}}))).ready,true);
+});
+test('large diff cannot approve modified or removed shipped migrations',async()=>{
+ const files=Array.from({length:300},(_,i)=>({filename:`src/f${i}`,sha:SQL}));
+ const path='supabase/migrations/20261104130000_existing.sql';
+ for(const after of [[],[{path,sha:HEAD,type:'blob'}]]){
+  const trees={before:{tree:[{path,sha:SQL,type:'blob'}]},after:{tree:after}};
+  const plan=await releasePlan(stub({files,trees,manifest:{[path]:HEAD}}));assert.equal(plan.ready,false);assert.equal(plan.trafficLight,'red');
+ }
+});
+test('code promotion cannot silently skip Edge Functions or activate changed privileged workflows',async()=>{
+ for(const filename of ['supabase/functions/send-reminders/index.ts','.github/workflows/production-release.yml','server/lib/liveRelease.js','scripts/release/publish-live.mjs']){
+  const plan=await releasePlan(stub({files:[{filename,status:'modified',sha:SQL}]}));assert.equal(plan.ready,false);assert.equal(plan.trafficLight,'red');
+ }
 });

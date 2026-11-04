@@ -21,6 +21,7 @@ on:
 permissions:
   contents: read
   actions: read
+  statuses: read
 concurrency:
   group: spielzeit-live-release
   cancel-in-progress: false
@@ -63,6 +64,7 @@ jobs:
     permissions:
       contents: write
       actions: read
+      statuses: read
     steps:
       - uses: actions/checkout@v4
         with:

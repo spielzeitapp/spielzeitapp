@@ -234,3 +234,21 @@ body:has(.manager-shell) {
   outline: 2px solid #64748b;
   outline-offset: 3px;
 }
+
+
+/* Compact publication traffic light; every color also has a text label. */
+.manager-release-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.manager-release-status__dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; }
+.manager-release-status--green { color: #166534; background: #dcfce7; }
+.manager-release-status--yellow { color: #854d0e; background: #fef3c7; }
+.manager-release-status--red { color: #991b1b; background: #fee2e2; }
+.manager-release-status--neutral { color: #475569; background: #f1f5f9; }
