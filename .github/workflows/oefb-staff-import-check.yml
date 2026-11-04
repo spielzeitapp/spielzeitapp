@@ -1,0 +1,38 @@
+name: Verify OFB trainer import
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'server/lib/oefbStaff.js'
+      - 'src/manager/ManagerOefbStaffPreview.tsx'
+      - '.github/workflows/oefb-staff-import-check.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630a4a2092b5c1850a7d4c9af
+        with:
+          persist-credentials: false
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - name: Parser and real public trainer page
+        run: |
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const handler=require('./server/lib/oefbStaff.js');
+          (async()=>{
+            const fixture="SG.container.appPreloads['fixture']="+JSON.stringify([{trainer:[{vorname:'First',nachname:'Coach',funktion:'Trainer',fotoUrl:'https://vereine.oefb.at/netzwerk/imagedownload/portrait.jpg'}]}])+";";
+            const parsed=handler.extract(fixture);
+            assert.equal(parsed.trainers.length,1);
+            assert.equal(parsed.trainers[0].photoUrl,'https://vereine.oefb.at/netzwerk/imagedownload/portrait.jpg');
+            const html=await (await fetch('https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Trainer-Betreuer',{signal:AbortSignal.timeout(20000)})).text();
+            const result=handler.extract(html);
+            console.log('Public trainer count:',result.trainers.length);
+            console.log('Public preload field names:',JSON.stringify(result.schemaKeys));
+            assert.ok(result.trainers.length>=2,'Expected the public U12 trainers');
+            assert.ok(result.trainers.every(t=>t.name&&t.sourceRole));
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          NODE
