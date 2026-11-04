@@ -32,8 +32,9 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:strin
    const data=await response.json() as {trainers?:Candidate[];sourceUrl?:string;error?:string;notice?:string};
    if(!response.ok||data.error)throw Error(data.error||'Trainer konnten nicht geladen werden.');
    if(version!==generation.current)return;
-   const found=data.trainers||[];setSource(data.sourceUrl||url.trim());setPeople(found);
+   const found=data.trainers||[];setSource(data.sourceUrl||url.trim());
    setChoices(found.map(p=>({target:null,email:p.email||'',lookup:null,role:p.role,takeName:false,takePhoto:false,cutout:null})));
+   setPeople(found);
    setNotice(data.notice||'');
   }catch(e){if(version===generation.current)setError(e instanceof Error?e.message:'ÖFB-Trainer konnten nicht geladen werden.');}
   finally{if(version===generation.current)setBusy(false);}
