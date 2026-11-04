@@ -34,7 +34,9 @@
     "supabase/migrations/20261103135629_harden_safe_oefb_schedule_sync.sql": "5a6563074716c0dd1c63e616d112f183816fb7aa",
     "supabase/migrations/20261103135912_finalize_safe_oefb_sync_guards.sql": "8cf876366a77241fb13767fcfe051bcb33c4deea",
     "supabase/migrations/20261103173150_app_oefb_conflict_resolution.sql": "c3c6a57c923116d94a52e73f5fac20462f7ae19c",
-    "supabase/migrations/20261104131027_oefb_roster_optional_name_update.sql": "3fffcede889d42d82b7939851193c28225eb3b5f"
+    "supabase/migrations/20261104131027_oefb_roster_optional_name_update.sql": "3fffcede889d42d82b7939851193c28225eb3b5f",
+    "supabase/migrations/20261104145241_oefb_staff_import_optional_name_photo.sql": "18026cf7e8699a4e7b4f01d2c0dd7b32ad946d4e",
+    "supabase/migrations/20261104150132_oefb_staff_photo_renderer.sql": "bd4b96bca436e8cbb3e053e4e3cfdc9f81b0f15d"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"

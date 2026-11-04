@@ -1,0 +1,34 @@
+{
+  "reviewed_on": "2026-11-04",
+  "source_test": "e7aefbb212efa7291c9d2dd38b8ff00289d0e8b5",
+  "live_migration_count_before": 128,
+  "live_staff_import_present_before": false,
+  "live_mutations_performed": false,
+  "approved_migrations": [
+    {
+      "path": "supabase/migrations/20261104145241_oefb_staff_import_optional_name_photo.sql",
+      "sha": "18026cf7e8699a4e7b4f01d2c0dd7b32ad946d4e"
+    },
+    {
+      "path": "supabase/migrations/20261104150132_oefb_staff_photo_renderer.sql",
+      "sha": "bd4b96bca436e8cbb3e053e4e3cfdc9f81b0f15d"
+    }
+  ],
+  "total_reviewed_pending_migrations": 36,
+  "validation": {
+    "empty_live_schema_rehearsal": "All 36 candidate files passed; no business rows copied. HTTP type stub and earlier rehearsal limitations still apply.",
+    "synthetic_staff_rpc": "Existing account reused; optional name/photo preserved without opt-in; explicit replacement clears stale cutout; mismatched cutout path rejected; caller without team rights rejected.",
+    "component_test": "Preview and selection do not write. Cutout upload occurs only on confirmed save; existing account ID reused.",
+    "publication_guards": 24,
+    "typecheck": "configured check passed",
+    "production_build": "passed"
+  },
+  "workflow_review": {
+    "path": ".github/workflows/oefb-staff-import-check.yml",
+    "permissions": "contents:read",
+    "uses_secrets": false,
+    "database_writes": false,
+    "trigger_branch": "develop",
+    "separate_main_setup": true
+  }
+}
