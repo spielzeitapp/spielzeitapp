@@ -16,8 +16,8 @@ Follow-up integration fixes: remove duplicate Home filter markup, complete the d
 - 14 release authorization, stale snapshot, full file comparison and serverless routing tests pass; API remains at 10 deployed functions.
 - Favorite session lifecycle, multi-team reading scope, normal favorites, club-theme scope, automatic matchday deletion, poster design, match club branding, ÖFB opponent-logo roundtrip, player assignment, roster preview, duration settings, Manager trainer mode and parent invitation UX tests pass.
 - Demo formation and authorized video transfer tests pass.
-- Full application TypeScript check was additionally compared to the unchanged TEST baseline. Existing errors outside the configured check remain; see validation results. No newly introduced diagnostic may be accepted. This is not a claim that the entire application is type-clean.
-- Older source-string assertions for parent profile hint, platform dashboard labels and opponent logos are stale on existing branch heads; they are not acceptance evidence. The SQL feed-switch test requires the optional PGlite dependency, absent in this workspace.
+- Full application TypeScript check was additionally compared to the unchanged TEST baseline. The unchanged TEST baseline has 185 diagnostics; the reconciled application has 184 and no new diagnostics. This is not a claim that the entire application is type-clean.
+- Older source-string assertions for parent profile hint, platform dashboard labels and opponent logos are stale on existing branch heads; they are not acceptance evidence. After installing the optional PGlite dependency outside the repository, the real Postgres feed-switch trigger test also passes (master off/on, retained individual choices, manual posts, authenticated trigger execution and independent squad messages).
 - Authenticated end-to-end user acceptance remains to be done on TEST.
 
 ## Database inventory and release blockers
@@ -29,3 +29,9 @@ LIVE history was read without mutation: 128 entries. There are 186 repository SQ
 The admin-org files `20260818140000` and `20260818140100` remain excluded and must not run automatically. Historical SQL conflicts retain the LIVE source contents. New, compatible schema deltas must be reviewed against the actual LIVE schema and tested separately. Do not mark missing versions applied or treat this code reconciliation as database equivalence approval.
 
 Changed Edge Functions and three TEST-only setup workflows also require a separate, reviewed deployment/bootstrap decision before the first publication. The traffic light must stay red while these blockers remain; a large, completely enumerated code-only release may be yellow after all real blockers are resolved.
+
+## Deployment verification
+
+PR #135 was merged into `develop` as `9cf905c742a91c50a2577a4c7dbca549d39ecd01`. Vercel TEST deployment `dpl_71sronVbuafqrEfDbvsNTaS5mNTy` is READY and assigned to `app.spielzeitapp.at`. The public TEST version endpoint confirms that exact SHA and `develop`. The resulting source tree matches the locally built integration, including the concurrent ÖFB existing-player linking update `7b2ca8ad`. LIVE is now an actual ancestor of TEST. No application promotion to main was made.
+
+The LIVE migration version/name inventory was readable. Subsequent attempts to inspect recorded SQL bodies or statement counts repeatedly failed with database connection timeouts through the Supabase connector. SQL equivalence and remaining schema requirements therefore cannot be certified in this pass; no migration approval was inferred from names or timestamps. These checks remain a first-publication blocker.
