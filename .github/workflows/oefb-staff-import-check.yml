@@ -18,6 +18,7 @@ jobs:
           persist-credentials: false
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
+      - run: node scripts/oefb-staff-preview-test.cjs
       - name: Parser and real public trainer page
         run: |
           node <<'NODE'
