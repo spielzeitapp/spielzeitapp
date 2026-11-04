@@ -1,0 +1,20 @@
+{
+  "reviewed_on": "2026-11-04",
+  "source_test": "e33469d693c2db0a7ae7ab99832491bf9b5c1c34",
+  "migration": {
+    "path": "supabase/migrations/20261104151828_staff_photo_layout_controls.sql",
+    "sha": "fee7f27d0a24ada44062d26b8ff9bd68b6571ebd"
+  },
+  "total_reviewed_pending_migrations": 37,
+  "live_changes_performed": false,
+  "validation": [
+    "All 37 files loaded into the empty LIVE-schema reconstruction; prior HTTP/RLS rehearsal limitations remain.",
+    "Trainer preview exposes the shared eight controls and writes only on confirmed save.",
+    "Synthetic staff layout roundtrip preserves trainer identity and binds cutout to the membership path.",
+    "Stale expected layout, invalid values and caller without team rights rejected.",
+    "Nonmember staff listing returns no rows.",
+    "Configured typecheck and complete production build pass.",
+    "24 publication/serverless guard tests pass."
+  ],
+  "workflow_changes": "Four develop path filters and one regression test command; permissions remain contents:read and no secrets or database writes are introduced."
+}

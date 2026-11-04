@@ -47,3 +47,7 @@ Changes to the trusted workflow, publisher helpers or baseline must be installed
 ## Trainer import follow-up
 
 The later TEST trainer import added two pending SQL files and a develop-only verification workflow. Both SQL files were reviewed and added to the exact-blob manifest after the full 36-file rehearsal passed. Synthetic checks confirm reuse of an existing account, explicit optional name/photo updates, stale-cutout clearing and permission/path rejection. The read-only, no-secret test workflow is installed separately on main; no trainer source or LIVE data is promoted by that setup. See `release-trainer-preflight-2026-11-04.json`.
+
+## Shared trainer photo controls follow-up
+
+The next TEST change adds membership-scoped trainer photo layout plus one read-only regression check. After the 37-file rehearsal, layout roundtrip, stale-update/value/permission checks, component tests and build passed, its exact SQL blob was added to the manifest. The read-only workflow expansion is separately installed on main. See `release-trainer-layout-preflight-2026-11-04.json`. New feature changes after this review still require their own review; prior approvals must not be reused for changed source.
