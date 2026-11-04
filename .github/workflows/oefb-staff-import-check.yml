@@ -37,6 +37,9 @@ jobs:
             console.log('Trainer names and photo availability:',JSON.stringify(result.trainers.map(t=>({name:t.name,photo:!!t.photoUrl}))));
             console.log('Public script paths:',JSON.stringify([...html.matchAll(/<script\b[^>]*src=["']([^"']+)/gi)].map(m=>m[1])));
             for(const m of html.matchAll(/SG\.container\.appPreloads\s*\[[^\]\r\n]+\]\s*=\s*(\[[\s\S]*?\])\s*;/g)){try{const blocks=JSON.parse(m[1]);for(const b of blocks){if(b.images)console.log('Image settings:',JSON.stringify(b.images));}}catch{}}
+            const script=(await (await fetch('https://vereine.oefb.at/features/container.js?version=1eQNyblR',{signal:AbortSignal.timeout(20000)})).text());
+            for(const term of ['fotoId','imagedownload','vereine3/images','imageUrl','getImage']){const pos=script.indexOf(term);console.log('Image resolver code:',term,pos,pos>=0?script.slice(Math.max(0,pos-160),pos+250):'');}
+            console.log('Script dependencies:',JSON.stringify([...script.matchAll(/["']([^"']+\.js[^"']*)["']/g)].map(m=>m[1]).slice(0,15)));
             const ids=[...html.matchAll(/"fotoId"\s*:\s*("[^"]*"|[0-9]+)/g)].map(m=>JSON.parse(m[1]));
             console.log('Staff photo identifiers:',JSON.stringify(ids));
             for(const id of ids){const escaped=String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\            assert.ok(result.trainers.every(t=>t.name&&t.sourceRole));');const matches=[...html.matchAll(new RegExp('[^"\\s<>]*'+escaped+'[^"\\s<>]*','g'))].map(m=>m[0]);console.log('Public photo references:',JSON.stringify(matches.slice(0,8)));}
