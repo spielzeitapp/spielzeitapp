@@ -1,16 +1,7 @@
-import {PlayerPortraitCanvas} from '../PlayerPortraitCanvas';
+import React from 'react';
 import type {PlayerPhotoLayout} from '../../../lib/playerPhotoLayout';
-import {preparedPlayerPortrait, isImportedPlayerPortrait} from "../../../lib/playerPhotoDisplay";
-import React from "react";
-import {
-  resolveProfileCutoutSrc,
-  splitTeamSeasonLabel,
-  useProfileHeroImagePreload,
-} from "./profileHeroShared";
-import type { ProfilePositionBadge } from "../../../lib/positionLabels";
-import { isDemoUpperBodyPortraitUrl } from "../../../lib/playerDemoPortrait";
-import { resolveProfilePhotoSrc } from "../../../lib/profileHeroImage";
-import { TrainerProfileHeroCard } from "./TrainerProfileHeroCard";
+import type {ProfilePositionBadge} from '../../../lib/positionLabels';
+import {TrainerProfileHeroCard} from './TrainerProfileHeroCard';
 
 /**
  * Profil-Hero Router — einheitliche Premium-Card für Trainer + Spieler.
@@ -36,144 +27,8 @@ type Props = {
   statusSlot?: React.ReactNode;
 };
 
-function resolvePlayerHeroTeamHeader(
-  teamName: string | null | undefined,
-  teamSeasonLabel: string,
-): { club: string; ageGroup: string; season: string } {
-  const parsed = splitTeamSeasonLabel(teamSeasonLabel);
-  const combined = `${teamName ?? ""} ${parsed.team} ${teamSeasonLabel}`;
-  const ageGroup = /\bU\d+\b/i.exec(combined)?.[0]?.toUpperCase() ?? "";
-  const season = /\b20\d{2}\/\d{2}\b/.exec(combined)?.[0] ?? "";
-  const rawClub = (teamName ?? "").trim() || parsed.team || "Team";
-  const club = rawClub
-    .replace(/[–-]\s*Demo\b/gi, "")
-    .replace(/\bU\d+\b/gi, "")
-    .trim()
-    .replace(/^NSG\s+Rohrbach\b/i, "SPG Rohrbach")
-    .toUpperCase();
-  return { club, ageGroup, season };
-}
-
-function PlayerProfileHeroCard(props: Props) {
-  const {
-    watermark,
-    firstNameLine,
-    lastNameLine,
-    teamSeasonLabel,
-    teamName,
-    teamLogoUrl,
-    photoUrl,
-    cutoutUrl,
-    initials,
-  } = props;
-  const cutoutSrc = resolveProfileCutoutSrc(cutoutUrl);
-  const photoSrc = resolveProfilePhotoSrc(photoUrl);
-  const preparedPortrait = !cutoutSrc ? preparedPlayerPortrait(photoUrl) : null;
-  const heroImageSrc = cutoutSrc || preparedPortrait || photoSrc;
-  const isImportedPortrait = !cutoutSrc && isImportedPlayerPortrait(photoUrl);
-  const [imageOk, setImageOk] = React.useState(true);
-
-  React.useEffect(() => {
-    setImageOk(true);
-  }, [heroImageSrc]);
-
-  useProfileHeroImagePreload(cutoutUrl, photoUrl);
-
-  const teamHeader = resolvePlayerHeroTeamHeader(teamName, teamSeasonLabel);
-  const isUpperBodyDemo = isDemoUpperBodyPortraitUrl(heroImageSrc);
-  const isDoubleDigitWatermark = watermark.trim().length >= 2;
-  const longestNameLine = Math.max(firstNameLine.length, lastNameLine.length);
-  const nameSizeClass =
-    longestNameLine >= 18
-      ? "text-[17px] sm:text-[20px]"
-      : longestNameLine >= 15
-        ? "text-[19px] sm:text-[22px]"
-        : longestNameLine >= 12
-          ? "text-[22px] sm:text-[25px]"
-          : "text-[28px] sm:text-[32px]";
-
-  if(props.photoLayout) return <div className="sz-club-profile-hero relative mb-3 aspect-square w-full overflow-hidden rounded-[22px] border"><PlayerPortraitCanvas layout={props.photoLayout} photoUrl={photoUrl} cutoutUrl={cutoutUrl} firstName={firstNameLine} lastName={lastNameLine} number={watermark}/></div>;
-  return (
-    <div className={`sz-club-profile-hero ${isImportedPortrait ? "sz-club-imported-portrait" : ""} relative mb-3 ${isImportedPortrait ? "aspect-square" : "aspect-[4/3] max-h-[20rem]"} min-h-[17rem] w-full overflow-hidden rounded-[22px] border`}>
-      <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
-      {preparedPortrait ? <div data-portrait-background="clean" className="absolute inset-0" style={{background:"radial-gradient(ellipse at 0% 40%, rgb(var(--club-primary-rgb) / 0.2), transparent 70%), linear-gradient(145deg, #06101d, #020407 78%)"}} aria-hidden /> : null}
-
-      {watermark && !isImportedPortrait ? (
-        <p
-          className={`absolute left-9 top-[6.25rem] z-[4] select-none font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-12 sm:top-[6.75rem] ${
-            isDoubleDigitWatermark
-              ? "text-[clamp(6.75rem,30vw,9.75rem)]"
-              : "text-[clamp(8.75rem,38vw,12.5rem)]"
-          }`}
-          aria-hidden
-        >
-          {watermark}
-        </p>
-      ) : null}
-
-      <div className="absolute inset-0 z-[2] flex items-end justify-center overflow-hidden" aria-hidden>
-        {heroImageSrc && imageOk ? (
-          <img
-            src={heroImageSrc}
-            alt=""
-            style={isImportedPortrait ? {objectFit:"contain",objectPosition:"center bottom",transform:"none", ...(preparedPortrait ? {height:"88%",alignSelf:"flex-end"} : {})} : undefined}
-            className={`h-full w-full object-bottom ${isUpperBodyDemo ? "sz-club-placeholder-player" : ""} ${
-              cutoutSrc
-                ? "origin-bottom translate-x-[9%] translate-y-[3%] scale-[1.08] object-contain sm:translate-x-[7%]"
-                : isUpperBodyDemo
-                  ? "origin-top translate-x-[9%] scale-[1.18] object-contain object-top sm:translate-x-[7%]"
-                  : "object-cover object-[62%_top]"
-            }`}
-            onError={() => setImageOk(false)}
-          />
-        ) : (
-          <div className="mb-20 flex h-32 w-32 items-center justify-center rounded-full border border-white/10 bg-zinc-900 text-3xl font-black text-white/80">
-            {initials}
-          </div>
-        )}
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0 z-[3] h-[48%] bg-gradient-to-t from-black via-black/78 to-transparent" aria-hidden />
-
-      <div className="absolute inset-x-0 top-0 z-[5] flex items-start justify-between gap-3 p-4 sm:p-5">
-        <div className="min-w-0 pt-0.5">
-          <p className="truncate text-[15px] font-black uppercase leading-none tracking-[0.07em] text-white sm:text-[17px]">
-            {teamHeader.club}
-          </p>
-          {teamHeader.ageGroup || teamHeader.season ? (
-            <p className="mt-1.5 text-[11px] font-black uppercase leading-none tracking-[0.12em] text-white/72 sm:text-[12px]">
-              {teamHeader.ageGroup ? <span className="sz-club-profile-accent">{teamHeader.ageGroup}</span> : null}
-              {teamHeader.ageGroup && teamHeader.season ? <span className="text-white/45"> · </span> : null}
-              {teamHeader.season ? <span>{teamHeader.season}</span> : null}
-            </p>
-          ) : null}
-        </div>
-        {teamLogoUrl && !isImportedPortrait ? (
-          <img
-            src={teamLogoUrl}
-            alt=""
-            className="h-20 w-20 shrink-0 object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] sm:h-24 sm:w-24"
-            aria-hidden
-          />
-        ) : null}
-      </div>
-
-      {isImportedPortrait && watermark ? <span className="absolute top-4 right-4 z-[6] text-[48px] font-black leading-none text-white [text-shadow:0_2px_10px_#000] sm:right-5 sm:top-5">{watermark}</span> : null}
-      <div className={`absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5 ${isImportedPortrait && !preparedPortrait ? "pl-[28%] sm:pl-[28%]" : ""}`}>
-        <div className={`max-w-[82%] font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] ${nameSizeClass}`}>
-          {firstNameLine ? <p className="whitespace-nowrap">{firstNameLine}</p> : null}
-          {lastNameLine ? <p className="whitespace-nowrap">{lastNameLine}</p> : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
+/** One profile composition for players and trainers, including edited portraits. */
 export const ProfileHeroCard: React.FC<Props> = (props) => {
-  if (props.variant === "player") {
-    return <PlayerProfileHeroCard {...props} />;
-  }
-  if(props.photoLayout) return <div className="sz-club-profile-hero relative mb-3 aspect-square w-full overflow-hidden rounded-[22px] border"><PlayerPortraitCanvas layout={props.photoLayout} photoUrl={props.photoUrl} cutoutUrl={props.cutoutUrl} firstName={props.firstNameLine} lastName={props.lastNameLine} number={props.watermark}/></div>;
-  const { variant: _variant, ...trainerProps } = props;
-  return <TrainerProfileHeroCard {...trainerProps} />;
+ const {variant:_variant,...portraitProps}=props;
+ return <TrainerProfileHeroCard {...portraitProps}/>;
 };

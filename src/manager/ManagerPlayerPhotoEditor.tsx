@@ -1,7 +1,7 @@
 import React,{useState,useEffect,useRef} from 'react';
 import type {RosterPlayer} from '../lib/rosterService';
 import {DEFAULT_PHOTO_LAYOUT,type PlayerPhotoLayout} from '../lib/playerPhotoLayout';
-import {PlayerPortraitCanvas} from '../components/team/PlayerPortraitCanvas';
+import {ManagerProfilePhotoPreview} from './ManagerProfilePhotoPreview';
 import {preparedPlayerPortrait} from '../lib/playerPhotoDisplay';
 import {removePortraitBackground} from '../lib/removePortraitBackground';
 import {uploadStaffProfileCutout,uploadPlayerProfileCutout} from '../lib/profileCutoutUpload';
@@ -46,7 +46,7 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
  const slider=(key:keyof PlayerPhotoLayout,label:string,min=0,max=100)=><label className="block text-sm" key={key}>{label}: {layout[key]}<input aria-label={label} type="range" min={min} max={max} value={layout[key]} disabled={busy||generating} onChange={e=>patch(key,Number(e.target.value))} className="block w-full"/></label>;
  return <section className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label={`Foto gestalten: ${player.display_name}`}>
  <h3 className="font-semibold">{global?"Globale Foto-Gestaltung · gesamte Mannschaft/Saison":`Foto gestalten · ${player.display_name}`}</h3><p className="my-2 text-sm">Gilt für Teamansicht und {trainer?'Trainerprofil':'Spielerprofil'} dieser Mannschaft/Saison. Das Originalfoto bleibt erhalten.</p>
- <div className="grid gap-5" style={{gridTemplateColumns:"repeat(auto-fit,minmax(min(100%, 280px),1fr))"}}><div className="relative mx-auto aspect-square w-full max-w-[360px] overflow-hidden rounded-2xl border border-yellow-600"><PlayerPortraitCanvas layout={layout} photoUrl={player.avatar_url} cutoutUrl={cutout} firstName={player.first_name||''} lastName={player.last_name||''} number={trainer?'TR':player.jersey_number}/></div>
+ <div className="grid gap-5" style={{gridTemplateColumns:"repeat(auto-fit,minmax(min(100%, 280px),1fr))"}}><div className="relative mx-auto w-full max-w-[400px]"><ManagerProfilePhotoPreview seasonId={seasonId} trainer={trainer} layout={layout} photoUrl={player.avatar_url} cutoutUrl={cutout} firstName={player.first_name||''} lastName={player.last_name||''} number={player.jersey_number}/></div>
  <fieldset disabled={busy||generating} className="min-w-0 space-y-3"><label className="block text-sm">Hintergrund<select className="mt-1 block w-full max-w-full rounded border p-2" value={layout.background} onChange={e=>patch('background',e.target.value)}><option value="blue-left">Vereinsfarbe links · Schwarz rechts</option><option value="blue-right">Schwarz links · Vereinsfarbe rechts</option><option value="black">Schwarz</option></select></label>
  <label className="block text-sm">Bild<select className="mt-1 block w-full max-w-full rounded border p-2" value={layout.source} onChange={e=>patch('source',e.target.value)}><option value="original">Originalfoto</option><option value="cutout" disabled={!cutout&&!preparedPlayerPortrait(player.avatar_url)}>Freisteller verwenden</option></select></label>
  <button type="button" disabled={busy||generating||!player.avatar_url} onClick={()=>void generate()} className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold disabled:opacity-50">{generating?'Hintergrund wird entfernt…':global?`Hintergrund bei ${player.first_name} entfernen`:'Hintergrund entfernen'}</button>

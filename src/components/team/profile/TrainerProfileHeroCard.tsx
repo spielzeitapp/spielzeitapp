@@ -1,3 +1,5 @@
+import {DEFAULT_PHOTO_LAYOUT, photoBackground, type PlayerPhotoLayout} from '../../../lib/playerPhotoLayout';
+import {playerPhotoDisplayUrl,preparedPlayerPortrait} from '../../../lib/playerPhotoDisplay';
 import React from "react";
 import { resolveProfilePhotoSrc } from "../../../lib/profileHeroImage";
 import {
@@ -7,6 +9,7 @@ import {
 } from "./profileHeroShared";
 
 export type TrainerProfileHeroCardProps = {
+  photoLayout?: PlayerPhotoLayout | null;
   watermark: string;
   firstNameLine: string;
   lastNameLine: string;
@@ -39,6 +42,7 @@ function resolveTrainerTeamHeader(
 }
 
 export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
+  photoLayout,
   watermark,
   firstNameLine,
   lastNameLine,
@@ -51,7 +55,8 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
 }) => {
   const cutoutSrc = resolveProfileCutoutSrc(cutoutUrl);
   const photoSrc = resolveProfilePhotoSrc(photoUrl);
-  const heroImageSrc = cutoutSrc || photoSrc;
+  const layout={...DEFAULT_PHOTO_LAYOUT,...photoLayout};
+  const heroImageSrc = photoLayout?.source==='original'?photoSrc:cutoutSrc || preparedPlayerPortrait(photoUrl) || photoSrc;
   const [imageOk, setImageOk] = React.useState(true);
 
   React.useEffect(() => setImageOk(true), [heroImageSrc]);
@@ -68,22 +73,24 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
           ? "text-[22px] sm:text-[25px]"
           : "text-[28px] sm:text-[32px]";
   return (
-    <div className="sz-club-profile-hero relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border">
+    <div className="sz-club-profile-hero relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border" data-profile-artwork="premium" style={photoLayout?{background:photoBackground(layout.background)}:undefined}>
       <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
 
       <p
         className="absolute left-9 top-[6.25rem] z-[4] select-none text-[clamp(6.75rem,30vw,9.75rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-12 sm:top-[6.75rem]"
+        style={photoLayout?{left:`calc(2.25rem + ${layout.numberX-88}%)`,top:`calc(6.25rem + ${layout.numberY-8}%)`,fontSize:`clamp(6rem, ${30*(layout.numberSize??44)/44}vw, ${9.75*(layout.numberSize??44)/44}rem)`}:undefined}
         aria-hidden
       >
-        {watermark || "TR"}
+        {watermark}
       </p>
 
       <div className="absolute inset-0 z-[2] flex items-end justify-center overflow-hidden" aria-hidden>
         {heroImageSrc && imageOk ? (
           <img
-            src={heroImageSrc}
+            src={playerPhotoDisplayUrl(heroImageSrc)}
             alt=""
             className="h-full w-[72%] origin-bottom translate-x-[16%] translate-y-[2%] object-contain object-bottom sm:w-[70%] sm:translate-x-[13%]"
+            style={photoLayout?{transform:`translate(${16+(layout.x-50)}%, ${2+(layout.y-50)}%) scale(${layout.zoom/100})`}:undefined}
             onError={() => setImageOk(false)}
           />
         ) : (
@@ -118,7 +125,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
         ) : null}
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5">
+      <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5" style={photoLayout?{left:`${layout.nameX-28}%`,bottom:`${85-layout.nameY}%`}:undefined}>
         <div className={`max-w-[82%] font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] ${nameSizeClass}`}>
           {firstNameLine ? <p className="whitespace-nowrap">{firstNameLine}</p> : null}
           {lastNameLine ? <p className="whitespace-nowrap">{lastNameLine}</p> : null}
