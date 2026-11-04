@@ -6,6 +6,10 @@ on:
       - 'server/lib/oefbStaff*.js'
       - 'src/manager/ManagerOefbStaffPreview.tsx'
       - 'scripts/oefb-staff-preview-test.cjs'
+      - 'scripts/trainer-photo-layout-test.cjs'
+      - 'src/manager/ManagerPlayerPhotoEditor.tsx'
+      - 'src/components/team/TeamTrainerShowcase.tsx'
+      - 'src/hooks/useTeamStaff.ts'
       - '.github/workflows/oefb-staff-import-check.yml'
 permissions:
   contents: read
@@ -20,6 +24,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: node scripts/oefb-staff-preview-test.cjs
+      - run: node scripts/trainer-photo-layout-test.cjs
       - name: Verify public trainer parser and portrait proxy
         run: |
           node <<'NODE'
