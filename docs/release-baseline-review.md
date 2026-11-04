@@ -28,7 +28,7 @@ LIVE history was read without mutation: 128 entries. There are 186 repository SQ
 
 The admin-org files `20260818140000` and `20260818140100` remain excluded and must not run automatically. Historical SQL conflicts retain the LIVE source contents. New, compatible schema deltas must be reviewed against the actual LIVE schema and tested separately. Do not mark missing versions applied or treat this code reconciliation as database equivalence approval.
 
-Changed Edge Functions and three TEST-only setup workflows also require a separate, reviewed deployment/bootstrap decision before the first publication. The traffic light must stay red while these blockers remain; a large, completely enumerated code-only release may be yellow after all real blockers are resolved.
+Changed Edge Functions require a separate, reviewed deployment before the first publication. The three completed TEST-only setup workflows were archived after read-only verification of their required functions, policies, logo bucket and legacy backfill; see `release-bootstrap-archive/README.md`. The active workflow files now match LIVE. The traffic light must stay red while these blockers remain; a large, completely enumerated code-only release may be yellow after all real blockers are resolved.
 
 ## Deployment verification
 
