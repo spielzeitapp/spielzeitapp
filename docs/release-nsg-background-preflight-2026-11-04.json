@@ -1,0 +1,14 @@
+{
+  "reviewed_source": "ea768e7f15c6cb63ae793d6621ba38f1f5bf4c3e",
+  "migration": "supabase/migrations/20261104162803_nsg_portrait_background.sql",
+  "approved_blob": "0b06df05841386dba7a29145fd17314477c9342f",
+  "scope": "Extend existing photo-layout validator background allowlist with nsg-art; preserve all bounds, signature, invoker privileges and existing layouts. No business rows modified.",
+  "validation": {
+    "schema_rehearsal": "38 approved SQL files replayed against isolated pre-release LIVE schema snapshot, including new migration; all passed. No LIVE mutations performed.",
+    "layout_validation": "nsg-art accepted; unknown background rejected.",
+    "rpc_fixtures": "Existing player/staff identity, opt-in photo updates, layout roundtrip, stale-write/permission/value guards passed.",
+    "release_guards": "24 passed",
+    "trainer_editor": "NSG selection saved via existing membership-scoped RPC; passed."
+  },
+  "limitations": "Local schema rehearsal uses synthetic rows and does not recreate full RLS graph or real HTTP/cron execution. LIVE execution and public version confirmation remain part of protected release workflow."
+}
