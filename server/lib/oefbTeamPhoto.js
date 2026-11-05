@@ -25,7 +25,16 @@ module.exports=async function(req,res){
  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
  let source;try{source=pageUrl(String(req.query?.url||''));}catch(e){return res.status(400).json({error:e.message});}
  try{
-  const upstream=await fetch(source.href,{redirect:'error',headers:{Accept:'text/html'},signal:AbortSignal.timeout(12000)});
+  let upstream;
+  const identity=source.pathname.replace(/\/$/,'').toLowerCase();
+  for(let attempt=0;attempt<3;attempt++){
+   upstream=await fetch(source.href,{redirect:'manual',headers:{Accept:'text/html'},signal:AbortSignal.timeout(12000)});
+   if(![301,302,303,307,308].includes(upstream.status))break;
+   const location=upstream.headers.get('location');if(!location)throw Error('Ungültige ÖFB-Weiterleitung.');
+   const next=pageUrl(new URL(location,source).href);
+   if(next.pathname.replace(/\/$/,'').toLowerCase()!==identity)throw Error('ÖFB-Weiterleitung gehört zu einer anderen Mannschaft.');
+   await upstream.body?.cancel();source=next;
+  }
   if(!upstream.ok)throw Error('ÖFB-Seite derzeit nicht verfügbar.');
   const reader=upstream.body.getReader();let total=0;const chunks=[];
   try{while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>3*1024*1024)throw Error('ÖFB-Seite ist zu groß.');chunks.push(Buffer.from(value));}}finally{await reader.cancel();}
