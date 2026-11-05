@@ -13,7 +13,7 @@ async function bundle(entry,mocks){
  [/supabaseClient$/,'export const supabase={rpc:(...a)=>globalThis.testPhoto.rpc(...a),from:()=>{throw Error("must not update players")}}'],
  [/profileCutoutUpload$/,'export const uploadStaffProfileCutout=(...a)=>globalThis.testPhoto.upload(...a); export const uploadPlayerProfileCutout=()=>{throw Error("must not upload a player photo")};'],
  [/removePortraitBackground$/,'export const removePortraitBackground=async()=>new Blob(["png"],{type:"image/png"})'],
- [/playerPhotoDisplay$/,'export const preparedPlayerPortrait=()=>null;export const playerPhotoDisplayUrl=s=>s;']]);
+ [/playerPhotoDisplay$/,'export const isImportedPlayerPortrait=()=>false;export const preparedPlayerPortrait=()=>null;export const playerPhotoDisplayUrl=s=>s;']]);
  const player={id:'user',first_name:'Wolfgang',last_name:'Semellechner',display_name:'Wolfgang Semellechner',avatar_url:'https://photo.test/avatar.jpg',cutout_url:null,photo_layout:null};
  let tree;await act(async()=>tree=create(React.createElement(ManagerPlayerPhotoEditor,{trainer:true,seasonId:'season',player,onSaved:()=>closed++,onClose:()=>closed++})));
  const button=t=>tree.root.findAllByType('button').find(n=>n.children.join('')===t);
@@ -27,13 +27,13 @@ async function bundle(entry,mocks){
  assert.equal(uploads,1);assert.equal(writes.length,1);assert.equal(writes[0].name,'save_staff_photo_layout');
  assert.equal(writes[0].args.p_layout.background,'nsg-art');assert.equal(writes[0].args.p_user_id,'user');assert.equal(writes[0].args.p_layout.zoom,125);assert.equal(writes[0].args.p_layout.numberX,80);assert.equal(writes[0].args.p_layout.source,'cutout');assert.ok(writes[0].args.p_cutout_url);assert.equal(closed,1);
  await act(async()=>tree.unmount());
- const {TeamTrainerShowcase}=await bundle('src/components/team/TeamTrainerShowcase.tsx',[[/useTeamStaff$/,'export const staffDisplayName=m=>m.first_name+" "+m.last_name;'],[/playerPhotoDisplay$/,'export const preparedPlayerPortrait=()=>null;export const playerPhotoDisplayUrl=s=>s;']]);
+ const {TeamTrainerShowcase}=await bundle('src/components/team/TeamTrainerShowcase.tsx',[[/useTeamStaff$/,'export const staffDisplayName=m=>m.first_name+" "+m.last_name;'],[/playerPhotoDisplay$/,'export const isImportedPlayerPortrait=()=>false;export const preparedPlayerPortrait=()=>null;export const playerPhotoDisplayUrl=s=>s;']]);
  await act(async()=>tree=create(React.createElement(TeamTrainerShowcase,{trainers:[{user_id:'user',first_name:'Wolfgang',last_name:'Semellechner',photo_layout:writes[0].args.p_layout,avatar_url:'original',cutout_url:'cutout'}],onTrainerClick:()=>{}})));
  const image=tree.root.findAllByType('img').find(n=>n.props.src==='cutout'&&n.props.style?.transform);
  assert.ok(image);assert.ok(image.props.style.transform.includes('scale(1.25)'));
  await act(async()=>tree.unmount());
  const {ProfileHeroCard}=await bundle('src/components/team/profile/ProfileHeroCard.tsx',[
- [/playerPhotoDisplay$/,'export const preparedPlayerPortrait=()=>null;export const playerPhotoDisplayUrl=s=>s;'],
+ [/playerPhotoDisplay$/,'export const isImportedPlayerPortrait=()=>false;export const preparedPlayerPortrait=()=>null;export const playerPhotoDisplayUrl=s=>s;'],
  [/profileHeroShared$/,'export const resolveProfileCutoutSrc=s=>s;export const useProfileHeroImagePreload=()=>{};export const splitTeamSeasonLabel=()=>({team:"SPG Rohrbach"});'],
  [/profileHeroImage$/,'export const resolveProfilePhotoSrc=s=>s;']]);
  for(const variant of ['player','trainer'])for(const photoLayout of [null,writes[0].args.p_layout]){

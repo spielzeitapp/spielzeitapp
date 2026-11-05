@@ -5,7 +5,7 @@ async function request(url,quality){const res={headers:{},statusCode:0,setHeader
  global.fetch=async(u,o)=>{calls++;options=o;return new Response(Uint8Array.from([255,216,255,0]),{headers:{'Content-Type':'image/jpeg;charset=utf-8'}});};
  for(const u of ['http://vereine.oefb.at/netzwerk/imagedownload/test.jpg','https://example.com/test.jpg','https://vereine.oefb.at:444/netzwerk/imagedownload/test.jpg','https://vereine.oefb.at/netzwerk/imagedownload/test.svg','https://vereine.oefb.at/netzwerk/imagedownload/test.jpg?url=x','https://user@vereine.oefb.at/netzwerk/imagedownload/test.jpg'])assert.equal((await request(u)).statusCode,400);
  assert.equal(calls,0);
- const result=await request('https://vereine.oefb.at/netzwerk/imagedownload/test.jpg');assert.equal(result.statusCode,200);assert.equal(result.headers['Content-Type'],'image/jpeg');assert.equal(options.redirect,'error');assert.equal(result.body[0],255);
+ const result=await request('https://vereine.oefb.at/netzwerk/imagedownload/test.jpg');assert.equal(result.statusCode,200);assert.equal(result.headers['Content-Type'],'image/jpeg');assert.ok(result.headers['Vercel-CDN-Cache-Control'].includes('s-maxage=86400'));assert.ok(result.headers['CDN-Cache-Control'].includes('stale-while-revalidate')); assert.equal(options.redirect,'error');assert.equal(result.body[0],255);
  global.fetch=async()=>new Response('<html>error</html>',{headers:{'Content-Type':'image/jpeg'}});
  assert.equal((await request('https://vereine.oefb.at/netzwerk/imagedownload/test.jpg')).statusCode,502);
  const small='https://vereine.oefb.at/netzwerk/imagedownload/synthetic-80-80-token.jpeg';

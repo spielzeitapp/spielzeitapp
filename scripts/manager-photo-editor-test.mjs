@@ -3,9 +3,9 @@ import {createRequire} from 'node:module';
 import {build} from 'esbuild';
 const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
 let calls=[],fail=false;globalThis.__photoRpc=async(name,args)=>{calls.push({name,args});return {error:fail?{message:'Konflikt'}:null};};
-const b=await build({entryPoints:['src/manager/ManagerPlayerPhotoEditor.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'fixture',setup(b){b.onResolve({filter:/supabaseClient$/},()=>({path:'fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase={rpc:(...a)=>globalThis.__photoRpc(...a)}',loader:'js'}));}}]});
+const b=await build({entryPoints:['src/manager/ManagerPlayerPhotoEditor.tsx'],bundle:true,platform:'node',define:{'import.meta.env.BASE_URL':'"/"'},format:'cjs',packages:'external',write:false,plugins:[{name:'fixture',setup(b){b.onResolve({filter:/supabaseClient$/},()=>({path:'fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase={rpc:(...a)=>globalThis.__photoRpc(...a)}',loader:'js'}));}}]});
 const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);const Editor=m.exports.ManagerPlayerPhotoEditor;
-const player={id:'fixture',display_name:'Synthetic Player',first_name:'Synthetic',last_name:'Player',avatar_url:'/fixture.jpg',jersey_number:9};let root,saved=0,closed=0;
+const player={id:'fixture',display_name:'Synthetic Player',first_name:'Synthetic',last_name:'Player',avatar_url:'https://vereine.oefb.at/netzwerk/imagedownload/fixture-80-80.jpeg',jersey_number:9};let root,saved=0,closed=0;
 await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',onSaved:()=>saved++,onClose:()=>closed++}));});
 const button=text=>root.root.findAllByType('button').find(n=>n.children.join('')===text);
 await act(async()=>root.root.findAllByType('select')[0].props.onChange({target:{value:'black'}}));
@@ -19,8 +19,20 @@ console.log('PASS: real editor preview, explicit save, failure retains draft, sc
 
 await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',global:true,onSaved:()=>saved++,onClose:()=>closed++}));});
 await act(async()=>root.root.findByProps({'aria-label':'Nummerngröße'}).props.onChange({target:{value:'70'}}));
-assert.equal(root.root.findByType('span').props.style.fontSize,'70px');
+assert.equal(root.root.findAllByType('span').find(n=>n.props.style?.fontSize).props.style.fontSize,'70px');
 await act(async()=>button('Gestaltung speichern').props.onClick());assert.equal(calls.at(-1).name,'admin_save_global_photo_layout');assert.equal(calls.at(-1).args.p_replace_individual,false);assert.equal(calls.at(-1).args.p_layout.numberSize,70);
 await act(async()=>root.root.findByProps({type:'checkbox'}).props.onChange({target:{checked:true}}));
 await act(async()=>button('Gestaltung speichern').props.onClick());assert.equal(calls.at(-1).args.p_replace_individual,true);
 await act(async()=>root.unmount());console.log('PASS: global save preserves individual layouts by default, replacement requires checkbox, number size previews and persists.');
+
+const beforePreset=calls.length;
+await act(async()=>{root=create(React.createElement(Editor,{player:{...player,photo_layout_default:{background:'blue-left',source:'original',zoom:130,x:30,y:40,nameX:16,nameY:85,numberX:87,numberY:4,numberSize:80}},seasonId:'season-fixture',global:true,onSaved:()=>saved++,onClose:()=>closed++}));});
+await act(async()=>button('Originalfoto vollständig anzeigen').props.onClick());
+assert.equal(calls.length,beforePreset,'Preset is preview only until explicitly saved');
+await act(async()=>button('Gestaltung speichern').props.onClick());
+assert.equal(calls.at(-1).args.p_layout.zoom,100);
+assert.equal(calls.at(-1).args.p_layout.nameX,28);
+assert.equal(calls.at(-1).args.p_layout.numberSize,44);
+assert.equal(calls.at(-1).args.p_replace_individual,false);
+await act(async()=>root.unmount());
+console.log('PASS: complete-original preset previews first and preserves individual overrides on global save.');
