@@ -1,0 +1,14 @@
+{
+  "reviewed_source": "0afc79661475468e742cf5c99f9b8400b67c2044",
+  "migration": "supabase/migrations/20261105093320_shared_team_import_sources.sql",
+  "approved_blob": "721b0595bdadfb0e54cc1f806eb103159da02091",
+  "scope": "Add empty source mapping table and invoker RPC. No existing team, player or event rows changed.",
+  "security_review": "RLS enabled; anon denied; authenticated read/insert restricted to platform admins with matching creator. No update/delete grants. Invoker RPC retains RLS and rejects conflicting source reassignment, inactive clubs/teams and mismatched seasons.",
+  "validation": [
+    "Isolated PGlite migration and RPC rehearsal: canonical URL, cross-club target, idempotent retry, conflict rollback, invalid URL/season/status rejection, real mapping-table RLS and anon/nonadmin denial passed.",
+    "Club discovery and Manager import panel regression tests passed.",
+    "27 release/routing/presentation tests passed.",
+    "Configured typecheck passed."
+  ],
+  "limits": "Rehearsal uses synthetic referenced tables and auth helpers; full LIVE authorization graph not reproduced. LIVE schema policies inspected read-only. Protected release workflow remains responsible for applying exact approved SQL; no LIVE data changed during review."
+}

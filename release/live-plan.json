@@ -38,7 +38,8 @@
     "supabase/migrations/20261104145241_oefb_staff_import_optional_name_photo.sql": "18026cf7e8699a4e7b4f01d2c0dd7b32ad946d4e",
     "supabase/migrations/20261104150132_oefb_staff_photo_renderer.sql": "bd4b96bca436e8cbb3e053e4e3cfdc9f81b0f15d",
     "supabase/migrations/20261104151828_staff_photo_layout_controls.sql": "fee7f27d0a24ada44062d26b8ff9bd68b6571ebd",
-    "supabase/migrations/20261104162803_nsg_portrait_background.sql": "0b06df05841386dba7a29145fd17314477c9342f"
+    "supabase/migrations/20261104162803_nsg_portrait_background.sql": "0b06df05841386dba7a29145fd17314477c9342f",
+    "supabase/migrations/20261105093320_shared_team_import_sources.sql": "721b0595bdadfb0e54cc1f806eb103159da02091"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
