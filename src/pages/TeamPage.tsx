@@ -1,3 +1,4 @@
+import { DEFAULT_TEAM_PHOTO_LAYOUT, teamPhotoImageStyle, type TeamPhotoLayout } from '../lib/teamPhotoLayout';
 import { ClubBrandingOverrideContext } from '../theme/ClubThemeProvider';
 import { ClubLogo } from "../components/branding/ClubLogo";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -90,7 +91,7 @@ function readInitialTeamTab(): TeamTabId {
   return isTeamTabId(tab) ? tab : "squad";
 }
 
-type TeamPhotoRow = {
+type TeamPhotoRow = Partial<TeamPhotoLayout> & {
   team_season_id: string;
   photo_url: string;
   updated_at?: string | null;
@@ -378,7 +379,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     setTeamPhoto(null);
     void supabase
       .from("team_photos")
-      .select("team_season_id, photo_url, updated_at")
+      .select("team_season_id,photo_url,updated_at,photo_zoom,photo_position_x,photo_position_y,photo_brightness")
       .eq("team_season_id", readTeamSeasonId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -469,10 +470,10 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     const { data: upserted, error: upsertError } = await supabase
       .from("team_photos")
       .upsert(
-        { team_season_id: teamSeasonId, photo_url: publicUrl, updated_at: new Date().toISOString() },
+        { team_season_id: teamSeasonId, photo_url: publicUrl, ...DEFAULT_TEAM_PHOTO_LAYOUT, updated_at: new Date().toISOString() },
         { onConflict: "team_season_id" }
       )
-      .select("team_season_id, photo_url, updated_at")
+      .select("team_season_id,photo_url,updated_at,photo_zoom,photo_position_x,photo_position_y,photo_brightness")
       .maybeSingle();
     setTeamPhotoUploading(false);
     if (upsertError) {
@@ -1068,9 +1069,10 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         </button> : null}
       </section> : null}
       <PremiumCard matchday showAmbientGlow className={`${basePath === "/manager" ? "manager-team-mobile-hero " : ""}!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x`}>
-      <div className="relative w-full h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
+      <div className="relative w-full overflow-hidden h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
         {heroPhotoSrc ? <img
           src={heroPhotoSrc}
+          style={teamPhotoImageStyle(teamPhoto?.team_season_id === readTeamSeasonId ? teamPhoto : null)}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         /> : <div className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--club-primary-rgb)/0.65),#09090b)]" aria-hidden />}

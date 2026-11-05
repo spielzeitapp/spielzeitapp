@@ -1,3 +1,4 @@
+import { teamPhotoImageStyle, normalizeTeamPhotoLayout, DEFAULT_TEAM_PHOTO_LAYOUT, type TeamPhotoLayout } from '../../lib/teamPhotoLayout';
 import React, { useState } from 'react';
 import { displayLogoUrl } from '../../lib/logoPreparation';
 import type { SquadFeedPlayer } from '../../lib/squadFeedTypes';
@@ -14,13 +15,16 @@ type Props = {
   startsAt?: string | null;
   location?: string | null;
   teamPhotoUrl?: string | null;
+  teamPhotoLayout?: Partial<TeamPhotoLayout> | null;
   title?: string;
   formation?: string | null;
   bench?: SquadFeedPlayer[];
 };
 
 /** The same responsive artwork is used in the feed and WhatsApp image export. */
-export function SquadPosterArtwork({ left, right, ageGroup, matchType, players, startsAt, location, teamPhotoUrl, title = 'KADER', formation, bench = [] }: Props) {
+export function SquadPosterArtwork({ left, right, ageGroup, matchType, players, startsAt, location, teamPhotoUrl, teamPhotoLayout, title = 'KADER', formation, bench = [] }: Props) {
+  const photoLayout=normalizeTeamPhotoLayout(teamPhotoLayout);
+  const cropped=(Object.keys(DEFAULT_TEAM_PHOTO_LAYOUT) as (keyof TeamPhotoLayout)[]).some(k=>photoLayout[k]!==DEFAULT_TEAM_PHOTO_LAYOUT[k]);
   const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
   const date = startsAt ? new Date(startsAt) : null;
   const validDate = date && Number.isFinite(date.getTime());
@@ -69,7 +73,7 @@ export function SquadPosterArtwork({ left, right, ageGroup, matchType, players, 
           {venue && <p className="squad-poster-venue">{venue}</p>}
         </div>}
       </div>
-      {showPhoto && <img className="squad-poster-photo" src={teamPhotoUrl} alt="Unsere Mannschaft" onError={() => setFailedPhoto(teamPhotoUrl)} />}
+      {showPhoto && (cropped ? <div className="relative w-full overflow-hidden" style={{height:'55cqw',marginTop:'3cqw'}}><img src={teamPhotoUrl} alt="Unsere Mannschaft" className="absolute inset-0 h-full w-full object-cover" style={teamPhotoImageStyle(photoLayout)} onError={()=>setFailedPhoto(teamPhotoUrl)}/></div> : <img className="squad-poster-photo" src={teamPhotoUrl} alt="Unsere Mannschaft" onError={() => setFailedPhoto(teamPhotoUrl)} />)}
       <div className="squad-poster-tag">#GEMEINSAM<span>EINTEAM</span></div>
     </div>
   );
