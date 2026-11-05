@@ -1,3 +1,4 @@
+import { normalizeTeamPhotoLayout, type TeamPhotoLayout } from '../../lib/teamPhotoLayout';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { SquadFeedPostRow } from '../../lib/matchdayFeedTypes';
@@ -47,15 +48,15 @@ export const SquadFeedPostCard: React.FC<Props> = ({
 }) => {
   const p = post.payload;
   const demo = useDemoMode();
-  const [teamPhoto, setTeamPhoto] = useState<{ seasonId: string; url: string } | null>(null);
+  const [teamPhoto, setTeamPhoto] = useState<{ seasonId: string; url: string; layout: TeamPhotoLayout } | null>(null);
   const isDemo = Boolean(demo?.isDemo);
   useEffect(() => {
     if (isDemo || post.media_url?.trim() || !p.team_season_id) return;
     let cancelled = false;
-    void supabase.from('team_photos').select('photo_url')
+    void supabase.from('team_photos').select('photo_url,photo_zoom,photo_position_x,photo_position_y,photo_brightness')
       .eq('team_season_id', p.team_season_id).maybeSingle()
       .then(({ data, error }) => {
-        if (!cancelled) setTeamPhoto({ seasonId: p.team_season_id, url: error ? '' : data?.photo_url?.trim() || '' });
+        if (!cancelled) setTeamPhoto({ seasonId: p.team_season_id, url: error ? '' : data?.photo_url?.trim() || '', layout:normalizeTeamPhotoLayout(data) });
       });
     return () => { cancelled = true; };
   }, [p.team_season_id, isDemo, post.media_url]);
@@ -112,6 +113,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
             startsAt={liveEvent?.starts_at || p.starts_at}
             location={liveEvent?.location}
             teamPhotoUrl={teamPhotoUrl}
+            teamPhotoLayout={!isDemo && teamPhoto?.seasonId === p.team_season_id ? teamPhoto.layout : null}
           />
         )}
         <div className="mt-3"><FeedGameCtaLink to={p.deep_link}>Zum Spiel</FeedGameCtaLink></div>

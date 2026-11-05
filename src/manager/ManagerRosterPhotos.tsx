@@ -1,3 +1,5 @@
+import { ManagerTeamPhotoLayoutEditor } from './ManagerTeamPhotoLayoutEditor';
+import { DEFAULT_TEAM_PHOTO_LAYOUT } from '../lib/teamPhotoLayout';
 import React,{useEffect,useState} from 'react';
 import {getTeamSeasonWritableState} from '../lib/seasonTransition';
 import {supabase} from '../lib/supabaseClient';
@@ -60,7 +62,7 @@ export function ManagerRosterPhotos({seasonId,player,onSaved,sourceUrl}:{seasonI
     const {data,error}=await supabase.from('players').update({cutout_url:cutout}).eq('id',player.id).select('id').maybeSingle();if(error)throw error;if(!data)throw Error('Spielerfoto konnte nicht gespeichert werden.');
    }else{
     if(file){const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';const path=`${seasonId}/hero-${crypto.randomUUID()}.${ext}`;const {error}=await uploadStorageObject('team-photos',path,file,{upsert:false,contentType:file.type});if(error)throw error;photo=supabase.storage.from('team-photos').getPublicUrl(path).data.publicUrl;}else{photo=resolved;}
-    const {data,error}=await supabase.from('team_photos').upsert({team_season_id:seasonId,photo_url:photo,updated_at:new Date().toISOString()},{onConflict:'team_season_id'}).select('photo_url').maybeSingle();if(error)throw error;if(!data)throw Error('Mannschaftsfoto konnte nicht gespeichert werden.');setSaved(data.photo_url);
+    const {data,error}=await supabase.from('team_photos').upsert({team_season_id:seasonId,photo_url:photo,...DEFAULT_TEAM_PHOTO_LAYOUT,updated_at:new Date().toISOString()},{onConflict:'team_season_id'}).select('photo_url').maybeSingle();if(error)throw error;if(!data)throw Error('Mannschaftsfoto konnte nicht gespeichert werden.');setSaved(data.photo_url);
    }
    setMessage('Bild gespeichert.'+warning);setFile(null);setUrl('');onSaved();
   }catch(e){setMessage((e as Error).message||'Speichern fehlgeschlagen.');}finally{setBusy(false);}
@@ -70,7 +72,7 @@ export function ManagerRosterPhotos({seasonId,player,onSaved,sourceUrl}:{seasonI
  return <section className="w-full space-y-3 rounded-xl border border-slate-200 bg-white p-4" aria-label={player?'Spielerfoto hochladen':'Mannschaftsfoto'}>
   <h3 className="font-bold text-slate-900">{player?`Eigenes Spielerfoto · ${player.name}`:'Mannschaftsfoto · diese Saison'}</h3>
   <p className="text-sm text-slate-600">{player?'Ein eigenes Foto ersetzt das ÖFB-Foto in Teamansicht und Spielerprofil.':'Wird in der Teamansicht und den Kaderbeiträgen verwendet. ÖFB-Kaderseitenlink, direkten Bildlink oder eine eigene Datei verwenden. Vor dem Speichern wird das Bild geprüft.'}</p>
-  {image?<img key={image} src={image} onLoad={()=>{if(draftLink){setReady(true);setLinkStatus('Vorschau geladen. Bild kann gespeichert werden.');}}} onError={()=>{if(draftLink){setReady(false);setLinkStatus('Das Bild konnte nicht geladen werden. Bitte einen direkten Bildlink oder eine Bilddatei verwenden.');}}} alt={player?.name||'Mannschaftsfoto'} className="max-h-48 max-w-full rounded-xl object-contain"/>:null}
+  {!player&&saved&&!file&&!url.trim()?<ManagerTeamPhotoLayoutEditor key={saved} seasonId={seasonId} photoUrl={saved} onSaved={onSaved}/>:image?<img key={image} src={image} onLoad={()=>{if(draftLink){setReady(true);setLinkStatus('Vorschau geladen. Bild kann gespeichert werden.');}}} onError={()=>{if(draftLink){setReady(false);setLinkStatus('Das Bild konnte nicht geladen werden. Bitte einen direkten Bildlink oder eine Bilddatei verwenden.');}}} alt={player?.name||'Mannschaftsfoto'} className="max-h-48 max-w-full rounded-xl object-contain"/>:null}
   <fieldset disabled={busy} className="space-y-3">
    {player?<label className="block text-sm">Bildart<select value={kind} onChange={e=>setKind(e.target.value)} className="ml-2 rounded border p-2"><option value="photo">Originalfoto ersetzen</option><option value="cutout">Freigestelltes Bild ergänzen</option></select></label>:null}
    <label className="block text-sm">Bild auswählen · JPG, PNG oder WebP · maximal 4 MB<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{setFile(e.target.files?.[0]??null);setMessage('');}} className="mt-2 block w-full"/></label>

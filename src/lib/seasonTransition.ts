@@ -1,3 +1,4 @@
+import { normalizeTeamPhotoLayout } from './teamPhotoLayout';
 /**
  * Saisonabschluss + Saisonwechsel.
  *
@@ -766,7 +767,7 @@ async function syncCompatAfterPlayerTransfer(
 async function copyTeamPhoto(sourceId: string, targetId: string): Promise<string | null> {
   const { data, error } = await supabase
     .from('team_photos')
-    .select('photo_url')
+    .select('photo_url,photo_zoom,photo_position_x,photo_position_y,photo_brightness')
     .eq('team_season_id', sourceId)
     .maybeSingle();
 
@@ -787,7 +788,7 @@ async function copyTeamPhoto(sourceId: string, targetId: string): Promise<string
   if (existing?.team_season_id) {
     const { error: updErr } = await supabase
       .from('team_photos')
-      .update({ photo_url: url })
+      .update({ photo_url: url, ...normalizeTeamPhotoLayout(data) })
       .eq('team_season_id', targetId);
     return updErr?.message ?? null;
   }
@@ -795,6 +796,7 @@ async function copyTeamPhoto(sourceId: string, targetId: string): Promise<string
   const { error: insErr } = await supabase.from('team_photos').insert({
     team_season_id: targetId,
     photo_url: url,
+    ...normalizeTeamPhotoLayout(data),
   });
   return insErr?.message ?? null;
 }
