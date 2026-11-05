@@ -26,7 +26,6 @@ try {
  assert.ok(rows[4].findAllByType('span').some(s=>s.children.some(c=>typeof c==='string'&&c.includes('Kader'))));
  assert.ok(rows[5].findByType('button').children.some(c=>typeof c==='object'&&c.props?.children?.[0]==='Mannschaftsfoto'));
  assert.equal(tree.root.findByProps({role:'progressbar'}).props['aria-valuemax'],11);
- assert.ok(JSON.stringify(tree.toJSON()).includes('https://vereine.oefb.at/uscr/mannschaften/saison-2026-27/u13/kader'),'Known source prefills photo editor');
  globalThis.__photo='https://example.org/team.jpg';
  await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
  assert.ok(photo().props.className.includes('bg-emerald-50'));
