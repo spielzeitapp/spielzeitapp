@@ -14,7 +14,7 @@ try {
  const resolved={'react':require.resolve('react'),'react/jsx-runtime':require.resolve('react/jsx-runtime')};
  Module._resolveFilename=function(request,...args){return resolved[request]||original.call(this,request,...args)};
  const {ManagerSetupChecklist}=require(path.join(folder,'checklist.cjs'));Module._resolveFilename=original;
- globalThis.window={addEventListener(){},removeEventListener(){}};globalThis.__snapshot=snapshot;globalThis.__photo=null;
+ globalThis.window={addEventListener(){},removeEventListener(){},dispatchEvent(){}};globalThis.__snapshot=snapshot;globalThis.__photo=null;
  const actions=[]; const props={detail:{team_seasons:[{id:'u13',status:'active'}]},seasonId:'u13',onSelect(){},onAction:(...args)=>actions.push(args)};
  let tree; await Test.act(async()=>{tree=Test.create(React.createElement(ManagerSetupChecklist,props));});
  const summary=()=>tree.root.findByProps({'aria-label':'Vorhandene Mannschaftsdaten'});
@@ -40,6 +40,19 @@ try {
  await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
  assert.ok(summary().findAllByType('button')[2].props.className.includes('bg-emerald-50'));
  assert.ok(summary().findAllByType('button')[3].props.className.includes('bg-emerald-50'));
+ globalThis.__snapshot={...snapshot,club_name:'NSG Gölsental',club_uses_default_colors:true};
+ await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
+ await Test.act(async()=>tree.root.findByType('ol').findAllByType('button')[0].props.onClick());
+ assert.ok(JSON.stringify(tree.toJSON()).includes('angezeigten Standardfarben'));
+ assert.ok(JSON.stringify(tree.toJSON()).includes('Vereinsdaten für alle Mannschaften von NSG Gölsental'));
+ assert.equal(tree.root.findAllByType('input').find(x=>x.props.type==='checkbox').props.disabled,false,'Effective default colors allow club confirmation');
+ globalThis.__snapshot={...snapshot,club_ready:false,club_name:'NSG Gölsental',club_missing:['Vereinslogo']};
+ await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
+ assert.equal(tree.root.findAllByType('input').find(x=>x.props.type==='checkbox').props.disabled,true);
+ assert.ok(JSON.stringify(tree.toJSON()).includes('Bitte ergänzen: Vereinslogo.'));
+ globalThis.__snapshot={...snapshot,club_name:'NSG Gölsental',checks:{club:'reviewed'}};
+ await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
+ assert.equal(tree.root.findAllByType('input').find(x=>x.props.type==='checkbox').props.checked,true,'Shared server confirmation is shown');
  globalThis.__photoError={message:'unavailable'};
  await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
  assert.ok(photo().props.className.includes('bg-amber-50'),'Failed photo lookup is unknown, not green or missing');
