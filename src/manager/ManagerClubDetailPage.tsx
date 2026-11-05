@@ -210,7 +210,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
     setBusy(false);
     if (saved.error) { setError(saved.error); return; }
     setLogoFile(null);
-    setSuccess('Stammdaten, Logo und Farben gespeichert.');
+    setSuccess('Vereinsdaten gespeichert. Jetzt im Schritt „Verein & Erscheinungsbild“ einmal für alle Mannschaften bestätigen.');
     await reload();
   }
 
@@ -364,7 +364,13 @@ export function ManagerClubDetailPage(): React.ReactElement {
     if (key === 'staff') setStaffTeamSeasonId(id);
     if (key === 'venues') setGrantTeamSeasonId(id);
     const anchor = anchors[key];
-    if (anchor) { document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (anchor) {
+      const target = document.getElementById(anchor);
+      let ancestor: HTMLElement | null = target;
+      while (ancestor) { if (ancestor instanceof HTMLDetailsElement) ancestor.open = true; ancestor = ancestor.parentElement; }
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     const paths: Partial<Record<SetupKey, string>> = {
       roster: `/manager/saisons/${id}/kader`, access: `/manager/saisons/${id}/zugaenge`,
       matches: `/manager/saisons/${id}/oefb-import`, training: '/manager/termine', review: '/app/home',
@@ -426,35 +432,15 @@ export function ManagerClubDetailPage(): React.ReactElement {
         <p className="text-[14px] text-slate-600">{loading ? 'Laden…' : 'Verein nicht gefunden.'}</p>
       ) : (
         <>
-          <ManagerClubImportPanel key={clubId} detail={detail} onSaved={() => { void reload(); }} />
-          <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={setSetupSeasonId} onAction={setupAction} />
-          {detail.status === 'active' ? (
-            <form id="club-team-season-setup" onSubmit={onCreateTeamSeason} className="rounded-2xl border border-red-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-red-700">Einrichtung · Schritt 2</p>
-              <h2 className="mt-1 text-[17px] font-semibold text-slate-900">Mannschaft und Saison anlegen</h2>
-              <p className="mt-1 text-[13px] text-slate-600">Eine zusätzliche Mannschaft anlegen, z. B. U13 neben U12. Sie bekommt eine eigene Saisonzuordnung. Für den Saisonwechsel einer bestehenden Mannschaft nutze „Weitere Saison“ unten.</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <label className="text-[13px] font-medium text-slate-700">Mannschaftsname *
-                  <input required value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="z. B. SPG Rohrbach" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
-                </label>
-                <label className="text-[13px] font-medium text-slate-700">Altersklasse *
-                  <input required value={teamAge} onChange={(e) => setTeamAge(e.target.value)} placeholder="z. B. U12" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
-                </label>
-                <label className="text-[13px] font-medium text-slate-700">Aktuelle Saison *
-                  <input required value={newSeasonName} onChange={(e) => setNewSeasonName(e.target.value)} placeholder="z. B. 2026/27" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
-                </label>
-              </div>
-              <button type="submit" disabled={busy} className="mt-4 min-h-[44px] rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50">
-                {busy ? 'Speichern…' : 'Mannschaft und Saison speichern'}
-              </button>
-            </form>
-          ) : null}
+          <details className="rounded-2xl border border-slate-200 bg-white">
+            <summary className="cursor-pointer p-4 font-semibold text-slate-900">1. Vereinsdaten · Name, Logo &amp; Farben für alle Mannschaften</summary>
           <form
             id="club-basics"
             onSubmit={onSave}
             className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
           >
-            <h2 className="text-[16px] font-semibold text-slate-900">Stammdaten</h2>
+            <h2 className="text-[16px] font-semibold text-slate-900">Vereinsdaten bearbeiten</h2>
+            <p className="mt-1 text-sm text-slate-600">Name, Logo und Farben gelten für alle Mannschaften dieses Vereins. Danach im Einrichtungsschritt einmal bestätigen.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block text-[13px] font-medium text-slate-700">
                 Vereinsname *
@@ -492,12 +478,42 @@ export function ManagerClubDetailPage(): React.ReactElement {
               disabled={busy}
               className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white hover:bg-red-800 disabled:opacity-60"
             >
-              Speichern
+              Vereinsdaten speichern
             </button>
+            <button type="button" onClick={() => document.getElementById('manager-setup-checklist')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="ml-3 mt-4 min-h-11 text-sm font-semibold text-red-700">Zur Mannschaftseinrichtung →</button>
             </div>
 
             </div>
           </form>
+          </details>
+          <p className="text-sm font-semibold text-slate-700">2. Mannschaft auswählen oder beim ÖFB zuordnen · 3. Einrichtung der Mannschaft abschließen</p>
+          <ManagerClubImportPanel key={clubId} detail={detail} onSaved={() => { void reload(); }} />
+          <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={setSetupSeasonId} onAction={setupAction} />
+          {detail.status === 'active' ? (
+            <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Zusätzliche Mannschaft und Saison anlegen</summary><form id="club-team-season-setup" onSubmit={onCreateTeamSeason} className="rounded-2xl border border-red-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-red-700">Neue Mannschaft</p>
+              <h2 className="mt-1 text-[17px] font-semibold text-slate-900">Mannschaft und Saison anlegen</h2>
+              <p className="mt-1 text-[13px] text-slate-600">Eine zusätzliche Mannschaft anlegen, z. B. U13 neben U12. Sie bekommt eine eigene Saisonzuordnung. Für den Saisonwechsel einer bestehenden Mannschaft nutze „Weitere Saison“ unten.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <label className="text-[13px] font-medium text-slate-700">Mannschaftsname *
+                  <input required value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="z. B. SPG Rohrbach" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
+                </label>
+                <label className="text-[13px] font-medium text-slate-700">Altersklasse *
+                  <input required value={teamAge} onChange={(e) => setTeamAge(e.target.value)} placeholder="z. B. U12" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
+                </label>
+                <label className="text-[13px] font-medium text-slate-700">Aktuelle Saison *
+                  <input required value={newSeasonName} onChange={(e) => setNewSeasonName(e.target.value)} placeholder="z. B. 2026/27" className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-[14px]" />
+                </label>
+              </div>
+              <button type="submit" disabled={busy} className="mt-4 min-h-[44px] rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white disabled:opacity-50">
+                {busy ? 'Speichern…' : 'Mannschaft und Saison speichern'}
+              </button>
+            </form></details>
+          ) : null}
+
+          <details className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <summary className="cursor-pointer font-semibold text-slate-900">Weitere Vereinsverwaltung · Trainer, Anlagen, Saisonen &amp; Module</summary>
+
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -993,6 +1009,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
               </div>
             ) : null}
           </section>
+          </details>
         </>
       )}
     </div>

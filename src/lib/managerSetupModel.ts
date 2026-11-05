@@ -1,6 +1,7 @@
 export type SetupKey = 'club' | 'team' | 'season' | 'staff' | 'roster' | 'access' | 'venues' | 'matches' | 'training' | 'review';
 export type SetupCheck = 'open' | 'reviewed' | 'unneeded';
 export type SetupSnapshot = {
+  club_name?: string; club_missing?: string[]; club_uses_default_colors?: boolean;
   club_ready: boolean; team_ready: boolean; season_ready: boolean;
   staff: number; players: number; jerseys_missing: number; access: number;
   venues: number; matches: number; trainings: number;
@@ -9,7 +10,7 @@ export type SetupSnapshot = {
 export type SetupStep = { key: SetupKey; title: string; detail: string; present: boolean; optional: boolean; state: 'done' | 'missing' | 'started' | 'review' | 'skipped' };
 export function setupSteps(s: SetupSnapshot): SetupStep[] {
   const rows: Array<[SetupKey, string, string, boolean, boolean?]> = [
-    ['club', 'Verein & Erscheinungsbild', 'Name, Logo und Vereinsfarben speichern und prüfen.', s.club_ready],
+    ['club', 'Verein & Erscheinungsbild', `${s.club_name ?? 'Verein'}: Name, Logo und Vereinsfarben einmal prüfen. Gilt für alle Mannschaften dieses Vereins.${s.club_uses_default_colors ? ' Für nicht eigens gespeicherte Farben gelten die angezeigten Standardfarben.' : ''}${s.club_missing?.length ? ` Es fehlt: ${s.club_missing.join(', ')}.` : ''}`, s.club_ready],
     ['team', 'Mannschaft zuordnen', 'Mannschaft und Verein prüfen. Zusätzliche U13 bleibt von U12 getrennt.', s.team_ready],
     ['season', 'Saison & Altersklasse', 'Aktive Saison und aktuelle Altersklasse prüfen.', s.season_ready],
     ['staff', 'Trainer zuordnen', `${s.staff} Trainer zugeordnet. Eine Einladung zählt erst nach Annahme.`, s.staff > 0],
