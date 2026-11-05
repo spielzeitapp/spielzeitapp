@@ -10,11 +10,22 @@ import { supabase } from '../lib/supabaseClient';
 type FoundTeam = { key: string; name: string; rosterUrl: string; scheduleUrl: string; tableUrl: string; hasTeamPhoto: boolean };
 type Selection = { selected: boolean; target: string; name: string; age: string; seasonId?: string; status?: string; suggested?: boolean; ownerClub?: string; linked?: boolean; problem?: boolean };
 
+function savedImportSource(clubId: string): { url: string; season: string } {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(`spielzeit:club-import:v1:${clubId}`) || 'null');
+    if (typeof value?.url === 'string' && typeof value?.season === 'string') {
+      const u = new URL(value.url);
+      if (u.protocol === 'https:' && u.hostname === 'vereine.oefb.at' && !u.username && !u.password && !u.port && !u.search && !u.hash && /^\/[a-z0-9-]+(?:\/(?:News|Mannschaften))?\/?$/i.test(u.pathname) && /^\d{4}\/\d{2}$/.test(value.season)) return value;
+    }
+  } catch { /* Storage can be unavailable. Discovery still works. */ }
+  return { url: '', season: '2026/27' };
+}
+
 /** Stage team structure first, then use the existing reviewed data import screens. */
 export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail; onSaved: () => void }) {
   const generation = useRef(0);
-  const [url, setUrl] = useState('');
-  const [season, setSeason] = useState('2026/27');
+  const [url, setUrl] = useState(() => savedImportSource(detail.id).url);
+  const [season, setSeason] = useState(() => savedImportSource(detail.id).season);
   const [teams, setTeams] = useState<FoundTeam[]>([]);
   const [choices, setChoices] = useState<Record<string, Selection>>({});
   const [busy, setBusy] = useState(false);
@@ -41,6 +52,7 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
       const saved = await supabase.from('oefb_team_import_sources').select('source_url,team_season_id').in('source_url', (data.teams as FoundTeam[]).map(t => t.rosterUrl.toLowerCase().replace(/\/$/, '')));
       if (saved.error) throw Error('Gespeicherte ÖFB-Zuordnungen konnten nicht geladen werden: ' + saved.error.message);
       if (version !== generation.current) return;
+      try { window.localStorage.setItem(`spielzeit:club-import:v1:${detail.id}`, JSON.stringify({ url: url.trim(), season })); } catch { /* Optional browser preference. */ }
       setOtherClubs(available);
       const all = [detail, ...available].flatMap(c => c.team_seasons.filter(s => s.status !== 'archived' && s.season_name === season).map(s => ({...s, clubName: c.name})));
       setChoices(Object.fromEntries((data.teams as FoundTeam[]).map(t => {
@@ -102,6 +114,7 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
       <label className="text-sm">ÖFB-Vereinslink<input type="url" disabled={busy} value={url} onChange={e => { reset(); setUrl(e.target.value); }} placeholder="https://vereine.oefb.at/USCRohrbach/" className="mt-1 min-h-11 w-full rounded-xl border px-3" /></label>
       <label className="text-sm">Saison<input disabled={busy} value={season} onChange={e => { reset(); setSeason(e.target.value); }} placeholder="2026/27" className="mt-1 min-h-11 w-full rounded-xl border px-3" /></label>
     </div>
+    <p className="text-xs text-slate-500">Nach erfolgreicher Suche bleibt der Vereinslink in diesem Browser für diesen Verein gespeichert. Bereits zugeordnete Mannschaften müssen für Foto- oder Spieleimporte nicht erneut angekreuzt werden.</p>
     <button type="button" disabled={busy || !url.trim()} onClick={() => void scan()} className="min-h-11 rounded-xl bg-slate-900 px-4 font-semibold text-white disabled:opacity-50">{busy ? 'Bitte warten…' : 'Mannschaften suchen'}</button>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="text-sm text-slate-700">{notice}</p>}

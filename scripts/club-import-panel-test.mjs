@@ -14,7 +14,8 @@ try{
  Module._resolveFilename=function(request,...args){if(resolved[request])return resolved[request];return original.call(this,request,...args)};
  const {ManagerClubImportPanel}=require(path.join(folder,'panel.cjs'));Module._resolveFilename=original;
  globalThis.__writes=0;globalThis.__testEnv=false;
- globalThis.window={location:{search:''},dispatchEvent(){},addEventListener(){},removeEventListener(){}};
+ const preferences=new Map();
+ globalThis.window={localStorage:{getItem:key=>preferences.get(key)||null,setItem:(key,value)=>preferences.set(key,value)},location:{search:''},dispatchEvent(){},addEventListener(){},removeEventListener(){}};
  const {MemoryRouter}=require('react-router-dom');const detail={id:'club',name:'USC',teams:[],team_seasons:[]};
  let tree;await Test.act(async()=>{tree=Test.create(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail,onSaved(){}})))});assert.equal(tree.toJSON(),null);
  globalThis.__testEnv=true;
@@ -70,5 +71,18 @@ try{
  globalThis.__sources=[{source_url:team.rosterUrl.toLowerCase().replace(/\/$/,''),team_season_id:'archived-or-missing'}];
  await Test.act(async()=>{button('Mannschaften suchen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});
  assert.equal(tree.root.findAllByProps({'data-import-status':'linked'}).length,0,'Unavailable saved target must not be green');
+ globalThis.__tableSettings={competitionId:'123',sourceUrl:'https://www.oefb.at/bewerbe/Bewerb/123',teamName:'SPG Rohrbach'};
+ globalThis.__sources=[{source_url:team.rosterUrl.toLowerCase().replace(/\/$/,''),team_season_id:'nsg-u12'}];
+ await Test.act(async()=>{button('Mannschaften suchen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});
+ assert.ok(JSON.stringify(tree.toJSON()).includes('Tabelle bereits vorhanden'));
+ assert.equal(button('Tabelle automatisch lesen'),undefined,'Existing table does not offer a redundant import');
+ const rememberedUrl=tree.root.findByProps({type:'url'}).props.value;
+ await Test.act(async()=>tree.unmount());
+ await Test.act(async()=>{tree=Test.create(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail,onSaved(){}})))});
+ assert.equal(tree.root.findByProps({type:'url'}).props.value,rememberedUrl,'Successful club source survives reopening');
+ await Test.act(async()=>tree.unmount());
+ await Test.act(async()=>{tree=Test.create(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail:{...detail,id:'another-club'},onSaved(){}})))});
+ assert.equal(tree.root.findByProps({type:'url'}).props.value,'','Club links are not reused for a different club');
+ await Test.act(async()=>tree.unmount());
  console.log('PASS panel: Test-only visibility, read-only scan, explicit confirmation, prepared deep links, input change clears old results.');
 }finally{await rm(folder,{recursive:true,force:true})}
