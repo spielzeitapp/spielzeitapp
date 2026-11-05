@@ -1,3 +1,4 @@
+import { ManagerClubImportPanel } from './ManagerClubImportPanel';
 /**
  * ADMIN-ORG.1 – Vereinsdetail: Stammdaten, Abhängigkeiten, Archiv/Löschen.
  */
@@ -408,10 +409,11 @@ export function ManagerClubDetailPage(): React.ReactElement {
         </div>
       ) : null}
 
-      {loading || !detail ? (
+      {!detail ? (
         <p className="text-[14px] text-slate-600">{loading ? 'Laden…' : 'Verein nicht gefunden.'}</p>
       ) : (
         <>
+          <ManagerClubImportPanel key={clubId} detail={detail} onSaved={() => { void reload(); }} />
           <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={setSetupSeasonId} onAction={setupAction} />
           {detail.status === 'active' ? (
             <form id="club-team-season-setup" onSubmit={onCreateTeamSeason} className="rounded-2xl border border-red-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">

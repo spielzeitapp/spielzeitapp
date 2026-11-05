@@ -1,0 +1,26 @@
+const assert = require('node:assert/strict');
+const handler = require('../server/lib/oefbClub');
+const { extract, clubUrl } = handler;
+const source = clubUrl('https://vereine.oefb.at/USCRohrbach/');
+assert.equal(source.href, 'https://vereine.oefb.at/USCRohrbach/News/');
+for (const u of ['http://vereine.oefb.at/USCRohrbach/', 'https://evil.test/a/', 'https://vereine.oefb.at.evil.test/a/', 'https://me@vereine.oefb.at/a/', 'https://vereine.oefb.at:444/a/', 'https://vereine.oefb.at/a/?redirect=evil', 'https://vereine.oefb.at/a/#x']) assert.throws(() => clubUrl(u));
+const base = '/USCRohrbach/Mannschaften/Saison-2026-27/';
+const row = (key, name = key) => ({ bezeichnung: name, url: base + key + '/Kader/', pictureId: '0123456789abcdef0123' });
+const preload = rows => 'SG.container.appPreloads["test"] = ' + JSON.stringify(rows) + ';';
+const html = preload([{ saison:'2026/27', mannschaften:[row('KM'),row('U12'),row('U12-1','U12'),row('KM'),{...row('X'),url:'https://evil.test'+base+'X/Kader/'},{...row('Y'),url:'/Other/Mannschaften/Saison-2026-27/Y/Kader/'}] },{saison:'2025/26',mannschaften:[row('U11')]}]);
+const found = extract(html, source, '2026/27');
+assert.deepEqual(found.map(t => t.key), ['KM','U12','U12-1']);
+assert.equal(found[0].scheduleUrl, 'https://vereine.oefb.at'+base+'KM/Spiele/');
+assert.equal(found[0].hasTeamPhoto, true);
+assert.equal(extract('SG.container.appPreloads["x"] = [process.exit()];',source,'2026/27').length,0);
+let fetched = false;
+global.fetch = async () => { fetched = true; throw Error('must not fetch'); };
+(async () => {
+  const response = { setHeader(){}, status(n){this.code=n;return this;}, json(data){this.data=data;return this;} };
+  await handler({method:'GET',query:{url:'https://127.0.0.1/',season:'2026/27'}},response);
+  assert.equal(response.code,400); assert.equal(fetched,false);
+  await handler({method:'GET',query:{url:source.href,season:'2026/28'}},response);
+  assert.equal(response.code,400); assert.equal(fetched,false);
+  await handler({method:'POST',query:{}},response); assert.equal(response.code,405);
+  console.log('PASS club discovery: duplicate age groups, source isolation, season filtering, malformed JSON, unsafe URLs and invalid requests.');
+})();
