@@ -1,12 +1,13 @@
 import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ManagerClubTeamOverview } from './ManagerClubTeamOverview';
 import { adminEnsureTeamSeason, listPlatformClubs, getPlatformClub, type ClubDetail } from '../lib/platformClubAdmin';
 import { createSetupTeam } from '../lib/managerSetup';
 import { isStagingApp } from '../lib/appEnvironment';
 import { supabase } from '../lib/supabaseClient';
 
 type FoundTeam = { key: string; name: string; rosterUrl: string; scheduleUrl: string; tableUrl: string; hasTeamPhoto: boolean };
-type Selection = { selected: boolean; target: string; name: string; age: string; seasonId?: string; status?: string; suggested?: boolean; ownerClub?: string };
+type Selection = { selected: boolean; target: string; name: string; age: string; seasonId?: string; status?: string; suggested?: boolean; ownerClub?: string; linked?: boolean; problem?: boolean };
 
 /** Stage team structure first, then use the existing reviewed data import screens. */
 export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail; onSaved: () => void }) {
@@ -47,14 +48,14 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
         const age = t.name.match(/^U0?(\d{1,2})\b/i)?.[1];
         const possible = age ? all.filter(s => Number(s.age_group?.match(/^U0?(\d{1,2})$/i)?.[1]) === Number(age)) : [];
         const suggested = !known && possible.length === 1 ? possible[0] : null;
-        return [t.key, { selected: false, target: known?.team_season_id || suggested?.id || '', name: t.key === 'KM' ? 'Kampfmannschaft' : t.key === 'Res' ? 'Reserve' : t.key, age: t.name, ownerClub: detail.id, suggested: Boolean(suggested), status: known ? (exact ? 'Gespeicherte Zuordnung wiedererkannt' : 'Gespeicherte Zielmannschaft nicht aktiv – bitte prüfen') : suggested ? 'Vorschlag nach Altersklasse – Identität bitte bestätigen' : '' }];
+        return [t.key, { selected: false, target: known?.team_season_id || suggested?.id || '', name: t.key === 'KM' ? 'Kampfmannschaft' : t.key === 'Res' ? 'Reserve' : t.key, age: t.name, ownerClub: detail.id, linked: Boolean(exact), problem: Boolean(known && !exact), suggested: Boolean(suggested), status: known ? (exact ? 'Gespeicherte Zuordnung wiedererkannt' : 'Gespeicherte Zielmannschaft nicht aktiv – bitte prüfen') : suggested ? 'Vorschlag nach Altersklasse – Identität bitte bestätigen' : '' }];
       })));
       setTeams(data.teams);
       setNotice(data.notice);
     } catch (e) { if (version === generation.current) setError(e instanceof Error ? e.message : 'Fehler beim Suchen.'); }
     finally { if (version === generation.current) setBusy(false); }
   }
-  function change(key: string, patch: Partial<Selection>) { setConfirmed(false); setChoices(old => ({ ...old, [key]: { ...old[key], ...patch } })); }
+  function change(key: string, patch: Partial<Selection>) { setConfirmed(false); setChoices(old => ({ ...old, [key]: { ...old[key], ...patch, ...(patch.target !== undefined ? { linked: false, problem: false, status: 'Neue Auswahl – Identität bitte bestätigen' } : {}) } })); }
   const selected = teams.filter(t => choices[t.key]?.selected);
   async function prepare() {
     if (busy || !confirmed || !selected.length) return;
@@ -82,8 +83,8 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
           if (existing && (existing.status === 'archived' || existing.season_name !== season)) throw Error('Bitte eine aktive Mannschaft derselben Saison wählen.');
           const linked = await supabase.rpc('admin_link_oefb_team_source', { p_source_url: t.rosterUrl, p_team_season_id: id, p_discovered_in_club_id: detail.id });
           if (linked.error) throw Error(linked.error.message);
-          setChoices(old => ({ ...old, [t.key]: { ...old[t.key], seasonId: id, status: 'Bereit für Datenimport' } }));
-        } catch (e) { setChoices(old => ({ ...old, [t.key]: { ...old[t.key], status: e instanceof Error ? e.message : 'Vorbereitung fehlgeschlagen' } })); }
+          setChoices(old => ({ ...old, [t.key]: { ...old[t.key], seasonId: id, target: id, linked: true, problem: false, status: 'Zuordnung gespeichert · Datenimport separat prüfen' } }));
+        } catch (e) { setChoices(old => ({ ...old, [t.key]: { ...old[t.key], problem: true, status: e instanceof Error ? e.message : 'Vorbereitung fehlgeschlagen' } })); }
       }
       setNotice('Mannschaftsstruktur vorbereitet. Kader, Fotos, Spiele und Tabellen über die vorausgefüllten Zugänge prüfen und übernehmen. Es wurden noch keine Kader oder Spiele importiert.');
       setConfirmed(false); onSaved();
@@ -93,7 +94,8 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
   const linkFor = (t: FoundTeam, id: string, kind: 'roster' | 'schedule') => kind === 'roster'
     ? `/manager/saisons/${encodeURIComponent(id)}/kader?oefbRoster=${encodeURIComponent(t.rosterUrl)}`
     : `/manager/saisons/${encodeURIComponent(id)}/oefb-import?oefbSchedule=${encodeURIComponent(t.scheduleUrl)}`;
-  return <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+  return <><ManagerClubTeamOverview detail={detail} />
+  <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
     <div><span className="text-xs font-semibold uppercase text-slate-500">TEST · Vereinsimport</span><h2 className="text-lg font-semibold">Mannschaften automatisch beim ÖFB finden</h2><p className="text-sm text-slate-600">Die ÖFB-Vereinsseite ist eine Datenquelle. NSG-/SPG-Mannschaften können einem anderen Verein gehören. Gespeicherte Zuordnungen werden wiederverwendet. Bestehende Mannschaften ausdrücklich zuordnen, besonders bei NSG/SPG und mehrfachen Altersklassen.</p></div>
     <div className="grid gap-3 sm:grid-cols-[1fr_130px]">
       <label className="text-sm">ÖFB-Vereinslink<input type="url" disabled={busy} value={url} onChange={e => { reset(); setUrl(e.target.value); }} placeholder="https://vereine.oefb.at/USCRohrbach/" className="mt-1 min-h-11 w-full rounded-xl border px-3" /></label>
@@ -102,14 +104,21 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
     <button type="button" disabled={busy || !url.trim()} onClick={() => void scan()} className="min-h-11 rounded-xl bg-slate-900 px-4 font-semibold text-white disabled:opacity-50">{busy ? 'Bitte warten…' : 'Mannschaften suchen'}</button>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="text-sm text-slate-700">{notice}</p>}
-    {teams.length > 0 && <div className="space-y-3"><p className="font-semibold">{teams.length} Mannschaften gefunden · {selected.length} ausgewählt</p><div className="flex gap-3"><button type="button" disabled={busy} className="min-h-11 rounded-lg border px-3 text-sm" onClick={() => { setConfirmed(false); setChoices(old => Object.fromEntries(Object.entries(old).map(([key, c]) => [key, { ...c, selected: true }]))); }}>Alle auswählen</button><button type="button" disabled={busy} className="min-h-11 rounded-lg border px-3 text-sm" onClick={() => { setConfirmed(false); setChoices(old => Object.fromEntries(Object.entries(old).map(([key, c]) => [key, { ...c, selected: Boolean(c.seasonId) }]))); }}>Auswahl aufheben</button></div>
-      {teams.map(t => { const c = choices[t.key]; if (!c) return null; return <div key={t.key} className="space-y-3 rounded-xl border border-slate-200 p-3">
+    {teams.length > 0 && <div className="space-y-3"><p className="font-semibold">{teams.length} Mannschaften gefunden · {selected.length} ausgewählt</p><div className="flex flex-wrap gap-2 text-xs font-semibold"><span className="rounded-full bg-emerald-100 px-3 py-2 text-emerald-900">✓ {teams.filter(t => choices[t.key]?.linked && !choices[t.key]?.problem).length} zugeordnet</span><span className="rounded-full bg-amber-100 px-3 py-2 text-amber-950">? {teams.filter(t => !choices[t.key]?.linked && !choices[t.key]?.problem && choices[t.key]?.target).length} zu prüfen</span><span className="rounded-full bg-red-100 px-3 py-2 text-red-900">! {teams.filter(t => choices[t.key]?.problem || (!choices[t.key]?.linked && !choices[t.key]?.target)).length} noch offen</span></div><p className="text-xs text-slate-600">Grün bestätigt die Zuordnung. Kader, Spiele und Fotos müssen separat geprüft und übernommen werden.</p><div className="flex gap-3"><button type="button" disabled={busy} className="min-h-11 rounded-lg border px-3 text-sm" onClick={() => { setConfirmed(false); setChoices(old => Object.fromEntries(Object.entries(old).map(([key, c]) => [key, { ...c, selected: true }]))); }}>Alle auswählen</button><button type="button" disabled={busy} className="min-h-11 rounded-lg border px-3 text-sm" onClick={() => { setConfirmed(false); setChoices(old => Object.fromEntries(Object.entries(old).map(([key, c]) => [key, { ...c, selected: Boolean(c.seasonId) }]))); }}>Auswahl aufheben</button></div>
+      {teams.map(t => { const c = choices[t.key]; if (!c) return null; const green = c.linked && !c.problem;
+        const amber = !green && !c.problem && Boolean(c.target);
+        const targetClub = [detail, ...otherClubs].find(club => club.team_seasons.some(s => s.id === (c.seasonId || c.target)));
+        const targetSeason = targetClub?.team_seasons.find(s => s.id === (c.seasonId || c.target));
+        const importId = c.seasonId || (green ? c.target : '');
+        return <div key={t.key} data-import-status={green ? 'linked' : amber ? 'review' : 'open'} className={`space-y-3 rounded-xl border-l-4 border p-3 ${green ? 'border-emerald-300 bg-emerald-50' : amber ? 'border-amber-300 bg-amber-50' : 'border-red-200 bg-red-50'}`}>
+        <p className={`text-xs font-bold ${green ? 'text-emerald-800' : amber ? 'text-amber-900' : 'text-red-800'}`}>{green ? '✓ Zugeordnet' : amber ? '? Zuordnung prüfen' : '! Noch offen'}</p>
         <label className="flex items-center gap-3 font-semibold"><input type="checkbox" checked={c.selected} disabled={busy || Boolean(c.seasonId)} onChange={e => change(t.key, { selected: e.target.checked })} />{t.name} <span className="text-xs font-normal text-slate-500">ÖFB: {t.key} · {t.hasTeamPhoto ? 'Teamfoto vorhanden' : 'kein Teamfoto gemeldet'}</span></label>
         {c.selected && !c.seasonId && <><label className="block text-sm">Zielmannschaft<select value={c.target} disabled={busy} onChange={e => change(t.key, { target: e.target.value })} className="mt-1 min-h-11 w-full rounded-lg border px-3"><option value="">Neu anlegen / identischen Eintrag wiederverwenden</option>{otherClubs.map(club => <optgroup key={club.id} label={club.name}>{club.team_seasons.filter(s => s.status !== 'archived' && s.season_name === season).map(s => <option key={s.id} value={s.id}>{s.team_name} · {s.age_group} · {s.season_name}</option>)}</optgroup>)}{detail.teams.filter(t => !detail.team_seasons.some(s => s.team_id === t.id && s.season_name === season)).map(t => <option key={t.id} value={'team:' + t.id}>{t.name} · Saison ergänzen</option>)}{detail.team_seasons.filter(s => s.status !== 'archived' && s.season_name === season).map(s => <option key={s.id} value={s.id}>{s.team_name} · {s.age_group} · {s.season_name}</option>)}</select></label>
         {!c.target && <label className="block text-sm">Mannschaft gehört zu<select disabled={busy} value={c.ownerClub || detail.id} onChange={e => change(t.key, { ownerClub: e.target.value })} className="mt-1 min-h-11 w-full rounded-lg border px-3">{[detail, ...otherClubs].map(club => <option key={club.id} value={club.id}>{club.name}</option>)}</select></label>}
         {!c.target && <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm">Mannschaftsname<input disabled={busy} value={c.name} onChange={e => change(t.key, { name: e.target.value })} className="mt-1 min-h-11 w-full rounded-lg border px-3" /></label><label className="text-sm">Altersklasse / Kategorie<input disabled={busy} value={c.age} onChange={e => change(t.key, { age: e.target.value })} className="mt-1 min-h-11 w-full rounded-lg border px-3" /></label></div>}</>}
+        {targetSeason && <p className="text-sm font-medium">{targetClub?.name} → {targetSeason.team_name} · {targetSeason.age_group} · {targetSeason.season_name}</p>}
         {c.status && <p className="text-sm" role="status">{c.status}</p>}
-        {c.seasonId && <div className="flex flex-wrap gap-3 text-sm font-semibold"><Link className="underline" to={linkFor(t, c.seasonId, 'roster')}>Kader &amp; Fotos übernehmen</Link><Link className="underline" to={linkFor(t, c.seasonId, 'schedule')}>Spiele &amp; Ergebnisse übernehmen</Link><a className="underline" href={t.tableUrl} target="_blank" rel="noreferrer">ÖFB-Tabelle prüfen ↗</a></div>}
+        {importId && <div className="flex flex-wrap gap-3 text-sm font-semibold"><Link className="underline" to={linkFor(t, importId, 'roster')}>Kader &amp; Fotos übernehmen</Link><Link className="underline" to={linkFor(t, importId, 'schedule')}>Spiele &amp; Ergebnisse übernehmen</Link><a className="underline" href={t.tableUrl} target="_blank" rel="noreferrer">ÖFB-Tabelle prüfen ↗</a></div>}
       </div>; })}
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />Verein, Saison und Identität der Zielmannschaften geprüft (gleiche Altersklasse allein bedeutet nicht dieselbe Mannschaft). Noch nicht zugeordnete Mannschaften dürfen neu angelegt werden.</label>
       <button type="button" disabled={busy || !confirmed || !selected.some(t => !choices[t.key].seasonId) || selected.some(t => !choices[t.key].target && (!choices[t.key].name.trim() || !choices[t.key].age.trim()))} onClick={() => void prepare()} className="min-h-11 rounded-xl bg-slate-900 px-4 font-semibold text-white disabled:opacity-50">Ausgewählte Mannschaften vorbereiten</button>
@@ -117,7 +126,7 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
     <details><summary className="cursor-pointer py-2 font-semibold">Homepage &amp; Vereinsapp vorbereiten</summary><p className="mb-3 text-sm text-slate-600">Interne Strukturvorschau mit vorhandenen Mannschaften. Keine Veröffentlichung. Vereinsnews, Sponsoren, Shop und öffentliche Freigaben folgen in einem weiteren Schritt.</p><button type="button" onClick={() => setPreview(!preview)} className="min-h-11 rounded-xl border px-4">{preview ? 'Vorschau schließen' : 'Vereinsvorschau öffnen'}</button>
       {preview && <ClubOutline detail={detail} />}
     </details>
-  </section>;
+  </section></>;
 }
 function ClubOutline({ detail }: { detail: ClubDetail }) {
   const [logo, setLogo] = useState<string | null>(null);
