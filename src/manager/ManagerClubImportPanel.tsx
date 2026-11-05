@@ -22,7 +22,7 @@ function savedImportSource(clubId: string): { url: string; season: string } {
 }
 
 /** Stage team structure first, then use the existing reviewed data import screens. */
-export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail; onSaved: () => void }) {
+export function ManagerClubImportPanel({ detail, onSaved, showOverview = true }: { detail: ClubDetail; onSaved: () => void; showOverview?: boolean }) {
   const generation = useRef(0);
   const [url, setUrl] = useState(() => savedImportSource(detail.id).url);
   const [season, setSeason] = useState(() => savedImportSource(detail.id).season);
@@ -107,7 +107,7 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
   const linkFor = (t: FoundTeam, id: string, kind: 'roster' | 'schedule') => kind === 'roster'
     ? `/manager/saisons/${encodeURIComponent(id)}/kader?oefbRoster=${encodeURIComponent(t.rosterUrl)}`
     : `/manager/saisons/${encodeURIComponent(id)}/oefb-import?oefbSchedule=${encodeURIComponent(t.scheduleUrl)}`;
-  return <><ManagerClubTeamOverview detail={detail} />
+  return <>{showOverview && <ManagerClubTeamOverview detail={detail} />}
   <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
     <div><span className="text-xs font-semibold uppercase text-slate-500">TEST · Vereinsimport</span><h2 className="text-lg font-semibold">Mannschaften automatisch beim ÖFB finden</h2><p className="text-sm text-slate-600">Die ÖFB-Vereinsseite ist eine Datenquelle. NSG-/SPG-Mannschaften können einem anderen Verein gehören. Gespeicherte Zuordnungen werden wiederverwendet. Bestehende Mannschaften ausdrücklich zuordnen, besonders bei NSG/SPG und mehrfachen Altersklassen.</p></div>
     <div className="grid gap-3 sm:grid-cols-[1fr_130px]">

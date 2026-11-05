@@ -56,6 +56,12 @@ try {
  globalThis.__photoError={message:'unavailable'};
  await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
  assert.ok(photo().props.className.includes('bg-amber-50'),'Failed photo lookup is unknown, not green or missing');
+ globalThis.__photoError=null;
+ await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,initialStep:'photo',hideSelector:true,detail:{...props.detail}})));
+ assert.ok(JSON.stringify(tree.toJSON()).includes('Mannschaftsfoto bearbeiten'),'Photo task link opens photo editor directly');
+ assert.equal(tree.root.findAllByType('select').length,0,'Workspace owns team selection');
+ await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,initialStep:'staff',detail:{...props.detail}})));
+ assert.equal(tree.root.findByType('h3').children.join(''),'Trainer zuordnen');
  await Test.act(async()=>tree.unmount());
  console.log('PASS team setup: missing/present/unavailable photo states and correct season action.');
 } finally {await rm(folder,{recursive:true,force:true});}

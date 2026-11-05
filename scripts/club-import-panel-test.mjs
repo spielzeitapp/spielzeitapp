@@ -56,6 +56,9 @@ try{
  assert.ok(tree.root.findAllByType('a').some(a=>a.props.href==='/manager/vereine/nsg?setupSeason=nsg-u12#manager-setup-checklist'),'Shared team opens setup under its actual owning club');
  assert.ok(JSON.stringify(tree.toJSON()).includes('NSG Gölsental'));
  assert.equal(globalThis.__writes,1,'Overview is read-only');
+ assert.ok(tree.root.findAllByType('a').some(a=>a.props.href.includes('setupStep=photo')),'Photo badge points to photo task');
+ assert.ok(tree.root.findAllByType('a').some(a=>a.props.href.includes('setupStep=staff')),'Trainer badge points to trainer task');
+ assert.ok(JSON.stringify(tree.toJSON()).includes('optional, nicht eingerichtet'),'Absent optional table is not a blocking red task');
  assert.ok(tree.root.findAllByType('a').some(a=>a.children.join('').includes('Foto fehlt')),'Card displays missing photo directly');
  const oldFetch=globalThis.fetch;
  globalThis.fetch=async()=>({ok:true,json:async()=>({name:'U12 Tabelle',rows:[{rank:1,team:'SPG Rohrbach',played:2,points:6}],suggestedTeam:'SPG Rohrbach'})});

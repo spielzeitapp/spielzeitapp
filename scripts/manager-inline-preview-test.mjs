@@ -20,8 +20,11 @@ try {
  listeners.get('message')({origin:location.origin,source:target,data:{type:'manager-preview-ready'}});assert.equal(sent.length,initial+1);
  await act(async()=>root.update(React.createElement(mod.exports.ManagerAppPreviewPanel,{...props,branding:{...props.branding,primary_color:'#111111'}})));
  assert.equal(sent.at(-1)[0].branding.primary_color,'#111111','unsaved branding updates same embedded frame');
+ const firstFrame=root.root.findByType('iframe');
+ await act(async()=>root.root.findAllByType('button').find(b=>b.children.join('')==='Aktualisieren').props.onClick());
+ assert.notEqual(root.root.findByType('iframe'),firstFrame,'Preview refresh remounts the frame for newly saved data');
  assert.equal(listeners.has('keydown'),false,'host keyboard/scroll are not captured');
- await act(async()=>root.root.findByType('button').props.onClick());assert.equal(closed,1);
+ await act(async()=>root.root.findAllByType('button').find(b=>b.children.join('')==='Ausblenden').props.onClick());assert.equal(closed,1);
  await act(async()=>root.unmount());assert.equal(listeners.size,0);
  console.log('PASS: inline region, embedded sandbox, unsaved colors, same-origin/source handshake, close and cleanup without host scroll/keyboard locking.');
 }finally{globalThis.window=oldWindow;globalThis.location=oldLocation;}
