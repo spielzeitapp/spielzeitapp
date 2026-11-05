@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+import {mkdtemp,rm} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+const require=createRequire(import.meta.url), React=require('react'), Test=require('react-test-renderer');
+const folder=await mkdtemp(path.join(os.tmpdir(),'team-setup-entry-'));
+const snapshot={club_ready:true,team_ready:true,season_ready:true,staff:2,players:18,jerseys_missing:0,access:0,venues:1,matches:4,trainings:0,checks:{}};
+const mocks=`export * from '${path.resolve('src/lib/managerSetupModel.ts')}';export const loadSetup=async()=>({data:globalThis.__snapshot,error:null});export const saveSetup=async()=>({error:null});export const formatTeamSeasonContextLabel=()=> 'U13';export const supabase={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{photo_url:globalThis.__photo},error:globalThis.__photoError})})})})};`;
+try {
+ await build({entryPoints:['src/manager/ManagerSetupChecklist.tsx'],outfile:path.join(folder,'checklist.cjs'),bundle:true,platform:'node',format:'cjs',external:['react'],plugins:[{name:'mocks',setup(b){b.onResolve({filter:/\.\.\/lib\//},()=>({path:'mock',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:mocks,loader:'js',resolveDir:process.cwd()}));}}]});
+ const Module=require('node:module'), original=Module._resolveFilename;
+ const resolved={'react':require.resolve('react'),'react/jsx-runtime':require.resolve('react/jsx-runtime')};
+ Module._resolveFilename=function(request,...args){return resolved[request]||original.call(this,request,...args)};
+ const {ManagerSetupChecklist}=require(path.join(folder,'checklist.cjs'));Module._resolveFilename=original;
+ globalThis.window={addEventListener(){},removeEventListener(){}};globalThis.__snapshot=snapshot;globalThis.__photo=null;
+ const actions=[]; const props={detail:{team_seasons:[{id:'u13',status:'active'}]},seasonId:'u13',onSelect(){},onAction:(...args)=>actions.push(args)};
+ let tree; await Test.act(async()=>{tree=Test.create(React.createElement(ManagerSetupChecklist,props));});
+ const summary=()=>tree.root.findByProps({'aria-label':'Vorhandene Mannschaftsdaten'});
+ const photo=()=>summary().findAllByType('button')[0];
+ assert.ok(photo().props.className.includes('bg-red-50'),'Missing photo is red');
+ await Test.act(async()=>photo().props.onClick());assert.deepEqual(actions.pop(),['roster','u13']);
+ assert.ok(JSON.stringify(tree.toJSON()).includes('Spieltermine'));
+ globalThis.__photo='https://example.org/team.jpg';
+ await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
+ assert.ok(photo().props.className.includes('bg-emerald-50'));
+ globalThis.__photoError={message:'unavailable'};
+ await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
+ assert.ok(photo().props.className.includes('bg-amber-50'),'Failed photo lookup is unknown, not green or missing');
+ await Test.act(async()=>tree.unmount());
+ console.log('PASS team setup: missing/present/unavailable photo states and correct season action.');
+} finally {await rm(folder,{recursive:true,force:true});}

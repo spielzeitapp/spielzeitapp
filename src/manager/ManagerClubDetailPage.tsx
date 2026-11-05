@@ -8,7 +8,7 @@ import { ManagerTeamDetailsEditor } from './ManagerTeamDetailsEditor';
 import { ManagerAppPreviewPanel } from './ManagerAppPreviewPanel';
 import {CommunicationAccessSettings} from './components/CommunicationAccessSettings';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Headphones, LockKeyhole } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import type { SessionTeamSeasonItem } from '../auth/useSession';
@@ -74,6 +74,7 @@ function lookupDisplayName(u: AdminUserLookup): string {
 export function ManagerClubDetailPage(): React.ReactElement {
   const { clubId = '' } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { backendRole, loading: sessionLoading, reloadSessionTeamSeasons } = useSession();
   const allowed = isPlatformAdminRole(backendRole);
   const { startSupportSession } = useManagerWorkMode();
@@ -150,6 +151,18 @@ export function ManagerClubDetailPage(): React.ReactElement {
     if (!staffTeamSeasonId && detail.team_seasons[0]) setStaffTeamSeasonId(detail.team_seasons[0].id);
     if (!grantTeamSeasonId && detail.team_seasons[0]) setGrantTeamSeasonId(detail.team_seasons[0].id);
   }, [detail, setupSeasonId, seasonTeamId, staffTeamSeasonId, grantTeamSeasonId]);
+
+  useEffect(() => {
+    if (detail?.id !== clubId) return;
+    const requested = new URLSearchParams(location.search).get('setupSeason');
+    if (requested && detail.team_seasons.some(s => s.id === requested)) setSetupSeasonId(requested);
+  }, [clubId, detail?.id, location.search]);
+
+  useEffect(() => {
+    if (detail?.id === clubId && setupSeasonId && location.hash === '#manager-setup-checklist') {
+      document.getElementById('manager-setup-checklist')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [clubId, detail, setupSeasonId, location.hash]);
 
   const reloadStaffInvites = useCallback(async (teamSeasonId: string) => {
     const result = await adminListTeamStaffInvites(teamSeasonId);

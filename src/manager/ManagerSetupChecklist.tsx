@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, ChevronRight, ClipboardCheck, RefreshCw } from 'lucide-react';
 import { loadSetup, saveSetup, setupSteps, setupReady, type SetupCheck, type SetupKey, type SetupSnapshot } from '../lib/managerSetup';
+import { supabase } from '../lib/supabaseClient';
 import type { ClubDetail } from '../lib/platformClubAdmin';
 import { formatTeamSeasonContextLabel } from '../lib/seasonLifecycle';
 
@@ -14,6 +15,7 @@ const stepAppearance = {
 
 type Props = { detail: ClubDetail; seasonId: string; onSelect: (id: string) => void; onAction: (key: SetupKey, id: string) => void };
 export function ManagerSetupChecklist({ detail, seasonId, onSelect, onAction }: Props) {
+  const [teamPhoto, setTeamPhoto] = useState<boolean | null>(null);
   const [snapshot, setSnapshot] = useState<SetupSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,10 +25,10 @@ export function ManagerSetupChecklist({ detail, seasonId, onSelect, onAction }: 
   const refresh = useCallback(async () => {
     const version = ++generation.current;
     if (!seasonId) { setSnapshot(null); return; }
-    setLoading(true); setError(null);
-    const res = await loadSetup(seasonId);
+    setLoading(true); setError(null); setTeamPhoto(null);
+    const [res, photo] = await Promise.all([loadSetup(seasonId), supabase.from('team_photos').select('photo_url').eq('team_season_id', seasonId).maybeSingle()]);
     if (version !== generation.current) return;
-    setSnapshot(res.data); setError(res.error); setLoading(false);
+    setSnapshot(res.data); setTeamPhoto(photo.error ? null : Boolean(photo.data?.photo_url)); setError(res.error || (photo.error ? 'Mannschaftsfoto konnte nicht geprüft werden.' : null)); setLoading(false);
   }, [seasonId]);
   useEffect(() => { setSnapshot(null); void refresh(); return () => { generation.current++; }; }, [refresh, detail]);
   useEffect(() => { const handler = () => { if (!saving) void refresh(); }; window.addEventListener('focus', handler); window.addEventListener('manager-setup-changed', handler); return () => { window.removeEventListener('focus', handler); window.removeEventListener('manager-setup-changed', handler); }; }, [refresh, saving]);
@@ -59,6 +61,16 @@ export function ManagerSetupChecklist({ detail, seasonId, onSelect, onAction }: 
         <span className="rounded-full bg-orange-100 px-3 py-2 text-orange-900">Orange: {inProgress} begonnen / noch prüfen</span>
         <span className="rounded-full bg-red-100 px-3 py-2 text-red-900">Rot: {missing} fehlen</span>
         {skipped > 0 && <span className="rounded-full bg-slate-100 px-3 py-2 text-slate-600">{skipped} nicht benötigt</span>}
+      </div>}
+      {snapshot && !loading && <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5" aria-label="Vorhandene Mannschaftsdaten">
+        {[
+          { label: 'Mannschaftsfoto', value: teamPhoto === null ? 'Prüfung offen' : teamPhoto ? 'Vorhanden' : 'Fehlt', present: teamPhoto, key: 'roster' as SetupKey },
+          { label: 'Trainer', value: `${snapshot.staff} zugeordnet`, present: snapshot.staff > 0, key: 'staff' as SetupKey },
+          { label: 'Kader', value: `${snapshot.players} Spieler`, present: snapshot.players > 0, key: 'roster' as SetupKey },
+          { label: 'Spieltermine', value: `${snapshot.matches} gespeichert`, present: snapshot.matches > 0, key: 'matches' as SetupKey },
+          { label: 'Trainings', value: `${snapshot.trainings} gespeichert`, present: snapshot.trainings > 0, key: 'training' as SetupKey },
+        ].map(item => <button key={item.label} type="button" onClick={() => onAction(item.key, seasonId)} className={`min-h-20 rounded-xl border p-3 text-left ${item.present === null ? 'border-amber-200 bg-amber-50 text-amber-900' : item.present ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'}`}><span className="block text-xs font-semibold">{item.label}</span><span className="mt-1 block text-sm font-bold">{item.present === null ? '?' : item.present ? '✓' : '!'} {item.value}</span></button>)}
+        <p className="text-xs text-slate-500 sm:col-span-2 xl:col-span-5">Grün: Daten vorhanden. Vollständigkeit und Richtigkeit anschließend in den Schritten darunter bestätigen.</p>
       </div>}
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="Einrichtungsfortschritt" aria-valuemin={0} aria-valuemax={10} aria-valuenow={done}><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${done * 10}%` }} /></div>
     </div>

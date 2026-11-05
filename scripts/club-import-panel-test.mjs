@@ -52,6 +52,7 @@ try{
  globalThis.__sources.push({...globalThis.__sources[0],source_url:'other-alias'});
  await Test.act(async()=>tree.update(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail:{...detail},onSaved(){}}))));
  assert.equal(tree.root.findAllByType('article').length,1);
+ assert.ok(tree.root.findAllByType('a').some(a=>a.props.href==='/manager/vereine/nsg?setupSeason=nsg-u12#manager-setup-checklist'),'Shared team opens setup under its actual owning club');
  assert.ok(JSON.stringify(tree.toJSON()).includes('NSG Gölsental'));
  assert.equal(globalThis.__writes,1,'Overview is read-only');
  globalThis.__sources=[{source_url:team.rosterUrl.toLowerCase().replace(/\/$/,''),team_season_id:'archived-or-missing'}];
