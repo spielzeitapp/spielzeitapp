@@ -145,7 +145,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
   }, [seasonId, setViewTeamSeasonId]);
 
   useEffect(() => {
-    setImportUrl('');
+    setImportUrl(new URLSearchParams(window.location.search).get('oefbSchedule') || '');
     setOefbTeamName('');
     setPreviewRows([]);
     setPreviewFixtures([]);

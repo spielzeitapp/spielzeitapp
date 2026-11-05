@@ -50,7 +50,7 @@ export function ManagerOefbRosterPreview({ seasonId, onSaved }: { seasonId: stri
     } catch (e) {setError(e instanceof Error ? e.message : 'Verknüpfung fehlgeschlagen');}
     finally {setSaving(false);}
   }
-  useEffect(() => { generation.current++; setUrl(''); setPlayers([]); setChoices({}); setConfirmed(false); setNotice(''); setError(''); return () => {generation.current++;}; }, [seasonId]);
+  useEffect(() => { generation.current++; setUrl(new URLSearchParams(window.location.search).get('oefbRoster') || ''); setPlayers([]); setChoices({}); setConfirmed(false); setNotice(''); setError(''); return () => {generation.current++;}; }, [seasonId]);
   async function preview() {
     const version = ++generation.current;
     setConfirmed(false); setChoices({});
