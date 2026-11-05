@@ -1,4 +1,5 @@
 import { TeamSwitcher } from '../../app/components/TeamSwitcher';
+import { ManagerPlatformContextSelect } from './ManagerPlatformContextSelect';
 import { ManagerContextPicker } from './ManagerContextPicker';
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -207,7 +208,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
             </div>
           </div>
 
-          {headerTeamSeasons.length > 1 ? (
+          {workMode === 'platform_admin' && !supportSession ? <ManagerPlatformContextSelect /> : headerTeamSeasons.length > 1 ? (
             <label className="hidden min-w-0 md:block">
               <span className="sr-only">Team und Saison wählen</span>
               <select

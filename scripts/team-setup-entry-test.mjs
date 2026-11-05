@@ -7,9 +7,9 @@ import path from 'node:path';
 const require=createRequire(import.meta.url), React=require('react'), Test=require('react-test-renderer');
 const folder=await mkdtemp(path.join(os.tmpdir(),'team-setup-entry-'));
 const snapshot={club_ready:true,team_ready:true,season_ready:true,staff:2,players:18,jerseys_missing:0,access:0,venues:1,matches:4,trainings:0,checks:{}};
-const mocks=`export * from '${path.resolve('src/lib/managerSetupModel.ts')}';export const loadSetup=async()=>({data:globalThis.__snapshot,error:null});export const saveSetup=async()=>({error:null});export const formatTeamSeasonContextLabel=()=> 'U13';export const supabase={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{photo_url:globalThis.__photo},error:globalThis.__photoError})})})})};`;
+const mocks=`export * from '${path.resolve('src/lib/managerSetupModel.ts')}';export const loadSetup=async()=>({data:globalThis.__snapshot,error:null});export const saveSetup=async()=>({error:null});export const formatTeamSeasonContextLabel=()=> 'U13';export const supabase={from:()=>({select:()=>({eq:()=>({data:[{source_url:'https://vereine.oefb.at/uscr/mannschaften/saison-2026-27/u13/kader'}],maybeSingle:async()=>({data:{photo_url:globalThis.__photo},error:globalThis.__photoError})})})})};`;
 try {
- await build({entryPoints:['src/manager/ManagerSetupChecklist.tsx'],outfile:path.join(folder,'checklist.cjs'),bundle:true,platform:'node',format:'cjs',external:['react'],plugins:[{name:'mocks',setup(b){b.onResolve({filter:/ManagerRosterPhotos$/},()=>({path:'photo',namespace:'photo'}));b.onLoad({filter:/.*/,namespace:'photo'},()=>({contents:"export const ManagerRosterPhotos=()=> 'Mannschaftsfoto bearbeiten';",loader:'js'}));b.onResolve({filter:/\.\.\/lib\//},()=>({path:'mock',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:mocks,loader:'js',resolveDir:process.cwd()}));}}]});
+ await build({entryPoints:['src/manager/ManagerSetupChecklist.tsx'],outfile:path.join(folder,'checklist.cjs'),bundle:true,platform:'node',format:'cjs',external:['react'],plugins:[{name:'mocks',setup(b){b.onResolve({filter:/ManagerRosterPhotos$/},()=>({path:'photo',namespace:'photo'}));b.onLoad({filter:/.*/,namespace:'photo'},()=>({contents:"export const ManagerRosterPhotos=({sourceUrl})=> 'Mannschaftsfoto bearbeiten: '+sourceUrl;",loader:'js'}));b.onResolve({filter:/\.\.\/lib\//},()=>({path:'mock',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:mocks,loader:'js',resolveDir:process.cwd()}));}}]});
  const Module=require('node:module'), original=Module._resolveFilename;
  const resolved={'react':require.resolve('react'),'react/jsx-runtime':require.resolve('react/jsx-runtime')};
  Module._resolveFilename=function(request,...args){return resolved[request]||original.call(this,request,...args)};
@@ -22,6 +22,11 @@ try {
  assert.ok(photo().props.className.includes('bg-red-50'),'Missing photo is red');
  await Test.act(async()=>photo().props.onClick());assert.ok(JSON.stringify(tree.toJSON()).includes('Mannschaftsfoto bearbeiten'),'Photo row opens its own editor inside setup');
  assert.ok(JSON.stringify(tree.toJSON()).includes('Spieltermine'));
+ const rows=tree.root.findByType('ol').findAllByType('li');
+ assert.ok(rows[4].findAllByType('span').some(s=>s.children.some(c=>typeof c==='string'&&c.includes('Kader'))));
+ assert.ok(rows[5].findByType('button').children.some(c=>typeof c==='object'&&c.props?.children?.[0]==='Mannschaftsfoto'));
+ assert.equal(tree.root.findByProps({role:'progressbar'}).props['aria-valuemax'],11);
+ assert.ok(JSON.stringify(tree.toJSON()).includes('https://vereine.oefb.at/uscr/mannschaften/saison-2026-27/u13/kader'),'Known source prefills photo editor');
  globalThis.__photo='https://example.org/team.jpg';
  await Test.act(async()=>tree.update(React.createElement(ManagerSetupChecklist,{...props,detail:{...props.detail}})));
  assert.ok(photo().props.className.includes('bg-emerald-50'));

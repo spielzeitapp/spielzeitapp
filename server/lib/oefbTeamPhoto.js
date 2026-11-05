@@ -5,11 +5,11 @@ function pageUrl(value) {
  return u;
 }
 function extract(html,source) {
- const path=source.pathname.replace(/\/$/,'');let id=null;
+ const path=source.pathname.replace(/\/$/,'').toLowerCase();let id=null;
  for(const m of html.matchAll(/SG\.container\.appPreloads\s*\[[^\]\r\n]+\]\s*=\s*(\[[\s\S]*?\])\s*;/g)) {
   let rows;try{rows=JSON.parse(m[1]);}catch{continue;}
   for(const row of Array.isArray(rows)?rows:[])for(const team of Array.isArray(row?.mannschaften)?row.mannschaften:[]) {
-   try{const u=new URL(team.url,source);if(u.origin===source.origin&&u.pathname.replace(/\/$/,'')===path&&/^[a-f0-9]{20}$/i.test(team.pictureId))id=team.pictureId.toLowerCase();}catch{}
+   try{const u=new URL(team.url,source);if(u.origin===source.origin&&u.pathname.replace(/\/$/,'').toLowerCase()===path&&/^[a-f0-9]{20}$/i.test(team.pictureId))id=team.pictureId.toLowerCase();}catch{}
   }
  }
  if(!id)throw Error('Für diese Mannschaft wurde kein eindeutiges Mannschaftsfoto gefunden. Bitte eine Bilddatei hochladen.');
