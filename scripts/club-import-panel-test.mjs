@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 const require=createRequire(import.meta.url), React=require('react'), Test=require('react-test-renderer');
 const folder=await mkdtemp(path.join(os.tmpdir(),'club-import-'));
-const mocks=`export const adminEnsureTeamSeason=async()=>({data:{team_season_id:'season-added'}});export const createSetupTeam=async()=>{globalThis.__writes++;return {data:{team_season_id:'new-season'}}};export const isStagingApp=()=>globalThis.__testEnv;export const supabase={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{logo_url:null}})})})})};`;
+const mocks=`export const listPlatformClubs=async()=>({data:globalThis.__clubs||[],error:null});export const getPlatformClub=async(id)=>({data:(globalThis.__clubDetails||[]).find(c=>c.id===id),error:null});export const adminEnsureTeamSeason=async()=>({data:{team_season_id:'season-added'}});export const createSetupTeam=async()=>{globalThis.__writes++;return {data:{team_season_id:'new-season'}}};export const isStagingApp=()=>globalThis.__testEnv;export const supabase={rpc:async()=>({error:null}),from:()=>({select:()=>({in:async()=>({data:globalThis.__sources||[],error:null}),eq:()=>({maybeSingle:async()=>({data:{logo_url:null}})})})})};`;
 try{
  await build({entryPoints:['src/manager/ManagerClubImportPanel.tsx'],outfile:path.join(folder,'panel.cjs'),bundle:true,platform:'node',format:'cjs',external:['react','react-router-dom'],plugins:[{name:'mocks',setup(b){b.onResolve({filter:/\.\.\/lib\//},()=>({path:'mock',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:mocks,loader:'js'}));}}]});
  // Resolve React through this checkout even though compiled output is temporary.
@@ -32,5 +32,17 @@ try{
  assert.ok(JSON.stringify(tree.toJSON()).includes('oefbRoster='));
  await Test.act(async()=>tree.root.findByProps({type:'url'}).props.onChange({target:{value:'https://vereine.oefb.at/Other/'}}));
  assert.equal(tree.root.findAllByType('select').length,0);
+ globalThis.__clubs=[{id:'nsg',status:'active'}];
+ globalThis.__clubDetails=[{id:'nsg',name:'NSG Gölsental',team_seasons:[{id:'nsg-u12',team_name:'SPG Rohrbach',age_group:'U12',season_name:'2026/27',status:'active'}]}];
+ await Test.act(async()=>{button('Mannschaften suchen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});
+ await Test.act(async()=>checks()[0].props.onChange({target:{checked:true}}));
+ assert.equal(tree.root.findByType('select').props.value,'nsg-u12');
+ assert.ok(JSON.stringify(tree.toJSON()).includes('Identität bitte bestätigen'));
+ await Test.act(async()=>checks().at(-1).props.onChange({target:{checked:true}}));
+ await Test.act(async()=>{button('Ausgewählte Mannschaften').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});
+ assert.equal(globalThis.__writes,1,'Cross-club link must not create another team');
+ globalThis.__sources=[{source_url:team.rosterUrl.toLowerCase().replace(/\/$/,''),team_season_id:'nsg-u12'}];
+ await Test.act(async()=>{button('Mannschaften suchen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});
+ assert.ok(JSON.stringify(tree.toJSON()).includes('Gespeicherte Zuordnung wiedererkannt'));
  console.log('PASS panel: Test-only visibility, read-only scan, explicit confirmation, prepared deep links, input change clears old results.');
 }finally{await rm(folder,{recursive:true,force:true})}
