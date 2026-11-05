@@ -27,8 +27,11 @@ module.exports = async function handler(req, res) {
       if (!valid) continue;
       res.setHeader('Content-Type',type);res.setHeader('X-Content-Type-Options','nosniff');
       res.setHeader('Cache-Control','public, max-age=86400');
+      res.setHeader('CDN-Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
+      res.setHeader('Vercel-CDN-Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
       return res.status(200).send(bytes);
     } catch {/* Keep the small source usable if the higher resolution is unavailable. */}
   }
+  res.setHeader('Cache-Control','no-store');
   return res.status(status).end();
 };

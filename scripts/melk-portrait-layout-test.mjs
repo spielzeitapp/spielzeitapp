@@ -19,11 +19,32 @@ for(const prepared of [false,true,'uploaded']){
  if(prepared===true)assert.ok(card.findAllByType('div').some(n=>n.props['data-portrait-background']==='clean'));
  else if(!prepared)assert.ok(card.findAllByType('div').some(n=>n.props.className?.includes('pl-[28%]')));
  await act(async()=>root.unmount());
- await act(async()=>{root=create(React.createElement(ProfileHeroCard,{variant:'player',watermark:'3',firstNameLine:'Test',lastNameLine:'Portrait',teamSeasonLabel:'SC Melk FR · U16 · 2026/27',photoUrl:url,teamLogoUrl:'/wrong-logo.png',initials:'TP'}));});
+ await act(async()=>{root=create(React.createElement(ProfileHeroCard,{variant:'player',photoLayout:{background:'blue-left',source:'original',zoom:100,x:50,y:50,nameX:28,nameY:85,numberX:88,numberY:8,numberSize:44},watermark:'3',firstNameLine:'Test',lastNameLine:'Portrait',teamSeasonLabel:'SC Melk FR · U16 · 2026/27',photoUrl:url,teamLogoUrl:'/wrong-logo.png',initials:'TP'}));});
  assert.ok(!root.root.findAllByType('img').some(n=>n.props.src.includes('stadium')));
- if(prepared===true)assert.ok(root.root.findAllByType('div').some(n=>n.props['data-portrait-background']==='clean'));
+ if(prepared===true)assert.ok(root.root.findAllByType('img').some(n=>n.props.src.includes('melk-portrait-9755193-v1.webp')));
  const images=root.root.findAllByType('img');assert.ok(!images.some(n=>n.props.src==='/wrong-logo.png'));assert.equal(images.find(n=>n.props.style?.objectFit).props.style.objectFit,'contain');
- assert.ok(root.root.findAllByType('span').some(n=>n.children.join('')==='3' && n.props.className?.includes('top-4')));
+ assert.ok(root.root.findAllByType('span').some(n=>n.children.join('')==='3' && n.props.style?.left==='88%' && n.props.style?.top==='8%'));
  await act(async()=>root.unmount());
 }
 console.log('PASS: imported originals remain uncropped, names reserve the Melk text column, number is top-right without #, prepared portrait uses clean club background, no extra crest.');
+// Saved Manager settings must be rendered without the extra trainer composition.
+const {PlayerPortraitCanvas}=await load('src/components/team/PlayerPortraitCanvas.tsx');
+const layout={background:'blue-left',source:'original',zoom:100,x:50,y:50,nameX:28,nameY:85,numberX:88,numberY:8,numberSize:44};
+let root;
+await act(async()=>{root=create(React.createElement(ProfileHeroCard,{variant:'player',photoLayout:layout,watermark:'12',firstNameLine:'Test',lastNameLine:'Portrait',teamSeasonLabel:'SC Melk FR · U16 · 2026/27',photoUrl:'https://vereine.oefb.at/netzwerk/imagedownload/synthetic-80-80.jpeg',cutoutUrl:'/unused-cutout.png',teamLogoUrl:'/no-extra-logo.png',initials:'TP'}));});
+assert.ok(root.root.findByProps({'data-profile-artwork':'player-canvas'}));
+assert.equal(root.root.findAllByType('img').length,1,'No duplicated crest or background image');
+assert.ok(root.root.findByType('img').props.className.includes('object-contain'));
+assert.equal(root.root.findByType('img').props.style.opacity,0,'Partial image stays hidden until fully loaded');
+await act(async()=>root.root.findByType('img').props.onLoad());
+assert.equal(root.root.findByType('img').props.style.opacity,1);
+assert.equal(root.root.findByType('img').props.fetchPriority,'high');
+assert.equal(root.root.findAllByType('span').find(n=>n.props.style?.fontSize).props.style.fontSize,'44px');
+await act(async()=>root.unmount());
+await act(async()=>{root=create(React.createElement(PlayerPortraitCanvas,{layout,photoUrl:'/first.jpg',firstName:'First',lastName:'Player',eager:false}));});
+assert.equal(root.root.findByType('img').props.loading,'lazy');
+await act(async()=>root.root.findByType('img').props.onLoad());
+await act(async()=>root.update(React.createElement(PlayerPortraitCanvas,{layout,photoUrl:'/second.jpg',firstName:'Second',lastName:'Player',eager:false})));
+assert.equal(root.root.findByType('img').props.style.opacity,0,'New source cannot reuse previous loaded state');
+await act(async()=>root.unmount());
+console.log('PASS: saved Melk layout uses shared canvas, no duplicate crest/watermark, original source wins, full-image loading and changed-source reset.');
