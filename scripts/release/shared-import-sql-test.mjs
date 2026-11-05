@@ -1,0 +1,48 @@
+// Isolated SQL rehearsal. PGLITE_MODULE points at an external PGlite install.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const {PGlite}=await import(process.env.PGLITE_MODULE);
+const db=new PGlite();
+try {
+ await db.exec(`create role anon;create role authenticated;create schema auth;
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.uid',true),'')::uuid$$;
+ create table auth.users(id uuid primary key);
+ create table public.clubs(id uuid primary key,status text);
+ create table public.seasons(id uuid primary key,name text);
+ create table public.teams(id uuid primary key,club_id uuid references public.clubs);
+ create table public.team_seasons(id uuid primary key,team_id uuid references public.teams,season_id uuid references public.seasons,status text);
+ create function public.is_platform_admin() returns boolean language sql stable as $$select coalesce(current_setting('request.admin',true),'false')='true'$$;
+ create function public.club_is_operable(p_club_id uuid) returns boolean language sql stable as $$select exists(select 1 from public.clubs where id=p_club_id and status='active')$$;
+ grant usage on schema auth,public to authenticated,anon;
+ grant select on public.clubs,public.seasons,public.teams,public.team_seasons to authenticated;`);
+ await db.exec(fs.readFileSync('supabase/migrations/20261105093320_shared_team_import_sources.sql','utf8'));
+ const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
+ await db.query('insert into auth.users values ($1),($2)',[id(1),id(2)]);
+ await db.query("insert into clubs values ($1,'active'),($2,'active'),($3,'archived')",[id(10),id(11),id(12)]);
+ await db.query("insert into seasons values ($1,'2026/27')",[id(20)]);
+ await db.query('insert into teams values ($1,$2)',[id(30),id(10)]);
+ await db.query("insert into team_seasons values ($1,$4,$5,'active'),($2,$4,$5,'draft'),($3,$4,$5,'archived')",[id(40),id(41),id(42),id(30),id(20)]);
+ await db.exec("set role authenticated;select set_config('request.admin','false',false)");
+ await db.query("select set_config('request.uid',$1,false)",[id(1)]);
+ const url='https://vereine.oefb.at/Hainfeld/Mannschaften/Saison-2026-27/U12/Kader/';
+ const link=(u=url,target=id(40),club=id(11))=>db.query('select public.admin_link_oefb_team_source($1,$2,$3)',[u,target,club]);
+ await assert.rejects(link(),/Forbidden/);
+ assert.equal((await db.query('select * from oefb_team_import_sources')).rows.length,0);
+ await db.exec("select set_config('request.admin','true',false)");
+ await link();await link();
+ const saved=(await db.query('select * from oefb_team_import_sources')).rows;
+ assert.equal(saved.length,1);assert.equal(saved[0].source_url,url.toLowerCase().replace(/\/$/,''));assert.equal(saved[0].team_season_id,id(40));assert.equal(saved[0].discovered_in_club_id,id(11));assert.equal(saved[0].created_by,id(1));
+ await assert.rejects(link(url,id(41)),/bereits einer anderen Mannschaft/);
+ await assert.rejects(link(url.replace('2026-27','2025-26')),/Zielsaison/);
+ await assert.rejects(link('https://evil.test/kader'),/Zielsaison/);
+ await assert.rejects(link(url,id(42)),/Aktive Zielmannschaft/);
+ await assert.rejects(link(url,id(40),id(12)),/Aktive Zielmannschaft/);
+ await assert.rejects(db.query('insert into oefb_team_import_sources(source_url,team_season_id,discovered_in_club_id,created_by) values ($1,$2,$3,$4)',[url.toLowerCase().replace('u12/','u13/').replace(/\/$/,''),id(40),id(11),id(2)]),/row-level security/);
+ await db.exec("select set_config('request.admin','false',false)");
+ assert.equal((await db.query('select * from oefb_team_import_sources')).rows.length,0);
+ await assert.rejects(db.query('delete from oefb_team_import_sources'),/permission denied/);
+ await db.exec('set role anon');await assert.rejects(link(),/permission denied/);
+ await db.exec('reset role');
+ assert.equal((await db.query('select count(*)::int as n from oefb_team_import_sources')).rows[0].n,1);
+ console.log('PASS shared import SQL: normalized cross-club source, idempotent retry, no reassignment, season/status/URL checks, real table RLS, creator guard and anon/nonadmin denial.');
+} finally {await db.close();}
