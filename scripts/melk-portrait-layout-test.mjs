@@ -19,7 +19,7 @@ for(const prepared of [false,true,'uploaded']){
  if(prepared===true)assert.ok(card.findAllByType('div').some(n=>n.props['data-portrait-background']==='clean'));
  else if(!prepared)assert.ok(card.findAllByType('div').some(n=>n.props.className?.includes('pl-[28%]')));
  await act(async()=>root.unmount());
- await act(async()=>{root=create(React.createElement(ProfileHeroCard,{variant:'player',watermark:'3',firstNameLine:'Test',lastNameLine:'Portrait',teamSeasonLabel:'SC Melk FR · U16 · 2026/27',photoUrl:url,teamLogoUrl:'/wrong-logo.png',initials:'TP'}));});
+ await act(async()=>{root=create(React.createElement(ProfileHeroCard,{variant:'player',photoLayout:{background:'blue-left',source:'original',zoom:100,x:50,y:50,nameX:28,nameY:85,numberX:88,numberY:8,numberSize:44},watermark:'3',firstNameLine:'Test',lastNameLine:'Portrait',teamSeasonLabel:'SC Melk FR · U16 · 2026/27',photoUrl:url,teamLogoUrl:'/wrong-logo.png',initials:'TP'}));});
  assert.ok(!root.root.findAllByType('img').some(n=>n.props.src.includes('stadium')));
  if(prepared===true)assert.ok(root.root.findAllByType('img').some(n=>n.props.src.includes('melk-portrait-9755193-v1.webp')));
  const images=root.root.findAllByType('img');assert.ok(!images.some(n=>n.props.src==='/wrong-logo.png'));assert.equal(images.find(n=>n.props.style?.objectFit).props.style.objectFit,'contain');

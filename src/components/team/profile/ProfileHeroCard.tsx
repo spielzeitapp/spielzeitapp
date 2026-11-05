@@ -36,7 +36,7 @@ export const ProfileHeroCard: React.FC<Props> = (props) => {
  // Player artwork must use exactly the same canvas as the roster and Manager.
  // Imported portraits already contain their club background and crest.
  const originalSource = props.photoLayout ? props.photoLayout.source === 'original' : !props.cutoutUrl;
- const imported = originalSource && (isImportedPlayerPortrait(props.photoUrl) || preparedPlayerPortrait(props.photoUrl));
+ const imported = originalSource && ((props.photoLayout && isImportedPlayerPortrait(props.photoUrl)) || preparedPlayerPortrait(props.photoUrl));
  if (variant === 'player' && imported) {
    const layout = props.photoLayout ?? DEFAULT_PHOTO_LAYOUT;
    return <div className="sz-club-profile-hero sz-club-imported-portrait relative mb-3 aspect-square w-full overflow-hidden rounded-[22px] border" data-profile-artwork="player-canvas">
