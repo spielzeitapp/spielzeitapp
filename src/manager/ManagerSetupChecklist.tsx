@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, ChevronRight, ClipboardCheck, RefreshCw } from 'lucide-react';
 import { loadSetup, saveSetup, setupSteps, setupReady, type SetupCheck, type SetupKey, type SetupSnapshot } from '../lib/managerSetup';
+import { ManagerRosterPhotos } from './ManagerRosterPhotos';
 import { supabase } from '../lib/supabaseClient';
 import type { ClubDetail } from '../lib/platformClubAdmin';
 import { formatTeamSeasonContextLabel } from '../lib/seasonLifecycle';
@@ -20,7 +21,7 @@ export function ManagerSetupChecklist({ detail, seasonId, onSelect, onAction }: 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [active, setActive] = useState<SetupKey>('club');
+  const [active, setActive] = useState<SetupKey | 'photo'>('club');
   const generation = useRef(0);
   const refresh = useCallback(async () => {
     const version = ++generation.current;
@@ -66,11 +67,16 @@ export function ManagerSetupChecklist({ detail, seasonId, onSelect, onAction }: 
         {[
           { label: 'Mannschaftsfoto', value: teamPhoto === null ? 'Prüfung offen' : teamPhoto ? 'Vorhanden' : 'Fehlt', present: teamPhoto, key: 'roster' as SetupKey },
           { label: 'Trainer', value: `${snapshot.staff} zugeordnet`, present: snapshot.staff > 0, key: 'staff' as SetupKey },
-          { label: 'Kader', value: `${snapshot.players} Spieler`, present: snapshot.players > 0, key: 'roster' as SetupKey },
+          { label: 'Kader', value: `${snapshot.players} Spieler · ${snapshot.jerseys_missing} ohne Rückennummer`, present: snapshot.players > 0, key: 'roster' as SetupKey },
           { label: 'Spieltermine', value: `${snapshot.matches} gespeichert`, present: snapshot.matches > 0, key: 'matches' as SetupKey },
           { label: 'Trainings', value: `${snapshot.trainings} gespeichert`, present: snapshot.trainings > 0, key: 'training' as SetupKey },
-        ].map(item => <button key={item.label} type="button" onClick={() => onAction(item.key, seasonId)} className={`min-h-20 rounded-xl border p-3 text-left ${item.present === null ? 'border-amber-200 bg-amber-50 text-amber-900' : item.present ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'}`}><span className="block text-xs font-semibold">{item.label}</span><span className="mt-1 block text-sm font-bold">{item.present === null ? '?' : item.present ? '✓' : '!'} {item.value}</span></button>)}
-        <p className="text-xs text-slate-500 sm:col-span-2 xl:col-span-5">Grün: Daten vorhanden. Vollständigkeit und Richtigkeit anschließend in den Schritten darunter bestätigen.</p>
+        ].map(item => {
+          const state = item.label === 'Mannschaftsfoto' ? (teamPhoto === null ? null : teamPhoto ? 'done' : 'missing') : steps.find(s => s.key === item.key)?.state;
+          const color = state ? stepAppearance[state].row + ' ' + stepAppearance[state].text : 'border-amber-200 bg-amber-50 text-amber-900';
+          const note = state === 'review' ? 'Noch prüfen & bestätigen' : state === 'started' ? 'Angaben ergänzen' : state === 'done' ? 'Erledigt' : state === 'skipped' ? 'Nicht benötigt' : '';
+          return <button key={item.label} type="button" onClick={() => item.label === 'Mannschaftsfoto' ? setActive('photo') : setActive(item.key)} className={`min-h-20 rounded-xl border p-3 text-left ${color}`}><span className="block text-xs font-semibold">{item.label}</span><span className="mt-1 block text-sm font-bold">{state === 'done' ? '✓' : state === 'missing' ? '!' : '?'} {item.value}</span>{note && <span className="mt-1 block text-xs">{note}</span>}</button>;
+        })}
+        <p className="text-xs text-slate-500 sm:col-span-2 xl:col-span-5">Grün: erledigt. Orange: Daten vorhanden, aber noch ergänzen oder ausdrücklich prüfen. Rot: Daten fehlen.</p>
       </div>}
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="Einrichtungsfortschritt" aria-valuemin={0} aria-valuemax={10} aria-valuenow={done}><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${done * 10}%` }} /></div>
     </div>
@@ -80,18 +86,18 @@ export function ManagerSetupChecklist({ detail, seasonId, onSelect, onAction }: 
         const appearance = stepAppearance[step.state];
         return <li key={step.key}><button type="button" onClick={() => setActive(step.key)} aria-current={active === step.key ? 'step' : undefined} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left ${appearance.row} ${active === step.key ? 'ring-2 ring-slate-700 ring-offset-1' : ''}`}>
           <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${appearance.dot}`}>{step.state === 'done' ? <Check className="h-4 w-4" /> : index + 1}</span>
-          <span className={`min-w-0 flex-1 text-sm font-semibold ${appearance.text}`}>{step.title}<span className="mt-1 block text-xs font-medium">{step.key === 'review' && step.state === 'review' ? 'Abschlussprüfung offen' : appearance.label}</span></span>
+          <span className={`min-w-0 flex-1 text-sm font-semibold ${appearance.text}`}>{step.title}<span className="mt-1 block text-xs font-medium">{step.key === 'roster' && snapshot?.jerseys_missing ? `${snapshot.jerseys_missing} Rückennummern fehlen` : step.key === 'review' && step.state === 'review' ? 'Abschlussprüfung offen' : appearance.label}</span></span>
           <ChevronRight className={`h-4 w-4 shrink-0 ${appearance.text}`} />
         </button></li>;
-      })}</ol>
-      <div className="p-5 lg:p-6"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Schritt {steps.indexOf(selected) + 1} von 10</p><h3 className="mt-2 text-lg font-bold text-slate-900">{selected.title}</h3><p className="mt-3 text-sm leading-relaxed text-slate-600">{selected.detail}</p><button type="button" onClick={() => onAction(selected.key, seasonId)} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800">{selected.present ? 'Öffnen & prüfen' : 'Jetzt einrichten'}<ChevronRight className="h-4 w-4" /></button>
+      })}<li><button type="button" onClick={() => setActive('photo')} aria-current={active === 'photo' ? 'step' : undefined} className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left ${teamPhoto ? stepAppearance.done.row : teamPhoto === false ? stepAppearance.missing.row : 'border-amber-200 bg-amber-50'} ${active === 'photo' ? 'ring-2 ring-slate-700 ring-offset-1' : ''}`}><span className="text-sm font-semibold">Mannschaftsfoto<span className="mt-1 block text-xs font-medium">{teamPhoto ? 'Foto vorhanden · ansehen oder ändern' : teamPhoto === false ? 'Foto fehlt · hochladen oder importieren' : 'Foto noch nicht geprüft'}</span></span><ChevronRight className="h-4 w-4" /></button></li></ol>
+      {active === 'photo' ? <div className="p-5 lg:p-6"><ManagerRosterPhotos key={seasonId} seasonId={seasonId} onSaved={() => { void refresh(); window.dispatchEvent(new Event('manager-setup-changed')); }} /></div> : <div className="p-5 lg:p-6"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Schritt {steps.indexOf(selected) + 1} von 10</p><h3 className="mt-2 text-lg font-bold text-slate-900">{selected.title}</h3><p className="mt-3 text-sm leading-relaxed text-slate-600">{selected.detail}</p><button type="button" onClick={() => onAction(selected.key, seasonId)} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800">{selected.present ? 'Öffnen & prüfen' : 'Jetzt einrichten'}<ChevronRight className="h-4 w-4" /></button>
         <label className="mt-6 flex items-start gap-3 rounded-xl border border-slate-200 p-4 text-sm text-slate-800"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-emerald-600" checked={selected.state === 'done'} disabled={saving || !selected.present || current?.status !== 'active'} onChange={e => void change(selected.key, e.target.checked ? 'reviewed' : 'open')} /><span>Ich habe diesen Schritt geprüft.{!selected.present && <span className="mt-1 block text-xs text-red-700">Zuerst die fehlenden Daten ergänzen.</span>}</span></label>
         {selected.optional && <label className="mt-3 flex gap-3 text-sm text-slate-600"><input type="checkbox" checked={selected.state === 'skipped'} disabled={saving || current?.status !== 'active'} onChange={e => void change(selected.key, e.target.checked ? 'unneeded' : 'open')} />Für diese Mannschaft derzeit nicht benötigt</label>}
         {current?.status !== 'active' && <p className="mt-3 text-sm text-amber-800">Archiv und Entwürfe werden nur angezeigt. Einrichten kannst du eine aktive Saison.</p>}
         {next && next.key !== active && <button type="button" onClick={() => setActive(next.key)} className="mt-8 text-sm font-semibold text-red-700">Nächster offener Schritt: {next.title} →</button>}
         {ready && <p className="mt-6 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Alle Einrichtungsschritte sind erledigt. Die Mannschaft ist startklar.</p>}
         {snapshot?.updated_at && <p className="mt-6 text-xs text-slate-500">Zuletzt gespeichert: {new Date(snapshot.updated_at).toLocaleString('de-AT')}</p>}
-      </div>
+      </div>}
     </div>}
   </section>;
 }
