@@ -1,3 +1,5 @@
+import { isStagingApp } from '../lib/appEnvironment';
+import { ManagerClubTeamOverview } from './ManagerClubTeamOverview';
 import { ManagerClubImportPanel } from './ManagerClubImportPanel';
 /**
  * ADMIN-ORG.1 – Vereinsdetail: Stammdaten, Abhängigkeiten, Archiv/Löschen.
@@ -7,7 +9,7 @@ import {ManagerTrainerPhotoPanel} from './ManagerTrainerPhotoPanel';
 import { ManagerTeamDetailsEditor } from './ManagerTeamDetailsEditor';
 import { ManagerAppPreviewPanel } from './ManagerAppPreviewPanel';
 import {CommunicationAccessSettings} from './components/CommunicationAccessSettings';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Headphones, LockKeyhole } from 'lucide-react';
 import { useSession } from '../auth/useSession';
@@ -92,7 +94,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [confirmDeleteName, setConfirmDeleteName] = useState('');
   const [showDelete, setShowDelete] = useState(false);
 
-  const [appPreviewOpen, setAppPreviewOpen] = useState(false);
+  const [appPreviewOpen, setAppPreviewOpen] = useState(true);
   const [teamName, setTeamName] = useState('');
   const [teamAge, setTeamAge] = useState('U12');
   const [setupSeasonId, setSetupSeasonId] = useState(() => new URLSearchParams(window.location.search).get('setupSeason') ?? '');
@@ -113,11 +115,14 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [modules, setModules] = useState<ClubModule[]>([]);
   const [moduleBusy, setModuleBusy] = useState<string | null>(null);
 
+  const reloadGeneration = useRef(0);
   const reload = useCallback(async () => {
+    const generation = ++reloadGeneration.current;
     if (!clubId) return;
     setLoading(true);
     setError(null);
     const [res, modulesRes, brandingRes] = await Promise.all([getPlatformClub(clubId), listClubModules(clubId), getClubBranding(clubId)]);
+    if (generation !== reloadGeneration.current) return;
     if (brandingRes.data) setBranding(brandingRes.data);
     setDetail(res.data);
     setModules(modulesRes.data);
@@ -131,7 +136,9 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
   useEffect(() => {
     if (!allowed) return;
+    setLogoFile(null); setSuccess(null); setAppPreviewOpen(true);
     void reload();
+    return () => { reloadGeneration.current++; };
   }, [allowed, reload]);
 
   useEffect(() => {
@@ -144,19 +151,30 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
   useEffect(() => {
     if (!detail) return;
-    if (!setupSeasonId || !detail.team_seasons.some(s => s.id === setupSeasonId)) {
-      setSetupSeasonId((detail.team_seasons.find(s => s.status === 'active') ?? detail.team_seasons[0])?.id ?? '');
+    if (detail.id !== clubId) return;
+    const params = new URLSearchParams(location.search);
+    const requested = params.get('setupSeason');
+    const selected = detail.team_seasons.find(s => s.id === requested)
+      ?? detail.team_seasons.find(s => s.status === 'active') ?? detail.team_seasons[0];
+    const id = selected?.id ?? '';
+    if (setupSeasonId !== id) setSetupSeasonId(id);
+    if (id && requested !== id) {
+      params.set('setupSeason', id); params.delete('setupStep');
+      navigate({ pathname: location.pathname, search: `?${params}`, hash: location.hash }, { replace: true });
     }
     if (!seasonTeamId && detail.teams[0]) setSeasonTeamId(detail.teams[0].id);
     if (!staffTeamSeasonId && detail.team_seasons[0]) setStaffTeamSeasonId(detail.team_seasons[0].id);
     if (!grantTeamSeasonId && detail.team_seasons[0]) setGrantTeamSeasonId(detail.team_seasons[0].id);
-  }, [detail, setupSeasonId, seasonTeamId, staffTeamSeasonId, grantTeamSeasonId]);
+  }, [clubId, detail, setupSeasonId, seasonTeamId, staffTeamSeasonId, grantTeamSeasonId, location.search, location.pathname, location.hash, navigate]);
 
   useEffect(() => {
-    if (detail?.id !== clubId) return;
-    const requested = new URLSearchParams(location.search).get('setupSeason');
-    if (requested && detail.team_seasons.some(s => s.id === requested)) setSetupSeasonId(requested);
-  }, [clubId, detail?.id, location.search]);
+    if (!setupSeasonId || detail?.id !== clubId) return;
+    const selected = detail.team_seasons.find(s => s.id === setupSeasonId);
+    if (!selected) return;
+    setStaffTeamSeasonId(selected.id); setGrantTeamSeasonId(selected.id); setSeasonTeamId(selected.team_id);
+    setTrainerLookup(null); setTrainerEmail(''); setStaffInvites([]); setStaffInviteError(null);
+    setAppPreviewOpen(true);
+  }, [clubId, setupSeasonId, detail?.id]);
 
   useEffect(() => {
     if (detail?.id === clubId && setupSeasonId && location.hash === '#manager-setup-checklist') {
@@ -164,8 +182,11 @@ export function ManagerClubDetailPage(): React.ReactElement {
     }
   }, [clubId, detail, setupSeasonId, location.hash]);
 
+  const staffInviteGeneration = useRef(0);
   const reloadStaffInvites = useCallback(async (teamSeasonId: string) => {
+    const generation = ++staffInviteGeneration.current;
     const result = await adminListTeamStaffInvites(teamSeasonId);
+    if (generation !== staffInviteGeneration.current) return;
     if (result.error) setStaffInviteError(result.error);
     else {
       setStaffInviteError(null);
@@ -176,6 +197,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
   useEffect(() => {
     setStaffInvites([]);
     if (allowed && staffTeamSeasonId) void reloadStaffInvites(staffTeamSeasonId);
+    return () => { staffInviteGeneration.current++; };
   }, [allowed, staffTeamSeasonId, reloadStaffInvites]);
 
   if (sessionLoading) {
@@ -224,12 +246,10 @@ export function ManagerClubDetailPage(): React.ReactElement {
       const result = await createSetupTeam({ clubId, name: teamName.trim(), ageGroup: teamAge.trim(), seasonName: newSeasonName.trim() });
       if (result.error || !result.data) { setError(result.error ?? 'Mannschaft konnte nicht angelegt werden.'); return; }
       setSeasonTeamId(result.data.team_id);
-      setSetupSeasonId(result.data.team_season_id);
-      setStaffTeamSeasonId(result.data.team_season_id);
-      setGrantTeamSeasonId(result.data.team_season_id);
       setTeamName('');
       setSuccess(`${result.data.status === 'exists' ? 'Diese Mannschaftssaison ist bereits vorhanden' : 'Neue Mannschaft und Saison angelegt'}. Im Assistenten kannst du jetzt die Einrichtung fortsetzen.`);
       await reload();
+      selectSetupSeason(result.data.team_season_id);
     } finally {
       setBusy(false);
     }
@@ -359,18 +379,26 @@ export function ManagerClubDetailPage(): React.ReactElement {
     });
   }
 
+  function selectSetupSeason(id: string) {
+    const params = new URLSearchParams(location.search);
+    params.set('setupSeason', id); params.delete('setupStep');
+    setSetupSeasonId(id); setAppPreviewOpen(true);
+    navigate({ pathname: location.pathname, search: `?${params}`, hash: '#manager-setup-checklist' }, { replace: true });
+  }
+
+  function openSetupSection(anchor: string) {
+    const target = document.getElementById(anchor);
+    let ancestor: HTMLElement | null = target;
+    while (ancestor) { if (ancestor instanceof HTMLDetailsElement) ancestor.open = true; ancestor = ancestor.parentElement; }
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function setupAction(key: SetupKey, id: string) {
-    const anchors: Partial<Record<SetupKey, string>> = { club: 'club-basics', team: id ? 'club-structure-summary' : 'club-team-season-setup', season: 'club-season-summary', staff: 'club-trainer-setup', venues: 'club-venue-setup' };
+    const anchors: Partial<Record<SetupKey, string>> = { club: 'club-basics', team: id ? 'club-selected-team-details' : 'club-team-season-setup', season: 'club-selected-team-details', staff: 'club-trainer-setup', venues: 'club-venue-setup' };
     if (key === 'staff') setStaffTeamSeasonId(id);
     if (key === 'venues') setGrantTeamSeasonId(id);
     const anchor = anchors[key];
-    if (anchor) {
-      const target = document.getElementById(anchor);
-      let ancestor: HTMLElement | null = target;
-      while (ancestor) { if (ancestor instanceof HTMLDetailsElement) ancestor.open = true; ancestor = ancestor.parentElement; }
-      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
+    if (anchor) { openSetupSection(anchor); return; }
     const paths: Partial<Record<SetupKey, string>> = {
       roster: `/manager/saisons/${id}/kader`, access: `/manager/saisons/${id}/zugaenge`,
       matches: `/manager/saisons/${id}/oefb-import`, training: '/manager/termine', review: '/app/home',
@@ -384,6 +412,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
   }
 
   const deps = detail?.dependencies;
+  const selectedSeason = detail?.team_seasons.find(s => s.id === setupSeasonId);
 
   return (
     <div className="w-full max-w-none space-y-5">
@@ -392,7 +421,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
           ← Zurück zur Übersicht
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-          {detail?.name ?? 'Verein'}
+          {detail?.id === clubId ? detail.name : 'Verein'}
         </h1>
         {detail ? (
           <p className="mt-1 text-[14px] text-slate-600">
@@ -406,13 +435,13 @@ export function ManagerClubDetailPage(): React.ReactElement {
         {detail?.status === 'active' ? (
           <button
             type="button"
-            onClick={() => startClubSupport()}
+            onClick={() => startClubSupport(setupSeasonId)}
             disabled={detail.team_seasons.length === 0}
             className="mt-3 inline-flex min-h-[42px] items-center gap-2 rounded-full bg-slate-900 px-4 text-[13px] font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
             title={detail.team_seasons.length === 0 ? 'Zuerst eine Mannschaft mit Saison anlegen.' : undefined}
           >
             <Headphones className="h-4 w-4" aria-hidden />
-            Verein verwalten
+            Mannschaft verwalten
           </button>
         ) : null}
       </div>
@@ -428,12 +457,24 @@ export function ManagerClubDetailPage(): React.ReactElement {
         </div>
       ) : null}
 
-      {!detail ? (
+      {!detail || detail.id !== clubId ? (
         <p className="text-[14px] text-slate-600">{loading ? 'Laden…' : 'Verein nicht gefunden.'}</p>
       ) : (
         <>
+          <details id="club-team-overview" open={!selectedSeason || undefined} className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white">
+            <summary className="cursor-pointer p-4 font-semibold text-slate-900">Mannschaft wählen oder wechseln · {detail.name}</summary>
+            <ManagerClubTeamOverview detail={detail} selectedSeasonId={setupSeasonId} onSelect={selectSetupSeason} />
+            <div className="flex flex-wrap gap-3 p-4">{isStagingApp() && <button type="button" onClick={() => openSetupSection('club-oefb-import')} className="min-h-11 rounded-xl border border-slate-300 px-3 text-sm font-semibold">Mannschaften beim ÖFB suchen</button>}<button type="button" onClick={() => openSetupSection('club-team-season-setup')} className="min-h-11 rounded-xl border border-slate-300 px-3 text-sm font-semibold">Mannschaft manuell anlegen</button></div>
+          </details>
+          {selectedSeason && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 p-4 text-white">
+            <div><p className="text-xs text-slate-300">Ausgewählte Mannschaft · {detail.name}</p><h2 className="mt-1 text-lg font-bold">{seasonContextLabel(selectedSeason)}</h2><p className="mt-1 text-xs text-slate-300">Vorschau und Aufgaben beziehen sich auf diese Mannschaft und Saison.</p></div>
+            <div className="flex flex-wrap gap-2"><button type="button" onClick={() => openSetupSection('club-team-overview')} className="min-h-11 rounded-xl border border-white/40 px-3 text-sm font-semibold">Mannschaft wechseln</button>{!appPreviewOpen && <button type="button" onClick={() => setAppPreviewOpen(true)} className="min-h-11 rounded-xl border border-white/40 px-3 text-sm font-semibold">App-Vorschau einblenden</button>}</div>
+          </div>}
+          <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={selectSetupSeason} onAction={setupAction} hideSelector initialStep={new URLSearchParams(location.search).get('setupStep')}
+            preview={appPreviewOpen && selectedSeason ? <ManagerAppPreviewPanel key={setupSeasonId} clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} compact onClose={() => setAppPreviewOpen(false)} /> : undefined} />
+
           <details className="rounded-2xl border border-slate-200 bg-white">
-            <summary className="cursor-pointer p-4 font-semibold text-slate-900">1. Vereinsdaten · Name, Logo &amp; Farben für alle Mannschaften</summary>
+            <summary className="cursor-pointer p-4 font-semibold text-slate-900">Vereinsdaten · Name, Logo &amp; Farben für alle Mannschaften</summary>
           <form
             id="club-basics"
             onSubmit={onSave}
@@ -460,16 +501,6 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 />
               </label>
             </div>
-            <div className="mt-4 rounded-xl border border-slate-200 p-3">
-              <h3 className="font-semibold">App vorab prüfen</h3>
-              <p className="mt-1 text-sm text-slate-600">Logo und Farben werden auch ohne Speichern angezeigt. Mannschaftsdaten kommen aus der ausgewählten Saison. Die Vorschau veröffentlicht nichts und ersetzt keine Freigabe.</p>
-              <select aria-label="Mannschaft für App-Vorschau" className="mt-3 min-h-11 w-full rounded-lg border border-slate-300 px-3" value={setupSeasonId} onChange={e=>setSetupSeasonId(e.target.value)}>
-                {!detail.team_seasons.length ? <option value="">Zuerst Mannschaft und Saison anlegen</option> : null}
-                {detail.team_seasons.map(season=><option key={season.id} value={season.id}>{seasonContextLabel(season)}</option>)}
-              </select>
-              <button type="button" disabled={!setupSeasonId} aria-expanded={appPreviewOpen} onClick={()=>setAppPreviewOpen(open=>!open)} className="mt-3 min-h-11 rounded-full bg-slate-900 px-4 font-semibold text-white disabled:opacity-40">{appPreviewOpen ? 'App-Vorschau ausblenden' : 'App-Vorschau einblenden'}</button>
-            </div>
-            {appPreviewOpen && setupSeasonId ? <ManagerAppPreviewPanel clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} onClose={()=>setAppPreviewOpen(false)} /> : null}
             <div className="mt-4 space-y-5">
             <div className="min-w-0">
             <ClubBrandingFields value={branding} onChange={setBranding} logoFile={logoFile} onLogoFile={setLogoFile} />
@@ -486,9 +517,111 @@ export function ManagerClubDetailPage(): React.ReactElement {
             </div>
           </form>
           </details>
-          <p className="text-sm font-semibold text-slate-700">2. Mannschaft auswählen oder beim ÖFB zuordnen · 3. Einrichtung der Mannschaft abschließen</p>
-          <ManagerClubImportPanel key={clubId} detail={detail} onSaved={() => { void reload(); }} />
-          <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={setSetupSeasonId} onAction={setupAction} />
+          {selectedSeason && <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Mannschaft &amp; Saison bearbeiten · {selectedSeason.age_group}</summary><div id="club-selected-team-details" className="scroll-mt-24 space-y-3 p-4"><p className="text-sm text-slate-600">{seasonContextLabel(selectedSeason)} · {detail.name}</p><ManagerTeamDetailsEditor key={selectedSeason.id} clubId={clubId} season={selectedSeason} onSaved={async () => { await reloadSessionTeamSeasons(); await reload(); setSuccess('Mannschaft und Saison gespeichert.'); }} /></div></details>}
+          <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Trainer zuordnen, einladen &amp; Fotos bearbeiten</summary><div className="grid gap-4 p-4 lg:grid-cols-2">
+              <form
+                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!staffTeamSeasonId || !trainerLookup?.user_id) return;
+                  void run(async () => {
+                    const res = await adminAssignTeamSeasonStaff({
+                      teamSeasonId: staffTeamSeasonId,
+                      userId: trainerLookup.user_id!,
+                      role: staffRole,
+                    });
+                    return { error: res.error };
+                  }, 'Trainer der Mannschaft zugeordnet.');
+                }}
+              >
+                <span id="club-trainer-setup" className="block scroll-mt-24" />
+                <p className="text-[13px] font-semibold text-slate-800">Trainer zuordnen oder einladen</p>
+                <p className="text-[12px] text-slate-500">
+                  Bestehende Konten direkt zuordnen oder neue Trainer per E-Mail einladen.
+                  Die Rolle gilt nur für diese Mannschaftssaison und ist keine Vereinsadminrolle.
+                </p>
+                <p className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-semibold">{selectedSeason ? seasonContextLabel(selectedSeason) : 'Zuerst Mannschaft wählen'}</p>
+                <select
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  value={staffRole}
+                  onChange={(e) =>
+                    setStaffRole(
+                      e.target.value === 'co_trainer'
+                        ? 'co_trainer'
+                        : e.target.value === 'trainer'
+                          ? 'trainer'
+                          : 'head_coach',
+                    )
+                  }
+                >
+                  <option value="head_coach">Cheftrainer</option>
+                  <option value="trainer">Trainer</option>
+                  <option value="co_trainer">Co-Trainer</option>
+                </select>
+                <input
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
+                  placeholder="E-Mail des Benutzers"
+                  type="email"
+                  value={trainerEmail}
+                  onChange={(e) => {
+                    setTrainerEmail(e.target.value);
+                    setTrainerLookup(null);
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={busy || !trainerEmail.trim()}
+                  onClick={() => void lookupTrainer()}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
+                >
+                  Benutzer suchen
+                </button>
+                {trainerLookup?.user_id ? (
+                  <p className="text-[12px] text-slate-700">{lookupDisplayName(trainerLookup)}</p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={busy || !staffTeamSeasonId || !trainerLookup?.user_id}
+                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                >
+                  Trainer zuordnen
+                </button>
+                <button type="button" disabled={busy || !staffTeamSeasonId || !trainerEmail.trim()}
+                  onClick={() => void inviteTrainer()}
+                  className="ml-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-[13px] font-semibold text-red-800 disabled:opacity-50">
+                  {busy ? 'Bitte warten…' : 'Per E-Mail einladen'}
+                </button>
+                {staffInviteError ? <p role="alert" className="text-[12px] text-red-700">{staffInviteError}</p> : null}
+                {staffInvites.filter((invite) => !invite.accepted_at).length > 0 ? (
+                  <div className="space-y-1 pt-2 text-[12px] text-slate-700">
+                    <p className="font-semibold">Offene Einladungen</p>
+                    {staffInvites.filter((invite) => !invite.accepted_at).map((invite) => (
+                      <p key={invite.id}>{invite.email} · {staffRoleLabel(invite.role)} · {invite.sent_at ? 'E-Mail gesendet' : 'Versand ausstehend'}</p>
+                    ))}
+                  </div>
+                ) : null}
+              </form>
+              {staffTeamSeasonId?<ManagerTrainerPhotoPanel key={staffTeamSeasonId} seasonId={staffTeamSeasonId}/>:null}
+          </div><button type="button" onClick={() => openSetupSection('manager-setup-checklist')} className="m-4 min-h-11 text-sm font-semibold text-red-700">Zur Einrichtung &amp; Vorschau →</button></details>
+          <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Sportanlagen für die Mannschaft freigeben</summary>
+          <div id="club-venue-setup" className="scroll-mt-24">
+          <ManagerClubVenueGrantsPanel
+            teamSeasons={detail.team_seasons.map((s) => ({
+              id: s.id,
+              label: seasonContextLabel(s),
+            }))}
+            selectedTeamSeasonId={grantTeamSeasonId}
+            onSelectTeamSeason={selectSetupSeason}
+            grantableVenues={grantableVenues}
+            busy={busy}
+            onBusyError={(err, ok) => {
+              setError(err);
+              setSuccess(ok ?? null);
+              if (ok) window.dispatchEvent(new Event('manager-setup-changed'));
+            }}
+          />
+          </div>          </details>
+          {isStagingApp() && <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Mannschaften beim ÖFB finden &amp; zuordnen</summary><div id="club-oefb-import" className="scroll-mt-24"><ManagerClubImportPanel key={clubId} detail={detail} showOverview={false} onSaved={() => { void reload(); }} /></div></details>}
           {detail.status === 'active' ? (
             <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Zusätzliche Mannschaft und Saison anlegen</summary><form id="club-team-season-setup" onSubmit={onCreateTeamSeason} className="rounded-2xl border border-red-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <p className="text-[11px] font-bold uppercase tracking-wide text-red-700">Neue Mannschaft</p>
@@ -512,7 +645,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
           ) : null}
 
           <details className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-            <summary className="cursor-pointer font-semibold text-slate-900">Weitere Vereinsverwaltung · Trainer, Anlagen, Saisonen &amp; Module</summary>
+            <summary className="cursor-pointer font-semibold text-slate-900">Weitere Vereinsverwaltung · Saisonwechsel, Zugänge &amp; Module</summary>
 
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
@@ -795,123 +928,15 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 </button>
               </form>
 
-              <form
-                className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!staffTeamSeasonId || !trainerLookup?.user_id) return;
-                  void run(async () => {
-                    const res = await adminAssignTeamSeasonStaff({
-                      teamSeasonId: staffTeamSeasonId,
-                      userId: trainerLookup.user_id!,
-                      role: staffRole,
-                    });
-                    return { error: res.error };
-                  }, 'Trainer der Mannschaft zugeordnet.');
-                }}
-              >
-                <span id="club-trainer-setup" className="scroll-mt-24" />
-                <p className="text-[13px] font-semibold text-slate-800">Trainer zuordnen oder einladen</p>
-                <p className="text-[12px] text-slate-500">
-                  Bestehende Konten direkt zuordnen oder neue Trainer per E-Mail einladen.
-                  Die Rolle gilt nur für diese Mannschaftssaison und ist keine Vereinsadminrolle.
-                </p>
-                <select
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  value={staffTeamSeasonId}
-                  onChange={(e) => setStaffTeamSeasonId(e.target.value)}
-                >
-                  <option value="">Saison wählen…</option>
-                  {detail.team_seasons.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {seasonContextLabel(s)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  value={staffRole}
-                  onChange={(e) =>
-                    setStaffRole(
-                      e.target.value === 'co_trainer'
-                        ? 'co_trainer'
-                        : e.target.value === 'trainer'
-                          ? 'trainer'
-                          : 'head_coach',
-                    )
-                  }
-                >
-                  <option value="head_coach">Cheftrainer</option>
-                  <option value="trainer">Trainer</option>
-                  <option value="co_trainer">Co-Trainer</option>
-                </select>
-                <input
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-[13px]"
-                  placeholder="E-Mail des Benutzers"
-                  type="email"
-                  value={trainerEmail}
-                  onChange={(e) => {
-                    setTrainerEmail(e.target.value);
-                    setTrainerLookup(null);
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={busy || !trainerEmail.trim()}
-                  onClick={() => void lookupTrainer()}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] font-semibold text-slate-800 disabled:opacity-50"
-                >
-                  Benutzer suchen
-                </button>
-                {trainerLookup?.user_id ? (
-                  <p className="text-[12px] text-slate-700">{lookupDisplayName(trainerLookup)}</p>
-                ) : null}
-                <button
-                  type="submit"
-                  disabled={busy || !staffTeamSeasonId || !trainerLookup?.user_id}
-                  className="rounded-lg bg-red-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
-                >
-                  Trainer zuordnen
-                </button>
-                <button type="button" disabled={busy || !staffTeamSeasonId || !trainerEmail.trim()}
-                  onClick={() => void inviteTrainer()}
-                  className="ml-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-[13px] font-semibold text-red-800 disabled:opacity-50">
-                  {busy ? 'Bitte warten…' : 'Per E-Mail einladen'}
-                </button>
-                {staffInviteError ? <p role="alert" className="text-[12px] text-red-700">{staffInviteError}</p> : null}
-                {staffInvites.filter((invite) => !invite.accepted_at).length > 0 ? (
-                  <div className="space-y-1 pt-2 text-[12px] text-slate-700">
-                    <p className="font-semibold">Offene Einladungen</p>
-                    {staffInvites.filter((invite) => !invite.accepted_at).map((invite) => (
-                      <p key={invite.id}>{invite.email} · {staffRoleLabel(invite.role)} · {invite.sent_at ? 'E-Mail gesendet' : 'Versand ausstehend'}</p>
-                    ))}
-                  </div>
-                ) : null}
-              </form>
-              {staffTeamSeasonId?<ManagerTrainerPhotoPanel key={staffTeamSeasonId} seasonId={staffTeamSeasonId}/>:null}
             </div>
           </section>
 
-          <div id="club-venue-setup" className="scroll-mt-24">
-          <ManagerClubVenueGrantsPanel
-            teamSeasons={detail.team_seasons.map((s) => ({
-              id: s.id,
-              label: seasonContextLabel(s),
-            }))}
-            selectedTeamSeasonId={grantTeamSeasonId}
-            onSelectTeamSeason={setGrantTeamSeasonId}
-            grantableVenues={grantableVenues}
-            busy={busy}
-            onBusyError={(err, ok) => {
-              setError(err);
-              setSuccess(ok ?? null);
-              if (ok) window.dispatchEvent(new Event('manager-setup-changed'));
-            }}
-          />
-          </div>
 
+
+          </details>
+          <details className="rounded-2xl border border-red-200 bg-white"><summary className="cursor-pointer p-4 font-semibold text-red-800">Verein archivieren oder löschen</summary>
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <h2 className="text-[16px] font-semibold text-slate-900">Aktionen</h2>
+            <h2 className="text-[16px] font-semibold text-slate-900">Vereinsstatus ändern</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {detail.status === 'active' ? (
                 <button

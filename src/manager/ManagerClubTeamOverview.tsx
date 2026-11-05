@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabaseClient';
 type SharedTeam = ClubDetail['team_seasons'][number] & { clubName: string; clubId: string };
 
 /** Persisted membership stays with its owner; source links only add a shared overview. */
-export function ManagerClubTeamOverview({ detail }: { detail: ClubDetail }) {
+export function ManagerClubTeamOverview({ detail, selectedSeasonId, onSelect }: { detail: ClubDetail; selectedSeasonId?: string; onSelect?: (id: string) => void }) {
   const [shared, setShared] = useState<SharedTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,8 +42,8 @@ export function ManagerClubTeamOverview({ detail }: { detail: ClubDetail }) {
       <p className="text-sm text-slate-600">Eigene Teams und bestätigte ÖFB-Verknüpfungen. NSG-/SPG-Teams bleiben beim angezeigten Verein. Zuordnung bedeutet noch keinen vollständigen Datenimport.</p>
       {loading && <p role="status" className="text-sm text-slate-500">Verknüpfungen werden geladen…</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{rows.map(s => <article key={s.id} className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-start justify-between gap-2"><h3 className="text-lg font-bold"><Link className="underline-offset-4 hover:underline" to={`/manager/vereine/${encodeURIComponent(s.clubId)}?setupSeason=${encodeURIComponent(s.id)}#manager-setup-checklist`}>{s.age_group || s.team_name} öffnen →</Link></h3><span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-700">{s.status === 'active' ? 'Aktiv' : 'In Vorbereitung'}</span></div><p className="font-medium">{s.team_name}</p><p className="mt-1 text-sm text-slate-600">{s.season_name} · {s.clubName}</p><p className="mt-2 text-xs font-semibold">{own.some(o => o.id === s.id) ? 'Eigene Mannschaft' : '✓ Verknüpft über ÖFB'}</p>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{rows.map(s => <article key={s.id} className={`rounded-xl border p-4 ${s.id === selectedSeasonId ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 bg-white'}`}>
+        <div className="flex items-start justify-between gap-2"><h3 className="text-lg font-bold"><Link aria-current={s.id === selectedSeasonId ? 'true' : undefined} onClick={e => { if (s.clubId === detail.id && onSelect) { e.preventDefault(); onSelect(s.id); } }} className="underline-offset-4 hover:underline" to={`/manager/vereine/${encodeURIComponent(s.clubId)}?setupSeason=${encodeURIComponent(s.id)}#manager-setup-checklist`}>{s.age_group || s.team_name} öffnen →</Link></h3><span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-700">{s.status === 'active' ? 'Aktiv' : 'In Vorbereitung'}</span></div><p className="font-medium">{s.team_name}</p><p className="mt-1 text-sm text-slate-600">{s.season_name} · {s.clubName}</p><p className="mt-2 text-xs font-semibold">{own.some(o => o.id === s.id) ? 'Eigene Mannschaft' : '✓ Verknüpft über ÖFB'}</p>
         <ManagerTeamDataStatus seasonId={s.id} setupUrl={`/manager/vereine/${encodeURIComponent(s.clubId)}?setupSeason=${encodeURIComponent(s.id)}#manager-setup-checklist`} />
         <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold"><Link className="underline" to={`/manager/saisons/${encodeURIComponent(s.id)}/kader`}>Kader</Link><Link className="underline" to={`/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`}>Spiele &amp; Tabelle</Link></div>
       </article>)}</div>
