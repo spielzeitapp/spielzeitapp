@@ -420,16 +420,16 @@ export const TeamSchedulePage: React.FC = () => {
 
       <SectionTitle subtitle={subtitle || undefined}>{headerTitle}</SectionTitle>
 
-      {tableCompetitionId ? (
+      {tableSettings ? (
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Meisterschaftsansicht">
-          {([{ id: 'schedule', label: 'Spielplan' }, { id: 'table', label: 'Tabelle' }, { id: 'results', label: 'Liga-Ergebnisse' }] as const).map((tab) => (
+          {([{ id: 'schedule', label: 'Spielplan' }, { id: 'table', label: 'Tabelle' }, { id: 'results', label: 'Liga-Ergebnisse' }] as const).filter(tab => tab.id !== 'results' || Boolean(tableCompetitionId)).map((tab) => (
             <button key={tab.id} type="button" role="tab" aria-selected={competitionView === tab.id} onClick={() => setCompetitionView(tab.id)}
               className={cn(chipBase, competitionView === tab.id ? chipActive : chipIdle)}>{tab.label}</button>
           ))}
         </div>
       ) : null}
 
-      {competitionView === 'results' && tableSettings ? (
+      {competitionView === 'results' && tableSettings?.competitionId ? (
         <OefbCompetitionResults competitionId={tableSettings.competitionId} ourTeam={tableSettings.teamName} />
       ) : competitionView === 'table' && tableSettings ? (
         <OefbCompetitionTable competitionId={tableSettings.competitionId} sourceUrl={tableSettings.sourceUrl} ourTeam={tableSettings.teamName} />

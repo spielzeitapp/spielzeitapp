@@ -28,6 +28,7 @@ import './managerOefbImport.css';
 import {
   adminSaveOefbTableSettings,
   getOefbTableSettings,
+  isOefbClubTableUrl,
   parseOefbCompetitionUrl,
   type OefbTableSettings,
 } from '../lib/oefbTableSettings';
@@ -342,8 +343,8 @@ export function ManagerOefbImportPage(): React.ReactElement {
     if (!seasonId || workMode !== 'platform_admin' || backendRole?.trim().toLowerCase() !== 'admin' || tableBusy) return;
     setTableError(null);
     setTableNotice(null);
-    if (!parseOefbCompetitionUrl(tableUrl) || !tableTeamName.trim()) {
-      setTableError('Bitte den Bewerbslink verwenden (https://www.oefb.at/bewerbe/Bewerb/…), nicht den Vereinslink mit /Tabellen. Den eigenen Mannschaftsnamen ebenfalls angeben.');
+    if ((!parseOefbCompetitionUrl(tableUrl) && !isOefbClubTableUrl(tableUrl)) || !tableTeamName.trim()) {
+      setTableError('Bitte einen ÖFB-Bewerbslink oder den Tabellenlink einer bestätigten ÖFB-Mannschaft und den eigenen Mannschaftsnamen angeben.');
       return;
     }
     setTableBusy(true);
@@ -425,7 +426,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
         <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
           <div>
             <h2 className="text-[16px] font-semibold text-slate-900">ÖFB-Tabelle der Saison</h2>
-            <p className="mt-1 text-[12px] text-slate-600">Bewerbslink speichern; die Tabelle wird in der App regelmäßig aktuell vom ÖFB geladen. Ohne Zuordnung erscheint kein Tabellen-Tab.</p>
+            <p className="mt-1 text-[12px] text-slate-600">Bewerbslink oder zugeordneten Mannschafts-Tabellenlink speichern; die Tabelle wird in der App regelmäßig aktuell vom ÖFB geladen. Ohne Zuordnung erscheint kein Tabellen-Tab.</p>
           </div>
           <form onSubmit={(event) => void onSaveTable(event)} className="space-y-3">
             <label className="block text-[13px] font-semibold text-slate-800" htmlFor="oefb-table-url">ÖFB-Bewerbslink</label>

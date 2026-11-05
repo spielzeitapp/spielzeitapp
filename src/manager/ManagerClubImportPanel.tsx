@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ManagerClubImportData } from './ManagerClubImportData';
 import { ManagerClubTeamOverview } from './ManagerClubTeamOverview';
 import { adminEnsureTeamSeason, listPlatformClubs, getPlatformClub, type ClubDetail } from '../lib/platformClubAdmin';
 import { createSetupTeam } from '../lib/managerSetup';
@@ -119,6 +120,7 @@ export function ManagerClubImportPanel({ detail, onSaved }: { detail: ClubDetail
         {targetSeason && <p className="text-sm font-medium">{targetClub?.name} → {targetSeason.team_name} · {targetSeason.age_group} · {targetSeason.season_name}</p>}
         {c.status && <p className="text-sm" role="status">{c.status}</p>}
         {importId && <div className="flex flex-wrap gap-3 text-sm font-semibold"><Link className="underline" to={linkFor(t, importId, 'roster')}>Kader &amp; Fotos übernehmen</Link><Link className="underline" to={linkFor(t, importId, 'schedule')}>Spiele &amp; Ergebnisse übernehmen</Link><a className="underline" href={t.tableUrl} target="_blank" rel="noreferrer">ÖFB-Tabelle prüfen ↗</a></div>}
+        {importId && <ManagerClubImportData seasonId={importId} rosterUrl={t.rosterUrl} tableUrl={t.tableUrl} onSaved={onSaved} />}
       </div>; })}
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />Verein, Saison und Identität der Zielmannschaften geprüft (gleiche Altersklasse allein bedeutet nicht dieselbe Mannschaft). Noch nicht zugeordnete Mannschaften dürfen neu angelegt werden.</label>
       <button type="button" disabled={busy || !confirmed || !selected.some(t => !choices[t.key].seasonId) || selected.some(t => !choices[t.key].target && (!choices[t.key].name.trim() || !choices[t.key].age.trim()))} onClick={() => void prepare()} className="min-h-11 rounded-xl bg-slate-900 px-4 font-semibold text-white disabled:opacity-50">Ausgewählte Mannschaften vorbereiten</button>

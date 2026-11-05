@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {pageUrl,extract}=require('../server/lib/oefbClubTable');
+const url=pageUrl('https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U13/Tabellen/');
+for(const invalid of ['http://vereine.oefb.at/x','https://evil.example/x','https://vereine.oefb.at@evil.example/x',url+'?x=1',url+'#hash']) assert.throws(()=>pageUrl(invalid));
+const block={detailUrl:url.pathname,vereinsnummer:'2339',tabellen:{NORMAL:{bewerbName:'U13',eintraege:[{rang:1,mannschaftBezeichnung:'SPG Rohrbach',vereinsnummern:'2339 2337',punkte:9,spiele:4}]}}};
+const html=b=>`SG.container.appPreloads['x']=${JSON.stringify([b])};`;
+const result=extract(html(block),url);assert.equal(result.suggestedTeam,'SPG Rohrbach');assert.equal(result.rows[0].team,'SPG Rohrbach');assert.equal(result.rows[0].points,9);
+assert.throws(()=>extract(html({...block,detailUrl:'/Other/Tabellen/'}),url));
+assert.throws(()=>extract(html({...block,tabellen:{HEIM:block.tabellen.NORMAL}}),url),'Never silently substitute a home table');
+assert.throws(()=>extract(html({...block,tabellen:{NORMAL:{...block.tabellen.NORMAL,tabelleAusblenden:true}}}),url));
+assert.throws(()=>extract("SG.container.appPreloads['x']=[process.exit()];",url));
+console.log('PASS club table: strict source, exact season/team, total table, normalized rows, hidden table and script rejection.');

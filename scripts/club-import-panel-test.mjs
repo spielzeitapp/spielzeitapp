@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 const require=createRequire(import.meta.url), React=require('react'), Test=require('react-test-renderer');
 const folder=await mkdtemp(path.join(os.tmpdir(),'club-import-'));
-const mocks=`export const listPlatformClubs=async()=>({data:globalThis.__clubs||[],error:null});export const getPlatformClub=async(id)=>({data:(globalThis.__clubDetails||[]).find(c=>c.id===id),error:null});export const adminEnsureTeamSeason=async()=>({data:{team_season_id:'season-added'}});export const createSetupTeam=async()=>{globalThis.__writes++;return {data:{team_season_id:'new-season'}}};export const isStagingApp=()=>globalThis.__testEnv;export const supabase={rpc:async()=>({error:null}),from:()=>({select:()=>({in:async()=>({data:globalThis.__sources||[],error:null}),eq:()=>Object.assign(Promise.resolve({data:globalThis.__sources||[],error:null}),{maybeSingle:async()=>({data:{logo_url:null}})})})})};`;
+const mocks=`export const loadSetup=async()=>({data:{staff:1,players:10,matches:4,trainings:0},error:null});export const getOefbTableSettings=async()=>({data:globalThis.__tableSettings||null,error:null});export const getTeamSeasonWritableState=async()=>({writable:true});export const uploadPlayerProfilePhoto=async()=>({});export const uploadPlayerProfileCutout=async()=>({});export const prepareCutoutGeneration=async()=>({});export const uploadStorageObject=async()=>({});export const playerPhotoDisplayUrl=()=>null;export const listPlatformClubs=async()=>({data:globalThis.__clubs||[],error:null});export const getPlatformClub=async(id)=>({data:(globalThis.__clubDetails||[]).find(c=>c.id===id),error:null});export const adminEnsureTeamSeason=async()=>({data:{team_season_id:'season-added'}});export const createSetupTeam=async()=>{globalThis.__writes++;return {data:{team_season_id:'new-season'}}};export const isStagingApp=()=>globalThis.__testEnv;export const supabase={rpc:async(name,args)=>{(globalThis.__rpcCalls??=[]).push({name,args});return {error:null}},from:()=>({select:()=>({in:async()=>({data:globalThis.__sources||[],error:null}),eq:()=>Object.assign(Promise.resolve({data:globalThis.__sources||[],error:null}),{maybeSingle:async()=>({data:{logo_url:null}})})})})};`;
 try{
  await build({entryPoints:['src/manager/ManagerClubImportPanel.tsx'],outfile:path.join(folder,'panel.cjs'),bundle:true,platform:'node',format:'cjs',external:['react','react-router-dom'],plugins:[{name:'mocks',setup(b){b.onResolve({filter:/\.\.\/lib\//},()=>({path:'mock',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:mocks,loader:'js'}));}}]});
  // Resolve React through this checkout even though compiled output is temporary.
@@ -14,7 +14,7 @@ try{
  Module._resolveFilename=function(request,...args){if(resolved[request])return resolved[request];return original.call(this,request,...args)};
  const {ManagerClubImportPanel}=require(path.join(folder,'panel.cjs'));Module._resolveFilename=original;
  globalThis.__writes=0;globalThis.__testEnv=false;
- globalThis.window={location:{search:''},dispatchEvent(){}};
+ globalThis.window={location:{search:''},dispatchEvent(){},addEventListener(){},removeEventListener(){}};
  const {MemoryRouter}=require('react-router-dom');const detail={id:'club',name:'USC',teams:[],team_seasons:[]};
  let tree;await Test.act(async()=>{tree=Test.create(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail,onSaved(){}})))});assert.equal(tree.toJSON(),null);
  globalThis.__testEnv=true;
@@ -55,6 +55,18 @@ try{
  assert.ok(tree.root.findAllByType('a').some(a=>a.props.href==='/manager/vereine/nsg?setupSeason=nsg-u12#manager-setup-checklist'),'Shared team opens setup under its actual owning club');
  assert.ok(JSON.stringify(tree.toJSON()).includes('NSG Gölsental'));
  assert.equal(globalThis.__writes,1,'Overview is read-only');
+ assert.ok(tree.root.findAllByType('a').some(a=>a.children.join('').includes('Foto fehlt')),'Card displays missing photo directly');
+ const oldFetch=globalThis.fetch;
+ globalThis.fetch=async()=>({ok:true,json:async()=>({name:'U12 Tabelle',rows:[{rank:1,team:'SPG Rohrbach',played:2,points:6}],suggestedTeam:'SPG Rohrbach'})});
+ await Test.act(async()=>{button('Tabelle automatisch lesen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});
+ assert.equal(button('Tabelle übernehmen').props.disabled,true,'Table requires identity confirmation');
+ const confirmation=tree.root.findAllByType('label').find(l=>l.children.some(c=>typeof c==='string'&&c.includes('Bewerb, Saison'))).findByType('input');
+ await Test.act(async()=>confirmation.props.onChange({target:{checked:true}}));
+ await Test.act(async()=>{button('Tabelle übernehmen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});
+ assert.ok(globalThis.__rpcCalls.some(c=>c.name==='admin_set_team_season_club_table'&&c.args.p_team_season_id==='nsg-u12'));
+ await Test.act(async()=>button('Mannschaftsfoto importieren').props.onClick());
+ assert.ok(tree.root.findAllByProps({type:'url'}).some(i=>i.props.value===team.rosterUrl),'Photo importer reuses selected ÖFB source');
+ globalThis.fetch=oldFetch;
  globalThis.__sources=[{source_url:team.rosterUrl.toLowerCase().replace(/\/$/,''),team_season_id:'archived-or-missing'}];
  await Test.act(async()=>{button('Mannschaften suchen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});
  assert.equal(tree.root.findAllByProps({'data-import-status':'linked'}).length,0,'Unavailable saved target must not be green');
