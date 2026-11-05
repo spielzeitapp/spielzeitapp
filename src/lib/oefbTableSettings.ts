@@ -16,6 +16,10 @@ export function parseOefbCompetitionUrl(value: string): string | null {
   }
 }
 
+export function isOefbClubTableUrl(value: string): boolean {
+  try { const u = new URL(value); return u.protocol === 'https:' && u.hostname === 'vereine.oefb.at' && !u.port && !u.username && !u.password && !u.search && !u.hash && /^\/[a-z0-9-]+\/Mannschaften\/Saison-\d{4}-\d{2}\/[a-z0-9-]+\/Tabellen\/?$/i.test(u.pathname); } catch { return false; }
+}
+
 export async function getOefbTableSettings(teamSeasonId: string): Promise<{
   data: OefbTableSettings | null;
   error: string | null;
@@ -24,11 +28,11 @@ export async function getOefbTableSettings(teamSeasonId: string): Promise<{
     .select('oefb_table_competition_id, oefb_table_url, oefb_table_team_name')
     .eq('id', teamSeasonId).maybeSingle();
   if (error) return { data: null, error: error.message };
-  if (!data?.oefb_table_competition_id || !data.oefb_table_url || !data.oefb_table_team_name) {
+  if (!data?.oefb_table_url || (!data.oefb_table_competition_id && !isOefbClubTableUrl(data.oefb_table_url)) || !data.oefb_table_team_name) {
     return { data: null, error: null };
   }
   return { data: {
-    competitionId: String(data.oefb_table_competition_id),
+    competitionId: String(data.oefb_table_competition_id || ''),
     sourceUrl: String(data.oefb_table_url),
     teamName: String(data.oefb_table_team_name),
   }, error: null };
@@ -41,10 +45,10 @@ export async function adminSaveOefbTableSettings(input: {
 }): Promise<{ data: OefbTableSettings | null; error: string | null }> {
   const url = input.sourceUrl.trim();
   const teamName = input.teamName.trim();
-  if ((url || teamName) && (!parseOefbCompetitionUrl(url) || !teamName)) {
+  if ((url || teamName) && ((!parseOefbCompetitionUrl(url) && !isOefbClubTableUrl(url)) || !teamName)) {
     return { data: null, error: 'Gültigen ÖFB-Bewerbslink und Mannschaftsnamen angeben.' };
   }
-  const { error } = await supabase.rpc('admin_set_team_season_oefb_table', {
+  const { error } = await supabase.rpc(isOefbClubTableUrl(url) ? 'admin_set_team_season_club_table' : 'admin_set_team_season_oefb_table', {
     p_team_season_id: input.teamSeasonId,
     p_url: url,
     p_team_name: teamName,

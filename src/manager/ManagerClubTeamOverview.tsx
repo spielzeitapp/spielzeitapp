@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPlatformClub, listPlatformClubs, type ClubDetail } from '../lib/platformClubAdmin';
+import { ManagerTeamDataStatus } from './ManagerTeamDataStatus';
 import { supabase } from '../lib/supabaseClient';
 
 type SharedTeam = ClubDetail['team_seasons'][number] & { clubName: string; clubId: string };
@@ -41,9 +42,10 @@ export function ManagerClubTeamOverview({ detail }: { detail: ClubDetail }) {
       <p className="text-sm text-slate-600">Eigene Teams und bestätigte ÖFB-Verknüpfungen. NSG-/SPG-Teams bleiben beim angezeigten Verein. Zuordnung bedeutet noch keinen vollständigen Datenimport.</p>
       {loading && <p role="status" className="text-sm text-slate-500">Verknüpfungen werden geladen…</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{rows.map(s => <article key={s.id} className={`rounded-xl border p-4 ${own.some(o => o.id === s.id) ? 'border-slate-200' : 'border-emerald-200 bg-emerald-50'}`}>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{rows.map(s => <article key={s.id} className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="flex items-start justify-between gap-2"><h3 className="text-lg font-bold"><Link className="underline-offset-4 hover:underline" to={`/manager/vereine/${encodeURIComponent(s.clubId)}?setupSeason=${encodeURIComponent(s.id)}#manager-setup-checklist`}>{s.age_group || s.team_name} öffnen →</Link></h3><span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-700">{s.status === 'active' ? 'Aktiv' : 'In Vorbereitung'}</span></div><p className="font-medium">{s.team_name}</p><p className="mt-1 text-sm text-slate-600">{s.season_name} · {s.clubName}</p><p className="mt-2 text-xs font-semibold">{own.some(o => o.id === s.id) ? 'Eigene Mannschaft' : '✓ Verknüpft über ÖFB'}</p>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold"><Link className="rounded-lg bg-slate-900 px-3 py-2 text-white" to={`/manager/vereine/${encodeURIComponent(s.clubId)}?setupSeason=${encodeURIComponent(s.id)}#manager-setup-checklist`}>Einrichtung &amp; fehlende Daten</Link><Link className="underline" to={`/manager/saisons/${encodeURIComponent(s.id)}/kader`}>Kader</Link><Link className="underline" to={`/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`}>Spiele &amp; Tabelle</Link></div>
+        <ManagerTeamDataStatus seasonId={s.id} setupUrl={`/manager/vereine/${encodeURIComponent(s.clubId)}?setupSeason=${encodeURIComponent(s.id)}#manager-setup-checklist`} />
+        <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold"><Link className="underline" to={`/manager/saisons/${encodeURIComponent(s.id)}/kader`}>Kader</Link><Link className="underline" to={`/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`}>Spiele &amp; Tabelle</Link></div>
       </article>)}</div>
       {!rows.length && !loading && <p className="text-sm text-slate-500">Noch keine Mannschaftssaison in dieser Auswahl.</p>}
       {withoutSeason.map(t => <p key={t.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm"><strong>{t.name}</strong> · Saison noch nicht angelegt</p>)}
