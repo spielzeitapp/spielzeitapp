@@ -22,6 +22,7 @@ export type RosterStatus = 'active' | 'paused' | 'archived';
 
 export type RosterPlayer = {
   photo_layout?: PlayerPhotoLayout | null;
+  club_profile_design?: import('./clubProfileDesign').ClubProfileDesign|null;
   club_photo_template?: 'wide' | 'square';
   photo_layout_default?: PlayerPhotoLayout | null;
   id: string;
@@ -134,13 +135,14 @@ async function enrichAvatarsAndBirthdates(
   }, {});
 
   const {data:context,error:contextError}=await supabase.from('team_seasons')
-    .select('teams(clubs(player_photo_template))').eq('id',players[0].team_season_id).maybeSingle();
+    .select('teams(clubs(player_photo_template,player_profile_design))').eq('id',players[0].team_season_id).maybeSingle();
   if(contextError)return {data:[],error:contextError.message};
   const one=(v:any)=>Array.isArray(v)?v[0]:v;
   const template=one(one((context as any)?.teams)?.clubs)?.player_photo_template;
   return {
     data: players.map((p) => ({
       ...p,
+      club_profile_design: one(one((context as any)?.teams)?.clubs)?.player_profile_design??null,
       club_photo_template: template === 'square' ? 'square' : 'wide',
       avatar_url: avatarMap[p.id] ?? null,
       birthdate: birthMap[p.id] ?? null,

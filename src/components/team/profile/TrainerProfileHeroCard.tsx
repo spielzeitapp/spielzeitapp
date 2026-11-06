@@ -9,6 +9,7 @@ import {
 } from "./profileHeroShared";
 
 export type TrainerProfileHeroCardProps = {
+  hideDecorations?:boolean;
   photoLayout?: PlayerPhotoLayout | null;
   watermark: string;
   firstNameLine: string;
@@ -42,7 +43,7 @@ function resolveTrainerTeamHeader(
 }
 
 export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
-  photoLayout,
+  photoLayout,hideDecorations,
   watermark,
   firstNameLine,
   lastNameLine,
@@ -76,7 +77,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
     <div className="sz-club-profile-hero relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border" data-profile-artwork="premium" style={photoLayout?{background:photoBackground(layout.background)}:undefined}>
       <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
 
-      <p
+      <p hidden={hideDecorations}
         className="absolute left-9 top-[6.25rem] z-[4] select-none text-[clamp(6.75rem,30vw,9.75rem)] font-black leading-[0.7] tracking-[-0.08em] text-white/[0.14] sm:left-12 sm:top-[6.75rem]"
         style={photoLayout?{left:`calc(2.25rem + ${layout.numberX-88}%)`,top:`calc(6.25rem + ${layout.numberY-8}%)`,fontSize:`clamp(6rem, ${30*(layout.numberSize??44)/44}vw, ${9.75*(layout.numberSize??44)/44}rem)`}:undefined}
         aria-hidden
@@ -102,7 +103,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
 
       <div className="absolute inset-x-0 bottom-0 z-[3] h-[48%] bg-gradient-to-t from-black via-black/78 to-transparent" aria-hidden />
 
-      <div className="absolute inset-x-0 top-0 z-[5] flex items-start justify-between gap-3 p-4 sm:p-5">
+      <div style={hideDecorations?{display:'none'}:undefined} className="absolute inset-x-0 top-0 z-[5] flex items-start justify-between gap-3 p-4 sm:p-5">
         <div className="min-w-0 pt-0.5">
           <p className="truncate text-[15px] font-black uppercase leading-none tracking-[0.07em] text-white sm:text-[17px]">
             {teamHeader.club}
@@ -125,7 +126,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
         ) : null}
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5" style={photoLayout?{left:`${layout.nameX-28}%`,bottom:`${85-layout.nameY}%`}:undefined}>
+      <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5" style={hideDecorations?{display:'none'}:photoLayout?{left:`${layout.nameX-28}%`,bottom:`${85-layout.nameY}%`}:undefined}>
         <div className={`max-w-[82%] font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] ${nameSizeClass}`}>
           {firstNameLine ? <p className="whitespace-nowrap">{firstNameLine}</p> : null}
           {lastNameLine ? <p className="whitespace-nowrap">{lastNameLine}</p> : null}
