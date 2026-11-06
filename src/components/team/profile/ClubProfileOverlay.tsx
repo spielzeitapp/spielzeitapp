@@ -7,8 +7,10 @@ export function moveProfileElement(design:ClubProfileDesign,key:ProfileElement,x
 }
 export function ClubProfileOverlay({design,first,last,number,team,season,logo,onChange}:{design:ClubProfileDesign;first:string;last:string;number:string;team?:string|null;season:string;logo?:string|null;onChange?:(design:ClubProfileDesign)=>void}){
  const root=useRef<HTMLDivElement>(null),drag=useRef<{key:ProfileElement;id:number;x:number;y:number;design:ClubProfileDesign;width:number;height:number}|null>(null);
+ const snap=(v:number)=>[5,25,50,75,95].find(line=>Math.abs(line-v)<1.2)??v;
  const labels={name:'Spielername',number:'Rückennummer',logo:'Vereinslogo',team:'Verein und Saison'};
  return <div ref={root} className="pointer-events-none absolute inset-0 z-10 overflow-hidden" style={{containerType:'inline-size'}} data-club-profile-overlay>
+ {onChange&&<div aria-hidden="true" data-profile-guides className="pointer-events-none absolute inset-0">{[25,50,75].map(at=><React.Fragment key={at}><span className="absolute inset-y-0 border-l border-dashed border-white/45" style={{left:`${at}%`}}/><span className="absolute inset-x-0 border-t border-dashed border-white/45" style={{top:`${at}%`}}/></React.Fragment>)}<span className="absolute inset-[5%] border border-dashed border-amber-300/60"/></div>}
  {(['name','number','team','logo'] as const).map(key=>{const d=design[key];if(!d.visible||key==='logo'&&!logo)return null;
  const transform=d.align==='center'?'translateX(-50%)':d.align==='right'?'translateX(-100%)':undefined;
  const available=d.align==='center'?2*Math.min(d.x,100-d.x):d.align==='right'?d.x:100-d.x;
@@ -16,7 +18,7 @@ export function ClubProfileOverlay({design,first,last,number,team,season,logo,on
  const events=onChange?{
  role:'button',tabIndex:0,'aria-label':`${labels[key]} verschieben` as string,
  onPointerDown:(e:React.PointerEvent<HTMLElement>)=>{if(e.button!==0||e.isPrimary===false)return;const box=root.current?.getBoundingClientRect();if(!box?.width||!box.height)return;e.preventDefault();e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);drag.current={key,id:e.pointerId,x:e.clientX,y:e.clientY,design,width:box.width,height:box.height};},
- onPointerMove:(e:React.PointerEvent<HTMLElement>)=>{const a=drag.current;if(!a||a.id!==e.pointerId)return;e.preventDefault();onChange(moveProfileElement(a.design,key,a.design[key].x+(e.clientX-a.x)/a.width*100,a.design[key].y+(e.clientY-a.y)/a.height*100));},
+ onPointerMove:(e:React.PointerEvent<HTMLElement>)=>{const a=drag.current;if(!a||a.id!==e.pointerId)return;e.preventDefault();onChange(moveProfileElement(a.design,key,snap(a.design[key].x+(e.clientX-a.x)/a.width*100),snap(a.design[key].y+(e.clientY-a.y)/a.height*100)));},
  onPointerUp:()=>{drag.current=null;},onLostPointerCapture:()=>{drag.current=null;},
  onPointerCancel:()=>{if(drag.current)onChange(drag.current.design);drag.current=null;},
  onKeyDown:(e:React.KeyboardEvent<HTMLElement>)=>{const delta= e.shiftKey?5:1;const changes:Record<string,[number,number]>={ArrowLeft:[-delta,0],ArrowRight:[delta,0],ArrowUp:[0,-delta],ArrowDown:[0,delta]};if(!changes[e.key])return;e.preventDefault();const [x,y]=changes[e.key];onChange(moveProfileElement(design,key,d.x+x,d.y+y));}
