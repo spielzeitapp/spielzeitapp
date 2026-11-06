@@ -1,4 +1,6 @@
-import {defaultClubProfileDesign,type ClubProfileDesign,type ProfileElement} from '../lib/clubProfileDesign';
+import {isClubProfileDesign,defaultClubProfileDesign,type ClubProfileDesign,type ProfileElement} from '../lib/clubProfileDesign';
+import {useDraftHistory} from './useDraftHistory';
+import {useUnsavedProfileGuard} from './useUnsavedProfileGuard';
 import React,{useEffect,useState} from 'react';
 import {supabase} from '../lib/supabaseClient';
 import {listRoster,type RosterPlayer} from '../lib/rosterService';
@@ -6,22 +8,31 @@ import {DEFAULT_PHOTO_LAYOUT} from '../lib/playerPhotoLayout';
 import {ManagerProfilePhotoPreview} from './ManagerProfilePhotoPreview';
 type Template='wide'|'square';
 export function ManagerClubPhotoTemplate({clubId,seasonId}:{clubId:string;seasonId:string}){
- const [savedDesign,setSavedDesign]=useState<ClubProfileDesign|null>(null),[design,setDesign]=useState<ClubProfileDesign|null>(null);
- const [saved,setSaved]=useState<Template|null>(null),[draft,setDraft]=useState<Template>('wide');
+ const history=useDraftHistory({template:'wide' as Template,design:null as ClubProfileDesign|null});
+ const {template:draft,design}=history.value;
+ const setDraft=(template:Template)=>history.change(old=>({...old,template}));
+ const setDesign=(next:ClubProfileDesign|null|((old:ClubProfileDesign|null)=>ClubProfileDesign|null))=>history.change(old=>({...old,design:typeof next==='function'?next(old.design):next}));
+ const [savedDesign,setSavedDesign]=useState<ClubProfileDesign|null>(null);
+ const [saved,setSaved]=useState<Template|null>(null);
  const [players,setPlayers]=useState<RosterPlayer[]>([]);
  const [moving,setMoving]=useState(false);
  const [player,setPlayer]=useState<RosterPlayer|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  useEffect(()=>{let active=true;setSaved(null);setError('');setNotice('');
   void (async()=>{const {data,error}=await supabase.from('clubs').select('player_photo_template,player_profile_design').eq('id',clubId).single();
-   if(!active)return;if(error){setError(error.message);return;}const value=(data as unknown as {player_photo_template:Template}).player_photo_template;setSaved(value);setDraft(value);const d=(data as unknown as {player_profile_design:ClubProfileDesign|null}).player_profile_design??null;setSavedDesign(d);setDesign(d);
+   if(!active)return;if(error){setError(error.message);return;}const value=(data as unknown as {player_photo_template:Template}).player_photo_template;const d=(data as unknown as {player_profile_design:ClubProfileDesign|null}).player_profile_design??null;setSavedDesign(d);let initial={template:value,design:d};
+   try{const stored=JSON.parse(window.sessionStorage.getItem(`spielzeit:profile-draft:v1:${clubId}`)||'null');if(stored&&JSON.stringify(stored.base)===JSON.stringify(initial)&&stored.draft?.template&&['wide','square'].includes(stored.draft.template)&&(stored.draft.design===null||isClubProfileDesign(stored.draft.design))){initial=stored.draft;setNotice('Ungespeicherter Entwurf wiederhergestellt. Bitte prüfen, speichern oder verwerfen.');}}catch{/* Draft recovery is optional if browser storage is unavailable. */}
+   history.reset(initial);setSaved(value);
   })();return()=>{active=false;};
  },[clubId]);
  useEffect(()=>{let active=true;setPlayer(null);setPlayers([]);if(seasonId)void listRoster(seasonId).then(r=>{if(active){setPlayers(r.data);setPlayer(r.data.find(p=>p.avatar_url||p.cutout_url)??r.data[0]??null);if(r.error)setError(r.error);}});return()=>{active=false;};},[seasonId]);
+ const dirty=Boolean(saved)&&(saved!==draft||JSON.stringify(savedDesign)!==JSON.stringify(design));
+ useUnsavedProfileGuard(dirty);
+ useEffect(()=>{if(!saved)return;try{const key=`spielzeit:profile-draft:v1:${clubId}`;if(dirty)window.sessionStorage.setItem(key,JSON.stringify({base:{template:saved,design:savedDesign},draft:{template:draft,design}}));else window.sessionStorage.removeItem(key);}catch{/* Editing remains available without browser storage. */}},[clubId,saved,savedDesign,draft,design,dirty]);
  const save=async()=>{if(!saved||busy)return;setBusy(true);setError('');setNotice('');
-  try{const {error}=await supabase.rpc('admin_save_club_profile_design' as never,{p_club_id:clubId,p_template:draft,p_expected:saved,p_design:design,p_expected_design:savedDesign} as never);if(error)throw error;setSaved(draft);setSavedDesign(design);setNotice('Vereinsvorlage gespeichert. Gilt für alle Mannschaften dieses Vereins.');window.dispatchEvent(new Event('manager-setup-changed'));}
+  try{const {error}=await supabase.rpc('admin_save_club_profile_design' as never,{p_club_id:clubId,p_template:draft,p_expected:saved,p_design:design,p_expected_design:savedDesign} as never);if(error)throw error;setSaved(draft);setSavedDesign(design);history.reset({template:draft,design});setNotice('Vereinsvorlage gespeichert. Gilt für alle Mannschaften dieses Vereins.');window.dispatchEvent(new Event('manager-setup-changed'));}
   catch(e){setError((e as Error).message||'Speichern fehlgeschlagen.');}finally{setBusy(false);}
  };
- return <section className="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Profilvorlage des Vereins">
+ return <section onPointerDownCapture={history.begin} onPointerUpCapture={history.end} onPointerCancelCapture={history.end} className="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Profilvorlage des Vereins">
  <h2 className="font-bold text-slate-900">Spielerprofile · einheitliche Vereinsvorlage</h2>
  <p className="mt-2 text-sm text-slate-600">Gilt für alle Mannschaften und Spieler dieses Vereins. Foto, Größe und Position bleiben je Spieler einstellbar. Die Vorschau zeigt dieselbe Profilkarte wie die App.</p>
  <div className="mt-4 grid items-start gap-5 lg:grid-cols-2"><div>
@@ -34,12 +45,13 @@ export function ManagerClubPhotoTemplate({clubId,seasonId}:{clubId:string;season
  {key!=='logo'&&<><label className="mt-3 block text-xs">Farbe<input aria-label={`${labels[key]} Farbe`} type="color" className="ml-2 h-9" value={d.color} onChange={e=>patch('color',e.target.value)}/></label><label className="mt-3 block text-xs">Ausrichtung<select className="ml-2 rounded border p-2" value={d.align} onChange={e=>patch('align',e.target.value)}><option value="left">Links</option><option value="center">Mittig</option><option value="right">Rechts</option></select></label></>}
  </details>;})}<button type="button" className="min-h-11 text-sm underline" onClick={()=>setDesign(null)}>Standarddarstellung wiederherstellen</button></fieldset>
  <p className="mt-3 text-xs text-slate-500">Bei fertigen Vereinsfotos enthält das Original bereits den Hintergrund. Für die breite Vorlage zuerst einen Freisteller im Kader hinterlegen.</p>
- <div className="mt-4 flex flex-wrap gap-3"><button type="button" disabled={busy||!saved||saved===draft&&JSON.stringify(savedDesign)===JSON.stringify(design)} onClick={()=>void save()} className="min-h-11 rounded-xl bg-red-700 px-4 font-semibold text-white disabled:opacity-50">{busy?'Speichern…':'Vereinsvorlage speichern'}</button><button type="button" disabled={busy||!saved} onClick={()=>{if(saved)setDraft(saved);setDesign(savedDesign);setNotice('');}} className="min-h-11 rounded-xl border px-4">Änderung verwerfen</button></div>
+ {dirty&&<p role="status" className="mt-3 text-sm font-semibold text-amber-800">Ungespeicherte Änderungen · nur in der Vorschau</p>}
+ <div className="mt-4 flex flex-wrap gap-3"><button type="button" disabled={busy||!history.canUndo} onClick={history.undo} className="min-h-11 rounded-xl border px-4 disabled:opacity-40">Rückgängig</button><button type="button" disabled={busy||!saved||saved===draft&&JSON.stringify(savedDesign)===JSON.stringify(design)} onClick={()=>void save()} className="min-h-11 rounded-xl bg-red-700 px-4 font-semibold text-white disabled:opacity-50">{busy?'Speichern…':'Vereinsvorlage speichern'}</button><button type="button" disabled={busy||!saved} onClick={()=>{if(saved)history.reset({template:saved,design:savedDesign});setNotice('');}} className="min-h-11 rounded-xl border px-4">Änderung verwerfen</button></div>
  {notice&&<p role="status" className="mt-3 text-sm text-emerald-800">{notice}</p>}{error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
  </div><div className="min-w-0 rounded-xl bg-neutral-950 p-3 text-white"><p className="mb-2 text-sm font-semibold">Vorschau · {player?.display_name??'Noch kein Spieler vorhanden'}</p>
  {player?<ManagerProfilePhotoPreview key={seasonId+player.id} clubTemplate={draft} clubDesign={design} onDesignChange={moving&&!busy?value=>{setDesign(value);setNotice('');}:undefined} seasonId={seasonId} trainer={false} layout={player.photo_layout??player.photo_layout_default??{...DEFAULT_PHOTO_LAYOUT,source:player.cutout_url?'cutout':'original'}} photoUrl={player.avatar_url} cutoutUrl={player.cutout_url} firstName={player.first_name??''} lastName={player.last_name??''} number={player.jersey_number}/>:<p className="text-sm text-white/60">Eine Mannschaft mit Kader auswählen, um die Vorschau mit einem Spieler zu sehen.</p>}
  <label className="mt-3 block text-sm">Spieler für Vorschau<select aria-label="Spieler für Vorschau" className="mt-1 min-h-11 w-full rounded-lg border border-white/30 bg-neutral-900 px-3 text-white" value={player?.id??''} onChange={e=>setPlayer(players.find(p=>p.id===e.target.value)??null)}>{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · Nr. {p.jersey_number??'–'}</option>)}</select></label>
  <button type="button" disabled={!saved||busy||!player} aria-pressed={moving} className="mt-3 min-h-11 rounded-lg border border-white/40 px-3 text-sm" onClick={()=>{if(!moving)setDesign(old=>old??defaultClubProfileDesign(draft));setMoving(old=>!old);}}>{moving?'Verschieben beenden':'Elemente direkt verschieben'}</button>
- {moving&&<p className="mt-2 text-xs text-white/70">Name, Nummer, Logo oder Vereinszeile ziehen. Mit Tab auswählen und mit Pfeiltasten verschieben; Umschalt für größere Schritte. Das verändert nur die Vorschau.</p>}
+ {moving&&<p className="mt-2 text-xs text-white/70">Name, Nummer, Logo oder Vereinszeile ziehen. Mit Tab auswählen und mit Pfeiltasten verschieben; Umschalt für größere Schritte. Hilfslinien unterstützen die Ausrichtung; in der Nähe rasten Elemente ein. Das verändert nur die Vorschau.</p>}
  <p className="mt-2 text-xs text-white/60">Auswahl wird erst mit „Vereinsvorlage speichern“ übernommen.</p></div></div></section>;
 }

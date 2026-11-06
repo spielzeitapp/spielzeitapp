@@ -8,13 +8,14 @@ await act(async()=>tree=create(React.createElement(ClubProfileOverlay,{design,fi
 const name=tree.root.findByProps({'data-profile-element':'name'});const capture=[];
 const event=(x,y)=>({button:0,pointerId:7,clientX:x,clientY:y,currentTarget:{setPointerCapture:id=>capture.push(id)},preventDefault(){},stopPropagation(){}});
 await act(async()=>name.props.onPointerDown(event(100,100)));await act(async()=>name.props.onPointerMove(event(140,130)));
-assert.equal(changes.at(-1).name.x,design.name.x+10);assert.equal(changes.at(-1).name.y,design.name.y+10);assert.deepEqual(capture,[7]);
+assert.equal(changes.at(-1).name.x,design.name.x+10);assert.equal(changes.at(-1).name.y,design.name.y+10);assert.deepEqual(capture,[7]);assert.ok(tree.root.findByProps({'data-profile-guides':true}));
+await act(async()=>name.props.onPointerMove(event(280,100)));assert.equal(changes.at(-1).name.x,50,'Near-middle movement snaps to guide');
 await act(async()=>name.props.onPointerCancel());assert.deepEqual(changes.at(-1),design,'Cancelled drag restores draft');
 await act(async()=>name.props.onKeyDown({key:'ArrowRight',shiftKey:true,preventDefault(){}}));assert.equal(changes.at(-1).name.x,design.name.x+5);
 assert.equal(moveProfileElement(design,'name',120,-10).name.x,100);assert.equal(moveProfileElement(design,'name',120,-10).name.y,0);
 await act(async()=>tree.unmount());
 await act(async()=>tree=create(React.createElement(ClubProfileOverlay,{design,first:'A',last:'B',number:'9',season:'2026/27'})));
-assert.equal(tree.root.findByProps({'data-profile-element':'name'}).props.onPointerDown,undefined,'App profiles are not draggable');await act(async()=>tree.unmount());
+assert.equal(tree.root.findAllByProps({'data-profile-guides':true}).length,0);assert.equal(tree.root.findByProps({'data-profile-element':'name'}).props.onPointerDown,undefined,'App profiles are not draggable');await act(async()=>tree.unmount());
 const {AutoFitName}=await load('src/components/team/profile/AutoFitName.tsx');let resize;const node={clientWidth:100};let disconnected=false;
 globalThis.ResizeObserver=class{constructor(fn){resize=fn}observe(){}disconnect(){disconnected=true}};globalThis.getComputedStyle=()=>({fontWeight:'900',fontSize:'20px',fontFamily:'Arial'});globalThis.document={createElement:()=>({getContext:()=>({measureText:t=>({width:t.length*10})})})};
 await act(async()=>tree=create(React.createElement(AutoFitName,{first:'Short',last:'VeryLongFamilyName'}),{createNodeMock:()=>node}));
