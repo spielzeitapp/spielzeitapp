@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
+async function load(path){const r=await build({entryPoints:[path],bundle:true,platform:'node',format:'cjs',packages:'external',write:false});const m={exports:{}};new Function('require','module','exports',r.outputFiles[0].text)(require,m,m.exports);return m.exports;}
+const {ClubProfileOverlay,moveProfileElement}=await load('src/components/team/profile/ClubProfileOverlay.tsx');const {defaultClubProfileDesign}=await load('src/lib/clubProfileDesign.ts');
+let tree,changes=[];const design=defaultClubProfileDesign('wide');
+await act(async()=>tree=create(React.createElement(ClubProfileOverlay,{design,first:'Long',last:'Name',number:'19',season:'2026/27',onChange:d=>changes.push(d)}),{createNodeMock:e=>e.props['data-club-profile-overlay']!==undefined?{getBoundingClientRect:()=>({width:400,height:300})}:null}));
+const name=tree.root.findByProps({'data-profile-element':'name'});const capture=[];
+const event=(x,y)=>({button:0,pointerId:7,clientX:x,clientY:y,currentTarget:{setPointerCapture:id=>capture.push(id)},preventDefault(){},stopPropagation(){}});
+await act(async()=>name.props.onPointerDown(event(100,100)));await act(async()=>name.props.onPointerMove(event(140,130)));
+assert.equal(changes.at(-1).name.x,design.name.x+10);assert.equal(changes.at(-1).name.y,design.name.y+10);assert.deepEqual(capture,[7]);
+await act(async()=>name.props.onPointerCancel());assert.deepEqual(changes.at(-1),design,'Cancelled drag restores draft');
+await act(async()=>name.props.onKeyDown({key:'ArrowRight',shiftKey:true,preventDefault(){}}));assert.equal(changes.at(-1).name.x,design.name.x+5);
+assert.equal(moveProfileElement(design,'name',120,-10).name.x,100);assert.equal(moveProfileElement(design,'name',120,-10).name.y,0);
+await act(async()=>tree.unmount());
+await act(async()=>tree=create(React.createElement(ClubProfileOverlay,{design,first:'A',last:'B',number:'9',season:'2026/27'})));
+assert.equal(tree.root.findByProps({'data-profile-element':'name'}).props.onPointerDown,undefined,'App profiles are not draggable');await act(async()=>tree.unmount());
+const {AutoFitName}=await load('src/components/team/profile/AutoFitName.tsx');let resize;const node={clientWidth:100};let disconnected=false;
+globalThis.ResizeObserver=class{constructor(fn){resize=fn}observe(){}disconnect(){disconnected=true}};globalThis.getComputedStyle=()=>({fontWeight:'900',fontSize:'20px',fontFamily:'Arial'});globalThis.document={createElement:()=>({getContext:()=>({measureText:t=>({width:t.length*10})})})};
+await act(async()=>tree=create(React.createElement(AutoFitName,{first:'Short',last:'VeryLongFamilyName'}),{createNodeMock:()=>node}));
+const scaled=()=>tree.root.findAllByType('div').find(d=>d.props.style?.fontSize).props.style.fontSize;
+assert.ok(parseFloat(scaled())<1,'Long surname shrinks');node.clientWidth=400;await act(async()=>resize());assert.equal(scaled(),'1em','Larger preview refits without exceeding configured font size');
+await act(async()=>tree.unmount());assert.equal(disconnected,true);
+console.log('PASS preview tools: pointer drag and cancel, keyboard, bounds, app read-only, measured name fit, resize and cleanup.');
