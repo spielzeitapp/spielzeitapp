@@ -1,4 +1,5 @@
 import { isStagingApp } from '../lib/appEnvironment';
+import {ManagerClubPhotoTemplate} from './ManagerClubPhotoTemplate';
 import { ManagerClubTeamOverview } from './ManagerClubTeamOverview';
 import { ManagerClubImportPanel } from './ManagerClubImportPanel';
 /**
@@ -475,6 +476,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
           <details className="rounded-2xl border border-slate-200 bg-white">
             <summary className="cursor-pointer p-4 font-semibold text-slate-900">Vereinsdaten · Name, Logo &amp; Farben für alle Mannschaften</summary>
+          <ManagerClubPhotoTemplate key={clubId} clubId={clubId} seasonId={setupSeasonId} />
           <form
             id="club-basics"
             onSubmit={onSave}
