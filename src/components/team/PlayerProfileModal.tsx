@@ -844,6 +844,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           >
             <ProfileHeroCard
               variant="player"
+              clubTemplate={player.club_photo_template}
               photoLayout={player.photo_layout??player.photo_layout_default}
               watermark={jerseyWatermark}
               firstNameLine={firstNameLine}

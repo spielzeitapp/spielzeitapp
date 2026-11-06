@@ -13,6 +13,7 @@ import {TrainerProfileHeroCard} from './TrainerProfileHeroCard';
 export type ProfileHeroVariant = "trainer" | "player";
 
 type Props = {
+  clubTemplate?: 'wide' | 'square';
   photoLayout?:PlayerPhotoLayout|null;
   variant: ProfileHeroVariant;
   watermark: string;
@@ -32,12 +33,12 @@ type Props = {
 
 /** Imported artwork uses the same saved canvas as the roster and Manager preview. */
 export const ProfileHeroCard: React.FC<Props> = (props) => {
- const {variant,...portraitProps}=props;
+ const {variant,clubTemplate,...portraitProps}=props;
  // Player artwork must use exactly the same canvas as the roster and Manager.
  // Imported portraits already contain their club background and crest.
  const originalSource = props.photoLayout ? props.photoLayout.source === 'original' : !props.cutoutUrl;
  const imported = originalSource && ((props.photoLayout && isImportedPlayerPortrait(props.photoUrl)) || preparedPlayerPortrait(props.photoUrl));
- if (variant === 'player' && imported) {
+ if (variant === 'player' && (clubTemplate === 'square' || (!clubTemplate && imported))) {
    const layout = props.photoLayout ?? DEFAULT_PHOTO_LAYOUT;
    return <div className="sz-club-profile-hero sz-club-imported-portrait relative mb-3 aspect-square w-full overflow-hidden rounded-[22px] border" data-profile-artwork="player-canvas">
      <PlayerPortraitCanvas layout={layout} photoUrl={props.photoUrl} cutoutUrl={props.cutoutUrl} firstName={props.firstNameLine} lastName={props.lastNameLine} number={props.watermark} />
