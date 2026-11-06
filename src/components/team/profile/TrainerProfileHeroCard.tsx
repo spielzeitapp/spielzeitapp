@@ -1,6 +1,7 @@
 import {DEFAULT_PHOTO_LAYOUT, photoBackground, type PlayerPhotoLayout} from '../../../lib/playerPhotoLayout';
 import {playerPhotoDisplayUrl,preparedPlayerPortrait} from '../../../lib/playerPhotoDisplay';
 import React from "react";
+import {AutoFitName} from "./AutoFitName";
 import { resolveProfilePhotoSrc } from "../../../lib/profileHeroImage";
 import {
   resolveProfileCutoutSrc,
@@ -128,8 +129,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
 
       <div className="absolute inset-x-0 bottom-0 z-[5] p-4 sm:p-5" style={hideDecorations?{display:'none'}:photoLayout?{left:`${layout.nameX-28}%`,bottom:`${85-layout.nameY}%`}:undefined}>
         <div className={`max-w-[82%] font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.95)] ${nameSizeClass}`}>
-          {firstNameLine ? <p className="whitespace-nowrap">{firstNameLine}</p> : null}
-          {lastNameLine ? <p className="whitespace-nowrap">{lastNameLine}</p> : null}
+          <AutoFitName first={firstNameLine} last={lastNameLine}/>
         </div>
       </div>
     </div>

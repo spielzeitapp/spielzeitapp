@@ -15,6 +15,7 @@ import {TrainerProfileHeroCard} from './TrainerProfileHeroCard';
 export type ProfileHeroVariant = "trainer" | "player";
 
 type Props = {
+  onDesignChange?:(design:ClubProfileDesign)=>void;
   clubDesign?:ClubProfileDesign|null;
   clubTemplate?: 'wide' | 'square';
   photoLayout?:PlayerPhotoLayout|null;
@@ -36,10 +37,10 @@ type Props = {
 
 /** Imported artwork uses the same saved canvas as the roster and Manager preview. */
 export const ProfileHeroCard: React.FC<Props> = (props) => {
- const {variant,clubTemplate,clubDesign,...portraitProps}=props;
+ const {variant,clubTemplate,clubDesign,onDesignChange,...portraitProps}=props;
  // Player artwork must use exactly the same canvas as the roster and Manager.
  // Imported portraits already contain their club background and crest.
- const decorate=(card:React.ReactNode)=>clubDesign&&variant==='player'?<div className="relative">{card}<ClubProfileOverlay design={clubDesign} first={props.firstNameLine} last={props.lastNameLine} number={props.watermark} team={props.teamName} season={props.teamSeasonLabel} logo={props.teamLogoUrl}/></div>:card;
+ const decorate=(card:React.ReactNode)=>clubDesign&&variant==='player'?<div className="relative">{card}<ClubProfileOverlay onChange={onDesignChange} design={clubDesign} first={props.firstNameLine} last={props.lastNameLine} number={props.watermark} team={props.teamName} season={props.teamSeasonLabel} logo={props.teamLogoUrl}/></div>:card;
  const originalSource = props.photoLayout ? props.photoLayout.source === 'original' : !props.cutoutUrl;
  const imported = originalSource && ((props.photoLayout && isImportedPlayerPortrait(props.photoUrl)) || preparedPlayerPortrait(props.photoUrl));
  if (variant === 'player' && (clubTemplate === 'square' || (!clubTemplate && imported))) {

@@ -3,7 +3,7 @@ import {ProfileHeroCard} from '../components/team/profile/ProfileHeroCard';
 import {supabase} from '../lib/supabaseClient';
 import {hexToRgbChannels,DEFAULT_CLUB_BRANDING} from '../lib/clubBranding';
 import type {PlayerPhotoLayout} from '../lib/playerPhotoLayout';
-export function ManagerProfilePhotoPreview({seasonId,layout,photoUrl,cutoutUrl,firstName,lastName,number,trainer,clubTemplate,clubDesign}:{seasonId:string;layout:PlayerPhotoLayout;photoUrl?:string|null;cutoutUrl?:string|null;firstName:string;lastName:string;number?:number|null;trainer:boolean;clubTemplate?:'wide'|'square';clubDesign?:import('../lib/clubProfileDesign').ClubProfileDesign|null}){
+export function ManagerProfilePhotoPreview({seasonId,layout,photoUrl,cutoutUrl,firstName,lastName,number,trainer,clubTemplate,clubDesign,onDesignChange}:{seasonId:string;layout:PlayerPhotoLayout;photoUrl?:string|null;cutoutUrl?:string|null;firstName:string;lastName:string;number?:number|null;trainer:boolean;clubTemplate?:'wide'|'square';clubDesign?:import('../lib/clubProfileDesign').ClubProfileDesign|null;onDesignChange?:(design:import('../lib/clubProfileDesign').ClubProfileDesign)=>void}){
  const [header,setHeader]=useState({team:'',label:'',design:null as import('../lib/clubProfileDesign').ClubProfileDesign|null,logo:null as string|null,colors:{} as React.CSSProperties,template:undefined as 'wide'|'square'|undefined});
  useEffect(()=>{let active=true;setHeader({team:'',label:'',design:null as import('../lib/clubProfileDesign').ClubProfileDesign|null,logo:null as string|null,colors:{} as React.CSSProperties,template:undefined as 'wide'|'square'|undefined});
   void (async()=>{try{
@@ -16,5 +16,5 @@ export function ManagerProfilePhotoPreview({seasonId,layout,photoUrl,cutoutUrl,f
   }catch{/* The editor remains usable if season metadata is temporarily unavailable. */}})();
   return()=>{active=false;};
  },[seasonId]);
- return <div data-manager-artwork style={header.colors}><ProfileHeroCard clubDesign={clubDesign===undefined?header.design:clubDesign} clubTemplate={clubTemplate??header.template} variant={trainer?'trainer':'player'} photoLayout={layout} watermark={trainer?'TR':number==null?'':String(number)} firstNameLine={firstName} lastNameLine={lastName} teamName={header.team} teamSeasonLabel={header.label} teamLogoUrl={header.logo} photoUrl={photoUrl} cutoutUrl={cutoutUrl} initials={[firstName[0],lastName[0]].filter(Boolean).join('')}/></div>;
+ return <div data-manager-artwork style={header.colors}><ProfileHeroCard onDesignChange={onDesignChange} clubDesign={clubDesign===undefined?header.design:clubDesign} clubTemplate={clubTemplate??header.template} variant={trainer?'trainer':'player'} photoLayout={layout} watermark={trainer?'TR':number==null?'':String(number)} firstNameLine={firstName} lastNameLine={lastName} teamName={header.team} teamSeasonLabel={header.label} teamLogoUrl={header.logo} photoUrl={photoUrl} cutoutUrl={cutoutUrl} initials={[firstName[0],lastName[0]].filter(Boolean).join('')}/></div>;
 }
