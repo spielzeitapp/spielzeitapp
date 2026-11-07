@@ -111,7 +111,7 @@ export function MatchHeadToHead({ matchId, eventId, teamSeasonId, preview = fals
     } catch { setSaveError('Bestätigung nicht gespeichert. Bitte neu laden und erneut versuchen.'); }
     finally { setSaving(null); }
   }
-  return <section aria-label={preview ? "Spielvorschau: direkter Vergleich" : "Direkter Vergleich"} className="rounded-2xl border border-white/10 bg-black/40 p-3 sm:p-4">
+  return <section data-manager-match-surface aria-label={preview ? "Spielvorschau: direkter Vergleich" : "Direkter Vergleich"} className="rounded-2xl border border-white/10 bg-black/40 p-3 sm:p-4">
     <div className="flex items-center justify-between gap-2">
       <h2 className="text-sm font-bold uppercase tracking-wider text-white">{title ?? (preview ? "Duellvorschau" : "Direkter Vergleich")}</h2>
       <button type="button" aria-label="Informationen zum direkten Vergleich" aria-expanded={showInfo} onClick={() => setShowInfo(v => !v)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10"><Info size={18} /></button>

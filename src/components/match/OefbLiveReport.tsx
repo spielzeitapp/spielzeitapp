@@ -47,8 +47,8 @@ export function useOefbLiveReport(matchId: string | null, enabled: boolean) {
 }
 export function OefbLiveReport({report,view,filter='all',onBack}:{report:OefbLiveReportData;view:'events'|'lineup';filter?:'all'|'goals'|'subs'|'cards';onBack?:()=>void}){
  const events=report.events.filter(e=>filter==='all'||(filter==='goals'?e.type==='goal':filter==='subs'?e.type==='playerchange':['yellow','red','yellowred','card-blue'].includes(e.type))).slice().sort((a,b)=>(b.minute??-1)-(a.minute??-1));
- return <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#080a10] text-white">
-  <header className="z-10 flex shrink-0 items-center gap-3 border-b border-white/10 bg-[#080a10] px-3 py-3">
+ return <section data-manager-match-surface className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#080a10] text-white">
+  <header data-manager-match-surface className="z-10 flex shrink-0 items-center gap-3 border-b border-white/10 bg-[#080a10] px-3 py-3">
    {onBack?<button type="button" onClick={onBack} aria-label="Zurück zum Livespiel" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-4 text-sm font-bold text-white active:bg-white/10"><span aria-hidden>←</span> Livespiel</button>:null}
    <h2 className="min-w-0 flex-1 text-lg font-extrabold">{view==='events'?'Liveticker':'Aufstellung'}</h2>
    <span className="shrink-0 rounded-full border border-[rgb(var(--club-border-rgb)/0.4)] px-2 py-1 text-[11px] font-semibold text-white/60">ÖFB</span>
