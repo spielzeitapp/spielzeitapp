@@ -36,6 +36,23 @@ assert.ok(JSON.stringify(tree.toJSON()).includes('Entwurf wiederhergestellt'));
 await act(async()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Änderung verwerfen').props.onClick());
 assert.equal(tree.root.findByType('output').props.clubDesign.name.x,12,'Discard restores saved server design');
 assert.equal(drafts.size,0,'Discard removes browser backup');
+// Editing the actual photo is reachable here and remains a separate player-scoped save.
+await act(async()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Bild vergrößern & verschieben').props.onClick());
+assert.equal(tree.root.findByProps({'aria-label':'Spieler für Vorschau'}).props.disabled,true);
+assert.equal(tree.root.findAllByProps({'aria-label':'Name horizontal'}).length,0,'Image controls do not duplicate club element controls');
+const beforePhoto=calls.length;
+await act(async()=>tree.root.findByProps({'aria-label':'Bildgröße'}).props.onChange({target:{value:'135'}}));
+assert.equal(calls.length,beforePhoto,'Image editing does not save automatically');
+assert.equal(tree.root.findAllByType('output').at(-1).props.layout.zoom,135);
+assert.equal(tree.root.findAllByType('output').at(-1).props.clubTemplate,'wide','Image editor uses current club format');
+assert.equal(tree.root.findAllByType('output').at(-1).props.clubDesign.name.x,12,'Image editor uses current club design');
+await act(async()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Gestaltung speichern').props.onClick());
+assert.equal(calls.at(-1).name,'admin_save_player_photo_layout');
+assert.equal(calls.at(-1).args.p_player_id,'player');
+assert.equal(calls.at(-1).args.p_team_season_id,'season');
+assert.equal(calls.at(-1).args.p_layout.zoom,135);
+assert.equal(tree.root.findByProps({'aria-label':'Spieler für Vorschau'}).props.disabled,false);
+console.log('PASS inline photo controls: separate player save, draft-only zoom, shared format and design, no duplicate element sliders.');
 console.log('PASS club template: saved load, live preview, coordinates preserved, explicit scoped save, conflict and no automatic write.');
 }finally{await act(async()=>tree?.unmount());}
 const h=await build({entryPoints:['src/components/team/profile/ProfileHeroCard.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',define:{'import.meta.env.BASE_URL':'"/"'},write:false});const mm={exports:{}};new Function('require','module','exports',h.outputFiles[0].text)(require,mm,mm.exports);
