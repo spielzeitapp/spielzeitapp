@@ -1,3 +1,4 @@
+import { fetchImportedResultFeedRows } from '../lib/importedResultFeed';
 import { useCallback, useEffect, useState } from 'react';
 import { ensureEventFeedPostsForSeason } from '../lib/ensureEventFeedPosts';
 import { ensureMatchdayFeedPostsForSeason } from '../lib/ensureMatchdayFeedPosts';
@@ -83,6 +84,11 @@ async function fetchActiveSeasonPosts(opts: {
     if (!byTeamErr && byTeam) rows = byTeam as TeamFeedPostDbRow[];
   }
 
+  try {
+    rows = [...rows, ...await fetchImportedResultFeedRows(opts.teamSeasonId, rows)];
+  } catch (error) {
+    console.warn('[useTeamFeedPosts] imported result cards unavailable', error);
+  }
   const eventStatusById = await fetchEventStatusMapForSeasons([opts.teamSeasonId]);
   const { posts, parseDropped } = mapVisiblePosts(rows, eventStatusById, new Date(), {
     chronicle: opts.chronicleView === true,

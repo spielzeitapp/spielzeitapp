@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const b=await build({entryPoints:['src/lib/importedResultFeed.ts'],bundle:true,format:'cjs',platform:'node',write:false,define:{'import.meta.env.BASE_URL':'"/"'},plugins:[{name:'db',setup(b){b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:'export const supabase={};'}));}}]});
+const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);
+const make=m.exports.buildImportedResultFeedRows;
+const e={id:'event',team_season_id:'season',match_id:'match',starts_at:'2026-11-06T18:30:00Z',is_home:false,opponent:'Ober - Grafendorf',opponent_logo_url:'https://example.test/crest.png',location:'Arena',match_type:'league',matches:{status:'finished',score_home:4,score_away:0}};
+const team={id:'team',name:'KM USC Rohrbach'};
+const rows=make([e],[],[],[],team);assert.equal(rows.length,1);const p=rows[0].payload;
+assert.equal(p.home_score,4);assert.equal(p.away_score,0);assert.equal(p.result_state,'loss');assert.equal(p.away_team_name,'USC Rohrbach');assert.equal(rows[0].created_at,e.starts_at);assert.deepEqual(p.scorers,[]);
+assert.equal(make([e],rows,[],[],team).length,0);
+assert.equal(make([e],[],[],['result_feed:match'],team).length,0);
+for(const flag of ['feed_automation_enabled','result_feed_enabled'])assert.equal(make([e],[],[{event_id:'event',[flag]:false}],[],team).length,0);
+for(const invalid of [{matches:{...e.matches,status:'upcoming'}},{matches:{...e.matches,score_home:null}},{is_home:null},{starts_at:'2099-01-01'},{starts_at:'bad'}])assert.equal(make([{...e,...invalid}],[],[],[],team).length,0);
+assert.equal(make([e,e],[],[],[],team).length,1);
+assert.equal(make([{...e,is_home:true}],[],[],[],team)[0].payload.result_state,'win');
+console.log('PASS imported result cards: final scores, home/away, no invented scorers, chronological date, dedupe, suppression, settings, invalid/missing/future data.');
