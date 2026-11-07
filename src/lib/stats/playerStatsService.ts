@@ -550,7 +550,7 @@ function aggregateForPlayer(
 
   return {
     stats: { games, goals, assists, minutes, goalsPerGame, averageMinutesPerGame, goalsPer90, yellowCards, redCards, unknownMinutesGames, calculatedMinutesGames },
-    lastMatches: lastRows.slice(0, 5),
+    lastMatches: lastRows,
   };
 }
 

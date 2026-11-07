@@ -53,13 +53,13 @@ function splitPrefixAndName(full: string): { prefix: string; name: string } {
   return { prefix: first, name: parts.slice(1).join(' ') };
 }
 
-function TeamLogoBlock({ src, label, prominent = false }: { src: string; label: string; prominent?: boolean }) {
+function TeamLogoBlock({ src, label, prominent = false, own = false }: { src: string; label: string; prominent?: boolean; own?: boolean }) {
   return (
-    <ClubLogo
+    <ClubLogo removeDarkBackground
       src={src}
       alt=""
       aria-hidden
-      className={`${prominent ? 'h-12 w-12 sm:h-14 sm:w-14' : 'h-10 w-10 sm:h-11 sm:w-11'} shrink-0 object-contain [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.14))]`}
+      className={`${own ? 'h-14 w-20 sm:h-16 sm:w-24' : prominent ? 'h-12 w-12 sm:h-14 sm:w-14' : 'h-10 w-10 sm:h-11 sm:w-11'} shrink-0 object-contain [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.14))]`}
       onError={(e) => {
         const img = e.currentTarget as HTMLImageElement;
         if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
@@ -219,7 +219,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
 
         <div className={`grid grid-cols-[1fr_auto_1fr] items-start gap-x-2 ${appearance ? 'border-t border-white/[0.07] pt-3' : ''}`}>
           <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
-            <TeamLogoBlock src={homeLogoSrc} label={homeName} prominent={appearance} />
+            <TeamLogoBlock src={homeLogoSrc} label={homeName} prominent={appearance} own={match.isHome !== false} />
             {homeSplit.prefix ? (
               <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                 {homeSplit.prefix}
@@ -247,7 +247,7 @@ export const SeasonMatchCard: React.FC<Props> = ({ match, ourTeamName, footerSlo
           </div>
 
           <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
-            <TeamLogoBlock src={awayLogoSrc} label={awayName} prominent={appearance} />
+            <TeamLogoBlock src={awayLogoSrc} label={awayName} prominent={appearance} own={match.isHome === false} />
             {awaySplit.prefix ? (
               <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                 {awaySplit.prefix}

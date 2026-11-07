@@ -176,10 +176,12 @@ function LiveMatchLogoTile({
   src,
   liveGlow,
   size = 'md',
+  wide = false,
 }: {
   src: string;
   liveGlow: boolean;
   size?: 'md' | 'hero' | 'heroLg' | 'schedule' | 'board' | 'boardSm';
+  wide?: boolean;
 }) {
   const [imgSrc, setImgSrc] = useState(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
   useEffect(() => {
@@ -211,11 +213,11 @@ function LiveMatchLogoTile({
               ? 'max-h-11 max-w-11 object-contain p-0.5'
               : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
   return (
-    <div className={`flex shrink-0 items-center justify-center ${box} ${glow}`}>
-      <ClubLogo
+    <div className={`flex shrink-0 items-center justify-center ${box} ${wide ? "!w-[6.5rem] sm:!w-32 max-w-full" : ""} ${glow}`}>
+      <ClubLogo removeDarkBackground
         src={imgSrc}
         alt=""
-        className={imgClass}
+        className={`${imgClass} ${wide ? "!w-full !max-w-full" : ""}`}
         onError={() => {
           if (imgSrc !== '/logos/placeholder-shield-a.png') setImgSrc('/logos/placeholder-shield-a.png');
         }}
@@ -4909,7 +4911,7 @@ export const LiveMatchScreen: React.FC = () => {
                   }`}
                 >
                   <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
-                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
+                    <LiveMatchLogoTile src={homeLogoSrc} wide={sides.isOwnTeamHome} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
                     <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
                       <MatchboardTeamNameLines parts={homeNameParts} align="center" tight={!matchIsFinished} />
                     </div>
@@ -5044,7 +5046,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
 
                   <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
-                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
+                    <LiveMatchLogoTile src={awayLogoSrc} wide={!sides.isOwnTeamHome} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
                     <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
                       <MatchboardTeamNameLines parts={awayNameParts} align="center" tight={!matchIsFinished} />
                     </div>

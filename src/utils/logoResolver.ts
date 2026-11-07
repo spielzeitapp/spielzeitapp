@@ -6,13 +6,19 @@
 import { displayLogoUrl } from '../lib/logoPreparation';
 const BASE = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '') + '/';
 const SHIELD_PLACEHOLDER = `${BASE}logos/placeholder-shield-a.png`;
-const LOGO_EXT_RE = /\.(png|jpg|jpeg|svg)(\?.*)?$/i;
+const LOGO_EXT_RE = /\.(png|jpg|jpeg|svg|webp)(\?.*)?$/i;
 
 export function isValidLogoUrl(url?: string | null): url is string {
   if (!url || typeof url !== 'string') return false;
   const value = url.trim();
   if (/^\/api\/oefb\/table\?view=logo&id=[a-f0-9]{20}$/i.test(value)) return true;
   if (!value) return false;
+  if (value.startsWith('/api/oefb/table?view=photo&url=')) {
+    try {
+      const original = decodeURIComponent(value.slice('/api/oefb/table?view=photo&url='.length));
+      return original.startsWith('https://vereine.oefb.at/netzwerk/imagedownload/') && displayLogoUrl(original) === value;
+    } catch { return false; }
+  }
   const lower = value.toLowerCase();
   if (lower.startsWith('http://') || lower.startsWith('https://')) {
     return LOGO_EXT_RE.test(lower);

@@ -1147,7 +1147,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           {profileTab === "matches" ? (
             <div>
               <h4 className="sz-club-profile-accent mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em]">
-                {statsMode === "career" ? "Letzte Spiele (Gesamt)" : "Letzte Spiele"}
+                {statsMode === "career" ? "Alle Einsätze (Gesamt)" : "Alle Einsätze"}
               </h4>
               {statsLoading ? (
                 <div className="space-y-2.5">
