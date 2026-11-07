@@ -1,3 +1,4 @@
+import { isUscRohrbachResult, uscResultCaption } from './resultFeedPresentation';
 /**
  * Automatische Ergebnis-Feedposts (MVP: JSON + UI, kein PNG/Storage).
  */
@@ -95,12 +96,16 @@ export function buildAutoResultCaption(params: {
   resultState: 'win' | 'draw' | 'loss';
   /** Omitted only for legacy callers that supply home-oriented text. */
   isHome?: boolean;
+  /** Only for recognizing unchanged captions saved by earlier releases. */
+  legacyTemplate?: boolean;
 }): string {
   const us = (params.ourTeamName || '').trim() || 'Unser Team';
   const opp = (params.opponentName || '').trim() || 'Gegner';
   const scoreStr = params.isHome === false
     ? `${params.awayScore}:${params.homeScore}`
     : `${params.homeScore}:${params.awayScore}`;
+
+  if (!params.legacyTemplate && isUscRohrbachResult(us)) return uscResultCaption(us, opp, params.isHome === false ? params.awayScore : params.homeScore, params.isHome === false ? params.homeScore : params.awayScore);
 
   if (params.resultState === 'win') {
     return `🔥 ENDSTAND!\n${us} gewinnt ${scoreStr} gegen ${opp}.\nStarker Einsatz unserer Mannschaft!\n#GEMEINSAMEINTEAM`;

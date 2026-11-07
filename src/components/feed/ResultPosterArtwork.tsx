@@ -1,3 +1,6 @@
+import { ClubLogo } from '../branding/ClubLogo';
+import { scheduleClubName } from '../../lib/scheduleClubIdentity';
+import { isUscRohrbachResult } from '../../lib/resultFeedPresentation';
 import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
 import React from 'react';
 import { CalendarDays, MapPin } from 'lucide-react';
@@ -10,6 +13,7 @@ import { PosterClubName } from './PosterClubName';
 type Props = {
   payload: ResultFeedPayload;
   ageGroup: string | null;
+  seasonLabel?: string | null;
   competition: string;
   periods: string | null;
   date: string | null;
@@ -22,25 +26,30 @@ function ClubMark({ name, src }: { name: string; src: string }) {
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => setFailed(false), [src]);
   return <div className="result-poster-club">
-    <img src={displayLogoUrl(failed ? fallback : src || fallback)} alt={`${name} Logo`} onError={() => setFailed(true)} />
-    <PosterClubName name={name} wrap />
+    <ClubLogo removeDarkBackground src={displayLogoUrl(failed ? fallback : src || fallback)} alt={`${scheduleClubName(name)} Logo`} onError={() => setFailed(true)} />
+    <PosterClubName name={scheduleClubName(name)} wrap />
   </div>;
 }
 
 /** Ergebnisgrafik mit dynamischen Daten und Vereinslogos. */
 export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(function ResultPosterArtwork(
-  { payload: p, ageGroup, competition, periods, date, venue, scorers }, ref,
+  { payload: p, ageGroup, competition, periods, date, venue, scorers, seasonLabel }, ref,
 ) {
   const matchClub=useMatchClubBranding(p.team_season_id);
+  const usc = isUscRohrbachResult(p.our_team_name);
   const scoreText = `${p.home_score}:${p.away_score}`;
   const ownScore = p.is_home ? p.home_score : p.away_score;
   const opponentScore = p.is_home ? p.away_score : p.home_score;
   const state = ownScore > opponentScore ? 'win' : ownScore < opponentScore ? 'loss' : 'draw';
-  return <div ref={ref} style={matchClub.style} data-manager-artwork className={`result-poster result-poster--${state}`} data-result-state={state}>
+  return <div ref={ref} style={matchClub.style} data-manager-artwork className={`result-poster result-poster--${state} ${usc ? 'result-poster--usc' : ''}`} data-result-state={state}>
     <div className="result-poster-content">
+      {usc ? <div className="result-poster-identity">
+        <ClubLogo removeDarkBackground src={matchClub.brand?.logo_url || (p.is_home ? p.home_logo_url : p.away_logo_url)} alt="" />
+        <div><strong>{scheduleClubName(p.our_team_name)}</strong><small>{[ageGroup || 'KM', seasonLabel?.match(/20\d{2}\/\d{2,4}/)?.[0]].filter(Boolean).join(' · ')}</small></div>
+      </div> : null}
       <header>
         <h2>ENDSTAND</h2>
-        {ageGroup ? <div className="result-poster-age">{ageGroup}</div> : null}
+        {ageGroup && !usc ? <div className="result-poster-age">{ageGroup}</div> : null}
         <p className="result-poster-competition">{competition}</p>
       </header>
       <div className="result-poster-match">
@@ -64,7 +73,7 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
         {date ? <p><CalendarDays aria-hidden /><span>{date}</span></p> : null}
         {venue ? <p><MapPin aria-hidden /><span>{venue}</span></p> : null}
       </div> : null}
-      <footer>#GEMEINSAM<span>EINTEAM</span></footer>
+      <footer>{usc ? '#GEMEINSAMSTARK' : <>#GEMEINSAM<span>EINTEAM</span></>}</footer>
     </div>
   </div>;
 });
