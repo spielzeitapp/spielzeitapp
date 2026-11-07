@@ -36,6 +36,8 @@ export type PlayerLastMatchRow = {
   dateLabel: string;
   result: string;
   minutes: number;
+  /** False when the ÖFB appearance has no calculable playing time. */
+  minutesKnown?: boolean;
   goals: number;
   wasStarter: boolean;
   /** UI: 'full' | 'sub_in' | 'bank' | 'partial' (z. B. ausgewechselt) */
@@ -523,6 +525,7 @@ function aggregateForPlayer(
       dateLabel: formatDateLabel(m.match_date),
       result: `${sh}:${sa}`,
       minutes: mMin,
+      minutesKnown: !sourceOnly || hasCalculated,
       goals: goalsInMatchForPlayer(evs, pid),
       wasStarter,
       badgeKind: badge.badgeKind,

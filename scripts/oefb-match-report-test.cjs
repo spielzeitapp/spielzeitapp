@@ -25,6 +25,11 @@ const halftimeHtml = `SG.container.appPreloads['a']=${JSON.stringify([{...title,
 const halftimeReport=extractReport(halftimeHtml,'4134586');
 assert.equal(halftimeReport.score,'1:2');
 assert.deepEqual(halftimeReport.events.map(e=>e.minute),[90,92,null,null]);
+assert.deepEqual(halftimeReport.events.map(e=>e.atHalfTime),[false,false,true,false]);
+for(const label of ['HZ','HT','Halbzeit']) {
+ const h=`SG.container.appPreloads['a']=${JSON.stringify([title])};\nSG.container.appPreloads['b']=${JSON.stringify([{...details,gameData:[{type:'playerchange',minute:54,minuteString:label,team:'a',playerPrimary:'Leonidas Rotteneder',playerSecondary:'Jonas Weber'}]}])};`;
+ const e=extractReport(h,'4134586').events[0];assert.equal(e.minute,null);assert.equal(e.atHalfTime,true);
+}
 for(const [raw,expected] of [['0:0 (0:0)','0:0'],['4:0 (0:0)','4:0'],['0:3 (0:2)','0:3'],['0:6 (0:3)','0:6'],['4:1 (1:0)','4:1'],['4:0 abgebrochen',null],['4:0 (0:0) abgebrochen',null],['-:-',null],['',null]]) {
  assert.equal(extractReport(`SG.container.appPreloads['a']=${JSON.stringify([{...title,ergebnis:raw}])};`,'4134586').score,expected);
 }

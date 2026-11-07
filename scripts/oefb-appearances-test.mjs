@@ -31,3 +31,10 @@ if(fs.existsSync('/tmp/import-audit-links.json')){
  console.log('INTERVAL AUDIT',JSON.stringify([...totals].map(([id,t])=>({name:actual.find(l=>l.player_id===id).source_name,...t}))),{known,unknown});
 }
 console.log('PASS: substitutions, re-entry, dismissal, unknown/malformed/out-of-range times, bench exclusion and confirmed duration.');
+const halfTime={...report,events:[{...report.events[0],minute:null,atHalfTime:true}]};
+assert.equal(calculatedPlayerMinutes(halfTime,true,'a',links,90),45);
+assert.equal(calculatedPlayerMinutes(halfTime,true,'b',links,90),45);
+assert.equal(calculatedPlayerMinutes(halfTime,true,'b',links,80),40);
+assert.equal(calculatedPlayerMinutes(halfTime,true,'b',links,null),null);
+assert.equal(calculatedPlayerMinutes(halfTime,true,'b',links,45),null);
+console.log('PASS: halftime substitutions use half the confirmed duration, never an internal timeline minute or an assumed youth duration.');
