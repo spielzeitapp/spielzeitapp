@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import release from '../../server/lib/liveRelease.js';
 import checkDisplay from '../../server/lib/releaseCheckPresentation.js';
+import technical from '../../server/lib/technicalReview.js';
+import artifacts from '../../server/lib/reviewArtifact.js';
 const TEST_PROJECT='acbaecjzoabafbsjrzvr';
 export default async function handler(req,res) {
  res.setHeader('Cache-Control','no-store');
@@ -33,11 +35,26 @@ export default async function handler(req,res) {
     const response=await fetch(`https://spielzeitapp.at/api/release/manage?view=version&t=${Date.now()}`,{cache:'no-store',signal:AbortSignal.timeout(5000)});
     if(response.ok){const version=await response.json();liveVerified=version.sha===plan.main&&version.branch==='main';}
    }catch{}}
-   return res.json({...plan,checks,ready:plan.ready&&!sameSource,sameSource,liveVerified});
+   const technicalReview=await technical.reviewState(gh,plan,id=>artifacts.downloadReport(token,id));
+   return res.json({...plan,technicalReview,checks,ready:plan.ready&&!sameSource,sameSource,liveVerified});
   }
   if(sameSource)return res.status(409).json({error:'TEST und LIVE haben bereits denselben Programmstand. Es gibt nichts zu veröffentlichen.'});
   if(process.env.VERCEL_GIT_COMMIT_REF!=='develop')return res.status(403).json({error:'Nur der bereitgestellte TEST-Stand auf develop darf veröffentlichen.'});
   const body=typeof req.body==='string'?JSON.parse(req.body):req.body;
+  if(['review','approve'].includes(body?.action)){
+   try {
+    technical.assertSnapshot(plan,body);
+    if(body.action==='approve')return res.json(await technical.approve(gh,plan,body,user.id,id=>artifacts.downloadReport(token,id)));
+    const workflow=await gh(`/actions/workflows/${technical.WORKFLOW}`);
+    if(workflow.state!=='active')throw Error('Technische Prüfung ist noch nicht eingerichtet.');
+    const running=await gh(`/actions/workflows/${technical.WORKFLOW}/runs?per_page=10`);
+    if(running.workflow_runs?.some(r=>r.status!=='completed'))throw Error('Eine technische Prüfung läuft bereits. Bitte warten.');
+    const requestId=randomUUID();
+    await gh(`/actions/workflows/${technical.WORKFLOW}/dispatches`,{method:'POST',body:JSON.stringify({ref:'main',inputs:{head:plan.head,main:plan.main,plan_digest:plan.planDigest,request_id:requestId}})});
+    return res.status(202).json({requestId,message:'Technische Prüfung gestartet. LIVE wird dabei nicht verändert.'});
+   }catch(e){return res.status(409).json({error:e.message});}
+  }
+  if(body?.action)return res.status(400).json({error:'Unbekannte Aktion.'});
   if(!plan.ready||body?.head!==plan.head||body?.main!==plan.main||body?.planDigest!==plan.planDigest)return res.status(409).json({error:'Freigabestand geändert oder noch nicht bereit. Bitte erneut prüfen.',plan});
   const requestId=randomUUID();
   await gh(`/actions/workflows/${release.WORKFLOW}/dispatches`,{method:'POST',body:JSON.stringify({ref:'main',inputs:{head:plan.head,main:plan.main,plan_digest:plan.planDigest,actor:user.id,request_id:requestId}})});

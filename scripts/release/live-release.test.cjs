@@ -63,6 +63,18 @@ test('Manager requires a ready preview and explicit confirmation before dispatch
   await act(async()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Stand prüfen')).props.onClick());
   assert.ok(!JSON.stringify(renderer.toJSON()).includes('LIVE ist aktuell'));
   assert.ok(JSON.stringify(renderer.toJSON()).includes('LIVE-Bestätigung ausstehend'));
+  plan={...plan,sameSource:false,head:HEAD,main:MAIN,blockers:['Datenbankänderungen benötigen noch eine technische Freigabe.'],migrations:[{path:'supabase/migrations/example.sql',reviewed:false}],technicalReview:{available:true,canStart:true,canApprove:true,runId:17,status:'completed',report:{passed:true,findings:[]}}};
+  await act(async()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Stand prüfen')).props.onClick());
+  const approveButton=()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Geprüfte Datenbankänderungen freigeben'));
+  assert.equal(approveButton().props.disabled,true);
+  await act(async()=>renderer.root.findAllByType('input')[0].props.onChange({target:{checked:true}}));
+  assert.equal(approveButton().props.disabled,false);
+  await act(async()=>approveButton().props.onClick());
+  assert.equal(posts.at(-1).action,'approve');assert.equal(posts.at(-1).runId,17);assert.equal(button().props.disabled,true);
+  plan={...plan,technicalReview:{...plan.technicalReview,canApprove:false,report:{passed:false,findings:[{path:'blocked.sql',passed:false,message:'Technische Prüfung erforderlich'}]}}};
+  await act(async()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Stand prüfen')).props.onClick());
+  assert.equal(approveButton(),undefined);assert.ok(JSON.stringify(renderer.toJSON()).includes('Noch nicht freigabefähig'));
+
  }finally{if(renderer)await act(async()=>renderer.unmount());global.window=previousWindow;global.fetch=previousFetch;}
 });
 
