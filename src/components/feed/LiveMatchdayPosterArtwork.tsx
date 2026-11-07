@@ -1,3 +1,7 @@
+import {ClubLogo} from '../branding/ClubLogo';
+import {isUscRohrbachResult} from '../../lib/resultFeedPresentation';
+import {scheduleClubName} from '../../lib/scheduleClubIdentity';
+import {portraitBrightness} from '../../lib/playerPhotoLayout';
 import React from 'react';
 import './matchdayPoster.css';
 import { Clock, MapPin, Trophy } from 'lucide-react';
@@ -38,7 +42,7 @@ function PosterLogo({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
+function PosterPlayerLayer({ playerImageUrl, brightness }: { playerImageUrl: string; brightness:number }) {
   const [failed, setFailed] = React.useState(false);
 
   React.useEffect(() => {
@@ -54,7 +58,7 @@ function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
         src={playerImageUrl}
         alt=""
         className="absolute bottom-[9%] right-[-7%] h-[87%] w-[66%] object-contain object-bottom object-right"
-        style={{ filter: 'drop-shadow(-12px 8px 24px rgba(0,0,0,0.9))' }}
+        style={{ filter: `brightness(${portraitBrightness(brightness)}%) drop-shadow(-12px 8px 24px rgba(0,0,0,0.9))` }}
         loading="lazy"
         onError={() => setFailed(true)}
       />
@@ -105,6 +109,7 @@ export type MatchdayPosterArtworkProps = {
   isHomeGame?: boolean;
   hashtag?: string;
   playerImageUrl?: string | null;
+  playerBrightness?: number;
   heroOverride?: { main: string; suffix?: string | null; livePulse?: boolean };
   showAnpfiffLabel?: boolean;
   statusBadge?: string | null;
@@ -128,11 +133,15 @@ export const LiveMatchdayPosterArtwork = React.forwardRef<HTMLDivElement, Matchd
       isHomeGame,
       hashtag = '#GEMEINSAMEINTEAM',
       playerImageUrl = null,
+      playerBrightness = 100,
       heroOverride,
       statusBadge = null,
     },
     ref,
   ) {
+    const usc=isUscRohrbachResult(homeTeamName)||isUscRohrbachResult(awayTeamName);
+    const posterClass=usc?'usc-matchday-poster':'';
+    if(usc){homeTeamName=scheduleClubName(homeTeamName);awayTeamName=scheduleClubName(awayTeamName);hashtag='#GEMEINSAMSTARK';}
     const playerUrl = playerImageUrl?.trim() || null;
     const kickoff = kickoffTime.replace(/\s*uhr\s*$/i, '').trim() || '—';
     const venueLine = isHomeGame === true ? 'HEIMSPIEL' : isHomeGame === false ? 'AUSWÄRTSSPIEL' : null;
@@ -148,14 +157,14 @@ export const LiveMatchdayPosterArtwork = React.forwardRef<HTMLDivElement, Matchd
       const team = (name: string, logo: string) => (
         <div className="flex min-w-0 flex-1 flex-col items-center gap-[2cqw]">
           <div className="flex h-[28cqw] w-[28cqw] items-center justify-center">
-            <img src={logo || PLACEHOLDER} alt={name} className="h-full w-full object-contain"
+            <ClubLogo removeDarkBackground src={logo || PLACEHOLDER} alt={name} className="h-full w-full object-contain"
               onError={(e) => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = PLACEHOLDER; }} />
           </div>
           <p className="sz-matchday-display w-full break-words text-center text-[4.1cqw] font-extrabold uppercase leading-[1.12] tracking-tight">{name}</p>
         </div>
       );
       return (
-        <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white" style={{ containerType: 'inline-size' }}>
+        <div ref={ref} className={`relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white ${posterClass}`} style={{ containerType: 'inline-size' }}>
           <GraphicBackground />
           <div className="relative z-[2] flex h-full flex-col items-center px-[6%] pb-[5%] pt-[6%] text-center">
             <header className="w-full">
@@ -201,9 +210,9 @@ export const LiveMatchdayPosterArtwork = React.forwardRef<HTMLDivElement, Matchd
     }
 
     return (
-      <div ref={ref} className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white" style={{ containerType: 'inline-size' }}>
+      <div ref={ref} className={`relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] bg-black text-white ${posterClass}`} style={{ containerType: 'inline-size' }}>
         <GraphicBackground />
-        <PosterPlayerLayer playerImageUrl={playerUrl} />
+        <PosterPlayerLayer playerImageUrl={playerUrl} brightness={playerBrightness} />
         <div className="relative z-[2] flex h-full flex-col px-[6%] pb-[16%] pt-[6%]">
           <header className="w-[60%]">
             <p className="text-[2cqw] font-bold uppercase tracking-[0.18em]">{competition || statusLabel}</p>
@@ -218,7 +227,7 @@ export const LiveMatchdayPosterArtwork = React.forwardRef<HTMLDivElement, Matchd
             {[{ name: homeTeamName, logo: homeLogoUrl }, { name: awayTeamName, logo: awayLogoUrl }].map((team, i) => <React.Fragment key={i}>
               {i === 1 ? <span className="sz-matchday-display sz-club-feed-accent-text mt-[6cqw] text-[5cqw] italic">VS</span> : null}
               <div className="flex min-w-0 flex-1 flex-col items-center">
-                <img src={team.logo || PLACEHOLDER} alt={team.name} className="h-[18cqw] w-[18cqw] object-contain" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = PLACEHOLDER; }} />
+                <ClubLogo removeDarkBackground src={team.logo || PLACEHOLDER} alt={team.name} className="h-[18cqw] w-[18cqw] object-contain" onError={e => { if (!e.currentTarget.src.endsWith('/logos/placeholder-shield-a.png')) e.currentTarget.src = PLACEHOLDER; }} />
                 <p className="sz-matchday-display mt-[1.5cqw] w-full text-center text-[2.9cqw] uppercase leading-[1.2]">{team.name}</p>
               </div>
             </React.Fragment>)}

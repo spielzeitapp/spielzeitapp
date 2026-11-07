@@ -1,3 +1,4 @@
+import {useMatchClubBranding} from '../../hooks/useMatchClubBranding';
 import { ReleasedMatchVideosLink } from '../match/ReleasedMatchVideosLink';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EventRow, EventStatus } from '../../hooks/useEvents';
@@ -100,6 +101,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   onFeedPostUpdated,
 }) => {
   const p = post.payload as MatchdayFeedPayload;
+  const matchClub=useMatchClubBranding(post.team_season_id);
   const displayHomeName = normalizeOefbImportedTeamName(p.display_home_name) || p.display_home_name;
   const displayAwayName = normalizeOefbImportedTeamName(p.display_away_name) || p.display_away_name;
   const announcementTiming = useMemo((): MatchdayAnnouncementTiming | null => {
@@ -168,14 +170,14 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   }, [eventStatus, basePath, p.event_id]);
 
   const homeLogoUrl = useMemo(() => {
-    if (p.is_home) return getClubLogo(p.our_team_name);
+    if (p.is_home) return getClubLogo(p.our_team_name, {logoUrl:matchClub.brand?.logo_url});
     return getClubLogo(displayHomeName, { logoUrl: p.opponent_logo_url });
-  }, [p]);
+  }, [p, matchClub.brand?.logo_url]);
 
   const awayLogoUrl = useMemo(() => {
     if (p.is_home) return getClubLogo(displayAwayName, { logoUrl: p.opponent_logo_url });
-    return getClubLogo(p.our_team_name);
-  }, [p]);
+    return getClubLogo(p.our_team_name, {logoUrl:matchClub.brand?.logo_url});
+  }, [p, matchClub.brand?.logo_url]);
 
   const locationLine = useMemo(() => {
     const raw = (p.location ?? '').trim() || (p.address ?? '').trim() || null;
@@ -385,6 +387,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           awayScore={scores?.away ?? null}
           matchType={p.match_type}
           announcementTiming={announcementTiming}
+          playerId={designState.design.playerId}
+          teamSeasonId={basePath === '/demo' ? null : post.team_season_id}
           playerImageUrl={basePath === '/demo' ? '/avatars/demo/demo-player-upper-02.webp' : designState.design.template === 'player' ? designState.design.imageUrl : null}
         />
         )}
