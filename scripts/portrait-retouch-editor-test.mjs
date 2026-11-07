@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {build} from 'esbuild';
+const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
+let calls=[],uploads=[],updates=[];
+globalThis.__retouchApply=new Blob(['corrected'],{type:'image/png'});
+globalThis.__retouchUpload=async(...args)=>{uploads.push(args);return {cutoutUrl:'https://example.test/corrected.png',error:null};};
+globalThis.__retouchDb={rpc:async(name,args)=>{calls.push({name,args});return {error:null};},from:()=>({update:data=>({eq:(column,id)=>({select:()=>({single:async()=>{updates.push({data,column,id});return {data:{id},error:null};}})})})})};
+const b=await build({entryPoints:['src/manager/ManagerPlayerPhotoEditor.tsx'],bundle:true,platform:'node',define:{'import.meta.env.BASE_URL':'"/"'},format:'cjs',packages:'external',write:false,plugins:[{name:'fixture',setup(b){
+ b.onResolve({filter:/^react$/},()=>({path:'react',external:true}));
+ b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'fixture'}));
+ b.onResolve({filter:/profileCutoutUpload$/},()=>({path:'upload',namespace:'fixture'}));
+ b.onResolve({filter:/PortraitCutoutRetouch$/},()=>({path:'dialog',namespace:'fixture'}));
+ b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'js',contents:path==='db'?'export const supabase=globalThis.__retouchDb':path==='upload'?'export const uploadStaffProfileCutout=globalThis.__retouchUpload;export const uploadPlayerProfileCutout=globalThis.__retouchUpload;':`import React from 'react';export function PortraitCutoutRetouch({onApply,onClose}){return React.createElement('div',null,React.createElement('button',{onClick:()=>onApply(globalThis.__retouchApply)},'Apply correction'),React.createElement('button',{onClick:onClose},'Cancel correction'));}`}));
+}}]});
+const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);const Editor=m.exports.ManagerPlayerPhotoEditor;
+const player={id:'fixture',display_name:'Test Player',first_name:'Test',last_name:'Player',cutout_url:'https://example.test/cutout.png',avatar_url:'https://example.test/original.jpg'};let root;
+await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',unified:true,onSaved(){},onClose(){}}));});
+const button=text=>root.root.findAllByType('button').find(n=>n.children.join('')===text);
+await act(async()=>button('Freisteller-Kanten nachbessern').props.onClick());assert.equal(button('Für Test Player speichern').props.disabled,true);
+await act(async()=>button('Cancel correction').props.onClick());assert.equal(calls.length,0);assert.equal(uploads.length,0);
+await act(async()=>button('Freisteller-Kanten nachbessern').props.onClick());await act(async()=>button('Apply correction').props.onClick());assert.equal(calls.length,0);assert.equal(uploads.length,0,'applying correction only updates preview');
+await act(async()=>button('Rohrbach-Anordnung vorschlagen').props.onClick());assert.equal(calls.length,0,'position preset is also preview only');
+await act(async()=>button('Für Test Player speichern').props.onClick());assert.equal(uploads.length,1);assert.equal(uploads[0][0],'season-fixture');assert.equal(uploads[0][1],'fixture');assert.equal(updates.length,1);assert.equal(calls.at(-1).args.p_layout.source,'cutout');assert.equal(calls.at(-1).args.p_layout.profileDesign.name.y,82);assert.equal(calls.at(-1).args.p_layout.profileDesign.logo.visible,false);assert.equal(calls.at(-1).args.p_player_id,'fixture');
+await act(async()=>root.unmount());console.log('PASS editor retouch integration: cancel, unsaved correction/preset previews and explicit scoped cutout upload + layout save.');
