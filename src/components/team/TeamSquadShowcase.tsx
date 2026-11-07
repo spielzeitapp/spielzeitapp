@@ -1,3 +1,5 @@
+import {ClubProfileOverlay} from './profile/ClubProfileOverlay';
+import {DEFAULT_PHOTO_LAYOUT} from '../../lib/playerPhotoLayout';
 import {PlayerPortraitCanvas} from './PlayerPortraitCanvas';
 import {playerPhotoDisplayUrl, preparedPlayerPortrait, isImportedPlayerPortrait} from '../../lib/playerPhotoDisplay';
 import React, { useEffect, useRef, useState } from "react";
@@ -8,6 +10,9 @@ import { premiumPlayerDisplayName } from "../../lib/premiumPlayerCard";
 import { useDemoMode } from "../../demo/DemoContext";
 
 type Props = {
+  teamName?: string;
+  teamSeasonLabel?: string;
+  teamLogoUrl?: string|null;
   players: PlayerItem[];
   ownPlayerIds: Set<string>;
   onPlayerClick: (player: PlayerItem) => void;
@@ -74,6 +79,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
   players,
   onPlayerClick,
   onSwipePastEnd,
+  teamName,teamSeasonLabel,teamLogoUrl,
   trainerCount = 0,
   onTrainerSelect,
 }) => {
@@ -157,6 +163,8 @@ export const TeamSquadShowcase: React.FC<Props> = ({
       >
         {players.map((player, index) => {
           const number = player.jersey_number;
+          const design=player.photo_layout?.profileDesign??player.club_profile_design;
+          const layout=player.photo_layout??player.photo_layout_default??{...DEFAULT_PHOTO_LAYOUT,source:player.cutout_url?'cutout' as const:'original' as const};
           const media = playerMedia(player, Boolean(demo));
           const importedPortrait = !player.cutout_url && isImportedPlayerPortrait(player.avatar_url);
           const preparedPortrait = !player.cutout_url && preparedPlayerPortrait(player.avatar_url);
@@ -168,7 +176,7 @@ export const TeamSquadShowcase: React.FC<Props> = ({
               onClick={() => onPlayerClick(player)}
               className={`sz-club-showcase-card ${importedPortrait ? "sz-club-imported-portrait" : ""} group relative aspect-square w-[76vw] min-w-[238px] max-w-[292px] shrink-0 snap-center overflow-hidden rounded-[20px] border text-left transition active:scale-[0.985] sm:w-[300px] sm:max-w-[300px] sm:rounded-[22px]`}
             >
-              {(player.photo_layout??player.photo_layout_default) ? <PlayerPortraitCanvas eager={index < 2} layout={(player.photo_layout??player.photo_layout_default)!} photoUrl={player.avatar_url} cutoutUrl={player.cutout_url} firstName={playerCardName(player)} lastName={playerCardFamilyName(player)} number={number}/> : <>
+              {(player.photo_layout??player.photo_layout_default)||design ? <><PlayerPortraitCanvas hideDecorations={Boolean(design)} eager={index < 2} layout={layout} photoUrl={player.avatar_url} cutoutUrl={player.cutout_url} firstName={playerCardName(player)} lastName={playerCardFamilyName(player)} number={number}/>{design&&<ClubProfileOverlay design={design} first={playerCardName(player)} last={playerCardFamilyName(player)} number={number==null?'':String(number)} team={teamName} season={teamSeasonLabel??''} logo={teamLogoUrl}/>}</> : <>
               <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
               {number != null && !importedPortrait ? (
                 <span className="absolute left-5 top-5 z-10 text-[56px] font-black leading-none tracking-[-0.06em] text-white/90 sm:text-[66px]">
@@ -250,6 +258,8 @@ export const TeamSquadShowcase: React.FC<Props> = ({
       <ul className="manager-roster-mobile-list space-y-2 px-3 sm:px-5">
         {players.map((player) => {
           const number = player.jersey_number;
+          const design=player.photo_layout?.profileDesign??player.club_profile_design;
+          const layout=player.photo_layout??player.photo_layout_default??{...DEFAULT_PHOTO_LAYOUT,source:player.cutout_url?'cutout' as const:'original' as const};
           const media = playerMedia(player, Boolean(demo));
           return (
             <li key={`row-${player.id}`}>
