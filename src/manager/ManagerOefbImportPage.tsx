@@ -423,7 +423,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
       ) : null}
 
       {meta && workMode === 'platform_admin' && backendRole?.trim().toLowerCase() === 'admin' ? (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
           <div>
             <h2 className="text-[16px] font-semibold text-slate-900">ÖFB-Tabelle der Saison</h2>
             <p className="mt-1 text-[12px] text-slate-600">Bewerbslink oder zugeordneten Mannschafts-Tabellenlink speichern; die Tabelle wird in der App regelmäßig aktuell vom ÖFB geladen. Ohne Zuordnung erscheint kein Tabellen-Tab.</p>
@@ -437,7 +437,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
           </form>
           {tableError ? <p role="alert" className="text-[13px] text-red-700">{tableError}</p> : null}
           {tableNotice ? <p role="status" className="text-[13px] text-emerald-700">{tableNotice}</p> : null}
-          {savedTable ? <div className="rounded-xl bg-slate-900 p-3"><OefbCompetitionTable competitionId={savedTable.competitionId} sourceUrl={savedTable.sourceUrl} ourTeam={savedTable.teamName} /></div> : null}
+          {savedTable ? <div className="rounded-xl border border-slate-200 bg-white p-3"><OefbCompetitionTable competitionId={savedTable.competitionId} sourceUrl={savedTable.sourceUrl} ourTeam={savedTable.teamName} /></div> : null}
         </section>
       ) : null}
 

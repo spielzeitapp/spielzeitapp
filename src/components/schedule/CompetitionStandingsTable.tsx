@@ -12,7 +12,7 @@ export function CompetitionStandingsTable({ rows, ourTeam, resolveLogo }: {
   resolveLogo?: (row: CompetitionTableRow) => string | null;
 }) {
   const columns = ['Sp', 'Pkt', '+/−', 'S', 'U', 'N', 'Tore'];
-  return <div>
+  return <div data-competition-standings>
     <p className="mb-2 text-xs text-white/55">Seitlich wischen für weitere Statistiken →</p>
     <div role="region" aria-label="Ligatabelle · seitlich scrollbar" tabIndex={0} className="overflow-x-auto overscroll-x-contain rounded-xl border border-white/10 bg-black/25">
       <table className="w-full min-w-[740px] text-base tabular-nums text-white">

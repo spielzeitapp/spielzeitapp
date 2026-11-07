@@ -83,6 +83,7 @@ export const InternalLayout: React.FC = () => {
     location.pathname.startsWith('/app/live') || location.pathname.startsWith('/demo/live');
   const pathClean = location.pathname.replace(/\/+$/, '') || '/';
   const isWideMobileShellRoute =
+    pathClean === '/app/tabelle' ||
     pathClean === '/app/home' ||
     pathClean === '/demo/home' ||
     pathClean === '/app/team' ||
@@ -332,7 +333,7 @@ export const InternalLayout: React.FC = () => {
       <div className={`app app--internal min-h-screen bg-black text-white ${isTouchLayout ? 'app--touch' : ''} ${useTabletRail ? 'app--tablet-rail' : ''}`}>
         <Header />
         <main
-          className={`app__content appMain pt-[var(--app-header-offset)] ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
+          className={`app__content appMain pt-[var(--app-header-offset)] ${pathClean === '/app/tabelle' ? 'max-md:!px-0' : ''} ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
             useTabletRail
               ? 'pb-6'
               : isTouchLayout
