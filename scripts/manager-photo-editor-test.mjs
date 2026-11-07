@@ -36,3 +36,15 @@ assert.equal(calls.at(-1).args.p_layout.numberSize,44);
 assert.equal(calls.at(-1).args.p_replace_individual,false);
 await act(async()=>root.unmount());
 console.log('PASS: complete-original preset previews first and preserves individual overrides on global save.');
+
+await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',clubTemplate:'square',imageOnly:true,onSaved:()=>saved++,onClose:()=>closed++}));});
+await act(async()=>root.root.findByProps({'aria-label':'Individuelle Profilelemente'}).props.onChange({target:{checked:true}}));
+await act(async()=>root.root.findByProps({'aria-label':'Individuell Spielername x'}).props.onChange({target:{value:'14'}}));
+await act(async()=>button('Gestaltung speichern').props.onClick());
+assert.equal(calls.at(-1).name,'admin_save_player_photo_layout');
+assert.equal(calls.at(-1).args.p_layout.profileDesign.name.x,14);
+await act(async()=>root.root.findByProps({'aria-label':'Individuelle Profilelemente'}).props.onChange({target:{checked:false}}));
+await act(async()=>button('Gestaltung speichern').props.onClick());
+assert.equal(calls.at(-1).args.p_layout.profileDesign,undefined,'Return to club inheritance removes individual design');
+await act(async()=>root.unmount());
+console.log('PASS individual elements: scoped save and return to inherited club design.');

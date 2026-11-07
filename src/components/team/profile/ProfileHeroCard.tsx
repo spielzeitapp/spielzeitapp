@@ -37,7 +37,8 @@ type Props = {
 
 /** Imported artwork uses the same saved canvas as the roster and Manager preview. */
 export const ProfileHeroCard: React.FC<Props> = (props) => {
- const {variant,clubTemplate,clubDesign,onDesignChange,...portraitProps}=props;
+ const {variant,clubTemplate,clubDesign:baseDesign,onDesignChange,...portraitProps}=props;
+ const clubDesign=props.photoLayout?.profileDesign??baseDesign;
  // Player artwork must use exactly the same canvas as the roster and Manager.
  // Imported portraits already contain their club background and crest.
  const decorate=(card:React.ReactNode)=>clubDesign&&variant==='player'?<div className="relative">{card}<ClubProfileOverlay onChange={onDesignChange} design={clubDesign} first={props.firstNameLine} last={props.lastNameLine} number={props.watermark} team={props.teamName} season={props.teamSeasonLabel} logo={props.teamLogoUrl}/></div>:card;
