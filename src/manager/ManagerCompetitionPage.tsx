@@ -7,6 +7,7 @@ import { getOefbTableSettings, type OefbTableSettings } from '../lib/oefbTableSe
 import { formatTeamSeasonContextLabel } from '../lib/seasonLifecycle';
 import { OefbCompetitionTable } from '../components/schedule/OefbCompetitionTable';
 import { OefbCompetitionResults } from '../components/schedule/OefbCompetitionResults';
+import { supportsLeagueTable } from '../lib/leagueTableEligibility';
 
 /** Read-only competition view follows the Manager header, independently of the app's table selection. */
 export function ManagerCompetitionPage(): React.ReactElement {
@@ -15,8 +16,7 @@ export function ManagerCompetitionPage(): React.ReactElement {
   const season = supportSession
     ? supportSession.teamSeasons.find(item => item.id === (viewTeamSeasonId ?? selectedTeamSeasonId)) ?? null
     : viewTeamSeason ?? selectedTeamSeason;
-  const age = Number(/^U\s*(\d+)$/i.exec(String(season?.age_group || season?.team?.age_group || '').trim())?.[1]);
-  const eligible = Number.isFinite(age) && age >= 13;
+  const eligible = supportsLeagueTable(season?.age_group || season?.team?.age_group);
   const key = season && eligible ? `${user?.id ?? ''}:${season.id}` : null;
   const [result, setResult] = useState<{ key: string; data: OefbTableSettings | null; error: string | null } | null>(null);
   const [tab, setTab] = useState<'table' | 'results'>('table');
@@ -53,7 +53,7 @@ export function ManagerCompetitionPage(): React.ReactElement {
     </div> : null}
     {!season || !eligible || (current && !current.error && !settings) ? <section className="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 className="font-semibold text-slate-900">{!season ? 'Mannschaft auswählen' : 'Keine ÖFB-Tabelle hinterlegt'}</h2>
-      <p className="mt-2 text-sm text-slate-600">{!season ? 'Bitte wähle oben zuerst eine Mannschaft und Saison.' : !eligible ? 'Die Tabellenansicht ist für Mannschaften ab U13 vorgesehen. Spiele und Ergebnisse dieser Mannschaft findest du im Spielplan.' : 'Für diese Saison fehlt die Zuordnung zum ÖFB-Bewerb. Prüfe sie in der Saisonverwaltung.'}</p>
+      <p className="mt-2 text-sm text-slate-600">{!season ? 'Bitte wähle oben zuerst eine Mannschaft und Saison.' : !eligible ? 'Die Tabellenansicht ist für Nachwuchsmannschaften ab U13 sowie Kampfmannschaft und Reserve vorgesehen. Spiele und Ergebnisse dieser Mannschaft findest du im Spielplan.' : 'Für diese Saison fehlt die Zuordnung zum ÖFB-Bewerb. Prüfe sie in der Saisonverwaltung.'}</p>
       {season ? <Link to={eligible ? '/manager/saisons' : '/app/termine'} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-red-700 px-4 text-sm font-semibold text-white">{eligible ? 'Saisonen öffnen' : 'Spielplan öffnen'}</Link> : null}
     </section> : null}
     {settings && season ? <section className="manager-desktop-light rounded-2xl border border-white/10 bg-[#101014] p-4 text-white shadow-sm sm:p-6">
