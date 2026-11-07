@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useSession } from '../../auth/useSession';
 import { getOefbTableSettings, type OefbTableSettings } from '../../lib/oefbTableSettings';
 import { formatTeamSeasonContextLabel } from '../../lib/seasonLifecycle';
+import { supportsLeagueTable } from '../../lib/leagueTableEligibility';
 
 type CompetitionOption = { seasonId: string; label: string; settings: OefbTableSettings };
 type CompetitionContextValue = {
@@ -17,8 +18,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const seasonId = viewTeamSeasonId ?? selectedTeamSeasonId;
   const ids = teamViewFilter === null ? [seasonId] : filteredTeamSeasonIds;
   const eligibleIds = teamSeasons.filter((season) => {
-    const age = Number(/^U\s*(\d+)$/i.exec(String(season.age_group || season.team?.age_group || '').trim())?.[1]);
-    return ids.includes(season.id) && Number.isFinite(age) && age >= 13;
+    return ids.includes(season.id) && supportsLeagueTable(season.age_group || season.team?.age_group);
   }).map((season) => season.id).sort();
   const idsKey = JSON.stringify(eligibleIds);
   const key = eligibleIds.length ? `${user?.id ?? ''}:${idsKey}` : null;
