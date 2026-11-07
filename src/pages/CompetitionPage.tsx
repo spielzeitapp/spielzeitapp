@@ -8,7 +8,7 @@ import { PageShell, SectionTitle } from '../ui';
 export const CompetitionPage: React.FC = () => {
   const { settings, loading, error, options, selectedSeasonId, selectSeason } = useCompetition();
   const [view, setView] = useState<'table' | 'results'>('table');
-  return <PageShell>
+  return <PageShell contentClassName="!px-2 sm:!px-5">
     <div className="flex items-center justify-between gap-2"><SectionTitle>Tabelle & Liga</SectionTitle></div>
     {loading ? <p role="status" className="text-sm text-white/60">Lade Tabellenzuordnung…</p> : null}
     {error ? <p role="alert" className="text-sm text-amber-200">{error}</p> : null}
