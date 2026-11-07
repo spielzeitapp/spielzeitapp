@@ -1,6 +1,6 @@
 import {supabase} from '../supabaseClient';
 type Player={name:string;externalPlayerId:string|null};
-type Report={score:string|null;homePlayers:Player[];awayPlayers:Player[];events:{type:string;side:string|null;player:string;secondPlayer:string;minute?:number|null}[]};
+type Report={score:string|null;homePlayers:Player[];awayPlayers:Player[];events:{type:string;side:string|null;player:string;secondPlayer:string;minute?:number|null;atHalfTime?:boolean}[]};
 type Link={team_season_id:string;external_player_id:string;player_id:string;source_name:string};
 const key=(s:string)=>s.normalize('NFKC').toLocaleLowerCase('de').replace(/\s+/g,' ').trim();
 /** Only confirmed season-scoped identities; a bench listing alone is not an appearance. */
@@ -28,7 +28,8 @@ export function calculatedPlayerMinutes(report:Report,home:boolean,playerId:stri
   for(const p of own)if(key(p.name)===n)for(const l of links)if(l.external_player_id===p.externalPlayerId)candidates.add(l.player_id);
   return candidates.size===1?[...candidates][0]:null;
  };
- const touches=report.events.filter(e=>e.side===(home?'home':'away')&&['playerchange','red','yellowred','card-red','card-yellowred','card-blue'].includes(e.type)&&[e.player,e.secondPlayer].some(n=>n&&names.has(key(n))));
+ const touches=report.events.filter(e=>e.side===(home?'home':'away')&&['playerchange','red','yellowred','card-red','card-yellowred','card-blue'].includes(e.type)&&[e.player,e.secondPlayer].some(n=>n&&names.has(key(n))))
+  .map(e=>({...e,minute:e.atHalfTime?duration/2:e.minute}));
  if(touches.some(e=>e.minute==null||!Number.isInteger(e.minute)||e.minute<0||e.minute>duration||e.type==='card-blue'))return null;
  let on=starters.length===1, since=0,total=0, appeared=on;
  for(const e of touches.slice().sort((a,b)=>a.minute!-b.minute!)){

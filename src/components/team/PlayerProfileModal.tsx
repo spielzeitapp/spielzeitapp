@@ -41,6 +41,7 @@ import {
 import { PlayerSprintHistory } from "./PlayerSprintHistory";
 import { PlayerJugglingHistory } from "./PlayerJugglingHistory";
 import { SeasonMatchCard } from "./SeasonMatchCard";
+import { PlayerMatchContribution } from "./PlayerMatchContribution";
 import type { SeasonMatchCardData } from "../../lib/seasonMatchStats";
 
 const PROFILE_GLASS_PANEL =
@@ -1174,8 +1175,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                             ourTeamName={teamName ?? "SPG Rohrbach"}
                             footerSlot={
                               <>
-                                <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent" || m.badgeKind === "unknown") ? m.badgeLabel : `${m.minutes} Min`} />
-                                <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals} {m.goals === 1 ? "Tor" : "Tore"}</span>
+                                <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent" || m.badgeKind === "unknown") ? (m.minutesKnown && m.badgeKind === "unknown" ? "ÖFB · berechnet" : m.badgeLabel) : `${m.minutes} Min`} />
+                                <PlayerMatchContribution match={m} />
                               </>
                             }
                           />
@@ -1199,8 +1200,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                               ourTeamName={teamName ?? "SPG Rohrbach"}
                               footerSlot={
                                 <>
-                                  <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent" || m.badgeKind === "unknown") ? m.badgeLabel : `${m.minutes} Min`} />
-                                  <span className="text-sm font-bold tabular-nums text-amber-200/95">⚽ {m.goals} {m.goals === 1 ? "Tor" : "Tore"}</span>
+                                  <EinsatzBadge kind={m.badgeKind} label={(m.badgeKind === "bank" || m.badgeKind === "absent" || m.badgeKind === "unknown") ? (m.minutesKnown && m.badgeKind === "unknown" ? "ÖFB · berechnet" : m.badgeLabel) : `${m.minutes} Min`} />
+                                  <PlayerMatchContribution match={m} />
                                 </>
                               }
                             />

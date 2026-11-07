@@ -28,3 +28,11 @@ const withGoal=aggregate('p1',[match],[appearance,{match_id:'m1',player_id:'p1',
 console.log('PASS: source lineup without goals counts once, known goals preserved, missing minutes tracked separately.');
 
 const calculated=aggregate('p1',[match],[{...appearance,payload:{source:'oefb_attribution',starter:true,calculatedMinutes:80}}],[],new Map(),new Set());assert.equal(calculated.stats.minutes,80);assert.equal(calculated.stats.averageMinutesPerGame,80);assert.equal(calculated.stats.unknownMinutesGames,0);assert.equal(calculated.stats.calculatedMinutesGames,1);assert.equal(calculated.lastMatches[0].badgeLabel,'80 Min · berechnet');
+assert.equal(calculated.lastMatches[0].minutesKnown,true);
+assert.equal(nonScorer.lastMatches[0].minutesKnown,false);
+assert.equal(present.lastMatches[0].minutesKnown,true);
+const zero=aggregate('p1',[match],[{...appearance,payload:{source:'oefb_attribution',starter:false,calculatedMinutes:0}}],[],new Map(),new Set());
+assert.equal(zero.lastMatches[0].minutesKnown,true);assert.equal(zero.stats.unknownMinutesGames,0);
+const mixed=aggregate('p1',[match,{...match,id:'m2'}],[{...appearance,payload:{source:'oefb_attribution',starter:true,calculatedMinutes:75}},{...appearance,match_id:'m2'}],[],new Map(),new Set());
+assert.equal(mixed.stats.games,2);assert.equal(mixed.stats.minutes,75);assert.equal(mixed.stats.unknownMinutesGames,1);assert.equal(mixed.stats.calculatedMinutesGames,1);
+console.log('PASS: profile history distinguishes known, unknown and zero minutes; partial totals preserve unknown-game count.');

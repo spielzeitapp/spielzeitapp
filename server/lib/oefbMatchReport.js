@@ -34,6 +34,7 @@ function extractReport(html, id) {
   };
   const events = (report?.gameData ?? []).filter(e => ['goal', 'playerchange', 'yellow', 'red', 'yellowred', 'card-red', 'card-yellowred', 'card-blue'].includes(e.type))
     .map(e => ({ type: e.type, minute: displayMinute(e),
+      atHalfTime: /^(?:HZ|HT|Halbzeit)$/i.test(String(e.minuteString ?? '').trim()),
       side: e.team === 'a' ? 'home' : e.team === 'b' ? 'away' : null,
       player: text(e.playerPrimary), externalPlayerId: profileId(e.url), secondPlayer: text(e.playerSecondary), ownGoal: e.eigentor === true,
       score: /^\d+\s*:\s*\d+$/.test(e.spielstand ?? '') ? String(e.spielstand).replace(/\s/g, '') : null }))
