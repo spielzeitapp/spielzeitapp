@@ -48,3 +48,19 @@ await act(async()=>button('Gestaltung speichern').props.onClick());
 assert.equal(calls.at(-1).args.p_layout.profileDesign,undefined,'Return to club inheritance removes individual design');
 await act(async()=>root.unmount());
 console.log('PASS individual elements: scoped save and return to inherited club design.');
+
+for (const global of [false,true]) {
+ const before=calls.length;
+ await act(async()=>{root=create(React.createElement(Editor,{player:{...player,cutout_url:'https://example.test/cutout.png'},seasonId:'season-fixture',global,onSaved:()=>{},onClose:()=>{}}));});
+ const background=root.root.findAllByType('select')[0];
+ assert.ok(background.findAllByType('option').some(n=>n.props.value==='rohrbach-silver'));
+ await act(async()=>background.props.onChange({target:{value:'rohrbach-silver'}}));
+ assert.equal(calls.length,before,'Rohrbach selection is preview only');
+ assert.ok(root.root.findAllByType('div').some(n=>n.props.style?.background?.includes('/backgrounds/rohrbach-silver.webp')),'real portrait renders shared asset');
+ await act(async()=>button('Gestaltung speichern').props.onClick());
+ assert.equal(calls.at(-1).args.p_layout.background,'rohrbach-silver');
+ assert.equal(calls.at(-1).name,global?'admin_save_global_photo_layout':'admin_save_player_photo_layout');
+ if(global)assert.equal(calls.at(-1).args.p_replace_individual,false);
+ await act(async()=>root.unmount());
+}
+console.log('PASS: Rohrbach background previews in real portrait and saves in both scopes without replacing individual exceptions.');
