@@ -19,10 +19,12 @@ export function managerTeamPhotoUrl(value:string):string {
  if(u.hostname==='vereine.oefb.at'&&u.pathname.startsWith('/netzwerk/imagedownload/'))return '/api/oefb/table?view=photo&url='+encodeURIComponent(u.href);
  return u.href;
 }
-export function ManagerRosterPhotos({seasonId,player,onSaved,sourceUrl}:{seasonId:string;player?:{id:string;name:string;avatar?:string|null;rotation?:number};onSaved:()=>void;sourceUrl?:string}) {
+export function ManagerRosterPhotos({seasonId,player,onSaved,sourceUrl,onDirtyChange,onBusyChange}:{seasonId:string;player?:{id:string;name:string;avatar?:string|null;rotation?:number};onSaved:()=>void;sourceUrl?:string;onDirtyChange?:(dirty:boolean)=>void;onBusyChange?:(busy:boolean)=>void}) {
  const [resolved,setResolved]=useState<string|null>(null),[ready,setReady]=useState(false),[linkStatus,setLinkStatus]=useState('');
  const [file,setFile]=useState<File|null>(null),[url,setUrl]=useState(''),[saved,setSaved]=useState<string|null>(null);
  const [preview,setPreview]=useState<string|null>(null),[kind,setKind]=useState('photo'),[remove,setRemove]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+ useEffect(()=>{onDirtyChange?.(Boolean(file));return()=>onDirtyChange?.(false);},[file,onDirtyChange]);
+ useEffect(()=>{onBusyChange?.(busy);return()=>onBusyChange?.(false);},[busy,onBusyChange]);
  useEffect(()=>{if(sourceUrl&&!player){setUrl(sourceUrl);setReady(false);setResolved(null);}},[sourceUrl,seasonId,player?.id]);
  useEffect(()=>{if(!file){setPreview(null);return;}const u=URL.createObjectURL(file);setPreview(u);return()=>URL.revokeObjectURL(u);},[file]);
  useEffect(()=>{

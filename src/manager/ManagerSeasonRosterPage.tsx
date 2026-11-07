@@ -1,5 +1,5 @@
 import {ManagerRosterPhotos} from './ManagerRosterPhotos';
-import {ManagerPlayerPhotoEditor} from './ManagerPlayerPhotoEditor';
+import {ManagerClubPhotoTemplate} from './ManagerClubPhotoTemplate';
 import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
 /**
  * STEP 4: Historischer / aktueller Saisonkader über team_season_players.
@@ -51,10 +51,13 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
     displayName: string;
     status: string;
     ageGroup: string | null;
+    clubId: string | null;
   } | null>(null);
   const [reportParams]=useSearchParams();
   const reportGameId=reportParams.get('oefbReport');
   const [globalPhoto,setGlobalPhoto]=useState(false);
+  const [photoDirty,setPhotoDirty]=useState(false),[photoBusy,setPhotoBusy]=useState(false);
+  const canSwitchPhoto=()=>!photoBusy&&(!photoDirty||window.confirm('Ungespeicherte Gestaltung verwerfen?'));
   const [photoEditingId,setPhotoEditingId] = useState<string|null>(null);
   const [players, setPlayers] = useState<RosterPlayer[]>([]);
   const [oefbIds, setOefbIds] = useState<Record<string, string>>({});
@@ -110,7 +113,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
       const [{ data: ts, error: tsErr }, roster, writable] = await Promise.all([
         supabase
           .from('team_seasons')
-          .select('id, status, display_name, age_group, seasons ( name ), teams ( name )')
+          .select('id, status, display_name, age_group, seasons ( name ), teams ( name, club_id )')
           .eq('id', seasonId)
           .maybeSingle(),
         listRoster(seasonId, 'all'),
@@ -139,6 +142,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
         }) ||
         'Saison';
       setMeta({
+        clubId:team?.club_id??null,
         displayName,
         status: String(ts.status ?? 'active'),
         ageGroup: ts.age_group ? String(ts.age_group) : null,
@@ -323,7 +327,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
       ) : null}
 
       {canEdit && seasonId?<ManagerRosterPhotos key={`team-photo:${seasonId}`} seasonId={seasonId} onSaved={()=>setNotice('Mannschaftsfoto gespeichert.')}/>:null}
-      {canEdit && players.length>0 ? <section className="rounded-xl border border-slate-200 bg-white p-4"><button type="button" onClick={()=>setGlobalPhoto(!globalPhoto)} className="font-semibold text-red-700">Globale Foto-Gestaltung · gesamte Mannschaft/Saison</button><p className="mt-1 text-sm text-slate-500">Standard für alle bestehenden und künftig zugeordneten Spieler. Individuelle Einstellungen haben Vorrang.</p>{globalPhoto?<ManagerPlayerPhotoEditor key={`global:${seasonId}`} global player={players[0]} seasonId={seasonId} onClose={()=>setGlobalPhoto(false)} onSaved={()=>{setGlobalPhoto(false);setNotice('Globale Foto-Gestaltung gespeichert.');void reloadRoster(seasonId);}}/>:null}</section>:null}
+      {canEdit && players.length>0 && meta?.clubId ? <section id="roster-photo-editor" className="scroll-mt-40"><button type="button" onClick={()=>{if(!canSwitchPhoto())return;setPhotoEditingId(null);setGlobalPhoto(!globalPhoto);}} className="mb-3 min-h-11 rounded-xl border border-slate-200 bg-white px-4 font-semibold text-red-700">{globalPhoto?'Fotoeditor schließen':'Spielerfotos gestalten'}</button>{globalPhoto&&<ManagerClubPhotoTemplate key={`${seasonId}:${photoEditingId??'team'}`} clubId={meta.clubId} seasonId={seasonId!} onDirtyChange={setPhotoDirty} onBusyChange={setPhotoBusy} initialPlayerId={photoEditingId??undefined} initialScope={photoEditingId?'player':'team'} onSaved={()=>{void reloadRoster(seasonId!);}}/>}</section>:null}
       {(
         [
           ['Aktiv', groups.active],
@@ -361,11 +365,11 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-3">
-                    {canEdit ? <button type="button" onClick={() => setPhotoEditingId(photoEditingId===p.id?null:p.id)} className="text-[12px] font-semibold text-red-700">Foto gestalten</button> : null}
+                    {canEdit ? <button type="button" onClick={() => {if(!canSwitchPhoto())return;setPhotoEditingId(p.id);setGlobalPhoto(true);requestAnimationFrame(()=>document.getElementById('roster-photo-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));}} className="text-[12px] font-semibold text-red-700">Foto gestalten</button> : null}
                     {canEdit ? <button type="button" onClick={() => editPlayer(p)} className="text-[12px] font-semibold text-red-700">Bearbeiten</button> : null}
                     <Link to={`/app/team?teamSeason=${encodeURIComponent(seasonId??'')}&player=${encodeURIComponent(p.id)}`} className="text-[12px] font-semibold text-red-700">Profil</Link>
                   </div>
-                  {canEdit && photoEditingId===p.id ? <div className="w-full space-y-3"><ManagerRosterPhotos seasonId={seasonId!} player={{id:p.id,name:p.display_name,avatar:p.avatar_url,rotation:p.photo_layout?.rotation??p.photo_layout_default?.rotation??0}} onSaved={()=>{setNotice('Spielerfoto gespeichert.');void reloadRoster(seasonId!);}}/><ManagerPlayerPhotoEditor key={`${seasonId}:${p.id}`} player={p} seasonId={seasonId} onClose={()=>setPhotoEditingId(null)} onSaved={()=>{setPhotoEditingId(null);setNotice("Foto-Gestaltung gespeichert.");void reloadRoster(seasonId);}}/></div> : null}
+
                   {canEdit ? <div className="w-full border-t border-slate-100 pt-1"><ManagerRosterPlayerActions
                     key={`${seasonId}:${p.id}`} seasonId={seasonId} playerId={p.id} name={p.display_name} removed={p.status === 'archived'}
                     onDone={(message, failed) => {
