@@ -1,3 +1,4 @@
+import {TeamHeroFrame} from '../components/team/TeamHeroFrame';
 import { DEFAULT_TEAM_PHOTO_LAYOUT, teamPhotoImageStyle, type TeamPhotoLayout } from '../lib/teamPhotoLayout';
 import { ClubBrandingOverrideContext } from '../theme/ClubThemeProvider';
 import { ClubLogo } from "../components/branding/ClubLogo";
@@ -1069,27 +1070,9 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
           <Camera className="h-4 w-4" aria-hidden />Mannschaftsfoto
         </button> : null}
       </section> : null}
-      <PremiumCard matchday showAmbientGlow className={`${basePath === "/manager" ? "manager-team-mobile-hero " : ""}!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x`}>
-      <div className="relative w-full overflow-hidden h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
-        {heroPhotoSrc ? <img
-          src={heroPhotoSrc}
-          style={teamPhotoImageStyle(teamPhoto?.team_season_id === readTeamSeasonId ? teamPhoto : null)}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        /> : <div className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--club-primary-rgb)/0.65),#09090b)]" aria-hidden />}
-        <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.18)_38%,rgba(0,0,0,0.94)_100%)]"
-          aria-hidden
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.48)_0%,transparent_62%)]" aria-hidden />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[repeating-linear-gradient(90deg,transparent,transparent_14px,rgba(255,255,255,0.04)_14px,rgba(255,255,255,0.04)_16px)]"
-          aria-hidden
-        />
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[rgb(var(--club-primary-rgb)/0.2)] blur-3xl" aria-hidden />
-        <div className="relative z-10 flex h-full min-h-[220px] flex-col justify-end p-4 sm:min-h-[280px] sm:p-6">
+      <TeamHeroFrame className={basePath === "/manager" ? "manager-team-mobile-hero" : ""} photoSrc={heroPhotoSrc} photoStyle={teamPhotoImageStyle(teamPhoto?.team_season_id === readTeamSeasonId ? teamPhoto : null)}>
           {canManagePlayers ? (
-            <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
+            <div className="mb-3 flex items-center justify-end gap-2">
               <input
                 ref={teamPhotoInputRef}
                 type="file"
@@ -1124,7 +1107,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
           ) : null}
           <div className="flex items-end gap-3 sm:gap-4">
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
-              <ClubLogo src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
+              <ClubLogo removeDarkBackground src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
             </div>
             <div className="min-w-0 flex-1 pb-1">
               <div className="flex min-w-0 items-center gap-2">
@@ -1192,9 +1175,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
               {softLockMessage ?? "Archivierte Saison — nur Lesen. Aktive Saison bleibt unverändert."}
             </p>
           ) : null}
-        </div>
-      </div>
-      </PremiumCard>
+      </TeamHeroFrame>
       {teamPhotoError ? (
         <p className="text-sm text-red-600" role="alert">
           {teamPhotoError}
