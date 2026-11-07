@@ -7,6 +7,12 @@ const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].
 globalThis.calls=[];const drafts=new Map();globalThis.window={sessionStorage:{getItem:k=>drafts.get(k)||null,setItem:(k,v)=>drafts.set(k,v),removeItem:k=>drafts.delete(k)},dispatchEvent(){},addEventListener(){},removeEventListener(){},confirm:()=>false};globalThis.fail=false;let tree;
 try{await act(async()=>tree=create(React.createElement(m.exports.ManagerClubPhotoTemplate,{clubId:'club',seasonId:'season'})));
 assert.equal(tree.root.findByType('output').props.clubTemplate,'square');
+const beforeArrows=calls.length;
+await act(async()=>tree.root.findByProps({'aria-label':'Vorheriger Spieler'}).props.onClick());
+assert.equal(tree.root.findByProps({'aria-label':'Spieler für Vorschau'}).props.value,'second','Previous wraps to last player');
+await act(async()=>tree.root.findByProps({'aria-label':'Nächster Spieler'}).props.onClick());
+assert.equal(tree.root.findByProps({'aria-label':'Spieler für Vorschau'}).props.value,'player','Next wraps to first player');
+assert.equal(calls.length,beforeArrows,'Browsing preview never saves');
 const radio=value=>tree.root.findAllByType('input').find(i=>i.props.value===value);
 await act(async()=>radio('wide').props.onChange());assert.equal(calls.length,0);assert.equal(tree.root.findByType('output').props.clubTemplate,'wide');assert.equal(tree.root.findByType('output').props.layout.zoom,120,'Individual coordinates preserved');
 const save=()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Vereinsvorlage speichern');
@@ -41,6 +47,7 @@ assert.equal(tree.root.findAllByType('input').find(i=>i.props.value==='team').pr
 await act(async()=>tree.root.findAllByType('input').find(i=>i.props.value==='player').props.onChange());
 await act(async()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Bild vergrößern & verschieben').props.onClick());
 assert.equal(tree.root.findByProps({'aria-label':'Spieler für Vorschau'}).props.disabled,true);
+assert.equal(tree.root.findByProps({'aria-label':'Nächster Spieler'}).props.disabled,true,'Prevent losing open image edits while browsing');
 assert.equal(tree.root.findAllByProps({'aria-label':'Name horizontal'}).length,0,'Image controls do not duplicate club element controls');
 const beforePhoto=calls.length;
 await act(async()=>tree.root.findByProps({'aria-label':'Bildgröße'}).props.onChange({target:{value:'135'}}));
