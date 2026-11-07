@@ -1,3 +1,5 @@
+import { scheduleClubName } from '../../lib/scheduleClubIdentity';
+import { isUscRohrbachResult } from '../../lib/resultFeedPresentation';
 import { ResultPosterArtwork } from './ResultPosterArtwork';
 import { ReleasedMatchVideosLink } from '../match/ReleasedMatchVideosLink';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -200,11 +202,12 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       homeScore: p.home_score,
       awayScore: p.away_score,
       resultState: p.result_state,
+      legacyTemplate: true,
     });
     // Nur unveränderte Vorlagentexte berichtigen; individuelle Texte behalten ihren Wortlaut.
     const corrected = buildAutoResultCaption({ ourTeamName: ownSaved, opponentName: opponent,
-      homeScore: p.home_score, awayScore: p.away_score, resultState: p.result_state, isHome: p.is_home });
-    return saved === generated || saved === corrected
+      homeScore: p.home_score, awayScore: p.away_score, resultState: p.result_state, isHome: p.is_home, legacyTemplate: true });
+    return saved === generated || saved === corrected || (isUscRohrbachResult(ownSaved) && saved === 'ÖFB · Importiertes Endergebnis')
       ? buildAutoResultCaption({
           ourTeamName: ownSeason || ownSaved,
           opponentName: opponent,
@@ -308,7 +311,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     return (
       <FeedPostArticleShell className="" style={{ boxShadow: presentation.articleShadow }} data-feed-result-card="custom-image-v1">
         <FeedPostHeader
-          teamLabel={teamLabel}
+          teamLabel={isUscRohrbachResult(teamLabel) ? scheduleClubName(teamLabel) : teamLabel}
           seasonLabel={seasonLabel}
           whenLabel={whenLabel}
           headerClassName="bg-black/25"
@@ -351,7 +354,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           ) : null}
 
           <div className="px-2 pt-2 sm:px-0">
-            <FeedGameCtaLink to={gameHref}>Zur Zusammenfassung</FeedGameCtaLink>
+            <FeedGameCtaLink to={gameHref}>Zum Spielbericht</FeedGameCtaLink>
           </div>
 
           <div className="px-3 pb-2"><ReleasedMatchVideosLink matchId={p.match_id} to={gameHref} /></div>
@@ -372,7 +375,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       {/* feed-result-comments-v1: reserved slot for threaded comments MVP (no UI yet) */}
       <div data-feed-comment-slot="reserved" hidden aria-hidden />
       <FeedPostHeader
-        teamLabel={teamLabel}
+        teamLabel={isUscRohrbachResult(teamLabel) ? scheduleClubName(teamLabel) : teamLabel}
         seasonLabel={seasonLabel}
         whenLabel={whenLabel}
         headerClassName="bg-black/25"
@@ -383,6 +386,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           <ResultPosterArtwork
             ref={resultPosterRef}
             payload={p}
+            seasonLabel={seasonLabel}
             ageGroup={pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name)}
             competition={getMatchTypeLabel(p.match_type ?? undefined) ?? 'Spiel'}
             periods={periodBracketLine}
@@ -406,7 +410,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             <div className="pt-1">
-              <FeedGameCtaLink to={gameHref}>Zur Zusammenfassung</FeedGameCtaLink>
+              <FeedGameCtaLink to={gameHref}>Zum Spielbericht</FeedGameCtaLink>
             </div>
         </div>
       </div>

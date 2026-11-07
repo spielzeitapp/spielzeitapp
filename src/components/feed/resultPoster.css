@@ -27,3 +27,24 @@
 .result-poster-details svg { width: 6cqw; height: 6cqw; padding: 1cqw; border: .3cqw solid rgb(var(--match-accent, 239 0 42)); border-radius: 50%; flex-shrink: 0; }
 .result-poster footer { margin-top: 4cqw; padding-top: 3cqw; border-top: .35cqw solid rgb(var(--match-accent, 239 0 42)); font: italic 400 6cqw/1.2 'Result Anton', Impact, sans-serif; text-align: center; letter-spacing: -.025em; }
 .result-poster footer span { color: rgb(var(--match-accent, 239 0 42)); }
+
+/* USC club template: compact silver artwork, with the live club crests retained. */
+.result-poster--usc { background: linear-gradient(135deg, transparent 74%, #cdd0d52b 74%, #cdd0d50a 82%, transparent 82%), radial-gradient(ellipse at 0% 0%, #c4c8ce18, transparent 65%), #090a0c; }
+.result-poster--usc .result-poster-content { padding: 4cqw; }
+.result-poster-identity { display: flex; align-items: center; gap: 2.5cqw; padding-bottom: 3cqw; margin-bottom: 3cqw; border-bottom: .2cqw solid #d0d3d552; }
+.result-poster-identity img { width: 11cqw; height: 9cqw; object-fit: contain; }
+.result-poster-identity strong { display: block; font-size: 3.7cqw; line-height: 1.2; font-weight: 900; text-transform: uppercase; }
+.result-poster-identity small { display: block; margin-top: .6cqw; color: #c4c7cd; font-size: 2.8cqw; }
+.result-poster--usc h2 { font: italic 900 8cqw/1.1 sans-serif; letter-spacing: .015em; }
+.result-poster--usc .result-poster-competition { margin: 1.5cqw 0 4cqw; font-size: 2.6cqw; }
+.result-poster--usc .result-poster-match { grid-template-columns: minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr); gap: 2cqw; }
+.result-poster--usc .result-poster-club img { width: 24cqw; height: 21cqw; }
+.result-poster--usc .result-poster-club span { font: 900 2.8cqw/1.3 sans-serif; }
+.result-poster--usc .result-poster-status { display: inline-block; margin: 0; padding: 1cqw 2cqw; border-radius: 1cqw; background: #d4d6dc1c; color: #e3e5e9; font: 800 2.7cqw/1.2 sans-serif; }
+.result-poster--usc .result-poster-summary { margin-top: 2cqw; }
+.result-poster--usc .result-poster-details { display: flex; flex-wrap: wrap; gap: 1cqw 3cqw; border-top: .2cqw solid #d0d3d552; margin-top: 3cqw; padding-top: 2cqw; }
+.result-poster--usc .result-poster-details p { flex: 1 1 38cqw; margin: .5cqw 0; font-size: 2.7cqw; gap: 1.5cqw; }
+.result-poster--usc .result-poster-details svg { width: 4cqw; height: 4cqw; padding: .5cqw; border-color: #cdd0d580; }
+.result-poster--usc .result-poster-scorers { border-color: #cdd0d580; margin-top: 3cqw; }
+.result-poster--usc .result-poster-scorers h3, .result-poster--usc .result-poster-scorers li span:last-child { color: #e0e3e8; }
+.result-poster--usc footer { margin-top: 3cqw; padding: 3cqw 0 1cqw; border-color: #cdd0d580; font: italic 900 5.8cqw/1.2 sans-serif; letter-spacing: -.03em; text-shadow: 0 2px 18px #e5e7ed40; }
