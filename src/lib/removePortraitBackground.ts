@@ -1,8 +1,9 @@
+import {portraitAlpha,type PortraitEdgeCleanup} from './portraitAlpha';
 import {playerPhotoDisplayUrl} from './playerPhotoDisplay';
 
 /** On-device portrait segmentation. Only model/runtime assets are downloaded;
  * the photograph is never uploaded to an external inference service. */
-export async function removePortraitBackground(source: string): Promise<Blob> {
+export async function removePortraitBackground(source: string, cleanup: PortraitEdgeCleanup = 'normal'): Promise<Blob> {
   if (!source.trim()) throw new Error('Bitte zuerst ein Spielerfoto hochladen.');
   const response = await fetch(playerPhotoDisplayUrl(source), {signal: AbortSignal.timeout(30000)});
   if (!response.ok) throw new Error('Das Originalfoto konnte nicht geladen werden.');
@@ -24,15 +25,19 @@ export async function removePortraitBackground(source: string): Promise<Blob> {
     const {FilesetResolver, ImageSegmenter} = await import('@mediapipe/tasks-vision');
     const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm');
     segmenter = await ImageSegmenter.createFromOptions(vision, {
-      baseOptions: {modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite', delegate: 'CPU'},
+      baseOptions: {modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite', delegate: 'CPU'},
       runningMode: 'IMAGE', outputCategoryMask: false, outputConfidenceMasks: true,
     });
     segmenter.segment(canvas, result => {
       const masks = result.confidenceMasks;
-      if (!masks?.length) throw new Error('Keine Person erkannt. Bitte ein anderes Portraitfoto versuchen.');
-      // The pinned selfie model emits one foreground-confidence mask.
+      if (!masks || masks.length !== 6) throw new Error('Keine Person erkannt. Bitte ein anderes Portraitfoto versuchen.');
+      // Pinned multiclass model: background, hair, body skin, face, clothes,
+      // accessories. All non-background categories belong to the person.
       const mask = masks[0];
-      const confidence = mask.getAsFloat32Array();
+      const backgroundConfidence = mask.getAsFloat32Array();
+      const confidence = new Float32Array(backgroundConfidence.length);
+      for (let i=0;i<confidence.length;i++) confidence[i]=1-backgroundConfidence[i];
+      const alpha = portraitAlpha(confidence, mask.width, mask.height, cleanup);
       const matte = document.createElement('canvas');
       matte.width = mask.width; matte.height = mask.height;
       const mctx = matte.getContext('2d');
@@ -40,10 +45,9 @@ export async function removePortraitBackground(source: string): Promise<Blob> {
       const pixels = mctx.createImageData(mask.width, mask.height);
       let foreground = 0, background = 0;
       for (let i = 0; i < confidence.length; i++) {
-        const t = Math.max(0, Math.min(1, (confidence[i] - 0.2) / 0.6));
-        pixels.data[i*4+3] = Math.round(255 * t * t * (3-2*t));
-        if (t > 0.5) foreground++;
-        if (t < 0.5) background++;
+        pixels.data[i*4+3] = alpha[i];
+        if (alpha[i] > 127) foreground++;
+        if (alpha[i] < 127) background++;
       }
       if (foreground < confidence.length * 0.01 || background < confidence.length * 0.01) {
         throw new Error('Person und Hintergrund konnten nicht klar getrennt werden. Bitte ein anderes Foto versuchen.');

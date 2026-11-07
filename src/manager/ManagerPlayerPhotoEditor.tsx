@@ -1,3 +1,4 @@
+import type {PortraitEdgeCleanup} from '../lib/portraitAlpha';
 import {useDraftHistory} from './useDraftHistory';
 import {defaultClubProfileDesign} from '../lib/clubProfileDesign';
 import {IndividualProfileElements} from './IndividualProfileElements';
@@ -22,6 +23,7 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
  const [previewUrl,setPreviewUrl]=useState<string|null>(null);
  const [storedCutout,setStoredCutout]=useState(player.cutout_url);
  const [generating,setGenerating]=useState(false);
+ const [edgeCleanup,setEdgeCleanup]=useState<PortraitEdgeCleanup>('normal');
  useEffect(()=>{generation.current++;setPending(null);setStoredCutout(player.cutout_url);setGenerating(false);return()=>{generation.current++;};},[player.id,player.avatar_url,player.cutout_url]);
  useEffect(()=>{if(!pending){setPreviewUrl(null);return;}const url=URL.createObjectURL(pending);setPreviewUrl(url);return()=>URL.revokeObjectURL(url);},[pending]);
  const cutout=previewUrl||storedCutout;
@@ -34,7 +36,7 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
  const generate=async()=>{
   if(busy||generating)return;
   const version=++generation.current;setGenerating(true);setError('');
-  try{const blob=await removePortraitBackground(player.avatar_url||'');if(version!==generation.current)return;setPending(blob);setLayout(old=>({...old,source:'cutout'}));}
+  try{const blob=await removePortraitBackground(player.avatar_url||'',edgeCleanup);if(version!==generation.current)return;setPending(blob);setLayout(old=>({...old,source:'cutout'}));}
   catch(e){if(version===generation.current)setError(e instanceof Error?e.message:'Hintergrund konnte nicht entfernt werden. Bitte erneut versuchen.');}
   finally{if(version===generation.current)setGenerating(false);}
  };
@@ -63,7 +65,7 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
  <fieldset disabled={busy||generating} className="min-w-0 space-y-3"><label className="block text-sm">Hintergrund<select className="mt-1 block w-full max-w-full rounded border p-2" value={layout.background} onChange={e=>patch('background',e.target.value)}><option value="blue-left">Vereinsfarbe links · Schwarz rechts</option><option value="blue-right">Schwarz links · Vereinsfarbe rechts</option><option value="black">Ohne Motiv · Schwarz</option><option value="nsg-art">NSG-Design · Rot-Schwarz</option></select></label><p className="text-xs text-slate-500">Bereits gestaltetes Vereinsfoto (z. B. Melk): „Originalfoto“ verwenden; enthaltenes Logo und Hintergrund bleiben erhalten. Für den Designhintergrund hinter der Person „Freisteller verwenden“ wählen oder zuerst „Hintergrund entfernen“.</p>
  {!trainer&&!unified?<button type="button" onClick={()=>{setPending(null);setLayout({...DEFAULT_PHOTO_LAYOUT,source:'original'});}} className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold">Originalfoto vollständig anzeigen</button>:null}
  <label className="block text-sm">Bild<select className="mt-1 block w-full max-w-full rounded border p-2" value={layout.source} onChange={e=>patch('source',e.target.value)}><option value="original">Originalfoto</option><option value="cutout" disabled={!cutout&&!preparedPlayerPortrait(player.avatar_url)}>Freisteller verwenden</option></select></label>
- {!unified||!global?<button type="button" disabled={busy||generating||!player.avatar_url} onClick={()=>void generate()} className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold disabled:opacity-50">{generating?'Hintergrund wird entfernt…':global?`Hintergrund bei ${player.first_name} entfernen`:'Hintergrund entfernen'}</button>:null}
+ {!unified||!global?<><label className="block text-sm">Freisteller-Kanten<select aria-label="Freisteller-Kanten" value={edgeCleanup} disabled={busy||generating} onChange={e=>setEdgeCleanup(e.target.value as PortraitEdgeCleanup)} className="mt-1 block w-full rounded border p-2"><option value="normal">Standard · weiche Kontur</option><option value="strong">Stärker bereinigen · bei hellen Rändern</option></select></label><p className="text-xs text-slate-500">Nach der Auswahl „Hintergrund entfernen“ erneut starten. Stärkeres Bereinigen kann feine Haare und Kleidungskanten verkleinern. Das Original bleibt erhalten.</p><button type="button" disabled={busy||generating||!player.avatar_url} onClick={()=>void generate()} className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold disabled:opacity-50">{generating?'Hintergrund wird entfernt…':global?`Hintergrund bei ${player.first_name} entfernen`:'Hintergrund entfernen'}</button></>:null}
  <p className="text-xs text-slate-500">{unified&&global?'Freisteller werden einzeln im Spielermodus erstellt. ':''}Einzelportrait verwenden. Die Verarbeitung erfolgt im Browser; beim ersten Mal werden Bildwerkzeuge geladen. {global?`Die Freistellung betrifft nur ${player.display_name}, nicht automatisch die gesamte Mannschaft.`:''}</p>
  {pending?<div role="status" className="rounded-lg bg-emerald-50 p-3 text-sm"><p>Vorschau: Bitte Haare und Konturen prüfen. Das Original bleibt erhalten. Erst „Freisteller & Gestaltung speichern“ übernimmt das Ergebnis.</p><button type="button" disabled={busy||generating} onClick={()=>{setPending(null);setLayout(old=>({...old,source:'original'}));}} className="mt-1 underline">Freistellung verwerfen</button></div>:null}
  {slider('zoom','Bildgröße',50,180)}{slider('x','Bild horizontal')}{slider('y','Bild vertikal')}{!imageOnly&&<>{slider('nameX','Name horizontal',2,65)}{slider('nameY','Name vertikal',5,85)}{slider('numberX',trainer?'TR horizontal':'Nummer horizontal',8,92)}{slider('numberY',trainer?'TR vertikal':'Nummer vertikal',3,85)}{slider('numberSize',trainer?'TR Größe':'Nummerngröße',20,80)}</>}
