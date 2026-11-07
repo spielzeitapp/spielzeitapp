@@ -36,3 +36,9 @@ assert.equal(zero.lastMatches[0].minutesKnown,true);assert.equal(zero.stats.unkn
 const mixed=aggregate('p1',[match,{...match,id:'m2'}],[{...appearance,payload:{source:'oefb_attribution',starter:true,calculatedMinutes:75}},{...appearance,match_id:'m2'}],[],new Map(),new Set());
 assert.equal(mixed.stats.games,2);assert.equal(mixed.stats.minutes,75);assert.equal(mixed.stats.unknownMinutesGames,1);assert.equal(mixed.stats.calculatedMinutesGames,1);
 console.log('PASS: profile history distinguishes known, unknown and zero minutes; partial totals preserve unknown-game count.');
+const history=Array.from({length:18},(_,i)=>({...match,id:`history-${i}`,match_date:new Date(Date.UTC(2026,6,i+1)).toISOString()}));
+const historyEvents=history.map(m=>({...appearance,match_id:m.id,payload:{source:'oefb_attribution',starter:true,calculatedMinutes:90}}));
+const allHistory=aggregate('p1',history,historyEvents,[],new Map(),new Set());
+assert.equal(allHistory.stats.games,18);assert.equal(allHistory.lastMatches.length,18);
+assert.equal(allHistory.lastMatches[0].match_id,'history-17');assert.equal(allHistory.lastMatches[17].match_id,'history-0');
+console.log('PASS: all 18 appearances retained, newest first, without changing season totals.');

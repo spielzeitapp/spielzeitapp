@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+import fs from 'node:fs';
+const require=createRequire(import.meta.url);
+const b=await build({entryPoints:['src/utils/logoResolver.ts'],bundle:true,platform:'node',format:'cjs',write:false,define:{'import.meta.env.BASE_URL':'"/"'}});
+const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);
+const {isValidLogoUrl}=m.exports;
+const url='https://vereine.oefb.at/netzwerk/imagedownload/club-logo.png';
+const proxy='/api/oefb/table?view=photo&url='+encodeURIComponent(url);
+assert.equal(isValidLogoUrl(proxy),true);
+assert.equal(isValidLogoUrl('https://storage.example/logo.webp'),true);
+for(const bad of ['/api/oefb/table?view=photo&url=%','/api/oefb/table?view=photo&url='+encodeURIComponent('https://evil.test/club.png'),'/api/oefb/table?view=photo&url='+encodeURIComponent(url+'?redirect=1')])assert.equal(isValidLogoUrl(bad),false);
+const live=fs.readFileSync('src/pages/live/LiveMatchScreen.tsx','utf8');
+assert.match(live,/<ClubLogo removeDarkBackground/);
+assert.match(live,/src=\{homeLogoSrc\} wide=\{sides.isOwnTeamHome\}/);
+assert.match(live,/src=\{awayLogoSrc\} wide=\{!sides.isOwnTeamHome\}/);
+console.log('PASS: official ÖFB photo proxies and WebP accepted; foreign/malformed proxies rejected; own crest widened on both home/away sides.');
