@@ -10,8 +10,8 @@ import { premiumPlayerDisplayName } from "../../lib/premiumPlayerCard";
 import { useDemoMode } from "../../demo/DemoContext";
 
 type Props = {
-  teamName?: string;
-  teamSeasonLabel?: string;
+  teamName?: string|null;
+  teamSeasonLabel?: string|null;
   teamLogoUrl?: string|null;
   players: PlayerItem[];
   ownPlayerIds: Set<string>;
