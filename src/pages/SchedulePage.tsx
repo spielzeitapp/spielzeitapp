@@ -1895,6 +1895,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                                 <MatchCardLigaportal
                                   className="w-full max-w-full !px-2.5 !py-2 sm:!px-3 sm:!py-2.5"
                                   scheduleNextMatchHero
+                                  teamSeasonId={ev.team_season_id}
+                                  ageGroup={teamSeasons.find(ts=>ts.id===ev.team_season_id)?.age_group}
                                   ourTeamName={eventTeamName(ev)}
                                   opponent={ev.opponent}
                                   isHome={ev.is_home}

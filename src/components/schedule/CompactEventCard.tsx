@@ -454,7 +454,7 @@ export function CompactEventCard({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(88,28,135,0.12)_0%,transparent_60%)]" aria-hidden />
         <div className={dsScheduleListPanelGlowClass()} aria-hidden />
         <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
-          {teamAgeBadge ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{teamAgeBadge}</span> : null}
+          {teamAgeBadge ? <span className="mb-1 rounded border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white">{teamAgeBadge}</span> : null}
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
           <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
           <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
@@ -529,7 +529,7 @@ export function CompactEventCard({
         <div className="pointer-events-none absolute inset-0 sz-club-card-glow" aria-hidden />
         <div className={dsScheduleListPanelGlowClass()} aria-hidden />
         <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
-          {teamAgeBadge ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{teamAgeBadge}</span> : null}
+          {teamAgeBadge ? <span className="mb-1 rounded border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white">{teamAgeBadge}</span> : null}
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
           <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
           <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
@@ -606,7 +606,7 @@ export function CompactEventCard({
     >
       <div className={dsScheduleListPanelGlowClass()} aria-hidden />
       <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[68px] min-[390px]:!w-[78px]`}>
-        {teamAgeBadge ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{teamAgeBadge}</span> : null}
+        {teamAgeBadge ? <span className="mb-1 rounded border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white">{teamAgeBadge}</span> : null}
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
         <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
         <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>

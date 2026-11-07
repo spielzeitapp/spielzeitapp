@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {build} from 'esbuild';
+const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer'),{MemoryRouter}=require('react-router-dom');
+globalThis.fetch=async()=>({ok:false});
+const b=await build({entryPoints:['src/app/components/MatchCardLigaportal.tsx','src/components/schedule/PastMatchResultCard.tsx','src/lib/scheduleClubIdentity.ts'],outdir:'out',bundle:true,platform:'node',format:'cjs',packages:'external',write:false,define:{'import.meta.env.BASE_URL':'"/"'},plugins:[{name:'brand',setup(b){b.onResolve({filter:/clubBranding$/},()=>({path:'brand',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:`export const getClubBrandingForTeamSeason=async id=>({data:{logo_url:'https://storage.example.test/'+id+'.png'}});export const hexToRgbChannels=()=> '255 255 255';export const readableAccentOnDark=hexToRgbChannels;export const readableTextColor=()=> '#fff';`,loader:'js'}));}}]});
+const modules=b.outputFiles.map(f=>{const m={exports:{}};new Function('require','module','exports',f.text)(require,m,m.exports);return m.exports;});
+const {MatchCardLigaportal:Hero}=modules[0],{PastMatchResultCard:Past}=modules[1],{scheduleClubName:name}=modules[2];
+for(const input of ['KM USC Rohrbach','USC Rohrbach · KM','USC Rohrbach'])assert.equal(name(input),'USC Rohrbach');assert.equal(name('U13 SPG Rohrbach'),'SPG Rohrbach');assert.equal(name('SC Melk FR'),'SC Melk FR');
+let root;for(const isHome of [true,false]){
+ await act(async()=>{root=create(React.createElement(MemoryRouter,null,React.createElement(Hero,{ourTeamName:'KM USC Rohrbach',ageGroup:'KM',teamSeasonId:'usc-season',opponent:'Wilhelmsburg',isHome,startsAt:'2027-01-24T12:00:00Z',status:'scheduled',kind:'match',matchType:'friendly',showMeetup:false,scheduleNextMatchHero:true,opponentLogoUrl:'https://example.test/wilhelmsburg.png'})));});
+ const imgs=root.root.findAllByType('img');assert.ok(imgs.some(i=>i.props.src==='https://storage.example.test/usc-season.png'),'stored club logo in hero');assert.ok(!imgs.some(i=>i.props.src?.includes('placeholder')),'no placeholder when both logos supplied');assert.ok(!JSON.stringify(root.toJSON()).includes('KM USC Rohrbach'));assert.ok(root.root.findAllByType('span').some(n=>n.children.join('')==='KM'),'KM shown separately');await act(async()=>root.unmount());
+ await act(async()=>{root=create(React.createElement(Past,{ev:{id:'fixture',team_season_id:'usc-season',is_home:isHome,opponent:'Wilhelmsburg',starts_at:'2026-11-06T18:30:00Z',match_type:'league'},ourTeamName:'KM USC Rohrbach',ageGroup:'KM',showTeamBadge:true,compact:true,scoreHome:4,scoreAway:0,forcePublicView:false,onNavigate(){}}));});
+ assert.ok(!JSON.stringify(root.toJSON()).includes('KM USC Rohrbach'));const badge=root.root.findAllByType('span').find(n=>n.children.join('')==='KM');assert.ok(badge);assert.ok(!badge.props.className.includes('red-'));await act(async()=>root.unmount());
+}
+console.log('PASS real home/away schedule heroes and results: stored own club logo, no placeholder, own name without KM, separate neutral KM badge, youth and Melk preserved.');

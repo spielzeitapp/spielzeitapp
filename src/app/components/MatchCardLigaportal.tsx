@@ -1,3 +1,5 @@
+import {useMatchClubBranding} from '../../hooks/useMatchClubBranding';
+import {scheduleClubName} from '../../lib/scheduleClubIdentity';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,7 +17,6 @@ import {
 } from 'lucide-react';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
-import { clubNameWithoutAgeGroup } from '../../lib/seasonLifecycle';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { formatVisibleMatchEncounter } from '../../lib/oefbTeamNameNormalize';
@@ -46,6 +47,7 @@ function formatDateShortDE(date: Date): string {
 type MatchCardLigaportalProps = {
   ourTeamName: string;
   ageGroup?: string | null;
+  teamSeasonId?: string | null;
   opponent: string | null;
   isHome: boolean | null;
   startsAt: string | null;
@@ -116,6 +118,7 @@ type MatchCardLigaportalProps = {
 export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   ourTeamName,
   ageGroup,
+  teamSeasonId,
   opponent,
   isHome,
   startsAt,
@@ -160,8 +163,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 }) => {
   const navigate = useNavigate();
   const [liveAccessSheetOpen, setLiveAccessSheetOpen] = useState(false);
+  const {brand}=useMatchClubBranding(teamSeasonId);
+  const resolvedOurLogo=ourTeamLogoUrl??brand?.logo_url??null;
   const matchAgeGroup = ageGroup ?? pickFeedAgeGroup(ourTeamName);
-  const ourClubName = clubNameWithoutAgeGroup(ourTeamName) || getOurTeamDisplayName();
+  const ourClubName = scheduleClubName(ourTeamName) || getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
   const meetupTimeOnly = formatMeetupTimeOnlyDe(meetupAt);
@@ -269,8 +274,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       : scheduleHeroKickoffLocation;
 
   const opponentIsRight = isHome !== false;
-  const rightLogoOverride = opponentIsRight ? (opponentLogoUrl ?? null) : (ourTeamLogoUrl ?? null);
-  const leftLogoOverride = opponentIsRight ? (ourTeamLogoUrl ?? null) : (opponentLogoUrl ?? null);
+  const rightLogoOverride = opponentIsRight ? (opponentLogoUrl ?? null) : (resolvedOurLogo ?? null);
+  const leftLogoOverride = opponentIsRight ? (resolvedOurLogo ?? null) : (opponentLogoUrl ?? null);
 
   const showManageButtons = canManage && (onEdit || onDelete);
   const showAttendanceChip =
