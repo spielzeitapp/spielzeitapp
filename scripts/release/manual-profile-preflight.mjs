@@ -68,6 +68,19 @@ try{
  await assert.rejects(sql('select admin_save_club_photo_template($1,$2,$3)',[id(10),'other','square']),/Ungültige/);
  const element={visible:true,x:50,y:50,size:10,color:'#ffffff',opacity:100,align:'center'};
  const design={name:element,number:element,logo:element,team:element};
+ const validDesign=async d=>(await sql('select valid_club_profile_design($1::jsonb) as ok',[JSON.stringify(d)])).rows[0].ok;
+ const layout={background:'black',source:'original',zoom:100,x:50,y:50,nameX:28,nameY:85,numberX:88,numberY:8};
+ const validLayout=async l=>(await sql('select valid_player_photo_layout($1::jsonb) as ok',[JSON.stringify(l)])).rows[0].ok;
+ assert.equal(await validDesign(design),true);assert.equal(await validLayout(layout),true);
+ const override={...design,team:{...element,showName:false,showSeason:true},name:{...element,x:14}};
+ assert.equal(await validDesign(override),true);assert.equal(await validLayout({...layout,profileDesign:override}),true);
+ for(const bad of [{...design,team:{...element,showName:'false'}},{...design,team:{...element,showSeason:null}},{...design,team:{...element,unknown:true}}]){assert.equal(await validDesign(bad),false);assert.equal(await validLayout({...layout,profileDesign:bad}),false);}
+ assert.equal(await validLayout({...layout,profileDesign:null}),false);
+ assert.equal(await validLayout({...layout,profileDesign:{}}),false);
+ await db.exec('create temporary table layout_probe(v jsonb check(public.valid_player_photo_layout(v)))');
+ await sql('insert into layout_probe values($1::jsonb)',[JSON.stringify({...layout,profileDesign:override})]);
+ await assert.rejects(sql('insert into layout_probe values($1::jsonb)',[JSON.stringify({...layout,profileDesign:{}})]),/check constraint/);
+ await db.exec('drop table layout_probe');
  const save=(d,expected=null)=>sql('select admin_save_club_profile_design($1,$2,$3,$4::jsonb,$5::jsonb)',[id(10),'square','square',d===null?null:JSON.stringify(d),expected===null?null:JSON.stringify(expected)]);
  await save(design);await assert.rejects(save(design),/inzwischen/);
  for(const bad of [{...design,name:{...element,x:101}},{...design,logo:{...element,color:'url(evil)'}},{...design,team:{...element,align:'bogus'}},{...design,name:{x:5}},{...design,unknown:element}])await assert.rejects(save(bad,design),/Ungültige Gestaltung/);
