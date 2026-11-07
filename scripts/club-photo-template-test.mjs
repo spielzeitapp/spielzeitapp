@@ -36,7 +36,9 @@ assert.ok(JSON.stringify(tree.toJSON()).includes('Entwurf wiederhergestellt'));
 await act(async()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Änderung verwerfen').props.onClick());
 assert.equal(tree.root.findByType('output').props.clubDesign.name.x,12,'Discard restores saved server design');
 assert.equal(drafts.size,0,'Discard removes browser backup');
-// Editing the actual photo is reachable here and remains a separate player-scoped save.
+// Individual image adjustments remain available beside the team default.
+assert.equal(tree.root.findAllByType('input').find(i=>i.props.value==='team').props.checked,true,'Team is the default image scope');
+await act(async()=>tree.root.findAllByType('input').find(i=>i.props.value==='player').props.onChange());
 await act(async()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Bild vergrößern & verschieben').props.onClick());
 assert.equal(tree.root.findByProps({'aria-label':'Spieler für Vorschau'}).props.disabled,true);
 assert.equal(tree.root.findAllByProps({'aria-label':'Name horizontal'}).length,0,'Image controls do not duplicate club element controls');
@@ -52,6 +54,22 @@ assert.equal(calls.at(-1).args.p_player_id,'player');
 assert.equal(calls.at(-1).args.p_team_season_id,'season');
 assert.equal(calls.at(-1).args.p_layout.zoom,135);
 assert.equal(tree.root.findByProps({'aria-label':'Spieler für Vorschau'}).props.disabled,false);
+await act(async()=>tree.root.findAllByType('input').find(i=>i.props.value==='team').props.onChange());
+await act(async()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Bild vergrößern & verschieben').props.onClick());
+await act(async()=>tree.root.findByProps({'aria-label':'Bild horizontal'}).props.onChange({target:{value:'42'}}));
+const teamSave=()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Für gesamte Mannschaft speichern');
+assert.equal(tree.root.findByProps({'aria-label':'Individuelle Bildgestaltungen ersetzen'}).props.checked,false,'Keep individual overrides by default');
+await act(async()=>teamSave().props.onClick());
+assert.equal(calls.at(-1).name,'admin_save_global_photo_layout');
+assert.equal(calls.at(-1).args.p_team_season_id,'season');
+assert.equal(calls.at(-1).args.p_replace_individual,false);
+assert.equal(calls.at(-1).args.p_layout.x,42);
+assert.equal('p_player_id' in calls.at(-1).args,false,'Team save never targets the preview player');
+await act(async()=>tree.root.findAllByType('button').find(b=>b.children.join('')==='Bild vergrößern & verschieben').props.onClick());
+await act(async()=>tree.root.findByProps({'aria-label':'Individuelle Bildgestaltungen ersetzen'}).props.onChange({target:{checked:true}}));
+await act(async()=>teamSave().props.onClick());
+assert.equal(calls.at(-1).args.p_replace_individual,true,'Replacing existing player overrides requires explicit selection');
+console.log('PASS team scope: shared team-season layout, preserve overrides by default, explicit replacement, individual mode remains available.');
 console.log('PASS inline photo controls: separate player save, draft-only zoom, shared format and design, no duplicate element sliders.');
 console.log('PASS club template: saved load, live preview, coordinates preserved, explicit scoped save, conflict and no automatic write.');
 }finally{await act(async()=>tree?.unmount());}
