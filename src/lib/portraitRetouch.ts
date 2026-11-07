@@ -1,0 +1,20 @@
+export type PortraitPoint={x:number;y:number};
+export type PortraitStroke={size:number;points:PortraitPoint[]};
+
+export function portraitPoint(clientX:number,clientY:number,box:{left:number;top:number;width:number;height:number}):PortraitPoint|null {
+ if(box.width<=0||box.height<=0)return null;
+ const clamp=(v:number)=>Math.max(0,Math.min(1,v));
+ return {x:clamp((clientX-box.left)/box.width),y:clamp((clientY-box.top)/box.height)};
+}
+
+/** Erase alpha only. The source canvas is never changed. Coordinates survive display zoom. */
+export function erasePortraitStroke(ctx:CanvasRenderingContext2D,stroke:PortraitStroke,width:number,height:number):void {
+ if(!stroke.points.length)return;
+ ctx.save();ctx.globalCompositeOperation='destination-out';
+ ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=width*stroke.size/100;
+ const [first,...rest]=stroke.points;
+ ctx.beginPath();ctx.moveTo(first.x*width,first.y*height);
+ for(const p of rest)ctx.lineTo(p.x*width,p.y*height);
+ if(!rest.length){ctx.arc(first.x*width,first.y*height,ctx.lineWidth/2,0,Math.PI*2);ctx.fill();}else ctx.stroke();
+ ctx.restore();
+}
