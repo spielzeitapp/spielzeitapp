@@ -89,7 +89,7 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
           </label> : null}
           <p className="my-3 text-xs text-white/65">Auswahl gilt für dieses Spiel. Echte Spielerfotos nur mit entsprechender Freigabe verwenden. Demomotive sind fiktiv.</p>
           <div className="mx-auto w-full max-w-[340px] overflow-hidden rounded-xl" aria-label="Autopost-Vorschau">
-            <MatchdayPosterCard {...poster} ref={ref} playerImageUrl={draft.template === 'player' ? draft.imageUrl : null} />
+            <MatchdayPosterCard {...poster} ref={ref} playerId={draft.playerId} teamSeasonId={demo?null:teamSeasonId} playerImageUrl={draft.template === 'player' ? draft.imageUrl : null} />
           </div>
           <button type="button" onClick={() => void download()} disabled={busy} className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-white/20"><Download className="h-4 w-4" />{busy ? 'Bitte warten…' : 'Bild für Feed & WhatsApp erstellen'}</button>
           {exported ? <div className="mt-3 space-y-2">

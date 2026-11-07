@@ -1,3 +1,4 @@
+import {portraitBrightness} from '../../../lib/playerPhotoLayout';
 import {DEFAULT_PHOTO_LAYOUT, photoBackground, type PlayerPhotoLayout} from '../../../lib/playerPhotoLayout';
 import {playerPhotoDisplayUrl,preparedPlayerPortrait} from '../../../lib/playerPhotoDisplay';
 import React from "react";
@@ -92,7 +93,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
             src={playerPhotoDisplayUrl(heroImageSrc)}
             alt=""
             className="h-full w-[72%] origin-bottom translate-x-[16%] translate-y-[2%] object-contain object-bottom sm:w-[70%] sm:translate-x-[13%]"
-            style={photoLayout?{transform:`translate(${16+(layout.x-50)}%, ${2+(layout.y-50)}%) scale(${layout.zoom/100}) rotate(${layout.rotation??0}deg)`,transformOrigin:layout.rotation?'center':undefined}:undefined}
+            style={photoLayout?{filter:`brightness(${portraitBrightness(layout.brightness)}%)`,transform:`translate(${16+(layout.x-50)}%, ${2+(layout.y-50)}%) scale(${layout.zoom/100}) rotate(${layout.rotation??0}deg)`,transformOrigin:layout.rotation?'center':undefined}:undefined}
             onError={() => setImageOk(false)}
           />
         ) : (

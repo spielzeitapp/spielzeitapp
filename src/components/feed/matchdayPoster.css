@@ -10,3 +10,12 @@
   font-family: 'SpielzeitPoster', 'Arial Narrow', sans-serif;
   font-weight: 400;
 }
+
+/* USC matchday family, with or without a selected player cutout. */
+.usc-matchday-poster .sz-club-feed-poster-background { background: #0a0b0d; }
+.usc-matchday-poster .sz-club-feed-poster-lines { background: repeating-linear-gradient(135deg, transparent 0 12%, #cdd0d51a 12% 17%, transparent 17% 24%); }
+.usc-matchday-poster .sz-club-feed-primary-glow { background: #cbd0d333; }
+.usc-matchday-poster .sz-club-feed-accent-text { color: #e2e4e8; }
+.usc-matchday-poster .sz-club-feed-accent-line { background: #ccd0d580; }
+.usc-matchday-poster footer { border-top: 1px solid #ccd0d580; padding-top: 3cqw; }
+.usc-matchday-poster footer p { font-family: sans-serif; font-style: italic; font-weight: 900; }

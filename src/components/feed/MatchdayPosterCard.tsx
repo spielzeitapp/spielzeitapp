@@ -1,3 +1,4 @@
+import {usePosterPlayerBrightness} from '../../hooks/usePosterPlayerBrightness';
 import React from 'react';
 import { posterClubName } from '../../lib/matchdayDesign';
 import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
@@ -26,6 +27,8 @@ export type MatchdayPosterCardProps = {
   announcementTiming?: MatchdayAnnouncementTiming | null;
   compact?: boolean;
   playerImageUrl?: string | null;
+  playerId?: string | null;
+  teamSeasonId?: string | null;
 };
 
 function heroKickoffDisplay(
@@ -65,9 +68,11 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
       announcementTiming = null,
       compact = false,
       playerImageUrl = null,
+      playerId, teamSeasonId,
     },
     ref,
   ) {
+    const brightness=usePosterPlayerBrightness(playerImageUrl?playerId:null,teamSeasonId);
     const typeLabel = getMatchTypeLabel(matchType ?? undefined);
     const showAnnouncement = announcementTiming && status === 'today';
     const competitionLabel = buildFeedMatchMetaLine(
@@ -120,6 +125,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
           statusBadge={showStatusBadge ? statusBadge : null}
           compact={compact}
           playerImageUrl={playerImageUrl}
+          playerBrightness={brightness}
         />
       </div>
     );

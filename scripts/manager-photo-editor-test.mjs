@@ -64,3 +64,15 @@ for (const global of [false,true]) {
  await act(async()=>root.unmount());
 }
 console.log('PASS: Rohrbach background previews in real portrait and saves in both scopes without replacing individual exceptions.');
+await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',onSaved(){},onClose(){}}));});
+const beforeBrightness=calls.length;
+assert.equal(root.root.findByProps({'aria-label':'Spielerfoto-Helligkeit'}).props.value,100);
+await act(async()=>button('Foto aufhellen').props.onClick());
+assert.equal(root.root.findByType('img').props.style.filter,'brightness(120%)');
+assert.equal(calls.length,beforeBrightness);
+await act(async()=>button('Gestaltung speichern').props.onClick());
+assert.equal(calls.at(-1).args.p_layout.brightness,120);
+await act(async()=>button('Originalhelligkeit').props.onClick());
+assert.equal(root.root.findByType('img').props.style.filter,'brightness(100%)');
+await act(async()=>root.unmount());
+console.log('PASS brightness: neutral old layouts, brighten preview only, explicit per-player save, original reset.');
