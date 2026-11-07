@@ -48,3 +48,14 @@ await act(async()=>root.update(React.createElement(PlayerPortraitCanvas,{layout,
 assert.equal(root.root.findByType('img').props.style.opacity,0,'New source cannot reuse previous loaded state');
 await act(async()=>root.unmount());
 console.log('PASS: saved Melk layout uses shared canvas, no duplicate crest/watermark, original source wins, full-image loading and changed-source reset.');
+
+const {defaultClubProfileDesign}=await load('src/lib/clubProfileDesign.ts');
+const shared=defaultClubProfileDesign('square');shared.name.size=11;
+const individual=structuredClone(shared);individual.name.size=8;
+for(const override of [undefined,individual]){
+ const member={id:'design-fixture',first_name:'Test',last_name:'Player',jersey_number:6,avatar_url:'/portrait.jpg',club_profile_design:shared,photo_layout:{...layout,profileDesign:override}};
+ await act(async()=>root=create(React.createElement(TeamSquadShowcase,{players:[member],ownPlayerIds:new Set(),onPlayerClick(){},teamName:'SC Melk',teamSeasonLabel:'U16 · 2026/27',teamLogoUrl:'/club.png'})));
+ assert.equal(root.root.findByProps({'data-profile-element':'name'}).props.style.fontSize,override?'8cqw':'11cqw','Carousel uses the same team/player element design as profile preview');
+ await act(async()=>root.unmount());
+}
+console.log('PASS carousel: shared team design and individual precedence.');

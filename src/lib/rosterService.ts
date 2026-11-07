@@ -142,7 +142,7 @@ async function enrichAvatarsAndBirthdates(
   return {
     data: players.map((p) => ({
       ...p,
-      club_profile_design: one(one((context as any)?.teams)?.clubs)?.player_profile_design??null,
+      club_profile_design: p.photo_layout_default?.profileDesign??one(one((context as any)?.teams)?.clubs)?.player_profile_design??null,
       club_photo_template: template === 'square' ? 'square' : 'wide',
       avatar_url: avatarMap[p.id] ?? null,
       birthdate: birthMap[p.id] ?? null,

@@ -1304,6 +1304,9 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
             <>
               <TeamSquadShowcase
+                teamName={heroTeamName}
+                teamSeasonLabel={teamLabel}
+                teamLogoUrl={teamLogo}
                 players={showcasePlayers}
                 ownPlayerIds={ownPlayerIds}
                 onPlayerClick={openPlayerProfile}
