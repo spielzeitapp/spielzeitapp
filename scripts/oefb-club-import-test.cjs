@@ -22,5 +22,26 @@ global.fetch = async () => { fetched = true; throw Error('must not fetch'); };
   await handler({method:'GET',query:{url:source.href,season:'2026/28'}},response);
   assert.equal(response.code,400); assert.equal(fetched,false);
   await handler({method:'POST',query:{}},response); assert.equal(response.code,405);
+  // HTTP 200 without the team navigation is an upstream failure, not an empty club.
+  let calls=[];
+  global.fetch=async(url,opts)=>{calls.push({url,opts});return new Response(calls.length===1?'<html>Partial news</html>':html);};
+  await handler({method:'GET',query:{url:source.href,season:'2026/27'}},response);
+  assert.equal(response.code,200);assert.equal(response.data.teams.length,3);assert.equal(calls.length,2);
+  assert.equal(calls[1].url,'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/KM/Kader/');
+  assert.equal(calls[1].opts.redirect,'error');assert.equal(calls[1].opts.headers['Cache-Control'],'no-cache');
+  calls=[];global.fetch=async url=>{calls.push(url);return new Response(html);};
+  await handler({method:'GET',query:{url:source.href,season:'2026/27'}},response);
+  assert.equal(calls.length,1,'Complete primary response must not make a second request');
+  calls=[];global.fetch=async url=>{calls.push(url);return new Response('<html>No team payload</html>');};
+  await handler({method:'GET',query:{url:source.href,season:'2026/27'}},response);
+  assert.equal(calls.length,2);assert.equal(response.code,502);assert.match(response.data.error,/vollständig gelesen/);assert.equal(response.data.teams,undefined);
+  global.fetch=async()=>new Response(preload([{saison:'2025/26',mannschaften:[row('U11')]}]));
+  await handler({method:'GET',query:{url:source.href,season:'2026/27'}},response);
+  assert.equal(response.code,200);assert.deepEqual(response.data.availableSeasons,['2025/26']);assert.match(response.data.notice,/2025\/26/);
+  // A failed first source is recovered by the independent season page, too.
+  calls=[];global.fetch=async url=>{calls.push(url);if(calls.length===1)throw Error('upstream unavailable');return new Response(html);};
+  await handler({method:'GET',query:{url:source.href,season:'2026/27'}},response);
+  assert.equal(response.code,200);assert.equal(response.data.teams.length,3);
+  console.log('PASS recovery: bounded same-club fallback, no false empty result for partial pages, meaningful season hints and successful first-page fast path.');
   console.log('PASS club discovery: duplicate age groups, source isolation, season filtering, malformed JSON, unsafe URLs and invalid requests.');
 })();
