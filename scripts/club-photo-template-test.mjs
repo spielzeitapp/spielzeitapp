@@ -92,3 +92,13 @@ assert.equal(tree.root.findByProps({'data-profile-element':'logo'}).props.style.
 assert.ok(tree.root.findAllByType('p').some(p=>p.props.hidden===true),'Built-in watermark hidden when custom overlay is used');
 await act(async()=>tree.unmount());
 console.log('PASS: shared renderer applies color, visibility, transparency and suppresses duplicate decoration.');
+
+const individual=om.exports.defaultClubProfileDesign('square');individual.team.visible=true;individual.team.showName=false;individual.team.showSeason=true;individual.name.x=13;
+await act(async()=>tree=create(React.createElement(mm.exports.ProfileHeroCard,{clubTemplate:'square',clubDesign:design,variant:'player',photoUrl:'/portrait.jpg',photoLayout:{source:'original',background:'black',zoom:100,x:50,y:50,nameX:28,nameY:85,numberX:88,numberY:8,profileDesign:individual},watermark:'9',firstNameLine:'First',lastNameLine:'Last',teamName:'TestClub',teamSeasonLabel:'TestClub · U16 · 2026/27',initials:'FL'})));
+const teamElement=tree.root.findByProps({'data-profile-element':'team'});
+assert.ok(!teamElement.children.filter(c=>typeof c==='string').join('').includes('TestClub'),'Club name hidden independently');
+assert.equal(teamElement.findByType('span').children.join(''),'U16 · 2026/27','Season remains visible');
+assert.equal(tree.root.findByProps({'data-profile-element':'name'}).props.style.left,'13%','Individual overrides club position');
+await act(async()=>tree.unmount());
+assert.equal(om.exports.isClubProfileDesign(individual),true);
+console.log('PASS independent club/season visibility and individual rendering override.');
