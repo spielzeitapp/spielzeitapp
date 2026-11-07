@@ -167,6 +167,25 @@
     border-radius: 10px;
   }
   .manager-desktop-light [data-manager-feed-game-link]:hover { background: #fef2f2 !important; }
+  /* Shared game modules also appear through /live, outside the event summary.
+     Clear their app backdrops before applying the Manager's dark text. */
+  .manager-desktop-light .sz-finished-club.live-shell-viewport,
+  .manager-desktop-light [data-manager-match-surface],
+  .manager-desktop-light :is(.sz-finished-club.live-shell-viewport, [data-manager-match-summary]) :is([class*="bg-black"], [class*="bg-[rgba("], [class*="bg-[#080"], [class*="bg-[linear-gradient"], [class*="bg-[radial-gradient"], [class*="bg-gradient-"]):not(button, [data-manager-artwork], [data-manager-artwork] *) {
+    background: #fff !important;
+    color: #0f172a;
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none;
+  }
+  .manager-desktop-light .sz-finished-club.live-shell-viewport > [aria-hidden],
+  .manager-desktop-light .sz-finished-club.live-shell-viewport .pointer-events-none.absolute.inset-0:not([data-manager-artwork], [data-manager-artwork] *) {
+    display: none !important;
+  }
+  .manager-desktop-light :is(.sz-finished-club.live-shell-viewport, [data-manager-match-summary]) [class*="drop-shadow"]:not([data-manager-artwork], [data-manager-artwork] *) {
+    filter: none !important;
+  }
+
   .manager-desktop-light [data-manager-match-summary] {
     background: #fff !important;
     color: #0f172a !important;
