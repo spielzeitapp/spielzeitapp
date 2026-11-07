@@ -59,7 +59,11 @@ function externalIdFromSpielUrl(spielUrl) {
   return m ? m[1] : null;
 }
 
-function mapFixture(raw, ourTeamHints) {
+function clubSlug(value) {
+  try { const u=new URL(String(value||''),'https://vereine.oefb.at');return u.hostname==='vereine.oefb.at'?u.pathname.split('/').filter(Boolean)[0]?.toLowerCase()||null:null; } catch { return null; }
+}
+
+function mapFixture(raw, ourTeamHints, sourceClub) {
   // ÖFB liefert oft „U11 …“ in heimName/gastName — vor Speicherung/Anzeige strippen.
   const heim = normalizeOefbImportedTeamName(raw.heimName);
   const gast = normalizeOefbImportedTeamName(raw.gastName);
@@ -68,7 +72,12 @@ function mapFixture(raw, ourTeamHints) {
     .map((h) => normalizeOefbImportedTeamName(h).toLowerCase())
     .filter(Boolean);
   const heimNorm = heim.toLowerCase();
-  const isHome =
+  // Club links identify the side even when the app name differs from ÖFB
+  // (e.g. "USC Rohrbach" versus "Rohrbach / Gölsen"). Use names only if
+  // the source links cannot unambiguously distinguish home and away.
+  const homeClub=clubSlug(raw.heimUrl),awayClub=clubSlug(raw.gastUrl);
+  const homeIsSource=Boolean(sourceClub&&homeClub===sourceClub),awayIsSource=Boolean(sourceClub&&awayClub===sourceClub);
+  const isHome = homeIsSource!==awayIsSource ? homeIsSource :
     hints.length === 0
       ? false
       : hints.some((h) => heimNorm === h || heimNorm.includes(h) || h.includes(heimNorm));
@@ -201,7 +210,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Testspiele werden nur auf ausdrücklichen Wunsch des Import-Clients geliefert.
-    const mapped = (extracted.spiele || []).map((s) => mapFixture(s, ourTeamHints));
+    const mapped = (extracted.spiele || []).map((s) => mapFixture(s, ourTeamHints, clubSlug(parsedUrl.toString())));
     const typeCounts = mapped.reduce((acc, fixture) => {
       const type = fixture.art || '(ohne Spielart)';
       acc[type] = (acc[type] || 0) + 1;
