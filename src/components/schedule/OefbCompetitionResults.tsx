@@ -91,7 +91,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
     };
   }, [competitionId, round, refresh]);
 
-  return <section className="space-y-3" aria-label="ÖFB-Liga-Ergebnisse">
+  return <section data-competition-results className="space-y-3" aria-label="ÖFB-Liga-Ergebnisse">
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-sm font-bold uppercase tracking-wider text-white">{data?.name || 'Spiele & Ergebnisse'}</h2>
       <button type="button" disabled={loading} onClick={() => void refresh()} className="sz-club-schedule-toolbar-action min-h-[44px] rounded-xl border px-3 text-xs font-semibold disabled:opacity-50">{loading ? 'Lade…' : 'Aktualisieren'}</button>
