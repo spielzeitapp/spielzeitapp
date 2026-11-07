@@ -1,3 +1,4 @@
+import {scheduleClubName} from '../../lib/scheduleClubIdentity';
 import {ClubLogo} from '../branding/ClubLogo';
 import React from 'react';
 import {getClubBrandingForTeamSeason} from '../../lib/clubBranding';
@@ -74,7 +75,7 @@ function heroTeamNameClass(name: string): string {
 
 function TeamLogoBlock({ src, label }: { src: string; label: string }) {
   return (
-    <ClubLogo
+    <ClubLogo removeDarkBackground
       src={src}
       alt={label}
       className="h-[4.5rem] w-[4.5rem] shrink-0 object-contain [filter:drop-shadow(0_0_14px_rgba(255,255,255,0.18))] sm:h-20 sm:w-20"
@@ -114,7 +115,7 @@ export function PastMatchResultCard({
     if (clickable) onNavigate(ev.id);
   };
 
-  const our = ourTeamName.trim() || 'Mannschaft';
+  const our = scheduleClubName(ourTeamName) || 'Mannschaft';
   const enc = formatVisibleMatchEncounter({
     isHome: ev.is_home,
     ourTeamName: our,
@@ -193,7 +194,7 @@ export function PastMatchResultCard({
         }
       >
         <div className="flex w-[68px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
-          {showTeamBadge && ageGroup ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{ageGroup}</span> : null}
+          {showTeamBadge && ageGroup ? <span className="mb-1 rounded border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white">{ageGroup}</span> : null}
           <span className="sz-club-accent-text text-[12px] font-semibold uppercase leading-none tracking-widest">{weekdayBadge}</span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{dayBig}</span>
           <span className="text-[12px] leading-tight text-white/60">{monSmall || '—'}</span>
@@ -203,20 +204,20 @@ export function PastMatchResultCard({
         <div className="flex min-w-0 flex-1 flex-col justify-center pr-3">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(74px,0.85fr)_minmax(0,1fr)] items-center gap-1">
             <div className="flex min-w-0 flex-col items-center text-center">
-              <ClubLogo src={homeLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <ClubLogo removeDarkBackground src={homeLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
               <span className="mt-1 w-full min-w-0 text-[12px] font-semibold leading-tight text-white/88">
                 <PosterClubName name={homeName} wrap />
               </span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#D17A86]">Endstand</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/70">Endstand</span>
               <span className="mt-0.5 whitespace-nowrap text-[32px] font-extrabold tabular-nums leading-none text-white">{scoreStr}</span>
               {periodBracketLine ? (
                 <span className="mt-0.5 whitespace-nowrap text-[10px] font-medium tabular-nums text-white/42">{periodBracketLine}</span>
               ) : null}
             </div>
             <div className="flex min-w-0 flex-col items-center text-center">
-              <ClubLogo src={awayLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <ClubLogo removeDarkBackground src={awayLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
               <span className="mt-1 w-full min-w-0 text-[12px] font-semibold leading-tight text-white/88">
                 <PosterClubName name={awayName} wrap />
               </span>

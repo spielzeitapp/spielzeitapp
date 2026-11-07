@@ -1,3 +1,4 @@
+import {ClubLogo} from '../branding/ClubLogo';
 import React from 'react';
 import { getClubLogoUrl, isValidLogoUrl } from '../../utils/logoResolver';
 import { splitCombinedLocation } from '../../lib/eventLocation';
@@ -84,7 +85,7 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
       : 'mt-0.5 max-w-[184px] text-[17px] font-semibold leading-snug text-white sm:max-w-[200px]';
 
   const imgNode = logoUrl ? (
-    <img
+    <ClubLogo removeDarkBackground
       src={displayLogoUrl(logoUrl)}
       alt={name}
       className={`${imgClass} mx-auto object-contain`}
