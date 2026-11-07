@@ -9,6 +9,14 @@ const {blobSha}=require('../../server/lib/releaseDatabase');
 const {RELEASE_HEAD:head,RELEASE_MAIN:main,RELEASE_PLAN_DIGEST:planDigest}=process.env;
 if(!isSha(head)||!isSha(main)||!/^[a-f0-9]{64}$/.test(planDigest??''))throw Error('Invalid review snapshot');
 const command=process.argv[2];
+if(command==='approve'){
+ const {approve}=require('../../server/lib/technicalReview');
+ const {downloadReport}=require('../../server/lib/reviewArtifact');
+ const gh=(path,options)=>github(process.env.GITHUB_TOKEN,path,options);
+ const plan=await releasePlan(gh);
+ const result=await approve(gh,plan,{head,main,planDigest,runId:Number(process.env.REVIEW_RUN_ID)},process.env.REVIEW_ACTOR,id=>downloadReport(process.env.GITHUB_TOKEN,id));
+ console.log(result.message);process.exit(0);
+}
 if(command==='prepare'){
  const gh=(path,options)=>github(process.env.GITHUB_TOKEN,path,options);
  const plan=await releasePlan(gh);assertSnapshot(plan,{head,main,planDigest});
