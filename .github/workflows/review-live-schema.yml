@@ -1,8 +1,11 @@
 name: Review schema for Manager approval
-run-name: SCHEMA ${{ inputs.head }} ${{ inputs.main }} ${{ inputs.request_id }}
+run-name: ${{ inputs.mode == 'approve' && 'SCHEMA-APPROVAL' || 'SCHEMA' }} ${{ inputs.head }} ${{ inputs.main }} ${{ inputs.request_id }}
 on:
   workflow_dispatch:
     inputs:
+      mode: {required: true, type: choice, default: check, options: [check, approve]}
+      review_run_id: {required: false, type: string}
+      actor: {required: false, type: string}
       head: {required: true, type: string}
       main: {required: true, type: string}
       plan_digest: {required: true, type: string}
@@ -20,7 +23,7 @@ env:
   RELEASE_PLAN_DIGEST: ${{ inputs.plan_digest }}
 jobs:
   prepare:
-    if: github.ref == 'refs/heads/main' && github.sha == inputs.main
+    if: inputs.mode == 'check' && github.ref == 'refs/heads/main' && github.sha == inputs.main
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -69,3 +72,26 @@ jobs:
           name: technical-review
           path: review-result/report.json
           retention-days: 1
+  approve:
+    if: inputs.mode == 'approve' && github.ref == 'refs/heads/main' && github.sha == inputs.main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.main }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: npm install --prefix /tmp/schema-review-deps --ignore-scripts fflate@0.8.3
+      - name: Verify report again and record exact approvals on develop
+        run: node scripts/release/review-live-schema.mjs approve
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          NODE_PATH: /tmp/schema-review-deps/node_modules
+          REVIEW_RUN_ID: ${{ inputs.review_run_id }}
+          REVIEW_ACTOR: ${{ inputs.actor }}

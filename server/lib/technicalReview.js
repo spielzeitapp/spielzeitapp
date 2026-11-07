@@ -21,10 +21,11 @@ async function reviewState(gh,plan,download){
  try{
   const workflow=await gh(`/actions/workflows/${WORKFLOW}`);if(workflow.state!=='active')return {available:false};
   const result=await gh(`/actions/workflows/${WORKFLOW}/runs?per_page=25`);
+  const approval=result.workflow_runs?.find(r=>r.event==='workflow_dispatch'&&r.head_sha===plan.main&&r.display_title?.startsWith(`SCHEMA-APPROVAL ${plan.head} ${plan.main} `));
   const prefix=`SCHEMA ${plan.head} ${plan.main} `;
   const run=result.workflow_runs?.find(r=>r.event==='workflow_dispatch'&&r.head_sha===plan.main&&r.head_branch==='main'&&r.display_title?.startsWith(prefix));
   if(!run)return {available:true,canStart:canReview(plan)};
-  const view={available:true,canStart:canReview(plan),runId:run.id,url:run.html_url,status:run.status,conclusion:run.conclusion,canApprove:false};
+  const view={approval:approval?{title:approval.display_title,status:approval.status,conclusion:approval.conclusion,url:approval.html_url}:null,available:true,canStart:canReview(plan),runId:run.id,url:run.html_url,status:run.status,conclusion:run.conclusion,canApprove:false};
   if(run.status==='completed'){
    try{const report=await readReport(gh,run,download);view.report={passed:report.passed,findings:report.findings,createdAt:report.createdAt};assertReport(plan,run,report);view.canApprove=canReview(plan);}
    catch(e){view.message=e.message;}
