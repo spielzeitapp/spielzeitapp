@@ -83,8 +83,10 @@ type MatchCardLigaportalProps = {
   onOpenAttendance?: () => void;
   /** Für Trainer/Admin: Counts für Zu-/Absagen-Übersicht (Zugesagt / Abgesagt / Offen). */
   attendanceCounts?: { yes: number; no: number; open: number; injured?: number } | null;
-  /** true = öffentliche Ansicht: Karte nur Anzeige, keine Navigation, kein Link, kein onClick, Cursor default. */
+  /** Public cards are display-only unless an explicit read-only onPublicDetails action is supplied. */
   isPublicView?: boolean;
+  /** Optional read-only details action for public league cards; never enables management. */
+  onPublicDetails?: () => void;
   /** Termine-UX: nächster Termin hervorheben (nur Darstellung). */
   heroHighlight?: boolean;
   /** Externe Zu-/Absage-UI: Chip in der Datumszeile ausblenden. */
@@ -142,6 +144,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   onOpenAttendance,
   attendanceCounts,
   isPublicView = false,
+  onPublicDetails,
   heroHighlight = false,
   suppressInlineAttendanceChip = false,
   suppressInlineAttendanceCounts = false,
@@ -425,6 +428,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   };
 
   const handleCardClick = () => {
+    if(isPublicView){onPublicDetails?.();return;}
     if (!isPublicView && isTrainerScheduleHero) {
       handleTrainerScheduleHeroClick();
       return;
@@ -442,6 +446,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   };
 
   const isClickable =
+    (isPublicView && Boolean(onPublicDetails)) ||
     !isPublicView &&
     (Boolean(eventId && onNavigate) ||
       (isTrainerScheduleHero && Boolean((scheduleHeroMatchId ?? '').trim())));
@@ -1384,9 +1389,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const baseCardClass =
     `relative w-full max-w-none ${overflowClass} rounded-[14px] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] ${audienceHeroPadding} ${heroShadow} ${heroBorder} ${heroRing} ${className}`;
   const cardClass =
-    isPublicView ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
+    isPublicView && !onPublicDetails ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
 
-  if (isPublicView) {
+  if (isPublicView && !onPublicDetails) {
     const blockClick = (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
