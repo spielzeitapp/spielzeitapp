@@ -1,4 +1,4 @@
-import { removeOuterWhiteBackground } from '../../lib/logoBackground.mjs';
+import { removeOuterWhiteBackground,removeOuterDarkBackground } from '../../lib/logoBackground.mjs';
 
 /** Only the exact official ÖFB PNG format reaches the fixed-host image endpoint. */
 export function displayLogoUrl(raw: string): string {
@@ -6,7 +6,7 @@ export function displayLogoUrl(raw: string): string {
  const id=/^https:\/\/(?:www\.)?oefb\.at\/oefb2\/images\/1278650591628556536_([a-f0-9]{20})-1,0-120x120-120x120\.png$/i.exec(raw.trim())?.[1];
  return id ? `/api/oefb/table?view=logo&id=${id.toLowerCase()}` : raw;
 }
-export async function prepareLogoFile(file: File): Promise<{ file: File; changed: boolean }> {
+export async function prepareLogoFile(file: File,options:{removeDarkBackground?:boolean}={}): Promise<{ file: File; changed: boolean }> {
  const url=URL.createObjectURL(file);
  try {
   const image=await new Promise<HTMLImageElement>((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Bild konnte nicht gelesen werden.'));img.src=url;});
@@ -17,6 +17,7 @@ export async function prepareLogoFile(file: File): Promise<{ file: File; changed
   ctx.drawImage(image,0,0,canvas.width,canvas.height);
   const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
   let changed=removeOuterWhiteBackground(pixels)>0;
+  if(!changed&&options.removeDarkBackground)changed=removeOuterDarkBackground(pixels)>0;
   // Trim only transparent margins; preserve enclosed white parts of the crest.
   let left=canvas.width,top=canvas.height,right=-1,bottom=-1;
   for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++)if(pixels.data[(y*canvas.width+x)*4+3]>8){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}

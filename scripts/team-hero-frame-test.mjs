@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {createRequire} from 'node:module';import {build} from 'esbuild';
+const require=createRequire(import.meta.url),React=require('react'),{create}=require('react-test-renderer');
+const b=await build({entryPoints:['src/components/team/TeamHeroFrame.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false});const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);
+const style={objectPosition:'50% 100%',transform:'scale(1.32)'};
+const root=create(React.createElement(m.exports.TeamHeroFrame,{photoSrc:'https://example.test/team.jpg',photoStyle:style},React.createElement('button',{'aria-label':'Mannschaft wechseln'},'Wechseln'),React.createElement('p',null,'USC Rohrbach')));
+const photo=root.root.findByProps({'data-team-hero-photo':true}),details=root.root.findByProps({'data-team-hero-details':true});
+assert.equal(photo.findAllByType('button').length,0,'no control covers players');assert.equal(photo.findAllByType('p').length,0,'no heading covers players');assert.equal(details.findAllByType('button').length,1);assert.equal(details.findAllByType('img').length,0);assert.equal(photo.findByType('img').props.style,style);assert.match(photo.props.className,/aspect-\[16\/7\]/);root.unmount();
+const page=readFileSync('src/pages/TeamPage.tsx','utf8');const frame=page.slice(page.indexOf('<TeamHeroFrame'),page.indexOf('</TeamHeroFrame>'));
+assert.ok(frame.includes('<TeamViewSwitcher />'));assert.ok(frame.includes('removeDarkBackground'));assert.ok(!frame.includes('absolute right-3 top-3'),'photo upload button participates in layout');
+const logo=readFileSync('src/components/branding/ClubLogo.tsx','utf8');assert.match(logo,/removeDarkBackground=false/,'dark removal requires opt-in');assert.match(logo,/dark:.*white:/,'cache separates processing modes');
+console.log('PASS real team hero: photograph and controls/labels occupy separate sections; preserved crop style, compact aspect, switcher wiring and opt-in logo mode.');
