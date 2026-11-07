@@ -44,7 +44,7 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved,sourceUrl,workfl
    if(version!==generation.current)return;
    setChoices(found.map((p,i)=>{const matches=staff.filter(s=>normalize(staffDisplayName(s))===normalize(p.name));
     const target=embedded?(matches.length===1?matches[0]:!matches.length?suggestions[i]:null):null;
-    return {target,email:p.email||'',lookup:suggestions[i],role:(target&&['trainer','head_coach','co_trainer'].includes(target.role||'')?target.role:p.role) as Role,takeName:Boolean(target&&!target.first_name&&!target.last_name),takePhoto:Boolean(target&&!target.avatar_url&&!target.cutout_url),cutout:null};}));
+    return {target,email:p.email||'',lookup:suggestions[i],role:(target&&['trainer','head_coach','co_trainer'].includes(target.role||'')?target.role:p.role) as Role,takeName:Boolean(target&&!target.first_name&&!target.last_name),takePhoto:Boolean(target&&matches.length===1&&!target.avatar_url&&!target.cutout_url),cutout:null};}));
    setPeople(found);
    setNotice(data.notice||'');
   }catch(e){if(version===generation.current)setError(e instanceof Error?e.message:'ÖFB-Trainer konnten nicht geladen werden.');}
@@ -119,6 +119,7 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved,sourceUrl,workfl
    </div>:null}</>}
   </div>;})}
   {!embedded&&selected.length?<><label className="flex gap-2 text-sm"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>Ich habe Mannschaft, Personen, Rollen und Fotoübernahme geprüft.</label>{!unique?<p role="alert" className="text-sm text-red-700">Ein App-Konto wurde mehrfach gewählt. Bitte jede Person eindeutig zuordnen.</p>:null}<button type="button" disabled={busy||!confirmed||!unique} onClick={()=>void save()} className="min-h-11 rounded-lg bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-50">Zuordnungen speichern ({selected.length})</button></>:null}
+  {embedded&&!unique&&<p role="alert" className="text-sm text-red-700">Ein App-Konto wurde mehrfach gewählt. Bitte jede Person eindeutig zuordnen.</p>}
   {embedded&&unresolved>0&&<p className="text-sm text-amber-800">{unresolved} Trainer noch offen: App-Konto zuordnen oder später unter Punkt 4 einladen. Es werden keine Konten automatisch angelegt.</p>}
   {error?<p role="alert" className="text-sm text-red-700">{error}</p>:null}
   {notice?<p role="status" className="text-sm text-slate-700">{notice}</p>:null}
