@@ -127,7 +127,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
           opponentLogoUrl={preferredClubLogo(game.away, clubLogos, game.awayLogo)}
           startsAt={game.kickoff} status={status} kind="match" eventType="game" matchType="league"
           location={game.venue} scoreHome={scores?.[0] ?? null} scoreAway={scores?.[1] ?? null}
-          role="fan" canManage={false} isPublicView scheduleNextMatchHero suppressInlineAttendanceChip
+          role="fan" canManage={false} isPublicView onPublicDetails={game.sourceUrl?()=>{window.open(game.sourceUrl!,'_blank','noopener,noreferrer');}:undefined} scheduleNextMatchHero suppressInlineAttendanceChip
           suppressInlineAttendanceCounts className={own ? 'ring-1 ring-red-400/30' : ''} />
         {game.sourceUrl ? <a className="inline-flex min-h-[44px] items-center px-3 text-xs font-semibold text-red-300" href={game.sourceUrl} target="_blank" rel="noopener noreferrer">Beim ÖFB ansehen ↗</a> : null}
       </article>;
