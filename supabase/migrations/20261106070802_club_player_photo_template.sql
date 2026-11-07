@@ -1,7 +1,8 @@
 -- Card format belongs to the club; individual image coordinates remain on memberships.
 ALTER TABLE public.clubs ADD COLUMN player_photo_template text NOT NULL DEFAULT 'wide'
  CHECK(player_photo_template IN ('wide','square'));
-UPDATE public.clubs SET player_photo_template='square' WHERE id='f89c97bb-1408-438d-9f93-efec64f51f88';
+-- Existing club-specific presentation choices stay in their own environment.
+-- Do not copy a TEST club preference into LIVE.
 CREATE FUNCTION public.admin_save_club_photo_template(p_club_id uuid,p_template text,p_expected text)
 RETURNS void LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
 BEGIN

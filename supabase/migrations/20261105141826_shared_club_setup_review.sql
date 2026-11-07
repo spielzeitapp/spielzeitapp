@@ -20,7 +20,7 @@ CREATE POLICY club_setup_admin_update ON public.manager_club_setup_progress FOR 
 -- Same effective defaults and color normalization as clubBranding.ts.
 -- A subsequent branding change invalidates the shared confirmation.
 CREATE FUNCTION public.manager_club_setup_signature(c public.clubs)
-RETURNS jsonb LANGUAGE sql IMMUTABLE SECURITY INVOKER SET search_path=public AS $$
+RETURNS jsonb LANGUAGE sql IMMUTABLE SECURITY INVOKER SET search_path=public,pg_temp AS $$
   SELECT jsonb_build_object('name',btrim(c.name),'logo',btrim(c.logo_url),
     'primary',CASE WHEN btrim(c.primary_color) ~* '^#[0-9a-f]{6}$' THEN upper(btrim(c.primary_color)) ELSE '#111114' END,
     'secondary',CASE WHEN btrim(c.secondary_color) ~* '^#[0-9a-f]{6}$' THEN upper(btrim(c.secondary_color)) ELSE '#FFFFFF' END,
@@ -29,7 +29,7 @@ $$;
 REVOKE ALL ON FUNCTION public.manager_club_setup_signature(public.clubs) FROM PUBLIC,anon,authenticated;
 
 CREATE OR REPLACE FUNCTION public.admin_team_setup_snapshot(p_team_season_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public,pg_temp AS $$
 DECLARE v_result jsonb;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.is_platform_admin() THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;
@@ -76,7 +76,7 @@ END $$;
 
 
 CREATE OR REPLACE FUNCTION public.admin_save_setup_check(p_team_season_id uuid,p_step text,p_value text)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public,pg_temp AS $$
 DECLARE v_club public.clubs; v_snapshot jsonb;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.is_platform_admin() THEN RAISE EXCEPTION 'Forbidden' USING ERRCODE='42501'; END IF;

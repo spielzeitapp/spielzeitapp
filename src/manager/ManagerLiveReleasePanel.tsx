@@ -31,6 +31,7 @@ export function ManagerLiveReleasePanel(){
  const blockers=(plan?.blockers??[]).filter(message=>!(sameSource&&message==='LIVE enthält diesen Stand bereits.')&&!(publishing&&message==='Eine Veröffentlichung läuft bereits.'));
  const current=sameSource&&plan?.liveVerified===true&&!publishing&&!blockers.length&&!error;
  const pending=sameSource&&!current&&!blockers.length&&!error;
+ const technicalMessage=plan?.technicalReview?.report?.passed===false&&plan.technicalReview.message==='Prüfbericht gehört nicht mehr zu diesem Stand. Bitte neu prüfen.'?'Automatische Prüfung abgeschlossen. Die oben genannten Änderungen benötigen eine gesonderte technische Prüfung.':plan?.technicalReview?.message;
  const warnings=current?[]:plan?.warnings??[];
  const light=error||blockers.length?'red':publishing||pending?null:current?'green':warnings.length?'yellow':plan?.ready?'green':null;
  const lightLabel=current?'LIVE ist aktuell':publishing?'Veröffentlichung läuft':pending?'LIVE-Bestätigung ausstehend':light==='red'?'Gesperrt':light==='yellow'?'Bereit mit Hinweisen':light==='green'?'Bereit zur Veröffentlichung':'Noch nicht geprüft';
@@ -62,7 +63,7 @@ export function ManagerLiveReleasePanel(){
   {reviewNotice?<p role="status" className="text-sm">{reviewNotice}</p>:null}
   {plan.technicalReview?.url?<a className="ml-3 text-sm underline" href={plan.technicalReview.url} target="_blank" rel="noreferrer">Prüfablauf ansehen ↗</a>:null}
   {plan.technicalReview?.report?<div className="space-y-2"><p className="font-semibold">{plan.technicalReview.canApprove?'Prüfung bestanden – Freigabe möglich':'Noch nicht freigabefähig'}</p><ul className="space-y-2 text-sm">{plan.technicalReview.report.findings.map((f,i)=><li key={i}><strong>{f.passed?'Bestanden':'Prüfung nötig'}: {f.path.split('/').pop()}</strong><br/>{f.message}</li>)}</ul></div>:null}
-  {plan.technicalReview?.message?<p className="text-sm">{plan.technicalReview.message}</p>:null}
+  {technicalMessage?<p className="text-sm">{technicalMessage}</p>:null}
   {plan.technicalReview?.approval?.conclusion==='failure'?<p role="alert" className="text-sm text-red-800">Freigabe konnte nicht gespeichert werden. Bitte den Prüfablauf ansehen und erneut „Stand prüfen“ drücken.</p>:null}
   {plan.technicalReview?.canApprove&&!reviewRequested&&!approvalRunning?<><label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={reviewConfirmed} disabled={busy} onChange={e=>setReviewConfirmed(e.target.checked)}/>Ich habe den Prüfbericht und die Änderungen geprüft und gebe genau diesen Stand frei.</label><button type="button" className="min-h-11 rounded-xl bg-emerald-700 px-4 font-semibold text-white disabled:bg-slate-200 disabled:text-slate-600" disabled={busy||!reviewConfirmed} onClick={()=>void reviewAction('approve')}>Geprüfte Datenbankänderungen freigeben</button></>:null}
  </div>:null}
