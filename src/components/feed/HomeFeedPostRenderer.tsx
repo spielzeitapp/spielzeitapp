@@ -192,6 +192,6 @@ const FeedPostContent: React.FC<Props> = ({
 export const HomeFeedPostRenderer: React.FC<Props> = (props) => {
   const { style } = useMatchClubBranding(props.item.post.team_season_id);
   return <div className="sz-feed-club-scope contents" style={style}>
-    <FeedPostContent {...props} />
+    <FeedPostContent {...props} staffCanDelete={props.item.post.id.startsWith('oefb-result:') ? false : props.staffCanDelete} />
   </div>;
 };
