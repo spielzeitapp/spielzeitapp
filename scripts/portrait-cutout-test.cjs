@@ -12,15 +12,16 @@ const assert=require('node:assert/strict'),esbuild=require('esbuild'),Module=req
  const soft=new Float32Array(9).fill(.75);assert(portraitAlpha(soft,3,3,'strong')[4]<portraitAlpha(soft,3,3)[4]);
  const nan=new Float32Array(9).fill(NaN);assert(portraitAlpha(nan,3,3).every(v=>v===0));
  // Real runtime wrapper with a synthetic six-class model response.
- let revoked=0,matte;global.closes=0;
+ let revoked=0,matte,turns=[];global.closes=0;
  global.URL.createObjectURL=()=>'/temporary';global.URL.revokeObjectURL=()=>revoked++;
  global.Image=class{naturalWidth=21;naturalHeight=21;decode=async()=>{}};
  global.fetch=async()=>({ok:true,blob:async()=>new Blob(['photo'])});
- global.document={createElement:()=>({width:0,height:0,getContext:()=>({drawImage(){},createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData:data=>{matte=data;}}),toBlob:cb=>cb(new Blob(['cutout'],{type:'image/png'}))})};
+ global.document={createElement:()=>({width:0,height:0,getContext:()=>({save(){},restore(){},translate(){},rotate(angle){turns.push(angle);},drawImage(){},createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData:data=>{matte=data;}}),toBlob:cb=>cb(new Blob(['cutout'],{type:'image/png'}))})};
  const bg=Float32Array.from(confidence,x=>1-x);global.cutoutMasks=Array.from({length:6},(_,i)=>({width:w,height:h,getAsFloat32Array:()=>i===0?bg:new Float32Array(w*h)}));
  const remove=modules.removePortraitBackground.removePortraitBackground;
  const blob=await remove('/portrait.jpg');assert.equal(blob.type,'image/png');assert(global.cutoutOptions.baseOptions.modelAssetPath.includes('selfie_multiclass_256x256/float32/1/'));
  assert.equal(matte.data[(10*w+10)*4+3],255,'Background class is inverted, not used as foreground');assert.equal(matte.data[3],0);assert.equal(global.closes,1);assert.equal(revoked,1);
- global.cutoutMasks=[global.cutoutMasks[0]];await assert.rejects(()=>remove('/portrait.jpg'),/Keine Person erkannt/);assert.equal(global.closes,2);assert.equal(revoked,2,'Failure closes runtime and temporary image');
+ await remove('/portrait.jpg','normal',270);assert.deepEqual(turns,[1.5*Math.PI,.5*Math.PI],'segment upright then export in original coordinates');
+ global.cutoutMasks=[global.cutoutMasks[0]];await assert.rejects(()=>remove('/portrait.jpg'),/Keine Person erkannt/);assert.equal(global.closes,3);assert.equal(revoked,3,'Failure closes runtime and temporary image');
  console.log('PASS cutout: multiclass background interpretation, uncertain fringe cleanup, strong mode, opaque interior, mask validation and runtime cleanup.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

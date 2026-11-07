@@ -7,7 +7,7 @@ const {portraitPoint,erasePortraitStroke}=await bundle('src/lib/portraitRetouch.
 assert.deepEqual(portraitPoint(75,100,{left:25,top:50,width:100,height:200}),{x:.5,y:.25});
 assert.deepEqual(portraitPoint(-100,1000,{left:0,top:0,width:100,height:200}),{x:0,y:1});assert.equal(portraitPoint(0,0,{left:0,top:0,width:0,height:0}),null);
 let operations=[];
-function context(){return {globalCompositeOperation:'source-over',lineWidth:1,save(){operations.push('save');},restore(){operations.push('restore');},beginPath(){},moveTo(x,y){operations.push(['move',x,y]);},lineTo(x,y){operations.push(['line',x,y]);},arc(x,y,r){operations.push(['arc',x,y,r]);},fill(){operations.push(['fill',this.globalCompositeOperation]);},stroke(){operations.push(['stroke',this.globalCompositeOperation,this.lineWidth]);},clearRect(){operations.push('clear');},drawImage(){operations.push('draw');}};}
+function context(){return {globalCompositeOperation:'source-over',lineWidth:1,translate(x,y){operations.push(['translate',x,y]);},rotate(a){operations.push(['rotate',a]);},save(){operations.push('save');},restore(){operations.push('restore');},beginPath(){},moveTo(x,y){operations.push(['move',x,y]);},lineTo(x,y){operations.push(['line',x,y]);},arc(x,y,r){operations.push(['arc',x,y,r]);},fill(){operations.push(['fill',this.globalCompositeOperation]);},stroke(){operations.push(['stroke',this.globalCompositeOperation,this.lineWidth]);},clearRect(){operations.push('clear');},drawImage(){operations.push('draw');}};}
 let ctx=context();erasePortraitStroke(ctx,{size:2,points:[{x:.1,y:.2},{x:.2,y:.3}]},1000,1000);assert.ok(operations.some(v=>Array.isArray(v)&&v[0]==='stroke'&&v[1]==='destination-out'&&v[2]===20));assert.deepEqual(operations.find(v=>Array.isArray(v)&&v[0]==='move'),['move',100,200]);assert.equal(operations.at(-1),'restore');
 const {rohrbachPortraitLayout}=await bundle('src/lib/rohrbachPortraitLayout.ts');
 const {DEFAULT_PHOTO_LAYOUT}=await bundle('src/lib/playerPhotoLayout.ts');
@@ -17,9 +17,9 @@ let bitmapClosed=0,applied=[],closed=0;
 globalThis.fetch=async()=>({ok:true,blob:async()=>new Blob(['fixture'],{type:'image/png'})});
 globalThis.createImageBitmap=async()=>({width:1000,height:1000,close(){bitmapClosed++;}});
 const canvas={width:1000,height:1000,getContext:()=>context(),getBoundingClientRect:()=>({left:0,top:0,width:500,height:500}),setPointerCapture(){},toBlob(callback,type){assert.equal(type,'image/png');callback(new Blob(['result'],{type}));}};
-globalThis.document={activeElement:{focus(){}},createElement:()=>({getContext:()=>context()})};
+globalThis.document={activeElement:{focus(){}},createElement:()=>({getContext:()=>context(),toBlob(callback,type){callback(new Blob(['result'],{type}));}})};
 const {PortraitCutoutRetouch}=await bundle('src/manager/PortraitCutoutRetouch.tsx');let root;
-const mount=async()=>act(async()=>{root=create(React.createElement(PortraitCutoutRetouch,{source:'https://example.test/cutout.png',onApply:b=>applied.push(b),onClose:()=>closed++}),{createNodeMock:element=>element.type==='canvas'?canvas:element.props.role==='dialog'?{focus(){},querySelectorAll(){return [];}}:null});await new Promise(r=>setImmediate(r));});
+const mount=async(rotation=0)=>act(async()=>{root=create(React.createElement(PortraitCutoutRetouch,{source:'https://example.test/cutout.png',rotation,onApply:b=>applied.push(b),onClose:()=>closed++}),{createNodeMock:element=>element.type==='canvas'?canvas:element.props.role==='dialog'?{focus(){},querySelectorAll(){return [];}}:null});await new Promise(r=>setImmediate(r));});
 const button=text=>root.root.findAllByType('button').find(n=>n.children.join('')===text);
 await mount();assert.equal(bitmapClosed,1);assert.equal(applied.length,0);
 const event=(x,y)=>({button:0,isPrimary:true,pointerId:1,clientX:x,clientY:y,currentTarget:canvas,preventDefault(){}});
@@ -30,4 +30,5 @@ await act(async()=>{const c=root.root.findByType('canvas');c.props.onPointerDown
 await act(async()=>{const c=root.root.findByType('canvas');c.props.onPointerDown(event(100,100));c.props.onPointerUp(event(100,100));});
 await act(async()=>button('Korrektur in Vorschau übernehmen').props.onClick());assert.equal(applied.length,1);assert.equal(applied[0].type,'image/png');await act(async()=>root.unmount());
 await mount();await act(async()=>button('Abbrechen').props.onClick());assert.equal(closed,1);assert.equal(applied.length,1,'cancel does not apply');await act(async()=>root.unmount());
+globalThis.createImageBitmap=async()=>({width:1000,height:600,close(){bitmapClosed++;}});operations=[];await mount(270);assert.equal(canvas.width,600);assert.equal(canvas.height,1000);assert.ok(operations.some(v=>Array.isArray(v)&&v[0]==='rotate'&&v[1]===1.5*Math.PI));await act(async()=>{const c=root.root.findByType('canvas');c.props.onPointerDown(event(100,100));c.props.onPointerUp(event(100,100));});await act(async()=>button('Korrektur in Vorschau übernehmen').props.onClick());assert.ok(operations.some(v=>Array.isArray(v)&&v[0]==='rotate'&&v[1]===.5*Math.PI),'export returns to source orientation, avoiding double rotation');await act(async()=>root.unmount());
 console.log('PASS: normalized brush geometry, alpha erasure, immutable layout suggestion, real retouch dialog load/strokes/undo/cancel and explicit PNG preview output.');

@@ -343,7 +343,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                   className="flex min-h-[52px] flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <OefbPlayerPhoto src={p.cutout_url || p.avatar_url} name={p.display_name} className="h-10 w-10" />
+                    <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-lg"><span className="block" style={{transform:`rotate(${p.photo_layout?.rotation??p.photo_layout_default?.rotation??0}deg)`}}><OefbPlayerPhoto src={p.cutout_url || p.avatar_url} name={p.display_name} className="h-10 w-10" /></span></span>
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-slate-900">{p.display_name}</p>
                       <p className="text-[12px] text-slate-500">
@@ -365,7 +365,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                     {canEdit ? <button type="button" onClick={() => editPlayer(p)} className="text-[12px] font-semibold text-red-700">Bearbeiten</button> : null}
                     <Link to={`/app/team?teamSeason=${encodeURIComponent(seasonId??'')}&player=${encodeURIComponent(p.id)}`} className="text-[12px] font-semibold text-red-700">Profil</Link>
                   </div>
-                  {canEdit && photoEditingId===p.id ? <div className="w-full space-y-3"><ManagerRosterPhotos seasonId={seasonId!} player={{id:p.id,name:p.display_name,avatar:p.avatar_url}} onSaved={()=>{setNotice('Spielerfoto gespeichert.');void reloadRoster(seasonId!);}}/><ManagerPlayerPhotoEditor key={`${seasonId}:${p.id}`} player={p} seasonId={seasonId} onClose={()=>setPhotoEditingId(null)} onSaved={()=>{setPhotoEditingId(null);setNotice("Foto-Gestaltung gespeichert.");void reloadRoster(seasonId);}}/></div> : null}
+                  {canEdit && photoEditingId===p.id ? <div className="w-full space-y-3"><ManagerRosterPhotos seasonId={seasonId!} player={{id:p.id,name:p.display_name,avatar:p.avatar_url,rotation:p.photo_layout?.rotation??p.photo_layout_default?.rotation??0}} onSaved={()=>{setNotice('Spielerfoto gespeichert.');void reloadRoster(seasonId!);}}/><ManagerPlayerPhotoEditor key={`${seasonId}:${p.id}`} player={p} seasonId={seasonId} onClose={()=>setPhotoEditingId(null)} onSaved={()=>{setPhotoEditingId(null);setNotice("Foto-Gestaltung gespeichert.");void reloadRoster(seasonId);}}/></div> : null}
                   {canEdit ? <div className="w-full border-t border-slate-100 pt-1"><ManagerRosterPlayerActions
                     key={`${seasonId}:${p.id}`} seasonId={seasonId} playerId={p.id} name={p.display_name} removed={p.status === 'archived'}
                     onDone={(message, failed) => {

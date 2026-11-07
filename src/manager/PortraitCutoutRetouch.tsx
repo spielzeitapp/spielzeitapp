@@ -1,8 +1,9 @@
+import {rotatePortraitCanvas} from '../lib/rotatePortraitCanvas';
 import React,{useEffect,useRef,useState} from 'react';
 import {playerPhotoDisplayUrl} from '../lib/playerPhotoDisplay';
 import {erasePortraitStroke,portraitPoint,type PortraitStroke} from '../lib/portraitRetouch';
 
-export function PortraitCutoutRetouch({source,onApply,onClose}:{source:string;onApply:(blob:Blob)=>void;onClose:()=>void}) {
+export function PortraitCutoutRetouch({source,rotation=0,onApply,onClose}:{source:string;rotation?:number;onApply:(blob:Blob)=>void;onClose:()=>void}) {
  const root=useRef<HTMLDivElement>(null),canvas=useRef<HTMLCanvasElement>(null),base=useRef<HTMLCanvasElement|null>(null);
  const strokes=useRef<PortraitStroke[]>([]),activeStroke=useRef<{id:number;stroke:PortraitStroke}|null>(null),alive=useRef(true);
  const [loading,setLoading]=useState(true),[exporting,setExporting]=useState(false),[error,setError]=useState('');
@@ -17,12 +18,12 @@ export function PortraitCutoutRetouch({source,onApply,onClose}:{source:string;on
    const bitmap=await createImageBitmap(blob);
    try{if(!live||!canvas.current)return;const c=canvas.current,b=document.createElement('canvas'),scale=Math.min(1,1400/Math.max(bitmap.width,bitmap.height));
     c.width=b.width=Math.max(1,Math.round(bitmap.width*scale));c.height=b.height=Math.max(1,Math.round(bitmap.height*scale));
-    const ctx=b.getContext('2d');if(!ctx)throw Error('Bildbearbeitung ist nicht verfügbar.');ctx.drawImage(bitmap,0,0,b.width,b.height);base.current=b;strokes.current=[];setCount(0);repaint();
+    const ctx=b.getContext('2d');if(!ctx)throw Error('Bildbearbeitung ist nicht verfügbar.');ctx.drawImage(bitmap,0,0,b.width,b.height);const upright=rotatePortraitCanvas(b,rotation);c.width=upright.width;c.height=upright.height;base.current=upright;strokes.current=[];setCount(0);repaint();
    }finally{bitmap.close();}
   }catch(e){if(live)setError(e instanceof Error?e.message:'Freisteller konnte nicht geöffnet werden.');}
   finally{clearTimeout(timeout);if(live)setLoading(false);}})();
   return()=>{live=false;alive.current=false;clearTimeout(timeout);controller.abort();base.current=null;previous?.focus?.();};
- },[source]);
+ },[source,rotation]);
  const point=(e:React.PointerEvent<HTMLCanvasElement>)=>portraitPoint(e.clientX,e.clientY,e.currentTarget.getBoundingClientRect());
  const start=(e:React.PointerEvent<HTMLCanvasElement>)=>{
   if(loading||exporting||error||e.button!==0||e.isPrimary===false)return;const p=point(e),ctx=e.currentTarget.getContext('2d');if(!p||!ctx)return;
@@ -35,7 +36,8 @@ export function PortraitCutoutRetouch({source,onApply,onClose}:{source:string;on
  const finish=(e:React.PointerEvent<HTMLCanvasElement>,cancel=false)=>{const active=activeStroke.current;if(!active||active.id!==e.pointerId)return;activeStroke.current=null;if(cancel)repaint();else{strokes.current.push(active.stroke);setCount(strokes.current.length);}};
  const apply=()=>{
   if(loading||exporting||!count||!canvas.current)return;setExporting(true);setError('');
-  canvas.current.toBlob(blob=>{if(!alive.current)return;if(!blob){setError('Die Korrektur konnte nicht erstellt werden.');setExporting(false);return;}onApply(blob);},'image/png');
+  let output:HTMLCanvasElement;try{output=rotatePortraitCanvas(canvas.current,-rotation);}catch(e){setError(e instanceof Error?e.message:'Korrektur konnte nicht erstellt werden.');setExporting(false);return;}
+  output.toBlob(blob=>{if(!alive.current)return;if(!blob){setError('Die Korrektur konnte nicht erstellt werden.');setExporting(false);return;}onApply(blob);},'image/png');
  };
  const keyDown=(e:React.KeyboardEvent)=>{
   if(e.key==='Escape'&&!exporting){e.preventDefault();e.stopPropagation();onClose();}
