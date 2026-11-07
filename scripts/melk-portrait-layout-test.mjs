@@ -59,3 +59,22 @@ for(const override of [undefined,individual]){
  await act(async()=>root.unmount());
 }
 console.log('PASS carousel: shared team design and individual precedence.');
+
+// Real App labels put the age before the club name; Manager metadata does not.
+const hiddenClub=structuredClone(shared);
+hiddenClub.team.visible=true;hiddenClub.team.showName=false;hiddenClub.team.showSeason=true;
+function textOf(node){return typeof node==='string'?node:node.children?.map(textOf).join('')??'';}
+let managerHeader;
+await act(async()=>root=create(React.createElement(ProfileHeroCard,{variant:'player',clubDesign:hiddenClub,photoLayout:layout,watermark:'2',firstNameLine:'Nina',lastNameLine:'Haider',teamName:'SC Melk FR',teamSeasonLabel:'SC Melk FR · U16 · 2026/27',photoUrl:'/portrait.jpg',initials:'NH'})));
+managerHeader=textOf(root.root.findByProps({'data-profile-element':'team'}));
+assert.equal(managerHeader,'U16 · 2026/27');
+await act(async()=>root.unmount());
+for(const showName of [false,true]){
+ const design=structuredClone(hiddenClub);design.team.showName=showName;
+ const member={id:'nina',first_name:'Nina',last_name:'Haider',jersey_number:2,avatar_url:'/portrait.jpg',photo_layout_default:layout,club_profile_design:design};
+ await act(async()=>root=create(React.createElement(TeamSquadShowcase,{players:[member],ownPlayerIds:new Set(),onPlayerClick(){},teamName:'U16 SC Melk FR',teamSeasonLabel:'SC Melk FR · U16 · 2026/27'})));
+ const header=textOf(root.root.findByProps({'data-profile-element':'team'}));
+ assert.equal(header,showName?'SC Melk FRU16 · 2026/27':managerHeader,'App and Manager honor the same club-name toggle without repeating the full context label');
+ await act(async()=>root.unmount());
+}
+console.log('PASS saved club visibility: real App labels match Manager preview; hidden club stays hidden.');
