@@ -1,4 +1,5 @@
-import React, {useEffect, useRef, useState} from 'react';
+import type {OefbImportWorkflowProps} from './oefbImportWorkflow';
+import React, {useEffect, useImperativeHandle, useRef, useState} from 'react';
 import {supabase} from '../lib/supabaseClient';
 import {managerLookupStaffUserByEmail} from '../lib/platformClubAdmin';
 import {type TeamStaffMember, staffDisplayName} from '../hooks/useTeamStaff';
@@ -16,13 +17,14 @@ function CutoutPreview({blob}:{blob:Blob}){
  useEffect(()=>{const u=URL.createObjectURL(blob);setUrl(u);return()=>URL.revokeObjectURL(u);},[blob]);
  return <img src={url} alt="Freisteller-Vorschau" className="h-48 w-48 rounded-xl bg-slate-800 object-contain"/>;
 }
-export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:string;staff:TeamStaffMember[];onSaved:()=>void|Promise<unknown>}){
+export function ManagerOefbStaffPreview({seasonId,staff,onSaved,sourceUrl,workflowRef,onWorkflowState}:{seasonId:string;staff:TeamStaffMember[];onSaved:()=>void|Promise<unknown>} & OefbImportWorkflowProps){
+ const embedded=Boolean(workflowRef);
  const generation=useRef(0);
- const [url,setUrl]=useState(''),[source,setSource]=useState('');
+ const [url,setUrl]=useState(sourceUrl||''),[source,setSource]=useState('');
  const [people,setPeople]=useState<Candidate[]>([]),[choices,setChoices]=useState<Choice[]>([]);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [confirmed,setConfirmed]=useState(false);
- useEffect(()=>()=>{generation.current++;},[seasonId]);
+ useEffect(()=>{setUrl(sourceUrl||'');setPeople([]);setChoices([]);return()=>{generation.current++;};},[seasonId,sourceUrl]);
  function patch(i:number,value:Partial<Choice>){setConfirmed(false);setChoices(old=>old.map((c,n)=>n===i?{...c,...value}:c));}
  function choose(i:number,target:Target){const role=['trainer','head_coach','co_trainer'].includes(target.role||'')?target.role as Role:people[i].role;patch(i,{target,role,takeName:!target.first_name&&!target.last_name,takePhoto:!target.avatar_url&&!target.cutout_url,cutout:null});}
  async function preview(){
@@ -40,7 +42,9 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:strin
     return {user_id:account.user_id,first_name:account.first_name||null,last_name:account.last_name||null,avatar_url:null} as Target;
    }));
    if(version!==generation.current)return;
-   setChoices(found.map((p,i)=>({target:null,email:p.email||'',lookup:suggestions[i],role:p.role,takeName:false,takePhoto:false,cutout:null})));
+   setChoices(found.map((p,i)=>{const matches=staff.filter(s=>normalize(staffDisplayName(s))===normalize(p.name));
+    const target=embedded?(matches.length===1?matches[0]:!matches.length?suggestions[i]:null):null;
+    return {target,email:p.email||'',lookup:suggestions[i],role:(target&&['trainer','head_coach','co_trainer'].includes(target.role||'')?target.role:p.role) as Role,takeName:Boolean(target&&!target.first_name&&!target.last_name),takePhoto:Boolean(target&&!target.avatar_url&&!target.cutout_url),cutout:null};}));
    setPeople(found);
    setNotice(data.notice||'');
   }catch(e){if(version===generation.current)setError(e instanceof Error?e.message:'ÖFB-Trainer konnten nicht geladen werden.');}
@@ -61,13 +65,14 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:strin
   catch(e){if(version===generation.current)setError(e instanceof Error?e.message:'Freistellung fehlgeschlagen.');}
   finally{if(version===generation.current)setBusy(false);}
  }
+ const unresolved=choices.filter(c=>!c.target&&!c.saved).length;
  const selected=choices.map((c,i)=>({c,i})).filter(({c})=>c.target&&!c.saved);
  const unique=new Set(selected.map(({c})=>c.target!.user_id)).size===selected.length;
  async function save(){
-  if(busy||!confirmed||!selected.length||!unique)return;const version=generation.current;setBusy(true);setError('');setNotice('');
+  if(busy||(!embedded&&!confirmed)||!selected.length||!unique)return false;const version=generation.current;setBusy(true);setError('');setNotice('');
   try{
    for(const {c,i}of selected){
-    if(version!==generation.current)return;
+    if(version!==generation.current)return false;
     const person=people[i],target=c.target!;let cutoutUrl:string|null=null;
     if(c.takePhoto&&c.cutout){
      const uploaded=await uploadStaffProfileCutout(seasonId,target.user_id,new File([c.cutout],'portrait.png',{type:'image/png'}));
@@ -81,17 +86,19 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:strin
      p_take_photo:c.takePhoto&&!!person.photoUrl,p_photo_url:person.photoUrl,p_cutout_url:cutoutUrl,
     });
     if(result.error)throw Error(person.name+': '+result.error.message);
-    if(version!==generation.current)return;
+    if(version!==generation.current)return false;
     patch(i,{saved:true});
    }
-   setNotice('Ausgewählte Trainer und Fotos gespeichert.');setConfirmed(false);await onSaved();
-  }catch(e){if(version===generation.current){setError((e instanceof Error?e.message:'Speichern fehlgeschlagen.')+' Bereits als gespeichert markierte Trainer bleiben gespeichert; offene Zuordnungen erneut bestätigen.');setConfirmed(false);}}
+   setNotice('Ausgewählte Trainer und Fotos gespeichert.');setConfirmed(false);await onSaved();return true;
+  }catch(e){if(version===generation.current){setError((e instanceof Error?e.message:'Speichern fehlgeschlagen.')+' Bereits als gespeichert markierte Trainer bleiben gespeichert; offene Zuordnungen erneut bestätigen.');setConfirmed(false);}return false;}
   finally{if(version===generation.current)setBusy(false);}
  }
+ useImperativeHandle(workflowRef,()=>({preview,save}));
+ useEffect(()=>{onWorkflowState?.({busy,found:people.length,selected:selected.length,canSave:!busy&&selected.length>0&&unique,error});},[busy,people,choices,unique,error,onWorkflowState]);
  return <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
   <h4 className="font-semibold">ÖFB-Trainer einlesen & verknüpfen</h4>
-  <label className="block text-sm">ÖFB-Link „Trainer & Betreuer“<input type="url" value={url} disabled={busy} onChange={e=>{generation.current++;setUrl(e.target.value);setPeople([]);setChoices([]);setConfirmed(false);setError('');setNotice('');}} placeholder="https://vereine.oefb.at/…/Trainer-Betreuer" className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"/></label>
-  <button type="button" disabled={busy||!url.trim()} onClick={()=>void preview()} className="min-h-11 rounded-lg bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-50">{busy?'Bitte warten…':'Trainer einlesen'}</button>
+  {!embedded && <><label className="block text-sm">ÖFB-Link „Trainer & Betreuer“<input type="url" value={url} disabled={busy} onChange={e=>{generation.current++;setUrl(e.target.value);setPeople([]);setChoices([]);setConfirmed(false);setError('');setNotice('');}} placeholder="https://vereine.oefb.at/…/Trainer-Betreuer" className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"/></label>
+  <button type="button" disabled={busy||!url.trim()} onClick={()=>void preview()} className="min-h-11 rounded-lg bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-50">{busy?'Bitte warten…':'Trainer einlesen'}</button></>}
   {people.map((p,i)=>{const c=choices[i];const matches=staff.filter(s=>normalize(staffDisplayName(s))===normalize(p.name));const name=c.target?[c.target.first_name,c.target.last_name].filter(Boolean).join(' '):'';return <div key={p.name+'|'+p.sourceRole} className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
    <div className="flex items-center gap-3"><OefbPlayerPhoto src={p.photoUrl} name={p.name}/><div><p className="font-semibold">{p.name}</p><p className="text-sm text-slate-500">{p.sourceRole}</p></div></div>
    {c.saved?<p role="status" className="text-sm font-semibold text-emerald-800">✓ Gespeichert</p>:<>
@@ -111,7 +118,8 @@ export function ManagerOefbStaffPreview({seasonId,staff,onSaved}:{seasonId:strin
     {c.cutout?<div className="space-y-2"><CutoutPreview blob={c.cutout}/><p className="text-sm">Vorschau prüfen. Das ÖFB-Original bleibt als Profilfoto erhalten; der Freisteller wird getrennt gespeichert.</p><button type="button" disabled={busy} onClick={()=>patch(i,{cutout:null})} className="underline">Freistellung verwerfen</button></div>:null}
    </div>:null}</>}
   </div>;})}
-  {selected.length?<><label className="flex gap-2 text-sm"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>Ich habe Mannschaft, Personen, Rollen und Fotoübernahme geprüft.</label>{!unique?<p role="alert" className="text-sm text-red-700">Ein App-Konto wurde mehrfach gewählt. Bitte jede Person eindeutig zuordnen.</p>:null}<button type="button" disabled={busy||!confirmed||!unique} onClick={()=>void save()} className="min-h-11 rounded-lg bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-50">Zuordnungen speichern ({selected.length})</button></>:null}
+  {!embedded&&selected.length?<><label className="flex gap-2 text-sm"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>Ich habe Mannschaft, Personen, Rollen und Fotoübernahme geprüft.</label>{!unique?<p role="alert" className="text-sm text-red-700">Ein App-Konto wurde mehrfach gewählt. Bitte jede Person eindeutig zuordnen.</p>:null}<button type="button" disabled={busy||!confirmed||!unique} onClick={()=>void save()} className="min-h-11 rounded-lg bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-50">Zuordnungen speichern ({selected.length})</button></>:null}
+  {embedded&&unresolved>0&&<p className="text-sm text-amber-800">{unresolved} Trainer noch offen: App-Konto zuordnen oder später unter Punkt 4 einladen. Es werden keine Konten automatisch angelegt.</p>}
   {error?<p role="alert" className="text-sm text-red-700">{error}</p>:null}
   {notice?<p role="status" className="text-sm text-slate-700">{notice}</p>:null}
  </section>;
