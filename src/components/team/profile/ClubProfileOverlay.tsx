@@ -1,4 +1,5 @@
 import React,{useRef} from 'react';
+import {profileHeaderLabels} from '../../../lib/clubProfileDesign';
 import type {ClubProfileDesign,ProfileElement} from '../../../lib/clubProfileDesign';
 import {AutoFitName} from './AutoFitName';
 export function moveProfileElement(design:ClubProfileDesign,key:ProfileElement,x:number,y:number):ClubProfileDesign{
@@ -8,6 +9,7 @@ export function moveProfileElement(design:ClubProfileDesign,key:ProfileElement,x
 export function ClubProfileOverlay({design,first,last,number,team,season,logo,onChange}:{design:ClubProfileDesign;first:string;last:string;number:string;team?:string|null;season:string;logo?:string|null;onChange?:(design:ClubProfileDesign)=>void}){
  const root=useRef<HTMLDivElement>(null),drag=useRef<{key:ProfileElement;id:number;x:number;y:number;design:ClubProfileDesign;width:number;height:number}|null>(null);
  const snap=(v:number)=>[5,25,50,75,95].find(line=>Math.abs(line-v)<1.2)??v;
+ const header=profileHeaderLabels(team,season);
  const labels={name:'Spielername',number:'Rückennummer',logo:'Vereinslogo',team:'Verein und Saison'};
  return <div ref={root} className="pointer-events-none absolute inset-0 z-10 overflow-hidden" style={{containerType:'inline-size'}} data-club-profile-overlay>
  {onChange&&<div aria-hidden="true" data-profile-guides className="pointer-events-none absolute inset-0">{[25,50,75].map(at=><React.Fragment key={at}><span className="absolute inset-y-0 border-l border-dashed border-white/45" style={{left:`${at}%`}}/><span className="absolute inset-x-0 border-t border-dashed border-white/45" style={{top:`${at}%`}}/></React.Fragment>)}<span className="absolute inset-[5%] border border-dashed border-amber-300/60"/></div>}
@@ -23,6 +25,6 @@ export function ClubProfileOverlay({design,first,last,number,team,season,logo,on
  onPointerCancel:()=>{if(drag.current)onChange(drag.current.design);drag.current=null;},
  onKeyDown:(e:React.KeyboardEvent<HTMLElement>)=>{const delta= e.shiftKey?5:1;const changes:Record<string,[number,number]>={ArrowLeft:[-delta,0],ArrowRight:[delta,0],ArrowUp:[0,-delta],ArrowDown:[0,delta]};if(!changes[e.key])return;e.preventDefault();const [x,y]=changes[e.key];onChange(moveProfileElement(design,key,d.x+x,d.y+y));}
  }:{};
- return key==='logo'?<img key={key} {...events} draggable={false} data-profile-element={key} src={logo!} alt="" style={{...style,width:`${d.size}%`,height:'auto',maxHeight:'60%',objectFit:'contain'}}/>:<div key={key} {...events} data-profile-element={key} style={style} className="font-black uppercase tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">{key==='name'?<AutoFitName first={first} last={last}/>:key==='number'?number:<>{d.showName!==false&&team}{d.showSeason!==false&&<span className="mt-1 block text-[0.7em]">{season.replace(team??'','').replace(/^[ ·]+/,'')}</span>}</>}</div>;
+ return key==='logo'?<img key={key} {...events} draggable={false} data-profile-element={key} src={logo!} alt="" style={{...style,width:`${d.size}%`,height:'auto',maxHeight:'60%',objectFit:'contain'}}/>:<div key={key} {...events} data-profile-element={key} style={style} className="font-black uppercase tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">{key==='name'?<AutoFitName first={first} last={last}/>:key==='number'?number:<>{d.showName!==false&&header.team}{d.showSeason!==false&&<span className="mt-1 block text-[0.7em]">{header.season}</span>}</>}</div>;
  })}</div>;
 }

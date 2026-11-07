@@ -11,3 +11,11 @@ export function isClubProfileDesign(value:unknown):value is ClubProfileDesign{
  return (['name','number','logo','team'] as const).every(key=>{const e=(value as Record<string,unknown>)[key] as ElementDesign|undefined;
  return Boolean(e&&typeof e==='object'&&Object.keys(e).filter(k=>!['showName','showSeason'].includes(k)).length===7&&(['showName','showSeason'] as const).every(f=>e[f]===undefined||typeof e[f]==='boolean')&&typeof e.visible==='boolean'&&typeof e.color==='string'&&/^#[0-9a-f]{6}$/i.test(e.color)&&['left','center','right'].includes(e.align)&&['x','y','size','opacity'].every(field=>{const n=e[field as 'x'];return typeof n==='number'&&Number.isFinite(n)&&n>=(field==='size'?2:0)&&n<=(field==='size'?50:100);}));});
 }
+
+/** Manager metadata and App labels use different ordering; keep club and season separate. */
+export function profileHeaderLabels(team: string | null | undefined, label: string) {
+ const season = label.match(/\b20\d{2}\/\d{2,4}\b/)?.[0];
+ const age = label.match(/\b(?:U\s*\d{1,2}[a-z]?|KM|Reserve|Frauen|Herren)\b/i)?.[0];
+ const name = (team ?? '').replace(/^U\s*\d{1,2}[a-z]?\s+/i, '').trim();
+ return {team:name, season:season ? [age?.replace(/\s+/g, ''), season].filter(Boolean).join(' · ') : label.replace(team ?? '', '').replace(/^[ ·]+/, '')};
+}

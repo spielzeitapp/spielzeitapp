@@ -25,6 +25,7 @@ type UsePlayersMode = RosterListMode;
 
 type UsePlayersOptions = {
   mode?: UsePlayersMode;
+  refreshOnFocus?: boolean;
 };
 
 /**
@@ -39,7 +40,7 @@ export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOpti
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
+  const load = useCallback(async (background = false) => {
     const request = ++requestVersion.current;
     if (teamSeasonId === null) {
       setLoadedScope(scope);
@@ -48,12 +49,12 @@ export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOpti
       setError(null);
       return;
     }
-    setLoading(true);
-    setError(null);
+    if (!background) { setLoading(true); setError(null); }
     const { data, error: queryError } = await listRoster(teamSeasonId, mode);
     if (request !== requestVersion.current) return;
     setLoadedScope(scope);
     if (queryError) {
+      if (background) { setLoading(false); return; }
       setError(queryError);
       setPlayers([]);
       setLoading(false);
@@ -64,10 +65,31 @@ export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOpti
     setLoading(false);
   }, [mode, teamSeasonId, scope]);
 
+  const refetch = useCallback(() => load(), [load]);
+
   useEffect(() => {
     void refetch();
     return () => { requestVersion.current += 1; };
   }, [refetch]);
+
+  useEffect(() => {
+    if (!options?.refreshOnFocus || !teamSeasonId) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      if (document.visibilityState === 'hidden') return;
+      clearTimeout(timer);
+      timer = setTimeout(() => { void load(true); }, 100);
+    };
+    window.addEventListener('focus', refresh);
+    window.addEventListener('pageshow', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('pageshow', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [load, teamSeasonId, options?.refreshOnFocus]);
 
   return { players: loadedScope === scope ? players : [], loading: teamSeasonId != null && (loading || loadedScope !== scope), error: loadedScope === scope ? error : null, refetch };
 }

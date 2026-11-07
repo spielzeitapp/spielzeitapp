@@ -230,6 +230,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     refetch: refetchPlayersLive,
   } = usePlayers(isDemo ? null : (readTeamSeasonId ?? teamSeasonId), {
     mode: canManageRoster(normalizeRole(role)) || isHistoryReadOnly ? "all" : "active",
+    refreshOnFocus: true,
   });
   const players = isDemo ? demo!.players : livePlayers;
   /** Saisonweite Trainingsbeteiligung: nur active — auch im Archiv. */

@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
+const result=await build({entryPoints:['src/hooks/usePlayers.ts'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'roster-fixture',setup(b){b.onResolve({filter:/lib\/rosterService$/},()=>({path:'roster',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const listRoster=(...args)=>globalThis.readRoster(...args);',loader:'js'}));}}]});
+const module={exports:{}};new Function('require','module','exports',result.outputFiles[0].text)(require,module,module.exports);
+const {usePlayers}=module.exports;
+globalThis.window=new EventTarget();globalThis.document=new EventTarget();document.visibilityState='visible';
+let calls=0,latest,fail=false;
+globalThis.readRoster=async()=>{calls++;return fail?{data:[],error:'offline'}:{data:[{id:'nina',club_profile_design:{team:{showName:calls===1}}}],error:null};};
+function Fixture({enabled=true}){latest=usePlayers('melk',{refreshOnFocus:enabled});return null;}
+let root;await act(async()=>{root=create(React.createElement(Fixture,{}));});
+assert.equal(calls,1);assert.equal(latest.players[0].club_profile_design.team.showName,true);
+await act(async()=>{window.dispatchEvent(new Event('focus'));document.dispatchEvent(new Event('visibilitychange'));await new Promise(r=>setTimeout(r,120));});
+assert.equal(calls,2,'Focus/visibility burst is coalesced');assert.equal(latest.players[0].club_profile_design.team.showName,false);assert.equal(latest.loading,false);
+document.visibilityState='hidden';await act(async()=>{document.dispatchEvent(new Event('visibilitychange'));await new Promise(r=>setTimeout(r,120));});assert.equal(calls,2);
+document.visibilityState='visible';fail=true;await act(async()=>{window.dispatchEvent(new Event('pageshow'));await new Promise(r=>setTimeout(r,120));});assert.equal(calls,3);assert.equal(latest.players.length,1,'Background network failure preserves the visible roster');assert.equal(latest.error,null);
+await act(async()=>{root.unmount();});window.dispatchEvent(new Event('focus'));await new Promise(r=>setTimeout(r,120));assert.equal(calls,3,'Listeners are removed on unmount');
+await act(async()=>{root=create(React.createElement(Fixture,{enabled:false}));});const before=calls;window.dispatchEvent(new Event('focus'));await new Promise(r=>setTimeout(r,120));assert.equal(calls,before,'Other roster consumers retain their existing load policy');await act(async()=>root.unmount());
+console.log('PASS roster refresh: saved design reloads on return, deduplicates resume events, preserves data offline and cleans up.');
