@@ -59,7 +59,7 @@ export const OefbCompetitionTable: React.FC<{ competitionId: string; sourceUrl: 
   }, [refresh]);
 
   return (
-    <section className="space-y-3" aria-label="ÖFB-Tabelle">
+    <section data-oefb-table className="space-y-3" aria-label="ÖFB-Tabelle">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-bold uppercase tracking-wider text-white">{table?.name ?? 'ÖFB-Tabelle'}</h2>
         <button type="button" onClick={() => void refresh()} disabled={loading}

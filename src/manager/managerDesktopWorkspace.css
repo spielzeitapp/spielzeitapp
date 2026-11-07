@@ -326,3 +326,24 @@
     color: #15803d !important;
   }
 }
+
+/* League standings use the Manager workspace palette, including import previews.
+   The App keeps its dark club presentation. */
+.manager-shell [data-oefb-table] {
+  background: #fff;
+  color: #0f172a;
+}
+.manager-shell [data-oefb-table] [class*="text-white"] { color: #0f172a !important; }
+.manager-shell [data-oefb-table] [class*="text-white/"] { color: #64748b !important; }
+.manager-shell [data-competition-standings] [role="region"] {
+  background: #fff !important;
+  border-color: #cbd5e1 !important;
+}
+.manager-shell [data-competition-standings] :is(thead, tr) { border-color: #e2e8f0 !important; }
+.manager-shell [data-competition-standings] thead { background: #f1f5f9; }
+.manager-shell [data-competition-standings] tr.font-bold { background: #e2e8f0 !important; }
+.manager-shell [data-oefb-table] .sz-club-schedule-toolbar-action {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
