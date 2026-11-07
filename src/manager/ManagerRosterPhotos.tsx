@@ -19,7 +19,7 @@ export function managerTeamPhotoUrl(value:string):string {
  if(u.hostname==='vereine.oefb.at'&&u.pathname.startsWith('/netzwerk/imagedownload/'))return '/api/oefb/table?view=photo&url='+encodeURIComponent(u.href);
  return u.href;
 }
-export function ManagerRosterPhotos({seasonId,player,onSaved,sourceUrl}:{seasonId:string;player?:{id:string;name:string;avatar?:string|null};onSaved:()=>void;sourceUrl?:string}) {
+export function ManagerRosterPhotos({seasonId,player,onSaved,sourceUrl}:{seasonId:string;player?:{id:string;name:string;avatar?:string|null;rotation?:number};onSaved:()=>void;sourceUrl?:string}) {
  const [resolved,setResolved]=useState<string|null>(null),[ready,setReady]=useState(false),[linkStatus,setLinkStatus]=useState('');
  const [file,setFile]=useState<File|null>(null),[url,setUrl]=useState(''),[saved,setSaved]=useState<string|null>(null);
  const [preview,setPreview]=useState<string|null>(null),[kind,setKind]=useState('photo'),[remove,setRemove]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
@@ -72,7 +72,7 @@ export function ManagerRosterPhotos({seasonId,player,onSaved,sourceUrl}:{seasonI
  return <section className="w-full space-y-3 rounded-xl border border-slate-200 bg-white p-4" aria-label={player?'Spielerfoto hochladen':'Mannschaftsfoto'}>
   <h3 className="font-bold text-slate-900">{player?`Eigenes Spielerfoto · ${player.name}`:'Mannschaftsfoto · diese Saison'}</h3>
   <p className="text-sm text-slate-600">{player?'Ein eigenes Foto ersetzt das ÖFB-Foto in Teamansicht und Spielerprofil.':'Wird in der Teamansicht und den Kaderbeiträgen verwendet. ÖFB-Kaderseitenlink, direkten Bildlink oder eine eigene Datei verwenden. Vor dem Speichern wird das Bild geprüft.'}</p>
-  {!player&&saved&&!file&&!url.trim()?<ManagerTeamPhotoLayoutEditor key={saved} seasonId={seasonId} photoUrl={saved} onSaved={onSaved}/>:image?<img key={image} src={image} onLoad={()=>{if(draftLink){setReady(true);setLinkStatus('Vorschau geladen. Bild kann gespeichert werden.');}}} onError={()=>{if(draftLink){setReady(false);setLinkStatus('Das Bild konnte nicht geladen werden. Bitte einen direkten Bildlink oder eine Bilddatei verwenden.');}}} alt={player?.name||'Mannschaftsfoto'} className="max-h-48 max-w-full rounded-xl object-contain"/>:null}
+  {!player&&saved&&!file&&!url.trim()?<ManagerTeamPhotoLayoutEditor key={saved} seasonId={seasonId} photoUrl={saved} onSaved={onSaved}/>:image?<img key={image} src={image} onLoad={()=>{if(draftLink){setReady(true);setLinkStatus('Vorschau geladen. Bild kann gespeichert werden.');}}} onError={()=>{if(draftLink){setReady(false);setLinkStatus('Das Bild konnte nicht geladen werden. Bitte einen direkten Bildlink oder eine Bilddatei verwenden.');}}} alt={player?.name||'Mannschaftsfoto'} style={player&&!file?{transform:`rotate(${player.rotation??0}deg)`}:undefined} className={player?"h-48 w-48 max-w-full rounded-xl object-contain":"max-h-48 max-w-full rounded-xl object-contain"}/>:null}
   <fieldset disabled={busy} className="space-y-3">
    {player?<label className="block text-sm">Bildart<select value={kind} onChange={e=>setKind(e.target.value)} className="ml-2 rounded border p-2"><option value="photo">Originalfoto ersetzen</option><option value="cutout">Freigestelltes Bild ergänzen</option></select></label>:null}
    <label className="block text-sm">Bild auswählen · JPG, PNG oder WebP · maximal 4 MB<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{setFile(e.target.files?.[0]??null);setMessage('');}} className="mt-2 block w-full"/></label>
